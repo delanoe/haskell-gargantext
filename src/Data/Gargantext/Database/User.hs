@@ -1,0 +1,130 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE Arrows #-}
+
+module Data.Gargantext.Database.User where
+
+import Prelude
+import Data.Gargantext.Prelude
+import Data.Time (UTCTime)
+import Data.Text (Text)
+import Data.Maybe (Maybe)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Arrow (returnA)
+import qualified Database.PostgreSQL.Simple as PGS
+
+import qualified Opaleye as O
+import Opaleye (Column, PGBool, PGInt4, PGText, PGTimestamptz
+               , Table(Table), Query
+               , QueryRunnerColumnDefault, queryRunnerColumnDefault 
+               , fieldQueryRunnerColumn 
+               , (.==), (.>)
+               , required, optional
+               )
+
+import Data.Gargantext.Database.Private (infoGargandb)
+import Data.Gargantext.Database.Instances
+
+-- Functions only
+import Data.List (find)
+
+
+data UserLight = UserLight { userLight_id   :: Int
+                           , userLight_username :: Text
+                           , userLight_email    :: Text
+                           } deriving (Show)
+
+toUserLight :: User -> UserLight
+toUserLight (User id _ _ _ u _ _ e _ _ _ ) = UserLight id u e
+
+data UserPoly id pass llogin suser 
+              uname fname lname 
+              mail staff active djoined = User { user_id          :: id
+                                               , user_password    :: pass
+                                               , user_lastLogin   :: llogin
+                                               , user_isSuperUser :: suser
+                                               
+                                               , user_username    :: uname
+                                               , user_firstName   :: fname
+                                               , user_lastName    :: lname
+                                               , user_email       :: mail
+                                               
+                                               , user_isStaff     :: staff
+                                               , user_isActive    :: active
+                                               , user_dateJoined  :: djoined
+                                               } deriving (Show)
+
+type UserWrite = UserPoly (Maybe (Column PGInt4))        (Column PGText)
+                          (Maybe (Column PGTimestamptz)) (Column PGBool)
+                                 (Column PGText)         (Column PGText)
+                                 (Column PGText)         (Column PGText)
+                                 (Column PGBool)         (Column PGBool)
+                                 (Column PGTimestamptz) 
+
+type UserRead  = UserPoly        (Column PGInt4)         (Column PGText)
+                                 (Column PGTimestamptz)  (Column PGBool)
+                                 (Column PGText)         (Column PGText)
+                                 (Column PGText)         (Column PGText)
+                                 (Column PGBool)         (Column PGBool)
+                                 (Column PGTimestamptz) 
+
+type User = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
+
+$(makeAdaptorAndInstance "pUser"     ''UserPoly)
+$(makeLensesWith abbreviatedFields   ''UserPoly)
+
+
+userTable :: O.Table UserWrite UserRead
+userTable = O.Table "auth_user" (pUser User { user_id      = optional "id"
+                                            , user_password    = required "password"
+                                            , user_lastLogin   = optional "last_login"
+                                            , user_isSuperUser = required "is_superuser"
+                                            , user_username    = required "username"
+                                            , user_firstName   = required "first_name"
+                                            , user_lastName    = required "last_name"
+                                            , user_email       = required "email"
+                                            , user_isStaff     = required "is_staff"
+                                            , user_isActive    = required "is_active"
+                                            , user_dateJoined  = required "date_joined"
+                                            }
+                                )
+
+
+queryUserTable :: Query UserRead
+queryUserTable = O.queryTable userTable
+
+
+selectUsersLight :: Query UserRead
+selectUsersLight = proc () -> do
+      row@(User i p ll is un fn ln m iff ive dj) <- queryUserTable -< ()
+      O.restrict -< i .== 1
+      --returnA -< User i p ll is un fn ln m iff ive dj
+      returnA -< row
+
+
+userWith :: (Eq a1, Foldable t) => (a -> a1) -> a1 -> t a -> Maybe a
+userWith f t xs = find (\x -> f x == t) xs
+
+userWithUsername :: Text -> [User] -> Maybe User
+userWithUsername t xs = userWith user_username t xs
+
+userWithId :: Int -> [User] -> Maybe User
+userWithId t xs = userWith user_id t xs
+
+
+users :: IO [User]
+users = do
+    conn <- PGS.connect infoGargandb
+    O.runQuery conn queryUserTable
+
+usersLight :: IO [UserLight]
+usersLight = do
+    conn <- PGS.connect infoGargandb
+    pm toUserLight <$> O.runQuery conn queryUserTable
+
+
+
+

@@ -1,0 +1,99 @@
+name:                gargantext
+version:             0.1.0.0
+synopsis:            Deep (Collaborative) Text mining project
+description:         Please see README.md
+homepage:            http://gargantext.org
+license:             BSD3
+license-file:        LICENSE
+author:              Alexandre Delanoë
+maintainer:          gargantext@iscpif.fr
+copyright:           Copyright: (c) 2016,2017 CNRS Alexandre Delanoë
+category:            Data
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  build-depends:       base >= 4.7 && < 5
+                  , aeson
+                  , attoparsec
+                  , base16-bytestring   
+                  , bytestring          
+                  , case-insensitive    
+                  , containers
+                  , contravariant       
+                  , directory
+                  , extra
+                  , filepath
+                  , http-client
+                  , lens
+                  , opaleye
+                  , postgresql-simple   
+                  , pretty              
+                  , product-profunctors 
+                  , profunctors         
+                  , protolude
+                  , pureMD5
+                  , regex-compat
+                  , semigroups          
+                  , servant-multipart
+                  , servant-server
+                  , split
+                  -- , stemmer
+                  , tagsoup
+                  , text                
+                  , time                
+                  , time-locale-compat  
+                  , transformers        
+                  --, utc
+                  , uuid                
+                  , vector
+                  , wai
+                  , warp
+                  , zlib
+  exposed-modules: Data.Gargantext
+                  , Data.Gargantext.Analysis
+                  , Data.Gargantext.DSL
+                  , Data.Gargantext.Database
+                  , Data.Gargantext.Database.Instances
+                  , Data.Gargantext.Database.Ngram
+                  , Data.Gargantext.Database.Node
+                  , Data.Gargantext.Database.NodeNgram
+                  , Data.Gargantext.Database.NodeNgramNgram
+                  , Data.Gargantext.Database.NodeNode
+                  , Data.Gargantext.Database.NodeNodeNgram
+                  , Data.Gargantext.Database.Private
+                  , Data.Gargantext.Database.User
+                  , Data.Gargantext.Parsers
+                  , Data.Gargantext.Parsers.Occurrences
+                  , Data.Gargantext.Prelude
+                  , Data.Gargantext.Server
+                  , Data.Gargantext.Types
+                  , Data.Gargantext.Types.Node
+                  , Data.Gargantext.Types.Main
+                  , Data.Gargantext.Utils.DateUtils
+                  , Data.Gargantext.Utils.Prefix
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+--executable gargantext-exe
+--  hs-source-dirs:      app
+--  main-is:             Main.hs
+--  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+--  build-depends:       base
+--                     , hastext
+--  default-language:    Haskell2010
+
+test-suite garg-test-parsers
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Parsers.hs
+  build-depends:       base
+                     , extra
+                     , text
+                     , gargantext
+                     , hspec
+                     , QuickCheck
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
