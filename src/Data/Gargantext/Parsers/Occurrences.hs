@@ -2,7 +2,6 @@
 
 module Data.Gargantext.Parsers.Occurrences where
 
-import Data.Gargantext.Prelude
 import Data.Attoparsec.Text
 import Data.Text (Text)
 
@@ -22,7 +21,4 @@ occurrencesParser txt = case txt of
         txt' = T.toLower txt
 
 parseOccurrences :: Text -> Text -> Either String Int
-parseOccurrences x = parseOnly (occurrencesParser x) 
-
-
-
+parseOccurrences x = parseOnly (occurrencesParser x)

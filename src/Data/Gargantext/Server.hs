@@ -1,19 +1,17 @@
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
 module Data.Gargantext.Server
 --    ( startApp
 --    , app
---    ) 
+--    )
       where
 
-import Control.Concurrent
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson
 import Data.Aeson.TH
-import Data.Gargantext.Types
-import Network.HTTP.Client.MultipartFormData
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
@@ -32,11 +30,11 @@ type API = "nodes"   :> Get '[JSON] [FakeNode]
        :<|> "node"   :> Capture "id" Int            :> Get '[JSON] FakeNode
        :<|> "echo"   :> Capture "string" String     :> Get '[JSON] String
        :<|> "upload" :> MultipartForm MultipartData :> Post '[JSON] String
-       
+
        -- :<|> "node"  :> Capture "id" Int        :> Get '[JSON] Node
 
 server :: Server API
-server = pure fakeNodes 
+server = pure fakeNodes
         :<|> fakeNode
         :<|> echo
         :<|> upload
@@ -87,7 +85,3 @@ upload multipartData = do
               ++ " at " ++ fdFilePath file
       putStrLn content
   pure "Data loaded"
-
-
-
-

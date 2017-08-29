@@ -1,4 +1,4 @@
--- | CNRS Copyrights 
+-- | CNRS Copyrights
 -- Licence: https://gitlab.iscpif.fr/humanities/gargantext/blob/stable/LICENSE
 -- Author: Alexandre Delanoë (alexandre.delanoe@iscpif.fr)
 
@@ -7,7 +7,6 @@ module Data.Gargantext.Types.Main where
 import Protolude (fromMaybe)
 import Data.Text (Text)
 import Data.Time (UTCTime)
-import Data.Gargantext.Prelude
 import Data.Gargantext.Types.Node ( NodePoly
                                , HyperdataFolder   , HyperdataCorpus   , HyperdataDocument
                                , HyperdataFavorites, HyperdataResource
@@ -25,7 +24,7 @@ import Data.Gargantext.Types.Node ( NodePoly
 data Tree a = Empty | Node' a (Tree a) (Tree a) deriving (Show)
 
 --gargTree :: Tree NodeType
---gargTree = Node' NodeUser Empty 
+--gargTree = Node' NodeUser Empty
 --                         (Node' Empty
 --                                (Project Empty Empty)
 --                         )
@@ -33,11 +32,11 @@ data Tree a = Empty | Node' a (Tree a) (Tree a) deriving (Show)
 
 
 data NodeType = NodeUser
-              | Folder | Project | Corpus | Document 
+              | Folder | Project | Corpus | Document
               | Favorites
               | NodeSwap
               | List  | StopList    | MainList | MapList | GroupList
-              | Score | Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue 
+              | Score | Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
               | Tficf | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
 
               deriving (Show, Eq)
@@ -95,9 +94,9 @@ type Notebook = Node HyperdataNotebook
 
 
 nodeTypes :: [(NodeType, NodeTypeId)]
-nodeTypes = [ 
+nodeTypes = [
                 --(NodeUser      ,  1)
---            
+--
              (Project       ,  2)
             , (NodeSwap     , 19)
             , (Corpus        ,  3)
@@ -107,10 +106,10 @@ nodeTypes = [
             , (GroupList     ,  6)
             , (MainList      ,  7)
             , (MapList       ,  8)
---  Scores 
+--  Scores
             , (Occurrences   , 10)
             , (Cooccurrences ,  9)
-            
+
             , (Specclusion   , 11)
             , (Genclusion    , 18)
             , (Cvalue       , 12)
@@ -121,12 +120,10 @@ nodeTypes = [
             , (TirankLocal  , 16)
             , (TirankGlobal , 17)
 
---  Node management 
+--  Node management
             , (Favorites     , 15)
 
             ]
 --
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId tn = fromMaybe (error ("Typename " ++ show tn ++ " does not exist")) (lookup tn nodeTypes)
-
-

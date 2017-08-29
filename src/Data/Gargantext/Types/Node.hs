@@ -4,13 +4,10 @@
 module Data.Gargantext.Types.Node where
 
 import Data.Text (Text)
-import Data.List (lookup)
 import GHC.Generics (Generic)
 import Data.Time (UTCTime)
-import Data.Gargantext.Utils.Prefix
-import Data.Aeson.TH
-
-
+import Data.Gargantext.Utils.Prefix (unPrefix)
+import Data.Aeson.TH (deriveJSON)
 
 data NodePoly id typename userId parentId name date hyperdata = Node { node_id        :: id
                                                                      , node_typename  :: typename
@@ -113,5 +110,3 @@ $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_Preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
-
-

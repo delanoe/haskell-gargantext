@@ -1,41 +1,27 @@
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE Arrows #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Gargantext.Database.Node where
-
-
 
 import           Database.PostgreSQL.Simple.FromField (Conversion, ResultError(ConversionFailed), FromField, fromField, returnError)
 import           Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson
-import Data.Aeson.TH
-import Data.Aeson.Types
-import Data.Gargantext.Database.Instances
 import Data.Gargantext.Database.Private (infoGargandb)
-import Data.Gargantext.Prelude
 import Data.Gargantext.Types
-import Data.Gargantext.Utils.Prefix
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Text (Text)
-import Data.Time (UTCTime)
-import Data.Typeable.Internal (Typeable)
-import GHC.Generics (Generic)
+import Data.Typeable (Typeable)
 import qualified Data.ByteString.Internal as DBI
 import qualified Database.PostgreSQL.Simple as PGS
-import qualified Opaleye as O
-import Opaleye (Column, PGBool, PGInt4, PGText, PGTimestamptz, PGFloat8
-               , Table(Table), PGJsonb, Query
-               , QueryRunnerColumnDefault, queryRunnerColumnDefault 
-               , fieldQueryRunnerColumn 
-               , (.==), (.>)
-               )
+import Opaleye
 
 
 -- | Types for Node Database Management
@@ -70,13 +56,13 @@ fromField' field mb = do
       where
           valueToHyperdata v = case fromJSON v of
              Success a -> pure a
-             Error err -> returnError ConversionFailed field "cannot parse hyperdata"
+             Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
 
 
-instance O.QueryRunnerColumnDefault PGJsonb HyperdataDocument where
+instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance O.QueryRunnerColumnDefault PGJsonb HyperdataCorpus where
+instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
@@ -86,55 +72,55 @@ $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields   ''NodePoly)
 
 
-nodeTable :: O.Table NodeWrite NodeRead 
-nodeTable = O.Table "nodes" (pNode Node { node_id         = O.optional "id"
-                                        , node_typename   = O.required "typename"
-                                        , node_userId     = O.required "user_id"
-                                        , node_parentId   = O.required "parent_id"
-                                        , node_name       = O.required "name"
-                                        , node_date       = O.optional "date"
-                                        , node_hyperdata  = O.required "hyperdata"
+nodeTable :: Table NodeWrite NodeRead
+nodeTable = Table "nodes" (pNode Node { node_id           = optional "id"
+                                        , node_typename   = required "typename"
+                                        , node_userId     = required "user_id"
+                                        , node_parentId   = required "parent_id"
+                                        , node_name       = required "name"
+                                        , node_date       = optional "date"
+                                        , node_hyperdata  = required "hyperdata"
                                         }
                             )
 
 
 
 
-selectNodes :: Column PGInt4 -> Query (Column O.PGText)
+selectNodes :: Column PGInt4 -> Query (Column PGText)
 selectNodes node_id = proc () -> do
-    row@(Node n_id tn u p n d h) <- queryNodeTable -< ()
-    O.restrict -< n_id .== node_id
+    (Node n_id _tn _u _p n _d _h) <- queryNodeTable -< ()
+    restrict -< n_id .== node_id
     returnA -< n
+
+instance QueryRunnerColumnDefault PGInt4 Integer where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
 runGetNodes :: PGS.Connection -> Query NodeRead -> IO [Document]
-runGetNodes = O.runQuery
+runGetNodes = runQuery
 
 
 queryNodeTable :: Query NodeRead
-queryNodeTable = O.queryTable nodeTable
+queryNodeTable = queryTable nodeTable
 
 
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode node_id = proc () -> do
-    row@(Node id tn u p_id n d h) <- queryNodeTable -< ()
-    O.restrict -< p_id .== node_id
+    row@(Node _id _tn _u p_id _n _d _h) <- queryNodeTable -< ()
+    restrict -< p_id .== node_id
     returnA -< row
 
 
 getNodes :: Column PGInt4 -> IO [Document]
 getNodes node_id = do
     conn <- PGS.connect infoGargandb
-    O.runQuery conn $ selectNode node_id
+    runQuery conn $ selectNode node_id
 
 getCorpusDocument :: Column PGInt4 -> IO [Document]
-getCorpusDocument node_id = PGS.connect infoGargandb >>= 
-                          \conn -> O.runQuery conn (selectNode node_id)
+getCorpusDocument node_id = PGS.connect infoGargandb >>=
+                          \conn -> runQuery conn (selectNode node_id)
 
 getProjectCorpora :: Column PGInt4 -> IO [Corpus]
 getProjectCorpora node_id = do
     conn <- PGS.connect infoGargandb
-    O.runQuery conn $ selectNode node_id
-
-
-
+    runQuery conn $ selectNode node_id

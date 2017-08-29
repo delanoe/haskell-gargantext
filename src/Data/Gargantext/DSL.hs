@@ -1,8 +1,5 @@
 module Data.Gargantext.DSL where
 
-import Data.Gargantext.Database
-import Data.Gargantext.Prelude
-import Data.Gargantext.Types
 import Data.Text
 
 type Username = Text
@@ -37,18 +34,3 @@ type Password = Text
 
 -- projects :: User -> [Project]
 -- projects u = undefined
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

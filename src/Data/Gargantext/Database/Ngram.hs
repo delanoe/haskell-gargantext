@@ -7,24 +7,15 @@
 module Data.Gargantext.Database.Ngram where
 
 import Prelude
-import Data.Time (UTCTime)
 import Data.Text (Text)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Control.Arrow (returnA)
 import qualified Database.PostgreSQL.Simple as PGS
 
-import qualified Opaleye as O
-import Opaleye (Column, PGBool, PGInt4, PGText, PGTimestamptz
-               , Table(Table), Query
-               , QueryRunnerColumnDefault, queryRunnerColumnDefault 
-               , fieldQueryRunnerColumn 
-               , (.==), (.>)
-               )
+import Opaleye
 
 import Data.Gargantext.Database.Private (infoGargandb)
-import Data.Gargantext.Database.Instances
 
 -- Functions only
 import Data.List (find)
@@ -44,16 +35,16 @@ $(makeAdaptorAndInstance "pNgram"    ''NgramPoly)
 $(makeLensesWith abbreviatedFields   ''NgramPoly)
 
 
-ngramTable :: O.Table NgramWrite NgramRead
-ngramTable = O.Table "ngrams" (pNgram Ngram { ngram_id    = O.optional "id"
-                                            , ngram_terms = O.required "terms"
-                                            , ngram_n     = O.required "n"
+ngramTable :: Table NgramWrite NgramRead
+ngramTable = Table "ngrams" (pNgram Ngram { ngram_id    = optional "id"
+                                            , ngram_terms = required "terms"
+                                            , ngram_n     = required "n"
                                             }
                                 )
 
 
 queryNgramTable :: Query NgramRead
-queryNgramTable = O.queryTable ngramTable
+queryNgramTable = queryTable ngramTable
 
 
 --selectUsers :: Query UserRead
@@ -78,5 +69,4 @@ findWith f t = find (\x -> f x == t)
 ngrams :: IO [Ngram]
 ngrams = do
     conn <- PGS.connect infoGargandb
-    O.runQuery conn queryNgramTable
-
+    runQuery conn queryNgramTable

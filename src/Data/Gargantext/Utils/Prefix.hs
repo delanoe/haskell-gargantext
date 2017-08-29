@@ -1,18 +1,10 @@
 module Data.Gargantext.Utils.Prefix where
 
-
-import Control.Monad as X (mzero)
-import Data.Aeson as X
-import Data.Aeson.TH as X
-import Data.Aeson.Types as X
-import Data.Char as X (toLower)
--- import Data.Decimal as X
-import Data.Maybe as X (catMaybes)
-import Data.Monoid as X ((<>))
--- import Data.Scientific as X
-import Data.String as X (IsString (..), fromString)
-import Data.Text as X (Text, unpack, pack)
-import Data.Text.Encoding as X
+import Data.Aeson (Value, defaultOptions, parseJSON)
+import Data.Aeson.TH (Options, fieldLabelModifier, omitNothingFields)
+import Data.Aeson.Types (Parser)
+import Data.Char (toLower)
+import Data.Monoid ((<>))
 import Text.Read (readMaybe)
 
 

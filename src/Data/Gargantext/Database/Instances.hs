@@ -1,13 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Gargantext.Database.Instances where
 
 import Data.Time (UTCTime)
-import Opaleye (Column, PGBool, PGInt4, PGText, PGTimestamptz, PGFloat8
+import Opaleye (PGInt4, PGTimestamptz, PGFloat8
                , QueryRunnerColumnDefault
-               , queryRunnerColumnDefault 
-               , fieldQueryRunnerColumn 
+               , queryRunnerColumnDefault
+               , fieldQueryRunnerColumn
                )
 
 instance QueryRunnerColumnDefault PGInt4 Integer where
@@ -21,7 +22,3 @@ instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
 
 instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
-
-

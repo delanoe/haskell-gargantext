@@ -3,28 +3,20 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE Arrows #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 
 module Data.Gargantext.Database.NodeNodeNgram where
 
 import Prelude
-import Data.Time (UTCTime)
-import Data.Text (Text)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Control.Arrow (returnA)
 import qualified Database.PostgreSQL.Simple as PGS
 
-import qualified Opaleye as O
-import Opaleye (Column, PGBool, PGInt4, PGText, PGTimestamptz, PGFloat8
-               , Table(Table), Query
-               , QueryRunnerColumnDefault, queryRunnerColumnDefault 
-               , fieldQueryRunnerColumn 
-               , (.==), (.>)
-               )
+import Opaleye
 
 import Data.Gargantext.Database.Private (infoGargandb)
-import Data.Gargantext.Database.Instances
 
 data NodeNodeNgramPoly node1_id node2_id ngram_id score
                    = NodeNodeNgram { nodeNodeNgram_node1_id :: node1_id
@@ -44,23 +36,26 @@ $(makeAdaptorAndInstance "pNodeNodeNgram" ''NodeNodeNgramPoly)
 $(makeLensesWith abbreviatedFields        ''NodeNodeNgramPoly)
 
 
-nodeNodeNgramTable :: O.Table NodeNodeNgramWrite NodeNodeNgramRead
-nodeNodeNgramTable  = O.Table "nodes_nodes_ngrams" ( pNodeNodeNgram NodeNodeNgram 
-                                                         { nodeNodeNgram_node1_id = O.required "node1_id"
-                                                         , nodeNodeNgram_node2_id = O.required "node2_id"
-                                                         , nodeNodeNgram_ngram_id = O.required "ngram_id"
-                                                         , nodeNodeNgram_score   = O.optional "score"
-                                                         }
-                                                     )
+nodeNodeNgramTable :: Table NodeNodeNgramWrite NodeNodeNgramRead
+nodeNodeNgramTable  = Table "nodes_nodes_ngrams" ( pNodeNodeNgram NodeNodeNgram
+                                                   { nodeNodeNgram_node1_id = required "node1_id"
+                                                   , nodeNodeNgram_node2_id = required "node2_id"
+                                                   , nodeNodeNgram_ngram_id = required "ngram_id"
+                                                   , nodeNodeNgram_score    = optional "score"
+                                                   }
+                                                 )
 
 
 queryNodeNodeNgramTable :: Query NodeNodeNgramRead
-queryNodeNodeNgramTable = O.queryTable nodeNodeNgramTable
+queryNodeNodeNgramTable = queryTable nodeNodeNgramTable
 
 
 -- | not optimized (get all ngrams without filters)
 nodeNodeNgrams :: IO [NodeNodeNgram]
 nodeNodeNgrams = do
     conn <- PGS.connect infoGargandb
-    O.runQuery conn queryNodeNodeNgramTable
+    runQuery conn queryNodeNodeNgramTable
 
+
+instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn

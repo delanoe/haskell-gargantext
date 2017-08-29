@@ -15,39 +15,39 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  build-depends:       base >= 4.7 && < 5
+  build-depends:    base >= 4.7 && < 5
                   , aeson
                   , attoparsec
-                  , base16-bytestring   
-                  , bytestring          
-                  , case-insensitive    
+                  , base16-bytestring
+                  , bytestring
+                  , case-insensitive
                   , containers
-                  , contravariant       
+                  , contravariant
                   , directory
                   , extra
                   , filepath
                   , http-client
                   , lens
                   , opaleye
-                  , postgresql-simple   
-                  , pretty              
-                  , product-profunctors 
-                  , profunctors         
+                  , postgresql-simple
+                  , pretty
+                  , product-profunctors
+                  , profunctors
                   , protolude
                   , pureMD5
                   , regex-compat
-                  , semigroups          
+                  , semigroups
                   , servant-multipart
                   , servant-server
                   , split
                   -- , stemmer
                   , tagsoup
-                  , text                
-                  , time                
-                  , time-locale-compat  
-                  , transformers        
+                  , text
+                  , time
+                  , time-locale-compat
+                  , transformers
                   --, utc
-                  , uuid                
+                  , uuid
                   , vector
                   , wai
                   , warp
@@ -75,7 +75,9 @@ library
                   , Data.Gargantext.Utils.DateUtils
                   , Data.Gargantext.Utils.Prefix
   default-language:    Haskell2010
-  ghc-options:         -Wall
+  ghc-options:         -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
+
+-- -Werror
 
 --executable gargantext-exe
 --  hs-source-dirs:      app

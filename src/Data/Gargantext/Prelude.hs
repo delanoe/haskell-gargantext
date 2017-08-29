@@ -1,8 +1,32 @@
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Data.Gargantext.Prelude where
 
-import Protolude
+import Protolude (Bool(True, False), Int, Double, Integer, Fractional, Num, Maybe, Floating, Char, Ord, Integral, Foldable, RealFrac, Monad, filter,
+                 reverse
+                 , map
+                 , zip
+                 , drop
+                 , take
+                 , zipWith
+                 , sum
+                 , fromIntegral
+                 , length
+                 , fmap
+                 , takeWhile
+                 , sqrt
+                 , undefined
+                 , identity
+                 , abs
+                 , maximum
+                 , minimum
+                 , return
+                 , snd
+                 , truncate
+                 , (+), (*), (/), (-), (.), (>=), ($), (**), (^)
+                 )
 
 -- TODO import functions optimized in Utils.Count
 -- import Protolude hiding (head, last, all, any, sum, product, length)
@@ -13,16 +37,28 @@ import qualified Control.Monad as M
 import qualified Data.Map as Map
 import qualified Data.Vector as V
 
-pf  = filter
-pr  = reverse
-pm  = map
+pf :: (a -> Bool) -> [a] -> [a]
+pf = filter
+
+pr :: [a] -> [a]
+pr = reverse
+
+pm :: (a -> b) -> [a] -> [b]
+pm = map
 
 pm2 :: (t -> b) -> [[t]] -> [[b]]
 pm2 fun = pm (pm fun)
 
+pz :: [a] -> [b] -> [(a, b)]
 pz  = zip
+
+pd :: Int -> [a] -> [a]
 pd  = drop
+
+ptk :: Int -> [a] -> [a]
 ptk = take
+
+pzw :: (a -> b -> c) -> [a] -> [b] -> [c]
 pzw = zipWith
 
 -- Exponential Average
@@ -56,18 +92,18 @@ ma = movingAverage 3
 -- | Function to split a range into chunks
 chunkAlong :: Int -> Int -> [a] -> [[a]]
 chunkAlong a b l = only (while  dropAlong)
-    where 
+    where
         only      = pm (take a)
         while     = takeWhile  (\x -> length x >= a)
-        dropAlong = L.scanl (\x y -> drop b x) l [1..]
+        dropAlong = L.scanl (\x _y -> drop b x) l ([1..] :: [Integer])
 
 -- | Optimized version (Vector)
 chunkAlong' :: Int -> Int -> V.Vector a -> V.Vector (V.Vector a)
 chunkAlong' a b l = only (while  dropAlong)
-    where 
+    where
         only      = V.map (V.take a)
         while     = V.takeWhile  (\x -> V.length x >= a)
-        dropAlong = V.scanl (\x y -> V.drop b x) l (V.fromList [1..])
+        dropAlong = V.scanl (\x _y -> V.drop b x) l (V.fromList [1..])
 
 -- | TODO Inverse of chunk ? unchunkAlong ?
 unchunkAlong :: Int -> Int -> [[a]] -> [a]
@@ -82,10 +118,10 @@ splitAlong (x:xs) ys = take x ys : splitAlong xs (drop x ys) -- take until our s
 
 takeWhileM :: (Monad m) => (a -> Bool) -> [m a] -> m [a]
 takeWhileM _ [] = return []
-takeWhileM p (a:as) = do 
+takeWhileM p (a:as) = do
     v <- a
     if p v
-        then do 
+        then do
             vs <- takeWhileM p as
             return (v:vs)
         else return []
@@ -110,7 +146,7 @@ sumKahan = snd . L.foldl' go (0,0)
 count2map :: (Ord k, Foldable t) => t k -> Map.Map k Double
 count2map xs = Map.map (/ (fromIntegral (length xs))) (count2map' xs)
 
--- | insert in a dict 
+-- | insert in a dict
 count2map' :: (Ord k, Foldable t) => t k -> Map.Map k Double
 count2map' xs = L.foldl' (\x y -> Map.insertWith' (+) y 1 x) Map.empty xs
 
@@ -123,7 +159,7 @@ trunc' n x = fromIntegral $ truncate $ (x * 10^n)
 
 
 bool2int :: Num a => Bool -> a
-bool2int bool = case bool of
+bool2int b = case b of
                   True  -> 1
                   False -> 0
 
@@ -135,6 +171,7 @@ bool2double bool = case bool of
 
 
 -- Normalizing && scaling data
+scale :: [Double] -> [Double]
 scale = scaleMinMax
 
 scaleMinMax :: [Double] -> [Double]
@@ -167,4 +204,3 @@ zipFst  f xs = zip (f xs) xs
 
 zipSnd :: ([a] -> [b]) -> [a] -> [(a, b)]
 zipSnd f xs = zip xs (f xs)
-
