@@ -39,6 +39,8 @@ library
                   , semigroups
                   , servant-multipart
                   , servant-server
+                  , servant
+                  , servant-client
                   , split
                   -- , stemmer
                   , tagsoup
@@ -55,6 +57,8 @@ library
   exposed-modules: Data.Gargantext
                   , Data.Gargantext.Analysis
                   , Data.Gargantext.DSL
+                  , Data.Gargantext.NLP
+                  , Data.Gargantext.NLP.CoreNLP
                   , Data.Gargantext.Database
                   , Data.Gargantext.Database.Instances
                   , Data.Gargantext.Database.Ngram
