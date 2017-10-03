@@ -21,15 +21,8 @@ import Data.Gargantext.Types.Node ( NodePoly
 
 -- All the Database is structred like a hierachical Tree
 -- Where a is a NodeType:
+-- TODO force the logic of the architecture 
 data Tree a = Empty | Node' a (Tree a) (Tree a) deriving (Show)
-
---gargTree :: Tree NodeType
---gargTree = Node' NodeUser Empty
---                         (Node' Empty
---                                (Project Empty Empty)
---                         )
---
-
 
 data NodeType = NodeUser
               | Folder | Project | Corpus | Document
@@ -44,9 +37,13 @@ data NodeType = NodeUser
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly Integer NodeTypeId Integer Integer Text UTCTime json
+type Node json   = NodePoly NodeId NodeTypeId NodeUserId NodeParentId NodeName UTCTime json
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
-type NodeTypeId = Int
+type NodeTypeId   = Int
+type NodeId       = Int
+type NodeParentId = Int
+type NodeUserId   = Int
+type NodeName     = Text
 
 --type NodeUser    = Node HyperdataUser
 

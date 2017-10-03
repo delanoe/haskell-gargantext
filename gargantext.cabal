@@ -26,7 +26,7 @@ library
                   , directory
                   , extra
                   , filepath
-                  , http-client
+                  , http-conduit
                   , lens
                   , opaleye
                   , postgresql-simple
@@ -37,23 +37,24 @@ library
                   , pureMD5
                   , regex-compat
                   , semigroups
-                  , servant-multipart
-                  , servant-server
                   , servant
                   , servant-client
+                  , servant-multipart
+                  , servant-server
                   , split
-                  -- , stemmer
                   , tagsoup
                   , text
                   , time
                   , time-locale-compat
                   , transformers
-                  --, utc
                   , uuid
                   , vector
                   , wai
                   , warp
+                  , yaml
                   , zlib
+                  -- , stemmer
+                  --, utc
   exposed-modules: Data.Gargantext
                   , Data.Gargantext.Analysis
                   , Data.Gargantext.DSL
