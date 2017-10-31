@@ -1,3 +1,3 @@
-module Data.Gargantext.Parsers (module Data.Gargantext.Parsers.Occurrences)
+module Data.Gargantext.Parsers (module Data.Gargantext.Parsers.WOS)
     where
-import Data.Gargantext.Parsers.Occurrences
+import Data.Gargantext.Parsers.WOS

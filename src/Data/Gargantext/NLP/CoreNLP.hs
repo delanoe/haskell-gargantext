@@ -52,7 +52,7 @@ instance FromJSON Sentences
 
 corenlpPretty :: String -> IO ()
 corenlpPretty txt = do
-    let url = "POST http://localhost:9000/?properties={\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
+    url <- parseRequest "POST http://localhost:9000/?properties={\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}" 
     let request = setRequestBodyJSON txt url
     response <- httpJSON request
 
@@ -63,7 +63,7 @@ corenlpPretty txt = do
 
 corenlp :: String -> IO Sentences
 corenlp txt = do
-    let url = "POST http://localhost:9000/?properties={\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
+    url <- parseRequest "POST http://localhost:9000/?properties={\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
     let request = setRequestBodyJSON txt url
     response <- httpJSON request
     pure (getResponseBody response :: Sentences)

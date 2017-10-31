@@ -2,6 +2,6 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
+- /home/alexandre/local/logiciels/haskell/servant/servant-multipart
 extra-deps:
-- servant-multipart-0.10.0.1
 resolver: lts-9.2

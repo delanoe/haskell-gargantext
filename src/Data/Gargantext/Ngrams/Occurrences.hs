@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Gargantext.Parsers.Occurrences where
+module Data.Gargantext.Ngrams.Occurrences where
 
 import Data.Attoparsec.Text
 import Data.Text (Text)

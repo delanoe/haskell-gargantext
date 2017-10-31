@@ -18,17 +18,21 @@ library
   build-depends:    base >= 4.7 && < 5
                   , aeson
                   , attoparsec
+                  , async
                   , base16-bytestring
                   , bytestring
                   , case-insensitive
                   , containers
                   , contravariant
+                  , conduit
+                  , conduit-extra
                   , directory
                   , extra
                   , filepath
                   , http-conduit
                   , lens
                   , opaleye
+                  , path
                   , postgresql-simple
                   , pretty
                   , product-profunctors
@@ -53,11 +57,15 @@ library
                   , warp
                   , yaml
                   , zlib
+                  , zip
+                  , path-io
+                  --, LibZip
                   -- , stemmer
                   --, utc
   exposed-modules: Data.Gargantext
                   , Data.Gargantext.Analysis
                   , Data.Gargantext.DSL
+                  , Data.Gargantext.Ngrams.Occurrences
                   , Data.Gargantext.NLP
                   , Data.Gargantext.NLP.CoreNLP
                   , Data.Gargantext.Database
@@ -71,7 +79,7 @@ library
                   , Data.Gargantext.Database.Private
                   , Data.Gargantext.Database.User
                   , Data.Gargantext.Parsers
-                  , Data.Gargantext.Parsers.Occurrences
+                  , Data.Gargantext.Parsers.WOS
                   , Data.Gargantext.Prelude
                   , Data.Gargantext.Server
                   , Data.Gargantext.Types
