@@ -76,8 +76,8 @@ corenlp txt = do
 -- Named Entity Recognition example
 -- parseWith  _tokenNer     "Hello world of Peter."
 -- [[("``","O"),("Hello","O"),("world","O"),("of","O"),("Peter","PERSON"),(".","O"),("''","O")]]
-parseWith :: (Token -> t) -> String -> IO [[(Text, t)]]
-parseWith f s = pm (pm (\t -> (_tokenWord t, f t))) <$> pm _sentenceTokens <$> sentences <$> corenlp s
+tokenWith :: (Token -> t) -> String -> IO [[(Text, t)]]
+tokenWith f s = pm (pm (\t -> (_tokenWord t, f t))) <$> pm _sentenceTokens <$> sentences <$> corenlp s
 
 
 
