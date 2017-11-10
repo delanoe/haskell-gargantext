@@ -4,8 +4,8 @@ import Prelude hiding (takeWhile, take, concat, readFile)
 import qualified Data.List as DL
 import Data.Map as DM
 import Data.Attoparsec.ByteString
-import Data.Attoparsec.ByteString.Char8 (anyChar, char8, endOfLine, isDigit_w8, isAlpha_ascii, isEndOfLine)
-import Data.ByteString (ByteString, unpack, pack, concat, readFile)
+import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
+import Data.ByteString (ByteString)
 
 import Data.Either.Extra(Either(..))
 import Control.Applicative
@@ -19,10 +19,7 @@ import Control.Monad (join)
 
 import Control.Concurrent.Async as CCA (mapConcurrently)
 
-import           System.Environment
-
 import Codec.Archive.Zip
-import Path (parseAbsFile)
 import Path.IO (resolveFile')
 -- import qualified Data.ByteString.Lazy as B
 import Control.Applicative ( (<$>) )
@@ -38,7 +35,7 @@ zipFiles fp = do
 
 parseFile :: ParserType -> ByteString -> IO Int
 parseFile p x = case runParser p x of
-        Left  e -> pure 1
+        Left  _ -> pure 0
         Right r -> pure $ length r
 
 testWos :: FilePath -> IO [Int]
