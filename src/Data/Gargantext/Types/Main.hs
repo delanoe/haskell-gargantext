@@ -16,6 +16,19 @@ import Data.Gargantext.Types.Node ( NodePoly
                                , HyperdataNotebook
                                )
 
+
+
+data Language = EN | FR -- | DE | IT | SP
+    -- > EN == english
+    -- > FR == french
+    -- > DE == deutch  (not implemented yet)
+    -- > IT == italian (not implemented yet)
+    -- > SP == spanish (not implemented yet)
+    -- > ... add your language and help us to implement it (:
+
+
+type Ngrams = (Text, Text, Text)
+
 -- | TODO add Symbolic Node / Document
 --   TODO make instances of Nodes
 

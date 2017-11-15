@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Data.Gargantext.Parsers.WOS where
 
 import Prelude hiding (takeWhile, take, concat, readFile)
@@ -6,6 +8,7 @@ import Data.Map as DM
 import Data.Attoparsec.ByteString
 import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
 import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (pack)
 
 import Data.Either.Extra(Either(..))
 import Control.Applicative
@@ -47,8 +50,9 @@ data ParserType = WOS | CSV
 wosParser :: Parser [Maybe [ByteString]]
 wosParser = do
     -- TODO Warning if version /= 1.0
-    _ <- manyTill anyChar (string "\nVR 1.0")
-    ns <- many1 wosNotice <* "\nEF"
+    -- FIXME anyChar (string ..) /= exact string "\nVR 1.0" ?
+    _ <- manyTill anyChar (string $ pack "\nVR 1.0")
+    ns <- many1 wosNotice <* (string $ pack "\nEF")
     return ns
 
 startNotice :: Parser ByteString
@@ -56,7 +60,7 @@ startNotice = "\nPT " *> takeTill isEndOfLine
 
 wosNotice :: Parser (Maybe [ByteString])
 wosNotice = do
-    n <- startNotice *> wosFields <* manyTill anyChar (string "\nER\n")
+    n <- startNotice *> wosFields <* manyTill anyChar (string $ pack "\nER\n")
     return n
 
 field' :: Parser (ByteString, [ByteString])

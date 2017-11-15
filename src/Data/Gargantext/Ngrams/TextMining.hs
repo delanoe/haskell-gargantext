@@ -4,11 +4,12 @@ import Data.Map (empty, Map, insertWith, toList)
 import Data.List (foldl, foldl')
 import qualified Data.List as L
 
-
+sortGT :: (Ord a, Ord b) => (a, b) -> (a, b) -> Ordering
 sortGT (a1, b1) (a2, b2)
-	| a1 < a2 = GT
-	| a1 > a2 = LT
-	| a1 == a2 = compare b1 b2
+    | a1 < a2 = GT
+    | a1 > a2 = LT
+    | a1 == a2 = compare b1 b2
+sortGT (_, _) (_, _) = error "What is this case ?"
 
 
 --histogram :: Ord a => [a] -> [(a, Int)]
@@ -21,7 +22,7 @@ countElem m e = Data.Map.insertWith (\n o -> n + o) e 1 m
 freqList :: (Ord k) => [k] -> Data.Map.Map k Int
 freqList = foldl countElem Data.Map.empty
 
---getMaxFromMap :: Data.Map.Map -> Maybe -> [a] -> [a]
+getMaxFromMap :: Ord a => Map a1 a -> [a1]
 getMaxFromMap m = go [] Nothing (toList m)
   where
     go ks _        []           = ks 
@@ -53,4 +54,4 @@ countYear' (xs) = foldl' (\x y -> insertWith (+) y 1 x) empty xs
 
 textMiningMain :: IO ()
 textMiningMain = do
-	print $ merge ["abc"] ["bcd"]
+    print $ merge ["abc"::String] ["bcd" :: String]

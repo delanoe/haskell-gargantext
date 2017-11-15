@@ -10,7 +10,7 @@ import Opaleye.Internal.Column (Column)
 
 import Data.Gargantext.Database.Gargandb
 import Data.Gargantext.Database.Private
-import Data.Gargantext.Utils.Chronos
+--import Data.Gargantext.Utils.Chronos
 
 import Data.Gargantext.Ngrams.Words (cleanText)
 import Data.Gargantext.Ngrams.Count (occurrences)

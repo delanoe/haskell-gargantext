@@ -4,7 +4,6 @@ module Data.Gargantext.Ngrams.Count where
 
 import System.Environment (getArgs)
 
-import Data.List (foldl', take)
 import Data.Foldable as F
 
 import Data.Map (Map)
@@ -37,9 +36,9 @@ occurrences xs = foldl' (\x y -> M.insertWith' (+) y 1 x) M.empty xs
 --occurrences' :: Ord a => [a] -> Map a Integer
 --occurrences' xs = DTL.foldl (\x y -> M.insertWith' (+) y 1 x) M.empty xs
 
-
+countMain :: IO ()
 countMain = do
-  (fichier:rest) <- getArgs
+  (fichier:_) <- getArgs
   c <- DTLIO.readFile fichier
   --print $ occurrences $ DTL.chunksOf 1 c
   print $ occurrences $ letters'' c

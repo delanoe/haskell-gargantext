@@ -26,10 +26,14 @@ data Token = Token { _tokenIndex                :: Int
                    , _tokenCharacterOffsetEnd   :: Int
                    , _tokenPos                  :: Text
                    , _tokenNer                  :: Text
-                   , _tokenBefore               :: Text
-                   , _tokenAfter                :: Text
+                   , _tokenBefore               :: Maybe Text
+                   , _tokenAfter                :: Maybe Text
                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_token") ''Token)
+
+token2text :: Token -> (Text, Text, Text)
+token2text (Token _ w _ _ _ _ p n _ _) = (w,p,n)
+
 
 data Sentence  = Sentence { _sentenceIndex :: Int
                           , _sentenceTokens :: [Token]
@@ -48,6 +52,19 @@ data Sentences = Sentences { sentences :: [Sentence]}
 instance ToJSON Sentences
 instance FromJSON Sentences
 
+
+-- request = 
+-- "fr" : {
+--                 "tokenize.language" : "fr",
+--                 "pos.model" : "edu/stanford/nlp/models/pos-tagger/french/french.tagger",
+--                 "parse.model" : "edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz",
+--                 // dependency parser
+--                 "depparse.model" : "edu/stanford/nlp/models/parser/nndep/UD_French.gz",
+--                 "depparse.language" : "french",
+--                 "ner.model":  DATA_ROOT+"/eunews.fr.crf.gz",
+--                 "ssplit.newlineIsSentenceBreak": "always" 
+--             },
+-- 
 
 
 corenlpPretty :: String -> IO ()

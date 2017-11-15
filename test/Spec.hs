@@ -8,7 +8,8 @@ import Control.Exception (evaluate)
 import Data.Text (Text)
 import Data.Hastext.Parsers.Occurrences (parse)
 
-main = print "hspec $ do
+main :: IO ()
+main = print "hspec $ do"
   describe "Parser for occurrences" $ do
     
     let txt     = "internet"
@@ -43,5 +44,4 @@ main = print "hspec $ do
 
 
 
-main :: IO ()
 
