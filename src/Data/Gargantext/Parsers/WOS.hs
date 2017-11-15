@@ -27,27 +27,13 @@ import Path.IO (resolveFile')
 -- import qualified Data.ByteString.Lazy as B
 import Control.Applicative ( (<$>) )
 
-
-zipFiles :: FilePath -> IO [ByteString]
-zipFiles fp = do
-    path    <- resolveFile' fp
-    entries <- withArchive path (DM.keys <$> getEntries)
-    bs      <- mapConcurrently (\s -> withArchive path (getEntry s)) entries
-    pure bs
-
-
-parseFile :: ParserType -> ByteString -> IO Int
-parseFile p x = case runParser p x of
-        Left  _ -> pure 0
-        Right r -> pure $ length r
-
-testWos :: FilePath -> IO [Int]
-testWos fp = join $ mapConcurrently (parseFile WOS) <$> zipFiles fp
-
 -- type Parser a = a -> Text -> [Document]
 data ParserType = WOS | CSV
 
-wosParser :: Parser [Maybe [ByteString]]
+type WosDoc = ByteString
+
+
+wosParser :: Parser [Maybe [WosDoc]]
 wosParser = do
     -- TODO Warning if version /= 1.0
     -- FIXME anyChar (string ..) /= exact string "\nVR 1.0" ?
@@ -55,13 +41,15 @@ wosParser = do
     ns <- many1 wosNotice <* (string $ pack "\nEF")
     return ns
 
+wosNotice :: Parser (Maybe [WosDoc])
+wosNotice = startNotice *> wosFields <* endNotice
+
+endNotice :: Parser [Char]
+endNotice = manyTill anyChar (string $ pack "\nER\n")
+
 startNotice :: Parser ByteString
 startNotice = "\nPT " *> takeTill isEndOfLine
 
-wosNotice :: Parser (Maybe [ByteString])
-wosNotice = do
-    n <- startNotice *> wosFields <* manyTill anyChar (string $ pack "\nER\n")
-    return n
 
 field' :: Parser (ByteString, [ByteString])
 field' = do
@@ -101,7 +89,7 @@ wosLines = many line
         line :: Parser ByteString
         line = "\n  " *> takeTill isEndOfLine
 
-runParser :: ParserType -> ByteString -> Either String [Maybe [ByteString]]
+runParser :: ParserType -> ByteString -> Either String [Maybe [WosDoc]]
 runParser p x = parseOnly parser x
     where
         parser = case p of 
@@ -110,4 +98,23 @@ runParser p x = parseOnly parser x
 
 -- isTokenChar :: Word8 -> Bool
 -- isTokenChar = inClass "!#$%&'()*+./0-9:<=>?@a-zA-Z[]^_`{|}~-\n"
+
+
+zipFiles :: FilePath -> IO [ByteString]
+zipFiles fp = do
+    path    <- resolveFile' fp
+    entries <- withArchive path (DM.keys <$> getEntries)
+    bs      <- mapConcurrently (\s -> withArchive path (getEntry s)) entries
+    pure bs
+
+
+parseFile :: ParserType -> ByteString -> IO Int
+parseFile p x = case runParser p x of
+        Left  _ -> pure 0
+        Right r -> pure $ length r
+
+testWos :: FilePath -> IO [Int]
+testWos fp = join $ mapConcurrently (parseFile WOS) <$> zipFiles fp
+
+
 

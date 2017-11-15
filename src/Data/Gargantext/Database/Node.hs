@@ -84,8 +84,6 @@ nodeTable = Table "nodes" (pNode Node { node_id           = optional "id"
                             )
 
 
-
-
 selectNodes :: Column PGInt4 -> Query (Column PGText)
 selectNodes node_id = proc () -> do
     (Node n_id _tn _u _p n _d _h) <- queryNodeTable -< ()
