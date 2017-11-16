@@ -14,8 +14,8 @@ import qualified Data.Gargantext.Ngrams.Lang.Fr as Fr
 
 -- TODO for scientific papers: add maesures
 -- TODO add the p score regex
-extractNgrams :: String -> IO [[Ngrams]]
-extractNgrams t = pm (groupNgrams EN) <$> extractNgrams' t
+extractNgrams :: Language -> String -> IO [[Ngrams]]
+extractNgrams lang s = pm (groupNgrams lang) <$> extractNgrams' s
 
 
 extractNgrams' :: String -> IO [[Ngrams]]
