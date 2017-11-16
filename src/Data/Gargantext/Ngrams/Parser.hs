@@ -4,7 +4,7 @@
 module Data.Gargantext.Ngrams.Parser where
 
 import Data.Gargantext.Prelude
-import Data.Gargantext.NLP.CoreNLP
+import Data.Gargantext.Ngrams.CoreNLP
 
 
 import Data.Gargantext.Types.Main (Language(..), Ngrams)

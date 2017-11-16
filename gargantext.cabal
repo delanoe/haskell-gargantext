@@ -76,10 +76,9 @@ library
                   , Data.Gargantext.Database.NodeNodeNgram
                   , Data.Gargantext.Database.Private
                   , Data.Gargantext.Database.User
-                  , Data.Gargantext.NLP
-                  , Data.Gargantext.NLP.CoreNLP
                   , Data.Gargantext.Ngrams
                   , Data.Gargantext.Ngrams.Count
+                  , Data.Gargantext.Ngrams.CoreNLP
                   , Data.Gargantext.Ngrams.Parser
                   , Data.Gargantext.Ngrams.Lang.En
                   , Data.Gargantext.Ngrams.Lang.Fr

@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Data.Gargantext.NLP.CoreNLP where
+module Data.Gargantext.Ngrams.CoreNLP where
 
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
