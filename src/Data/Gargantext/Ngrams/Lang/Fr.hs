@@ -13,9 +13,9 @@ selectNgrams xs = pf selectNgrams' xs
         selectNgrams' (_,"N"    ,_       ) = True
         selectNgrams' (_,"NC"   ,_       ) = True
         selectNgrams' (_,"NN+CC",_       ) = True
--- FIXME NER in French must be improved 
---        selectNgrams' (_,_      ,"I-PERS") = True
---        selectNgrams' (_,_      ,"I-LIEU") = True
+        selectNgrams' (_,_      ,"PERSON"      ) = True
+        selectNgrams' (_,_      ,"ORGANIZATION") = True
+        selectNgrams' (_,_      ,"LOCATION"    ) = True
         selectNgrams' (_,_      ,_       ) = False
 
 
@@ -52,6 +52,11 @@ groupNgrams ((x,"N",_):(y,"ADJ",yy):xs)   = groupNgrams ((x <> " " <> y, "NC", y
 groupNgrams ((x,"ADJ",_):(y,"NC",yy):xs)  = groupNgrams ((x <> " " <> y, "NC", yy):xs)
 -- /!\ sometimes N instead of NC (why?)
 groupNgrams ((x,"ADJ",_):(y,"N",yy):xs)   = groupNgrams ((x <> " " <> y, "NC", yy):xs)
+
+
+groupNgrams ((x,_,"PERSON"):(y,yy,"PERSON"):xs)             = groupNgrams ((x <> " " <> y,yy,"PERSON"):xs)
+groupNgrams ((x,_,"ORGANIZATION"):(y,yy,"ORGANIZATION"):xs) = groupNgrams ((x <> " " <> y,yy,"ORGANIZATION"):xs)
+
 
 -- Si aucune des règles précédentes n'est remplie
 groupNgrams (x:xs)                        = (x:(groupNgrams xs))

@@ -6,7 +6,7 @@ import qualified Ngrams.Metrics as Metrics
 main :: IO ()
 main = do
     Occ.parsersTest
+    Lang.ngramsExtractionTest FR
     Lang.ngramsExtractionTest EN
     Metrics.main
-    --Lang.ngramsExtractionTest FR
 

@@ -42,5 +42,5 @@ ngramsExtractionTest = hspec $ do
         it "Groupe: Nom commun + préposition + Nom commun + prép + Nom commun" $ do
             let textFr1 = "L'heure d'arrivée des coureurs dépend de la météo du jour."
             testFr1 <- pm (selectNgrams FR) <$> (extractNgrams FR) textFr1
-            testFr1 `shouldBe` [[("heure d' arrivée des coureurs","NC","I-ORG"),("météo du jour","NC","O")]]
+            testFr1 `shouldBe` [[("heure d' arrivée des coureurs","NC","O"),("météo du jour","NC","O")]]
 
