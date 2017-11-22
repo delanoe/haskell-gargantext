@@ -27,10 +27,12 @@ library
                   , conduit
                   , conduit-extra
                   , directory
+                  , duckling
                   , extra
                   , filepath
                   , http-conduit
                   , lens
+                  , logging-effect
                   , opaleye
                   , path
                   , parsec
@@ -49,9 +51,12 @@ library
                   , split
                   , tagsoup
                   , text
+                  , text-metrics
                   , time
+                  , timezone-series
                   , time-locale-compat
                   , transformers
+                  , unordered-containers
                   , uuid
                   , vector
                   , wai
@@ -82,10 +87,12 @@ library
                   , Data.Gargantext.Ngrams.Parser
                   , Data.Gargantext.Ngrams.Lang.En
                   , Data.Gargantext.Ngrams.Lang.Fr
+                  , Data.Gargantext.Ngrams.Metrics
                   , Data.Gargantext.Ngrams.TextMining
                   , Data.Gargantext.Ngrams.Occurrences
                   , Data.Gargantext.Parsers
                   , Data.Gargantext.Parsers.WOS
+                  , Data.Gargantext.Parsers.Date
                   , Data.Gargantext.Prelude
                   , Data.Gargantext.Server
                   , Data.Gargantext.Types
@@ -117,6 +124,7 @@ test-suite garg-test-ngrams
       Ngrams.Lang.Fr
       Ngrams.Lang.En
       Ngrams.Lang.Occurrences
+      Ngrams.Metrics
   build-depends:       base
                      , extra
                      , text
