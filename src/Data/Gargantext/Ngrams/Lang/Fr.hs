@@ -22,6 +22,8 @@ selectNgrams xs = pf selectNgrams' xs
 groupNgrams :: [(Text, Text, Text)] -> [(Text, Text, Text)]
 groupNgrams []       = []
 
+--groupNgrams ((_,"DET",_):xs) = groupNgrams xs
+
 -- "Groupe : nom commun et adjectifs avec conjonction"
 groupNgrams ((n,"NC",n'):(j1,"ADJ",_):(_,"CC",_):(j2,"ADJ",_):xs) = groupNgrams (n1:n2:xs)
     where
@@ -38,7 +40,9 @@ groupNgrams ((n,"N",n'):(j1,"ADJ",_):(_,"CC",_):(j2,"ADJ",_):xs) = groupNgrams (
 -- groupNgrams ((j1,"ADJ",_):(_,"CC",_):(j2,"ADJ",j2'):xs) = groupNgrams ((j1 <> " " <> j2, "ADJ", j2'):xs)
 
 -- Groupe : Nom commun + préposition + Nom commun
-groupNgrams ((n1,"NC",_):(p,"P",_):(n2,"NC",n2'):xs) = groupNgrams ((n1 <> " " <> p <> " " <> n2, "NC", n2'):xs)
+groupNgrams ((n1,"NC",_):(p,"P",_):(n2,"NC",n2'):xs)  = groupNgrams ((n1 <> " " <> p <> " " <> n2, "NC", n2'):xs)
+groupNgrams ((n1,"NC",_):(p,"P",_):(n2,"NPP",n2'):xs) = groupNgrams ((n1 <> " " <> p <> " " <> n2, "NC", n2'):xs)
+groupNgrams ((n1,"NC",_):(prep,"P",_):(det,"DET",_):(n2,"NPP",n2'):xs) = groupNgrams ((n1 <> " " <> prep <> " " <> det <> " " <> n2, "NC", n2'):xs)
 
 -- Groupe : Plusieurs adjectifs successifs
 groupNgrams ((x,"ADJ",_):(y,"ADJ",yy):xs) = groupNgrams ((x <> " " <> y, "ADJ", yy):xs)

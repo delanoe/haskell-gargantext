@@ -39,6 +39,12 @@ ngramsExtractionTest = hspec $ do
             testFr0 <- pm (selectNgrams FR) <$> (extractNgrams FR) textFr0
             testFr0 `shouldBe` [[("problème du jour","NC","O")]]
 
+        it "Groupe: Nom commun + préposition + déterminant + Nom commun" $ do
+            let textFr0 = "Emmanuel Macron est le président de la France."
+            testFr0 <- pm (selectNgrams FR) <$> (extractNgrams FR) textFr0
+            testFr0 `shouldBe` [[("Emmanuel Macron","NPP","PERSON"),("président de la France","NC","LOCATION")]]
+
+
         it "Groupe: Nom commun + préposition + Nom commun + prép + Nom commun" $ do
             let textFr1 = "L'heure d'arrivée des coureurs dépend de la météo du jour."
             testFr1 <- pm (selectNgrams FR) <$> (extractNgrams FR) textFr1

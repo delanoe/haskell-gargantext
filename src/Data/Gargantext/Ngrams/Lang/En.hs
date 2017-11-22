@@ -47,6 +47,7 @@ groupNgrams ((x,"JJ",_):(y,"NNS",yy):xs)   = groupNgrams ((x <> " " <> y, "NN", 
 
 groupNgrams ((x,"NNP",_):(y,"NN",yy):xs)   = groupNgrams ((x <> " " <> y, "NN", yy):xs)
 groupNgrams ((x,"NN",_):(y,"NP",yy):xs)    = groupNgrams ((x <> " " <> y, "NN", yy):xs)
+
 groupNgrams ((x,"NN",_):(y,"NNS",yy):xs)   = groupNgrams ((x <> " " <> y, "NN", yy):xs)
 groupNgrams ((x,"NP",_):(y,"NP",yy):xs)    = groupNgrams ((x <> " " <> y, "NN", yy):xs)
 
@@ -57,7 +58,11 @@ groupNgrams ((x,"NN",_):(y,"NN",yy):xs)    = groupNgrams ((x <> " " <> y, "NN", 
 -- [[("``","``","O"),("Test","VB","O"),("the","DT","O"),("antiinflammatory activity analgesic activity","NN","O"),("?",".","O"),("''","''","O")]]
 -- > should be (antiinflammatory activity) <> (analgesic activity)
 
-groupNgrams ((x,"NN",_):("of","IN",_):(y,"NN",yy):xs)       = groupNgrams ((x <> " " <> "of" <> " " <> y, "NN", yy):xs)
+groupNgrams ((x,"NN",_):(o,"IN",_):(y,"NN",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> y, "NN", yy):xs)
+groupNgrams ((x,"NN",_):(o,"IN",_):(y,"NNP",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> y, "NN", yy):xs)
+
+groupNgrams ((x,"NN",_):(o,"IN",_):(det,"DT",_):(y,"NN",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> det <> " " <> y, "NN", yy):xs)
+groupNgrams ((x,"NN",_):(o,"IN",_):(det,"DT",_):(y,"NNP",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> det <> " " <> y, "NN", yy):xs)
 
 groupNgrams ((x,_,"PERSON"):(y,yy,"PERSON"):xs)             = groupNgrams ((x <> " " <> y,yy,"PERSON"):xs)
 groupNgrams ((x,_,"ORGANIZATION"):(y,yy,"ORGANIZATION"):xs) = groupNgrams ((x <> " " <> y,yy,"ORGANIZATION"):xs)

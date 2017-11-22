@@ -16,9 +16,21 @@ ngramsExtractionTest = hspec $ do
 
         it "\"Of\" seperates two ngrams" $ do
             t1 <- pm (selectNgrams EN) <$> extractNgrams EN (textTest !! 0) 
-            t1 `shouldBe` [[("Alcoholic extract","NN","O"),("Kaempferia galanga","NN","O"),("analgesic activities","NN+CC","O"),("antiinflammatory activities","NN+CC","O"),("animal models","NN","O")]]
-
+            t1 `shouldBe` [[("Alcoholic extract of Kaempferia galanga","NN","O"),("analgesic activities","NN+CC","O"),("antiinflammatory activities","NN+CC","O"),("animal models","NN","O")]]
+            
         it "Tests the conjunction of coordination in two ngrams with its adjectives" $ do
             t2 <- pm (selectNgrams EN) <$> extractNgrams EN (textTest !! 2) 
             t2 `shouldBe` [[("Acute activities","NN+CC","O"),("sub acute inflammatory activities","NN+CC","O"),("rats","NNS","O"),("carrageenan","NN","O"),("paw edema","NN","O"),("cotton pellet","NN","O"),("granuloma models","NN","O")]]
-            
+
+        it "Tests nouns with preposition and determinants" $ do
+            let t = "Donald Trump is president of the United-States of America."
+            t2 <- pm (selectNgrams EN) <$> extractNgrams EN t
+            t2 `shouldBe` [[("Donald Trump","NNP","PERSON"),("president of the United-States of America","NN","LOCATION")]]
+
+
+
+
+
+
+
+
