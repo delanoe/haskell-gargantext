@@ -1,0 +1,118 @@
+name: gargantext
+version: '0.1.0.0'
+synopsis: Deep (Collaborative) Text mining project
+description: Please see README.md
+category: Data
+author: Alexandre Delanoë
+maintainer: gargantext@iscpif.fr
+copyright:
+- ! 'Copyright: (c) 2016'
+- 2017 CNRS Alexandre Delanoë
+license: BSD3
+homepage: http://gargantext.org
+ghc-options: -Wall
+dependencies:
+- extra
+- text
+library:
+  source-dirs: src
+  ghc-options:
+  - -Wincomplete-uni-patterns
+  - -Wincomplete-record-updates
+  - -Werror
+  exposed-modules:
+  - Data.Gargantext
+  - Data.Gargantext.Analysis
+  - Data.Gargantext.DSL
+  - Data.Gargantext.Database
+  - Data.Gargantext.Database.Instances
+  - Data.Gargantext.Database.Ngram
+  - Data.Gargantext.Database.Node
+  - Data.Gargantext.Database.NodeNgram
+  - Data.Gargantext.Database.NodeNgramNgram
+  - Data.Gargantext.Database.NodeNode
+  - Data.Gargantext.Database.NodeNodeNgram
+  - Data.Gargantext.Database.Private
+  - Data.Gargantext.Database.User
+  - Data.Gargantext.Ngrams
+  - Data.Gargantext.Ngrams.Count
+  - Data.Gargantext.Ngrams.CoreNLP
+  - Data.Gargantext.Ngrams.Parser
+  - Data.Gargantext.Ngrams.Lang.En
+  - Data.Gargantext.Ngrams.Lang.Fr
+  - Data.Gargantext.Ngrams.Metrics
+  - Data.Gargantext.Ngrams.TextMining
+  - Data.Gargantext.Ngrams.Occurrences
+  - Data.Gargantext.Parsers
+  - Data.Gargantext.Parsers.WOS
+  - Data.Gargantext.Parsers.Date
+  - Data.Gargantext.Prelude
+  - Data.Gargantext.RCT
+  - Data.Gargantext.Server
+  - Data.Gargantext.Types
+  - Data.Gargantext.Types.Main
+  - Data.Gargantext.Types.Node
+  - Data.Gargantext.Utils.DateUtils
+  - Data.Gargantext.Utils.Prefix
+  dependencies:
+  - base >=4.7 && <5
+  - aeson
+  - attoparsec
+  - async
+  - base16-bytestring
+  - bytestring
+  - case-insensitive
+  - containers
+  - contravariant
+  - conduit
+  - conduit-extra
+  - directory
+  - duckling
+  - filepath
+  - http-conduit
+  - lens
+  - logging-effect
+  - opaleye
+  - path
+  - parsec
+  - postgresql-simple
+  - pretty
+  - product-profunctors
+  - profunctors
+  - protolude
+  - pureMD5
+  - regex-compat
+  - semigroups
+  - servant
+  - servant-client
+  - servant-multipart
+  - servant-server
+  - split
+  - tagsoup
+  - text-metrics
+  - time
+  - timezone-series
+  - time-locale-compat
+  - transformers
+  - unordered-containers
+  - uuid
+  - vector
+  - wai
+  - warp
+  - yaml
+  - zlib
+  - zip
+  - path-io
+tests:
+  garg-test-ngrams:
+    main: Main.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - gargantext
+    - hspec
+    - QuickCheck
