@@ -104,9 +104,9 @@ library:
   - zip
   - path-io
 tests:
-  garg-test-ngrams:
+  garg-test:
     main: Main.hs
-    source-dirs: test
+    source-dirs: src-test
     ghc-options:
     - -threaded
     - -rtsopts
@@ -116,3 +116,17 @@ tests:
     - gargantext
     - hspec
     - QuickCheck
+  garg-doctest:
+    main: Main.hs
+    source-dirs: src-doctest
+    ghc-options:
+    - -Werror
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - doctest
+    - Glob
+    - QuickCheck
+    - base
+    - gargantext

@@ -66,6 +66,7 @@ groupNgrams ((x,"NN",_):(o,"IN",_):(det,"DT",_):(y,"NNP",yy):xs)       = groupNg
 
 groupNgrams ((x,_,"PERSON"):(y,yy,"PERSON"):xs)             = groupNgrams ((x <> " " <> y,yy,"PERSON"):xs)
 groupNgrams ((x,_,"ORGANIZATION"):(y,yy,"ORGANIZATION"):xs) = groupNgrams ((x <> " " <> y,yy,"ORGANIZATION"):xs)
+groupNgrams ((x,_,"LOCATION"):(y,yy,"LOCATION"):xs) = groupNgrams ((x <> " " <> y,yy,"LOCATION"):xs)
 
 groupNgrams (x:xs)                                          = (x:(groupNgrams xs))
 

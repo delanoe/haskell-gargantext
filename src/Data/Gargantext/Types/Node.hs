@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
+-- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Data.Gargantext.Types.Node where
 

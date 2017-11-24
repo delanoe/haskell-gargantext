@@ -26,7 +26,6 @@ data Language = EN | FR -- | DE | IT | SP
     -- > SP == spanish (not implemented yet)
     -- > ... add your language and help us to implement it (:
 
-
 type Ngrams = (Text, Text, Text)
 
 -- | TODO add Symbolic Node / Document
