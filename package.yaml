@@ -57,6 +57,7 @@ library:
   dependencies:
   - base >=4.7 && <5
   - aeson
+  - aeson-lens
   - attoparsec
   - async
   - base16-bytestring
@@ -82,6 +83,7 @@ library:
   - protolude
   - pureMD5
   - regex-compat
+  - safe
   - semigroups
   - servant
   - servant-client

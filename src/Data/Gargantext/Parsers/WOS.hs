@@ -50,7 +50,6 @@ endNotice = manyTill anyChar (string $ pack "\nER\n")
 startNotice :: Parser ByteString
 startNotice = "\nPT " *> takeTill isEndOfLine
 
-
 field' :: Parser (ByteString, [ByteString])
 field' = do
     f  <- "\n" *> take 2 <* " "
@@ -113,8 +112,8 @@ parseFile p x = case runParser p x of
         Left  _ -> pure 0
         Right r -> pure $ length r
 
-testWos :: FilePath -> IO [Int]
-testWos fp = join $ mapConcurrently (parseFile WOS) <$> zipFiles fp
+parseWos :: FilePath -> IO [Int]
+parseWos fp = join $ mapConcurrently (parseFile WOS) <$> zipFiles fp
 
 
 

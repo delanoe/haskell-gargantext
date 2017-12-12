@@ -1,6 +1,6 @@
 module Main where
 
-import Hastext.Db
+import Gargantext.Parser.Wos (parseWos)
 
 main :: IO ()
-main = fonction
+main = parseWos "/tmp/DeepNeuralNetworkFull.zip"

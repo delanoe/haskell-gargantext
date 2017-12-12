@@ -36,6 +36,8 @@ import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
 import qualified Data.Map as Map
 import qualified Data.Vector as V
+import Safe (headMay)
+
 
 pf :: (a -> Bool) -> [a] -> [a]
 pf = filter

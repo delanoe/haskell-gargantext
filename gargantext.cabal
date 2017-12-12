@@ -1,6 +1,8 @@
--- This file has been generated from package.yaml by hpack version 0.18.1.
+-- This file has been generated from package.yaml by hpack version 0.20.0.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: d9ae37baf58628321e1cf53c125f895c9fd3ff19c03fdfaa1ca9b7754fecabf9
 
 name:                gargantext
 version:             0.1.0.0
@@ -21,28 +23,29 @@ library
   hs-source-dirs:
       src
   build-depends:
-      extra
-    , text
-    , base >=4.7 && <5
-    , aeson
-    , attoparsec
+      aeson
+    , aeson-lens
     , async
+    , attoparsec
+    , base >=4.7 && <5
     , base16-bytestring
     , bytestring
     , case-insensitive
-    , containers
-    , contravariant
     , conduit
     , conduit-extra
+    , containers
+    , contravariant
     , directory
     , duckling
+    , extra
     , filepath
     , http-conduit
     , lens
     , logging-effect
     , opaleye
-    , path
     , parsec
+    , path
+    , path-io
     , postgresql-simple
     , pretty
     , product-profunctors
@@ -50,6 +53,7 @@ library
     , protolude
     , pureMD5
     , regex-compat
+    , safe
     , semigroups
     , servant
     , servant-client
@@ -57,10 +61,11 @@ library
     , servant-server
     , split
     , tagsoup
+    , text
     , text-metrics
     , time
-    , timezone-series
     , time-locale-compat
+    , timezone-series
     , transformers
     , unordered-containers
     , uuid
@@ -68,9 +73,8 @@ library
     , wai
     , warp
     , yaml
-    , zlib
     , zip
-    , path-io
+    , zlib
   exposed-modules:
       Data.Gargantext
       Data.Gargantext.Analysis
@@ -118,13 +122,15 @@ test-suite garg-doctest
       src-doctest
   ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      extra
-    , text
-    , doctest
-    , Glob
+      Glob
     , QuickCheck
     , base
+    , doctest
+    , extra
     , gargantext
+    , text
+  other-modules:
+      Paths_gargantext
   default-language: Haskell2010
 
 test-suite garg-test
@@ -134,12 +140,12 @@ test-suite garg-test
       src-test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      extra
-    , text
+      QuickCheck
     , base
+    , extra
     , gargantext
     , hspec
-    , QuickCheck
+    , text
   other-modules:
       Ngrams.Lang
       Ngrams.Lang.En
@@ -147,4 +153,5 @@ test-suite garg-test
       Ngrams.Lang.Occurrences
       Ngrams.Metrics
       Parsers.WOS
+      Paths_gargantext
   default-language: Haskell2010
