@@ -5,6 +5,8 @@
 module Data.Gargantext.Types.Main where
 
 import Protolude (fromMaybe)
+
+import Data.ByteString (ByteString())
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Gargantext.Types.Node ( NodePoly
@@ -17,7 +19,8 @@ import Data.Gargantext.Types.Node ( NodePoly
                                )
 
 
-
+-- | Language of a Text
+-- For simplicity, we suppose Text as an homogenous language
 data Language = EN | FR -- | DE | IT | SP
     -- > EN == english
     -- > FR == french
@@ -27,6 +30,12 @@ data Language = EN | FR -- | DE | IT | SP
     -- > ... add your language and help us to implement it (:
 
 type Ngrams = (Text, Text, Text)
+
+type ErrorMessage = String
+
+-- Parse Texts
+type GargParser = ByteString -> Either ErrorMessage Corpus
+
 
 -- | TODO add Symbolic Node / Document
 --   TODO make instances of Nodes
