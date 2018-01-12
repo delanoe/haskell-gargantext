@@ -28,7 +28,7 @@ import Data.Map                    as DM
 ----import Data.Either.Extra(Either(..))
 ----
 --import Control.Monad (join)
-import Codec.Archive.Zip
+import Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Path.IO (resolveFile')
 ------ import qualified Data.ByteString.Lazy as B
 --import Control.Applicative ( (<$>) )
@@ -53,10 +53,18 @@ data FileFormat = WOS        -- Implemented (ISI Format)
 --                | XML        -- Not Implemented / see :
 --                             -- > http://chrisdone.com/posts/fast-haskell-c-parsing-xml
 
----- | withParser:
----- According the format of the text, choosing the right parser.
+parse :: FileFormat -> FilePath 
+      -> IO [Either String [[(DB.ByteString, DB.ByteString)]]]
+parse format path = do
+    files <- case takeExtension path of
+              ".zip" -> openZip              path
+              _      -> pure <$> DB.readFile path
+    mapConcurrently (runParser format) files
 
---withParser :: FileFormat -> ByteString -> IO Corpus
+
+-- | withParser:
+-- According the format of the text, choosing the right parser.
+-- TODO  withParser :: FileFormat -> Parser [Document]
 withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
 withParser WOS = wosParser
 --withParser DOC = docParser
@@ -74,13 +82,5 @@ openZip fp = do
     entries <- withArchive path (DM.keys <$> getEntries)
     bs      <- mapConcurrently (\s -> withArchive path (getEntry s)) entries
     pure bs
-
-parse :: FileFormat -> FilePath 
-      -> IO [Either String [[(DB.ByteString, DB.ByteString)]]]
-parse format path = do
-    files <- case takeExtension path of
-              ".zip" -> openZip              path
-              _      -> pure <$> DB.readFile path
-    mapConcurrently (runParser format) files
 
 
