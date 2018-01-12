@@ -1,80 +1,71 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Gargantext.Parsers.WOS where
+module Data.Gargantext.Parsers.WOS (wosParser) where
 
 -- TOFIX : Should import Data.Gargantext.Prelude here
-import Prelude hiding (takeWhile, take, concat, readFile)
+import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
 
 import qualified Data.List as DL
-import Data.Attoparsec.ByteString
+
+import Data.Monoid ((<>))
+import Data.Attoparsec.ByteString (Parser, try, string
+                                  , takeTill, take
+                                  , manyTill, many1)
 import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
-import Data.ByteString (ByteString)
+import Data.ByteString (ByteString, concat)
 import Data.ByteString.Char8 (pack)
 
 import Control.Applicative
 
-
-import Data.Gargantext.Types
-
+--import Data.Gargantext.Types
 
 -- | wosParser parses ISI format from
 -- Web Of Science Database
-wosParser :: ByteString -> IO Corpus
-wosParser = undefined
-
-
-wosParser' :: Parser [Maybe [ByteString]]
-wosParser' = do
+wosParser :: Parser [[(ByteString, ByteString)]]
+wosParser = do
     -- TODO Warning if version /= 1.0
     -- FIXME anyChar (string ..) /= exact string "\nVR 1.0" ?
-    _ <- manyTill anyChar (string $ pack "\nVR 1.0")
-    ns <- many1 wosNotice <* (string $ pack "\nEF")
-    return ns
+    _  <- manyTill anyChar (string $ pack "\nVR 1.0")
+    ns <- many1 notice <*  (string $ pack "\nEF"    )
+    pure ns
 
-wosNotice :: Parser (Maybe [ByteString])
-wosNotice = startNotice *> wosFields <* endNotice
+notice :: Parser [(ByteString, ByteString)]
+notice = start *> fields <* end
     where
-      endNotice :: Parser [Char]
-      endNotice = manyTill anyChar (string $ pack "\nER\n")
-
-      startNotice :: Parser ByteString
-      startNotice = "\nPT " *> takeTill isEndOfLine
-
-field' :: Parser (ByteString, [ByteString])
-field' = do
-    f  <- "\n" *> take 2 <* " "
-    a  <- takeTill isEndOfLine
-    as <- try wosLines
-    let as' = case DL.length as > 0 of
-            True  -> as
-            False -> []
-    return (f, [a] ++ as')
-
-wosFields' :: Parser [(ByteString, [ByteString])]
-wosFields' = many field'
-
-wosFields :: Parser (Maybe [ByteString])
-wosFields = do
---    a <- field "AU"
---    t <- field "TI"
---    s <- field "SO"
---    d <- field "DI" -- DOI
---    p <- field "PD"
---    b <- field "AB"
---    u <- field "UT"
-    ws <- many field'
-    return $ DL.lookup "UT" ws
---    return $ HyperdataDocument 
---                    Just "WOS"
---                    DL.lookup "DI" ws
---                    DL.lookup "URL" ws
---                    DL.lookup "PA" ws
---                    DL.lookup "TI" ws
+      start :: Parser ByteString
+      start = "\nPT " *> takeTill isEndOfLine
+      
+      end :: Parser [Char]
+      end = manyTill anyChar (string $ pack "\nER\n")
 
 
-wosLines :: Parser [ByteString]
-wosLines = many line
+fields :: Parser [(ByteString, ByteString)]
+fields = many field
+    where
+        field :: Parser (ByteString, ByteString)
+        field = do
+            name  <- "\n" *> take 2 <* " "
+            txt   <- takeTill isEndOfLine
+            txts  <- try lines
+            let txts' = case DL.length txts > 0 of
+                    True  -> txts
+                    False -> []
+            pure (translate name, concat ([txt] <> txts'))
+
+
+lines :: Parser [ByteString]
+lines = many line
     where
         line :: Parser ByteString
         line = "\n  " *> takeTill isEndOfLine
+
+translate :: ByteString -> ByteString
+translate champs
+            | champs == "AU" = "author"
+            | champs == "TI" = "title"
+            | champs == "SO" = "source"
+            | champs == "DI" = "doi"
+            | champs == "PD" = "publication_date"
+            | champs == "AB" = "abstract"
+            | otherwise  = champs
 

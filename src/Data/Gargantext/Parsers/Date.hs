@@ -3,7 +3,7 @@ Module      : Data.Gargantext.Parsers.Date
 Description : Some utils to parse dates
 Copyright   : (c) CNRS 2017
 License     : AGPL + CECILL v3
-Maintainer  : alexandre.delanoe@iscpif.fr
+Maintainer  : dev@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
@@ -12,13 +12,14 @@ According to the language of the text, parseDate1 returns date as Text:
 TODO : Add some tests
 import Data.Gargantext.Parsers as DGP
 DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
-
 -}
+
+{-# LANGUAGE OverloadedStrings #-}
 
 module Data.Gargantext.Parsers.Date (parseDate1, Lang(FR, EN)) where
 
 import Data.Gargantext.Prelude
-import qualified Data.Gargantext.Types.Main as G
+--import Data.Gargantext.Types.Main as G
 
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
@@ -40,19 +41,16 @@ import Data.Text (Text)
 -- import Duckling.Rules (rulesFor)
 -- import Duckling.Debug as DB
 
-import Safe (headMay)
-
 import Duckling.Types (ResolvedToken)
-
+import Safe (headMay)
 
 
 -- TODO add Paris at Duckling.Locale Region datatype
 -- | To get Homogeinity of the languages
 --   TODO : put this in a more generic place in the source code
-parserLang :: G.Language -> Lang
-parserLang G.FR = FR
-parserLang G.EN = EN
-
+--parserLang :: G.Language -> Lang
+--parserLang G.FR = FR
+--parserLang G.EN = EN
 
 
 -- | Final Date parser API

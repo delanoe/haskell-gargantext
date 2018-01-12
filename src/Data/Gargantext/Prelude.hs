@@ -1,30 +1,20 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults  #-}
+{-# LANGUAGE     NoImplicitPrelude       #-}
+
+{-
+TODO: import head impossible from Protolude: why ?
+-}
 
 module Data.Gargantext.Prelude where
 
-import Protolude (Bool(True, False), Int, Double, Integer, Fractional, Num, Maybe, Floating, Char, Ord, Integral, Foldable, RealFrac, Monad, filter,
-                 reverse
-                 , map
-                 , zip
-                 , drop
-                 , take
-                 , zipWith
-                 , sum
-                 , fromIntegral
-                 , length
-                 , fmap
-                 , takeWhile
-                 , sqrt
-                 , undefined
-                 , identity
-                 , abs
-                 , maximum
-                 , minimum
-                 , return
-                 , snd
-                 , truncate
+import Protolude ( Bool(True, False), Int, Double, Integer
+                 , Fractional, Num, Maybe, Floating, Char
+                 , Ord, Integral, Foldable, RealFrac, Monad, filter
+                 , reverse, map, zip, drop, take, zipWith
+                 , sum, fromIntegral, length, fmap
+                 , takeWhile, sqrt, undefined, identity
+                 , abs, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), (>=), ($), (**), (^)
                  )
 
@@ -36,7 +26,7 @@ import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
 import qualified Data.Map as Map
 import qualified Data.Vector as V
-import Safe (headMay)
+-- import Safe (headMay)
 
 
 pf :: (a -> Bool) -> [a] -> [a]
