@@ -38,7 +38,7 @@ import Control.Concurrent.Async as CCA (mapConcurrently)
 import Data.Gargantext.Parsers.WOS (wosParser)
 ---- import Data.Gargantext.Parsers.XML (xmlParser)
 ---- import Data.Gargantext.Parsers.DOC (docParser)
----- import Data.Gargantext.Parsers.ODS (odsParser)
+---- import Data.Gargantext.Parsers.ODT (odtParser)
 
 --import Data.Gargantext.Prelude (pm)
 --import Data.Gargantext.Types.Main (ErrorMessage(), Corpus)
@@ -48,7 +48,7 @@ import Data.Gargantext.Parsers.WOS (wosParser)
 -- different parser are available.
 data FileFormat = WOS        -- Implemented (ISI Format)
 --                | DOC        -- Not Implemented / import Pandoc
---                | ODS        -- Not Implemented / import Pandoc
+--                | ODT        -- Not Implemented / import Pandoc
 --                | PDF        -- Not Implemented / pdftotext and import Pandoc ?
 --                | XML        -- Not Implemented / see :
 --                             -- > http://chrisdone.com/posts/fast-haskell-c-parsing-xml
@@ -60,7 +60,7 @@ data FileFormat = WOS        -- Implemented (ISI Format)
 withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
 withParser WOS = wosParser
 --withParser DOC = docParser
---withParser ODS = odsParser
+--withParser ODT = odtParser
 --withParser XML = xmlParser
 --withParser _   = error "[ERROR] Parser not implemented yet"
 
