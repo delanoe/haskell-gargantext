@@ -4,12 +4,12 @@ synopsis: Deep (Collaborative) Text mining project
 description: Please see README.md
 category: Data
 author: Alexandre Delanoë
-maintainer: gargantext@iscpif.fr
+maintainer: team@gargantext.org
 copyright:
 - ! 'Copyright: (c) 2016'
-- 2017 CNRS Alexandre Delanoë
+- 2018 CNRS Alexandre Delanoë
 license: BSD3
-homepage: http://gargantext.org
+homepage: https://gargantext.org
 ghc-options: -Wall
 dependencies:
 - extra
