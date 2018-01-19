@@ -2,19 +2,19 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d9ae37baf58628321e1cf53c125f895c9fd3ff19c03fdfaa1ca9b7754fecabf9
+-- hash: 985d1caa67e769a2e15fc68e773e608d91e773a04b50f82bcdb4a3997debc1a6
 
 name:                gargantext
 version:             0.1.0.0
 synopsis:            Deep (Collaborative) Text mining project
 description:         Please see README.md
-homepage:            http://gargantext.org
+homepage:            https://gargantext.org
 license:             BSD3
 license-file:        LICENSE
 author:              Alexandre Delanoë
-maintainer:          gargantext@iscpif.fr
+maintainer:          team@gargantext.org
 copyright:           Copyright: (c) 2016,
-                     2017 CNRS Alexandre Delanoë
+                     2018 CNRS Alexandre Delanoë
 category:            Data
 build-type:          Simple
 cabal-version:       >= 1.10

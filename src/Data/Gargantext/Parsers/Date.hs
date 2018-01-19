@@ -1,16 +1,16 @@
 {-|
 Module      : Data.Gargantext.Parsers.Date
 Description : Some utils to parse dates
-Copyright   : (c) CNRS 2017
+Copyright   : (c) CNRS 2017-present
 License     : AGPL + CECILL v3
-Maintainer  : dev@gargantext.org
+Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
 According to the language of the text, parseDate1 returns date as Text:
 
 TODO : Add some tests
-import Data.Gargantext.Parsers as DGP
+import Data.Gargantext.Parsers.Date as DGP
 DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 -}
 
@@ -60,10 +60,9 @@ parseDate1 lang text = do
     case headMay maybeJson of
       Just (Json.Object object) -> case HM.lookup "value" object of
                                      Just (Json.String date) -> pure date
-                                     Just _             -> error "ERROR: should be a json String"
-                                     Nothing            -> error "No date found"
-      Just _                    -> error "ERROR: should be a json Object"
-      Nothing                   -> pure "No date found"
+                                     Just _                  -> error "ParseDate ERROR: should be a json String"
+                                     Nothing                 -> error "ParseDate ERROR: no date found"
+      _                         -> error "ParseDate ERROR: type error"
 
 
 

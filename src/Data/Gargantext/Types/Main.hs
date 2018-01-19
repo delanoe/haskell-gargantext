@@ -38,9 +38,7 @@ type ErrorMessage = String
 --   TODO make instances of Nodes
 
 -- All the Database is structred like a hierachical Tree
--- Where a is a NodeType:
--- TODO force the logic of the architecture 
-data Tree a = Empty | Node' a (Tree a) (Tree a) deriving (Show)
+data Tree a = Leaf a | Node' [Tree a]
 
 data NodeType = NodeUser
               | Folder | Project | Corpus | Document
