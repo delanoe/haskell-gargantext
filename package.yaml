@@ -92,6 +92,7 @@ library:
   - split
   - tagsoup
   - text-metrics
+#  - utc
   - time
   - timezone-series
   - time-locale-compat

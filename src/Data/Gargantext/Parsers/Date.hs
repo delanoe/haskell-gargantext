@@ -16,7 +16,7 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Gargantext.Parsers.Date (parseDate1, Lang(FR, EN)) where
+module Data.Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate) where
 
 import Data.Gargantext.Prelude
 --import Data.Gargantext.Types.Main as G
@@ -28,10 +28,9 @@ import Duckling.Resolve (fromUTC, Context(Context, referenceTime, locale)
                         , DucklingTime(DucklingTime)
                         )
 import Duckling.Core (makeLocale, Lang(FR,EN), Some(This), Dimension(Time))
-import Duckling.Types (jsonValue)
---import qualified Duckling.Core as DC
+import Duckling.Types (jsonValue, Entity)
 
-import Duckling.Api (analyze)
+import Duckling.Api (analyze, parse)
 import qualified Data.HashSet as HashSet
 import qualified Data.Aeson   as Json
 import Data.HashMap.Strict as HM
@@ -78,7 +77,17 @@ localContext lang dt = Context {referenceTime = dt, locale = makeLocale lang Not
 -- | Date parser with Duckling
 parseDateWithDuckling :: Lang -> Text -> IO [ResolvedToken]
 parseDateWithDuckling lang input = do
-    ctx <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
+    contxt <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
     --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
-    pure $ analyze input ctx $ HashSet.fromList [(This Time)]
+    pure $ analyze input contxt $ HashSet.fromList [(This Time)]
+
+
+parseDate :: Lang -> Text -> IO [Entity]
+parseDate lang input = do
+    context <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
+    pure $ parse input context [(This Time)]
+
+
+
+
 
