@@ -4,6 +4,7 @@
 
 module Data.Gargantext.Types.Main where
 
+import Data.Monoid ((<>))
 import Protolude (fromMaybe)
 
 --import Data.ByteString (ByteString())
@@ -50,28 +51,26 @@ userTree = NodeT NodeUser [projectTree]
 projectTree :: Tree NodeType NodeType
 projectTree = NodeT Project [corpusTree]
 
--- | Corpus Tree simplified
+-- | Corpus Tree
 corpusTree :: Tree NodeType NodeType
-corpusTree = NodeT Corpus [ LeafT Document
-                          , LeafT Favorites
-                          , LeafT List
-                          , LeafT Score
-                          ]
-
+corpusTree = NodeT Corpus (  [ LeafT Document ]
+                          <> [ LeafT Lists    ]
+                          <> [ LeafT Metrics  ]
+                          <> [ LeafT Favorites]
+                          )
 
 -- | TODO add Symbolic Node / Document
 --   TODO make instances of Nodes
-data NodeType = NodeUser
-              | Folder | Project | Corpus | Document
+data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
               | Favorites
-              | NodeSwap
-              | List  | StopList    | MainList | MapList | GroupList
-              | Score | Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
-              | Tficf | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
-
+              | Lists
+              | Metrics
               deriving (Show, Eq)
 
+data Lists  =  StopList    | MainList | MapList | GroupList
 
+data Metrics  = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
+              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
 
 
 
@@ -114,56 +113,56 @@ type MapList    = List
 type GroupList  = List
 
 -- | Then a Node can be a Score which as some synonyms
-type Score = Node HyperdataScore
-type Occurrences   = Score
-type Cooccurrences = Score
-type Specclusion   = Score
-type Genclusion    = Score
-type Cvalue        = Score
-type Tficf         = Score
--- TODO All these Tfidf* will be replaced with TFICF
-type TfidfCorpus   = Tficf
-type TfidfGlobal   = Tficf
-type TirankLocal   = Tficf
-type TirankGlobal  = Tficf
-
--- | Then a Node can be either a Graph or a Phylo or a Notebook
-type Graph    = Node HyperdataGraph
-type Phylo    = Node HyperdataPhylo
-type Notebook = Node HyperdataNotebook
-
-
-nodeTypes :: [(NodeType, NodeTypeId)]
-nodeTypes = [
-                --(NodeUser      ,  1)
+--type Score = Node HyperdataScore
+--type Occurrences   = Score
+--type Cooccurrences = Score
+--type Specclusion   = Score
+--type Genclusion    = Score
+--type Cvalue        = Score
+--type Tficf         = Score
+---- TODO All these Tfidf* will be replaced with TFICF
+--type TfidfCorpus   = Tficf
+--type TfidfGlobal   = Tficf
+--type TirankLocal   = Tficf
+--type TirankGlobal  = Tficf
 --
-             (Project       ,  2)
-            , (NodeSwap     , 19)
-            , (Corpus        ,  3)
-            , (Document      ,  4)
-------  Lists
-            , (StopList      ,  5)
-            , (GroupList     ,  6)
-            , (MainList      ,  7)
-            , (MapList       ,  8)
---  Scores
-            , (Occurrences   , 10)
-            , (Cooccurrences ,  9)
+---- | Then a Node can be either a Graph or a Phylo or a Notebook
+--type Graph    = Node HyperdataGraph
+--type Phylo    = Node HyperdataPhylo
+--type Notebook = Node HyperdataNotebook
 
-            , (Specclusion   , 11)
-            , (Genclusion    , 18)
-            , (Cvalue       , 12)
 
-            , (TfidfCorpus  , 13)
-            , (TfidfGlobal  , 14)
-
-            , (TirankLocal  , 16)
-            , (TirankGlobal , 17)
-
---  Node management
-            , (Favorites     , 15)
-
-            ]
+--nodeTypes :: [(NodeType, NodeTypeId)]
+--nodeTypes = [
+--                --(NodeUser      ,  1)
+----
+--             (Project       ,  2)
+--            , (NodeSwap     , 19)
+--            , (Corpus        ,  3)
+--            , (Document      ,  4)
+--------  Lists
+--            , (StopList      ,  5)
+--            , (GroupList     ,  6)
+--            , (MainList      ,  7)
+--            , (MapList       ,  8)
+----  Scores
+--            , (Occurrences   , 10)
+--            , (Cooccurrences ,  9)
 --
-nodeTypeId :: NodeType -> NodeTypeId
-nodeTypeId tn = fromMaybe (error ("Typename " ++ show tn ++ " does not exist")) (lookup tn nodeTypes)
+--            , (Specclusion   , 11)
+--            , (Genclusion    , 18)
+--            , (Cvalue       , 12)
+--
+--            , (TfidfCorpus  , 13)
+--            , (TfidfGlobal  , 14)
+--
+--            , (TirankLocal  , 16)
+--            , (TirankGlobal , 17)
+--
+----  Node management
+--            , (Favorites     , 15)
+--
+--            ]
+----
+--nodeTypeId :: NodeType -> NodeTypeId
+--nodeTypeId tn = fromMaybe (error ("Typename " ++ show tn ++ " does not exist")) (lookup tn nodeTypes)
