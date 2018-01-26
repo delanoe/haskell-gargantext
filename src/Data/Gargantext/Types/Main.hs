@@ -34,12 +34,33 @@ type Ngrams = (Text, Text, Text)
 type ErrorMessage = String
 
 
+-- All the Database is structred like a hierachical Tree
+data Tree b a = LeafT a | NodeT b [Tree b a]
+              deriving (Show, Read, Eq)
+
+-- Garg Database Schema Typed as specification
+gargDatabase :: [Tree NodeType NodeType]
+gargDatabase = [userTree]
+
+-- | User Tree simplified
+userTree :: Tree NodeType NodeType
+userTree = NodeT NodeUser [projectTree]
+
+-- | Project Tree
+projectTree :: Tree NodeType NodeType
+projectTree = NodeT Project [corpusTree]
+
+-- | Corpus Tree simplified
+corpusTree :: Tree NodeType NodeType
+corpusTree = NodeT Corpus [ LeafT Document
+                          , LeafT Favorites
+                          , LeafT List
+                          , LeafT Score
+                          ]
+
+
 -- | TODO add Symbolic Node / Document
 --   TODO make instances of Nodes
-
--- All the Database is structred like a hierachical Tree
-data Tree a = Leaf a | Node' [Tree a]
-
 data NodeType = NodeUser
               | Folder | Project | Corpus | Document
               | Favorites
@@ -49,6 +70,12 @@ data NodeType = NodeUser
               | Tficf | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
 
               deriving (Show, Eq)
+
+
+
+
+
+
 
 
 
