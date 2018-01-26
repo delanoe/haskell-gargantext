@@ -56,16 +56,18 @@ corpusTree :: Tree NodeType NodeType
 corpusTree = NodeT Corpus (  [ LeafT Document ]
                           <> [ LeafT Lists    ]
                           <> [ LeafT Metrics  ]
-                          <> [ LeafT Favorites]
+                          <> [ LeafT Classification]
                           )
 
 -- | TODO add Symbolic Node / Document
 --   TODO make instances of Nodes
 data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
-              | Favorites
+              | Classification
               | Lists
               | Metrics
-              deriving (Show, Eq)
+              deriving (Show, Read, Eq)
+
+data Classification = Favorites | MyClassifcation
 
 data Lists  =  StopList    | MainList | MapList | GroupList
 
