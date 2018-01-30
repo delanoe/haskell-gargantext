@@ -12,12 +12,13 @@ import Data.Aeson.TH (deriveJSON)
 
 data NodePoly id typename userId parentId name date hyperdata = Node { node_id        :: id
                                                                      , node_typename  :: typename
-                                                                     , node_userId:: userId
+                                                                     , node_userId    :: userId
                                                                 --   , nodeHashId    :: hashId
                                                                      , node_parentId  :: parentId
                                                                      , node_name      :: name
                                                                      , node_date      :: date
                                                                      , node_hyperdata :: hyperdata
+                                                              --       , node_titleAbstract :: titleAbstract
                                                                      } deriving (Show)
 
 
@@ -71,9 +72,21 @@ data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_Action       :: Maybe T
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
 
+
+data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
+                                       } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
+
+
 data HyperdataFolder = HyperdataFolder { hyperdataFolder_Preferences   :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
+
+
+data HyperdataProject = HyperdataProject { hyperdataProject_Preferences   :: Maybe Text
+                                       } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataProject_") ''HyperdataProject)
+
 
 
 data HyperdataList = HyperdataList { hyperdataList_Preferences   :: Maybe Text

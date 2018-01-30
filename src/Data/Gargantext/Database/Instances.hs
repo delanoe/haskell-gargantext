@@ -22,3 +22,5 @@ instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
 
 instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+

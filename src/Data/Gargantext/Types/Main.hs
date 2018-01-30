@@ -10,7 +10,7 @@ import Protolude (fromMaybe)
 --import Data.ByteString (ByteString())
 import Data.Text (Text)
 import Data.Time (UTCTime)
-import Data.Gargantext.Types.Node ( NodePoly
+import Data.Gargantext.Types.Node ( NodePoly, HyperdataUser
                                , HyperdataFolder   , HyperdataCorpus   , HyperdataDocument
                                , HyperdataFavorites, HyperdataResource
                                , HyperdataList  , HyperdataScore
@@ -35,13 +35,17 @@ type Ngrams = (Text, Text, Text)
 type ErrorMessage = String
 
 
--- All the Database is structred like a hierachical Tree
+-- All the Database is structred like a hierarchical Tree
 data Tree b a = LeafT a | NodeT b [Tree b a]
               deriving (Show, Read, Eq)
 
--- Garg Database Schema Typed as specification
-gargDatabase :: [Tree NodeType NodeType]
-gargDatabase = [userTree]
+-- Garg Network is a network of all Garg nodes
+--gargNetwork = undefined
+
+-- | Garg Node is Database Schema Typed as specification
+-- gargNode gathers all the Nodes of all users on one Node
+gargNode :: [Tree NodeType NodeType]
+gargNode = [userTree]
 
 -- | User Tree simplified
 userTree :: Tree NodeType NodeType
@@ -59,7 +63,6 @@ corpusTree = NodeT Corpus (  [ LeafT Document ]
                           <> [ LeafT Classification]
                           )
 
--- | TODO add Symbolic Node / Document
 --   TODO make instances of Nodes
 data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
               | Classification
@@ -76,22 +79,20 @@ data Metrics  = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 
 
 
-
-
-
-
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId NodeUserId NodeParentId NodeName UTCTime json
+type Node json   = NodePoly NodeId NodeTypeId NodeUserId NodeParentId NodeName UTCTime json -- NodeVector
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
 type NodeId       = Int
 type NodeParentId = Int
 type NodeUserId   = Int
 type NodeName     = Text
+--type NodeVector   = Vector
 
 --type NodeUser    = Node HyperdataUser
 
 -- | Then a Node can be either a Folder or a Corpus or a Document
+type NodeUser = Node HyperdataUser
 type Folder   = Node HyperdataFolder
 type Project  = Folder
 type Corpus   = Node HyperdataCorpus
@@ -115,34 +116,32 @@ type MapList    = List
 type GroupList  = List
 
 -- | Then a Node can be a Score which as some synonyms
---type Score = Node HyperdataScore
---type Occurrences   = Score
---type Cooccurrences = Score
---type Specclusion   = Score
---type Genclusion    = Score
---type Cvalue        = Score
---type Tficf         = Score
+type Score = Node HyperdataScore
+type Occurrences   = Score
+type Cooccurrences = Score
+type Specclusion   = Score
+type Genclusion    = Score
+type Cvalue        = Score
+type Tficf         = Score
 ---- TODO All these Tfidf* will be replaced with TFICF
---type TfidfCorpus   = Tficf
---type TfidfGlobal   = Tficf
---type TirankLocal   = Tficf
---type TirankGlobal  = Tficf
+type TfidfCorpus   = Tficf
+type TfidfGlobal   = Tficf
+type TirankLocal   = Tficf
+type TirankGlobal  = Tficf
 --
 ---- | Then a Node can be either a Graph or a Phylo or a Notebook
---type Graph    = Node HyperdataGraph
---type Phylo    = Node HyperdataPhylo
---type Notebook = Node HyperdataNotebook
+type Graph    = Node HyperdataGraph
+type Phylo    = Node HyperdataPhylo
+type Notebook = Node HyperdataNotebook
 
 
---nodeTypes :: [(NodeType, NodeTypeId)]
---nodeTypes = [
---                --(NodeUser      ,  1)
-----
---             (Project       ,  2)
---            , (NodeSwap     , 19)
---            , (Corpus        ,  3)
---            , (Document      ,  4)
---------  Lists
+nodeTypes :: [(NodeType, NodeTypeId)]
+nodeTypes = [ (NodeUser      ,  1)
+            , (Project       ,  2)
+            , (Corpus        ,  3)
+            , (Document      ,  4)
+            --, (NodeSwap      , 19)
+------  Lists
 --            , (StopList      ,  5)
 --            , (GroupList     ,  6)
 --            , (MainList      ,  7)
@@ -164,7 +163,7 @@ type GroupList  = List
 ----  Node management
 --            , (Favorites     , 15)
 --
---            ]
-----
---nodeTypeId :: NodeType -> NodeTypeId
---nodeTypeId tn = fromMaybe (error ("Typename " ++ show tn ++ " does not exist")) (lookup tn nodeTypes)
+            ]
+--
+nodeTypeId :: NodeType -> NodeTypeId
+nodeTypeId tn = fromMaybe (error ("Typename " ++ show tn ++ " does not exist")) (lookup tn nodeTypes)
