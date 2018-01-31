@@ -44,11 +44,13 @@ server conn
     where
         echo s = pure s
 
+connectGargandb :: IO Connection
+connectGargandb = connect infoGargandb
 
 startGargantext :: IO ()
 startGargantext = do
   print ("Starting server on port " ++ show port)
-  conn <- connect infoGargandb
+  conn <- connectGargandb
   run port $ app conn
     where
         port = 8008
