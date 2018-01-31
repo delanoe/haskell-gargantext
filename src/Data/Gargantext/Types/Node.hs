@@ -22,13 +22,13 @@ data NodePoly id typename userId parentId name date hyperdata = Node { node_id  
                                                                      } deriving (Show)
 
 
-data Statut  = Statut { statut_Date     :: Maybe UTCTime
-                      , statut_Error    :: Maybe Text
-                      , statut_Action   :: Maybe Text
-                      , statut_Complete :: Maybe Bool
-                      , statut_Progress :: Maybe Int
+data Status  = Status { status_Date     :: Maybe UTCTime
+                      , status_Error    :: Maybe Text
+                      , status_Action   :: Maybe Text
+                      , status_Complete :: Maybe Bool
+                      , status_Progress :: Maybe Int
                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "statut_") ''Statut)
+$(deriveJSON (unPrefix "status_") ''Status)
 
 
 data HyperdataDocument = HyperdataDocument { hyperdataDocument_Bdd                :: Maybe Text
@@ -38,7 +38,7 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_Bdd              
                                            , hyperdataDocument_Title              :: Maybe Text
                                            , hyperdataDocument_Authors            :: Maybe Text
                                            , hyperdataDocument_Abstract           :: Maybe Text
-                                           , hyperdataDocument_Statuses           :: Maybe [Statut]
+                                           , hyperdataDocument_Statuses           :: Maybe [Status]
                                            , hyperdataDocument_Publication_date   :: Maybe Text
                                            , hyperdataDocument_Publication_year   :: Maybe Text
                                            , hyperdataDocument_Publication_month  :: Maybe Text
@@ -63,7 +63,7 @@ $(deriveJSON (unPrefix "resource_") ''Resource)
 
 
 data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_Action       :: Maybe Text
-                                       , hyperdataCorpus_Statuses     :: Maybe [Statut]
+                                       , hyperdataCorpus_Statuses     :: Maybe [Status]
                                        , hyperdataCorpus_Languages    :: Maybe LanguageNodes
                                        , hyperdataCorpus_Resources    :: Maybe [Resource]
                                        , hyperdataCorpus_Language_id  :: Maybe Text

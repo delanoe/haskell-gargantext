@@ -33,7 +33,7 @@ import Opaleye
 data PGTSVector
 
 type NodeWrite = NodePoly  (Maybe (Column PGInt4))  (Column PGInt4)
-                                  (Column PGInt4)   (Maybe (Column (Nullable PGInt4)))
+                                  (Column PGInt4)   (Column (Nullable PGInt4))
                                   (Column (PGText)) (Maybe (Column PGTimestamptz))
                                   (Column PGJsonb) -- (Maybe (Column PGTSVector))
 
@@ -96,7 +96,7 @@ nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { node_id                = optional "id"
                                         , node_typename        = required "typename"
                                         , node_userId          = required "user_id"
-                                        , node_parentId        = optional "parent_id"
+                                        , node_parentId        = required "parent_id"
                                         , node_name            = required "name"
                                         , node_date            = optional "date"
                                         , node_hyperdata       = required "hyperdata"
@@ -127,8 +127,8 @@ selectNodeWithParentID node_id = proc () -> do
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead
 selectNodesWithType type_id = proc () -> do
-    row@(Node _id _tn _uid p_id n _d _h) <- queryNodeTable -< ()
-    restrict -< _tn .== type_id
+    row@(Node _ tn _ _ _ _ _) <- queryNodeTable -< ()
+    restrict -< tn .== type_id
     --let noParent = ifThenElse (isNull nullableBoss) (pgString "no") (pgString "a")
     --returnA -< Node _id _tn _uid (pgInt4 0) (pgString "") _d _h
     returnA -< row

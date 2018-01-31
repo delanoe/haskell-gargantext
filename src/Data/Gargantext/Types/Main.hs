@@ -30,9 +30,6 @@ data Language = EN | FR -- | DE | IT | SP
     -- > SP == spanish (not implemented yet)
     -- > ... add your language and help us to implement it (:
 
-type Ngrams = (Text, Text, Text)
-
-type ErrorMessage = String
 
 
 -- All the Database is structred like a hierarchical Tree
@@ -80,7 +77,7 @@ data Metrics  = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId NodeUserId NodeParentId NodeName UTCTime json -- NodeVector
+type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json -- NodeVector
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
 type NodeId       = Int
@@ -167,3 +164,13 @@ nodeTypes = [ (NodeUser      ,  1)
 --
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId tn = fromMaybe (error ("Typename " ++ show tn ++ " does not exist")) (lookup tn nodeTypes)
+
+
+
+-- Temporary types to be removed
+type Ngrams = (Text, Text, Text)
+type ErrorMessage = String
+
+
+
+
