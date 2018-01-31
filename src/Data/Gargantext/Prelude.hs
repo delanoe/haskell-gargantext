@@ -6,7 +6,12 @@
 TODO: import head impossible from Protolude: why ?
 -}
 
-module Data.Gargantext.Prelude where
+module Data.Gargantext.Prelude
+  ( module Data.Gargantext.Prelude
+  , module Protolude
+  , headMay
+  )
+  where
 
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe, Floating, Char
@@ -26,7 +31,7 @@ import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
 import qualified Data.Map as Map
 import qualified Data.Vector as V
--- import Safe (headMay)
+import Safe (headMay)
 
 
 pf :: (a -> Bool) -> [a] -> [a]

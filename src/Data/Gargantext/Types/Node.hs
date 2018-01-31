@@ -10,6 +10,7 @@ import Data.Time (UTCTime)
 import Data.Gargantext.Utils.Prefix (unPrefix)
 import Data.Aeson.TH (deriveJSON)
 
+-- node_Id... ?
 data NodePoly id typename userId parentId name date hyperdata = Node { node_id        :: id
                                                                      , node_typename  :: typename
                                                                      , node_userId    :: userId
@@ -20,6 +21,7 @@ data NodePoly id typename userId parentId name date hyperdata = Node { node_id  
                                                                      , node_hyperdata :: hyperdata
                                                               --       , node_titleAbstract :: titleAbstract
                                                                      } deriving (Show)
+$(deriveJSON (unPrefix "node_") ''NodePoly)
 
 
 data Status  = Status { status_Date     :: Maybe UTCTime
@@ -77,6 +79,7 @@ data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
+-- Preferences ?
 
 data HyperdataFolder = HyperdataFolder { hyperdataFolder_Preferences   :: Maybe Text
                                        } deriving (Show, Generic)

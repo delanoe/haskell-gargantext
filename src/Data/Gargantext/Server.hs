@@ -8,42 +8,48 @@ module Data.Gargantext.Server
 --    )
       where
 
+import Prelude hiding (null)
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson
-import Data.Aeson.TH
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
 import Servant.Multipart
+import Database.PostgreSQL.Simple (Connection, connect)
+import Opaleye
+
+import Data.Gargantext.Types.Main (Node, NodeId)
+import Data.Gargantext.Database.Node (getNodesWithParentId, getNode)
+import Data.Gargantext.Database.Private (infoGargandb)
 
 -- | TODO, use MOCK feature of Servant to generate fake data (for tests)
 
-data FakeNode = FakeNode
-  { fakeNodeId        :: Int
-  , fakeNodeName      :: String
-  } deriving (Eq, Show)
+type NodeAPI = Get '[JSON] (Node Value)
+           :<|> "children" :> Get '[JSON] [Node Value]
 
-$(deriveJSON defaultOptions ''FakeNode)
-
-type API = "nodes"   :> Get '[JSON] [FakeNode]
-       :<|> "node"   :> Capture "id" Int            :> Get '[JSON] FakeNode
+type API =  "roots"  :> Get '[JSON] [Node Value]
+       :<|> "node"   :> Capture "id" Int :> NodeAPI
        :<|> "echo"   :> Capture "string" String     :> Get '[JSON] String
        :<|> "upload" :> MultipartForm MultipartData :> Post '[JSON] String
 
        -- :<|> "node"  :> Capture "id" Int        :> Get '[JSON] Node
 
-server :: Server API
-server = pure fakeNodes
-        :<|> fakeNode
-        :<|> echo
-        :<|> upload
+server :: Connection -> Server API
+server conn
+    = liftIO (getNodesWithParentId conn null)
+  :<|> nodeAPI conn
+  :<|> echo
+  :<|> upload
     where
         echo s = pure s
 
 
 startGargantext :: IO ()
-startGargantext = print ("Starting server on port " ++ show port)  >> run port app
+startGargantext = do
+  print ("Starting server on port " ++ show port)
+  conn <- connect infoGargandb
+  run port $ app conn
     where
         port = 8008
 
@@ -54,20 +60,17 @@ startGargantext = print ("Starting server on port " ++ show port)  >> run port a
 --                 , MonadLog (WithSeverity Doc) m
 --                 , MonadIO m) => m a
 -- Thanks @yannEsposito for this.
-app :: Application
-app = serve api server
+app :: Connection -> Application
+app = serve api . server
 
 api :: Proxy API
 api = Proxy
 
-
-fakeNode :: Monad m => Int -> m FakeNode
-fakeNode id = pure (fakeNodes !! id)
-
-fakeNodes :: [FakeNode]
-fakeNodes = [ FakeNode 1 "Poincare"
-            , FakeNode 2 "Grothendieck"
-            ]
+nodeAPI :: Connection -> NodeId -> Server NodeAPI
+nodeAPI conn id
+    =  liftIO (getNode conn id')
+  :<|> liftIO (getNodesWithParentId conn (toNullable id'))
+       where id' = pgInt4 id
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
