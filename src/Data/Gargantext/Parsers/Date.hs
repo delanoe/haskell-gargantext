@@ -53,6 +53,10 @@ import Safe (headMay)
 
 
 -- | Final Date parser API
+-- IO can be avoided here:
+-- currentContext :: Lang -> IO Context
+-- currentContext lang = localContext lang <$> utcToDucklingTime <$> getCurrentTime
+-- parseDate1 :: Context -> Text -> SomeErrorHandling Text
 parseDate1 :: Lang -> Text -> IO Text
 parseDate1 lang text = do
     maybeJson <- pm jsonValue <$> parseDateWithDuckling lang text

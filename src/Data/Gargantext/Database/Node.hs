@@ -19,14 +19,14 @@ import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson
-import Data.Gargantext.Database.Private (infoGargandb)
 import Data.Gargantext.Types
-import Data.Maybe (Maybe)
+import Data.Gargantext.Prelude
+import Data.Maybe (Maybe, fromMaybe)
 import Data.Text (Text)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Typeable (Typeable)
 import qualified Data.ByteString.Internal as DBI
-import qualified Database.PostgreSQL.Simple as PGS
+import Database.PostgreSQL.Simple (Connection)
 import Opaleye
 
 -- | Types for Node Database Management
@@ -105,13 +105,13 @@ nodeTable = Table "nodes" (pNode Node { node_id                = optional "id"
                             )
 
 
-selectNodes :: Column PGInt4 -> Query (Column (PGText))
-selectNodes node_id = proc () -> do
-    (Node n_id _tn _u _p n _d _h ) <- queryNodeTable -< ()
-    restrict -< n_id .== node_id
-    returnA -< n
+selectNodes :: Column PGInt4 -> Query NodeRead
+selectNodes id = proc () -> do
+    row <- queryNodeTable -< ()
+    restrict -< node_id row .== id
+    returnA -< row
 
-runGetNodes :: PGS.Connection -> Query NodeRead -> IO [Document]
+runGetNodes :: Connection -> Query NodeRead -> IO [Document]
 runGetNodes = runQuery
 
 
@@ -122,6 +122,7 @@ queryNodeTable = queryTable nodeTable
 selectNodeWithParentID :: Column (Nullable PGInt4) -> Query NodeRead
 selectNodeWithParentID node_id = proc () -> do
     row@(Node _id _tn _u p_id _n _d _h) <- queryNodeTable -< ()
+    -- restrict -< maybe (isNull p_id) (p_id .==) node_id
     restrict -< p_id .== node_id
     returnA -< row
 
@@ -129,25 +130,26 @@ selectNodesWithType :: Column PGInt4 -> Query NodeRead
 selectNodesWithType type_id = proc () -> do
     row@(Node _ tn _ _ _ _ _) <- queryNodeTable -< ()
     restrict -< tn .== type_id
-    --let noParent = ifThenElse (isNull nullableBoss) (pgString "no") (pgString "a")
-    --returnA -< Node _id _tn _uid (pgInt4 0) (pgString "") _d _h
     returnA -< row
 
-getNodesWithType :: Column PGInt4 -> IO [NodeUser]
-getNodesWithType type_id = do
-    conn <- PGS.connect infoGargandb
+getNode :: Connection -> Column PGInt4 -> IO (Node Value)
+getNode conn id = do
+    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNodes id)
+
+getNodesWithType :: Connection -> Column PGInt4 -> IO [Node Value]
+getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
-getNodesWithParentId :: Column (Nullable PGInt4) -> IO [Document]
-getNodesWithParentId node_id = do
-    conn <- PGS.connect infoGargandb
+-- NP check type
+getNodesWithParentId :: Connection -> Column (Nullable PGInt4) -> IO [Node Value]
+getNodesWithParentId conn node_id = do
     runQuery conn $ selectNodeWithParentID node_id
 
-getCorpusDocument :: Column (Nullable PGInt4) -> IO [Document]
-getCorpusDocument node_id = PGS.connect infoGargandb >>=
-                          \conn -> runQuery conn (selectNodeWithParentID node_id)
+-- NP check type
+getCorpusDocument :: Connection -> Column PGInt4 -> IO [Document]
+getCorpusDocument conn node_id = runQuery conn (selectNodeWithParentID $ toNullable node_id)
 
-getProjectCorpora :: Column (Nullable PGInt4) -> IO [Corpus]
-getProjectCorpora node_id = do
-    conn <- PGS.connect infoGargandb
+-- NP check type
+getProjectCorpora :: Connection -> Column (Nullable PGInt4) -> IO [Corpus]
+getProjectCorpora conn node_id = do
     runQuery conn $ selectNodeWithParentID node_id

@@ -33,34 +33,43 @@ data Language = EN | FR -- | DE | IT | SP
 
 
 -- All the Database is structred like a hierarchical Tree
-data Tree b a = LeafT a | NodeT b [Tree b a]
+data Tree a = NodeT a [Tree a]
               deriving (Show, Read, Eq)
+
+
+-- data Tree a = NodeT a [Tree a]
+-- same as Data.Tree
+leafT :: a -> Tree a
+leafT x = NodeT x []
 
 -- Garg Network is a network of all Garg nodes
 --gargNetwork = undefined
 
 -- | Garg Node is Database Schema Typed as specification
 -- gargNode gathers all the Nodes of all users on one Node
-gargNode :: [Tree NodeType NodeType]
+gargNode :: [Tree NodeType]
 gargNode = [userTree]
 
 -- | User Tree simplified
-userTree :: Tree NodeType NodeType
+userTree :: Tree NodeType
 userTree = NodeT NodeUser [projectTree]
 
 -- | Project Tree
-projectTree :: Tree NodeType NodeType
+projectTree :: Tree NodeType
 projectTree = NodeT Project [corpusTree]
 
 -- | Corpus Tree
-corpusTree :: Tree NodeType NodeType
-corpusTree = NodeT Corpus (  [ LeafT Document ]
-                          <> [ LeafT Lists    ]
-                          <> [ LeafT Metrics  ]
-                          <> [ LeafT Classification]
+corpusTree :: Tree NodeType
+corpusTree = NodeT Corpus (  [ leafT Document ]
+                          <> [ leafT Lists    ]
+                          <> [ leafT Metrics  ]
+                          <> [ leafT Classification]
                           )
 
 --   TODO make instances of Nodes
+-- NP
+-- * why NodeUser and not just User ?
+-- * is this supposed to hold data ?
 data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
               | Classification
               | Lists
@@ -91,7 +100,7 @@ type NodeName     = Text
 -- | Then a Node can be either a Folder or a Corpus or a Document
 type NodeUser = Node HyperdataUser
 type Folder   = Node HyperdataFolder
-type Project  = Folder
+type Project  = Folder -- NP Node HyperdataProject ?
 type Corpus   = Node HyperdataCorpus
 type Document = Node HyperdataDocument
 
@@ -105,14 +114,14 @@ type Favorites = Node HyperdataFavorites
 -- | Favorites Node enable Swap Node with some synonyms for clarity
 type NodeSwap  = Node HyperdataResource
 
--- | Then a Node can be a List which as some synonyms
+-- | Then a Node can be a List which has some synonyms
 type List = Node HyperdataList
 type StopList   = List
 type MainList   = List
 type MapList    = List
 type GroupList  = List
 
--- | Then a Node can be a Score which as some synonyms
+-- | Then a Node can be a Score which has some synonyms
 type Score = Node HyperdataScore
 type Occurrences   = Score
 type Cooccurrences = Score
