@@ -31,7 +31,6 @@ data Language = EN | FR -- | DE | IT | SP
     -- > ... add your language and help us to implement it (:
 
 
-
 -- All the Database is structred like a hierarchical Tree
 data Tree a = NodeT a [Tree a]
               deriving (Show, Read, Eq)

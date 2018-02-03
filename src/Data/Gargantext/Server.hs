@@ -29,7 +29,7 @@ type NodeAPI = Get '[JSON] (Node Value)
            :<|> "children" :> Get '[JSON] [Node Value]
 
 type API =  "roots"  :> Get '[JSON] [Node Value]
-       :<|> "node"   :> Capture "id" Int :> NodeAPI
+       :<|> "node"   :> Capture "id" Int            :> NodeAPI
        :<|> "echo"   :> Capture "string" String     :> Get '[JSON] String
        :<|> "upload" :> MultipartForm MultipartData :> Post '[JSON] String
 
@@ -37,7 +37,7 @@ type API =  "roots"  :> Get '[JSON] [Node Value]
 
 server :: Connection -> Server API
 server conn
-    = liftIO (getNodesWithType conn 1)
+    = liftIO (getNodesWithParentId conn 0)
   :<|> nodeAPI conn
   :<|> echo
   :<|> upload
@@ -71,8 +71,10 @@ api = Proxy
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id
     =  liftIO (getNode conn id')
-  :<|> liftIO (getNodesWithParentId conn (toNullable id'))
-       where id' = pgInt4 id
+  :<|> liftIO (getNodesWithParentId conn id)
+    where
+        id' = pgInt4 id
+
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
