@@ -124,12 +124,12 @@ getNodesWithParentId conn n = runQuery conn $ selectNodeWithParentID n
 
 selectNodeWithParentID :: Int -> Query NodeRead
 selectNodeWithParentID n = proc () -> do
-    row@(Node _id _tn _u p_id _n _d _h) <- queryNodeTable -< ()
-    restrict -< if n > 0 
-                   then 
-                        p_id .== (toNullable $ pgInt4 n) 
-                   else 
-                        isNull p_id 
+    row@(Node _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
+    restrict -< if n > 0
+                   then
+                        parent_id .== (toNullable $ pgInt4 n)
+                   else
+                        isNull parent_id
     returnA -< row
 
 queryNodeTable :: Query NodeRead
