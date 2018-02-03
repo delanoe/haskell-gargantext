@@ -15,6 +15,7 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , fromField
                                             , returnError
                                             )
+import Prelude hiding (null, id)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -115,16 +116,28 @@ runGetNodes :: Connection -> Query NodeRead -> IO [Document]
 runGetNodes = runQuery
 
 
+
+
+-- NP check type
+getNodesWithParentId :: Connection -> Int -> IO [Node Value]
+getNodesWithParentId conn n = runQuery conn $ selectNodeWithParentID n
+
+selectNodeWithParentID :: Int -> Query NodeRead
+selectNodeWithParentID n = proc () -> do
+    row@(Node _id _tn _u p_id _n _d _h) <- queryNodeTable -< ()
+    restrict -< if n > 0 
+                   then 
+                        p_id .== (toNullable $ pgInt4 n) 
+                   else 
+                        isNull p_id 
+    returnA -< row
+
 queryNodeTable :: Query NodeRead
 queryNodeTable = queryTable nodeTable
 
 
-selectNodeWithParentID :: Column (Nullable PGInt4) -> Query NodeRead
-selectNodeWithParentID node_id = proc () -> do
-    row@(Node _id _tn _u p_id _n _d _h) <- queryNodeTable -< ()
-    -- restrict -< maybe (isNull p_id) (p_id .==) node_id
-    restrict -< p_id .== node_id
-    returnA -< row
+
+
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead
 selectNodesWithType type_id = proc () -> do
@@ -140,16 +153,12 @@ getNodesWithType :: Connection -> Column PGInt4 -> IO [Node Value]
 getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
--- NP check type
-getNodesWithParentId :: Connection -> Column (Nullable PGInt4) -> IO [Node Value]
-getNodesWithParentId conn node_id = do
-    runQuery conn $ selectNodeWithParentID node_id
 
 -- NP check type
-getCorpusDocument :: Connection -> Column PGInt4 -> IO [Document]
-getCorpusDocument conn node_id = runQuery conn (selectNodeWithParentID $ toNullable node_id)
+getCorpusDocument :: Connection -> Int -> IO [Document]
+getCorpusDocument conn n = runQuery conn (selectNodeWithParentID n)
 
 -- NP check type
-getProjectCorpora :: Connection -> Column (Nullable PGInt4) -> IO [Corpus]
+getProjectCorpora :: Connection -> Int -> IO [Corpus]
 getProjectCorpora conn node_id = do
     runQuery conn $ selectNodeWithParentID node_id
