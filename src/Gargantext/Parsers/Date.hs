@@ -15,6 +15,7 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate) where
 
@@ -34,16 +35,26 @@ import Duckling.Api (analyze, parse)
 import qualified Data.HashSet as HashSet
 import qualified Data.Aeson   as Json
 import Data.HashMap.Strict as HM
+import Data.Time (ZonedTime(..), LocalTime(..), TimeZone(..), TimeOfDay(..), getCurrentTimeZone)
+import Data.Time.Calendar (Day, fromGregorian)
+import Data.Fixed (Fixed (MkFixed))
 
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 -- import Duckling.Engine (parseAndResolve)
 -- import Duckling.Rules (rulesFor)
 -- import Duckling.Debug as DB
 
 import Duckling.Types (ResolvedToken)
 import Safe (headMay)
+import System.IO.Unsafe (unsafePerformIO)
 
+import Text.Parsec.Error (ParseError)
+import Text.Parsec.String (Parser)
+import Text.Parsec.Prim (Stream, ParsecT)
+import qualified Text.ParserCombinators.Parsec (parse)
+import Text.ParserCombinators.Parsec (many1, noneOf, anyChar, char, oneOf)
 
+import Text.XML.HXT.DOM.Util (decimalStringToInt)
 -- TODO add Paris at Duckling.Locale Region datatype
 -- | To get Homogeinity of the languages
 --   TODO : put this in a more generic place in the source code
@@ -91,7 +102,48 @@ parseDate lang input = do
     context <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
     pure $ parse input context [(This Time)]
 
+wrapDST :: Monad m => String -> m Int
+wrapDST = (return . decimalStringToInt)
 
+many1NoneOf :: Stream s m Char => [Char] -> ParsecT s u m [Char]
+many1NoneOf = (many1 . noneOf)
 
+parseGregorian :: Parser Day
+parseGregorian  = do
+        y <- wrapDST =<< many1NoneOf ['-']
+        _ <- char '-'
+        m <- wrapDST =<< many1NoneOf ['-']
+        _ <- char '-'
+        d <- wrapDST =<< many1NoneOf ['T']
+        _ <- char 'T'
+        return $ fromGregorian (toInteger y) m d
 
+parseTimeOfDay :: Parser TimeOfDay
+parseTimeOfDay = do
+        h <- wrapDST =<< many1NoneOf [':']
+        _ <- char ':'
+        m <- wrapDST =<< many1NoneOf [':']
+        _ <- char ':'
+        s <- wrapDST =<< many1NoneOf ['+', '-']
+        return $ TimeOfDay h m (MkFixed $ toInteger s)
 
+parseTimeZone :: Parser TimeZone
+parseTimeZone = do
+        sign <- oneOf ['+', '-']
+        h <- wrapDST =<< many1NoneOf [':']
+        _ <- char ':'
+        m <- wrapDST =<< (many1 $ anyChar)
+        let (TimeZone _ s n) = unsafePerformIO getCurrentTimeZone
+        let timeInMinute = if sign == '+' then h * 60 + m else -h * 60 - m 
+         in return $ TimeZone timeInMinute s n
+
+parseZonedTime :: Parser ZonedTime
+parseZonedTime= do
+        d <- parseGregorian 
+        tod <- parseTimeOfDay
+        tz <- parseTimeZone
+        return $ ZonedTime (LocalTime d (tod)) tz
+
+fromRFC3339 :: Text -> Either ParseError ZonedTime
+fromRFC3339 t = Text.ParserCombinators.Parsec.parse parseZonedTime "ERROR: Couldn't parse zoned time." input
+        where input = unpack t

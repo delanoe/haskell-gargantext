@@ -71,6 +71,7 @@ library:
   - duckling
   - filepath
   - http-conduit
+  - hxt
   - lens
   - logging-effect
   - opaleye
