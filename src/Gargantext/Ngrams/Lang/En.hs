@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Ngrams.Lang.En (selectNgrams, groupNgrams, textTest) where
 
@@ -7,7 +8,7 @@ import Data.Text (Text)
 import Data.Monoid ((<>))
 
 selectNgrams :: [(Text, Text, Text)] -> [(Text, Text, Text)]
-selectNgrams xs = pf selectNgrams' xs
+selectNgrams xs = filter selectNgrams' xs
     where
         selectNgrams' (_,"NN"   ,_             ) = True
         selectNgrams' (_,"NNS"  ,_             ) = True
@@ -71,7 +72,7 @@ groupNgrams ((x,_,"LOCATION"):(y,yy,"LOCATION"):xs) = groupNgrams ((x <> " " <> 
 groupNgrams (x:xs)                                          = (x:(groupNgrams xs))
 
 
-textTest :: [String]
+textTest :: [Text]
 textTest = [ "Alcoholic extract of Kaempferia galanga was tested for analgesic and antiinflammatory activities in animal models. "
            , "Three doses, 300 mg/kg, 600 mg/kg and 1200 mg/kg of the plant extract prepared as a suspension in 2 ml of 2% gum acacia were used. "
            , " Acute and sub acute inflammatory activities were studied in rats by carrageenan induced paw edema and cotton pellet induced granuloma models respectively. "

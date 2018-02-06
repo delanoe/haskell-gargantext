@@ -35,8 +35,8 @@ import qualified Data.Map as Map
 import qualified Data.Vector as V
 import Safe (headMay)
 
-pf :: (a -> Bool) -> [a] -> [a]
-pf = filter
+--pf :: (a -> Bool) -> [a] -> [a]
+--pf = filter
 
 pr :: [a] -> [a]
 pr = reverse
@@ -44,8 +44,8 @@ pr = reverse
 --pm :: (a -> b) -> [a] -> [b]
 --pm = map
 
-pm2 :: (t -> b) -> [[t]] -> [[b]]
-pm2 fun = map (map fun)
+map2 :: (t -> b) -> [[t]] -> [[b]]
+map2 fun = map (map fun)
 
 pz :: [a] -> [b] -> [(a, b)]
 pz  = zip
