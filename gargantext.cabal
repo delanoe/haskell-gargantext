@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b579b76daf844d03881190aae30b1ef7e26436cddf446a3ef2d524ca4f122a97
+-- hash: b9bfa189420281ceb8fe8d47b1d7800acdc1f9529c864156abcbfbfea5e06dc6
 
 name:                gargantext
 version:             0.1.0.0
@@ -22,6 +22,7 @@ cabal-version:       >= 1.10
 library
   hs-source-dirs:
       src
+  default-extensions: NoImplicitPrelude
   build-depends:
       aeson
     , aeson-lens

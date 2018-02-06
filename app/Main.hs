@@ -1,6 +1,8 @@
 module Main where
 
+--import System.Environment (getArgs)
 import Data.Gargantext.Server (startGargantext)
 
 main :: IO ()
-main = startGargantext
+--  (iniFile:_) <- getArgs
+main = startGargantext -- port iniFile

@@ -1,15 +1,29 @@
--- | CNRS Copyrights
--- Licence: https://gitlab.iscpif.fr/humanities/gargantext/blob/stable/LICENSE
--- Author: Alexandre Delanoë (alexandre.delanoe@iscpif.fr)
+{-|
+Module      : .Gargantext.Types.Main
+Description : Short description
+Copyright   : (c) CNRS, 2017
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+Here is a longer description of this module, containing some
+commentary with @some markup@.
+-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Gargantext.Types.Main where
 
+import Prelude
+
+import Data.Eq (Eq())
 import Data.Monoid ((<>))
 import Protolude (fromMaybe)
 
 --import Data.ByteString (ByteString())
 import Data.Text (Text)
 import Data.Time (UTCTime)
+import Data.List (lookup)
 import Gargantext.Types.Node ( NodePoly, HyperdataUser
                                , HyperdataFolder   , HyperdataCorpus   , HyperdataDocument
                                , HyperdataFavorites, HyperdataResource
@@ -171,13 +185,14 @@ nodeTypes = [ (NodeUser      ,  1)
             ]
 --
 nodeTypeId :: NodeType -> NodeTypeId
-nodeTypeId tn = fromMaybe (error ("Typename " ++ show tn ++ " does not exist")) (lookup tn nodeTypes)
+nodeTypeId tn = fromMaybe (error $ "Typename " <> show tn <> " does not exist")
+                          (lookup tn nodeTypes)
 
 
 
 -- Temporary types to be removed
 type Ngrams = (Text, Text, Text)
-type ErrorMessage = String
+type ErrorMessage = Text
 
 
 

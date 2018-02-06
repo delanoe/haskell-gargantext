@@ -4,6 +4,8 @@
 
 module Gargantext.Database.Instances where
 
+import Gargantext.Prelude
+
 import Data.Time (UTCTime)
 import Opaleye (PGInt4, PGTimestamptz, PGFloat8
                , QueryRunnerColumnDefault
