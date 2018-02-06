@@ -20,7 +20,7 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Opaleye
 
 import Data.Gargantext.Types.Main (Node, NodeId)
-import Data.Gargantext.Database.Node (getNodesWithParentId, getNode, getNodesWithType)
+import Data.Gargantext.Database.Node (getNodesWithParentId, getNode)
 import Data.Gargantext.Database.Private (infoGargandb)
 
 -- | TODO, use MOCK feature of Servant to generate fake data (for tests)

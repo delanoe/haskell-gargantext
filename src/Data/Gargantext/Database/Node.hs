@@ -120,10 +120,10 @@ runGetNodes = runQuery
 
 -- NP check type
 getNodesWithParentId :: Connection -> Int -> IO [Node Value]
-getNodesWithParentId conn n = runQuery conn $ selectNodeWithParentID n
+getNodesWithParentId conn n = runQuery conn $ selectNodesWithParentID n
 
-selectNodeWithParentID :: Int -> Query NodeRead
-selectNodeWithParentID n = proc () -> do
+selectNodesWithParentID :: Int -> Query NodeRead
+selectNodesWithParentID n = proc () -> do
     row@(Node _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
     restrict -< if n > 0
                    then
@@ -134,7 +134,6 @@ selectNodeWithParentID n = proc () -> do
 
 queryNodeTable :: Query NodeRead
 queryNodeTable = queryTable nodeTable
-
 
 
 
@@ -156,9 +155,9 @@ getNodesWithType conn type_id = do
 
 -- NP check type
 getCorpusDocument :: Connection -> Int -> IO [Document]
-getCorpusDocument conn n = runQuery conn (selectNodeWithParentID n)
+getCorpusDocument conn n = runQuery conn (selectNodesWithParentID n)
 
 -- NP check type
 getProjectCorpora :: Connection -> Int -> IO [Corpus]
 getProjectCorpora conn node_id = do
-    runQuery conn $ selectNodeWithParentID node_id
+    runQuery conn $ selectNodesWithParentID node_id
