@@ -102,12 +102,15 @@ parseDate lang input = do
     context <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
     pure $ parse input context [(This Time)]
 
+-- | Permit to transform a String to an Int in a monadic context
 wrapDST :: Monad m => String -> m Int
 wrapDST = (return . decimalStringToInt)
 
+-- | Generic parser which take at least one element not given in argument
 many1NoneOf :: Stream s m Char => [Char] -> ParsecT s u m [Char]
 many1NoneOf = (many1 . noneOf)
 
+-- | Parser for date format y-m-d
 parseGregorian :: Parser Day
 parseGregorian  = do
         y <- wrapDST =<< many1NoneOf ['-']
@@ -118,6 +121,7 @@ parseGregorian  = do
         _ <- char 'T'
         return $ fromGregorian (toInteger y) m d
 
+-- | Parser for time format h:m:s
 parseTimeOfDay :: Parser TimeOfDay
 parseTimeOfDay = do
         h <- wrapDST =<< many1NoneOf [':']
@@ -127,6 +131,7 @@ parseTimeOfDay = do
         s <- wrapDST =<< many1NoneOf ['+', '-']
         return $ TimeOfDay h m (MkFixed $ toInteger s)
 
+-- | Parser for timezone format +hh:mm
 parseTimeZone :: Parser TimeZone
 parseTimeZone = do
         sign <- oneOf ['+', '-']
@@ -137,6 +142,7 @@ parseTimeZone = do
         let timeInMinute = if sign == '+' then h * 60 + m else -h * 60 - m 
          in return $ TimeZone timeInMinute s n
 
+-- | Parser which use parseGregorian, parseTimeOfDay and parseTimeZone to create a ZonedTime
 parseZonedTime :: Parser ZonedTime
 parseZonedTime= do
         d <- parseGregorian 
@@ -144,6 +150,7 @@ parseZonedTime= do
         tz <- parseTimeZone
         return $ ZonedTime (LocalTime d (tod)) tz
 
+-- | Opposite of toRFC3339
 fromRFC3339 :: Text -> Either ParseError ZonedTime
 fromRFC3339 t = Text.ParserCombinators.Parsec.parse parseZonedTime "ERROR: Couldn't parse zoned time." input
         where input = unpack t
