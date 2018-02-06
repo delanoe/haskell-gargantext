@@ -1,5 +1,7 @@
 module Gargantext.RCT where
 
+import Gargantext.Prelude
+
 foo :: Int
 foo = undefined
 --import Data.Text (Text, words)

@@ -1,5 +1,10 @@
+
 module Gargantext.Ngrams.TextMining where
 
+import Gargantext.Prelude
+import Data.Ord(Ordering(LT,GT), compare)
+import Data.Text (pack)
+import Data.Bool (otherwise)
 import Data.Map (empty, Map, insertWith, toList)
 import Data.List (foldl, foldl')
 import qualified Data.List as L
@@ -9,7 +14,7 @@ sortGT (a1, b1) (a2, b2)
     | a1 < a2 = GT
     | a1 > a2 = LT
     | a1 == a2 = compare b1 b2
-sortGT (_, _) (_, _) = error "What is this case ?"
+sortGT (_, _) (_, _) = panic (pack "What is this case ?")
 
 
 --histogram :: Ord a => [a] -> [(a, Int)]
@@ -51,7 +56,3 @@ countYear (x:xs) = insertWith (+) x 1 (countYear xs)
 countYear' :: [Integer] -> Map Integer Integer
 countYear' (xs) = foldl' (\x y -> insertWith (+) y 1 x) empty xs
 
-
-textMiningMain :: IO ()
-textMiningMain = do
-    print $ merge ["abc"::String] ["bcd" :: String]

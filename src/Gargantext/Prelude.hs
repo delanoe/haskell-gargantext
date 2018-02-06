@@ -10,6 +10,8 @@ module Gargantext.Prelude
   ( module Gargantext.Prelude
   , module Protolude
   , headMay
+  , module Text.Show
+  , module Text.Read
   )
   where
 
@@ -22,7 +24,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , sum, fromIntegral, length, fmap
                  , takeWhile, sqrt, undefined, identity
                  , abs, maximum, minimum, return, snd, truncate
-                 , (+), (*), (/), (-), (.), (>=), ($), (**), (^)
+                 , (+), (*), (/), (-), (.), (>=), ($), (**), (^), (<), (>), (==)
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -34,7 +36,8 @@ import qualified Control.Monad as M
 import qualified Data.Map as Map
 import qualified Data.Vector as V
 import Safe (headMay)
-
+import Text.Show (Show(), show)
+import Text.Read (Read())
 --pf :: (a -> Bool) -> [a] -> [a]
 --pf = filter
 

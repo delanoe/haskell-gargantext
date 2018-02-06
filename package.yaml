@@ -16,6 +16,8 @@ dependencies:
 - text
 library:
   source-dirs: src
+  default-extensions: 
+  - NoImplicitPrelude
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
