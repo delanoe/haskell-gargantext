@@ -21,39 +21,39 @@ library:
   - -Wincomplete-record-updates
   - -Werror
   exposed-modules:
-  - Data.Gargantext
-  - Data.Gargantext.Analysis
-  - Data.Gargantext.DSL
-  - Data.Gargantext.Database
-  - Data.Gargantext.Database.Instances
-  - Data.Gargantext.Database.Ngram
-  - Data.Gargantext.Database.Node
-  - Data.Gargantext.Database.NodeNgram
-  - Data.Gargantext.Database.NodeNgramNgram
-  - Data.Gargantext.Database.NodeNode
-  - Data.Gargantext.Database.NodeNodeNgram
-  - Data.Gargantext.Database.Private
-  - Data.Gargantext.Database.User
-  - Data.Gargantext.Ngrams
-  - Data.Gargantext.Ngrams.Count
-  - Data.Gargantext.Ngrams.CoreNLP
-  - Data.Gargantext.Ngrams.Parser
-  - Data.Gargantext.Ngrams.Lang.En
-  - Data.Gargantext.Ngrams.Lang.Fr
-  - Data.Gargantext.Ngrams.Metrics
-  - Data.Gargantext.Ngrams.TextMining
-  - Data.Gargantext.Ngrams.Occurrences
-  - Data.Gargantext.Parsers
-  - Data.Gargantext.Parsers.WOS
-  - Data.Gargantext.Parsers.Date
-  - Data.Gargantext.Prelude
-  - Data.Gargantext.RCT
-  - Data.Gargantext.Server
-  - Data.Gargantext.Types
-  - Data.Gargantext.Types.Main
-  - Data.Gargantext.Types.Node
-  - Data.Gargantext.Utils.DateUtils
-  - Data.Gargantext.Utils.Prefix
+  - Gargantext
+  - Gargantext.Analysis
+  - Gargantext.DSL
+  - Gargantext.Database
+  - Gargantext.Database.Instances
+  - Gargantext.Database.Ngram
+  - Gargantext.Database.Node
+  - Gargantext.Database.NodeNgram
+  - Gargantext.Database.NodeNgramNgram
+  - Gargantext.Database.NodeNode
+  - Gargantext.Database.NodeNodeNgram
+  - Gargantext.Database.Private
+  - Gargantext.Database.User
+  - Gargantext.Ngrams
+  - Gargantext.Ngrams.Count
+  - Gargantext.Ngrams.CoreNLP
+  - Gargantext.Ngrams.Parser
+  - Gargantext.Ngrams.Lang.En
+  - Gargantext.Ngrams.Lang.Fr
+  - Gargantext.Ngrams.Metrics
+  - Gargantext.Ngrams.TextMining
+  - Gargantext.Ngrams.Occurrences
+  - Gargantext.Parsers
+  - Gargantext.Parsers.WOS
+  - Gargantext.Parsers.Date
+  - Gargantext.Prelude
+  - Gargantext.RCT
+  - Gargantext.Server
+  - Gargantext.Types
+  - Gargantext.Types.Main
+  - Gargantext.Types.Node
+  - Gargantext.Utils.DateUtils
+  - Gargantext.Utils.Prefix
   dependencies:
   - base >=4.7 && <5
   - aeson
