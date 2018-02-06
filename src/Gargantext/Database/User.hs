@@ -1,16 +1,18 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE Arrows #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
 
+{-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE MultiParamTypeClasses       #-}
+{-# LANGUAGE FunctionalDependencies      #-}
+{-# LANGUAGE Arrows                      #-}
+{-# LANGUAGE NoImplicitPrelude           #-}
 
 module Gargantext.Database.User where
 
-import Prelude
 import Gargantext.Prelude
+import GHC.Show(Show(..))
+import Data.Eq(Eq(..))
 import Data.Time (UTCTime)
 import Data.Text (Text)
 import Data.Maybe (Maybe)
@@ -120,4 +122,4 @@ users = do
 usersLight :: IO [UserLight]
 usersLight = do
     conn <- PGS.connect infoGargandb
-    pm toUserLight <$> runQuery conn queryUserTable
+    map toUserLight <$> runQuery conn queryUserTable
