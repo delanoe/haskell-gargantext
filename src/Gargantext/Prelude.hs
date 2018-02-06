@@ -14,7 +14,9 @@ module Gargantext.Prelude
   where
 
 import Protolude ( Bool(True, False), Int, Double, Integer
-                 , Fractional, Num, Maybe, Floating, Char
+                 , Fractional, Num, Maybe(Just,Nothing)
+                 , Floating, Char, IO
+                 , pure, (<$>), panic
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith
                  , sum, fromIntegral, length, fmap
@@ -33,18 +35,17 @@ import qualified Data.Map as Map
 import qualified Data.Vector as V
 import Safe (headMay)
 
-
 pf :: (a -> Bool) -> [a] -> [a]
 pf = filter
 
 pr :: [a] -> [a]
 pr = reverse
 
-pm :: (a -> b) -> [a] -> [b]
-pm = map
+--pm :: (a -> b) -> [a] -> [b]
+--pm = map
 
 pm2 :: (t -> b) -> [[t]] -> [[b]]
-pm2 fun = pm (pm fun)
+pm2 fun = map (map fun)
 
 pz :: [a] -> [b] -> [(a, b)]
 pz  = zip
@@ -73,14 +74,14 @@ sumMaybe :: Num a => [Maybe a] -> Maybe a
 sumMaybe = fmap sum . M.sequence
 
 variance :: Floating a => [a] -> a
-variance xs = mean $ pm (\x -> (x - m) ** 2) xs where
+variance xs = mean $ map (\x -> (x - m) ** 2) xs where
     m = mean xs
 
 deviation :: [Double] -> Double
 deviation = sqrt . variance
 
 movingAverage :: Fractional b => Int -> [b] -> [b]
-movingAverage steps xs = pm mean $ chunkAlong steps 1 xs
+movingAverage steps xs = map mean $ chunkAlong steps 1 xs
 
 ma :: [Double] -> [Double]
 ma = movingAverage 3
@@ -90,7 +91,7 @@ ma = movingAverage 3
 chunkAlong :: Int -> Int -> [a] -> [[a]]
 chunkAlong a b l = only (while  dropAlong)
     where
-        only      = pm (take a)
+        only      = map (take a)
         while     = takeWhile  (\x -> length x >= a)
         dropAlong = L.scanl (\x _y -> drop b x) l ([1..] :: [Integer])
 
@@ -172,18 +173,18 @@ scale :: [Double] -> [Double]
 scale = scaleMinMax
 
 scaleMinMax :: [Double] -> [Double]
-scaleMinMax xs = pm (\x -> (x - mi / (ma - mi + 1) )) xs'
+scaleMinMax xs = map (\x -> (x - mi / (ma - mi + 1) )) xs'
     where
         ma  = maximum xs'
         mi  = minimum xs'
-        xs' = pm abs xs
+        xs' = map abs xs
 
 scaleNormalize :: [Double] -> [Double]
-scaleNormalize xs = pm (\x -> (x - v / (m + 1))) xs'
+scaleNormalize xs = map (\x -> (x - v / (m + 1))) xs'
     where
         v = variance xs'
         m = mean     xs'
-        xs' = pm abs xs
+        xs' = map abs xs
 
 
 
@@ -191,9 +192,9 @@ normalize :: [Double] -> [Double]
 normalize as = normalizeWith identity as
 
 normalizeWith :: Fractional b => (a -> b) -> [a] -> [b]
-normalizeWith extract bs = pm (\x -> x/(sum bs')) bs'
+normalizeWith extract bs = map (\x -> x/(sum bs')) bs'
     where
-        bs' = pm extract bs
+        bs' = map extract bs
 
 -- Zip functions to add
 zipFst :: ([b] -> [a]) -> [b] -> [(a, b)]
