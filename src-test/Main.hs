@@ -1,4 +1,4 @@
-import Data.Gargantext.Types.Main (Language(..))
+import Gargantext.Types.Main (Language(..))
 --import qualified Ngrams.Lang.Fr as Fr
 import qualified Ngrams.Lang as Lang
 import qualified Ngrams.Lang.Occurrences as Occ
