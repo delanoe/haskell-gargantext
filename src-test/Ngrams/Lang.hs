@@ -1,7 +1,7 @@
 module Ngrams.Lang where
 
 
-import Data.Gargantext.Types.Main (Language(..))
+import Gargantext.Types.Main (Language(..))
 import qualified Ngrams.Lang.Fr as Fr
 import qualified Ngrams.Lang.En as En
 

@@ -4,9 +4,9 @@
 
 module Ngrams.Metrics (main) where
 
+import Gargantext.Ngrams.Metrics
 import Data.Ratio
 import Data.Text (Text)
-import Data.Gargantext.Ngrams.Metrics
 import Test.Hspec
 import Test.QuickCheck
 import qualified Data.Text as T
