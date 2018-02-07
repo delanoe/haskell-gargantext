@@ -1,3 +1,15 @@
+
+{-|
+Module      : Gargantext.Server
+Description : Server API
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -18,10 +30,11 @@ import Servant
 import Servant.Multipart
 import Database.PostgreSQL.Simple (Connection, connect)
 import Opaleye
+import System.IO (FilePath)
 
 import Gargantext.Types.Main (Node, NodeId)
 import Gargantext.Database.Node (getNodesWithParentId, getNode)
-import Gargantext.Database.Private (infoGargandb)
+import Gargantext.Database.Private (databaseParameters)
 
 -- | TODO, use MOCK feature of Servant to generate fake data (for tests)
 
@@ -44,13 +57,13 @@ server conn
     where
         echo s = pure s
 
-connectGargandb :: IO Connection
-connectGargandb = connect infoGargandb
-
-startGargantext :: IO ()
-startGargantext = do
+startGargantext :: FilePath -> IO ()
+startGargantext file = do
+  
   print ("Starting server on port " ++ show port)
-  conn <- connectGargandb
+  param <- databaseParameters file
+  conn  <- connect param
+  
   run port $ app conn
     where
         port = 8008
@@ -74,7 +87,6 @@ nodeAPI conn id
   :<|> liftIO (getNodesWithParentId conn id)
     where
         id' = pgInt4 id
-
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
