@@ -11,6 +11,7 @@ sudo apt-get install libbz2-dev lipq-dev
 # Starting
 
 stack ghci
-startGargantext "gargantext.ini"
+
+startGargantext 8008 "gargantext.ini"
 
 
