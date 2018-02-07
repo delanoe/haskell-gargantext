@@ -8,6 +8,8 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+Main REST API of Gargantext (both Server and Client sides)
+
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -20,7 +22,8 @@ module Gargantext.Server
 --    )
       where
 
-import Prelude hiding (null)
+import Gargantext.Prelude
+
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson
@@ -30,8 +33,8 @@ import Servant
 import Servant.Multipart
 import Database.PostgreSQL.Simple (Connection, connect)
 import Opaleye
-import System.IO (FilePath)
-
+import System.IO (FilePath, putStrLn, readFile, print)
+import Data.Text (Text(), pack)
 import Gargantext.Types.Main (Node, NodeId)
 import Gargantext.Database.Node (getNodesWithParentId, getNode)
 import Gargantext.Database.Private (databaseParameters)
@@ -43,8 +46,8 @@ type NodeAPI = Get '[JSON] (Node Value)
 
 type API =  "roots"  :> Get '[JSON] [Node Value]
        :<|> "node"   :> Capture "id" Int            :> NodeAPI
-       :<|> "echo"   :> Capture "string" String     :> Get '[JSON] String
-       :<|> "upload" :> MultipartForm MultipartData :> Post '[JSON] String
+       :<|> "echo"   :> Capture "string" Text     :> Get '[JSON] Text
+       :<|> "upload" :> MultipartForm MultipartData :> Post '[JSON] Text
 
        -- :<|> "node"  :> Capture "id" Int        :> Get '[JSON] Node
 
@@ -60,7 +63,7 @@ server conn
 startGargantext :: FilePath -> IO ()
 startGargantext file = do
   
-  print ("Starting server on port " ++ show port)
+  print ("Starting server on port " <> show port)
   param <- databaseParameters file
   conn  <- connect param
   
@@ -90,17 +93,17 @@ nodeAPI conn id
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
-upload :: MultipartData -> Handler String
+upload :: MultipartData -> Handler Text
 upload multipartData = do
   liftIO $ do
     putStrLn "Inputs:"
     forM_ (inputs multipartData) $ \input ->
-      putStrLn $ "  " ++ show (iName input)
-            ++ " -> " ++ show (iValue input)
+      putStrLn $ "  " <> show (iName input)
+            <> " -> " <> show (iValue input)
 
     forM_ (files multipartData) $ \file -> do
       content <- readFile (fdFilePath file)
-      putStrLn $ "Content of " ++ show (fdFileName file)
-              ++ " at " ++ fdFilePath file
+      putStrLn $ "Content of " <> show (fdFileName file)
+              <> " at " <> fdFilePath file
       putStrLn content
-  pure "Data loaded"
+  pure (pack "Data loaded")
