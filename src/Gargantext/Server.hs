@@ -60,16 +60,14 @@ server conn
     where
         echo s = pure s
 
-startGargantext :: FilePath -> IO ()
-startGargantext file = do
+startGargantext :: Int -> FilePath -> IO ()
+startGargantext port file = do
   
   print ("Starting server on port " <> show port)
   param <- databaseParameters file
   conn  <- connect param
   
   run port $ app conn
-    where
-        port = 8008
 
 -- | TODO App type, the main monad in which the bot code is written with.
 -- Provide config, state, logs and IO

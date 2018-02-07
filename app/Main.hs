@@ -4,10 +4,10 @@ module Main where
 
 import Gargantext.Prelude
 import Gargantext.Server (startGargantext)
-
+import Text.Read (read)
 import System.Environment (getArgs)
 
 main :: IO ()
 main = do 
-  (iniFile:_) <- getArgs
-  startGargantext iniFile
+  (port:iniFile:_) <- getArgs
+  startGargantext (read port :: Int) iniFile
