@@ -1,8 +1,13 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Main where
 
---import System.Environment (getArgs)
-import Data.Gargantext.Server (startGargantext)
+import Gargantext.Prelude
+import Gargantext.Server (startGargantext)
+
+import System.Environment (getArgs)
 
 main :: IO ()
---  (iniFile:_) <- getArgs
-main = startGargantext -- port iniFile
+main = do 
+  (iniFile:_) <- getArgs
+  startGargantext iniFile
