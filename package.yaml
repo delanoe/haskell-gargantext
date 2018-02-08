@@ -134,6 +134,10 @@ tests:
     - gargantext
     - hspec
     - QuickCheck
+    - time
+    - parsec
+    - duckling
+    - text
   garg-doctest:
     main: Main.hs
     source-dirs: src-doctest
