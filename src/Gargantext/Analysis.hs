@@ -1,5 +1,7 @@
 module Gargantext.Analysis where
 
+import Gargantext.Prelude
+
 -- import qualified Data.Text.Lazy as DTL
 import Data.Text
 import Opaleye (Column, PGInt4)

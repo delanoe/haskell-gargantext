@@ -1,5 +1,6 @@
 module Gargantext.Utils.DateUtils where
 
+import Gargantext.Prelude
 import Data.Time (UTCTime, toGregorian, utctDay)
 
 --
@@ -26,5 +27,3 @@ averageLength l = fromIntegral (sum (map length l)) / fromIntegral (length l)
 --	c <- getCurrentTime
 --	print c -- $ toYear $ toGregorian $ utctDay c
 
-charToString :: Char -> String
-charToString = (:[])

@@ -1,16 +1,18 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE Arrows #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
 
+{-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE MultiParamTypeClasses       #-}
+{-# LANGUAGE FunctionalDependencies      #-}
+{-# LANGUAGE Arrows                      #-}
+{-# LANGUAGE NoImplicitPrelude           #-}
 
 module Gargantext.Database.User where
 
-import Prelude
 import Gargantext.Prelude
+import GHC.Show(Show(..))
+import Data.Eq(Eq(..))
 import Data.Time (UTCTime)
 import Data.Text (Text)
 import Data.Maybe (Maybe)
@@ -20,7 +22,6 @@ import Control.Arrow (returnA)
 import qualified Database.PostgreSQL.Simple as PGS
 
 import Opaleye
-import Gargantext.Database.Private (infoGargandb)
 
 -- Functions only
 import Data.List (find)
@@ -112,12 +113,8 @@ instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
-users :: IO [User]
-users = do
-    conn <- PGS.connect infoGargandb
-    runQuery conn queryUserTable
+users :: PGS.Connection -> IO [User]
+users conn = runQuery conn queryUserTable
 
-usersLight :: IO [UserLight]
-usersLight = do
-    conn <- PGS.connect infoGargandb
-    pm toUserLight <$> runQuery conn queryUserTable
+usersLight :: PGS.Connection -> IO [UserLight]
+usersLight conn = map toUserLight <$> runQuery conn queryUserTable

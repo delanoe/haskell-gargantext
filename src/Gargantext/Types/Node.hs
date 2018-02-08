@@ -4,6 +4,9 @@
 
 module Gargantext.Types.Node where
 
+import Gargantext.Prelude
+
+import Text.Show (Show())
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Data.Time (UTCTime)

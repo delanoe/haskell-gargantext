@@ -21,6 +21,8 @@ module Gargantext.Ngrams.Metrics (levenshtein
                                       , hamming
                                       ) where
 
+import Gargantext.Prelude
+
 import Data.Text (Text)
 import GHC.Real (Ratio)
 import qualified Data.Text.Metrics as DTM

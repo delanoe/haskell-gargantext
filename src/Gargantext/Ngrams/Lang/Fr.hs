@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Ngrams.Lang.Fr (selectNgrams, groupNgrams, textTest)
     where
@@ -8,7 +9,7 @@ import Data.Text (Text)
 import Data.Monoid ((<>))
 
 selectNgrams :: [(Text, Text, Text)] -> [(Text, Text, Text)]
-selectNgrams xs = pf selectNgrams' xs
+selectNgrams xs = filter selectNgrams' xs
     where
         selectNgrams' (_,"N"    ,_       ) = True
         selectNgrams' (_,"NC"   ,_       ) = True
@@ -66,6 +67,6 @@ groupNgrams ((x,_,"ORGANIZATION"):(y,yy,"ORGANIZATION"):xs) = groupNgrams ((x <>
 groupNgrams (x:xs)                        = (x:(groupNgrams xs))
 
 
-textTest :: [String]
+textTest :: [Text]
 textTest = [ "L'heure d'arrivée des coureurs dépend de la météo du jour."]
 

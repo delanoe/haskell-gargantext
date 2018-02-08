@@ -1,4 +1,4 @@
-module Data.Gargantext.Ngrams.Hetero where
+module Gargantext.Ngrams.Hetero where
 
 import GHC.Real as R
 import Data.Set as S
@@ -8,14 +8,14 @@ import Database.PostgreSQL.Simple as PGS
 import Opaleye.PGTypes (PGInt4)
 import Opaleye.Internal.Column (Column)
 
-import Data.Gargantext.Database.Gargandb
-import Data.Gargantext.Database.Private
---import Data.Gargantext.Utils.Chronos
+import Gargantext.Database.Gargandb
+import Gargantext.Database.Private
+--import Gargantext.Utils.Chronos
 
-import Data.Gargantext.Ngrams.Words (cleanText)
-import Data.Gargantext.Ngrams.Count (occurrences)
+import Gargantext.Ngrams.Words (cleanText)
+import Gargantext.Ngrams.Count (occurrences)
 
-import Data.Gargantext.Database.Simple
+import Gargantext.Database.Simple
 
 --main = do
 --    t <- getTextquery

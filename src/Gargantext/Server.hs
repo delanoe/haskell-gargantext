@@ -1,3 +1,17 @@
+
+{-|
+Module      : Gargantext.Server
+Description : Server API
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+Main REST API of Gargantext (both Server and Client sides)
+
+-}
+
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -8,7 +22,8 @@ module Gargantext.Server
 --    )
       where
 
-import Prelude hiding (null)
+import Gargantext.Prelude
+
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson
@@ -18,10 +33,11 @@ import Servant
 import Servant.Multipart
 import Database.PostgreSQL.Simple (Connection, connect)
 import Opaleye
-
+import System.IO (FilePath, putStrLn, readFile, print)
+import Data.Text (Text(), pack)
 import Gargantext.Types.Main (Node, NodeId)
 import Gargantext.Database.Node (getNodesWithParentId, getNode)
-import Gargantext.Database.Private (infoGargandb)
+import Gargantext.Database.Private (databaseParameters)
 
 -- | TODO, use MOCK feature of Servant to generate fake data (for tests)
 
@@ -30,8 +46,8 @@ type NodeAPI = Get '[JSON] (Node Value)
 
 type API =  "roots"  :> Get '[JSON] [Node Value]
        :<|> "node"   :> Capture "id" Int            :> NodeAPI
-       :<|> "echo"   :> Capture "string" String     :> Get '[JSON] String
-       :<|> "upload" :> MultipartForm MultipartData :> Post '[JSON] String
+       :<|> "echo"   :> Capture "string" Text     :> Get '[JSON] Text
+       :<|> "upload" :> MultipartForm MultipartData :> Post '[JSON] Text
 
        -- :<|> "node"  :> Capture "id" Int        :> Get '[JSON] Node
 
@@ -44,16 +60,14 @@ server conn
     where
         echo s = pure s
 
-connectGargandb :: IO Connection
-connectGargandb = connect infoGargandb
-
-startGargantext :: IO ()
-startGargantext = do
-  print ("Starting server on port " ++ show port)
-  conn <- connectGargandb
+startGargantext :: Int -> FilePath -> IO ()
+startGargantext port file = do
+  
+  print ("Starting server on port " <> show port)
+  param <- databaseParameters file
+  conn  <- connect param
+  
   run port $ app conn
-    where
-        port = 8008
 
 -- | TODO App type, the main monad in which the bot code is written with.
 -- Provide config, state, logs and IO
@@ -75,20 +89,19 @@ nodeAPI conn id
     where
         id' = pgInt4 id
 
-
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
-upload :: MultipartData -> Handler String
+upload :: MultipartData -> Handler Text
 upload multipartData = do
   liftIO $ do
     putStrLn "Inputs:"
     forM_ (inputs multipartData) $ \input ->
-      putStrLn $ "  " ++ show (iName input)
-            ++ " -> " ++ show (iValue input)
+      putStrLn $ "  " <> show (iName input)
+            <> " -> " <> show (iValue input)
 
     forM_ (files multipartData) $ \file -> do
       content <- readFile (fdFilePath file)
-      putStrLn $ "Content of " ++ show (fdFileName file)
-              ++ " at " ++ fdFilePath file
+      putStrLn $ "Content of " <> show (fdFileName file)
+              <> " at " <> fdFilePath file
       putStrLn content
-  pure "Data loaded"
+  pure (pack "Data loaded")

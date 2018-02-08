@@ -1,11 +1,14 @@
+
 module Gargantext.Utils.Prefix where
+
+import Prelude
 
 import Data.Aeson (Value, defaultOptions, parseJSON)
 import Data.Aeson.TH (Options, fieldLabelModifier, omitNothingFields)
 import Data.Aeson.Types (Parser)
 import Data.Char (toLower)
 import Data.Monoid ((<>))
-import Text.Read (readMaybe)
+import Text.Read (Read(..),readMaybe)
 
 
 -- | Aeson Options that remove the prefix from fields
@@ -24,13 +27,13 @@ unCapitalize (c:cs) = toLower c : cs
 dropPrefix :: String -> String -> String
 dropPrefix prefix input = go prefix input
   where
-    go pre [] = error $ contextual $ "prefix leftover: " <> pre
+    go pre [] = error $ conStringual $ "prefix leftover: " <> pre
     go [] (c:cs) = c : cs
     go (p:preRest) (c:cRest)
       | p == c = go preRest cRest
-      | otherwise = error $ contextual $ "not equal: " <>  (p:preRest)  <> " " <> (c:cRest)
+      | otherwise = error $ conStringual $ "not equal: " <>  (p:preRest)  <> " " <> (c:cRest)
 
-    contextual msg = "dropPrefix: " <> msg <> ". " <> prefix <> " " <> input
+    conStringual msg = "dropPrefix: " <> msg <> ". " <> prefix <> " " <> input
 
 parseJSONFromString :: (Read a) => Value -> Parser a
 parseJSONFromString v = do

@@ -16,6 +16,7 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate) where
 
@@ -34,10 +35,10 @@ import Duckling.Types (jsonValue, Entity)
 import Duckling.Api (analyze, parse)
 import qualified Data.HashSet as HashSet
 import qualified Data.Aeson   as Json
-import Data.HashMap.Strict as HM
 import Data.Time (ZonedTime(..), LocalTime(..), TimeZone(..), TimeOfDay(..), getCurrentTimeZone)
 import Data.Time.Calendar (Day, fromGregorian)
 import Data.Fixed (Fixed (MkFixed))
+import Data.HashMap.Strict as HM hiding (map)
 
 import Data.Text (Text, unpack)
 -- import Duckling.Engine (parseAndResolve)
@@ -70,13 +71,13 @@ import Text.XML.HXT.DOM.Util (decimalStringToInt)
 -- parseDate1 :: Context -> Text -> SomeErrorHandling Text
 parseDate1 :: Lang -> Text -> IO Text
 parseDate1 lang text = do
-    maybeJson <- pm jsonValue <$> parseDateWithDuckling lang text
+    maybeJson <- map jsonValue <$> parseDateWithDuckling lang text
     case headMay maybeJson of
       Just (Json.Object object) -> case HM.lookup "value" object of
                                      Just (Json.String date) -> pure date
-                                     Just _                  -> error "ParseDate ERROR: should be a json String"
-                                     Nothing                 -> error "ParseDate ERROR: no date found"
-      _                         -> error "ParseDate ERROR: type error"
+                                     Just _                  -> panic "ParseDate ERROR: should be a json String"
+                                     Nothing                 -> panic "ParseDate ERROR: no date found"
+      _                         -> panic "ParseDate ERROR: type error"
 
 
 
