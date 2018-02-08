@@ -21,6 +21,7 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate) where
 
 import Gargantext.Prelude
+import Prelude (toInteger)
 --import Gargantext.Types.Main as G
 
 import Data.Time.Clock (UTCTime, getCurrentTime)
@@ -40,6 +41,9 @@ import Data.Time.Calendar (Day, fromGregorian)
 import Data.Fixed (Fixed (MkFixed))
 import Data.HashMap.Strict as HM hiding (map)
 
+import Control.Monad ((=<<))
+import Data.Either (Either)
+import Data.String (String)
 import Data.Text (Text, unpack)
 -- import Duckling.Engine (parseAndResolve)
 -- import Duckling.Rules (rulesFor)
