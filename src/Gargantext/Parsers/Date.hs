@@ -18,7 +18,7 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate) where
+module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate, fromRFC3339) where
 
 import Gargantext.Prelude
 import Prelude (toInteger)
