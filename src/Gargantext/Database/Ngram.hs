@@ -15,8 +15,6 @@ import qualified Database.PostgreSQL.Simple as PGS
 
 import Opaleye
 
-import Gargantext.Database.Private (infoGargandb)
-
 -- Functions only
 import Data.List (find)
 
@@ -66,7 +64,5 @@ findWith f t = find (\x -> f x == t)
 --userWithId t xs = userWith userUserId t xs
 
 -- | not optimized (get all ngrams without filters)
-ngrams :: IO [Ngram]
-ngrams = do
-    conn <- PGS.connect infoGargandb
-    runQuery conn queryNgramTable
+ngrams :: PGS.Connection -> IO [Ngram]
+ngrams conn = runQuery conn queryNgramTable

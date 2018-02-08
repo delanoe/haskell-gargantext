@@ -3,10 +3,10 @@ version: '0.1.0.0'
 synopsis: Deep (Collaborative) Text mining project
 description: Please see README.md
 category: Data
-author: Alexandre Delanoë
+author: Gargantext Team
 maintainer: team@gargantext.org
 copyright:
-- ! 'Copyright: (c) 2016'
+- ! 'Copyright: (c) 2017'
 - 2018 CNRS Alexandre Delanoë
 license: BSD3
 homepage: https://gargantext.org
@@ -16,6 +16,8 @@ dependencies:
 - text
 library:
   source-dirs: src
+  default-extensions: 
+  - NoImplicitPrelude
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
@@ -72,6 +74,7 @@ library:
   - filepath
   - http-conduit
   - hxt
+  - ini
   - lens
   - logging-effect
   - opaleye
@@ -107,6 +110,17 @@ library:
   - zlib
   - zip
   - path-io
+
+executable:
+  main: Main.hs
+  source-dirs:      app
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
+  dependencies:
+    - gargantext
+    - ini
+    - base
+    - unordered-containers
+
 tests:
   garg-test:
     main: Main.hs

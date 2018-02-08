@@ -21,11 +21,15 @@ please follow the types.
 module Gargantext.Parsers -- (parse, FileFormat(..))
     where
 
-import System.FilePath (takeExtension)
+import Gargantext.Prelude
+
+import System.FilePath (takeExtension, FilePath())
 import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Data.ByteString as DB
-import Data.Map                    as DM
-----import Data.Either.Extra(Either(..))
+import Data.Map        as DM
+import Data.Ord()
+import Data.String()
+import Data.Either.Extra(Either())
 ----
 --import Control.Monad (join)
 import Codec.Archive.Zip (withArchive, getEntry, getEntries)
@@ -34,7 +38,7 @@ import Path.IO (resolveFile')
 --import Control.Applicative ( (<$>) )
 import Control.Concurrent.Async as CCA (mapConcurrently)
 
-
+import Data.String (String())
 import Gargantext.Parsers.WOS (wosParser)
 ---- import Gargantext.Parsers.XML (xmlParser)
 ---- import Gargantext.Parsers.DOC (docParser)

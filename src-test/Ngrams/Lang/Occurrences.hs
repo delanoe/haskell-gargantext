@@ -9,11 +9,11 @@ import Control.Exception (evaluate)
 
 import Data.Text (Text)
 
-import Data.Gargantext.Prelude
-import Data.Gargantext.Types.Main (Language(..))
-import Data.Gargantext.Ngrams
-import Data.Gargantext.Ngrams.Occurrences (parseOccurrences)
-import Data.Gargantext.Ngrams.Parser (extractNgrams, selectNgrams)
+import Gargantext.Prelude
+import Gargantext.Types.Main (Language(..))
+import Gargantext.Ngrams
+import Gargantext.Ngrams.Occurrences (parseOccurrences)
+import Gargantext.Ngrams.Parser (extractNgrams, selectNgrams)
 
 
 parsersTest = hspec $ do

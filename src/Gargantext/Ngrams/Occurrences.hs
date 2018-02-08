@@ -2,13 +2,17 @@
 
 module Gargantext.Ngrams.Occurrences where
 
+import Gargantext.Prelude
+
+import Control.Monad ((>>),(>>=))
+import Data.String (String())
 import Data.Attoparsec.Text
 import Data.Text (Text)
-
 
 import Data.Either.Extra(Either(..))
 import qualified Data.Text as T
 import Control.Applicative
+
 
 occurrenceParser :: Text -> Parser Bool
 occurrenceParser txt = manyTill anyChar (string txt) >> pure True

@@ -16,7 +16,6 @@ import qualified Database.PostgreSQL.Simple as PGS
 
 import Opaleye
 
-import Gargantext.Database.Private (infoGargandb)
 
 data NodeNgramPoly id node_id ngram_id weight
                    = NodeNgram { nodeNgram_NodeNgramId      :: id
@@ -56,7 +55,5 @@ instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
 
 
 -- | not optimized (get all ngrams without filters)
-nodeNgrams :: IO [NodeNgram]
-nodeNgrams = do
-    conn <- PGS.connect infoGargandb
-    runQuery conn queryNodeNgramTable
+nodeNgrams :: PGS.Connection -> IO [NodeNgram]
+nodeNgrams conn = runQuery conn queryNodeNgramTable

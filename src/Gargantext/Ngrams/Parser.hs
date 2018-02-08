@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
 
 module Gargantext.Ngrams.Parser where
 
 import Gargantext.Prelude
 import Gargantext.Ngrams.CoreNLP
-
+import Data.Text hiding (map)
 
 import Gargantext.Types.Main (Language(..), Ngrams)
 import qualified Gargantext.Ngrams.Lang.En as En
@@ -30,13 +31,13 @@ import qualified Gargantext.Ngrams.Lang.Fr as Fr
 
 -- TODO for scientific papers: add maesures
 -- TODO add the p score regex
-extractNgrams :: Language -> String -> IO [[Ngrams]]
-extractNgrams lang s = pm (groupNgrams lang) <$> extractNgrams' lang s
+extractNgrams :: Language -> Text -> IO [[Ngrams]]
+extractNgrams lang s = map (groupNgrams lang) <$> extractNgrams' lang s
 
 
-extractNgrams' :: Language -> String -> IO [[Ngrams]]
-extractNgrams' lang t =  pm (pm token2text)
-                     <$> pm _sentenceTokens
+extractNgrams' :: Language -> Text -> IO [[Ngrams]]
+extractNgrams' lang t =  map (map token2text)
+                     <$> map _sentenceTokens
                      <$> sentences
                      <$> corenlp lang t
 

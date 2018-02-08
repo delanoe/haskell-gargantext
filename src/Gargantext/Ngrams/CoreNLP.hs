@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE     NoImplicitPrelude       #-}
 
 module Gargantext.Ngrams.CoreNLP where
 
@@ -9,6 +10,7 @@ import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import GHC.Generics
 import Data.Monoid ((<>))
+import GHC.Show (Show(..))
 
 import Gargantext.Types.Main (Language(..))
 import Gargantext.Prelude
@@ -69,7 +71,7 @@ instance FromJSON Sentences
 -- 
 
 
-corenlpPretty :: String -> IO ()
+corenlpPretty :: Text -> IO ()
 corenlpPretty txt = do
     url <- parseRequest "POST http://localhost:9000/?properties={\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}" 
     let request = setRequestBodyJSON txt url
@@ -80,7 +82,7 @@ corenlpPretty txt = do
 --    print $ getResponseHeader "Content-Type" response
     S8.putStrLn $ Yaml.encode (getResponseBody response :: Sentences)
 
-corenlp :: Language -> String -> IO Sentences
+corenlp :: Language -> Text -> IO Sentences
 corenlp lang txt = do
     let properties = case lang of
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
@@ -99,8 +101,8 @@ corenlp lang txt = do
 -- Named Entity Recognition example
 -- parseWith  _tokenNer     "Hello world of Peter."
 -- [[("``","O"),("Hello","O"),("world","O"),("of","O"),("Peter","PERSON"),(".","O"),("''","O")]]
-tokenWith :: (Token -> t) -> Language -> String -> IO [[(Text, t)]]
-tokenWith f lang s = pm (pm (\t -> (_tokenWord t, f t))) <$> pm _sentenceTokens <$> sentences <$> corenlp lang s
+tokenWith :: (Token -> t) -> Language -> Text -> IO [[(Text, t)]]
+tokenWith f lang s = map (map (\t -> (_tokenWord t, f t))) <$> map _sentenceTokens <$> sentences <$> corenlp lang s
 
 
 

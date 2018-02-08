@@ -2,14 +2,15 @@
 
 module Gargantext.Ngrams.Count where
 
-import System.Environment (getArgs)
+import Gargantext.Prelude
+
 
 import Data.Foldable as F
 
 import Data.Map (Map)
 import qualified Data.Map as M
 
-import qualified Data.Text.Lazy.IO as DTLIO
+--import qualified Data.Text.Lazy.IO as DTLIO
 import qualified Data.Text.Lazy as DTL
 
 -- | /O(n)/ Breaks a 'Text' up into each Text list of chars.
@@ -36,11 +37,11 @@ occurrences xs = foldl' (\x y -> M.insertWith' (+) y 1 x) M.empty xs
 --occurrences' :: Ord a => [a] -> Map a Integer
 --occurrences' xs = DTL.foldl (\x y -> M.insertWith' (+) y 1 x) M.empty xs
 
-countMain :: IO ()
-countMain = do
-  (fichier:_) <- getArgs
-  c <- DTLIO.readFile fichier
-  --print $ occurrences $ DTL.chunksOf 1 c
-  print $ occurrences $ letters'' c
-  --print $ occurrences $ DTL.words $ DTL.toLower c
-
+--countMain :: IO ()
+--countMain = do
+--  (fichier:_) <- getArgs
+--  c <- DTLIO.readFile fichier
+--  --print $ occurrences $ DTL.chunksOf 1 c
+--  pure $ occurrences $ letters'' c
+--  --print $ occurrences $ DTL.words $ DTL.toLower c
+--
