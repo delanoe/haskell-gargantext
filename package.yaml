@@ -50,7 +50,8 @@ library:
   - Gargantext.Parsers.Date
   - Gargantext.Prelude
   - Gargantext.RCT
-  - Gargantext.Server
+  - Gargantext.API
+  - Gargantext.API.Auth
   - Gargantext.Types
   - Gargantext.Types.Main
   - Gargantext.Types.Node
@@ -92,6 +93,7 @@ library:
   - servant-client
   - servant-multipart
   - servant-server
+  - servant-auth
   - split
   - tagsoup
   - text-metrics

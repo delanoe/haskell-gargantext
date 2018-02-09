@@ -144,9 +144,9 @@ selectNodesWithType type_id = proc () -> do
     restrict -< tn .== type_id
     returnA -< row
 
-getNode :: Connection -> Column PGInt4 -> IO (Node Value)
+getNode :: Connection -> Int -> IO (Node Value)
 getNode conn id = do
-    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNodes id)
+    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNodes (pgInt4 id))
 
 getNodesWithType :: Connection -> Column PGInt4 -> IO [Node Value]
 getNodesWithType conn type_id = do
