@@ -134,6 +134,7 @@ tests:
     - gargantext
     - hspec
     - QuickCheck
+    - quickcheck-instances 
     - time
     - parsec
     - duckling
