@@ -144,13 +144,13 @@ parseTimeZone = do
         _ <- char ':'
         m <- wrapDST =<< (many1 $ anyChar)
         let (TimeZone _ s n) = unsafePerformIO getCurrentTimeZone
-        let timeInMinute = if sign == '+' then h * 60 + m else -h * 60 - m 
-         in return $ TimeZone timeInMinute s n
+        let timeInMinute = if sign == '+' then h * 60 + m else -h * 60 - m
+         in return $ TimeZone timeInMinute False "CET"
 
 -- | Parser which use parseGregorian, parseTimeOfDay and parseTimeZone to create a ZonedTime
 parseZonedTime :: Parser ZonedTime
 parseZonedTime= do
-        d <- parseGregorian 
+        d <- parseGregorian
         tod <- parseTimeOfDay
         tz <- parseTimeZone
         return $ ZonedTime (LocalTime d (tod)) tz
