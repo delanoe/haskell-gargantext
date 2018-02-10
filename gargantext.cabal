@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a2fe1d6feb24181e934eedb42289d2b31ac73c4c6cd4e0e0f7904dc32e65bbfc
+-- hash: 84f85626582b6f0f3f7b0c3dadf65d7f797a14e8a50389db1167f6652ec74e28
 
 name:                gargantext
 version:             0.1.0.0
@@ -13,8 +13,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Gargantext Team
 maintainer:          team@gargantext.org
-copyright:           Copyright: (c) 2017,
-                     2018 CNRS Alexandre Delanoë
+copyright:           Copyright: (c) 2017-2018: see git logs and README
 category:            Data
 build-type:          Simple
 cabal-version:       >= 1.10

@@ -6,8 +6,7 @@ category: Data
 author: Gargantext Team
 maintainer: team@gargantext.org
 copyright:
-- ! 'Copyright: (c) 2017'
-- 2018 CNRS Alexandre Delanoë
+    - ! 'Copyright: (c) 2017-2018: see git logs and README'
 license: BSD3
 homepage: https://gargantext.org
 ghc-options: -Wall
