@@ -25,36 +25,50 @@ import Servant
 import Servant.Multipart
 import System.IO (putStrLn, readFile)
 import Data.Text (Text(), pack)
-
 import Database.PostgreSQL.Simple (Connection)
-
 import Gargantext.Prelude
-import Gargantext.Types.Main (Node, NodeId)
-import Gargantext.Database.Node (getNodesWithParentId, getNode)
+import Gargantext.Types.Main (Node, NodeId, NodeType)
+import Gargantext.Database.Node (getNodesWithParentId, getNode, getNodesWith)
 
 
 -- | Node API Types management
 type Roots = Get '[JSON] [Node Value]
 
 type NodeAPI   = Get '[JSON] (Node Value)
-             :<|> "children" :> Get '[JSON] [Node Value]
-             :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
+
+                -- Example for Document Facet view, to populate the tabular:
+                -- http://localhost:8008/node/347476/children?type=Document&limit=3
+                -- /!\ FIXME : nodeType is case sensitive
+                -- /!\ see NodeTypes in Types/Main.hs
+             :<|> "children" :> QueryParam "type"   NodeType
+                             :> QueryParam "offset" Int
+                             :> QueryParam "limit"  Int
+                             :> Get '[JSON] [Node Value]
+             
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
+             :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
+                
+                -- To launch a query and update the corpus
              :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
-           -- :<|> "children" :> QueryParam "type" Text :> Get '[JSON] [Node Value]
+
 
 
 -- | Node API functions
 roots :: Connection -> Server Roots
-roots conn = liftIO (getNodesWithParentId conn 0)
+roots conn = liftIO (getNodesWithParentId conn 0 Nothing)
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (getNode              conn id)
-              :<|> liftIO (getNodesWithParentId conn id)
+              :<|> getNodesWith' conn id
               :<|> upload
               :<|> query
+
+getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
+                        -> Handler [Node Value]
+getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
+
 
 query :: Text -> Handler Text
 query s = pure s
