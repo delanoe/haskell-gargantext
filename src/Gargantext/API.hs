@@ -34,6 +34,8 @@ import Gargantext.API.Node (Roots, roots, NodeAPI, nodeAPI)
 
 import Gargantext.Database.Private (databaseParameters)
 
+
+
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: Int -> FilePath -> IO ()
 startGargantext port file = do
@@ -46,6 +48,7 @@ startGargantext port file = do
 -- | Main routes of the API are typed
 type API =  "roots"  :> Roots
        :<|> "node"   :> Capture "id" Int            :> NodeAPI
+       -- :<|> "static"   
        -- :<|> "list"     :> Capture "id" Int  :> NodeAPI
        -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
        -- :<|> "auth"     :> Capture "id" Int  :> NodeAPI
