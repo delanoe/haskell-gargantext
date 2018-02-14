@@ -30,7 +30,10 @@ import System.IO (FilePath, print)
 
 
 -- import Gargantext.API.Auth
-import Gargantext.API.Node (Roots, roots, NodeAPI, nodeAPI)
+import Gargantext.API.Node ( Roots    , roots
+                           , NodeAPI  , nodeAPI
+                           , NodesAPI , nodesAPI
+                           )
 
 import Gargantext.Database.Private (databaseParameters)
 
@@ -47,7 +50,9 @@ startGargantext port file = do
 
 -- | Main routes of the API are typed
 type API =  "roots"  :> Roots
-       :<|> "node"   :> Capture "id" Int            :> NodeAPI
+       :<|> "node"   :> Capture "id" Int      :> NodeAPI
+       :<|> "nodes"  :> ReqBody '[JSON] [Int] :> NodesAPI
+
        -- :<|> "static"   
        -- :<|> "list"     :> Capture "id" Int  :> NodeAPI
        -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
@@ -58,6 +63,7 @@ type API =  "roots"  :> Roots
 server :: Connection -> Server API
 server conn =  roots   conn
           :<|> nodeAPI conn
+          :<|> nodesAPI conn
 
 -- | TODO App type, the main monad in which the bot code is written with.
 -- Provide config, state, logs and IO

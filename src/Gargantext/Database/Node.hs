@@ -25,7 +25,7 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , fromField
                                             , returnError
                                             )
-import Prelude hiding (null, id)
+import Prelude hiding (null, id, map)
 import Gargantext.Types.Main (NodeType)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
@@ -151,7 +151,6 @@ offset' :: Maybe Offset -> Query NodeRead  -> Query NodeRead
 offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
 
 
--- Add order by
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node <- (proc () -> do
@@ -167,8 +166,13 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     returnA -< node
 
 
---getNodesWith' :: Connection -> Int -> Maybe NodeType -> Maybe Offset' -> Maybe Limit' -> IO [Node Value]
---getNodesWith' conn parentId maybeNodeType maybeOffset maybeLimit = runQuery conn $ selectNodesWith parentId xxx maybeOffset maybeLimit
+
+deleteNode :: Connection -> Int -> IO Int
+deleteNode conn n = fromIntegral <$> runDelete conn nodeTable (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
+
+deleteNodes :: Connection -> [Int] -> IO Int
+deleteNodes conn ns = fromIntegral <$> runDelete conn nodeTable (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
+
 
 
 getNodesWith :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [Node Value]

@@ -28,13 +28,18 @@ import Data.Text (Text(), pack)
 import Database.PostgreSQL.Simple (Connection)
 import Gargantext.Prelude
 import Gargantext.Types.Main (Node, NodeId, NodeType)
-import Gargantext.Database.Node (getNodesWithParentId, getNode, getNodesWith)
+import Gargantext.Database.Node (getNodesWithParentId
+                                , getNode, getNodesWith
+                                , deleteNode, deleteNodes)
 
 
 -- | Node API Types management
 type Roots = Get '[JSON] [Node Value]
 
+type NodesAPI  = Delete '[JSON] Int
+
 type NodeAPI   = Get '[JSON] (Node Value)
+             :<|> Delete '[JSON] Int
 
                 -- Example for Document Facet view, to populate the tabular:
                 -- http://localhost:8008/node/347476/children?type=Document&limit=3
@@ -61,9 +66,19 @@ roots conn = liftIO (getNodesWithParentId conn 0 Nothing)
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (getNode              conn id)
+              :<|> deleteNode' conn id
               :<|> getNodesWith' conn id
               :<|> upload
               :<|> query
+
+nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
+nodesAPI conn ids = deleteNodes' conn ids
+
+deleteNodes' :: Connection -> [NodeId] -> Handler Int
+deleteNodes' conn ids = liftIO (deleteNodes conn ids)
+
+deleteNode' :: Connection -> NodeId -> Handler Int
+deleteNode' conn id = liftIO (deleteNode conn id)
 
 getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
                         -> Handler [Node Value]
