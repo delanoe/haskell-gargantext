@@ -26,7 +26,10 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , returnError
                                             )
 import Prelude hiding (null, id, map)
+
 import Gargantext.Types.Main (NodeType)
+--import Gargantext.Database.NodeNode
+
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -140,7 +143,7 @@ type Offset    = Int
 selectNodesWith :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
-        offset' maybeOffset $ limit' maybeLimit $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
+        limit' maybeLimit $ offset' maybeOffset $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
 
 
 limit' ::  Maybe Limit -> Query NodeRead -> Query NodeRead
