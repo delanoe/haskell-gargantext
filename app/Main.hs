@@ -3,7 +3,7 @@
 module Main where
 
 import Gargantext.Prelude
-import Gargantext.Server (startGargantext)
+import Gargantext.API (startGargantext)
 import Text.Read (read)
 import System.Environment (getArgs)
 

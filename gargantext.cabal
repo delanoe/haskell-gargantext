@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1afbb68941e4a0da5a3c812595ca12ed611c36aa9ab55736742c3f093dbf7f06
+-- hash: 84f85626582b6f0f3f7b0c3dadf65d7f797a14e8a50389db1167f6652ec74e28
 
 name:                gargantext
 version:             0.1.0.0
@@ -13,8 +13,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Gargantext Team
 maintainer:          team@gargantext.org
-copyright:           Copyright: (c) 2017,
-                     2018 CNRS Alexandre Delanoë
+copyright:           Copyright: (c) 2017-2018: see git logs and README
 category:            Data
 build-type:          Simple
 cabal-version:       >= 1.10
@@ -58,6 +57,7 @@ library
     , safe
     , semigroups
     , servant
+    , servant-auth
     , servant-client
     , servant-multipart
     , servant-server
@@ -105,13 +105,15 @@ library
       Gargantext.Parsers.Date
       Gargantext.Prelude
       Gargantext.RCT
-      Gargantext.Server
+      Gargantext.API
+      Gargantext.API.Auth
       Gargantext.Types
       Gargantext.Types.Main
       Gargantext.Types.Node
       Gargantext.Utils.DateUtils
       Gargantext.Utils.Prefix
   other-modules:
+      Gargantext.API.Node
       Gargantext.Utils
       Paths_gargantext
   default-language: Haskell2010
