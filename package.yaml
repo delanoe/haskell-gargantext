@@ -6,8 +6,7 @@ category: Data
 author: Gargantext Team
 maintainer: team@gargantext.org
 copyright:
-- ! 'Copyright: (c) 2017'
-- 2018 CNRS Alexandre Delanoë
+    - ! 'Copyright: (c) 2017-2018: see git logs and README'
 license: BSD3
 homepage: https://gargantext.org
 ghc-options: -Wall
@@ -50,7 +49,8 @@ library:
   - Gargantext.Parsers.Date
   - Gargantext.Prelude
   - Gargantext.RCT
-  - Gargantext.Server
+  - Gargantext.API
+  - Gargantext.API.Auth
   - Gargantext.Types
   - Gargantext.Types.Main
   - Gargantext.Types.Node
@@ -93,6 +93,7 @@ library:
   - servant-client
   - servant-multipart
   - servant-server
+  - servant-auth
   - split
   - tagsoup
   - text-metrics

@@ -11,6 +11,7 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Types.Main where
 
@@ -19,7 +20,12 @@ import Prelude
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
 import Protolude (fromMaybe)
-
+import Data.Aeson
+import GHC.Generics
+import Servant
+import Data.Text (unpack)
+import Text.Read (read)
+import Data.Either (Either(Right))
 --import Data.ByteString (ByteString())
 import Data.Text (Text)
 import Data.Time (UTCTime)
@@ -87,7 +93,11 @@ data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
               | Classification
               | Lists
               | Metrics
-              deriving (Show, Read, Eq)
+              deriving (Show, Read, Eq, Generic)
+
+instance FromJSON NodeType
+instance ToJSON NodeType
+instance FromHttpApiData NodeType where parseUrlPiece = Right . read . unpack
 
 data Classification = Favorites | MyClassifcation
 

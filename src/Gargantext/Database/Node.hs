@@ -1,3 +1,13 @@
+{-|
+Module      : Gargantext.Database.Node
+Description : Main requests of Node to the database
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+-}
+
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -15,7 +25,8 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , fromField
                                             , returnError
                                             )
-import Prelude hiding (null, id)
+import Prelude hiding (null, id, map)
+import Gargantext.Types.Main (NodeType)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -106,21 +117,76 @@ nodeTable = Table "nodes" (pNode Node { node_id                = optional "id"
                             )
 
 
+queryNodeTable :: Query NodeRead
+queryNodeTable = queryTable nodeTable
+
+
 selectNodes :: Column PGInt4 -> Query NodeRead
 selectNodes id = proc () -> do
     row <- queryNodeTable -< ()
     restrict -< node_id row .== id
     returnA -< row
 
-runGetNodes :: Connection -> Query NodeRead -> IO [Document]
+runGetNodes :: Connection -> Query NodeRead -> IO [Node Value]
 runGetNodes = runQuery
 
 
+type ParentId = NodeId
+type Limit    = Int
+type Offset    = Int
+
+-- | order by publication date
+-- Favorites (Bool), node_ngrams
+selectNodesWith :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query NodeRead
+selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
+        --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
+        offset' maybeOffset $ limit' maybeLimit $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
+
+
+limit' ::  Maybe Limit -> Query NodeRead -> Query NodeRead
+limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
+
+
+offset' :: Maybe Offset -> Query NodeRead  -> Query NodeRead
+offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
+
+
+selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
+selectNodesWith' parentId maybeNodeType = proc () -> do
+    node <- (proc () -> do
+            row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
+            restrict -< parentId' .== (toNullable $ pgInt4 parentId)
+            
+            let typeId' = maybe 0 nodeTypeId maybeNodeType
+            
+            restrict -< if typeId' > 0
+                           then typeId   .== (pgInt4 (typeId' :: Int))
+                           else (pgBool True)
+            returnA  -< row ) -< ()
+    returnA -< node
+
+
+
+deleteNode :: Connection -> Int -> IO Int
+deleteNode conn n = fromIntegral 
+                 <$> runDelete conn nodeTable 
+                 (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
+
+deleteNodes :: Connection -> [Int] -> IO Int
+deleteNodes conn ns = fromIntegral 
+                   <$> runDelete conn nodeTable 
+                   (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
+
+
+getNodesWith :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [Node Value]
+getNodesWith conn parentId nodeType maybeOffset maybeLimit = 
+    runQuery conn $ selectNodesWith 
+                  parentId nodeType maybeOffset maybeLimit
 
 
 -- NP check type
-getNodesWithParentId :: Connection -> Int -> IO [Node Value]
-getNodesWithParentId conn n = runQuery conn $ selectNodesWithParentID n
+getNodesWithParentId :: Connection -> Int -> Maybe Text -> IO [Node Value]
+getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
 
 selectNodesWithParentID :: Int -> Query NodeRead
 selectNodesWithParentID n = proc () -> do
@@ -132,9 +198,6 @@ selectNodesWithParentID n = proc () -> do
                         isNull parent_id
     returnA -< row
 
-queryNodeTable :: Query NodeRead
-queryNodeTable = queryTable nodeTable
-
 
 
 
@@ -144,20 +207,12 @@ selectNodesWithType type_id = proc () -> do
     restrict -< tn .== type_id
     returnA -< row
 
-getNode :: Connection -> Column PGInt4 -> IO (Node Value)
+getNode :: Connection -> Int -> IO (Node Value)
 getNode conn id = do
-    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNodes id)
+    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNodes (pgInt4 id))
 
 getNodesWithType :: Connection -> Column PGInt4 -> IO [Node Value]
 getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
 
--- NP check type
-getCorpusDocument :: Connection -> Int -> IO [Document]
-getCorpusDocument conn n = runQuery conn (selectNodesWithParentID n)
-
--- NP check type
-getProjectCorpora :: Connection -> Int -> IO [Corpus]
-getProjectCorpora conn node_id = do
-    runQuery conn $ selectNodesWithParentID node_id
