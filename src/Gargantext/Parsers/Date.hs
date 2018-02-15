@@ -18,10 +18,10 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate, fromRFC3339) where
+module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate, fromRFC3339, parseTimeOfDay, getMultiplicator) where
 
 import Gargantext.Prelude
-import Prelude (toInteger)
+import Prelude (toInteger, div, otherwise, (++))
 --import Gargantext.Types.Main as G
 
 import Data.Time.Clock (UTCTime, getCurrentTime)
@@ -39,6 +39,7 @@ import qualified Data.Aeson   as Json
 import Data.Time (ZonedTime(..), LocalTime(..), TimeZone(..), TimeOfDay(..), getCurrentTimeZone)
 import Data.Time.Calendar (Day, fromGregorian)
 import Data.Fixed (Fixed (MkFixed))
+import Data.Foldable (length)
 import Data.HashMap.Strict as HM hiding (map)
 
 import Control.Monad ((=<<))
@@ -73,6 +74,7 @@ import Text.XML.HXT.DOM.Util (decimalStringToInt)
 -- currentContext :: Lang -> IO Context
 -- currentContext lang = localContext lang <$> utcToDucklingTime <$> getCurrentTime
 -- parseDate1 :: Context -> Text -> SomeErrorHandling Text
+
 parseDate1 :: Lang -> Text -> IO Text
 parseDate1 lang text = do
     maybeJson <- map jsonValue <$> parseDateWithDuckling lang text
@@ -115,6 +117,11 @@ wrapDST = (return . decimalStringToInt)
 many1NoneOf :: Stream s m Char => [Char] -> ParsecT s u m [Char]
 many1NoneOf = (many1 . noneOf)
 
+getMultiplicator :: Int -> Int
+getMultiplicator a
+  | 0 >= a = 1
+  | otherwise = 10 * (getMultiplicator $ div a 10)
+
 -- | Parser for date format y-m-d
 parseGregorian :: Parser Day
 parseGregorian  = do
@@ -133,8 +140,13 @@ parseTimeOfDay = do
         _ <- char ':'
         m <- wrapDST =<< many1NoneOf [':']
         _ <- char ':'
-        s <- wrapDST =<< many1NoneOf ['+', '-']
-        return $ TimeOfDay h m (MkFixed $ toInteger s)
+        r <- many1NoneOf ['.']
+        _ <- char '.'
+        dec <- many1NoneOf ['+', '-']
+        let (nb, l) = (decimalStringToInt $ r ++ dec, length dec)
+            seconds = nb * 10^(12-l) 
+        return $ TimeOfDay h m (MkFixed . toInteger $ seconds)
+
 
 -- | Parser for timezone format +hh:mm
 parseTimeZone :: Parser TimeZone
@@ -145,7 +157,7 @@ parseTimeZone = do
         m <- wrapDST =<< (many1 $ anyChar)
         let (TimeZone _ s n) = unsafePerformIO getCurrentTimeZone
         let timeInMinute = if sign == '+' then h * 60 + m else -h * 60 - m
-         in return $ TimeZone timeInMinute False "CET"
+         in return $ TimeZone timeInMinute s n
 
 -- | Parser which use parseGregorian, parseTimeOfDay and parseTimeZone to create a ZonedTime
 parseZonedTime :: Parser ZonedTime
