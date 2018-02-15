@@ -168,15 +168,20 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
 
 
 deleteNode :: Connection -> Int -> IO Int
-deleteNode conn n = fromIntegral <$> runDelete conn nodeTable (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
+deleteNode conn n = fromIntegral 
+                 <$> runDelete conn nodeTable 
+                 (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
 
 deleteNodes :: Connection -> [Int] -> IO Int
-deleteNodes conn ns = fromIntegral <$> runDelete conn nodeTable (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
-
+deleteNodes conn ns = fromIntegral 
+                   <$> runDelete conn nodeTable 
+                   (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
 
 getNodesWith :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [Node Value]
-getNodesWith conn parentId nodeType maybeOffset maybeLimit = runQuery conn $ selectNodesWith parentId nodeType maybeOffset maybeLimit
+getNodesWith conn parentId nodeType maybeOffset maybeLimit = 
+    runQuery conn $ selectNodesWith 
+                  parentId nodeType maybeOffset maybeLimit
 
 
 -- NP check type
