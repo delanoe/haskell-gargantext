@@ -27,10 +27,11 @@ import System.IO (putStrLn, readFile)
 import Data.Text (Text(), pack)
 import Database.PostgreSQL.Simple (Connection)
 import Gargantext.Prelude
-import Gargantext.Types.Main (Node, NodeId, NodeType)
+import Gargantext.Types.Main (Node, NodeId, NodeType, FacetDoc)
 import Gargantext.Database.Node (getNodesWithParentId
                                 , getNode, getNodesWith
-                                , deleteNode, deleteNodes)
+                                , deleteNode, deleteNodes
+                                , getDocFacet)
 
 
 -- | Node API Types management
@@ -41,15 +42,18 @@ type NodesAPI  = Delete '[JSON] Int
 type NodeAPI   = Get '[JSON] (Node Value)
              :<|> Delete '[JSON] Int
 
-                -- Example for Document Facet view, to populate the tabular:
-                -- http://localhost:8008/node/347476/children?type=Document&limit=3
-                -- /!\ FIXME : nodeType is case sensitive
-                -- /!\ see NodeTypes in Types/Main.hs
              :<|> "children" :> QueryParam "type"   NodeType
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
                              :> Get '[JSON] [Node Value]
-             
+
+
+             :<|> "facetDoc" :> QueryParam "type"   NodeType
+                             :> QueryParam "offset" Int
+                             :> QueryParam "limit"  Int
+                             :> Get '[JSON] [FacetDoc Value]
+
+
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
@@ -66,8 +70,9 @@ roots conn = liftIO (getNodesWithParentId conn 0 Nothing)
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (getNode              conn id)
-              :<|> deleteNode' conn id
+              :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
+              :<|> getDocFacet'  conn id
               :<|> upload
               :<|> query
 
@@ -84,6 +89,9 @@ getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe In
                         -> Handler [Node Value]
 getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
 
+getDocFacet' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int
+                        -> Handler [FacetDoc Value]
+getDocFacet' conn id nodeType offset limit = liftIO (getDocFacet conn id nodeType offset limit)
 
 query :: Text -> Handler Text
 query s = pure s

@@ -13,6 +13,7 @@ import Text.Read (read)
 import Data.Ini (readIniFile, lookupValue)
 import Data.Word (Word16)
 import System.IO (FilePath)
+import Database.PostgreSQL.Simple (Connection, connect)
 
 -- TODO add a reader Monad here
 -- read this in the init file
@@ -34,5 +35,7 @@ databaseParameters fp = do
                                , PGS.connectPassword = val "DB_PASS"
                                , PGS.connectDatabase = val "DB_NAME" }
 
-
-
+connectGargandb :: FilePath -> IO Connection
+connectGargandb fp = do
+    parameters <- databaseParameters fp
+    connect parameters
