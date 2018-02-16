@@ -37,6 +37,7 @@ import Gargantext.Types.Node ( NodePoly, HyperdataUser
                                , HyperdataGraph
                                , HyperdataPhylo
                                , HyperdataNotebook
+                               , Facet
                                )
 
 
@@ -110,6 +111,8 @@ data Metrics  = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 
 -- | NodePoly indicates that Node has a Polymorphism Type
 type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json -- NodeVector
+type FacetDoc json = Facet NodeId HyperdataDocument Bool Double
+
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
 type NodeId       = Int
@@ -200,10 +203,10 @@ nodeTypeId tn = fromMaybe (error $ "Typename " <> show tn <> " does not exist")
 
 
 
+
+
 -- Temporary types to be removed
 type Ngrams = (Text, Text, Text)
 type ErrorMessage = Text
-
-
 
 

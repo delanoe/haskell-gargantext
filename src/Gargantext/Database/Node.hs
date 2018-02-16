@@ -25,17 +25,19 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , fromField
                                             , returnError
                                             )
-import Prelude hiding (null, id, map)
+import Prelude hiding (null, id, map, sum)
 
+import Gargantext.Types
 import Gargantext.Types.Main (NodeType)
---import Gargantext.Database.NodeNode
+import Gargantext.Database.NodeNode
+-- import Gargantext.Database.NodeNgram
+import Gargantext.Prelude hiding (sum)
+
 
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson
-import Gargantext.Types
-import Gargantext.Prelude
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Text (Text)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -57,6 +59,11 @@ type NodeRead = NodePoly  (Column PGInt4)   (Column PGInt4)
                           (Column (PGText)) (Column PGTimestamptz)
                           (Column PGJsonb) -- (Column PGTSVector)
 
+-- Facets / Views for the Front End
+type FacetDocRead  = Facet (Column PGInt4) (Column PGJsonb) (Column PGBool) (Column PGFloat8)
+-- type FacetDocWrite = Facet (Column PGInt4) (Column PGJsonb) (Column PGBool) (Column PGFloat8)
+
+
 instance FromField HyperdataCorpus where
     fromField = fromField'
 
@@ -68,16 +75,6 @@ instance FromField HyperdataProject where
 
 instance FromField HyperdataUser where
     fromField = fromField'
-
-
-fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DBI.ByteString -> Conversion b
-fromField' field mb = do
-    v <- fromField field mb
-    valueToHyperdata v
-      where
-          valueToHyperdata v = case fromJSON v of
-             Success a  -> pure a
-             Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
 
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
@@ -92,19 +89,25 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataProject  where
 instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault (Nullable PGInt4) Int     where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault (Nullable PGText) Text    where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGInt4 Integer            where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DBI.ByteString -> Conversion b
+fromField' field mb = do
+    v <- fromField field mb
+    valueToHyperdata v
+      where
+          valueToHyperdata v = case fromJSON v of
+             Success a  -> pure a
+             Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
 
 
 
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields   ''NodePoly)
+
+$(makeAdaptorAndInstance "pFacetDoc" ''Facet)
+$(makeLensesWith abbreviatedFields   ''Facet)
+
 
 
 nodeTable :: Table NodeWrite NodeRead
@@ -146,11 +149,11 @@ selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
         limit' maybeLimit $ offset' maybeOffset $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
 
 
-limit' ::  Maybe Limit -> Query NodeRead -> Query NodeRead
+limit' ::  Maybe Limit -> Query a -> Query a
 limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
 
 
-offset' :: Maybe Offset -> Query NodeRead  -> Query NodeRead
+offset' :: Maybe Offset -> Query a  -> Query a
 offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
 
 
@@ -167,6 +170,48 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
                            else (pgBool True)
             returnA  -< row ) -< ()
     returnA -< node
+
+
+
+getDocFacet :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [FacetDoc Value]
+getDocFacet conn parentId nodeType maybeOffset maybeLimit = 
+    runQuery conn $ selectDocFacet parentId nodeType maybeOffset maybeLimit
+
+selectDocFacet :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query FacetDocRead
+selectDocFacet parentId maybeNodeType maybeOffset maybeLimit = 
+        -- limit' maybeLimit $ offset' maybeOffset $ orderBy (asc docFacet_id) $ selectDocFacet' parentId maybeNodeType
+        limit' maybeLimit $ offset' maybeOffset $ selectDocFacet' parentId maybeNodeType
+--
+
+selectDocFacet' :: ParentId -> Maybe NodeType -> Query FacetDocRead
+selectDocFacet' parentId maybeNodeType = proc () -> do
+    node <- (proc () -> do
+            -- Selecting the documents
+            (Node n_id typeId _ parentId' _ _ hyperdata)      <- queryNodeTable -< ()
+            restrict -< parentId' .== (toNullable $ pgInt4 parentId)
+
+            let typeId' = maybe 0 nodeTypeId maybeNodeType
+            restrict -< if typeId' > 0
+                           then typeId   .== (pgInt4 (typeId' :: Int))
+                           else (pgBool True)
+            
+            -- Ngram count by document
+            -- nodeNgramNgram@(NodeNgram _ n_id_nn _ weight) <- queryNodeNgramTable -< ()
+            -- restrict -< n_id_nn .== n_id
+            let ngramCount = (pgDouble 10) -- groupBy n_id
+
+            -- Favorite Column
+            (Node n_id_fav typeId_fav _ parentId_fav  _ _ _) <- queryNodeTable -< ()
+            (NodeNode n1_id n2_id count)                     <- queryNodeNodeTable  -< ()
+            
+            restrict -< typeId_fav .== 15 .&& parentId_fav .== (toNullable $ pgInt4 parentId)
+            restrict -< n1_id .== n_id_fav .&& n_id .== n2_id
+            
+            let isFav = ifThenElse (isNull count) (pgBool False) (pgBool True)
+            
+            returnA  -< (FacetDoc n_id hyperdata isFav ngramCount)) -< ()
+    returnA -< node
+
 
 
 
@@ -200,7 +245,6 @@ selectNodesWithParentID n = proc () -> do
                    else
                         isNull parent_id
     returnA -< row
-
 
 
 

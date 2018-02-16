@@ -22,8 +22,8 @@ data NodeNodePoly node1_id node2_id score
                               , nodeNode_score :: score
                               } deriving (Show)
 
-type NodeNodeWrite = NodeNodePoly (Column PGInt4) (Column PGInt4) (Maybe (Column PGFloat8))
-type NodeNodeRead  = NodeNodePoly (Column PGInt4) (Column PGInt4) (Column PGFloat8)
+type NodeNodeWrite = NodeNodePoly (Column PGInt4) (Column PGInt4) (Column (Nullable PGFloat8))
+type NodeNodeRead  = NodeNodePoly (Column PGInt4) (Column PGInt4) (Column (Nullable PGFloat8))
 
 
 type NodeNode = NodeNodePoly Int Int (Maybe Double)
@@ -35,7 +35,7 @@ $(makeLensesWith abbreviatedFields   ''NodeNodePoly)
 nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
 nodeNodeTable  = Table "nodes_nodes" (pNodeNode NodeNode { nodeNode_node1_id = required "node1_id"
                                                            , nodeNode_node2_id = required "node2_id"
-                                                           , nodeNode_score    = optional "score"
+                                                           , nodeNode_score    = required "score"
                                                            }
                                        )
 
@@ -48,5 +48,10 @@ queryNodeNodeTable = queryTable nodeNodeTable
 nodeNodes :: PGS.Connection -> IO [NodeNode]
 nodeNodes conn = runQuery conn queryNodeNodeTable
 
+instance QueryRunnerColumnDefault (Nullable PGInt4) Int where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+

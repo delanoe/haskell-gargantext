@@ -13,6 +13,16 @@ import Data.Time (UTCTime)
 import Gargantext.Utils.Prefix (unPrefix)
 import Data.Aeson.TH (deriveJSON)
 
+
+-- DocFacet
+data Facet id hyperdata favorite ngramCount = FacetDoc { facetDoc_id :: id
+                                                       , facetDoc_hyperdata :: hyperdata
+                                                       , facetDoc_favorite  :: favorite
+                                                       , facetDoc_ngramCount :: ngramCount
+                                                       }
+$(deriveJSON (unPrefix "facetDoc_") ''Facet)
+
+
 -- node_Id... ?
 data NodePoly id typename userId parentId name date hyperdata = Node { node_id        :: id
                                                                      , node_typename  :: typename
@@ -130,3 +140,7 @@ $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_Preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
+
+
+
+
