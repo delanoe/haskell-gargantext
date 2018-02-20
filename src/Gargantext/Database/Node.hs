@@ -29,8 +29,7 @@ import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Types
 import Gargantext.Types.Main (NodeType)
-import Gargantext.Database.NodeNode
--- import Gargantext.Database.NodeNgram
+import Gargantext.Database.Queries
 import Gargantext.Prelude hiding (sum)
 
 
@@ -48,20 +47,6 @@ import Opaleye
 
 -- | Types for Node Database Management
 data PGTSVector
-
-type NodeWrite = NodePoly  (Maybe (Column PGInt4))  (Column PGInt4)
-                                  (Column PGInt4)   (Column (Nullable PGInt4))
-                                  (Column (PGText)) (Maybe (Column PGTimestamptz))
-                                  (Column PGJsonb) -- (Maybe (Column PGTSVector))
-
-type NodeRead = NodePoly  (Column PGInt4)   (Column PGInt4)
-                          (Column PGInt4)   (Column (Nullable PGInt4))
-                          (Column (PGText)) (Column PGTimestamptz)
-                          (Column PGJsonb) -- (Column PGTSVector)
-
--- Facets / Views for the Front End
-type FacetDocRead  = Facet (Column PGInt4) (Column PGJsonb) (Column PGBool) (Column PGFloat8)
--- type FacetDocWrite = Facet (Column PGInt4) (Column PGJsonb) (Column PGBool) (Column PGFloat8)
 
 
 instance FromField HyperdataCorpus where
@@ -101,13 +86,8 @@ fromField' field mb = do
              Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
 
 
-
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields   ''NodePoly)
-
-$(makeAdaptorAndInstance "pFacetDoc" ''Facet)
-$(makeLensesWith abbreviatedFields   ''Facet)
-
 
 
 nodeTable :: Table NodeWrite NodeRead
@@ -136,26 +116,12 @@ selectNodes id = proc () -> do
 runGetNodes :: Connection -> Query NodeRead -> IO [Node Value]
 runGetNodes = runQuery
 
-
-type ParentId = NodeId
-type Limit    = Int
-type Offset    = Int
-
 -- | order by publication date
 -- Favorites (Bool), node_ngrams
 selectNodesWith :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
         limit' maybeLimit $ offset' maybeOffset $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
-
-
-limit' ::  Maybe Limit -> Query a -> Query a
-limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
-
-
-offset' :: Maybe Offset -> Query a  -> Query a
-offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
-
 
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
@@ -170,49 +136,6 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
                            else (pgBool True)
             returnA  -< row ) -< ()
     returnA -< node
-
-
-
-getDocFacet :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [FacetDoc Value]
-getDocFacet conn parentId nodeType maybeOffset maybeLimit = 
-    runQuery conn $ selectDocFacet parentId nodeType maybeOffset maybeLimit
-
-selectDocFacet :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query FacetDocRead
-selectDocFacet parentId maybeNodeType maybeOffset maybeLimit = 
-        -- limit' maybeLimit $ offset' maybeOffset $ orderBy (asc docFacet_id) $ selectDocFacet' parentId maybeNodeType
-        limit' maybeLimit $ offset' maybeOffset $ selectDocFacet' parentId maybeNodeType
---
-
-selectDocFacet' :: ParentId -> Maybe NodeType -> Query FacetDocRead
-selectDocFacet' parentId maybeNodeType = proc () -> do
-    node <- (proc () -> do
-            -- Selecting the documents
-            (Node n_id typeId _ parentId' _ _ hyperdata)      <- queryNodeTable -< ()
-            restrict -< parentId' .== (toNullable $ pgInt4 parentId)
-
-            let typeId' = maybe 0 nodeTypeId maybeNodeType
-            restrict -< if typeId' > 0
-                           then typeId   .== (pgInt4 (typeId' :: Int))
-                           else (pgBool True)
-            
-            -- Ngram count by document
-            -- nodeNgramNgram@(NodeNgram _ n_id_nn _ weight) <- queryNodeNgramTable -< ()
-            -- restrict -< n_id_nn .== n_id
-            let ngramCount = (pgDouble 10) -- groupBy n_id
-
-            -- Favorite Column
-            (Node n_id_fav typeId_fav _ parentId_fav  _ _ _) <- queryNodeTable -< ()
-            (NodeNode n1_id n2_id count)                     <- queryNodeNodeTable  -< ()
-            
-            restrict -< typeId_fav .== 15 .&& parentId_fav .== (toNullable $ pgInt4 parentId)
-            restrict -< n1_id .== n_id_fav .&& n_id .== n2_id
-            
-            let isFav = ifThenElse (isNull count) (pgBool False) (pgBool True)
-            
-            returnA  -< (FacetDoc n_id hyperdata isFav ngramCount)) -< ()
-    returnA -< node
-
-
 
 
 deleteNode :: Connection -> Int -> IO Int
@@ -230,6 +153,8 @@ getNodesWith :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Lim
 getNodesWith conn parentId nodeType maybeOffset maybeLimit = 
     runQuery conn $ selectNodesWith 
                   parentId nodeType maybeOffset maybeLimit
+
+
 
 
 -- NP check type

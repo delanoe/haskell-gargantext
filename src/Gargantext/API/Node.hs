@@ -27,11 +27,11 @@ import System.IO (putStrLn, readFile)
 import Data.Text (Text(), pack)
 import Database.PostgreSQL.Simple (Connection)
 import Gargantext.Prelude
-import Gargantext.Types.Main (Node, NodeId, NodeType, FacetDoc)
+import Gargantext.Types.Main (Node, NodeId, NodeType)
 import Gargantext.Database.Node (getNodesWithParentId
                                 , getNode, getNodesWith
-                                , deleteNode, deleteNodes
-                                , getDocFacet)
+                                , deleteNode, deleteNodes)
+import Gargantext.Database.Facet (FacetDoc, getDocFacet)
 
 
 -- | Node API Types management
@@ -48,10 +48,10 @@ type NodeAPI   = Get '[JSON] (Node Value)
                              :> Get '[JSON] [Node Value]
 
 
-             :<|> "facetDoc" :> QueryParam "type"   NodeType
-                             :> QueryParam "offset" Int
-                             :> QueryParam "limit"  Int
-                             :> Get '[JSON] [FacetDoc Value]
+             :<|> "facet" :> QueryParam "type"   NodeType
+                          :> QueryParam "offset" Int
+                          :> QueryParam "limit"  Int
+                          :> Get '[JSON] [FacetDoc]
 
 
                 -- Depending on the Type of the Node, we could post
@@ -90,7 +90,7 @@ getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe In
 getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
 
 getDocFacet' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int
-                        -> Handler [FacetDoc Value]
+                        -> Handler [FacetDoc]
 getDocFacet' conn id nodeType offset limit = liftIO (getDocFacet conn id nodeType offset limit)
 
 query :: Text -> Handler Text

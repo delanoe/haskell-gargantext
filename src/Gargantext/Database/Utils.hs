@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts   #-}
 
-module Gargantext.Database.Private where
+module Gargantext.Database.Utils where
 
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -15,6 +15,11 @@ import Data.Word (Word16)
 import System.IO (FilePath)
 import Database.PostgreSQL.Simple (Connection, connect)
 
+-- Utilities
+import Opaleye (Query, Unpackspec, showSqlForPostgres)
+import Data.Profunctor.Product.Default (Default)
+import Data.Maybe (maybe)
+import Prelude (id, putStrLn)
 -- TODO add a reader Monad here
 -- read this in the init file
 
@@ -39,3 +44,9 @@ connectGargandb :: FilePath -> IO Connection
 connectGargandb fp = do
     parameters <- databaseParameters fp
     connect parameters
+
+
+printSql :: Default Unpackspec a a => Query a -> IO ()
+printSql = putStrLn . maybe "Empty query" id . showSqlForPostgres
+
+

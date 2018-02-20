@@ -14,14 +14,6 @@ import Gargantext.Utils.Prefix (unPrefix)
 import Data.Aeson.TH (deriveJSON)
 
 
--- DocFacet
-data Facet id hyperdata favorite ngramCount = FacetDoc { facetDoc_id :: id
-                                                       , facetDoc_hyperdata :: hyperdata
-                                                       , facetDoc_favorite  :: favorite
-                                                       , facetDoc_ngramCount :: ngramCount
-                                                       }
-$(deriveJSON (unPrefix "facetDoc_") ''Facet)
-
 
 -- node_Id... ?
 data NodePoly id typename userId parentId name date hyperdata = Node { node_id        :: id
@@ -55,11 +47,11 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_Bdd              
                                            , hyperdataDocument_Abstract           :: Maybe Text
                                            , hyperdataDocument_Statuses           :: Maybe [Status]
                                            , hyperdataDocument_Publication_date   :: Maybe Text
-                                           , hyperdataDocument_Publication_year   :: Maybe Text
-                                           , hyperdataDocument_Publication_month  :: Maybe Text
-                                           , hyperdataDocument_Publication_hour   :: Maybe Text
-                                           , hyperdataDocument_Publication_minute :: Maybe Text
-                                           , hyperdataDocument_Publication_second :: Maybe Text
+                                           , hyperdataDocument_Publication_year   :: Maybe Double
+                                           , hyperdataDocument_Publication_month  :: Maybe Double
+                                           , hyperdataDocument_Publication_hour   :: Maybe Double
+                                           , hyperdataDocument_Publication_minute :: Maybe Double
+                                           , hyperdataDocument_Publication_second :: Maybe Double
                                            , hyperdataDocument_LanguageIso2       :: Maybe Text
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
