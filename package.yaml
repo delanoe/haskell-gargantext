@@ -29,11 +29,12 @@ library:
   - Gargantext.Database.Instances
   - Gargantext.Database.Ngram
   - Gargantext.Database.Node
+  - Gargantext.Database.Facet
   - Gargantext.Database.NodeNgram
   - Gargantext.Database.NodeNgramNgram
   - Gargantext.Database.NodeNode
   - Gargantext.Database.NodeNodeNgram
-  - Gargantext.Database.Private
+  - Gargantext.Database.Utils
   - Gargantext.Database.User
   - Gargantext.Ngrams
   - Gargantext.Ngrams.Count

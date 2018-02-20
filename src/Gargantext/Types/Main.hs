@@ -37,7 +37,6 @@ import Gargantext.Types.Node ( NodePoly, HyperdataUser
                                , HyperdataGraph
                                , HyperdataPhylo
                                , HyperdataNotebook
-                               , Facet
                                )
 
 
@@ -93,7 +92,7 @@ corpusTree = NodeT Corpus (  [ leafT Document ]
 data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
               | Classification
               | Lists
-              | Metrics
+              | Metrics | Occurrences
               deriving (Show, Read, Eq, Generic)
 
 instance FromJSON NodeType
@@ -104,14 +103,13 @@ data Classification = Favorites | MyClassifcation
 
 data Lists  =  StopList    | MainList | MapList | GroupList
 
-data Metrics  = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
-              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
+-- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
+--              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
 
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
 type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json -- NodeVector
-type FacetDoc json = Facet NodeId HyperdataDocument Bool Double
 
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
@@ -179,7 +177,7 @@ nodeTypes = [ (NodeUser      ,  1)
 --            , (MainList      ,  7)
 --            , (MapList       ,  8)
 ----  Scores
---            , (Occurrences   , 10)
+            , (Occurrences   , 10)
 --            , (Cooccurrences ,  9)
 --
 --            , (Specclusion   , 11)
@@ -204,9 +202,13 @@ nodeTypeId tn = fromMaybe (error $ "Typename " <> show tn <> " does not exist")
 
 
 
-
 -- Temporary types to be removed
 type Ngrams = (Text, Text, Text)
 type ErrorMessage = Text
+
+-- Queries
+type ParentId = NodeId
+type Limit    = Int
+type Offset    = Int
 
 

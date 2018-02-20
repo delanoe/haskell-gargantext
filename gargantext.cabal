@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 84f85626582b6f0f3f7b0c3dadf65d7f797a14e8a50389db1167f6652ec74e28
+-- hash: 20ddea403b5eab78aff204d088cc635422d7b9b34369ff1c4263e3ba67969442
 
 name:                gargantext
 version:             0.1.0.0
@@ -85,11 +85,12 @@ library
       Gargantext.Database.Instances
       Gargantext.Database.Ngram
       Gargantext.Database.Node
+      Gargantext.Database.Facet
       Gargantext.Database.NodeNgram
       Gargantext.Database.NodeNgramNgram
       Gargantext.Database.NodeNode
       Gargantext.Database.NodeNodeNgram
-      Gargantext.Database.Private
+      Gargantext.Database.Utils
       Gargantext.Database.User
       Gargantext.Ngrams
       Gargantext.Ngrams.Count
@@ -114,6 +115,7 @@ library
       Gargantext.Utils.Prefix
   other-modules:
       Gargantext.API.Node
+      Gargantext.Database.Queries
       Gargantext.Utils
       Paths_gargantext
   default-language: Haskell2010

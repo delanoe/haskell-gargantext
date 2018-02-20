@@ -28,6 +28,7 @@ data NodeNodeNgramPoly node1_id node2_id ngram_id score
 type NodeNodeNgramWrite = NodeNodeNgramPoly (Column PGInt4) (Column PGInt4) (Column PGInt4) (Maybe (Column PGFloat8))
 type NodeNodeNgramRead  = NodeNodeNgramPoly (Column PGInt4) (Column PGInt4) (Column PGInt4)        (Column PGFloat8)
 
+type NodeNodeNgramReadNull  = NodeNodeNgramPoly (Column(Nullable PGInt4)) (Column (Nullable PGInt4)) (Column (Nullable PGInt4)) (Column (Nullable PGFloat8))
 
 type NodeNodeNgram = NodeNodeNgramPoly Int Int Int (Maybe Double)
 

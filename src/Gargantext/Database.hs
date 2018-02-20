@@ -1,5 +1,5 @@
 module Gargantext.Database (
-  module Gargantext.Database.Private
+  module Gargantext.Database.Utils
 --  , module Gargantext.Database.Instances
   , module Gargantext.Database.User
   , module Gargantext.Database.Node
@@ -14,7 +14,7 @@ module Gargantext.Database (
     --                             , module Gargantext.Database.NodeType
   ) where
 
-import Gargantext.Database.Private
+import Gargantext.Database.Utils
 --import Gargantext.Database.Gargandb
 import Gargantext.Database.User
 import Gargantext.Database.Node
@@ -26,3 +26,5 @@ import Gargantext.Database.NodeNgramNgram
 --import Gargantext.Database.Simple
 --import Gargantext.Database.NodeType
 --import Gargantext.Database.InsertNode
+
+

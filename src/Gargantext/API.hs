@@ -35,7 +35,7 @@ import Gargantext.API.Node ( Roots    , roots
                            , NodesAPI , nodesAPI
                            )
 
-import Gargantext.Database.Private (databaseParameters)
+import Gargantext.Database.Utils (databaseParameters)
 
 
 
