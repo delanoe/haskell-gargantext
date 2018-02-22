@@ -21,9 +21,15 @@ data NodeNgramPoly id node_id ngram_id weight
                                , nodeNgram_NodeNgramWeight  :: weight
                                } deriving (Show)
 
-type NodeNgramWrite = NodeNgramPoly (Column PGInt4) (Column PGInt4) (Column PGInt4) (Column PGFloat8)
-type NodeNgramRead  = NodeNgramPoly (Column PGInt4) (Column PGInt4) (Column PGInt4) (Column PGFloat8)
+type NodeNgramWrite = NodeNgramPoly (Column PGInt4  )
+                                    (Column PGInt4  )
+                                    (Column PGInt4  )
+                                    (Column PGFloat8)
 
+type NodeNgramRead  = NodeNgramPoly (Column PGInt4  )
+                                    (Column PGInt4  )
+                                    (Column PGInt4  )
+                                    (Column PGFloat8)
 
 type NodeNgram = NodeNgramPoly Int Int Int Double
 
@@ -32,15 +38,14 @@ $(makeLensesWith abbreviatedFields    ''NodeNgramPoly)
 
 
 nodeNgramTable :: Table NodeNgramWrite NodeNgramRead
-nodeNgramTable  = Table "nodes_ngrams" (pNodeNgram NodeNgram { nodeNgram_NodeNgramId       = required "id"
-                                                             , nodeNgram_NodeNgramNodeId   = required "node_id"
-                                                             , nodeNgram_NodeNgramNgramId  = required "ngram_id"
-                                                             , nodeNgram_NodeNgramWeight   = required "weight"
-                                                             }
+nodeNgramTable  = Table "nodes_ngrams" ( pNodeNgram NodeNgram 
+                                           { nodeNgram_NodeNgramId = required "id"
+                                           , nodeNgram_NodeNgramNodeId   = required "node_id"
+                                           , nodeNgram_NodeNgramNgramId  = required "ngram_id"
+                                           , nodeNgram_NodeNgramWeight   = required "weight"
+                                           }
                                        )
-
 
 queryNodeNgramTable :: Query NodeNgramRead
 queryNodeNgramTable = queryTable nodeNgramTable
-
 

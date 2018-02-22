@@ -116,18 +116,28 @@ nodeNodeNgramLeftJoin' nId = leftJoin queryNodeTable queryNodeNodeNgramTable (eq
 
 
 leftJoin3 :: (Default NullMaker (columnsL1, nullableColumnsR) nullableColumnsR1,
-                    Default NullMaker columnsR nullableColumnsR,
-                    Default Unpackspec columnsR columnsR,
-                    Default Unpackspec nullableColumnsR nullableColumnsR,
-                    Default Unpackspec columnsL1 columnsL1,
-                    Default Unpackspec columnsL columnsL) =>
-                   Query columnsL1
-                   -> Query columnsR
-                   -> Query columnsL
-                   -> ((columnsL1, columnsR) -> Column PGBool)
-                   -> ((columnsL, (columnsL1, nullableColumnsR)) -> Column PGBool)
-                   -> Query (columnsL, nullableColumnsR1)
+              Default NullMaker columnsR nullableColumnsR,
+              Default Unpackspec columnsR columnsR,
+              Default Unpackspec nullableColumnsR nullableColumnsR,
+              Default Unpackspec columnsL1 columnsL1,
+              Default Unpackspec columnsL columnsL) =>
+              Query columnsL1 -> Query columnsR -> Query columnsL
+                -> ((columnsL1, columnsR) -> Column PGBool)
+                -> ((columnsL, (columnsL1, nullableColumnsR)) -> Column PGBool)
+                -> Query (columnsL, nullableColumnsR1)
 leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q1 q2 cond12) cond23
+
+
+--leftJoin3' :: Query (NodeRead, NodeNodeNgramReadNull)
+--leftJoin3' = leftJoin3 queryNodeTable  queryNodeNodeNgramTable queryNodeTable cond12 cond23
+--    where
+--         cond12 (Node _ _ _ _ _ _ _, NodeNodeNgram _ _ _ _) 
+--                 = pgBool True
+--
+--         cond23 (Node _ _ _ _ _ _ _, (Node _ _ _ _ _ _ _, NodeNodeNgram _ _ _ _))
+--                 = pgBool True
+
+
 
 -- | Building the facet
 selectDocFacet' :: ParentId -> Maybe NodeType -> Query FacetDocRead
@@ -149,7 +159,6 @@ selectDocFacet' parentId _ = proc () -> do
             
             -- Getting favorite data
             let isFav = ifThenElse (isNull docTypeId') (pgBool False) (pgBool True)
-            
             -- Ngram count by document
             -- Counting the ngram
             -- (Node occId occTypeId _ _ _ _ _, NodeNode _ _ _ count) <- nodeNodeNgramLeftJoin -< ()

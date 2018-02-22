@@ -9,7 +9,13 @@ Portability : POSIX
 
 Main REST API of Gargantext (both Server and Client sides)
 
-TODO/IDEA, use MOCK feature of Servant to generate fake data (for tests)
+TODO App type, the main monad in which the bot code is written with.
+Provide config, state, logs and IO
+ type App m a =  ( MonadState AppState m
+                 , MonadReader Conf m
+                 , MonadLog (WithSeverity Doc) m
+                 , MonadIO m) => m a
+Thanks @yannEsposito for this.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -27,8 +33,10 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 
 import Servant
+import Servant.Mock (mock)
 -- import Servant.API.Stream
 
+import Data.Text (pack)
 import Database.PostgreSQL.Simple (Connection, connect)
 import System.IO (FilePath, print)
 
@@ -41,16 +49,34 @@ import Gargantext.API.Count ( CountAPI, count, Query)
 
 import Gargantext.Database.Utils (databaseParameters)
 
-
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+type PortNumber = Int
+---------------------------------------------------------------------
 
 -- | startGargantext takes as parameters port number and Ini file.
-startGargantext :: Int -> FilePath -> IO ()
+startGargantext :: PortNumber -> FilePath -> IO ()
 startGargantext port file = do
-  print ("Starting server on port " <> show port)
+  print ("Starting Gargantext server" <> show port)
+  print ("http://localhost:" <> show port)
   param <- databaseParameters file
   conn  <- connect param
   run port ( app conn )
 
+startGargantextMock :: PortNumber -> IO ()
+startGargantextMock port = do
+  print (pack "Starting Mock server")
+  print (pack $ "curl "
+        <> "-H \"content-type: application/json"
+        <> "-d \'{\"query_query\":\"query\"}\'  "
+        <> "-v  http://localhost:" 
+        <> show port 
+        <>"/count"
+         )
+  run port ( serve apiMock $ mock apiMock Proxy )
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
 
 -- | Main routes of the API are typed
 type API =  "roots"  :> Roots
@@ -58,8 +84,9 @@ type API =  "roots"  :> Roots
        :<|> "node"   :> Capture "id" Int      :> NodeAPI
        :<|> "nodes"  :> ReqBody '[JSON] [Int] :> NodesAPI
        
-       :<|> "count"  :> ReqBody '[JSON] Query :> CountAPI 
+       :<|> APIMock
        -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
+type APIMock = "count"  :> ReqBody '[JSON] Query :> CountAPI 
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -72,24 +99,20 @@ type API =  "roots"  :> Roots
 
 -- | Server declaration
 server :: Connection -> Server API
-server conn =  roots   conn
-          :<|> nodeAPI conn
+server conn =  roots    conn
+          :<|> nodeAPI  conn
           :<|> nodesAPI conn
           :<|> count
 
-
-
-
--- | TODO App type, the main monad in which the bot code is written with.
--- Provide config, state, logs and IO
--- type App m a =  ( MonadState AppState m
---                 , MonadReader Conf m
---                 , MonadLog (WithSeverity Doc) m
---                 , MonadIO m) => m a
--- Thanks @yannEsposito for this.
+---------------------------------------------------------------------
+---------------------------------------------------------------------
 app :: Connection -> Application
 app = serve api . server
 
 api :: Proxy API
 api = Proxy
+
+apiMock :: Proxy APIMock
+apiMock = Proxy
+
 
