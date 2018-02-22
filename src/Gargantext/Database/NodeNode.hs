@@ -22,31 +22,30 @@ data NodeNodePoly node1_id node2_id score
                               , nodeNode_score :: score
                               } deriving (Show)
 
-type NodeNodeWrite = NodeNodePoly (Column (Nullable PGInt4)) (Column (PGInt4)) (Column (Nullable PGFloat8))
-type NodeNodeRead  = NodeNodePoly (Column (Nullable PGInt4)) (Column (PGInt4)) (Column (Nullable PGFloat8))
+type NodeNodeWrite     = NodeNodePoly (Column (Nullable PGInt4)) 
+                                      (Column (PGInt4)) 
+                                      (Column (Nullable PGFloat8))
 
+type NodeNodeRead      = NodeNodePoly (Column (Nullable PGInt4)) 
+                                      (Column (PGInt4)) 
+                                      (Column (Nullable PGFloat8))
 
-type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4)) (Column (Nullable PGInt4)) (Column (Nullable PGFloat8))
-
-
--- type NodeNodeNodeJoined = (Co
-
-
-
+type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4)) 
+                                      (Column (Nullable PGInt4)) 
+                                      (Column (Nullable PGFloat8))
 
 type NodeNode = NodeNodePoly Int Int (Maybe Double)
 
 $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)
 $(makeLensesWith abbreviatedFields   ''NodeNodePoly)
 
-
 nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
-nodeNodeTable  = Table "nodes_nodes" (pNodeNode NodeNode { nodeNode_node1_id = required "node1_id"
-                                                         , nodeNode_node2_id = required "node2_id"
-                                                         , nodeNode_score    = required "score"
-                                                         }
-                                       )
-
+nodeNodeTable  = Table "nodes_nodes" (pNodeNode NodeNode 
+                                         { nodeNode_node1_id = required "node1_id"
+                                         , nodeNode_node2_id = required "node2_id"
+                                         , nodeNode_score    = required "score"
+                                     }
+                                     )
 
 queryNodeNodeTable :: Query NodeNodeRead
 queryNodeNodeTable = queryTable nodeNodeTable

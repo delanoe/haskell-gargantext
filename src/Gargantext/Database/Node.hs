@@ -118,7 +118,8 @@ runGetNodes = runQuery
 
 -- | order by publication date
 -- Favorites (Bool), node_ngrams
-selectNodesWith :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query NodeRead
+selectNodesWith :: ParentId     -> Maybe NodeType
+                -> Maybe Offset -> Maybe Limit   -> Query NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
         limit' maybeLimit $ offset' maybeOffset $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
@@ -149,16 +150,16 @@ deleteNodes conn ns = fromIntegral
                    (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
 
-getNodesWith :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [Node Value]
+getNodesWith :: Connection   -> Int         -> Maybe NodeType 
+             -> Maybe Offset -> Maybe Limit -> IO [Node Value]
 getNodesWith conn parentId nodeType maybeOffset maybeLimit = 
     runQuery conn $ selectNodesWith 
                   parentId nodeType maybeOffset maybeLimit
 
 
-
-
 -- NP check type
-getNodesWithParentId :: Connection -> Int -> Maybe Text -> IO [Node Value]
+getNodesWithParentId :: Connection -> Int 
+                     -> Maybe Text -> IO [Node Value]
 getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
 
 selectNodesWithParentID :: Int -> Query NodeRead
@@ -170,7 +171,6 @@ selectNodesWithParentID n = proc () -> do
                    else
                         isNull parent_id
     returnA -< row
-
 
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead

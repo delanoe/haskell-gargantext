@@ -34,19 +34,18 @@ databaseParameters fp = do
         Left _ -> panic (pack $ "no" <> x)
         Right p' -> unpack p'
 
-  pure $ PGS.ConnectInfo { PGS.connectHost = val "DB_HOST"
-                               , PGS.connectPort = read (val "DB_PORT") :: Word16
-                               , PGS.connectUser = val "DB_USER"
-                               , PGS.connectPassword = val "DB_PASS"
-                               , PGS.connectDatabase = val "DB_NAME" }
+  pure $ PGS.ConnectInfo { PGS.connectHost     = val       "DB_HOST"
+                         , PGS.connectPort     = read (val "DB_PORT") :: Word16
+                         , PGS.connectUser     = val       "DB_USER"
+                         , PGS.connectPassword = val       "DB_PASS"
+                         , PGS.connectDatabase = val       "DB_NAME"
+                         }
 
 connectGargandb :: FilePath -> IO Connection
 connectGargandb fp = do
     parameters <- databaseParameters fp
     connect parameters
 
-
 printSql :: Default Unpackspec a a => Query a -> IO ()
 printSql = putStrLn . maybe "Empty query" id . showSqlForPostgres
-
 

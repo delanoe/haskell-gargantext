@@ -28,16 +28,23 @@ import Opaleye
 -- (Query, limit, offset)
 
 
-type NodeWrite = NodePoly  (Maybe (Column PGInt4))  (Column PGInt4)
-                                  (Column PGInt4)   (Column (Nullable PGInt4))
-                                  (Column (PGText)) (Maybe (Column PGTimestamptz))
-                                  (Column PGJsonb) -- (Maybe (Column PGTSVector))
+type NodeWrite = NodePoly  (Maybe (Column  PGInt4              ))
+                                  (Column  PGInt4               )
+                                  (Column  PGInt4               )
+                                  (Column (Nullable PGInt4     ))
+                                  (Column (PGText              ))
+                                  (Maybe  (Column PGTimestamptz))
+                                  (Column  PGJsonb              )
+                                  -- (Maybe (Column PGTSVector))
 
-type NodeRead = NodePoly  (Column PGInt4)   (Column PGInt4)
-                          (Column PGInt4)   (Column (Nullable PGInt4))
-                          (Column (PGText)) (Column PGTimestamptz)
-                          (Column PGJsonb) -- (Column PGTSVector)
-
+type NodeRead = NodePoly  (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column (Nullable PGInt4 ))
+                          (Column (PGText          ))
+                          (Column PGTimestamptz     )
+                          (Column PGJsonb) 
+                          -- (Column PGTSVector)
 
 join3 :: Query columnsA -> Query columnsB -> Query columnsC 
       -> ((columnsA, columnsB, columnsC) -> Column PGBool) 
@@ -51,14 +58,11 @@ join3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
 --     -> Query (columnsL, nullableColumnsR)
 --leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q1 q2 cond12) cond23
 
-
 limit' ::  Maybe Limit -> Query a -> Query a
 limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
 
-
 offset' :: Maybe Offset -> Query a  -> Query a
 offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
-
 
 
 

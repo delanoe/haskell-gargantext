@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3346e420cce910077cbb6172c7e942960a4edd72fbab96679d4b45dacd84dcd9
+-- hash: 14b119af3791906ac7f3c681c0b20b5c475078386862e0d14ce3d98919c90d85
 
 name:           gargantext
 version:        0.1.0.0
@@ -24,7 +24,8 @@ library
   default-extensions: NoImplicitPrelude
   ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , aeson-lens
     , async
     , attoparsec
