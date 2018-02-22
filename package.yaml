@@ -90,6 +90,7 @@ library:
   - safe
   - semigroups
   - servant
+  - servant-mock
   - servant-client
   - servant-multipart
   - servant-server
