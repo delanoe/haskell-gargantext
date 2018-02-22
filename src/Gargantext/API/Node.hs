@@ -18,13 +18,13 @@ Node API
 module Gargantext.API.Node
       where
 
-import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (Value())
 import Servant
-import Servant.Multipart
-import System.IO (putStrLn, readFile)
-import Data.Text (Text(), pack)
+-- import Servant.Multipart
+--import System.IO (putStrLn, readFile)
+import Data.Text (Text())
+--import Data.Text (Text(), pack)
 import Database.PostgreSQL.Simple (Connection)
 import Gargantext.Prelude
 import Gargantext.Types.Main (Node, NodeId, NodeType)
@@ -57,7 +57,7 @@ type NodeAPI   = Get '[JSON] (Node Value)
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
-             :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
+             -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
                 
                 -- To launch a query and update the corpus
              :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
@@ -73,7 +73,7 @@ nodeAPI conn id =  liftIO (getNode              conn id)
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
               :<|> getDocFacet'  conn id
-              :<|> upload
+              -- :<|> upload
               :<|> query
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
@@ -99,18 +99,18 @@ query s = pure s
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
-upload :: MultipartData -> Handler Text
-upload multipartData = do
-  liftIO $ do
-    putStrLn "Inputs:"
-    forM_ (inputs multipartData) $ \input ->
-      putStrLn $ "  " <> show (iName input)
-            <> " -> " <> show (iValue input)
-
-    forM_ (files multipartData) $ \file -> do
-      content <- readFile (fdFilePath file)
-      putStrLn $ "Content of " <> show (fdFileName file)
-              <> " at " <> fdFilePath file
-      putStrLn content
-  pure (pack "Data loaded")
+--upload :: MultipartData -> Handler Text
+--upload multipartData = do
+--  liftIO $ do
+--    putStrLn "Inputs:"
+--    forM_ (inputs multipartData) $ \input ->
+--      putStrLn $ "  " <> show (iName input)
+--            <> " -> " <> show (iValue input)
+--
+--    forM_ (files multipartData) $ \file -> do
+--      content <- readFile (fdFilePath file)
+--      putStrLn $ "Content of " <> show (fdFileName file)
+--              <> " at " <> fdFilePath file
+--      putStrLn content
+--  pure (pack "Data loaded")
 

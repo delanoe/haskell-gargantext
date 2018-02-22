@@ -2,26 +2,27 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 20ddea403b5eab78aff204d088cc635422d7b9b34369ff1c4263e3ba67969442
+-- hash: 3346e420cce910077cbb6172c7e942960a4edd72fbab96679d4b45dacd84dcd9
 
-name:                gargantext
-version:             0.1.0.0
-synopsis:            Deep (Collaborative) Text mining project
-description:         Please see README.md
-homepage:            https://gargantext.org
-license:             BSD3
-license-file:        LICENSE
-author:              Gargantext Team
-maintainer:          team@gargantext.org
-copyright:           Copyright: (c) 2017-2018: see git logs and README
-category:            Data
-build-type:          Simple
-cabal-version:       >= 1.10
+name:           gargantext
+version:        0.1.0.0
+synopsis:       Deep (Collaborative) Text mining project
+description:    Please see README.md
+category:       Data
+homepage:       https://gargantext.org
+author:         Gargantext Team
+maintainer:     team@gargantext.org
+copyright:      Copyright: (c) 2017-2018: see git logs and README
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
 
 library
   hs-source-dirs:
       src
   default-extensions: NoImplicitPrelude
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
   build-depends:
       aeson
     , aeson-lens
@@ -59,6 +60,7 @@ library
     , servant
     , servant-auth
     , servant-client
+    , servant-mock
     , servant-multipart
     , servant-server
     , split
@@ -114,12 +116,12 @@ library
       Gargantext.Utils.DateUtils
       Gargantext.Utils.Prefix
   other-modules:
+      Gargantext.API.Count
       Gargantext.API.Node
       Gargantext.Database.Queries
       Gargantext.Utils
       Paths_gargantext
   default-language: Haskell2010
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
 
 executable gargantext
   main-is: Main.hs
