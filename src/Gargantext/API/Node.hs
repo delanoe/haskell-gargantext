@@ -14,6 +14,7 @@ Node API
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators   #-}
+{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.API.Node
       where
@@ -27,11 +28,13 @@ import Data.Text (Text())
 --import Data.Text (Text(), pack)
 import Database.PostgreSQL.Simple (Connection)
 import Gargantext.Prelude
-import Gargantext.Types.Main (Node, NodeId, NodeType)
+import Gargantext.Types.Node
+
 import Gargantext.Database.Node (getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)
 import Gargantext.Database.Facet (FacetDoc, getDocFacet)
+
 
 
 -- | Node API Types management
@@ -60,7 +63,7 @@ type NodeAPI   = Get '[JSON] (Node Value)
              -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
                 
                 -- To launch a query and update the corpus
-             :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
+             -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
 
 
@@ -74,7 +77,7 @@ nodeAPI conn id =  liftIO (getNode              conn id)
               :<|> getNodesWith' conn id
               :<|> getDocFacet'  conn id
               -- :<|> upload
-              :<|> query
+              -- :<|> query
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids

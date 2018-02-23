@@ -19,10 +19,13 @@ Thanks @yannEsposito for this.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 {-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
 {-# LANGUAGE DeriveGeneric   #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE TypeOperators   #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.API
       where
@@ -73,7 +76,7 @@ startGargantextMock port = do
         <> show port 
         <>"/count"
          )
-  run port ( serve apiMock $ mock apiMock Proxy )
+  run port ( serve api $ mock api Proxy )
 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -84,9 +87,8 @@ type API =  "roots"  :> Roots
        :<|> "node"   :> Capture "id" Int      :> NodeAPI
        :<|> "nodes"  :> ReqBody '[JSON] [Int] :> NodesAPI
        
-       :<|> APIMock
        -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
-type APIMock = "count"  :> ReqBody '[JSON] Query :> CountAPI 
+       :<|> "count"  :> ReqBody '[JSON] Query :> CountAPI 
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -111,8 +113,6 @@ app = serve api . server
 
 api :: Proxy API
 api = Proxy
-
-apiMock :: Proxy APIMock
-apiMock = Proxy
-
+---------------------------------------------------------------------
+---------------------------------------------------------------------
 

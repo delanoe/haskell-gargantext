@@ -71,6 +71,7 @@ library:
   - conduit-extra
   - containers
   - contravariant
+  - data-time-segment
   - directory
   - duckling
   - filepath
