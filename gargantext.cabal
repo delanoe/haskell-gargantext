@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 14b119af3791906ac7f3c681c0b20b5c475078386862e0d14ce3d98919c90d85
+-- hash: 09c6aeeafdac8e64c7203c8d663937d4240ca86e9556a3371567cc1579eafd59
 
 name:           gargantext
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
     , conduit-extra
     , containers
     , contravariant
+    , data-time-segment
     , directory
     , duckling
     , extra

@@ -10,8 +10,12 @@ Portability : POSIX
 Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveGeneric     #-}
+
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
+{-# LANGUAGE DeriveGeneric               #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.Types.Main where
 
@@ -20,24 +24,10 @@ import Prelude
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
 import Protolude (fromMaybe)
-import Data.Aeson
-import GHC.Generics
-import Servant
-import Data.Text (unpack)
-import Text.Read (read)
-import Data.Either (Either(Right))
 --import Data.ByteString (ByteString())
 import Data.Text (Text)
-import Data.Time (UTCTime)
 import Data.List (lookup)
-import Gargantext.Types.Node ( NodePoly, HyperdataUser
-                               , HyperdataFolder   , HyperdataCorpus   , HyperdataDocument
-                               , HyperdataFavorites, HyperdataResource
-                               , HyperdataList  , HyperdataScore
-                               , HyperdataGraph
-                               , HyperdataPhylo
-                               , HyperdataNotebook
-                               )
+import Gargantext.Types.Node
 
 
 -- | Language of a Text
@@ -89,15 +79,7 @@ corpusTree = NodeT Corpus (  [ leafT Document ]
 -- NP
 -- * why NodeUser and not just User ?
 -- * is this supposed to hold data ?
-data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
-              | Classification
-              | Lists
-              | Metrics | Occurrences
-              deriving (Show, Read, Eq, Generic)
 
-instance FromJSON NodeType
-instance ToJSON NodeType
-instance FromHttpApiData NodeType where parseUrlPiece = Right . read . unpack
 
 data Classification = Favorites | MyClassifcation
 
@@ -106,27 +88,6 @@ data Lists  =  StopList    | MainList | MapList | GroupList
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
 
-
-
--- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json -- NodeVector
-
--- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
-type NodeTypeId   = Int
-type NodeId       = Int
-type NodeParentId = Int
-type NodeUserId   = Int
-type NodeName     = Text
---type NodeVector   = Vector
-
---type NodeUser    = Node HyperdataUser
-
--- | Then a Node can be either a Folder or a Corpus or a Document
-type NodeUser = Node HyperdataUser
-type Folder   = Node HyperdataFolder
-type Project  = Folder -- NP Node HyperdataProject ?
-type Corpus   = Node HyperdataCorpus
-type Document = Node HyperdataDocument
 
 -- | Community Manager Use Case
 type Annuaire  = Corpus

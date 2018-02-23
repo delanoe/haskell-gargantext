@@ -16,6 +16,7 @@ Count API part of Gargantext.
 {-# LANGUAGE TypeOperators               #-}
 {-# LANGUAGE DeriveGeneric               #-}
 {-# LANGUAGE DeriveAnyClass              #-}
+{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.API.Count
       where
@@ -30,7 +31,7 @@ import GHC.Generics (Generic)
 import Data.Aeson hiding (Error)
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
-import Data.List (repeat,permutations)
+import Data.List (permutations)
 -----------------------------------------------------------------------
 type CountAPI = Post '[JSON] Counts
 
@@ -78,15 +79,15 @@ instance Arbitrary Query where
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
-
+type Code = Integer
 type Error  = Text
 type Errors = [Error]
 
-data Message = Message Integer Errors
+data Message = Message Code Errors
         deriving (Eq, Show, Generic)
 
-toMessage :: [(Integer, [Text])] -> [Message]
-toMessage = map (\(c,es) -> Message c es)
+toMessage :: [(Code, Errors)] -> [Message]
+toMessage = map (\(c,err) -> Message c err)
 
 messages :: [Message]
 messages =  toMessage $ [ (400, ["Ill formed query             "])
@@ -94,7 +95,7 @@ messages =  toMessage $ [ (400, ["Ill formed query             "])
                         , (300, ["Internal Gargantext Error    "])
                         , (300, ["Connexion to Gargantext Error"])
                         , (300, ["Token has expired            "])
-                        ] <> take 10 ( repeat (200, [""]))
+                        ] -- <> take 10 ( repeat (200, [""]))
 
 instance Arbitrary Message where
     arbitrary = elements messages

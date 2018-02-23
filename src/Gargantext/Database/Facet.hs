@@ -23,7 +23,7 @@ module Gargantext.Database.Facet where
 import Prelude hiding (null, id, map, sum, not)
 
 import Gargantext.Types
-import Gargantext.Types.Main (NodeType)
+import Gargantext.Types.Node (NodeType)
 import Gargantext.Database.NodeNode
 import Gargantext.Database.NodeNodeNgram
 import Gargantext.Database.Node
@@ -45,6 +45,12 @@ import Opaleye.Internal.Join (NullMaker)
 import qualified Opaleye.Internal.Unpackspec()
 import Data.Profunctor.Product.Default (Default)
 
+import Data.Time.Segment (jour)
+
+import Test.QuickCheck.Arbitrary
+import Test.QuickCheck (elements)
+
+
 -- DocFacet
 
 type FacetDoc = Facet NodeId UTCTime HyperdataDocument Bool -- Double
@@ -58,7 +64,13 @@ data Facet id created hyperdata favorite  = FacetDoc { facetDoc_id :: id
                                                        } deriving (Show)
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
 
-
+instance Arbitrary FacetDoc where
+    arbitrary = elements [ FacetDoc id' (jour year 01 01) hp fav 
+                         | id'  <- [1..10]
+                         , year <- [1990..2000]
+                         , fav  <- [True, False]
+                         , hp   <- hyperdataDocuments
+                         ]
 
 -- Facets / Views for the Front End
 type FacetDocRead  = Facet (Column PGInt4) (Column PGTimestamptz) (Column PGJsonb) (Column PGBool) -- (Column PGFloat8)
