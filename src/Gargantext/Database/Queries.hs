@@ -46,6 +46,19 @@ type NodeRead = NodePoly  (Column  PGInt4           )
                           (Column PGJsonb) 
                           -- (Column PGTSVector)
 
+
+
+type NodeReadNull = NodePoly  (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column (Nullable PGInt4 ))
+                              (Column (Nullable PGText          ))
+                              (Column (Nullable PGTimestamptz     ))
+                              (Column (Nullable PGJsonb))
+
+
+
+
 join3 :: Query columnsA -> Query columnsB -> Query columnsC 
       -> ((columnsA, columnsB, columnsC) -> Column PGBool) 
       -> Query (columnsA, columnsB, columnsC)

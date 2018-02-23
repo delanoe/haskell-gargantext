@@ -8,15 +8,17 @@ Stability   : experimental
 Portability : POSIX
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE Arrows #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+
+{-# LANGUAGE Arrows                      #-}
+{-# LANGUAGE DeriveGeneric               #-}
+{-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE FlexibleContexts            #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE MultiParamTypeClasses       #-}
+{-# LANGUAGE FunctionalDependencies      #-}
+{-# LANGUAGE NoMonomorphismRestriction   #-}
 
 module Gargantext.Database.Facet where
 
@@ -127,6 +129,7 @@ nodeNodeNgramLeftJoin' nId = leftJoin queryNodeTable queryNodeNodeNgramTable (eq
                          ((.==) nId' (toNullable n2))
 
 
+
 leftJoin3 :: (Default NullMaker (columnsL1, nullableColumnsR) nullableColumnsR1,
               Default NullMaker columnsR nullableColumnsR,
               Default Unpackspec columnsR columnsR,
@@ -140,15 +143,15 @@ leftJoin3 :: (Default NullMaker (columnsL1, nullableColumnsR) nullableColumnsR1,
 leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q1 q2 cond12) cond23
 
 
---leftJoin3' :: Query (NodeRead, NodeNodeNgramReadNull)
---leftJoin3' = leftJoin3 queryNodeTable  queryNodeNodeNgramTable queryNodeTable cond12 cond23
---    where
---         cond12 (Node _ _ _ _ _ _ _, NodeNodeNgram _ _ _ _) 
---                 = pgBool True
---
---         cond23 (Node _ _ _ _ _ _ _, (Node _ _ _ _ _ _ _, NodeNodeNgram _ _ _ _))
---                 = pgBool True
+leftJoin3' :: Query (NodeRead, (NodeReadNull, NodeNodeNgramReadNull))
+leftJoin3' = leftJoin3 queryNodeTable  queryNodeNodeNgramTable queryNodeTable cond12 cond23
+    where
+         cond12 (Node favId _ _ _ _ _ _, NodeNodeNgram favId' _ _ _)
+                = (.==) favId favId'
 
+         cond23 :: (NodeRead, (NodeRead, NodeNodeNgramReadNull)) -> Column PGBool
+         cond23 (Node  docId _ _ _ _ _ _, (Node _ _ _ _ _ _ _, NodeNodeNgram _ docId' _ _))
+                = (.||) ((.==) (toNullable docId) docId') (isNull docId')
 
 
 -- | Building the facet
