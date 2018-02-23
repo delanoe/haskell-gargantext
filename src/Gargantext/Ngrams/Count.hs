@@ -7,6 +7,7 @@ import Gargantext.Prelude
 
 import Data.Foldable as F
 
+import Data.Map.Strict (insertWith)
 import Data.Map (Map)
 import qualified Data.Map as M
 
@@ -31,7 +32,7 @@ letters'' = DTL.foldr (\ch xs -> DTL.singleton ch : xs) []
 -- number of punctuation
 
 occurrences :: Ord a => [a] -> Map a Int
-occurrences xs = foldl' (\x y -> M.insertWith' (+) y 1 x) M.empty xs
+occurrences xs = foldl' (\x y -> insertWith (+) y 1 x) M.empty xs
 
 -- for optimization :
 --occurrences' :: Ord a => [a] -> Map a Integer
