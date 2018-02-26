@@ -129,7 +129,6 @@ nodeNodeNgramLeftJoin' nId = leftJoin queryNodeTable queryNodeNodeNgramTable (eq
                          ((.==) nId' (toNullable n2))
 
 
-
 leftJoin3 :: (Default NullMaker (columnsL1, nullableColumnsR) nullableColumnsR1,
               Default NullMaker columnsR nullableColumnsR,
               Default Unpackspec columnsR columnsR,
