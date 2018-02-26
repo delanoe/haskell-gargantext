@@ -31,7 +31,9 @@ import GHC.Generics (Generic)
 import Data.Aeson hiding (Error)
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
-import Data.List (permutations)
+import Data.List (repeat, permutations)
+-- import Control.Applicative ((<*>))
+
 -----------------------------------------------------------------------
 type CountAPI = Post '[JSON] Counts
 
@@ -71,6 +73,7 @@ data Query = Query { query_query :: QueryBool
                    deriving (Eq, Show, Generic)
 instance FromJSON Query
 instance ToJSON   Query
+
 instance Arbitrary Query where
     arbitrary = elements [ Query q (Just n) 
                          | q <- queries
@@ -95,7 +98,7 @@ messages =  toMessage $ [ (400, ["Ill formed query             "])
                         , (300, ["Internal Gargantext Error    "])
                         , (300, ["Connexion to Gargantext Error"])
                         , (300, ["Token has expired            "])
-                        ] -- <> take 10 ( repeat (200, [""]))
+                        ] <> take 10 ( repeat (200, [""]))
 
 instance Arbitrary Message where
     arbitrary = elements messages
@@ -119,6 +122,10 @@ data Count = Count { count_name    :: Scraper
 
 instance FromJSON Count
 instance ToJSON   Count
+--
+--instance Arbitrary Count where
+--    arbitrary = Count <$> arbitrary <*> arbitrary <*> arbitrary
+
 
 instance Arbitrary Counts where
     arbitrary = elements $ select
