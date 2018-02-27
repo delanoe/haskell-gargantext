@@ -39,9 +39,8 @@ type NodeNode = NodeNodePoly Int Int (Maybe Double)
 $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)
 $(makeLensesWith abbreviatedFields   ''NodeNodePoly)
 
-nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
-nodeNodeTable  = Table "nodes_nodes" (pNodeNode NodeNode 
-                                         { nodeNode_node1_id = required "node1_id"
+nodeNodeTable :: Table NodeNodeWrite NodeNodeRead 
+nodeNodeTable  = Table "nodes_nodes" (pNodeNode NodeNode { nodeNode_node1_id = required "node1_id"
                                          , nodeNode_node2_id = required "node2_id"
                                          , nodeNode_score    = required "score"
                                      }

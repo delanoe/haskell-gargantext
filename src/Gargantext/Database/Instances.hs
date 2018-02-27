@@ -5,8 +5,10 @@
 module Gargantext.Database.Instances where
 
 import Gargantext.Prelude
+
 import Data.Text (Text)
 import Data.Time (UTCTime)
+
 import Opaleye (PGInt4, PGTimestamptz, PGFloat8
                , QueryRunnerColumnDefault
                , queryRunnerColumnDefault
@@ -30,5 +32,4 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) Int where
 
 instance QueryRunnerColumnDefault (Nullable PGText) Text    where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
-
 
