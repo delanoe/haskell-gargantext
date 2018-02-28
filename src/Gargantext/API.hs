@@ -20,28 +20,38 @@ Thanks @yannEsposito for this.
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE DeriveGeneric   #-}
+{-# LANGUAGE DataKinds                   #-}
+{-# LANGUAGE DeriveGeneric               #-}
 {-# LANGUAGE FlexibleInstances           #-}
-{-# LANGUAGE TypeOperators   #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings           #-}
+{-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE TypeOperators               #-}
 
+---------------------------------------------------------------------
 module Gargantext.API
       where
-
+---------------------------------------------------------------------
 import Gargantext.Prelude
+
+import System.IO (FilePath, print)
+import Control.Lens
+
+
+import           Data.Aeson.Encode.Pretty (encodePretty)
+import qualified Data.ByteString.Lazy.Char8 as BL8
+import           Data.Swagger
+import           Data.Text (pack)
+
+import Database.PostgreSQL.Simple (Connection, connect)
 
 import Network.Wai
 import Network.Wai.Handler.Warp
 
 import Servant
 import Servant.Mock (mock)
+import Servant.Swagger
 -- import Servant.API.Stream
 
-import Data.Text (pack)
-import Database.PostgreSQL.Simple (Connection, connect)
-import System.IO (FilePath, print)
 
 -- import Gargantext.API.Auth
 import Gargantext.API.Node ( Roots    , roots
@@ -49,7 +59,6 @@ import Gargantext.API.Node ( Roots    , roots
                            , NodesAPI , nodesAPI
                            )
 import Gargantext.API.Count ( CountAPI, count, Query)
-
 import Gargantext.Database.Utils (databaseParameters)
 
 ---------------------------------------------------------------------
@@ -79,16 +88,17 @@ startGargantextMock port = do
   run port ( serve api $ mock api Proxy )
 
 ---------------------------------------------------------------------
----------------------------------------------------------------------
+-- | API Global
+type API = GargAPI
 
--- | Main routes of the API are typed
-type API =  "roots"  :> Roots
+-- | API for serving main operational routes of @gargantext.org@
+type GargAPI =  "roots"  :> Roots
        
-       :<|> "node"   :> Capture "id" Int      :> NodeAPI
-       :<|> "nodes"  :> ReqBody '[JSON] [Int] :> NodesAPI
+           :<|> "node"   :> Capture "id" Int      :> NodeAPI
+           :<|> "nodes"  :> ReqBody '[JSON] [Int] :> NodesAPI
        
        -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
-       :<|> "count"  :> ReqBody '[JSON] Query :> CountAPI 
+           :<|> "count"  :> ReqBody '[JSON] Query :> CountAPI 
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -97,8 +107,7 @@ type API =  "roots"  :> Roots
        -- :<|> "list"     :> Capture "id" Int  :> NodeAPI
        -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
        -- :<|> "auth"     :> Capture "id" Int  :> NodeAPI
-
-
+---------------------------------------------------------------------
 -- | Server declaration
 server :: Connection -> Server API
 server conn =  roots    conn
@@ -107,12 +116,27 @@ server conn =  roots    conn
           :<|> count
 
 ---------------------------------------------------------------------
----------------------------------------------------------------------
 app :: Connection -> Application
-app = serve api . server
+app  = serve api . server
 
 api :: Proxy API
-api = Proxy
+api  = Proxy
 ---------------------------------------------------------------------
----------------------------------------------------------------------
+
+-- | Swagger Specifications
+gargSwagger :: Swagger
+gargSwagger = toSwagger api
+  & info.title   .~ "Gargantext API"
+  & info.version .~ "O.1.0"
+  & info.description ?~ "This is the main API of Gargantext"
+  & info.license ?~ ("AGPL and CECILLv3" & url ?~ URL "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/blob/master/LICENSE")
+
+-- | API for serving @swagger.json@
+-- TODO Do we need to add this in the API ?
+-- type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
+
+-- | Output generated @swagger.json@ file for the @'TodoAPI'@.
+writeSwaggerJSON :: IO ()
+writeSwaggerJSON = BL8.writeFile "swagger.json" (encodePretty gargSwagger)
+
 
