@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9ca7bccb26ab6144a79d1d7467c3d0a7db86824f3e03332d586ec2cfec04e503
+-- hash: 77bf1f45b7b9eececd1b8192dcff6ab64602222d598b7571ccafd4e14c0b6267
 
 name:           gargantext
 version:        0.1.0.0
@@ -19,69 +19,6 @@ build-type:     Simple
 cabal-version:  >= 1.10
 
 library
-  hs-source-dirs:
-      src
-  default-extensions: NoImplicitPrelude
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
-  build-depends:
-      QuickCheck
-    , aeson
-    , aeson-lens
-    , async
-    , attoparsec
-    , base >=4.7 && <5
-    , base16-bytestring
-    , bytestring
-    , case-insensitive
-    , conduit
-    , conduit-extra
-    , containers
-    , contravariant
-    , data-time-segment
-    , directory
-    , duckling
-    , extra
-    , filepath
-    , http-conduit
-    , ini
-    , lens
-    , logging-effect
-    , opaleye
-    , parsec
-    , path
-    , path-io
-    , postgresql-simple
-    , pretty
-    , product-profunctors
-    , profunctors
-    , protolude
-    , pureMD5
-    , regex-compat
-    , safe
-    , semigroups
-    , servant
-    , servant-auth
-    , servant-client
-    , servant-mock
-    , servant-multipart
-    , servant-server
-    , servant-swagger
-    , split
-    , tagsoup
-    , text
-    , text-metrics
-    , time
-    , time-locale-compat
-    , timezone-series
-    , transformers
-    , unordered-containers
-    , uuid
-    , vector
-    , wai
-    , warp
-    , yaml
-    , zip
-    , zlib
   exposed-modules:
       Gargantext
       Gargantext.Analysis
@@ -124,10 +61,77 @@ library
       Gargantext.Database.Queries
       Gargantext.Utils
       Paths_gargantext
+  hs-source-dirs:
+      src
+  default-extensions: NoImplicitPrelude
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
+  build-depends:
+      QuickCheck
+    , aeson
+    , aeson-lens
+    , aeson-pretty
+    , async
+    , attoparsec
+    , base >=4.7 && <5
+    , base16-bytestring
+    , bytestring
+    , case-insensitive
+    , conduit
+    , conduit-extra
+    , containers
+    , contravariant
+    , data-time-segment
+    , directory
+    , duckling
+    , extra
+    , filepath
+    , http-conduit
+    , ini
+    , lens
+    , logging-effect
+    , opaleye
+    , parsec
+    , path
+    , path-io
+    , postgresql-simple
+    , pretty
+    , product-profunctors
+    , profunctors
+    , protolude
+    , pureMD5
+    , regex-compat
+    , safe
+    , semigroups
+    , servant
+    , servant-auth
+    , servant-client
+    , servant-mock
+    , servant-multipart
+    , servant-server
+    , servant-swagger
+    , split
+    , swagger2
+    , tagsoup
+    , text
+    , text-metrics
+    , time
+    , time-locale-compat
+    , timezone-series
+    , transformers
+    , unordered-containers
+    , uuid
+    , vector
+    , wai
+    , warp
+    , yaml
+    , zip
+    , zlib
   default-language: Haskell2010
 
 executable gargantext
   main-is: Main.hs
+  other-modules:
+      Paths_gargantext
   hs-source-dirs:
       app
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
@@ -138,13 +142,13 @@ executable gargantext
     , ini
     , text
     , unordered-containers
-  other-modules:
-      Paths_gargantext
   default-language: Haskell2010
 
 test-suite garg-doctest
   type: exitcode-stdio-1.0
   main-is: Main.hs
+  other-modules:
+      Paths_gargantext
   hs-source-dirs:
       src-doctest
   ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
@@ -156,13 +160,19 @@ test-suite garg-doctest
     , extra
     , gargantext
     , text
-  other-modules:
-      Paths_gargantext
   default-language: Haskell2010
 
 test-suite garg-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
+  other-modules:
+      Ngrams.Lang
+      Ngrams.Lang.En
+      Ngrams.Lang.Fr
+      Ngrams.Lang.Occurrences
+      Ngrams.Metrics
+      Parsers.WOS
+      Paths_gargantext
   hs-source-dirs:
       src-test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
@@ -173,12 +183,4 @@ test-suite garg-test
     , gargantext
     , hspec
     , text
-  other-modules:
-      Ngrams.Lang
-      Ngrams.Lang.En
-      Ngrams.Lang.Fr
-      Ngrams.Lang.Occurrences
-      Ngrams.Metrics
-      Parsers.WOS
-      Paths_gargantext
   default-language: Haskell2010

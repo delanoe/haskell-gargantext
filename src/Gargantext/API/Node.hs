@@ -11,44 +11,51 @@ Node API
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
+{-# LANGUAGE DataKinds                   #-}
+{-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE TypeOperators               #-}
 {-# LANGUAGE OverloadedStrings           #-}
 
+-------------------------------------------------------------------
 module Gargantext.API.Node
       where
+-------------------------------------------------------------------
 
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (Value())
+--import System.IO (putStrLn, readFile)
+
+-- import Data.Aeson (Value())
+--import Data.Text (Text(), pack)
+import Data.Text (Text())
+
+import Database.PostgreSQL.Simple (Connection)
+
 import Servant
 -- import Servant.Multipart
---import System.IO (putStrLn, readFile)
-import Data.Text (Text())
---import Data.Text (Text(), pack)
-import Database.PostgreSQL.Simple (Connection)
+
 import Gargantext.Prelude
 import Gargantext.Types.Node
-
 import Gargantext.Database.Node (getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)
 import Gargantext.Database.Facet (FacetDoc, getDocFacet)
 
+-------------------------------------------------------------------
+-------------------------------------------------------------------
 
 
 -- | Node API Types management
-type Roots = Get '[JSON] [Node Value]
+type Roots = Get '[JSON] [Node HyperdataDocument]
 
 type NodesAPI  = Delete '[JSON] Int
 
-type NodeAPI   = Get '[JSON] (Node Value)
+type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
              :<|> Delete '[JSON] Int
 
              :<|> "children" :> QueryParam "type"   NodeType
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
-                             :> Get '[JSON] [Node Value]
+                             :> Get '[JSON] [Node HyperdataDocument]
 
 
              :<|> "facet" :> QueryParam "type"   NodeType
@@ -89,7 +96,7 @@ deleteNode' :: Connection -> NodeId -> Handler Int
 deleteNode' conn id = liftIO (deleteNode conn id)
 
 getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
-                        -> Handler [Node Value]
+                        -> Handler [Node HyperdataDocument]
 getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
 
 getDocFacet' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int

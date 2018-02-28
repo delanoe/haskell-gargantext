@@ -1,7 +1,7 @@
 {-|
-Module      : .Gargantext.Types.Main
+Module      : Gargantext.Types.Main
 Description : Short description
-Copyright   : (c) CNRS, 2017
+Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
@@ -17,18 +17,22 @@ commentary with @some markup@.
 {-# LANGUAGE FlexibleInstances           #-}
 {-# LANGUAGE OverloadedStrings           #-}
 
+------------------------------------------------------------------------
 module Gargantext.Types.Main where
+------------------------------------------------------------------------
 
 import Prelude
+import Protolude (fromMaybe)
 
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
-import Protolude (fromMaybe)
---import Data.ByteString (ByteString())
 import Data.Text (Text)
 import Data.List (lookup)
+
 import Gargantext.Types.Node
 
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language

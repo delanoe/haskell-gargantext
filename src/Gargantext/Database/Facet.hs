@@ -20,9 +20,32 @@ Portability : POSIX
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE NoMonomorphismRestriction   #-}
 
+------------------------------------------------------------------------
 module Gargantext.Database.Facet where
+------------------------------------------------------------------------
 
 import Prelude hiding (null, id, map, sum, not)
+import GHC.Generics (Generic)
+
+-- import Data.Aeson (Value)
+import Control.Arrow (returnA)
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+
+import Data.Aeson.TH (deriveJSON)
+import Data.Maybe (Maybe)
+import Data.Profunctor.Product.Default (Default)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Time (UTCTime)
+import Data.Time.Segment (jour)
+import Data.Swagger
+
+import           Database.PostgreSQL.Simple (Connection)
+import           Opaleye
+import           Opaleye.Internal.Join (NullMaker)
+import qualified Opaleye.Internal.Unpackspec()
+
+import Test.QuickCheck.Arbitrary
+import Test.QuickCheck (elements)
 
 import Gargantext.Types
 import Gargantext.Types.Node (NodeType)
@@ -33,28 +56,9 @@ import Gargantext.Database.Queries
 import Gargantext.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.NodeNgram
 
--- import Data.Aeson (Value)
-import Data.Aeson.TH (deriveJSON)
-import Control.Arrow (returnA)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Data.Maybe (Maybe)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple (Connection)
-import Opaleye
-import Opaleye.Internal.Join (NullMaker)
-
-import qualified Opaleye.Internal.Unpackspec()
-import Data.Profunctor.Product.Default (Default)
-
-import Data.Time.Segment (jour)
-
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck (elements)
-
-
-
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
+
 -- | DocFacet
 type FacetDoc = Facet NodeId UTCTime HyperdataDocument Bool -- Double
 
@@ -63,19 +67,24 @@ data Facet id created hyperdata favorite  =
               , facetDoc_created    :: created
               , facetDoc_hyperdata  :: hyperdata
               , facetDoc_favorite   :: favorite
-              } deriving (Show)
+              } deriving (Show, Generic)
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
 
 instance Arbitrary FacetDoc where
     arbitrary = elements [ FacetDoc id' (jour year 01 01) hp fav 
-                         | id'  <- [1..10]
-                         , year <- [1990..2000]
+                         | id'  <- [   1..10   ]
+                         , year <- [1990..2000 ]
                          , fav  <- [True, False]
                          , hp   <- hyperdataDocuments
                          ]
 
+instance ToSchema FacetDoc
+
 -- Facets / Views for the Front End
-type FacetDocRead  = Facet (Column PGInt4) (Column PGTimestamptz) (Column PGJsonb) (Column PGBool) -- (Column PGFloat8)
+type FacetDocRead  = Facet (Column PGInt4       )
+                           (Column PGTimestamptz)
+                           (Column PGJsonb      )
+                           (Column PGBool       ) -- (Column PGFloat8)
 
 $(makeAdaptorAndInstance "pFacetDoc" ''Facet)
 $(makeLensesWith abbreviatedFields   ''Facet)
@@ -106,7 +115,7 @@ type FacetDocRead'  = Facet' (Column PGInt4       )
                              (Column PGTimestamptz)
                              (Column PGJsonb      )
                              (Column PGBool       )
-                             (Column PGInt4     )
+                             (Column PGInt4       )
 
 $(makeAdaptorAndInstance "pFacetDocP" ''Facet')
 $(makeLensesWith abbreviatedFields    ''Facet')
@@ -114,13 +123,19 @@ $(makeLensesWith abbreviatedFields    ''Facet')
 ------------------------------------------------------------------------
 
 
-getDocFacet :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [FacetDoc]
+getDocFacet :: Connection -> Int -> Maybe NodeType 
+            -> Maybe Offset -> Maybe Limit 
+            -> IO [FacetDoc]
 getDocFacet conn parentId nodeType maybeOffset maybeLimit = 
     runQuery conn $ selectDocFacet parentId nodeType maybeOffset maybeLimit
 
-selectDocFacet :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query FacetDocRead
+selectDocFacet :: ParentId -> Maybe NodeType 
+               -> Maybe Offset -> Maybe Limit 
+               -> Query FacetDocRead
 selectDocFacet parentId maybeNodeType maybeOffset maybeLimit =
-        limit' maybeLimit $ offset' maybeOffset $ orderBy (asc facetDoc_created) $ selectDocFacet' parentId maybeNodeType
+        limit' maybeLimit $ offset' maybeOffset 
+                          $ orderBy (asc facetDoc_created) 
+                          $ selectDocFacet' parentId maybeNodeType
 
 
 -- | Left join to the favorites

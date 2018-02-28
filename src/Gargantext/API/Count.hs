@@ -23,15 +23,18 @@ module Gargantext.API.Count
 
 import Gargantext.Prelude
 
+import GHC.Generics (Generic)
 import Prelude (Bounded, Enum, minBound, maxBound)
+
 import Data.Eq (Eq())
 import Data.Text (Text, pack)
-import Servant
-import GHC.Generics (Generic)
 import Data.Aeson hiding (Error)
+import Data.List (repeat, permutations)
+import Data.Swagger
+
+import Servant
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
-import Data.List (repeat, permutations)
 -- import Control.Applicative ((<*>))
 
 -----------------------------------------------------------------------
@@ -50,7 +53,8 @@ instance ToJSON   Scraper
 instance Arbitrary Scraper where
     arbitrary = elements scrapers
 
------------------------------------------------------------------------
+instance ToSchema Scraper
+
 -----------------------------------------------------------------------
 
 data QueryBool = QueryBool Text
@@ -65,7 +69,8 @@ instance Arbitrary QueryBool where
 instance FromJSON QueryBool
 instance ToJSON   QueryBool
 
-
+instance ToSchema QueryBool
+-----------------------------------------------------------------------
 
 data Query = Query { query_query :: QueryBool
                    , query_name  :: Maybe [Scraper]
@@ -80,12 +85,13 @@ instance Arbitrary Query where
                          , n <- take 10 $ permutations scrapers
                          ]
 
------------------------------------------------------------------------
+instance ToSchema Query
 -----------------------------------------------------------------------
 type Code = Integer
 type Error  = Text
 type Errors = [Error]
 
+-----------------------------------------------------------------------
 data Message = Message Code Errors
         deriving (Eq, Show, Generic)
 
@@ -106,26 +112,13 @@ instance Arbitrary Message where
 instance FromJSON Message
 instance ToJSON   Message
 
------------------------------------------------------------------------
+instance ToSchema Message
 -----------------------------------------------------------------------
 data Counts = Counts [Count]
                    deriving (Eq, Show, Generic)
 
 instance FromJSON Counts
 instance ToJSON   Counts
-
-data Count = Count { count_name    :: Scraper
-                   , count_count   :: Maybe Int
-                   , count_message :: Maybe Message
-                   }
-                   deriving (Eq, Show, Generic)
-
-instance FromJSON Count
-instance ToJSON   Count
---
---instance Arbitrary Count where
---    arbitrary = Count <$> arbitrary <*> arbitrary <*> arbitrary
-
 
 instance Arbitrary Counts where
     arbitrary = elements $ select
@@ -138,6 +131,23 @@ instance Arbitrary Counts where
             filter' (c,e) = case e of
                               Message 200 _ -> (Just c , Nothing     )
                               message       -> (Nothing, Just message)
+
+instance ToSchema Counts
+
+
+-----------------------------------------------------------------------
+data Count = Count { count_name    :: Scraper
+                   , count_count   :: Maybe Int
+                   , count_message :: Maybe Message
+                   }
+                   deriving (Eq, Show, Generic)
+
+instance FromJSON Count
+instance ToJSON   Count
+
+instance ToSchema Count
+--instance Arbitrary Count where
+--    arbitrary = Count <$> arbitrary <*> arbitrary <*> arbitrary
 
 -----------------------------------------------------------------------
 count :: Query -> Handler Counts

@@ -9,43 +9,44 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE FlexibleInstances  #-}
-
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE FlexibleInstances          #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.Types.Node where
 
-import Gargantext.Prelude
-
-import Text.Show (Show())
-import Data.Text (Text, unpack)
-import Text.Read (read)
 import GHC.Generics (Generic)
-import Data.Eq (Eq)
-import Data.Time (UTCTime)
-import Gargantext.Utils.Prefix (unPrefix)
-import Data.Aeson.TH (deriveJSON)
+
 import Data.Aeson
-import Servant
+import Data.Aeson (Value(),toJSON)
+import Data.Aeson.TH (deriveJSON)
 import Data.Either
+import Data.Eq (Eq)
+import Data.Text (Text, unpack)
+import Data.Time (UTCTime)
+import Data.Time.Segment (jour)
+import Data.Swagger
+import Data.Maybe (fromJust)
+
+import Text.Read (read)
+import Text.Show (Show())
+
+import Servant
 
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 
--- Instances:
-import Data.Time.Segment (jour)
-import Data.Aeson (Value(),toJSON)
-
+import Gargantext.Prelude
+import Gargantext.Utils.Prefix (unPrefix)
 
 ------------------------------------------------------------------------
-data Status  = Status { status_Date     :: Maybe UTCTime
-                      , status_Error    :: Maybe Text
-                      , status_Action   :: Maybe Text
-                      , status_Complete :: Maybe Bool
-                      , status_Progress :: Maybe Int
+data Status  = Status { status_date     :: Maybe UTCTime
+                      , status_error    :: Maybe Text
+                      , status_action   :: Maybe Text
+                      , status_complete :: Maybe Bool
+                      , status_progress :: Maybe Int
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "status_") ''Status)
 
@@ -54,21 +55,21 @@ instance Arbitrary Status where
 
 
 ------------------------------------------------------------------------
-data HyperdataDocument = HyperdataDocument { hyperdataDocument_Bdd                :: Maybe Text
-                                           , hyperdataDocument_Doi                :: Maybe Text
-                                           , hyperdataDocument_Url                :: Maybe Text
-                                           , hyperdataDocument_Page               :: Maybe Int
-                                           , hyperdataDocument_Title              :: Maybe Text
-                                           , hyperdataDocument_Authors            :: Maybe Text
-                                           , hyperdataDocument_Abstract           :: Maybe Text
-                                           , hyperdataDocument_Statuses           :: Maybe [Status]
-                                           , hyperdataDocument_Publication_date   :: Maybe Text
-                                           , hyperdataDocument_Publication_year   :: Maybe Double
-                                           , hyperdataDocument_Publication_month  :: Maybe Double
-                                           , hyperdataDocument_Publication_hour   :: Maybe Double
-                                           , hyperdataDocument_Publication_minute :: Maybe Double
-                                           , hyperdataDocument_Publication_second :: Maybe Double
-                                           , hyperdataDocument_LanguageIso2       :: Maybe Text
+data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd                :: Maybe Text
+                                           , hyperdataDocument_doi                :: Maybe Text
+                                           , hyperdataDocument_url                :: Maybe Text
+                                           , hyperdataDocument_page               :: Maybe Int
+                                           , hyperdataDocument_title              :: Maybe Text
+                                           , hyperdataDocument_authors            :: Maybe Text
+                                           , hyperdataDocument_abstract           :: Maybe Text
+                                           , hyperdataDocument_statuses           :: Maybe [Status]
+                                           , hyperdataDocument_publication_date   :: Maybe Text
+                                           , hyperdataDocument_publication_year   :: Maybe Double
+                                           , hyperdataDocument_publication_month  :: Maybe Double
+                                           , hyperdataDocument_publication_hour   :: Maybe Double
+                                           , hyperdataDocument_publication_minute :: Maybe Double
+                                           , hyperdataDocument_publication_second :: Maybe Double
+                                           , hyperdataDocument_languageIso2       :: Maybe Text
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
 
@@ -185,6 +186,7 @@ type Project  = Folder -- NP Node HyperdataProject ?
 type Corpus   = Node HyperdataCorpus
 type Document = Node HyperdataDocument
 
+------------------------------------------------------------------------
 data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
               | Classification
               | Lists
@@ -193,8 +195,13 @@ data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
 
 instance FromJSON NodeType
 instance ToJSON NodeType
-instance FromHttpApiData NodeType where parseUrlPiece = Right . read . unpack
 
+instance FromHttpApiData NodeType 
+  where 
+      parseUrlPiece = Right . read . unpack
+
+instance ToParamSchema NodeType
+instance ToSchema      NodeType
 
 ------------------------------------------------------------------------
 data NodePoly id typename userId parentId name date hyperdata = Node { node_id        :: id
@@ -206,7 +213,7 @@ data NodePoly id typename userId parentId name date hyperdata = Node { node_id  
                                                                      , node_date      :: date
                                                                      , node_hyperdata :: hyperdata
                                                               --       , node_titleAbstract :: titleAbstract
-                                                                     } deriving (Show)
+                                                                     } deriving (Show, Generic)
 $(deriveJSON (unPrefix "node_") ''NodePoly)
 
 instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime Value) where
@@ -216,5 +223,23 @@ instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId N
 instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime Value) where
     arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) (toJSON ("{}"::Text))]
 
+instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime HyperdataDocument) where
+    arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) ((hyperdataDocument))]
+
+
+instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime HyperdataDocument) where
+    arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) hyperdataDocument]
+
+hyperdataDocument :: HyperdataDocument
+hyperdataDocument = fromJust $ decode "{\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"statuses\":[],\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
+
+
+instance ToSchema HyperdataDocument where
+    declareNamedSchema = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions
+
+instance ToSchema (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime HyperdataDocument)
+instance ToSchema (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime HyperdataDocument)
+
+instance ToSchema Status
 
 

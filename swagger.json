@@ -1,0 +1,511 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "O.1.0",
+        "title": "Gargantext API",
+        "license": {
+            "url": "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/blob/master/LICENSE",
+            "name": "AGPL and CECILLv3"
+        },
+        "description": "This is the main API of Gargantext"
+    },
+    "definitions": {
+        "Status": {
+            "type": "object",
+            "properties": {
+                "status_date": {
+                    "$ref": "#/definitions/UTCTime"
+                },
+                "status_complete": {
+                    "type": "boolean"
+                },
+                "status_action": {
+                    "type": "string"
+                },
+                "status_error": {
+                    "type": "string"
+                },
+                "status_progress": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                }
+            }
+        },
+        "Scraper": {
+            "type": "string",
+            "enum": [
+                "Pubmed",
+                "Hal",
+                "IsTex",
+                "Isidore"
+            ]
+        },
+        "NodePoly": {
+            "required": [
+                "node_id",
+                "node_typename",
+                "node_userId",
+                "node_name",
+                "node_date",
+                "node_hyperdata"
+            ],
+            "type": "object",
+            "properties": {
+                "node_id": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                },
+                "node_name": {
+                    "type": "string"
+                },
+                "node_date": {
+                    "$ref": "#/definitions/UTCTime"
+                },
+                "node_userId": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                },
+                "node_hyperdata": {
+                    "$ref": "#/definitions/HyperdataDocument"
+                },
+                "node_typename": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                },
+                "node_parentId": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                }
+            }
+        },
+        "Counts": {
+            "items": {
+                "$ref": "#/definitions/Count"
+            },
+            "type": "array"
+        },
+        "Count": {
+            "required": [
+                "count_name"
+            ],
+            "type": "object",
+            "properties": {
+                "count_count": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                },
+                "count_message": {
+                    "$ref": "#/definitions/Message"
+                },
+                "count_name": {
+                    "$ref": "#/definitions/Scraper"
+                }
+            }
+        },
+        "QueryBool": {
+            "type": "string"
+        },
+        "UTCTime": {
+            "example": "2016-07-22T00:00:00Z",
+            "format": "yyyy-mm-ddThh:MM:ssZ",
+            "type": "string"
+        },
+        "Query": {
+            "required": [
+                "query_query"
+            ],
+            "type": "object",
+            "properties": {
+                "query_query": {
+                    "$ref": "#/definitions/QueryBool"
+                },
+                "query_name": {
+                    "items": {
+                        "$ref": "#/definitions/Scraper"
+                    },
+                    "type": "array"
+                }
+            }
+        },
+        "Facet": {
+            "required": [
+                "facetDoc_id",
+                "facetDoc_created",
+                "facetDoc_hyperdata",
+                "facetDoc_favorite"
+            ],
+            "type": "object",
+            "properties": {
+                "facetDoc_hyperdata": {
+                    "$ref": "#/definitions/HyperdataDocument"
+                },
+                "facetDoc_created": {
+                    "$ref": "#/definitions/UTCTime"
+                },
+                "facetDoc_favorite": {
+                    "type": "boolean"
+                },
+                "facetDoc_id": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                }
+            }
+        },
+        "Message": {
+            "minItems": 2,
+            "items": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            ],
+            "maxItems": 2,
+            "type": "array"
+        },
+        "HyperdataDocument": {
+            "type": "object",
+            "properties": {
+                "hyperdataDocument_bdd": {
+                    "type": "string"
+                },
+                "hyperdataDocument_statuses": {
+                    "items": {
+                        "$ref": "#/definitions/Status"
+                    },
+                    "type": "array"
+                },
+                "hyperdataDocument_publication_year": {
+                    "format": "double",
+                    "type": "number"
+                },
+                "hyperdataDocument_publication_hour": {
+                    "format": "double",
+                    "type": "number"
+                },
+                "hyperdataDocument_authors": {
+                    "type": "string"
+                },
+                "hyperdataDocument_languageIso2": {
+                    "type": "string"
+                },
+                "hyperdataDocument_publication_date": {
+                    "type": "string"
+                },
+                "hyperdataDocument_doi": {
+                    "type": "string"
+                },
+                "hyperdataDocument_page": {
+                    "maximum": 9223372036854775807,
+                    "minimum": -9223372036854775808,
+                    "type": "integer"
+                },
+                "hyperdataDocument_url": {
+                    "type": "string"
+                },
+                "hyperdataDocument_publication_month": {
+                    "format": "double",
+                    "type": "number"
+                },
+                "hyperdataDocument_publication_second": {
+                    "format": "double",
+                    "type": "number"
+                },
+                "hyperdataDocument_publication_minute": {
+                    "format": "double",
+                    "type": "number"
+                },
+                "hyperdataDocument_title": {
+                    "type": "string"
+                },
+                "hyperdataDocument_abstract": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "paths": {
+        "/count": {
+            "post": {
+                "consumes": [
+                    "application/json;charset=utf-8"
+                ],
+                "responses": {
+                    "400": {
+                        "description": "Invalid `body`"
+                    },
+                    "200": {
+                        "schema": {
+                            "$ref": "#/definitions/Counts"
+                        },
+                        "description": ""
+                    }
+                },
+                "produces": [
+                    "application/json;charset=utf-8"
+                ],
+                "parameters": [
+                    {
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Query"
+                        },
+                        "in": "body",
+                        "name": "body"
+                    }
+                ]
+            }
+        },
+        "/node/{id}/children": {
+            "get": {
+                "responses": {
+                    "404": {
+                        "description": "`id` not found"
+                    },
+                    "400": {
+                        "description": "Invalid `limit` or `offset` or `type`"
+                    },
+                    "200": {
+                        "schema": {
+                            "items": {
+                                "$ref": "#/definitions/NodePoly"
+                            },
+                            "type": "array"
+                        },
+                        "description": ""
+                    }
+                },
+                "produces": [
+                    "application/json;charset=utf-8"
+                ],
+                "parameters": [
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "required": true,
+                        "in": "path",
+                        "name": "id",
+                        "type": "integer"
+                    },
+                    {
+                        "in": "query",
+                        "name": "type",
+                        "type": "string",
+                        "enum": [
+                            "NodeUser",
+                            "Project",
+                            "Corpus",
+                            "Document",
+                            "DocumentCopy",
+                            "Classification",
+                            "Lists",
+                            "Metrics",
+                            "Occurrences"
+                        ]
+                    },
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "in": "query",
+                        "name": "offset",
+                        "type": "integer"
+                    },
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "in": "query",
+                        "name": "limit",
+                        "type": "integer"
+                    }
+                ]
+            }
+        },
+        "/roots": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "schema": {
+                            "items": {
+                                "$ref": "#/definitions/NodePoly"
+                            },
+                            "type": "array"
+                        },
+                        "description": ""
+                    }
+                },
+                "produces": [
+                    "application/json;charset=utf-8"
+                ]
+            }
+        },
+        "/node/{id}": {
+            "get": {
+                "responses": {
+                    "404": {
+                        "description": "`id` not found"
+                    },
+                    "200": {
+                        "schema": {
+                            "$ref": "#/definitions/NodePoly"
+                        },
+                        "description": ""
+                    }
+                },
+                "produces": [
+                    "application/json;charset=utf-8"
+                ],
+                "parameters": [
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "required": true,
+                        "in": "path",
+                        "name": "id",
+                        "type": "integer"
+                    }
+                ]
+            },
+            "delete": {
+                "responses": {
+                    "404": {
+                        "description": "`id` not found"
+                    },
+                    "200": {
+                        "schema": {
+                            "maximum": 9223372036854775807,
+                            "minimum": -9223372036854775808,
+                            "type": "integer"
+                        },
+                        "description": ""
+                    }
+                },
+                "produces": [
+                    "application/json;charset=utf-8"
+                ],
+                "parameters": [
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "required": true,
+                        "in": "path",
+                        "name": "id",
+                        "type": "integer"
+                    }
+                ]
+            }
+        },
+        "/nodes": {
+            "delete": {
+                "consumes": [
+                    "application/json;charset=utf-8"
+                ],
+                "responses": {
+                    "400": {
+                        "description": "Invalid `body`"
+                    },
+                    "200": {
+                        "schema": {
+                            "maximum": 9223372036854775807,
+                            "minimum": -9223372036854775808,
+                            "type": "integer"
+                        },
+                        "description": ""
+                    }
+                },
+                "produces": [
+                    "application/json;charset=utf-8"
+                ],
+                "parameters": [
+                    {
+                        "required": true,
+                        "schema": {
+                            "items": {
+                                "maximum": 9223372036854775807,
+                                "minimum": -9223372036854775808,
+                                "type": "integer"
+                            },
+                            "type": "array"
+                        },
+                        "in": "body",
+                        "name": "body"
+                    }
+                ]
+            }
+        },
+        "/node/{id}/facet": {
+            "get": {
+                "responses": {
+                    "404": {
+                        "description": "`id` not found"
+                    },
+                    "400": {
+                        "description": "Invalid `limit` or `offset` or `type`"
+                    },
+                    "200": {
+                        "schema": {
+                            "items": {
+                                "$ref": "#/definitions/Facet"
+                            },
+                            "type": "array"
+                        },
+                        "description": ""
+                    }
+                },
+                "produces": [
+                    "application/json;charset=utf-8"
+                ],
+                "parameters": [
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "required": true,
+                        "in": "path",
+                        "name": "id",
+                        "type": "integer"
+                    },
+                    {
+                        "in": "query",
+                        "name": "type",
+                        "type": "string",
+                        "enum": [
+                            "NodeUser",
+                            "Project",
+                            "Corpus",
+                            "Document",
+                            "DocumentCopy",
+                            "Classification",
+                            "Lists",
+                            "Metrics",
+                            "Occurrences"
+                        ]
+                    },
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "in": "query",
+                        "name": "offset",
+                        "type": "integer"
+                    },
+                    {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "in": "query",
+                        "name": "limit",
+                        "type": "integer"
+                    }
+                ]
+            }
+        }
+    }
+}
