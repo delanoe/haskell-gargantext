@@ -7,7 +7,7 @@
             "url": "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/blob/master/LICENSE",
             "name": "AGPL and CECILLv3"
         },
-        "description": "This is the main API of Gargantext"
+        "description": "Gargantext API specifications"
     },
     "definitions": {
         "Status": {
@@ -333,6 +333,7 @@
         },
         "/roots": {
             "get": {
+                "summary": "First cat endpoint",
                 "responses": {
                     "200": {
                         "schema": {

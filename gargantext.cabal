@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 77bf1f45b7b9eececd1b8192dcff6ab64602222d598b7571ccafd4e14c0b6267
+-- hash: 40e4da714abaf501251279c2ed061b50ad5e31f7e99e84defabf222a04998a2e
 
 name:           gargantext
 version:        0.1.0.0
@@ -108,7 +108,9 @@ library
     , servant-mock
     , servant-multipart
     , servant-server
+    , servant-static-th
     , servant-swagger
+    , servant-swagger-ui
     , split
     , swagger2
     , tagsoup

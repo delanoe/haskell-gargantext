@@ -100,6 +100,8 @@ library:
   - servant-multipart
   - servant-server
   - servant-swagger
+  - servant-swagger-ui
+  - servant-static-th
   - split
   - swagger2
   - tagsoup

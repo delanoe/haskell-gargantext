@@ -20,6 +20,7 @@ extra-deps:
 - servant-docs-0.11.1
 - servant-multipart-0.11.1
 - servant-server-0.12
+- servant-swagger-ui-0.2.3.2.2.8
 - text-1.2.3.0
 - text-show-3.6.2
 resolver: lts-10.6

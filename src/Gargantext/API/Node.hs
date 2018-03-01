@@ -21,7 +21,10 @@ module Gargantext.API.Node
       where
 -------------------------------------------------------------------
 
+import System.IO (putStrLn)
+
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
 -- import Data.Aeson (Value())
@@ -43,9 +46,10 @@ import Gargantext.Database.Facet (FacetDoc, getDocFacet)
 -------------------------------------------------------------------
 -------------------------------------------------------------------
 
-
 -- | Node API Types management
-type Roots = Get '[JSON] [Node HyperdataDocument]
+type Roots =  Get    '[JSON] [Node HyperdataDocument]
+         :<|> Post   '[JSON] Int
+         :<|> Delete '[JSON] Int
 
 type NodesAPI  = Delete '[JSON] Int
 
@@ -76,10 +80,12 @@ type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
 
 -- | Node API functions
 roots :: Connection -> Server Roots
-roots conn = liftIO (getNodesWithParentId conn 0 Nothing)
+roots conn = liftIO (putStrLn "Log Needed" >> getNodesWithParentId conn 0 Nothing)
+          :<|> pure (panic "not implemented yet")
+          :<|> pure (panic "not implemented yet")
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
-nodeAPI conn id =  liftIO (getNode              conn id)
+nodeAPI conn id =  liftIO (putStrLn "getNode" >> getNode              conn id )
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
               :<|> getDocFacet'  conn id

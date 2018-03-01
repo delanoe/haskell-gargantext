@@ -19,27 +19,29 @@ module Gargantext.Types.Node where
 
 import GHC.Generics (Generic)
 
-import Data.Aeson
-import Data.Aeson (Value(),toJSON)
-import Data.Aeson.TH (deriveJSON)
-import Data.ByteString.Lazy (ByteString)
-import Data.Either
-import Data.Eq (Eq)
-import Data.Text (Text, unpack)
-import Data.Time (UTCTime)
-import Data.Time.Segment (jour)
-import Data.Swagger
+import           Control.Lens hiding (elements)
+import qualified Control.Lens   as L
+import           Data.Aeson
+import           Data.Aeson (Value(),toJSON)
+import           Data.Aeson.TH (deriveJSON)
+import           Data.ByteString.Lazy (ByteString)
+import           Data.Either
+import           Data.Eq (Eq)
+import           Data.Text (Text, unpack)
+import           Data.Time (UTCTime)
+import           Data.Time.Segment (jour)
+import           Data.Swagger
 
-import Text.Read (read)
-import Text.Show (Show())
+import           Text.Read (read)
+import           Text.Show (Show())
 
-import Servant
+import           Servant
 
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck (elements)
+import           Test.QuickCheck.Arbitrary
+import           Test.QuickCheck (elements)
 
-import Gargantext.Prelude
-import Gargantext.Utils.Prefix (unPrefix)
+import           Gargantext.Prelude
+import           Gargantext.Utils.Prefix (unPrefix)
 
 ------------------------------------------------------------------------
 data Status  = Status { status_date     :: Maybe UTCTime
@@ -91,22 +93,22 @@ $(deriveJSON (unPrefix "languageNodes_") ''LanguageNodes)
 
 ------------------------------------------------------------------------
 
-data Resource = Resource { resource_Url  :: Maybe Text
-                         , resource_Path :: Maybe Text
-                         , resource_Type :: Maybe Int
-                         , resource_Extracted :: Maybe Bool
+data Resource = Resource { resource_url  :: Maybe Text
+                         , resource_path :: Maybe Text
+                         , resource_type :: Maybe Int
+                         , resource_extracted :: Maybe Bool
                          } deriving (Show, Generic)
 $(deriveJSON (unPrefix "resource_") ''Resource)
 
 instance Arbitrary Resource where
     arbitrary = elements [Resource Nothing Nothing Nothing Nothing]
 
-data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_Action       :: Maybe Text
-                                       , hyperdataCorpus_Statuses     :: Maybe [Status]
-                                       , hyperdataCorpus_Languages    :: Maybe LanguageNodes
-                                       , hyperdataCorpus_Resources    :: Maybe [Resource]
-                                       , hyperdataCorpus_Language_id  :: Maybe Text
-                                       , hyperdataCorpus_Skipped_docs :: Maybe [Int]
+data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_action       :: Maybe Text
+                                       , hyperdataCorpus_statuses     :: Maybe [Status]
+                                       , hyperdataCorpus_languages    :: Maybe LanguageNodes
+                                       , hyperdataCorpus_resources    :: Maybe [Resource]
+                                       , hyperdataCorpus_language_id  :: Maybe Text
+                                       , hyperdataCorpus_skipped_docs :: Maybe [Int]
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
@@ -117,50 +119,50 @@ $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
 -- Preferences ?
 
-data HyperdataFolder = HyperdataFolder { hyperdataFolder_Preferences   :: Maybe Text
+data HyperdataFolder = HyperdataFolder { hyperdataFolder_preferences   :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 
 
-data HyperdataProject = HyperdataProject { hyperdataProject_Preferences   :: Maybe Text
+data HyperdataProject = HyperdataProject { hyperdataProject_preferences   :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataProject_") ''HyperdataProject)
 
 
 
-data HyperdataList = HyperdataList { hyperdataList_Preferences   :: Maybe Text
+data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
 
-data HyperdataScore = HyperdataScore { hyperdataScore_Preferences   :: Maybe Text
+data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
 
 
 
-data HyperdataFavorites = HyperdataFavorites { hyperdataFavorites_Preferences   :: Maybe Text
+data HyperdataFavorites = HyperdataFavorites { hyperdataFavorites_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFavorites_") ''HyperdataFavorites)
 
-data HyperdataResource = HyperdataResource { hyperdataResource_Preferences   :: Maybe Text
+data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 
 
 
 -- TODO add the Graph Structure here
-data HyperdataGraph = HyperdataGraph { hyperdataGraph_Preferences   :: Maybe Text
+data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
 
 
 -- TODO add the Graph Structure here
-data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_Preferences   :: Maybe Text
+data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 
 -- | TODO FEATURE: Notebook saved in the node (to work with Python or Haskell)
-data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_Preferences   :: Maybe Text
+data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
 
@@ -243,10 +245,11 @@ docExample :: ByteString
 docExample = "{\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"statuses\":[],\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 
 
-instance ToSchema HyperdataDocument
+instance ToSchema HyperdataDocument where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+    L.& mapped.schema.description ?~ "a document"
+    L.& mapped.schema.example ?~ toJSON hyperdataDocument
 
--- instance ToSchema HyperdataDocument where
---    declareNamedSchema = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions
 
 instance ToSchema (NodePoly NodeId NodeTypeId NodeUserId 
                             (Maybe NodeParentId) NodeName
