@@ -25,6 +25,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , takeWhile, sqrt, undefined, identity
                  , abs, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), (>=), ($), (**), (^), (<), (>), (==), (<>)
+                 , toS
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -34,6 +35,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
 import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
 import qualified Data.Map as Map
+import Data.Map.Strict (insertWith)
 import qualified Data.Vector as V
 import Safe (headMay)
 import Text.Show (Show(), show)
@@ -149,7 +151,7 @@ count2map xs = Map.map (/ (fromIntegral (length xs))) (count2map' xs)
 
 -- | insert in a dict
 count2map' :: (Ord k, Foldable t) => t k -> Map.Map k Double
-count2map' xs = L.foldl' (\x y -> Map.insertWith' (+) y 1 x) Map.empty xs
+count2map' xs = L.foldl' (\x y -> insertWith (+) y 1 x) Map.empty xs
 
 
 trunc :: (RealFrac a, Integral c, Integral b) => b -> a -> c

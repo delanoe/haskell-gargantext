@@ -11,65 +11,89 @@ Node API
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
+{-# LANGUAGE DataKinds                   #-}
+{-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE TypeOperators               #-}
+{-# LANGUAGE OverloadedStrings           #-}
 
+-------------------------------------------------------------------
 module Gargantext.API.Node
       where
+-------------------------------------------------------------------
 
-import Control.Monad
+import System.IO (putStrLn)
+
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (Value())
-import Servant
-import Servant.Multipart
-import System.IO (putStrLn, readFile)
-import Data.Text (Text(), pack)
+import Control.Monad ((>>))
+--import System.IO (putStrLn, readFile)
+
+-- import Data.Aeson (Value())
+--import Data.Text (Text(), pack)
+import Data.Text (Text())
+
 import Database.PostgreSQL.Simple (Connection)
+
+import Servant
+-- import Servant.Multipart
+
 import Gargantext.Prelude
-import Gargantext.Types.Main (Node, NodeId, NodeType)
+import Gargantext.Types.Node
 import Gargantext.Database.Node (getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)
+import Gargantext.Database.Facet (FacetDoc, getDocFacet)
 
+-------------------------------------------------------------------
+-------------------------------------------------------------------
 
 -- | Node API Types management
-type Roots = Get '[JSON] [Node Value]
+type Roots =  Get    '[JSON] [Node HyperdataDocument]
+         :<|> Post   '[JSON] Int
+         :<|> Put    '[JSON] Int
+         :<|> Delete '[JSON] Int
 
 type NodesAPI  = Delete '[JSON] Int
 
-type NodeAPI   = Get '[JSON] (Node Value)
+type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
              :<|> Delete '[JSON] Int
 
-                -- Example for Document Facet view, to populate the tabular:
-                -- http://localhost:8008/node/347476/children?type=Document&limit=3
-                -- /!\ FIXME : nodeType is case sensitive
-                -- /!\ see NodeTypes in Types/Main.hs
-             :<|> "children" :> QueryParam "type"   NodeType
+             :<|> "children" :> Summary " Summary children"
+                             :> QueryParam "type"   NodeType
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
-                             :> Get '[JSON] [Node Value]
-             
+                             :> Get '[JSON] [Node HyperdataDocument]
+
+
+             :<|> "facet" :> QueryParam "type"   NodeType
+                          :> QueryParam "offset" Int
+                          :> QueryParam "limit"  Int
+                          :> Get '[JSON] [FacetDoc]
+
+
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
-             :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
+             -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
                 
                 -- To launch a query and update the corpus
-             :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
+             -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
 
 
 -- | Node API functions
 roots :: Connection -> Server Roots
-roots conn = liftIO (getNodesWithParentId conn 0 Nothing)
+roots conn = liftIO (putStrLn "Log Needed" >> getNodesWithParentId conn 0 Nothing)
+          :<|> pure (panic "not implemented yet")
+          :<|> pure (panic "not implemented yet")
+          :<|> pure (panic "not implemented yet")
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
-nodeAPI conn id =  liftIO (getNode              conn id)
-              :<|> deleteNode' conn id
+nodeAPI conn id =  liftIO (putStrLn "getNode" >> getNode              conn id )
+              :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
-              :<|> upload
-              :<|> query
+              :<|> getDocFacet'  conn id
+              -- :<|> upload
+              -- :<|> query
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
@@ -81,9 +105,12 @@ deleteNode' :: Connection -> NodeId -> Handler Int
 deleteNode' conn id = liftIO (deleteNode conn id)
 
 getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
-                        -> Handler [Node Value]
+                        -> Handler [Node HyperdataDocument]
 getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
 
+getDocFacet' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int
+                        -> Handler [FacetDoc]
+getDocFacet' conn id nodeType offset limit = liftIO (getDocFacet conn id nodeType offset limit)
 
 query :: Text -> Handler Text
 query s = pure s
@@ -91,18 +118,18 @@ query s = pure s
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
-upload :: MultipartData -> Handler Text
-upload multipartData = do
-  liftIO $ do
-    putStrLn "Inputs:"
-    forM_ (inputs multipartData) $ \input ->
-      putStrLn $ "  " <> show (iName input)
-            <> " -> " <> show (iValue input)
-
-    forM_ (files multipartData) $ \file -> do
-      content <- readFile (fdFilePath file)
-      putStrLn $ "Content of " <> show (fdFileName file)
-              <> " at " <> fdFilePath file
-      putStrLn content
-  pure (pack "Data loaded")
+--upload :: MultipartData -> Handler Text
+--upload multipartData = do
+--  liftIO $ do
+--    putStrLn "Inputs:"
+--    forM_ (inputs multipartData) $ \input ->
+--      putStrLn $ "  " <> show (iName input)
+--            <> " -> " <> show (iValue input)
+--
+--    forM_ (files multipartData) $ \file -> do
+--      content <- readFile (fdFilePath file)
+--      putStrLn $ "Content of " <> show (fdFileName file)
+--              <> " at " <> fdFilePath file
+--      putStrLn content
+--  pure (pack "Data loaded")
 

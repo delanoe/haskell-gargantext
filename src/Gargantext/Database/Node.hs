@@ -25,14 +25,18 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , fromField
                                             , returnError
                                             )
-import Prelude hiding (null, id, map)
-import Gargantext.Types.Main (NodeType)
+import Prelude hiding (null, id, map, sum)
+
+import Gargantext.Types
+import Gargantext.Types.Node (NodeType)
+import Gargantext.Database.Queries
+import Gargantext.Prelude hiding (sum)
+
+
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson
-import Gargantext.Types
-import Gargantext.Prelude
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Text (Text)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -44,15 +48,6 @@ import Opaleye
 -- | Types for Node Database Management
 data PGTSVector
 
-type NodeWrite = NodePoly  (Maybe (Column PGInt4))  (Column PGInt4)
-                                  (Column PGInt4)   (Column (Nullable PGInt4))
-                                  (Column (PGText)) (Maybe (Column PGTimestamptz))
-                                  (Column PGJsonb) -- (Maybe (Column PGTSVector))
-
-type NodeRead = NodePoly  (Column PGInt4)   (Column PGInt4)
-                          (Column PGInt4)   (Column (Nullable PGInt4))
-                          (Column (PGText)) (Column PGTimestamptz)
-                          (Column PGJsonb) -- (Column PGTSVector)
 
 instance FromField HyperdataCorpus where
     fromField = fromField'
@@ -67,16 +62,6 @@ instance FromField HyperdataUser where
     fromField = fromField'
 
 
-fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DBI.ByteString -> Conversion b
-fromField' field mb = do
-    v <- fromField field mb
-    valueToHyperdata v
-      where
-          valueToHyperdata v = case fromJSON v of
-             Success a  -> pure a
-             Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
-
-
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -89,15 +74,16 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataProject  where
 instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault (Nullable PGInt4) Int     where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault (Nullable PGText) Text    where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGInt4 Integer            where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
+fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DBI.ByteString -> Conversion b
+fromField' field mb = do
+    v <- fromField field mb
+    valueToHyperdata v
+      where
+          valueToHyperdata v = case fromJSON v of
+             Success a  -> pure a
+             Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
 
 
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
@@ -130,26 +116,13 @@ selectNodes id = proc () -> do
 runGetNodes :: Connection -> Query NodeRead -> IO [Node Value]
 runGetNodes = runQuery
 
-
-type ParentId = NodeId
-type Limit    = Int
-type Offset    = Int
-
 -- | order by publication date
 -- Favorites (Bool), node_ngrams
-selectNodesWith :: ParentId -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Query NodeRead
+selectNodesWith :: ParentId     -> Maybe NodeType
+                -> Maybe Offset -> Maybe Limit   -> Query NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
-        offset' maybeOffset $ limit' maybeLimit $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
-
-
-limit' ::  Maybe Limit -> Query NodeRead -> Query NodeRead
-limit' maybeLimit query = maybe query (\l -> limit l query) maybeLimit
-
-
-offset' :: Maybe Offset -> Query NodeRead  -> Query NodeRead
-offset' maybeOffset query = maybe query (\o -> offset o query) maybeOffset
-
+        limit' maybeLimit $ offset' maybeOffset $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
 
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
@@ -166,7 +139,6 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     returnA -< node
 
 
-
 deleteNode :: Connection -> Int -> IO Int
 deleteNode conn n = fromIntegral 
                  <$> runDelete conn nodeTable 
@@ -178,14 +150,16 @@ deleteNodes conn ns = fromIntegral
                    (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
 
-getNodesWith :: Connection -> Int -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [Node Value]
+getNodesWith :: Connection   -> Int         -> Maybe NodeType 
+             -> Maybe Offset -> Maybe Limit -> IO [Node HyperdataDocument]
 getNodesWith conn parentId nodeType maybeOffset maybeLimit = 
     runQuery conn $ selectNodesWith 
                   parentId nodeType maybeOffset maybeLimit
 
 
 -- NP check type
-getNodesWithParentId :: Connection -> Int -> Maybe Text -> IO [Node Value]
+getNodesWithParentId :: Connection -> Int 
+                     -> Maybe Text -> IO [Node HyperdataDocument]
 getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
 
 selectNodesWithParentID :: Int -> Query NodeRead
@@ -199,19 +173,17 @@ selectNodesWithParentID n = proc () -> do
     returnA -< row
 
 
-
-
 selectNodesWithType :: Column PGInt4 -> Query NodeRead
 selectNodesWithType type_id = proc () -> do
     row@(Node _ tn _ _ _ _ _) <- queryNodeTable -< ()
     restrict -< tn .== type_id
     returnA -< row
 
-getNode :: Connection -> Int -> IO (Node Value)
+getNode :: Connection -> Int -> IO (Node HyperdataDocument)
 getNode conn id = do
     fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNodes (pgInt4 id))
 
-getNodesWithType :: Connection -> Column PGInt4 -> IO [Node Value]
+getNodesWithType :: Connection -> Column PGInt4 -> IO [Node HyperdataDocument]
 getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
