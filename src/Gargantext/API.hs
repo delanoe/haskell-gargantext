@@ -45,7 +45,7 @@ import           Control.Lens
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Swagger
-import           Data.Text (Text)
+import           Data.Text (Text, pack)
 --import qualified Data.Set as Set
 
 import           Database.PostgreSQL.Simple (Connection, connect)
@@ -54,14 +54,12 @@ import           Network.Wai
 import           Network.Wai.Handler.Warp
 
 import           Servant
--- import           Servant.Mock (mock)
+import           Servant.Mock (mock)
 import           Servant.Swagger
 import           Servant.Swagger.UI
 import           Servant.Static.TH (createApiAndServerDecs)
 -- import Servant.API.Stream
 
-
--- import Gargantext.API.Auth
 import Gargantext.API.Node ( Roots    , roots
                            , NodeAPI  , nodeAPI
                            , NodesAPI , nodesAPI
@@ -70,13 +68,8 @@ import Gargantext.API.Count ( CountAPI, count, Query)
 import Gargantext.Database.Utils (databaseParameters)
 
 ---------------------------------------------------------------------
-
-
-
 ---------------------------------------------------------------------
 type PortNumber = Int
----------------------------------------------------------------------
-
 ---------------------------------------------------------------------
 -- | API Global
 
@@ -116,14 +109,14 @@ type GargAPI =  "user"  :> Summary "First user endpoint"
 -- | Serve front end files
 $(createApiAndServerDecs "FrontEndAPI" "frontEndServer" "frontEnd")
 
-type API = SwaggerAPI :<|> FrontEndAPI :<|> GargAPI
+type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI 
 
+type API = SwaggerFrontAPI :<|> GargAPI
 
 ---------------------------------------------------------------------
 -- | Server declaration
 server :: Connection -> Server API
-server conn =  schemaUiServer swaggerDoc
-          :<|> frontEndServer
+server conn = swaggerFront
           :<|> roots    conn
           :<|> nodeAPI  conn
           :<|> nodeAPI  conn
@@ -131,11 +124,26 @@ server conn =  schemaUiServer swaggerDoc
           :<|> count
 
 ---------------------------------------------------------------------
+swaggerFront :: Server SwaggerFrontAPI
+swaggerFront = schemaUiServer swaggerDoc
+           :<|> frontEndServer
+
+gargMock :: Server GargAPI
+gargMock = mock apiGarg Proxy
+
+---------------------------------------------------------------------
 app :: Connection -> Application
 app  = serve api . server
 
+appMock :: Application
+appMock = serve api (swaggerFront :<|> gargMock)
+
+---------------------------------------------------------------------
 api :: Proxy API
 api  = Proxy
+
+apiGarg :: Proxy GargAPI
+apiGarg  = Proxy
 ---------------------------------------------------------------------
 
 schemaUiServer :: (Server api ~ Handler Swagger)
@@ -181,19 +189,17 @@ startGargantext port file = do
   print ("http://localhost:" <> show port)
   param <- databaseParameters file
   conn  <- connect param
-  run port ( app conn )
---
---startGargantextMock :: PortNumber -> IO ()
---startGargantextMock port = do
---  print (pack "Starting Mock server")
---  print (pack $ "curl "
---        <> "-H \"content-type: application/json"
---        <> "-d \'{\"query_query\":\"query\"}\'  "
---        <> "-v  http://localhost:" 
---        <> show port 
---        <>"/count"
---         )
---  run port ( serve api $ mock api Proxy )
+  run port (app conn)
 
-
+startGargantextMock :: PortNumber -> IO ()
+startGargantextMock port = do
+  print (pack "Starting Mock server")
+  print (pack $ "curl "
+        <> "-H \"content-type: application/json"
+        <> "-d \'{\"query_query\":\"query\"}\'  "
+        <> "-v  http://localhost:" 
+        <> show port 
+        <>"/count"
+         )
+  run port appMock
 
