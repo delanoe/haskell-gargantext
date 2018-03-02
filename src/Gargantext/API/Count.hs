@@ -21,21 +21,24 @@ Count API part of Gargantext.
 module Gargantext.API.Count
       where
 
-import Gargantext.Prelude
 
 import GHC.Generics (Generic)
 import Prelude (Bounded, Enum, minBound, maxBound)
 
-import Data.Eq (Eq())
-import Data.Text (Text, pack)
 import Data.Aeson hiding (Error)
+import Data.Aeson.TH (deriveJSON)
+import Data.Eq (Eq())
 import Data.List (repeat, permutations)
 import Data.Swagger
+import Data.Text (Text, pack)
 
 import Servant
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 -- import Control.Applicative ((<*>))
+
+import Gargantext.Prelude
+import Gargantext.Utils.Prefix (unPrefix)
 
 -----------------------------------------------------------------------
 type CountAPI = Post '[JSON] Counts
@@ -142,8 +145,7 @@ data Count = Count { count_name    :: Scraper
                    }
                    deriving (Eq, Show, Generic)
 
-instance FromJSON Count
-instance ToJSON   Count
+$(deriveJSON (unPrefix "count_") ''Count)
 
 instance ToSchema Count
 --instance Arbitrary Count where
