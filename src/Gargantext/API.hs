@@ -57,8 +57,10 @@ import           Servant
 import           Servant.Mock (mock)
 import           Servant.Swagger
 import           Servant.Swagger.UI
-import           Servant.Static.TH (createApiAndServerDecs)
 -- import Servant.API.Stream
+
+--import Gargantext.API.Swagger
+import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Node ( Roots    , roots
                            , NodeAPI  , nodeAPI
@@ -73,13 +75,8 @@ type PortNumber = Int
 ---------------------------------------------------------------------
 -- | API Global
 
-
 -- | API for serving @swagger.json@
--- TODO Do we need to add this in the API ?
--- type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
-
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
-
 
 -- | API for serving main operational routes of @gargantext.org@
 type GargAPI =  "user"  :> Summary "First user endpoint" 
@@ -106,9 +103,6 @@ type GargAPI =  "user"  :> Summary "First user endpoint"
        -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
        -- :<|> "auth"     :> Capture "id" Int  :> NodeAPI
 ---------------------------------------------------------------------
--- | Serve front end files
-$(createApiAndServerDecs "FrontEndAPI" "frontEndServer" "frontEnd")
-
 type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI 
 
 type API = SwaggerFrontAPI :<|> GargAPI
