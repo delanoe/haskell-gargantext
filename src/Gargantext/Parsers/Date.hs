@@ -36,7 +36,7 @@ import Duckling.Types (jsonValue, Entity)
 import Duckling.Api (analyze, parse)
 import qualified Data.HashSet as HashSet
 import qualified Data.Aeson   as Json
-import Data.Time (ZonedTime(..), LocalTime(..), TimeZone(..), TimeOfDay(..), getCurrentTimeZone)
+import Data.Time (ZonedTime(..), LocalTime(..), TimeZone(..), TimeOfDay(..))
 import Data.Time.Calendar (Day, fromGregorian)
 import Data.Fixed (Fixed (MkFixed))
 import Data.Foldable (length)
@@ -52,7 +52,6 @@ import Data.Text (Text, unpack)
 
 import Duckling.Types (ResolvedToken)
 import Safe (headMay)
-import System.IO.Unsafe (unsafePerformIO)
 
 import Text.Parsec.Error (ParseError)
 import Text.Parsec.String (Parser)
@@ -144,7 +143,7 @@ parseTimeOfDay = do
         _ <- char '.'
         dec <- many1NoneOf ['+', '-']
         let (nb, l) = (decimalStringToInt $ r ++ dec, length dec)
-            seconds = nb * 10^(12-l) 
+            seconds = nb * 10^(12-l)
         return $ TimeOfDay h m (MkFixed . toInteger $ seconds)
 
 
@@ -155,9 +154,8 @@ parseTimeZone = do
         h <- wrapDST =<< many1NoneOf [':']
         _ <- char ':'
         m <- wrapDST =<< (many1 $ anyChar)
-        let (TimeZone _ s n) = unsafePerformIO getCurrentTimeZone
         let timeInMinute = if sign == '+' then h * 60 + m else -h * 60 - m
-         in return $ TimeZone timeInMinute s n
+         in return $ TimeZone timeInMinute False "CET"
 
 -- | Parser which use parseGregorian, parseTimeOfDay and parseTimeZone to create a ZonedTime
 parseZonedTime :: Parser ZonedTime
