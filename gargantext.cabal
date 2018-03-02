@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 40e4da714abaf501251279c2ed061b50ad5e31f7e99e84defabf222a04998a2e
+-- hash: 4e7c51f92304a8a22c00c60b641f336bcfa0c3994bd4beac6f2e9eafa90c408a
 
 name:           gargantext
 version:        0.1.0.0
@@ -58,6 +58,7 @@ library
   other-modules:
       Gargantext.API.Count
       Gargantext.API.Node
+      Gargantext.API.Swagger
       Gargantext.Database.Queries
       Gargantext.Utils
       Paths_gargantext

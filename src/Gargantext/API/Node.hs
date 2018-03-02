@@ -49,6 +49,7 @@ import Gargantext.Database.Facet (FacetDoc, getDocFacet)
 -- | Node API Types management
 type Roots =  Get    '[JSON] [Node HyperdataDocument]
          :<|> Post   '[JSON] Int
+         :<|> Put    '[JSON] Int
          :<|> Delete '[JSON] Int
 
 type NodesAPI  = Delete '[JSON] Int
@@ -56,7 +57,8 @@ type NodesAPI  = Delete '[JSON] Int
 type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
              :<|> Delete '[JSON] Int
 
-             :<|> "children" :> QueryParam "type"   NodeType
+             :<|> "children" :> Summary " Summary children"
+                             :> QueryParam "type"   NodeType
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
                              :> Get '[JSON] [Node HyperdataDocument]
@@ -81,6 +83,7 @@ type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
 -- | Node API functions
 roots :: Connection -> Server Roots
 roots conn = liftIO (putStrLn "Log Needed" >> getNodesWithParentId conn 0 Nothing)
+          :<|> pure (panic "not implemented yet")
           :<|> pure (panic "not implemented yet")
           :<|> pure (panic "not implemented yet")
 
