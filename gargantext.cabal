@@ -40,6 +40,7 @@ library
     , extra
     , filepath
     , http-conduit
+    , hxt
     , ini
     , lens
     , logging-effect
@@ -162,16 +163,22 @@ test-suite garg-test
   build-depends:
       QuickCheck
     , base
+    , duckling
     , extra
     , gargantext
     , hspec
+    , parsec
+    , quickcheck-instances
     , text
+    , time
   other-modules:
       Ngrams.Lang
       Ngrams.Lang.En
       Ngrams.Lang.Fr
       Ngrams.Lang.Occurrences
       Ngrams.Metrics
+      Parsers.Date
+      Parsers.Types
       Parsers.WOS
       Paths_gargantext
   default-language: Haskell2010
