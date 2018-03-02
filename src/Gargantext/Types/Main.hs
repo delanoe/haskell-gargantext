@@ -1,7 +1,7 @@
 {-|
-Module      : .Gargantext.Types.Main
+Module      : Gargantext.Types.Main
 Description : Short description
-Copyright   : (c) CNRS, 2017
+Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
@@ -10,35 +10,29 @@ Portability : POSIX
 Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveGeneric     #-}
 
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
+{-# LANGUAGE DeriveGeneric               #-}
+{-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE OverloadedStrings           #-}
+
+------------------------------------------------------------------------
 module Gargantext.Types.Main where
+------------------------------------------------------------------------
 
 import Prelude
+import Protolude (fromMaybe)
 
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
-import Protolude (fromMaybe)
-import Data.Aeson
-import GHC.Generics
-import Servant
-import Data.Text (unpack)
-import Text.Read (read)
-import Data.Either (Either(Right))
---import Data.ByteString (ByteString())
 import Data.Text (Text)
-import Data.Time (UTCTime)
 import Data.List (lookup)
-import Gargantext.Types.Node ( NodePoly, HyperdataUser
-                               , HyperdataFolder   , HyperdataCorpus   , HyperdataDocument
-                               , HyperdataFavorites, HyperdataResource
-                               , HyperdataList  , HyperdataScore
-                               , HyperdataGraph
-                               , HyperdataPhylo
-                               , HyperdataNotebook
-                               )
 
+import Gargantext.Types.Node
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
@@ -89,43 +83,15 @@ corpusTree = NodeT Corpus (  [ leafT Document ]
 -- NP
 -- * why NodeUser and not just User ?
 -- * is this supposed to hold data ?
-data NodeType = NodeUser | Project | Corpus | Document | DocumentCopy
-              | Classification
-              | Lists
-              | Metrics
-              deriving (Show, Read, Eq, Generic)
 
-instance FromJSON NodeType
-instance ToJSON NodeType
-instance FromHttpApiData NodeType where parseUrlPiece = Right . read . unpack
 
 data Classification = Favorites | MyClassifcation
 
 data Lists  =  StopList    | MainList | MapList | GroupList
 
-data Metrics  = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
-              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
+-- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
+--              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
 
-
-
--- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json -- NodeVector
--- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
-type NodeTypeId   = Int
-type NodeId       = Int
-type NodeParentId = Int
-type NodeUserId   = Int
-type NodeName     = Text
---type NodeVector   = Vector
-
---type NodeUser    = Node HyperdataUser
-
--- | Then a Node can be either a Folder or a Corpus or a Document
-type NodeUser = Node HyperdataUser
-type Folder   = Node HyperdataFolder
-type Project  = Folder -- NP Node HyperdataProject ?
-type Corpus   = Node HyperdataCorpus
-type Document = Node HyperdataDocument
 
 -- | Community Manager Use Case
 type Annuaire  = Corpus
@@ -176,7 +142,7 @@ nodeTypes = [ (NodeUser      ,  1)
 --            , (MainList      ,  7)
 --            , (MapList       ,  8)
 ----  Scores
---            , (Occurrences   , 10)
+            , (Occurrences   , 10)
 --            , (Cooccurrences ,  9)
 --
 --            , (Specclusion   , 11)
@@ -200,10 +166,14 @@ nodeTypeId tn = fromMaybe (error $ "Typename " <> show tn <> " does not exist")
 
 
 
+
 -- Temporary types to be removed
 type Ngrams = (Text, Text, Text)
 type ErrorMessage = Text
 
-
+-- Queries
+type ParentId = NodeId
+type Limit    = Int
+type Offset    = Int
 
 

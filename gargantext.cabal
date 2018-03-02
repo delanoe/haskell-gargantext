@@ -1,30 +1,76 @@
--- This file has been generated from package.yaml by hpack version 0.20.0.
+-- This file has been generated from package.yaml by hpack version 0.21.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 84f85626582b6f0f3f7b0c3dadf65d7f797a14e8a50389db1167f6652ec74e28
+-- hash: 4e7c51f92304a8a22c00c60b641f336bcfa0c3994bd4beac6f2e9eafa90c408a
 
-name:                gargantext
-version:             0.1.0.0
-synopsis:            Deep (Collaborative) Text mining project
-description:         Please see README.md
-homepage:            https://gargantext.org
-license:             BSD3
-license-file:        LICENSE
-author:              Gargantext Team
-maintainer:          team@gargantext.org
-copyright:           Copyright: (c) 2017-2018: see git logs and README
-category:            Data
-build-type:          Simple
-cabal-version:       >= 1.10
+name:           gargantext
+version:        0.1.0.0
+synopsis:       Deep (Collaborative) Text mining project
+description:    Please see README.md
+category:       Data
+homepage:       https://gargantext.org
+author:         Gargantext Team
+maintainer:     team@gargantext.org
+copyright:      Copyright: (c) 2017-2018: see git logs and README
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
 
 library
+  exposed-modules:
+      Gargantext
+      Gargantext.Analysis
+      Gargantext.DSL
+      Gargantext.Database
+      Gargantext.Database.Instances
+      Gargantext.Database.Ngram
+      Gargantext.Database.Node
+      Gargantext.Database.Facet
+      Gargantext.Database.NodeNgram
+      Gargantext.Database.NodeNgramNgram
+      Gargantext.Database.NodeNode
+      Gargantext.Database.NodeNodeNgram
+      Gargantext.Database.Utils
+      Gargantext.Database.User
+      Gargantext.Ngrams
+      Gargantext.Ngrams.Count
+      Gargantext.Ngrams.CoreNLP
+      Gargantext.Ngrams.Parser
+      Gargantext.Ngrams.Lang.En
+      Gargantext.Ngrams.Lang.Fr
+      Gargantext.Ngrams.Metrics
+      Gargantext.Ngrams.TextMining
+      Gargantext.Ngrams.Occurrences
+      Gargantext.Parsers
+      Gargantext.Parsers.WOS
+      Gargantext.Parsers.Date
+      Gargantext.Prelude
+      Gargantext.RCT
+      Gargantext.API
+      Gargantext.API.Auth
+      Gargantext.Types
+      Gargantext.Types.Main
+      Gargantext.Types.Node
+      Gargantext.Utils.DateUtils
+      Gargantext.Utils.Prefix
+  other-modules:
+      Gargantext.API.Count
+      Gargantext.API.Node
+      Gargantext.API.Swagger
+      Gargantext.Database.Queries
+      Gargantext.Utils
+      Paths_gargantext
   hs-source-dirs:
       src
   default-extensions: NoImplicitPrelude
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , aeson-lens
+    , aeson-pretty
     , async
     , attoparsec
     , base >=4.7 && <5
@@ -35,6 +81,7 @@ library
     , conduit-extra
     , containers
     , contravariant
+    , data-time-segment
     , directory
     , duckling
     , extra
@@ -60,9 +107,14 @@ library
     , servant
     , servant-auth
     , servant-client
+    , servant-mock
     , servant-multipart
     , servant-server
+    , servant-static-th
+    , servant-swagger
+    , servant-swagger-ui
     , split
+    , swagger2
     , tagsoup
     , text
     , text-metrics
@@ -78,50 +130,12 @@ library
     , yaml
     , zip
     , zlib
-  exposed-modules:
-      Gargantext
-      Gargantext.Analysis
-      Gargantext.DSL
-      Gargantext.Database
-      Gargantext.Database.Instances
-      Gargantext.Database.Ngram
-      Gargantext.Database.Node
-      Gargantext.Database.NodeNgram
-      Gargantext.Database.NodeNgramNgram
-      Gargantext.Database.NodeNode
-      Gargantext.Database.NodeNodeNgram
-      Gargantext.Database.Private
-      Gargantext.Database.User
-      Gargantext.Ngrams
-      Gargantext.Ngrams.Count
-      Gargantext.Ngrams.CoreNLP
-      Gargantext.Ngrams.Parser
-      Gargantext.Ngrams.Lang.En
-      Gargantext.Ngrams.Lang.Fr
-      Gargantext.Ngrams.Metrics
-      Gargantext.Ngrams.TextMining
-      Gargantext.Ngrams.Occurrences
-      Gargantext.Parsers
-      Gargantext.Parsers.WOS
-      Gargantext.Parsers.Date
-      Gargantext.Prelude
-      Gargantext.RCT
-      Gargantext.API
-      Gargantext.API.Auth
-      Gargantext.Types
-      Gargantext.Types.Main
-      Gargantext.Types.Node
-      Gargantext.Utils.DateUtils
-      Gargantext.Utils.Prefix
-  other-modules:
-      Gargantext.API.Node
-      Gargantext.Utils
-      Paths_gargantext
   default-language: Haskell2010
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Werror
 
 executable gargantext
   main-is: Main.hs
+  other-modules:
+      Paths_gargantext
   hs-source-dirs:
       app
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
@@ -132,13 +146,13 @@ executable gargantext
     , ini
     , text
     , unordered-containers
-  other-modules:
-      Paths_gargantext
   default-language: Haskell2010
 
 test-suite garg-doctest
   type: exitcode-stdio-1.0
   main-is: Main.hs
+  other-modules:
+      Paths_gargantext
   hs-source-dirs:
       src-doctest
   ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
@@ -150,13 +164,19 @@ test-suite garg-doctest
     , extra
     , gargantext
     , text
-  other-modules:
-      Paths_gargantext
   default-language: Haskell2010
 
 test-suite garg-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
+  other-modules:
+      Ngrams.Lang
+      Ngrams.Lang.En
+      Ngrams.Lang.Fr
+      Ngrams.Lang.Occurrences
+      Ngrams.Metrics
+      Parsers.WOS
+      Paths_gargantext
   hs-source-dirs:
       src-test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N

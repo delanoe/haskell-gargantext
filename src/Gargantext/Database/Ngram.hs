@@ -24,14 +24,18 @@ data NgramPoly id terms n = Ngram { ngram_id    :: id
                                   , ngram_n     :: n
                                   } deriving (Show)
 
-type NgramWrite = NgramPoly (Maybe (Column PGInt4)) (Column PGText) (Column PGInt4)
-type NgramRead  = NgramPoly        (Column PGInt4)  (Column PGText) (Column PGInt4)
+type NgramWrite = NgramPoly (Maybe (Column PGInt4))
+                                   (Column PGText)
+                                   (Column PGInt4)
+
+type NgramRead  = NgramPoly        (Column PGInt4)
+                                   (Column PGText)
+                                   (Column PGInt4)
 
 type Ngram = NgramPoly Int Text Int
 
 $(makeAdaptorAndInstance "pNgram"    ''NgramPoly)
 $(makeLensesWith abbreviatedFields   ''NgramPoly)
-
 
 ngramTable :: Table NgramWrite NgramRead
 ngramTable = Table "ngrams" (pNgram Ngram { ngram_id    = optional "id"
@@ -39,7 +43,6 @@ ngramTable = Table "ngrams" (pNgram Ngram { ngram_id    = optional "id"
                                             , ngram_n     = required "n"
                                             }
                                 )
-
 
 queryNgramTable :: Query NgramRead
 queryNgramTable = queryTable ngramTable
