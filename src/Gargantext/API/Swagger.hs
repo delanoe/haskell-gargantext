@@ -1,21 +1,11 @@
 {-|
-Module      : Gargantext.API
-Description : Server API
+Module      : Gargantext.API.Swagger
+Description : Swagger Documentation API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
-
-Main REST API of Gargantext (both Server and Client sides)
-
-TODO App type, the main monad in which the bot code is written with.
-Provide config, state, logs and IO
- type App m a =  ( MonadState AppState m
-                 , MonadReader Conf m
-                 , MonadLog (WithSeverity Doc) m
-                 , MonadIO m) => m a
-Thanks @yannEsposito for this.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -31,7 +21,7 @@ Thanks @yannEsposito for this.
 {-# LANGUAGE UndecidableInstances        #-}
 
 ---------------------------------------------------------------------
-module Gargantext.API
+module Gargantext.API.Swagger
       where
 ---------------------------------------------------------------------
 import           Gargantext.Prelude
@@ -57,10 +47,8 @@ import           Servant
 import           Servant.Mock (mock)
 import           Servant.Swagger
 import           Servant.Swagger.UI
+import           Servant.Static.TH (createApiAndServerDecs)
 -- import Servant.API.Stream
-
---import Gargantext.API.Swagger
-import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Node ( Roots    , roots
                            , NodeAPI  , nodeAPI
@@ -75,34 +63,17 @@ type PortNumber = Int
 ---------------------------------------------------------------------
 -- | API Global
 
+
 -- | API for serving @swagger.json@
+-- TODO Do we need to add this in the API ?
+-- type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
+
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
--- | API for serving main operational routes of @gargantext.org@
-type GargAPI =  "user"  :> Summary "First user endpoint" 
-                        :> Roots
-       
-           :<|> "node"  :> Summary "Node endpoint"
-                        :> Capture "id" Int      :> NodeAPI
-           
-           :<|> "corpus":> Summary "Corpus endpoint"
-                        :> Capture "id" Int      :> NodeAPI
 
-           :<|> "nodes" :> Summary "Nodes endpoint"
-                        :> ReqBody '[JSON] [Int] :> NodesAPI
-       
-       -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
-           :<|> "count" :> Summary "Count endpoint"
-                        :> ReqBody '[JSON] Query :> CountAPI 
+-- | Serve front end files
+$(createApiAndServerDecs "FrontEndAPI" "frontEndServer" "frontEnd")
 
--- /mv/<id>/<id>
--- /merge/<id>/<id>
--- /rename/<id>
-       -- :<|> "static"   
-       -- :<|> "list"     :> Capture "id" Int  :> NodeAPI
-       -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
-       -- :<|> "auth"     :> Capture "id" Int  :> NodeAPI
----------------------------------------------------------------------
 type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI 
 
 type API = SwaggerFrontAPI :<|> GargAPI
