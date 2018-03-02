@@ -60,65 +60,69 @@ import Gargantext.Utils.Prefix (unPrefix)
 ------------------------------------------------------------------------
 
 -- | DocFacet
-type FacetDoc = Facet NodeId UTCTime HyperdataDocument Bool -- Double
+--type FacetDoc = Facet NodeId UTCTime HyperdataDocument Bool -- Double
+--
+--data Facet id created hyperdata favorite  = 
+--     FacetDoc { facetDoc_id         :: id
+--              , facetDoc_created    :: created
+--              , facetDoc_hyperdata  :: hyperdata
+--              , facetDoc_favorite   :: favorite
+--              } deriving (Show, Generic)
+-- $(deriveJSON (unPrefix "facetDoc_") ''Facet)
+--
+--instance Arbitrary FacetDoc where
+--    arbitrary = elements [ FacetDoc id' (jour year 01 01) hp fav 
+--                         | id'  <- [   1..10   ]
+--                         , year <- [1990..2000 ]
+--                         , fav  <- [True, False]
+--                         , hp   <- hyperdataDocuments
+--                         ]
+--
+--instance ToSchema FacetDoc
+--
+---- Facets / Views for the Front End
+--type FacetDocRead  = Facet (Column PGInt4       )
+--                           (Column PGTimestamptz)
+--                           (Column PGJsonb      )
+--                           (Column PGBool       ) -- (Column PGFloat8)
+--
+-- $(makeAdaptorAndInstance "pFacetDoc" ''Facet)
+-- $(makeLensesWith abbreviatedFields   ''Facet)
+--
+------------------------------------------------------------------------
+type FacetDoc = Facet NodeId UTCTime HyperdataDocument Bool Int
 
-data Facet id created hyperdata favorite  = 
+data Facet id created hyperdata favorite ngramCount = 
      FacetDoc { facetDoc_id         :: id
-              , facetDoc_created    :: created
-              , facetDoc_hyperdata  :: hyperdata
-              , facetDoc_favorite   :: favorite
-              } deriving (Show, Generic)
+               , facetDoc_created    :: created
+               , facetDoc_hyperdata  :: hyperdata
+               , facetDoc_favorite   :: favorite
+               , facetDoc_ngramCount :: ngramCount
+               } deriving (Show, Generic)
+
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
 
 instance Arbitrary FacetDoc where
-    arbitrary = elements [ FacetDoc id' (jour year 01 01) hp fav 
-                         | id'  <- [   1..10   ]
-                         , year <- [1990..2000 ]
-                         , fav  <- [True, False]
-                         , hp   <- hyperdataDocuments
-                         ]
-
-instance ToSchema FacetDoc
-
--- Facets / Views for the Front End
-type FacetDocRead  = Facet (Column PGInt4       )
-                           (Column PGTimestamptz)
-                           (Column PGJsonb      )
-                           (Column PGBool       ) -- (Column PGFloat8)
-
-$(makeAdaptorAndInstance "pFacetDoc" ''Facet)
-$(makeLensesWith abbreviatedFields   ''Facet)
-
-------------------------------------------------------------------------
-type FacetDoc' = Facet' NodeId UTCTime HyperdataDocument Bool Int
-
-data Facet' id created hyperdata favorite ngramCount = 
-     FacetDoc' { facetDocP_id         :: id
-               , facetDocP_created    :: created
-               , facetDocP_hyperdata  :: hyperdata
-               , facetDocP_favorite   :: favorite
-               , facetDocP_ngramCount :: ngramCount
-               } deriving (Show)
-$(deriveJSON (unPrefix "facetDocP_") ''Facet')
-
-instance Arbitrary FacetDoc' where
-    arbitrary = elements [ FacetDoc' id' (jour year 01 01) hp fav ngramCount
+    arbitrary = elements [ FacetDoc id' (jour year 01 01) hp fav ngramCount
                          | id'  <- [1..10]
                          , year <- [1990..2000]
                          , hp   <- hyperdataDocuments
                          , fav  <- [True, False]
-                         , ngramCount <- [1..10]
+                         , ngramCount <- [3..100]
                          ]
 
 -- Facets / Views for the Front End
-type FacetDocRead'  = Facet' (Column PGInt4       )
-                             (Column PGTimestamptz)
-                             (Column PGJsonb      )
-                             (Column PGBool       )
-                             (Column PGInt4       )
+type FacetDocRead = Facet (Column PGInt4       )
+                          (Column PGTimestamptz)
+                          (Column PGJsonb      )
+                          (Column PGBool       )
+                          (Column PGInt4       )
 
-$(makeAdaptorAndInstance "pFacetDocP" ''Facet')
-$(makeLensesWith abbreviatedFields    ''Facet')
+instance ToSchema FacetDoc
+
+
+$(makeAdaptorAndInstance "pFacetDoc" ''Facet)
+$(makeLensesWith abbreviatedFields   ''Facet)
 
 ------------------------------------------------------------------------
 
@@ -213,13 +217,13 @@ leftJoin3''' = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12
                 = ((.==) (nId) (nId'))
 
 
-getDocTest' :: Connection -> IO [FacetDoc']
-getDocTest' conn = runQuery conn selectDocFacet''
+-- getDocTest :: Connection -> IO [FacetDoc]
+-- getDocTest conn = runQuery conn selectDocFacet
 
 -- | Building the facet
 -- selectDocFacet' :: ParentId -> Maybe NodeType -> Query FacetDocRead
-selectDocFacet'' :: Query FacetDocRead'
-selectDocFacet'' = proc () -> do
+selectDocFacet' :: ParentId -> Maybe NodeType -> Query FacetDocRead
+selectDocFacet' _ _ = proc () -> do
         (n1,(nn,n2)) <- leftJoin3''' -< ()
         restrict -< (.&&) (node_parentId n1 .== (toNullable $ pgInt4 347476))
                           (node_typename n1 .== (pgInt4 4))
@@ -232,7 +236,7 @@ selectDocFacet'' = proc () -> do
 
         let isFav = ifThenElse (isNull $ nodeNode_score nn) (pgBool False) (pgBool True)
 --        
-        returnA  -< FacetDoc' (node_id n1) (node_date n1) (node_hyperdata n1) (isFav) (pgInt4 1)
+        returnA  -< FacetDoc (node_id n1) (node_date n1) (node_hyperdata n1) (isFav) (pgInt4 1)
 
 
 
@@ -246,33 +250,33 @@ selectDocFacet'' = proc () -> do
 
 
 
-
-
-selectDocFacet' :: ParentId -> Maybe NodeType -> Query FacetDocRead
-selectDocFacet' parentId _ = proc () -> do
-    node <- (proc () -> do
-
-            -- Favorite Column
-            -- (Node docId docTypeId _ docParentId _ created docHyperdata, (Node _ favTypeId _ favParentId _ _ _, NodeNode _ docId' _))  <- leftJoin3'' -< ()
-            (Node docId docTypeId _ docParentId _ created docHyperdata, (NodeNode _ docId' _, (Node _ favTypeId _ favParentId _ _ _)))  <- leftJoin3''' -< ()
-
-            restrict -< docTypeId .== (pgInt4 15) .&& docParentId .== (toNullable $ pgInt4 parentId)
-            
-            -- select nn.score from nodes n left join nodes_nodes nn on n.id = nn.node2_id where n.typename =4;
-            -- Selecting the documents and joining Favorite Node
-            
-            restrict -< favParentId .== (toNullable $ pgInt4 parentId) .&& favTypeId .== (toNullable 4)
-            
-            -- let docTypeId'' = maybe 0 nodeTypeId (Just Document)
-            
-            -- Getting favorite data
-            let isFav = ifThenElse (isNull docId') (pgBool False) (pgBool True)
-            -- Ngram count by document
-            -- Counting the ngram
-            -- (Node occId occTypeId _ _ _ _ _, NodeNode _ _ _ count) <- nodeNodeNgramLeftJoin -< ()
-            -- restrict -< occId .== 347540
-            
-            --returnA  -< (FacetDoc n_id hyperdata isFav ngramCount)) -< ()
-            returnA  -< (FacetDoc docId created docHyperdata isFav)) -< ()
-    returnA -< node
-
+--
+--
+--selectDocFacet' :: ParentId -> Maybe NodeType -> Query FacetDocRead
+--selectDocFacet' parentId _ = proc () -> do
+--    node <- (proc () -> do
+--
+--            -- Favorite Column
+--            -- (Node docId docTypeId _ docParentId _ created docHyperdata, (Node _ favTypeId _ favParentId _ _ _, NodeNode _ docId' _))  <- leftJoin3'' -< ()
+--            (Node docId docTypeId _ docParentId _ created docHyperdata, (NodeNode _ docId' _, (Node _ favTypeId _ favParentId _ _ _)))  <- leftJoin3''' -< ()
+--
+--            restrict -< docTypeId .== (pgInt4 15) .&& docParentId .== (toNullable $ pgInt4 parentId)
+--            
+--            -- select nn.score from nodes n left join nodes_nodes nn on n.id = nn.node2_id where n.typename =4;
+--            -- Selecting the documents and joining Favorite Node
+--            
+--            restrict -< favParentId .== (toNullable $ pgInt4 parentId) .&& favTypeId .== (toNullable 4)
+--            
+--            -- let docTypeId'' = maybe 0 nodeTypeId (Just Document)
+--            
+--            -- Getting favorite data
+--            let isFav = ifThenElse (isNull docId') (pgBool False) (pgBool True)
+--            -- Ngram count by document
+--            -- Counting the ngram
+--            -- (Node occId occTypeId _ _ _ _ _, NodeNode _ _ _ count) <- nodeNodeNgramLeftJoin -< ()
+--            -- restrict -< occId .== 347540
+--            
+--            --returnA  -< (FacetDoc n_id hyperdata isFav ngramCount)) -< ()
+--            returnA  -< (FacetDoc docId created docHyperdata isFav)) -< ()
+--    returnA -< node
+--
