@@ -21,7 +21,8 @@ Portability : POSIX
 {-# LANGUAGE NoMonomorphismRestriction   #-}
 
 ------------------------------------------------------------------------
-module Gargantext.Database.Facet where
+module Gargantext.Database.Facet 
+  where
 ------------------------------------------------------------------------
 
 import Prelude hiding (null, id, map, sum, not)
@@ -68,7 +69,14 @@ data Facet id created hyperdata favorite ngramCount =
                , facetDoc_ngramCount :: ngramCount
                } deriving (Show, Generic)
 
+-- | JSON instance
+
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
+
+-- | Documentation instance
+instance ToSchema FacetDoc
+
+-- | Mock and Quickcheck instances
 
 instance Arbitrary FacetDoc where
     arbitrary = elements [ FacetDoc id' (jour year 01 01) hp fav ngramCount
@@ -80,17 +88,15 @@ instance Arbitrary FacetDoc where
                          ]
 
 -- Facets / Views for the Front End
+-- | Database instances
+$(makeAdaptorAndInstance "pFacetDoc" ''Facet)
+$(makeLensesWith abbreviatedFields   ''Facet)
+
 type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGTimestamptz)
                           (Column PGJsonb      )
                           (Column PGBool       )
                           (Column PGInt4       )
-
-instance ToSchema FacetDoc
-
-
-$(makeAdaptorAndInstance "pFacetDoc" ''Facet)
-$(makeLensesWith abbreviatedFields   ''Facet)
 
 ------------------------------------------------------------------------
 
