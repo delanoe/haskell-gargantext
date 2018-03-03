@@ -130,6 +130,7 @@ executable:
     - ini
     - base
     - unordered-containers
+    - optparse-generic
 
 tests:
   garg-test:
