@@ -36,11 +36,12 @@ instance ParseField  Mode
 instance ParseFields Mode
 
 
-data MyOptions w = MyOptions { run     :: w ::: Mode        <?> "Possible modes: Dev | Mock | Prod"
-                            , port    :: w ::: Maybe Int   <?> "By default: 8008"
-                            , iniFile :: w ::: Maybe Text  <?> "Example file: gargantext.ini"
-                            }
+data MyOptions w = MyOptions { run  :: w ::: Mode        <?> "Possible modes: Dev | Mock | Prod"
+                             , port :: w ::: Maybe Int   <?> "By default: 8008"
+                             , ini  :: w ::: Maybe Text  <?> "Ini-file path of gargantext.ini"
+                             }
           deriving (Generic)
+
 instance ParseRecord (MyOptions Wrapped)
 deriving instance Show (MyOptions Unwrapped)
 
@@ -59,7 +60,7 @@ main = do
             Prod -> startGargantext myPort' (unpack myIniFile')
                     where
                         myIniFile' = case myIniFile of
-                                       Nothing -> panic "Need gargantext.ini file"
+                                       Nothing -> panic "For Prod mode, you need to fill a gargantext.ini file"
                                        Just i  -> i
             Mock -> startGargantextMock myPort'
             _  -> startGargantextMock myPort'
