@@ -16,6 +16,8 @@ Portability : POSIX
 
 module Main where
 
+import Prelude (putStrLn)
+
 import Options.Generic
 import Data.Text (unpack)
 
@@ -27,37 +29,36 @@ import Gargantext.API (startGargantext, startGargantextMock)
 data Mode = Dev | Mock | Prod 
         deriving (Show, Read, Generic)
 instance ParseRecord Mode
-instance ParseField Mode
+instance ParseField  Mode
 instance ParseFields Mode
 
-data MyOptions = MyOptions { port    :: Maybe Int
+data MyOptions = MyOptions { run     :: Mode
+                           , port    :: Maybe Int
                            , iniFile :: Maybe Text
-                           , mode    :: Maybe Mode
-                           } 
+                           }
         deriving (Generic, Show)
 
 instance ParseRecord MyOptions
 
 
-
 main :: IO ()
 main = do 
-    MyOptions myPort myIniFile myMode <- getRecord 
+    MyOptions myMode myPort myIniFile  <- getRecord 
             "Gargantext: collaborative platform for text-mining"
     
     let myPort' = case myPort of
             Just p  -> p
             Nothing -> 8008
 
-
     let start = case myMode of
             --Nothing   -> startGargantext myPort' (unpack myIniFile')
-            Just Prod -> startGargantext myPort' (unpack myIniFile')
+            Prod -> startGargantext myPort' (unpack myIniFile')
                     where
                         myIniFile' = case myIniFile of
                                        Nothing -> panic "Need gargantext.ini file"
                                        Just i  -> i
-            Just Mock -> startGargantextMock myPort'
-            _         -> startGargantextMock myPort'
+            Mock -> startGargantextMock myPort'
+            Dev  -> startGargantextMock myPort'
     
+    putStrLn $ "Starting Gargantext with mode: " <> show myMode
     start
