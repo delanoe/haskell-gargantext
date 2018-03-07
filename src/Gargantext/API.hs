@@ -120,14 +120,15 @@ makeApp fw = do
                 False -> resp ( responseLBS status401 [] "Invalid Origin or Host header" )
         
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
---            { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
-            { corsOrigins        = Just (["http://localhost:8008"], False)
-            , corsMethods        = [methodGet, methodPost, methodPut, methodDelete]
+--          { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
+            { corsOrigins        = Nothing --  == /*
+            , corsMethods        = [ methodGet   , methodPost   , methodPut
+                                   , methodDelete, methodOptions, methodHead]
             , corsRequestHeaders = ["authorization", "content-type"]
             , corsExposedHeaders = Nothing
             , corsMaxAge         = Just ( 60*60*24 ) -- one day
             , corsVaryOrigin     = False
-            , corsRequireOrigin  = True
+            , corsRequireOrigin  = False
             , corsIgnoreFailures = False
             }
 
