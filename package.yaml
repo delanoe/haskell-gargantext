@@ -76,11 +76,20 @@ library:
   - directory
   - duckling
   - filepath
+  - fclabels
+  - fast-logger
+    #  - haskell-gi-base
   - http-conduit
+  - http-api-data
+  - http-types
   - hxt
   - ini
+  - jose-jwt
   - lens
   - logging-effect
+  - monad-logger
+  - mtl
+  - natural-transformation
   - opaleye
   - parsec
   - path
@@ -92,6 +101,7 @@ library:
   - protolude
   - pureMD5
   - regex-compat
+  - resourcet
   - safe
   - semigroups
   - servant
@@ -111,10 +121,13 @@ library:
   - time-locale-compat
   - timezone-series
   - transformers
+  - transformers-base
   - unordered-containers
   - uuid
   - vector
   - wai
+  - wai-cors
+  - wai-extra
   - warp
   - yaml
   - zip
