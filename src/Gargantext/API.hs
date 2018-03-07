@@ -175,25 +175,24 @@ swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
 swaggerWriteJSON :: IO ()
 swaggerWriteJSON = BL8.writeFile "swagger.json" (encodePretty swaggerDoc)
 
+portRouteInfo :: PortNumber -> IO ()
+portRouteInfo port = do
+   print (pack "      ----Main Routes-----      ")
+   print      ("http://localhost:" <> show port <> "/index.html")
+   print      ("http://localhost:" <> show port <> "/swagger-ui")
 
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: PortNumber -> FilePath -> IO ()
 startGargantext port file = do
-  print ("Starting Gargantext server" <> show port)
-  print ("http://localhost:" <> show port)
+  
   param <- databaseParameters file
   conn  <- connect param
+  
+  portRouteInfo port
   run port (app conn)
 
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
-  print (pack "Starting Mock server")
-  print (pack $ "curl "
-        <> "-H \"content-type: application/json"
-        <> "-d \'{\"query_query\":\"query\"}\'  "
-        <> "-v  http://localhost:" 
-        <> show port 
-        <>"/count"
-         )
+  portRouteInfo port
   run port appMock
 
