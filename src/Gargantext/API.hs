@@ -91,32 +91,33 @@ import Network.HTTP.Types hiding (Query)
 
 -- import Gargantext.API.Settings
 
-fireWall :: Applicative f => Request -> f Bool
-fireWall req = do
+data FireWall = FireWall { unFireWall :: Bool }
+
+fireWall :: Applicative f => Request -> FireWall -> f Bool
+fireWall req fw = do
     let origin = lookup "Origin" (requestHeaders req)
     let host   = lookup "Host"   (requestHeaders req)
 
     let hostOk   = Just (encodeUtf8 "localhost:3000")
     let originOk = Just (encodeUtf8 "http://localhost:8008")
 
-    if origin == originOk && host == hostOk
+    if origin == originOk && host == hostOk || unFireWall fw
        then pure True
        else pure False
 
 
 -- makeApp :: Env -> IO (Warp.Settings, Application)
-makeApp :: IO Application
-makeApp = do
+makeApp :: FireWall -> IO Application
+makeApp fw = do
     let serverApp = appMock
 
     -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
 
     let checkOriginAndHost app req resp = do
-            blocking <- fireWall req
+            blocking <- fireWall req fw
             case blocking  of
                 True  -> app req resp
-                False -> app req resp
-                -- False -> resp ( responseLBS status401 [] "Invalid Origin or Host header" )
+                False -> resp ( responseLBS status401 [] "Invalid Origin or Host header" )
         
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
 --            { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
@@ -135,11 +136,6 @@ makeApp = do
     
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
     pure $ checkOriginAndHost $ corsMiddleware $ serverApp
-
-
-
-
-
 
 
 
@@ -268,7 +264,7 @@ startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
   portRouteInfo port
 
-  application <-makeApp
+  application <- makeApp (FireWall False)
 
   run port application
 
