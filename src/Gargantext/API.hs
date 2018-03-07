@@ -70,6 +70,79 @@ import Gargantext.API.Count ( CountAPI, count, Query)
 import Gargantext.Database.Utils (databaseParameters)
 
 ---------------------------------------------------------------------
+
+
+import GHC.Base (Applicative)
+-- import Control.Lens
+
+import Data.List (lookup)
+import Data.Text.Encoding (encodeUtf8)
+
+--import Network.Wai (Request, requestHeaders, responseLBS)
+import Network.Wai (Request, requestHeaders)
+--import qualified Network.Wai.Handler.Warp as Warp
+import Network.Wai.Middleware.Cors
+
+-- import Network.Wai.Middleware.RequestLogger
+-- import qualified Network.Wai.Middleware.RequestLogger as RequestLogger
+
+import Network.HTTP.Types hiding (Query)
+
+
+-- import Gargantext.API.Settings
+
+fireWall :: Applicative f => Request -> f Bool
+fireWall req = do
+    let origin = lookup "Origin" (requestHeaders req)
+    let host   = lookup "Host"   (requestHeaders req)
+
+    let hostOk   = Just (encodeUtf8 "localhost:3000")
+    let originOk = Just (encodeUtf8 "http://localhost:8008")
+
+    if origin == originOk && host == hostOk
+       then pure True
+       else pure False
+
+
+-- makeApp :: Env -> IO (Warp.Settings, Application)
+makeApp :: IO Application
+makeApp = do
+    let serverApp = appMock
+
+    -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
+
+    let checkOriginAndHost app req resp = do
+            blocking <- fireWall req
+            case blocking  of
+                True  -> app req resp
+                False -> app req resp
+                -- False -> resp ( responseLBS status401 [] "Invalid Origin or Host header" )
+        
+    let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
+--            { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
+            { corsOrigins        = Just (["http://localhost:8008"], False)
+            , corsMethods        = [methodGet, methodPost, methodPut, methodDelete]
+            , corsRequestHeaders = ["authorization", "content-type"]
+            , corsExposedHeaders = Nothing
+            , corsMaxAge         = Just ( 60*60*24 ) -- one day
+            , corsVaryOrigin     = False
+            , corsRequireOrigin  = True
+            , corsIgnoreFailures = False
+            }
+
+    --let warpS = Warp.setPort (8008 :: Int)   -- (env^.settings.appPort)
+    --          $ Warp.defaultSettings
+    
+    --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
+    pure $ checkOriginAndHost $ corsMiddleware $ serverApp
+
+
+
+
+
+
+
+
 ---------------------------------------------------------------------
 type PortNumber = Int
 ---------------------------------------------------------------------
@@ -194,5 +267,13 @@ startGargantext port file = do
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
   portRouteInfo port
-  run port appMock
+
+  application <-makeApp
+
+  run port application
+
+
+
+
+
 
