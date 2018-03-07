@@ -20,6 +20,6 @@ module Gargantext.API.FrontEnd
 import           Servant.Static.TH (createApiAndServerDecs)
 
 ---------------------------------------------------------------------
-$(createApiAndServerDecs "FrontEndAPI" "frontEndServer" "frontEnd")
+$(createApiAndServerDecs "FrontEndAPI" "frontEndServer" "purescript-gargantext/dist")
 ---------------------------------------------------------------------
 
