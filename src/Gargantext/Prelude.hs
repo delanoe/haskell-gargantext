@@ -25,7 +25,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , takeWhile, sqrt, undefined, identity
                  , abs, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), (>=), ($), (**), (^), (<), (>), (==), (<>)
-                 , (&&), (||)
+                 , (&&), (||), not
                  , toS
                  )
 
