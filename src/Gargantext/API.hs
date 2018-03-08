@@ -101,7 +101,7 @@ fireWall req fw = do
     let hostOk   = Just (encodeUtf8 "localhost:3000")
     let originOk = Just (encodeUtf8 "http://localhost:8008")
 
-    if origin == originOk && host == hostOk || unFireWall fw
+    if origin == originOk && host == hostOk || (not $ unFireWall fw)
        then pure True
        else pure False
 
@@ -268,9 +268,5 @@ startGargantextMock port = do
   application <- makeApp (FireWall False)
 
   run port application
-
-
-
-
 
 
