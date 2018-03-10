@@ -66,11 +66,11 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd              
                                            , hyperdataDocument_abstract           :: Maybe Text
                                            , hyperdataDocument_statuses           :: Maybe [Status]
                                            , hyperdataDocument_publication_date   :: Maybe Text
-                                           , hyperdataDocument_publication_year   :: Maybe Double
-                                           , hyperdataDocument_publication_month  :: Maybe Double
-                                           , hyperdataDocument_publication_hour   :: Maybe Double
-                                           , hyperdataDocument_publication_minute :: Maybe Double
-                                           , hyperdataDocument_publication_second :: Maybe Double
+                                           , hyperdataDocument_publication_year   :: Maybe Int
+                                           , hyperdataDocument_publication_month  :: Maybe Int
+                                           , hyperdataDocument_publication_hour   :: Maybe Int
+                                           , hyperdataDocument_publication_minute :: Maybe Int
+                                           , hyperdataDocument_publication_second :: Maybe Int
                                            , hyperdataDocument_languageIso2       :: Maybe Text
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
