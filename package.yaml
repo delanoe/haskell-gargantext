@@ -78,10 +78,11 @@ library:
   - filepath
   - fclabels
   - fast-logger
-    #  - haskell-gi-base
+#  - haskell-gi-base
   - http-conduit
   - http-api-data
   - http-types
+  - http-client
   - hxt
   - ini
   - jose-jwt
@@ -115,6 +116,7 @@ library:
   - servant-static-th
   - split
   - swagger2
+  - stm
   - tagsoup
   - text-metrics
   - time

@@ -15,17 +15,19 @@ module Gargantext.Prelude
   )
   where
 
-import Protolude ( Bool(True, False), Int, Double, Integer
+import Protolude ( Eq, Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Floating, Char, IO
-                 , pure, (<$>), panic
+                 , pure, return, (<$>), panic
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith
-                 , sum, fromIntegral, length, fmap
+                 , sum, fromIntegral, fromInteger, length, fmap
                  , takeWhile, sqrt, undefined, identity
-                 , abs, maximum, minimum, return, snd, truncate
-                 , (+), (*), (/), (-), (.), (>=), ($), (**), (^), (<), (>), (==), (<>)
-                 , (&&), (||), not
+                 , abs, maximum, minimum, truncate
+                 , fst, snd
+                 , (+), (*), (/), (-), (.), (>=), (<=)
+                 , ($), (**), (^), (<), (>), (==), (<>)
+                 , (&&), (||), not, round
                  , toS
                  )
 
