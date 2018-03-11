@@ -30,6 +30,7 @@ import Control.Monad ((>>))
 -- import Data.Aeson (Value())
 --import Data.Text (Text(), pack)
 import Data.Text (Text())
+import Data.Time (UTCTime)
 
 import Database.PostgreSQL.Simple (Connection)
 
@@ -38,14 +39,14 @@ import Servant
 
 import Gargantext.Prelude
 import Gargantext.Types.Node
-import Gargantext.Database.Node (getNodesWithParentId
+import Gargantext.Database.Node ( getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)
-import Gargantext.Database.Facet (FacetDoc, getDocFacet)
+import Gargantext.Database.Facet (FacetDoc, getDocFacet
+                                 ,FacetChart)
 
 -------------------------------------------------------------------
 -------------------------------------------------------------------
-
 -- | Node API Types management
 type Roots =  Get    '[JSON] [Node HyperdataDocument]
          :<|> Post   '[JSON] Int
@@ -56,20 +57,31 @@ type NodesAPI  = Delete '[JSON] Int
 
 type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
              :<|> Delete '[JSON] Int
-
              :<|> "children" :> Summary " Summary children"
                              :> QueryParam "type"   NodeType
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
                              :> Get '[JSON] [Node HyperdataDocument]
+             :<|> "facet" :> "documents" :> FacetDocAPI
+--             :<|> "facet" :<|> "sources"   :<|> FacetSourcesAPI
+--             :<|> "facet" :<|> "authors"   :<|> FacetAuthorsAPI
+--             :<|> "facet" :<|> "terms"     :<|> FacetTermsAPI
+
+--data FacetFormat = Table | Chart
+--data FacetType   = Doc   | Term  | Source | Author
+--data Facet       = Facet Doc Format
 
 
-             :<|> "facet" :> QueryParam "type"   NodeType
-                          :> QueryParam "offset" Int
-                          :> QueryParam "limit"  Int
-                          :> Get '[JSON] [FacetDoc]
+type FacetDocAPI = "table"
+                   :> QueryParam "offset" Int
+                   :> QueryParam "limit"  Int
+                   :> Get '[JSON] [FacetDoc]
 
-
+                :<|> "chart"
+                   :> QueryParam "from" UTCTime
+                   :> QueryParam "to"   UTCTime
+                   :> Get '[JSON] [FacetChart]
+--
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
@@ -77,7 +89,6 @@ type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
                 
                 -- To launch a query and update the corpus
              -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
-
 
 
 -- | Node API functions
@@ -91,7 +102,8 @@ nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (putStrLn "getNode" >> getNode              conn id )
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
-              :<|> getDocFacet'  conn id
+              :<|> getFacet      conn id
+              :<|> getChart      conn id
               -- :<|> upload
               -- :<|> query
 
@@ -108,9 +120,15 @@ getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe In
                         -> Handler [Node HyperdataDocument]
 getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
 
-getDocFacet' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int
+
+getFacet :: Connection -> NodeId -> Maybe Int -> Maybe Int
                         -> Handler [FacetDoc]
-getDocFacet' conn id nodeType offset limit = liftIO (getDocFacet conn id nodeType offset limit)
+getFacet conn id offset limit = liftIO (getDocFacet conn id (Just Document) offset limit)
+
+getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
+                        -> Handler [FacetChart]
+getChart _ _ _ _ = undefined
+
 
 query :: Text -> Handler Text
 query s = pure s

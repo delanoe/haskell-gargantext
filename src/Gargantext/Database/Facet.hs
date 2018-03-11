@@ -37,7 +37,7 @@ import Data.Maybe (Maybe)
 import Data.Profunctor.Product.Default (Default)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Time (UTCTime)
-import Data.Time.Segment (jour)
+import Data.Time.Segment (jour, timesAfter, Granularity(D))
 import Data.Swagger
 
 import           Database.PostgreSQL.Simple (Connection)
@@ -59,7 +59,18 @@ import Gargantext.Utils.Prefix (unPrefix)
 
 ------------------------------------------------------------------------
 -- | DocFacet
+
+-- data Facet = FacetDoc | FacetSources | FacetAuthors | FacetTerms
+--    deriving (Show, Generic)
+--instance FromJSON Facet
+--instance ToJSON   Facet
+
 type FacetDoc = Facet NodeId UTCTime HyperdataDocument Bool Int
+type FacetSources = FacetDoc
+type FacetAuthors = FacetDoc
+type FacetTerms   = FacetDoc
+
+
 
 data Facet id created hyperdata favorite ngramCount = 
      FacetDoc { facetDoc_id         :: id
@@ -98,7 +109,23 @@ type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGBool       )
                           (Column PGInt4       )
 
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
+type UTCTime' = UTCTime
+
+data FacetChart = FacetChart { facetChart_time  :: UTCTime'
+                             , facetChart_count :: Double
+                        }
+        deriving (Show, Generic)
+$(deriveJSON (unPrefix "facetChart_") ''FacetChart)
+instance ToSchema FacetChart
+
+instance Arbitrary UTCTime' where
+    arbitrary = elements $ timesAfter 100 D (jour 2000 01 01)
+
+instance Arbitrary FacetChart where
+    arbitrary = FacetChart <$> arbitrary <*> arbitrary
+
+-----------------------------------------------------------------------
 
 
 getDocFacet :: Connection -> Int -> Maybe NodeType 

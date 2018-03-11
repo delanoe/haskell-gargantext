@@ -71,7 +71,6 @@ import Gargantext.Database.Utils (databaseParameters)
 
 ---------------------------------------------------------------------
 
-
 import GHC.Base (Applicative)
 -- import Control.Lens
 
@@ -112,12 +111,12 @@ makeApp fw = do
     let serverApp = appMock
 
     -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
-
     let checkOriginAndHost app req resp = do
             blocking <- fireWall req fw
             case blocking  of
                 True  -> app req resp
-                False -> resp ( responseLBS status401 [] "Invalid Origin or Host header" )
+                False -> resp ( responseLBS status401 [] 
+                              "Invalid Origin or Host header")
         
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
 --          { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
@@ -137,7 +136,6 @@ makeApp fw = do
     
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
     pure $ checkOriginAndHost $ corsMiddleware $ serverApp
-
 
 
 ---------------------------------------------------------------------
@@ -268,5 +266,4 @@ startGargantextMock port = do
   application <- makeApp (FireWall False)
 
   run port application
-
 
