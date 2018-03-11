@@ -21,22 +21,21 @@ commentary with @some markup@.
 module Gargantext.Types.Main where
 ------------------------------------------------------------------------
 
-import Prelude
-import Protolude (fromMaybe)
-
+import Data.Maybe (fromMaybe)
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.List (lookup)
 
 import Gargantext.Types.Node
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
-data Language = EN | FR -- | DE | IT | SP
+data Language = EN | FR
+    -- | DE | IT | SP
     -- > EN == english
     -- > FR == french
     -- > DE == deutch  (not implemented yet)
@@ -44,11 +43,9 @@ data Language = EN | FR -- | DE | IT | SP
     -- > SP == spanish (not implemented yet)
     -- > ... add your language and help us to implement it (:
 
-
 -- All the Database is structred like a hierarchical Tree
 data Tree a = NodeT a [Tree a]
-              deriving (Show, Read, Eq)
-
+    deriving (Show, Read, Eq)
 
 -- data Tree a = NodeT a [Tree a]
 -- same as Data.Tree
@@ -161,19 +158,16 @@ nodeTypes = [ (NodeUser      ,  1)
             ]
 --
 nodeTypeId :: NodeType -> NodeTypeId
-nodeTypeId tn = fromMaybe (error $ "Typename " <> show tn <> " does not exist")
+nodeTypeId tn = fromMaybe (panic $ pack $ "Typename " <> show tn <> " does not exist")
                           (lookup tn nodeTypes)
 
 
-
-
 -- Temporary types to be removed
-type Ngrams = (Text, Text, Text)
+type Ngrams       = (Text, Text, Text)
 type ErrorMessage = Text
 
 -- Queries
 type ParentId = NodeId
 type Limit    = Int
-type Offset    = Int
-
+type Offset   = Int
 

@@ -1,3 +1,15 @@
+{-|
+Module      : Gargantext.
+Description : 
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+-}
+
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.Utils.DateUtils where
 
 import Gargantext.Prelude

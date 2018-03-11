@@ -1,3 +1,16 @@
+{-|
+Module      : Gargantext.
+Description : 
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.RCT where
 
 import Gargantext.Prelude
@@ -49,6 +62,5 @@ foo = undefined
 --
 -- forms :: Text -> [Text]
 -- forms = words
-
 
 

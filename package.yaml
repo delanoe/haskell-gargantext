@@ -149,6 +149,8 @@ tests:
   garg-test:
     main: Main.hs
     source-dirs: src-test
+    default-extensions: 
+    - NoImplicitPrelude
     ghc-options:
     - -threaded
     - -rtsopts

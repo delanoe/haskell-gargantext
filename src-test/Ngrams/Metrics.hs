@@ -4,12 +4,15 @@
 
 module Ngrams.Metrics (main) where
 
-import Gargantext.Ngrams.Metrics
-import Data.Ratio
-import Data.Text (Text)
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Ratio
+
 import Test.Hspec
 import Test.QuickCheck
-import qualified Data.Text as T
+
+import Gargantext.Prelude
+import Gargantext.Ngrams.Metrics
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
@@ -121,5 +124,5 @@ testPair :: (Eq a, Show a)
   -> Text              -- ^ Second input
   -> a                 -- ^ Expected result
   -> SpecWith ()
-testPair f a b r = it ("‘" ++ T.unpack a ++ "’ and ‘" ++ T.unpack b ++ "’") $
+testPair f a b r = it ("‘" <> T.unpack a <> "’ and ‘" <> T.unpack b <> "’") $
   f a b `shouldBe` r
