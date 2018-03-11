@@ -4,14 +4,15 @@
 
 module Ngrams.Lang.En where
 
+import Data.List ((!!))
+import Data.Text (Text)
+
 import Test.Hspec
 
 import Gargantext.Prelude
 import Gargantext.Types.Main (Language(..))
 import Gargantext.Ngrams.Parser (extractNgrams, selectNgrams)
 
-import Data.Text (Text(..))
-import Data.List ((!!))
 
 ngramsExtractionTest :: IO ()
 ngramsExtractionTest = hspec $ do

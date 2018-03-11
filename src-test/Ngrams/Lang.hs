@@ -1,5 +1,6 @@
 module Ngrams.Lang where
 
+import Gargantext.Prelude (IO())
 
 import Gargantext.Types.Main (Language(..))
 import qualified Ngrams.Lang.Fr as Fr

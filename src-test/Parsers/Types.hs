@@ -1,10 +1,10 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE StandaloneDeriving   #-}
 
 module Parsers.Types where
 
 import Gargantext.Prelude
-import Prelude (floor, fromIntegral)
 
 import Test.QuickCheck
 import Test.QuickCheck.Instances ()
@@ -18,7 +18,7 @@ import Data.Either (Either(..))
 deriving instance Eq ZonedTime
 
 looseTimeOfDayPrecision :: TimeOfDay -> TimeOfDay
-looseTimeOfDayPrecision (TimeOfDay h m s) = TimeOfDay h m 0
+looseTimeOfDayPrecision (TimeOfDay h m _) = TimeOfDay h m 0
 
 looseLocalTimePrecision :: LocalTime -> LocalTime
 looseLocalTimePrecision (LocalTime ld ltd) = LocalTime ld $ looseTimeOfDayPrecision ltd

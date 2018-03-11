@@ -9,7 +9,6 @@ import Test.QuickCheck
 import Parsers.Types
 
 import Control.Applicative ((<*>))
-import Data.Tuple (uncurry)
 import Data.Either (Either(..))
 import Data.Time (ZonedTime(..))
 import Data.Text (pack, Text)

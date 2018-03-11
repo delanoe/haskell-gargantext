@@ -1,6 +1,20 @@
-module Gargantext.Analysis where
+{-|
+Module      : Gargantext.Analysis
+Description : Gargantext Analysis
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+-}
 
-import Gargantext.Prelude
+{-# LANGUAGE NoImplicitPrelude #-}
+
+
+module Gargantext.Analysis 
+  where
+
+import Gargantext.Prelude (undefined, IO(), Int())
 
 -- import qualified Data.Text.Lazy as DTL
 import Data.Text

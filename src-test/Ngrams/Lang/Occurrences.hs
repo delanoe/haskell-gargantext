@@ -4,18 +4,13 @@
 module Ngrams.Lang.Occurrences where
 
 import Test.Hspec
-import Control.Exception (evaluate)
 
-
-import Data.Text (Text)
+import Data.Either (Either(Right))
 
 import Gargantext.Prelude
-import Gargantext.Types.Main (Language(..))
-import Gargantext.Ngrams
 import Gargantext.Ngrams.Occurrences (parseOccurrences)
-import Gargantext.Ngrams.Parser (extractNgrams, selectNgrams)
 
-
+parsersTest :: IO ()
 parsersTest = hspec $ do
   describe "Parser for occurrences" $ do
     
