@@ -46,6 +46,7 @@ import Control.Monad.Trans.Resource
 -- import Control.Natural ((:~>))
 
 import Data.Maybe
+import Data.Text (Text)
 
 -- import Database.PostgreSQL.Simple
 import Servant
@@ -100,36 +101,33 @@ runDB _ = undefined {- access pool from env, run action -}
 -- | very basic Example for testing purpose
 
 -- type MyAPI         = TeamAPI -- :<|> UserAPI :<|> ...
-type TeamAPI       = GetUserRoute -- :<|>
-type GetUserRoute  = "team"  :> Capture "teamkey" Int :> Get '[JSON] Int
---type GetTeamRoute     = "team"  :> Capture "teamkey" TeamKey :> Get '[JSON] Team
+type TeamAPI       = GetUserRoute :<|> GetTeamRoute
+type GetUserRoute  = "user"  :> Capture "userkey" Int :> Get '[JSON] Text
+type GetTeamRoute  = "team"  :> Capture "teamkey" Int :> Get '[JSON] Int
 
 myServerAPI :: Proxy TeamAPI
 myServerAPI = Proxy
 
---gargServer' :: ServerT MyAPI MyServer
---gargServer'  = teamServer
-
 teamServer :: ServerT TeamAPI MyServer
-teamServer  = getTeamR -- :<|> createTeamR :<|> updateTeamR :<|> getAllTeamsR
+teamServer  = getUserR :<|>  getTeamR 
+
+getUserR  :: Int -> MyServer Text
+getUserR _ = pure "name"
 
 getTeamR  :: Int -> MyServer Int
-getTeamR _ = do
-    pure 1
+getTeamR _ = pure 1
 
----- Note that @type MyAPIWithAuth = JwtAuthHeader :> MyAPI@ so that
----- @Server MyAPIWithAuth@ expands to @Maybe UnverifiedJwtToken -> Server MyAPI@.
---myServerWithAuth :: Env -> Server MyAPIWithAuth
-----myServerWithAuth env unverifiedJwt = enter (myServerNat env unverifiedJwt) myServer
---myServerWithAuth :: forall a. Env -> Maybe UnverifiedJwtToken -> ServerT (MyServer a) Handler
-
-myServerWithAuth :: Env -> Maybe UnverifiedJwtToken -> Int -> Handler Int
+-- Question: how to simplify the type here (and automatically generate it) ? 
+myServerWithAuth :: Env -> Maybe UnverifiedJwtToken
+                        -> (Int -> ExceptT ServantErr IO Text)
+                      :<|> (Int -> ExceptT ServantErr IO Int)
 myServerWithAuth env unverifiedJwt = hoistServer myServerAPI (nt env unverifiedJwt) teamServer
 
--- nt :: Applicative f => Env -> p -> MyServer a -> f (ExceptT ServantErr IO a)
-nt :: Env -> Maybe UnverifiedJwtToken -> MyServer a -> Handler (ExceptT ServantErr IO a)
-nt env _ s = pure $ runResourceT (runReaderT (myServerM s) (env, mtoken'))
+nt :: Env -> Maybe UnverifiedJwtToken -> MyServer a -> ExceptT ServantErr IO a
+nt env _ s = runResourceT (runReaderT (myServerM s) (env, mtoken'))
    where
        mtoken' :: Maybe Token
        mtoken'  = undefined
+
+
 
