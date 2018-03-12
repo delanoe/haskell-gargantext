@@ -82,7 +82,7 @@ import Network.Wai (Request, requestHeaders)
 --import qualified Network.Wai.Handler.Warp as Warp
 import Network.Wai.Middleware.Cors
 
--- import Network.Wai.Middleware.RequestLogger
+import Network.Wai.Middleware.RequestLogger
 -- import qualified Network.Wai.Middleware.RequestLogger as RequestLogger
 
 import Network.HTTP.Types hiding (Query)
@@ -100,7 +100,10 @@ fireWall req fw = do
     let hostOk   = Just (encodeUtf8 "localhost:3000")
     let originOk = Just (encodeUtf8 "http://localhost:8008")
 
-    if origin == originOk && host == hostOk || (not $ unFireWall fw)
+    if  origin == originOk
+       && host == hostOk
+       || (not $ unFireWall fw)
+       
        then pure True
        else pure False
 
@@ -111,6 +114,7 @@ makeApp fw = do
     let serverApp = appMock
 
     -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
+    --logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
     let checkOriginAndHost app req resp = do
             blocking <- fireWall req fw
             case blocking  of
@@ -135,7 +139,7 @@ makeApp fw = do
     --          $ Warp.defaultSettings
     
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
-    pure $ checkOriginAndHost $ corsMiddleware $ serverApp
+    pure $ logStdoutDev $ checkOriginAndHost $ corsMiddleware $ serverApp
 
 
 ---------------------------------------------------------------------
