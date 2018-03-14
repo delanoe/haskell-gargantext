@@ -63,6 +63,7 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd              
                                            , hyperdataDocument_page               :: Maybe Int
                                            , hyperdataDocument_title              :: Maybe Text
                                            , hyperdataDocument_authors            :: Maybe Text
+                                           , hyperdataDocument_source             :: Maybe Text
                                            , hyperdataDocument_abstract           :: Maybe Text
                                            , hyperdataDocument_statuses           :: Maybe [Status]
                                            , hyperdataDocument_publication_date   :: Maybe Text
@@ -76,9 +77,9 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd              
 $(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
 
 hyperdataDocuments :: [HyperdataDocument]
-hyperdataDocuments = [HyperdataDocument Nothing Nothing Nothing Nothing (Just "Title") 
-                                            Nothing (Just "Abstract") Nothing Nothing 
-                                            Nothing Nothing Nothing Nothing Nothing Nothing
+hyperdataDocuments = [HyperdataDocument Nothing Nothing Nothing Nothing (Just "[TROLL] AI is big but less than crypto") 
+                                        Nothing (Just "Solar System journal") Nothing Nothing Nothing 
+                                        Nothing Nothing Nothing Nothing Nothing Nothing
                          ]
 
 
@@ -240,7 +241,7 @@ hyperdataDocument = case decode docExample of
                       Nothing -> HyperdataDocument Nothing Nothing Nothing Nothing
                                                    Nothing Nothing Nothing Nothing
                                                    Nothing Nothing Nothing Nothing
-                                                   Nothing Nothing Nothing
+                                                   Nothing Nothing Nothing Nothing
 docExample :: ByteString
 docExample = "{\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"statuses\":[],\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 
