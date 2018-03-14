@@ -76,11 +76,19 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd              
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
 
+toHyperdataDocuments :: [(Text, Text)] -> [HyperdataDocument]
+toHyperdataDocuments ts = map (\(t1,t2) -> HyperdataDocument Nothing Nothing Nothing Nothing (Just t1) 
+                                           Nothing (Just t2) Nothing Nothing Nothing 
+                                           Nothing Nothing Nothing Nothing Nothing Nothing
+                                           ) ts
+
 hyperdataDocuments :: [HyperdataDocument]
-hyperdataDocuments = [HyperdataDocument Nothing Nothing Nothing Nothing (Just "AI is big but less than crypto") 
-                                        Nothing (Just "Troll System journal") Nothing Nothing Nothing 
-                                        Nothing Nothing Nothing Nothing Nothing Nothing
-                         ]
+hyperdataDocuments = toHyperdataDocuments [ ("AI is big but less than crypto", "Troll System journal")
+                                          , ("Crypto is big but less than AI", "System Troll review" )
+                                          , ("Science is magic"              , "Closed Source review")
+                                          , ("Open science for all"          , "No Time"             )
+                                          , ("Closed science for me"         , "No Space"            )
+                                          ]
 
 
 instance Arbitrary HyperdataDocument where
