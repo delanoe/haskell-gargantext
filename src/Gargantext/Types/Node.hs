@@ -77,8 +77,8 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd              
 $(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
 
 hyperdataDocuments :: [HyperdataDocument]
-hyperdataDocuments = [HyperdataDocument Nothing Nothing Nothing Nothing (Just "[TROLL] AI is big but less than crypto") 
-                                        Nothing (Just "Solar System journal") Nothing Nothing Nothing 
+hyperdataDocuments = [HyperdataDocument Nothing Nothing Nothing Nothing (Just "AI is big but less than crypto") 
+                                        Nothing (Just "Troll System journal") Nothing Nothing Nothing 
                                         Nothing Nothing Nothing Nothing Nothing Nothing
                          ]
 
