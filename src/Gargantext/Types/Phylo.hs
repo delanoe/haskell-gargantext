@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Types.Phylo
-Description : Main Types of Nodes
+Description : Main Types for Phylomemy
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
