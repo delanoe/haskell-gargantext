@@ -19,9 +19,6 @@ Phylomemy was first described in [REF].
 -}
 
 {-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE FlexibleInstances    #-}
 
 module Gargantext.Types.Phylo where
 
