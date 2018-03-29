@@ -32,7 +32,7 @@ import GHC.Generics (Generic)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
--- | Phylo datatype descriptor:
+-- | Phylo datatype descriptor
 -- Period: time Segment of the whole phylomemy in UTCTime format (start,end)
 -- Ngrams : list of all (possible) terms contained in the phylomemy (with their id)
 -- Steps : list of all steps to build the phylomemy
@@ -47,7 +47,7 @@ type End     = UTCTime
 type Ngram   = (NgramId, Text)
 type NgramId = Int
 
--- | PhyloStep datatype descriptor:
+-- | PhyloStep datatype descriptor
 -- Period: tuple (start date, end date) of the step of the phylomemy
 -- Levels: levels of granularity
 data PhyloStep = PhyloStep { _phyloStepPeriod :: (Start, End)
