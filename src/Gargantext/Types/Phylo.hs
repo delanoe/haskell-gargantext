@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Types.Nodes
+Module      : Gargantext.Types.Phylo
 Description : Main Types of Nodes
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
