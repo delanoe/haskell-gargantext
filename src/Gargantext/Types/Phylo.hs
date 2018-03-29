@@ -10,7 +10,7 @@ Portability : POSIX
 Specifications of Phylomemy format.
 
 Phylomemy can be described as a Temporal Graph with different scale of
-granularity of group of terms.
+granularity of group of ngrams (terms and multi-terms).
 
 The main type is Phylo which is synonym of Phylomemy (only difference is
 the number of chars).
@@ -34,7 +34,7 @@ import Gargantext.Prelude
 ------------------------------------------------------------------------
 -- | Phylo datatype descriptor:
 -- Period: time Segment of the whole phylomemy in UTCTime format (start,end)
--- Terms : list of all (possible) terms contained in the phylomemy (with their id)
+-- Ngrams : list of all (possible) terms contained in the phylomemy (with their id)
 -- Steps : list of all steps to build the phylomemy
 data Phylo = Phylo { _phyloPeriod :: (Start, End)
                    , _phyloNgrams :: [Ngram]
@@ -56,7 +56,7 @@ data PhyloStep = PhyloStep { _phyloStepPeriod :: (Start, End)
 
 -- | Level of a step of a Phylomemy descriptor
 -- Label: maybe has a label as text
--- Terms: set of terms that build the group
+-- Ngrams: set of terms that build the group
 -- Temporal Parents: directed and weighted link to Parents
 -- Levels description:
 -- Level 0: Ngram equals itself      (by identity) == _phyloNgrams
@@ -64,7 +64,7 @@ data PhyloStep = PhyloStep { _phyloStepPeriod :: (Start, End)
 -- Level 2: Frequent Item Set groups (by statistics)
 -- Level 3: Clustering               (by statistics)
 data Level = Level { _levelLabel              :: Maybe Text
-                   , _levelTerms              :: [NgramId]
+                   , _levelNgrams             :: [NgramId]
                    
                    , _levelTemporalParents    :: [NgramId]
                    , _levelTemporalChilds     :: [NgramId]
