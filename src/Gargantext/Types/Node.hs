@@ -9,18 +9,23 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE FlexibleInstances    #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.Types.Node where
+
+import Prelude (Enum, Bounded, minBound, maxBound)
 
 import GHC.Generics (Generic)
 
 import           Control.Lens hiding (elements)
 import qualified Control.Lens   as L
+import           Control.Applicative ((<*>))
+
 import           Data.Aeson
 import           Data.Aeson (Value(),toJSON)
 import           Data.Aeson.TH (deriveJSON)
@@ -29,7 +34,7 @@ import           Data.Either
 import           Data.Eq (Eq)
 import           Data.Text (Text, unpack)
 import           Data.Time (UTCTime)
-import           Data.Time.Segment (jour)
+import           Data.Time.Segment (jour, timesAfter, Granularity(D))
 import           Data.Swagger
 
 import           Text.Read (read)
@@ -44,17 +49,23 @@ import           Gargantext.Prelude
 import           Gargantext.Utils.Prefix (unPrefix)
 
 ------------------------------------------------------------------------
-data Status  = Status { status_date     :: Maybe UTCTime
-                      , status_error    :: Maybe Text
-                      , status_action   :: Maybe Text
-                      , status_complete :: Maybe Bool
-                      , status_progress :: Maybe Int
+
+type UTCTime' = UTCTime
+
+instance Arbitrary UTCTime' where
+    arbitrary = elements $ timesAfter 100 D (jour 2000 01 01)
+
+
+
+------------------------------------------------------------------------
+data Status  = Status { status_failed    :: Int
+                      , status_succeeded :: Int
+                      , status_remaining :: Int
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "status_") ''Status)
 
 instance Arbitrary Status where
-    arbitrary = elements [Status Nothing Nothing Nothing Nothing Nothing]
-
+  arbitrary = Status <$> arbitrary <*> arbitrary <*> arbitrary
 
 ------------------------------------------------------------------------
 data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd                :: Maybe Text
@@ -99,25 +110,50 @@ data LanguageNodes = LanguageNodes { languageNodes___unknown__ :: [Int]}
     deriving (Show, Generic)
 $(deriveJSON (unPrefix "languageNodes_") ''LanguageNodes)
 
+------------------------------------------------------------------------
+-- level: debug | dev  (fatal = critical)
+data EventLevel = CRITICAL | FATAL | ERROR | WARNING | INFO | DEBUG
+  deriving (Show, Generic, Enum, Bounded)
+
+instance FromJSON EventLevel
+instance ToJSON EventLevel
+
+instance Arbitrary EventLevel where
+  arbitrary = elements [minBound..maxBound]
 
 ------------------------------------------------------------------------
 
-data Resource = Resource { resource_url  :: Maybe Text
-                         , resource_path :: Maybe Text
-                         , resource_type :: Maybe Int
-                         , resource_extracted :: Maybe Bool
+data Event = Event { event_level   :: EventLevel
+                   , event_message :: Text
+                   , event_date    :: UTCTime
+            } deriving (Show, Generic)
+$(deriveJSON (unPrefix "event_") ''Event)
+
+instance Arbitrary Event where
+  arbitrary = Event <$> arbitrary <*> arbitrary <*> arbitrary
+
+------------------------------------------------------------------------
+
+type Text' = Text
+
+instance Arbitrary Text' where
+  arbitrary = elements ["ici", "la"]
+
+data Resource = Resource { resource_path    :: Maybe Text
+                         , resource_scraper :: Maybe Text
+                         , resource_query   :: Maybe Text
+                         , resource_events  :: [Event]
+                         , resource_status  :: Status
+                         , resource_date    :: UTCTime'
                          } deriving (Show, Generic)
 $(deriveJSON (unPrefix "resource_") ''Resource)
 
 instance Arbitrary Resource where
-    arbitrary = elements [Resource Nothing Nothing Nothing Nothing]
+    arbitrary = Resource <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
-data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_action       :: Maybe Text
-                                       , hyperdataCorpus_statuses     :: Maybe [Status]
-                                       , hyperdataCorpus_languages    :: Maybe LanguageNodes
-                                       , hyperdataCorpus_resources    :: Maybe [Resource]
-                                       , hyperdataCorpus_language_id  :: Maybe Text
-                                       , hyperdataCorpus_skipped_docs :: Maybe [Int]
+------------------------------------------------------------------------
+
+data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_resources    :: [Resource]
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
