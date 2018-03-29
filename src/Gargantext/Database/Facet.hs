@@ -37,7 +37,7 @@ import Data.Maybe (Maybe)
 import Data.Profunctor.Product.Default (Default)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Time (UTCTime)
-import Data.Time.Segment (jour, timesAfter, Granularity(D))
+import Data.Time.Segment (jour)
 import Data.Swagger
 
 import           Database.PostgreSQL.Simple (Connection)
@@ -110,7 +110,6 @@ type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGInt4       )
 
 -----------------------------------------------------------------------
-type UTCTime' = UTCTime
 
 data FacetChart = FacetChart { facetChart_time  :: UTCTime'
                              , facetChart_count :: Double
@@ -118,9 +117,6 @@ data FacetChart = FacetChart { facetChart_time  :: UTCTime'
         deriving (Show, Generic)
 $(deriveJSON (unPrefix "facetChart_") ''FacetChart)
 instance ToSchema FacetChart
-
-instance Arbitrary UTCTime' where
-    arbitrary = elements $ timesAfter 100 D (jour 2000 01 01)
 
 instance Arbitrary FacetChart where
     arbitrary = FacetChart <$> arbitrary <*> arbitrary
