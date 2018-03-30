@@ -67,9 +67,10 @@ type PhyloLevel = [PhyloGroup]
 -- | PhyloGroup : group of ngrams at each level and step
 -- Label : maybe has a label as text
 -- Ngrams: set of terms that build the group
--- Temporal    Parents|Childs: directed and weighted link to Parents|Childs (Temporal axis)
--- Granularity Parents|Childs: directed and weighted link to Parents|Childs (Granularity axis)
-data PhyloGroup = PhyloGroup { _phyloGroupLabel         :: Maybe Text
+-- Period Parents|Childs: directed and weighted link to Parents|Childs (Temporal Period axis)
+-- Level  Parents|Childs: directed and weighted link to Parents|Childs (Level Granularity axis)
+data PhyloGroup = PhyloGroup { _phyloGroupId            :: GroupId
+                             , _phyloGroupLabel         :: Maybe Text
                              , _phyloGroupNgrams        :: [NgramId]
                    
                              , _phyloGroupPeriodParents :: [Edge]
@@ -79,8 +80,9 @@ data PhyloGroup = PhyloGroup { _phyloGroupLabel         :: Maybe Text
                              , _phyloGroupLevelChilds   :: [Edge]
                              } deriving (Generic)
 
-type Edge   = (NgramId, Weight)
-type Weight = Double
+type Edge   = (PhyloGroupId, Weight)
+type Weight       = Double
+type PhyloGroupId = Int
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo"       ) ''Phylo       )
