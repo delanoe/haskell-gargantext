@@ -58,9 +58,9 @@ data PhyloStep = PhyloStep { _phyloStepPeriod :: (Start, End)
 
 -- | PhyloLevel : levels of phylomemy on level axis
 -- Levels description:
--- Level 0: Ngram equals itself  (by identity) == _phyloNgrams
--- Level 1: Group gathers synonyms (by stems + by qualitative expert meaning)
--- Level 2: Group is Frequent Item Set          (by statistics)
+-- Level 0: Ngram equals itself              (by identity) == _phyloNgrams
+-- Level 1: Group gathers synonyms           (by stems + by qualitative expert meaning)
+-- Level 2: Group is Frequent Item Set       (by statistics)
 -- Level 3: Group is a cluster or community  (by statistics)
 
 type PhyloLevel = [PhyloGroup]
