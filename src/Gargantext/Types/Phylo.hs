@@ -74,8 +74,8 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 -- | PhyloGroup : group of ngrams at each level and step
 -- Label : maybe has a label as text
 -- Ngrams: set of terms that build the group
--- Period Parents|Childs: directed and weighted link to Parents|Childs (Temporal Period axis)
--- Level  Parents|Childs: directed and weighted link to Parents|Childs (Level Granularity axis)
+-- Period Parents|Childs: weighted link to Parents|Childs (Temporal Period   axis)
+-- Level  Parents|Childs: weighted link to Parents|Childs (Level Granularity axis)
 data PhyloGroup = PhyloGroup { _phyloGroupId            :: PhyloGroupId
                              , _phyloGroupLabel         :: Maybe Text
                              , _phyloGroupNgrams        :: [NgramId]
