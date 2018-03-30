@@ -43,8 +43,8 @@ data Phylo = Phylo { _phyloDuration :: (Start, End)
                    , _phyloPeriods    :: [PhyloPeriod]
                    } deriving (Generic)
 
-type Start   = UTCTime
-type End     = UTCTime
+type Start   = UTCTime -- TODO: format EPOCH unix integer
+type End     = UTCTime -- TODO: format EPOCH unix integer
 
 type Ngram   = (NgramId, Text)
 type NgramId = Int
@@ -52,9 +52,11 @@ type NgramId = Int
 -- | PhyloStep : steps of phylomemy on temporal axis
 -- Period: tuple (start date, end date) of the step of the phylomemy
 -- Levels: levels of granularity
-data PhyloPeriod = PhyloPeriod { _phyloPeriodDuration :: (Start, End)
+data PhyloPeriod = PhyloPeriod { _phyloPeriodId     :: PhyloPeriodId
                                , _phyloPeriodLevels :: [PhyloLevel]
                                } deriving (Generic)
+
+type PhyloPeriodId = (Start, End)
 
 -- | PhyloLevel : levels of phylomemy on level axis
 -- Levels description:
@@ -62,14 +64,18 @@ data PhyloPeriod = PhyloPeriod { _phyloPeriodDuration :: (Start, End)
 -- Level  0: Group of synonyms           (by stems + by qualitative expert meaning)
 -- Level  1: First level of clustering
 -- Level  N: Nth   level of clustering
-type PhyloLevel = [PhyloGroup]
+data PhyloLevel = PhyloLevel { _phyloLevelId    :: PhyloLevelId
+                             , _phyloLevelGroups :: [PhyloGroup]
+                             } deriving (Generic)
+
+type PhyloLevelId = (PhyloPeriodId, Int)
 
 -- | PhyloGroup : group of ngrams at each level and step
 -- Label : maybe has a label as text
 -- Ngrams: set of terms that build the group
 -- Period Parents|Childs: directed and weighted link to Parents|Childs (Temporal Period axis)
 -- Level  Parents|Childs: directed and weighted link to Parents|Childs (Level Granularity axis)
-data PhyloGroup = PhyloGroup { _phyloGroupId            :: GroupId
+data PhyloGroup = PhyloGroup { _phyloGroupId            :: PhyloGroupId
                              , _phyloGroupLabel         :: Maybe Text
                              , _phyloGroupNgrams        :: [NgramId]
                    
@@ -80,11 +86,12 @@ data PhyloGroup = PhyloGroup { _phyloGroupId            :: GroupId
                              , _phyloGroupLevelChilds   :: [Edge]
                              } deriving (Generic)
 
+type PhyloGroupId = (PhyloPeriodId, PhyloLevelId, Int)
 type Edge   = (PhyloGroupId, Weight)
 type Weight       = Double
-type PhyloGroupId = Int
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo"       ) ''Phylo       )
 $(deriveJSON (unPrefix "_phyloPeriod" ) ''PhyloPeriod )
+$(deriveJSON (unPrefix "_phyloLevel"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phyloGroup"  ) ''PhyloGroup  )
