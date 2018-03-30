@@ -26,7 +26,7 @@ module Gargantext.Types.Phylo where
 import Data.Aeson.TH (deriveJSON)
 import Data.Maybe   (Maybe)
 import Data.Text    (Text)
-import Data.Time    (UTCTime)
+import Data.Time.Clock.POSIX  (POSIXTime)
 
 import GHC.Generics (Generic)
 
@@ -40,11 +40,12 @@ import Gargantext.Utils.Prefix (unPrefix)
 -- Steps    : list of all steps to build the phylomemy
 data Phylo = Phylo { _phyloDuration :: (Start, End)
                    , _phyloNgrams   :: [Ngram]
-                   , _phyloPeriods    :: [PhyloPeriod]
+                   , _phyloPeriods  :: [PhyloPeriod]
                    } deriving (Generic)
 
-type Start   = UTCTime -- TODO: format EPOCH unix integer
-type End     = UTCTime -- TODO: format EPOCH unix integer
+-- | UTCTime in seconds since UNIX epoch
+type Start   = POSIXTime
+type End     = POSIXTime
 
 type Ngram   = (NgramId, Text)
 type NgramId = Int
@@ -64,7 +65,7 @@ type PhyloPeriodId = (Start, End)
 -- Level  0: Group of synonyms           (by stems + by qualitative expert meaning)
 -- Level  1: First level of clustering
 -- Level  N: Nth   level of clustering
-data PhyloLevel = PhyloLevel { _phyloLevelId    :: PhyloLevelId
+data PhyloLevel = PhyloLevel { _phyloLevelId     :: PhyloLevelId
                              , _phyloLevelGroups :: [PhyloGroup]
                              } deriving (Generic)
 
@@ -86,8 +87,8 @@ data PhyloGroup = PhyloGroup { _phyloGroupId            :: PhyloGroupId
                              , _phyloGroupLevelChilds   :: [Edge]
                              } deriving (Generic)
 
-type PhyloGroupId = (PhyloPeriodId, PhyloLevelId, Int)
-type Edge   = (PhyloGroupId, Weight)
+type PhyloGroupId = (PhyloLevelId, Int)
+type Edge         = (PhyloGroupId, Weight)
 type Weight       = Double
 
 -- | JSON instances
