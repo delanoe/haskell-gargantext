@@ -25,11 +25,16 @@ import Gargantext.Prelude
 
 import System.FilePath (takeExtension, FilePath())
 import Data.Attoparsec.ByteString (parseOnly, Parser)
-import Data.ByteString as DB
-import Data.Map        as DM
+import qualified Data.ByteString as DB
+import qualified Data.Map        as DM
+import Data.Either.Extra (partitionEithers)
 import Data.Ord()
+import Data.Foldable (concat)
 import Data.String()
 import Data.Either.Extra(Either())
+
+import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8)
 ----
 --import Control.Monad (join)
 import Codec.Archive.Zip (withArchive, getEntry, getEntries)
@@ -57,13 +62,20 @@ data FileFormat = WOS        -- Implemented (ISI Format)
 --                | XML        -- Not Implemented / see :
 --                             -- > http://chrisdone.com/posts/fast-haskell-c-parsing-xml
 
-parse :: FileFormat -> FilePath 
-      -> IO [Either String [[(DB.ByteString, DB.ByteString)]]]
+-- TODO: to debug maybe add the filepath in error message
+type ParseError = String
+
+
+parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
 parse format path = do
     files <- case takeExtension path of
               ".zip" -> openZip              path
               _      -> pure <$> DB.readFile path
-    mapConcurrently (runParser format) files
+    (as, bs) <- partitionEithers <$> mapConcurrently (runParser format) files
+    pure (as, map toText $ concat bs)
+      where
+        -- TODO : decode with bayesian inference on encodings
+        toText = map (\(a,b) -> (decodeUtf8 a, decodeUtf8 b))
 
 
 -- | withParser:

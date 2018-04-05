@@ -23,7 +23,6 @@ library:
   - -Werror
   exposed-modules:
   - Gargantext
-  - Gargantext.Analysis
   - Gargantext.DSL
   - Gargantext.Database
   - Gargantext.Database.Instances
@@ -37,7 +36,9 @@ library:
   - Gargantext.Database.Utils
   - Gargantext.Database.User
   - Gargantext.Ngrams
-  - Gargantext.Ngrams.Count
+  - Gargantext.Ngrams.Analysis
+  - Gargantext.Ngrams.TFICF
+  - Gargantext.Ngrams.Letters
   - Gargantext.Ngrams.CoreNLP
   - Gargantext.Ngrams.Parser
   - Gargantext.Ngrams.Lang.En

@@ -11,7 +11,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 
 
-module Gargantext.Analysis 
+module Gargantext.Ngrams.Analysis 
   where
 
 import Gargantext.Prelude (undefined, IO(), Int())

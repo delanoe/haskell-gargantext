@@ -38,7 +38,7 @@ extractNgrams lang s = map (groupNgrams lang) <$> extractNgrams' lang s
 extractNgrams' :: Language -> Text -> IO [[Ngrams]]
 extractNgrams' lang t =  map (map token2text)
                      <$> map _sentenceTokens
-                     <$> sentences
+                     <$> _sentences
                      <$> corenlp lang t
 
 -- | This function selects ngrams according to grammars specific

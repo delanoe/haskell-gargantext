@@ -27,13 +27,12 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , (+), (*), (/), (-), (.), (>=), ($), (**), (^), (<), (>)
                  , Eq, (==), (<>)
                  , (&&), (||), not
-                 , toS
+                 , fst, snd, toS
                  )
 
 -- TODO import functions optimized in Utils.Count
 -- import Protolude hiding (head, last, all, any, sum, product, length)
 -- import Gargantext.Utils.Count
-
 import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
 import qualified Data.Map as Map
