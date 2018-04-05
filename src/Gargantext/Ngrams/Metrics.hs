@@ -8,8 +8,7 @@ Maintainer  : sample@email.com
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
+Mainly reexport functions in @Data.Text.Metrics@
 -}
 
 module Gargantext.Ngrams.Metrics (levenshtein

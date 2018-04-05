@@ -62,7 +62,8 @@ type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
                              :> Get '[JSON] [Node HyperdataDocument]
-             :<|> "facet" :> "documents" :> FacetDocAPI
+             :<|> "facet" :> Summary " Facet documents"
+                          :> "documents" :> FacetDocAPI
 --             :<|> "facet" :<|> "sources"   :<|> FacetSourcesAPI
 --             :<|> "facet" :<|> "authors"   :<|> FacetAuthorsAPI
 --             :<|> "facet" :<|> "terms"     :<|> FacetTermsAPI
@@ -73,11 +74,13 @@ type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
 
 
 type FacetDocAPI = "table"
+                   :> Summary " Table data"
                    :> QueryParam "offset" Int
                    :> QueryParam "limit"  Int
                    :> Get '[JSON] [FacetDoc]
 
                 :<|> "chart"
+                   :> Summary " Chart data"
                    :> QueryParam "from" UTCTime
                    :> QueryParam "to"   UTCTime
                    :> Get '[JSON] [FacetChart]

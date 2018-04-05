@@ -1,8 +1,20 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE     NoImplicitPrelude       #-}
+{-|
+Module      : Gargantext.Ngrams.CoreNLP
+Description : CoreNLP module
+Copyright   : (c) CNRS, 2017
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
+
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Gargantext.Ngrams.CoreNLP where
 
@@ -51,7 +63,7 @@ data Properties = Properties { _propertiesAnnotators  :: Text
 
 $(deriveJSON (unPrefix "_properties") ''Properties)
 
-data Sentences = Sentences { sentences :: [Sentence]}
+data Sentences = Sentences { _sentences :: [Sentence]}
   deriving (Show, Generic)
 instance ToJSON Sentences
 instance FromJSON Sentences
@@ -102,7 +114,7 @@ corenlp lang txt = do
 -- parseWith  _tokenNer     "Hello world of Peter."
 -- [[("``","O"),("Hello","O"),("world","O"),("of","O"),("Peter","PERSON"),(".","O"),("''","O")]]
 tokenWith :: (Token -> t) -> Language -> Text -> IO [[(Text, t)]]
-tokenWith f lang s = map (map (\t -> (_tokenWord t, f t))) <$> map _sentenceTokens <$> sentences <$> corenlp lang s
+tokenWith f lang s = map (map (\t -> (_tokenWord t, f t))) <$> map _sentenceTokens <$> _sentences <$> corenlp lang s
 
 
 
