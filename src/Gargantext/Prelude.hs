@@ -15,17 +15,19 @@ module Gargantext.Prelude
   )
   where
 
+import Data.Maybe (isJust, fromJust)
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Floating, Char, IO
                  , pure, (<$>), panic
+                 , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith
                  , sum, fromIntegral, length, fmap
                  , takeWhile, sqrt, undefined, identity
                  , abs, maximum, minimum, return, snd, truncate
-                 , (+), (*), (/), (-), (.), (>=), ($), (**), (^), (<), (>)
-                 , Eq, (==), (<>)
+                 , (+), (*), (/), (-), (.), ($), (**), (^), (<), (>)
+                 , Eq, (==), (>=), (<=), (<>)
                  , (&&), (||), not
                  , fst, snd, toS
                  )
@@ -208,3 +210,9 @@ zipFst  f xs = zip (f xs) xs
 
 zipSnd :: ([a] -> [b]) -> [a] -> [(a, b)]
 zipSnd f xs = zip xs (f xs)
+
+
+-- Just 
+
+unMaybe :: [Maybe a] -> [a]
+unMaybe = map fromJust . L.filter isJust

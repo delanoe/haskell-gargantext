@@ -6,6 +6,8 @@ allow-newer: true
 extra-deps:
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 4e3d57d80e9dfe6624c8eeaa8595fc8fe64d8723
+- git: https://gitlab.iscpif.fr/gargantext/hlcm.git
+  commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
 - git: https://github.com/delanoe/servant-static-th.git
   commit: fff77e79fe94d563ab5cae2609b78c17b5c1f434
 - aeson-1.2.4.0
