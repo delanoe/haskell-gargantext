@@ -84,6 +84,7 @@ library:
   - http-api-data
   - http-types
   - hxt
+  - hlcm
   - ini
   - jose-jwt
   - lens
