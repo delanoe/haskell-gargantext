@@ -23,7 +23,6 @@ library:
   - -Werror
   exposed-modules:
   - Gargantext
-  - Gargantext.DSL
   - Gargantext.Database
   - Gargantext.Database.Instances
   - Gargantext.Database.Ngram
@@ -50,7 +49,6 @@ library:
   - Gargantext.Parsers.WOS
   - Gargantext.Parsers.Date
   - Gargantext.Prelude
-  - Gargantext.RCT
   - Gargantext.API
   - Gargantext.API.Auth
   - Gargantext.Types

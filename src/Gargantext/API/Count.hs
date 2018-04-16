@@ -28,6 +28,7 @@ import Prelude (Bounded, Enum, minBound, maxBound)
 import Data.Aeson hiding (Error)
 import Data.Aeson.TH (deriveJSON)
 import Data.Eq (Eq())
+import Data.Either
 import Data.List (repeat, permutations)
 import Data.Swagger
 import Data.Text (Text, pack)
@@ -105,8 +106,6 @@ messages :: [Message]
 messages =  toMessage $ [ (400, ["Ill formed query             "])
                         , (300, ["API connexion error          "])
                         , (300, ["Internal Gargantext Error    "])
-                        , (300, ["Connexion to Gargantext Error"])
-                        , (300, ["Token has expired            "])
                         ] <> take 10 ( repeat (200, [""]))
 
 instance Arbitrary Message where
@@ -117,23 +116,19 @@ instance ToJSON   Message
 
 instance ToSchema Message
 -----------------------------------------------------------------------
-data Counts = Counts [Count]
-                   deriving (Eq, Show, Generic)
+data Counts = Counts { results :: [Either Message Count]
+                     } deriving (Eq, Show, Generic)
+
 
 instance FromJSON Counts
 instance ToJSON   Counts
 
 instance Arbitrary Counts where
-    arbitrary = elements $ select
-                         $ map Counts 
-                         $ map (\xs -> zipWith (\s (c,m) -> Count s c m) scrapers xs) 
-                         $ chunkAlong (length scrapers) 1 $  (map filter' countOrErrors)
-        where
-            select xs = (take 10 xs) <> (take 10 $ drop 100 xs)
-            countOrErrors = [ (c,e) | c <- [500..1000], e <- reverse messages]
-            filter' (c,e) = case e of
-                              Message 200 _ -> (Just c , Nothing     )
-                              message       -> (Nothing, Just message)
+    arbitrary = elements [Counts [ Right (Count Pubmed (Just 20 ))
+                                 , Right (Count IsTex  (Just 150))
+                                 , Right (Count Hal    (Just 150))
+                                 ]
+                         ]
 
 instance ToSchema Counts
 
@@ -141,7 +136,6 @@ instance ToSchema Counts
 -----------------------------------------------------------------------
 data Count = Count { count_name    :: Scraper
                    , count_count   :: Maybe Int
-                   , count_message :: Maybe Message
                    }
                    deriving (Eq, Show, Generic)
 

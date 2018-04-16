@@ -22,6 +22,7 @@ module Gargantext.Ngrams ( module Gargantext.Ngrams.Letters
                          , module Gargantext.Ngrams.TextMining
                          , module Gargantext.Ngrams.Metrics
                          , Ngrams(..), ngrams, occ, sumOcc, text2fis
+                         , NgramsList(..)
                              --, module Gargantext.Ngrams.Words
                          ) where
 
@@ -38,6 +39,7 @@ import Gargantext.Ngrams.Metrics
 import qualified Gargantext.Ngrams.FrequentItemSet as FIS
 -----------------------------------------------------------------
 
+import Data.List (sort)
 import Data.Char (Char, isAlpha, isSpace)
 import Data.Text (Text, words, filter, toLower)
 import Data.Map.Strict  (Map
@@ -56,14 +58,16 @@ import Gargantext.Prelude hiding (filter)
 --import Language.Aspell.Options (ACOption(..))
 
 
+data NgramsList = Stop | Candidate | Graph
+  deriving (Show, Eq)
 
-data Ngrams = Ngrams { _ngramsNgrams :: Text
-                     , _ngramsStem   :: Text
+data Ngrams = Ngrams { _ngramsNgrams :: [Text]
+                     , _ngramsStem   :: [Text]
+                     , _ngramsList   :: Maybe NgramsList
                      } deriving (Show)
 
 instance Eq Ngrams where
-  Ngrams n1 s1 == Ngrams n2 s2 = n1 == n2 || s1 == s2
-
+  Ngrams n1 s1 _ == Ngrams n2 s2 _ = (sort n1) == (sort n2) || (sort s1) == (sort s2)
 
 type Occ     = Int
 --type Index   = Int
