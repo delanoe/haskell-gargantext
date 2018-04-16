@@ -21,7 +21,8 @@ unPrefix prefix = defaultOptions
 -- | Lower case leading character
 unCapitalize :: String -> String
 unCapitalize [] = []
-unCapitalize (c:cs) = toLower c : cs
+--unCapitalize (c:cs) = toLower c : cs
+unCapitalize cs = map toLower cs
 
 -- | Remove given prefix
 dropPrefix :: String -> String -> String
