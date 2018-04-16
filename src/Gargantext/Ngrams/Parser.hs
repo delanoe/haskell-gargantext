@@ -8,10 +8,11 @@ import Gargantext.Prelude
 import Gargantext.Ngrams.CoreNLP
 import Data.Text hiding (map)
 
-import Gargantext.Types.Main (Language(..), Ngrams)
+import Gargantext.Types.Main (Language(..))
 import qualified Gargantext.Ngrams.Lang.En as En
 import qualified Gargantext.Ngrams.Lang.Fr as Fr
 
+type SNgrams       = (Text, Text, Text)
 
 -- | Ngrams selection algorithms
 -- A form is a list of characters seperated by one or more spaces in a sentence.
@@ -31,11 +32,11 @@ import qualified Gargantext.Ngrams.Lang.Fr as Fr
 
 -- TODO for scientific papers: add maesures
 -- TODO add the p score regex
-extractNgrams :: Language -> Text -> IO [[Ngrams]]
+extractNgrams :: Language -> Text -> IO [[SNgrams]]
 extractNgrams lang s = map (groupNgrams lang) <$> extractNgrams' lang s
 
 
-extractNgrams' :: Language -> Text -> IO [[Ngrams]]
+extractNgrams' :: Language -> Text -> IO [[SNgrams]]
 extractNgrams' lang t =  map (map token2text)
                      <$> map _sentenceTokens
                      <$> _sentences
@@ -44,14 +45,13 @@ extractNgrams' lang t =  map (map token2text)
 -- | This function selects ngrams according to grammars specific
 --   of each language.
 --   In english, JJ is ADJectiv in french.
-selectNgrams :: Language -> [Ngrams] -> [Ngrams]
+selectNgrams :: Language -> [SNgrams] -> [SNgrams]
 selectNgrams EN = En.selectNgrams
 selectNgrams FR = Fr.selectNgrams
 
 -- | This function analyze and groups (or not) ngrams according to 
 --   grammars specific of each language.
-groupNgrams :: Language -> [Ngrams] -> [Ngrams]
+groupNgrams :: Language -> [SNgrams] -> [SNgrams]
 groupNgrams EN = En.groupNgrams
 groupNgrams FR = Fr.groupNgrams
-
 

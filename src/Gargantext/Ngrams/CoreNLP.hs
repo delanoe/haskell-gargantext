@@ -18,7 +18,6 @@ Portability : POSIX
 
 module Gargantext.Ngrams.CoreNLP where
 
-import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import GHC.Generics
 import Data.Monoid ((<>))
@@ -65,8 +64,8 @@ $(deriveJSON (unPrefix "_properties") ''Properties)
 
 data Sentences = Sentences { _sentences :: [Sentence]}
   deriving (Show, Generic)
-instance ToJSON Sentences
-instance FromJSON Sentences
+
+$(deriveJSON (unPrefix "_") ''Sentences)
 
 
 -- request = 

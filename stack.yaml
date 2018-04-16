@@ -2,6 +2,7 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
+
 allow-newer: true
 extra-deps:
 - git: https://github.com/delanoe/data-time-segment.git
@@ -25,6 +26,7 @@ extra-deps:
 - servant-multipart-0.11.1
 - servant-server-0.12
 - servant-swagger-ui-0.2.3.2.2.8
+- stemmer-0.5.2
 - text-1.2.3.0
 - text-show-3.6.2
 resolver: lts-10.6

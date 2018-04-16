@@ -8,16 +8,16 @@ import Data.Text (Text)
 import Data.Monoid ((<>))
 
 selectNgrams :: [(Text, Text, Text)] -> [(Text, Text, Text)]
-selectNgrams xs = filter selectNgrams' xs
+selectNgrams xs = filter isNgrams xs
     where
-        selectNgrams' (_,"NN"   ,_             ) = True
-        selectNgrams' (_,"NNS"  ,_             ) = True
-        selectNgrams' (_,"NNP"  ,_             ) = True
-        selectNgrams' (_,"NN+CC",_             ) = True
-        selectNgrams' (_,_      ,"PERSON"      ) = True
-        selectNgrams' (_,_      ,"ORGANIZATION") = True
-        selectNgrams' (_,_      ,"LOCATION"    ) = True
-        selectNgrams' (_,_      ,_             ) = False
+        isNgrams (_,"NN"   ,_             ) = True
+        isNgrams (_,"NNS"  ,_             ) = True
+        isNgrams (_,"NNP"  ,_             ) = True
+        isNgrams (_,"NN+CC",_             ) = True
+        isNgrams (_,_      ,"PERSON"      ) = True
+        isNgrams (_,_      ,"ORGANIZATION") = True
+        isNgrams (_,_      ,"LOCATION"    ) = True
+        isNgrams (_,_      ,_             ) = False
 
 
 groupNgrams :: [(Text, Text, Text)] -> [(Text, Text, Text)]
@@ -26,7 +26,7 @@ groupNgrams []       = []
 groupNgrams ((j1,"JJ",j1'):(c1,"CC",c1'):(j2,"JJ",j2'):(j3,"JJ",_):xs)      = groupNgrams (jn1:cc:jn2:xs)
     where
         jn j' j'' jn' = (j' <> " " <> j'', "JJ", jn')
-        cc  = (c1,"CC",c1')
+        cc  = (c1, "CC", c1')
         jn1 = (j1, "JJ", j1')
         jn2 = jn j2 j3 j2'
 
@@ -60,14 +60,14 @@ groupNgrams ((x,"NN",_):(y,"NN",yy):xs)    = groupNgrams ((x <> " " <> y, "NN", 
 -- > should be (antiinflammatory activity) <> (analgesic activity)
 
 groupNgrams ((x,"NN",_):(o,"IN",_):(y,"NN",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> y, "NN", yy):xs)
-groupNgrams ((x,"NN",_):(o,"IN",_):(y,"NNP",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> y, "NN", yy):xs)
+groupNgrams ((x,"NN",_):(o,"IN",_):(y,"NNP",yy):xs)      = groupNgrams ((x <> " " <> o <> " " <> y, "NN", yy):xs)
 
-groupNgrams ((x,"NN",_):(o,"IN",_):(det,"DT",_):(y,"NN",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> det <> " " <> y, "NN", yy):xs)
-groupNgrams ((x,"NN",_):(o,"IN",_):(det,"DT",_):(y,"NNP",yy):xs)       = groupNgrams ((x <> " " <> o <> " " <> det <> " " <> y, "NN", yy):xs)
+groupNgrams ((x,"NN",_):(o,"IN",_):(det,"DT",_):(y,"NN",yy):xs)    = groupNgrams ((x <> " " <> o <> " " <> det <> " " <> y, "NN", yy):xs)
+groupNgrams ((x,"NN",_):(o,"IN",_):(det,"DT",_):(y,"NNP",yy):xs)   = groupNgrams ((x <> " " <> o <> " " <> det <> " " <> y, "NN", yy):xs)
 
 groupNgrams ((x,_,"PERSON"):(y,yy,"PERSON"):xs)             = groupNgrams ((x <> " " <> y,yy,"PERSON"):xs)
 groupNgrams ((x,_,"ORGANIZATION"):(y,yy,"ORGANIZATION"):xs) = groupNgrams ((x <> " " <> y,yy,"ORGANIZATION"):xs)
-groupNgrams ((x,_,"LOCATION"):(y,yy,"LOCATION"):xs) = groupNgrams ((x <> " " <> y,yy,"LOCATION"):xs)
+groupNgrams ((x,_,"LOCATION"):(y,yy,"LOCATION"):xs)         = groupNgrams ((x <> " " <> y,yy,"LOCATION"):xs)
 
 groupNgrams (x:xs)                                          = (x:(groupNgrams xs))
 
