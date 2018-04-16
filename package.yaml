@@ -116,6 +116,7 @@ library:
   - servant-swagger-ui
   - servant-static-th
   - split
+  - stemmer
   - swagger2
   - tagsoup
   - text-metrics

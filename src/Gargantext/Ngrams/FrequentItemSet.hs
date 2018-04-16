@@ -45,8 +45,8 @@ all f is  = fisWith Nothing f is
 between :: (Int, Int) -> Frequency -> [[Item]] -> [Fis]
 between (x,y) f is = fisWithSize (Right (x,y)) f is
 
-maximum :: Int -> Frequency -> [[Item]] -> [Fis]
-maximum m f is = between (0,m) f is
+--maximum :: Int -> Frequency -> [[Item]] -> [Fis]
+--maximum m f is = between (0,m) f is
 
 
 ------------------------------------------------------------------------
@@ -67,7 +67,6 @@ items2fis is = case head is of
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
 
 fisWithSize :: Size -> Frequency -> [[Item]] -> [Fis]
 fisWithSize n f is = case n of
@@ -85,6 +84,5 @@ fisWith s f is = unMaybe $ map items2fis $ filter' $ runLCMmatrix is f
                 Nothing  -> identity
                 Just fun -> filter fun
 
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

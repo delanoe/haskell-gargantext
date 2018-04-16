@@ -21,7 +21,7 @@ module Gargantext.Ngrams ( module Gargantext.Ngrams.Letters
                          , module Gargantext.Ngrams.Occurrences
                          , module Gargantext.Ngrams.TextMining
                          , module Gargantext.Ngrams.Metrics
-                         , ngrams, occ, sumOcc, text2fis
+                         , Ngrams(..), ngrams, occ, sumOcc, text2fis
                              --, module Gargantext.Ngrams.Words
                          ) where
 
@@ -40,35 +40,46 @@ import qualified Gargantext.Ngrams.FrequentItemSet as FIS
 
 import Data.Char (Char, isAlpha, isSpace)
 import Data.Text (Text, words, filter, toLower)
-import Data.Map.Strict  (Map, empty, keys
+import Data.Map.Strict  (Map
+                        , empty
                         , insertWith, unionWith
-                        , fromList
                         , lookupIndex
+                        --, fromList, keys
                         )
 import qualified Data.Map.Strict as M (filter)
 import Data.Foldable (foldl')
 import Gargantext.Prelude hiding (filter)
-import qualified Data.List as L (filter)
 
 -- Maybe useful later:
 --import NLP.Stemmer (stem, Stemmer(..))
 --import Language.Aspell (check, suggest, spellChecker, spellCheckerWithOptions)
 --import Language.Aspell.Options (ACOption(..))
 
+
+
+data Ngrams = Ngrams { _ngramsNgrams :: Text
+                     , _ngramsStem   :: Text
+                     } deriving (Show)
+
+instance Eq Ngrams where
+  Ngrams n1 s1 == Ngrams n2 s2 = n1 == n2 || s1 == s2
+
+
 type Occ     = Int
-type Index   = Int
-type FreqMin = Int
+--type Index   = Int
 
 ngrams :: Text -> [Text]
-ngrams xs = monograms $ toLower $ filter isGram xs
+ngrams xs = monograms $ toLower $ filter isChar xs
 
 monograms :: Text -> [Text]
 monograms = words
 
-isGram :: Char -> Bool
-isGram '-' = True
-isGram '/' = True
-isGram  c  = isAlpha c || isSpace c
+-- TODO
+-- 12-b
+isChar :: Char -> Bool
+isChar '-' = True
+isChar '/' = True
+isChar  c  = isAlpha c || isSpace c
 
 -- | Compute the occurrences (occ)
 occ :: Ord a => [a] -> Map a Occ
@@ -78,18 +89,18 @@ occ xs = foldl' (\x y -> insertWith (+) y 1 x) empty xs
 sumOcc :: Ord a => [Map a Occ] -> Map a Occ
 sumOcc xs = foldl' (\x y -> unionWith (+) x y) empty xs
 
-noApax :: Ord a => Map a Occ -> Map a Occ
-noApax m = M.filter (>1) m
+--noApax :: Ord a => Map a Occ -> Map a Occ
+--noApax m = M.filter (>1) m
 
 -- | /!\ indexes are not the same:
 
 -- | Index ngrams from Map
-indexNgram :: Ord a => Map a Occ -> Map Index a
-indexNgram m = fromList (zip [1..] (keys m))
+--indexNgram :: Ord a => Map a Occ -> Map Index a
+--indexNgram m = fromList (zip [1..] (keys m))
 
 -- | Index ngrams from Map
-ngramIndex :: Ord a => Map a Occ -> Map a Index
-ngramIndex m = fromList (zip (keys m) [1..])
+--ngramIndex :: Ord a => Map a Occ -> Map a Index
+--ngramIndex m = fromList (zip (keys m) [1..])
 
 indexWith :: Ord a => Map a Occ -> [a] -> [Int]
 indexWith m xs = unMaybe $ map (\x -> lookupIndex x m) xs
@@ -101,14 +112,16 @@ indexIt xs = (m, is)
     is = map    (indexWith m) xs
 
 list2fis :: Ord a => FIS.Frequency -> [[a]] -> (Map a Int, [FIS.Fis])
-list2fis n xs = (m, fs)
+list2fis n xs = (m', fs)
   where
     (m, is) = indexIt xs
+    m'      = M.filter (>50000) m
     fs      = FIS.all n is
 
 text2fis :: FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
 text2fis n xs = list2fis n (map ngrams xs)
 
-text2fisWith :: FIS.Size -> FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
-text2fisWith = undefined
+--text2fisWith :: FIS.Size -> FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
+--text2fisWith = undefined
+
 
