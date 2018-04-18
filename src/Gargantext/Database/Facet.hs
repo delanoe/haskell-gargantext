@@ -11,14 +11,15 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{-# LANGUAGE Arrows                      #-}
-{-# LANGUAGE DeriveGeneric               #-}
-{-# LANGUAGE TemplateHaskell             #-}
-{-# LANGUAGE FlexibleContexts            #-}
-{-# LANGUAGE FlexibleInstances           #-}
-{-# LANGUAGE MultiParamTypeClasses       #-}
-{-# LANGUAGE FunctionalDependencies      #-}
-{-# LANGUAGE NoMonomorphismRestriction   #-}
+{-# LANGUAGE Arrows                    #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE FunctionalDependencies    #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TemplateHaskell           #-}
 
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet 

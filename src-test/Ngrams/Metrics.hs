@@ -1,6 +1,21 @@
-{-# LANGUAGE CPP                  #-}
-{-# LANGUAGE OverloadedStrings    #-}
+{-|
+Module      : Ngrams.Metrics
+Description : 
+Copyright   : Ngrams.Metrics (c)
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+Here is a longer description of this module, containing some
+commentary with @some markup@.
+-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Ngrams.Metrics (main) where
 

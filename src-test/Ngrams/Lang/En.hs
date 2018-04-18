@@ -1,3 +1,16 @@
+{-|
+Module      : Ngrams.Lang
+Description : 
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+Here is a longer description of this module, containing some
+commentary with @some markup@.
+-}
+
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
@@ -21,7 +34,7 @@ ngramsExtractionTest = hspec $ do
 
         it "\"Of\" seperates two ngrams" $ do
             t1 <- map (selectNgrams EN) <$> extractNgrams EN (textTest !! 0) 
-            t1 `shouldBe` [[("Alcoholic extract of Kaempferia galanga","NN","O"),("analgesic activities","NN+CC","O"),("antiinflammatory activities","NN+CC","O"),("animal models","NN","O")]]
+            t1 `shouldBe` [[("Alcoholic extract of Kaempferia galanga","NN","LOCATION"),("analgesic activities","NN+CC","O"),("antiinflammatory activities","NN+CC","O"),("animal models","NN","O")]]
             
         it "Tests the conjunction of coordination in two ngrams with its adjectives" $ do
             t2 <- map (selectNgrams EN) <$> extractNgrams EN (textTest !! 2) 

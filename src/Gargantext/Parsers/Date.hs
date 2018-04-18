@@ -14,9 +14,9 @@ import Gargantext.Parsers.Date as DGP
 DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 -}
 
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate, fromRFC3339, parseTimeOfDay, getMultiplicator) where
 

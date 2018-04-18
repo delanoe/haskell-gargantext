@@ -18,6 +18,8 @@ This module mainly describe how to add a new parser to Gargantext,
 please follow the types.
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.Parsers -- (parse, FileFormat(..))
     where
 

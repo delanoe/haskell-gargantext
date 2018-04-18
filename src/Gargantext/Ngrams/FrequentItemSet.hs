@@ -11,6 +11,8 @@ Domain Specific Language to manage Frequent Item Set (FIS)
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.Ngrams.FrequentItemSet
   ( Fis, Size
   , occ, cooc

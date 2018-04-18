@@ -10,10 +10,12 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.Types.Node where

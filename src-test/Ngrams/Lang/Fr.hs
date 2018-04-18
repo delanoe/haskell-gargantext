@@ -1,3 +1,16 @@
+{-|
+Module      : Ngrams.Lang
+Description : 
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+Here is a longer description of this module, containing some
+commentary with @some markup@.
+-}
+
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
@@ -32,7 +45,7 @@ ngramsExtractionTest = hspec $ do
         it "Groupe : nom commun et adjectifs avec conjonction" $ do
             let textFr = "Le livre blanc et rouge."
             testFr <- map (selectNgrams FR) <$> (extractNgrams FR) textFr
-            testFr `shouldBe` [[("livre blanc","N","O"),("livre rouge","N","O")]]
+            testFr `shouldBe` [[("livre blanc","NC","O"),("livre rouge","NC","O")]]
                 -- `shouldBe` [[("livre blanc et rouge","N","O")]] ?
 
         it "Groupe: Nom commun + préposition + Nom commun" $ do

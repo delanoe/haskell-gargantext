@@ -18,8 +18,9 @@ the number of chars).
 Phylomemy was first described in [REF].
 -}
 
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Types.Phylo where
 

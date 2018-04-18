@@ -19,8 +19,10 @@ Main authorisation of Gargantext are managed in this module
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
+
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.API.Auth
       where

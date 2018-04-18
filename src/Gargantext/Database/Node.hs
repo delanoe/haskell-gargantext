@@ -9,13 +9,15 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
+
+{-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE Arrows #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Node where
 

@@ -11,7 +11,9 @@ Definition of TFICF
 
 -}
 
-{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+
 
 module Gargantext.Ngrams.TFICF where
 
