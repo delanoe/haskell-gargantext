@@ -115,6 +115,7 @@ library:
   - servant-static-th
   - split
   - stemmer
+  - string-conversions
   - swagger2
   - tagsoup
   - text-metrics

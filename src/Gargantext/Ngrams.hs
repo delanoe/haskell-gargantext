@@ -22,7 +22,7 @@ module Gargantext.Ngrams ( module Gargantext.Ngrams.Letters
                          , module Gargantext.Ngrams.TextMining
                          , module Gargantext.Ngrams.Metrics
                          , Ngrams(..), ngrams, occ, sumOcc, text2fis
-                         , NgramsList(..)
+                         , ListName(..), equivNgrams, isGram
                              --, module Gargantext.Ngrams.Words
                          ) where
 
@@ -40,7 +40,7 @@ import qualified Gargantext.Ngrams.FrequentItemSet as FIS
 -----------------------------------------------------------------
 
 import Data.List (sort)
-import Data.Char (Char, isAlpha, isSpace)
+import Data.Char (Char, isAlphaNum, isSpace)
 import Data.Text (Text, words, filter, toLower)
 import Data.Map.Strict  (Map
                         , empty
@@ -58,32 +58,31 @@ import Gargantext.Prelude hiding (filter)
 --import Language.Aspell.Options (ACOption(..))
 
 
-data NgramsList = Stop | Candidate | Graph
+data ListName = Stop | Candidate | Graph
   deriving (Show, Eq)
 
-data Ngrams = Ngrams { _ngramsNgrams :: [Text]
-                     , _ngramsStem   :: [Text]
-                     , _ngramsList   :: Maybe NgramsList
+data Ngrams = Ngrams { _ngramsNgrams   :: [Text]
+                     , _ngramsStem     :: [Text]
+                     , _ngramsListName :: Maybe ListName
                      } deriving (Show)
 
-instance Eq Ngrams where
-  Ngrams n1 s1 _ == Ngrams n2 s2 _ = (sort n1) == (sort n2) || (sort s1) == (sort s2)
+equivNgrams :: Ngrams -> Ngrams -> Bool
+equivNgrams  (Ngrams n1 s1 _) (Ngrams n2 s2 _)
+  = (sort n1) == (sort n2) || (sort s1) == (sort s2)
 
 type Occ     = Int
 --type Index   = Int
 
+-- Data Ngrams = Monograms | MultiGrams
+
 ngrams :: Text -> [Text]
-ngrams xs = monograms $ toLower $ filter isChar xs
+ngrams xs = monograms $ toLower $ filter isGram xs
 
 monograms :: Text -> [Text]
 monograms = words
 
--- TODO
--- 12-b
-isChar :: Char -> Bool
-isChar '-' = True
-isChar '/' = True
-isChar  c  = isAlpha c || isSpace c
+isGram :: Char -> Bool
+isGram  c  = isAlphaNum c || isSpace c || c `elem` ['-','/']
 
 -- | Compute the occurrences (occ)
 occ :: Ord a => [a] -> Map a Occ
@@ -91,7 +90,7 @@ occ xs = foldl' (\x y -> insertWith (+) y 1 x) empty xs
 
 -- TODO add groups and filter stops
 sumOcc :: Ord a => [Map a Occ] -> Map a Occ
-sumOcc xs = foldl' (\x y -> unionWith (+) x y) empty xs
+sumOcc xs = foldl' (unionWith (+)) empty xs
 
 --noApax :: Ord a => Map a Occ -> Map a Occ
 --noApax m = M.filter (>1) m

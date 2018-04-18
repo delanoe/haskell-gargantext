@@ -12,6 +12,7 @@ module Gargantext.Prelude
   , headMay
   , module Text.Show
   , module Text.Read
+  , cs
   )
   where
 
@@ -30,6 +31,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , Eq, (==), (>=), (<=), (<>)
                  , (&&), (||), not
                  , fst, snd, toS
+                 , elem
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -43,6 +45,8 @@ import qualified Data.Vector as V
 import Safe (headMay)
 import Text.Show (Show(), show)
 import Text.Read (Read())
+import Data.String.Conversions (cs)
+
 --pf :: (a -> Bool) -> [a] -> [a]
 --pf = filter
 
