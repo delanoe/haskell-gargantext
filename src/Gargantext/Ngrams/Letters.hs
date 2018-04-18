@@ -11,6 +11,7 @@ Sugar to work on letters with Text.
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Ngrams.Letters where

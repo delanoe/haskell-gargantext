@@ -14,6 +14,8 @@ n non negative integer
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.Ngrams ( module Gargantext.Ngrams.Letters
                               --, module Gargantext.Ngrams.Hetero
                          , module Gargantext.Ngrams.CoreNLP

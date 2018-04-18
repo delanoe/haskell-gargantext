@@ -11,6 +11,8 @@ Portability : POSIX
 Mainly reexport functions in @Data.Text.Metrics@
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.Ngrams.Metrics (levenshtein
                                       , levenshteinNorm
                                       , damerauLevenshtein

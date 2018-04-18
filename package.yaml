@@ -16,7 +16,6 @@ dependencies:
 library:
   source-dirs: src
   default-extensions: 
-  - NoImplicitPrelude
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
@@ -152,7 +151,6 @@ tests:
     main: Main.hs
     source-dirs: src-test
     default-extensions: 
-    - NoImplicitPrelude
     ghc-options:
     - -threaded
     - -rtsopts

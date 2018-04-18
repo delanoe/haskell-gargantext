@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.
+Module      : Gargantext.Utils.DateUtils
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3

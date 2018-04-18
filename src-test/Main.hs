@@ -8,6 +8,8 @@ Stability   : experimental
 Portability : POSIX
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+
 import Gargantext.Prelude
 import Gargantext.Types.Main (Language(..))
 --import qualified Ngrams.Lang.Fr as Fr

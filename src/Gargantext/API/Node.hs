@@ -11,10 +11,12 @@ Node API
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE DataKinds                   #-}
-{-# LANGUAGE TemplateHaskell             #-}
-{-# LANGUAGE TypeOperators               #-}
-{-# LANGUAGE OverloadedStrings           #-}
+
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 -------------------------------------------------------------------
 module Gargantext.API.Node

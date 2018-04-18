@@ -20,15 +20,17 @@ Thanks @yannEsposito for this.
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{-# LANGUAGE DataKinds                   #-}
-{-# LANGUAGE DeriveGeneric               #-}
-{-# LANGUAGE FlexibleInstances           #-}
-{-# LANGUAGE OverloadedStrings           #-}
-{-# LANGUAGE TemplateHaskell             #-}
-{-# LANGUAGE TypeOperators               #-}
-{-# LANGUAGE KindSignatures              #-}
-{-# LANGUAGE TypeFamilies                #-}
-{-# LANGUAGE UndecidableInstances        #-}
+
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE KindSignatures       #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 ---------------------------------------------------------------------
 module Gargantext.API
