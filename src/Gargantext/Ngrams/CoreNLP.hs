@@ -28,8 +28,6 @@ import Gargantext.Prelude
 import Gargantext.Utils.Prefix (unPrefix)
 import Data.Text (Text)
 
-import qualified Data.ByteString.Char8 as S8
-import qualified Data.Yaml             as Yaml
 import           Network.HTTP.Simple
 
 
@@ -82,17 +80,6 @@ $(deriveJSON (unPrefix "_") ''Sentences)
 -- 
 
 
-corenlpPretty :: Text -> IO ()
-corenlpPretty txt = do
-    url <- parseRequest "POST http://localhost:9000/?properties={\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}" 
-    let request = setRequestBodyJSON txt url
-    response <- httpJSON request
-
---    putStrLn $ "The status code was: " ++
---               show (getResponseStatusCode response)
---    print $ getResponseHeader "Content-Type" response
-    S8.putStrLn $ Yaml.encode (getResponseBody response :: Sentences)
-
 corenlp :: Language -> Text -> IO Sentences
 corenlp lang txt = do
     let properties = case lang of
@@ -100,7 +87,7 @@ corenlp lang txt = do
             -- FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
             FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
     url <- parseRequest $ "POST http://localhost:9000/?properties=" <> properties
-    let request = setRequestBodyJSON txt url
+    let request = setRequestBodyLBS (cs txt) url
     response <- httpJSON request
     pure (getResponseBody response :: Sentences)
 

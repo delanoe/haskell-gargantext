@@ -52,6 +52,14 @@ import Gargantext.Parsers.WOS (wosParser)
 --import Gargantext.Prelude (pm)
 --import Gargantext.Types.Main (ErrorMessage(), Corpus)
 
+-- FIXME
+--type Field = Text
+type ParseError = String
+--
+--data Corpus = Corpus { _corpusErrors :: [ParseError]
+--                     , _corpusMap    :: Map FilePath (Map Field Text)
+--                    }
+
 
 -- | According to the format of Input file,
 -- different parser are available.
@@ -63,7 +71,6 @@ data FileFormat = WOS        -- Implemented (ISI Format)
 --                             -- > http://chrisdone.com/posts/fast-haskell-c-parsing-xml
 
 -- TODO: to debug maybe add the filepath in error message
-type ParseError = String
 
 
 parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])

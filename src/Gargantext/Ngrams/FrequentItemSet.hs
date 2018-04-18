@@ -28,6 +28,7 @@ import Gargantext.Prelude
 
 type Size = Either Int (Int, Int)
 
+--data Size = Point | Segment
 
 ------------------------------------------------------------------------
 -- | Occurrence is Frequent Item Set of size 1
