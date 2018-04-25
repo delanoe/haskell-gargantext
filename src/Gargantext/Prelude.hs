@@ -243,16 +243,24 @@ unMaybe = map fromJust . L.filter isJust
 -- on context of the algorithm itself and we need some clarity since
 -- both are possible, here is a proposition to get more explicitiness.
 
--- | (~>) is called : "rightLeft" as "from right to left". The most right
+-- | (~>) is called : "Pipe rightLeft" as "from right to left". The most right
 -- function sends its output to the most left function which takes it as
 -- input.
 (<|) :: (a -> b) -> a -> b
 (<|) = ($)
 
--- | (<~) is called : "leftRight" as "from left to right". The most left
+-- | (<~) is called : "Pipe leftRight" as "from left to right". The most left
 -- function sends its output to the most right function which takes it as
--- input.
+-- input. (|>) == (&) = True -- in base prelude
 (|>) :: a -> (a -> c) -> c
 (|>) = flip ($)
+
+-- | Function composition orientation
+(<.) :: (a -> b) -> (b -> c) -> a -> c
+(<.) = (.)
+
+-- | Function composition orientation
+(.>) :: (b -> c) -> (a -> b) -> a -> c
+(.>) = flip (.)
 
 
