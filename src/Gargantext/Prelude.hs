@@ -23,10 +23,11 @@ module Gargantext.Prelude
   , module Text.Show
   , module Text.Read
   , cs
+  , module Data.Maybe
   )
   where
 
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Floating, Char, IO
@@ -34,14 +35,15 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith
-                 , sum, fromIntegral, length, fmap
+                 , sum, fromIntegral, length, fmap, foldl, foldl'
                  , takeWhile, sqrt, undefined, identity
-                 , abs, maximum, minimum, return, snd, truncate
-                 , (+), (*), (/), (-), (.), ($), (**), (^), (<), (>)
-                 , Eq, (==), (>=), (<=), (<>)
+                 , abs, min, max, maximum, minimum, return, snd, truncate
+                 , (+), (*), (/), (-), (.), ($), (**), (^), (<), (>), log
+                 , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not
                  , fst, snd, toS
-                 , elem
+                 , elem, die, mod, div
+                 , curry, uncurry
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -49,7 +51,10 @@ import Protolude ( Bool(True, False), Int, Double, Integer
 -- import Gargantext.Utils.Count
 import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
-import qualified Data.Map as Map
+
+import Data.Map (Map)
+import qualified Data.Map as M
+
 import Data.Map.Strict (insertWith)
 import qualified Data.Vector as V
 import Safe (headMay)
@@ -163,12 +168,12 @@ sumKahan = snd . L.foldl' go (0,0)
                 t' = t+y
 
 -- | compute part of the dict
-count2map :: (Ord k, Foldable t) => t k -> Map.Map k Double
-count2map xs = Map.map (/ (fromIntegral (length xs))) (count2map' xs)
+count2map :: (Ord k, Foldable t) => t k -> Map k Double
+count2map xs = M.map (/ (fromIntegral (length xs))) (count2map' xs)
 
 -- | insert in a dict
-count2map' :: (Ord k, Foldable t) => t k -> Map.Map k Double
-count2map' xs = L.foldl' (\x y -> insertWith (+) y 1 x) Map.empty xs
+count2map' :: (Ord k, Foldable t) => t k -> Map k Double
+count2map' xs = L.foldl' (\x y -> insertWith (+) y 1 x) M.empty xs
 
 
 trunc :: (RealFrac a, Integral c, Integral b) => b -> a -> c
@@ -227,6 +232,27 @@ zipSnd f xs = zip xs (f xs)
 
 
 -- Just 
-
 unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
+
+-- | Syntactic convention for the reader/writer coordination.
+-- @Motivation@: explicit functional flux ease coordination between
+-- readers and writers who are not always the same individuals. Each
+-- natural languages has its own syntaxical conventions from left to
+-- right or the contrary. In computer programming languages it depends
+-- on context of the algorithm itself and we need some clarity since
+-- both are possible, here is a proposition to get more explicitiness.
+
+-- | (~>) is called : "rightLeft" as "from right to left". The most right
+-- function sends its output to the most left function which takes it as
+-- input.
+(<~) :: (a -> b) -> a -> b
+(<~) = ($)
+
+-- | (<~) is called : "leftRight" as "from left to right". The most left
+-- function sends its output to the most right function which takes it as
+-- input.
+(~>) :: a -> (a -> c) -> c
+(~>) = flip ($)
+
+
