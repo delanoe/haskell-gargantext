@@ -256,11 +256,11 @@ unMaybe = map fromJust . L.filter isJust
 (|>) = flip ($)
 
 -- | Function composition orientation
-(<.) :: (a -> b) -> (b -> c) -> a -> c
+(<.) :: (b -> c) -> (a -> b) -> a -> c
 (<.) = (.)
 
 -- | Function composition orientation
-(.>) :: (b -> c) -> (a -> b) -> a -> c
+(.>) :: (a -> b) -> (b -> c) -> a -> c
 (.>) = flip (.)
 
 
