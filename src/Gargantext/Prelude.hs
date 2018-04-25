@@ -246,13 +246,13 @@ unMaybe = map fromJust . L.filter isJust
 -- | (~>) is called : "rightLeft" as "from right to left". The most right
 -- function sends its output to the most left function which takes it as
 -- input.
-(<~) :: (a -> b) -> a -> b
-(<~) = ($)
+(<|) :: (a -> b) -> a -> b
+(<|) = ($)
 
 -- | (<~) is called : "leftRight" as "from left to right". The most left
 -- function sends its output to the most right function which takes it as
 -- input.
-(~>) :: a -> (a -> c) -> c
-(~>) = flip ($)
+(|>) :: a -> (a -> c) -> c
+(|>) = flip ($)
 
 
