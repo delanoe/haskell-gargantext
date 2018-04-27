@@ -19,7 +19,8 @@ library:
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
-  - -Werror
+  - -Wmissing-signatures
+    #  - -Werror
   exposed-modules:
   - Gargantext
   - Gargantext.Database
@@ -33,6 +34,9 @@ library:
   - Gargantext.Database.NodeNodeNgram
   - Gargantext.Database.Utils
   - Gargantext.Database.User
+  - Gargantext.Graph.Utils
+  - Gargantext.Graph.Distances.Conditional
+  - Gargantext.Graph.Distances.Distributional
   - Gargantext.Ngrams
   - Gargantext.Ngrams.Analysis
   - Gargantext.Ngrams.TFICF
@@ -86,6 +90,7 @@ library:
   - jose-jwt
   - lens
   - logging-effect
+  - matrix
   - monad-logger
   - mtl
   - natural-transformation
@@ -138,7 +143,12 @@ library:
 executable:
   main: Main.hs
   source-dirs:      app
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
+  ghc-options:
+    #- -threaded
+  - -rtsopts
+    # - -with-rtsopts=-N
+  - -O2
+  - -Wmissing-signatures
   dependencies:
     - base
     - gargantext
@@ -173,6 +183,7 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wmissing-signatures
     dependencies:
     - doctest
     - Glob

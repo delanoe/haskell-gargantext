@@ -51,16 +51,16 @@ import Gargantext.Parsers.WOS (wosParser)
 ---- import Gargantext.Parsers.DOC (docParser)
 ---- import Gargantext.Parsers.ODT (odtParser)
 
---import Gargantext.Prelude (pm)
 --import Gargantext.Types.Main (ErrorMessage(), Corpus)
 
--- FIXME
---type Field = Text
 type ParseError = String
---
---data Corpus = Corpus { _corpusErrors :: [ParseError]
---                     , _corpusMap    :: Map FilePath (Map Field Text)
---                    }
+type Field      = Text
+type Document   = DM.Map Field Text
+
+type FilesParsed = DM.Map FilePath FileParsed
+data FileParsed  = FileParsed { _fileParsed_errors ::  Maybe ParseError
+                              , _fileParsed_result :: [Document]
+                              } deriving (Show)
 
 
 -- | According to the format of Input file,

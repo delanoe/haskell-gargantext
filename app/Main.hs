@@ -8,15 +8,13 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-
-
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeOperators     #-}
-
+{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE Strict             #-}
 
 module Main where
 
@@ -27,6 +25,10 @@ import Data.Text (unpack)
 
 import Gargantext.Prelude
 import Gargantext.API (startGargantext, startGargantextMock)
+
+import qualified Gargantext.Graph.Utils                    as U
+import qualified Gargantext.Graph.Distances.Conditional    as C
+import qualified Gargantext.Graph.Distances.Distributional as D
 --------------------------------------------------------
 
 data Mode = Dev | Mock | Prod 
@@ -46,8 +48,11 @@ instance ParseRecord (MyOptions Wrapped)
 deriving instance Show (MyOptions Unwrapped)
 
 main :: IO ()
-main = do 
+main = putStrLn $ show $ C.conditional U.m1
+--main = putStrLn $ show $ map show $ take 10 $ D.distributional U.m1
 
+main' :: IO ()
+main' = do 
     MyOptions myMode myPort myIniFile  <- unwrapRecord
             "Gargantext: collaborative platform for text-mining"
     
