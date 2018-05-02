@@ -28,7 +28,7 @@ import Gargantext.Prelude
 import Gargantext.Utils.Prefix (unPrefix)
 import Data.Text (Text)
 
-import           Network.HTTP.Simple
+import Network.HTTP.Simple
 
 
 data Token = Token { _tokenIndex                :: Int
