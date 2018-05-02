@@ -32,6 +32,7 @@ import qualified Data.List   as L
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
+-- | Some utils to build the matrix from cooccurrence results
 
 type Distance = Double
 type Cooc     = Int
@@ -117,13 +118,12 @@ data Axis = Col | Row
 --divide :: Fractional a => Matrix a -> Matrix a -> Matrix a
 --divide a b = a `multStd` (div b)
 
-total :: Num a => Matrix a -> a
-total m = V.sum $ V.map (\c -> V.sum (getCol c m)) (V.enumFromTo 1 (nOf Col m))
-
 ------------------------------------------------------------------------
 -- | Matrix functions
-
 type AxisId = Int
+
+total :: Num a => Matrix a -> a
+total m = V.sum $ V.map (\c -> V.sum (getCol c m)) (V.enumFromTo 1 (nOf Col m))
 
 nOf :: Axis -> Matrix a -> Int
 nOf Row = nrows
@@ -133,28 +133,12 @@ axis :: Axis -> AxisId -> Matrix a -> Vector a
 axis Col = getCol
 axis Row = getRow
 
---mapOn' :: Axis -> (a -> a) -> Matrix a -> Matrix a
---mapOn' a f m = foldl' (\m' aId -> mapOn a (aId f) m') m [1.. (nOf a m)]
-
-mapOn :: Axis -> (AxisId -> a -> a) -> Matrix a -> Matrix a
-mapOn a f m = V.foldl' f'  m (V.enumFromTo 1 (nOf a m))
-  where
-    f' m' c = mapOnly a f c m'
-
-mapOnly :: Axis -> (AxisId -> a -> a) -> AxisId -> Matrix a -> Matrix a
-mapOnly Col = mapCol
-mapOnly Row = mapRow
-
-mapAll :: (a -> a) -> Matrix a -> Matrix a
-mapAll f m = mapOn Col (\_ -> f) m
-
 
 toListsWithIndex :: Matrix a ->  [((Int, Int), a)]
 toListsWithIndex m = concat' $ zip [1..] $ map (\c -> zip [1..] c) $ toLists m
   where
     concat' :: [(Int, [(Int, a)])] -> [((Int, Int), a)]
     concat' xs = L.concat $ map (\(x, ys) -> map (\(y, a) -> ((x,y), a)) ys ) xs
-
 
 
 -- | For tests only, to be removed

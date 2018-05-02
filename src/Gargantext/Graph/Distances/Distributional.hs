@@ -7,7 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Motivation and definition of the @Conditional@ distance.
+Motivation and definition of the @Distributional@ distance.
 -}
 
 {-# LANGUAGE BangPatterns      #-}
@@ -64,7 +64,7 @@ mi m = matrix c r createMat
   where
     (c,r) = (nOf Col m, nOf Row m)
     createMat (x,y) = doMi x y m
-    doMi x y m = if x == y then 0 else (nonNegative $ log (doMi' x y m))
+    doMi x y m = if x == y then 0 else (max (log (doMi' x y m)) 0 )
     
     doMi' x y m = (getElem x y m) / ( cross x y m / total m )
     
@@ -78,9 +78,6 @@ ax a  i j m  = dropAt j' $ axis a i' m
                     i' = div i c + 1
                     j' = mod r j + 1
                     (c,r) = (nOf Col m, nOf Row m)
-
-nonNegative :: (Ord a, Num a) => a -> a
-nonNegative x = if x > 0 then x else 0
 
 miniMax :: (Ord a) => Matrix a -> a
 miniMax m = V.minimum $ V.map (\c -> V.maximum $ getCol c m) (V.enumFromTo 1 (nOf Col m))

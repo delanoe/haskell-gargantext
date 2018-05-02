@@ -26,9 +26,12 @@ import Data.Text (unpack)
 import Gargantext.Prelude
 import Gargantext.API (startGargantext, startGargantextMock)
 
+--------------------------------------------------------
+-- Tests
 import qualified Gargantext.Graph.Utils                    as U
 import qualified Gargantext.Graph.Distances.Conditional    as C
 import qualified Gargantext.Graph.Distances.Distributional as D
+import qualified Gargantext.Graph.Distances.Matrice        as M
 --------------------------------------------------------
 
 data Mode = Dev | Mock | Prod 
@@ -48,8 +51,9 @@ instance ParseRecord (MyOptions Wrapped)
 deriving instance Show (MyOptions Unwrapped)
 
 main :: IO ()
-main = putStrLn $ show $ C.conditional U.m1
---main = putStrLn $ show $ map show $ take 10 $ D.distributional U.m1
+main = do
+  putStrLn $ show $ M.conditional $ M.myMat 10
+  --putStrLn $ show $ M.size' $ M.myMat 100
 
 main' :: IO ()
 main' = do 

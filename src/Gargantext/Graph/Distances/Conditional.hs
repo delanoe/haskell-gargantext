@@ -34,10 +34,55 @@ import qualified Data.Vector as V
 
 import Gargantext.Prelude
 import Gargantext.Graph.Utils
+
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- | Optimisation issue
+
+toBeOptimized :: (Num a, Fractional a, Ord a) => Matrix a -> Matrix a
+toBeOptimized m = proba Col m
+
+------------------------------------------------------------------------
+-- | Main Functions
+-- Compute the probability from axis
+-- x' = x / (sum Col x)
+proba :: (Num a, Fractional a) => Axis -> Matrix a -> Matrix a
+proba a m = mapOn a (\c x -> x / V.sum (axis a c m)) m
+
+
+mapOn :: Axis -> (AxisId -> a -> a) -> Matrix a -> Matrix a
+mapOn a f m = V.foldl' f'  m (V.enumFromTo 1 (nOf a m))
+  where
+    f' m' c = mapOnly a f c m'
+
+mapOnly :: Axis -> (AxisId -> a -> a) -> AxisId -> Matrix a -> Matrix a
+mapOnly Col = mapCol
+mapOnly Row = mapRow
+
+mapAll :: (a -> a) -> Matrix a -> Matrix a
+mapAll f m = mapOn Col (\_ -> f) m
+
+
+---------------------------------------------------------------
+-- | Compute a distance from axis
+-- xs = (sum Col x') - x'
+distFromSum :: (Num a, Fractional a)
+         => Axis -> Matrix a -> Matrix a
+distFromSum  a m = mapOn a (\c x -> V.sum (axis a c m) - x) m
+---------------------------------------------------------------
+---------------------------------------------------------------
+-- | To compute included/excluded or specific/generic scores
+opWith  :: (Fractional a1, Num a1)
+         => (Matrix a2 -> t -> Matrix a1) -> Matrix a2 -> t -> Matrix a1
+opWith op xs ys = mapAll (\x -> x / (2*n -1)) (xs `op` ys)
+  where
+    n = fromIntegral $ nOf Col xs
+---------------------------------------------------------------
+
+
 -------------------------------------------------------
 conditional :: (Num a, Fractional a, Ord a) => Matrix a -> Matrix a
-conditional m = x' -- filter (threshold m') m'
+conditional m = filter (threshold m') m'
   where
 ------------------------------------------------------------------------
     -- | Main Operations
@@ -88,26 +133,3 @@ conditional m = x' -- filter (threshold m') m'
                         False -> 0
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
--- | Main Functions
--- Compute the probability from axis
--- x' = x / (sum Col x)
-proba :: (Num a, Fractional a) => Axis -> Matrix a -> Matrix a
-proba a m = mapOn a (\c x -> x / V.sum (axis a c m)) m
-
----------------------------------------------------------------
--- | Compute a distance from axis
--- xs = (sum Col x') - x'
-distFromSum :: (Num a, Fractional a)
-         => Axis -> Matrix a -> Matrix a
-distFromSum  a m = mapOn a (\c x -> V.sum (axis a c m) - x) m
----------------------------------------------------------------
----------------------------------------------------------------
--- | To compute included/excluded or specific/generic scores
-opWith  :: (Fractional a1, Num a1)
-         => (Matrix a2 -> t -> Matrix a1) -> Matrix a2 -> t -> Matrix a1
-opWith op xs ys = mapAll (\x -> x / (2*n -1)) (xs `op` ys)
-  where
-    n = fromIntegral $ nOf Col xs
----------------------------------------------------------------
-
