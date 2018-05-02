@@ -31,19 +31,19 @@ import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Floating, Char, IO
-                 , pure, (<$>), panic
+                 , pure, (<$>), (<&>), panic
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith
                  , sum, fromIntegral, length, fmap, foldl, foldl'
                  , takeWhile, sqrt, undefined, identity
                  , abs, min, max, maximum, minimum, return, snd, truncate
-                 , (+), (*), (/), (-), (.), ($), (**), (^), (<), (>), log
+                 , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not
                  , fst, snd, toS
                  , elem, die, mod, div
-                 , curry, uncurry
+                 , curry, uncurry, repeat
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -234,4 +234,5 @@ zipSnd f xs = zip xs (f xs)
 -- Just 
 unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
+
 

@@ -37,6 +37,7 @@ library:
   - Gargantext.Graph.Utils
   - Gargantext.Graph.Distances.Conditional
   - Gargantext.Graph.Distances.Distributional
+  - Gargantext.Graph.Distances.Matrice
   - Gargantext.Ngrams
   - Gargantext.Ngrams.Analysis
   - Gargantext.Ngrams.TFICF
@@ -61,6 +62,7 @@ library:
   - Gargantext.Utils.Prefix
   dependencies:
   - QuickCheck
+  - accelerate
   - aeson
   - aeson-lens
   - aeson-pretty
