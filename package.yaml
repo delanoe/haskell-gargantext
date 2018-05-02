@@ -40,7 +40,6 @@ library:
   - Gargantext.Ngrams.CoreNLP
   - Gargantext.Ngrams.Parser
   - Gargantext.Ngrams.Lang.En
-  - Gargantext.Ngrams.Stem.En
   - Gargantext.Ngrams.Lang.Fr
   - Gargantext.Ngrams.Metrics
   - Gargantext.Ngrams.TextMining

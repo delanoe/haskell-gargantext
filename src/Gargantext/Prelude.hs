@@ -42,9 +42,8 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not
                  , fst, snd, toS
-                 , elem, die, mod, div, const
+                 , elem, die, mod, div
                  , curry, uncurry
-                 , otherwise
                  )
 
 -- TODO import functions optimized in Utils.Count

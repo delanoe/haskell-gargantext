@@ -23,9 +23,8 @@ module Gargantext.Ngrams ( module Gargantext.Ngrams.Letters
                          , module Gargantext.Ngrams.Occurrences
                          , module Gargantext.Ngrams.TextMining
                          , module Gargantext.Ngrams.Metrics
-                         , Ngrams(..), ngrams, occ, sumOcc, text2fis, clean
-                         , ListName(..), equivNgrams, isGram, sentences
-                         , ngramsTest
+                         , Ngrams(..), ngrams, occ, sumOcc, text2fis
+                         , ListName(..), equivNgrams, isGram
                              --, module Gargantext.Ngrams.Words
                          ) where
 
@@ -44,10 +43,7 @@ import qualified Gargantext.Ngrams.FrequentItemSet as FIS
 
 import Data.List (sort)
 import Data.Char (Char, isAlphaNum, isSpace)
-import Data.Text (Text, filter, toLower, split, lines, concat)
-import qualified Data.Text as DT
-import Data.Text.IO (readFile)
-
+import Data.Text (Text, words, filter, toLower)
 import Data.Map.Strict  (Map
                         , empty
                         , insertWith, unionWith
@@ -84,19 +80,11 @@ type Occ     = Int
 ngrams :: Text -> [Text]
 ngrams xs = monograms $ toLower $ filter isGram xs
 
-clean :: Text -> Text
-clean txt = DT.map clean' txt
-  where
-    clean' '’' = '\''
-    clean' c  = c
-
 monograms :: Text -> [Text]
-monograms txt = split isWord txt
-  where
-    isWord c = c `elem` [' ', '\'', ',', ';']
+monograms = words
 
 isGram :: Char -> Bool
-isGram  c  = isAlphaNum c || isSpace c || c `elem` ['-','/','\'']
+isGram  c  = isAlphaNum c || isSpace c || c `elem` ['-','/']
 
 -- | Compute the occurrences (occ)
 occ :: Ord a => [a] -> Map a Occ
@@ -140,31 +128,5 @@ text2fis n xs = list2fis n (map ngrams xs)
 
 --text2fisWith :: FIS.Size -> FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
 --text2fisWith = undefined
-
--------------------------------------------------------------------
--- Contexts of text
-
-sentences :: Text -> [Text]
-sentences txt = split isStop txt
-
-isStop :: Char -> Bool
-isStop c = c `elem` ['.','?','!']
-
-
--- | Tests
--- TODO http://hackage.haskell.org/package/tokenize-0.3.0/docs/NLP-Tokenize-Text.html
-ngramsTest =  ws
-  where
-    txt = concat <$> lines <$> clean <$> readFile "Giono-arbres.txt"
-    -- | Number of sentences
-    ls   = sentences <$> txt
-    -- | Number of monograms used in the full text
-    ws   = ngrams    <$> txt
-    -- | stem ngrams
-    -- TODO
-    -- group ngrams
-    ocs  = occ       <$> ws
-
-
 
 
