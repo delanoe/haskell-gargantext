@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.Letters
+Module      : Gargantext.Text.Letters
 Description : Ngrams.Letters module
 Copyright   : (c) CNRS, 2017
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ Sugar to work on letters with Text.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Ngrams.Letters where
+module Gargantext.Text.Letters where
 
 import qualified Data.Text.Lazy as DTL
 -- import qualified Data.Text.Lazy.IO as DTLIO

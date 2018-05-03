@@ -24,7 +24,7 @@ import Test.Hspec
 
 import Gargantext.Prelude
 import Gargantext.Types.Main (Language(..))
-import Gargantext.Ngrams.Parser (extractNgrams, selectNgrams)
+import Gargantext.Text.Parser (extractNgrams, selectNgrams)
 
 
 ngramsExtractionTest :: IO ()

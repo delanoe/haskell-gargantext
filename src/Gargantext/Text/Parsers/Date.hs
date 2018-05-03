@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Parsers.Date
+Module      : Gargantext.Text.Parsers.Date
 Description : Some utils to parse dates
 Copyright   : (c) CNRS 2017-present
 License     : AGPL + CECILL v3
@@ -18,7 +18,7 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Parsers.Date (parseDate1, Lang(FR, EN), parseDate, fromRFC3339, parseTimeOfDay, getMultiplicator) where
+module Gargantext.Text.Parsers.Date (parseDate1, Lang(FR, EN), parseDate, fromRFC3339, parseTimeOfDay, getMultiplicator) where
 
 import Gargantext.Prelude
 import Prelude (toInteger, div, otherwise, (++))

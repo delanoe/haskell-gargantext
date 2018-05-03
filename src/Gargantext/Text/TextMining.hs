@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.TextMining
+Module      : Gargantext.Text.TextMining
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Ngrams.TextMining where
+module Gargantext.Text.TextMining where
 
 import Gargantext.Prelude
 import Data.Ord(Ordering(LT,GT), compare)

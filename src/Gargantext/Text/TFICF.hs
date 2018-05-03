@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.TFICF
+Module      : Gargantext.Text.TFICF
 Description : TFICF Ngrams tools
 Copyright   : (c) CNRS, 2017
 License     : AGPL + CECILL v3
@@ -15,7 +15,7 @@ Definition of TFICF
 {-# LANGUAGE NoImplicitPrelude #-}
 
 
-module Gargantext.Ngrams.TFICF where
+module Gargantext.Text.TFICF where
 
 import GHC.Generics (Generic)
 

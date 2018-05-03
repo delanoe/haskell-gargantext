@@ -33,21 +33,22 @@ library:
   - Gargantext.Database.NodeNodeNgram
   - Gargantext.Database.Utils
   - Gargantext.Database.User
-  - Gargantext.Ngrams
-  - Gargantext.Ngrams.Analysis
-  - Gargantext.Ngrams.TFICF
-  - Gargantext.Ngrams.Letters
-  - Gargantext.Ngrams.CoreNLP
-  - Gargantext.Ngrams.Parser
-  - Gargantext.Ngrams.Lang.En
-  - Gargantext.Ngrams.Stem.En
-  - Gargantext.Ngrams.Lang.Fr
-  - Gargantext.Ngrams.Metrics
-  - Gargantext.Ngrams.TextMining
-  - Gargantext.Ngrams.Occurrences
-  - Gargantext.Parsers
-  - Gargantext.Parsers.WOS
-  - Gargantext.Parsers.Date
+  - Gargantext.Text
+  - Gargantext.Text.Analysis
+  - Gargantext.Text.TFICF
+  - Gargantext.Text.Letters
+  - Gargantext.Text.CoreNLP
+  - Gargantext.Text.Parser
+  - Gargantext.Text.Token.Text
+  - Gargantext.Text.Lang.En
+  - Gargantext.Text.Stem.En
+  - Gargantext.Text.Lang.Fr
+  - Gargantext.Text.Metrics
+  - Gargantext.Text.TextMining
+  - Gargantext.Text.Occurrences
+  - Gargantext.Text.Parsers
+  - Gargantext.Text.Parsers.WOS
+  - Gargantext.Text.Parsers.Date
   - Gargantext.Prelude
   - Gargantext.API
   - Gargantext.API.Auth

@@ -20,7 +20,7 @@ please follow the types.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Parsers -- (parse, FileFormat(..))
+module Gargantext.Text.Parsers -- (parse, FileFormat(..))
     where
 
 import Gargantext.Prelude
@@ -46,7 +46,7 @@ import Path.IO (resolveFile')
 import Control.Concurrent.Async as CCA (mapConcurrently)
 
 import Data.String (String())
-import Gargantext.Parsers.WOS (wosParser)
+import Gargantext.Text.Parsers.WOS (wosParser)
 ---- import Gargantext.Parsers.XML (xmlParser)
 ---- import Gargantext.Parsers.DOC (docParser)
 ---- import Gargantext.Parsers.ODT (odtParser)

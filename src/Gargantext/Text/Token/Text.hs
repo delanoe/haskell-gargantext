@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.Token.Text
+Module      : Gargantext.Text.Token.Text
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ Inspired from https://bitbucket.org/gchrupala/lingo/overview
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Ngrams.Token.Text
+module Gargantext.Text.Token.Text
     ( EitherList(..)
     , Tokenizer
     , tokenize
@@ -32,8 +32,6 @@ where
 
 import qualified Data.Char as Char
 import Data.Maybe
-import Control.Monad.Instances ()
-import Control.Applicative
 import Control.Monad
 
 import Data.Text (Text)
@@ -49,6 +47,18 @@ import qualified Data.Text as T
 ---
 -- > myTokenizer :: Tokenizer 
 -- > myTokenizer = whitespace >=> allPunctuation
+-- examples :: [Text]
+-- examples = 
+--    ["This shouldn't happen."
+--    ,"Some 'quoted' stuff"
+--    ,"This is a URL: http://example.org."
+--    ,"How about an email@example.com"
+--    ,"ReferenceError #1065 broke my debugger!"
+--    ,"I would've gone."
+--    ,"They've been there."
+--    ,"Hyphen-words"
+--    ,"Yes/No questions"
+--    ]
 ---
 
 type Tokenizer =  Text -> EitherList Text Text
@@ -81,8 +91,8 @@ uris x | isUri x = E [Left x]
 punctuation :: Tokenizer 
 punctuation = finalPunctuation >=> initialPunctuation
 
-hyphens :: Tokenizer
-hyphens xs = E [Right w | w <- T.split (=='-') xs ]
+--hyphens :: Tokenizer
+--hyphens xs = E [Right w | w <- T.split (=='-') xs ]
 
 -- | Split off word-final punctuation
 finalPunctuation :: Tokenizer
@@ -151,17 +161,4 @@ instance Functor (EitherList a) where
 unwrap :: Either a a -> a
 unwrap (Left x) = x
 unwrap (Right x) = x
-
-examples :: [Text]
-examples = 
-    ["This shouldn't happen."
-    ,"Some 'quoted' stuff"
-    ,"This is a URL: http://example.org."
-    ,"How about an email@example.com"
-    ,"ReferenceError #1065 broke my debugger!"
-    ,"I would've gone."
-    ,"They've been there."
-    ,"Hyphen-words"
-    ,"Yes/No questions"
-    ]
 

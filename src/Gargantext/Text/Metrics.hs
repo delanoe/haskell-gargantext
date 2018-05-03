@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.Metrics 
+Module      : Gargantext.Text.Metrics 
 Description : Short description
 Copyright   : (c) Some Guy, 2013
                   Someone Else, 2014
@@ -13,7 +13,7 @@ Mainly reexport functions in @Data.Text.Metrics@
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Ngrams.Metrics (levenshtein
+module Gargantext.Text.Metrics (levenshtein
                                       , levenshteinNorm
                                       , damerauLevenshtein
                                       , damerauLevenshteinNorm

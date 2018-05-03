@@ -22,7 +22,7 @@ import Test.Hspec
 import Data.Either (Either(Right))
 
 import Gargantext.Prelude
-import Gargantext.Ngrams.Occurrences (parseOccurrences)
+import Gargantext.Text.Occurrences (parseOccurrences)
 
 parsersTest :: IO ()
 parsersTest = hspec $ do

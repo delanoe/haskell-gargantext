@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.List
+Module      : Gargantext.Text.List
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -13,11 +13,11 @@ commentary with @some markup@.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Ngrams.List where
+module Gargantext.Text.List where
 
 import Data.Maybe
 import Data.List (filter)
-import Gargantext.Ngrams
+import Gargantext.Text
 import Gargantext.Prelude
 
 graph :: [Ngrams] -> [Ngrams]

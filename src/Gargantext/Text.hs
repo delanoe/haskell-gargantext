@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams
+Module      : Gargantext.Text
 Description : Ngrams tools
 Copyright   : (c) CNRS, 2018
 License     : AGPL + CECILL v3
@@ -16,30 +16,29 @@ n non negative integer
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Ngrams ( module Gargantext.Ngrams.Letters
-                              --, module Gargantext.Ngrams.Hetero
-                         , module Gargantext.Ngrams.CoreNLP
-                         , module Gargantext.Ngrams.Parser
-                         , module Gargantext.Ngrams.Occurrences
-                         , module Gargantext.Ngrams.TextMining
-                         , module Gargantext.Ngrams.Metrics
+module Gargantext.Text ( module Gargantext.Text.Letters
+                              --, module Gargantext.Text.Hetero
+                         , module Gargantext.Text.CoreNLP
+                         , module Gargantext.Text.Parser
+                         , module Gargantext.Text.Occurrences
+                         , module Gargantext.Text.TextMining
+                         , module Gargantext.Text.Metrics
                          , Ngrams(..), ngrams, occ, sumOcc, text2fis, clean
                          , ListName(..), equivNgrams, isGram, sentences
                          , ngramsTest
-                             --, module Gargantext.Ngrams.Words
                          ) where
 
-import Gargantext.Ngrams.Letters
---import Gargantext.Ngrams.Hetero
-import Gargantext.Ngrams.CoreNLP
-import Gargantext.Ngrams.Parser
+import Gargantext.Text.Letters
+--import Gargantext.Text.Hetero
+import Gargantext.Text.CoreNLP
+import Gargantext.Text.Parser
 
-import Gargantext.Ngrams.Occurrences
-import Gargantext.Ngrams.TextMining
---import Gargantext.Ngrams.Words
+import Gargantext.Text.Occurrences
+import Gargantext.Text.TextMining
+--import Gargantext.Text.Words
 
-import Gargantext.Ngrams.Metrics
-import qualified Gargantext.Ngrams.FrequentItemSet as FIS
+import Gargantext.Text.Metrics
+import qualified Gargantext.Text.FrequentItemSet as FIS
 -----------------------------------------------------------------
 
 import Data.List (sort)
@@ -152,10 +151,9 @@ isStop c = c `elem` ['.','?','!']
 
 
 -- | Tests
--- TODO http://hackage.haskell.org/package/tokenize-0.3.0/docs/NLP-Tokenize-Text.html
-ngramsTest =  ws
+ngramsTest fp =  ws
   where
-    txt = concat <$> lines <$> clean <$> readFile "Giono-arbres.txt"
+    txt = concat <$> lines <$> clean <$> readFile fp
     -- | Number of sentences
     ls   = sentences <$> txt
     -- | Number of monograms used in the full text
@@ -165,6 +163,6 @@ ngramsTest =  ws
     -- group ngrams
     ocs  = occ       <$> ws
 
-
+-- 
 
 

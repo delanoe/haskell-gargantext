@@ -1,4 +1,4 @@
-module Gargantext.Ngrams.Hetero where
+module Gargantext.Text.Hetero where
 
 import GHC.Real as R
 import Data.Set as S
@@ -12,8 +12,8 @@ import Gargantext.Database.Gargandb
 import Gargantext.Database.Private
 --import Gargantext.Utils.Chronos
 
-import Gargantext.Ngrams.Words (cleanText)
-import Gargantext.Ngrams.Count (occurrences)
+import Gargantext.Text.Words (cleanText)
+import Gargantext.Text.Count (occurrences)
 
 import Gargantext.Database.Simple
 

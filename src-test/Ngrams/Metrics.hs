@@ -27,7 +27,7 @@ import Test.Hspec
 import Test.QuickCheck
 
 import Gargantext.Prelude
-import Gargantext.Ngrams.Metrics
+import Gargantext.Text.Metrics
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative

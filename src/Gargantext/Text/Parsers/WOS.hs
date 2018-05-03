@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Parsers.WOS
+Module      : Gargantext.Text.Parsers.WOS
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ commentary with @some markup@.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Parsers.WOS (wosParser) where
+module Gargantext.Text.Parsers.WOS (wosParser) where
 
 -- TOFIX : Should import Gargantext.Prelude here
 import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)

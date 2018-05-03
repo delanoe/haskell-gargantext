@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.Lang.Fr
+Module      : Gargantext.Text.Lang.Fr
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ commentary with @some markup@.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Ngrams.Lang.Fr (selectNgrams, groupNgrams, textTest)
+module Gargantext.Text.Lang.Fr (selectNgrams, groupNgrams, textTest)
     where
 
 import Gargantext.Prelude

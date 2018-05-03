@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.Parser
+Module      : Gargantext.Text.Parser
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -15,15 +15,15 @@ commentary with @some markup@.
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Gargantext.Ngrams.Parser where
+module Gargantext.Text.Parser where
 
 import Gargantext.Prelude
-import Gargantext.Ngrams.CoreNLP
+import Gargantext.Text.CoreNLP
 import Data.Text hiding (map)
 
 import Gargantext.Types.Main (Language(..))
-import qualified Gargantext.Ngrams.Lang.En as En
-import qualified Gargantext.Ngrams.Lang.Fr as Fr
+import qualified Gargantext.Text.Lang.En as En
+import qualified Gargantext.Text.Lang.Fr as Fr
 
 type SNgrams       = (Text, Text, Text)
 

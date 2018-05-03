@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.Occurrences
+Module      : Gargantext.Text.Occurrences
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ commentary with @some markup@.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Ngrams.Occurrences where
+module Gargantext.Text.Occurrences where
 
 import Gargantext.Prelude
 

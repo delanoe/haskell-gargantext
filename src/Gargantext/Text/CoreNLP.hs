@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.CoreNLP
+Module      : Gargantext.Text.CoreNLP
 Description : CoreNLP module
 Copyright   : (c) CNRS, 2017
 License     : AGPL + CECILL v3
@@ -16,7 +16,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
-module Gargantext.Ngrams.CoreNLP where
+module Gargantext.Text.CoreNLP where
 
 import Data.Aeson.TH (deriveJSON)
 import GHC.Generics

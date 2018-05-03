@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ngrams.FrequentItemSet
+Module      : Gargantext.Text.FrequentItemSet
 Description : Ngrams tools
 Copyright   : (c) CNRS, 2018
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ Domain Specific Language to manage Frequent Item Set (FIS)
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Ngrams.FrequentItemSet
+module Gargantext.Text.FrequentItemSet
   ( Fis, Size
   , occ, cooc
   , all, between
