@@ -31,7 +31,7 @@ import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Floating, Char, IO
-                 , pure, (<$>), panic
+                 , pure, (<*>), (<$>), panic
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith
@@ -42,9 +42,9 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not
                  , fst, snd, toS
-                 , elem, die, mod, div, const
+                 , elem, die, mod, div, const, either
                  , curry, uncurry
-                 , otherwise
+                 , otherwise, when
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -231,37 +231,7 @@ zipFst  f xs = zip (f xs) xs
 zipSnd :: ([a] -> [b]) -> [a] -> [(a, b)]
 zipSnd f xs = zip xs (f xs)
 
-
 -- Just 
 unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
-
--- | Syntactic convention for the reader/writer coordination.
--- @Motivation@: explicit functional flux ease coordination between
--- readers and writers who are not always the same individuals. Each
--- natural languages has its own syntaxical conventions from left to
--- right or the contrary. In computer programming languages it depends
--- on context of the algorithm itself and we need some clarity since
--- both are possible, here is a proposition to get more explicitiness.
-
--- | (<|) is called : "Pipe rightLeft" as "from right to left". The most right
--- function sends its output to the most left function which takes it as
--- input.
-(<|) :: (a -> b) -> a -> b
-(<|) = ($)
-
--- | (|>) is called : "Pipe leftRight" as "from left to right". The most left
--- function sends its output to the most right function which takes it as
--- input. (|>) == (&) = True -- in base prelude
-(|>) :: a -> (a -> c) -> c
-(|>) = flip ($)
-
--- | Function composition orientation
-(<.) :: (b -> c) -> (a -> b) -> a -> c
-(<.) = (.)
-
--- | Function composition orientation
-(.>) :: (a -> b) -> (b -> c) -> a -> c
-(.>) = flip (.)
-
 

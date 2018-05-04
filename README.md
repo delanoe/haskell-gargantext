@@ -44,6 +44,10 @@ sudo apt-get install libbz2-dev lipq-dev
 - https://docs.haskellstack.org/en/stable/README/
 - curl -sSL https://get.haskellstack.org/ | sh
 
+### Get the orchestrator library
+
+git clone https://github.com/np/servant-job.git
+
 ## Building and installing
 stack install
 

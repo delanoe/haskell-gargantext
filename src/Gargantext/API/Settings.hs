@@ -36,17 +36,20 @@ import GHC.Enum
 import GHC.Generics (Generic)
 import Prelude (Bounded())
 import System.Environment (lookupEnv)
-
--- import Control.Applicative ((<*>))
+import System.IO (FilePath)
+import Database.PostgreSQL.Simple (Connection, connect)
+import Network.HTTP.Client (Manager)
+import Network.HTTP.Client.TLS (newTlsManager)
 
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
--- import Data.Map
 import Data.Text
 import Data.Text.Encoding (encodeUtf8)
 import Data.ByteString.Lazy.Internal
 
 import Servant
+import Servant.Client (BaseUrl, parseBaseUrl)
+import Servant.Job.Async (newJobEnv, defaultSettings)
 import Web.HttpApiData (parseUrlPiece)
 import qualified Jose.Jwk as Jose
 import qualified Jose.Jwa as Jose
@@ -54,7 +57,10 @@ import qualified Jose.Jwa as Jose
 import Control.Monad.Logger
 import Control.Lens
 import Gargantext.Prelude
+import Gargantext.Database.Utils (databaseParameters)
+import Gargantext.API.Orchestrator.Types
 
+type PortNumber = Int
 
 data SendEmailType = SendEmailViaAws
                    | LogEmailToConsole
@@ -65,11 +71,13 @@ data SendEmailType = SendEmailViaAws
 data Settings = Settings
     { _allowedOrigin   :: ByteString -- ^ allowed origin for CORS
     , _allowedHost     :: ByteString   -- ^ allowed host for CORS
-    , _appPort         :: Int
+    , _appPort         :: PortNumber
     , _logLevelLimit   :: LogLevel -- ^ log level from the monad-logger package
-    , _dbServer        :: Text
+--    , _dbServer        :: Text
+--    ^ this is not used yet
     , _jwtSecret       :: Jose.Jwk -- ^ key from the jose-jwt package
     , _sendLoginEmails :: SendEmailType
+    , _scrapydUrl      :: BaseUrl
     }
 
 makeLenses ''Settings
@@ -90,12 +98,13 @@ devSettings = Settings
     , _allowedHost = "localhost:3000"
     , _appPort = 3000
     , _logLevelLimit = LevelDebug
-    , _dbServer = "localhost"
+--    , _dbServer = "localhost"
     -- generate with dd if=/dev/urandom bs=1 count=32 | base64
     -- make sure jwtSecret differs between development and production, because you do not want
     -- your production key inside source control.
     , _jwtSecret = parseJwk "MVg0YAPVSPiYQc/qIs/rV/X32EFR0zOJWfHFgMbszMw="
     , _sendLoginEmails = LogEmailToConsole
+    , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
     }
 
 
@@ -122,14 +131,43 @@ optSetting name d = do
 --             <*> (parseJwk <$> reqSetting "JWT_SECRET")
 --             <*> optSetting "SEND_EMAIL" SendEmailViaAws
 
-
+data FireWall = FireWall { unFireWall :: Bool }
 
 data Env = Env
-    { _settings :: Settings
-    , _logger   :: LoggerSet
-    -- , _dbConfig :: ConnectionPool -- from Database.Persist.Postgresql
-    }
+  { _env_settings :: !Settings
+  , _env_logger   :: !LoggerSet
+  , _env_conn     :: !Connection
+  , _env_manager  :: !Manager
+  , _env_self_url :: !BaseUrl
+  , _env_scrapers :: !ScrapersEnv
+  }
+  deriving (Generic)
 
 makeLenses ''Env
-createEnv :: Settings -> IO Env
-createEnv _ = undefined {- implementation here: connect to db, init logger, etc -}
+
+data MockEnv = MockEnv
+  { _menv_firewall :: !FireWall
+  }
+  deriving (Generic)
+
+makeLenses ''MockEnv
+
+newEnv :: PortNumber -> FilePath -> IO Env
+newEnv port file = do
+  manager <- newTlsManager
+  settings <- pure (devSettings & appPort .~ port) -- TODO read from 'file'
+  when (port /= settings ^. appPort) $
+    panic "TODO: conflicting settings of port"
+  self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
+  param <- databaseParameters file
+  conn <- connect param
+  scrapers_env <- newJobEnv defaultSettings manager
+  logger <- newStderrLoggerSet defaultBufSize
+  pure $ Env
+    { _env_settings = settings
+    , _env_logger   = logger
+    , _env_conn     = conn
+    , _env_manager  = manager
+    , _env_scrapers = scrapers_env
+    , _env_self_url = self_url
+    }
