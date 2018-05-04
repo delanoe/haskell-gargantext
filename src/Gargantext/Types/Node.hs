@@ -310,5 +310,3 @@ instance ToSchema (NodePoly NodeId NodeTypeId
                   )
 
 instance ToSchema Status
-
-

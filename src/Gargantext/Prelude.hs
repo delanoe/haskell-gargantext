@@ -31,7 +31,7 @@ import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Floating, Char, IO
-                 , pure, (<$>), panic
+                 , pure, (<*>), (<$>), panic
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith
@@ -42,9 +42,9 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not
                  , fst, snd, toS
-                 , elem, die, mod, div, const
+                 , elem, die, mod, div, const, either
                  , curry, uncurry
-                 , otherwise
+                 , otherwise, when
                  )
 
 -- TODO import functions optimized in Utils.Count

@@ -78,6 +78,8 @@ library:
   - fclabels
   - fast-logger
     #  - haskell-gi-base
+  - http-client
+  - http-client-tls
   - http-conduit
   - http-api-data
   - http-types
@@ -107,6 +109,7 @@ library:
   - servant
   - servant-auth
   - servant-client
+  - servant-job
   - servant-mock
   - servant-multipart
   - servant-server

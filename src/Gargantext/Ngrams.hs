@@ -153,7 +153,8 @@ isStop c = c `elem` ['.','?','!']
 
 -- | Tests
 -- TODO http://hackage.haskell.org/package/tokenize-0.3.0/docs/NLP-Tokenize-Text.html
-ngramsTest =  ws
+ngramsTest :: (IO [Text], IO [Text], IO (Map Text Occ))
+ngramsTest =  (ws, ls, ocs)
   where
     txt = concat <$> lines <$> clean <$> readFile "Giono-arbres.txt"
     -- | Number of sentences

@@ -38,25 +38,25 @@ module Gargantext.API
 ---------------------------------------------------------------------
 import           Gargantext.Prelude
 
-import           System.IO (FilePath, print)
+import           System.IO (FilePath)
 
-import           GHC.Generics (D1, Meta (..), Rep, Generic)
+import           GHC.Generics (D1, Meta (..), Rep)
 import           GHC.TypeLits (AppendSymbol, Symbol)
 
 import           Control.Lens
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Swagger
-import           Data.Text (Text, pack)
+import           Data.Text (Text)
+import qualified Data.Text.IO as T
 --import qualified Data.Set as Set
 
-import           Database.PostgreSQL.Simple (Connection, connect)
-
 import           Network.Wai
-import           Network.Wai.Handler.Warp
+import           Network.Wai.Handler.Warp hiding (defaultSettings)
 
 import           Servant
 import           Servant.Mock (mock)
+import           Servant.Job.Server (WithCallbacks)
 import           Servant.Swagger
 import           Servant.Swagger.UI
 -- import Servant.API.Stream
@@ -69,7 +69,8 @@ import Gargantext.API.Node ( Roots    , roots
                            , NodesAPI , nodesAPI
                            )
 import Gargantext.API.Count ( CountAPI, count, Query)
-import Gargantext.Database.Utils (databaseParameters)
+import Gargantext.API.Orchestrator
+import Gargantext.API.Orchestrator.Types
 
 ---------------------------------------------------------------------
 
@@ -90,20 +91,7 @@ import Network.Wai.Middleware.RequestLogger
 import Network.HTTP.Types hiding (Query)
 
 
--- import Gargantext.API.Settings
-
-data FireWall = FireWall { unFireWall :: Bool }
-
-data GEnv conn = Env
-  { _env_conn     :: !conn
-  , _env_firewall :: !FireWall
-  }
-  deriving (Generic)
-
-makeLenses ''GEnv
-
-type ProdEnv = GEnv Connection
-type MockEnv = GEnv ()
+import Gargantext.API.Settings
 
 fireWall :: Applicative f => Request -> FireWall -> f Bool
 fireWall req fw = do
@@ -121,15 +109,15 @@ fireWall req fw = do
        else pure False
 
 
--- makeApp :: Env -> IO (Warp.Settings, Application)
-makeApp :: MockEnv -> IO Application
-makeApp env = do
+-- makeMockApp :: Env -> IO (Warp.Settings, Application)
+makeMockApp :: MockEnv -> IO Application
+makeMockApp env = do
     let serverApp = appMock
 
     -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
     --logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
     let checkOriginAndHost app req resp = do
-            blocking <- fireWall req (env ^. env_firewall)
+            blocking <- fireWall req (env ^. menv_firewall)
             case blocking  of
                 True  -> app req resp
                 False -> resp ( responseLBS status401 [] 
@@ -156,8 +144,6 @@ makeApp env = do
 
 
 ---------------------------------------------------------------------
-type PortNumber = Int
----------------------------------------------------------------------
 -- | API Global
 
 -- | API for serving @swagger.json@
@@ -180,6 +166,8 @@ type GargAPI =  "user"  :> Summary "First user endpoint"
            :<|> "count" :> Summary "Count endpoint"
                         :> ReqBody '[JSON] Query :> CountAPI 
 
+           :<|> "scraper" :> WithCallbacks ScraperAPI
+
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
 -- /rename/<id>
@@ -194,14 +182,16 @@ type API = SwaggerFrontAPI :<|> GargAPI
 
 ---------------------------------------------------------------------
 -- | Server declaration
-server :: ProdEnv -> Server API
-server env
-     =  swaggerFront
-   :<|> roots    conn
-   :<|> nodeAPI  conn
-   :<|> nodeAPI  conn
-   :<|> nodesAPI conn
-   :<|> count
+server :: Env -> IO (Server API)
+server env = do
+  orchestrator <- scrapyOrchestrator env
+  pure $ swaggerFront
+     :<|> roots    conn
+     :<|> nodeAPI  conn
+     :<|> nodeAPI  conn
+     :<|> nodesAPI conn
+     :<|> count
+     :<|> orchestrator
   where
     conn = env ^. env_conn
 
@@ -214,9 +204,8 @@ gargMock :: Server GargAPI
 gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
-app :: ProdEnv -> Application
-app = serve api . server
-  -- TODO firewall
+makeApp :: Env -> IO Application
+makeApp = fmap (serve api) . server
 
 appMock :: Application
 appMock = serve api (swaggerFront :<|> gargMock)
@@ -234,7 +223,7 @@ schemaUiServer :: (Server api ~ Handler Swagger)
 schemaUiServer = swaggerSchemaUIServer
 
 
--- Type Familiy for the Documentation
+-- Type Family for the Documentation
 type family TypeName (x :: *) :: Symbol where
     TypeName Int  = "Int"
     TypeName Text = "Text"
@@ -266,27 +255,23 @@ swaggerWriteJSON = BL8.writeFile "swagger.json" (encodePretty swaggerDoc)
 
 portRouteInfo :: PortNumber -> IO ()
 portRouteInfo port = do
-   print (pack "      ----Main Routes-----      ")
-   print      ("http://localhost:" <> show port <> "/index.html")
-   print      ("http://localhost:" <> show port <> "/swagger-ui")
+  T.putStrLn "      ----Main Routes-----      "
+  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
+  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: PortNumber -> FilePath -> IO ()
 startGargantext port file = do
-  
-  param <- databaseParameters file
-  conn  <- connect param
-  let env = Env conn (FireWall False)
-  
+  env <- newEnv port file
   portRouteInfo port
-  run port (app env)
+  app <- makeApp env
+  run port app
 
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
   portRouteInfo port
-  let env = Env () (FireWall False)
 
-  application <- makeApp env
+  application <- makeMockApp . MockEnv $ FireWall False
 
   run port application
 
