@@ -17,7 +17,7 @@ Adapted from:
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Ngrams.Stem.En
+module Gargantext.Text.Ngrams.Stem.En (stem)
   where
 
 import Control.Monad
@@ -203,14 +203,14 @@ stem' :: [Char] -> [Char]
 stem' s | length s < 3 = s
        | otherwise    = allSteps s
 
-fixpoint :: Eq t => (t -> t) -> t -> t
-fixpoint f x = let fx = f x in
-                   if fx == x
-                      then x
-                      else fixpoint f fx
-
-fixstem :: [Char] -> [Char]
-fixstem = fixpoint stem'
+--fixpoint :: Eq t => (t -> t) -> t -> t
+--fixpoint f x = let fx = f x in
+--                   if fx == x
+--                      then x
+--                      else fixpoint f fx
+--
+--fixstem :: [Char] -> [Char]
+--fixstem = fixpoint stem'
 
 
 {-
