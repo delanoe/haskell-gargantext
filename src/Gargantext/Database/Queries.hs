@@ -22,7 +22,7 @@ Portability : POSIX
 module Gargantext.Database.Queries where
 
 import Gargantext.Prelude
-import Gargantext.Types (Limit, Offset, NodePoly)
+import Gargantext.Core.Types (Limit, Offset, NodePoly)
 import Data.Maybe (Maybe, maybe)
 import Control.Arrow ((>>>))
 import Control.Applicative ((<*>))

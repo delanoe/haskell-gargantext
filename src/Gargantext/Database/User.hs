@@ -24,7 +24,6 @@ commentary with @some markup@.
 
 module Gargantext.Database.User where
 
-import Gargantext.Prelude
 import GHC.Show(Show(..))
 import Data.Eq(Eq(..))
 import Data.Time (UTCTime)
@@ -39,6 +38,8 @@ import Opaleye
 
 -- Functions only
 import Data.List (find)
+
+import Gargantext.Prelude
 
 
 data UserLight = UserLight { userLight_id   :: Int

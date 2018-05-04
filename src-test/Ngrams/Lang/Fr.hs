@@ -20,8 +20,8 @@ module Ngrams.Lang.Fr where
 import Test.Hspec
 
 import Gargantext.Prelude
-import Gargantext.Types.Main (Language(..))
-import Gargantext.Text.Parser (extractNgrams, selectNgrams)
+import Gargantext.Core (Lang(..))
+import Gargantext.Text.Ngrams.PosTagging.Parser (extractNgrams, selectNgrams)
 
 ngramsExtractionTest :: IO ()
 ngramsExtractionTest = hspec $ do

@@ -40,7 +40,7 @@ import Servant
 -- import Servant.Multipart
 
 import Gargantext.Prelude
-import Gargantext.Types.Node
+import Gargantext.Core.Types.Node
 import Gargantext.Database.Node ( getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)

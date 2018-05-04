@@ -11,7 +11,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 
 import Gargantext.Prelude
-import Gargantext.Types.Main (Language(..))
+import Gargantext.Core (Lang(..))
 --import qualified Ngrams.Lang.Fr as Fr
 import qualified Ngrams.Lang as Lang
 import qualified Ngrams.Lang.Occurrences as Occ

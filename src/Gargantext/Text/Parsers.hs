@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Parsers
+Module      : Gargantext.Text.Parsers
 Description : All parsers of Gargantext in one file.
 Copyright   : (c) CNRS, 2017
 License     : AGPL + CECILL v3

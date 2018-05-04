@@ -1,10 +1,9 @@
 {-|
-Module      : Gargantext.Text.Metrics 
-Description : Short description
-Copyright   : (c) Some Guy, 2013
-                  Someone Else, 2014
-License     : GPL-3
-Maintainer  : sample@email.com
+Module      : Gargantext.Text.Metrics
+Description : All parsers of Gargantext in one file.
+Copyright   : (c) CNRS, 2017 - present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
@@ -12,6 +11,7 @@ Mainly reexport functions in @Data.Text.Metrics@
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+
 
 module Gargantext.Text.Metrics (levenshtein
                                       , levenshteinNorm
@@ -22,12 +22,12 @@ module Gargantext.Text.Metrics (levenshtein
                                       , hamming
                                       ) where
 
-import Gargantext.Prelude
 
 import Data.Text (Text)
 import GHC.Real (Ratio)
 import qualified Data.Text.Metrics as DTM
 
+import Gargantext.Prelude
 {- * Example de titre
 -}
 

@@ -49,13 +49,13 @@ import qualified Opaleye.Internal.Unpackspec()
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 
-import Gargantext.Types
-import Gargantext.Types.Node (NodeType)
+import Gargantext.Core.Types
+import Gargantext.Core.Types.Node (NodeType)
+import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.NodeNode
 import Gargantext.Database.NodeNodeNgram
 import Gargantext.Database.Node
 import Gargantext.Database.Queries
-import Gargantext.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.NodeNgram
 
 ------------------------------------------------------------------------

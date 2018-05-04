@@ -15,38 +15,18 @@ n non negative integer
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text ( module Gargantext.Text.Letters
-                              --, module Gargantext.Text.Hetero
-                         , module Gargantext.Text.CoreNLP
-                         , module Gargantext.Text.Parser
-                         , module Gargantext.Text.Occurrences
-                         , module Gargantext.Text.TextMining
-                         , module Gargantext.Text.Metrics
-                         , Ngrams(..), ngrams, occ, sumOcc, text2fis, clean
-                         , ListName(..), equivNgrams, isGram, sentences
-                         , ngramsTest
-                         ) where
+module Gargantext.Text
+  where
 
-import Gargantext.Text.Letters
---import Gargantext.Text.Hetero
-import Gargantext.Text.CoreNLP
-import Gargantext.Text.Parser
-
-import Gargantext.Text.Occurrences
-import Gargantext.Text.TextMining
---import Gargantext.Text.Words
-
-import Gargantext.Text.Metrics
-import qualified Gargantext.Text.FrequentItemSet as FIS
------------------------------------------------------------------
-
-import Data.List (sort)
 import Data.Char (Char, isAlphaNum, isSpace)
-import Data.Text (Text, filter, toLower, split, lines, concat)
+import Data.Text (Text, filter, toLower, split, splitOn)
 import qualified Data.Text as DT
-import Data.Text.IO (readFile)
+--import Data.Text.IO (readFile)
 
+import Data.Set (Set)
+import qualified Data.Set as S
 import Data.Map.Strict  (Map
                         , empty
                         , insertWith, unionWith
@@ -55,25 +35,38 @@ import Data.Map.Strict  (Map
                         )
 import qualified Data.Map.Strict as M (filter)
 import Data.Foldable (foldl')
-import Gargantext.Prelude hiding (filter)
 
--- Maybe useful later:
---import NLP.Stemmer (stem, Stemmer(..))
---import Language.Aspell (check, suggest, spellChecker, spellCheckerWithOptions)
---import Language.Aspell.Options (ACOption(..))
+-----------------------------------------------------------------
+import Gargantext.Text.Ngrams.Stem.En
+
+import qualified Gargantext.Text.Metrics.FrequentItemSet as FIS
+import Gargantext.Prelude hiding (filter)
+-----------------------------------------------------------------
 
 
 data ListName = Stop | Candidate | Graph
   deriving (Show, Eq)
 
-data Ngrams = Ngrams { _ngramsNgrams   :: [Text]
-                     , _ngramsStem     :: [Text]
-                     , _ngramsListName :: Maybe ListName
+
+
+data Ngroup = Ngroup { _ngroup_label  ::  Ngrams
+                     , _ngroup_ngrams :: [Ngrams]
                      } deriving (Show)
 
+
+data Ngrams = Ngrams { _ngrams_label :: [Text]
+                     , _ngrams_stem  :: Set Text
+                     } deriving (Show)
+
+text2ngrams :: Text -> Ngrams
+text2ngrams txt = Ngrams txt' (S.fromList $ map stem txt')
+  where
+    txt' = splitOn " " txt
+
 equivNgrams :: Ngrams -> Ngrams -> Bool
-equivNgrams  (Ngrams n1 s1 _) (Ngrams n2 s2 _)
-  = (sort n1) == (sort n2) || (sort s1) == (sort s2)
+equivNgrams (Ngrams _ s1) (Ngrams _ s2) = s1 `S.isSubsetOf` s2
+                                        || s2 `S.isSubsetOf` s1
+
 
 type Occ     = Int
 --type Index   = Int
@@ -149,20 +142,25 @@ sentences txt = split isStop txt
 isStop :: Char -> Bool
 isStop c = c `elem` ['.','?','!']
 
-
--- | Tests
-ngramsTest fp =  ws
-  where
-    txt = concat <$> lines <$> clean <$> readFile fp
-    -- | Number of sentences
-    ls   = sentences <$> txt
-    -- | Number of monograms used in the full text
-    ws   = ngrams    <$> txt
-    -- | stem ngrams
-    -- TODO
-    -- group ngrams
-    ocs  = occ       <$> ws
-
--- 
-
-
+---- | https://en.wikipedia.org/wiki/Text_mining
+--testText :: Text
+--testText = DT.pack "Text mining, also referred to as text data mining, roughly equivalent to text analytics, is the process of deriving high-quality information from text. High-quality information is typically derived through the devising of patterns and trends through means such as statistical pattern learning. Text mining usually involves the process of structuring the input text (usually parsing, along with the addition of some derived linguistic features and the removal of others, and subsequent insertion into a database), deriving patterns within the structured data, and finally evaluation and interpretation of the output. 'High quality' in text mining usually refers to some combination of relevance, novelty, and interestingness. Typical text mining tasks include text categorization, text clustering, concept/entity extraction, production of granular taxonomies, sentiment analysis, document summarization, and entity relation modeling (i.e., learning relations between named entities). Text analysis involves information retrieval, lexical analysis to study word frequency distributions, pattern recognition, tagging/annotation, information extraction, data mining techniques including link and association analysis, visualization, and predictive analytics. The overarching goal is, essentially, to turn text into data for analysis, via application of natural language processing (NLP) and analytical methods. A typical application is to scan a set of documents written in a natural language and either model the document set for predictive classification purposes or populate a database or search index with the information extracted."
+--
+--
+--
+---- | Tests
+----ngramsTest :: [Text]
+--ngramsTest =  ocs
+--  where
+--    --txt = concat <$> lines <$> clean <$> readFile filePath
+--    txt = clean $ testText
+--    -- | Number of sentences
+--    ls   = sentences $ txt
+--    -- | Number of monograms used in the full text
+--    ws   = ngrams    $ txt
+--    -- | stem ngrams
+--    -- TODO
+--    -- group ngrams
+--    ocs  = occ       $ ws
+--
+--

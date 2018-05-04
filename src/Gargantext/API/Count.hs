@@ -42,7 +42,7 @@ import Test.QuickCheck (elements)
 -- import Control.Applicative ((<*>))
 
 import Gargantext.Prelude
-import Gargantext.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix)
 
 -----------------------------------------------------------------------
 type CountAPI = Post '[JSON] Counts

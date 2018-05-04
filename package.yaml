@@ -22,41 +22,20 @@ library:
   - -Werror
   exposed-modules:
   - Gargantext
-  - Gargantext.Database
-  - Gargantext.Database.Instances
-  - Gargantext.Database.Ngram
-  - Gargantext.Database.Node
-  - Gargantext.Database.Facet
-  - Gargantext.Database.NodeNgram
-  - Gargantext.Database.NodeNgramNgram
-  - Gargantext.Database.NodeNode
-  - Gargantext.Database.NodeNodeNgram
-  - Gargantext.Database.Utils
-  - Gargantext.Database.User
-  - Gargantext.Text
-  - Gargantext.Text.Analysis
-  - Gargantext.Text.TFICF
-  - Gargantext.Text.Letters
-  - Gargantext.Text.CoreNLP
-  - Gargantext.Text.Parser
-  - Gargantext.Text.Token.Text
-  - Gargantext.Text.Lang.En
-  - Gargantext.Text.Stem.En
-  - Gargantext.Text.Lang.Fr
-  - Gargantext.Text.Metrics
-  - Gargantext.Text.TextMining
-  - Gargantext.Text.Occurrences
-  - Gargantext.Text.Parsers
-  - Gargantext.Text.Parsers.WOS
-  - Gargantext.Text.Parsers.Date
   - Gargantext.Prelude
+  - Gargantext.Core
+  - Gargantext.Core.Utils
+  - Gargantext.Core.Types
+  - Gargantext.Core.Types.Node
+  - Gargantext.Text
+  - Gargantext.Text.Metrics
+  - Gargantext.Text.Metrics.Occurrences
+  - Gargantext.Text.Metrics.FrequentItemSet
+  - Gargantext.Text.Ngrams.PosTagging.CoreNLP
+  - Gargantext.Text.Ngrams.PosTagging.Parser
+  - Gargantext.Text.Parsers.Date
+  - Gargantext.Database
   - Gargantext.API
-  - Gargantext.API.Auth
-  - Gargantext.Types
-  - Gargantext.Types.Main
-  - Gargantext.Types.Node
-  - Gargantext.Utils.DateUtils
-  - Gargantext.Utils.Prefix
   dependencies:
   - QuickCheck
   - aeson
