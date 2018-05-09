@@ -19,8 +19,13 @@ module Gargantext.Text.Ngrams.Lists
 --import Data.Maybe
 --import Data.List (filter)
 --import Gargantext.Text
---import Gargantext.Prelude
+import Gargantext.Prelude
 --
+
+data ListName = Stop | Candidate | Graph
+  deriving (Show, Eq)
+
+
 --graph :: [Ngrams] -> [Ngrams]
 --graph ngs = filter (\ng -> _ngramsListName ng == Just Graph) ngs
 --
@@ -29,4 +34,5 @@ module Gargantext.Text.Ngrams.Lists
 --
 --stop :: [Ngrams] -> [Ngrams]
 --stop ngs = filter (\ng -> _ngramsListName ng == Just Stop) ngs
+
 

@@ -46,9 +46,3 @@ ngramsExtractionTest = hspec $ do
             t2 `shouldBe` [[("Donald Trump","NNP","PERSON"),("president of the United-States of America","NN","LOCATION")]]
 
 
-
-
-
-
-
-

@@ -15,7 +15,6 @@ dependencies:
 - text
 library:
   source-dirs: src
-  default-extensions: 
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
@@ -33,6 +32,7 @@ library:
   - Gargantext.Text.Metrics.FrequentItemSet
   - Gargantext.Text.Ngrams.PosTagging.CoreNLP
   - Gargantext.Text.Ngrams.PosTagging.Parser
+  - Gargantext.Text.Ngrams.Token.Text
   - Gargantext.Text.Parsers.Date
   - Gargantext.Database
   - Gargantext.API
@@ -54,10 +54,11 @@ library:
   - data-time-segment
   - directory
   - duckling
+  - exceptions
   - filepath
   - fclabels
   - fast-logger
-    #  - haskell-gi-base
+  - full-text-search
   - http-client
   - http-client-tls
   - http-conduit
@@ -134,7 +135,6 @@ tests:
   garg-test:
     main: Main.hs
     source-dirs: src-test
-    default-extensions: 
     ghc-options:
     - -threaded
     - -rtsopts
