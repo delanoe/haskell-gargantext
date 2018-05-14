@@ -75,18 +75,6 @@ pr = reverse
 map2 :: (t -> b) -> [[t]] -> [[b]]
 map2 fun = map (map fun)
 
-pz :: [a] -> [b] -> [(a, b)]
-pz  = zip
-
-pd :: Int -> [a] -> [a]
-pd  = drop
-
-ptk :: Int -> [a] -> [a]
-ptk = take
-
-pzw :: (a -> b -> c) -> [a] -> [b] -> [c]
-pzw = zipWith
-
 -- Exponential Average
 eavg :: [Double] -> Double
 eavg (x:xs) = a*x + (1-a)*(eavg xs)

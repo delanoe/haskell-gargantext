@@ -33,6 +33,7 @@ library:
   - Gargantext.Text.Ngrams.PosTagging.CoreNLP
   - Gargantext.Text.Ngrams.PosTagging.Parser
   - Gargantext.Text.Ngrams.Token.Text
+  - Gargantext.Text.Parsers.CSV
   - Gargantext.Text.Parsers.Date
   - Gargantext.Database
   - Gargantext.API
@@ -47,6 +48,7 @@ library:
   - base16-bytestring
   - bytestring
   - case-insensitive
+  - cassava
   - conduit
   - conduit-extra
   - containers
