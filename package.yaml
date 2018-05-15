@@ -58,6 +58,7 @@ library:
   - duckling
   - exceptions
   - filepath
+  - fullstop
   - fclabels
   - fast-logger
   - full-text-search

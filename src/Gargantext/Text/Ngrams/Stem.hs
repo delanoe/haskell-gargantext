@@ -18,7 +18,7 @@ Source : https://en.wikipedia.org/wiki/Stemming
 -}
 
 
-module Gargantext.Text.Ngrams.Stem
+module Gargantext.Text.Ngrams.Stem (stem, Lang(..))
   where
 
 import Data.Text (Text)
@@ -38,7 +38,6 @@ import Gargantext.Core (Lang(..))
 -- A stemmer for English, for example, should identify the string "cats"
 -- (and possibly "catlike", "catty" etc.) as based on the root "cat".
 
-
 -- and
 -- "stems", "stemmer", "stemming", "stemmed" as based on "stem". A stemming
 -- algorithm reduces the words "fishing", "fished", and "fisher" to the
@@ -46,7 +45,6 @@ import Gargantext.Core (Lang(..))
 -- "arguing", and "argus" reduce to the stem "argu" (illustrating the
 -- case where the stem is not itself a word or root) but "argument" and
 -- "arguments" reduce to the stem "argument".
-
 
 
 stem :: Lang -> Text -> Text

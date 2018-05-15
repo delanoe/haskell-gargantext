@@ -30,8 +30,10 @@ module Gargantext.Prelude
 import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
+                 , Enum, Bounded, Float
                  , Floating, Char, IO
                  , pure, (<*>), (<$>), panic
+                 , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, zip, drop, take, zipWith

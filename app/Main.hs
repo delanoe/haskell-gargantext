@@ -6,9 +6,10 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
+
+Script to start gargantext with different modes (Dev, Prod, Mock).
+
 -}
-
-
 
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE DeriveGeneric     #-}
@@ -16,7 +17,6 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators     #-}
-
 
 module Main where
 
@@ -47,10 +47,9 @@ deriving instance Show (MyOptions Unwrapped)
 
 main :: IO ()
 main = do 
-
     MyOptions myMode myPort myIniFile  <- unwrapRecord
             "Gargantext: collaborative platform for text-mining"
-    
+
     let myPort' = case myPort of
             Just p  -> p
             Nothing -> 8008
@@ -64,6 +63,6 @@ main = do
                                        Just i  -> i
             Mock -> startGargantextMock myPort'
             _  -> startGargantextMock myPort'
-    
+
     putStrLn $ "Starting Gargantext with mode: " <> show myMode
     start

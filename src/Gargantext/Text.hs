@@ -32,6 +32,7 @@ import Data.Map.Strict  (Map
 import Data.Text (Text, split)
 import qualified Data.Map.Strict as M (filter)
 
+import NLP.FullStop (segment)
 -----------------------------------------------------------------
 import Gargantext.Text.Ngrams
 import Gargantext.Text.Metrics.Occurrences
@@ -89,11 +90,16 @@ text2fis n xs = list2fis n (map ngrams xs)
 -------------------------------------------------------------------
 -- Contexts of text
 sentences :: Text -> [Text]
-sentences txt = split isStop txt
+sentences txt = map DT.pack $ segment $ DT.unpack txt
+
+sentences' :: Text -> [Text]
+sentences' txt = split isStop txt
 
 isStop :: Char -> Bool
 isStop c = c `elem` ['.','?','!']
 
+unsentences :: [Text] -> Text
+unsentences txts = DT.intercalate " " txts
 
 -- | https://en.wikipedia.org/wiki/Text_mining
 testText_en :: Text

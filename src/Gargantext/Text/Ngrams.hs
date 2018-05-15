@@ -26,7 +26,7 @@ module Gargantext.Text.Ngrams
   where
 
 import Data.Char (Char, isAlphaNum, isSpace)
-import Data.Text (Text, split, splitOn, pack)
+import Data.Text (Text, split, splitOn, pack, toLower)
 
 import Data.Set  (Set)
 import qualified Data.Set as S
@@ -64,7 +64,7 @@ equivNgrams (Ngrams _ s1) (Ngrams _ s2) = s1 `S.isSubsetOf` s2
 --monograms xs = monograms $ toLower $ filter isGram xs
 
 monograms :: Text -> [Text]
-monograms txt = split isWord txt
+monograms txt = map toLower $ split isWord txt
   where
     isWord c = c `elem` [' ', '\'', ',', ';']
 

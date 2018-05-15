@@ -33,7 +33,6 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Opaleye (Query, Unpackspec, showSqlForPostgres)
 import Data.Profunctor.Product.Default (Default)
 import Data.Maybe (maybe)
-import Prelude (id, putStrLn)
 -- TODO add a reader Monad here
 -- read this in the init file
 
@@ -61,5 +60,5 @@ connectGargandb fp = do
     connect parameters
 
 printSql :: Default Unpackspec a a => Query a -> IO ()
-printSql = putStrLn . maybe "Empty query" id . showSqlForPostgres
+printSql = putStrLn . maybe "Empty query" identity . showSqlForPostgres
 
