@@ -19,12 +19,12 @@ module Gargantext.Text.Parsers.CSV where
 
 import GHC.Real (round)
 import GHC.IO (FilePath)
+
 import Control.Applicative
 
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.List (concat)
 import Data.String (IsString)
 import Data.Text (Text, pack, unpack, length)
 import qualified Data.ByteString.Lazy as BL
@@ -54,16 +54,10 @@ toDocs :: Vector CsvDoc -> [Doc]
 toDocs v = V.toList 
          $ V.zipWith (\nId (CsvDoc t s py pm pd abst auth)
                        -> Doc nId t s py pm pd abst auth )
-                       (V.enumFromN 1 (V.length v')) v''
-      where
-        m  = docsSize v
-        v' = V.concatMap (splitDoc m Paragraph) v
-
-        m' = docsSize v
-        v'' = V.concatMap (splitDoc m' Sentences) v'
-        
-        m'' = docsSize v'
-        v''' = V.concatMap (splitDoc m' Sentences) v''
+                       (V.enumFromN 1 (V.length v'')) v''
+          where
+            v'' = V.foldl (\v' sep -> V.concatMap (splitDoc (docsSize v') sep) v') v seps
+            seps= (V.fromList [Paragraph, Sentences, Chars])
 
 ---------------------------------------------------------------
 fromDocs :: Vector Doc -> Vector CsvDoc
