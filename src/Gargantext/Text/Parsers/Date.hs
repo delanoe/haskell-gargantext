@@ -18,8 +18,9 @@ DGP.parseDate1 DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.Date (parseDate1, Lang(FR, EN), parseDate, fromRFC3339, parseTimeOfDay, getMultiplicator) where
+module Gargantext.Text.Parsers.Date (parseDate1, parseDate, fromRFC3339, parseTimeOfDay, getMultiplicator) where
 
+import Gargantext.Core (Lang(FR,EN))
 import Gargantext.Prelude
 import Prelude (toInteger, div, otherwise, (++))
 --import Gargantext.Types.Main as G
@@ -30,7 +31,8 @@ import Data.Time.LocalTime (utc)
 import Duckling.Resolve (fromUTC, Context(Context, referenceTime, locale)
                         , DucklingTime(DucklingTime)
                         )
-import Duckling.Core (makeLocale, Lang(FR,EN), Some(This), Dimension(Time))
+import Duckling.Core (makeLocale, Some(This), Dimension(Time))
+import qualified Duckling.Core as DC
 import Duckling.Types (jsonValue, Entity)
 
 import Duckling.Api (analyze, parse)
@@ -63,9 +65,9 @@ import Text.XML.HXT.DOM.Util (decimalStringToInt)
 -- TODO add Paris at Duckling.Locale Region datatype
 -- | To get Homogeinity of the languages
 --   TODO : put this in a more generic place in the source code
---parserLang :: G.Language -> Lang
---parserLang G.FR = FR
---parserLang G.EN = EN
+parserLang :: Lang -> DC.Lang
+parserLang FR = DC.FR
+parserLang EN = DC.EN
 
 
 -- | Final Date parser API
@@ -93,7 +95,7 @@ utcToDucklingTime time = DucklingTime . zonedTimeToZoneSeriesTime $ fromUTC time
 
 -- | Local Context which depends on Lang and Time
 localContext :: Lang -> DucklingTime -> Context
-localContext lang dt = Context {referenceTime = dt, locale = makeLocale lang Nothing}
+localContext lang dt = Context {referenceTime = dt, locale = makeLocale (parserLang lang) Nothing}
 
 -- | Date parser with Duckling
 parseDateWithDuckling :: Lang -> Text -> IO [ResolvedToken]
