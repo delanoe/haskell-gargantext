@@ -81,5 +81,5 @@ findWith f t = find (\x -> f x == t)
 --userWithId t xs = userWith userUserId t xs
 
 -- | not optimized (get all ngrams without filters)
-getNgrams :: PGS.Connection -> IO [Ngram]
-getNgrams conn = runQuery conn queryNgramTable
+dbGetNgrams :: PGS.Connection -> IO [Ngram]
+dbGetNgrams conn = runQuery conn queryNgramTable

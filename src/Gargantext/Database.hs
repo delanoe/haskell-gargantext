@@ -19,7 +19,7 @@ module Gargantext.Database (
   , module Gargantext.Database.User
   , module Gargantext.Database.Node
   , module Gargantext.Database.NodeNode
-  , module Gargantext.Database.Ngram
+--  , module Gargantext.Database.Ngram
   , module Gargantext.Database.NodeNgram
   , module Gargantext.Database.NodeNodeNgram
   , module Gargantext.Database.NodeNgramNgram
@@ -34,7 +34,7 @@ import Gargantext.Database.Utils
 import Gargantext.Database.User
 import Gargantext.Database.Node
 import Gargantext.Database.NodeNode
-import Gargantext.Database.Ngram
+--import Gargantext.Database.Ngram
 import Gargantext.Database.NodeNgram
 import Gargantext.Database.NodeNodeNgram
 import Gargantext.Database.NodeNgramNgram

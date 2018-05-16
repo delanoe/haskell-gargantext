@@ -35,7 +35,6 @@ library:
   - Gargantext.Text.Ngrams.Token.Text
   - Gargantext.Text.Parsers.CSV
   - Gargantext.Text.Parsers.Date
-  - Gargantext.Database
   - Gargantext.API
   dependencies:
   - QuickCheck
