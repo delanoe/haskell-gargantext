@@ -17,7 +17,7 @@ Adapted from:
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Ngrams.Stem.En (stem)
+module Gargantext.Text.Terms.Mono.Stem.En (stem)
   where
 
 import Control.Monad

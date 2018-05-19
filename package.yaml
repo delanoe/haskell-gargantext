@@ -23,18 +23,10 @@ library:
   - Gargantext
   - Gargantext.Prelude
   - Gargantext.Core
-  - Gargantext.Core.Utils
   - Gargantext.Core.Types
-  - Gargantext.Core.Types.Node
   - Gargantext.Text
-  - Gargantext.Text.Metrics
-  - Gargantext.Text.Metrics.Occurrences
-  - Gargantext.Text.Metrics.FrequentItemSet
-  - Gargantext.Text.Ngrams.PosTagging.CoreNLP
-  - Gargantext.Text.Ngrams.PosTagging.Parser
-  - Gargantext.Text.Ngrams.Token.Text
+  - Gargantext.Text.Search
   - Gargantext.Text.Parsers.CSV
-  - Gargantext.Text.Parsers.Date
   - Gargantext.API
   dependencies:
   - QuickCheck
@@ -124,14 +116,18 @@ library:
 
 executable:
   main: Main.hs
-  source-dirs:      app
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
+  source-dirs: app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2
   dependencies:
     - base
+    - containers
     - gargantext
+    - vector
+    - cassava
     - ini
     - optparse-generic
     - unordered-containers
+    - full-text-search
 
 tests:
   garg-test:

@@ -11,7 +11,7 @@ Portability : POSIX
 -}
 
 module Gargantext (
-                     module Gargantext.Database,
+                     module Gargantext.Database
 --                     module Gargantext.Ngrams,
 --                     module Gargantext.Utils,
                     ) where

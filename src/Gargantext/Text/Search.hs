@@ -28,8 +28,8 @@ import Data.Ix
 import Data.Text (Text)
 
 import Gargantext.Prelude
-import Gargantext.Text.Ngrams
-import Gargantext.Text.Ngrams.Stem as ST
+import Gargantext.Text.Terms.Mono (monoterms)
+import Gargantext.Text.Terms.Mono.Stem as ST
 import Gargantext.Text.Parsers.CSV
 
 type DocId = Int
@@ -52,14 +52,14 @@ docSearchConfig :: SearchConfig Doc DocId DocField NoFeatures
 docSearchConfig =
     SearchConfig {
       documentKey           = d_docId,
-      extractDocumentTerms  = extractTokens,
+      extractDocumentTerms  = extractTerms,
       transformQueryTerm    = normaliseQueryToken,
       documentFeatureValue  = const noFeatures
   }
   where
-    extractTokens :: Doc -> DocField -> [Text]
-    extractTokens doc TitleField       = monograms (d_title doc)
-    extractTokens doc AbstractField    = monograms (d_abstract doc)
+    extractTerms :: Doc -> DocField -> [Text]
+    extractTerms doc TitleField       = monoterms (d_title doc)
+    extractTerms doc AbstractField    = monoterms (d_abstract doc)
 
     normaliseQueryToken :: Text -> DocField -> Text
     normaliseQueryToken tok =

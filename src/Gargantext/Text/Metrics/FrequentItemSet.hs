@@ -89,3 +89,39 @@ fisWith s f is = unMaybe $ map items2fis $ filter' $ runLCMmatrix is f
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
+
+
+--
+---- | /!\ indexes are not the same:
+--
+---- | Index ngrams from Map
+----indexNgram :: Ord a => Map a Occ -> Map Index a
+----indexNgram m = fromList (zip [1..] (keys m))
+--
+---- | Index ngrams from Map
+----ngramIndex :: Ord a => Map a Occ -> Map a Index
+----ngramIndex m = fromList (zip (keys m) [1..])
+--
+--indexWith :: Ord a => Map a Occ -> [a] -> [Int]
+--indexWith m xs = unMaybe $ map (\x -> lookupIndex x m) xs
+--
+--indexIt :: Ord a => [[a]] -> (Map a Int, [[Int]])
+--indexIt xs = (m, is)
+--  where
+--    m  = sumOcc (map occ  xs)
+--    is = map    (indexWith m) xs
+--
+--list2fis :: Ord a => FIS.Frequency -> [[a]] -> (Map a Int, [FIS.Fis])
+--list2fis n xs = (m', fs)
+--  where
+--    (m, is) = indexIt xs
+--    m'      = M.filter (>50000) m
+--    fs      = FIS.all n is
+--
+--text2fis :: FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
+--text2fis n xs = list2fis n (map terms xs)
+--
+----text2fisWith :: FIS.Size -> FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
+----text2fisWith = undefined
+--
+

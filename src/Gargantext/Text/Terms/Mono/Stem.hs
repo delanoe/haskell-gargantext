@@ -18,7 +18,7 @@ Source : https://en.wikipedia.org/wiki/Stemming
 -}
 
 
-module Gargantext.Text.Ngrams.Stem (stem, Lang(..))
+module Gargantext.Text.Terms.Mono.Stem (stem, Lang(..))
   where
 
 import Data.Text (Text)

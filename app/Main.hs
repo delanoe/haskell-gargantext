@@ -14,13 +14,13 @@ Script to start gargantext with different modes (Dev, Prod, Mock).
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators     #-}
 
 module Main where
 
-import Prelude (putStrLn)
 
 import Options.Generic
 import Data.Text (unpack)

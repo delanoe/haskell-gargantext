@@ -7,13 +7,12 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Inspired from https://bitbucket.org/gchrupala/lingo/overview
+First inspired from https://bitbucket.org/gchrupala/lingo/overview
 -}
-
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Ngrams.Token.Text
+module Gargantext.Text.Terms.Mono.Token.En
     ( EitherList(..)
     , Tokenizer
     , tokenize

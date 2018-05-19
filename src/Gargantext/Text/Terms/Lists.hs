@@ -13,7 +13,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Ngrams.Lists
+module Gargantext.Text.Terms.Lists
   where
 
 --import Data.Maybe

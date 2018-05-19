@@ -7,10 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Ngrams exctration.
-
-Definitions of ngrams.
-n non negative integer
+Text gathers terms in unit of contexts.
 
 -}
 
@@ -24,25 +21,17 @@ import qualified Data.Text as DT
 --import Data.Text.IO (readFile)
 
 
-import Data.Map.Strict  (Map
-                        , lookupIndex
-                        --, fromList, keys
-                        )
-
 import Data.Text (Text, split)
-import qualified Data.Map.Strict as M (filter)
 
 import NLP.FullStop (segment)
 -----------------------------------------------------------------
-import Gargantext.Text.Ngrams
-import Gargantext.Text.Metrics.Occurrences
 
-import qualified Gargantext.Text.Metrics.FrequentItemSet as FIS
+import Gargantext.Core.Types
 import Gargantext.Prelude hiding (filter)
 -----------------------------------------------------------------
 
-data Group = Group { _group_label  ::  Ngrams
-                   , _group_ngrams :: [Ngrams]
+data Group = Group { _group_label  :: Terms
+                   , _group_terms :: Terms
                    } deriving (Show)
 
 
@@ -52,40 +41,9 @@ clean txt = DT.map clean' txt
     clean' '’' = '\''
     clean' c  = c
 
+
 --noApax :: Ord a => Map a Occ -> Map a Occ
 --noApax m = M.filter (>1) m
-
--- | /!\ indexes are not the same:
-
--- | Index ngrams from Map
---indexNgram :: Ord a => Map a Occ -> Map Index a
---indexNgram m = fromList (zip [1..] (keys m))
-
--- | Index ngrams from Map
---ngramIndex :: Ord a => Map a Occ -> Map a Index
---ngramIndex m = fromList (zip (keys m) [1..])
-
-indexWith :: Ord a => Map a Occ -> [a] -> [Int]
-indexWith m xs = unMaybe $ map (\x -> lookupIndex x m) xs
-
-indexIt :: Ord a => [[a]] -> (Map a Int, [[Int]])
-indexIt xs = (m, is)
-  where
-    m  = sumOcc (map occ  xs)
-    is = map    (indexWith m) xs
-
-list2fis :: Ord a => FIS.Frequency -> [[a]] -> (Map a Int, [FIS.Fis])
-list2fis n xs = (m', fs)
-  where
-    (m, is) = indexIt xs
-    m'      = M.filter (>50000) m
-    fs      = FIS.all n is
-
-text2fis :: FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
-text2fis n xs = list2fis n (map ngrams xs)
-
---text2fisWith :: FIS.Size -> FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
---text2fisWith = undefined
 
 -------------------------------------------------------------------
 -- Contexts of text
@@ -112,17 +70,18 @@ testText_fr = DT.pack "La fouille de textes ou « l'extraction de connaissances 
 -- | Ngrams Test
 -- >>> ngramsTest testText
 -- 248
-ngramsTest :: Text -> Int
-ngramsTest x=  length ws
-  where
-    --txt = concat <$> lines <$> clean <$> readFile filePath
-    txt = clean x
-    -- | Number of sentences
-    --ls   = sentences $ txt
-    -- | Number of monograms used in the full text
-    ws   = ngrams    $ txt
-    -- | stem ngrams
+--ngramsTest :: Text -> Int
+--ngramsTest x =  length ws
+--  where
+--    --txt = concat <$> lines <$> clean <$> readFile filePath
+--    txt = clean x
+--    -- | Number of sentences
+--    --ls   = sentences $ txt
+--    -- | Number of monograms used in the full text
+--    ws   = ngrams    $ txt
+--    -- | stem ngrams
     -- TODO
     -- group ngrams
     --ocs  = occ       $ ws
+
 

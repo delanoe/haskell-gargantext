@@ -17,11 +17,11 @@ Source: https://en.wikipedia.org/wiki/Tokenize
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Ngrams.Token (tokenize)
+module Gargantext.Text.Terms.Mono.Token (tokenize)
   where
 
 import Data.Text (Text)
-import qualified Gargantext.Text.Ngrams.Token.Text as En
+import qualified Gargantext.Text.Terms.Mono.Token.En as En
 
 type Token = Text
 
