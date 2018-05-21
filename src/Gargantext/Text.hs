@@ -35,16 +35,6 @@ data Group = Group { _group_label  :: Terms
                    } deriving (Show)
 
 
-clean :: Text -> Text
-clean txt = DT.map clean' txt
-  where
-    clean' '’' = '\''
-    clean' c  = c
-
-
---noApax :: Ord a => Map a Occ -> Map a Occ
---noApax m = M.filter (>1) m
-
 -------------------------------------------------------------------
 -- Contexts of text
 sentences :: Text -> [Text]
@@ -83,5 +73,4 @@ testText_fr = DT.pack "La fouille de textes ou « l'extraction de connaissances 
     -- TODO
     -- group ngrams
     --ocs  = occ       $ ws
-
 

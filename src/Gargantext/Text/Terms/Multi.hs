@@ -13,10 +13,11 @@ Multi-terms are ngrams where n > 1.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Terms.Multi (extractTokenTags)
+module Gargantext.Text.Terms.Multi (multiterms)
   where
 
-import Data.Text hiding (map, group)
+import Data.Text hiding (map, group, filter, concat)
+import Data.List (concat)
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
@@ -26,13 +27,21 @@ import Gargantext.Text.Terms.Multi.PosTagging
 import qualified Gargantext.Text.Terms.Multi.Lang.En as En
 import qualified Gargantext.Text.Terms.Multi.Lang.Fr as Fr
 
+multiterms :: Lang -> Text -> IO [Terms]
+multiterms lang txt = concat
+                   <$> map (map tokenTag2terms)
+                   <$> map (filter (\t -> _my_token_pos t == Just NP)) 
+                   <$> tokenTags lang txt
 
-extractTokenTags :: Lang -> Text -> IO [[TokenTag]]
-extractTokenTags lang s = map (group lang) <$> extractTokenTags' lang s
+tokenTag2terms :: TokenTag -> Terms
+tokenTag2terms (TokenTag w t _ _) =  Terms w t
+
+tokenTags :: Lang -> Text -> IO [[TokenTag]]
+tokenTags lang s = map (group lang) <$> tokenTags' lang s
 
 
-extractTokenTags' :: Lang -> Text -> IO [[TokenTag]]
-extractTokenTags' lang t =  map tokens2tokensTags
+tokenTags' :: Lang -> Text -> IO [[TokenTag]]
+tokenTags' lang t =  map tokens2tokensTags
                      <$> map _sentenceTokens
                      <$> _sentences
                      <$> corenlp lang t

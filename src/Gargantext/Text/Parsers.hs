@@ -37,6 +37,7 @@ import Data.Either.Extra(Either())
 
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
+import qualified Data.Text as DT
 ----
 --import Control.Monad (join)
 import Codec.Archive.Zip (withArchive, getEntry, getEntries)
@@ -107,5 +108,11 @@ openZip fp = do
     entries <- withArchive path (DM.keys <$> getEntries)
     bs      <- mapConcurrently (\s -> withArchive path (getEntry s)) entries
     pure bs
+
+clean :: Text -> Text
+clean txt = DT.map clean' txt
+  where
+    clean' '’' = '\''
+    clean' c  = c
 
 

@@ -13,7 +13,7 @@ Mono-terms are Nterms where n == 1.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Terms.Mono
+module Gargantext.Text.Terms.Mono (monoterms, monoterms')
   where
 
 import Data.Text (Text, toLower, split, splitOn, pack)
@@ -26,11 +26,13 @@ import Gargantext.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import Data.Char (isAlphaNum, isSpace)
 
-monoterms :: Text -> [Term]
+monoterms' :: Lang -> Text -> [Terms]
+monoterms' l txt = map (text2terms l) $ monoterms txt
+
+monoterms :: Text -> [Text]
 monoterms txt = map toLower $ split isWord txt
   where
     isWord c = c `elem` [' ', '\'', ',', ';']
-
 
 text2terms :: Lang -> Text -> Terms
 text2terms lang txt = Terms label stems

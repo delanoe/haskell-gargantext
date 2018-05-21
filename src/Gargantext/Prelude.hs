@@ -47,6 +47,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , elem, die, mod, div, const, either
                  , curry, uncurry
                  , otherwise, when
+                 , undefined
                  )
 
 -- TODO import functions optimized in Utils.Count
