@@ -10,6 +10,7 @@ Portability : POSIX
 First inspired from https://bitbucket.org/gchrupala/lingo/overview
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Terms.Mono.Token.En
@@ -29,12 +30,17 @@ module Gargantext.Text.Terms.Mono.Token.En
     )
   where
 
+import Data.Foldable (concatMap)
 import qualified Data.Char as Char
 import Data.Maybe
 import Control.Monad
+import Control.Applicative (Applicative)
 
 import Data.Text (Text)
 import qualified Data.Text as T
+
+import Data.Either
+import Gargantext.Prelude
 
 -- | A Tokenizer is function which takes a list and returns a list of Eithers
 --  (wrapped in a newtype). Right Texts will be passed on for processing

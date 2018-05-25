@@ -42,12 +42,13 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , abs, min, max, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), ($), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
-                 , (&&), (||), not
+                 , (&&), (||), not, any
                  , fst, snd, toS
                  , elem, die, mod, div, const, either
                  , curry, uncurry
                  , otherwise, when
                  , undefined
+                 , IO()
                  )
 
 -- TODO import functions optimized in Utils.Count

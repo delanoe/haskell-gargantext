@@ -17,24 +17,31 @@ Text gathers terms in unit of contexts.
 module Gargantext.Text
   where
 
+import Data.Maybe
 import qualified Data.Text as DT
---import Data.Text.IO (readFile)
 
-
+import qualified Data.Set as S
 import Data.Text (Text, split)
 
 import NLP.FullStop (segment)
 -----------------------------------------------------------------
-
+import Gargantext.Core
 import Gargantext.Core.Types
+import Gargantext.Text.Metrics.Occurrences (Occ, occurrences, cooc)
 import Gargantext.Prelude hiding (filter)
 -----------------------------------------------------------------
 
-data Group = Group { _group_label  :: Terms
-                   , _group_terms :: Terms
-                   } deriving (Show)
+type Config  = Lang -> Context
+
+type Context = Text -> [Text]
+
+data Viz = Graph | Phylo | Chart
+
+pipeline :: Config -> Text -> Viz
+pipeline = undefined
 
 
+-----------------------------------------------------------------
 -------------------------------------------------------------------
 -- Contexts of text
 sentences :: Text -> [Text]
@@ -56,6 +63,10 @@ testText_en = DT.pack "Text mining, also referred to as text data mining, roughl
 -- | https://fr.wikipedia.org/wiki/Fouille_de_textes
 testText_fr :: Text
 testText_fr = DT.pack "La fouille de textes ou « l'extraction de connaissances » dans les textes est une spécialisation de la fouille de données et fait partie du domaine de l'intelligence artificielle. Cette technique est souvent désignée sous l'anglicisme text mining. Elle désigne un ensemble de traitements informatiques consistant à extraire des connaissances selon un critère de nouveauté ou de similarité dans des textes produits par des humains pour des humains. Dans la pratique, cela revient à mettre en algorithme un modèle simplifié des théories linguistiques dans des systèmes informatiques d'apprentissage et de statistiques. Les disciplines impliquées sont donc la linguistique calculatoire, l'ingénierie des langues, l'apprentissage artificiel, les statistiques et l'informatique."
+
+termTests :: Text
+termTests = "It is hard to detect important articles in a specific context. Information retrieval techniques based on full text search can be inaccurate to identify main topics and they are not able to provide an indication about the importance of the article. Generating a citation network is a good way to find most popular articles but this approach is not context aware. The text around a citation mark is generally a good summary of the referred article. So citation context analysis presents an opportunity to use the wisdom of crowd for detecting important articles in a context sensitive way. In this work, we analyze citation contexts to rank articles properly for a given topic. The model proposed uses citation contexts in order to create a directed and edge-labeled citation network based on the target topic. Then we apply common ranking algorithms in order to find important articles in this newly created network. We showed that this method successfully detects a good subset of most prominent articles in a given topic. The biggest contribution of this approach is that we are able to identify important articles for a given search term even though these articles do not contain this search term. This technique can be used in other linked documents including web pages, legal documents, and patents as well as scientific papers."
+
 
 -- | Ngrams Test
 -- >>> ngramsTest testText

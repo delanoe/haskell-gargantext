@@ -28,43 +28,76 @@ Source : https://en.wikipedia.org/wiki/Type%E2%80%93token_distinction#Occurrence
 module Gargantext.Text.Metrics.Occurrences
   where
 
-import Gargantext.Prelude
 
 import Data.Map.Strict  (Map
                         , empty
-                        , insertWith, unionWith
+                        , insertWith, insertWithKey, unionWith
+                        , toList
                         )
 
+import qualified Data.Map.Strict as DMS
 import Control.Monad ((>>),(>>=))
 import Data.String (String())
 import Data.Attoparsec.Text
-import Data.Text (Text)
 
-import Data.Either.Extra(Either(..))
-import qualified Data.Text as T
-import Control.Applicative hiding (empty)
------------------------------------------------------------
+------------------------------------------------------------------------
+import Gargantext.Prelude
+import Gargantext.Core.Types
 
-type Occ = Int
+------------------------------------------------------------------------
 
--- | Compute the occurrences (occ)
-occ :: Ord a => [a] -> Map a Occ
-occ xs = foldl' (\x y -> insertWith (+) y 1 x) empty xs
+type Occ  a = Map      a  Int
+type Cooc a = Map (a,  a) Int
+type FIS  a = Map (Set a) Int
+
+data Group = ByStem | ByOntology
+
+type Grouped = Stems
+
+
+-- >> let testData = ["blue lagoon", "blues lagoon", "red lagoon"]
+-- >> map occurrences <$> Prelude.mapM (terms Mono EN) 
+-- [fromList [(fromList ["blue"],1),(fromList ["lagoon"],1)],fromList [(fromList ["blue"],1),(fromList ["lagoon"],1)],fromList [(fromList ["lagoon"],1),(fromList ["red"],1)]]
+--λ:   cooc <$> Prelude.map occurrences <$> Prelude.mapM (terms Mono EN) ["blue lagoon", "blues lagoon", "red lagoon"]
+--fromList [((fromList ["blue"],fromList ["lagoon"]),2),((fromList ["lagoon"],fromList ["red"]),1)]
+--λ:   cooc <$> Prelude.map occurrences <$> Prelude.mapM (terms Mono EN) ["blue lagoon", "blues lagoon", "red lagoon", "red lagoon"]
+--fromList [((fromList ["blue"],fromList ["lagoon"]),2),((fromList ["lagoon"],fromList ["red"]),2)]
+--λ:   cooc <$> Prelude.map occurrences <$> Prelude.mapM (terms Mono EN) ["blue lagoon", "blues lagoon", "red lagoon red lagoon", "red lagoon"]
+--fromList [((fromList ["blue"],fromList ["lagoon"]),2),((fromList ["lagoon"],fromList ["red"]),2)]
+--λ:   cooc <$> Prelude.map occurrences <$> Prelude.mapM (terms Mono EN) ["blue lagoon", "blues lagoon blues lagoon", "red lagoon red lagoon", "red lagoon"]
+--fromList [((fromList ["blue"],fromList ["lagoon"]),2),((fromList ["lagoon"],fromList ["red"]),2)]
+---- 
+
+
+cooc :: (Ord b, Num a) => [Map b a] -> Map (b, b) a
+cooc ts = cooc' $ map cooc'' ts
+
+cooc' :: (Ord b, Num a) => [Map (b, b) a] -> Map (b,b) a
+cooc' = foldl' (\x y -> unionWith (+) x y) empty
+
+cooc'' :: (Ord b, Num a) => Map b a -> Map (b, b) a
+cooc'' m = foldl' (\x (y,c) -> insertWith (+) y c x) empty xs
+  where
+      xs =[ ((x'',y''), c') | x' <- toList m
+                            , y' <- toList m
+                            , let x'' = fst x'
+                            , let y'' = fst y'
+                            , x'' < y''
+                            , let c' = 1
+                            --, let c' = snd x' + snd y'
+                            ]
+
+
+-- | Compute the grouped occurrences (occ)
+occurrences :: [Terms] -> Map Grouped Int
+occurrences = occurrences' _terms_stem
+
+occurrences' :: Ord b => (a -> b) -> [a] -> Occ b
+occurrences' f xs = foldl' (\x y -> insertWith (+) (f y) 1 x) empty xs
+
 
 -- TODO add groups and filter stops
-sumOcc :: Ord a => [Map a Occ] -> Map a Occ
+sumOcc :: Ord a => [Occ a] -> Occ a
 sumOcc xs = foldl' (unionWith (+)) empty xs
 
 
-occurrenceParser :: Text -> Parser Bool
-occurrenceParser txt = manyTill anyChar (string txt) >> pure True
-
-occurrencesParser :: Text -> Parser Int
-occurrencesParser txt = case txt of
-                    "" -> pure 0
-                    _  -> many (occurrenceParser txt') >>= \matches -> pure (length matches)
-    where
-        txt' = T.toLower txt
-
-parseOccurrences :: Text -> Text -> Either String Int
-parseOccurrences x = parseOnly (occurrencesParser x)

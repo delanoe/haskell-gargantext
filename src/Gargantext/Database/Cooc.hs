@@ -11,16 +11,18 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
---{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 --{-# LANGUAGE OverloadedStrings #-}
 
 {-# LANGUAGE QuasiQuotes #-}
 
 module Gargantext.Database.Cooc where
 
+import Control.Monad ((>>=))
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 
+import Gargantext.Prelude
 import Gargantext (connectGargandb)
 
 type CorpusId    = Int
@@ -29,10 +31,10 @@ type GroupListId = Int
 
 coocTest :: IO [(Int, Int, Int)]
 coocTest = connectGargandb "gargantext.ini"
-  >>= \conn -> cooc conn 421968 446602 446599 
+  >>= \conn -> dBcooc conn 421968 446602 446599 
 
-cooc :: Connection -> CorpusId -> MainListId -> GroupListId -> IO [(Int, Int, Int)]
-cooc conn corpus mainList groupList = query conn [sql|
+dBcooc :: Connection -> CorpusId -> MainListId -> GroupListId -> IO [(Int, Int, Int)]
+dBcooc conn corpus mainList groupList = query conn [sql|
   set work_mem='1GB';
 
   --EXPLAIN ANALYZE

@@ -17,6 +17,7 @@ Source : https://en.wikipedia.org/wiki/Stemming
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Terms.Mono.Stem (stem, Lang(..))
   where
@@ -25,6 +26,7 @@ import Data.Text (Text)
 import qualified Data.Text   as DT
 import qualified NLP.Stemmer as N
 
+import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
 
 -- (stem, Stemmer(..))

@@ -19,13 +19,14 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , module Gargantext.Core.Types.Node
                              , Term, Terms(..)
                              , TokenTag(..), POS(..), NER(..)
+                             , Label, Stems
                              ) where
 
 import GHC.Generics
 import Data.Aeson
 import Data.Monoid
-import qualified Data.Set as S
 import Data.Set (Set, empty)
+--import qualified Data.Set as S
 
 import Data.Text (Text, unpack)
 
@@ -36,14 +37,20 @@ import Gargantext.Prelude
 ------------------------------------------------------------------------
 
 type Term  = Text
+type Stems = Set Text
+type Label = [Text]
 
-data Terms = Terms { _terms_label :: [Text]
-                   , _terms_stem  :: Set Text
-                   } deriving (Show)
+data Terms = Terms { _terms_label :: Label
+                   , _terms_stem  :: Stems
+                   } deriving (Show, Ord)
+
+-- class Inclusion where include
+--instance Eq Terms where
+--  (==) (Terms _ s1) (Terms _ s2) = s1 `S.isSubsetOf` s2
+--                                || s2 `S.isSubsetOf` s1
 
 instance Eq Terms where
-  (==) (Terms _ s1) (Terms _ s2) = s1 `S.isSubsetOf` s2
-                           || s2 `S.isSubsetOf` s1
+  (==) (Terms _ s1) (Terms _ s2) = s1 == s2
 
 
 ------------------------------------------------------------------------
