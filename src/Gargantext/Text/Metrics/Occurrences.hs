@@ -34,7 +34,7 @@ import Data.Map.Strict  (Map
                         , insertWith, insertWithKey, unionWith
                         , toList
                         )
-
+import Data.Set (Set)
 import qualified Data.Map.Strict as DMS
 import Control.Monad ((>>),(>>=))
 import Data.String (String())

@@ -7,6 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+<<<<<<< HEAD
 Script to start gargantext with different modes (Dev, Prod, Mock).
 
 -}
@@ -18,6 +19,7 @@ Script to start gargantext with different modes (Dev, Prod, Mock).
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE Strict             #-}
 
 module Main where
 
@@ -27,6 +29,13 @@ import Data.Text (unpack)
 
 import Gargantext.Prelude
 import Gargantext.API (startGargantext, startGargantextMock)
+
+--------------------------------------------------------
+-- Graph Tests
+--import qualified Gargantext.Graph.Utils                    as U
+--import qualified Gargantext.Graph.Distances.Conditional    as C
+--import qualified Gargantext.Graph.Distances.Distributional as D
+--import qualified Gargantext.Graph.Distances.Matrice        as M
 --------------------------------------------------------
 
 data Mode = Dev | Mock | Prod 
@@ -44,6 +53,8 @@ data MyOptions w = MyOptions { run  :: w ::: Mode        <?> "Possible modes: De
 
 instance ParseRecord (MyOptions Wrapped)
 deriving instance Show (MyOptions Unwrapped)
+
+
 
 main :: IO ()
 main = do 
@@ -66,3 +77,8 @@ main = do
 
     putStrLn $ "Starting Gargantext with mode: " <> show myMode
     start
+
+-- main' :: IO ()
+--main' = putStrLn $ show $ M.conditional $ M.myMat 10
+
+

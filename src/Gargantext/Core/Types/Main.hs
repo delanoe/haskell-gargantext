@@ -34,7 +34,7 @@ import Gargantext.Prelude
 ------------------------------------------------------------------------
 -- All the Database is structred like a hierarchical Tree
 data Tree a = NodeT a [Tree a]
-    deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq)
 
 -- data Tree a = NodeT a [Tree a]
 -- same as Data.Tree

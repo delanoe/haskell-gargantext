@@ -18,7 +18,8 @@ library:
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
-  - -Werror
+  - -Wmissing-signatures
+    #  - -Werror
   exposed-modules:
   - Gargantext
   - Gargantext.Prelude
@@ -30,6 +31,7 @@ library:
   - Gargantext.API
   dependencies:
   - QuickCheck
+  - accelerate
   - aeson
   - aeson-lens
   - aeson-pretty
@@ -64,6 +66,7 @@ library:
   - jose-jwt
   - lens
   - logging-effect
+  - matrix
   - monad-logger
   - mtl
   - natural-transformation
@@ -117,7 +120,12 @@ library:
 executable:
   main: Main.hs
   source-dirs: app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2
+  ghc-options: 
+  - -threaded 
+  - -rtsopts 
+  - -with-rtsopts=-N 
+  - -O2 
+  - -Wmissing-signatures
   dependencies:
     - base
     - containers
@@ -155,6 +163,7 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wmissing-signatures
     dependencies:
     - doctest
     - Glob

@@ -40,12 +40,12 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , sum, fromIntegral, length, fmap, foldl, foldl'
                  , takeWhile, sqrt, undefined, identity
                  , abs, min, max, maximum, minimum, return, snd, truncate
-                 , (+), (*), (/), (-), (.), ($), (**), (^), (<), (>), log
+                 , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not, any
                  , fst, snd, toS
                  , elem, die, mod, div, const, either
-                 , curry, uncurry
+                 , curry, uncurry, repeat
                  , otherwise, when
                  , undefined
                  , IO()
