@@ -16,7 +16,7 @@ Motivation and definition of the @Distributional@ distance.
 {-# LANGUAGE Strict            #-}
 
 
-module Gargantext.Graph.Distances.Distributional
+module Gargantext.Viz.Graph.Distances.Distributional
   where
 
 import Data.Matrix hiding (identity)
@@ -32,7 +32,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Gargantext.Prelude
-import Gargantext.Graph.Utils
+import Gargantext.Viz.Graph.Utils
 
 
 distributional :: (Floating a, Ord a) => Matrix a -> [((Int, Int), a)]

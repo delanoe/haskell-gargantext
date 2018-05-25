@@ -14,7 +14,7 @@ Motivation and definition of the @Conditional@ distance.
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module Gargantext.Graph.Distances.Matrice
+module Gargantext.Viz.Graph.Distances.Matrice
   where
 
 import Data.Array.Accelerate.Data.Bits
@@ -77,6 +77,9 @@ conditional m = (run $ ie (use m), run $ sg (use m))
 
     n :: Exp Double
     n = P.fromIntegral r
+    
+    --miniMax m = fold minimum $ fold maximum m
+
 
 
 

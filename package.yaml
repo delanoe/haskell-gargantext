@@ -29,6 +29,7 @@ library:
   - Gargantext.Text.Search
   - Gargantext.Text.Parsers.CSV
   - Gargantext.API
+  - Gargantext.Viz.Graph.Distances.Matrice
   dependencies:
   - QuickCheck
   - accelerate

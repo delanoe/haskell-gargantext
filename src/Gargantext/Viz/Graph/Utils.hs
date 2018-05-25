@@ -14,7 +14,7 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Strict            #-}
 
-module Gargantext.Graph.Utils
+module Gargantext.Viz.Graph.Utils
   where
 
 import Data.Matrix hiding (identity)

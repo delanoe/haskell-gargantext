@@ -14,7 +14,7 @@ Motivation and definition of the @Conditional@ distance.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Strict            #-}
-module Gargantext.Graph.Distances.Conditional
+module Gargantext.Viz.Graph.Distances.Conditional
   where
 
 import Data.Matrix hiding (identity)
@@ -33,7 +33,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Gargantext.Prelude
-import Gargantext.Graph.Utils
+import Gargantext.Viz.Graph.Utils
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
