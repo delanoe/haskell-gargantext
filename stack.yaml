@@ -3,7 +3,7 @@ extra-package-dbs: []
 packages:
 - .
 - servant-job
-  #- '/home/alexandre/local/logiciels/haskell/myCode/louvain'
+- clustering-louvain
 
 allow-newer: true
 extra-deps:

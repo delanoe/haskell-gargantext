@@ -8,17 +8,36 @@ Stability   : experimental
 Portability : POSIX
 
 Motivation and definition of the @Conditional@ distance.
+
+Implementation use Accelerate library :
+  * Manuel M. T. Chakravarty, Gabriele Keller, Sean Lee, Trevor L. McDonell, and Vinod Grover.
+    [Accelerating Haskell Array Codes with Multicore GPUs][CKLM+11].
+    In _DAMP '11: Declarative Aspects of Multicore Programming_, ACM, 2011.
+
+  * Trevor L. McDonell, Manuel M. T. Chakravarty, Gabriele Keller, and Ben Lippmeier.
+    [Optimising Purely Functional GPU Programs][MCKL13].
+    In _ICFP '13: The 18th ACM SIGPLAN International Conference on Functional Programming_, ACM, 2013.
+
+  * Robert Clifton-Everest, Trevor L. McDonell, Manuel M. T. Chakravarty, and Gabriele Keller.
+    [Embedding Foreign Code][CMCK14].
+    In _PADL '14: The 16th International Symposium on Practical Aspects of Declarative Languages_, Springer-Verlag, LNCS, 2014.
+
+  * Trevor L. McDonell, Manuel M. T. Chakravarty, Vinod Grover, and Ryan R. Newton.
+    [Type-safe Runtime Code Generation: Accelerate to LLVM][MCGN15].
+    In _Haskell '15: The 8th ACM SIGPLAN Symposium on Haskell_, ACM, 2015.
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Gargantext.Viz.Graph.Distances.Matrice
   where
 
-import Data.Array.Accelerate.Data.Bits
-import Data.Array.Accelerate.Interpreter
+--import Data.Array.Accelerate.Data.Bits
+import Data.Array.Accelerate.Interpreter (run)
 
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Smart
@@ -28,6 +47,10 @@ import Data.Array.Accelerate.Array.Sugar (fromArr, Array, Z)
 import Data.Maybe (Maybe(Just))
 import qualified Gargantext.Prelude as P
 import qualified Data.Array.Accelerate.Array.Representation     as Repr
+
+
+vector :: Int -> (Array (Z :. Int) Int)
+vector n = fromList (Z :. n) [0..n]
 
 matrix :: Elt c => Int -> [c] -> Matrix c
 matrix n l = fromList (Z :. n :. n) l
@@ -58,8 +81,10 @@ mkSum r mat = replicate (constant (Z :. (r :: Int) :. All))
 
 
 type Matrix' a = Acc (Matrix a)
+type InclusionExclusion    = Double
+type SpecificityGenericity = Double
 
-conditional :: Matrix Double -> (Matrix Double, Matrix Double)
+conditional :: Matrix Double -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
 conditional m = (run $ ie (use m), run $ sg (use m))
   where
     r :: Rank
@@ -78,10 +103,6 @@ conditional m = (run $ ie (use m), run $ sg (use m))
     n :: Exp Double
     n = P.fromIntegral r
     
-    --miniMax m = fold minimum $ fold maximum m
-
-
-
 
 -- filter with threshold
 -----------------------------------------------------------------------
@@ -94,7 +115,8 @@ distributional m = run $ filter $ ri (use m)
     n    = rank m
     
     filter  m = zipWith (\a b -> max a b) m (transpose m)
-    --miniMax m = fold minimum $ fold maximum m
+
+    --miniMax m = map (\x -> if unlift ( x > (unlift $ minimum $ maximum m)) then x else 0) m
 
     ri mat = zipWith (/) mat1 mat2
       where
