@@ -19,6 +19,8 @@ library:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
   - -Wmissing-signatures
+  - -Wunused-binds
+  - -Wunused-imports
     #  - -Werror
   exposed-modules:
   - Gargantext
