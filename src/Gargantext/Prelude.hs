@@ -36,7 +36,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
-                 , reverse, map, zip, drop, take, zipWith
+                 , reverse, map, mapM, zip, drop, take, zipWith
                  , sum, fromIntegral, length, fmap, foldl, foldl'
                  , takeWhile, sqrt, undefined, identity
                  , abs, min, max, maximum, minimum, return, snd, truncate

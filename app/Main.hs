@@ -7,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-<<<<<<< HEAD
 Script to start gargantext with different modes (Dev, Prod, Mock).
 
 -}

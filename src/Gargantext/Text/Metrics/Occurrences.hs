@@ -43,9 +43,7 @@ import Data.Attoparsec.Text
 ------------------------------------------------------------------------
 import Gargantext.Prelude
 import Gargantext.Core.Types
-
 ------------------------------------------------------------------------
-
 type Occ  a = Map      a  Int
 type Cooc a = Map (a,  a) Int
 type FIS  a = Map (Set a) Int
@@ -67,7 +65,6 @@ type Grouped = Stems
 --λ:   cooc <$> Prelude.map occurrences <$> Prelude.mapM (terms Mono EN) ["blue lagoon", "blues lagoon blues lagoon", "red lagoon red lagoon", "red lagoon"]
 --fromList [((fromList ["blue"],fromList ["lagoon"]),2),((fromList ["lagoon"],fromList ["red"]),2)]
 ---- 
-
 
 cooc :: (Ord b, Num a) => [Map b a] -> Map (b, b) a
 cooc ts = cooc' $ map cooc'' ts
