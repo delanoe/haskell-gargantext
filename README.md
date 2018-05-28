@@ -48,6 +48,10 @@ sudo apt-get install libbz2-dev lipq-dev
 
 git clone https://github.com/np/servant-job.git
 
+### Get the clustering louvain library
+
+git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
+
 ## Building and installing
 stack install
 
