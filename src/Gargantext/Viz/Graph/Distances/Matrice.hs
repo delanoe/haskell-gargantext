@@ -112,12 +112,12 @@ conditional m = (run $ ie (use m), run $ sg (use m))
 distributional :: Matrix Double -> Matrix Double
 distributional m = run $ filter $ ri (use m)
   where
-    n    = rank m
+    n    = rank' m
+    
+    miniMax m = map (\x -> ifThenElse (x > (the $ minimum $ maximum m)) x 0) m
     
     filter  m = zipWith (\a b -> max a b) m (transpose m)
-
-    --miniMax m = map (\x -> if unlift ( x > (unlift $ minimum $ maximum m)) then x else 0) m
-
+    
     ri mat = zipWith (/) mat1 mat2
       where
         mat1 = mkSum n $ zipWith min (mi mat) (mi $ transpose mat)
