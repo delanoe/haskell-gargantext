@@ -13,7 +13,7 @@ CSV parser for Gargantext corpus files.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Text.Parsers.CSV where
 
@@ -25,16 +25,15 @@ import Control.Applicative
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.String (IsString)
-import Data.Text (Text, pack, unpack, length)
+import Data.Text (Text, pack, length)
 import qualified Data.ByteString.Lazy as BL
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Safe (tailMay)
-import Text.HTML.TagSoup
 
 import Gargantext.Text
+import Gargantext.Text.Context
 import Gargantext.Prelude hiding (length)
 
 ---------------------------------------------------------------
@@ -69,7 +68,6 @@ fromDocs docs = V.map fromDocs' docs
 -- | Split a document in its context
 -- TODO adapt the size of the paragraph according to the corpus average
 
-data SplitBy = Paragraph | Sentences | Chars
 
 splitDoc :: Mean -> SplitBy -> CsvDoc -> Vector CsvDoc
 splitDoc m splt doc = let docSize = (length $ c_abstract doc) in
@@ -92,20 +90,9 @@ splitDoc' splt (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] <> next
       
       nextDocs = map (\txt -> CsvDoc (head' $ sentences txt) s py pm pd (unsentences $ tail' $ sentences txt) auth) (tail' abstracts)
       
-      abstracts    = (splitBy splt) abst
+      abstracts    = (splitBy splt 20) abst
       head' x = maybe ""   identity (head x)
       tail' x = maybe [""] identity (tailMay x)
-
-
-splitBy :: SplitBy -> Text -> [Text]
-splitBy Chars     = map pack . chunkAlong 1000 1 . unpack
-splitBy Sentences = map unsentences . chunkAlong 20 1  . sentences
-splitBy Paragraph = map removeTag   . filter isTagText . parseTags
-  where
-    removeTag :: IsString p => Tag p -> p
-    removeTag (TagText x) = x
-    removeTag (TagComment x) = x
-    removeTag _          = ""
 
 ---------------------------------------------------------------
 ---------------------------------------------------------------
