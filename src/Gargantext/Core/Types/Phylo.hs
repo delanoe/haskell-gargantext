@@ -15,7 +15,8 @@ granularity of group of ngrams (terms and multi-terms).
 The main type is Phylo which is synonym of Phylomemy (only difference is
 the number of chars).
 
-Phylomemy was first described in [REF].
+Phylomemy was first described in Chavalarias, D., Cointet, J.-P., 2013. Phylomemetic patterns in science evolution—the rise and fall of scientific fields. PloS one 8, e54847.
+.
 -}
 
 {-# LANGUAGE DeriveGeneric     #-}
