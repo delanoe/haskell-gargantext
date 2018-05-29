@@ -43,6 +43,8 @@ import Gargantext.Text.Terms.Mono  (monoterms')
 
 data TermType = Mono | Multi
 
+-- remove Stop Words
+-- map (filter (\t -> not . elem t)) $ 
 ------------------------------------------------------------------------
 terms :: TermType -> Lang -> Text -> IO [Terms]
 terms Mono  lang txt = pure $ monoterms' lang txt

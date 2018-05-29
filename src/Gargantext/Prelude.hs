@@ -49,6 +49,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , otherwise, when
                  , undefined
                  , IO()
+                 , compare
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -106,6 +107,12 @@ movingAverage steps xs = map mean $ chunkAlong steps 1 xs
 ma :: [Double] -> [Double]
 ma = movingAverage 3
 
+-- | splitEvery n == chunkAlong n n
+splitEvery :: Int -> [a] -> [[a]]
+splitEvery _ [] = L.cycle [[]]
+splitEvery n xs =
+  let (h,t) = L.splitAt n xs
+  in  h : splitEvery n t
 
 -- | Function to split a range into chunks
 chunkAlong :: Int -> Int -> [a] -> [[a]]
@@ -226,4 +233,9 @@ zipSnd f xs = zip xs (f xs)
 -- Just 
 unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
+
+-- maximumWith
+maximumWith f = L.maximumBy (\x y -> compare (f x) (f y))
+
+
 

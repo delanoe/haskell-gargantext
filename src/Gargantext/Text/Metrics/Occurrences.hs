@@ -29,12 +29,17 @@ module Gargantext.Text.Metrics.Occurrences
   where
 
 
+import Control.Arrow ((***))
+import qualified Data.List as List
 import Data.Map.Strict  (Map
-                        , empty
+                        , empty, singleton
                         , insertWith, insertWithKey, unionWith
-                        , toList
+                        , toList, lookup, mapKeys
                         )
 import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Text (pack)
+
 import qualified Data.Map.Strict as DMS
 import Control.Monad ((>>),(>>=))
 import Data.String (String())
@@ -53,6 +58,7 @@ data Group = ByStem | ByOntology
 type Grouped = Stems
 
 
+{-
 -- >> let testData = ["blue lagoon", "blues lagoon", "red lagoon"]
 -- >> map occurrences <$> Prelude.mapM (terms Mono EN) 
 -- [fromList [(fromList ["blue"],1),(fromList ["lagoon"],1)],fromList [(fromList ["blue"],1),(fromList ["lagoon"],1)],fromList [(fromList ["lagoon"],1),(fromList ["red"],1)]]
@@ -66,32 +72,45 @@ type Grouped = Stems
 --fromList [((fromList ["blue"],fromList ["lagoon"]),2),((fromList ["lagoon"],fromList ["red"]),2)]
 ---- 
 
-cooc :: (Ord b, Num a) => [Map b a] -> Map (b, b) a
-cooc ts = cooc' $ map cooc'' ts
+           -}
 
-cooc' :: (Ord b, Num a) => [Map (b, b) a] -> Map (b,b) a
-cooc' = foldl' (\x y -> unionWith (+) x y) empty
+type Occs = Int
+type Coocs = Int
 
-cooc'' :: (Ord b, Num a) => Map b a -> Map (b, b) a
-cooc'' m = foldl' (\x (y,c) -> insertWith (+) y c x) empty xs
+removeApax :: Map (Label, Label) Int -> Map (Label, Label) Int
+removeApax = DMS.filter (> 1)
+
+cooc :: [[Terms]] -> Map (Label, Label) Int
+cooc tss =
+  mapKeys (delta $ labelPolicy terms_occs) $ cooc' (map (Set.fromList . map _terms_stem) tss)
   where
-      xs =[ ((x'',y''), c') | x' <- toList m
-                            , y' <- toList m
-                            , let x'' = fst x'
-                            , let y'' = fst y'
-                            , x'' < y''
-                            , let c' = 1
-                            --, let c' = snd x' + snd y'
-                            ]
+    terms_occs = occurrences (List.concat tss)
+    delta f = f *** f
+
+
+labelPolicy :: Map Grouped (Map Terms Occs) -> Grouped -> Label
+labelPolicy m g =  case _terms_label <$> fst <$> maximumWith snd <$> DMS.toList <$> lookup g m of
+                     Just label -> label
+                     Nothing    -> panic $ "Label of Grouped not found: " <> (pack $ show g)
+
+cooc' :: Ord b => [Set b] -> Map (b, b) Coocs
+cooc' tss = foldl' (\m (xy,c) -> insertWith ((+)) xy c m) empty xs
+  where
+      xs = [ ((x, y), 1)
+           | xs <- tss
+           , ys <- tss
+           , x <- Set.toList xs
+           , y <- Set.toList ys
+           , x < y
+           ]
 
 
 -- | Compute the grouped occurrences (occ)
-occurrences :: [Terms] -> Map Grouped Int
+occurrences :: [Terms] -> Map Grouped (Map Terms Int)
 occurrences = occurrences' _terms_stem
 
-occurrences' :: Ord b => (a -> b) -> [a] -> Occ b
-occurrences' f xs = foldl' (\x y -> insertWith (+) (f y) 1 x) empty xs
-
+occurrences' :: (Ord a, Ord b) => (a -> b) -> [a] -> Map b (Map a Int)
+occurrences' f = foldl' (\m a -> insertWith (unionWith (+)) (f a) (singleton a 1) m) empty
 
 -- TODO add groups and filter stops
 sumOcc :: Ord a => [Occ a] -> Occ a

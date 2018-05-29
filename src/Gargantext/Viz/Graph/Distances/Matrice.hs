@@ -48,6 +48,13 @@ import Data.Maybe (Maybe(Just))
 import qualified Gargantext.Prelude as P
 import qualified Data.Array.Accelerate.Array.Representation     as Repr
 
+import Gargantext.Text.Metrics.Occurrences
+
+
+-----------------------------------------------------------------------
+-- Test perf.
+distriTest = distributional $ myMat 100
+-----------------------------------------------------------------------
 
 vector :: Int -> (Array (Z :. Int) Int)
 vector n = fromList (Z :. n) [0..n]
@@ -55,14 +62,14 @@ vector n = fromList (Z :. n) [0..n]
 matrix :: Elt c => Int -> [c] -> Matrix c
 matrix n l = fromList (Z :. n :. n) l
 
-myMat :: Int -> Matrix Double
+myMat :: Int -> Matrix Int
 myMat n = matrix n [1..]
 
 -- | Two ways to get the rank (as documentation)
-rank :: (Matrix Double) -> Int
+rank :: (Matrix a) -> Int
 rank m = arrayRank $ arrayShape m
 
-rank' :: (Matrix Double) -> Int
+rank' :: (Matrix a) -> Int
 rank' m = n
   where
     Z :. _ :. n = arrayShape m
@@ -109,8 +116,8 @@ conditional m = (run $ ie (use m), run $ sg (use m))
 
 -- | Distributional Distance
 
-distributional :: Matrix Double -> Matrix Double
-distributional m = run $ filter $ ri (use m)
+distributional :: Matrix Int -> Matrix Double
+distributional m = run $ filter $ ri (map fromIntegral $ use m)
   where
     n    = rank' m
     
@@ -130,4 +137,8 @@ distributional m = run $ filter $ ri (use m)
     
     crossProduct m = zipWith (*) (cross m  ) (cross (transpose m))
     cross mat      = zipWith (-) (mkSum n mat) (mat)
+
+
+int2double :: Matrix Int -> Matrix Double
+int2double m = run (map fromIntegral $ use m)
 

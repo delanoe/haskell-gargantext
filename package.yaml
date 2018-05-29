@@ -35,6 +35,7 @@ library:
   dependencies:
   - QuickCheck
   - accelerate
+  - accelerate-io
   - aeson
   - aeson-lens
   - aeson-pretty

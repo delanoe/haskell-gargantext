@@ -35,4 +35,3 @@ data ListName = Stop | Candidate | Graph
 --stop :: [Ngrams] -> [Ngrams]
 --stop ngs = filter (\ng -> _ngramsListName ng == Just Stop) ngs
 
-
