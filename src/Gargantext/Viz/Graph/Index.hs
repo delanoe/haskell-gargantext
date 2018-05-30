@@ -27,7 +27,8 @@ module Gargantext.Viz.Graph.Index
   where
 
 import qualified Data.Array.Accelerate as A
-import qualified Data.Array.Accelerate.IO.Data.Vector.Unboxed as AU
+import qualified Data.Array.Accelerate.Interpreter as A
+import Data.Array.Accelerate (Matrix, Elt, Shape, (:.)(..), Z(..))
 
 import qualified Data.Vector.Unboxed as DVU
 import Data.List (concat)
@@ -69,21 +70,20 @@ map'' m = cooc2mat toI m
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-cooc2mat :: Ord t => Map t Index -> Map (t, t) Int -> A.Matrix Int
-cooc2mat ti m = A.fromFunction shape (\(A.Z A.:. x A.:. y) -> lookup' x y)
+cooc2mat :: Ord t => Map t Index -> Map (t, t) Int -> Matrix Int
+cooc2mat ti m = A.fromFunction shape (\(Z :. x :. y) -> lookup' x y)
   where
     shape = (A.Z A.:. n A.:. n)
     n = M.size ti
     lookup' x y = maybe 0 identity (M.lookup (x,y) (toIndex ti m))
 
-mat2cooc :: A.Matrix Double -> Map (Index, Index) Double
-mat2cooc m = M.fromList $ concat                                          --  [((Int,Int), Double)]
-                        $ map (\(x,xs) -> map (\(y,ys) -> ((x,y),ys)) xs) -- [[((Int,Int), Double)]]
-                        $ zip ([1..] :: [Int])                            -- [(Int, [(Int, Double)]]
-                        $ map (zip ([1..] :: [Int]))                      -- [[(Int, Double)]]
-                        $ splitEvery n (A.toList m)                       -- [[Double]]
+-- TODO rename mat2map
+mat2cooc :: (Elt a, Shape (Z :. Index)) =>
+            A.Array (Z :. Index :. Index) a -> Map (Index, Index) a
+mat2cooc m = M.fromList . map f . A.toList . A.run . A.indexed $ A.use m
   where
-    A.Z A.:. _ A.:. n = A.arrayShape m
+    Z :. _ :. n = A.arrayShape m
+    f ((Z :. i :. j), x) = ((i, j), x)
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
