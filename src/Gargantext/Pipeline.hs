@@ -47,7 +47,3 @@ pipeline pth = do
   pure $ map' int2double myCooc
   -- Matrix -> Graph
 
-
-
-
-

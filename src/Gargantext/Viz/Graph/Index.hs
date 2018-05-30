@@ -31,7 +31,7 @@ import qualified Data.Array.Accelerate.Interpreter as A
 import Data.Array.Accelerate (Matrix, Elt, Shape, (:.)(..), Z(..))
 
 import qualified Data.Vector.Unboxed as DVU
-import Data.List (concat)
+import Data.Maybe (fromMaybe)
 
 import Data.Set (Set)
 import qualified Data.Set as S
@@ -75,7 +75,13 @@ cooc2mat ti m = A.fromFunction shape (\(Z :. x :. y) -> lookup' x y)
   where
     shape = (A.Z A.:. n A.:. n)
     n = M.size ti
-    lookup' x y = maybe 0 identity (M.lookup (x,y) (toIndex ti m))
+    idx = toIndex ti m -- it is important to make sure that toIndex is ran only once.
+    lookup' x y = fromMaybe 0 $ M.lookup (x,y) idx
+
+map2mat :: Elt a => a -> Int -> Map (Index, Index) a -> Matrix a
+map2mat def n m = A.fromFunction shape (\(Z :. x :. y) -> fromMaybe def $ M.lookup (x, y) m)
+  where
+    shape = (Z :. n :. n)
 
 -- TODO rename mat2map
 mat2cooc :: (Elt a, Shape (Z :. Index)) =>
