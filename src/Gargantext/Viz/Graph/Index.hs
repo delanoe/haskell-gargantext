@@ -71,12 +71,10 @@ map'' m = cooc2mat toI m
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 cooc2mat :: Ord t => Map t Index -> Map (t, t) Int -> Matrix Int
-cooc2mat ti m = A.fromFunction shape (\(Z :. x :. y) -> lookup' x y)
+cooc2mat ti m = map2mat 0 n idx
   where
-    shape = (A.Z A.:. n A.:. n)
     n = M.size ti
     idx = toIndex ti m -- it is important to make sure that toIndex is ran only once.
-    lookup' x y = fromMaybe 0 $ M.lookup (x,y) idx
 
 map2mat :: Elt a => a -> Int -> Map (Index, Index) a -> Matrix a
 map2mat def n m = A.fromFunction shape (\(Z :. x :. y) -> fromMaybe def $ M.lookup (x, y) m)
