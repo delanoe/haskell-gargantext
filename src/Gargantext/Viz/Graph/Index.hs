@@ -112,7 +112,8 @@ createIndexes = set2indexes . cooc2set
     set2indexes :: Ord t => Set t -> (Map t Index, Map Index t)
     set2indexes s = (M.fromList toIndex', M.fromList fromIndex')
       where
-        fromIndex' = zip [1..] (S.toList s)
-        toIndex'   = zip (S.toList s)  [1..]
+        fromIndex' = zip [0..] xs
+        toIndex'   = zip xs [0..]
+        xs         = S.toList s
 
 
