@@ -50,13 +50,13 @@ data Doc = Doc
     deriving (Show)
 ---------------------------------------------------------------
 toDocs :: Vector CsvDoc -> [Doc]
-toDocs v = V.toList 
+toDocs v = V.toList
          $ V.zipWith (\nId (CsvDoc t s py pm pd abst auth)
                        -> Doc nId t s py pm pd abst auth )
                        (V.enumFromN 1 (V.length v'')) v''
           where
             v'' = V.foldl (\v' sep -> V.concatMap (splitDoc (docsSize v') sep) v') v seps
-            seps= (V.fromList [Paragraph, Sentences, Chars])
+            seps= (V.fromList [Paragraphs 1, Sentences 3, Chars 3])
 
 ---------------------------------------------------------------
 fromDocs :: Vector Doc -> Vector CsvDoc
@@ -69,7 +69,7 @@ fromDocs docs = V.map fromDocs' docs
 -- TODO adapt the size of the paragraph according to the corpus average
 
 
-splitDoc :: Mean -> SplitBy -> CsvDoc -> Vector CsvDoc
+splitDoc :: Mean -> SplitContext -> CsvDoc -> Vector CsvDoc
 splitDoc m splt doc = let docSize = (length $ c_abstract doc) in
                           if docSize > 1000
                             then
@@ -82,15 +82,15 @@ splitDoc m splt doc = let docSize = (length $ c_abstract doc) in
                               V.fromList [doc]
 
 
-splitDoc' :: SplitBy -> CsvDoc -> Vector CsvDoc
-splitDoc' splt (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] <> nextDocs
+splitDoc' :: SplitContext -> CsvDoc -> Vector CsvDoc
+splitDoc' contextSize (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] <> nextDocs
     where
       firstDoc = CsvDoc t s py pm pd firstAbstract auth
       firstAbstract = head' abstracts
       
       nextDocs = map (\txt -> CsvDoc (head' $ sentences txt) s py pm pd (unsentences $ tail' $ sentences txt) auth) (tail' abstracts)
       
-      abstracts    = (splitBy splt 20) abst
+      abstracts    = (splitBy $ contextSize) abst
       head' x = maybe ""   identity (head x)
       tail' x = maybe [""] identity (tailMay x)
 

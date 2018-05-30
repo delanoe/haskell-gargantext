@@ -36,10 +36,8 @@ Implementation use Accelerate library :
 module Gargantext.Viz.Graph.Distances.Matrice
   where
 
---import Data.Array.Accelerate.Data.Bits
-import Data.Array.Accelerate.Interpreter (run)
-
 import Data.Array.Accelerate
+import Data.Array.Accelerate.Interpreter (run)
 import Data.Array.Accelerate.Smart
 import Data.Array.Accelerate.Type
 import Data.Array.Accelerate.Array.Sugar (fromArr, Array, Z)
@@ -94,14 +92,7 @@ type SpecificityGenericity = Double
 conditional :: Matrix Double -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
 conditional m = (run $ ie (use m), run $ sg (use m))
   where
-    r :: Rank
-    r = rank' m
 
-    xs :: Matrix' Double -> Matrix' Double
-    xs mat = zipWith (-) (proba r mat) (mkSum r $ proba r mat)
-    ys :: Acc (Matrix Double) -> Acc (Matrix Double)
-    ys mat = zipWith (-) (proba r mat) (mkSum r $ transpose $ proba r mat)
-    
     ie :: Matrix' Double -> Matrix' Double
     ie mat = map (\x -> x / (2*n-1)) $ zipWith (+) (xs mat) (ys mat)
     sg :: Acc (Matrix Double) -> Acc (Matrix Double)
@@ -109,7 +100,14 @@ conditional m = (run $ ie (use m), run $ sg (use m))
 
     n :: Exp Double
     n = P.fromIntegral r
-    
+
+    r :: Rank
+    r = rank' m
+
+    xs :: Matrix' Double -> Matrix' Double
+    xs mat = zipWith (-) (proba r mat) (mkSum r $ proba r mat)
+    ys :: Acc (Matrix Double) -> Acc (Matrix Double)
+    ys mat = zipWith (-) (proba r mat) (mkSum r $ transpose $ proba r mat)
 
 -- filter with threshold
 -----------------------------------------------------------------------
@@ -121,7 +119,9 @@ distributional m = run $ filter $ ri (map fromIntegral $ use m)
   where
     n    = rank' m
     
-    miniMax m = map (\x -> ifThenElse (x > (the $ minimum $ maximum m)) x 0) m
+    miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
+      where
+        miniMax' = (the $ minimum $ maximum m)
     
     filter  m = zipWith (\a b -> max a b) m (transpose m)
     

@@ -34,6 +34,7 @@ module Gargantext.Text.Terms
   where
 
 import Data.Text (Text)
+import Data.Traversable
 
 import Gargantext.Prelude
 import Gargantext.Core
@@ -45,6 +46,9 @@ data TermType = Mono | Multi
 
 -- remove Stop Words
 -- map (filter (\t -> not . elem t)) $ 
+------------------------------------------------------------------------
+extractTerms :: Traversable t => TermType -> Lang -> t Text -> IO (t [Terms])
+extractTerms termType lang = mapM (terms termType lang)
 ------------------------------------------------------------------------
 terms :: TermType -> Lang -> Text -> IO [Terms]
 terms Mono  lang txt = pure $ monoterms' lang txt

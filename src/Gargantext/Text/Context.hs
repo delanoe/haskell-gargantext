@@ -14,26 +14,34 @@ Context of text management tool
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Context where
+module Gargantext.Text.Context
+  where
 
 import Data.Text (Text, pack, unpack, length)
 import Data.String (IsString)
 
-import Text.HTML.TagSoup
+import Text.HTML.TagSoup (parseTags, isTagText, Tag(..))
 import Gargantext.Text
 import Gargantext.Prelude hiding (length)
 
-data SplitBy = Paragraph | Sentences | Chars
 
+data SplitContext = Chars Int | Sentences Int | Paragraphs Int
 
-splitBy :: SplitBy -> Int -> Text -> [Text]
-splitBy Chars     n = map pack . chunkAlong n n . unpack
-splitBy Sentences n = map unsentences . chunkAlong n n  . sentences
-splitBy Paragraph _ = map removeTag   . filter isTagText . parseTags
+tag = parseTags
+-- | splitBy contexts of Chars or Sentences or Paragraphs
+-- >> splitBy (Chars 0) "abcde"
+-- ["a","b","c","d","e"]
+-- >> splitBy (Chars 1) "abcde"
+-- ["ab","bc","cd","de"]
+-- >> splitBy (Chars 2) "abcde"
+-- ["abc","bcd","cde"]
+splitBy :: SplitContext -> Text -> [Text]
+splitBy (Chars     n)  = map pack        . chunkAlong (n+1) 1 . unpack
+splitBy (Sentences n)  = map unsentences . chunkAlong (n+1) 1 . sentences
+splitBy (Paragraphs _) = map unTag       . filter isTagText   . tag
   where
-    removeTag :: IsString p => Tag p -> p
-    removeTag (TagText x) = x
-    removeTag (TagComment x) = x
-    removeTag _          = ""
+    unTag :: IsString p => Tag p -> p
+    unTag (TagText x) = x
+    unTag _           = ""
 
 

@@ -15,35 +15,29 @@ Portability : POSIX
 module Gargantext.Pipeline
   where
 
-import Data.Text (unpack)
-import qualified Data.Text as DT
-
 import Data.Text.IO (readFile)
 
 ----------------------------------------------
 ----------------------------------------------
-
 import Gargantext.Core
-import Gargantext.Core.Types
 import Gargantext.Prelude
 
-import Gargantext.Viz.Graph.Index (map', createIndexes)
-import Gargantext.Viz.Graph.Distances.Matrice (distributional, int2double)
+import Gargantext.Viz.Graph.Index (score)
+import Gargantext.Viz.Graph.Distances.Matrice (distributional)
 import Gargantext.Text.Metrics.Occurrences
 import Gargantext.Text.Terms
 import Gargantext.Text.Context
 
-import Data.Array.Accelerate as A
 
-pipeline pth = do
-  text     <- readFile pth
-  let contexts = splitBy Sentences 4 text
-  myterms <- mapM (terms Multi FR) contexts
-  -- todo filter stop words
+pipeline path = do
+  -- Text  <- IO Text <- FilePath
+  text     <- readFile path  
+  let contexts = splitBy (Sentences 3) text
+  myterms <- extractTerms Multi FR contexts
+  -- TODO    filter (\t -> not . elem t stopList) myterms
+  -- TODO    groupBy (Stem | GroupList)
   let myCooc = removeApax $ cooc myterms
-  --pure myCooc
-  -- Cooc map -> Matrix
-  --pure $ createIndexes myCooc
-  pure $ map' int2double myCooc
-  -- Matrix -> Graph
+  -- Cooc -> Matrix
+  pure $ score distributional myCooc
+  -- Matrix -> Clustering -> Graph -> JSON
 

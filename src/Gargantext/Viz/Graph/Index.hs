@@ -43,28 +43,12 @@ import Gargantext.Prelude
 
 type Index    = Int
 
-
 -------------------------------------------------------------------------------
-{-
-map'' :: (Ord t) => (A.Matrix Int -> A.Matrix Double)
+-------------------------------------------------------------------------------
+score :: (Ord t) => (A.Matrix Int -> A.Matrix Double)
                 -> Map (t, t) Int
                 -> Map (t, t) Double
-map'' f m = back . f' . from m
-  where
-    from (fs, m') = unzip $ M.toAscList m
-    f'  = f $ A.fromList shape m'
-    shape = (A.Z A.:. n A.:. n)
-    back = M.fromAscList . zip fs . A.toList
--}
--------------------------------------------------------------------------------
-map' :: (Ord t) => (A.Matrix Int -> A.Matrix Double)
-                -> Map (t, t) Int
-                -> Map (t, t) Double
-map' f m = fromIndex fromI . mat2cooc . f $ cooc2mat toI m
-  where
-    (toI, fromI) = createIndexes m
-
-map'' m = cooc2mat toI m
+score f m = fromIndex fromI . mat2map . f $ cooc2mat toI m
   where
     (toI, fromI) = createIndexes m
 
@@ -81,10 +65,9 @@ map2mat def n m = A.fromFunction shape (\(Z :. x :. y) -> fromMaybe def $ M.look
   where
     shape = (Z :. n :. n)
 
--- TODO rename mat2map
-mat2cooc :: (Elt a, Shape (Z :. Index)) =>
+mat2map :: (Elt a, Shape (Z :. Index)) =>
             A.Array (Z :. Index :. Index) a -> Map (Index, Index) a
-mat2cooc m = M.fromList . map f . A.toList . A.run . A.indexed $ A.use m
+mat2map m = M.fromList . map f . A.toList . A.run . A.indexed $ A.use m
   where
     Z :. _ :. n = A.arrayShape m
     f ((Z :. i :. j), x) = ((i, j), x)
