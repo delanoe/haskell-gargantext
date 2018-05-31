@@ -16,17 +16,15 @@ module Gargantext.Pipeline
   where
 
 import Data.Text.IO (readFile)
-
 ----------------------------------------------
-----------------------------------------------
-import Gargantext.Core
+import Gargantext.Core (Lang(FR))
 import Gargantext.Prelude
 
 import Gargantext.Viz.Graph.Index (score)
 import Gargantext.Viz.Graph.Distances.Matrice (distributional)
-import Gargantext.Text.Metrics.Occurrences
-import Gargantext.Text.Terms
-import Gargantext.Text.Context
+import Gargantext.Text.Metrics.Occurrences (cooc, removeApax)
+import Gargantext.Text.Terms (TermType(Multi), extractTerms)
+import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 
 pipeline path = do
