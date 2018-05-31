@@ -1,23 +1,32 @@
 {-|
-Module      : Gargantext.Text.Ngrams.PosTagging.CoreNLP
-Description : CoreNLP module
+Module      : Gargantext.Text.Terms.Multi.PosTagging
+Description : PosTagging module using Stanford java REST API
 Copyright   : (c) CNRS, 2017
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+In corpus linguistics, part-of-speech tagging (POS tagging or PoS
+tagging or POST), also called grammatical tagging or word-category
+disambiguation, is the process of marking up a word in a text (corpus)
+as corresponding to a particular part of speech,[1] based on both its
+definition and its context—i.e., its relationship with adjacent and
+related words in a phrase, sentence, or paragraph. A simplified form of
+this is commonly taught to school-age children, in the identification of
+words as nouns, verbs, adjectives, adverbs, etc.
+
+Source: https://en.wikipedia.org/wiki/Part-of-speech_tagging
 -}
 
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
-{-# LANGUAGE FlexibleContexts  #-}
 
-
-module Gargantext.Text.Ngrams.PosTagging.CoreNLP
+module Gargantext.Text.Terms.Multi.PosTagging
   where
 
 import GHC.Generics
@@ -26,14 +35,14 @@ import GHC.Show (Show(..))
 import Data.ByteString.Lazy.Internal (ByteString)
 import Data.Aeson.TH (deriveJSON)
 import Data.Aeson
-import Data.Monoid
 import Data.Maybe (isJust)
 
-import Data.Set (Set, fromList, empty)
+import Data.Set (fromList)
 
-import Data.Text (Text, splitOn, pack, toLower, unpack)
+import Data.Text (Text, splitOn, pack, toLower)
 
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
@@ -44,53 +53,6 @@ import Control.Monad.IO.Class  (MonadIO)
 import Data.String.Conversions (ConvertibleStrings)
 
 ------------------------------------------------------------------------
-data Tag = POS | NER
-  deriving (Show, Eq)
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-data POS = NP
-         | JJ  | VB
-         | CC  | IN | DT
-         | NoPos
-  deriving (Show, Generic, Eq)
-
-------------------------------------------------------------------------
-instance FromJSON POS where
-  parseJSON = withText "String" (\x -> pure (pos $ unpack x))
-    where
-      pos :: [Char] -> POS
-      pos "NP"  = NP
-      pos "NN"  = NP
-      pos "NC"  = NP
-      pos "NNS" = NP
-      pos "NNP" = NP
-      pos "JJ"  = JJ
-      pos "ADJ" = JJ
-      pos "VB"  = VB
-      pos "VBN" = VB
-      pos "VBG" = VB
-      pos "CC"  = CC
-      pos "IN"  = IN
-      pos "DT"  = DT
-      -- French specific
-      pos "P"  = IN
-      pos  _    = NoPos
-
-instance ToJSON POS
-------------------------------------------------------------------------
-data NER = PERSON | ORGANIZATION | LOCATION | NoNER
-  deriving (Show, Generic)
-------------------------------------------------------------------------
-instance FromJSON NER where
-  parseJSON = withText "String" (\x -> pure (ner $ unpack x))
-    where
-      ner :: [Char] -> NER
-      ner "PERSON"       = PERSON
-      ner "ORGANIZATION" = ORGANIZATION
-      ner "LOCATION"     = LOCATION
-      ner  _             = NoNER
-
-instance ToJSON NER
 ------------------------------------------------------------------------
 data Token = Token { _tokenIndex                :: Int
                    , _tokenWord                 :: Text
@@ -105,39 +67,21 @@ data Token = Token { _tokenIndex                :: Int
                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_token") ''Token)
 ------------------------------------------------------------------------
-data NgramsTag  = NgramsTag { _my_token_word :: [Text]
-                            , _my_token_stem :: Set Text
-                            , _my_token_pos  :: Maybe POS
-                            , _my_token_ner  :: Maybe NER
-                            } deriving (Show)
 ------------------------------------------------------------------------
-tokens2ngramsTags :: [Token] -> [NgramsTag]
-tokens2ngramsTags ts = select $ map ngramsTag ts
+tokens2tokensTags :: [Token] -> [TokenTag]
+tokens2tokensTags ts = filter' $ map tokenTag ts
 ------------------------------------------------------------------------
-ngramsTag :: Token -> NgramsTag
-ngramsTag (Token _ _ w s _ _ p n _ _) = NgramsTag w' s' p n
+tokenTag :: Token -> TokenTag
+tokenTag (Token _ _ w s _ _ p n _ _) = TokenTag w' s' p n
   where
     w' = split w
     s' = fromList (split s)
     split = splitOn (pack " ") . toLower
 
-select :: [NgramsTag] -> [NgramsTag]
-select xs = filter isNgrams xs
+filter' :: [TokenTag] -> [TokenTag]
+filter' xs = filter isNgrams xs
     where
-      isNgrams (NgramsTag _ _ p n) = isJust p || isJust n
-
-instance Monoid NgramsTag where
-  mempty = NgramsTag [] empty Nothing Nothing
-
-  mappend (NgramsTag w1 s1 p1 n1) (NgramsTag w2 s2 p2 _)
-         = NgramsTag (w1 <> w2) (s1 <> s2) p3 n1
-          where
-            p3 = case (p1,p2) of
-                   (Just JJ, Just NP) -> Just NP
-                   (Just VB, Just NP) -> Just NP
-                   _                  -> p1
-
-  mconcat = foldl mappend mempty
+      isNgrams (TokenTag _ _ p n) = isJust p || isJust n
 
 ------------------------------------------------------------------------
 data Sentence  = Sentence { _sentenceIndex :: Int

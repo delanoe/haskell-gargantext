@@ -13,7 +13,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Ngrams.Lists
+module Gargantext.Text.Terms.Lists
   where
 
 --import Data.Maybe
@@ -34,5 +34,4 @@ data ListName = Stop | Candidate | Graph
 --
 --stop :: [Ngrams] -> [Ngrams]
 --stop ngs = filter (\ng -> _ngramsListName ng == Just Stop) ngs
-
 

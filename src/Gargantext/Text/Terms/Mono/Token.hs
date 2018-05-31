@@ -17,17 +17,26 @@ Source: https://en.wikipedia.org/wiki/Tokenize
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Ngrams.Token (tokenize)
+module Gargantext.Text.Terms.Mono.Token (tokenize)
   where
 
 import Data.Text (Text)
-import qualified Gargantext.Text.Ngrams.Token.Text as En
+import qualified Gargantext.Text.Terms.Mono.Token.En as En
+
+import Gargantext.Core (Lang(..))
+import Gargantext.Prelude
 
 type Token = Text
 
 -- >>> tokenize "A rose is a rose is a rose."
 -- ["A","rose","is","a","rose","is","a","rose", "."]
 -- 
+
+data Context = Letter | Word | Sentence | Line | Paragraph
+
 tokenize :: Text -> [Token]
 tokenize = En.tokenize
+
+tokenize' :: Lang -> Context -> [Token]
+tokenize' = undefined
 

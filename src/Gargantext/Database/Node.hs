@@ -45,7 +45,7 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Typeable (Typeable)
 import qualified Data.ByteString.Internal as DBI
 import Database.PostgreSQL.Simple (Connection)
-import Opaleye
+import Opaleye hiding (FromField)
 
 -- | Types for Node Database Management
 data PGTSVector

@@ -3,6 +3,7 @@ extra-package-dbs: []
 packages:
 - .
 - servant-job
+- clustering-louvain
 
 allow-newer: true
 extra-deps:
@@ -12,11 +13,14 @@ extra-deps:
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
 - git: https://github.com/delanoe/servant-static-th.git
   commit: fff77e79fe94d563ab5cae2609b78c17b5c1f434
+- accelerate-1.2.0.0
+- accelerate-io-1.2.0.0
 - aeson-1.2.4.0
 - aeson-lens-0.5.0.0
 - duckling-0.1.3.0
 - extra-1.5.3
 - full-text-search-0.2.1.4
+- fullstop-0.1.4
 - haskell-src-exts-1.18.2
 - http-types-0.12.1
 - protolude-0.2
@@ -32,4 +36,4 @@ extra-deps:
 - text-1.2.3.0
 - text-show-3.6.2
 - servant-flatten-0.2
-resolver: lts-10.6
+resolver: lts-11.10

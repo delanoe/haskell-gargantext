@@ -6,18 +6,17 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
+
+Loads all static file for the front-end.
+
 -}
-
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 ---------------------------------------------------------------------
-module Gargantext.API.FrontEnd
-      where
+module Gargantext.API.FrontEnd where
 
 import           Servant.Static.TH (createApiAndServerDecs)
 

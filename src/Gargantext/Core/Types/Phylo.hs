@@ -40,9 +40,9 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 -- Duration : time Segment of the whole phylomemy in UTCTime format (start,end)
 -- Ngrams   : list of all (possible) terms contained in the phylomemy (with their id)
 -- Steps    : list of all steps to build the phylomemy
-data Phylo = Phylo { _phyloDuration :: (Start, End)
-                   , _phyloNgrams   :: [Ngram]
-                   , _phyloPeriods  :: [PhyloPeriod]
+data Phylo = Phylo { _phylo_Duration :: (Start, End)
+                   , _phylo_Ngrams   :: [Ngram]
+                   , _phylo_Periods  :: [PhyloPeriod]
                    } deriving (Generic)
 
 -- | UTCTime in seconds since UNIX epoch
@@ -55,20 +55,20 @@ type NgramId = Int
 -- | PhyloStep : steps of phylomemy on temporal axis
 -- Period: tuple (start date, end date) of the step of the phylomemy
 -- Levels: levels of granularity
-data PhyloPeriod = PhyloPeriod { _phyloPeriodId     :: PhyloPeriodId
-                               , _phyloPeriodLevels :: [PhyloLevel]
+data PhyloPeriod = PhyloPeriod { _phylo_PeriodId     :: PhyloPeriodId
+                               , _phylo_PeriodLevels :: [PhyloLevel]
                                } deriving (Generic)
 
 type PhyloPeriodId = (Start, End)
 
 -- | PhyloLevel : levels of phylomemy on level axis
 -- Levels description:
--- Level -1: Ngram equals itself         (by identity) == _phyloNgrams
+-- Level -1: Ngram equals itself         (by identity) == _phylo_Ngrams
 -- Level  0: Group of synonyms           (by stems + by qualitative expert meaning)
 -- Level  1: First level of clustering
 -- Level  N: Nth   level of clustering
-data PhyloLevel = PhyloLevel { _phyloLevelId     :: PhyloLevelId
-                             , _phyloLevelGroups :: [PhyloGroup]
+data PhyloLevel = PhyloLevel { _phylo_LevelId     :: PhyloLevelId
+                             , _phylo_LevelGroups :: [PhyloGroup]
                              } deriving (Generic)
 
 type PhyloLevelId = (PhyloPeriodId, Int)
@@ -78,15 +78,15 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 -- Ngrams: set of terms that build the group
 -- Period Parents|Childs: weighted link to Parents|Childs (Temporal Period   axis)
 -- Level  Parents|Childs: weighted link to Parents|Childs (Level Granularity axis)
-data PhyloGroup = PhyloGroup { _phyloGroupId            :: PhyloGroupId
-                             , _phyloGroupLabel         :: Maybe Text
-                             , _phyloGroupNgrams        :: [NgramId]
+data PhyloGroup = PhyloGroup { _phylo_GroupId            :: PhyloGroupId
+                             , _phylo_GroupLabel         :: Maybe Text
+                             , _phylo_GroupNgrams        :: [NgramId]
                    
-                             , _phyloGroupPeriodParents :: [Edge]
-                             , _phyloGroupPeriodChilds  :: [Edge]
+                             , _phylo_GroupPeriodParents :: [Edge]
+                             , _phylo_GroupPeriodChilds  :: [Edge]
                    
-                             , _phyloGroupLevelParents  :: [Edge]
-                             , _phyloGroupLevelChilds   :: [Edge]
+                             , _phylo_GroupLevelParents  :: [Edge]
+                             , _phylo_GroupLevelChilds   :: [Edge]
                              } deriving (Generic)
 
 type PhyloGroupId = (PhyloLevelId, Int)
@@ -94,7 +94,7 @@ type Edge         = (PhyloGroupId, Weight)
 type Weight       = Double
 
 -- | JSON instances
-$(deriveJSON (unPrefix "_phylo"       ) ''Phylo       )
-$(deriveJSON (unPrefix "_phyloPeriod" ) ''PhyloPeriod )
-$(deriveJSON (unPrefix "_phyloLevel"  ) ''PhyloLevel  )
-$(deriveJSON (unPrefix "_phyloGroup"  ) ''PhyloGroup  )
+$(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
+$(deriveJSON (unPrefix "_phylo_Period" ) ''PhyloPeriod )
+$(deriveJSON (unPrefix "_phylo_Level"  ) ''PhyloLevel  )
+$(deriveJSON (unPrefix "_phylo_Group"  ) ''PhyloGroup  )

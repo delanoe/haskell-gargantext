@@ -18,26 +18,24 @@ library:
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
-  - -Werror
+  - -Wmissing-signatures
+  - -Wunused-binds
+  - -Wunused-imports
+    #  - -Werror
   exposed-modules:
   - Gargantext
   - Gargantext.Prelude
   - Gargantext.Core
-  - Gargantext.Core.Utils
   - Gargantext.Core.Types
-  - Gargantext.Core.Types.Node
   - Gargantext.Text
-  - Gargantext.Text.Metrics
-  - Gargantext.Text.Metrics.Occurrences
-  - Gargantext.Text.Metrics.FrequentItemSet
-  - Gargantext.Text.Ngrams.PosTagging.CoreNLP
-  - Gargantext.Text.Ngrams.PosTagging.Parser
-  - Gargantext.Text.Ngrams.Token.Text
-  - Gargantext.Text.Parsers.Date
-  - Gargantext.Database
+  - Gargantext.Text.Search
+  - Gargantext.Text.Parsers.CSV
   - Gargantext.API
+  - Gargantext.Viz.Graph.Distances.Matrice
   dependencies:
   - QuickCheck
+  - accelerate
+  - accelerate-io
   - aeson
   - aeson-lens
   - aeson-pretty
@@ -47,6 +45,7 @@ library:
   - base16-bytestring
   - bytestring
   - case-insensitive
+  - cassava
   - conduit
   - conduit-extra
   - containers
@@ -56,6 +55,7 @@ library:
   - duckling
   - exceptions
   - filepath
+  - fullstop
   - fclabels
   - fast-logger
   - full-text-search
@@ -70,6 +70,7 @@ library:
   - jose-jwt
   - lens
   - logging-effect
+  - matrix
   - monad-logger
   - mtl
   - natural-transformation
@@ -122,14 +123,23 @@ library:
 
 executable:
   main: Main.hs
-  source-dirs:      app
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
+  source-dirs: app
+  ghc-options: 
+  - -threaded 
+  - -rtsopts 
+  - -with-rtsopts=-N 
+  - -O2 
+  - -Wmissing-signatures
   dependencies:
     - base
+    - containers
     - gargantext
+    - vector
+    - cassava
     - ini
     - optparse-generic
     - unordered-containers
+    - full-text-search
 
 tests:
   garg-test:
@@ -157,6 +167,7 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wmissing-signatures
     dependencies:
     - doctest
     - Glob

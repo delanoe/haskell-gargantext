@@ -6,27 +6,35 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
+
+Script to start gargantext with different modes (Dev, Prod, Mock).
+
 -}
-
-
 
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators     #-}
-
+{-# LANGUAGE Strict             #-}
 
 module Main where
 
-import Prelude (putStrLn)
 
 import Options.Generic
 import Data.Text (unpack)
 
 import Gargantext.Prelude
 import Gargantext.API (startGargantext, startGargantextMock)
+
+--------------------------------------------------------
+-- Graph Tests
+--import qualified Gargantext.Graph.Utils                    as U
+--import qualified Gargantext.Graph.Distances.Conditional    as C
+--import qualified Gargantext.Graph.Distances.Distributional as D
+--import qualified Gargantext.Graph.Distances.Matrice        as M
 --------------------------------------------------------
 
 data Mode = Dev | Mock | Prod 
@@ -45,12 +53,13 @@ data MyOptions w = MyOptions { run  :: w ::: Mode        <?> "Possible modes: De
 instance ParseRecord (MyOptions Wrapped)
 deriving instance Show (MyOptions Unwrapped)
 
+
+
 main :: IO ()
 main = do 
-
     MyOptions myMode myPort myIniFile  <- unwrapRecord
             "Gargantext: collaborative platform for text-mining"
-    
+
     let myPort' = case myPort of
             Just p  -> p
             Nothing -> 8008
@@ -64,6 +73,11 @@ main = do
                                        Just i  -> i
             Mock -> startGargantextMock myPort'
             _  -> startGargantextMock myPort'
-    
+
     putStrLn $ "Starting Gargantext with mode: " <> show myMode
     start
+
+-- main' :: IO ()
+--main' = putStrLn $ show $ M.conditional $ M.myMat 10
+
+

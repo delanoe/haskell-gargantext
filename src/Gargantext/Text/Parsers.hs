@@ -37,6 +37,7 @@ import Data.Either.Extra(Either())
 
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
+import qualified Data.Text as DT
 ----
 --import Control.Monad (join)
 import Codec.Archive.Zip (withArchive, getEntry, getEntries)
@@ -51,16 +52,16 @@ import Gargantext.Text.Parsers.WOS (wosParser)
 ---- import Gargantext.Parsers.DOC (docParser)
 ---- import Gargantext.Parsers.ODT (odtParser)
 
---import Gargantext.Prelude (pm)
 --import Gargantext.Types.Main (ErrorMessage(), Corpus)
 
--- FIXME
---type Field = Text
 type ParseError = String
---
---data Corpus = Corpus { _corpusErrors :: [ParseError]
---                     , _corpusMap    :: Map FilePath (Map Field Text)
---                    }
+type Field      = Text
+type Document   = DM.Map Field Text
+
+type FilesParsed = DM.Map FilePath FileParsed
+data FileParsed  = FileParsed { _fileParsed_errors ::  Maybe ParseError
+                              , _fileParsed_result :: [Document]
+                              } deriving (Show)
 
 
 -- | According to the format of Input file,
@@ -75,37 +76,43 @@ data FileFormat = WOS        -- Implemented (ISI Format)
 -- TODO: to debug maybe add the filepath in error message
 
 
-parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
-parse format path = do
-    files <- case takeExtension path of
-              ".zip" -> openZip              path
-              _      -> pure <$> DB.readFile path
-    (as, bs) <- partitionEithers <$> mapConcurrently (runParser format) files
-    pure (as, map toText $ concat bs)
-      where
-        -- TODO : decode with bayesian inference on encodings
-        toText = map (\(a,b) -> (decodeUtf8 a, decodeUtf8 b))
+--parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
+--parse format path = do
+--    files <- case takeExtension path of
+--              ".zip" -> openZip              path
+--              _      -> pure <$> DB.readFile path
+--    (as, bs) <- partitionEithers <$> mapConcurrently (runParser format) files
+--    pure (as, map toText $ concat bs)
+--      where
+--        -- TODO : decode with bayesian inference on encodings
+--        toText = map (\(a,b) -> (decodeUtf8 a, decodeUtf8 b))
+--
+--
+---- | withParser:
+---- According the format of the text, choosing the right parser.
+---- TODO  withParser :: FileFormat -> Parser [Document]
+--withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
+--withParser WOS = wosParser
+----withParser DOC = docParser
+----withParser ODT = odtParser
+----withParser XML = xmlParser
+----withParser _   = error "[ERROR] Parser not implemented yet"
+--
+--runParser :: FileFormat -> DB.ByteString 
+--          -> IO (Either String [[(DB.ByteString, DB.ByteString)]])
+--runParser format text = pure $ parseOnly (withParser format) text
+--
+--openZip :: FilePath -> IO [DB.ByteString]
+--openZip fp = do
+--    path    <- resolveFile' fp
+--    entries <- withArchive path (DM.keys <$> getEntries)
+--    bs      <- mapConcurrently (\s -> withArchive path (getEntry s)) entries
+--    pure bs
 
-
--- | withParser:
--- According the format of the text, choosing the right parser.
--- TODO  withParser :: FileFormat -> Parser [Document]
-withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
-withParser WOS = wosParser
---withParser DOC = docParser
---withParser ODT = odtParser
---withParser XML = xmlParser
---withParser _   = error "[ERROR] Parser not implemented yet"
-
-runParser :: FileFormat -> DB.ByteString 
-          -> IO (Either String [[(DB.ByteString, DB.ByteString)]])
-runParser format text = pure $ parseOnly (withParser format) text
-
-openZip :: FilePath -> IO [DB.ByteString]
-openZip fp = do
-    path    <- resolveFile' fp
-    entries <- withArchive path (DM.keys <$> getEntries)
-    bs      <- mapConcurrently (\s -> withArchive path (getEntry s)) entries
-    pure bs
+clean :: Text -> Text
+clean txt = DT.map clean' txt
+  where
+    clean' '’' = '\''
+    clean' c  = c
 
 

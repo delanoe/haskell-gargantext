@@ -30,21 +30,26 @@ module Gargantext.Prelude
 import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
+                 , Enum, Bounded, Float
                  , Floating, Char, IO
                  , pure, (<*>), (<$>), panic
+                 , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
-                 , reverse, map, zip, drop, take, zipWith
+                 , reverse, map, mapM, zip, drop, take, zipWith
                  , sum, fromIntegral, length, fmap, foldl, foldl'
                  , takeWhile, sqrt, undefined, identity
                  , abs, min, max, maximum, minimum, return, snd, truncate
-                 , (+), (*), (/), (-), (.), ($), (**), (^), (<), (>), log
+                 , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
-                 , (&&), (||), not
+                 , (&&), (||), not, any
                  , fst, snd, toS
                  , elem, die, mod, div, const, either
-                 , curry, uncurry
+                 , curry, uncurry, repeat
                  , otherwise, when
+                 , undefined
+                 , IO()
+                 , compare
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -75,18 +80,6 @@ pr = reverse
 map2 :: (t -> b) -> [[t]] -> [[b]]
 map2 fun = map (map fun)
 
-pz :: [a] -> [b] -> [(a, b)]
-pz  = zip
-
-pd :: Int -> [a] -> [a]
-pd  = drop
-
-ptk :: Int -> [a] -> [a]
-ptk = take
-
-pzw :: (a -> b -> c) -> [a] -> [b] -> [c]
-pzw = zipWith
-
 -- Exponential Average
 eavg :: [Double] -> Double
 eavg (x:xs) = a*x + (1-a)*(eavg xs)
@@ -114,6 +107,12 @@ movingAverage steps xs = map mean $ chunkAlong steps 1 xs
 ma :: [Double] -> [Double]
 ma = movingAverage 3
 
+-- | splitEvery n == chunkAlong n n
+splitEvery :: Int -> [a] -> [[a]]
+splitEvery _ [] = L.cycle [[]]
+splitEvery n xs =
+  let (h,t) = L.splitAt n xs
+  in  h : splitEvery n t
 
 -- | Function to split a range into chunks
 chunkAlong :: Int -> Int -> [a] -> [[a]]
@@ -234,4 +233,9 @@ zipSnd f xs = zip xs (f xs)
 -- Just 
 unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
+
+-- maximumWith
+maximumWith f = L.maximumBy (\x y -> compare (f x) (f y))
+
+
 

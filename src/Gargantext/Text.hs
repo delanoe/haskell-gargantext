@@ -7,10 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Ngrams exctration.
-
-Definitions of ngrams.
-n non negative integer
+Text gathers terms in unit of contexts.
 
 -}
 
@@ -20,80 +17,44 @@ n non negative integer
 module Gargantext.Text
   where
 
+import Data.Maybe
 import qualified Data.Text as DT
---import Data.Text.IO (readFile)
 
-
-import Data.Map.Strict  (Map
-                        , lookupIndex
-                        --, fromList, keys
-                        )
-
+import qualified Data.Set as S
 import Data.Text (Text, split)
-import qualified Data.Map.Strict as M (filter)
 
+import NLP.FullStop (segment)
 -----------------------------------------------------------------
-import Gargantext.Text.Ngrams
-import Gargantext.Text.Metrics.Occurrences
-
-import qualified Gargantext.Text.Metrics.FrequentItemSet as FIS
+import Gargantext.Core
+import Gargantext.Core.Types
+import Gargantext.Text.Metrics.Occurrences (Occ, occurrences, cooc)
 import Gargantext.Prelude hiding (filter)
 -----------------------------------------------------------------
 
-data Group = Group { _group_label  ::  Ngrams
-                   , _group_ngrams :: [Ngrams]
-                   } deriving (Show)
+type Config  = Lang -> Context
+
+type Context = Text -> [Text]
+
+data Viz = Graph | Phylo | Chart
+
+pipeline :: Config -> Text -> Viz
+pipeline = undefined
 
 
-clean :: Text -> Text
-clean txt = DT.map clean' txt
-  where
-    clean' '’' = '\''
-    clean' c  = c
-
---noApax :: Ord a => Map a Occ -> Map a Occ
---noApax m = M.filter (>1) m
-
--- | /!\ indexes are not the same:
-
--- | Index ngrams from Map
---indexNgram :: Ord a => Map a Occ -> Map Index a
---indexNgram m = fromList (zip [1..] (keys m))
-
--- | Index ngrams from Map
---ngramIndex :: Ord a => Map a Occ -> Map a Index
---ngramIndex m = fromList (zip (keys m) [1..])
-
-indexWith :: Ord a => Map a Occ -> [a] -> [Int]
-indexWith m xs = unMaybe $ map (\x -> lookupIndex x m) xs
-
-indexIt :: Ord a => [[a]] -> (Map a Int, [[Int]])
-indexIt xs = (m, is)
-  where
-    m  = sumOcc (map occ  xs)
-    is = map    (indexWith m) xs
-
-list2fis :: Ord a => FIS.Frequency -> [[a]] -> (Map a Int, [FIS.Fis])
-list2fis n xs = (m', fs)
-  where
-    (m, is) = indexIt xs
-    m'      = M.filter (>50000) m
-    fs      = FIS.all n is
-
-text2fis :: FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
-text2fis n xs = list2fis n (map ngrams xs)
-
---text2fisWith :: FIS.Size -> FIS.Frequency -> [Text] -> (Map Text Int, [FIS.Fis])
---text2fisWith = undefined
-
+-----------------------------------------------------------------
 -------------------------------------------------------------------
 -- Contexts of text
 sentences :: Text -> [Text]
-sentences txt = split isStop txt
+sentences txt = map DT.pack $ segment $ DT.unpack txt
+
+sentences' :: Text -> [Text]
+sentences' txt = split isStop txt
 
 isStop :: Char -> Bool
 isStop c = c `elem` ['.','?','!']
 
+unsentences :: [Text] -> Text
+unsentences txts = DT.intercalate " " txts
 
 -- | https://en.wikipedia.org/wiki/Text_mining
 testText_en :: Text
@@ -103,19 +64,23 @@ testText_en = DT.pack "Text mining, also referred to as text data mining, roughl
 testText_fr :: Text
 testText_fr = DT.pack "La fouille de textes ou « l'extraction de connaissances » dans les textes est une spécialisation de la fouille de données et fait partie du domaine de l'intelligence artificielle. Cette technique est souvent désignée sous l'anglicisme text mining. Elle désigne un ensemble de traitements informatiques consistant à extraire des connaissances selon un critère de nouveauté ou de similarité dans des textes produits par des humains pour des humains. Dans la pratique, cela revient à mettre en algorithme un modèle simplifié des théories linguistiques dans des systèmes informatiques d'apprentissage et de statistiques. Les disciplines impliquées sont donc la linguistique calculatoire, l'ingénierie des langues, l'apprentissage artificiel, les statistiques et l'informatique."
 
+termTests :: Text
+termTests = "It is hard to detect important articles in a specific context. Information retrieval techniques based on full text search can be inaccurate to identify main topics and they are not able to provide an indication about the importance of the article. Generating a citation network is a good way to find most popular articles but this approach is not context aware. The text around a citation mark is generally a good summary of the referred article. So citation context analysis presents an opportunity to use the wisdom of crowd for detecting important articles in a context sensitive way. In this work, we analyze citation contexts to rank articles properly for a given topic. The model proposed uses citation contexts in order to create a directed and edge-labeled citation network based on the target topic. Then we apply common ranking algorithms in order to find important articles in this newly created network. We showed that this method successfully detects a good subset of most prominent articles in a given topic. The biggest contribution of this approach is that we are able to identify important articles for a given search term even though these articles do not contain this search term. This technique can be used in other linked documents including web pages, legal documents, and patents as well as scientific papers."
+
+
 -- | Ngrams Test
 -- >>> ngramsTest testText
 -- 248
-ngramsTest :: Text -> Int
-ngramsTest x=  length ws
-  where
-    --txt = concat <$> lines <$> clean <$> readFile filePath
-    txt = clean x
-    -- | Number of sentences
-    --ls   = sentences $ txt
-    -- | Number of monograms used in the full text
-    ws   = ngrams    $ txt
-    -- | stem ngrams
+--ngramsTest :: Text -> Int
+--ngramsTest x =  length ws
+--  where
+--    --txt = concat <$> lines <$> clean <$> readFile filePath
+--    txt = clean x
+--    -- | Number of sentences
+--    --ls   = sentences $ txt
+--    -- | Number of monograms used in the full text
+--    ws   = ngrams    $ txt
+--    -- | stem ngrams
     -- TODO
     -- group ngrams
     --ocs  = occ       $ ws
