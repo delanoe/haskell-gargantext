@@ -89,8 +89,21 @@ type Matrix' a = Acc (Matrix a)
 type InclusionExclusion    = Double
 type SpecificityGenericity = Double
 
-conditional :: Matrix Double -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
-conditional m = (run $ ie (use m), run $ sg (use m))
+
+miniMax :: Matrix' Double -> Matrix' Double
+miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
+  where
+    miniMax' = (the $ minimum $ maximum m)
+
+conditional :: Matrix Int -> Matrix Double
+conditional m = run (miniMax $ proba r $ map fromIntegral $ use m)
+  where
+    r :: Rank
+    r = rank' m
+
+
+conditional' :: Matrix Double -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
+conditional' m = (run $ ie (use m), run $ sg (use m))
   where
 
     ie :: Matrix' Double -> Matrix' Double
@@ -115,13 +128,9 @@ conditional m = (run $ ie (use m), run $ sg (use m))
 -- | Distributional Distance
 
 distributional :: Matrix Int -> Matrix Double
-distributional m = run $ filter $ ri (map fromIntegral $ use m)
+distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
   where
     n    = rank' m
-    
-    miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
-      where
-        miniMax' = (the $ minimum $ maximum m)
     
     filter  m = zipWith (\a b -> max a b) m (transpose m)
     

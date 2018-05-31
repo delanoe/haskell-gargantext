@@ -22,17 +22,16 @@ import Gargantext.Core (Lang(FR))
 import Gargantext.Prelude
 
 import Gargantext.Viz.Graph.Index (score, createIndices, toIndex)
-import Gargantext.Viz.Graph.Distances.Matrice (distributional)
+import Gargantext.Viz.Graph.Distances.Matrice (conditional)
 import Gargantext.Text.Metrics.Occurrences (cooc, removeApax)
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
-import Data.Graph.Clustering.Louvain (bestpartition)
-import Data.Graph.Clustering.Louvain.Utils (map2graph)
+import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 
 pipeline path = do
   -- Text  <- IO Text <- FilePath
-  text     <- readFile path  
+  text     <- readFile path
   let contexts = splitBy (Sentences 3) text
   myterms <- extractTerms Multi FR contexts
   
@@ -40,11 +39,12 @@ pipeline path = do
   -- TODO    groupBy (Stem | GroupList)
   
   let myCooc = removeApax $ cooc myterms
-  
   -- Cooc -> Matrix
-  let theScores = M.filter (/=0) $ score distributional myCooc
+  let theScores = M.take 350 $ M.filter (>0) $ score conditional myCooc
   let (ti, _) = createIndices theScores
-  
-  -- Matrix -> Clustering -> Graph -> JSON
-  pure $ bestpartition False $ map2graph $ toIndex ti theScores
+--
+----  -- Matrix -> Clustering -> Graph -> JSON
+----  pure $ bestpartition False $ map2graph $ toIndex ti theScores
+  partitions <- cLouvain $ toIndex ti theScores
+  pure partitions
 
