@@ -21,7 +21,7 @@ import qualified Data.Map.Strict as M
 import Gargantext.Core (Lang(FR))
 import Gargantext.Prelude
 
-import Gargantext.Viz.Graph.Index (score, createIndexes, toIndex)
+import Gargantext.Viz.Graph.Index (score, createIndices, toIndex)
 import Gargantext.Viz.Graph.Distances.Matrice (distributional)
 import Gargantext.Text.Metrics.Occurrences (cooc, removeApax)
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
@@ -43,7 +43,7 @@ pipeline path = do
   
   -- Cooc -> Matrix
   let theScores = M.filter (/=0) $ score distributional myCooc
-  let (ti, _) = createIndexes theScores
+  let (ti, _) = createIndices theScores
   
   -- Matrix -> Clustering -> Graph -> JSON
   pure $ bestpartition False $ map2graph $ toIndex ti theScores

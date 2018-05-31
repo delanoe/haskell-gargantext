@@ -39,6 +39,8 @@ import qualified Data.Set as S
 import Data.Map (Map)
 import qualified Data.Map.Strict    as M
 
+import Data.Vector (Vector)
+
 import Gargantext.Prelude
 
 type Index    = Int
@@ -50,7 +52,7 @@ score :: (Ord t) => (A.Matrix Int -> A.Matrix Double)
                 -> Map (t, t) Double
 score f m = fromIndex fromI . mat2map . f $ cooc2mat toI m
   where
-    (toI, fromI) = createIndexes m
+    (toI, fromI) = createIndices m
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -79,21 +81,30 @@ toIndex ni ns = indexConversion ni ns
 
 fromIndex :: Ord t => Map Index t -> Map (Index, Index) a -> Map (t,t) a
 fromIndex ni ns = indexConversion ni ns
----------------------------------------------------------------------------------
+
 indexConversion :: (Ord b, Ord k) => Map k b -> Map (k,k) a -> Map (b, b) a
 indexConversion index ms = M.fromList $ map (\((k1,k2),c) -> ( ((M.!) index k1, (M.!) index k2), c)) (M.toList ms)
+---------------------------------------------------------------------------------
+
 -------------------------------------------------------------------------------
--------------------------------------------------------------------------------
-createIndexes :: Ord t => Map (t, t) b -> (Map t Index, Map Index t)
-createIndexes = set2indexes . cooc2set
+-- TODO
+fromIndex' :: Ord t => Vector t -> Map (Index, Index) a -> Map (t,t) a
+fromIndex' vi ns = undefined
+
+-- TODO
+createIndices' :: Ord t => Map (t, t) b -> (Map t Index, Vector t)
+createIndices' = undefined
+
+createIndices :: Ord t => Map (t, t) b -> (Map t Index, Map Index t)
+createIndices = set2indices . map2set
   where
-    cooc2set :: Ord t => Map (t, t) a -> Set t
-    cooc2set cs' = foldl' (\s ((t1,t2),_) -> insert [t1,t2] s ) S.empty (M.toList cs')
+    map2set :: Ord t => Map (t, t) a -> Set t
+    map2set cs' = foldl' (\s ((t1,t2),_) -> insert [t1,t2] s ) S.empty (M.toList cs')
       where
         insert as s = foldl' (\s' t -> S.insert t s') s as
 
-    set2indexes :: Ord t => Set t -> (Map t Index, Map Index t)
-    set2indexes s = (M.fromList toIndex', M.fromList fromIndex')
+    set2indices :: Ord t => Set t -> (Map t Index, Map Index t)
+    set2indices s = (M.fromList toIndex', M.fromList fromIndex')
       where
         fromIndex' = zip [0..] xs
         toIndex'   = zip xs [0..]
