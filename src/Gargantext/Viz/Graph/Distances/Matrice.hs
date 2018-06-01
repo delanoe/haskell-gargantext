@@ -102,8 +102,22 @@ conditional m = run (miniMax $ proba r $ map fromIntegral $ use m)
     r = rank' m
 
 
-conditional' :: Matrix Double -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
-conditional' m = (run $ ie (use m), run $ sg (use m))
+{-
+Metric Specificity and genericty: select terms
+   Compute genericity/specificity:
+        P(j|i) = N(ij) / N(ii)
+        P(i|j) = N(ij) / N(jj)
+
+        Gen(i)  = Mean{j} P(j_k|i)
+        Spec(i) = Mean{j} P(i|j_k)
+
+        Gen-clusion(i)  = (Spec(i) + Gen(i)) / 2
+        Spec-clusion(i) = (Spec(i) - Gen(i)) / 2
+
+-}
+
+incExcSpeGen :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
+incExcSpeGen m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
   where
 
     ie :: Matrix' Double -> Matrix' Double

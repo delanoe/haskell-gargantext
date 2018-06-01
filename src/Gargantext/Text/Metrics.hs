@@ -14,12 +14,69 @@ Mainly reexport functions in @Data.Text.Metrics@
 
 module Gargantext.Text.Metrics where
 
---import Data.Text (Text)
+import Data.Text (Text, pack)
+import Data.List (concat)
+
 --import GHC.Real (Ratio)
 --import qualified Data.Text.Metrics as DTM
---
---import Gargantext.Prelude
---
+
+import Gargantext.Prelude
+
+import Gargantext.Text.Metrics.Occurrences (occurrences, cooc)
+import Gargantext.Text.Terms (TermType(Multi), terms)
+import Gargantext.Core (Lang(EN))
+import Gargantext.Core.Types (Terms(..))
+import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
+
 --noApax :: Ord a => Map a Occ -> Map a Occ
 --noApax m = M.filter (>1) m
+
+
+metrics_text :: Text
+metrics_text = "A table is an object. A glas is an object. The glas is on the table. The spoon is an object. The spoon is on the table."
+
+-- | Sentences 
+metrics_sentences :: [Text]
+metrics_sentences = [ "A table is an object."
+                    , "A glas is an object."
+                    , "The glas is on the table."
+                    , "The spoon is an object."
+                    , "The spoon is on the table."
+                    ]
+
+
+metrics_sentences_Test = splitBy (Sentences 0) metrics_text == metrics_sentences
+
+-- | Terms reordered to visually check occurrences
+metrics_terms :: [[[Text]]]
+metrics_terms = [[["table"],["object"]                  ]
+                ,[          ["object"],["glas"]         ]
+                ,[["table"],           ["glas"]         ]
+                ,[          ["object"],        ["spoon"]]
+                ,[["table"],                   ["spoon"]]
+                ]
+--metrics_terms_Test = (mapM (terms Multi EN) $ splitBy (Sentences 0) metrics_text) == metrics_terms
+
+-- | Occurrences
+{-
+fromList [ (fromList ["table"] ,fromList [(["table"] , 3 )])]
+         , (fromList ["object"],fromList [(["object"], 3 )])
+         , (fromList ["glas"]  ,fromList [(["glas"]  , 2 )])
+         , (fromList ["spoon"] ,fromList [(["spoon"] , 2 )])
+-}
+metrics_occ = occurrences <$> concat <$> (mapM (terms Multi EN) $ splitBy (Sentences 0) metrics_text)
+
+{- 
+-- fromList [((["glas"],["object"]),6)
+            ,((["glas"],["spoon"]),4)
+            ,((["glas"],["table"]),6),((["object"],["spoon"]),6),((["object"],["table"]),9),((["spoon"],["table"]),6)]
+
+-}
+metrics_cooc = cooc <$> (mapM (terms Multi EN) $ splitBy (Sentences 0) metrics_text)
+
+metrics_cooc' = (mapM (terms Multi EN) $ splitBy (Sentences 0) "The table object. The table object.")
+
+
+
+
 

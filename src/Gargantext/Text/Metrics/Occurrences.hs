@@ -82,9 +82,9 @@ removeApax = DMS.filter (> 1)
 
 cooc :: [[Terms]] -> Map (Label, Label) Int
 cooc tss =
-  mapKeys (delta $ labelPolicy terms_occs) $ cooc' (map (Set.fromList . map _terms_stem) tss)
+  mapKeys (delta $ labelPolicy terms_occs) $ coocOn _terms_stem tss
   where
-    terms_occs = occurrences (List.concat tss)
+    terms_occs = occurrencesOn _terms_stem (List.concat tss)
     delta f = f *** f
 
 
@@ -93,24 +93,26 @@ labelPolicy m g =  case _terms_label <$> fst <$> maximumWith snd <$> DMS.toList 
                      Just label -> label
                      Nothing    -> panic $ "Label of Grouped not found: " <> (pack $ show g)
 
-cooc' :: Ord b => [Set b] -> Map (b, b) Coocs
-cooc' tss = foldl' (\m (xy,c) -> insertWith ((+)) xy c m) empty xs
+coocOn :: Ord b => (a -> b) -> [[a]] -> Map (b, b) Coocs
+coocOn f as = foldl' (\a b -> DMS.unionWith (+) a b) empty $ map (coocOn' f) as
+
+coocOn' :: Ord b => (a -> b) -> [a] -> Map (b, b) Coocs
+coocOn' f ts = foldl' (\m (xy,c) -> insertWith ((+)) xy c m) empty xs
   where
+      ts' = List.nub $ map f ts
       xs = [ ((x, y), 1)
-           | xs <- tss
-           , ys <- tss
-           , x <- Set.toList xs
-           , y <- Set.toList ys
+           | x <- ts'
+           , y <- ts'
            , x < y
            ]
 
 
 -- | Compute the grouped occurrences (occ)
 occurrences :: [Terms] -> Map Grouped (Map Terms Int)
-occurrences = occurrences' _terms_stem
+occurrences = occurrencesOn _terms_stem
 
-occurrences' :: (Ord a, Ord b) => (a -> b) -> [a] -> Map b (Map a Int)
-occurrences' f = foldl' (\m a -> insertWith (unionWith (+)) (f a) (singleton a 1) m) empty
+occurrencesOn :: (Ord a, Ord b) => (a -> b) -> [a] -> Map b (Map a Int)
+occurrencesOn f = foldl' (\m a -> insertWith (unionWith (+)) (f a) (singleton a 1) m) empty
 
 -- TODO add groups and filter stops
 sumOcc :: Ord a => [Occ a] -> Occ a

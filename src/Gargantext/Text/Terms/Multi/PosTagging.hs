@@ -96,10 +96,10 @@ data Properties = Properties { _propertiesAnnotators  :: Text
 
 $(deriveJSON (unPrefix "_properties") ''Properties)
 
-data Sentences = Sentences { _sentences :: [Sentence]}
+data PosSentences = PosSentences { _sentences :: [Sentence]}
   deriving (Show, Generic)
 
-$(deriveJSON (unPrefix "_") ''Sentences)
+$(deriveJSON (unPrefix "_") ''PosSentences)
 
 
 -- request = 
@@ -134,7 +134,7 @@ corenlpRaw lang txt = do
   pure (getResponseBody response)
 
 
-corenlp :: Lang -> Text -> IO Sentences
+corenlp :: Lang -> Text -> IO PosSentences
 corenlp lang txt = do
   response <- corenlp' lang txt
   pure (getResponseBody response)

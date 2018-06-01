@@ -16,18 +16,43 @@ module Gargantext.Pipeline
   where
 
 import Data.Text.IO (readFile)
+
+import Control.Arrow ((***))
+import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
+import qualified Data.Set        as S
+import qualified Data.List       as L
+import Data.Tuple.Extra (both)
 ----------------------------------------------
 import Gargantext.Core (Lang(FR))
 import Gargantext.Prelude
 
-import Gargantext.Viz.Graph.Index (score, createIndices, toIndex)
-import Gargantext.Viz.Graph.Distances.Matrice (conditional)
+import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, mat2map)
+import Gargantext.Viz.Graph.Distances.Matrice (incExcSpeGen, conditional)
+import Gargantext.Viz.Graph.Index (Index)
 import Gargantext.Text.Metrics.Occurrences (cooc, removeApax)
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
+
+--filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
+--filterCooc m = 
+---- filterCooc m = foldl (\k -> maybe (panic "no key") identity $ M.lookup k m) M.empty selection
+----(ti, fi)  = createIndices m
+-- . fromIndex fi $ filterMat $ cooc2mat ti m
+
+
+
+import Data.Array.Accelerate (Matrix)
+filterMat :: Matrix Int -> [(Index, Index)]
+filterMat m = S.toList $ S.take n $ S.fromList $ (L.take nIe incExc') <> (L.take nSg speGen')
+  where
+    (incExc', speGen') = both ( map fst . L.sortOn snd . M.toList . mat2map) (incExcSpeGen m)
+    n = nIe + nSg
+    nIe = 30
+    nSg = 70
+
 
 pipeline path = do
   -- Text  <- IO Text <- FilePath
@@ -39,12 +64,17 @@ pipeline path = do
   -- TODO    groupBy (Stem | GroupList)
   
   let myCooc = removeApax $ cooc myterms
+  let (ti, fi) = createIndices myCooc
+  pure ti
   -- Cooc -> Matrix
-  let theScores = M.take 350 $ M.filter (>0) $ score conditional myCooc
-  let (ti, _) = createIndices theScores
---
-----  -- Matrix -> Clustering -> Graph -> JSON
-----  pure $ bestpartition False $ map2graph $ toIndex ti theScores
-  partitions <- cLouvain $ toIndex ti theScores
-  pure partitions
+  
+--  -- filter by spec/gen (dynmaic programming)
+--  let theScores = M.filter (>0) $ score conditional myCoocFiltered
+----
+------  -- Matrix -> Clustering
+------  pure $ bestpartition False $ map2graph $ toIndex ti theScores
+--  partitions <- cLouvain theScores
+--  pure partitions
+---- | Building : -> Graph -> JSON
+
 
