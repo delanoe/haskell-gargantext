@@ -30,7 +30,7 @@ import Gargantext.Prelude
 import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, mat2map)
 import Gargantext.Viz.Graph.Distances.Matrice (incExcSpeGen, conditional)
 import Gargantext.Viz.Graph.Index (Index)
-import Gargantext.Text.Metrics.Occurrences (cooc, removeApax)
+import Gargantext.Text.Metrics.Count (cooc, removeApax)
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 

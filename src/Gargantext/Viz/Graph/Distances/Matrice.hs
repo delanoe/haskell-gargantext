@@ -46,7 +46,7 @@ import Data.Maybe (Maybe(Just))
 import qualified Gargantext.Prelude as P
 import qualified Data.Array.Accelerate.Array.Representation     as Repr
 
-import Gargantext.Text.Metrics.Occurrences
+import Gargantext.Text.Metrics.Count
 
 
 -----------------------------------------------------------------------

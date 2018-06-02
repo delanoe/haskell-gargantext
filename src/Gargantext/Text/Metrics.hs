@@ -15,6 +15,7 @@ Mainly reexport functions in @Data.Text.Metrics@
 module Gargantext.Text.Metrics where
 
 import Data.Text (Text, pack)
+import qualified Data.Text as T
 import Data.List (concat)
 
 --import GHC.Real (Ratio)
@@ -22,7 +23,7 @@ import Data.List (concat)
 
 import Gargantext.Prelude
 
-import Gargantext.Text.Metrics.Occurrences (occurrences, cooc)
+import Gargantext.Text.Metrics.Count (occurrences, cooc)
 import Gargantext.Text.Terms (TermType(Multi), terms)
 import Gargantext.Core (Lang(EN))
 import Gargantext.Core.Types (Terms(..))
@@ -33,29 +34,35 @@ import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 
 metrics_text :: Text
-metrics_text = "A table is an object. A glas is an object. The glas is on the table. The spoon is an object. The spoon is on the table."
+metrics_text = T.concat ["A table is an object."
+                        ,"A glas is an object too."
+                        ,"Using a glas to dring is a function."
+                        ,"Using a spoon to eat is a function."
+                        ,"The spoon is an object to eat."
+                        ]
+
+metrics_sentences' :: [Text]
+metrics_sentences' = splitBy (Sentences 0) metrics_text
 
 -- | Sentences 
 metrics_sentences :: [Text]
-metrics_sentences = [ "A table is an object."
-                    , "A glas is an object."
-                    , "The glas is on the table."
-                    , "The spoon is an object."
-                    , "The spoon is on the table."
-                    ]
+metrics_sentences = ["A table is an object."
+                    ,"A glas is an object too."
+                    ,"The glas and the spoon are on the table."
+                    ,"The spoon is an object to eat."
+                    ,"The spoon is on the table and the plate and the glas."]
 
 
-metrics_sentences_Test = splitBy (Sentences 0) metrics_text == metrics_sentences
+metrics_sentences_Test = metrics_sentences == metrics_sentences'
 
 -- | Terms reordered to visually check occurrences
-metrics_terms :: [[[Text]]]
-metrics_terms = [[["table"],["object"]                  ]
-                ,[          ["object"],["glas"]         ]
-                ,[["table"],           ["glas"]         ]
-                ,[          ["object"],        ["spoon"]]
-                ,[["table"],                   ["spoon"]]
-                ]
---metrics_terms_Test = (mapM (terms Multi EN) $ splitBy (Sentences 0) metrics_text) == metrics_terms
+metrics_terms :: [[Text]]
+metrics_terms = undefined
+
+metrics_terms' :: IO [[Terms]]
+metrics_terms' = mapM (terms Multi EN) $ splitBy (Sentences 0) metrics_text
+
+--metrics_terms_Test =  metrics_terms == ((map _terms_label) <$> metrics_terms')
 
 -- | Occurrences
 {-
@@ -75,8 +82,6 @@ metrics_occ = occurrences <$> concat <$> (mapM (terms Multi EN) $ splitBy (Sente
 metrics_cooc = cooc <$> (mapM (terms Multi EN) $ splitBy (Sentences 0) metrics_text)
 
 metrics_cooc' = (mapM (terms Multi EN) $ splitBy (Sentences 0) "The table object. The table object.")
-
-
 
 
 
