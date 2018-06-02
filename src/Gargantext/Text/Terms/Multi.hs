@@ -18,23 +18,27 @@ module Gargantext.Text.Terms.Multi (multiterms)
 
 import Data.Text hiding (map, group, filter, concat)
 import Data.List (concat)
+import qualified Data.Set as S
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 
 import Gargantext.Text.Terms.Multi.PosTagging
+import Gargantext.Text.Terms.Mono.Stem (stem)
 import qualified Gargantext.Text.Terms.Multi.Lang.En as En
 import qualified Gargantext.Text.Terms.Multi.Lang.Fr as Fr
 
 multiterms :: Lang -> Text -> IO [Terms]
 multiterms lang txt = concat
-                   <$> map (map tokenTag2terms)
+                   <$> map (map (tokenTag2terms lang))
                    <$> map (filter (\t -> _my_token_pos t == Just NP)) 
                    <$> tokenTags lang txt
 
-tokenTag2terms :: TokenTag -> Terms
-tokenTag2terms (TokenTag w t _ _) =  Terms w t
+tokenTag2terms :: Lang -> TokenTag -> Terms
+tokenTag2terms lang (TokenTag w t _ _) =  Terms w t'
+  where
+    t' = S.fromList $ map (stem lang) $ S.toList t
 
 tokenTags :: Lang -> Text -> IO [[TokenTag]]
 tokenTags lang s = map (group lang) <$> tokenTags' lang s
