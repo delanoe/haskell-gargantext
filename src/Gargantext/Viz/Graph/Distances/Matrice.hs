@@ -95,6 +95,7 @@ miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
   where
     miniMax' = (the $ minimum $ maximum m)
 
+-- | Conditional distance (basic version)
 conditional :: Matrix Int -> Matrix Double
 conditional m = run (miniMax $ proba r $ map fromIntegral $ use m)
   where
@@ -102,22 +103,9 @@ conditional m = run (miniMax $ proba r $ map fromIntegral $ use m)
     r = rank' m
 
 
-{-
-Metric Specificity and genericty: select terms
-   Compute genericity/specificity:
-        P(j|i) = N(ij) / N(ii)
-        P(i|j) = N(ij) / N(jj)
-
-        Gen(i)  = Mean{j} P(j_k|i)
-        Spec(i) = Mean{j} P(i|j_k)
-
-        Gen-clusion(i)  = (Spec(i) + Gen(i)) / 2
-        Spec-clusion(i) = (Spec(i) - Gen(i)) / 2
-
--}
-
-incExcSpeGen :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
-incExcSpeGen m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
+-- | Conditional distance (advanced version)
+conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
+conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
   where
 
     ie :: Matrix' Double -> Matrix' Double
@@ -136,11 +124,9 @@ incExcSpeGen m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
     ys :: Acc (Matrix Double) -> Acc (Matrix Double)
     ys mat = zipWith (-) (proba r mat) (mkSum r $ transpose $ proba r mat)
 
--- filter with threshold
 -----------------------------------------------------------------------
 
 -- | Distributional Distance
-
 distributional :: Matrix Int -> Matrix Double
 distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
   where
@@ -164,4 +150,36 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
 
 int2double :: Matrix Int -> Matrix Double
 int2double m = run (map fromIntegral $ use m)
+
+{-
+Metric Specificity and genericty: select terms
+   Compute genericity/specificity:
+        P(j|i) = N(ij) / N(ii)
+        P(i|j) = N(ij) / N(jj)
+
+        Gen(i)  = Mean{j} P(j_k|i)
+        Spec(i) = Mean{j} P(i|j_k)
+
+        Gen-clusion(i)  = (Spec(i) + Gen(i)) / 2
+        Spec-clusion(i) = (Spec(i) - Gen(i)) / 2
+
+-}
+
+incExcSpeGen :: Matrix Int -> (Vector Double, Vector Double)
+incExcSpeGen m = (run' ie m, run' sg m)
+  where
+    run' fun mat = run $ fun $ map fromIntegral $ use mat
+
+    pV :: Matrix' Double -> Acc (Vector Double)
+    pV mat = sum $ proba (rank' m) mat
+    
+    pH :: Matrix' Double -> Acc (Vector Double)
+    pH mat = sum $ transpose $ proba (rank' m) mat
+
+    ie :: Matrix' Double -> Acc (Vector Double)
+    ie mat = zipWith (-) (pV mat) (pH mat)
+    
+    sg :: Matrix' Double -> Acc (Vector Double)
+    sg mat = zipWith (+) (pV mat) (pH mat)
+
 

@@ -28,7 +28,7 @@ import Gargantext.Core (Lang(FR))
 import Gargantext.Prelude
 
 import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, mat2map)
-import Gargantext.Viz.Graph.Distances.Matrice (incExcSpeGen, conditional)
+import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional)
 import Gargantext.Viz.Graph.Index (Index)
 import Gargantext.Text.Metrics.Count (cooc, removeApax)
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
@@ -48,7 +48,7 @@ import Data.Array.Accelerate (Matrix)
 filterMat :: Matrix Int -> [(Index, Index)]
 filterMat m = S.toList $ S.take n $ S.fromList $ (L.take nIe incExc') <> (L.take nSg speGen')
   where
-    (incExc', speGen') = both ( map fst . L.sortOn snd . M.toList . mat2map) (incExcSpeGen m)
+    (incExc', speGen') = both ( map fst . L.sortOn snd . M.toList . mat2map) (conditional' m)
     n = nIe + nSg
     nIe = 30
     nSg = 70

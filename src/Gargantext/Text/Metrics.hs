@@ -34,7 +34,7 @@ import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 
 metrics_text :: Text
-metrics_text = T.concat ["A table is an object."
+metrics_text = T.intercalate " " ["A table is an object."
                         ,"A glas is an object too."
                         ,"Using a glas to dring is a function."
                         ,"Using a spoon to eat is a function."
@@ -82,6 +82,9 @@ metrics_occ = occurrences <$> concat <$> (mapM (terms Multi EN) $ splitBy (Sente
 metrics_cooc = cooc <$> (mapM (terms Multi EN) $ splitBy (Sentences 0) metrics_text)
 
 metrics_cooc' = (mapM (terms Multi EN) $ splitBy (Sentences 0) "The table object. The table object.")
+
+
+
 
 
 
