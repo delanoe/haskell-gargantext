@@ -17,6 +17,10 @@ module Gargantext.Text.Metrics.FrequentItemSet
   ( Fis, Size(..)
   , occ_hlcm, cooc_hlcm
   , all, between
+  , fisWithSize
+  , fisWith
+  , fisWithSizePoly
+  , fisWithSizePoly2
   , module HLCM
   )
   where
