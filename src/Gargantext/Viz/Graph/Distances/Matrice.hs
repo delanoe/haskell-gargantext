@@ -28,11 +28,10 @@ Implementation use Accelerate library :
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Gargantext.Viz.Graph.Distances.Matrice
   where
@@ -87,8 +86,8 @@ mkSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
 divByDiag :: Rank -> Acc (Matrix Double) -> Acc (Matrix Double)
 divByDiag r mat = zipWith (/) mat (replicate (constant (Z :. (r :: Int) :. All)) $ diag mat)
 
-diag :: forall e. Elt e => Acc (Matrix e) -> Acc (Vector e)
-diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) (m :: Acc (Array DIM2 e))
+diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
+diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
 
 
 type Matrix' a = Acc (Matrix a)
