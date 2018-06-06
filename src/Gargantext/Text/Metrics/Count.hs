@@ -108,7 +108,7 @@ coocOn f as = foldl' (\a b -> DMS.unionWith (+) a b) empty $ map (coocOn' f) as
           xs = [ ((x, y), 1)
                | x <- ts'
                , y <- ts'
-               , x < y
+    --           , x /= y
                ]
 
 

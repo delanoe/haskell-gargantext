@@ -81,8 +81,13 @@ proba :: Rank -> Acc (Matrix Double) -> Acc (Matrix Double)
 proba r mat = zipWith (/) mat (mkSum r mat)
 
 mkSum :: Rank -> Acc (Matrix Double) -> Acc (Matrix Double)
-mkSum r mat = replicate (constant (Z :. (r :: Int) :. All)) 
-            $ fold (+) 0 mat
+mkSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
+
+divByDiag :: Rank -> Acc (Matrix Double) -> Acc (Matrix Double)
+divByDiag r mat = zipWith (/) mat (replicate (constant (Z :. (r :: Int) :. All)) $ diag mat)
+
+diag :: forall e. Elt e => Acc (Matrix e) -> Acc (Vector e)
+diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) (m :: Acc (Array DIM2 e))
 
 
 type Matrix' a = Acc (Matrix a)
@@ -90,7 +95,7 @@ type InclusionExclusion    = Double
 type SpecificityGenericity = Double
 
 
-miniMax :: Matrix' Double -> Matrix' Double
+miniMax :: Acc (Matrix Double) -> Acc (Matrix Double)
 miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
   where
     miniMax' = (the $ minimum $ maximum m)
@@ -152,7 +157,7 @@ int2double :: Matrix Int -> Matrix Double
 int2double m = run (map fromIntegral $ use m)
 
 {-
-Metric Specificity and genericty: select terms
+Metric Specificity and genericity: select terms
    Compute genericity/specificity:
         P(j|i) = N(ij) / N(ii)
         P(i|j) = N(ij) / N(jj)
@@ -160,26 +165,37 @@ Metric Specificity and genericty: select terms
         Gen(i)  = Mean{j} P(j_k|i)
         Spec(i) = Mean{j} P(i|j_k)
 
-        Gen-clusion(i)  = (Spec(i) + Gen(i)) / 2
         Spec-clusion(i) = (Spec(i) - Gen(i)) / 2
+        Gen-clusion(i)  = (Spec(i) + Gen(i)) / 2
 
 -}
 
-incExcSpeGen :: Matrix Int -> (Vector Double, Vector Double)
-incExcSpeGen m = (run' ie m, run' sg m)
+
+incExcSpeGen' :: Matrix Int -> (Vector Double, Vector Double)
+incExcSpeGen' m = (run' ie m, run' sg m)
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
-    pV :: Matrix' Double -> Acc (Vector Double)
-    pV mat = sum $ proba (rank' m) mat
-    
-    pH :: Matrix' Double -> Acc (Vector Double)
-    pH mat = sum $ transpose $ proba (rank' m) mat
-
-    ie :: Matrix' Double -> Acc (Vector Double)
+    ie :: Acc (Matrix Double) -> Acc (Vector Double)
     ie mat = zipWith (-) (pV mat) (pH mat)
-    
-    sg :: Matrix' Double -> Acc (Vector Double)
+--    
+    sg :: Acc (Matrix Double) -> Acc (Vector Double)
     sg mat = zipWith (+) (pV mat) (pH mat)
 
+    n :: Exp Double
+    n = constant (P.fromIntegral (rank' m - 1) :: Double)
+  
+    pV :: Acc (Matrix Double) -> Acc (Vector Double)
+    pV mat = map (\x -> (x-1)/n) $ sum $ divByDiag (rank' m) mat
+    
+    pH :: Acc (Matrix Double) -> Acc (Vector Double)
+    pH mat = map (\x -> (x-1)/n) $ sum $ transpose $ divByDiag (rank' m) mat
 
+
+
+incExcSpeGen_proba :: Matrix Int -> Matrix Double
+incExcSpeGen_proba m = run' pro m
+  where
+    run' fun mat = run $ fun $ map fromIntegral $ use mat
+
+    pro mat = divByDiag (rank' m) mat

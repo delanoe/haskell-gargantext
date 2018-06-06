@@ -31,6 +31,7 @@ import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, coo
 import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional)
 import Gargantext.Viz.Graph.Index (Index)
 import Gargantext.Text.Metrics.Count (cooc, removeApax)
+import Gargantext.Text.Metrics (incExcSpeGen)
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
@@ -43,8 +44,8 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 -- . fromIndex fi $ filterMat $ cooc2mat ti m
 
 
-
 import Data.Array.Accelerate (Matrix)
+
 filterMat :: Matrix Int -> [(Index, Index)]
 filterMat m = S.toList $ S.take n $ S.fromList $ (L.take nIe incExc') <> (L.take nSg speGen')
   where
@@ -57,15 +58,15 @@ filterMat m = S.toList $ S.take n $ S.fromList $ (L.take nIe incExc') <> (L.take
 pipeline path = do
   -- Text  <- IO Text <- FilePath
   text     <- readFile path
-  let contexts = splitBy (Sentences 3) text
+  let contexts = splitBy (Sentences 5) text
   myterms <- extractTerms Multi FR contexts
   
   -- TODO    filter (\t -> not . elem t stopList) myterms
   -- TODO    groupBy (Stem | GroupList)
   
   let myCooc = removeApax $ cooc myterms
-  let (ti, fi) = createIndices myCooc
-  pure ti
+  --let (ti, fi) = createIndices myCooc
+  pure $ incExcSpeGen myCooc
   -- Cooc -> Matrix
   
 --  -- filter by spec/gen (dynmaic programming)
