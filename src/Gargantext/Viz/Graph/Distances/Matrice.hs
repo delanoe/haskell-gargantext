@@ -28,10 +28,12 @@ Implementation use Accelerate library :
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 
 module Gargantext.Viz.Graph.Distances.Matrice
   where
@@ -141,7 +143,7 @@ p_ij m = zipWith (/) m (n_jj m)
     n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
     n_jj m = backpermute (shape m)
                          (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
-                                   -> ifThenElse (i < j) (Z :. j :. j) (Z :. i :. i)
+                                   -> (ifThenElse (i < j) (lift (Z :. j :. j)) (lift (Z :. i :. i)) :: Exp DIM2)
                                 )
                          ) m
 
