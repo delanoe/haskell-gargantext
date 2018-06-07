@@ -28,10 +28,12 @@ Implementation use Accelerate library :
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 
 module Gargantext.Viz.Graph.Distances.Matrice
   where
@@ -78,6 +80,7 @@ dim m = n
     Z :. _ :. n = arrayShape m
     -- == indexTail (arrayShape m)
 
+-----------------------------------------------------------------------
 proba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 proba r mat = zipWith (/) mat (mkSum r mat)
 
@@ -90,95 +93,7 @@ divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All))
   where
     diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
     diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
-
--- | Conditional Distance
-
-{-
-Metric Specificity and genericity: select terms
-
-N termes
-
-Ni : occ de i
-
-Nij : cooc i et j
-
-P(i|j)=Nij/Nj Probability to get i given j
-
-Gen(i) : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity of i
-
-Spec(i) : 1/(N-1)*Sum( j!=i, P(j|i)) : Specificity of j
-
-Inclusion (i) = Gen(i)+Spec(i)
-
-Genericity score = Gen(i)- Spec(i)
-
-
-----
-
-   Compute genericity/specificity:
-        P(j|i) = N(ij) / N(ii)
-        P(i|j) = N(ij) / N(jj)
-
-        Gen(i)  = sum P(i|j) | j /= i) / (N-1)
-        Spec(i) = sum P(j|i) | i /= j) / (N-1)
-
-        Genericity(i) = (Gen(i) - Spe(i)) / 2
-        Inclusion(i)  = (Spec(i) + Gen(i)) / 2
-
--}
-
--- M - M-1 = 0
-data SquareMatrix    = SymetricMatrix | NonSymetricMatrix
-
-type SymetricMatrix    = Matrix
-type NonSymetricMatrix = Matrix
-
--- |    Compute genericity/specificity:
---p_ :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
---p_ m = zipWith (/) m (n_jj m)
---  where
---    n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
---    n_jj m = backpermute (shape m)
---                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
---                                   -> ifThenElse (i < j) (Z :. j :. j) (Z :. i :. i)
---                                )
---                         ) m
-
-
-
-
----- |        P(i|j) = N(ij) / N(jj)
-p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
-p_ij m = zipWith (/) m (n_jj m)
-  where
-    n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
-    n_jj m = backpermute (shape m)
-                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
-                                   -> (Z :. j :. j)
-                                )
-                         ) m
-
---        P(j|i) = N(ij) / N(ii)
--- to test
-p_ji' :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
-p_ji' = transpose . p_ij
-
-p_ji :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
-p_ji m = zipWith (/) m (n_jj m)
-  where
-    n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
-    n_jj m = backpermute (shape m)
-                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
-                                   -> (Z :. i :. i)
-                                )
-                         ) m
-
-
-
-type Matrix' a = Acc (Matrix a)
-type InclusionExclusion    = Double
-type SpecificityGenericity = Double
-
+-----------------------------------------------------------------------
 
 miniMax :: Acc (Matrix Double) -> Acc (Matrix Double)
 miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
@@ -195,7 +110,7 @@ conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGene
 conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
   where
 
-    ie :: Matrix' Double -> Matrix' Double
+    ie :: Acc (Matrix Double) -> Acc (Matrix Double)
     ie mat = map (\x -> x / (2*n-1)) $ zipWith (+) (xs mat) (ys mat)
     sg :: Acc (Matrix Double) -> Acc (Matrix Double)
     sg mat = map (\x -> x / (2*n-1)) $ zipWith (-) (xs mat) (ys mat)
@@ -206,7 +121,7 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
     r :: Dim
     r = dim m
 
-    xs :: Matrix' Double -> Matrix' Double
+    xs :: Acc (Matrix Double) -> Acc (Matrix Double)
     xs mat = zipWith (-) (proba r mat) (mkSum r $ proba r mat)
     ys :: Acc (Matrix Double) -> Acc (Matrix Double)
     ys mat = zipWith (-) (proba r mat) (mkSum r $ transpose $ proba r mat)
@@ -235,33 +150,106 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
     cross mat      = zipWith (-) (mkSum n mat) (mat)
 
 
-int2double :: Matrix Int -> Matrix Double
-int2double m = run (map fromIntegral $ use m)
 
-incExcSpeGen' :: Matrix Int -> (Vector InclusionExclusion, Vector SpecificityGenericity)
-incExcSpeGen' m = (run' ie m, run' sg m)
+-----------------------------------------------------------------------
+-----------------------------------------------------------------------
+-- | Conditional Distance
+
+{-
+Metric Specificity and genericity: select terms
+
+N termes
+
+Ni : occ de i
+
+Nij : cooc i et j
+
+P(i|j)=Nij/Nj Probability to get i given j
+
+Gen(i) : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity of i
+
+Spec(i) : 1/(N-1)*Sum( j!=i, P(j|i)) : Specificity of j
+
+Inclusion (i) = Gen(i)+Spec(i)
+
+Genericity score = Gen(i)- Spec(i)
+
+
+References:
+ *  Science mapping with asymmetrical paradigmatic proximity Jean-Philippe Cointet (CREA, TSV), David Chavalarias (CREA) (Submitted on 15 Mar 2008), Networks and Heterogeneous Media 3, 2 (2008) 267 - 276, arXiv:0803.2315 [cs.OH]
+
+-}
+
+type InclusionExclusion    = Double
+type SpecificityGenericity = Double
+
+data SquareMatrix      = SymetricMatrix | NonSymetricMatrix
+type SymetricMatrix    = Matrix
+type NonSymetricMatrix = Matrix
+
+
+incExcSpeGen :: Matrix Int -> (Vector InclusionExclusion, Vector SpecificityGenericity)
+incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
-    ie :: Acc (Matrix Double) -> Acc (Vector Double)
-    ie mat = zipWith (+) (pV mat) (pH mat)
+    inclusionExclusion :: Acc (Matrix Double) -> Acc (Vector Double)
+    inclusionExclusion mat = zipWith (+) (pV mat) (pH mat)
 --    
-    sg :: Acc (Matrix Double) -> Acc (Vector Double)
-    sg mat = zipWith (-) (pV mat) (pH mat)
-
-    n :: Exp Double
-    n = constant (P.fromIntegral (dim m) :: Double)
-  
-    pV :: Acc (Matrix Double) -> Acc (Vector Double)
-    pV mat = map (\x -> (x-1)/(n-1)) $ sum $ p_ij mat
+    specificityGenericity :: Acc (Matrix Double) -> Acc (Vector Double)
+    specificityGenericity mat = zipWith (-) (pV mat) (pH mat)
     
+    -- TODO find a better term
+    pV :: Acc (Matrix Double) -> Acc (Vector Double)
+    pV mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ij mat
+    
+    -- TODO find a better term
     pH :: Acc (Matrix Double) -> Acc (Vector Double)
-    pH mat = map (\x -> (x-1)/(n-1)) $ sum $ transpose $ p_ij mat
+    pH mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ji mat
+    
+    cardN :: Exp Double
+    cardN = constant (P.fromIntegral (dim m) :: Double)
 
 
+
+
+---- |        P(i|j) = N(ij) / N(jj)
+p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (SymetricMatrix e) -> Acc (Matrix e)
+p_ij m = zipWith (/) m (n_jj m)
+  where
+    n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
+    n_jj m = backpermute (shape m)
+                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+                                   -> (Z :. j :. j)
+                                )
+                         ) m
+
+-- | P(j|i) = N(ij) / N(ii)
+-- to test
+p_ji :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
+p_ji = transpose . p_ij
+
+-- | step to ckeck the result
 incExcSpeGen_proba :: Matrix Int -> Matrix Double
 incExcSpeGen_proba m = run' pro m
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
     pro mat = p_ji mat
+
+
+{-
+-- | Hypothesis to test maybe later (or not)
+-- TODO ask accelerate for instances to ease such writtings:
+p_ :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
+p_ m = zipWith (/) m (n_ m)
+  where
+    n_ :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
+    n_ m = backpermute (shape m)
+                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+                                   -> (ifThenElse (i < j) (lift (Z :. j :. j)) (lift (Z :. i :. i)) :: Exp DIM2)
+                                )
+                         ) m
+-}
+
+
