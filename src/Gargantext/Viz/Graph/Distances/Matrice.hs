@@ -68,8 +68,6 @@ rank :: (Matrix a) -> Int
 rank m = arrayRank $ arrayShape m
 
 -----------------------------------------------------------------------
--- | Conditional Distance
-
 -- | Dimension of a square Matrix
 -- How to force use with SquareMatrix ?
 type Dim = Int
@@ -89,12 +87,34 @@ mkSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
 -- divByDiag 
 divByDiag :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All)) $ diag mat)
+  where
+    diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
+    diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
 
-diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
-diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
+-- | Conditional Distance
 
 {-
 Metric Specificity and genericity: select terms
+
+N termes
+
+Ni : occ de i
+
+Nij : cooc i et j
+
+P(i|j)=Nij/Nj Probability to get i given j
+
+Gen(i) : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity of i
+
+Spec(i) : 1/(N-1)*Sum( j!=i, P(j|i)) : Specificity of j
+
+Inclusion (i) = Gen(i)+Spec(i)
+
+Genericity score = Gen(i)- Spec(i)
+
+
+----
+
    Compute genericity/specificity:
         P(j|i) = N(ij) / N(ii)
         P(i|j) = N(ij) / N(jj)
@@ -121,7 +141,7 @@ p_ij m = zipWith (/) m (n_jj m)
     n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
     n_jj m = backpermute (shape m)
                          (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
-                                   -> (Z :. j :. j)
+                                   -> ifThenElse (i < j) (Z :. j :. j) (Z :. i :. i)
                                 )
                          ) m
 
