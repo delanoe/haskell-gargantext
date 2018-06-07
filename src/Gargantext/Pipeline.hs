@@ -37,6 +37,9 @@ import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 
+-- ord relevance: top n plus inclus
+-- échantillonnage de généricity
+-- 
 --filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
 --filterCooc m = 
 ---- filterCooc m = foldl (\k -> maybe (panic "no key") identity $ M.lookup k m) M.empty selection

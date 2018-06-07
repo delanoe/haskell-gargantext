@@ -67,27 +67,74 @@ myMat n = matrix n [1..]
 rank :: (Matrix a) -> Int
 rank m = arrayRank $ arrayShape m
 
-rank' :: (Matrix a) -> Int
-rank' m = n
-  where
-    Z :. _ :. n = arrayShape m
-
 -----------------------------------------------------------------------
 -- | Conditional Distance
 
-type Rank = Int
+-- | Dimension of a square Matrix
+-- How to force use with SquareMatrix ?
+type Dim = Int
 
-proba :: Rank -> Acc (Matrix Double) -> Acc (Matrix Double)
+dim :: (Matrix a) -> Dim
+dim m = n
+  where
+    Z :. _ :. n = arrayShape m
+    -- == indexTail (arrayShape m)
+
+proba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 proba r mat = zipWith (/) mat (mkSum r mat)
 
-mkSum :: Rank -> Acc (Matrix Double) -> Acc (Matrix Double)
+mkSum :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 mkSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
 
-divByDiag :: Rank -> Acc (Matrix Double) -> Acc (Matrix Double)
-divByDiag r mat = zipWith (/) mat (replicate (constant (Z :. (r :: Int) :. All)) $ diag mat)
+-- divByDiag 
+divByDiag :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All)) $ diag mat)
 
 diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
 diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
+
+{-
+Metric Specificity and genericity: select terms
+   Compute genericity/specificity:
+        P(j|i) = N(ij) / N(ii)
+        P(i|j) = N(ij) / N(jj)
+
+        Gen(i)  = sum P(i|j) | j /= i) / (N-1)
+        Spec(i) = sum P(j|i) | i /= j) / (N-1)
+
+        Genericity(i) = (Gen(i) - Spe(i)) / 2
+        Inclusion(i)  = (Spec(i) + Gen(i)) / 2
+
+-}
+
+-- M - M-1 = 0
+data SquareMatrix    = SymetricMatrix | NonSymetricMatrix
+
+type SymetricMatrix    = Matrix
+type NonSymetricMatrix = Matrix
+
+-- |    Compute genericity/specificity:
+---- |        P(i|j) = N(ij) / N(jj)
+p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
+p_ij m = zipWith (/) m (n_jj m)
+  where
+    n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
+    n_jj m = backpermute (shape m)
+                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+                                   -> (Z :. j :. j)
+                                )
+                         ) m
+
+--        P(j|i) = N(ij) / N(ii)
+p_ji :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
+p_ji m = zipWith (/) m (n_ii m)
+  where
+    n_ii :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
+    n_ii m = backpermute (shape m)
+                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+                                   -> (Z :. i :. i)
+                                )
+                         ) m
 
 
 type Matrix' a = Acc (Matrix a)
@@ -102,10 +149,7 @@ miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
 
 -- | Conditional distance (basic version)
 conditional :: Matrix Int -> Matrix Double
-conditional m = run (miniMax $ proba r $ map fromIntegral $ use m)
-  where
-    r :: Rank
-    r = rank' m
+conditional m = run (miniMax $ proba (dim m) $ map fromIntegral $ use m)
 
 
 -- | Conditional distance (advanced version)
@@ -121,8 +165,8 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
     n :: Exp Double
     n = P.fromIntegral r
 
-    r :: Rank
-    r = rank' m
+    r :: Dim
+    r = dim m
 
     xs :: Matrix' Double -> Matrix' Double
     xs mat = zipWith (-) (proba r mat) (mkSum r $ proba r mat)
@@ -135,7 +179,7 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
 distributional :: Matrix Int -> Matrix Double
 distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
   where
-    n    = rank' m
+    n    = dim m
     
     filter  m = zipWith (\a b -> max a b) m (transpose m)
     
@@ -156,21 +200,6 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
 int2double :: Matrix Int -> Matrix Double
 int2double m = run (map fromIntegral $ use m)
 
-{-
-Metric Specificity and genericity: select terms
-   Compute genericity/specificity:
-        P(j|i) = N(ij) / N(ii)
-        P(i|j) = N(ij) / N(jj)
-
-        Gen(i)  = Mean{j} P(j_k|i)
-        Spec(i) = Mean{j} P(i|j_k)
-
-        Spec-clusion(i) = (Spec(i) - Gen(i)) / 2
-        Gen-clusion(i)  = (Spec(i) + Gen(i)) / 2
-
--}
-
-
 incExcSpeGen' :: Matrix Int -> (Vector Double, Vector Double)
 incExcSpeGen' m = (run' ie m, run' sg m)
   where
@@ -183,14 +212,13 @@ incExcSpeGen' m = (run' ie m, run' sg m)
     sg mat = zipWith (+) (pV mat) (pH mat)
 
     n :: Exp Double
-    n = constant (P.fromIntegral (rank' m - 1) :: Double)
+    n = constant (P.fromIntegral (dim m) :: Double)
   
     pV :: Acc (Matrix Double) -> Acc (Vector Double)
-    pV mat = map (\x -> (x-1)/n) $ sum $ divByDiag (rank' m) mat
+    pV mat = map (\x -> (x-1)/(n-1)) $ sum $ p_ij mat
     
     pH :: Acc (Matrix Double) -> Acc (Vector Double)
-    pH mat = map (\x -> (x-1)/n) $ sum $ transpose $ divByDiag (rank' m) mat
-
+    pH mat = map (\x -> (x-1)/(n-1)) $ sum $ p_ji mat
 
 
 incExcSpeGen_proba :: Matrix Int -> Matrix Double
@@ -198,4 +226,4 @@ incExcSpeGen_proba m = run' pro m
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
-    pro mat = divByDiag (rank' m) mat
+    pro mat = p_ij mat

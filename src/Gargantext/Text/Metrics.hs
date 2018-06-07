@@ -53,8 +53,8 @@ metrics_sentences' = splitBy (Sentences 0) metrics_text
 metrics_sentences :: [Text]
 metrics_sentences = [ "There is a table with a glass of wine and a spoon."
                     , "I can see the glass on the table."
-                    , "There was a spoon on that table."
-                    , "The glass just fall from the table, pouring wine elsewhere."
+                    , "There was only a spoon on that table."
+                    , "The glass just fall from the table, pouring wine on the floor."
                     , "I wish the glass did not contain wine."
                     ]
 
@@ -83,11 +83,11 @@ metrics_cooc = cooc <$> metrics_terms
 metrics_cooc_mat = do
   m <- metrics_cooc
   let (ti,_) = createIndices m
-  let mat = cooc2mat ti m
+  let mat_cooc = cooc2mat ti m
   pure ( ti
-       , mat
-       , incExcSpeGen_proba mat
-       , incExcSpeGen'      mat
+       , mat_cooc
+       , incExcSpeGen_proba mat_cooc
+       , incExcSpeGen'      mat_cooc
        )
 
 
