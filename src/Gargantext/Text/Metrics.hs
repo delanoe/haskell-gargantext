@@ -54,13 +54,22 @@ metrics_sentences :: [Text]
 metrics_sentences = [ "There is a table with a glass of wine and a spoon."
                     , "I can see the glass on the table."
                     , "There was only a spoon on that table."
-                    , "The glass just fall from the table, pouring wine on the floor."
+                    , "The glass just fall from the table, pouring wine elsewhere."
                     , "I wish the glass did not contain wine."
                     ]
 
 metrics_sentences_Test = metrics_sentences == metrics_sentences'
 
 -- | Terms reordered to visually check occurrences
+-- >>> 
+{- [ [["table"],["glass"],["wine"],["spoon"]]
+   , [["glass"],["table"]]
+   , [["spoon"],["table"]]
+   , [["glass"],["table"],["wine"]]
+   , [["glass"],["wine"]]
+   ]
+-}
+
 metrics_terms :: IO [[Terms]]
 metrics_terms = mapM (terms MonoMulti EN) $ splitBy (Sentences 0) metrics_text
 

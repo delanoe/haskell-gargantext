@@ -134,6 +134,19 @@ type SymetricMatrix    = Matrix
 type NonSymetricMatrix = Matrix
 
 -- |    Compute genericity/specificity:
+--p_ :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
+--p_ m = zipWith (/) m (n_jj m)
+--  where
+--    n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
+--    n_jj m = backpermute (shape m)
+--                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+--                                   -> ifThenElse (i < j) (Z :. j :. j) (Z :. i :. i)
+--                                )
+--                         ) m
+
+
+
+
 ---- |        P(i|j) = N(ij) / N(jj)
 p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
 p_ij m = zipWith (/) m (n_jj m)
@@ -141,20 +154,25 @@ p_ij m = zipWith (/) m (n_jj m)
     n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
     n_jj m = backpermute (shape m)
                          (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
-                                   -> ifThenElse (i < j) (Z :. j :. j) (Z :. i :. i)
+                                   -> (Z :. j :. j)
                                 )
                          ) m
 
 --        P(j|i) = N(ij) / N(ii)
+-- to test
+p_ji' :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
+p_ji' = transpose . p_ij
+
 p_ji :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
-p_ji m = zipWith (/) m (n_ii m)
+p_ji m = zipWith (/) m (n_jj m)
   where
-    n_ii :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
-    n_ii m = backpermute (shape m)
+    n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
+    n_jj m = backpermute (shape m)
                          (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
                                    -> (Z :. i :. i)
                                 )
                          ) m
+
 
 
 type Matrix' a = Acc (Matrix a)
@@ -220,16 +238,16 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
 int2double :: Matrix Int -> Matrix Double
 int2double m = run (map fromIntegral $ use m)
 
-incExcSpeGen' :: Matrix Int -> (Vector Double, Vector Double)
+incExcSpeGen' :: Matrix Int -> (Vector InclusionExclusion, Vector SpecificityGenericity)
 incExcSpeGen' m = (run' ie m, run' sg m)
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
     ie :: Acc (Matrix Double) -> Acc (Vector Double)
-    ie mat = zipWith (-) (pV mat) (pH mat)
+    ie mat = zipWith (+) (pV mat) (pH mat)
 --    
     sg :: Acc (Matrix Double) -> Acc (Vector Double)
-    sg mat = zipWith (+) (pV mat) (pH mat)
+    sg mat = zipWith (-) (pV mat) (pH mat)
 
     n :: Exp Double
     n = constant (P.fromIntegral (dim m) :: Double)
@@ -238,7 +256,7 @@ incExcSpeGen' m = (run' ie m, run' sg m)
     pV mat = map (\x -> (x-1)/(n-1)) $ sum $ p_ij mat
     
     pH :: Acc (Matrix Double) -> Acc (Vector Double)
-    pH mat = map (\x -> (x-1)/(n-1)) $ sum $ p_ji mat
+    pH mat = map (\x -> (x-1)/(n-1)) $ sum $ transpose $ p_ij mat
 
 
 incExcSpeGen_proba :: Matrix Int -> Matrix Double
@@ -246,4 +264,4 @@ incExcSpeGen_proba m = run' pro m
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
-    pro mat = p_ij mat
+    pro mat = p_ji mat
