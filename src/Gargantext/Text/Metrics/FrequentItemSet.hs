@@ -14,42 +14,52 @@ Domain Specific Language to manage Frequent Item Set (FIS)
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Metrics.FrequentItemSet
-  ( Fis, Size
+  ( Fis, Size(..)
   , occ_hlcm, cooc_hlcm
   , all, between
+  , fisWithSize
+  , fisWith
+  , fisWithSizePoly
+  , fisWithSizePoly2
   , module HLCM
   )
   where
 
-import Data.List (tail, filter)
-import Data.Either
+import Prelude (Functor(..)) -- TODO
+import qualified Data.Map.Strict as Map
+import Data.Map.Strict (Map)
+import qualified Data.Set as Set
+import Data.Set (Set)
+import qualified Data.Vector as V
+import Data.Vector (Vector)
+
+import Data.List (filter, concat)
+import Data.Maybe (catMaybes)
 
 import HLCM
 
 import Gargantext.Prelude
 
-type Size = Either Int (Int, Int)
-
---data Size = Point | Segment
+data Size = Point Int | Segment Int Int
 
 ------------------------------------------------------------------------
 -- | Occurrence is Frequent Item Set of size 1
 occ_hlcm  :: Frequency -> [[Item]] -> [Fis]
-occ_hlcm f is  = fisWithSize (Left 1) f is
+occ_hlcm = fisWithSize (Point 1)
 
 -- | Cooccurrence is Frequent Item Set of size 2
 cooc_hlcm :: Frequency -> [[Item]] -> [Fis]
-cooc_hlcm f is = fisWithSize (Left 2) f is
+cooc_hlcm = fisWithSize (Point 2)
 
 all :: Frequency -> [[Item]] -> [Fis]
-all f is  = fisWith Nothing f is
+all = fisWith Nothing
 
 ------------------------------------------------------------------------
 between :: (Int, Int) -> Frequency -> [[Item]] -> [Fis]
-between (x,y) f is = fisWithSize (Right (x,y)) f is
+between (x,y) = fisWithSize (Segment x y)
 
 --maximum :: Int -> Frequency -> [[Item]] -> [Fis]
---maximum m f is = between (0,m) f is
+--maximum m = between (0,m)
 
 
 ------------------------------------------------------------------------
@@ -62,30 +72,47 @@ data Fis' a = Fis' { _fisCount   :: Int
                    , _fisItemSet :: [a]
                    } deriving (Show)
 
+instance Functor Fis' where
+  fmap f (Fis' c is) = Fis' c (fmap f is)
+
 -- | Sugar from items to FIS
 items2fis :: [Item] -> Maybe Fis
-items2fis is = case head is of
-                 Nothing -> Nothing
-                 Just h  -> Just (Fis' h (tail is))
+items2fis []     = Nothing
+items2fis (i:is) = Just $ Fis' i is
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 
 fisWithSize :: Size -> Frequency -> [[Item]] -> [Fis]
 fisWithSize n f is = case n of
-  Left   n'   -> fisWith (Just (\x -> length x == (n'+1)    )) f is
-  Right (a,b) -> fisWith (Just (\x -> cond1 a x && cond2 b x)) f is
+  Point  n'   -> fisWith (Just (\x -> length x == (n'+1) )) f is
+  Segment a b -> fisWith (Just (\x -> cond a (length x) b)) f is
                     where
-                      cond1 a' x = length x >= a'
-                      cond2 b' x = length x <= b'
+                      cond a' x b' = a' <= x && x <= b'
 
 
 fisWith :: Maybe ([Item] -> Bool) -> Frequency -> [[Item]] -> [Fis]
-fisWith s f is = unMaybe $ map items2fis $ filter' $ runLCMmatrix is f
+fisWith s f is = catMaybes $ map items2fis $ filter' $ runLCMmatrix is f
   where
     filter' = case s of
                 Nothing  -> identity
                 Just fun -> filter fun
+
+-- Here the sole purpose to take the keys as a Set is tell we do not want
+-- duplicates.
+fisWithSizePoly :: Ord a => Size -> Frequency -> Set a -> [[a]] -> [Fis' a]
+fisWithSizePoly n f ks = map (fmap fromItem) . fisWithSize n f . map (map toItem)
+  where
+    ksv = V.fromList $ Set.toList ks
+    ksm = Map.fromList . flip zip [0..] $ V.toList ksv
+    toItem = (ksm Map.!)
+    fromItem = (ksv V.!)
+
+fisWithSizePoly2 :: Ord a => Size -> Frequency -> [[a]] -> [Fis' a]
+fisWithSizePoly2 n f is = fisWithSizePoly n f ks is
+  where
+    ks = Set.fromList $ concat is
+
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

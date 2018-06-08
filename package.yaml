@@ -35,7 +35,6 @@ library:
   dependencies:
   - QuickCheck
   - accelerate
-  - accelerate-io
   - aeson
   - aeson-lens
   - aeson-pretty
@@ -46,6 +45,7 @@ library:
   - bytestring
   - case-insensitive
   - cassava
+  - clustering-louvain
   - conduit
   - conduit-extra
   - containers

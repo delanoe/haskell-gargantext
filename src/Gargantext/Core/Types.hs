@@ -46,14 +46,9 @@ data Terms = Terms { _terms_label :: Label
 
 instance Show Terms where
   show (Terms l s) = show l
--- class Inclusion where include
---instance Eq Terms where
---  (==) (Terms _ s1) (Terms _ s2) = s1 `S.isSubsetOf` s2
---                                || s2 `S.isSubsetOf` s1
 
 instance Eq Terms where
   (==) (Terms _ s1) (Terms _ s2) = s1 == s2
-
 
 ------------------------------------------------------------------------
 data Tag = POS | NER

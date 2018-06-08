@@ -2,3 +2,8 @@
 *.swp
 *.cabal
 *purescript-gargantext
+doc
+bin
+clustering-louvain
+profiling
+servant-job

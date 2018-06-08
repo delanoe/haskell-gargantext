@@ -237,5 +237,3 @@ unMaybe = map fromJust . L.filter isJust
 -- maximumWith
 maximumWith f = L.maximumBy (\x y -> compare (f x) (f y))
 
-
-

@@ -27,7 +27,7 @@ import NLP.FullStop (segment)
 -----------------------------------------------------------------
 import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Text.Metrics.Occurrences (Occ, occurrences, cooc)
+import Gargantext.Text.Metrics.Count (Occ, occurrences, cooc)
 import Gargantext.Prelude hiding (filter)
 -----------------------------------------------------------------
 
