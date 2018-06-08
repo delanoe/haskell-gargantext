@@ -46,10 +46,11 @@ import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 import Gargantext.Viz.Graph.Distances.Matrice
 import Gargantext.Viz.Graph.Index
 
+import qualified Data.Array.Accelerate.Interpreter as DAA
+import qualified Data.Array.Accelerate as DAA
 
--- ord relevance: top n plus inclus
--- échantillonnage de généricity
--- 
+import GHC.Real (round)
+
 --filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
 --filterCooc m = 
 ---- filterCooc m = foldl (\k -> maybe (panic "no key") identity $ M.lookup k m) M.empty selection
@@ -57,16 +58,39 @@ import Gargantext.Viz.Graph.Index
 -- . fromIndex fi $ filterMat $ cooc2mat ti m
 
 
-import Data.Array.Accelerate (Matrix)
+type ListSize  = Int
+type BinSize = Double
 
-filterMat :: Matrix Int -> [(Index, Index)]
-filterMat m = S.toList $ S.take n $ S.fromList $ (L.take nIe incExc') <> (L.take nSg speGen')
+takeSome :: Ord t => ListSize -> BinSize -> [Scored t] -> [Scored t]
+takeSome l s scores = L.take l
+                    $ takeSample n m
+                    $ takeKmeans l'
+                    $ L.reverse $ L.sortOn _scored_incExc scores
   where
-    (incExc', speGen') = both ( map fst . L.sortOn snd . M.toList . mat2map) (conditional' m)
-    n = nIe + nSg
-    nIe = 30
-    nSg = 70
+    -- TODO : KMEAN split into 2 main clusters 
+    -- (advice: use accelerate-example kmeans version 
+    --  and maybe benchmark it to be sure)
+    takeKmeans = L.take
+    l' = 4000
+    n = round ((fromIntegral l)/s)
+    m = round $ (fromIntegral $ length scores) / (s)
+    takeSample n m xs = L.concat $ map (L.take n)
+                                 $ L.reverse $ map (L.sortOn _scored_incExc)
+                                 $ splitEvery m
+                                 $ L.reverse $ L.sortOn _scored_speGen xs
 
+
+data Scored t = Scored { _scored_terms  :: t
+                       , _scored_incExc :: InclusionExclusion
+                       , _scored_speGen :: SpecificityGenericity
+                     } deriving (Show)
+
+incExcSpeGen_sorted' :: Ord t => Map (t,t) Int -> [Scored t]
+incExcSpeGen_sorted' m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
+  where
+    (ti,fi) = createIndices m
+    (is, ss) = incExcSpeGen $ cooc2mat ti m
+    scores = DAA.toList $ DAA.run $ DAA.zip (DAA.use is) (DAA.use ss)
 
 
 incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])

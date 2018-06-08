@@ -4,6 +4,5 @@
 *purescript-gargantext
 doc
 bin
-clustering-louvain
+deps
 profiling
-servant-job
