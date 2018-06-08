@@ -8,6 +8,12 @@ Stability   : experimental
 Portability : POSIX
 
 Mainly reexport functions in @Data.Text.Metrics@
+
+
+TODO
+noApax :: Ord a => Map a Occ -> Map a Occ
+noApax m = M.filter (>1) m
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -21,6 +27,7 @@ import Data.Map (Map)
 
 import qualified Data.List as L
 import qualified Data.Map  as M
+import qualified Data.Set  as S
 import qualified Data.Text as T
 import Data.Tuple.Extra (both)
 --import GHC.Real (Ratio)
@@ -39,8 +46,36 @@ import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 import Gargantext.Viz.Graph.Distances.Matrice
 import Gargantext.Viz.Graph.Index
 
---noApax :: Ord a => Map a Occ -> Map a Occ
---noApax m = M.filter (>1) m
+
+-- ord relevance: top n plus inclus
+-- échantillonnage de généricity
+-- 
+--filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
+--filterCooc m = 
+---- filterCooc m = foldl (\k -> maybe (panic "no key") identity $ M.lookup k m) M.empty selection
+----(ti, fi)  = createIndices m
+-- . fromIndex fi $ filterMat $ cooc2mat ti m
+
+
+import Data.Array.Accelerate (Matrix)
+
+filterMat :: Matrix Int -> [(Index, Index)]
+filterMat m = S.toList $ S.take n $ S.fromList $ (L.take nIe incExc') <> (L.take nSg speGen')
+  where
+    (incExc', speGen') = both ( map fst . L.sortOn snd . M.toList . mat2map) (conditional' m)
+    n = nIe + nSg
+    nIe = 30
+    nSg = 70
+
+
+
+incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
+incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat ti m)
+  where
+    (ti,fi) = createIndices m
+    ordonne x = L.reverse $ L.sortOn snd $ zip (map snd $ M.toList fi) (toList x)
+
+
 
 
 metrics_text :: Text
@@ -54,7 +89,7 @@ metrics_sentences :: [Text]
 metrics_sentences = [ "There is a table with a glass of wine and a spoon."
                     , "I can see the glass on the table."
                     , "There was only a spoon on that table."
-                    , "The glass just fall from the table, pouring wine elsewhere."
+                    , "The glass just fall from the table, pouring wine everywhere."
                     , "I wish the glass did not contain wine."
                     ]
 
@@ -89,23 +124,16 @@ metrics_occ = occurrences <$> L.concat <$> metrics_terms
 
 -}
 metrics_cooc = cooc <$> metrics_terms
+
 metrics_cooc_mat = do
   m <- metrics_cooc
   let (ti,_) = createIndices m
   let mat_cooc = cooc2mat ti m
   pure ( ti
        , mat_cooc
-       , incExcSpeGen_proba mat_cooc
-       , incExcSpeGen'      mat_cooc
+       , incExcSpeGen_proba  mat_cooc
+       , incExcSpeGen        mat_cooc
        )
 
-
-metrics_incExcSpeGen = incExcSpeGen <$> metrics_cooc
-
-incExcSpeGen :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
-incExcSpeGen m = both (\x -> L.reverse $ L.sortOn snd $ zip (map snd $ M.toList fi) (toList x) )
-                      (incExcSpeGen' $ cooc2mat ti m     )
-  where
-    (ti,fi) = createIndices m
-
+metrics_incExcSpeGen = incExcSpeGen_sorted <$> metrics_cooc
 

@@ -6,7 +6,6 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
-
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -20,7 +19,6 @@ import Data.Text.IO (readFile)
 import Control.Arrow ((***))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
-import qualified Data.Set        as S
 import qualified Data.List       as L
 import Data.Tuple.Extra (both)
 ----------------------------------------------
@@ -31,32 +29,22 @@ import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, coo
 import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional)
 import Gargantext.Viz.Graph.Index (Index)
 import Gargantext.Text.Metrics.Count (cooc, removeApax)
-import Gargantext.Text.Metrics (incExcSpeGen)
+import Gargantext.Text.Metrics
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 
--- ord relevance: top n plus inclus
--- échantillonnage de généricity
--- 
---filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
---filterCooc m = 
----- filterCooc m = foldl (\k -> maybe (panic "no key") identity $ M.lookup k m) M.empty selection
-----(ti, fi)  = createIndices m
--- . fromIndex fi $ filterMat $ cooc2mat ti m
 
+{-
+  ____                             _            _
+ / ___| __ _ _ __ __ _  __ _ _ __ | |_ _____  _| |_
+| |  _ / _` | '__/ _` |/ _` | '_ \| __/ _ \ \/ / __|
+| |_| | (_| | | | (_| | (_| | | | | ||  __/>  <| |_
+ \____|\__,_|_|  \__, |\__,_|_| |_|\__\___/_/\_\\__|
+                 |___/
 
-import Data.Array.Accelerate (Matrix)
-
-filterMat :: Matrix Int -> [(Index, Index)]
-filterMat m = S.toList $ S.take n $ S.fromList $ (L.take nIe incExc') <> (L.take nSg speGen')
-  where
-    (incExc', speGen') = both ( map fst . L.sortOn snd . M.toList . mat2map) (conditional' m)
-    n = nIe + nSg
-    nIe = 30
-    nSg = 70
-
+-}
 
 pipeline path = do
   -- Text  <- IO Text <- FilePath
@@ -69,7 +57,8 @@ pipeline path = do
   
   let myCooc = removeApax $ cooc myterms
   --let (ti, fi) = createIndices myCooc
-  pure $ incExcSpeGen myCooc
+  pure True
+  --pure $ incExcSpeGen myCooc
   -- Cooc -> Matrix
   
 --  -- filter by spec/gen (dynmaic programming)
@@ -80,5 +69,4 @@ pipeline path = do
 --  partitions <- cLouvain theScores
 --  pure partitions
 ---- | Building : -> Graph -> JSON
-
 

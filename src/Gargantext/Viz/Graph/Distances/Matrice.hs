@@ -153,25 +153,17 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
--- | Conditional Distance
 
 {-
 Metric Specificity and genericity: select terms
 
-N termes
-
-Ni : occ de i
-
-Nij : cooc i et j
-
-P(i|j)=Nij/Nj Probability to get i given j
-
-Gen(i) : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity of i
-
-Spec(i) : 1/(N-1)*Sum( j!=i, P(j|i)) : Specificity of j
-
+let N termes
+Ni      : occ de i
+Nij     : cooc i et j
+Probability to get i given j : P(i|j)=Nij/Nj
+Gen(i)  : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity  of i
+Spec(i) : 1/(N-1)*Sum(j!=i, P(j|i)) : Specificity of j
 Inclusion (i) = Gen(i)+Spec(i)
-
 Genericity score = Gen(i)- Spec(i)
 
 
@@ -193,17 +185,19 @@ incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
+    -- | Inclusion (i) = Gen(i)+Spec(i)
     inclusionExclusion :: Acc (Matrix Double) -> Acc (Vector Double)
     inclusionExclusion mat = zipWith (+) (pV mat) (pH mat)
 --    
+    -- | Genericity score = Gen(i)- Spec(i)
     specificityGenericity :: Acc (Matrix Double) -> Acc (Vector Double)
     specificityGenericity mat = zipWith (-) (pV mat) (pH mat)
     
-    -- TODO find a better term
+    -- | Gen(i)  : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity  of i
     pV :: Acc (Matrix Double) -> Acc (Vector Double)
     pV mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ij mat
     
-    -- TODO find a better term
+    -- | Spec(i) : 1/(N-1)*Sum(j!=i, P(j|i)) : Specificity of j
     pH :: Acc (Matrix Double) -> Acc (Vector Double)
     pH mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ji mat
     
@@ -211,32 +205,30 @@ incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
     cardN = constant (P.fromIntegral (dim m) :: Double)
 
 
-
-
----- |        P(i|j) = N(ij) / N(jj)
+-- | P(i|j) = Nij /N(jj) Probability to get i given j
 p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (SymetricMatrix e) -> Acc (Matrix e)
 p_ij m = zipWith (/) m (n_jj m)
   where
     n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
     n_jj m = backpermute (shape m)
-                         (lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+                         (lift1 ( \(Z :. (_ :: Exp Int) :. (j:: Exp Int))
                                    -> (Z :. j :. j)
                                 )
                          ) m
 
--- | P(j|i) = N(ij) / N(ii)
+-- | P(j|i) = Nij /N(ii) Probability to get i given j
 -- to test
 p_ji :: (Elt e, P.Fractional (Exp e)) => Acc (Array DIM2 e) -> Acc (Array DIM2 e)
 p_ji = transpose . p_ij
 
--- | step to ckeck the result
+
+-- | Step to ckeck the result in visual/qualitative tests
 incExcSpeGen_proba :: Matrix Int -> Matrix Double
 incExcSpeGen_proba m = run' pro m
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
 
     pro mat = p_ji mat
-
 
 {-
 -- | Hypothesis to test maybe later (or not)
