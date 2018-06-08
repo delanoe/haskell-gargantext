@@ -2,8 +2,8 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-- servant-job
-- clustering-louvain
+- 'deps/servant-job'
+- 'deps/clustering-louvain'
 
 allow-newer: true
 extra-deps:
