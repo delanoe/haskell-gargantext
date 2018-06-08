@@ -2,8 +2,9 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-- servant-job
-- clustering-louvain
+- 'deps/servant-job'
+- 'deps/clustering-louvain'
+- 'deps/imt-api-client'
 
 allow-newer: true
 extra-deps:
@@ -36,4 +37,6 @@ extra-deps:
 - text-1.2.3.0
 - text-show-3.6.2
 - servant-flatten-0.2
+- serialise-0.2.0.0  # imt-api-client
+- cborg-0.2.0.0      # imt-api-client
 resolver: lts-11.10
