@@ -63,12 +63,16 @@ import GHC.Real (round)
 type ListSize  = Int
 type BinSize = Double
 
+-- Map list creation
+-- Kmean split into 2 main clusters with Inclusion/Exclusion (relevance score)
+-- Sample the main cluster ordered by specificity/genericity in s parts
+-- each parts is then ordered by Inclusion/Exclusion
+-- take n scored terms in each parts where n * s = l
 takeSome :: Ord t => ListSize -> BinSize -> [Scored t] -> [Scored t]
 takeSome l s scores = L.take l
                     $ takeSample n m
                     $ splitKmeans 2 scores
   where
-    -- TODO : KMEAN split into 2 main clusters 
     -- (TODO: benchmark with accelerate-example kmeans version)
     splitKmeans x xs = elements
                      $ V.head
