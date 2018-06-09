@@ -60,20 +60,21 @@ import GHC.Real (round)
 -- . fromIndex fi $ filterMat $ cooc2mat ti m
 
 
-type ListSize  = Int
-type BinSize = Double
+type MapListSize  = Int
+type SampleBins = Double
+type Clusters = Int
 
--- Map list creation
--- Kmean split into 2 main clusters with Inclusion/Exclusion (relevance score)
--- Sample the main cluster ordered by specificity/genericity in s parts
+-- | Map list creation
+-- Kmeans split into (Clusters::Int) main clusters with Inclusion/Exclusion (relevance score)
+-- Sample the main cluster ordered by specificity/genericity in (SampleBins::Double) parts
 -- each parts is then ordered by Inclusion/Exclusion
--- take n scored terms in each parts where n * s = l
-takeSome :: Ord t => ListSize -> BinSize -> [Scored t] -> [Scored t]
-takeSome l s scores = L.take l
+-- take n scored terms in each parts where n * SampleBins = MapListSize.
+takeSome :: Ord t => MapListSize -> SampleBins -> Clusters -> [Scored t] -> [Scored t]
+takeSome l s k scores = L.take l
                     $ takeSample n m
-                    $ splitKmeans 2 scores
+                    $ splitKmeans k scores
   where
-    -- (TODO: benchmark with accelerate-example kmeans version)
+    -- TODO: benchmark with accelerate-example kmeans version
     splitKmeans x xs = elements
                      $ V.head
                      $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))
