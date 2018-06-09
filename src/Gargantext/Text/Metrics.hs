@@ -24,15 +24,17 @@ module Gargantext.Text.Metrics
 
 import Data.Text (Text, pack)
 import Data.Map (Map)
-
 import qualified Data.List as L
 import qualified Data.Map  as M
 import qualified Data.Set  as S
 import qualified Data.Text as T
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VU
 import Data.Tuple.Extra (both)
 --import GHC.Real (Ratio)
 --import qualified Data.Text.Metrics as DTM
 import Data.Array.Accelerate (toList)
+import Math.KMeans (kmeans, euclidSq, elements)
 
 
 import Gargantext.Prelude
@@ -64,14 +66,11 @@ type BinSize = Double
 takeSome :: Ord t => ListSize -> BinSize -> [Scored t] -> [Scored t]
 takeSome l s scores = L.take l
                     $ takeSample n m
-                    $ takeKmeans l'
-                    $ L.reverse $ L.sortOn _scored_incExc scores
+                    $ takeKmeans 2 scores
   where
     -- TODO : KMEAN split into 2 main clusters 
-    -- (advice: use accelerate-example kmeans version 
-    --  and maybe benchmark it to be sure)
-    takeKmeans = L.take
-    l' = 4000
+    -- (TODO: benchmark with accelerate-example kmeans version)
+    takeKmeans x xs = elements $ V.head $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))  euclidSq x xs
     n = round ((fromIntegral l)/s)
     m = round $ (fromIntegral $ length scores) / (s)
     takeSample n m xs = L.concat $ map (L.take n)
