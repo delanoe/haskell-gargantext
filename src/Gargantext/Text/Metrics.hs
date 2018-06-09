@@ -66,11 +66,14 @@ type BinSize = Double
 takeSome :: Ord t => ListSize -> BinSize -> [Scored t] -> [Scored t]
 takeSome l s scores = L.take l
                     $ takeSample n m
-                    $ takeKmeans 2 scores
+                    $ splitKmeans 2 scores
   where
     -- TODO : KMEAN split into 2 main clusters 
     -- (TODO: benchmark with accelerate-example kmeans version)
-    takeKmeans x xs = elements $ V.head $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))  euclidSq x xs
+    splitKmeans x xs = elements
+                     $ V.head
+                     $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))
+                              euclidSq x xs
     n = round ((fromIntegral l)/s)
     m = round $ (fromIntegral $ length scores) / (s)
     takeSample n m xs = L.concat $ map (L.take n)
