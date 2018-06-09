@@ -68,6 +68,7 @@ library:
   - hlcm
   - ini
   - jose-jwt
+  - kmeans-vector
   - lens
   - logging-effect
   - matrix
