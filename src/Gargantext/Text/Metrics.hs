@@ -101,16 +101,12 @@ data Scored t = Scored { _scored_terms  :: !t
                        , _scored_speGen :: !SpecificityGenericity
                      } deriving (Show)
 
---coocScored :: Ord t => Map (t,t) Int -> [Scored t]
---coocScored m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
-coocScored :: (DAA.Elt t, Ord t) => Map (t,t) Int -> [Scored t]
-coocScored m = map (\(t,inc,spe) -> Scored t inc spe) scores
+coocScored :: Ord t => Map (t,t) Int -> [Scored t]
+coocScored m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
   where
     (ti,fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
-    scores = DAA.toList $ DAA.run $ DAA.zip3 (DAA.use ts) (DAA.use is) (DAA.use ss)
-    ts = DAA.fromList (DAA.arrayShape is) (snd <$> M.toAscList fi)
-    -- TODO fi should already be a Vector
+    scores = DAA.toList $ DAA.run $ DAA.zip (DAA.use is) (DAA.use ss)
 
 
 
