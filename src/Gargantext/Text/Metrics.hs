@@ -16,6 +16,7 @@ noApax m = M.filter (>1) m
 
 -}
 
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -53,16 +54,21 @@ import qualified Data.Array.Accelerate as DAA
 
 import GHC.Real (round)
 
---filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
---filterCooc m = 
----- filterCooc m = foldl (\k -> maybe (panic "no key") identity $ M.lookup k m) M.empty selection
-----(ti, fi)  = createIndices m
--- . fromIndex fi $ filterMat $ cooc2mat ti m
+filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
+filterCooc cc = filterCooc' ts cc
+  where
+    ts     = map _scored_terms $ takeSome 350 5 2 $ coocScored cc
+
+filterCooc' :: Ord t => [t] -> Map (t, t) Int -> Map (t, t) Int
+filterCooc' ts m = foldl' (\m' k -> M.insert k (maybe errMessage identity $ M.lookup k m) m') M.empty selection
+  where
+    errMessage = panic "Filter cooc: no key"
+    selection  = [(x,y) | x <- ts, y <- ts, x > y]
 
 
-type MapListSize  = Int
-type SampleBins = Double
-type Clusters = Int
+type MapListSize = Int
+type SampleBins  = Double
+type Clusters    = Int
 
 -- | Map list creation
 -- Kmeans split into (Clusters::Int) main clusters with Inclusion/Exclusion (relevance score)
@@ -83,21 +89,42 @@ takeSome l s k scores = L.take l
     m = round $ (fromIntegral $ length scores) / (s)
     takeSample n m xs = L.concat $ map (L.take n)
                                  $ L.reverse $ map (L.sortOn _scored_incExc)
-                                 $ splitEvery m
+                                 -- TODO use kmeans s instead of splitEvery
+                                 -- in order to split in s heteregenous parts
+                                 -- without homogeneous order hypothesis
+                                 $ splitEvery m 
                                  $ L.reverse $ L.sortOn _scored_speGen xs
 
 
-data Scored t = Scored { _scored_terms  :: t
-                       , _scored_incExc :: InclusionExclusion
-                       , _scored_speGen :: SpecificityGenericity
+data Scored t = Scored { _scored_terms  :: !t
+                       , _scored_incExc :: !InclusionExclusion
+                       , _scored_speGen :: !SpecificityGenericity
                      } deriving (Show)
 
-incExcSpeGen_sorted' :: Ord t => Map (t,t) Int -> [Scored t]
-incExcSpeGen_sorted' m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
+coocScored :: Ord t => Map (t,t) Int -> [Scored t]
+coocScored m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
   where
     (ti,fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
     scores = DAA.toList $ DAA.run $ DAA.zip (DAA.use is) (DAA.use ss)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
@@ -105,7 +132,6 @@ incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat ti m)
   where
     (ti,fi) = createIndices m
     ordonne x = L.reverse $ L.sortOn snd $ zip (map snd $ M.toList fi) (toList x)
-
 
 
 

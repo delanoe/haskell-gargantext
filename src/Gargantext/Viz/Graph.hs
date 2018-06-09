@@ -55,8 +55,6 @@ data Graph = Graph { g_nodes :: [Node]
                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "g_") ''Graph)
-
 -----------------------------------------------------------
-
 
 

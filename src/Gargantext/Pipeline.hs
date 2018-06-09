@@ -46,27 +46,23 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 
 -}
 
-pipeline path = do
+workflow lang path = do
   -- Text  <- IO Text <- FilePath
   text     <- readFile path
   let contexts = splitBy (Sentences 5) text
-  myterms <- extractTerms Multi FR contexts
+  myterms <- extractTerms Multi lang contexts
   
   -- TODO    filter (\t -> not . elem t stopList) myterms
   -- TODO    groupBy (Stem | GroupList)
   
-  let myCooc = removeApax $ cooc myterms
-  --let (ti, fi) = createIndices myCooc
-  pure True
-  --pure $ incExcSpeGen myCooc
+  let myCooc = filterCooc $ removeApax $ cooc myterms
   -- Cooc -> Matrix
-  
---  -- filter by spec/gen (dynmaic programming)
---  let theScores = M.filter (>0) $ score conditional myCoocFiltered
-----
-------  -- Matrix -> Clustering
-------  pure $ bestpartition False $ map2graph $ toIndex ti theScores
---  partitions <- cLouvain theScores
---  pure partitions
+  --let (ti, fi) = createIndices myCooc
+  -- @np FIXME optimization issue of filterCooc (too much memory consumed)
+  pure myCooc
+  -- Matrix -> Clustering
+-- pure $ bestpartition False $ map2graph $ toIndex ti myCooc
+  --partitions <- cLouvain $ toIndex ti $ M.map (\v -> (fromIntegral v) :: Double) myCooc
+  --pure partitions
 ---- | Building : -> Graph -> JSON
 
