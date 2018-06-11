@@ -109,7 +109,6 @@ conditional m = run (miniMax $ proba (dim m) $ map fromIntegral $ use m)
 conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
 conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
   where
-
     ie :: Acc (Matrix Double) -> Acc (Matrix Double)
     ie mat = map (\x -> x / (2*n-1)) $ zipWith (+) (xs mat) (ys mat)
     sg :: Acc (Matrix Double) -> Acc (Matrix Double)

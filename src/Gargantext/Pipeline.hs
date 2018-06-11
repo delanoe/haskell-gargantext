@@ -28,12 +28,13 @@ import Gargantext.Prelude
 import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, mat2map)
 import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional)
 import Gargantext.Viz.Graph.Index (Index)
+import Gargantext.Viz.Graph (Graph)
 import Gargantext.Text.Metrics.Count (cooc, removeApax)
 import Gargantext.Text.Metrics
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
-import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
+import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode)
 
 
 {-
@@ -46,6 +47,12 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 
 -}
 
+-----------------------------------------------------------
+data2graph :: Map (Int, Int) Int -> Map (Int, Int) Double -> [LouvainNode] -> Graph
+data2graph = undefined
+-----------------------------------------------------------
+
+
 workflow lang path = do
   -- Text  <- IO Text <- FilePath
   text     <- readFile path
@@ -55,14 +62,16 @@ workflow lang path = do
   -- TODO    filter (\t -> not . elem t stopList) myterms
   -- TODO    groupBy (Stem | GroupList)
   
-  let myCooc = filterCooc $ removeApax $ cooc myterms
-  -- Cooc -> Matrix
-  --let (ti, fi) = createIndices myCooc
   -- @np FIXME optimization issue of filterCooc (too much memory consumed)
-  pure myCooc
+  let myCooc = filterCooc $ removeApax $ cooc myterms
+  --pure myCooc
+  -- Cooc -> Matrix
+  let (ti, _) = createIndices myCooc
   -- Matrix -> Clustering
--- pure $ bestpartition False $ map2graph $ toIndex ti myCooc
-  --partitions <- cLouvain $ toIndex ti $ M.map (\v -> (fromIntegral v) :: Double) myCooc
+  let distance   = score conditional $ toIndex ti myCooc
+  partitions <- cLouvain distance
   --pure partitions
 ---- | Building : -> Graph -> JSON
+  pure partitions
+  --pure $ data2graph myCooc distance partitions
 

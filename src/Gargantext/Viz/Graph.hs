@@ -19,11 +19,14 @@ module Gargantext.Viz.Graph
 import GHC.Generics (Generic)
 import Data.Aeson.TH (deriveJSON)
 import Data.Text (Text)
+import Data.Map (Map)
 
 import Gargantext.Prelude
 import Gargantext.Core.Utils.Prefix (unPrefix)
 
------------------------------------------------------------
+import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode)
+
+
 data TypeNode = Terms | Unknown
   deriving (Show, Generic)
 
