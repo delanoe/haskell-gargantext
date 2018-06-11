@@ -109,7 +109,7 @@ ma = movingAverage 3
 
 -- | splitEvery n == chunkAlong n n
 splitEvery :: Int -> [a] -> [[a]]
-splitEvery _ [] = L.cycle [[]]
+splitEvery _ [] = []
 splitEvery n xs =
   let (h,t) = L.splitAt n xs
   in  h : splitEvery n t
