@@ -51,8 +51,12 @@ import Gargantext.Viz.Graph.Index
 
 import qualified Data.Array.Accelerate.Interpreter as DAA
 import qualified Data.Array.Accelerate as DAA
+-- import Data.Array.Accelerate ((:.)(..), Z(..))
 
 import GHC.Real (round)
+
+import Debug.Trace
+import Prelude (seq)
 
 filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
 filterCooc cc = filterCooc' ts cc
@@ -60,7 +64,9 @@ filterCooc cc = filterCooc' ts cc
     ts     = map _scored_terms $ takeSome 350 5 2 $ coocScored cc
 
 filterCooc' :: Ord t => [t] -> Map (t, t) Int -> Map (t, t) Int
-filterCooc' ts m = foldl' (\m' k -> M.insert k (maybe errMessage identity $ M.lookup k m) m') M.empty selection
+filterCooc' ts m = -- trace ("coocScored " <> show (length ts)) $
+  foldl' (\m' k -> M.insert k (maybe errMessage identity $ M.lookup k m) m')
+    M.empty selection
   where
     errMessage = panic "Filter cooc: no key"
     selection  = [(x,y) | x <- ts, y <- ts, x > y]
@@ -87,7 +93,8 @@ takeSome l s k scores = L.take l
                               euclidSq x xs
     n = round ((fromIntegral l)/s)
     m = round $ (fromIntegral $ length scores) / (s)
-    takeSample n m xs = L.concat $ map (L.take n)
+    takeSample n m xs = -- trace ("splitKmeans " <> show (length xs)) $
+                        L.concat $ map (L.take n)
                                  $ L.reverse $ map (L.sortOn _scored_incExc)
                                  -- TODO use kmeans s instead of splitEvery
                                  -- in order to split in s heteregenous parts

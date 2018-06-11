@@ -80,9 +80,10 @@ removeApax :: Map (Label, Label) Int -> Map (Label, Label) Int
 removeApax = DMS.filter (> 1)
 
 cooc :: [[Terms]] -> Map (Label, Label) Int
-cooc tss = coocOnWithLabel _terms_stem (labelPolicy terms_occs) tss
+cooc tss = coocOnWithLabel _terms_stem (useLabelPolicy label_policy) tss
   where
     terms_occs = occurrencesOn _terms_stem (List.concat tss)
+    label_policy = mkLabelPolicy terms_occs
 
 
 coocOnWithLabel :: (Ord label, Ord b) => (a -> b) -> (b -> label)
@@ -93,10 +94,21 @@ coocOnWithLabel on policy tss =
     delta f = f *** f
 
 
+mkLabelPolicy :: Map Grouped (Map Terms Occs) -> Map Grouped Label
+mkLabelPolicy = DMS.map f where
+  f = _terms_label . fst . maximumWith snd . DMS.toList
+     -- TODO use the Foldable instance of Map instead of building a list
+
+useLabelPolicy :: Map Grouped Label -> Grouped -> Label
+useLabelPolicy m g = case DMS.lookup g m of
+  Just label -> label
+  Nothing    -> panic $ "Label of Grouped not found: " <> (pack $ show g)
+{-
 labelPolicy :: Map Grouped (Map Terms Occs) -> Grouped -> Label
 labelPolicy m g =  case _terms_label <$> fst <$> maximumWith snd <$> DMS.toList <$> lookup g m of
                      Just label -> label
                      Nothing    -> panic $ "Label of Grouped not found: " <> (pack $ show g)
+-}
 
 coocOn :: Ord b => (a -> b) -> [[a]] -> Map (b, b) Coocs
 coocOn f as = foldl' (\a b -> DMS.unionWith (+) a b) empty $ map (coocOn' f) as

@@ -50,6 +50,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , undefined
                  , IO()
                  , compare
+                 , on
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -235,5 +236,5 @@ unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
 
 -- maximumWith
-maximumWith f = L.maximumBy (\x y -> compare (f x) (f y))
+maximumWith f = L.maximumBy (compare `on` f)
 
