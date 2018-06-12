@@ -148,8 +148,6 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
     crossProduct m = zipWith (*) (cross m  ) (cross (transpose m))
     cross mat      = zipWith (-) (mkSum n mat) (mat)
 
-
-
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 

@@ -58,48 +58,58 @@ import GHC.Real (round)
 import Debug.Trace
 import Prelude (seq)
 
-filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
-filterCooc cc = filterCooc' ts cc
-  where
-    ts     = map _scored_terms $ takeSome 350 5 2 $ coocScored cc
+data MapListSize   = MapListSize   Int
+data InclusionSize = InclusionSize Int
+data SampleBins    = SampleBins    Double
+data Clusters      = Clusters      Int
+data DefaultValue  = DefaultValue  Int
 
-filterCooc' :: Ord t => [t] -> Map (t, t) Int -> Map (t, t) Int
-filterCooc' ts m = -- trace ("coocScored " <> show (length ts)) $
-  foldl' (\m' k -> M.insert k (maybe errMessage identity $ M.lookup k m) m')
+data FilterConfig = FilterConfig { fc_mapListSize   :: MapListSize
+                                 , fc_inclusionSize :: InclusionSize
+                                 , fc_sampleBins    :: SampleBins
+                                 , fc_clusters      :: Clusters
+                                 , fc_defaultValue  :: DefaultValue
+                             }
+
+filterCooc :: Ord t => FilterConfig -> Map (t, t) Int -> Map (t, t) Int
+filterCooc fc cc = (filterCooc' fc) ts cc
+  where
+    ts     = map _scored_terms $ takeSome fc $ coocScored cc
+
+
+filterCooc' :: Ord t => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
+filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScored " <> show (length ts)) $
+  foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
     M.empty selection
   where
-    errMessage = panic "Filter cooc: no key"
     selection  = [(x,y) | x <- ts, y <- ts, x > y]
 
-
-type MapListSize = Int
-type SampleBins  = Double
-type Clusters    = Int
 
 -- | Map list creation
 -- Kmeans split into (Clusters::Int) main clusters with Inclusion/Exclusion (relevance score)
 -- Sample the main cluster ordered by specificity/genericity in (SampleBins::Double) parts
 -- each parts is then ordered by Inclusion/Exclusion
 -- take n scored terms in each parts where n * SampleBins = MapListSize.
-takeSome :: Ord t => MapListSize -> SampleBins -> Clusters -> [Scored t] -> [Scored t]
-takeSome l s k scores = L.take l
+takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
+takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters k) _) scores = L.take l
                     $ takeSample n m
-                    $ splitKmeans k scores
+                    $ L.take l' $ L.reverse $ L.sortOn _scored_incExc scores
+                    -- $ splitKmeans k scores
   where
     -- TODO: benchmark with accelerate-example kmeans version
-    splitKmeans x xs = elements
-                     $ V.head
+    splitKmeans x xs = L.concat $ map elements
+                     $ V.take (k-1)
                      $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))
                               euclidSq x xs
     n = round ((fromIntegral l)/s)
     m = round $ (fromIntegral $ length scores) / (s)
     takeSample n m xs = -- trace ("splitKmeans " <> show (length xs)) $
                         L.concat $ map (L.take n)
-                                 $ L.reverse $ map (L.sortOn _scored_incExc)
+                                 $ map (reverse . (L.sortOn _scored_incExc))
                                  -- TODO use kmeans s instead of splitEvery
                                  -- in order to split in s heteregenous parts
                                  -- without homogeneous order hypothesis
-                                 $ splitEvery m 
+                                 $ splitEvery m
                                  $ L.reverse $ L.sortOn _scored_speGen xs
 
 

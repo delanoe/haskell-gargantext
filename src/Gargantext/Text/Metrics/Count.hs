@@ -75,9 +75,9 @@ type Grouped = Stems
 
 type Occs = Int
 type Coocs = Int
-
-removeApax :: Map (Label, Label) Int -> Map (Label, Label) Int
-removeApax = DMS.filter (> 1)
+type Threshold = Int
+removeApax :: Threshold -> Map (Label, Label) Int -> Map (Label, Label) Int
+removeApax t = DMS.filter (> t)
 
 cooc :: [[Terms]] -> Map (Label, Label) Int
 cooc tss = coocOnWithLabel _terms_stem (useLabelPolicy label_policy) tss

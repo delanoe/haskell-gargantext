@@ -30,10 +30,10 @@ import Gargantext.Prelude
 import Prelude (print, seq)
 
 import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, map2mat, mat2map)
-import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional)
+import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional, distributional)
 import Gargantext.Viz.Graph.Index (Index)
 import Gargantext.Viz.Graph (Graph(..), Node(..), Edge(..), Attributes(..), TypeNode(..))
-import Gargantext.Text.Metrics.Count (cooc, removeApax)
+import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Metrics
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
@@ -51,19 +51,80 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 -}
 
+workflow lang path = do
+  -- Text  <- IO Text <- FilePath
+  text     <- readFile path
+
+  -- context :: Text -> [Text]
+  let contexts = splitBy (Sentences 5) text
+
+  myterms <- extractTerms Mono lang contexts
+  -- myterms <- extractTerms (Mono lang) contexts # filter (\t -> not . elem t stopList)
+  --                                              # groupBy (Stem|GroupList)
+  printDebug "myterms" (sum $ map length myterms)
+
+  -- Bulding the map list
+  let myCooc1 = cooc myterms
+  printDebug "myCooc1" (M.size myCooc1)
+
+  -- Remove Apax: appears one time only => lighting the matrix
+  let myCooc2 = M.filter (>1) myCooc1
+  printDebug "myCooc2" (M.size myCooc2)
+  
+  -- Filtering terms with inclusion/Exclusion and Specifity/Genericity scores
+  let myCooc3 = filterCooc ( FilterConfig (MapListSize     20 )
+                                          (InclusionSize 1000 )
+                                          (SampleBins      10 )
+                                          (Clusters         3 )
+                                          (DefaultValue   (-1))
+                           ) myCooc2
+  printDebug "myCooc3" $ M.size myCooc3
+
+  -- Cooc -> Matrix
+  let (ti, fi) = createIndices myCooc3
+  printDebug "ti" $ M.size ti
+
+  let myCooc4 = toIndex ti myCooc3
+  printDebug "myCooc4" $ M.size myCooc4
+
+  let matCooc = map2mat (-2) (M.size ti) myCooc4
+  printDebug "matCooc" matCooc
+  pure matCooc
+  -- Matrix -> Clustering
+  --let distanceMat = conditional matCooc
+--  let distanceMat = distributional matCooc
+--  printDebug "distanceMat" $ A.arrayShape distanceMat
+--  printDebug "distanceMat" distanceMat
+-- 
+--  let distanceMap = mat2map distanceMat
+--  printDebug "distanceMap" $ M.size distanceMap
+--{-
+--  let distance = fromIndex fi distanceMap
+--  printDebug "distance" $ M.size distance
+---}
+--  partitions <- cLouvain distanceMap
+------ | Building : -> Graph -> JSON
+--  printDebug "partitions" $ length partitions
+--  pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
+
+
+
 -----------------------------------------------------------
 -- distance should not be a map since we just "toList" it (same as cLouvain)
-data2graph :: [(Label, Int)] -> Map (Int, Int) Int -> Map (Int, Int) Double -> [LouvainNode] -> Graph
+data2graph :: [(Label, Int)] -> Map (Int, Int) Int
+                             -> Map (Int, Int) Double
+                             -> [LouvainNode]
+              -> Graph
 data2graph labels coocs distance partitions = Graph nodes edges
   where
     community_id_by_node_id = M.fromList [ (n, c) | LouvainNode n c <- partitions ]
-    nodes = [ Node { n_size = coocs M.! (n, n) -- TODO lookup with default ?
+    nodes = [ Node { n_size = maybe 0 identity (M.lookup (n,n) coocs)
                    , n_type = Terms -- or Unknown
                    , n_id = cs (show n)
                    , n_label = T.unwords l
-                   , n_attributes =
-                       -- TODO lookup with default ?
-                       Attributes { clust_default = community_id_by_node_id M.! n } }
+                   , n_attributes = 
+                     Attributes { clust_default = maybe 0 identity 
+                                (M.lookup n community_id_by_node_id) } }
             | (l, n) <- labels ]
     edges = [ Edge { e_source = s
                    , e_target = t
@@ -72,42 +133,9 @@ data2graph labels coocs distance partitions = Graph nodes edges
             | (i, ((s,t), w)) <- zip [0..] (M.toList distance) ]
 -----------------------------------------------------------
 
--- printDebug msg x = putStrLn $ msg <> " " <> show x
-printDebug _ _ = pure ()
+printDebug msg x = putStrLn $ msg <> " " <> show x
+--printDebug _ _ = pure ()
 
-workflow lang path = do
-  -- Text  <- IO Text <- FilePath
-  text     <- readFile path
-  let contexts = splitBy (Sentences 5) text
-  myterms <- extractTerms Mono lang contexts
-  printDebug "myterms" $ sum $ map length myterms
-  
-  -- TODO    filter (\t -> not . elem t stopList) myterms
-  -- TODO    groupBy (Stem | GroupList)
-  
-  let myCooc1 = cooc myterms
-  printDebug "myCooc1" $ M.size myCooc1
-  let myCooc2 = removeApax myCooc1
-  printDebug "myCooc2" $ M.size myCooc2
-  let myCooc3 = filterCooc myCooc2
-  printDebug "myCooc3" $ M.size myCooc3
-  -- Cooc -> Matrix
-  let (ti, fi) = createIndices myCooc3
-  printDebug "ti" $ M.size ti
-  let myCooc4 = toIndex ti myCooc3
-  printDebug "myCooc4" $ M.size myCooc4
-  let matCooc = map2mat 0 (M.size ti) myCooc4
-  -- Matrix -> Clustering
-  let distanceMat = conditional matCooc
-  printDebug "distanceMat" $ A.arrayShape distanceMat
-  let distanceMap = mat2map distanceMat
-  printDebug "distanceMap" $ M.size distanceMap
-{-
-  let distance = fromIndex fi distanceMap
-  printDebug "distance" $ M.size distance
--}
-  partitions <- cLouvain distanceMap
----- | Building : -> Graph -> JSON
-  printDebug "partitions" $ length partitions
-  pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
+
+
 
