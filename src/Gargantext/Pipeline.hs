@@ -55,15 +55,18 @@ workflow lang path = do
   -- Text  <- IO Text <- FilePath
   text     <- readFile path
 
-  -- context :: Text -> [Text]
   let contexts = splitBy (Sentences 5) text
+  -- Context :: Text -> [Text]
+  -- Contexts = Paragraphs n | Sentences n | Chars n
 
-  myterms <- extractTerms Mono lang contexts
-  -- myterms <- extractTerms (Mono lang) contexts # filter (\t -> not . elem t stopList)
-  --                                              # groupBy (Stem|GroupList)
+  myterms <- extractTerms (Mono lang) contexts
+  -- myterms # filter (\t -> not . elem t stopList)
+  --         # groupBy (Stem|GroupList)
   printDebug "myterms" (sum $ map length myterms)
 
   -- Bulding the map list
+  -- compute copresences of terms
+  -- Cooc = Map (Term, Term) Int
   let myCooc1 = cooc myterms
   printDebug "myCooc1" (M.size myCooc1)
 

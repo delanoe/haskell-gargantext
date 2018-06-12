@@ -180,7 +180,7 @@ metrics_sentences_Test = metrics_sentences == metrics_sentences'
 -}
 
 metrics_terms :: IO [[Terms]]
-metrics_terms = mapM (terms MonoMulti EN) $ splitBy (Sentences 0) metrics_text
+metrics_terms = mapM (terms (MonoMulti EN)) $ splitBy (Sentences 0) metrics_text
 
 -- | Occurrences
 {-
