@@ -24,6 +24,7 @@ library:
     #  - -Werror
   exposed-modules:
   - Gargantext
+  - Gargantext.Pipeline
   - Gargantext.Prelude
   - Gargantext.Core
   - Gargantext.Core.Types
@@ -122,25 +123,38 @@ library:
   - zlib
 #  - utc
 
-executable:
-  main: Main.hs
-  source-dirs: app
-  ghc-options: 
-  - -threaded 
-  - -rtsopts 
-  - -with-rtsopts=-N 
-  - -O2 
-  - -Wmissing-signatures
-  dependencies:
+executables:
+  gargantext:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - base
+      - containers
+      - gargantext
+      - vector
+      - cassava
+      - ini
+      - optparse-generic
+      - unordered-containers
+      - full-text-search
+  gargantext-workflow:
+    main: Main.hs
+    source-dirs: app-workflow
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
     - base
-    - containers
     - gargantext
-    - vector
-    - cassava
-    - ini
-    - optparse-generic
-    - unordered-containers
-    - full-text-search
 
 tests:
   garg-test:

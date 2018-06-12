@@ -50,6 +50,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , undefined
                  , IO()
                  , compare
+                 , on
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -109,7 +110,7 @@ ma = movingAverage 3
 
 -- | splitEvery n == chunkAlong n n
 splitEvery :: Int -> [a] -> [[a]]
-splitEvery _ [] = L.cycle [[]]
+splitEvery _ [] = []
 splitEvery n xs =
   let (h,t) = L.splitAt n xs
   in  h : splitEvery n t
@@ -235,5 +236,5 @@ unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
 
 -- maximumWith
-maximumWith f = L.maximumBy (\x y -> compare (f x) (f y))
+maximumWith f = L.maximumBy (compare `on` f)
 

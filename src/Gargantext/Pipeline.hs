@@ -14,26 +14,31 @@ Portability : POSIX
 module Gargantext.Pipeline
   where
 
+import qualified Data.Text as T
 import Data.Text.IO (readFile)
 
 import Control.Arrow ((***))
 import Data.Map.Strict (Map)
+import qualified Data.Array.Accelerate as A
 import qualified Data.Map.Strict as M
 import qualified Data.List       as L
 import Data.Tuple.Extra (both)
 ----------------------------------------------
 import Gargantext.Core (Lang(FR))
+import Gargantext.Core.Types (Label)
 import Gargantext.Prelude
+import Prelude (print, seq)
 
-import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, mat2map)
-import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional)
+import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, map2mat, mat2map)
+import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional, distributional)
 import Gargantext.Viz.Graph.Index (Index)
-import Gargantext.Text.Metrics.Count (cooc, removeApax)
+import Gargantext.Viz.Graph (Graph(..), Node(..), Edge(..), Attributes(..), TypeNode(..))
+import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Metrics
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
-import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
+import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 
 {-
@@ -46,27 +51,94 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 
 -}
 
-pipeline path = do
+workflow lang path = do
   -- Text  <- IO Text <- FilePath
   text     <- readFile path
+
   let contexts = splitBy (Sentences 5) text
-  myterms <- extractTerms Multi FR contexts
+  -- Context :: Text -> [Text]
+  -- Contexts = Paragraphs n | Sentences n | Chars n
+
+  myterms <- extractTerms (Mono lang) contexts
+  -- myterms # filter (\t -> not . elem t stopList)
+  --         # groupBy (Stem|GroupList)
+  printDebug "myterms" (sum $ map length myterms)
+
+  -- Bulding the map list
+  -- compute copresences of terms
+  -- Cooc = Map (Term, Term) Int
+  let myCooc1 = cooc myterms
+  printDebug "myCooc1" (M.size myCooc1)
+
+  -- Remove Apax: appears one time only => lighting the matrix
+  let myCooc2 = M.filter (>1) myCooc1
+  printDebug "myCooc2" (M.size myCooc2)
   
-  -- TODO    filter (\t -> not . elem t stopList) myterms
-  -- TODO    groupBy (Stem | GroupList)
-  
-  let myCooc = removeApax $ cooc myterms
-  --let (ti, fi) = createIndices myCooc
-  pure True
-  --pure $ incExcSpeGen myCooc
+  -- Filtering terms with inclusion/Exclusion and Specifity/Genericity scores
+  let myCooc3 = filterCooc ( FilterConfig (MapListSize     20 )
+                                          (InclusionSize 1000 )
+                                          (SampleBins      10 )
+                                          (Clusters         3 )
+                                          (DefaultValue   (-1))
+                           ) myCooc2
+  printDebug "myCooc3" $ M.size myCooc3
+
   -- Cooc -> Matrix
-  
---  -- filter by spec/gen (dynmaic programming)
---  let theScores = M.filter (>0) $ score conditional myCoocFiltered
-----
-------  -- Matrix -> Clustering
-------  pure $ bestpartition False $ map2graph $ toIndex ti theScores
---  partitions <- cLouvain theScores
---  pure partitions
----- | Building : -> Graph -> JSON
+  let (ti, fi) = createIndices myCooc3
+  printDebug "ti" $ M.size ti
+
+  let myCooc4 = toIndex ti myCooc3
+  printDebug "myCooc4" $ M.size myCooc4
+
+  let matCooc = map2mat (-2) (M.size ti) myCooc4
+  printDebug "matCooc" matCooc
+  pure matCooc
+  -- Matrix -> Clustering
+  --let distanceMat = conditional matCooc
+--  let distanceMat = distributional matCooc
+--  printDebug "distanceMat" $ A.arrayShape distanceMat
+--  printDebug "distanceMat" distanceMat
+-- 
+--  let distanceMap = mat2map distanceMat
+--  printDebug "distanceMap" $ M.size distanceMap
+--{-
+--  let distance = fromIndex fi distanceMap
+--  printDebug "distance" $ M.size distance
+---}
+--  partitions <- cLouvain distanceMap
+------ | Building : -> Graph -> JSON
+--  printDebug "partitions" $ length partitions
+--  pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
+
+
+
+-----------------------------------------------------------
+-- distance should not be a map since we just "toList" it (same as cLouvain)
+data2graph :: [(Label, Int)] -> Map (Int, Int) Int
+                             -> Map (Int, Int) Double
+                             -> [LouvainNode]
+              -> Graph
+data2graph labels coocs distance partitions = Graph nodes edges
+  where
+    community_id_by_node_id = M.fromList [ (n, c) | LouvainNode n c <- partitions ]
+    nodes = [ Node { n_size = maybe 0 identity (M.lookup (n,n) coocs)
+                   , n_type = Terms -- or Unknown
+                   , n_id = cs (show n)
+                   , n_label = T.unwords l
+                   , n_attributes = 
+                     Attributes { clust_default = maybe 0 identity 
+                                (M.lookup n community_id_by_node_id) } }
+            | (l, n) <- labels ]
+    edges = [ Edge { e_source = s
+                   , e_target = t
+                   , e_weight = w
+                   , e_id     = i }
+            | (i, ((s,t), w)) <- zip [0..] (M.toList distance) ]
+-----------------------------------------------------------
+
+printDebug msg x = putStrLn $ msg <> " " <> show x
+--printDebug _ _ = pure ()
+
+
+
 

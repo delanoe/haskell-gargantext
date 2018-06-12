@@ -16,6 +16,7 @@ noApax m = M.filter (>1) m
 
 -}
 
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -50,53 +51,97 @@ import Gargantext.Viz.Graph.Index
 
 import qualified Data.Array.Accelerate.Interpreter as DAA
 import qualified Data.Array.Accelerate as DAA
+-- import Data.Array.Accelerate ((:.)(..), Z(..))
 
 import GHC.Real (round)
 
---filterCooc :: Ord t => Map (t, t) Int -> Map (t, t) Int
---filterCooc m = 
----- filterCooc m = foldl (\k -> maybe (panic "no key") identity $ M.lookup k m) M.empty selection
-----(ti, fi)  = createIndices m
--- . fromIndex fi $ filterMat $ cooc2mat ti m
+import Debug.Trace
+import Prelude (seq)
 
+data MapListSize   = MapListSize   Int
+data InclusionSize = InclusionSize Int
+data SampleBins    = SampleBins    Double
+data Clusters      = Clusters      Int
+data DefaultValue  = DefaultValue  Int
 
-type ListSize  = Int
-type BinSize = Double
+data FilterConfig = FilterConfig { fc_mapListSize   :: MapListSize
+                                 , fc_inclusionSize :: InclusionSize
+                                 , fc_sampleBins    :: SampleBins
+                                 , fc_clusters      :: Clusters
+                                 , fc_defaultValue  :: DefaultValue
+                             }
 
--- Map list creation
--- Kmean split into 2 main clusters with Inclusion/Exclusion (relevance score)
--- Sample the main cluster ordered by specificity/genericity in s parts
--- each parts is then ordered by Inclusion/Exclusion
--- take n scored terms in each parts where n * s = l
-takeSome :: Ord t => ListSize -> BinSize -> [Scored t] -> [Scored t]
-takeSome l s scores = L.take l
-                    $ takeSample n m
-                    $ splitKmeans 2 scores
+filterCooc :: Ord t => FilterConfig -> Map (t, t) Int -> Map (t, t) Int
+filterCooc fc cc = (filterCooc' fc) ts cc
   where
-    -- (TODO: benchmark with accelerate-example kmeans version)
-    splitKmeans x xs = elements
-                     $ V.head
+    ts     = map _scored_terms $ takeSome fc $ coocScored cc
+
+
+filterCooc' :: Ord t => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
+filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScored " <> show (length ts)) $
+  foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
+    M.empty selection
+  where
+    selection  = [(x,y) | x <- ts, y <- ts, x > y]
+
+
+-- | Map list creation
+-- Kmeans split into (Clusters::Int) main clusters with Inclusion/Exclusion (relevance score)
+-- Sample the main cluster ordered by specificity/genericity in (SampleBins::Double) parts
+-- each parts is then ordered by Inclusion/Exclusion
+-- take n scored terms in each parts where n * SampleBins = MapListSize.
+takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
+takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters k) _) scores = L.take l
+                    $ takeSample n m
+                    $ L.take l' $ L.reverse $ L.sortOn _scored_incExc scores
+                    -- $ splitKmeans k scores
+  where
+    -- TODO: benchmark with accelerate-example kmeans version
+    splitKmeans x xs = L.concat $ map elements
+                     $ V.take (k-1)
                      $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))
                               euclidSq x xs
     n = round ((fromIntegral l)/s)
     m = round $ (fromIntegral $ length scores) / (s)
-    takeSample n m xs = L.concat $ map (L.take n)
-                                 $ L.reverse $ map (L.sortOn _scored_incExc)
+    takeSample n m xs = -- trace ("splitKmeans " <> show (length xs)) $
+                        L.concat $ map (L.take n)
+                                 $ map (reverse . (L.sortOn _scored_incExc))
+                                 -- TODO use kmeans s instead of splitEvery
+                                 -- in order to split in s heteregenous parts
+                                 -- without homogeneous order hypothesis
                                  $ splitEvery m
                                  $ L.reverse $ L.sortOn _scored_speGen xs
 
 
-data Scored t = Scored { _scored_terms  :: t
-                       , _scored_incExc :: InclusionExclusion
-                       , _scored_speGen :: SpecificityGenericity
+data Scored t = Scored { _scored_terms  :: !t
+                       , _scored_incExc :: !InclusionExclusion
+                       , _scored_speGen :: !SpecificityGenericity
                      } deriving (Show)
 
-incExcSpeGen_sorted' :: Ord t => Map (t,t) Int -> [Scored t]
-incExcSpeGen_sorted' m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
+coocScored :: Ord t => Map (t,t) Int -> [Scored t]
+coocScored m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
   where
     (ti,fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
     scores = DAA.toList $ DAA.run $ DAA.zip (DAA.use is) (DAA.use ss)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
@@ -104,7 +149,6 @@ incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat ti m)
   where
     (ti,fi) = createIndices m
     ordonne x = L.reverse $ L.sortOn snd $ zip (map snd $ M.toList fi) (toList x)
-
 
 
 
@@ -136,7 +180,7 @@ metrics_sentences_Test = metrics_sentences == metrics_sentences'
 -}
 
 metrics_terms :: IO [[Terms]]
-metrics_terms = mapM (terms MonoMulti EN) $ splitBy (Sentences 0) metrics_text
+metrics_terms = mapM (terms (MonoMulti EN)) $ splitBy (Sentences 0) metrics_text
 
 -- | Occurrences
 {-

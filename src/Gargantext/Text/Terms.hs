@@ -42,23 +42,23 @@ import Gargantext.Core.Types
 import Gargantext.Text.Terms.Multi (multiterms)
 import Gargantext.Text.Terms.Mono  (monoterms')
 
-data TermType = Mono | Multi | MonoMulti
+data TermType lang = Mono lang | Multi lang | MonoMulti lang
 
 -- remove Stop Words
 -- map (filter (\t -> not . elem t)) $ 
 ------------------------------------------------------------------------
 -- | Sugar to extract terms from text (hiddeng mapM from end user).
-extractTerms :: Traversable t => TermType -> Lang -> t Text -> IO (t [Terms])
-extractTerms termType lang = mapM (terms termType lang)
+extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
+extractTerms termTypeLang = mapM (terms termTypeLang)
 ------------------------------------------------------------------------
 -- | Terms from Text
 -- Mono : mono terms
 -- Multi : multi terms
 -- MonoMulti : mono and multi
 -- TODO : multi terms should exclude mono (intersection is not empty yet)
-terms :: TermType -> Lang -> Text -> IO [Terms]
-terms Mono  lang txt     = pure $ monoterms' lang txt
-terms Multi lang txt     = multiterms lang txt
-terms MonoMulti lang txt = terms Multi lang txt
+terms :: TermType Lang -> Text -> IO [Terms]
+terms (Mono      lang) txt = pure $ monoterms' lang txt
+terms (Multi     lang) txt = multiterms lang txt
+terms (MonoMulti lang) txt = terms (Multi lang) txt
 ------------------------------------------------------------------------
 
