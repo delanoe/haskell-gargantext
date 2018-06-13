@@ -12,6 +12,7 @@ CSV parser for Gargantext corpus files.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Text.Parsers.CSV where
