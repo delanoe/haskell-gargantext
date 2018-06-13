@@ -38,6 +38,8 @@ import Gargantext.Text.Metrics
 import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
+import Gargantext.Text.Parsers.CSV
+
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 
@@ -51,17 +53,22 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 -}
 
-workflow lang path = do
-  -- Text  <- IO Text <- FilePath
-  text     <- readFile path
+data WorkType = CSV | FullText
 
-  let contexts = splitBy (Sentences 5) text
+-- workflow :: Lang (EN|FR) -> FilePath -> Graph
+workflow termsLang workType path = do
+  -- Text  <- IO Text <- FilePath
+  contexts <- case workType of
+                FullText -> splitBy (Sentences 5) <$> readFile path
+                CSV      -> readCsvOn [csv_title, csv_abstract] path
+
   -- Context :: Text -> [Text]
   -- Contexts = Paragraphs n | Sentences n | Chars n
 
-  myterms <- extractTerms (Mono lang) contexts
+  myterms <- extractTerms (Mono FR) contexts
+  -- TermsType = Mono | Multi | MonoMulti
   -- myterms # filter (\t -> not . elem t stopList)
-  --         # groupBy (Stem|GroupList)
+  --         # groupBy (Stem|GroupList|Ontology)
   printDebug "myterms" (sum $ map length myterms)
 
   -- Bulding the map list
@@ -73,13 +80,13 @@ workflow lang path = do
   -- Remove Apax: appears one time only => lighting the matrix
   let myCooc2 = M.filter (>1) myCooc1
   printDebug "myCooc2" (M.size myCooc2)
-  
+
   -- Filtering terms with inclusion/Exclusion and Specifity/Genericity scores
-  let myCooc3 = filterCooc ( FilterConfig (MapListSize     20 )
-                                          (InclusionSize 1000 )
+  let myCooc3 = filterCooc ( FilterConfig (MapListSize   1000 )
+                                          (InclusionSize 4000 )
                                           (SampleBins      10 )
                                           (Clusters         3 )
-                                          (DefaultValue   (-1))
+                                          (DefaultValue     0 )
                            ) myCooc2
   printDebug "myCooc3" $ M.size myCooc3
 
@@ -90,26 +97,25 @@ workflow lang path = do
   let myCooc4 = toIndex ti myCooc3
   printDebug "myCooc4" $ M.size myCooc4
 
-  let matCooc = map2mat (-2) (M.size ti) myCooc4
-  printDebug "matCooc" matCooc
-  pure matCooc
+  let matCooc = map2mat (0) (M.size ti) myCooc4
+  --printDebug "matCooc" matCooc
   -- Matrix -> Clustering
-  --let distanceMat = conditional matCooc
+  let distanceMat = conditional matCooc
 --  let distanceMat = distributional matCooc
---  printDebug "distanceMat" $ A.arrayShape distanceMat
---  printDebug "distanceMat" distanceMat
+  printDebug "distanceMat" $ A.arrayShape distanceMat
+  --printDebug "distanceMat" distanceMat
 -- 
---  let distanceMap = mat2map distanceMat
---  printDebug "distanceMap" $ M.size distanceMap
+  let distanceMap = mat2map distanceMat
+  printDebug "distanceMap" $ M.size distanceMap
 --{-
 --  let distance = fromIndex fi distanceMap
 --  printDebug "distance" $ M.size distance
 ---}
---  partitions <- cLouvain distanceMap
+  partitions <- cLouvain distanceMap
 ------ | Building : -> Graph -> JSON
---  printDebug "partitions" $ length partitions
---  pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
-
+  printDebug "partitions" $ length partitions
+  --printDebug "partitions" partitions
+  pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
 
 
 -----------------------------------------------------------

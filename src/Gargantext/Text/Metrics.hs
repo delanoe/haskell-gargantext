@@ -82,7 +82,10 @@ filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScore
   foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
     M.empty selection
   where
-    selection  = [(x,y) | x <- ts, y <- ts, x > y]
+    selection  = [(x,y) | x <- ts
+                        , y <- ts
+                       -- , x >= y
+                        ]
 
 
 -- | Map list creation

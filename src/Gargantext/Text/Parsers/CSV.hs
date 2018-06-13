@@ -12,7 +12,6 @@ CSV parser for Gargantext corpus files.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Text.Parsers.CSV where
@@ -25,7 +24,7 @@ import Control.Applicative
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.Text (Text, pack, length)
+import Data.Text (Text, pack, length, intercalate)
 import qualified Data.ByteString.Lazy as BL
 
 import Data.Vector (Vector)
@@ -68,9 +67,8 @@ fromDocs docs = V.map fromDocs' docs
 -- | Split a document in its context
 -- TODO adapt the size of the paragraph according to the corpus average
 
-
 splitDoc :: Mean -> SplitContext -> CsvDoc -> Vector CsvDoc
-splitDoc m splt doc = let docSize = (length $ c_abstract doc) in
+splitDoc m splt doc = let docSize = (length $ csv_abstract doc) in
                           if docSize > 1000
                             then
                               if (mod (round m) docSize) >= 10
@@ -101,18 +99,18 @@ type Mean = Double
 docsSize :: Vector CsvDoc -> Mean
 docsSize csvDoc = mean ls
   where
-    ls = V.toList $ V.map (fromIntegral . length . c_abstract) csvDoc
+    ls = V.toList $ V.map (fromIntegral . length . csv_abstract) csvDoc
 
 
 ---------------------------------------------------------------
 data CsvDoc = CsvDoc
-    { c_title  :: !Text
-    , c_source :: !Text
-    , c_publication_year  :: !Int
-    , c_publication_month :: !Int
-    , c_publication_day   :: !Int
-    , c_abstract          :: !Text
-    , c_authors           :: !Text
+    { csv_title  :: !Text
+    , csv_source :: !Text
+    , csv_publication_year  :: !Int
+    , csv_publication_month :: !Int
+    , csv_publication_day   :: !Int
+    , csv_abstract          :: !Text
+    , csv_authors           :: !Text
     }
     deriving (Show)
 
@@ -148,11 +146,19 @@ csvEncodeOptions = ( defaultEncodeOptions
                     )
 
 
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+readCsvOn :: [CsvDoc -> Text] -> FilePath -> IO [Text]
+readCsvOn fields fp = V.toList <$> V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
+                      <$> snd
+                      <$> readCsv fp
+
+------------------------------------------------------------------------
 readCsv :: FilePath -> IO (Header, Vector CsvDoc)
 readCsv fp = do
     csvData <- BL.readFile fp
     case decodeByNameWith csvDecodeOptions csvData of
-      Left e    -> panic (pack e)
+      Left e        -> panic (pack e)
       Right csvDocs -> pure csvDocs
 
 
