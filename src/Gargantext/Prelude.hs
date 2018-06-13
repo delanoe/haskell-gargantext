@@ -24,8 +24,11 @@ module Gargantext.Prelude
   , module Text.Read
   , cs
   , module Data.Maybe
+  , sortWith
   )
   where
+
+import GHC.Exts (sortWith)
 
 import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Double, Integer

@@ -24,6 +24,7 @@ module Gargantext.Text.Metrics
   where
 
 import Data.Text (Text, pack)
+import Data.Ord (comparing, Down(..))
 import Data.Map (Map)
 import qualified Data.List as L
 import qualified Data.Map  as M
@@ -96,7 +97,7 @@ filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScore
 takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
 takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters k) _) scores = L.take l
                     $ takeSample n m
-                    $ L.take l' $ L.reverse $ L.sortOn _scored_incExc scores
+                    $ L.take l' $ sortWith (Down . _scored_incExc) scores
                     -- $ splitKmeans k scores
   where
     -- TODO: benchmark with accelerate-example kmeans version
@@ -108,12 +109,12 @@ takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Cluste
     m = round $ (fromIntegral $ length scores) / (s)
     takeSample n m xs = -- trace ("splitKmeans " <> show (length xs)) $
                         L.concat $ map (L.take n)
-                                 $ map (reverse . (L.sortOn _scored_incExc))
+                                 $ map (sortWith (Down . _scored_incExc))
                                  -- TODO use kmeans s instead of splitEvery
                                  -- in order to split in s heteregenous parts
                                  -- without homogeneous order hypothesis
                                  $ splitEvery m
-                                 $ L.reverse $ L.sortOn _scored_speGen xs
+                                 $ sortWith (Down . _scored_speGen) xs
 
 
 data Scored t = Scored { _scored_terms  :: !t
@@ -145,13 +146,11 @@ coocScored m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scor
 
 
 
-
-
 incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
 incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat ti m)
   where
     (ti,fi) = createIndices m
-    ordonne x = L.reverse $ L.sortOn snd $ zip (map snd $ M.toList fi) (toList x)
+    ordonne x = sortWith (Down . snd) $ zip (map snd $ M.toList fi) (toList x)
 
 
 
