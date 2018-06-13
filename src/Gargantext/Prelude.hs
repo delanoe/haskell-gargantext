@@ -35,7 +35,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
-                 , pure, (<*>), (<$>), panic
+                 , pure, (>>=), (=<<), (<*>), (<$>), panic
                  , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter

@@ -146,7 +146,6 @@ csvEncodeOptions = ( defaultEncodeOptions
                       {encDelimiter = fromIntegral $ ord '\t'}
                     )
 
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 readCsvOn :: [CsvDoc -> Text] -> FilePath -> IO [Text]
