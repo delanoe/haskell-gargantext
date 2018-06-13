@@ -24,7 +24,7 @@ library:
     #  - -Werror
   exposed-modules:
   - Gargantext
-  - Gargantext.Pipeline
+  - Gargantext.TextFlow
   - Gargantext.Prelude
   - Gargantext.Core
   - Gargantext.Core.Types

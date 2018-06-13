@@ -1,17 +1,20 @@
 {-|
-Module      : Gargantext.Pipeline
+Module      : Gargantext.TextFlow
 Description : Server API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
+
+From text to viz, all the flow of texts in Gargantext.
+
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
 
-module Gargantext.Pipeline
+module Gargantext.TextFlow
   where
 
 import qualified Data.Text as T
@@ -53,10 +56,10 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 -}
 
-data WorkType = CSV | FullText
+data TextFlow = CSV | FullText
 
 -- workflow :: Lang (EN|FR) -> FilePath -> Graph
-workflow termsLang workType path = do
+textflow termsLang workType path = do
   -- Text  <- IO Text <- FilePath
   contexts <- case workType of
                 FullText -> splitBy (Sentences 5) <$> readFile path
@@ -144,7 +147,5 @@ data2graph labels coocs distance partitions = Graph nodes edges
 
 printDebug msg x = putStrLn $ msg <> " " <> show x
 --printDebug _ _ = pure ()
-
-
 
 
