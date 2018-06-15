@@ -157,7 +157,7 @@ post'  = do
            , node userId (last h) Project "name" "{}"
            ]
 
-data Children = NoChildren | Children a
+data Children a = NoChildren | Children a
 
 del' :: [NodeId] -> IO Int
 del' ns = do
