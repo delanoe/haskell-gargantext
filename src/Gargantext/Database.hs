@@ -12,7 +12,7 @@ Portability : POSIX
 * Which language to chose when working with a database ? To make it
 simple, instead of all common Object Relational Mapping (ORM) [1]
 strategy used nowadays inspired more by object logic than functional
-logic, the semantics of BASHQL focus on the function first. 
+logic, the semantics of BASHQL with focus on the function first.
 
 * BASHQL focus on the function, i.e. use bash language function name,
 and make it with SQL behind the scene. Then BASHQL is inspired more
@@ -57,40 +57,106 @@ AMS, and by SIAM.
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Database ( module Gargantext.Database.Utils
-                           , ls')
+                           , get
+                           , ls  , ls'
+                           , home, home'
+                           , post, post'
+                           , del , del'
+                           )
     where
 
 import Gargantext.Core.Types
+import Gargantext.Core.Types.Node
 import Gargantext.Database.Utils (connectGargandb)
 import Gargantext.Database.Node
 import Gargantext.Prelude
 import Database.PostgreSQL.Simple (Connection)
-
+import Data.Text (Text)
 import Opaleye hiding (FromField)
 import Data.Aeson
--- type PWD  =  Node NodeId
--- type Path = [PWD]
+import Data.ByteString (ByteString)
+import Data.List (last)
+type UserId = Int
+--type NodeId = Int
 
--- pwd :: [Node NodeId] -> 
+-- List of NodeId
+-- type PWD a = PWD UserId [a]
+type PWD = [NodeId]
 
+-- | TODO get Children or Node
+get :: Connection -> PWD -> IO [Node Value]
+get _ [] = pure []
+get conn pwd = runQuery conn $ selectNodesWithParentID (last pwd)
 
-ls :: Connection -> Int -> IO [Node Value]
-ls conn n = runQuery conn $ selectNodesWithParentID n
+-- | Home, need to filter with UserId
+home :: Connection -> IO PWD
+home c = map node_id <$> getNodesWithParentId c 0 Nothing
+
+-- | ls == get Children
+ls :: Connection -> PWD -> IO [Node Value]
+ls = get
+
+-- | TODO
+-- post User
+-- post Dir
+-- post Corpus Parent_id (Empty|MyData)
+-- post CorpusWith
+-- post List
+post :: Connection -> PWD -> [NodeWrite'] -> IO Int64
+post _ [] _   = pure 0
+post _ _ []   = pure 0
+post c pth ns = mkNode c (last pth) ns
+
+rm :: Connection -> PWD -> [NodeId] -> IO Int
+rm = del
+
+del :: Connection -> PWD -> [NodeId] -> IO Int
+del _ [] _ = pure 0
+del _ _ [] = pure 0
+del c pth ns = deleteNodes c ns
+
+put :: Connection -> PWD -> [a] -> IO Int64
+put = undefined
+
+-- | TODO
+-- cd (Home UserId) | (Node NodeId)
+-- cd Path
+-- jump NodeId
+-- touch Dir
+
+--------------------------------------------------------------
+-- Tests
+--------------------------------------------------------------
+
+home' :: IO PWD
+home' = do
+  c <- connectGargandb "gargantext.ini"
+  home c
 
 ls' :: IO [Node Value]
-ls' = connectGargandb "gargantext.ini" >>= \c -> ls c 347474
+ls' = do
+  c <- connectGargandb "gargantext.ini"
+  h <- home c
+  ls c h
+
+post' :: IO Int64
+post'  = do
+  c <- connectGargandb "gargantext.ini"
+  h <- home c
+  let userId = 1
+  -- TODO semantic to achieve
+  -- post c h [ Corpus "name" "{}" Nothing
+  --          , Project "name" "{}" (Just [Corpus "test 2" "" Nothing])
+  --          ]
+  post c h [ node userId (last h) Corpus  "name" "{}"
+           , node userId (last h) Project "name" "{}"
+           ]
+
+del' :: [NodeId] -> IO Int
+del' ns = do
+  c <- connectGargandb "gargantext.ini"
+  h <- home c
+  del c h ns
 
 
--- ls' Maybe PWD
--- cd (Home UserId) | (Node NodeId)
-
--- cd Path
--- jump PWD
-
--- mk User
--- mk Dir
--- mk Corpus Parent_id (Empty|MyData)
--- mk CorpusWith
--- mk List
--- touch Dir
 

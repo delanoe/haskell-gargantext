@@ -21,6 +21,10 @@ Portability : POSIX
 
 module Gargantext.Database.Node where
 
+import Data.ByteString (ByteString)
+import GHC.Int (Int64)
+import Data.Maybe
+import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , ResultError(ConversionFailed)
                                             , FromField
@@ -28,6 +32,7 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , returnError
                                             )
 import Prelude hiding (null, id, map, sum)
+import           Data.Time.Segment (jour, timesAfter, Granularity(D))
 
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Node (NodeType)
@@ -46,7 +51,8 @@ import Data.Typeable (Typeable)
 import qualified Data.ByteString.Internal as DBI
 import Database.PostgreSQL.Simple (Connection)
 import Opaleye hiding (FromField)
-
+import Opaleye.Internal.QueryArr (Query(..))
+import qualified Data.Profunctor.Product as PP
 -- | Types for Node Database Management
 data PGTSVector
 
@@ -89,7 +95,7 @@ fromField' field mb = do
 
 
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
-$(makeLensesWith abbreviatedFields   ''NodePoly)
+$(makeLensesWith abbreviatedFields ''NodePoly)
 
 
 nodeTable :: Table NodeWrite NodeRead
@@ -105,12 +111,40 @@ nodeTable = Table "nodes" (pNode Node { node_id                = optional "id"
                             )
 
 
+nodeTable' :: Table (Maybe (Column PGInt4)
+                    ,       Column PGInt4
+                    ,       Column PGInt4
+                    ,       Column PGInt4
+                    ,       Column PGText
+                    ,Maybe (Column PGTimestamptz)
+                    ,       Column PGJsonb
+                    )
+                    ((Column PGInt4)
+                    ,       Column PGInt4
+                    ,       Column PGInt4
+                    ,       Column PGInt4
+                    ,       Column PGText
+                    ,(Column PGTimestamptz)
+                    ,       Column PGJsonb
+                    )
+
+nodeTable' = Table "nodes" (PP.p7 ( optional "id"
+                               , required "typename"
+                               , required "user_id"
+                               , required "parent_id"
+                               , required "name"
+                               , optional "date"
+                               , required "hyperdata"
+                               )
+                            )
+
+
 queryNodeTable :: Query NodeRead
 queryNodeTable = queryTable nodeTable
 
 
-selectNodes :: Column PGInt4 -> Query NodeRead
-selectNodes id = proc () -> do
+selectNode :: Column PGInt4 -> Query NodeRead
+selectNode id = proc () -> do
     row <- queryNodeTable -< ()
     restrict -< node_id row .== id
     returnA -< row
@@ -142,13 +176,11 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
 
 
 deleteNode :: Connection -> Int -> IO Int
-deleteNode conn n = fromIntegral 
-                 <$> runDelete conn nodeTable 
+deleteNode conn n = fromIntegral <$> runDelete conn nodeTable
                  (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
 
 deleteNodes :: Connection -> [Int] -> IO Int
-deleteNodes conn ns = fromIntegral 
-                   <$> runDelete conn nodeTable 
+deleteNodes conn ns = fromIntegral <$> runDelete conn nodeTable
                    (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
 
@@ -163,6 +195,10 @@ getNodesWith conn parentId nodeType maybeOffset maybeLimit =
 getNodesWithParentId :: Connection -> Int 
                      -> Maybe Text -> IO [Node HyperdataDocument]
 getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
+
+getNodesWithParentId' :: Connection -> Int 
+                     -> Maybe Text -> IO [Node Value]
+getNodesWithParentId' conn n _ = runQuery conn $ selectNodesWithParentID n
 
 
 selectNodesWithParentID :: Int -> Query NodeRead
@@ -182,12 +218,40 @@ selectNodesWithType type_id = proc () -> do
     restrict -< tn .== type_id
     returnA -< row
 
+getNode' :: Connection -> Int -> IO (Node Value)
+getNode' c id = do
+  fromMaybe (error "TODO: 404") . headMay <$> runQuery c (limit 1 $ selectNode (pgInt4 id))
+
+
 getNode :: Connection -> Int -> IO (Node HyperdataDocument)
 getNode conn id = do
-    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNodes (pgInt4 id))
+    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
 
 getNodesWithType :: Connection -> Column PGInt4 -> IO [Node HyperdataDocument]
 getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
+type UserId = NodeId
+type NodeWrite' = NodePoly (Maybe Int) Int Int (ParentId) Text (Maybe UTCTime) ByteString
+type TypeId = Int
 
+--node :: UserId -> ParentId -> NodeType -> Text -> Value -> NodeWrite'
+node :: UserId -> ParentId -> NodeType -> Text -> ByteString -> NodeWrite'
+node userId parentId nodeType name nodeData = Node Nothing typeId userId parentId name Nothing byteData
+  where
+    typeId = nodeTypeId nodeType
+    byteData = nodeData
+    --byteData = encode nodeData
+
+node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
+                                         ,(pgInt4        tn)
+                                         ,(pgInt4        ud)
+                                         ,(pgInt4        pid)
+                                         ,(pgStrictText  nm)
+                                         ,(pgUTCTime <$> dt)
+                                         ,(pgStrictJSONB hp)
+                                         )
+
+
+mkNode :: Connection -> ParentId -> [NodeWrite'] -> IO Int64
+mkNode conn pid ns = runInsertMany conn nodeTable' $ map (node2write pid) ns

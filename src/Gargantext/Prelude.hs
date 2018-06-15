@@ -19,7 +19,7 @@ commentary with @some markup@.
 module Gargantext.Prelude
   ( module Gargantext.Prelude
   , module Protolude
-  , headMay
+  , headMay, lastMay
   , module Text.Show
   , module Text.Read
   , cs
@@ -31,7 +31,7 @@ module Gargantext.Prelude
 import GHC.Exts (sortWith)
 
 import Data.Maybe (isJust, fromJust, maybe)
-import Protolude ( Bool(True, False), Int, Double, Integer
+import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
@@ -67,7 +67,7 @@ import qualified Data.Map as M
 
 import Data.Map.Strict (insertWith)
 import qualified Data.Vector as V
-import Safe (headMay)
+import Safe (headMay, lastMay)
 import Text.Show (Show(), show)
 import Text.Read (Read())
 import Data.String.Conversions (cs)
