@@ -21,7 +21,7 @@ Portability : POSIX
 
 module Gargantext.Database.Node where
 
-import Data.ByteString (ByteString)
+
 import GHC.Int (Int64)
 import Data.Maybe
 import Data.Time (UTCTime)
@@ -48,7 +48,11 @@ import Data.Maybe (Maybe, fromMaybe)
 import Data.Text (Text)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Typeable (Typeable)
-import qualified Data.ByteString.Internal as DBI
+
+import qualified Data.ByteString      as DB
+import qualified Data.ByteString.Lazy as DBL
+import Data.ByteString (ByteString)
+
 import Database.PostgreSQL.Simple (Connection)
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query(..))
@@ -84,7 +88,7 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
 
 
 
-fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DBI.ByteString -> Conversion b
+fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DB.ByteString -> Conversion b
 fromField' field mb = do
     v <- fromField field mb
     valueToHyperdata v
@@ -236,12 +240,11 @@ type NodeWrite' = NodePoly (Maybe Int) Int Int (ParentId) Text (Maybe UTCTime) B
 type TypeId = Int
 
 --node :: UserId -> ParentId -> NodeType -> Text -> Value -> NodeWrite'
-node :: UserId -> ParentId -> NodeType -> Text -> ByteString -> NodeWrite'
+node :: UserId -> ParentId -> NodeType -> Text -> Value -> NodeWrite'
 node userId parentId nodeType name nodeData = Node Nothing typeId userId parentId name Nothing byteData
   where
     typeId = nodeTypeId nodeType
-    byteData = nodeData
-    --byteData = encode nodeData
+    byteData = DB.pack $ DBL.unpack $ encode nodeData
 
 node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
                                          ,(pgInt4        tn)
@@ -255,3 +258,10 @@ node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
 
 mkNode :: Connection -> ParentId -> [NodeWrite'] -> IO Int64
 mkNode conn pid ns = runInsertMany conn nodeTable' $ map (node2write pid) ns
+
+
+mkNodeR :: Connection -> ParentId -> [NodeWrite'] -> IO [Int]
+mkNodeR conn pid ns = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
+
+
+

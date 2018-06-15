@@ -60,7 +60,7 @@ module Gargantext.Database ( module Gargantext.Database.Utils
                            , get
                            , ls  , ls'
                            , home, home'
-                           , post, post'
+                           , post, post', postR'
                            , del , del'
                            )
     where
@@ -106,6 +106,12 @@ post :: Connection -> PWD -> [NodeWrite'] -> IO Int64
 post _ [] _   = pure 0
 post _ _ []   = pure 0
 post c pth ns = mkNode c (last pth) ns
+
+postR :: Connection -> PWD -> [NodeWrite'] -> IO [Int]
+postR _ [] _   = pure [0]
+postR _ _ []   = pure [0]
+postR c pth ns = mkNodeR c (last pth) ns
+
 
 rm :: Connection -> PWD -> [NodeId] -> IO Int
 rm = del
@@ -158,6 +164,21 @@ post'  = do
            ]
 
 data Children a = NoChildren | Children a
+
+
+postR' :: IO [Int]
+postR'  = do
+  c <- connectGargandb "gargantext.ini"
+  h <- home c
+  let userId = 1
+  postR c h [ node userId (last h) Corpus  "name" "{}"
+           , node userId (last h) Project "name" "{}"
+           ]
+
+
+
+
+
 
 del' :: [NodeId] -> IO Int
 del' ns = do
