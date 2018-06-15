@@ -145,12 +145,19 @@ post'  = do
   h <- home c
   let userId = 1
   -- TODO semantic to achieve
-  -- post c h [ Corpus "name" "{}" Nothing
-  --          , Project "name" "{}" (Just [Corpus "test 2" "" Nothing])
+  -- post c h [ Corpus "name" "{}"   NoChildren
+  --          , Project "name" "{}" (Children [Corpus "test 2" "" (Children [ Document "title" "metaData" NoChildren
+  --                                                                        , Document "title" "jsonData" NoChildren
+  --                                                                        ]
+  --                                                               )
+  --                                          ]
+  --                                )
   --          ]
   post c h [ node userId (last h) Corpus  "name" "{}"
            , node userId (last h) Project "name" "{}"
            ]
+
+data Children = NoChildren | Children a
 
 del' :: [NodeId] -> IO Int
 del' ns = do
