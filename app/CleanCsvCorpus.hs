@@ -42,18 +42,16 @@ main = do
   let q = ["gratuit", "gratuité", "culture", "culturel"]
 
   (h,csvDocs) <- readCsv rPath
-  
+
   putStrLn $ "Number of documents before:" <> show (V.length csvDocs)
   putStrLn $ "Mean size of docs:" <> show ( docsSize csvDocs)
-  
+
   let docs   = toDocs csvDocs
   let engine = insertDocs docs initialDocSearchEngine
   let docIds = S.query engine (map pack q)
   let docs'  = fromDocs $ filterDocs docIds (V.fromList docs)
-  
+
   putStrLn $ "Number of documents after:" <> show (V.length docs')
   putStrLn $ "Mean size of docs:" <> show (docsSize docs')
-  
+
   writeCsv wPath (h, docs')
-
-

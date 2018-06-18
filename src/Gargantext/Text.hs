@@ -37,9 +37,6 @@ type Context = Text -> [Text]
 
 data Viz = Graph | Phylo | Chart
 
-pipeline :: Config -> Text -> Viz
-pipeline = undefined
-
 
 -----------------------------------------------------------------
 -------------------------------------------------------------------

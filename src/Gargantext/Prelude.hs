@@ -19,20 +19,23 @@ commentary with @some markup@.
 module Gargantext.Prelude
   ( module Gargantext.Prelude
   , module Protolude
-  , headMay
+  , headMay, lastMay
   , module Text.Show
   , module Text.Read
   , cs
   , module Data.Maybe
+  , sortWith
   )
   where
 
+import GHC.Exts (sortWith)
+
 import Data.Maybe (isJust, fromJust, maybe)
-import Protolude ( Bool(True, False), Int, Double, Integer
+import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
-                 , pure, (<*>), (<$>), panic
+                 , pure, (>>=), (=<<), (<*>), (<$>), panic
                  , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
@@ -50,6 +53,7 @@ import Protolude ( Bool(True, False), Int, Double, Integer
                  , undefined
                  , IO()
                  , compare
+                 , on
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -63,7 +67,7 @@ import qualified Data.Map as M
 
 import Data.Map.Strict (insertWith)
 import qualified Data.Vector as V
-import Safe (headMay)
+import Safe (headMay, lastMay)
 import Text.Show (Show(), show)
 import Text.Read (Read())
 import Data.String.Conversions (cs)
@@ -109,7 +113,7 @@ ma = movingAverage 3
 
 -- | splitEvery n == chunkAlong n n
 splitEvery :: Int -> [a] -> [[a]]
-splitEvery _ [] = L.cycle [[]]
+splitEvery _ [] = []
 splitEvery n xs =
   let (h,t) = L.splitAt n xs
   in  h : splitEvery n t
@@ -235,5 +239,5 @@ unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
 
 -- maximumWith
-maximumWith f = L.maximumBy (\x y -> compare (f x) (f y))
+maximumWith f = L.maximumBy (compare `on` f)
 

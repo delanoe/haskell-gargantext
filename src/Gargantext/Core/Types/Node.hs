@@ -265,6 +265,9 @@ data NodePoly id typename userId parentId name date hyperdata = Node { node_id  
                                                                      } deriving (Show, Generic)
 $(deriveJSON (unPrefix "node_") ''NodePoly)
 
+
+
+
 instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime Value) where
     arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (toJSON ("{}"::Text))]
 
