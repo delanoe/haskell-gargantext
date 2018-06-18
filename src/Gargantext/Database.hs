@@ -62,6 +62,7 @@ module Gargantext.Database ( module Gargantext.Database.Utils
                            , home, home'
                            , post, post', postR'
                            , del , del'
+                           , tree, tree'
                            )
     where
 
@@ -75,7 +76,7 @@ import Data.Text (Text)
 import Opaleye hiding (FromField)
 import Data.Aeson
 import Data.ByteString (ByteString)
-import Data.List (last)
+import Data.List (last, concat)
 type UserId = Int
 --type NodeId = Int
 
@@ -97,8 +98,11 @@ home c = map node_id <$> getNodesWithParentId c 0 Nothing
 ls :: Connection -> PWD -> IO [Node Value]
 ls = get
 
-tree :: Connection -> PWD -> IO [[Node Value]]
-tree c = undefined
+tree :: Connection -> PWD -> IO [Node Value]
+tree c p = do
+  ns <- get c p
+  cs <- mapM (\p' -> get c [p']) $ map node_id ns
+  pure $ ns <> (concat cs)
 
 
 -- | TODO
@@ -145,7 +149,11 @@ ls' = do
   h <- home c
   ls c h
 
-type Children a = Maybe a
+tree' :: IO [Node Value]
+tree' = do
+  c <- connectGargandb "gargantext.ini"
+  h <- home c
+  tree c h
 
 post' :: IO [Int]
 post'  = do
@@ -158,15 +166,6 @@ post'  = do
                                                           ]
                      )
 
-
-postR' :: IO [Int]
-postR'  = do
-  c <- connectGargandb "gargantext.ini"
-  h <- home c
-  let userId = 1
-  postR c h [ node userId (last h) Corpus  "name" "{}"
-           , node userId (last h) Project "name" "{}"
-           ]
 
 
 del' :: [NodeId] -> IO Int
