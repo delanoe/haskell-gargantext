@@ -27,7 +27,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
--- import Data.Aeson (Value())
+import Data.Aeson (Value())
 --import Data.Text (Text(), pack)
 import Data.Text (Text())
 import Data.Time (UTCTime)
@@ -48,20 +48,20 @@ import Gargantext.Database.Facet (FacetDoc, getDocFacet
 -------------------------------------------------------------------
 -------------------------------------------------------------------
 -- | Node API Types management
-type Roots =  Get    '[JSON] [Node HyperdataDocument]
+type Roots =  Get    '[JSON] [Node Value]
          :<|> Post   '[JSON] Int
          :<|> Put    '[JSON] Int
          :<|> Delete '[JSON] Int
 
 type NodesAPI  = Delete '[JSON] Int
 
-type NodeAPI   = Get '[JSON] (Node HyperdataDocument)
+type NodeAPI   = Get '[JSON] (Node Value)
              :<|> Delete '[JSON] Int
              :<|> "children" :> Summary " Summary children"
                              :> QueryParam "type"   NodeType
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
-                             :> Get '[JSON] [Node HyperdataDocument]
+                             :> Get '[JSON] [Node Value]
              :<|> "facet" :> Summary " Facet documents"
                           :> "documents" :> FacetDocAPI
 --             :<|> "facet" :<|> "sources"   :<|> FacetSourcesAPI
@@ -120,7 +120,7 @@ deleteNode' :: Connection -> NodeId -> Handler Int
 deleteNode' conn id = liftIO (deleteNode conn id)
 
 getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
-                        -> Handler [Node HyperdataDocument]
+                        -> Handler [Node Value]
 getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
 
 

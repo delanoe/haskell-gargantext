@@ -301,6 +301,12 @@ instance ToSchema HyperdataDocument where
     L.& mapped.schema.example ?~ toJSON hyperdataDocument
 
 
+instance ToSchema Value where
+  declareNamedSchema proxy = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions proxy
+    L.& mapped.schema.description ?~ "a document"
+    L.& mapped.schema.example ?~ toJSON ("" :: Text)
+
+
 instance ToSchema (NodePoly NodeId NodeTypeId NodeUserId 
                             (Maybe NodeParentId) NodeName
                             UTCTime HyperdataDocument
@@ -311,6 +317,19 @@ instance ToSchema (NodePoly NodeId NodeTypeId
                             NodeParentId NodeName 
                             UTCTime HyperdataDocument
                   )
+
+instance ToSchema (NodePoly NodeId NodeTypeId 
+                            (Maybe NodeUserId) 
+                            NodeParentId NodeName 
+                            UTCTime Value
+                  )
+
+instance ToSchema (NodePoly NodeId NodeTypeId 
+                            (NodeUserId) 
+                            (Maybe NodeParentId) NodeName 
+                            UTCTime Value
+                  )
+
 
 instance ToSchema Status
 

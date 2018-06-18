@@ -189,7 +189,7 @@ deleteNodes conn ns = fromIntegral <$> runDelete conn nodeTable
 
 
 getNodesWith :: Connection   -> Int         -> Maybe NodeType 
-             -> Maybe Offset -> Maybe Limit -> IO [Node HyperdataDocument]
+             -> Maybe Offset -> Maybe Limit -> IO [Node Value]
 getNodesWith conn parentId nodeType maybeOffset maybeLimit = 
     runQuery conn $ selectNodesWith 
                   parentId nodeType maybeOffset maybeLimit
@@ -197,7 +197,7 @@ getNodesWith conn parentId nodeType maybeOffset maybeLimit =
 
 -- NP check type
 getNodesWithParentId :: Connection -> Int 
-                     -> Maybe Text -> IO [Node HyperdataDocument]
+                     -> Maybe Text -> IO [Node Value]
 getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
 
 getNodesWithParentId' :: Connection -> Int 
@@ -227,7 +227,7 @@ getNode' c id = do
   fromMaybe (error "TODO: 404") . headMay <$> runQuery c (limit 1 $ selectNode (pgInt4 id))
 
 
-getNode :: Connection -> Int -> IO (Node HyperdataDocument)
+getNode :: Connection -> Int -> IO (Node Value)
 getNode conn id = do
     fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
 
