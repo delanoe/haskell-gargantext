@@ -97,12 +97,11 @@ home c = map node_id <$> getNodesWithParentId c 0 Nothing
 ls :: Connection -> PWD -> IO [Node Value]
 ls = get
 
+tree :: Connection -> PWD -> IO [[Node Value]]
+tree c = undefined
+
+
 -- | TODO
--- post User
--- post Dir
--- post Corpus Parent_id (Empty|MyData)
--- post CorpusWith
--- post List
 post :: Connection -> PWD -> [NodeWrite'] -> IO Int64
 post _ [] _   = pure 0
 post _ _ []   = pure 0
@@ -148,14 +147,16 @@ ls' = do
 
 type Children a = Maybe a
 
-post' :: IO Int64
+post' :: IO [Int]
 post'  = do
-  c <- connectGargandb "gargantext.ini"
-  h <- home c
-  let userId = 1
-  post c h [ node userId (last h) Corpus  "name" "{}"
-           , node userId (last h) Project "name" "{}"
-           ]
+  c   <- connectGargandb "gargantext.ini"
+  pid <- last <$> home c
+  let uid = 1
+  postNode c uid pid (Node' Corpus  "Premier corpus" "{}" [ Node' Document "Doc1" "{}" []
+                                                          , Node' Document "Doc2" "{}" []
+                                                          , Node' Document "Doc3" "{}" []
+                                                          ]
+                     )
 
 
 postR' :: IO [Int]

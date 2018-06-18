@@ -285,17 +285,10 @@ post c uid pid [ Node' Corpus "name" "{}" []
 -- TODO
 -- currently this function remove the child relation
 -- needs a Temporary type between Node' and NodeWriteT
-node2table' :: UserId -> ParentId -> Node' -> [NodeWriteT]
-node2table' uid pid (Node' nt txt v []) = [( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (pgInt4 pid)
+node2table :: UserId -> ParentId -> Node' -> [NodeWriteT]
+node2table uid pid (Node' nt txt v []) = [( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (pgInt4 pid)
                                          , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v)]
-node2table' uid pid (Node' nt txt v (c:cs)) =  node2table' uid pid (Node' nt txt v [])
-                                           <> node2table' uid pid c
-                                           <> node2table' uid pid (Node' nt txt v cs)
-
-
-nodes2table :: UserId -> ParentId -> [Node'] -> [[NodeWriteT]]
-nodes2table _ _ [] = []
-nodes2table uid pid ns = map (node2table' uid pid) ns
+node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 
 data Node' = Node' { _n_type :: NodeType
@@ -318,6 +311,15 @@ mkNode' conn ns = runInsertMany conn nodeTable' ns
 
 mkNodeR' :: Connection -> [NodeWriteT] -> IO [Int]
 mkNodeR' conn ns = runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
+
+postNode :: Connection -> UserId -> ParentId -> Node' -> IO [Int]
+postNode c uid pid (Node' nt txt v []) = mkNodeR' c (node2table uid pid (Node' nt txt v []))
+postNode c uid pid (Node' Corpus txt v ns) = do
+  [pid']  <- postNode c uid pid (Node' Corpus txt v [])
+  pids    <- mkNodeR' c $ concat $ (map (\(Node' Document txt v _) -> node2table uid pid' $ Node' Document txt v []) ns)
+  pure (pids)
+postNode c uid pid (Node' _ _ _ _) = panic "postNode for this type not implemented yet"
+
 
 
 
