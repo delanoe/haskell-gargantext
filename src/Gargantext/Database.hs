@@ -60,7 +60,7 @@ module Gargantext.Database ( module Gargantext.Database.Utils
                            , get
                            , ls  , ls'
                            , home, home'
-                           , post, post', postR'
+                           , post, post'
                            , del , del'
                            , tree, tree'
                            )
