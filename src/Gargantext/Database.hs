@@ -167,12 +167,10 @@ post'  = do
                      )
 
 
-
 del' :: [NodeId] -> IO Int
 del' ns = do
   c <- connectGargandb "gargantext.ini"
   h <- home c
   del c h ns
-
 
 
