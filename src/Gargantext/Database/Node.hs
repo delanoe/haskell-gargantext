@@ -236,8 +236,13 @@ getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
 type UserId = NodeId
-type NodeWrite' = NodePoly (Maybe Int) Int Int (ParentId) Text (Maybe UTCTime) ByteString
 type TypeId = Int
+
+
+------------------------------------------------------------------------
+-- Quick and dirty
+------------------------------------------------------------------------
+type NodeWrite' = NodePoly (Maybe Int) Int Int (ParentId) Text (Maybe UTCTime) ByteString
 
 --node :: UserId -> ParentId -> NodeType -> Text -> Value -> NodeWrite'
 node :: UserId -> ParentId -> NodeType -> Text -> Value -> NodeWrite'
@@ -259,9 +264,60 @@ node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
 mkNode :: Connection -> ParentId -> [NodeWrite'] -> IO Int64
 mkNode conn pid ns = runInsertMany conn nodeTable' $ map (node2write pid) ns
 
-
 mkNodeR :: Connection -> ParentId -> [NodeWrite'] -> IO [Int]
 mkNodeR conn pid ns = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
+
+
+------------------------------------------------------------------------
+-- TODO Hierachy of Nodes
+-- post and get same types Node' and update if changes
+
+{- TODO semantic to achieve
+post c uid pid [ Node' Corpus "name" "{}" []
+               , Node' Folder "name" "{}" [Node' Corpus "test 2" "" [ Node' Document "title" "metaData" []
+                                                                    , Node' Document "title" "jsonData" []
+                                                                    ]
+                                          ]
+               ]
+-}
+------------------------------------------------------------------------
+
+-- TODO
+-- currently this function remove the child relation
+-- needs a Temporary type between Node' and NodeWriteT
+node2table' :: UserId -> ParentId -> Node' -> [NodeWriteT]
+node2table' uid pid (Node' nt txt v []) = [( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (pgInt4 pid)
+                                         , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v)]
+node2table' uid pid (Node' nt txt v (c:cs)) =  node2table' uid pid (Node' nt txt v [])
+                                           <> node2table' uid pid c
+                                           <> node2table' uid pid (Node' nt txt v cs)
+
+
+nodes2table :: UserId -> ParentId -> [Node'] -> [[NodeWriteT]]
+nodes2table _ _ [] = []
+nodes2table uid pid ns = map (node2table' uid pid) ns
+
+
+data Node' = Node' { _n_type :: NodeType
+                   , _n_name :: Text
+                   , _n_data :: Value
+                   , _n_children :: [Node']
+                   } deriving (Show)
+
+
+type NodeWriteT =  ( Maybe (Column PGInt4)
+                   , Column PGInt4, Column PGInt4
+                   , Column PGInt4, Column PGText
+                   , Maybe (Column PGTimestamptz)
+                   , Column PGJsonb
+                   )
+
+
+mkNode' :: Connection -> [NodeWriteT] -> IO Int64
+mkNode' conn ns = runInsertMany conn nodeTable' ns
+
+mkNodeR' :: Connection -> [NodeWriteT] -> IO [Int]
+mkNodeR' conn ns = runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
 
 
 

@@ -82,6 +82,7 @@ type UserId = Int
 -- List of NodeId
 -- type PWD a = PWD UserId [a]
 type PWD = [NodeId]
+--data PWD' a = a | PWD' [a]
 
 -- | TODO get Children or Node
 get :: Connection -> PWD -> IO [Node Value]
@@ -145,25 +146,16 @@ ls' = do
   h <- home c
   ls c h
 
+type Children a = Maybe a
+
 post' :: IO Int64
 post'  = do
   c <- connectGargandb "gargantext.ini"
   h <- home c
   let userId = 1
-  -- TODO semantic to achieve
-  -- post c h [ Corpus "name" "{}"   NoChildren
-  --          , Project "name" "{}" (Children [Corpus "test 2" "" (Children [ Document "title" "metaData" NoChildren
-  --                                                                        , Document "title" "jsonData" NoChildren
-  --                                                                        ]
-  --                                                               )
-  --                                          ]
-  --                                )
-  --          ]
   post c h [ node userId (last h) Corpus  "name" "{}"
            , node userId (last h) Project "name" "{}"
            ]
-
-data Children a = NoChildren | Children a
 
 
 postR' :: IO [Int]
@@ -174,10 +166,6 @@ postR'  = do
   postR c h [ node userId (last h) Corpus  "name" "{}"
            , node userId (last h) Project "name" "{}"
            ]
-
-
-
-
 
 
 del' :: [NodeId] -> IO Int
