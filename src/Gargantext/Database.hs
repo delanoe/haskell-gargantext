@@ -63,6 +63,7 @@ module Gargantext.Database ( module Gargantext.Database.Utils
                            , post, post'
                            , del , del'
                            , tree, tree'
+                           , postCorpus, postAnnuaire
                            )
     where
 
@@ -72,7 +73,7 @@ import Gargantext.Database.Utils (connectGargandb)
 import Gargantext.Database.Node
 import Gargantext.Prelude
 import Database.PostgreSQL.Simple (Connection)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Opaleye hiding (FromField)
 import Data.Aeson
 import Data.ByteString (ByteString)
@@ -160,11 +161,35 @@ post'  = do
   c   <- connectGargandb "gargantext.ini"
   pid <- last <$> home c
   let uid = 1
-  postNode c uid pid (Node' Corpus  "Premier corpus" "{}" [ Node' Document "Doc1" "{}" []
-                                                          , Node' Document "Doc2" "{}" []
-                                                          , Node' Document "Doc3" "{}" []
+  postNode c uid pid ( Node' Corpus  (pack "Premier corpus") (toJSON ("{}"::Text)) [ Node' Document (pack "Doc1") (toJSON ("{}" :: Text)) []
+                                                          , Node' Document (pack "Doc2") (toJSON (pack "{}" :: Text)) []
+                                                          , Node' Document (pack "Doc3") (toJSON ("{}" :: Text)) []
                                                           ]
                      )
+
+type CorpusName = Text
+
+postCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> IO [Int]
+postCorpus corpusName title ns = do
+  c   <- connectGargandb "gargantext.ini"
+  pid <- last <$> home c
+  let uid = 1
+  postNode c uid pid ( Node' Corpus  corpusName (toJSON ("{}"::Text))
+                             (map (\n -> Node' Document (title n) (toJSON n) []) ns)
+                     )
+
+-- | 
+-- import IMTClient as C
+-- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
+postAnnuaire :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> IO [Int]
+postAnnuaire corpusName title ns = do
+  c   <- connectGargandb "gargantext.ini"
+  pid <- last <$> home c
+  let uid = 1
+  postNode c uid pid ( Node' Annuaire  corpusName (toJSON ("{}"::Text))
+                             (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
+                     )
+
 
 
 del' :: [NodeId] -> IO Int

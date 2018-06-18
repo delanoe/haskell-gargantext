@@ -18,9 +18,9 @@ library:
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
-  - -Wmissing-signatures
-  - -Wunused-binds
-  - -Wunused-imports
+    #- -Wmissing-signatures
+    #- -Wunused-binds
+    #- -Wunused-imports
     #  - -Werror
   exposed-modules:
   - Gargantext
@@ -143,18 +143,6 @@ executables:
       - optparse-generic
       - unordered-containers
       - full-text-search
-  gargantext-workflow:
-    main: Main.hs
-    source-dirs: app-workflow
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -O2
-    - -Wmissing-signatures
-    dependencies:
-    - base
-    - gargantext
 
 tests:
   garg-test:

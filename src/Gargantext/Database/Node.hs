@@ -45,7 +45,7 @@ import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson
 import Data.Maybe (Maybe, fromMaybe)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Typeable (Typeable)
 
@@ -288,7 +288,7 @@ post c uid pid [ Node' Corpus "name" "{}" []
 node2table :: UserId -> ParentId -> Node' -> [NodeWriteT]
 node2table uid pid (Node' nt txt v []) = [( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (pgInt4 pid)
                                          , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v)]
-node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
+node2table _ _ (Node' _ _ _ _) = panic $ pack "node2table: should not happen, Tree insert not implemented yet"
 
 
 data Node' = Node' { _n_type :: NodeType
@@ -318,7 +318,11 @@ postNode c uid pid (Node' Corpus txt v ns) = do
   [pid']  <- postNode c uid pid (Node' Corpus txt v [])
   pids    <- mkNodeR' c $ concat $ (map (\(Node' Document txt v _) -> node2table uid pid' $ Node' Document txt v []) ns)
   pure (pids)
-postNode c uid pid (Node' _ _ _ _) = panic "postNode for this type not implemented yet"
+postNode c uid pid (Node' Annuaire txt v ns) = do
+  [pid']  <- postNode c uid pid (Node' Annuaire txt v [])
+  pids    <- mkNodeR' c $ concat $ (map (\(Node' UserPage txt v _) -> node2table uid pid' $ Node' UserPage txt v []) ns)
+  pure (pids)
+postNode c uid pid (Node' _ _ _ _) = panic $ pack "postNode for this type not implemented yet"
 
 
 
