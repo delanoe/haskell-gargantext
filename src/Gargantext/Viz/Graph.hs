@@ -113,7 +113,7 @@ graphOld2graphWithFiles :: FilePath -> FilePath -> IO ()
 graphOld2graphWithFiles g1 g2 = do
   graph <- DBL.readFile g1
   let newGraph = case DA.decode graph :: Maybe GraphOld of
-        Nothing -> panic "no graph"
+        Nothing -> panic (T.pack "no graph")
         Just new -> new
 
   DBL.writeFile g2 (DA.encode $ graphOld2graph newGraph)
