@@ -166,7 +166,7 @@ type GargAPI =  "user"  :> Summary "First user endpoint"
            :<|> "count" :> Summary "Count endpoint"
                         :> ReqBody '[JSON] Query :> CountAPI 
 
-           :<|> "scraper" :> WithCallbacks ScraperAPI
+       --    :<|> "scraper" :> WithCallbacks ScraperAPI
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -184,14 +184,14 @@ type API = SwaggerFrontAPI :<|> GargAPI
 -- | Server declaration
 server :: Env -> IO (Server API)
 server env = do
-  orchestrator <- scrapyOrchestrator env
+  -- orchestrator <- scrapyOrchestrator env
   pure $ swaggerFront
      :<|> roots    conn
      :<|> nodeAPI  conn
      :<|> nodeAPI  conn
      :<|> nodesAPI conn
      :<|> count
-     :<|> orchestrator
+  --   :<|> orchestrator
   where
     conn = env ^. env_conn
 
