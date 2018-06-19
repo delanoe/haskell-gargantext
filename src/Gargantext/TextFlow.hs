@@ -130,18 +130,18 @@ data2graph :: [(Label, Int)] -> Map (Int, Int) Int
 data2graph labels coocs distance partitions = Graph nodes edges
   where
     community_id_by_node_id = M.fromList [ (n, c) | LouvainNode n c <- partitions ]
-    nodes = [ Node { n_size = maybe 0 identity (M.lookup (n,n) coocs)
-                   , n_type = Terms -- or Unknown
-                   , n_id = cs (show n)
-                   , n_label = T.unwords l
-                   , n_attributes = 
+    nodes = [ Node { node_size = maybe 0 identity (M.lookup (n,n) coocs)
+                   , node_type = Terms -- or Unknown
+                   , node_id = cs (show n)
+                   , node_label = T.unwords l
+                   , node_attributes = 
                      Attributes { clust_default = maybe 0 identity 
                                 (M.lookup n community_id_by_node_id) } }
             | (l, n) <- labels ]
-    edges = [ Edge { e_source = s
-                   , e_target = t
-                   , e_weight = w
-                   , e_id     = i }
+    edges = [ Edge { edge_source = cs (show s)
+                   , edge_target = cs (show t)
+                   , edge_weight = w
+                   , edge_id     = cs (show i) }
             | (i, ((s,t), w)) <- zip [0..] (M.toList distance) ]
 -----------------------------------------------------------
 
