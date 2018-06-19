@@ -4,7 +4,7 @@ packages:
 - .
 - 'deps/servant-job'
 - 'deps/clustering-louvain'
-- 'deps/imt-api-client'
+  #- 'deps/imt-api-client'
 
 allow-newer: true
 extra-deps:
