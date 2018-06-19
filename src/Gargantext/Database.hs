@@ -169,6 +169,11 @@ post'  = do
 
 type CorpusName = Text
 
+-- | 
+-- myCorpus <- Prelude.map doc2hyperdataDocument <$> toDocs <$> snd <$> readCsv "doc/corpus_imt/Gargantext_Corpus_small.csv"
+-- There is an error in the CSV parsing...
+-- let myCorpus' = Prelude.filter (\n -> T.length (maybe "" identity (hyperdataDocument_title n)) > 30) myCorpus
+
 postCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> IO [Int]
 postCorpus corpusName title ns = do
   c   <- connectGargandb "gargantext.ini"

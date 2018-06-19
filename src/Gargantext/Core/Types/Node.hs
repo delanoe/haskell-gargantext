@@ -71,7 +71,7 @@ instance Arbitrary Status where
 
 ------------------------------------------------------------------------
 data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd                :: Maybe Text
-                                           , hyperdataDocument_doi                :: Maybe Text
+                                           , hyperdataDocument_doi                :: Maybe Int
                                            , hyperdataDocument_url                :: Maybe Text
                                            , hyperdataDocument_page               :: Maybe Int
                                            , hyperdataDocument_title              :: Maybe Text

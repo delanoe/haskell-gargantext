@@ -32,6 +32,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Safe (tailMay)
 
+import Gargantext.Core.Types.Node (HyperdataDocument(..))
 import Gargantext.Text
 import Gargantext.Text.Context
 import Gargantext.Prelude hiding (length)
@@ -49,6 +50,27 @@ data Doc = Doc
     }
     deriving (Show)
 ---------------------------------------------------------------
+-- | Doc 2 HyperdataDocument
+doc2hyperdataDocument :: Doc -> HyperdataDocument
+doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
+  HyperdataDocument (Just "CSV")
+                    (Just did)
+                    Nothing
+                    Nothing
+                    (Just dt)
+                    (Just dau)
+                    (Just ds)
+                    (Just dab)
+                    (Nothing)
+                    Nothing
+                    (Just dpy)
+                    (Just dpm)
+                    (Just dpd)
+                    Nothing
+                    Nothing
+                    Nothing
+---------------------------------------------------------------
+-- | Types Conversions
 toDocs :: Vector CsvDoc -> [Doc]
 toDocs v = V.toList
          $ V.zipWith (\nId (CsvDoc t s py pm pd abst auth)
