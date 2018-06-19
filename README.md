@@ -40,6 +40,35 @@ On Linux Debian (and Ubuntu?), install Dependencies.
 sudo apt-get install libbz2-dev lipq-dev
 (In the near future, we will use Nix.)
 
+### Database: install, configure and populate 
+
+1. Postgresql installation
+``shell
+sudo apt update && sudo apt install postgresql-9.6
+sudo su postgres
+psql
+``
+
+2. Configuration
+
+first create your local database:
+``sql
+create role gargantua with password "see gargantext.ini";
+create database gargandb with owner gargantua;
+``
+
+3. Populate
+
+second get a dump/schema of the database:
+md5sum gargandb.gz == 2c97ea9cfb67cd9767b779632a71e19f  gargandb.gz
+
+third insert the database in gargandb
+``shell
+gunzip gargandb.zip
+psql gargandb < gargandb
+``
+
+
 ### Install Stack
 - https://docs.haskellstack.org/en/stable/README/
 - curl -sSL https://get.haskellstack.org/ | sh
