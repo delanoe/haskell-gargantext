@@ -122,6 +122,8 @@ data Scored t = Scored { _scored_terms  :: !t
                        , _scored_speGen :: !SpecificityGenericity
                      } deriving (Show)
 
+-- TODO in the textflow we end up needing these indices, it might be better
+-- to compute them earlier and pass them around.
 coocScored :: Ord t => Map (t,t) Int -> [Scored t]
 coocScored m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
   where
