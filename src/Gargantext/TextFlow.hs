@@ -56,6 +56,9 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 -}
 
+printDebug msg x = putStrLn $ msg <> " " <> show x
+--printDebug _ _ = pure ()
+
 data TextFlow = CSV | FullText
 
 -- workflow :: Lang (EN|FR) -> FilePath -> Graph
@@ -144,8 +147,4 @@ data2graph labels coocs distance partitions = Graph nodes edges
                    , edge_id     = cs (show i) }
             | (i, ((s,t), w)) <- zip [0..] (M.toList distance) ]
 -----------------------------------------------------------
-
-printDebug msg x = putStrLn $ msg <> " " <> show x
---printDebug _ _ = pure ()
-
 

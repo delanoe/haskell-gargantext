@@ -111,6 +111,7 @@ graphOld2graph (GraphOld links nodes) = Graph (map nodeOld2node nodes) (zipWith 
 
 graphOld2graphWithFiles :: FilePath -> FilePath -> IO ()
 graphOld2graphWithFiles g1 g2 = do
+  -- GraphOld <- IO Fichier
   graph <- DBL.readFile g1
   let newGraph = case DA.decode graph :: Maybe GraphOld of
         Nothing -> panic (T.pack "no graph")
