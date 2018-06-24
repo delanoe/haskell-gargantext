@@ -21,6 +21,7 @@ module Gargantext.Text.Metrics.FrequentItemSet
   , fisWith
   , fisWithSizePoly
   , fisWithSizePoly2
+  , fisWithSizePolyMap
   , module HLCM
   )
   where
@@ -91,8 +92,10 @@ fisWithSize n f is = case n of
                       cond a' x b' = a' <= x && x <= b'
 
 
+                      --- Filter on Fis and not on [Item]
 fisWith :: Maybe ([Item] -> Bool) -> Frequency -> [[Item]] -> [Fis]
 fisWith s f is = catMaybes $ map items2fis $ filter' $ runLCMmatrix is f
+-- drop unMaybe
   where
     filter' = case s of
                 Nothing  -> identity
@@ -112,6 +115,10 @@ fisWithSizePoly2 :: Ord a => Size -> Frequency -> [[a]] -> [Fis' a]
 fisWithSizePoly2 n f is = fisWithSizePoly n f ks is
   where
     ks = Set.fromList $ concat is
+
+fisWithSizePolyMap :: Ord a => Size -> Frequency -> [[a]] -> Map (Set a) Int
+fisWithSizePolyMap n f is =
+  Map.fromList $ (\i -> (Set.fromList (_fisItemSet i), _fisCount i)) <$> fisWithSizePoly2 n f is
 
 
 ------------------------------------------------------------------------
