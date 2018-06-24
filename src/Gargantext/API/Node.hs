@@ -84,7 +84,7 @@ type FacetDocAPI = "table"
                    :> QueryParam "from" UTCTime
                    :> QueryParam "to"   UTCTime
                    :> Get '[JSON] [FacetChart]
---
+
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
@@ -96,13 +96,13 @@ type FacetDocAPI = "table"
 
 -- | Node API functions
 roots :: Connection -> Server Roots
-roots conn = liftIO (putStrLn ( "Log Needed" :: Text) >> getNodesWithParentId conn 0 Nothing)
+roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId conn 0 Nothing)
           :<|> pure (panic "not implemented yet")
           :<|> pure (panic "not implemented yet")
           :<|> pure (panic "not implemented yet")
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
-nodeAPI conn id =  liftIO (putStrLn ("getNode" :: Text) >> getNode              conn id )
+nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              conn id )
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
               :<|> getFacet      conn id
@@ -126,7 +126,7 @@ getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id node
 
 getFacet :: Connection -> NodeId -> Maybe Int -> Maybe Int
                         -> Handler [FacetDoc]
-getFacet conn id offset limit = liftIO (getDocFacet conn id (Just Document) offset limit)
+getFacet conn id offset limit = liftIO (putStrLn ( "/facet" :: Text)) >> liftIO (getDocFacet conn Corpus id (Just Document) offset limit)
 
 getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
                         -> Handler [FacetChart]

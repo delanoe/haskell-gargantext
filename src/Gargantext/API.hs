@@ -143,6 +143,41 @@ makeMockApp env = do
     pure $ logStdoutDev $ checkOriginAndHost $ corsMiddleware $ serverApp
 
 
+--
+makeDevApp :: Env -> IO Application
+makeDevApp env = do
+    serverApp <- makeApp env
+
+    -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
+    --logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
+--    let checkOriginAndHost app req resp = do
+--            blocking <- fireWall req (env ^. menv_firewall)
+--            case blocking  of
+--                True  -> app req resp
+--                False -> resp ( responseLBS status401 [] 
+--                              "Invalid Origin or Host header")
+--        
+    let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
+--          { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
+            { corsOrigins        = Nothing --  == /*
+            , corsMethods        = [ methodGet   , methodPost   , methodPut
+                                   , methodDelete, methodOptions, methodHead]
+            , corsRequestHeaders = ["authorization", "content-type"]
+            , corsExposedHeaders = Nothing
+            , corsMaxAge         = Just ( 60*60*24 ) -- one day
+            , corsVaryOrigin     = False
+            , corsRequireOrigin  = False
+            , corsIgnoreFailures = False
+            }
+
+    --let warpS = Warp.setPort (8008 :: Int)   -- (env^.settings.appPort)
+    --          $ Warp.defaultSettings
+    
+    --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
+    pure $ logStdoutDev $ corsMiddleware $ serverApp
+
+--
+
 ---------------------------------------------------------------------
 -- | API Global
 
@@ -264,14 +299,12 @@ startGargantext :: PortNumber -> FilePath -> IO ()
 startGargantext port file = do
   env <- newEnv port file
   portRouteInfo port
-  app <- makeApp env
+  app <- makeDevApp env
   run port app
 
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
   portRouteInfo port
-
   application <- makeMockApp . MockEnv $ FireWall False
-
   run port application
 
