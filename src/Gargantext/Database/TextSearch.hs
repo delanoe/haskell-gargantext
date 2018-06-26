@@ -33,6 +33,9 @@ import Gargantext.Prelude
 
 newtype TSQuery = UnsafeTSQuery [Text]
 
+toTSQuery :: [Text] -> TSQuery
+toTSQuery txt = UnsafeTSQuery txt
+
 instance IsString TSQuery
   where
     fromString = UnsafeTSQuery . words . cs
@@ -63,7 +66,7 @@ instance ToField Order
 -- ADD ngrams count
 -- TESTS
 textSearchQuery :: Query
-textSearchQuery = "SELECT n.id, n.hyperdata->'publication_date'   \
+textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'   \
 \                   , n.hyperdata->'title'                          \
 \                   , n.hyperdata->'source'                         \
 \                   , COALESCE(nn.score,null)                         \
@@ -71,7 +74,7 @@ textSearchQuery = "SELECT n.id, n.hyperdata->'publication_date'   \
 \            LEFT JOIN nodes_nodes nn  ON nn.node2_id = n.id          \
 \              WHERE                                                  \
 \                n.title_abstract @@ (?::tsquery)                    \
-\                AND n.parent_id = ?   AND n.typename  = 4            \
+\                AND n.parent_id = ?   AND n.typename  = 40            \
 \                ORDER BY n.hyperdata -> 'publication_date' ?         \
 \            offset ? limit ?;"
 
@@ -82,7 +85,7 @@ textSearch :: Connection
            -> IO [(Int,Value,Value,Value, Maybe Int)]
 textSearch conn q p l o ord = query conn textSearchQuery (q,p,ord, o,l)
 
-textSearchTest :: TSQuery -> IO ()
-textSearchTest q = connectGargandb "gargantext.ini"
-  >>= \conn -> textSearch conn q 421968 10 0 Asc
+textSearchTest :: ParentId -> TSQuery -> IO ()
+textSearchTest pId q = connectGargandb "gargantext.ini"
+  >>= \conn -> textSearch conn q pId 5 0 Asc
   >>= mapM_ print

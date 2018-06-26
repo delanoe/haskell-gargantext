@@ -68,7 +68,8 @@ import Gargantext.API.Node ( Roots    , roots
                            , NodeAPI  , nodeAPI
                            , NodesAPI , nodesAPI
                            )
-import Gargantext.API.Count ( CountAPI, count, Query)
+import Gargantext.API.Count  ( CountAPI, count, Query)
+import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
 import Gargantext.API.Orchestrator
 import Gargantext.API.Orchestrator.Types
 
@@ -199,7 +200,10 @@ type GargAPI =  "user"  :> Summary "First user endpoint"
        
        -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
            :<|> "count" :> Summary "Count endpoint"
-                        :> ReqBody '[JSON] Query :> CountAPI 
+                        :> ReqBody '[JSON] Query :> CountAPI
+           
+           :<|> "search":> Summary "Search endpoint"
+                        :> ReqBody '[JSON] SearchQuery :> SearchAPI
 
        --    :<|> "scraper" :> WithCallbacks ScraperAPI
 
@@ -226,6 +230,7 @@ server env = do
      :<|> nodeAPI  conn
      :<|> nodesAPI conn
      :<|> count
+     :<|> search conn
   --   :<|> orchestrator
   where
     conn = env ^. env_conn

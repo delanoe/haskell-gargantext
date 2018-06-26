@@ -63,7 +63,6 @@ instance Arbitrary Scraper where
 instance ToSchema Scraper
 
 -----------------------------------------------------------------------
-
 data QueryBool = QueryBool Text
         deriving (Eq, Show, Generic)
 
@@ -134,7 +133,6 @@ instance Arbitrary Counts where
                          ]
 
 instance ToSchema Counts
-
 
 -----------------------------------------------------------------------
 data Count = Count { count_name    :: Scraper

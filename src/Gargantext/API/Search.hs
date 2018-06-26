@@ -1,0 +1,107 @@
+{-|
+Module      : Gargantext.API.Count
+Description : Server API
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+Count API part of Gargantext.
+-}
+
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
+
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DeriveAnyClass     #-}
+{-# LANGUAGE OverloadedStrings  #-}
+
+module Gargantext.API.Search
+      where
+
+
+import GHC.Generics (Generic)
+import Control.Monad.IO.Class (liftIO)
+import Prelude (Bounded, Enum, minBound, maxBound)
+
+
+import Data.Aeson hiding (Error, fieldLabelModifier)
+import Data.Aeson.TH (deriveJSON)
+import Data.Eq (Eq())
+import Data.Either
+import Data.List (repeat, permutations)
+import Data.Swagger
+import Data.Swagger.SchemaOptions
+import Data.Text (Text, pack)
+import Database.PostgreSQL.Simple (Connection)
+
+import Servant
+import Test.QuickCheck.Arbitrary
+import Test.QuickCheck (elements)
+-- import Control.Applicative ((<*>))
+
+import Gargantext.Prelude
+import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.TextSearch
+
+
+
+-----------------------------------------------------------------------
+data SearchQuery = SearchQuery { sq_query :: [Text]
+                               , sq_parent_id :: Int
+                               } deriving (Generic)
+$(deriveJSON (unPrefix "sq_") ''SearchQuery)
+instance ToSchema SearchQuery where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 3 fieldLabel}
+
+
+instance Arbitrary SearchQuery where
+  arbitrary = elements [SearchQuery ["query"] 1]
+
+-----------------------------------------------------------------------
+
+data SearchResult = SearchResult { sr_id :: Int
+                                 , sr_name :: Text
+                                 } deriving (Generic)
+$(deriveJSON (unPrefix "sr_") ''SearchResult)
+instance Arbitrary SearchResult where
+  arbitrary = elements [SearchResult 1 "name"]
+
+instance ToSchema SearchResult where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 3 fieldLabel}
+
+-----------------------------------------------------------------------
+
+data SearchResults = SearchResults { srs_results :: [SearchResult]}
+  deriving (Generic)
+$(deriveJSON (unPrefix "srs_") ''SearchResults)
+
+instance Arbitrary SearchResults where
+  arbitrary = SearchResults <$> arbitrary
+
+instance ToSchema SearchResults where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+
+
+
+-----------------------------------------------------------------------
+type SearchAPI = Post '[JSON] SearchResults
+-----------------------------------------------------------------------
+
+search :: Connection -> SearchQuery -> Handler SearchResults
+search c (SearchQuery q pId) =
+  liftIO $ SearchResults <$> map (\(i, y, t, s, _) -> SearchResult i (cs $ encode t)) 
+                         <$> textSearch c (toTSQuery q) pId 5 0 Desc
+
+
