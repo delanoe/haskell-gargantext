@@ -63,16 +63,17 @@ instance ToSchema SearchQuery where
 
 
 instance Arbitrary SearchQuery where
-  arbitrary = elements [SearchQuery ["query"] 1]
+  arbitrary = elements [SearchQuery ["electrodes"] 472764]
 
 -----------------------------------------------------------------------
 
-data SearchResult = SearchResult { sr_id :: Int
-                                 , sr_name :: Text
+data SearchResult = SearchResult { sr_id      :: Int
+                                 , sr_title   :: Text
+                                 , sr_authors :: Text
                                  } deriving (Generic)
 $(deriveJSON (unPrefix "sr_") ''SearchResult)
 instance Arbitrary SearchResult where
-  arbitrary = elements [SearchResult 1 "name"]
+  arbitrary = elements [SearchResult 1 "Title" "Authors"]
 
 instance ToSchema SearchResult where
   declareNamedSchema =
@@ -101,7 +102,7 @@ type SearchAPI = Post '[JSON] SearchResults
 
 search :: Connection -> SearchQuery -> Handler SearchResults
 search c (SearchQuery q pId) =
-  liftIO $ SearchResults <$> map (\(i, y, t, s, _) -> SearchResult i (cs $ encode t)) 
+  liftIO $ SearchResults <$> map (\(i, y, t, s, a, _) -> SearchResult i (cs $ encode t) (cs $ encode a))
                          <$> textSearch c (toTSQuery q) pId 5 0 Desc
 
 

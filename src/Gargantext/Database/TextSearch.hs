@@ -69,6 +69,7 @@ textSearchQuery :: Query
 textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'   \
 \                   , n.hyperdata->'title'                          \
 \                   , n.hyperdata->'source'                         \
+\                   , n.hyperdata->'authors'                         \
 \                   , COALESCE(nn.score,null)                         \
 \                      FROM nodes n                                   \
 \            LEFT JOIN nodes_nodes nn  ON nn.node2_id = n.id          \
@@ -82,7 +83,7 @@ textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'   \
 textSearch :: Connection 
            -> TSQuery -> ParentId
            -> Limit -> Offset -> Order
-           -> IO [(Int,Value,Value,Value, Maybe Int)]
+           -> IO [(Int,Value,Value,Value, Value, Maybe Int)]
 textSearch conn q p l o ord = query conn textSearchQuery (q,p,ord, o,l)
 
 textSearchTest :: ParentId -> TSQuery -> IO ()
