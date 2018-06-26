@@ -236,7 +236,7 @@ type Corpus   = Node HyperdataCorpus
 type Document = Node HyperdataDocument
 
 ------------------------------------------------------------------------
-data NodeType = NodeUser | Project | Folder | Corpus | Annuaire | Document | UserPage | DocumentCopy
+data NodeType = NodeUser | Project | Folder | Corpus | Annuaire | Document | UserPage | DocumentCopy | Favorites
               | Classification
               | Lists
               | Metrics | Occurrences

@@ -70,8 +70,9 @@ corpusTree = NodeT Corpus (  [ leafT Document ]
 -- * why NodeUser and not just User ?
 -- * is this supposed to hold data ?
 
+data Parent = NodeType NodeId
 
-data Classification = Favorites | MyClassifcation
+--data Classification = Favorites | MyClassifcation
 
 data Lists  =  StopList    | MainList | MapList | GroupList
 
@@ -144,7 +145,7 @@ nodeTypes = [ (NodeUser      ,  1)
 --            , (TirankGlobal , 17)
 --
 ----  Node management
---            , (Favorites     , 15)
+            , (Favorites     , 15)
 --
             ]
 --
