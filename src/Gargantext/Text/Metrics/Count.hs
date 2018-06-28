@@ -29,21 +29,17 @@ module Gargantext.Text.Metrics.Count
   where
 
 
-import Control.Arrow ((***))
+import Control.Arrow (Arrow(..), (***))
 import qualified Data.List as List
-import Data.Map.Strict  (Map
-                        , empty, singleton
-                        , insertWith, insertWithKey, unionWith
-                        , toList, lookup, mapKeys
-                        )
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Text (pack)
 
 import qualified Data.Map.Strict as DMS
-import Control.Monad ((>>),(>>=))
-import Data.String (String())
-import Data.Attoparsec.Text
+import Data.Map.Strict  ( Map, empty, singleton
+                        , insertWith, unionWith
+                        , mapKeys
+                        )
+import Data.Set (Set)
+import Data.Text (pack)
+
 
 ------------------------------------------------------------------------
 import Gargantext.Prelude
@@ -76,6 +72,7 @@ type Grouped = Stems
 type Occs = Int
 type Coocs = Int
 type Threshold = Int
+
 removeApax :: Threshold -> Map (Label, Label) Int -> Map (Label, Label) Int
 removeApax t = DMS.filter (> t)
 
@@ -88,9 +85,9 @@ cooc tss = coocOnWithLabel _terms_stem (useLabelPolicy label_policy) tss
 
 coocOnWithLabel :: (Ord label, Ord b) => (a -> b) -> (b -> label)
                                       -> [[a]] -> Map (label, label) Coocs
-coocOnWithLabel on policy tss =
-  mapKeys (delta policy) $ coocOn on tss
+coocOnWithLabel on' policy tss = mapKeys (delta policy) $ coocOn on' tss
   where
+    delta :: Arrow a => a b' c' -> a (b', b') (c', c')
     delta f = f *** f
 
 
@@ -114,9 +111,9 @@ coocOn :: Ord b => (a -> b) -> [[a]] -> Map (b, b) Coocs
 coocOn f as = foldl' (\a b -> DMS.unionWith (+) a b) empty $ map (coocOn' f) as
   where
     coocOn' :: Ord b => (a -> b) -> [a] -> Map (b, b) Coocs
-    coocOn' f ts = foldl' (\m (xy,c) -> insertWith ((+)) xy c m) empty xs
+    coocOn' fun ts = foldl' (\m (xy,c) -> insertWith ((+)) xy c m) empty xs
       where
-          ts' = List.nub $ map f ts
+          ts' = List.nub $ map fun ts
           xs = [ ((x, y), 1)
                | x <- ts'
                , y <- ts'

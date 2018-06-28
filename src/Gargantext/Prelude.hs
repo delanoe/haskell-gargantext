@@ -238,6 +238,7 @@ zipSnd f xs = zip xs (f xs)
 unMaybe :: [Maybe a] -> [a]
 unMaybe = map fromJust . L.filter isJust
 
--- maximumWith
+-- | maximumWith
+maximumWith :: (Ord a1, Foldable t) => (a2 -> a1) -> t a2 -> a2
 maximumWith f = L.maximumBy (compare `on` f)
 

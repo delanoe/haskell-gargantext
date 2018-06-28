@@ -24,7 +24,7 @@ import Gargantext.Core.Types
 import Gargantext.Text.Terms.Mono.Stem (stem)
 
 import Gargantext.Prelude
-import Data.Char (isAlphaNum, isSpace)
+--import Data.Char (isAlphaNum, isSpace)
 
 monoterms' :: Lang -> Text -> [Terms]
 monoterms' l txt = map (text2terms l) $ monoterms txt
@@ -40,9 +40,9 @@ text2terms lang txt = Terms label stems
     label = splitOn (pack " ") txt
     stems = S.fromList $ map (stem lang) label
 
-  --monograms :: Text -> [Text]
+--monograms :: Text -> [Text]
 --monograms xs = monograms $ toLower $ filter isGram xs
 
-isGram :: Char -> Bool
-isGram  c  = isAlphaNum c || isSpace c || c `elem` ['-','/','\'']
+--isGram :: Char -> Bool
+--isGram  c  = isAlphaNum c || isSpace c || c `elem` ['-','/','\'']
 

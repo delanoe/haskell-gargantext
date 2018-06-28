@@ -68,7 +68,6 @@ module Gargantext.Database ( module Gargantext.Database.Utils
     where
 
 import Gargantext.Core.Types
-import Gargantext.Core.Types.Node
 import Gargantext.Database.Utils (connectGargandb)
 import Gargantext.Database.Node
 import Gargantext.Prelude
@@ -76,9 +75,9 @@ import Database.PostgreSQL.Simple (Connection)
 import Data.Text (Text, pack)
 import Opaleye hiding (FromField)
 import Data.Aeson
-import Data.ByteString (ByteString)
 import Data.List (last, concat)
-type UserId = Int
+
+--type UserId = Int
 --type NodeId = Int
 
 -- List of NodeId
@@ -102,8 +101,8 @@ ls = get
 tree :: Connection -> PWD -> IO [Node Value]
 tree c p = do
   ns <- get c p
-  cs <- mapM (\p' -> get c [p']) $ map node_id ns
-  pure $ ns <> (concat cs)
+  children <- mapM (\p' -> get c [p']) $ map node_id ns
+  pure $ ns <> (concat children)
 
 
 -- | TODO
@@ -112,22 +111,22 @@ post _ [] _   = pure 0
 post _ _ []   = pure 0
 post c pth ns = mkNode c (last pth) ns
 
-postR :: Connection -> PWD -> [NodeWrite'] -> IO [Int]
-postR _ [] _   = pure [0]
-postR _ _ []   = pure [0]
-postR c pth ns = mkNodeR c (last pth) ns
+--postR :: Connection -> PWD -> [NodeWrite'] -> IO [Int]
+--postR _ [] _   = pure [0]
+--postR _ _ []   = pure [0]
+--postR c pth ns = mkNodeR c (last pth) ns
+--
 
+--rm :: Connection -> PWD -> [NodeId] -> IO Int
+--rm = del
 
-rm :: Connection -> PWD -> [NodeId] -> IO Int
-rm = del
+del :: Connection -> [NodeId] -> IO Int
+del _ [] = pure 0
+del c ns = deleteNodes c ns
 
-del :: Connection -> PWD -> [NodeId] -> IO Int
-del _ [] _ = pure 0
-del _ _ [] = pure 0
-del c pth ns = deleteNodes c ns
-
-put :: Connection -> PWD -> [a] -> IO Int64
-put = undefined
+-- | TODO
+--put :: Connection -> PWD -> [a] -> IO Int64
+--put = undefined
 
 -- | TODO
 -- cd (Home UserId) | (Node NodeId)
@@ -196,11 +195,9 @@ postAnnuaire corpusName title ns = do
                      )
 
 
-
 del' :: [NodeId] -> IO Int
 del' ns = do
   c <- connectGargandb "gargantext.ini"
-  h <- home c
-  del c h ns
+  del c ns
 
 

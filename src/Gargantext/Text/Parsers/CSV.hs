@@ -147,7 +147,7 @@ instance FromNamedRecord CsvDoc where
                               <*> r .: "authors"
 
 instance ToNamedRecord CsvDoc where
-  toNamedRecord (CsvDoc t s py pm pd abst aut) = 
+  toNamedRecord (CsvDoc t s py pm pd abst aut) =
     namedRecord [ "title"  .= t
                 , "source" .= s
                 , "publication_year"  .= py
@@ -155,7 +155,7 @@ instance ToNamedRecord CsvDoc where
                 , "publication_day"   .= pd
                 , "abstract"          .= abst
                 , "authors"           .= aut
-                ]
+               ]
 
 
 csvDecodeOptions :: DecodeOptions
@@ -184,7 +184,94 @@ readCsv fp = do
       Right csvDocs -> pure csvDocs
 
 
+readHal :: FilePath -> IO (Header, Vector CsvHal)
+readHal fp = do
+    csvData <- BL.readFile fp
+    case decodeByNameWith csvDecodeOptions csvData of
+      Left e        -> panic (pack e)
+      Right csvDocs -> pure csvDocs
+------------------------------------------------------------------------
+
+
 writeCsv :: FilePath -> (Header, Vector CsvDoc) -> IO ()
 writeCsv fp (h, vs) = BL.writeFile fp $
                       encodeByNameWith csvEncodeOptions h (V.toList vs)
 
+
+------------------------------------------------------------------------
+-- Hal Format
+data CsvHal = CsvHal
+    { csvHal_title  :: !Text
+    , csvHal_source :: !Text
+    , csvHal_publication_year  :: !Int
+    , csvHal_publication_month :: !Int
+    , csvHal_publication_day   :: !Int
+    , csvHal_abstract          :: !Text
+    , csvHal_authors           :: !Text
+
+    , csvHal_url               :: !Text
+    , csvHal_isbn_s            :: !Text
+    , csvHal_issue_s           :: !Text
+    , csvHal_journalPublisher_s:: !Text
+    , csvHal_language_s        :: !Text
+
+    , csvHal_doiId_s           :: !Text
+    , csvHal_authId_i          :: !Text
+    , csvHal_instStructId_i    :: !Text
+    , csvHal_deptStructId_i    :: !Text
+    , csvHal_labStructId_i     :: !Text
+
+    , csvHal_rteamStructId_i   :: !Text
+    , csvHal_docType_s         :: !Text
+    }
+    deriving (Show)
+
+instance FromNamedRecord CsvHal where
+  parseNamedRecord r = CsvHal <$> r .: "title"
+                              <*> r .: "source"
+                              <*> r .: "publication_year"
+                              <*> r .: "publication_month"
+                              <*> r .: "publication_day"
+                              <*> r .: "abstract"
+                              <*> r .: "authors"
+
+                              <*> r .: "url"
+                              <*> r .: "isbn_s"
+                              <*> r .: "issue_s"
+                              <*> r .: "journalPublisher_s"
+                              <*> r .: "language_s"
+
+                              <*> r .: "doiId_s"
+                              <*> r .: "authId_i"
+                              <*> r .: "instStructId_i"
+                              <*> r .: "deptStructId_i"
+                              <*> r .: "labStructId_i"
+
+                              <*> r .: "rteamStructId_i"
+                              <*> r .: "docType_s"
+
+instance ToNamedRecord CsvHal where
+  toNamedRecord (CsvHal t s py  pm pd abst aut  url isbn iss jour lang  doi auth inst dept lab team doct) = 
+    namedRecord [ "title"  .= t
+                , "source" .= s
+                , "publication_year"  .= py
+                , "publication_month" .= pm
+                , "publication_day"   .= pd
+                , "abstract"          .= abst
+                , "authors"           .= aut
+
+                , "url"                .= url
+                , "isbn_s"             .= isbn
+                , "issue_s"            .= iss
+                , "journalPublisher_s" .= jour
+                , "language_s"         .= lang
+                
+                , "doiId_s"            .= doi
+                , "authId_i"           .= auth
+                , "instStructId_i"     .= inst
+                , "deptStructId_i"     .= dept
+                , "labStructId_i"      .= lab
+                
+                , "rteamStructId_i"    .= team
+                , "docType_s"          .= doct
+               ]

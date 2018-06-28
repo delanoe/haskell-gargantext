@@ -20,13 +20,8 @@ module Gargantext.Viz.Graph.Distances.Distributional
   where
 
 import Data.Matrix hiding (identity)
-import Data.String.Conversions (ConvertibleStrings(..))
 
-import Data.Map (Map)
 import qualified Data.Map as M
-
-import Data.Set (Set)
-import qualified Data.Set as S
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
@@ -64,11 +59,11 @@ mi m = matrix c r createMat
   where
     (c,r) = (nOf Col m, nOf Row m)
     createMat (x,y) = doMi x y m
-    doMi x y m = if x == y then 0 else (max (log (doMi' x y m)) 0 )
+    doMi x y m' = if x == y then 0 else (max (log (doMi' x y m')) 0 )
     
-    doMi' x y m = (getElem x y m) / ( cross x y m / total m )
+    doMi' x y m' = (getElem x y m) / ( cross x y m / total m' )
     
-    cross x y m = (V.sum $ ax Col x y m) * (V.sum $ ax Row x y m)
+    cross x y m' = (V.sum $ ax Col x y m) * (V.sum $ ax Row x y m')
     
 
 

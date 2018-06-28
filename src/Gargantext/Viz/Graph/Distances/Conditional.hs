@@ -18,18 +18,14 @@ module Gargantext.Viz.Graph.Distances.Conditional
   where
 
 import Data.Matrix hiding (identity)
-import Data.String.Conversions (ConvertibleStrings(..))
 
-import Data.List (concat, sortOn)
-import qualified Data.List as L
+import Data.List (sortOn)
 
 import Data.Map (Map)
 import qualified Data.Map as M
 
-import Data.Set (Set)
 import qualified Data.Set as S
 
-import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Gargantext.Prelude
@@ -82,7 +78,7 @@ opWith op xs ys = mapAll (\x -> x / (2*n -1)) (xs `op` ys)
 
 -------------------------------------------------------
 conditional :: (Num a, Fractional a, Ord a) => Matrix a -> Matrix a
-conditional m = filter (threshold m') m'
+conditional m = filterMat (threshold m') m'
   where
 ------------------------------------------------------------------------
     -- | Main Operations
@@ -111,24 +107,24 @@ conditional m = filter (threshold m') m'
                          $ nodes_included k <> nodes_specific k
 
     nodes_included n = take n $ sortOn snd $ toListsWithIndex ie
-    nodes_specific m = take m $ sortOn snd $ toListsWithIndex sg
+    nodes_specific n = take n $ sortOn snd $ toListsWithIndex sg
     insert as s = foldl' (\s' a -> S.insert a s') s as
     k' = 2*k
     k = 10
     
     dico_nodes :: Map Int Int
-    dico_nodes     = M.fromList $ zip [1..] nodes_kept
-    dico_nodes_rev = M.fromList $ zip nodes_kept [1..]
+    dico_nodes     = M.fromList $ zip ([1..] :: [Int]) nodes_kept
+    --dico_nodes_rev = M.fromList $ zip nodes_kept [1..]
 
     m' = matrix (length nodes_kept) 
                 (length nodes_kept) 
                 (\(i,j) -> getElem ((M.!) dico_nodes i) ((M.!) dico_nodes j) x')
 
-    threshold m = V.minimum $ V.map (\cId -> V.maximum $ getCol cId m) (V.enumFromTo 1 (nOf Col m))
+    threshold m'' = V.minimum $ V.map (\cId -> V.maximum $ getCol cId m'') (V.enumFromTo 1 (nOf Col m''))
     
-    filter t m  = mapAll (\x -> filter' t x) m
+    filterMat t m''  = mapAll (\x -> filter' t x) m''
       where
-        filter' t x = case (x >= t) of
+        filter' t' x = case (x >= t') of
                         True  -> x
                         False -> 0
 

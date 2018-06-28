@@ -17,28 +17,26 @@ From text to viz, all the flow of texts in Gargantext.
 module Gargantext.TextFlow
   where
 
+import GHC.IO (FilePath)
 import qualified Data.Text as T
 import Data.Text.IO (readFile)
 
-import Control.Arrow ((***))
+import Control.Monad.IO.Class (MonadIO)
+
 import Data.Map.Strict (Map)
 import qualified Data.Array.Accelerate as A
 import qualified Data.Map.Strict as M
-import qualified Data.List       as L
-import Data.Tuple.Extra (both)
 ----------------------------------------------
 import Gargantext.Core (Lang(FR))
 import Gargantext.Core.Types (Label)
 import Gargantext.Prelude
-import Prelude (print, seq)
 
-import Gargantext.Viz.Graph.Index (score, createIndices, toIndex, fromIndex, cooc2mat, map2mat, mat2map)
-import Gargantext.Viz.Graph.Distances.Matrice (conditional', conditional, distributional)
-import Gargantext.Viz.Graph.Index (Index)
+import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
+import Gargantext.Viz.Graph.Distances.Matrice (conditional)
 import Gargantext.Viz.Graph (Graph(..), Node(..), Edge(..), Attributes(..), TypeNode(..))
 import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Metrics
-import Gargantext.Text.Terms (TermType(Multi, Mono), extractTerms)
+import Gargantext.Text.Terms (TermType(Mono), extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 import Gargantext.Text.Parsers.CSV
@@ -56,13 +54,15 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 -}
 
+printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
 printDebug msg x = putStrLn $ msg <> " " <> show x
 --printDebug _ _ = pure ()
 
 data TextFlow = CSV | FullText
 
 -- workflow :: Lang (EN|FR) -> FilePath -> Graph
-textflow termsLang workType path = do
+textflow :: Lang -> TextFlow -> FilePath -> IO Graph
+textflow _ workType path = do
   -- Text  <- IO Text <- FilePath
   contexts <- case workType of
                 FullText -> splitBy (Sentences 5) <$> readFile path
@@ -97,7 +97,7 @@ textflow termsLang workType path = do
   printDebug "myCooc3" $ M.size myCooc3
 
   -- Cooc -> Matrix
-  let (ti, fi) = createIndices myCooc3
+  let (ti, _) = createIndices myCooc3
   printDebug "ti" $ M.size ti
 
   let myCooc4 = toIndex ti myCooc3
@@ -145,6 +145,6 @@ data2graph labels coocs distance partitions = Graph nodes edges
                    , edge_target = cs (show t)
                    , edge_weight = w
                    , edge_id     = cs (show i) }
-            | (i, ((s,t), w)) <- zip [0..] (M.toList distance) ]
+            | (i, ((s,t), w)) <- zip ([0..]::[Integer]) (M.toList distance) ]
 -----------------------------------------------------------
 

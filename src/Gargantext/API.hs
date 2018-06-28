@@ -56,7 +56,7 @@ import           Network.Wai.Handler.Warp hiding (defaultSettings)
 
 import           Servant
 import           Servant.Mock (mock)
-import           Servant.Job.Server (WithCallbacks)
+--import           Servant.Job.Server (WithCallbacks)
 import           Servant.Swagger
 import           Servant.Swagger.UI
 -- import Servant.API.Stream
@@ -70,8 +70,8 @@ import Gargantext.API.Node ( Roots    , roots
                            )
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
-import Gargantext.API.Orchestrator
-import Gargantext.API.Orchestrator.Types
+--import Gargantext.API.Orchestrator
+--import Gargantext.API.Orchestrator.Types
 
 ---------------------------------------------------------------------
 

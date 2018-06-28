@@ -23,30 +23,28 @@ noApax m = M.filter (>1) m
 module Gargantext.Text.Metrics 
   where
 
-import Data.Text (Text, pack)
-import Data.Ord (comparing, Down(..))
-import Data.Map (Map)
+import Data.Ord (Down(..))
 import qualified Data.List as L
+
+import Data.Map (Map)
 import qualified Data.Map  as M
-import qualified Data.Set  as S
+
+import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as VU
+
 import Data.Tuple.Extra (both)
 --import GHC.Real (Ratio)
 --import qualified Data.Text.Metrics as DTM
-import Data.Array.Accelerate (toList)
-import Math.KMeans (kmeans, euclidSq, elements)
-
+import Data.Array.Accelerate (toList, Matrix)
+--import Math.KMeans (kmeans, euclidSq, elements)
 
 import Gargantext.Prelude
-
 import Gargantext.Text.Metrics.Count (occurrences, cooc)
 import Gargantext.Text.Terms (TermType(MonoMulti), terms)
 import Gargantext.Core (Lang(EN))
-import Gargantext.Core.Types (Terms(..))
+import Gargantext.Core.Types (Terms(..), Label)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
-
+import Gargantext.Text.Metrics.Count (Grouped)
 import Gargantext.Viz.Graph.Distances.Matrice
 import Gargantext.Viz.Graph.Index
 
@@ -56,8 +54,7 @@ import qualified Data.Array.Accelerate as DAA
 
 import GHC.Real (round)
 
-import Debug.Trace
-import Prelude (seq)
+--import Debug.Trace
 
 data MapListSize   = MapListSize   Int
 data InclusionSize = InclusionSize Int
@@ -95,25 +92,25 @@ filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScore
 -- each parts is then ordered by Inclusion/Exclusion
 -- take n scored terms in each parts where n * SampleBins = MapListSize.
 takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
-takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters k) _) scores = L.take l
+takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters _) _) scores = L.take l
                     $ takeSample n m
                     $ L.take l' $ sortWith (Down . _scored_incExc) scores
                     -- $ splitKmeans k scores
   where
     -- TODO: benchmark with accelerate-example kmeans version
-    splitKmeans x xs = L.concat $ map elements
-                     $ V.take (k-1)
-                     $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))
-                              euclidSq x xs
+    --splitKmeans x xs = L.concat $ map elements
+    --                 $ V.take (k-1)
+    --                 $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))
+    --                          euclidSq x xs
     n = round ((fromIntegral l)/s)
     m = round $ (fromIntegral $ length scores) / (s)
-    takeSample n m xs = -- trace ("splitKmeans " <> show (length xs)) $
-                        L.concat $ map (L.take n)
+    takeSample n' m' xs = -- trace ("splitKmeans " <> show (length xs)) $
+                        L.concat $ map (L.take n')
                                  $ map (sortWith (Down . _scored_incExc))
                                  -- TODO use kmeans s instead of splitEvery
                                  -- in order to split in s heteregenous parts
                                  -- without homogeneous order hypothesis
-                                 $ splitEvery m
+                                 $ splitEvery m'
                                  $ sortWith (Down . _scored_speGen) xs
 
 
@@ -125,7 +122,7 @@ data Scored t = Scored { _scored_terms  :: !t
 -- TODO in the textflow we end up needing these indices, it might be better
 -- to compute them earlier and pass them around.
 coocScored :: Ord t => Map (t,t) Int -> [Scored t]
-coocScored m = zipWith (\(i,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
+coocScored m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
   where
     (ti,fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
@@ -171,6 +168,7 @@ metrics_sentences = [ "There is a table with a glass of wine and a spoon."
                     , "I wish the glass did not contain wine."
                     ]
 
+metrics_sentences_Test :: Bool
 metrics_sentences_Test = metrics_sentences == metrics_sentences'
 
 -- | Terms reordered to visually check occurrences
@@ -193,6 +191,7 @@ fromList [ (fromList ["table"] ,fromList [(["table"] , 3 )])]
          , (fromList ["glas"]  ,fromList [(["glas"]  , 2 )])
          , (fromList ["spoon"] ,fromList [(["spoon"] , 2 )])
 -}
+metrics_occ :: IO (Map Grouped (Map Terms Int))
 metrics_occ = occurrences <$> L.concat <$> metrics_terms
 
 {- 
@@ -201,8 +200,10 @@ metrics_occ = occurrences <$> L.concat <$> metrics_terms
             ,((["glas"],["table"]),6),((["object"],["spoon"]),6),((["object"],["table"]),9),((["spoon"],["table"]),6)]
 
 -}
+metrics_cooc :: IO (Map (Label, Label) Int)
 metrics_cooc = cooc <$> metrics_terms
 
+metrics_cooc_mat :: IO (Map Label Index, Matrix Int, Matrix Double, (DAA.Vector InclusionExclusion, DAA.Vector SpecificityGenericity))
 metrics_cooc_mat = do
   m <- metrics_cooc
   let (ti,_) = createIndices m
@@ -213,5 +214,6 @@ metrics_cooc_mat = do
        , incExcSpeGen        mat_cooc
        )
 
+metrics_incExcSpeGen :: IO ([(Label, Double)], [(Label, Double)])
 metrics_incExcSpeGen = incExcSpeGen_sorted <$> metrics_cooc
 

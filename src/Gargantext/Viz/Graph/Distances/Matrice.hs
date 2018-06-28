@@ -34,25 +34,18 @@ Implementation use Accelerate library :
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-
 module Gargantext.Viz.Graph.Distances.Matrice
   where
 
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
-import Data.Array.Accelerate.Smart
-import Data.Array.Accelerate.Type
-import Data.Array.Accelerate.Array.Sugar (fromArr, Array, Z)
 
-import Data.Maybe (Maybe(Just))
 import qualified Gargantext.Prelude as P
-import qualified Data.Array.Accelerate.Array.Representation     as Repr
-
-import Gargantext.Text.Metrics.Count
 
 
 -----------------------------------------------------------------------
 -- Test perf.
+distriTest :: Matrix Double
 distriTest = distributional $ myMat 100
 -----------------------------------------------------------------------
 
@@ -133,7 +126,7 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
   where
     n    = dim m
     
-    filter  m = zipWith (\a b -> max a b) m (transpose m)
+    -- filter  m = zipWith (\a b -> max a b) m (transpose m)
     
     ri mat = zipWith (/) mat1 mat2
       where
@@ -145,7 +138,7 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
 
     total m'' = replicate (constant (Z :. n :. n)) $ fold (+) 0 $ fold (+) 0 m''
     
-    crossProduct m = zipWith (*) (cross m  ) (cross (transpose m))
+    crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
     cross mat      = zipWith (-) (mkSum n mat) (mat)
 
 -----------------------------------------------------------------------
@@ -207,11 +200,11 @@ p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (SymetricMatrix e) -> Acc (Matrix e
 p_ij m = zipWith (/) m (n_jj m)
   where
     n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
-    n_jj m = backpermute (shape m)
+    n_jj myMat' = backpermute (shape m)
                          (lift1 ( \(Z :. (_ :: Exp Int) :. (j:: Exp Int))
                                    -> (Z :. j :. j)
                                 )
-                         ) m
+                         ) myMat'
 
 -- | P(j|i) = Nij /N(ii) Probability to get i given j
 -- to test

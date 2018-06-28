@@ -217,7 +217,7 @@ leftJoin3''' = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12
 
 -- | Building the facet
 selectDocFacet' :: NodeType -> ParentId -> Maybe NodeType -> Query FacetDocRead
-selectDocFacet' pt pId _ = proc () -> do
+selectDocFacet' _ pId _ = proc () -> do
         (n1,(nn,n2)) <- leftJoin3''' -< ()
         restrict -< (.&&) (node_parentId n1 .== (toNullable $ pgInt4 pId))
                           (node_typename n1 .== (pgInt4 $ nodeTypeId Document))

@@ -23,20 +23,20 @@ module Gargantext.Text.Terms.Mono.Token (tokenize)
 import Data.Text (Text)
 import qualified Gargantext.Text.Terms.Mono.Token.En as En
 
-import Gargantext.Core (Lang(..))
-import Gargantext.Prelude
+-- | Contexts depend on the lang
+--import Gargantext.Core (Lang(..))
 
 type Token = Text
 
 -- >>> tokenize "A rose is a rose is a rose."
 -- ["A","rose","is","a","rose","is","a","rose", "."]
--- 
 
-data Context = Letter | Word | Sentence | Line | Paragraph
 
 tokenize :: Text -> [Token]
 tokenize = En.tokenize
 
-tokenize' :: Lang -> Context -> [Token]
-tokenize' = undefined
-
+--data Context = Letter | Word | Sentence | Line | Paragraph
+--
+--tokenize' :: Lang -> Context -> [Token]
+--tokenize' = undefined
+--

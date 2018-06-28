@@ -18,10 +18,10 @@ library:
   ghc-options:
   - -Wincomplete-uni-patterns
   - -Wincomplete-record-updates
-    #- -Wmissing-signatures
-    #- -Wunused-binds
-    #- -Wunused-imports
-    #  - -Werror
+  - -Wmissing-signatures
+  - -Wunused-binds
+  - -Wunused-imports
+  - -Werror
   exposed-modules:
   - Gargantext
   - Gargantext.TextFlow

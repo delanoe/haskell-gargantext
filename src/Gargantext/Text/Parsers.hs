@@ -25,34 +25,18 @@ module Gargantext.Text.Parsers -- (parse, FileFormat(..))
 
 import Gargantext.Prelude
 
-import System.FilePath (takeExtension, FilePath())
-import Data.Attoparsec.ByteString (parseOnly, Parser)
-import qualified Data.ByteString as DB
+import System.FilePath (FilePath())
 import qualified Data.Map        as DM
-import Data.Either.Extra (partitionEithers)
 import Data.Ord()
-import Data.Foldable (concat)
 import Data.String()
-import Data.Either.Extra(Either())
 
 import Data.Text (Text)
-import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text as DT
-----
---import Control.Monad (join)
-import Codec.Archive.Zip (withArchive, getEntry, getEntries)
-import Path.IO (resolveFile')
------- import qualified Data.ByteString.Lazy as B
---import Control.Applicative ( (<$>) )
-import Control.Concurrent.Async as CCA (mapConcurrently)
+-- | Activate Async for to parse in parallel
+--import Control.Concurrent.Async as CCA (mapConcurrently)
 
 import Data.String (String())
-import Gargantext.Text.Parsers.WOS (wosParser)
----- import Gargantext.Parsers.XML (xmlParser)
----- import Gargantext.Parsers.DOC (docParser)
----- import Gargantext.Parsers.ODT (odtParser)
 
---import Gargantext.Types.Main (ErrorMessage(), Corpus)
 
 type ParseError = String
 type Field      = Text

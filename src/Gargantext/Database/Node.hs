@@ -32,7 +32,6 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , returnError
                                             )
 import Prelude hiding (null, id, map, sum)
-import           Data.Time.Segment (jour, timesAfter, Granularity(D))
 
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Node (NodeType)
@@ -55,7 +54,7 @@ import Data.ByteString (ByteString)
 
 import Database.PostgreSQL.Simple (Connection)
 import Opaleye hiding (FromField)
-import Opaleye.Internal.QueryArr (Query(..))
+import Opaleye.Internal.QueryArr (Query)
 import qualified Data.Profunctor.Product as PP
 -- | Types for Node Database Management
 data PGTSVector
@@ -251,6 +250,14 @@ node userId parentId nodeType name nodeData = Node Nothing typeId userId parentI
     typeId = nodeTypeId nodeType
     byteData = DB.pack $ DBL.unpack $ encode nodeData
 
+
+
+node2write :: (Functor f2, Functor f1) =>
+              Int
+              -> NodePoly (f1 Int) Int Int parentId Text (f2 UTCTime) ByteString
+              -> (f1 (Column PGInt4), Column PGInt4, Column PGInt4,
+                  Column PGInt4, Column PGText, f2 (Column PGTimestamptz),
+                  Column PGJsonb)
 node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
                                          ,(pgInt4        tn)
                                          ,(pgInt4        ud)
@@ -312,17 +319,24 @@ mkNode' conn ns = runInsertMany conn nodeTable' ns
 mkNodeR' :: Connection -> [NodeWriteT] -> IO [Int]
 mkNodeR' conn ns = runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
 
+-- | postNode
 postNode :: Connection -> UserId -> ParentId -> Node' -> IO [Int]
 postNode c uid pid (Node' nt txt v []) = mkNodeR' c (node2table uid pid (Node' nt txt v []))
+
 postNode c uid pid (Node' Corpus txt v ns) = do
   [pid']  <- postNode c uid pid (Node' Corpus txt v [])
-  pids    <- mkNodeR' c $ concat $ (map (\(Node' Document txt v _) -> node2table uid pid' $ Node' Document txt v []) ns)
+  pids    <- mkNodeR' c $ concat $ map (\n -> childWith uid pid' n) ns
   pure (pids)
+
 postNode c uid pid (Node' Annuaire txt v ns) = do
   [pid']  <- postNode c uid pid (Node' Annuaire txt v [])
-  pids    <- mkNodeR' c $ concat $ (map (\(Node' UserPage txt v _) -> node2table uid pid' $ Node' UserPage txt v []) ns)
+  pids    <- mkNodeR' c $ concat $ map (\n -> childWith uid pid' n) ns
   pure (pids)
-postNode c uid pid (Node' _ _ _ _) = panic $ pack "postNode for this type not implemented yet"
+postNode _ _ _ (Node' _ _ _ _) = panic $ pack "postNode for this type not implemented yet"
 
 
+childWith :: UserId -> ParentId -> Node' -> [NodeWriteT]
+childWith uId pId (Node' Document txt v []) = node2table uId pId (Node' Document txt v [])
+childWith uId pId (Node' UserPage txt v []) = node2table uId pId (Node' UserPage txt v [])
+childWith _   _   (Node' _        _   _ _) = panic $ pack "This NodeType can not be a child"
 

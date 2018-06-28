@@ -27,12 +27,8 @@ import Data.Text (Text)
 import qualified Text.Read as T
 import qualified Data.Text as T
 
-import Data.Map (Map)
-
 import Gargantext.Prelude
 import Gargantext.Core.Utils.Prefix (unPrefix)
-
-import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode)
 
 
 data TypeNode = Terms | Unknown

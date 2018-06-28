@@ -45,7 +45,7 @@ data Terms = Terms { _terms_label :: Label
                    } deriving (Ord)
 
 instance Show Terms where
-  show (Terms l s) = show l
+  show (Terms l _) = show l
 
 instance Eq Terms where
   (==) (Terms _ s1) (Terms _ s2) = s1 == s2

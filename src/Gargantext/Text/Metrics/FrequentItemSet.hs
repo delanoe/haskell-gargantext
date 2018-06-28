@@ -32,7 +32,6 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Data.Set (Set)
 import qualified Data.Vector as V
-import Data.Vector (Vector)
 
 import Data.List (filter, concat)
 import Data.Maybe (catMaybes)

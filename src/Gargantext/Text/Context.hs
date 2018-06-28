@@ -17,7 +17,7 @@ Context of text management tool
 module Gargantext.Text.Context
   where
 
-import Data.Text (Text, pack, unpack, length)
+import Data.Text (Text, pack, unpack)
 import Data.String (IsString)
 
 import Text.HTML.TagSoup (parseTags, isTagText, Tag(..))
@@ -27,7 +27,9 @@ import Gargantext.Prelude hiding (length)
 
 data SplitContext = Chars Int | Sentences Int | Paragraphs Int
 
+tag :: Text -> [Tag Text]
 tag = parseTags
+
 -- | splitBy contexts of Chars or Sentences or Paragraphs
 -- >> splitBy (Chars 0) "abcde"
 -- ["a","b","c","d","e"]

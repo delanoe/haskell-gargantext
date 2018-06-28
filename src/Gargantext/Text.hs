@@ -17,26 +17,18 @@ Text gathers terms in unit of contexts.
 module Gargantext.Text
   where
 
-import Data.Maybe
-import qualified Data.Text as DT
-
-import qualified Data.Set as S
 import Data.Text (Text, split)
+import qualified Data.Text as DT
 
 import NLP.FullStop (segment)
 -----------------------------------------------------------------
 import Gargantext.Core
-import Gargantext.Core.Types
-import Gargantext.Text.Metrics.Count (Occ, occurrences, cooc)
 import Gargantext.Prelude hiding (filter)
 -----------------------------------------------------------------
 
 type Config  = Lang -> Context
-
 type Context = Text -> [Text]
-
 data Viz = Graph | Phylo | Chart
-
 
 -----------------------------------------------------------------
 -------------------------------------------------------------------

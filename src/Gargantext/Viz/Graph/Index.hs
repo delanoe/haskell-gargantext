@@ -21,7 +21,7 @@ TODO:
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeOperators     #-}
-
+{-# LANGUAGE MonoLocalBinds    #-}
 
 module Gargantext.Viz.Graph.Index
   where
@@ -30,7 +30,6 @@ import qualified Data.Array.Accelerate as A
 import qualified Data.Array.Accelerate.Interpreter as A
 import Data.Array.Accelerate (Matrix, Elt, Shape, (:.)(..), Z(..))
 
-import qualified Data.Vector.Unboxed as DVU
 import Data.Maybe (fromMaybe)
 
 import Data.Set (Set)
@@ -71,7 +70,7 @@ mat2map :: (Elt a, Shape (Z :. Index)) =>
             A.Array (Z :. Index :. Index) a -> Map (Index, Index) a
 mat2map m = M.fromList . map f . A.toList . A.run . A.indexed $ A.use m
   where
-    Z :. _ :. n = A.arrayShape m
+    -- Z :. _ :. n = A.arrayShape m
     f ((Z :. i :. j), x) = ((i, j), x)
 
 -------------------------------------------------------------------------------
@@ -88,8 +87,8 @@ indexConversion index ms = M.fromList $ map (\((k1,k2),c) -> ( ((M.!) index k1, 
 
 -------------------------------------------------------------------------------
 -- TODO
-fromIndex' :: Ord t => Vector t -> Map (Index, Index) a -> Map (t,t) a
-fromIndex' vi ns = undefined
+--fromIndex' :: Ord t => Vector t -> Map (Index, Index) a -> Map (t,t) a
+--fromIndex' vi ns = undefined
 
 -- TODO
 createIndices' :: Ord t => Map (t, t) b -> (Map t Index, Vector t)

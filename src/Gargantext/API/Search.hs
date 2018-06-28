@@ -27,17 +27,12 @@ module Gargantext.API.Search
 
 import GHC.Generics (Generic)
 import Control.Monad.IO.Class (liftIO)
-import Prelude (Bounded, Enum, minBound, maxBound)
 
 
 import Data.Aeson hiding (Error, fieldLabelModifier)
 import Data.Aeson.TH (deriveJSON)
-import Data.Eq (Eq())
-import Data.Either
-import Data.List (repeat, permutations)
 import Data.Swagger
-import Data.Swagger.SchemaOptions
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Database.PostgreSQL.Simple (Connection)
 
 import Servant
@@ -102,7 +97,7 @@ type SearchAPI = Post '[JSON] SearchResults
 
 search :: Connection -> SearchQuery -> Handler SearchResults
 search c (SearchQuery q pId) =
-  liftIO $ SearchResults <$> map (\(i, y, t, s, a, _) -> SearchResult i (cs $ encode t) (cs $ encode a))
+  liftIO $ SearchResults <$> map (\(i, _, t, _, a, _) -> SearchResult i (cs $ encode t) (cs $ encode a))
                          <$> textSearch c (toTSQuery q) pId 5 0 Desc
 
 
