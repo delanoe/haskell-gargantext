@@ -124,9 +124,29 @@ library:
 #  - utc
 
 executables:
-  gargantext:
+  gargantext-server:
     main: Main.hs
-    source-dirs: app
+    source-dirs: bin/gargantext-server
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - base
+      - containers
+      - gargantext
+      - vector
+      - cassava
+      - ini
+      - optparse-generic
+      - unordered-containers
+      - full-text-search
+
+  gargantext-cli:
+    main: Main.hs
+    source-dirs: bin/gargantext-cli
     ghc-options:
     - -threaded
     - -rtsopts
