@@ -3,7 +3,6 @@
 *.cabal
 *purescript-gargantext
 doc
-bin
 deps
 profiling
 _darcs
