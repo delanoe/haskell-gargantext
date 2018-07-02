@@ -33,6 +33,7 @@ compute graph
 module Gargantext.Text.Terms
   where
 
+import qualified Data.Set as Set
 import Data.Text (Text)
 import Data.Traversable
 
@@ -41,8 +42,9 @@ import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Text.Terms.Multi (multiterms)
 import Gargantext.Text.Terms.Mono  (monoterms')
+import Gargantext.Text.Terms.WithList (Patterns, extractTermsWithList)
 
-data TermType lang = Mono lang | Multi lang | MonoMulti lang
+data TermType lang = Mono lang | Multi lang | MonoMulti lang | WithList Patterns
 
 -- remove Stop Words
 -- map (filter (\t -> not . elem t)) $ 
@@ -60,5 +62,6 @@ terms :: TermType Lang -> Text -> IO [Terms]
 terms (Mono      lang) txt = pure $ monoterms' lang txt
 terms (Multi     lang) txt = multiterms lang txt
 terms (MonoMulti lang) txt = terms (Multi lang) txt
+terms (WithList  list) txt = pure . map (\x -> Terms x Set.empty {-TODO-}) $ extractTermsWithList list txt
 ------------------------------------------------------------------------
 

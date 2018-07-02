@@ -13,6 +13,7 @@ commentary with @some markup@.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.List
   where

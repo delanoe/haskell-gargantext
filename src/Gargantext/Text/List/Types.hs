@@ -18,7 +18,7 @@ module Gargantext.Text.List.Types where
 
 import Prelude (Bounded, Enum, minBound, maxBound)
 import Data.Text (Text)
-import Data.Map (Map, empty, fromList, insert, lookup)
+import Data.Map (Map, empty, fromList)
 import Gargantext.Prelude
 
 -------------------------------------------------------------------

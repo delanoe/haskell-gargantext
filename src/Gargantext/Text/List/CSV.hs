@@ -17,7 +17,6 @@ CSV parser for Gargantext corpus files.
 
 module Gargantext.Text.List.CSV where
 
-import GHC.Real (round)
 import GHC.IO (FilePath)
 
 import Control.Applicative
@@ -26,14 +25,14 @@ import Control.Monad (mzero)
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.Text (Text, pack, length, intercalate)
+import Data.Text (Text, pack)
 import qualified Data.ByteString.Lazy as BL
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Gargantext.Prelude hiding (length)
-import Gargantext.Text.List.Types
+-- import Gargantext.Text.List.Types
 ------------------------------------------------------------------------
 
 --csv2lists :: Vector CsvList -> Lists
