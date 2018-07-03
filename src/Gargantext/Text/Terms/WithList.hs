@@ -20,7 +20,7 @@ import qualified Data.Algorithms.KMP as KMP
 import Data.Text (Text)
 import qualified Data.IntMap.Strict as IntMap
 
-import Gargantext.Core.Types (Terms(Terms))
+import Gargantext.Core.Types (Terms(..))
 import Gargantext.Text.Context
 import Gargantext.Text.Terms.Mono (monoTextsBySentence)
 
@@ -50,8 +50,8 @@ replaceTerms pats terms = go 0
           | otherwise =
       case IntMap.lookup ix m of
         Nothing -> go (ix + 1)
-        Just (len, terms) ->
-          terms : go (ix + len)
+        Just (len, term) ->
+          term : go (ix + len)
 
 
     merge (len1, lab1) (len2, lab2) =
@@ -59,8 +59,8 @@ replaceTerms pats terms = go 0
 
     m =
       IntMap.fromListWith merge
-        [ (ix, (len, terms))
-        | Pattern pat len terms <- pats, ix <- KMP.match pat terms ]
+        [ (ix, (len, term))
+        | Pattern pat len term <- pats, ix <- KMP.match pat (_terms_label term) ]
 
 buildPatterns :: TermList -> Patterns
 buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern

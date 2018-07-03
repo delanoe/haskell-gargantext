@@ -52,7 +52,8 @@ main = do
   
   putStrLn $ show $ length termList
 
-  corpusIndexed <- mapM (terms (WithList $ buildPatterns termList)) corpus
+  let patterns = WithList $ buildPatterns termList
+  corpusIndexed <- mapM (terms patterns) corpus
   
   putStrLn $ show corpusIndexed
   let myCooc = cooc corpusIndexed
