@@ -39,7 +39,7 @@ import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract)
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Terms (terms)
-import Gargantext.Text.Metrics.Count (cooc)
+import Gargantext.Text.Metrics.Count (coocOn)
 
 mapMP :: MonadIO m => (a -> m b) -> [a] -> m [b]
 mapMP f xs = do
@@ -70,7 +70,7 @@ main = do
   let patterns = WithList $ buildPatterns termList
   corpusIndexed <- mapMP (terms patterns) corpus
   mapM (putStrLn . show) corpusIndexed
-  let myCooc = cooc corpusIndexed
+  let myCooc = coocOn identity corpusIndexed
 
   putStrLn $ show myCooc
   --writeFile outputFile cooc
