@@ -28,9 +28,10 @@ import Gargantext.Prelude hiding (length)
 ------------------------------------------------------------------------
 
 type Term = Text
-type Label = Term
+type MultiTerm = [Term]
+type Label = MultiTerm
 
-type TermList = [(Label, [[Term]])]
+type TermList = [(Label, [MultiTerm])]
 
 type Sentence  a = [a] -- or a nominal group
 type Corpus    a = [Sentence a] -- a list of sentences

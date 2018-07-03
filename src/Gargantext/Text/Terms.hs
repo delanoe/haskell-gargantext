@@ -33,7 +33,7 @@ compute graph
 module Gargantext.Text.Terms
   where
 
-import qualified Data.Set as Set
+import Data.List (concat)
 import Data.Text (Text)
 import Data.Traversable
 
@@ -64,6 +64,6 @@ terms :: TermType Lang -> Text -> IO [Terms]
 terms (Mono      lang) txt = pure $ monoTerms lang txt
 terms (Multi     lang) txt = multiterms lang txt
 terms (MonoMulti lang) txt = terms (Multi lang) txt
-terms (WithList  list) txt = pure . map (\x -> Terms x Set.empty {-TODO-}) $ extractTermsWithList  list txt
+terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt
 ------------------------------------------------------------------------
 
