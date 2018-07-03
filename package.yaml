@@ -160,6 +160,7 @@ executables:
     - -O2
     - -Wmissing-signatures
     dependencies:
+      - async
       - base
       - containers
       - gargantext

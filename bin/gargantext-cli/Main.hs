@@ -30,7 +30,7 @@ import Data.Text (Text)
 import Data.List (cycle)
 import System.IO (hPutStr, hFlush, stderr)
 import System.Environment
---import Control.Concurrent.Async as CCA (mapConcurrently)
+import Control.Concurrent.Async as CCA (mapConcurrently)
 
 import Gargantext.Prelude
 import Gargantext.Text.Context
@@ -68,7 +68,8 @@ main = do
   putStrLn $ show $ length termList
 
   let patterns = WithList $ buildPatterns termList
-  corpusIndexed <- mapMP (terms patterns) corpus
+  --corpusIndexed <- mapMP (terms patterns) corpus
+  corpusIndexed <- mapConcurrently (terms patterns) corpus
   mapM (putStrLn . show) corpusIndexed
   let myCooc = coocOn identity corpusIndexed
 
