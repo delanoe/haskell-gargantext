@@ -16,10 +16,7 @@ commentary with @some markup@.
 
 module Gargantext.Text.Terms.WithList where
 
-import Prelude (String)
 import qualified Data.Algorithms.KMP as KMP
-import Data.Char (isSpace)
-import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.IntMap.Strict as IntMap
 

@@ -26,20 +26,21 @@ import qualified Data.Vector as DV
 
 import Gargantext.Prelude
 import Data.Text (Text)
+import System.Environment
 
-import Gargantext.Text.Parsers.CSV (readCsv)
+import Gargantext.Text.Parsers.CSV (readCsv, csv_abstract)
 import Gargantext.Text.List.CSV (fromCsvListFile)
 
 main :: IO ()
 main = do
-  [corpusfile, termListFile, outputFile] <- readParams
-  
+  [corpusFile, termListFile, outputFile] <- getArgs
+
   -- corpus :: [Text]
-  corpus   <- DV.toList <$> map DV.csv_abstract <$> readCsv corpusFile
-  
+  corpus   <- DV.toList . fmap csv_abstract . snd <$> readCsv corpusFile
+
   -- termListMap :: [Text]
   termList <- termListMap <$> fromCsvListFile termListFile
-  
+
   let corpusIndexed = indexCorpusWith corpus termList
   let cooc = cooccurrences corpusIndexed
 

@@ -18,7 +18,6 @@ module Gargantext.Text.Terms.Mono (monoTerms, monoTexts, monoTextsBySentence)
 
 import Prelude (String)
 import Data.Char (isSpace)
-import Data.Text (Text, toLower, split, splitOn, pack)
 
 import Data.Text (Text)
 import qualified Data.Text as T
