@@ -232,11 +232,11 @@ type NodeName     = Text
 type NodeUser = Node HyperdataUser
 type Folder   = Node HyperdataFolder
 type Project  = Folder -- NP Node HyperdataProject ?
-type Corpus   = Node HyperdataCorpus
+type NodeCorpus   = Node HyperdataCorpus
 type Document = Node HyperdataDocument
 
 ------------------------------------------------------------------------
-data NodeType = NodeUser | Project | Folder | Corpus | Annuaire | Document | UserPage | DocumentCopy | Favorites
+data NodeType = NodeUser | Project | Folder | NodeCorpus | Annuaire | Document | UserPage | DocumentCopy | Favorites
               | Classification
               | Lists
               | Metrics | Occurrences

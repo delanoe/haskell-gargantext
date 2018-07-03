@@ -22,9 +22,7 @@ import Data.Map (Map, empty, fromList)
 import Gargantext.Prelude
 
 -------------------------------------------------------------------
-type Label = Text
-
-data ListType = Map | Stop | Candidate
+data ListType = GraphList | StopList | CandidateList
   deriving (Show, Eq, Ord, Enum, Bounded)
 
 type Lists = Map ListType (Map Text [Text])

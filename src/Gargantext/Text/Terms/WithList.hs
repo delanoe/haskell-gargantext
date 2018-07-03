@@ -27,11 +27,12 @@ import Gargantext.Prelude
 import Data.List (concatMap)
 
 
+------------------------------------------------------------------------
 
 type Pattern = KMP.Table Term
-type TermList = [(Label, [[Term]])]
 type Patterns = [(Pattern, Int, Label)]
 
+------------------------------------------------------------------------
 
 replaceTerms :: Patterns -> Sentence Term -> Sentence Label
 replaceTerms pats terms = go 0 terms

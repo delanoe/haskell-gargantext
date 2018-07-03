@@ -160,7 +160,7 @@ post'  = do
   c   <- connectGargandb "gargantext.ini"
   pid <- last <$> home c
   let uid = 1
-  postNode c uid pid ( Node' Corpus  (pack "Premier corpus") (toJSON (pack "{}"::Text)) [ Node' Document (pack "Doc1") (toJSON (pack "{}" :: Text)) []
+  postNode c uid pid ( Node' NodeCorpus  (pack "Premier corpus") (toJSON (pack "{}"::Text)) [ Node' Document (pack "Doc1") (toJSON (pack "{}" :: Text)) []
                                                           , Node' Document (pack "Doc2") (toJSON (pack "{}" :: Text)) []
                                                           , Node' Document (pack "Doc3") (toJSON (pack "{}" :: Text)) []
                                                           ]
@@ -178,7 +178,7 @@ postCorpus corpusName title ns = do
   c   <- connectGargandb "gargantext.ini"
   pid <- last <$> home c
   let uid = 1
-  postNode c uid pid ( Node' Corpus  corpusName (toJSON (pack "{}"::Text))
+  postNode c uid pid ( Node' NodeCorpus  corpusName (toJSON (pack "{}"::Text))
                              (map (\n -> Node' Document (title n) (toJSON n) []) ns)
                      )
 

@@ -24,15 +24,19 @@ library:
   - -Werror
   exposed-modules:
   - Gargantext
-  - Gargantext.TextFlow
-  - Gargantext.Prelude
+  - Gargantext.API
   - Gargantext.Core
   - Gargantext.Core.Types
+  - Gargantext.Prelude
   - Gargantext.Text
+  - Gargantext.Text.Context
   - Gargantext.Text.List.CSV
-  - Gargantext.Text.Search
+  - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Parsers.CSV
-  - Gargantext.API
+  - Gargantext.Text.Search
+  - Gargantext.Text.Terms
+  - Gargantext.Text.Terms.WithList
+  - Gargantext.TextFlow
   - Gargantext.Viz.Graph.Distances.Matrice
   dependencies:
   - QuickCheck

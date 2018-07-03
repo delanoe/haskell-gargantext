@@ -22,21 +22,28 @@ import GHC.IO (FilePath)
 import Control.Applicative
 import Control.Monad (mzero)
 
-import Data.Char (ord)
+import Data.Char (ord, isSpace)
 import Data.Csv
 import Data.Either (Either(Left, Right))
 import Data.Text (Text, pack)
+import qualified Data.Text as DT
 import qualified Data.ByteString.Lazy as BL
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Gargantext.Prelude hiding (length)
--- import Gargantext.Text.List.Types
+import Gargantext.Text.Context
+
 ------------------------------------------------------------------------
 
---csv2lists :: Vector CsvList -> Lists
---csv2lists v = V.foldl' (\e (CsvList listType label forms) -> insertLists lt label forms e) emptyLists v
+csvGraphTermList :: FilePath -> IO TermList
+csvGraphTermList fp = csv2list CsvMap <$> snd <$>  fromCsvListFile fp
+
+csv2list :: CsvListType -> Vector CsvList -> TermList
+csv2list lt vs = V.toList $ V.map (\(CsvList _ label forms)
+                           -> (label, map (DT.split isSpace) $ DT.splitOn csvListFormsDelimiter forms))
+                         $ V.filter (\l -> csvList_status l == lt ) vs
 
 ------------------------------------------------------------------------
 data CsvListType = CsvMap | CsvStop | CsvCandidate

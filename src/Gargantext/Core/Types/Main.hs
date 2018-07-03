@@ -59,7 +59,7 @@ projectTree = NodeT Project [corpusTree]
 
 -- | Corpus Tree
 corpusTree :: Tree NodeType
-corpusTree = NodeT Corpus (  [ leafT Document ]
+corpusTree = NodeT NodeCorpus (  [ leafT Document ]
                           <> [ leafT Lists    ]
                           <> [ leafT Metrics  ]
                           <> [ leafT Classification]
@@ -81,7 +81,7 @@ data Lists  =  StopList    | MainList | MapList | GroupList
 
 
 -- | Community Manager Use Case
-type Annuaire  = Corpus
+type Annuaire  = NodeCorpus
 type Individu  = Document
 
 -- | Favorites Node enable Node categorization
@@ -120,7 +120,7 @@ type Notebook = Node HyperdataNotebook
 nodeTypes :: [(NodeType, NodeTypeId)]
 nodeTypes = [ (NodeUser      ,  1)
             , (Folder        ,  2)
-            , (Corpus        ,  30)
+            , (NodeCorpus        ,  30)
             , (Annuaire      ,  31)
             , (Document      ,  40)
             , (UserPage      ,  41)

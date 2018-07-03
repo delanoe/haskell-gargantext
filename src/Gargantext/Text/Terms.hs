@@ -44,13 +44,15 @@ import Gargantext.Text.Terms.Multi (multiterms)
 import Gargantext.Text.Terms.Mono  (monoTerms)
 import Gargantext.Text.Terms.WithList (Patterns, extractTermsWithList)
 
+
 data TermType lang = Mono lang | Multi lang | MonoMulti lang | WithList Patterns
 
 -- remove Stop Words
 -- map (filter (\t -> not . elem t)) $ 
 ------------------------------------------------------------------------
 -- | Sugar to extract terms from text (hiddeng mapM from end user).
-extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
+--extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
+extractTerms :: TermType Lang -> [Text] -> IO [[Terms]]
 extractTerms termTypeLang = mapM (terms termTypeLang)
 ------------------------------------------------------------------------
 -- | Terms from Text

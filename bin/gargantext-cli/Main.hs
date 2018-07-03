@@ -24,24 +24,38 @@ module Main where
 
 import qualified Data.Vector as DV
 
-import Gargantext.Prelude
 import Data.Text (Text)
 import System.Environment
+--import Control.Concurrent.Async as CCA (mapConcurrently)
 
-import Gargantext.Text.Parsers.CSV (readCsv, csv_abstract)
-import Gargantext.Text.List.CSV (fromCsvListFile)
+import Gargantext.Prelude
+import Gargantext.Text.Context
+import Gargantext.Text.Terms
+import Gargantext.Text.Terms.WithList
+import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract)
+import Gargantext.Text.List.CSV (csvGraphTermList)
+import Gargantext.Text.Terms (terms)
+import Gargantext.Text.Metrics.Count (cooc)
 
 main :: IO ()
 main = do
   [corpusFile, termListFile, outputFile] <- getArgs
 
   -- corpus :: [Text]
-  corpus   <- DV.toList . fmap csv_abstract . snd <$> readCsv corpusFile
-
+  corpus <- DV.toList <$> map (\n -> (csv_title n) <> " " <> (csv_abstract n))
+                      <$> snd
+                      <$> readCsv corpusFile
+  
+  putStrLn $ show $ length corpus
   -- termListMap :: [Text]
-  termList <- termListMap <$> fromCsvListFile termListFile
+  termList <- csvGraphTermList termListFile
+  
+  putStrLn $ show $ length termList
 
-  let corpusIndexed = indexCorpusWith corpus termList
-  let cooc = cooccurrences corpusIndexed
+  corpusIndexed <- mapM (terms (WithList $ buildPatterns termList)) corpus
+  
+  putStrLn $ show corpusIndexed
+  let myCooc = cooc corpusIndexed
 
-  writeFile outputFile cooc
+  putStrLn $ show myCooc
+  --writeFile outputFile cooc

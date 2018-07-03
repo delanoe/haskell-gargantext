@@ -323,8 +323,8 @@ mkNodeR' conn ns = runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -
 postNode :: Connection -> UserId -> ParentId -> Node' -> IO [Int]
 postNode c uid pid (Node' nt txt v []) = mkNodeR' c (node2table uid pid (Node' nt txt v []))
 
-postNode c uid pid (Node' Corpus txt v ns) = do
-  [pid']  <- postNode c uid pid (Node' Corpus txt v [])
+postNode c uid pid (Node' NodeCorpus txt v ns) = do
+  [pid']  <- postNode c uid pid (Node' NodeCorpus txt v [])
   pids    <- mkNodeR' c $ concat $ map (\n -> childWith uid pid' n) ns
   pure (pids)
 

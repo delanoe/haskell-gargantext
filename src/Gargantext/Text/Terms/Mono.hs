@@ -40,7 +40,6 @@ import Gargantext.Prelude
 isSep :: Char -> Bool
 isSep = (`elem` (",.:;?!(){}[]\"" :: String))
 
-
 monoTerms :: Lang -> Text -> [Terms]
 monoTerms l txt = map (monoText2term l) $ monoTexts txt
 
@@ -50,12 +49,10 @@ monoTexts = L.concat . monoTextsBySentence
 monoText2term :: Lang -> Text -> Terms
 monoText2term lang txt = Terms [txt] (S.singleton $ stem lang txt)
 
-
 monoTextsBySentence :: Text -> [[Text]]
 monoTextsBySentence = map (T.split isSpace)
                     . T.split isSep
                     . T.toLower
-
 
 
 
