@@ -12,6 +12,7 @@ commentary with @some markup@.
 
 -}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns      #-}
 
 module Gargantext.Text.Terms.WithList where
@@ -24,8 +25,9 @@ import Gargantext.Core.Types (Terms(..))
 import Gargantext.Text.Context
 import Gargantext.Text.Terms.Mono (monoTextsBySentence)
 
+import Prelude (error)
 import Gargantext.Prelude
-import Data.List (concatMap)
+import Data.List (null, concatMap)
 import Data.Ord
 import qualified Data.Set as Set
 
@@ -67,7 +69,10 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
   where
     buildPattern (label, alts) = map f (label : alts)
       where
-        f alt = Pattern (KMP.build alt) (length alt)
+        f alt | "" `elem` alt = error "buildPatterns: ERR1"
+              | null alt      = error "buildPatterns: ERR2"
+              | otherwise     =
+                Pattern (KMP.build alt) (length alt)
                         (Terms label $ Set.empty) -- TODO check stems
 
 extractTermsWithList :: Patterns -> Text -> Corpus Terms

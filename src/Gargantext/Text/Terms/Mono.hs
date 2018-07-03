@@ -17,7 +17,6 @@ module Gargantext.Text.Terms.Mono (monoTerms, monoTexts, monoTextsBySentence)
   where
 
 import Prelude (String)
-import Data.Char (isSpace)
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -50,7 +49,7 @@ monoText2term :: Lang -> Text -> Terms
 monoText2term lang txt = Terms [txt] (S.singleton $ stem lang txt)
 
 monoTextsBySentence :: Text -> [[Text]]
-monoTextsBySentence = map (T.split isSpace)
+monoTextsBySentence = map T.words
                     . T.split isSep
                     . T.toLower
 

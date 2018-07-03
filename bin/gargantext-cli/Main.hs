@@ -24,7 +24,11 @@ module Main where
 
 import qualified Data.Vector as DV
 
+import Control.Monad (zipWithM)
+import Control.Monad.IO.Class
 import Data.Text (Text)
+import Data.List (cycle)
+import System.IO (hPutStr, hFlush, stderr)
 import System.Environment
 --import Control.Concurrent.Async as CCA (mapConcurrently)
 
@@ -36,6 +40,17 @@ import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract)
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Terms (terms)
 import Gargantext.Text.Metrics.Count (cooc)
+
+mapMP :: MonadIO m => (a -> m b) -> [a] -> m [b]
+mapMP f xs = do
+    bs <- zipWithM g (cycle "-\\|/") xs
+    liftIO $ hPutStr stderr "\rDone\n"
+    pure bs
+  where
+    g c x = do
+      liftIO $ hPutStr stderr ['\r',c]
+      liftIO $ hFlush  stderr
+      f x
 
 main :: IO ()
 main = do
@@ -53,9 +68,8 @@ main = do
   putStrLn $ show $ length termList
 
   let patterns = WithList $ buildPatterns termList
-  corpusIndexed <- mapM (terms patterns) corpus
-  
-  putStrLn $ show corpusIndexed
+  corpusIndexed <- mapMP (terms patterns) corpus
+  mapM (putStrLn . show) corpusIndexed
   let myCooc = cooc corpusIndexed
 
   putStrLn $ show myCooc

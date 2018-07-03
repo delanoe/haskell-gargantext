@@ -25,6 +25,7 @@ import Control.Monad (mzero)
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
+import Data.List (null)
 import Data.Text (Text, pack)
 import qualified Data.Text as DT
 import qualified Data.ByteString.Lazy as BL
@@ -42,7 +43,7 @@ csvGraphTermList fp = csv2list CsvMap <$> snd <$>  fromCsvListFile fp
 
 csv2list :: CsvListType -> Vector CsvList -> TermList
 csv2list lt vs = V.toList $ V.map (\(CsvList _ label forms)
-                           -> (DT.words label, map DT.words $ DT.splitOn csvListFormsDelimiter forms))
+                           -> (DT.words label, filter (not . null) . map DT.words $ DT.splitOn csvListFormsDelimiter forms))
                          $ V.filter (\l -> csvList_status l == lt ) vs
 
 ------------------------------------------------------------------------
