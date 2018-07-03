@@ -62,7 +62,7 @@ replaceTerms pats terms = go 0
     m =
       IntMap.fromListWith merge
         [ (ix, (len, term))
-        | Pattern pat len term <- pats, ix <- KMP.match pat (_terms_label term) ]
+        | Pattern pat len term <- pats, ix <- KMP.match pat terms ]
 
 buildPatterns :: TermList -> Patterns
 buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
