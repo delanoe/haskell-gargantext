@@ -62,8 +62,6 @@ terms :: TermType Lang -> Text -> IO [Terms]
 terms (Mono      lang) txt = pure $ monoTerms lang txt
 terms (Multi     lang) txt = multiterms lang txt
 terms (MonoMulti lang) txt = terms (Multi lang) txt
-terms (WithList  list) txt = pure . map (\x -> Terms x Set.empty {-TODO-}) $ extractTermsWithList labelPolicy list txt
-  where
-    labelPolicy = undefined
+terms (WithList  list) txt = pure . map (\x -> Terms x Set.empty {-TODO-}) $ extractTermsWithList  list txt
 ------------------------------------------------------------------------
 

@@ -33,8 +33,8 @@ type TermList = [(Label, [[Term]])]
 type Patterns = [(Pattern, Int, Label)]
 
 
-replaceTerms :: (Term -> Label) -> Patterns -> Sentence Term -> Sentence Label
-replaceTerms labelPolicy pats terms = go 0 terms
+replaceTerms :: Patterns -> Sentence Term -> Sentence Label
+replaceTerms pats terms = go 0 terms
   where
     go _ [] = []
     go !ix (t:ts) =
@@ -43,9 +43,8 @@ replaceTerms labelPolicy pats terms = go 0 terms
         Just (len, label) ->
           label : go (ix + len) (drop (len - 1) ts)
 
-    -- | merge with labelPolicy (can be a Map Term label)
     merge (len1, lab1) (len2, lab2) =
-      if (labelPolicy lab1) == lab2 then (len2, lab2) else (len1, lab1)
+      if len2 < len1 then (len1, lab1) else (len2, lab2)
 
     m =
       IntMap.fromListWith merge
@@ -59,5 +58,5 @@ buildPatterns = concatMap buildPattern
       where
         f alt = (KMP.build alt, length alt, label)
 
-extractTermsWithList :: (Term -> Label) -> Patterns -> Text -> Corpus Label
-extractTermsWithList labelPolicy pats = map (replaceTerms labelPolicy pats) . monoTextsBySentence
+extractTermsWithList :: Patterns -> Text -> Corpus Label
+extractTermsWithList pats = map (replaceTerms pats) . monoTextsBySentence
