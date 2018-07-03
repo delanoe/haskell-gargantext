@@ -7,7 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Context of text management tool
+Context of text management tool, here are logic of main types.
 
 -}
 
@@ -24,6 +24,20 @@ import Text.HTML.TagSoup (parseTags, isTagText, Tag(..))
 import Gargantext.Text
 import Gargantext.Prelude hiding (length)
 
+
+------------------------------------------------------------------------
+
+type Term = Text
+type Label = Term
+
+type Sentence  a = [a] -- or a nominal group
+type Corpus    a = [Sentence a] -- a list of sentences
+
+-- type ConText a = [Sentence a]
+-- type Corpus a = [ConText a]
+
+
+------------------------------------------------------------------------
 
 data SplitContext = Chars Int | Sentences Int | Paragraphs Int
 

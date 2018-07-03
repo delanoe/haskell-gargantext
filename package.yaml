@@ -29,6 +29,7 @@ library:
   - Gargantext.Core
   - Gargantext.Core.Types
   - Gargantext.Text
+  - Gargantext.Text.List.CSV
   - Gargantext.Text.Search
   - Gargantext.Text.Parsers.CSV
   - Gargantext.API

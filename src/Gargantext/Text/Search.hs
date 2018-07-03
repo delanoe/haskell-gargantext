@@ -28,7 +28,7 @@ import Data.Ix
 import Data.Text (Text)
 
 import Gargantext.Prelude
-import Gargantext.Text.Terms.Mono (monoterms)
+import Gargantext.Text.Terms.Mono (monoTexts)
 import Gargantext.Text.Terms.Mono.Stem as ST
 import Gargantext.Text.Parsers.CSV
 
@@ -58,8 +58,8 @@ docSearchConfig =
   }
   where
     extractTerms :: Doc -> DocField -> [Text]
-    extractTerms doc TitleField       = monoterms (d_title doc)
-    extractTerms doc AbstractField    = monoterms (d_abstract doc)
+    extractTerms doc TitleField       = monoTexts (d_title doc)
+    extractTerms doc AbstractField    = monoTexts (d_abstract doc)
 
     normaliseQueryToken :: Text -> DocField -> Text
     normaliseQueryToken tok =

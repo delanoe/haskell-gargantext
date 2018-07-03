@@ -13,10 +13,17 @@ Mono-terms are Nterms where n == 1.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Terms.Mono (monoterms, monoterms')
+module Gargantext.Text.Terms.Mono (monoTerms, monoTexts, monoTextsBySentence)
   where
 
+import Prelude (String)
+import Data.Char (isSpace)
 import Data.Text (Text, toLower, split, splitOn, pack)
+
+import Data.Text (Text)
+import qualified Data.Text as T
+
+import qualified Data.List as L
 import qualified Data.Set as S
 
 import Gargantext.Core
@@ -26,23 +33,30 @@ import Gargantext.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 --import Data.Char (isAlphaNum, isSpace)
 
-monoterms' :: Lang -> Text -> [Terms]
-monoterms' l txt = map (text2terms l) $ monoterms txt
+-- | TODO remove Num ?
+--isGram  c  = isAlphaNum c
 
-monoterms :: Text -> [Text]
-monoterms txt = map toLower $ split isWord txt
-  where
-    isWord c = c `elem` [' ', '\'', ',', ';']
 
-text2terms :: Lang -> Text -> Terms
-text2terms lang txt = Terms label stems
-  where
-    label = splitOn (pack " ") txt
-    stems = S.fromList $ map (stem lang) label
+-- | Sentence split separators
+isSep :: Char -> Bool
+isSep = (`elem` (",.:;?!(){}[]\"" :: String))
 
---monograms :: Text -> [Text]
---monograms xs = monograms $ toLower $ filter isGram xs
 
---isGram :: Char -> Bool
---isGram  c  = isAlphaNum c || isSpace c || c `elem` ['-','/','\'']
+monoTerms :: Lang -> Text -> [Terms]
+monoTerms l txt = map (monoText2term l) $ monoTexts txt
+
+monoTexts :: Text -> [Text]
+monoTexts = L.concat . monoTextsBySentence
+
+monoText2term :: Lang -> Text -> Terms
+monoText2term lang txt = Terms [txt] (S.singleton $ stem lang txt)
+
+
+monoTextsBySentence :: Text -> [[Text]]
+monoTextsBySentence = map (T.split isSpace)
+                    . T.split isSep
+                    . T.toLower
+
+
+
 

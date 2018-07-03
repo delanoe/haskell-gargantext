@@ -16,32 +16,28 @@ commentary with @some markup@.
 
 module Gargantext.Text.Terms.WithList where
 
+import Prelude (String)
 import qualified Data.Algorithms.KMP as KMP
 import Data.Char (isSpace)
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.IntMap.Strict as IntMap
+
+import Gargantext.Text.Context
+import Gargantext.Text.Terms.Mono (monoTextsBySentence)
+
 import Gargantext.Prelude
 import Data.List (concatMap)
 
-type Term = Text
 
-type Label = Term
 
 type Pattern = KMP.Table Term
-
 type TermList = [(Label, [[Term]])]
-
 type Patterns = [(Pattern, Int, Label)]
 
-isMultiTermSep :: Char -> Bool
-isMultiTermSep = (`elem` ",.:;?!(){}[]")
 
-type Sentence  a = [a] -- or a nominal group
-type Corpus    a = [Sentence a] -- a list of sentences
-
-replaceTerms :: Patterns -> Sentence Term -> Sentence Label
-replaceTerms pats terms = go 0 terms
+replaceTerms :: (Term -> Label) -> Patterns -> Sentence Term -> Sentence Label
+replaceTerms labelPolicy pats terms = go 0 terms
   where
     go _ [] = []
     go !ix (t:ts) =
@@ -50,9 +46,9 @@ replaceTerms pats terms = go 0 terms
         Just (len, label) ->
           label : go (ix + len) (drop (len - 1) ts)
 
-    -- TODO is it what we want?
+    -- | merge with labelPolicy (can be a Map Term label)
     merge (len1, lab1) (len2, lab2) =
-      if len1 > len2 then (len1, lab1) else (len2, lab2)
+      if (labelPolicy lab1) == lab2 then (len2, lab2) else (len1, lab1)
 
     m =
       IntMap.fromListWith merge
@@ -66,11 +62,5 @@ buildPatterns = concatMap buildPattern
       where
         f alt = (KMP.build alt, length alt, label)
 
--- monoterms'' :: Lang -> Text -> [Terms]
--- monoterms'' l txt = map (text2terms l) $ monoterms txt
-
-extractTermsWithList :: Patterns -> Text -> Corpus Label
-extractTermsWithList pats =
-  map (replaceTerms pats) .
-  map (T.split isSpace) . -- text2terms
-  T.split isMultiTermSep . T.toLower -- as in monoterms with a different list of seps
+extractTermsWithList :: (Term -> Label) -> Patterns -> Text -> Corpus Label
+extractTermsWithList labelPolicy pats = map (replaceTerms labelPolicy pats) . monoTextsBySentence
