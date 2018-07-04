@@ -11,17 +11,12 @@ cd haskell-gargantext
 git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext
 
 mkdir deps
-cd deps 
+cd deps
 git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/clustering-louvain.git
-cd clustering-louvain
-stack build
-cd ..
 git clone https://github.com/np/servant-job.git
-cd servant-job
+cd ..
+
+stack setup
 stack build
-cd ..
-
-cd ..
-
 stack install
 
