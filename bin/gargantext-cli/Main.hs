@@ -64,7 +64,7 @@ mapMP f xs = do
 mapConcurrentlyChunked :: (a -> IO b) -> [a] -> IO [b]
 mapConcurrentlyChunked f ts = do
   caps <- getNumCapabilities
-  let n = length ts `div` caps
+  let n = 1 `max` (length ts `div` caps)
   concat <$> mapConcurrently (mapM f) (chunksOf n ts)
 
 filterTermsAndCooc
