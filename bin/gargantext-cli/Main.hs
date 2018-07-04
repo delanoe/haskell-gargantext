@@ -63,7 +63,8 @@ mapMP f xs = do
 
 mapConcurrentlyChunked :: (a -> IO b) -> [a] -> IO [b]
 mapConcurrentlyChunked f ts = do
-  n <- getNumCapabilities
+  caps <- getNumCapabilities
+  let n = caps `div` length ts
   concat <$> mapConcurrently (mapM f) (chunksOf n ts)
 
 filterTermsAndCooc
@@ -94,11 +95,8 @@ main = do
 
   putStrLn $ show $ length termList
 
-  let years = DM.keys corpus
   let patterns = WithList $ buildPatterns termList
-  let corpus' = DMaybe.catMaybes $ map (\k -> DM.lookup k corpus) years
 
-
-  r <- mapConcurrentlyChunked (filterTermsAndCooc patterns) (zip years corpus')
+  r <- mapConcurrentlyChunked (filterTermsAndCooc patterns) (DM.toList corpus)
   putStrLn $ show r
   --writeFile outputFile cooc
