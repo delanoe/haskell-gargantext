@@ -74,9 +74,9 @@ main = do
 
   --corpus :: IO (DM.IntMap [[Text]])
   corpus <- DM.fromListWith (<>)
-                           <$> DV.toList
-                           <$> DV.map (\n -> (csv_publication_year n, [(csv_title n) <> " " <> (csv_abstract n)]))
-                           <$> snd
+                             . DV.toList
+                             . DV.map (\n -> (csv_publication_year n, [(csv_title n) <> " " <> (csv_abstract n)]))
+                             . snd
                            <$> readCsv corpusFile
 
   -- termListMap :: [Text]
