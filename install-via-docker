@@ -1,0 +1,28 @@
+#!/bin/bash
+
+if docker version; then
+  :
+else
+  curl -sSL https://get.docker.com/ | sh
+fi
+
+curl -sSL https://get.haskellstack.org/ | sh
+stack update
+
+git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/haskell-gargantext.git
+
+cd haskell-gargantext
+
+git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext
+
+mkdir deps
+cd deps
+git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/clustering-louvain.git
+git clone https://github.com/np/servant-job.git
+cd ..
+
+stack docker pull
+stack --docker setup
+stack --docker build
+stack --docker install
+
