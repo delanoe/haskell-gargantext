@@ -32,10 +32,13 @@ import qualified Data.IntMap as DM
 
 import Data.Map (Map)
 import Data.Text (Text)
-import Data.List (cycle)
+import Data.List (cycle, concat)
+import Data.List.Split (chunksOf)
 import System.IO (hPutStr, hFlush, stderr)
 import System.Environment
 import Control.Concurrent.Async as CCA (mapConcurrently)
+import Control.Concurrent (getNumCapabilities)
+import Prelude ((>>))
 
 import Gargantext.Prelude
 import Gargantext.Core
@@ -58,18 +61,22 @@ mapMP f xs = do
       liftIO $ hFlush  stderr
       f x
 
-
-
+mapConcurrentlyChunked :: (a -> IO b) -> [a] -> IO [b]
+mapConcurrentlyChunked f ts = do
+  n <- getNumCapabilities
+  concat <$> mapConcurrently (mapM f) (chunksOf n ts)
 
 filterTermsAndCooc
   :: TermType Lang
      -> (Int, [Text])
      -> IO (Map (Terms, Terms) Coocs)
 filterTermsAndCooc patterns (year, ts) = do
-  putStrLn $ "start filterTermsAndCooc " <> show year
-  r <- coocOn identity <$> mapM (terms patterns) ts
-  putStrLn $ "stop filterTermsAndCooc " <> show year
+  log "start"
+  r <- coocOn identity <$> mapM (\x -> {-log "work" >>-} terms patterns x) ts
+  log "stop"
   pure r
+  where
+    log m = putStrLn $ "filterTermsAndCooc: " <> m <> " " <> show year
 
 --main :: IO [()]
 main = do
@@ -92,6 +99,6 @@ main = do
   let corpus' = DMaybe.catMaybes $ map (\k -> DM.lookup k corpus) years
 
 
-  r <- mapConcurrently (filterTermsAndCooc patterns) (zip years corpus')
+  r <- mapConcurrentlyChunked (filterTermsAndCooc patterns) (zip years corpus')
   putStrLn $ show r
   --writeFile outputFile cooc

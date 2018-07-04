@@ -168,6 +168,7 @@ executables:
       - cassava
       - ini
       - optparse-generic
+      - split
       - unordered-containers
       - full-text-search
 
