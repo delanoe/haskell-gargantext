@@ -63,10 +63,13 @@ mapMP f xs = do
 
 filterTermsAndCooc
   :: TermType Lang
-     -> [Text]
+     -> (Int, [Text])
      -> IO (Map (Terms, Terms) Coocs)
-filterTermsAndCooc patterns ts = coocOn identity <$> mapM (terms patterns) ts
-
+filterTermsAndCooc patterns (year, ts) = do
+  putStrLn $ "start filterTermsAndCooc " <> show year
+  r <- coocOn identity <$> mapM (terms patterns) ts
+  putStrLn $ "stop filterTermsAndCooc " <> show year
+  pure r
 
 --main :: IO [()]
 main = do
@@ -89,6 +92,6 @@ main = do
   let corpus' = DMaybe.catMaybes $ map (\k -> DM.lookup k corpus) years
 
 
-  r <- zip years <$> mapConcurrently (filterTermsAndCooc patterns) corpus'
+  r <- mapConcurrently (filterTermsAndCooc patterns) (zip years corpus')
   putStrLn $ show r
   --writeFile outputFile cooc
