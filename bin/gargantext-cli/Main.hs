@@ -32,12 +32,12 @@ import qualified Data.IntMap as DM
 
 import Data.Map (Map)
 import Data.Text (Text)
-import Data.List (cycle, concat)
+import Data.List (cycle, concat, unwords)
 import Data.List.Split (chunksOf)
 import System.IO (hPutStr, hFlush, stderr)
 import System.Environment
 import Control.Concurrent.Async as CCA (mapConcurrently)
-import Control.Concurrent (getNumCapabilities)
+import Control.Concurrent (getNumCapabilities, myThreadId, threadCapability)
 import Prelude ((>>))
 
 import Gargantext.Prelude
@@ -77,7 +77,11 @@ filterTermsAndCooc patterns (year, ts) = do
   log "stop"
   pure r
   where
-    log m = putStrLn $ "filterTermsAndCooc: " <> m <> " " <> show year
+    log m = do
+      tid <- myThreadId
+      (p, _) <- threadCapability tid
+      putStrLn . unwords $
+        ["filterTermsAndCooc:", m, show year, "on proc", show p]
 
 --main :: IO [()]
 main = do
