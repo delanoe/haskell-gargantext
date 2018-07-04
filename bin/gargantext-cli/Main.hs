@@ -28,7 +28,7 @@ import qualified Data.Maybe  as DMaybe
 import Control.Monad (zipWithM)
 import Control.Monad.IO.Class
 
-import qualified Data.Map.Strict as DM
+import qualified Data.IntMap as DM
 
 import Data.Map (Map)
 import Data.Text (Text)
@@ -72,18 +72,18 @@ filterTermsAndCooc patterns ts = coocOn identity <$> mapM (terms patterns) ts
 main = do
   [corpusFile, termListFile, _] <- getArgs
 
-  -- corpus :: [Text]
-  corpus <- foldl' (\m e -> DM.insertWith (\_ x -> (snd e) <> x) (fst e) [] m) DM.empty
+  --corpus :: IO (DM.IntMap [[Text]])
+  corpus <- DM.fromListWith (<>)
                            <$> DV.toList
                            <$> DV.map (\n -> (csv_publication_year n, [(csv_title n) <> " " <> (csv_abstract n)]))
                            <$> snd
                            <$> readCsv corpusFile
-  
+
   -- termListMap :: [Text]
   termList <- csvGraphTermList termListFile
-  
+
   putStrLn $ show $ length termList
-  
+
   let years = DM.keys corpus
   let patterns = WithList $ buildPatterns termList
   let corpus' = DMaybe.catMaybes $ map (\k -> DM.lookup k corpus) years
