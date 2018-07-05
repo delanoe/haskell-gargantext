@@ -221,14 +221,11 @@ selectNodesWithType type_id = proc () -> do
     restrict -< tn .== type_id
     returnA -< row
 
-getNode' :: Connection -> Int -> IO (Node Value)
-getNode' c id = do
-  fromMaybe (error "TODO: 404") . headMay <$> runQuery c (limit 1 $ selectNode (pgInt4 id))
-
 
 getNode :: Connection -> Int -> IO (Node Value)
 getNode conn id = do
-    fromMaybe (error "TODO: 404") . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
+    fromMaybe (error $ "Node does node existe: " <> show id) . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
+
 
 getNodesWithType :: Connection -> Column PGInt4 -> IO [Node HyperdataDocument]
 getNodesWithType conn type_id = do
