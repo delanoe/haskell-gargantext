@@ -101,6 +101,7 @@ main = do
 
   let patterns = WithList $ buildPatterns termList
 
-  r <- mapConcurrentlyChunked (filterTermsAndCooc patterns) (DM.toList corpus)
+  -- r <- mapConcurrentlyChunked (filterTermsAndCooc patterns) (DM.toList corpus)
+  r <- mapConcurrently (filterTermsAndCooc patterns) (DM.toList corpus)
   putStrLn $ show r
   --writeFile outputFile cooc
