@@ -28,13 +28,13 @@ Source : https://en.wikipedia.org/wiki/Type%E2%80%93token_distinction#Occurrence
 module Gargantext.Text.Metrics.Count
   where
 
-
+import Data.Text (Text)
 import Control.Arrow (Arrow(..), (***))
 import qualified Data.List as List
 
 import qualified Data.Map.Strict as DMS
 import Data.Map.Strict  ( Map, empty, singleton
-                        , insertWith, unionWith
+                        , insertWith, unionWith, unionsWith
                         , mapKeys
                         )
 import Data.Set (Set)
@@ -69,8 +69,8 @@ type Grouped = Stems
 ---- 
            -}
 
-type Occs = Int
-type Coocs = Int
+type Occs      = Int
+type Coocs     = Int
 type Threshold = Int
 
 removeApax :: Threshold -> Map (Label, Label) Int -> Map (Label, Label) Int
@@ -108,17 +108,30 @@ labelPolicy m g =  case _terms_label <$> fst <$> maximumWith snd <$> DMS.toList 
 -}
 
 coocOn :: Ord b => (a -> b) -> [[a]] -> Map (b, b) Coocs
-coocOn f as = foldl' (\a b -> DMS.unionWith (+) a b) empty $ map (coocOn' f) as
+coocOn f as = DMS.unionsWith (+) $ map (coocOn' f) as
+
+coocOn' :: Ord b => (a -> b) -> [a] -> Map (b, b) Coocs
+coocOn' fun ts = DMS.fromListWith (+) xs
   where
-    coocOn' :: Ord b => (a -> b) -> [a] -> Map (b, b) Coocs
-    coocOn' fun ts = foldl' (\m (xy,c) -> insertWith ((+)) xy c m) empty xs
-      where
-          ts' = List.nub $ map fun ts
-          xs = [ ((x, y), 1)
-               | x <- ts'
-               , y <- ts'
-    --           , x /= y
-               ]
+      ts' = List.nub $ map fun ts
+      xs = [ ((x, y), 1)
+           | x <- ts'
+           , y <- ts'
+           , x >= y
+           ]
+
+coocOnContexts :: (a -> [Text]) -> [[a]] -> Map ([Text], [Text]) Int
+coocOnContexts fun = DMS.fromListWith (+) . List.concat . map (coocOnSingleContext fun)
+
+coocOnSingleContext :: (a -> [Text]) -> [a] -> [(([Text], [Text]), Int)]
+coocOnSingleContext fun ts = xs
+  where
+      ts' = List.nub $ map fun ts
+      xs = [ ((x, y), 1)
+           | x <- ts'
+           , y <- ts'
+           , x >= y
+           ]
 
 
 -- | Compute the grouped occurrences (occ)
@@ -131,6 +144,6 @@ occurrencesOn f = foldl' (\m a -> insertWith (unionWith (+)) (f a) (singleton a 
 -- TODO add groups and filter stops
 
 sumOcc :: Ord a => [Occ a] -> Occ a
-sumOcc xs = foldl' (unionWith (+)) empty xs
+sumOcc xs = unionsWith (+) xs
 
 

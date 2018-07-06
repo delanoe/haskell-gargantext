@@ -47,6 +47,10 @@ import Gargantext.Text.Terms.WithList (Patterns, extractTermsWithList)
 
 data TermType lang = Mono lang | Multi lang | MonoMulti lang | WithList Patterns
 
+
+group :: [Text] -> [Text]
+group = undefined
+
 -- remove Stop Words
 -- map (filter (\t -> not . elem t)) $ 
 ------------------------------------------------------------------------

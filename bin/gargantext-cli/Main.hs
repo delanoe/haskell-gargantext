@@ -22,6 +22,8 @@ Main specifications to index a corpus with a term list
 
 module Main where
 
+import Data.Maybe (catMaybes)
+import Data.Text (pack)
 import qualified Data.Vector as DV
 import qualified Data.Maybe  as DMaybe
 
@@ -44,6 +46,7 @@ import Gargantext.Prelude
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Text.Terms
+import Gargantext.Text.Context
 import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract, csv_publication_year)
 import Gargantext.Text.List.CSV (csvGraphTermList)
@@ -78,7 +81,7 @@ filterTermsAndCooc patterns (year, ts) = do
   pure r
   where
     log m = do
-      tid <- myThreadId
+      tid    <- myThreadId
       (p, _) <- threadCapability tid
       putStrLn . unwords $
         ["filterTermsAndCooc:", m, show year, "on proc", show p]
@@ -105,3 +108,23 @@ main = do
   r <- mapConcurrently (filterTermsAndCooc patterns) (DM.toList corpus)
   putStrLn $ show r
   --writeFile outputFile cooc
+
+
+testCooc = do
+  let patterns = WithList $ buildPatterns testTermList
+  mapM (\x -> {-log "work" >>-} terms patterns x) $ catMaybes $ map (head . snd) testCorpus
+  --mapConcurrently (filterTermsAndCooc patterns) testCorpus
+
+
+testCorpus :: [(Int, [Text])]
+testCorpus = [ (1998, [pack "The beees"])
+             , (1999, [ pack "The bees and the flowers" 
+                      --, pack "The bees and the flowers" 
+                      ])
+             ]
+
+testTermList :: TermList
+testTermList = [ ([pack "bee"], [[pack "bees"]])
+               , ([pack "flower"], [[pack "flowers"]])
+               ]
+
