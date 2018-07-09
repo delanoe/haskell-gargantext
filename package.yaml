@@ -160,8 +160,10 @@ executables:
     - -O2
     - -Wmissing-signatures
     dependencies:
+      - aeson
       - async
       - base
+      - bytestring
       - containers
       - gargantext
       - vector

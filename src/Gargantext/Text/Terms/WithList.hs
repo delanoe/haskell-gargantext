@@ -21,7 +21,6 @@ import qualified Data.Algorithms.KMP as KMP
 import Data.Text (Text)
 import qualified Data.IntMap.Strict as IntMap
 
-import Gargantext.Core.Types (Terms(..))
 import Gargantext.Text.Context
 import Gargantext.Text.Terms.Mono (monoTextsBySentence)
 
@@ -29,21 +28,20 @@ import Prelude (error)
 import Gargantext.Prelude
 import Data.List (null, concatMap)
 import Data.Ord
-import qualified Data.Set as Set
 
 
 ------------------------------------------------------------------------
 
 data Pattern = Pattern
-  { _pat_table  :: !(KMP.Table Term)
+  { _pat_table  :: !(KMP.Table Text)
   , _pat_length :: !Int
-  , _pat_terms  :: !Terms
+  , _pat_terms  :: ![Text]
   }
 type Patterns = [Pattern]
 
 ------------------------------------------------------------------------
 
-replaceTerms :: Patterns -> Sentence Term -> Sentence Terms
+replaceTerms :: Patterns -> [Text] -> [[Text]]
 replaceTerms pats terms = go 0
   where
     terms_len = length terms
@@ -72,8 +70,8 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
         f alt | "" `elem` alt = error "buildPatterns: ERR1"
               | null alt      = error "buildPatterns: ERR2"
               | otherwise     =
-                Pattern (KMP.build alt) (length alt)
-                        (Terms label $ Set.empty) -- TODO check stems
+                Pattern (KMP.build alt) (length alt) label
+                        --(Terms label $ Set.empty) -- TODO check stems
 
-extractTermsWithList :: Patterns -> Text -> Corpus Terms
+extractTermsWithList :: Patterns -> Text -> Corpus [Text]
 extractTermsWithList pats = map (replaceTerms pats) . monoTextsBySentence

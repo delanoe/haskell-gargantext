@@ -73,10 +73,10 @@ type Occs      = Int
 type Coocs     = Int
 type Threshold = Int
 
-removeApax :: Threshold -> Map (Label, Label) Int -> Map (Label, Label) Int
+removeApax :: Threshold -> Map ([Text], [Text]) Int -> Map ([Text], [Text]) Int
 removeApax t = DMS.filter (> t)
 
-cooc :: [[Terms]] -> Map (Label, Label) Int
+cooc :: [[Terms]] -> Map ([Text], [Text]) Int
 cooc tss = coocOnWithLabel _terms_stem (useLabelPolicy label_policy) tss
   where
     terms_occs = occurrencesOn _terms_stem (List.concat tss)
@@ -91,12 +91,12 @@ coocOnWithLabel on' policy tss = mapKeys (delta policy) $ coocOn on' tss
     delta f = f *** f
 
 
-mkLabelPolicy :: Map Grouped (Map Terms Occs) -> Map Grouped Label
+mkLabelPolicy :: Map Grouped (Map Terms Occs) -> Map Grouped [Text]
 mkLabelPolicy = DMS.map f where
   f = _terms_label . fst . maximumWith snd . DMS.toList
      -- TODO use the Foldable instance of Map instead of building a list
 
-useLabelPolicy :: Map Grouped Label -> Grouped -> Label
+useLabelPolicy :: Map Grouped [Text] -> Grouped -> [Text]
 useLabelPolicy m g = case DMS.lookup g m of
   Just label -> label
   Nothing    -> panic $ "Label of Grouped not found: " <> (pack $ show g)
@@ -120,6 +120,8 @@ coocOn' fun ts = DMS.fromListWith (+) xs
            , x >= y
            ]
 
+------------------------------------------------------------------------
+
 coocOnContexts :: (a -> [Text]) -> [[a]] -> Map ([Text], [Text]) Int
 coocOnContexts fun = DMS.fromListWith (+) . List.concat . map (coocOnSingleContext fun)
 
@@ -132,6 +134,7 @@ coocOnSingleContext fun ts = xs
            , y <- ts'
            , x >= y
            ]
+------------------------------------------------------------------------
 
 
 -- | Compute the grouped occurrences (occ)
