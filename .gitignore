@@ -1,8 +1,25 @@
-.stack-work
-*.swp
+# Cabal
 *.cabal
-*purescript-gargantext
+
+# Profiling
+*.prof
+profiling
+
+# Stack
+.stack-work
+
+# Emacs
+TAGS
+*.swp
+.dir-locals.el
+
+# UI
+gui
+purescript-gargantext
+
+# Docs and Deps
 doc
 deps
-profiling
 _darcs
+
+# Runtime
