@@ -65,12 +65,15 @@ import Gargantext.Text.Metrics.Count (coocOnContexts, Coocs)
 ------------------------------------------------------------------------
 -- OUTPUT format
 
-data CoocByYear = CoocByYear { year  :: Int
+data CoocByYear = CoocByYear { year         :: Int
+                             , nbContexts   :: NbContexts
                              , coocurrences :: Map (Text, Text) Coocs
                              } deriving (Show, Generic)
 
 data CoocByYears = CoocByYears { years :: [CoocByYear] }
   deriving (Show, Generic)
+
+type NbContexts = Int
 
 instance ToJSON CoocByYear
 instance ToJSON CoocByYears
@@ -84,7 +87,7 @@ filterTermsAndCooc patterns (year, ts) = do
   log "start"
   r <- coocOnContexts identity <$> mapM (\x -> {-log "work" >>-} terms' patterns x) ts
   log "stop"
-  pure $ CoocByYear year (DM.mapKeys (both DT.unwords) r)
+  pure $ CoocByYear year (length ts) (DM.mapKeys (both DT.unwords) r)
   where
 
     log m = do
