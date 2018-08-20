@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Prelude
-Description : 
+Description : Specific Prelude of the project
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -72,18 +72,12 @@ import Text.Show (Show(), show)
 import Text.Read (Read())
 import Data.String.Conversions (cs)
 
---pf :: (a -> Bool) -> [a] -> [a]
---pf = filter
-
-pr :: [a] -> [a]
-pr = reverse
-
---pm :: (a -> b) -> [a] -> [b]
---pm = map
 
 map2 :: (t -> b) -> [[t]] -> [[b]]
 map2 fun = map (map fun)
 
+
+-- Some Statistics sugar functions
 -- Exponential Average
 eavg :: [Double] -> Double
 eavg (x:xs) = a*x + (1-a)*(eavg xs)
@@ -94,6 +88,7 @@ eavg [] = 0
 mean :: Fractional a => [a] -> a
 mean xs = if L.null xs then 0.0
                        else sum xs / fromIntegral (length xs)
+
 
 sumMaybe :: Num a => [Maybe a] -> Maybe a
 sumMaybe = fmap sum . M.sequence
@@ -187,17 +182,17 @@ trunc' :: Int -> Double -> Double
 trunc' n x = fromIntegral $ truncate $ (x * 10^n)
 
 
-bool2int :: Num a => Bool -> a
-bool2int b = case b of
-                  True  -> 1
-                  False -> 0
+------------------------------------------------------------------------
+bool2num :: Num a => Bool -> a
+bool2num True  = 1
+bool2num False = 0
 
 bool2double :: Bool -> Double
-bool2double bool = case bool of
-                  True  -> 1.0
-                  False -> 0.0
+bool2double = bool2num
 
-
+bool2int :: Bool -> Int
+bool2int = bool2num
+------------------------------------------------------------------------
 
 -- Normalizing && scaling data
 scale :: [Double] -> [Double]
@@ -217,8 +212,6 @@ scaleNormalize xs = map (\x -> (x - v / (m + 1))) xs'
         m = mean     xs'
         xs' = map abs xs
 
-
-
 normalize :: [Double] -> [Double]
 normalize as = normalizeWith identity as
 
@@ -233,10 +226,6 @@ zipFst  f xs = zip (f xs) xs
 
 zipSnd :: ([a] -> [b]) -> [a] -> [(a, b)]
 zipSnd f xs = zip xs (f xs)
-
--- Just 
-unMaybe :: [Maybe a] -> [a]
-unMaybe = map fromJust . L.filter isJust
 
 -- | maximumWith
 maximumWith :: (Ord a1, Foldable t) => (a2 -> a1) -> t a2 -> a2

@@ -1,14 +1,12 @@
 {-|
 Module      : Gargantext.Core
-Description : 
+Description : Which Natural language is supported ?
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
 -}
 
 module Gargantext.Core
@@ -19,7 +17,6 @@ module Gargantext.Core
 -- For simplicity, we suppose text has an homogenous language
 
 data Lang = EN | FR
-
 -- | DE | IT | SP
 --  EN == english
 --  FR == french

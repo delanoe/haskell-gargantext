@@ -51,7 +51,6 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 | |_| | (_| | | | (_| | (_| | | | | ||  __/>  <| |_
  \____|\__,_|_|  \__, |\__,_|_| |_|\__\___/_/\_\\__|
                  |___/
-
 -}
 
 printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
