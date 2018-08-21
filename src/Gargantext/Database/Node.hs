@@ -224,7 +224,7 @@ selectNodesWithType type_id = proc () -> do
 
 getNode :: Connection -> Int -> IO (Node Value)
 getNode conn id = do
-    fromMaybe (error $ "Node does node existe: " <> show id) . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
+    fromMaybe (error $ "Node does node exist: " <> show id) . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
 
 
 getNodesWithType :: Connection -> Column PGInt4 -> IO [Node HyperdataDocument]

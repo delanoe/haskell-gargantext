@@ -27,7 +27,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Array.Accelerate as A
 import qualified Data.Map.Strict as M
 ----------------------------------------------
-import Gargantext.Core (Lang(FR))
+import Gargantext.Core (Lang)
 import Gargantext.Core.Types (Label)
 import Gargantext.Prelude
 
@@ -36,7 +36,7 @@ import Gargantext.Viz.Graph.Distances.Matrice (conditional)
 import Gargantext.Viz.Graph (Graph(..), Node(..), Edge(..), Attributes(..), TypeNode(..))
 import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Metrics
-import Gargantext.Text.Terms (TermType(Mono), extractTerms)
+import Gargantext.Text.Terms (TermType, extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 import Gargantext.Text.Parsers.CSV
@@ -57,20 +57,31 @@ printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
 printDebug msg x = putStrLn $ msg <> " " <> show x
 --printDebug _ _ = pure ()
 
-data TextFlow = CSV | FullText
+data TextFlow = CSV FilePath
+              | FullText FilePath
+              | Contexts [T.Text]
+              | SQL Int
+              | Database T.Text
+                -- | ExtDatabase Query
+                -- | IntDatabase NodeId
 
--- workflow :: Lang (EN|FR) -> FilePath -> Graph
-textflow :: Lang -> TextFlow -> FilePath -> IO Graph
-textflow _ workType path = do
-  -- Text  <- IO Text <- FilePath
+textFlow :: TermType Lang -> TextFlow -> IO Graph
+textFlow termType workType = do
   contexts <- case workType of
-                FullText -> splitBy (Sentences 5) <$> readFile path
-                CSV      -> readCsvOn [csv_title, csv_abstract] path
+                FullText path -> splitBy (Sentences 5) <$> readFile path
+                CSV      path -> readCsvOn [csv_title, csv_abstract] path
+                Contexts ctxt -> pure ctxt
+                _             -> undefined
 
+  textFlow' termType contexts
+
+
+textFlow' :: TermType Lang -> [T.Text] -> IO Graph
+textFlow' termType contexts = do
   -- Context :: Text -> [Text]
   -- Contexts = Paragraphs n | Sentences n | Chars n
 
-  myterms <- extractTerms (Mono FR) contexts
+  myterms <- extractTerms termType contexts
   -- TermsType = Mono | Multi | MonoMulti
   -- myterms # filter (\t -> not . elem t stopList)
   --         # groupBy (Stem|GroupList|Ontology)
@@ -109,7 +120,7 @@ textflow _ workType path = do
 --  let distanceMat = distributional matCooc
   printDebug "distanceMat" $ A.arrayShape distanceMat
   --printDebug "distanceMat" distanceMat
--- 
+--
   let distanceMap = mat2map distanceMat
   printDebug "distanceMap" $ M.size distanceMap
 --{-
@@ -121,7 +132,6 @@ textflow _ workType path = do
   printDebug "partitions" $ length partitions
   --printDebug "partitions" partitions
   pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
-
 
 -----------------------------------------------------------
 -- distance should not be a map since we just "toList" it (same as cLouvain)

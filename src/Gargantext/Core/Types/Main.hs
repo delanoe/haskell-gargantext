@@ -120,7 +120,7 @@ type Notebook = Node HyperdataNotebook
 nodeTypes :: [(NodeType, NodeTypeId)]
 nodeTypes = [ (NodeUser      ,  1)
             , (Folder        ,  2)
-            , (NodeCorpus        ,  30)
+            , (NodeCorpus    ,  30)
             , (Annuaire      ,  31)
             , (Document      ,  40)
             , (UserPage      ,  41)
