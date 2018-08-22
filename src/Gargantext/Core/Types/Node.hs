@@ -69,7 +69,39 @@ $(deriveJSON (unPrefix "status_") ''Status)
 instance Arbitrary Status where
   arbitrary = Status <$> arbitrary <*> arbitrary <*> arbitrary
 
+
 ------------------------------------------------------------------------
+data StatusV3  = StatusV3 { statusV3_error  :: Maybe Text
+                          , statusV3_action :: Maybe Text
+                      } deriving (Show, Generic)
+$(deriveJSON (unPrefix "statusV3_") ''StatusV3)
+
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication_day    :: Maybe Int
+                                               , hyperdataDocumentV3_language_iso2      :: Maybe Text
+                                               , hyperdataDocumentV3_publication_minute :: Maybe Int
+                                               , hyperdataDocumentV3_error              :: Maybe Text
+                                               , hyperdataDocumentV3_publication_month  :: Maybe Int
+                                               , hyperdataDocumentV3_language_iso3      :: Maybe Text
+                                               , hyperdataDocumentV3_publication_second :: Maybe Int
+                                               , hyperdataDocumentV3_authors            :: Maybe Text
+                                               , hyperdataDocumentV3_publication_year   :: Maybe Int
+                                               , hyperdataDocumentV3_publication_date   :: Maybe Text
+                                               , hyperdataDocumentV3_language_name      :: Maybe Text
+                                               , hyperdataDocumentV3_statuses           :: Maybe [StatusV3]
+                                               , hyperdataDocumentV3_realdate_full_     :: Maybe Text
+                                               , hyperdataDocumentV3_source             :: Maybe Text
+                                               , hyperdataDocumentV3_abstract           :: Maybe Text
+                                               , hyperdataDocumentV3_title              :: Maybe Text
+                                               , hyperdataDocumentV3_publication_hour   :: Maybe Int
+                                               } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
+
+
+------------------------------------------------------------------------
+
 data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd                :: Maybe Text
                                            , hyperdataDocument_doi                :: Maybe Int
                                            , hyperdataDocument_url                :: Maybe Text
@@ -85,14 +117,15 @@ data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd              
                                            , hyperdataDocument_publication_hour   :: Maybe Int
                                            , hyperdataDocument_publication_minute :: Maybe Int
                                            , hyperdataDocument_publication_second :: Maybe Int
-                                           , hyperdataDocument_languageIso2       :: Maybe Text
+                                           , hyperdataDocument_language_iso2       :: Maybe Text
+                                           , hyperdataDocument_language_iso3       :: Maybe Text
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
 
 toHyperdataDocuments :: [(Text, Text)] -> [HyperdataDocument]
 toHyperdataDocuments ts = map (\(t1,t2) -> HyperdataDocument Nothing Nothing Nothing Nothing (Just t1) 
                                            Nothing (Just t2) Nothing Nothing Nothing 
-                                           Nothing Nothing Nothing Nothing Nothing Nothing
+                                           Nothing Nothing Nothing Nothing Nothing Nothing Nothing
                                            ) ts
 
 hyperdataDocuments :: [HyperdataDocument]
@@ -291,6 +324,7 @@ hyperdataDocument = case decode docExample of
                                                    Nothing Nothing Nothing Nothing
                                                    Nothing Nothing Nothing Nothing
                                                    Nothing Nothing Nothing Nothing
+                                                   Nothing
 docExample :: ByteString
 docExample = "{\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"statuses\":[],\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 

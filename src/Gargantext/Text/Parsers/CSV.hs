@@ -52,6 +52,7 @@ data Doc = Doc
 ---------------------------------------------------------------
 -- | Doc 2 HyperdataDocument
 doc2hyperdataDocument :: Doc -> HyperdataDocument
+--doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
 doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
   HyperdataDocument (Just "CSV")
                     (Just did)
@@ -66,6 +67,7 @@ doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
                     (Just dpy)
                     (Just dpm)
                     (Just dpd)
+                    Nothing
                     Nothing
                     Nothing
                     Nothing

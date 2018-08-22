@@ -122,7 +122,7 @@ nodeTypes = [ (NodeUser      ,  1)
             , (Folder        ,  2)
             , (NodeCorpus    ,  30)
             , (Annuaire      ,  31)
-            , (Document      ,  40)
+            , (Document      ,  4)
             , (UserPage      ,  41)
             --, (NodeSwap      , 19)
 ------  Lists

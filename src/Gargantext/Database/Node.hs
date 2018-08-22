@@ -66,6 +66,9 @@ instance FromField HyperdataCorpus where
 instance FromField HyperdataDocument where
     fromField = fromField'
 
+instance FromField HyperdataDocumentV3 where
+    fromField = fromField'
+
 instance FromField HyperdataProject where
     fromField = fromField'
 
@@ -74,6 +77,8 @@ instance FromField HyperdataUser where
 
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3 where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus   where
@@ -178,6 +183,7 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     returnA -< node
 
 
+
 deleteNode :: Connection -> Int -> IO Int
 deleteNode conn n = fromIntegral <$> runDelete conn nodeTable
                  (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
@@ -202,6 +208,10 @@ getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
 getNodesWithParentId' :: Connection -> Int 
                      -> Maybe Text -> IO [Node Value]
 getNodesWithParentId' conn n _ = runQuery conn $ selectNodesWithParentID n
+
+getDocumentsWithParentId :: Connection -> Int -> IO [Node HyperdataDocumentV3]
+getDocumentsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just Document)
+
 
 
 selectNodesWithParentID :: Int -> Query NodeRead
