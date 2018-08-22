@@ -209,9 +209,16 @@ getNodesWithParentId' :: Connection -> Int
                      -> Maybe Text -> IO [Node Value]
 getNodesWithParentId' conn n _ = runQuery conn $ selectNodesWithParentID n
 
-getDocumentsWithParentId :: Connection -> Int -> IO [Node HyperdataDocumentV3]
+
+
+------------------------------------------------------------------------
+getDocumentsV3WithParentId :: Connection -> Int -> IO [Node HyperdataDocumentV3]
+getDocumentsV3WithParentId conn n = runQuery conn $ selectNodesWith' n (Just Document)
+
+getDocumentsWithParentId :: Connection -> Int -> IO [Node HyperdataDocument]
 getDocumentsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just Document)
 
+------------------------------------------------------------------------
 
 
 selectNodesWithParentID :: Int -> Query NodeRead
