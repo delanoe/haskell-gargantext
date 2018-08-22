@@ -36,7 +36,7 @@ extra-deps:
 - servant-server-0.13
 - servant-swagger-ui-0.2.3.2.2.8
 - stemmer-0.5.2
-- text-1.2.3.0
+  # - text-1.2.3.0
 - text-show-3.6.2
 - servant-flatten-0.2
 - serialise-0.2.0.0  # imt-api-client

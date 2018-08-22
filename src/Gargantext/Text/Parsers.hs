@@ -37,7 +37,8 @@ import Data.Attoparsec.ByteString (parseOnly, Parser)
 
 import Data.Text (Text)
 import qualified Data.Text as DT
--- | Activate Async for to parse in parallel
+
+-- Activate Async for to parse in parallel
 import Control.Concurrent.Async as CCA (mapConcurrently)
 
 import Data.Text.Encoding (decodeUtf8)

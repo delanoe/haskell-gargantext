@@ -55,15 +55,15 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
 
 printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
 printDebug msg x = putStrLn $ msg <> " " <> show x
---printDebug _ _ = pure ()
+-- printDebug _ _ = pure ()
 
 data TextFlow = CSV FilePath
               | FullText FilePath
               | Contexts [T.Text]
               | SQL Int
               | Database T.Text
-                -- | ExtDatabase Query
-                -- | IntDatabase NodeId
+                -- ExtDatabase Query
+                -- IntDatabase NodeId
 
 textFlow :: TermType Lang -> TextFlow -> IO Graph
 textFlow termType workType = do
@@ -88,7 +88,7 @@ textFlow' termType contexts = do
   printDebug "myterms" (sum $ map length myterms)
 
   -- Bulding the map list
-  -- compute copresences of terms
+  -- compute copresences of terms, i.e. cooccurrences of terms in same context of text
   -- Cooc = Map (Term, Term) Int
   let myCooc1 = cooc myterms
   printDebug "myCooc1" (M.size myCooc1)
@@ -98,13 +98,14 @@ textFlow' termType contexts = do
   printDebug "myCooc2" (M.size myCooc2)
 
   -- Filtering terms with inclusion/Exclusion and Specifity/Genericity scores
-  let myCooc3 = filterCooc ( FilterConfig (MapListSize   1000 )
-                                          (InclusionSize 4000 )
+  let myCooc3 = filterCooc ( FilterConfig (MapListSize    100 )
+                                          (InclusionSize  400 )
                                           (SampleBins      10 )
                                           (Clusters         3 )
                                           (DefaultValue     0 )
                            ) myCooc2
   printDebug "myCooc3" $ M.size myCooc3
+  putStrLn $ show myCooc3
 
   -- Cooc -> Matrix
   let (ti, _) = createIndices myCooc3

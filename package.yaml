@@ -1,6 +1,6 @@
 name: gargantext
 version: '0.1.0.0'
-synopsis: Deep (Collaborative) Text mining project
+synopsis: Search, map, share
 description: Please see README.md
 category: Data
 author: Gargantext Team
@@ -27,17 +27,22 @@ library:
   - Gargantext.API
   - Gargantext.Core
   - Gargantext.Core.Types
+  - Gargantext.Database
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
   - Gargantext.Text.List.CSV
+  - Gargantext.Text.Metrics
   - Gargantext.Text.Metrics.Count
+  - Gargantext.Text.Metrics.CharByChar
   - Gargantext.Text.Parsers.CSV
+  - Gargantext.Text.Parsers.Date
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
   - Gargantext.Text.Terms.WithList
   - Gargantext.TextFlow
   - Gargantext.Viz.Graph.Distances.Matrice
+  - Gargantext.Viz.Graph.Index
   dependencies:
   - QuickCheck
   - accelerate
@@ -175,23 +180,23 @@ executables:
       - full-text-search
 
 tests:
-  garg-test:
-    main: Main.hs
-    source-dirs: src-test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - base
-    - gargantext
-    - hspec
-    - QuickCheck
-    - quickcheck-instances 
-    - time
-    - parsec
-    - duckling
-    - text
+#   garg-test:
+#     main: Main.hs
+#     source-dirs: src-test
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - base
+#     - gargantext
+#     - hspec
+#     - QuickCheck
+#     - quickcheck-instances 
+#     - time
+#     - parsec
+#     - duckling
+#     - text
   garg-doctest:
     main: Main.hs
     source-dirs: src-doctest

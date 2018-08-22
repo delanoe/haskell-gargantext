@@ -7,6 +7,11 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+
+2 main measures are actually implemented in order to compute the proximity of two terms.
+- Conditional measure is an absolute measure which reflects interactions of 2 terms in the corpus.
+- Distributional measure is a relative measure which depends on the selected list, it represents structural equivalence.
+
 Motivation and definition of the @Conditional@ distance.
 
 Implementation use Accelerate library :
@@ -44,7 +49,7 @@ import qualified Gargantext.Prelude as P
 
 
 -----------------------------------------------------------------------
--- Test perf.
+-- | Test perf.
 distriTest :: Matrix Double
 distriTest = distributional $ myMat 100
 -----------------------------------------------------------------------
@@ -67,11 +72,11 @@ rank m = arrayRank $ arrayShape m
 -- How to force use with SquareMatrix ?
 type Dim = Int
 
-dim :: (Matrix a) -> Dim
+dim :: Matrix a -> Dim
 dim m = n
   where
     Z :. _ :. n = arrayShape m
-    -- == indexTail (arrayShape m)
+    -- indexTail (arrayShape m)
 
 -----------------------------------------------------------------------
 proba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
@@ -80,7 +85,7 @@ proba r mat = zipWith (/) mat (mkSum r mat)
 mkSum :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 mkSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
 
--- divByDiag 
+-- | divByDiag 
 divByDiag :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All)) $ diag mat)
   where
@@ -94,11 +99,16 @@ miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
     miniMax' = (the $ minimum $ maximum m)
 
 -- | Conditional distance (basic version)
+
 conditional :: Matrix Int -> Matrix Double
 conditional m = run (miniMax $ proba (dim m) $ map fromIntegral $ use m)
 
 
 -- | Conditional distance (advanced version)
+-- The conditional measure \[P_c\] of 2 terms @i@ and @j@, also called "confidence"
+-- , is the maximum probability between @i@ and @j@. If \[n_i\] (resp.
+-- \[n_j\]) is the number of occurrences of @i@ (resp. @j@) in the corpus and _[n_{ij}\] the number of its occurrences we get:
+-- \[P_c=max(\frac{n_i}{n_{ij}},\frac{n_j}{n_{ij}} )\]
 conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
 conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
   where
@@ -121,6 +131,13 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
 -----------------------------------------------------------------------
 
 -- | Distributional Distance
+-- The distributional measure \[P_c\] of @i@ and @j@ terms is:
+-- \[ S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik}, MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}}^{}}
+-- \]
+-- \[S{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\] is mutual information
+-- \[C{ij}\] is number of cooccurrences of @i@ and @j@ in the same context of text
+-- \[E_{ij} = \frac {S_{i} S_{j}} {N}\] is the expected value of the cooccurrences
+-- \[N_{i} = \sum_{i}^{} S_{i}\] is the total cooccurrences of @i@ term
 distributional :: Matrix Int -> Matrix Double
 distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
   where

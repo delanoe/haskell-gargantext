@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext
-Description : Textmining platform
+Description : Textmining Collaborative Platform
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -10,18 +10,17 @@ Portability : POSIX
 @Gargantext@: search, map, share
 -}
 
-module Gargantext (
-                     module Gargantext.Database
---                     module Gargantext.Ngrams,
---                     module Gargantext.Utils,
-                    ) where
+module Gargantext ( module Gargantext.API
+                  , module Gargantext.Core
+                  , module Gargantext.Database
+                  , module Gargantext.Prelude
+                  , module Gargantext.Text
+--                  , module Gargantext.Viz
+                  ) where
 
+import Gargantext.API
+import Gargantext.Core
 import Gargantext.Database
--- import Gargantext.Ngrams
--- import Gargantext.Utils
-
-
-
-
-
-
+import Gargantext.Prelude
+import Gargantext.Text
+--import Gargantext.Viz

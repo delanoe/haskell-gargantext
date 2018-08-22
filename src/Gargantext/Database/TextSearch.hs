@@ -28,7 +28,7 @@ import Data.Text (Text, words)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
 
-import Gargantext (connectGargandb)
+import Gargantext.Database.Utils (connectGargandb)
 import Gargantext.Prelude
 
 newtype TSQuery = UnsafeTSQuery [Text]

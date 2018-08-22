@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Core
-Description : Which Natural language is supported ?
+Description : Supported Natural language
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -15,8 +15,6 @@ module Gargantext.Core
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
-
-data Lang = EN | FR
 -- | DE | IT | SP
 --  EN == english
 --  FR == french
@@ -24,3 +22,4 @@ data Lang = EN | FR
 --  IT == italian (not implemented yet)
 --  SP == spanish (not implemented yet)
 --  ... add your language and help us to implement it (:
+data Lang = EN | FR

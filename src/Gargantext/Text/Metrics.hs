@@ -9,18 +9,13 @@ Portability : POSIX
 
 Mainly reexport functions in @Data.Text.Metrics@
 
-
-TODO
-noApax :: Ord a => Map a Occ -> Map a Occ
-noApax m = M.filter (>1) m
-
 -}
 
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Metrics 
+module Gargantext.Text.Metrics
   where
 
 import Data.Ord (Down(..))
@@ -74,7 +69,6 @@ filterCooc fc cc = (filterCooc' fc) ts cc
   where
     ts     = map _scored_terms $ takeSome fc $ coocScored cc
 
-
 filterCooc' :: Ord t => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
 filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScored " <> show (length ts)) $
   foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
@@ -95,7 +89,7 @@ takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
 takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters _) _) scores = L.take l
                     $ takeSample n m
                     $ L.take l' $ sortWith (Down . _scored_incExc) scores
-                    -- $ splitKmeans k scores
+                    -- splitKmeans k scores
   where
     -- TODO: benchmark with accelerate-example kmeans version
     --splitKmeans x xs = L.concat $ map elements
@@ -172,15 +166,8 @@ metrics_sentences_Test :: Bool
 metrics_sentences_Test = metrics_sentences == metrics_sentences'
 
 -- | Terms reordered to visually check occurrences
--- >>> 
-{- [ [["table"],["glass"],["wine"],["spoon"]]
-   , [["glass"],["table"]]
-   , [["spoon"],["table"]]
-   , [["glass"],["table"],["wine"]]
-   , [["glass"],["wine"]]
-   ]
--}
-
+-- >>> metrics_terms
+-- [[["table"],["glass"],["wine"],["spoon"]],[["glass"],["table"]],[["spoon"],["table"]],[["glass"],["table"],["wine"]],[["glass"],["wine"]]]
 metrics_terms :: IO [[Terms]]
 metrics_terms = mapM (terms (MonoMulti EN)) $ splitBy (Sentences 0) metrics_text
 
@@ -197,9 +184,13 @@ metrics_occ = occurrences <$> L.concat <$> metrics_terms
 {- 
 -- fromList [((["glas"],["object"]),6)
             ,((["glas"],["spoon"]),4)
-            ,((["glas"],["table"]),6),((["object"],["spoon"]),6),((["object"],["table"]),9),((["spoon"],["table"]),6)]
+            ,((["glas"],["table"]),6)
+            ,((["object"],["spoon"]),6)
+            ,((["object"],["table"]),9)
+            ,((["spoon"],["table"]),6)]
 
 -}
+
 metrics_cooc :: IO (Map (Label, Label) Int)
 metrics_cooc = cooc <$> metrics_terms
 
