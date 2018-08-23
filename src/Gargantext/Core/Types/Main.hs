@@ -67,8 +67,9 @@ corpusTree = NodeT NodeCorpus (  [ leafT Document ]
 
 --   TODO make instances of Nodes
 -- NP
--- * why NodeUser and not just User ?
--- * is this supposed to hold data ?
+-- - why NodeUser and not just User ?
+-- - is this supposed to hold data ?
+-- AD : Yes, some preferences for instances
 
 data Parent = NodeType NodeId
 
