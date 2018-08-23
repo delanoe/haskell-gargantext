@@ -9,6 +9,7 @@ Portability : POSIX
 
 
 2 main measures are actually implemented in order to compute the proximity of two terms.
+
 - Conditional measure is an absolute measure which reflects interactions of 2 terms in the corpus.
 - Distributional measure is a relative measure which depends on the selected list, it represents structural equivalence.
 
@@ -99,7 +100,6 @@ miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
     miniMax' = (the $ minimum $ maximum m)
 
 -- | Conditional distance (basic version)
-
 conditional :: Matrix Int -> Matrix Double
 conditional m = run (miniMax $ proba (dim m) $ map fromIntegral $ use m)
 
@@ -134,10 +134,18 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
 -- The distributional measure \[P_c\] of @i@ and @j@ terms is:
 -- \[ S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik}, MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}}^{}}
 -- \]
--- \[S{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\] is mutual information
--- \[C{ij}\] is number of cooccurrences of @i@ and @j@ in the same context of text
--- \[E_{ij} = \frac {S_{i} S_{j}} {N}\] is the expected value of the cooccurrences
--- \[N_{i} = \sum_{i}^{} S_{i}\] is the total cooccurrences of @i@ term
+--
+-- Mutual information
+-- \[S{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\]
+--
+-- Number of cooccurrences of @i@ and @j@ in the same context of text 
+--                        \[C{ij}\]
+--
+-- The expected value of the cooccurrences
+--            \[E_{ij} = \frac {S_{i} S_{j}} {N}\]
+--
+-- Total cooccurrences of @i@ term
+--            \[N_{i} = \sum_{i}^{} S_{i}\]
 distributional :: Matrix Int -> Matrix Double
 distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
   where
@@ -160,25 +168,21 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
+{- | Metric Specificity and genericity: select terms
 
-{-
-Metric Specificity and genericity: select terms
+- let N termes and occurrences of i \[N{i}\]
 
-let N termes
-Ni      : occ de i
-Nij     : cooc i et j
-Probability to get i given j : P(i|j)=Nij/Nj
-Gen(i)  : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity  of i
-Spec(i) : 1/(N-1)*Sum(j!=i, P(j|i)) : Specificity of j
-Inclusion (i) = Gen(i)+Spec(i)
-Genericity score = Gen(i)- Spec(i)
+- Cooccurrences of i and j \[N{ij}\]
+- Probability to get i given j : \[P(i|j)=N{ij}/N{j}\]
 
+- Genericity of i  \[Gen(i)  = \frac{\sum_{j \neq i,j} P(i|j)}{N-1}\]
+- Specificity of j \[Spec(i) = \frac{\sum_{j \neq i,j} P(j|i)}{N-1}\]
 
-References:
- *  Science mapping with asymmetrical paradigmatic proximity Jean-Philippe Cointet (CREA, TSV), David Chavalarias (CREA) (Submitted on 15 Mar 2008), Networks and Heterogeneous Media 3, 2 (2008) 267 - 276, arXiv:0803.2315 [cs.OH]
+- \[Inclusion (i) = Gen(i) + Spec(i)\)
+- \[GenericityScore = Gen(i)- Spec(i)\]
 
+- References: Science mapping with asymmetrical paradigmatic proximity Jean-Philippe Cointet (CREA, TSV), David Chavalarias (CREA) (Submitted on 15 Mar 2008), Networks and Heterogeneous Media 3, 2 (2008) 267 - 276, arXiv:0803.2315 [cs.OH]
 -}
-
 type InclusionExclusion    = Double
 type SpecificityGenericity = Double
 
@@ -195,7 +199,7 @@ incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
     -- | Inclusion (i) = Gen(i)+Spec(i)
     inclusionExclusion :: Acc (Matrix Double) -> Acc (Vector Double)
     inclusionExclusion mat = zipWith (+) (pV mat) (pH mat)
---    
+    
     -- | Genericity score = Gen(i)- Spec(i)
     specificityGenericity :: Acc (Matrix Double) -> Acc (Vector Double)
     specificityGenericity mat = zipWith (-) (pV mat) (pH mat)

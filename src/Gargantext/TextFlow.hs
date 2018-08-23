@@ -29,17 +29,16 @@ import Gargantext.Core (Lang)
 import Gargantext.Prelude
 
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
-import Gargantext.Viz.Graph.Distances.Matrice (conditional)
+import Gargantext.Viz.Graph.Distances.Matrice (distributional)
 import Gargantext.Viz.Graph (Graph(..), data2graph)
 import Gargantext.Text.Metrics.Count (cooc)
-import Gargantext.Text.Metrics
+import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
 import Gargantext.Text.Terms (TermType, extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 import Gargantext.Text.Parsers.CSV
 
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
-
 
 {-
   ____                             _            _
@@ -93,7 +92,7 @@ textFlow' termType contexts = do
 
   -- Filtering terms with inclusion/Exclusion and Specificity/Genericity scores
   let myCooc3 = filterCooc ( FilterConfig (MapListSize    100 )
-                                          (InclusionSize  400 )
+                                          (InclusionSize  900 )
                                           (SampleBins      10 )
                                           (Clusters         3 )
                                           (DefaultValue     0 )
@@ -109,19 +108,20 @@ textFlow' termType contexts = do
   printDebug "myCooc4" $ M.size myCooc4
 
   let matCooc = map2mat (0) (M.size ti) myCooc4
-  -- printDebug "matCooc" matCooc
+  printDebug "matCooc" matCooc
+  
   -- Matrix -> Clustering
-  let distanceMat = conditional matCooc
---  let distanceMat = distributional matCooc
+  --let distanceMat = conditional' matCooc
+  let distanceMat = distributional matCooc
   printDebug "distanceMat" $ A.arrayShape distanceMat
-  -- printDebug "distanceMat" distanceMat
+  printDebug "distanceMat" distanceMat
 --
   let distanceMap = mat2map distanceMat
   printDebug "distanceMap" $ M.size distanceMap
---{-
+
 --  let distance = fromIndex fi distanceMap
 --  printDebug "distance" $ M.size distance
----}
+
   partitions <- cLouvain distanceMap
 -- Building : -> Graph -> JSON
   printDebug "partitions" $ length partitions
