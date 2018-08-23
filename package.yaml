@@ -33,6 +33,7 @@ library:
   - Gargantext.Text.Context
   - Gargantext.Text.List.CSV
   - Gargantext.Text.Metrics
+  - Gargantext.Text.Metrics.Examples
   - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Metrics.CharByChar
   - Gargantext.Text.Parsers.CSV
