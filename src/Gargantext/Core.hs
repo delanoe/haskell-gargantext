@@ -15,11 +15,14 @@ module Gargantext.Core
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
--- | DE | IT | SP
---  EN == english
---  FR == french
---  DE == deutch  (not implemented yet)
---  IT == italian (not implemented yet)
---  SP == spanish (not implemented yet)
+-- 
+-- Next steps: | DE | IT | SP
+--
+--  - EN == english
+--  - FR == french
+--  - DE == deutch  (not implemented yet)
+--  - IT == italian (not implemented yet)
+--  - SP == spanish (not implemented yet)
+--
 --  ... add your language and help us to implement it (:
 data Lang = EN | FR
