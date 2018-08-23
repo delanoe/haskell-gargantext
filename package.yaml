@@ -25,26 +25,29 @@ library:
   exposed-modules:
   - Gargantext
   - Gargantext.API
+  - Gargantext.API.Auth
+  - Gargantext.API.Count
+  - Gargantext.API.FrontEnd
   - Gargantext.API.Orchestrator
   - Gargantext.API.Search
-  - Gargantext.API.FrontEnd
-  - Gargantext.API.Count
-  - Gargantext.API.Auth
   - Gargantext.API.Settings
   - Gargantext.Core
   - Gargantext.Core.Types
+  - Gargantext.Core.Types.Main
+  - Gargantext.Core.Types.Node
+  - Gargantext.Core.Utils.Prefix
   - Gargantext.Database
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
+  - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
   - Gargantext.Text.Metrics
-  - Gargantext.Text.Metrics.Examples
-  - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Metrics.CharByChar
+  - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Parsers.CSV
-  - Gargantext.Text.Parsers.WOS
   - Gargantext.Text.Parsers.Date
+  - Gargantext.Text.Parsers.WOS
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
   - Gargantext.Text.Terms.WithList

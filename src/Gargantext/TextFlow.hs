@@ -21,7 +21,6 @@ import GHC.IO (FilePath)
 import qualified Data.Text as T
 import Data.Text.IO (readFile)
 
-import Control.Monad.IO.Class (MonadIO)
 
 import Data.Map.Strict (Map)
 import qualified Data.Array.Accelerate as A
@@ -53,9 +52,6 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
                  |___/
 -}
 
-printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
-printDebug msg x = putStrLn $ msg <> " " <> show x
--- printDebug _ _ = pure ()
 
 data TextFlow = CSV FilePath
               | FullText FilePath
@@ -97,7 +93,7 @@ textFlow' termType contexts = do
   let myCooc2 = M.filter (>1) myCooc1
   printDebug "myCooc2" (M.size myCooc2)
 
-  -- Filtering terms with inclusion/Exclusion and Specifity/Genericity scores
+  -- Filtering terms with inclusion/Exclusion and Specificity/Genericity scores
   let myCooc3 = filterCooc ( FilterConfig (MapListSize    100 )
                                           (InclusionSize  400 )
                                           (SampleBins      10 )
@@ -105,7 +101,7 @@ textFlow' termType contexts = do
                                           (DefaultValue     0 )
                            ) myCooc2
   printDebug "myCooc3" $ M.size myCooc3
-  putStrLn $ show myCooc3
+  -- putStrLn $ show myCooc3
 
   -- Cooc -> Matrix
   let (ti, _) = createIndices myCooc3
@@ -115,12 +111,12 @@ textFlow' termType contexts = do
   printDebug "myCooc4" $ M.size myCooc4
 
   let matCooc = map2mat (0) (M.size ti) myCooc4
-  --printDebug "matCooc" matCooc
+  -- printDebug "matCooc" matCooc
   -- Matrix -> Clustering
   let distanceMat = conditional matCooc
 --  let distanceMat = distributional matCooc
   printDebug "distanceMat" $ A.arrayShape distanceMat
-  --printDebug "distanceMat" distanceMat
+  -- printDebug "distanceMat" distanceMat
 --
   let distanceMap = mat2map distanceMat
   printDebug "distanceMap" $ M.size distanceMap
@@ -135,7 +131,8 @@ textFlow' termType contexts = do
   pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
 
 -----------------------------------------------------------
--- distance should not be a map since we just "toList" it (same as cLouvain)
+-- | From data to Graph
+-- FIXME: distance should not be a map since we just "toList" it (same as cLouvain)
 data2graph :: [(Label, Int)] -> Map (Int, Int) Int
                              -> Map (Int, Int) Double
                              -> [LouvainNode]

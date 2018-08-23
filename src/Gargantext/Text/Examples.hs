@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Metrics.Examples
+Module      : Gargantext.Text.Examples
 Description : Minimal Examples to test behavior of the functions.
 Copyright   : (c) CNRS, 2017 - present
 License     : AGPL + CECILL v3
@@ -10,7 +10,15 @@ Portability : POSIX
 This file is intended for these purposes:
 
 - documentation for teaching and research
+- learn basics of Haskell which is a scientific programming language
 - behavioral tests (that should be completed with uni-tests and scale-tests
+
+This documents defines basic of Text definitions according to Gargantext..
+
+- What is a term ?
+- What is a sentence ?
+- What is a paragraph ?
+
 
 -}
 
@@ -18,7 +26,7 @@ This file is intended for these purposes:
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Metrics.Examples
+module Gargantext.Text.Examples
   where
 
 import Data.Ord (Down(..))
@@ -45,56 +53,61 @@ import Gargantext.Viz.Graph.Index
 
 import qualified Data.Array.Accelerate as DAA
 
-
--- | From list to simple text
--- 
--- >>> metrics_text
--- "There is a table with a glass of wine and a spoon. I can see the glass on the table. There was only a spoon on that table. The glass just fall from the table, pouring wine everywhere. I wish the glass did not contain wine."
-metrics_text :: Text
-metrics_text = T.intercalate " " metrics_sentences
-
-
 -- | Sentences
+-- Let be a list of Texts: ['Data.Text.Text']. Each text in this example is a sentence.
 --
--- >>> metrics_sentences
+-- >>> ex_sentences
 -- ["There is a table with a glass of wine and a spoon.","I can see the glass on the table.","There was only a spoon on that table.","The glass just fall from the table, pouring wine everywhere.","I wish the glass did not contain wine."]
-metrics_sentences :: [Text]
-metrics_sentences = [ "There is a table with a glass of wine and a spoon."
-                    , "I can see the glass on the table."
-                    , "There was only a spoon on that table."
-                    , "The glass just fall from the table, pouring wine everywhere."
-                    , "I wish the glass did not contain wine."
-                    ]
+ex_sentences :: [Text]
+ex_sentences = [ "There is a table with a glass of wine and a spoon."
+            , "I can see the glass on the table."
+            , "There was only a spoon on that table."
+            , "The glass just fall from the table, pouring wine everywhere."
+            , "I wish the glass did not contain wine."
+            ]
 
-metrics_sentences_Test :: Bool
-metrics_sentences_Test = metrics_sentences == splitBy (Sentences 0) metrics_text
+
+-- | From list to simple text as paragraph.
+-- Let 'Data.Text.intercalate' each sentence with a space. Result is a paragraph.
+--
+-- >>> T.intercalate (T.pack " ") ex_sentences
+-- "There is a table with a glass of wine and a spoon. I can see the glass on the table. There was only a spoon on that table. The glass just fall from the table, pouring wine everywhere. I wish the glass did not contain wine."
+ex_paragraph :: Text
+ex_paragraph = T.intercalate " " ex_sentences
+
+-- | Let split sentences by Contexts of text.
+-- More about 'Gargantext.Text.Context'
+--
+-- >>> ex_sentences == splitBy (Sentences 0) ex_paragraph
+-- True
 
 -- | Terms reordered to visually check occurrences
 -- Split text by sentence and then extract ngrams.
 --
--- >>> metrics_terms
+-- >>> mapM (terms (MonoMulti EN)) $ splitBy (Sentences 0) ex_paragraph
 -- [[["table"],["glass"],["wine"],["spoon"]],[["glass"],["table"]],[["spoon"],["table"]],[["glass"],["table"],["wine"]],[["glass"],["wine"]]]
-metrics_terms :: IO [[Terms]]
-metrics_terms = mapM (terms (MonoMulti EN)) $ splitBy (Sentences 0) metrics_text
+ex_terms :: IO [[Terms]]
+ex_terms = mapM (terms (MonoMulti EN)) $ splitBy (Sentences 0) ex_paragraph
 
 -- | Test the Occurrences
 --
--- >>> metrics_occ
+-- >>> occurrences <$> L.concat <$> ex_terms
 -- fromList [(fromList ["glass"],fromList [(["glass"],4)]),(fromList ["spoon"],fromList [(["spoon"],2)]),(fromList ["tabl"],fromList [(["table"],4)]),(fromList ["wine"],fromList [(["wine"],3)])]
-metrics_occ :: IO (Map Grouped (Map Terms Int))
-metrics_occ = occurrences <$> L.concat <$> metrics_terms
+ex_occ :: IO (Map Grouped (Map Terms Int))
+ex_occ = occurrences <$> L.concat <$> ex_terms
 
 -- | Test the cooccurrences
+-- Use the 'Gargantext.Text.Metrics.Count.cooc' function.
 --
--- >>> metrics_cooc
+-- >>> cooc <$> ex_terms
 -- fromList [((["glass"],["glass"]),4),((["spoon"],["glass"]),1),((["spoon"],["spoon"]),2),((["table"],["glass"]),3),((["table"],["spoon"]),2),((["table"],["table"]),4),((["wine"],["glass"]),3),((["wine"],["spoon"]),1),((["wine"],["table"]),2),((["wine"],["wine"]),3)]
-metrics_cooc :: IO (Map (Label, Label) Int)
-metrics_cooc = cooc <$> metrics_terms
+ex_cooc :: IO (Map (Label, Label) Int)
+ex_cooc = cooc <$> ex_terms
 
 -- | Tests 
-metrics_cooc_mat :: IO (Map Label Index, Matrix Int, Matrix Double, (DAA.Vector InclusionExclusion, DAA.Vector SpecificityGenericity))
-metrics_cooc_mat = do
-  m <- metrics_cooc
+ex_cooc_mat :: IO (Map Label Index, Matrix Int, Matrix Double, (DAA.Vector InclusionExclusion, DAA.Vector SpecificityGenericity))
+ex_cooc_mat = do
+  m <- ex_cooc
   let (ti,_) = createIndices m
   let mat_cooc = cooc2mat ti m
   pure ( ti
@@ -103,8 +116,8 @@ metrics_cooc_mat = do
        , incExcSpeGen        mat_cooc
        )
 
-metrics_incExcSpeGen :: IO ([(Label, Double)], [(Label, Double)])
-metrics_incExcSpeGen = incExcSpeGen_sorted <$> metrics_cooc
+ex_incExcSpeGen :: IO ([(Label, Double)], [(Label, Double)])
+ex_incExcSpeGen = incExcSpeGen_sorted <$> ex_cooc
 
 incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
 incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat ti m)

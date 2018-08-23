@@ -30,6 +30,7 @@ module Gargantext.Prelude
 
 import GHC.Exts (sortWith)
 
+import Control.Monad.IO.Class (MonadIO)
 import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
@@ -71,6 +72,11 @@ import Safe (headMay, lastMay)
 import Text.Show (Show(), show)
 import Text.Read (Read())
 import Data.String.Conversions (cs)
+
+
+printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
+printDebug msg x = putStrLn $ msg <> " " <> show x
+-- printDebug _ _ = pure ()
 
 
 map2 :: (t -> b) -> [[t]] -> [[b]]
