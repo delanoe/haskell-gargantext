@@ -63,7 +63,7 @@ termTests = "It is hard to detect important articles in a specific context. Info
 
 
 -- | Ngrams Test
--- >>> ngramsTest testText
+-- >> ngramsTest testText
 -- 248
 --ngramsTest :: Text -> Int
 --ngramsTest x =  length ws

@@ -22,17 +22,15 @@ import qualified Data.Text as T
 import Data.Text.IO (readFile)
 
 
-import Data.Map.Strict (Map)
 import qualified Data.Array.Accelerate as A
 import qualified Data.Map.Strict as M
 ----------------------------------------------
 import Gargantext.Core (Lang)
-import Gargantext.Core.Types (Label)
 import Gargantext.Prelude
 
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
 import Gargantext.Viz.Graph.Distances.Matrice (conditional)
-import Gargantext.Viz.Graph (Graph(..), Node(..), Edge(..), Attributes(..), TypeNode(..))
+import Gargantext.Viz.Graph (Graph(..), data2graph)
 import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Metrics
 import Gargantext.Text.Terms (TermType, extractTerms)
@@ -40,7 +38,7 @@ import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 
 import Gargantext.Text.Parsers.CSV
 
-import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, LouvainNode(..))
+import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 
 
 {-
@@ -130,28 +128,4 @@ textFlow' termType contexts = do
   --printDebug "partitions" partitions
   pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
 
------------------------------------------------------------
--- | From data to Graph
--- FIXME: distance should not be a map since we just "toList" it (same as cLouvain)
-data2graph :: [(Label, Int)] -> Map (Int, Int) Int
-                             -> Map (Int, Int) Double
-                             -> [LouvainNode]
-              -> Graph
-data2graph labels coocs distance partitions = Graph nodes edges
-  where
-    community_id_by_node_id = M.fromList [ (n, c) | LouvainNode n c <- partitions ]
-    nodes = [ Node { node_size = maybe 0 identity (M.lookup (n,n) coocs)
-                   , node_type = Terms -- or Unknown
-                   , node_id = cs (show n)
-                   , node_label = T.unwords l
-                   , node_attributes = 
-                     Attributes { clust_default = maybe 0 identity 
-                                (M.lookup n community_id_by_node_id) } }
-            | (l, n) <- labels ]
-    edges = [ Edge { edge_source = cs (show s)
-                   , edge_target = cs (show t)
-                   , edge_weight = w
-                   , edge_id     = cs (show i) }
-            | (i, ((s,t), w)) <- zip ([0..]::[Integer]) (M.toList distance) ]
------------------------------------------------------------
 

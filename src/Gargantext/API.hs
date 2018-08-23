@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.API
-Description : Server API
+Description : REST API declaration
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -10,6 +10,7 @@ Portability : POSIX
 Main REST API of Gargantext (both Server and Client sides)
 
 TODO App type, the main monad in which the bot code is written with.
+
 Provide config, state, logs and IO
  type App m a =  ( MonadState AppState m
                  , MonadReader Conf m
@@ -186,22 +187,32 @@ makeDevApp env = do
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 -- | API for serving main operational routes of @gargantext.org@
-type GargAPI =  "user"  :> Summary "First user endpoint" 
+type GargAPI =
+          
+           -- Roots endpoint
+                "user"  :> Summary "First user endpoint"
                         :> Roots
-       
+           
+           
+           -- Node endpoint
            :<|> "node"  :> Summary "Node endpoint"
                         :> Capture "id" Int      :> NodeAPI
            
+           
+           -- Corpus endpoint
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "id" Int      :> NodeAPI
-
+           
+           -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
                         :> ReqBody '[JSON] [Int] :> NodesAPI
        
-       -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
+        -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
+           -- Corpus endpoint
            :<|> "count" :> Summary "Count endpoint"
                         :> ReqBody '[JSON] Query :> CountAPI
            
+           -- Corpus endpoint
            :<|> "search":> Summary "Search endpoint"
                         :> ReqBody '[JSON] SearchQuery :> SearchAPI
 
