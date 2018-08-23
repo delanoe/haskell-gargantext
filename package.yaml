@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.1.0.0'
+version: '0.0.0.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -25,6 +25,12 @@ library:
   exposed-modules:
   - Gargantext
   - Gargantext.API
+  - Gargantext.API.Orchestrator
+  - Gargantext.API.Search
+  - Gargantext.API.FrontEnd
+  - Gargantext.API.Count
+  - Gargantext.API.Auth
+  - Gargantext.API.Settings
   - Gargantext.Core
   - Gargantext.Core.Types
   - Gargantext.Database
@@ -37,6 +43,7 @@ library:
   - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Metrics.CharByChar
   - Gargantext.Text.Parsers.CSV
+  - Gargantext.Text.Parsers.WOS
   - Gargantext.Text.Parsers.Date
   - Gargantext.Text.Search
   - Gargantext.Text.Terms

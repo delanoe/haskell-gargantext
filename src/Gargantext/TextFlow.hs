@@ -129,7 +129,7 @@ textFlow' termType contexts = do
 --  printDebug "distance" $ M.size distance
 ---}
   partitions <- cLouvain distanceMap
------- | Building : -> Graph -> JSON
+-- Building : -> Graph -> JSON
   printDebug "partitions" $ length partitions
   --printDebug "partitions" partitions
   pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
