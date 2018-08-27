@@ -227,7 +227,6 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
 distributional :: Matrix Int -> Matrix Double
 distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
   where
-    n    = dim m
     
     -- filter  m = zipWith (\a b -> max a b) m (transpose m)
     
@@ -240,6 +239,7 @@ distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
               $ zipWith (/) (crossProduct m') (total m')
 
     total m'' = replicate (constant (Z :. n :. n)) $ fold (+) 0 $ fold (+) 0 m''
+    n    = dim m
     
     crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
     cross mat      = zipWith (-) (matSum n mat) (mat)

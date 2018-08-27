@@ -36,7 +36,7 @@ import Gargantext.Core (Lang)
 import Gargantext.Prelude
 
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
-import Gargantext.Viz.Graph.Distances.Matrice (distributional, measureConditional)
+import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
 import Gargantext.Viz.Graph (Graph(..), data2graph)
 import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
@@ -58,7 +58,7 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, l_community_id)
 
 
 contextText :: [T.Text]
-contextText = ["The dog is an animal."
+contextText = map T.pack ["The dog is an animal."
               ,"The bird is an animal."
               ,"The bird is an animal."
               ,"The bird and the dog are an animal."
@@ -72,14 +72,13 @@ contextText = ["The dog is an animal."
               ]
 
 
-
+-- | Control the flow of text
 data TextFlow = CSV FilePath
               | FullText FilePath
               | Contexts [T.Text]
               | DB Connection CorpusId
               | Query T.Text
-                -- ExtDatabase Query
-                -- IntDatabase NodeId
+
 
 textFlow :: TermType Lang -> TextFlow -> IO Graph
 textFlow termType workType = do
@@ -87,7 +86,7 @@ textFlow termType workType = do
                 FullText path -> splitBy (Sentences 5) <$> readFile path
                 CSV      path -> readCsvOn [csv_title, csv_abstract] path
                 Contexts ctxt -> pure ctxt
-                SQL con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (node_hyperdata n)  <> hyperdataDocumentV3_abstract (node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
+                DB con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (node_hyperdata n)  <> hyperdataDocumentV3_abstract (node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
                 _             -> undefined
 
   textFlow' termType contexts
@@ -147,7 +146,7 @@ textFlow' termType contexts = do
   printDebug "distanceMat" distanceMat
 --
   --let distanceMap = M.filter (>0) $ mat2map distanceMat
-  let distanceMap = M.map (\n -> 1) $ M.filter (>0) $ mat2map distanceMat
+  let distanceMap = M.map (\_ -> 1) $ M.filter (>0) $ mat2map distanceMat
   printDebug "distanceMap size" $ M.size distanceMap
   printDebug "distanceMap" distanceMap
 
@@ -159,5 +158,4 @@ textFlow' termType contexts = do
   printDebug "partitions" $ DS.size $ DS.fromList $ map (l_community_id) partitions
   --printDebug "partitions" partitions
   pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
-
 
