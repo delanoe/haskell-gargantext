@@ -36,7 +36,7 @@ import qualified Data.Array.Accelerate as DAA
 
 import GHC.Real (round)
 
---import Debug.Trace
+import Debug.Trace (trace)
 
 data MapListSize   = MapListSize   Int
 data InclusionSize = InclusionSize Int
@@ -51,19 +51,19 @@ data FilterConfig = FilterConfig { fc_mapListSize   :: MapListSize
                                  , fc_defaultValue  :: DefaultValue
                              }
 
-filterCooc :: Ord t => FilterConfig -> Map (t, t) Int -> Map (t, t) Int
+filterCooc :: (Show t, Ord t) => FilterConfig -> Map (t, t) Int -> Map (t, t) Int
 filterCooc fc cc = (filterCooc' fc) ts cc
   where
     ts     = map _scored_terms $ takeSome fc $ coocScored cc
 
-filterCooc' :: Ord t => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
-filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScored " <> show (length ts)) $
+filterCooc' :: (Show t, Ord t) => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
+filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = trace ("coocScored " <> show ts) $
   foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
     M.empty selection
   where
     selection  = [(x,y) | x <- ts
                         , y <- ts
-                       -- , x >= y
+                      --  , x >= y
                         ]
 
 
@@ -75,7 +75,7 @@ filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = -- trace ("coocScore
 takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
 takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters _) _) scores = L.take l
                     $ takeSample n m
-                    $ L.take l' $ sortWith (Down . _scored_incExc) scores
+                    $ L.take l' $ reverse $ sortWith (Down . _scored_incExc) scores
                     -- splitKmeans k scores
   where
     -- TODO: benchmark with accelerate-example kmeans version
@@ -95,10 +95,10 @@ takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Cluste
                                  $ sortWith (Down . _scored_speGen) xs
 
 
-data Scored t = Scored { _scored_terms  :: !t
-                       , _scored_incExc :: !InclusionExclusion
-                       , _scored_speGen :: !SpecificityGenericity
-                     } deriving (Show)
+data Scored ts = Scored { _scored_terms :: !ts
+                        , _scored_incExc :: !InclusionExclusion
+                        , _scored_speGen :: !SpecificityGenericity
+                        } deriving (Show)
 
 -- TODO in the textflow we end up needing these indices, it might be better
 -- to compute them earlier and pass them around.

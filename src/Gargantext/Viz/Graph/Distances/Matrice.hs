@@ -7,15 +7,12 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+This module aims at implementig distances of terms context by context is
+the same referential of corpus.
 
-2 main measures are actually implemented in order to compute the proximity of two terms.
 
-- Conditional measure is an absolute measure which reflects interactions of 2 terms in the corpus.
-- Distributional measure is a relative measure which depends on the selected list, it represents structural equivalence.
+Implementation use Accelerate library which enables GPU and CPU computation:
 
-Motivation and definition of the @Conditional@ distance.
-
-Implementation use Accelerate library :
   * Manuel M. T. Chakravarty, Gabriele Keller, Sean Lee, Trevor L. McDonell, and Vinod Grover.
     [Accelerating Haskell Array Codes with Multicore GPUs][CKLM+11].
     In _DAMP '11: Declarative Aspects of Multicore Programming_, ACM, 2011.
@@ -50,21 +47,27 @@ import qualified Gargantext.Prelude as P
 
 
 -----------------------------------------------------------------------
--- | Test perf.
-distriTest :: Matrix Double
-distriTest = distributional $ myMat 100
------------------------------------------------------------------------
-
+-- | Define a vector
+--
+-- >>> vector 3
+-- Vector (Z :. 3) [0,1,2]
 vector :: Int -> (Array (Z :. Int) Int)
 vector n = fromList (Z :. n) [0..n]
 
+-- | Define a matrix
+--
+-- >>> matrix 3 ([1..] :: [Double])
+-- Matrix (Z :. 3 :. 3)
+--   [ 1.0, 2.0, 3.0,
+--     4.0, 5.0, 6.0,
+--     7.0, 8.0, 9.0]
 matrix :: Elt c => Int -> [c] -> Matrix c
 matrix n l = fromList (Z :. n :. n) l
 
-myMat :: Int -> Matrix Int
-myMat n = matrix n [1..]
-
 -- | Two ways to get the rank (as documentation)
+--
+-- >>> rank (matrix 3 ([1..] :: [Int]))
+-- 2
 rank :: (Matrix a) -> Int
 rank m = arrayRank $ arrayShape m
 
@@ -73,6 +76,10 @@ rank m = arrayRank $ arrayShape m
 -- How to force use with SquareMatrix ?
 type Dim = Int
 
+-- | Get Dimension of a square Matrix
+--
+-- >>> dim (matrix 3 ([1..] :: [Int]))
+-- 3
 dim :: Matrix a -> Dim
 dim m = n
   where
@@ -80,34 +87,100 @@ dim m = n
     -- indexTail (arrayShape m)
 
 -----------------------------------------------------------------------
-proba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-proba r mat = zipWith (/) mat (mkSum r mat)
 
-mkSum :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-mkSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum mat
+-- | Sum of a Matrix by Column
+--
+-- >>> run $ matSum 3 (use $ matrix 3 [1..])
+-- Matrix (Z :. 3 :. 3)
+--   [ 12.0, 15.0, 18.0,
+--     12.0, 15.0, 18.0,
+--     12.0, 15.0, 18.0]
+matSum :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+matSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
 
--- | divByDiag 
+
+-- | Proba computes de probability matrix: all cells divided by thee sum of its column
+-- if you need get the probability on the lines, just transpose it
+--
+-- >>> run $ matProba 3 (use $ matrix 3 [1..])
+-- Matrix (Z :. 3 :. 3)
+--   [ 8.333333333333333e-2, 0.13333333333333333, 0.16666666666666666,
+--       0.3333333333333333,  0.3333333333333333,  0.3333333333333333,
+--       0.5833333333333334,  0.5333333333333333,                 0.5]
+matProba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+matProba r mat = zipWith (/) mat (matSum r mat)
+
+-- | Diagonal of the matrix
+--
+-- >>> run $ diag (use $ matrix 3 ([1..] :: [Int]))
+-- Vector (Z :. 3) [1,5,9]
+diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
+diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
+
+
+-- | Divide by the Diagonal of the matrix
+--
+-- >>> run $ divByDiag 3 (use $ matrix 3 ([1..] :: [Double]))
+-- Matrix (Z :. 3 :. 3)
+--   [ 1.0, 0.4, 0.3333333333333333,
+--     4.0, 1.0, 0.6666666666666666,
+--     7.0, 1.6,                1.0]
 divByDiag :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 divByDiag d mat = zipWith (/) mat (replicate (constant (Z :. (d :: Int) :. All)) $ diag mat)
-  where
-    diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
-    diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
------------------------------------------------------------------------
 
-miniMax :: Acc (Matrix Double) -> Acc (Matrix Double)
-miniMax m = map (\x -> ifThenElse (x > miniMax') x 0) m
+-----------------------------------------------------------------------
+-- | Filters the matrix with the minimum of maximums
+--
+-- >>> run $ matMiniMax $ use $ matrix 3 [1..]
+-- Matrix (Z :. 3 :. 3)
+--   [ 0.0, 4.0, 7.0,
+--     0.0, 5.0, 8.0,
+--     0.0, 6.0, 9.0]
+matMiniMax :: Acc (Matrix Double) -> Acc (Matrix Double)
+matMiniMax m = map (\x -> ifThenElse (x > miniMax') x 0) (transpose m)
   where
     miniMax' = (the $ minimum $ maximum m)
 
--- | Conditional distance (basic version)
-conditional :: Matrix Int -> Matrix Double
-conditional m = run (miniMax $ proba (dim m) $ map fromIntegral $ use m)
+-- | Filters the matrix with a constant
+--
+-- >>> run $ matFilter 5 $ use $ matrix 3 [1..]
+-- Matrix (Z :. 3 :. 3)
+--   [ 0.0, 0.0, 7.0,
+--     0.0, 0.0, 8.0,
+--     0.0, 6.0, 9.0]
+matFilter :: Double -> Acc (Matrix Double) -> Acc (Matrix Double)
+matFilter t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
 
+-----------------------------------------------------------------------
+-- * Measures of proximity
+-----------------------------------------------------------------------
+-- ** Conditional distance
+
+-- *** Conditional distance (basic)
+
+-- | Conditional distance (basic version)
+--
+-- 2 main measures are actually implemented in order to compute the
+-- proximity of two terms: conditional and distributional
+--
+-- Conditional measure is an absolute measure which reflects
+-- interactions of 2 terms in the corpus.
+measureConditional :: Matrix Int -> Matrix Double
+--measureConditional m = run (matMiniMax $ matProba (dim m) $ map fromIntegral $ use m)
+measureConditional m = run (matProba (dim m) $ map fromIntegral $ use m)
+
+
+-- *** Conditional distance (advanced)
 
 -- | Conditional distance (advanced version)
--- The conditional measure \[P_c\] of 2 terms @i@ and @j@, also called "confidence"
--- , is the maximum probability between @i@ and @j@. If \[n_i\] (resp.
--- \[n_j\]) is the number of occurrences of @i@ (resp. @j@) in the corpus and _[n_{ij}\] the number of its occurrences we get:
+--
+-- The conditional measure P(i|j) of 2 terms @i@ and @j@, also called
+-- "confidence" , is the maximum probability between @i@ and @j@ to see
+-- @i@ in the same context of @j@ knowing @j@.
+--
+-- If N(i) (resp. N(j)) is the number of occurrences of @i@ (resp. @j@)
+-- in the corpus and _[n_{ij}\] the number of its occurrences we get:
+--
 -- \[P_c=max(\frac{n_i}{n_{ij}},\frac{n_j}{n_{ij}} )\]
 conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
 conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
@@ -124,21 +197,26 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
     r = dim m
 
     xs :: Acc (Matrix Double) -> Acc (Matrix Double)
-    xs mat = zipWith (-) (proba r mat) (mkSum r $ proba r mat)
+    xs mat = zipWith (-) (matSum r $ matProba r mat) (matProba r mat)
     ys :: Acc (Matrix Double) -> Acc (Matrix Double)
-    ys mat = zipWith (-) (proba r mat) (mkSum r $ transpose $ proba r mat)
+    ys mat = zipWith (-) (matSum r $ transpose $ matProba r mat) (matProba r mat)
 
 -----------------------------------------------------------------------
+-- ** Distributional Distance
 
--- | Distributional Distance
--- The distributional measure \[P_c\] of @i@ and @j@ terms is:
--- \[ S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik}, MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}}^{}}
--- \]
+-- | Distributional Distance Measure
+--
+-- Distributional measure is a relative measure which depends on the
+-- selected list, it represents structural equivalence.
+--
+-- The distributional measure \[P_c\] of @i@ and @j@ terms is: \[
+-- S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik},
+-- MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}}^{}} \]
 --
 -- Mutual information
 -- \[S{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\]
 --
--- Number of cooccurrences of @i@ and @j@ in the same context of text 
+-- Number of cooccurrences of @i@ and @j@ in the same context of text
 --                        \[C{ij}\]
 --
 -- The expected value of the cooccurrences
@@ -147,7 +225,7 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
 -- Total cooccurrences of @i@ term
 --            \[N_{i} = \sum_{i}^{} S_{i}\]
 distributional :: Matrix Int -> Matrix Double
-distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
+distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
   where
     n    = dim m
     
@@ -155,8 +233,8 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
     
     ri mat = zipWith (/) mat1 mat2
       where
-        mat1 = mkSum n $ zipWith min (mi mat) (mi $ transpose mat)
-        mat2 = mkSum n mat
+        mat1 = matSum n $ zipWith min (mi mat) (mi $ transpose mat)
+        mat2 = matSum n mat
     
     mi    m'  = zipWith (\a b -> max (log $ a/b) 0)  m'
               $ zipWith (/) (crossProduct m') (total m')
@@ -164,10 +242,12 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
     total m'' = replicate (constant (Z :. n :. n)) $ fold (+) 0 $ fold (+) 0 m''
     
     crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
-    cross mat      = zipWith (-) (mkSum n mat) (mat)
+    cross mat      = zipWith (-) (matSum n mat) (mat)
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
+-- * Specificity and Genericity
+
 {- | Metric Specificity and genericity: select terms
 
 - let N termes and occurrences of i \[N{i}\]
@@ -181,7 +261,10 @@ distributional m = run $ miniMax $ ri (map fromIntegral $ use m)
 - \[Inclusion (i) = Gen(i) + Spec(i)\)
 - \[GenericityScore = Gen(i)- Spec(i)\]
 
-- References: Science mapping with asymmetrical paradigmatic proximity Jean-Philippe Cointet (CREA, TSV), David Chavalarias (CREA) (Submitted on 15 Mar 2008), Networks and Heterogeneous Media 3, 2 (2008) 267 - 276, arXiv:0803.2315 [cs.OH]
+- References: Science mapping with asymmetrical paradigmatic proximity
+Jean-Philippe Cointet (CREA, TSV), David Chavalarias (CREA) (Submitted
+on 15 Mar 2008), Networks and Heterogeneous Media 3, 2 (2008) 267 - 276,
+arXiv:0803.2315 [cs.OH]
 -}
 type InclusionExclusion    = Double
 type SpecificityGenericity = Double
@@ -217,7 +300,8 @@ incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
 
 
 -- | P(i|j) = Nij /N(jj) Probability to get i given j
-p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (SymetricMatrix e) -> Acc (Matrix e)
+--p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (SymetricMatrix e) -> Acc (Matrix e)
+p_ij :: (Elt e, P.Fractional (Exp e)) => Acc (Matrix e) -> Acc (Matrix e)
 p_ij m = zipWith (/) m (n_jj m)
   where
     n_jj :: Elt e => Acc (SymetricMatrix e) -> Acc (Matrix e)
@@ -255,4 +339,10 @@ p_ m = zipWith (/) m (n_ m)
                          ) m
 -}
 
+-- * For Tests (to be removed)
+-- | Test perfermance with this matrix
+-- TODO : add this in a benchmark folder
+distriTest :: Matrix Double
+distriTest = distributional $ matrix 100 [1..]
+-----------------------------------------------------------------------
 

@@ -50,8 +50,12 @@ library:
   - Gargantext.Text.Parsers.WOS
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
+  - Gargantext.Text.Terms.Mono
+  - Gargantext.Text.Terms.Multi.Lang.En
+  - Gargantext.Text.Terms.Multi.Lang.Fr
   - Gargantext.Text.Terms.WithList
   - Gargantext.TextFlow
+  - Gargantext.Viz.Graph
   - Gargantext.Viz.Graph.Distances.Matrice
   - Gargantext.Viz.Graph.Index
   dependencies:

@@ -17,7 +17,6 @@ module Gargantext.Text.Terms.Mono.Token.En
     ( EitherList(..)
     , Tokenizer
     , tokenize
-    , run
     , defaultTokenizer
     , whitespace
     , uris
@@ -64,8 +63,6 @@ import Gargantext.Prelude
 --    ,"Hyphen-words"
 --    ,"Yes/No questions"
 --    ]
----
-
 type Tokenizer =  Text -> EitherList Text Text
 
 -- | The EitherList is a newtype-wrapped list of Eithers.

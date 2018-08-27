@@ -11,9 +11,9 @@ This file is intended for these purposes:
 
 - documentation for teaching and research
 - learn basics of Haskell which is a scientific programming language
-- behavioral tests (that should be completed with uni-tests and scale-tests
+- behavioral tests (that should be completed with uni-tests and scale-tests)
 
-This documents defines basic of Text definitions according to Gargantext..
+This document defines basic of Text definitions according to Gargantext..
 
 - What is a term ?
 - What is a sentence ?
@@ -104,7 +104,18 @@ ex_occ = occurrences <$> L.concat <$> ex_terms
 ex_cooc :: IO (Map (Label, Label) Int)
 ex_cooc = cooc <$> ex_terms
 
--- | Tests 
+-- | Tests the specificity and genericity
+--
+-- >>> ex_cooc_mat
+-- (fromList [(["glass"],0),(["spoon"],1),(["table"],2),(["wine"],3)],Matrix (Z :. 4 :. 4) 
+--   [ 4, 0, 0, 0,
+--     1, 2, 0, 0,
+--     3, 2, 4, 0,
+--     3, 1, 2, 3],Matrix (Z :. 4 :. 4) 
+--   [ 1.0, 0.25, 0.75, 0.75,
+--     0.0,  1.0,  1.0,  0.5,
+--     0.0,  0.0,  1.0,  0.5,
+--     0.0,  0.0,  0.0,  1.0],(Vector (Z :. 4) [0.5833333333333334,0.5833333333333334,0.75,0.5833333333333334],Vector (Z :. 4) [-0.5833333333333334,-0.4166666666666667,0.41666666666666674,0.5833333333333334]))
 ex_cooc_mat :: IO (Map Label Index, Matrix Int, Matrix Double, (DAA.Vector InclusionExclusion, DAA.Vector SpecificityGenericity))
 ex_cooc_mat = do
   m <- ex_cooc

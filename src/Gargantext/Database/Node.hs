@@ -59,6 +59,9 @@ import qualified Data.Profunctor.Product as PP
 -- | Types for Node Database Management
 data PGTSVector
 
+------------------------------------------------------------------------
+type CorpusId = Int
+------------------------------------------------------------------------
 
 instance FromField HyperdataCorpus where
     fromField = fromField'

@@ -1,13 +1,4 @@
-{-|PI/Application.hs
-API/Count.hs
-API/FrontEnd.hs
-API/Node.hs
-API/Auth.hs
-API.hs
-Database/NodeNodeNgram.hs
-Database/User.hs
-Database/Queries.hs
-
+{-| 
 Module      : Gargantext.API.Settings
 Description : Settings of the API (Server and Client)
 Copyright   : (c) CNRS, 2017-Present

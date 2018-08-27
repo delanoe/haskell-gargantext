@@ -1,11 +1,13 @@
 {-|
 Module      : Gargantext.Database
-Description : Main commands of BASHQL a Domain Specific Language to deal with Gargantext Database.
+Description : BASHQL to deal with Gargantext Database.
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
+
+* BASHQL is a Domain Specific Language to deal with the Database
 
 * BASHQL = functional (Bash * SQL)
 
@@ -42,6 +44,7 @@ write Haskell bash translations.
 - FileSystem is now a NodeSystem where each File is a Node in a Directed Graph (DG).
 
 * References
+
 [0] MIT Press has published "Category theory for the sciences". The book
 can also be purchased on Amazon. Here are reviews by the MAA, by the
 AMS, and by SIAM.
@@ -64,6 +67,7 @@ module Gargantext.Database ( module Gargantext.Database.Utils
                            , del , del'
                            , tree, tree'
                            , postCorpus, postAnnuaire
+                           , Connection
                            )
     where
 
