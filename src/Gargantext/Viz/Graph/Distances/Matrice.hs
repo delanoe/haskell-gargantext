@@ -117,7 +117,6 @@ matProba r mat = zipWith (/) mat (matSum r mat)
 diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
 diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
 
-
 -- | Divide by the Diagonal of the matrix
 --
 -- >>> run $ divByDiag 3 (use $ matrix 3 ([1..] :: [Double]))
@@ -209,21 +208,25 @@ conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegr
 -- Distributional measure is a relative measure which depends on the
 -- selected list, it represents structural equivalence.
 --
--- The distributional measure \[P_c\] of @i@ and @j@ terms is: \[
+-- The distributional measure P(c) of @i@ and @j@ terms is: \[
 -- S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik},
 -- MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}}^{}} \]
 --
 -- Mutual information
--- \[S{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\]
+-- \[S_{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\]
 --
 -- Number of cooccurrences of @i@ and @j@ in the same context of text
 --                        \[C{ij}\]
 --
--- The expected value of the cooccurrences
---            \[E_{ij} = \frac {S_{i} S_{j}} {N}\]
+-- The expected value of the cooccurrences @i@ and @j@ (given a map list of size @n@)
+--            \[E_{ij}^{m} = \frac {S_{i} S_{j}} {N_{m}}\]
 --
--- Total cooccurrences of @i@ term
---            \[N_{i} = \sum_{i}^{} S_{i}\]
+-- Total cooccurrences of term @i@ given a map list of size @m@
+--            \[S_{i} = \sum_{j, j \neq i}^{m} S_{ij}\]
+--
+-- Total cooccurrences of terms given a map list of size @m@
+--            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
+--
 distributional :: Matrix Int -> Matrix Double
 distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
   where
@@ -232,17 +235,17 @@ distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
     
     ri mat = zipWith (/) mat1 mat2
       where
-        mat1 = matSum n $ zipWith min (mi mat) (mi $ transpose mat)
+        mat1 = matSum n $ zipWith min (s_mi mat) (s_mi $ transpose mat)
         mat2 = matSum n mat
     
-    mi    m'  = zipWith (\a b -> max (log $ a/b) 0)  m'
+    s_mi    m'  = zipWith (\a b -> log (a/b))  m'
               $ zipWith (/) (crossProduct m') (total m')
 
     total m'' = replicate (constant (Z :. n :. n)) $ fold (+) 0 $ fold (+) 0 m''
-    n    = dim m
+    n         = dim m
     
     crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
-    cross mat      = zipWith (-) (matSum n mat) (mat)
+    cross mat         = zipWith (-) (matSum n mat) (mat)
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------

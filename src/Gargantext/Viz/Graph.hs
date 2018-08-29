@@ -16,6 +16,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph
   where
 
+------------------------------------------------------------------------
 import GHC.IO (FilePath)
 import GHC.Generics (Generic)
 import Data.Aeson.TH (deriveJSON)
@@ -23,18 +24,25 @@ import qualified Data.Aeson as DA
 
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import qualified Text.Read as T
 import qualified Data.Text as T
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 
+import Data.Swagger (ToSchema)
+
 import Gargantext.Prelude
 import Gargantext.Core.Types (Label)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
+
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import Test.QuickCheck (elements)
+
+------------------------------------------------------------------------
 
 data TypeNode = Terms | Unknown
   deriving (Show, Generic)
@@ -67,6 +75,19 @@ data Graph = Graph { graph_nodes :: [Node]
                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "graph_") ''Graph)
+
+-- | Intances for Swagger documentation
+instance ToSchema Node
+instance ToSchema TypeNode
+instance ToSchema Attributes
+instance ToSchema Edge
+instance ToSchema Graph
+
+-- | Intances for the mack
+instance Arbitrary Graph where
+  arbitrary = elements $ [Graph {graph_nodes = [Node {node_size = 4, node_type = Terms, node_id = pack "0", node_label = pack "animal", node_attributes = Attributes {clust_default = 0}},Node {node_size = 3, node_type = Terms, node_id = pack "1", node_label = pack "bird", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "2", node_label = pack "boy", node_attributes = Attributes {clust_default = 1}},Node {node_size = 2, node_type = Terms, node_id = pack "3", node_label = pack "dog", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "4", node_label = pack "girl", node_attributes = Attributes {clust_default = 1}},Node {node_size = 4, node_type = Terms, node_id = pack "5", node_label = pack "human body", node_attributes = Attributes {clust_default = 1}},Node {node_size = 3, node_type = Terms, node_id = pack "6", node_label = pack "object", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "7", node_label = pack "pen", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "8", node_label = pack "table", node_attributes = Attributes {clust_default = 2}}], graph_edges = [Edge {edge_source = pack "0", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "0"},Edge {edge_source = pack "1", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "1"},Edge {edge_source = pack "1", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "2"},Edge {edge_source = pack "2", edge_target = pack "2", edge_weight = 1.0, edge_id = pack "3"},Edge {edge_source = pack "2", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "4"},Edge {edge_source = pack "3", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "5"},Edge {edge_source = pack "3", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "6"},Edge {edge_source = pack "3", edge_target = pack "3", edge_weight = 1.0, edge_id = pack "7"},Edge {edge_source = pack "4", edge_target = pack "4", edge_weight = 1.0, edge_id = pack "8"},Edge {edge_source = pack "4", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "9"},Edge {edge_source = pack "5", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "10"},Edge {edge_source = pack "6", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "11"},Edge {edge_source = pack "7", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "12"},Edge {edge_source = pack "7", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "13"},Edge {edge_source = pack "8", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "14"},Edge {edge_source = pack "8", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "15"},Edge {edge_source = pack "8", edge_target = pack "8", edge_weight = 1.0, edge_id = pack "16"}]}]
+
+
 -----------------------------------------------------------
 -- Old Gargantext Version
 

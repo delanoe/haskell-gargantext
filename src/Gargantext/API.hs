@@ -68,6 +68,7 @@ import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 import Gargantext.API.Node ( Roots    , roots
                            , NodeAPI  , nodeAPI
                            , NodesAPI , nodesAPI
+                           , GraphAPI, graphAPI
                            )
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
@@ -215,6 +216,9 @@ type GargAPI =
            -- Corpus endpoint
            :<|> "search":> Summary "Search endpoint"
                         :> ReqBody '[JSON] SearchQuery :> SearchAPI
+           
+           :<|> "graph" :> Summary "Graph endpoint"
+                        :> Capture "id" Int         :> GraphAPI
 
        --    :<|> "scraper" :> WithCallbacks ScraperAPI
 
@@ -242,6 +246,7 @@ server env = do
      :<|> nodesAPI conn
      :<|> count
      :<|> search conn
+     :<|> graphAPI conn
   --   :<|> orchestrator
   where
     conn = env ^. env_conn

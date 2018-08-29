@@ -45,6 +45,11 @@ import Gargantext.Database.Node ( getNodesWithParentId
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
                                  ,FacetChart)
 
+-- Graph
+import Gargantext.TextFlow
+import Gargantext.Viz.Graph (Graph)
+import Gargantext.Core (Lang(..))
+import Gargantext.Text.Terms (TermType(..))
 -------------------------------------------------------------------
 -------------------------------------------------------------------
 -- | Node API Types management
@@ -101,6 +106,12 @@ roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId conn 0 
           :<|> pure (panic "not implemented yet")
           :<|> pure (panic "not implemented yet")
 
+
+type GraphAPI   = Get '[JSON] Graph
+graphAPI :: Connection -> NodeId -> Server GraphAPI
+graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
+
+
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              conn id )
               :<|> deleteNode'   conn id
@@ -109,6 +120,8 @@ nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              co
               :<|> getChart      conn id
               -- :<|> upload
               -- :<|> query
+
+
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
