@@ -59,16 +59,15 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, l_community_id)
 
 contextText :: [T.Text]
 contextText = map T.pack ["The dog is an animal."
-              ,"The bird is an animal."
-              ,"The bird is an animal."
-              ,"The bird and the dog are an animal."
-              ,"The table is an object."
-              ,"The pen is an object."
-              ,"This object is a pen or a table?"
-              ,"The girl has a human body."
-              ,"The girl has a human body."
-              ,"The boy has a human body."
-              ,"The boy has a human body."
+              ,"The bird is a animal."
+              ,"The dog is a animal."
+              ,"The animal is a bird or a dog ?"
+              ,"The table is a object."
+              ,"The pen is a object."
+              ,"The object is a pen or a table ?"
+              ,"The girl is human body."
+              ,"The boy  is human body."
+              ,"The boy or the girl are human body."
               ]
 
 
