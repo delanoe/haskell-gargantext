@@ -53,14 +53,14 @@ data Doc = Doc
 -- | Doc 2 HyperdataDocument
 doc2hyperdataDocument :: Doc -> HyperdataDocument
 --doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
-doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
+doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
   HyperdataDocument (Just "CSV")
                     (Just did)
                     Nothing
                     Nothing
+                    Nothing
                     (Just dt)
                     (Just dau)
-                    (Just ds)
                     (Just dab)
                     (Nothing)
                     Nothing

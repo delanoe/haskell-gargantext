@@ -176,9 +176,9 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     node <- (proc () -> do
             row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
             restrict -< parentId' .== (toNullable $ pgInt4 parentId)
-            
+
             let typeId' = maybe 0 nodeTypeId maybeNodeType
-            
+
             restrict -< if typeId' > 0
                            then typeId   .== (pgInt4 (typeId' :: Int))
                            else (pgBool True)
@@ -211,7 +211,6 @@ getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
 getNodesWithParentId' :: Connection -> Int 
                      -> Maybe Text -> IO [Node Value]
 getNodesWithParentId' conn n _ = runQuery conn $ selectNodesWithParentID n
-
 
 
 ------------------------------------------------------------------------

@@ -37,6 +37,7 @@ library:
   - Gargantext.Core.Types.Node
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database
+  - Gargantext.Database.Node.Document.Import
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
@@ -112,6 +113,7 @@ library:
   - profunctors
   - protolude
   - pureMD5
+  - SHA
   - regex-compat
   - resourcet
   - safe

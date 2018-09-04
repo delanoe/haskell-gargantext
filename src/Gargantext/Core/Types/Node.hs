@@ -42,6 +42,7 @@ import           Data.Swagger
 import           Text.Read (read)
 import           Text.Show (Show())
 
+import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
 import           Servant
 
 import           Test.QuickCheck.Arbitrary
@@ -102,30 +103,34 @@ $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
 
 ------------------------------------------------------------------------
 
-data HyperdataDocument = HyperdataDocument { hyperdataDocument_bdd                :: Maybe Text
-                                           , hyperdataDocument_doi                :: Maybe Int
-                                           , hyperdataDocument_url                :: Maybe Text
-                                           , hyperdataDocument_page               :: Maybe Int
-                                           , hyperdataDocument_title              :: Maybe Text
-                                           , hyperdataDocument_authors            :: Maybe Text
-                                           , hyperdataDocument_source             :: Maybe Text
-                                           , hyperdataDocument_abstract           :: Maybe Text
-                                           , hyperdataDocument_statuses           :: Maybe [Status]
-                                           , hyperdataDocument_publication_date   :: Maybe Text
-                                           , hyperdataDocument_publication_year   :: Maybe Int
-                                           , hyperdataDocument_publication_month  :: Maybe Int
-                                           , hyperdataDocument_publication_hour   :: Maybe Int
-                                           , hyperdataDocument_publication_minute :: Maybe Int
-                                           , hyperdataDocument_publication_second :: Maybe Int
-                                           , hyperdataDocument_language_iso2       :: Maybe Text
-                                           , hyperdataDocument_language_iso3       :: Maybe Text
+data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: Maybe Text
+                                           , _hyperdataDocument_doi                :: Maybe Int
+                                           , _hyperdataDocument_url                :: Maybe Text
+                                           , _hyperdataDocument_uniqId             :: Maybe Text
+                                           , _hyperdataDocument_page               :: Maybe Int
+                                           , _hyperdataDocument_title              :: Maybe Text
+                                           , _hyperdataDocument_authors            :: Maybe Text
+                                           , _hyperdataDocument_source             :: Maybe Text
+                                           , _hyperdataDocument_abstract           :: Maybe Text
+                                           , _hyperdataDocument_publication_date   :: Maybe Text
+                                           , _hyperdataDocument_publication_year   :: Maybe Int
+                                           , _hyperdataDocument_publication_month  :: Maybe Int
+                                           , _hyperdataDocument_publication_hour   :: Maybe Int
+                                           , _hyperdataDocument_publication_minute :: Maybe Int
+                                           , _hyperdataDocument_publication_second :: Maybe Int
+                                           , _hyperdataDocument_language_iso2       :: Maybe Text
+                                           , _hyperdataDocument_language_iso3       :: Maybe Text
                                            } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataDocument_") ''HyperdataDocument)
+$(deriveJSON (unPrefix "_hyperdataDocument_") ''HyperdataDocument)
+$(makeLenses ''HyperdataDocument)
+
+instance ToField HyperdataDocument where
+  toField = toJSONField
 
 toHyperdataDocuments :: [(Text, Text)] -> [HyperdataDocument]
-toHyperdataDocuments ts = map (\(t1,t2) -> HyperdataDocument Nothing Nothing Nothing Nothing (Just t1) 
-                                           Nothing (Just t2) Nothing Nothing Nothing 
-                                           Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+toHyperdataDocuments ts = map (\(t1,t2) -> HyperdataDocument Nothing Nothing Nothing Nothing Nothing (Just t1)
+                                           Nothing (Just t2) Nothing Nothing Nothing
+                                           Nothing Nothing Nothing Nothing Nothing Nothing 
                                            ) ts
 
 hyperdataDocuments :: [HyperdataDocument]
@@ -262,11 +267,11 @@ type NodeName     = Text
 --type NodeUser    = Node HyperdataUser
 
 -- | Then a Node can be either a Folder or a Corpus or a Document
-type NodeUser = Node HyperdataUser
-type Folder   = Node HyperdataFolder
-type Project  = Folder -- NP Node HyperdataProject ?
-type NodeCorpus   = Node HyperdataCorpus
-type Document = Node HyperdataDocument
+type NodeUser   = Node HyperdataUser
+type Folder     = Node HyperdataFolder
+type Project    = Node HyperdataProject
+type NodeCorpus = Node HyperdataCorpus
+type Document   = Node HyperdataDocument
 
 ------------------------------------------------------------------------
 data NodeType = NodeUser | Project | Folder | NodeCorpus | Annuaire | Document | UserPage | DocumentCopy | Favorites
@@ -326,7 +331,7 @@ hyperdataDocument = case decode docExample of
                                                    Nothing Nothing Nothing Nothing
                                                    Nothing
 docExample :: ByteString
-docExample = "{\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"statuses\":[],\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
+docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 
 
 instance ToSchema HyperdataDocument where
@@ -341,26 +346,26 @@ instance ToSchema Value where
     L.& mapped.schema.example ?~ toJSON ("" :: Text)
 
 
-instance ToSchema (NodePoly NodeId NodeTypeId NodeUserId 
+instance ToSchema (NodePoly NodeId NodeTypeId NodeUserId
                             (Maybe NodeParentId) NodeName
                             UTCTime HyperdataDocument
                   )
 
-instance ToSchema (NodePoly NodeId NodeTypeId 
-                            (Maybe NodeUserId) 
-                            NodeParentId NodeName 
+instance ToSchema (NodePoly NodeId NodeTypeId
+                            (Maybe NodeUserId)
+                            NodeParentId NodeName
                             UTCTime HyperdataDocument
                   )
 
-instance ToSchema (NodePoly NodeId NodeTypeId 
-                            (Maybe NodeUserId) 
-                            NodeParentId NodeName 
+instance ToSchema (NodePoly NodeId NodeTypeId
+                            (Maybe NodeUserId)
+                            NodeParentId NodeName
                             UTCTime Value
                   )
 
-instance ToSchema (NodePoly NodeId NodeTypeId 
-                            (NodeUserId) 
-                            (Maybe NodeParentId) NodeName 
+instance ToSchema (NodePoly NodeId NodeTypeId
+                            (NodeUserId)
+                            (Maybe NodeParentId) NodeName
                             UTCTime Value
                   )
 
