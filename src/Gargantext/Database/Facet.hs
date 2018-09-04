@@ -50,12 +50,13 @@ import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 
 import Gargantext.Core.Types
-import Gargantext.Core.Types.Node (NodeType)
+import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.NodeNode
 import Gargantext.Database.NodeNodeNgram
 import Gargantext.Database.Node
 import Gargantext.Database.Queries
+import Gargantext.Database.Config (nodeTypeId)
 -- import Gargantext.Database.NodeNgram
 
 ------------------------------------------------------------------------

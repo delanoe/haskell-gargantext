@@ -72,11 +72,11 @@ import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 
 import Gargantext (connectGargandb)
-import Gargantext.Core.Types.Main (nodeTypeId)
-import Gargantext.Core.Types.Node
+import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Types.Node
 -- FIXME : the import of Document constructor below does not work
--- import Gargantext.Core.Types.Node (Document)
---import Gargantext.Core.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
+-- import Gargantext.Database.Types.Node (Document)
+--import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
 --                                  , hyperdataDocument_uniqId
 --                                  , hyperdataDocument_title
 --                                  , hyperdataDocument_abstract

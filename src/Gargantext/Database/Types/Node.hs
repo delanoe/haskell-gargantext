@@ -1,6 +1,6 @@
 {-|
-Module      : Gargantext.Core.Types.Nodes
-Description : Main Types of Nodes
+Module      : Gargantext.Database.Types.Nodes
+Description : Main Types of Nodes in Database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -18,7 +18,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell      #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
-module Gargantext.Core.Types.Node where
+module Gargantext.Database.Types.Node where
 
 import Prelude (Enum, Bounded, minBound, maxBound)
 

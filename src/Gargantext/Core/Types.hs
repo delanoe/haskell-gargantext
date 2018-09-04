@@ -16,7 +16,7 @@ commentary with @some markup@.
 {-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
-                             , module Gargantext.Core.Types.Node
+                             , module Gargantext.Database.Types.Node
                              , Term, Terms(..)
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
@@ -31,7 +31,7 @@ import Data.Set (Set, empty)
 import Data.Text (Text, unpack)
 
 import Gargantext.Core.Types.Main
-import Gargantext.Core.Types.Node
+import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------

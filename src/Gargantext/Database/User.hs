@@ -1,14 +1,13 @@
 {-|
 Module      : Gargantext.Database.user
-Description : 
+Description : User Database management tools
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
+Functions to deal with users, database side.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -102,10 +101,9 @@ userTable = Table "auth_user" (pUser User { user_id      = optional "id"
                                           }
                               )
 
-
+------------------------------------------------------------------
 queryUserTable :: Query UserRead
 queryUserTable = queryTable userTable
-
 
 selectUsersLight :: Query UserRead
 selectUsersLight = proc () -> do
@@ -113,16 +111,25 @@ selectUsersLight = proc () -> do
       restrict -< i .== 1
       --returnA -< User i p ll is un fn ln m iff ive dj
       returnA -< row
-
-
+------------------------------------------------------------------
+-- | Select User with some parameters
+-- Not optimized version
 userWith :: (Eq a1, Foldable t) => (a -> a1) -> a1 -> t a -> Maybe a
 userWith f t xs = find (\x -> f x == t) xs
 
+-- | Select User with Username
 userWithUsername :: Text -> [User] -> Maybe User
 userWithUsername t xs = userWith user_username t xs
 
 userWithId :: Int -> [User] -> Maybe User
 userWithId t xs = userWith user_id t xs
+
+userLightWithUsername :: Text -> [UserLight] -> Maybe UserLight
+userLightWithUsername t xs = userWith userLight_username t xs
+
+userLightWithId :: Int -> [UserLight] -> Maybe UserLight
+userLightWithId t xs = userWith userLight_id t xs
+
 
 instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
@@ -133,3 +140,9 @@ users conn = runQuery conn queryUserTable
 
 usersLight :: PGS.Connection -> IO [UserLight]
 usersLight conn = map toUserLight <$> runQuery conn queryUserTable
+
+type Username = Text
+
+user :: PGS.Connection -> Username -> IO (Maybe UserLight)
+user c u = userLightWithUsername u <$> usersLight c
+

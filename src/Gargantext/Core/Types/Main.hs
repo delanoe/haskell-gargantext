@@ -7,8 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -22,13 +20,11 @@ commentary with @some markup@.
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
-import Data.Maybe (fromMaybe)
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
-import Data.Text (Text, pack)
-import Data.List (lookup)
+import Data.Text (Text)
 
-import Gargantext.Core.Types.Node
+import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
@@ -116,43 +112,6 @@ type TirankGlobal  = Tficf
 type Graph    = Node HyperdataGraph
 type Phylo    = Node HyperdataPhylo
 type Notebook = Node HyperdataNotebook
-
-
-nodeTypes :: [(NodeType, NodeTypeId)]
-nodeTypes = [ (NodeUser      ,  1)
-            , (Folder        ,  2)
-            , (NodeCorpus    ,  30)
-            , (Annuaire      ,  31)
-            , (Document      ,  4)
-            , (UserPage      ,  41)
-            --, (NodeSwap      , 19)
-------  Lists
---            , (StopList      ,  5)
---            , (GroupList     ,  6)
---            , (MainList      ,  7)
---            , (MapList       ,  8)
-----  Scores
-            , (Occurrences   , 10)
---            , (Cooccurrences ,  9)
---
---            , (Specclusion   , 11)
---            , (Genclusion    , 18)
---            , (Cvalue       , 12)
---
---            , (TfidfCorpus  , 13)
---            , (TfidfGlobal  , 14)
---
---            , (TirankLocal  , 16)
---            , (TirankGlobal , 17)
---
-----  Node management
-            , (Favorites     , 15)
---
-            ]
---
-nodeTypeId :: NodeType -> NodeTypeId
-nodeTypeId tn = fromMaybe (panic $ pack $ "Typename " <> show tn <> " does not exist")
-                          (lookup tn nodeTypes)
 
 
 -- Temporary types to be removed

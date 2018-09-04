@@ -34,10 +34,12 @@ library:
   - Gargantext.Core
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Main
-  - Gargantext.Core.Types.Node
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database
+  - Gargantext.Database.Bashql
   - Gargantext.Database.Node.Document.Import
+  - Gargantext.Database.Types.Node
+  - Gargantext.Database.User
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context

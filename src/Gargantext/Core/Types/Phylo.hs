@@ -49,6 +49,7 @@ data Phylo = Phylo { _phylo_Duration :: (Start, End)
 type Start   = POSIXTime
 type End     = POSIXTime
 
+-- | Indexed Ngram
 type Ngram   = (NgramId, Text)
 type NgramId = Int
 

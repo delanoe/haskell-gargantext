@@ -34,8 +34,9 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
 import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core.Types
-import Gargantext.Core.Types.Node (NodeType)
+import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Database.Queries
+import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Prelude hiding (sum)
 
 

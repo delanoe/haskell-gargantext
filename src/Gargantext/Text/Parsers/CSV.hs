@@ -32,7 +32,7 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Safe (tailMay)
 
-import Gargantext.Core.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text
 import Gargantext.Text.Context
 import Gargantext.Prelude hiding (length)
