@@ -7,7 +7,9 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-* Main purpose of this module: enabling "common goods" of text data and respecting privacy.
+* Purpose of this module
+
+Enabling "common goods" of text data and respecting privacy.
 
 Gargantext shares as "common good" the links between context of texts
 and terms / words / ngrams.
@@ -39,21 +41,14 @@ instance).
 - Hash policy: this UniqId is a sha256 uniq id which is the result of
 the concatenation of the parameters defined by @hashParameters@.
 
-
-* Database configuration
-
-Administrator of the database has to create a uniq index as following SQL command:
-`create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
 -}
-
+------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 module Gargantext.Database.Node.Document.Import where
 
@@ -96,6 +91,10 @@ import Gargantext.Prelude
 import GHC.Generics (Generic)
 ---------------------------------------------------------------------------
 -- * Main Insert functions
+
+-- ** Database configuration
+-- Administrator of the database has to create a uniq index as following SQL command:
+-- `create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
 
 -- | Insert Document main function
 -- UserId : user who is inserting the documents
