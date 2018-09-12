@@ -66,4 +66,3 @@ nodeTypeId tn = fromMaybe (panic $ pack $ "Typename " <> show tn <> " does not e
 
 
 
-

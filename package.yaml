@@ -116,6 +116,7 @@ library:
   - protolude
   - pureMD5
   - SHA
+  - rake
   - regex-compat
   - resourcet
   - safe

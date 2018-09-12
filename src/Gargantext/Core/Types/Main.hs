@@ -20,17 +20,30 @@ Portability : POSIX
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
 import Data.Text (Text)
+import Data.Swagger
 
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
+import GHC.Generics (Generic)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 ------------------------------------------------------------------------
 -- All the Database is structred like a hierarchical Tree
 data Tree a = NodeT a [Tree a]
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Generic)
+
+instance ToJSON   (Tree NodeType)
+instance FromJSON (Tree NodeType)
+
+instance ToSchema  (Tree NodeType)
+instance Arbitrary (Tree NodeType) where
+  arbitrary = elements [userTree, userTree]
 
 -- data Tree a = NodeT a [Tree a]
 -- same as Data.Tree

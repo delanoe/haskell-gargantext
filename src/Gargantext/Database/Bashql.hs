@@ -58,8 +58,9 @@ AMS, and by SIAM.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE FlexibleContexts  #-}
 
-module Gargantext.Database.Bashql ( get
+module Gargantext.Database.Bashql ( get, get'
                                   , ls  , ls'
                                   , home, home'
                                   , post, post'
@@ -69,16 +70,19 @@ module Gargantext.Database.Bashql ( get
                                  )
     where
 
+import Control.Monad.Reader -- (Reader, ask)
+
+import Database.PostgreSQL.Simple (Connection)
+import Data.Text (Text, pack)
+import Data.Aeson
+import Data.List (last, concat)
+
 import Gargantext.Core.Types
 import Gargantext.Database.Utils (connectGargandb)
 import Gargantext.Database.Node
 import Gargantext.Prelude
-import Database.PostgreSQL.Simple (Connection)
-import Data.Text (Text, pack)
-import Opaleye hiding (FromField)
-import Data.Aeson
-import Data.List (last, concat)
 
+import Opaleye hiding (FromField)
 --type UserId = Int
 --type NodeId = Int
 
@@ -100,9 +104,10 @@ home c = map node_id <$> getNodesWithParentId c 0 Nothing
 ls :: Connection -> PWD -> IO [Node Value]
 ls = get
 
+
 tree :: Connection -> PWD -> IO [Node Value]
 tree c p = do
-  ns <- get c p
+  ns       <- get c p
   children <- mapM (\p' -> get c [p']) $ map node_id ns
   pure $ ns <> (concat children)
 
@@ -140,10 +145,23 @@ del c ns = deleteNodes c ns
 -- Tests
 --------------------------------------------------------------
 
+
+get' :: PWD -> Reader Connection (IO [Node Value])
+get' []  = pure $ pure []
+get' pwd = do
+  connection <- ask
+  pure $ runQuery connection $ selectNodesWithParentID (last pwd)
+
 home' :: IO PWD
 home' = do
   c <- connectGargandb "gargantext.ini"
   home c
+
+--home'' :: Reader Connection (IO PWD)
+--home'' = do
+--  c <- ask
+--  liftIO $ home c
+
 
 ls' :: IO [Node Value]
 ls' = do
@@ -203,3 +221,4 @@ del' ns = do
   del c ns
 
 
+-- corporaOf :: Username -> IO [Corpus]

@@ -49,6 +49,7 @@ import Gargantext.Database.Facet (FacetDoc, getDocFacet
 import Gargantext.TextFlow
 import Gargantext.Viz.Graph (Graph)
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types.Main (Tree)
 import Gargantext.Text.Terms (TermType(..))
 -------------------------------------------------------------------
 -------------------------------------------------------------------
@@ -110,6 +111,10 @@ roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId conn 0 
 type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
 graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
+
+type TreeAPI   = Get '[JSON] (Tree NodeType)
+treeAPI :: Connection -> NodeId -> Server TreeAPI
+treeAPI _ _ = undefined
 
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
