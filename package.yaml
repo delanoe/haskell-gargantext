@@ -56,6 +56,7 @@ library:
   - Gargantext.Text.Terms.Mono
   - Gargantext.Text.Terms.Multi.Lang.En
   - Gargantext.Text.Terms.Multi.Lang.Fr
+  - Gargantext.Text.Terms.Multi.RAKE
   - Gargantext.Text.Terms.WithList
   - Gargantext.TextFlow
   - Gargantext.Viz.Graph

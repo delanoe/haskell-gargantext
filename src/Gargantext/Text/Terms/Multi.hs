@@ -13,7 +13,7 @@ Multi-terms are ngrams where n > 1.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Terms.Multi (multiterms)
+module Gargantext.Text.Terms.Multi (multiterms, multiterms_rake)
   where
 
 import Data.Text hiding (map, group, filter, concat)
@@ -28,6 +28,8 @@ import Gargantext.Text.Terms.Multi.PosTagging
 import Gargantext.Text.Terms.Mono.Stem (stem)
 import qualified Gargantext.Text.Terms.Multi.Lang.En as En
 import qualified Gargantext.Text.Terms.Multi.Lang.Fr as Fr
+
+import Gargantext.Text.Terms.Multi.RAKE (multiterms_rake)
 
 multiterms :: Lang -> Text -> IO [Terms]
 multiterms lang txt = concat
