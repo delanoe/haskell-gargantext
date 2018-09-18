@@ -139,7 +139,7 @@ data Tree a = NodeT a [Tree a]
 
 instance ToJSON   (Tree NodeTree) where
   toJSON (NodeT node nodes) =
-    object ["node" A..= toJSON node, "nodes" A..= toJSON nodes]
+    object ["node" A..= toJSON node, "children" A..= toJSON nodes]
 
 instance FromJSON (Tree NodeTree)
 
