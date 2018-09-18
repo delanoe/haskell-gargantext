@@ -15,18 +15,21 @@ Portability : POSIX
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.TH (deriveJSON)
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Swagger
 
 import Gargantext.Database.Types.Node
+import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
 import GHC.Generics (Generic)
@@ -34,44 +37,36 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
--- All the Database is structred like a hierarchical Tree
-data Tree a = NodeT a [Tree a]
-  deriving (Show, Read, Eq, Generic)
+data NodeTree = NodeTree { _nt_name :: Text
+                         , _nt_type :: NodeType
+                         , _nt_id   :: Int
+                         } deriving (Show, Read, Generic)
 
-instance ToJSON   (Tree NodeType)
-instance FromJSON (Tree NodeType)
-
-instance ToSchema  (Tree NodeType)
-instance Arbitrary (Tree NodeType) where
-  arbitrary = elements [userTree, userTree]
-
--- data Tree a = NodeT a [Tree a]
--- same as Data.Tree
-leafT :: a -> Tree a
-leafT x = NodeT x []
+$(deriveJSON (unPrefix "_nt_") ''NodeTree)
+------------------------------------------------------------------------
 
 -- Garg Network is a network of all Garg nodes
 --gargNetwork = undefined
 
 -- | Garg Node is Database Schema Typed as specification
 -- gargNode gathers all the Nodes of all users on one Node
-gargNode :: [Tree NodeType]
+gargNode :: [Tree NodeTree]
 gargNode = [userTree]
 
 -- | User Tree simplified
-userTree :: Tree NodeType
-userTree = NodeT NodeUser [projectTree]
+userTree :: Tree NodeTree
+userTree = NodeT (NodeTree "user A" NodeUser 1) [projectTree]
 
 -- | Project Tree
-projectTree :: Tree NodeType
-projectTree = NodeT Project [corpusTree]
+projectTree :: Tree NodeTree
+projectTree = NodeT (NodeTree "Project A" Project 2) [corpusTree]
 
 -- | Corpus Tree
-corpusTree :: Tree NodeType
-corpusTree = NodeT NodeCorpus (  [ leafT Document ]
-                          <> [ leafT Lists    ]
-                          <> [ leafT Metrics  ]
-                          <> [ leafT Classification]
+corpusTree :: Tree NodeTree
+corpusTree = NodeT (NodeTree "Corpus A" NodeCorpus 3) (  [ leafT $ NodeTree "Doc" Document 4]
+                          <> [ leafT (NodeTree "List A" Lists 5)    ]
+                          <> [ leafT (NodeTree "Metrics A" Metrics 6)  ]
+                          <> [ leafT (NodeTree "Class A" Classification 7)]
                           )
 
 --   TODO make instances of Nodes
@@ -134,4 +129,24 @@ type ErrorMessage = Text
 type ParentId = NodeId
 type Limit    = Int
 type Offset   = Int
+
+
+------------------------------------------------------------------------
+-- All the Database is structred like a hierarchical Tree
+data Tree a = NodeT a [Tree a]
+  deriving (Show, Read, Eq, Generic)
+
+instance ToJSON   (Tree NodeTree)
+instance FromJSON (Tree NodeTree)
+
+instance ToSchema NodeTree
+instance ToSchema  (Tree NodeTree)
+instance Arbitrary (Tree NodeTree) where
+  arbitrary = elements [userTree, userTree]
+
+-- data Tree a = NodeT a [Tree a]
+-- same as Data.Tree
+leafT :: a -> Tree a
+leafT x = NodeT x []
+
 

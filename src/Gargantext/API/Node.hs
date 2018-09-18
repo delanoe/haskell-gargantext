@@ -49,7 +49,7 @@ import Gargantext.Database.Facet (FacetDoc, getDocFacet
 import Gargantext.TextFlow
 import Gargantext.Viz.Graph (Graph)
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types.Main (Tree)
+import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Text.Terms (TermType(..))
 -------------------------------------------------------------------
 -------------------------------------------------------------------
@@ -112,7 +112,7 @@ type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
 graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
 
-type TreeAPI   = Get '[JSON] (Tree NodeType)
+type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: Connection -> NodeId -> Server TreeAPI
 treeAPI _ _ = undefined
 
