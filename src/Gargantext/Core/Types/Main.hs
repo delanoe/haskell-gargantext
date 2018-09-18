@@ -21,7 +21,8 @@ Portability : POSIX
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson (FromJSON, ToJSON, toJSON)
+import Data.Aeson as A
 import Data.Aeson.TH (deriveJSON)
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
@@ -136,7 +137,10 @@ type Offset   = Int
 data Tree a = NodeT a [Tree a]
   deriving (Show, Read, Eq, Generic)
 
-instance ToJSON   (Tree NodeTree)
+instance ToJSON   (Tree NodeTree) where
+  toJSON (NodeT node nodes) =
+    object ["node" A..= toJSON node, "nodes" A..= toJSON nodes]
+
 instance FromJSON (Tree NodeTree)
 
 instance ToSchema NodeTree
@@ -148,5 +152,3 @@ instance Arbitrary (Tree NodeTree) where
 -- same as Data.Tree
 leafT :: a -> Tree a
 leafT x = NodeT x []
-
-
