@@ -274,7 +274,7 @@ type NodeCorpus = Node HyperdataCorpus
 type Document   = Node HyperdataDocument
 
 ------------------------------------------------------------------------
-data NodeType = NodeUser | Project | Folder | NodeCorpus | Annuaire | Document | UserPage | DocumentCopy | Favorites
+data NodeType = NodeUser | Project | Folder | NodeCorpus | Annuaire | Document | Individu | UserPage | DocumentCopy | Favorites
               | Classification
               | Lists
               | Metrics | Occurrences
