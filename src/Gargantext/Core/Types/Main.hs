@@ -56,18 +56,27 @@ gargNode = [userTree]
 
 -- | User Tree simplified
 userTree :: Tree NodeTree
-userTree = NodeT (NodeTree "user A" NodeUser 1) [projectTree]
+userTree = TreeN (NodeTree "user name" NodeUser 1) $
+                  [leafT $ NodeTree "MyPage" UserPage 0] <>
+                  [annuaireTree, projectTree]
 
 -- | Project Tree
 projectTree :: Tree NodeTree
-projectTree = NodeT (NodeTree "Project A" Project 2) [corpusTree]
+projectTree = TreeN (NodeTree "Project CNRS/IMT" Project 2) [corpusTree 10 "A", corpusTree 20 "B"]
+
+type Individu  = Document
 
 -- | Corpus Tree
-corpusTree :: Tree NodeTree
-corpusTree = NodeT (NodeTree "Corpus A" NodeCorpus 3) (  [ leafT $ NodeTree "Doc" Document 4]
-                          <> [ leafT (NodeTree "List A" Lists 5)    ]
-                          <> [ leafT (NodeTree "Metrics A" Metrics 6)  ]
-                          <> [ leafT (NodeTree "Class A" Classification 7)]
+annuaireTree :: Tree NodeTree
+annuaireTree = TreeN (NodeTree "Annuaire" Annuaire 41) (   [leafT $ NodeTree "IMT"  Individu 42]
+                                                        <> [leafT $ NodeTree "CNRS" Individu 43]
+                          )
+
+corpusTree :: NodeId -> Text -> Tree NodeTree
+corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Documents" Document (nId +1)]
+--                                                      <> [ leafT $ NodeTree "My lists"  Lists    5]
+--                          <> [ leafT (NodeTree "Metrics A" Metrics 6)  ]
+--                          <> [ leafT (NodeTree "Class A" Classification 7)]
                           )
 
 --   TODO make instances of Nodes
@@ -88,7 +97,6 @@ data Lists  =  StopList    | MainList | MapList | GroupList
 
 -- | Community Manager Use Case
 type Annuaire  = NodeCorpus
-type Individu  = Document
 
 -- | Favorites Node enable Node categorization
 type Favorites = Node HyperdataFavorites
@@ -134,11 +142,11 @@ type Offset   = Int
 
 ------------------------------------------------------------------------
 -- All the Database is structred like a hierarchical Tree
-data Tree a = NodeT a [Tree a]
+data Tree a = TreeN a [Tree a]
   deriving (Show, Read, Eq, Generic)
 
 instance ToJSON   (Tree NodeTree) where
-  toJSON (NodeT node nodes) =
+  toJSON (TreeN node nodes) =
     object ["node" A..= toJSON node, "children" A..= toJSON nodes]
 
 instance FromJSON (Tree NodeTree)
@@ -151,4 +159,4 @@ instance Arbitrary (Tree NodeTree) where
 -- data Tree a = NodeT a [Tree a]
 -- same as Data.Tree
 leafT :: a -> Tree a
-leafT x = NodeT x []
+leafT x = TreeN x []
