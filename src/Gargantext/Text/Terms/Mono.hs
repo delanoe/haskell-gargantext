@@ -34,10 +34,12 @@ import Gargantext.Prelude
 -- | TODO remove Num ?
 --isGram  c  = isAlphaNum c
 
+words :: Text -> [Text]
+words = monoTexts
 
 -- | Sentence split separators
 isSep :: Char -> Bool
-isSep = (`elem` (",.:;?!(){}[]\"" :: String))
+isSep = (`elem` (",.:;?!(){}[]\"\'" :: String))
 
 monoTerms :: Lang -> Text -> [Terms]
 monoTerms l txt = map (monoText2term l) $ monoTexts txt
