@@ -30,7 +30,7 @@ type PeriodeSize = Int
 ------------------------------------------------------------------------
 
 toPeriodes :: (Enum b, Fractional b, Ord b) => (t -> b) -> b -> [t] -> Map (b, b) [t]
-toPeriodes _ _ [] = panic "Empty history can not have any periode"
+toPeriodes _ _ [] = panic $ pack "Empty history can not have any periode"
 toPeriodes f s hs = periodes f st hs
   where
     hs' = DL.sortOn f hs
@@ -59,7 +59,7 @@ steps s (b,e) = zip (DL.init ss) (DL.tail ss)
 
 steps' :: (Enum b, Fractional b, Ord b) => b -> (b, b) -> [b]
 steps' s (b,e) = case s > 0 of
-                  False -> panic "Steps size can not be < 0"
+                  False -> panic $ pack "Steps size can not be < 0"
                   True  -> steps'' s (b,e)
 
 steps'' :: (Fractional b, Enum b) => b -> (b, b) -> [b]

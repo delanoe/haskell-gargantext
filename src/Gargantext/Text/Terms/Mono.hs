@@ -13,7 +13,7 @@ Mono-terms are Nterms where n == 1.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Terms.Mono (monoTerms, monoTexts, monoTextsBySentence)
+module Gargantext.Text.Terms.Mono (monoTerms, monoTexts, monoTextsBySentence, words)
   where
 
 import Prelude (String)
