@@ -36,7 +36,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
-                 , pure, (>>=), (=<<), (<*>), (<$>), panic
+                 , pure, (>>=), (=<<), (<*>), (<$>)
                  , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
@@ -55,6 +55,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , IO()
                  , compare
                  , on
+                 , panic
                  )
 
 -- TODO import functions optimized in Utils.Count
