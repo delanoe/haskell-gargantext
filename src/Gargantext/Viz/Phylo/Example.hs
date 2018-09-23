@@ -68,8 +68,8 @@ steps'' s (start,end) = map (\s' -> s' * s + start) $ [0 .. end']
     end' = ((end + 1)- start) / s
 
 ------------------------------------------------------------------------
-clean :: MapList -> Histoire -> Histoire
-clean ml = map (\(Event d t) -> Event d (unwords $ filter (\x -> elem  x ml) $ monoTexts t))
+cleanHistoire :: MapList -> Histoire -> Histoire
+cleanHistoire ml = map (\(Event d t) -> Event d (unwords $ filter (\x -> elem  x ml) $ monoTexts t))
 
 mapList :: [Text]
 mapList = map (toLower . pack) actants
