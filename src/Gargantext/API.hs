@@ -189,7 +189,15 @@ makeDevApp env = do
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 -- | API for serving main operational routes of @gargantext.org@
-type GargAPI =
+
+
+type GargAPI = "api" :> Summary "Version API" :> GargAPIVersion
+-- | TODO          :<|> Summary "Latest API" :> GargAPI'
+
+
+type GargAPIVersion = "v1.0" :> Summary "API v1.0: " :> GargAPI'
+
+type GargAPI' =
           
            -- Roots endpoint
                 "user"  :> Summary "First user endpoint"
