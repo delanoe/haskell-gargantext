@@ -21,14 +21,23 @@ module Gargantext.Text.Terms.Stop
 import Numeric.Probability.Distribution ((??))
 import qualified Numeric.Probability.Distribution as D
 
-import Data.String (String)
-
 import Data.Char (toLower)
 import qualified Data.List as DL
--- import qualified Data.Map as M
+
+import Data.Maybe (maybe)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as DM
+
+import Data.String (String)
+
+import Data.Text (pack, unpack)
 
 import Gargantext.Prelude
+import Gargantext.Core (Lang(..))
+import Gargantext.Text.Terms.Mono (words)
+import Gargantext.Text.Metrics.Count (occurrencesWith)
 
+------------------------------------------------------------------------
 data Candidate = Candidate { stop :: Double
                            , noStop :: Double
  } deriving (Show)
@@ -48,11 +57,92 @@ blockOf n st = DL.concat $ DL.take n $ DL.repeat st
 -- | Chunks is the same function as splitBy in Context but for Strings,
 -- not Text (without pack and unpack operations that are not needed).
 chunks :: Int -> Int -> String -> [String]
-chunks n m = DL.take m . chunkAlong (n+1) 1 . DL.concat . DL.take 1000 . DL.repeat . blanks
+chunks n m = DL.take m . filter (not . all (== ' ')) . chunkAlong (n+1) 1 . DL.concat . DL.take 1000 . DL.repeat . blanks
 
 allChunks :: [Int] -> Int -> String -> [String]
 allChunks ns m st = DL.concat $ map (\n -> chunks n m st) ns
 
+allChunks' :: [Int] -> Int -> String -> [[String]]
+allChunks' ns m st = map (\n -> chunks n m st) ns
+
+------------------------------------------------------------------------
+-- * Analyze candidate
+type StringSize = Int
+type TotalFreq  = Int
+type Freq       = Int
+type Word       = String
+
+data LangWord = LangWord Lang Word
+
+type LangProba = Map Lang Double
+
+------------------------------------------------------------------------
+
+estimeTest :: String -> LangProba
+estimeTest s = estime (wordsToBook [0..2] s) testEL
+
+testEL :: EventLang
+testEL = toEventLangs [0,1,2] [ LangWord EN "Lovely day. This day."
+                              , LangWord FR "Belle journée, j'y vais."
+                              , LangWord EN "Hello Sir, how are you doing? I am fine thank you, good bye"
+                              , LangWord FR "Bonjour Monsieur, comment allez-vous? Je vais bien merci."
+                              ]
+
+estime :: EventBook -> EventLang -> LangProba
+estime (EventBook mapFreq _) el = DM.unionsWith (+) $ map (\(s,n) -> DM.map (\eb -> (fromIntegral n) * peb s eb) el) $ filter (\x -> fst x /= "  ") $ DM.toList mapFreq
+
+------------------------------------------------------------------------
+-- | TODO: monoids
+type EventLang = Map Lang EventBook
+toEventLangs :: [Int] -> [LangWord] -> EventLang
+toEventLangs ns = foldl' (opLang (+)) (emptyEventLang ns) . map (toLang ns)
+
+emptyEventLang :: [Int] -> EventLang
+emptyEventLang ns = toLang ns (LangWord FR "")
+
+toLang :: [Int] -> LangWord -> EventLang
+toLang ns (LangWord l txt) = DM.fromList [(l, wordsToBook ns txt)]
+
+opLang :: (Freq -> Freq -> Freq) -> EventLang -> EventLang -> EventLang
+opLang f = DM.unionWith (op f)
+
+------------------------------------------------------------------------
+-- | TODO: monoids (but proba >= 0)
+
+peb :: String -> EventBook -> Double
+peb st (EventBook mapFreq mapN) = (fromIntegral a) / (fromIntegral b)
+  where
+    a = maybe 0 identity $ DM.lookup st mapFreq
+    b = maybe 1 identity $ DM.lookup (length st) mapN
+
+data EventBook = EventBook { events_freq :: Map String     Freq
+                           , events_n    :: Map StringSize TotalFreq
+                           }
+                             deriving (Show)
+
+emptyEventBook :: [Int] -> EventBook
+emptyEventBook ns = wordToBook ns " "
+
+wordsToBook :: [Int] -> String -> EventBook
+wordsToBook ns txt = foldl' (op (+)) (emptyEventBook ns) eventsBook
+  where
+    ws = map unpack $ words $ pack txt
+    eventsBook = map (wordToBook ns) ws
+
+wordToBook :: [Int] -> Word -> EventBook
+wordToBook ns txt = EventBook ef en
+  where
+    chks = allChunks' ns 10 txt
+    en = DM.fromList $ map (\(n,ns) -> (n, length ns)) $ zip ns chks
+    ef = foldl' DM.union DM.empty $ map (occurrencesWith identity) chks
+
+op :: (Freq -> Freq -> Freq) -> EventBook -> EventBook -> EventBook
+op f (EventBook ef1 en1)
+     (EventBook ef2 en2) = EventBook (DM.unionWith f ef1 ef2)
+                                     (DM.unionWith f en1 en2)
+
+
+------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- * Make the distributions
 makeDist :: [String] -> D.T Double String
@@ -65,7 +155,6 @@ candDist :: D.T Double String
 candDist = makeDist candList
 
 ------------------------------------------------------------------------
--- * Analyze candidate
 sumProba :: Num a => D.T a String -> [Char] -> a
 sumProba ds x = sum $ map ((~?) ds) $ allChunks [0,2] 10 $ map toLower x
 
@@ -78,7 +167,8 @@ candidate x = Candidate (sumProba stopDist x) (sumProba candDist x)
 
 ------------------------------------------------------------------------
 candList :: [String]
-candList = ["france", "alexandre", "mael", "constitution", "delanoe", "etats-unis", "associes", "car", "train", "spam"]
+candList = [ "france", "alexandre", "mael", "constitution"
+           , "etats-unis", "associes", "car", "train", "spam"]
 
 
 stopList :: [String]

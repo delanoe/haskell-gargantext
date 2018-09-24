@@ -46,7 +46,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , abs, min, max, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
-                 , (&&), (||), not, any
+                 , (&&), (||), not, any, all
                  , fst, snd, toS
                  , elem, die, mod, div, const, either
                  , curry, uncurry, repeat
