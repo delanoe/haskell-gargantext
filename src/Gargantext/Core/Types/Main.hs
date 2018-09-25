@@ -56,9 +56,7 @@ gargNode = [userTree]
 
 -- | User Tree simplified
 userTree :: Tree NodeTree
-userTree = TreeN (NodeTree "user name" NodeUser 1) $
-                  [leafT $ NodeTree "MyPage" UserPage 0] <>
-                  [annuaireTree, projectTree]
+userTree = TreeN (NodeTree "user name" NodeUser 1) [annuaireTree, projectTree]
 
 -- | Project Tree
 projectTree :: Tree NodeTree
@@ -73,7 +71,9 @@ annuaireTree = TreeN (NodeTree "Annuaire" Annuaire 41) (   [leafT $ NodeTree "IM
                           )
 
 corpusTree :: NodeId -> Text -> Tree NodeTree
-corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Documents" Document (nId +1)]
+corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Dashboard" Dashboard (nId +1)
+                                                                         , leafT $ NodeTree "Graph" Graph (nId +2)
+                                                                         ]
 --                                                      <> [ leafT $ NodeTree "My lists"  Lists    5]
 --                          <> [ leafT (NodeTree "Metrics A" Metrics 6)  ]
 --                          <> [ leafT (NodeTree "Class A" Classification 7)]

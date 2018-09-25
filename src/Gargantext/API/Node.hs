@@ -62,6 +62,8 @@ type Roots =  Get    '[JSON] [Node Value]
 type NodesAPI  = Delete '[JSON] Int
 
 type NodeAPI   = Get '[JSON] (Node Value)
+             :<|> Post   '[JSON] Int
+             :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children" :> Summary " Summary children"
                              :> QueryParam "type"   NodeType
@@ -119,6 +121,8 @@ treeAPI _ _ = undefined
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              conn id )
+              :<|> postNode     conn id
+              :<|> putNode      conn id
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
               :<|> getFacet      conn id
@@ -126,10 +130,14 @@ nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              co
               -- :<|> upload
               -- :<|> query
 
-
-
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
+
+postNode :: Connection -> NodeId -> Handler Int
+postNode = undefined
+
+putNode :: Connection -> NodeId -> Handler Int
+putNode = undefined
 
 deleteNodes' :: Connection -> [NodeId] -> Handler Int
 deleteNodes' conn ids = liftIO (deleteNodes conn ids)

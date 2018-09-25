@@ -191,11 +191,11 @@ type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 -- | API for serving main operational routes of @gargantext.org@
 
 
-type GargAPI = "api" :> Summary "Version API" :> GargAPIVersion
+type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
 
 
-type GargAPIVersion = "v1.0" :> Summary "API v1.0: " :> GargAPI'
+type GargAPIVersion = "v1.0" :> Summary "v1.0: " :> GargAPI'
 
 type GargAPI' =
           

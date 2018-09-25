@@ -274,10 +274,14 @@ type NodeCorpus = Node HyperdataCorpus
 type Document   = Node HyperdataDocument
 
 ------------------------------------------------------------------------
-data NodeType = NodeUser | Project | Folder | NodeCorpus | Annuaire | Document | Individu | UserPage | DocumentCopy | Favorites
+data NodeType = NodeUser   | Project      | Folder 
+              | NodeCorpus | Annuaire 
+              | Document   | Individu 
+              | UserPage   | DocumentCopy | Favorites
+              | Dashboard  | Graph
               | Classification
               | Lists
-              | Metrics | Occurrences
+              | Metrics    | Occurrences
               deriving (Show, Read, Eq, Generic)
 
 instance FromJSON NodeType
