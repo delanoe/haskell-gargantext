@@ -60,15 +60,14 @@ userTree = TreeN (NodeTree "user name" NodeUser 1) [annuaireTree, projectTree]
 
 -- | Project Tree
 projectTree :: Tree NodeTree
-projectTree = TreeN (NodeTree "Project CNRS/IMT" Project 2) [corpusTree 10 "A", corpusTree 20 "B"]
+projectTree = TreeN (NodeTree "Project CNRS/IMT" Folder 2) [corpusTree 10 "A", corpusTree 20 "B"]
 
 type Individu  = Document
 
 -- | Corpus Tree
 annuaireTree :: Tree NodeTree
-annuaireTree = TreeN (NodeTree "Annuaire" Annuaire 41) (   [leafT $ NodeTree "IMT"  Individu 42]
-                                                        <> [leafT $ NodeTree "CNRS" Individu 43]
-                          )
+annuaireTree = (leafT $ NodeTree "Annuaire" Annuaire 41)
+
 
 corpusTree :: NodeId -> Text -> Tree NodeTree
 corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Dashboard" Dashboard (nId +1)
