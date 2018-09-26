@@ -80,7 +80,7 @@ instance Arbitrary Rename where
 type NodeAPI   = Get '[JSON] (Node Value)
              :<|> "rename" :> Summary " Rename Node" 
                            :> ReqBody '[JSON] Rename
-                           :> Get     '[JSON] Int
+                           :> Put     '[JSON] Int
              :<|> Post   '[JSON] Int
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
