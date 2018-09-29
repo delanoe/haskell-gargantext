@@ -33,7 +33,7 @@ module Gargantext.Text.Terms.Multi.RAKE (multiterms_rake, select, hardStopList)
   where
 
 import GHC.Real (round)
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import NLP.RAKE.Text
 
 import Gargantext.Text.Terms.Stop (stopList)

@@ -37,6 +37,12 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Text.Terms.Mono (words)
 import Gargantext.Text.Metrics.Count (occurrencesWith)
 
+import Gargantext.Text.Samples.FR as FR
+import Gargantext.Text.Samples.EN as EN
+import Gargantext.Text.Samples.DE as DE
+import Gargantext.Text.Samples.SP as SP
+import Gargantext.Text.Samples.CH as CH
+
 ------------------------------------------------------------------------
 data Candidate = Candidate { stop :: Double
                            , noStop :: Double
@@ -78,18 +84,20 @@ type LangProba = Map Lang Double
 
 ------------------------------------------------------------------------
 
-estimeTest :: String -> LangProba
-estimeTest s = estime (wordsToBook [0..2] s) testEL
+
+detectLangs :: String -> LangProba
+detectLangs s = detect (wordsToBook [0..2] s) testEL
 
 testEL :: EventLang
-testEL = toEventLangs [0,1,2] [ LangWord EN "Lovely day. This day."
-                              , LangWord FR "Belle journée, j'y vais."
-                              , LangWord EN "Hello Sir, how are you doing? I am fine thank you, good bye"
-                              , LangWord FR "Bonjour Monsieur, comment allez-vous? Je vais bien merci."
+testEL = toEventLangs [0..2] [ LangWord EN EN.textMining
+                              , LangWord FR FR.textMining
+                              , LangWord DE DE.textMining
+                              , LangWord SP SP.textMining
+                              , LangWord CH CH.textMining
                               ]
 
-estime :: EventBook -> EventLang -> LangProba
-estime (EventBook mapFreq _) el = DM.unionsWith (+) $ map (\(s,n) -> DM.map (\eb -> (fromIntegral n) * peb s eb) el) $ filter (\x -> fst x /= "  ") $ DM.toList mapFreq
+detect :: EventBook -> EventLang -> LangProba
+detect (EventBook mapFreq _) el = DM.unionsWith (+) $ map (\(s,n) -> DM.map (\eb -> (fromIntegral n) * peb s eb) el) $ filter (\x -> fst x /= "  ") $ DM.toList mapFreq
 
 ------------------------------------------------------------------------
 -- | TODO: monoids
@@ -133,7 +141,7 @@ wordToBook :: [Int] -> Word -> EventBook
 wordToBook ns txt = EventBook ef en
   where
     chks = allChunks' ns 10 txt
-    en = DM.fromList $ map (\(n,ns) -> (n, length ns)) $ zip ns chks
+    en = DM.fromList $ map (\(n,ns') -> (n, length ns')) $ zip ns chks
     ef = foldl' DM.union DM.empty $ map (occurrencesWith identity) chks
 
 op :: (Freq -> Freq -> Freq) -> EventBook -> EventBook -> EventBook
@@ -163,6 +171,7 @@ sumProba ds x = sum $ map ((~?) ds) $ allChunks [0,2] 10 $ map toLower x
 (~?) ds x = (==x) ?? ds
 
 ------------------------------------------------------------------------
+candidate :: [Char] -> Candidate
 candidate x = Candidate (sumProba stopDist x) (sumProba candDist x)
 
 ------------------------------------------------------------------------

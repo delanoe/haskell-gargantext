@@ -167,6 +167,7 @@ executables:
     - -with-rtsopts=-N
     - -O2
     - -Wmissing-signatures
+    - -Wcompat
     dependencies:
       - base
       - containers

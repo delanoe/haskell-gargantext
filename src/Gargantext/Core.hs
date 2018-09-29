@@ -12,7 +12,6 @@ Portability : POSIX
 module Gargantext.Core
   where
 
-import Gargantext.Prelude 
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
@@ -26,5 +25,5 @@ import Gargantext.Prelude
 --  - SP == spanish (not implemented yet)
 --
 --  ... add your language and help us to implement it (:
-data Lang = EN | FR
+data Lang = EN | FR | DE | SP | CH
   deriving (Show, Eq, Ord)
