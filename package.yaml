@@ -53,6 +53,7 @@ library:
   - Gargantext.Text.Parsers.WOS
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
+  - Gargantext.Text.Terms.Stop
   - Gargantext.Text.Terms.Mono
   - Gargantext.Text.Terms.Multi.Lang.En
   - Gargantext.Text.Terms.Multi.Lang.Fr
@@ -112,6 +113,7 @@ library:
   - path-io
   - postgresql-simple
   - pretty
+  - probability
   - product-profunctors
   - profunctors
   - protolude
@@ -165,6 +167,7 @@ executables:
     - -with-rtsopts=-N
     - -O2
     - -Wmissing-signatures
+    - -Wcompat
     dependencies:
       - base
       - containers

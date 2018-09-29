@@ -16,7 +16,7 @@ Domain Specific Language to manage Frequent Item Set (FIS)
 module Gargantext.Text.Metrics.FrequentItemSet
   ( Fis, Size(..)
   , occ_hlcm, cooc_hlcm
-  , all, between
+  , allFis, between
   , fisWithSize
   , fisWith
   , fisWithSizePoly
@@ -51,8 +51,8 @@ occ_hlcm = fisWithSize (Point 1)
 cooc_hlcm :: Frequency -> [[Item]] -> [Fis]
 cooc_hlcm = fisWithSize (Point 2)
 
-all :: Frequency -> [[Item]] -> [Fis]
-all = fisWith Nothing
+allFis :: Frequency -> [[Item]] -> [Fis]
+allFis = fisWith Nothing
 
 ------------------------------------------------------------------------
 between :: (Int, Int) -> Frequency -> [[Item]] -> [Fis]

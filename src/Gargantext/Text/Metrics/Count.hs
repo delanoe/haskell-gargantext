@@ -144,6 +144,9 @@ occurrences = occurrencesOn _terms_stem
 occurrencesOn :: (Ord a, Ord b) => (a -> b) -> [a] -> Map b (Map a Int)
 occurrencesOn f = foldl' (\m a -> insertWith (unionWith (+)) (f a) (singleton a 1) m) empty
 
+occurrencesWith :: (Foldable list, Ord k, Num a) => (b -> k) -> list b -> Map k a
+occurrencesWith f xs = foldl' (\x y -> insertWith (+) (f y) 1 x) empty xs
+
 -- TODO add groups and filter stops
 
 sumOcc :: Ord a => [Occ a] -> Occ a
