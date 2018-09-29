@@ -99,9 +99,10 @@ library:
   - hlcm
   - ini
   - jose-jwt
-  - kmeans-vector
+    #  - kmeans-vector
   - KMP
   - lens
+  - located-base
   - logging-effect
   - matrix
   - monad-logger
@@ -112,7 +113,6 @@ library:
   - path
   - path-io
   - postgresql-simple
-  - pretty
   - probability
   - product-profunctors
   - profunctors

@@ -46,8 +46,8 @@ import Gargantext.Text.Terms.Mono  (monoTerms)
 data TermType lang = Mono lang | Multi lang | MonoMulti lang 
 
 
-group :: [Text] -> [Text]
-group = undefined
+--group :: [Text] -> [Text]
+--group = undefined
 
 -- remove Stop Words
 -- map (filter (\t -> not . elem t)) $ 

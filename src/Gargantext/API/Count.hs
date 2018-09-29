@@ -11,7 +11,7 @@ Count API part of Gargantext.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE DataKinds          #-}

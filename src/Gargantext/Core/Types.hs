@@ -24,6 +24,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
 
 import GHC.Generics
 import Data.Aeson
+import Data.Semigroup
 import Data.Monoid
 import Data.Set (Set, empty)
 --import qualified Data.Set as S
@@ -103,16 +104,19 @@ data TokenTag  = TokenTag { _my_token_word :: [Text]
                           , _my_token_ner  :: Maybe NER
                           } deriving (Show)
 
+instance Semigroup TokenTag where
+  (<>) (TokenTag w1 s1 p1 n1) (TokenTag w2 s2 p2 _) = TokenTag (w1 <> w2) (s1 <> s2) p3 n1
+    where
+      p3 = case (p1,p2) of
+        (Just JJ, Just NP) -> Just NP
+        (Just VB, Just NP) -> Just NP
+        _                  -> p1
+
+
 instance Monoid TokenTag where
   mempty = TokenTag [] empty Nothing Nothing
 
-  mappend (TokenTag w1 s1 p1 n1) (TokenTag w2 s2 p2 _)
-         = TokenTag (w1 <> w2) (s1 <> s2) p3 n1
-          where
-            p3 = case (p1,p2) of
-                   (Just JJ, Just NP) -> Just NP
-                   (Just VB, Just NP) -> Just NP
-                   _                  -> p1
+  mappend t1 t2 = (<>) t1 t2
 
   mconcat = foldl mappend mempty
 
