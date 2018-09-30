@@ -25,7 +25,7 @@ import Data.Char (toLower)
 import qualified Data.List as DL
 
 import Data.Maybe (maybe)
-import Data.Map.Strict (Map)
+import Data.Map.Strict (Map, toList)
 import qualified Data.Map.Strict as DM
 
 import Data.String (String)
@@ -83,10 +83,10 @@ data LangWord = LangWord Lang Word
 type LangProba = Map Lang Double
 
 ------------------------------------------------------------------------
-
-
-detectLangs :: String -> LangProba
-detectLangs s = detect (wordsToBook [0..2] s) testEL
+detectLangs :: String -> [(Lang, Double)]
+detectLangs s = DL.reverse $ DL.sortOn snd
+                           $ toList
+                           $ detect (wordsToBook [0..2] s) testEL
 
 testEL :: EventLang
 testEL = toEventLangs [0..2] [ LangWord EN EN.textMining
