@@ -78,12 +78,6 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 --                          <> [ leafT (NodeTree "Class A" Classification 7)]
                           )
 
---   TODO make instances of Nodes
--- NP
--- - why NodeUser and not just User ?
--- - is this supposed to hold data ?
--- AD : Yes, some preferences for instances
-
 data Parent = NodeType NodeId
 
 --data Classification = Favorites | MyClassifcation
