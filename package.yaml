@@ -111,7 +111,8 @@ library:
   - path
   - path-io
   - postgresql-simple
-  - pretty
+  - pretty-simple
+  - probability
   - product-profunctors
   - profunctors
   - protolude
