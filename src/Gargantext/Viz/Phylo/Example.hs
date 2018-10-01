@@ -10,13 +10,16 @@ module Gargantext.Viz.Phylo.Example where
 
 import qualified Data.List as DL
 import Data.String (String)
-import Data.Text (Text, pack, unwords, toLower)
+import Data.Text (Text, pack, unwords, toLower, words)
 import Data.Tuple.Extra (both)
 
 import Data.Map (Map)
 import qualified Data.Map as DM
 
-import Gargantext.Text.Terms.Mono (monoTexts)
+import Data.Set (Set)
+
+import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
+import Gargantext.Text.Terms.Mono (monoTexts) 
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
@@ -24,9 +27,19 @@ type Histoire = [Event]
 data Event = Event {date:: Double, text :: Text}
   deriving (Show)
 
+
 type MapList = [Text]
 type PeriodeSize = Int
 -- data Periodes b a = Map (b,b) a
+------------------------------------------------------------------------
+
+-- | TODO FIS on monotexts
+phyloFIS :: Map (Double, Double) [Event] -> Map (Double, Double) (Map (Set Text) Int)
+phyloFIS = DM.map (\n -> fisWithSizePolyMap (Point 1) 1 (map (words . text) n))
+
+
+phyloExample :: Map (Double, Double) [Event]
+phyloExample = toPeriodes date 1 $ cleanHistoire  mapList phyloCorpus
 ------------------------------------------------------------------------
 
 toPeriodes :: (Enum b, Fractional b, Ord b) => (t -> b) -> b -> [t] -> Map (b, b) [t]

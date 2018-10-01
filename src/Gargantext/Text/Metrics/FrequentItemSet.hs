@@ -33,7 +33,7 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 import qualified Data.Vector as V
 
-import Data.List (filter, concat)
+import Data.List (filter, concat, null)
 import Data.Maybe (catMaybes)
 
 import HLCM
@@ -93,7 +93,9 @@ fisWithSize n f is = case n of
 
                       --- Filter on Fis and not on [Item]
 fisWith :: Maybe ([Item] -> Bool) -> Frequency -> [[Item]] -> [Fis]
-fisWith s f is = catMaybes $ map items2fis $ filter' $ runLCMmatrix is f
+fisWith s f is = case filter (not . null) is of
+                   [] -> []
+                   js -> catMaybes $ map items2fis $ filter' $ runLCMmatrix js f
 -- drop unMaybe
   where
     filter' = case s of
