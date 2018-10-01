@@ -40,6 +40,8 @@ library:
   - Gargantext.Database.Node.Document.Import
   - Gargantext.Database.Types.Node
   - Gargantext.Database.User
+  - Gargantext.Database.Cooc
+  - Gargantext.Database.Tree
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
