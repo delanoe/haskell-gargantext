@@ -19,18 +19,24 @@ Gargantext's database.
 module Gargantext.Database.Config
     where
 
-import Data.Text  (pack)
-import Data.Maybe (fromMaybe)
-import Data.List (lookup)
+
+import Data.Text        (pack)
+import Data.Tuple.Extra (swap)
+import Data.Maybe       (fromMaybe)
+import Data.List        (lookup)
 
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
 -- | Nodes are typed in the database according to a specific ID
 --
+nodeTypeInv :: [(NodeTypeId, NodeType)]
+nodeTypeInv = map swap nodeTypes
+
 nodeTypes :: [(NodeType, NodeTypeId)]
 nodeTypes = [ (NodeUser      ,  1)
             , (Folder        ,  2)
+            , (NodeCorpus    ,  3)
             , (NodeCorpus    ,  30)
             , (Annuaire      ,  31)
             , (Document      ,  4)
@@ -65,4 +71,6 @@ nodeTypeId tn = fromMaybe (panic $ pack $ "Typename " <> show tn <> " does not e
                           (lookup tn nodeTypes)
 
 
-
+typeId2node :: NodeTypeId -> NodeType
+typeId2node tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")
+                            (lookup tId nodeTypeInv)

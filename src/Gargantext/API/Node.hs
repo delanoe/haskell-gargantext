@@ -44,6 +44,7 @@ import Gargantext.Database.Node ( getNodesWithParentId
                                 , deleteNode, deleteNodes)
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
                                  ,FacetChart)
+import Gargantext.Database.Tree (treeDB)
 
 -- Graph
 import Gargantext.TextFlow
@@ -116,7 +117,7 @@ graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: Connection -> NodeId -> Server TreeAPI
-treeAPI _ _ = undefined
+treeAPI c n = liftIO $ treeDB c n
 
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
