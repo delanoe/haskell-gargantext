@@ -40,7 +40,8 @@ import Servant
 
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Node ( getNodesWithParentId
+import Gargantext.Database.Node ( runCmd
+                                , getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
@@ -150,10 +151,10 @@ putNode :: Connection -> NodeId -> Handler Int
 putNode = undefined -- TODO
 
 deleteNodes' :: Connection -> [NodeId] -> Handler Int
-deleteNodes' conn ids = liftIO (deleteNodes conn ids)
+deleteNodes' conn ids = liftIO (runCmd conn $ deleteNodes ids)
 
 deleteNode' :: Connection -> NodeId -> Handler Int
-deleteNode' conn id = liftIO (deleteNode conn id)
+deleteNode' conn id = liftIO (runCmd conn $ deleteNode id)
 
 getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
                         -> Handler [Node Value]

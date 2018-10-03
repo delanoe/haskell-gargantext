@@ -72,7 +72,6 @@ module Gargantext.Database.Bashql ( get, get'
 
 import Control.Monad.Reader -- (Reader, ask)
 
-import Database.PostgreSQL.Simple (Connection)
 import Data.Text (Text, pack)
 import Data.Aeson
 import Data.Aeson.Types
@@ -92,16 +91,14 @@ import Opaleye hiding (FromField)
 type PWD = [NodeId]
 --data PWD' a = a | PWD' [a]
 
-type Cmd a = Connection -> IO a
-
 -- | TODO get Children or Node
 get :: PWD -> Cmd [Node Value]
-get []  _    = pure []
-get pwd conn = runQuery conn $ selectNodesWithParentID (last pwd)
+get []  = pure []
+get pwd = Cmd . ReaderT $ \conn -> runQuery conn $ selectNodesWithParentID (last pwd)
 
 -- | Home, need to filter with UserId
 home :: Cmd PWD
-home c = map node_id <$> getNodesWithParentId c 0 Nothing
+home = map node_id <$> Cmd (ReaderT (getNodesWithParentId 0 Nothing))
 
 -- | ls == get Children
 ls :: PWD -> Cmd [Node Value]
@@ -109,30 +106,29 @@ ls = get
 
 
 tree :: PWD -> Cmd [Node Value]
-tree p c = do
-  ns       <- get p c
-  children <- mapM (\p' -> get [p'] c) $ map node_id ns
-  pure $ ns <> (concat children)
+tree p = do
+  ns       <- get p
+  children <- mapM (\n -> get [node_id n]) ns
+  pure $ ns <> concat children
 
 
 -- | TODO
 post :: PWD -> [NodeWrite'] -> Cmd Int64
-post [] _   _ = pure 0
-post _ []   _ = pure 0
-post pth ns c = mkNode c (last pth) ns
+post [] _   = pure 0
+post _ []   = pure 0
+post pth ns = Cmd . ReaderT $ mkNode (last pth) ns
 
---postR :: Connection -> PWD -> [NodeWrite'] -> IO [Int]
---postR _ [] _   = pure [0]
---postR _ _ []   = pure [0]
---postR c pth ns = mkNodeR c (last pth) ns
---
+--postR :: PWD -> [NodeWrite'] -> Cmd [Int]
+--postR [] _ _ = pure [0]
+--postR _ [] _ = pure [0]
+--postR pth ns c = mkNodeR (last pth) ns c
 
 --rm :: Connection -> PWD -> [NodeId] -> IO Int
 --rm = del
 
 del :: [NodeId] -> Cmd Int
-del [] _ = pure 0
-del ns c = deleteNodes c ns
+del [] = pure 0
+del ns = deleteNodes ns
 
 -- | TODO
 --put :: Connection -> PWD -> [a] -> IO Int64
@@ -146,24 +142,24 @@ del ns c = deleteNodes c ns
 
 type CorpusName = Text
 
-postCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd [Int]
-postCorpus corpusName title ns c = do
-  pid <- last <$> home c
+postCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd NewNode
+postCorpus corpusName title ns = do
+  pid <- last <$> home
   let uid = 1
-  postNode c uid pid ( Node' NodeCorpus  corpusName emptyObject
-                             (map (\n -> Node' Document (title n) (toJSON n) []) ns)
-                     )
+  postNode uid pid ( Node' NodeCorpus  corpusName emptyObject
+                       (map (\n -> Node' Document (title n) (toJSON n) []) ns)
+                   )
 
 -- |
 -- import IMTClient as C
 -- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
-postAnnuaire :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd [Int]
-postAnnuaire corpusName title ns c = do
-  pid <- last <$> home c
+postAnnuaire :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd NewNode
+postAnnuaire corpusName title ns = do
+  pid <- last <$> home
   let uid = 1
-  postNode c uid pid ( Node' Annuaire  corpusName emptyObject
-                             (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
-                     )
+  postNode uid pid ( Node' Annuaire  corpusName emptyObject
+                       (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
+                   )
 
 --------------------------------------------------------------
 -- Tests
@@ -171,26 +167,26 @@ postAnnuaire corpusName title ns c = do
 
 
 get' :: PWD -> IO [Node Value]
-get' = runCmd . get
+get' = runCmd' . get
 
 home' :: IO PWD
-home' = runCmd home
+home' = runCmd' home
 
 ls' :: IO [Node Value]
-ls' = runCmd $ \c -> do
-  h <- home c
-  ls h c
+ls' = runCmd' $ do
+  h <- home
+  ls h
 
 tree' :: IO [Node Value]
-tree' = runCmd $ \c -> do
-  h <- home c
-  tree h c
+tree' = runCmd' $ do
+  h <- home
+  tree h
 
-post' :: IO [Int]
-post' = runCmd $ \c -> do
-  pid <- last <$> home c
+post' :: IO NewNode
+post' = runCmd' $ do
+  pid <- last <$> home
   let uid = 1
-  postNode c uid pid ( Node' NodeCorpus  (pack "Premier corpus") emptyObject [ Node' Document (pack "Doc1") emptyObject []
+  postNode uid pid ( Node' NodeCorpus  (pack "Premier corpus") emptyObject [ Node' Document (pack "Doc1") emptyObject []
                                                           , Node' Document (pack "Doc2") emptyObject []
                                                           , Node' Document (pack "Doc3") emptyObject []
                                                           ]
@@ -203,11 +199,11 @@ post' = runCmd $ \c -> do
 
 
 del' :: [NodeId] -> IO Int
-del' ns = runCmd $ del ns
+del' ns = runCmd' $ del ns
 
 -- corporaOf :: Username -> IO [Corpus]
 
-runCmd :: Cmd a -> IO a
-runCmd f = do
+runCmd' :: Cmd a -> IO a
+runCmd' f = do
   c <- connectGargandb "gargantext.ini"
-  f c
+  runCmd c f
