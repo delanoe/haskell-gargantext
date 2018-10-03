@@ -124,7 +124,7 @@ corenlp' lang txt = do
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
             -- FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
             FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
-            _  -> panic $ pack "not implemented yet"
+            -- _  -> panic $ pack "not implemented yet"
     url <- parseRequest $ "POST http://localhost:9000/?properties=" <> properties
     let request = setRequestBodyLBS (cs txt) url
     httpJSON request

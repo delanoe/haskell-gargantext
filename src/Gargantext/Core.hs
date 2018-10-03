@@ -25,5 +25,8 @@ module Gargantext.Core
 --  - SP == spanish (not implemented yet)
 --
 --  ... add your language and help us to implement it (:
-data Lang = EN | FR | DE | SP | CH
-  deriving (Show, Eq, Ord)
+data Lang = EN | FR -- | DE | SP | CH
+  deriving (Show, Eq, Ord, Bounded, Enum)
+
+allLangs :: [Lang]
+allLangs = [minBound ..]

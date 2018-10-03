@@ -33,15 +33,15 @@ import Data.String (String)
 import Data.Text (pack, unpack)
 
 import Gargantext.Prelude
-import Gargantext.Core (Lang(..))
+import Gargantext.Core (Lang(..), allLangs)
 import Gargantext.Text.Terms.Mono (words)
 import Gargantext.Text.Metrics.Count (occurrencesWith)
 
-import Gargantext.Text.Samples.FR as FR
-import Gargantext.Text.Samples.EN as EN
-import Gargantext.Text.Samples.DE as DE
-import Gargantext.Text.Samples.SP as SP
-import Gargantext.Text.Samples.CH as CH
+import qualified Gargantext.Text.Samples.FR as FR
+import qualified Gargantext.Text.Samples.EN as EN
+--import qualified Gargantext.Text.Samples.DE as DE
+--import qualified Gargantext.Text.Samples.SP as SP
+--import qualified Gargantext.Text.Samples.CH as CH
 
 ------------------------------------------------------------------------
 data Candidate = Candidate { stop :: Double
@@ -88,13 +88,18 @@ detectLangs s = DL.reverse $ DL.sortOn snd
                            $ toList
                            $ detect (wordsToBook [0..2] s) testEL
 
+textMining :: Lang -> String
+textMining EN = EN.textMining
+textMining FR = FR.textMining
+--textMining DE = DE.textMining
+--textMining SP = SP.textMining
+--textMining CH = CH.textMining
+
+langWord :: Lang -> LangWord
+langWord l = LangWord l (textMining l)
+
 testEL :: EventLang
-testEL = toEventLangs [0..2] [ LangWord EN EN.textMining
-                              , LangWord FR FR.textMining
-                              , LangWord DE DE.textMining
-                              , LangWord SP SP.textMining
-                              , LangWord CH CH.textMining
-                              ]
+testEL = toEventLangs [0..2] [ langWord l | l <- allLangs ]
 
 detect :: EventBook -> EventLang -> LangProba
 detect (EventBook mapFreq _) el = DM.unionsWith (+) $ map (\(s,n) -> DM.map (\eb -> (fromIntegral n) * peb s eb) el) $ filter (\x -> fst x /= "  ") $ DM.toList mapFreq

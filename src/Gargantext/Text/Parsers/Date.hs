@@ -68,7 +68,7 @@ import Text.XML.HXT.DOM.Util (decimalStringToInt)
 parserLang :: Lang -> DC.Lang
 parserLang FR = DC.FR
 parserLang EN = DC.EN
-parserLang _  = panic "not implemented"
+-- parserLang _  = panic "not implemented"
 
 -- | Final Date parser API
 -- IO can be avoided here:
