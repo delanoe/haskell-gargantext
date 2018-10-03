@@ -275,15 +275,20 @@ type Document   = Node HyperdataDocument
 
 ------------------------------------------------------------------------
 data NodeType = NodeUser 
-              | Project | Folder 
+              -- | Project
+              | Folder
               | NodeCorpus | Annuaire 
-              | Document | Individu 
+              | Document -- | Individu
               | UserPage | Favorites
               | Graph    | Dashboard | Chart
-              | Classification
-              | Lists
-              | Metrics    | Occurrences
-              deriving (Show, Read, Eq, Generic)
+              -- | Classification
+              -- | Lists
+              -- | Metrics
+              | Occurrences
+              deriving (Show, Read, Eq, Generic, Bounded, Enum)
+
+allNodeTypes :: [NodeType]
+allNodeTypes = [minBound ..]
 
 instance FromJSON NodeType
 instance ToJSON NodeType
