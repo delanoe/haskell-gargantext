@@ -75,6 +75,7 @@ import Control.Monad.Reader -- (Reader, ask)
 import Database.PostgreSQL.Simple (Connection)
 import Data.Text (Text, pack)
 import Data.Aeson
+import Data.Aeson.Types
 import Data.List (last, concat)
 
 import Gargantext.Core.Types
@@ -91,32 +92,34 @@ import Opaleye hiding (FromField)
 type PWD = [NodeId]
 --data PWD' a = a | PWD' [a]
 
+type Cmd a = Connection -> IO a
+
 -- | TODO get Children or Node
-get :: Connection -> PWD -> IO [Node Value]
-get _ [] = pure []
-get conn pwd = runQuery conn $ selectNodesWithParentID (last pwd)
+get :: PWD -> Cmd [Node Value]
+get []  _    = pure []
+get pwd conn = runQuery conn $ selectNodesWithParentID (last pwd)
 
 -- | Home, need to filter with UserId
-home :: Connection -> IO PWD
+home :: Cmd PWD
 home c = map node_id <$> getNodesWithParentId c 0 Nothing
 
 -- | ls == get Children
-ls :: Connection -> PWD -> IO [Node Value]
+ls :: PWD -> Cmd [Node Value]
 ls = get
 
 
-tree :: Connection -> PWD -> IO [Node Value]
-tree c p = do
-  ns       <- get c p
-  children <- mapM (\p' -> get c [p']) $ map node_id ns
+tree :: PWD -> Cmd [Node Value]
+tree p c = do
+  ns       <- get p c
+  children <- mapM (\p' -> get [p'] c) $ map node_id ns
   pure $ ns <> (concat children)
 
 
 -- | TODO
-post :: Connection -> PWD -> [NodeWrite'] -> IO Int64
-post _ [] _   = pure 0
-post _ _ []   = pure 0
-post c pth ns = mkNode c (last pth) ns
+post :: PWD -> [NodeWrite'] -> Cmd Int64
+post [] _   _ = pure 0
+post _ []   _ = pure 0
+post pth ns c = mkNode c (last pth) ns
 
 --postR :: Connection -> PWD -> [NodeWrite'] -> IO [Int]
 --postR _ [] _   = pure [0]
@@ -127,9 +130,9 @@ post c pth ns = mkNode c (last pth) ns
 --rm :: Connection -> PWD -> [NodeId] -> IO Int
 --rm = del
 
-del :: Connection -> [NodeId] -> IO Int
-del _ [] = pure 0
-del c ns = deleteNodes c ns
+del :: [NodeId] -> Cmd Int
+del [] _ = pure 0
+del ns c = deleteNodes c ns
 
 -- | TODO
 --put :: Connection -> PWD -> [a] -> IO Int64
@@ -141,84 +144,70 @@ del c ns = deleteNodes c ns
 -- jump NodeId
 -- touch Dir
 
+type CorpusName = Text
+
+postCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd [Int]
+postCorpus corpusName title ns c = do
+  pid <- last <$> home c
+  let uid = 1
+  postNode c uid pid ( Node' NodeCorpus  corpusName emptyObject
+                             (map (\n -> Node' Document (title n) (toJSON n) []) ns)
+                     )
+
+-- |
+-- import IMTClient as C
+-- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
+postAnnuaire :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd [Int]
+postAnnuaire corpusName title ns c = do
+  pid <- last <$> home c
+  let uid = 1
+  postNode c uid pid ( Node' Annuaire  corpusName emptyObject
+                             (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
+                     )
+
 --------------------------------------------------------------
 -- Tests
 --------------------------------------------------------------
 
 
-get' :: PWD -> Reader Connection (IO [Node Value])
-get' []  = pure $ pure []
-get' pwd = do
-  connection <- ask
-  pure $ runQuery connection $ selectNodesWithParentID (last pwd)
+get' :: PWD -> IO [Node Value]
+get' = runCmd . get
 
 home' :: IO PWD
-home' = do
-  c <- connectGargandb "gargantext.ini"
-  home c
-
---home'' :: Reader Connection (IO PWD)
---home'' = do
---  c <- ask
---  liftIO $ home c
-
+home' = runCmd home
 
 ls' :: IO [Node Value]
-ls' = do
-  c <- connectGargandb "gargantext.ini"
+ls' = runCmd $ \c -> do
   h <- home c
-  ls c h
+  ls h c
 
 tree' :: IO [Node Value]
-tree' = do
-  c <- connectGargandb "gargantext.ini"
+tree' = runCmd $ \c -> do
   h <- home c
-  tree c h
+  tree h c
 
 post' :: IO [Int]
-post'  = do
-  c   <- connectGargandb "gargantext.ini"
+post' = runCmd $ \c -> do
   pid <- last <$> home c
   let uid = 1
-  postNode c uid pid ( Node' NodeCorpus  (pack "Premier corpus") (toJSON (pack "{}"::Text)) [ Node' Document (pack "Doc1") (toJSON (pack "{}" :: Text)) []
-                                                          , Node' Document (pack "Doc2") (toJSON (pack "{}" :: Text)) []
-                                                          , Node' Document (pack "Doc3") (toJSON (pack "{}" :: Text)) []
+  postNode c uid pid ( Node' NodeCorpus  (pack "Premier corpus") emptyObject [ Node' Document (pack "Doc1") emptyObject []
+                                                          , Node' Document (pack "Doc2") emptyObject []
+                                                          , Node' Document (pack "Doc3") emptyObject []
                                                           ]
                      )
-
-type CorpusName = Text
 
 -- | 
 -- myCorpus <- Prelude.map doc2hyperdataDocument <$> toDocs <$> snd <$> readCsv "doc/corpus_imt/Gargantext_Corpus_small.csv"
 -- There is an error in the CSV parsing...
 -- let myCorpus' = Prelude.filter (\n -> T.length (maybe "" identity (hyperdataDocument_title n)) > 30) myCorpus
 
-postCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> IO [Int]
-postCorpus corpusName title ns = do
-  c   <- connectGargandb "gargantext.ini"
-  pid <- last <$> home c
-  let uid = 1
-  postNode c uid pid ( Node' NodeCorpus  corpusName (toJSON (pack "{}"::Text))
-                             (map (\n -> Node' Document (title n) (toJSON n) []) ns)
-                     )
-
--- | 
--- import IMTClient as C
--- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
-postAnnuaire :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> IO [Int]
-postAnnuaire corpusName title ns = do
-  c   <- connectGargandb "gargantext.ini"
-  pid <- last <$> home c
-  let uid = 1
-  postNode c uid pid ( Node' Annuaire  corpusName (toJSON (pack "{}"::Text))
-                             (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
-                     )
-
 
 del' :: [NodeId] -> IO Int
-del' ns = do
-  c <- connectGargandb "gargantext.ini"
-  del c ns
-
+del' ns = runCmd $ del ns
 
 -- corporaOf :: Username -> IO [Corpus]
+
+runCmd :: Cmd a -> IO a
+runCmd f = do
+  c <- connectGargandb "gargantext.ini"
+  f c
