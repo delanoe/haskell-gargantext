@@ -15,10 +15,13 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Gargantext.Database.Tree (treeDB) where
+module Gargantext.Database.Tree (treeDB, TreeError(..), HasTreeError(..)) where
 
+import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
+import Control.Monad.Error.Class (MonadError(throwError))
+import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Map (Map, fromListWith, lookup)
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 
@@ -31,26 +34,38 @@ import Gargantext.Database.Config (typeId2node)
 -- treeTest :: IO (Tree NodeTree)
 -- treeTest = connectGargandb "gargantext.ini" >>= \c -> treeDB c 347474
 ------------------------------------------------------------------------
+
+data TreeError = NoRoot | EmptyRoot | TooManyRoots
+  deriving (Show)
+
+class HasTreeError e where
+  _TreeError :: Prism' e TreeError
+
+treeError :: (MonadError e m, HasTreeError e) => TreeError -> m a
+treeError te = throwError $ _TreeError # te
+
 -- | Returns the Tree of Nodes in Database
-treeDB :: Connection -> RootId -> IO (Tree NodeTree)
-treeDB c r = toTree <$> toTreeParent <$> dbTree c r
+treeDB :: (MonadIO m, MonadError e m, HasTreeError e)
+       => Connection -> RootId -> m (Tree NodeTree)
+treeDB c r = toTree =<< (toTreeParent <$> liftIO (dbTree c r))
 
 type RootId = Int
 type ParentId = Int
 ------------------------------------------------------------------------
-toTree :: Map (Maybe ParentId) [DbTreeNode] -> Tree NodeTree
-toTree m = toTree' m n
-  where
-    n = case lookup Nothing m of
-        Nothing   -> panic $ pack "no root"
-        Just []   -> panic $ pack "empty root"
-        Just [n'] -> n'
-        Just _    -> panic $ pack "too many roots"
+toTree :: (MonadError e m, HasTreeError e)
+       => Map (Maybe ParentId) [DbTreeNode] -> m (Tree NodeTree)
+toTree m =
+    case lookup Nothing m of
+        Just [n] -> pure $ toTree' m n
+        Nothing  -> treeError NoRoot
+        Just []  -> treeError EmptyRoot
+        Just _   -> treeError TooManyRoots
 
 toTree' :: Map (Maybe ParentId) [DbTreeNode] -> DbTreeNode -> Tree NodeTree
-toTree' m n = case lookup (Just $ dt_nodeId n) m of
-         Nothing    -> TreeN (toNodeTree n) []
-         Just  ns   -> TreeN (toNodeTree n) (map (toTree' m) ns)
+toTree' m n =
+  TreeN (toNodeTree n) $
+    m ^.. at (Just $ dt_nodeId n) . _Just . each . to (toTree' m)
+
 
 ------------------------------------------------------------------------
 toNodeTree :: DbTreeNode -> NodeTree

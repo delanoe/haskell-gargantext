@@ -10,7 +10,7 @@ Portability : POSIX
 Node API
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
 
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE DataKinds          #-}
@@ -23,6 +23,7 @@ module Gargantext.API.Node
       where
 -------------------------------------------------------------------
 
+import Control.Lens (prism')
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
@@ -44,7 +45,7 @@ import Gargantext.Database.Node ( getNodesWithParentId
                                 , deleteNode, deleteNodes)
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
                                  ,FacetChart)
-import Gargantext.Database.Tree (treeDB)
+import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 
 -- Graph
 import Gargantext.TextFlow
@@ -115,10 +116,17 @@ type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
 graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
 
+-- TODO(orphan): There should be a proper APIError data type with a case TreeError.
+instance HasTreeError ServantErr where
+  _TreeError = prism' mk (const Nothing) -- Note a prism
+    where
+      mk NoRoot       = err404 { errBody = "Root node not found" }
+      mk EmptyRoot    = err500 { errBody = "Root node should not be empty" }
+      mk TooManyRoots = err500 { errBody = "Too many root nodes" }
+
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: Connection -> NodeId -> Server TreeAPI
-treeAPI c n = liftIO $ treeDB c n
-
+treeAPI = treeDB
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              conn id )
