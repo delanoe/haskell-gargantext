@@ -49,6 +49,9 @@ nodeTypes = [ (NodeUser      ,  1)
 --            , (MapList       ,  8)
 ----  Scores
             , (Occurrences   , 10)
+            , (Graph         ,  9)
+            , (Dashboard     ,  5)
+            , (Chart         ,  51)
 --            , (Cooccurrences ,  9)
 --
 --            , (Specclusion   , 11)
