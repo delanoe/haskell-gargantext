@@ -100,6 +100,7 @@ useLabelPolicy :: Map Grouped [Text] -> Grouped -> [Text]
 useLabelPolicy m g = case DMS.lookup g m of
   Just label -> label
   Nothing    -> panic $ "Label of Grouped not found: " <> (pack $ show g)
+                -- TODO: use a non-fatal error if this can happen in practice
 {-
 labelPolicy :: Map Grouped (Map Terms Occs) -> Grouped -> Label
 labelPolicy m g =  case _terms_label <$> fst <$> maximumWith snd <$> DMS.toList <$> lookup g m of

@@ -64,7 +64,7 @@ pipeline :: FromJSON e => URL -> ClientEnv -> ScraperInput
                        -> (e -> IO ()) -> IO ScraperStatus
 pipeline scrapyurl client_env input log_status = do
   e <- runJobMLog client_env log_status $ callScraper scrapyurl input
-  either (panic . cs . show) pure e
+  either (panic . cs . show) pure e -- TODO throwError
 
 scrapyOrchestrator :: Env -> IO (Server (WithCallbacks ScraperAPI))
 scrapyOrchestrator env = do

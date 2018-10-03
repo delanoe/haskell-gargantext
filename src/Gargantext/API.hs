@@ -258,9 +258,9 @@ server env = do
      :<|> nodeAPI  conn
      :<|> nodeAPI  conn
      :<|> nodesAPI conn
-     :<|> count
+     :<|> count -- TODO: undefined
      :<|> search   conn
-     :<|> graphAPI conn
+     :<|> graphAPI conn -- TODO: mock
      :<|> treeAPI  conn
   --   :<|> orchestrator
   where

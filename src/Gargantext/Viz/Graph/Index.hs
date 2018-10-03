@@ -38,7 +38,7 @@ import qualified Data.Set as S
 import Data.Map (Map)
 import qualified Data.Map.Strict    as M
 
-import Data.Vector (Vector)
+-- import Data.Vector (Vector)
 
 import Gargantext.Prelude
 
@@ -86,13 +86,12 @@ indexConversion index ms = M.fromList $ map (\((k1,k2),c) -> ( ((M.!) index k1, 
 ---------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- TODO
 --fromIndex' :: Ord t => Vector t -> Map (Index, Index) a -> Map (t,t) a
 --fromIndex' vi ns = undefined
 
--- TODO
-createIndices' :: Ord t => Map (t, t) b -> (Map t Index, Vector t)
-createIndices' = undefined
+-- TODO: returing a Vector should be faster than a Map
+-- createIndices' :: Ord t => Map (t, t) b -> (Map t Index, Vector t)
+-- createIndices' = undefined
 
 createIndices :: Ord t => Map (t, t) b -> (Map t Index, Map Index t)
 createIndices = set2indices . map2set

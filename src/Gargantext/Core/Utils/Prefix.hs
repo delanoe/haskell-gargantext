@@ -54,5 +54,5 @@ parseJSONFromString :: (Read a) => Value -> Parser a
 parseJSONFromString v = do
   numString <- parseJSON v
   case readMaybe (numString :: String) of
-    Nothing -> fail $ "Invalid number for TransactionID: " ++ show v
+    Nothing -> fail $ "Invalid number for TransactionID: " ++ show v -- TODO error message too specific
     Just n -> return n

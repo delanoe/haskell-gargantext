@@ -76,6 +76,7 @@ parserLang _  = panic "not implemented"
 -- currentContext lang = localContext lang <$> utcToDucklingTime <$> getCurrentTime
 -- parseDate1 :: Context -> Text -> SomeErrorHandling Text
 
+-- TODO error handling
 parseDate1 :: Lang -> Text -> IO Text
 parseDate1 lang text = do
     maybeJson <- map jsonValue <$> parseDateWithDuckling lang text

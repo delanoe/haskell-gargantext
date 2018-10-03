@@ -57,9 +57,9 @@ import Gargantext.Text.Terms (TermType(..))
 -------------------------------------------------------------------
 -- | Node API Types management
 type Roots =  Get    '[JSON] [Node Value]
-         :<|> Post   '[JSON] Int
-         :<|> Put    '[JSON] Int
-         :<|> Delete '[JSON] Int
+         :<|> Post   '[JSON] Int -- TODO
+         :<|> Put    '[JSON] Int -- TODO
+         :<|> Delete '[JSON] Int -- TODO
 
 type NodesAPI  = Delete '[JSON] Int
 
@@ -106,15 +106,16 @@ type FacetDocAPI = "table"
 
 -- | Node API functions
 roots :: Connection -> Server Roots
-roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId conn 0 Nothing)
-          :<|> pure (panic "not implemented yet")
-          :<|> pure (panic "not implemented yet")
-          :<|> pure (panic "not implemented yet")
+roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId 0 Nothing conn)
+          :<|> pure (panic "not implemented yet") -- TODO
+          :<|> pure (panic "not implemented yet") -- TODO
+          :<|> pure (panic "not implemented yet") -- TODO
 
 
 type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
 graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
+  -- TODO what do we get about the node? to replace contextText
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
@@ -143,10 +144,10 @@ nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
 
 postNode :: Connection -> NodeId -> Handler Int
-postNode = undefined
+postNode = undefined -- TODO
 
 putNode :: Connection -> NodeId -> Handler Int
-putNode = undefined
+putNode = undefined -- TODO
 
 deleteNodes' :: Connection -> [NodeId] -> Handler Int
 deleteNodes' conn ids = liftIO (deleteNodes conn ids)
@@ -165,7 +166,7 @@ getFacet conn id offset limit = liftIO (putStrLn ( "/facet" :: Text)) >> liftIO 
 
 getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
                         -> Handler [FacetChart]
-getChart _ _ _ _ = undefined
+getChart _ _ _ _ = undefined -- TODO
 
 
 query :: Text -> Handler Text
