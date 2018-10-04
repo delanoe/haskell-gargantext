@@ -15,7 +15,7 @@ import Data.Text as T
 -- | Use case
 -- >>> :{
 --  wikimediaFile <- BL.readFile "text.xml"
---  _ <- runConduit $ parseLBS def wikimediaFile .| force "mediawiki required" parseMediawiki .| CL.mapM_ print
+--  _ <- runConduit $ parseLBS def wikimediaFile .| force "mediawiki required" parseMediawiki .| CL.mapM mediawikiPageToPlain
 -- :}
 
 -- | A simple "Page" type, for the moment it take only text and title (since there is no abstract) will see if other datas are relevant.
