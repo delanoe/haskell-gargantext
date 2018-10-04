@@ -40,8 +40,8 @@ import Data.Either
 --  (since there is no abstract) will see if other datas are relevant.
 data Page = Page
   {
-    _title :: T.Text
-  , _text :: T.Text
+    _title :: Maybe T.Text
+  , _text :: Maybe T.Text
   }
   deriving (Show)
 
@@ -74,12 +74,11 @@ parsePage :: MonadThrow m => ConduitT Event o m (Maybe Page)
 parsePage =
   tagNoAttr "{http://www.mediawiki.org/xml/export-0.10/}page" $ do
   title <-
-    force "title is missing" $
     tagNoAttr "{http://www.mediawiki.org/xml/export-0.10/}title" content
   _ <-
     consumeExcept "{http://www.mediawiki.org/xml/export-0.10/}revision"
   revision <-
-    force "revision is missing" $ parseRevision
+    parseRevision
   many_ $ ignoreAnyTreeContent
   return $ Page title revision
 
@@ -94,10 +93,13 @@ mediawikiPageToPlain page = do
   title <- mediaToPlain $ _title page
   revision <- mediaToPlain $ _text page
   return $ Page title revision
-  where mediaToPlain media = do
-          res <- runIO $ do
-            doc <- readMediaWiki def media
-            writePlain def doc
-          case res of
-            (Left _) -> return media
-            (Right r) -> return r
+  where mediaToPlain media =
+          case media of
+            (Nothing) -> return Nothing
+            (Just med) -> do
+              res <- runIO $ do
+                doc <- readMediaWiki def med
+                writePlain def doc
+              case res of
+                (Left _) -> return Nothing
+                (Right r) -> return $ Just r
