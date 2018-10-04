@@ -33,8 +33,8 @@ nodeTypeId n =
   case n of
     NodeUser   -> 1
     Folder     -> 2
-    NodeCorpus -> 3
-    -- NodeCorpus -> 30 TODO ERRR
+    --NodeCorpus -> 3
+    NodeCorpus -> 30 -- TODO ERRR
     Annuaire   -> 31
     Document   -> 4
     UserPage   -> 41
