@@ -108,6 +108,7 @@ library:
   - mtl
   - natural-transformation
   - opaleye
+  - pandoc
   - parsec
   - path
   - path-io
