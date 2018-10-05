@@ -86,7 +86,7 @@ textFlow termType workType = do
                 CSV      path -> readCsvOn [csv_title, csv_abstract] path
                 Contexts ctxt -> pure ctxt
                 DB con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (node_hyperdata n)  <> hyperdataDocumentV3_abstract (node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
-                _             -> undefined
+                _             -> undefined -- TODO Query not supported
 
   textFlow' termType contexts
 

@@ -15,6 +15,8 @@ Portability : POSIX
 {-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
@@ -41,11 +43,14 @@ import Gargantext.Prelude hiding (sum)
 
 
 import Database.PostgreSQL.Simple.Internal  (Field)
+import Control.Applicative (Applicative)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Monad.IO.Class
+import Control.Monad.Reader
 import Data.Aeson
 import Data.Maybe (Maybe, fromMaybe)
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Typeable (Typeable)
 
@@ -59,6 +64,26 @@ import Opaleye.Internal.QueryArr (Query)
 import qualified Data.Profunctor.Product as PP
 -- | Types for Node Database Management
 data PGTSVector
+
+newtype Cmd a = Cmd (ReaderT Connection IO a)
+  deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
+
+runCmd :: Connection -> Cmd a -> IO a
+runCmd c (Cmd f) = runReaderT f c
+
+mkCmd :: (Connection -> IO a) -> Cmd a
+mkCmd = Cmd . ReaderT
+
+{-
+newtype Cmd a = Cmd { unCmd :: Connection -> IO a }
+
+instance Monad Cmd where
+  return a = Cmd $ \_ -> return a
+
+  m >>= f = Cmd $ \c -> do
+    a <- unCmd m c
+    unCmd (f a) c
+-}
 
 ------------------------------------------------------------------------
 type CorpusId = Int
@@ -161,8 +186,8 @@ selectNode id = proc () -> do
     restrict -< node_id row .== id
     returnA -< row
 
-runGetNodes :: Connection -> Query NodeRead -> IO [Node Value]
-runGetNodes = runQuery
+runGetNodes :: Query NodeRead -> Cmd [Node Value]
+runGetNodes q = mkCmd $ \conn -> runQuery conn q
 
 -- | order by publication date
 -- Favorites (Bool), node_ngrams
@@ -187,13 +212,20 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     returnA -< node
 
 
+--type Cmd' a = forall m. (MonadReader env m, HasConnection env, MonadIO m) => m a
 
-deleteNode :: Connection -> Int -> IO Int
-deleteNode conn n = fromIntegral <$> runDelete conn nodeTable
+
+-- deleteNode :: (MonadReader Connection m, MonadIO m) => Int -> m Int
+-- deleteNode :: Int -> Cmd' Int
+
+deleteNode :: Int -> Cmd Int
+deleteNode n = mkCmd $ \conn ->
+  fromIntegral <$> runDelete conn nodeTable
                  (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
 
-deleteNodes :: Connection -> [Int] -> IO Int
-deleteNodes conn ns = fromIntegral <$> runDelete conn nodeTable
+deleteNodes :: [Int] -> Cmd Int
+deleteNodes ns = mkCmd $ \conn ->
+  fromIntegral <$> runDelete conn nodeTable
                    (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
 
@@ -205,13 +237,13 @@ getNodesWith conn parentId nodeType maybeOffset maybeLimit =
 
 
 -- NP check type
-getNodesWithParentId :: Connection -> Int 
-                     -> Maybe Text -> IO [Node Value]
-getNodesWithParentId conn n _ = runQuery conn $ selectNodesWithParentID n
+getNodesWithParentId :: Int
+                     -> Maybe Text -> Connection -> IO [Node Value]
+getNodesWithParentId n _ conn = runQuery conn $ selectNodesWithParentID n
 
-getNodesWithParentId' :: Connection -> Int 
-                     -> Maybe Text -> IO [Node Value]
-getNodesWithParentId' conn n _ = runQuery conn $ selectNodesWithParentID n
+getNodesWithParentId' :: Int
+                     -> Maybe Text -> Connection -> IO [Node Value]
+getNodesWithParentId' n _ conn = runQuery conn $ selectNodesWithParentID n
 
 
 ------------------------------------------------------------------------
@@ -285,11 +317,11 @@ node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
                                          )
 
 
-mkNode :: Connection -> ParentId -> [NodeWrite'] -> IO Int64
-mkNode conn pid ns = runInsertMany conn nodeTable' $ map (node2write pid) ns
+mkNode :: ParentId -> [NodeWrite'] -> Connection -> IO Int64
+mkNode pid ns conn = runInsertMany conn nodeTable' $ map (node2write pid) ns
 
-mkNodeR :: Connection -> ParentId -> [NodeWrite'] -> IO [Int]
-mkNodeR conn pid ns = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
+mkNodeR :: ParentId -> [NodeWrite'] -> Connection -> IO [Int]
+mkNodeR pid ns conn = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
 
 
 ------------------------------------------------------------------------
@@ -309,10 +341,10 @@ post c uid pid [ Node' Corpus "name" "{}" []
 -- TODO
 -- currently this function remove the child relation
 -- needs a Temporary type between Node' and NodeWriteT
-node2table :: UserId -> ParentId -> Node' -> [NodeWriteT]
-node2table uid pid (Node' nt txt v []) = [( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (pgInt4 pid)
-                                         , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v)]
-node2table _ _ (Node' _ _ _ _) = panic $ pack "node2table: should not happen, Tree insert not implemented yet"
+node2table :: UserId -> ParentId -> Node' -> NodeWriteT
+node2table uid pid (Node' nt txt v []) = ( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (pgInt4 pid)
+                                         , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v)
+node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 
 data Node' = Node' { _n_type :: NodeType
@@ -330,30 +362,37 @@ type NodeWriteT =  ( Maybe (Column PGInt4)
                    )
 
 
-mkNode' :: Connection -> [NodeWriteT] -> IO Int64
-mkNode' conn ns = runInsertMany conn nodeTable' ns
+mkNode' :: [NodeWriteT] -> Cmd Int64
+mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable' ns
 
-mkNodeR' :: Connection -> [NodeWriteT] -> IO [Int]
-mkNodeR' conn ns = runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
+mkNodeR' :: [NodeWriteT] -> Cmd [Int]
+mkNodeR' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
+
+data NewNode = NewNode { _newNodeId :: Int
+                       , _newNodeChildren :: [Int] }
 
 -- | postNode
-postNode :: Connection -> UserId -> ParentId -> Node' -> IO [Int]
-postNode c uid pid (Node' nt txt v []) = mkNodeR' c (node2table uid pid (Node' nt txt v []))
+postNode :: UserId -> ParentId -> Node' -> Cmd NewNode
+postNode uid pid (Node' nt txt v []) = do
+  pids <- mkNodeR' [node2table uid pid (Node' nt txt v [])]
+  case pids of
+    [pid] -> pure $ NewNode pid []
+    _ -> panic "postNode: only one pid expected"
 
-postNode c uid pid (Node' NodeCorpus txt v ns) = do
-  [pid']  <- postNode c uid pid (Node' NodeCorpus txt v [])
-  pids    <- mkNodeR' c $ concat $ map (\n -> childWith uid pid' n) ns
-  pure (pids)
+postNode uid pid (Node' NodeCorpus txt v ns) = do
+  NewNode pid' _ <- postNode uid pid (Node' NodeCorpus txt v [])
+  pids  <- mkNodeR' (concat $ map (\n -> [childWith uid pid' n]) ns)
+  pure $ NewNode pid' pids
 
-postNode c uid pid (Node' Annuaire txt v ns) = do
-  [pid']  <- postNode c uid pid (Node' Annuaire txt v [])
-  pids    <- mkNodeR' c $ concat $ map (\n -> childWith uid pid' n) ns
-  pure (pids)
-postNode _ _ _ (Node' _ _ _ _) = panic $ pack "postNode for this type not implemented yet"
+postNode uid pid (Node' Annuaire txt v ns) = do
+  NewNode pid' _ <- postNode uid pid (Node' Annuaire txt v [])
+  pids  <- mkNodeR' (concat $ map (\n -> [childWith uid pid' n]) ns)
+  pure $ NewNode pid' pids
+postNode _ _ (Node' _ _ _ _) = panic "TODO: postNode for this type not implemented yet"
 
 
-childWith :: UserId -> ParentId -> Node' -> [NodeWriteT]
+childWith :: UserId -> ParentId -> Node' -> NodeWriteT
 childWith uId pId (Node' Document txt v []) = node2table uId pId (Node' Document txt v [])
 childWith uId pId (Node' UserPage txt v []) = node2table uId pId (Node' UserPage txt v [])
-childWith _   _   (Node' _        _   _ _) = panic $ pack "This NodeType can not be a child"
+childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 

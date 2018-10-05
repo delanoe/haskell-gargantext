@@ -20,6 +20,7 @@ module Gargantext.Prelude
   ( module Gargantext.Prelude
   , module Protolude
   , headMay, lastMay
+  , module GHC.Err.Located
   , module Text.Show
   , module Text.Read
   , cs
@@ -29,32 +30,32 @@ module Gargantext.Prelude
   where
 
 import GHC.Exts (sortWith)
-
+import GHC.Err.Located (undefined)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
-                 , pure, (>>=), (=<<), (<*>), (<$>), panic
+                 , pure, (>>=), (=<<), (<*>), (<$>)
                  , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, mapM, zip, drop, take, zipWith
                  , sum, fromIntegral, length, fmap, foldl, foldl'
-                 , takeWhile, sqrt, undefined, identity
+                 , takeWhile, sqrt, identity
                  , abs, min, max, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
-                 , (&&), (||), not, any
+                 , (&&), (||), not, any, all
                  , fst, snd, toS
                  , elem, die, mod, div, const, either
                  , curry, uncurry, repeat
                  , otherwise, when
-                 , undefined
                  , IO()
                  , compare
                  , on
+                 , panic
                  )
 
 -- TODO import functions optimized in Utils.Count
@@ -136,8 +137,8 @@ chunkAlong' a b l = only (while  dropAlong)
         dropAlong = V.scanl (\x _y -> V.drop b x) l (V.fromList [1..])
 
 -- | TODO Inverse of chunk ? unchunkAlong ?
-unchunkAlong :: Int -> Int -> [[a]] -> [a]
-unchunkAlong = undefined
+-- unchunkAlong :: Int -> Int -> [[a]] -> [a]
+-- unchunkAlong = undefined
 
 
 -- splitAlong [2,3,4] ("helloworld" :: [Char]) == ["he", "llo", "worl", "d"]

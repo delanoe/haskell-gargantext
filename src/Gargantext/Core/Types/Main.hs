@@ -56,34 +56,27 @@ gargNode = [userTree]
 
 -- | User Tree simplified
 userTree :: Tree NodeTree
-userTree = TreeN (NodeTree "user name" NodeUser 1) $
-                  [leafT $ NodeTree "MyPage" UserPage 0] <>
-                  [annuaireTree, projectTree]
+userTree = TreeN (NodeTree "user name" NodeUser 1) [annuaireTree, projectTree]
 
 -- | Project Tree
 projectTree :: Tree NodeTree
-projectTree = TreeN (NodeTree "Project CNRS/IMT" Project 2) [corpusTree 10 "A", corpusTree 20 "B"]
+projectTree = TreeN (NodeTree "Project CNRS/IMT" Folder 2) [corpusTree 10 "A", corpusTree 20 "B"]
 
 type Individu  = Document
 
 -- | Corpus Tree
 annuaireTree :: Tree NodeTree
-annuaireTree = TreeN (NodeTree "Annuaire" Annuaire 41) (   [leafT $ NodeTree "IMT"  Individu 42]
-                                                        <> [leafT $ NodeTree "CNRS" Individu 43]
-                          )
+annuaireTree = (leafT $ NodeTree "Annuaire" Annuaire 41)
+
 
 corpusTree :: NodeId -> Text -> Tree NodeTree
-corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Documents" Document (nId +1)]
+corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Dashboard" Dashboard (nId +1)
+                                                                         , leafT $ NodeTree "Graph" Graph (nId +2)
+                                                                         ]
 --                                                      <> [ leafT $ NodeTree "My lists"  Lists    5]
 --                          <> [ leafT (NodeTree "Metrics A" Metrics 6)  ]
 --                          <> [ leafT (NodeTree "Class A" Classification 7)]
                           )
-
---   TODO make instances of Nodes
--- NP
--- - why NodeUser and not just User ?
--- - is this supposed to hold data ?
--- AD : Yes, some preferences for instances
 
 data Parent = NodeType NodeId
 

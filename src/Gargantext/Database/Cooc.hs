@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.TextSearch
+Module      : Gargantext.Database.Cooc
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3

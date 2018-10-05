@@ -10,7 +10,7 @@ Portability : POSIX
 Node API
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
 
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE DataKinds          #-}
@@ -23,6 +23,7 @@ module Gargantext.API.Node
       where
 -------------------------------------------------------------------
 
+import Control.Lens (prism')
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
@@ -39,11 +40,13 @@ import Servant
 
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Node ( getNodesWithParentId
+import Gargantext.Database.Node ( runCmd
+                                , getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
                                  ,FacetChart)
+import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 
 -- Graph
 import Gargantext.TextFlow
@@ -55,13 +58,15 @@ import Gargantext.Text.Terms (TermType(..))
 -------------------------------------------------------------------
 -- | Node API Types management
 type Roots =  Get    '[JSON] [Node Value]
-         :<|> Post   '[JSON] Int
-         :<|> Put    '[JSON] Int
-         :<|> Delete '[JSON] Int
+         :<|> Post   '[JSON] Int -- TODO
+         :<|> Put    '[JSON] Int -- TODO
+         :<|> Delete '[JSON] Int -- TODO
 
 type NodesAPI  = Delete '[JSON] Int
 
 type NodeAPI   = Get '[JSON] (Node Value)
+             :<|> Post   '[JSON] Int
+             :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children" :> Summary " Summary children"
                              :> QueryParam "type"   NodeType
@@ -102,23 +107,33 @@ type FacetDocAPI = "table"
 
 -- | Node API functions
 roots :: Connection -> Server Roots
-roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId conn 0 Nothing)
-          :<|> pure (panic "not implemented yet")
-          :<|> pure (panic "not implemented yet")
-          :<|> pure (panic "not implemented yet")
+roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId 0 Nothing conn)
+          :<|> pure (panic "not implemented yet") -- TODO
+          :<|> pure (panic "not implemented yet") -- TODO
+          :<|> pure (panic "not implemented yet") -- TODO
 
 
 type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
 graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
+  -- TODO what do we get about the node? to replace contextText
+
+-- TODO(orphan): There should be a proper APIError data type with a case TreeError.
+instance HasTreeError ServantErr where
+  _TreeError = prism' mk (const Nothing) -- Note a prism
+    where
+      mk NoRoot       = err404 { errBody = "Root node not found" }
+      mk EmptyRoot    = err500 { errBody = "Root node should not be empty" }
+      mk TooManyRoots = err500 { errBody = "Too many root nodes" }
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: Connection -> NodeId -> Server TreeAPI
-treeAPI _ _ = undefined
-
+treeAPI = treeDB
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              conn id )
+              :<|> postNode     conn id
+              :<|> putNode      conn id
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
               :<|> getFacet      conn id
@@ -126,16 +141,20 @@ nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              co
               -- :<|> upload
               -- :<|> query
 
-
-
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
 
+postNode :: Connection -> NodeId -> Handler Int
+postNode = undefined -- TODO
+
+putNode :: Connection -> NodeId -> Handler Int
+putNode = undefined -- TODO
+
 deleteNodes' :: Connection -> [NodeId] -> Handler Int
-deleteNodes' conn ids = liftIO (deleteNodes conn ids)
+deleteNodes' conn ids = liftIO (runCmd conn $ deleteNodes ids)
 
 deleteNode' :: Connection -> NodeId -> Handler Int
-deleteNode' conn id = liftIO (deleteNode conn id)
+deleteNode' conn id = liftIO (runCmd conn $ deleteNode id)
 
 getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
                         -> Handler [Node Value]
@@ -148,7 +167,7 @@ getFacet conn id offset limit = liftIO (putStrLn ( "/facet" :: Text)) >> liftIO 
 
 getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
                         -> Handler [FacetChart]
-getChart _ _ _ _ = undefined
+getChart _ _ _ _ = undefined -- TODO
 
 
 query :: Text -> Handler Text

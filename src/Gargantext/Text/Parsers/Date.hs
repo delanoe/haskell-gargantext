@@ -68,7 +68,7 @@ import Text.XML.HXT.DOM.Util (decimalStringToInt)
 parserLang :: Lang -> DC.Lang
 parserLang FR = DC.FR
 parserLang EN = DC.EN
-
+-- parserLang _  = panic "not implemented"
 
 -- | Final Date parser API
 -- IO can be avoided here:
@@ -76,6 +76,7 @@ parserLang EN = DC.EN
 -- currentContext lang = localContext lang <$> utcToDucklingTime <$> getCurrentTime
 -- parseDate1 :: Context -> Text -> SomeErrorHandling Text
 
+-- TODO error handling
 parseDate1 :: Lang -> Text -> IO Text
 parseDate1 lang text = do
     maybeJson <- map jsonValue <$> parseDateWithDuckling lang text

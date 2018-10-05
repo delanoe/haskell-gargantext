@@ -143,7 +143,7 @@ queryInsert = [sql|
            |]
 
 prepare :: UserId -> ParentId -> [HyperdataDocument] -> [InputData]
-prepare uId pId = map (\h -> InputData tId uId pId (DT.pack "Doc") (toJSON $ unicize h))
+prepare uId pId = map (\h -> InputData tId uId pId (DT.pack "Doc") (toJSON $ addUniqId h))
   where
     tId = nodeTypeId Document
 
@@ -195,19 +195,13 @@ hashParameters = [ \d -> maybe' (_hyperdataDocument_title    d)
                    where
                      maybe' = maybe (DT.pack "") identity
 
-unicize :: HyperdataDocument -> HyperdataDocument
-unicize = unicize' hashParameters
+addUniqId :: HyperdataDocument -> HyperdataDocument
+addUniqId doc = set hyperdataDocument_uniqId (Just hash) doc
   where
-    unicize' :: [(HyperdataDocument -> Text)] -> HyperdataDocument -> HyperdataDocument
-    unicize' fields doc = set hyperdataDocument_uniqId (Just hash) doc
-      where
-        hash = uniqId $ DT.concat $ map (\f -> f doc) fields
+    hash = uniqId $ DT.concat $ map ($ doc) hashParameters
 
     uniqId :: Text -> Text
-    uniqId txt = (sha256 txt)
-      where
-        sha256 :: Text -> Text
-        sha256 = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
+    uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
 
 ---------------------------------------------------------------------------
 -- * Tests

@@ -19,50 +19,69 @@ Gargantext's database.
 module Gargantext.Database.Config
     where
 
-import Data.Text  (pack)
-import Data.Maybe (fromMaybe)
-import Data.List (lookup)
+
+import Data.Text        (pack)
+import Data.Tuple.Extra (swap)
+import Data.Maybe       (fromMaybe)
+import Data.List        (lookup)
 
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
+nodeTypeId :: NodeType -> NodeTypeId
+nodeTypeId n =
+  case n of
+    NodeUser   -> 1
+    Folder     -> 2
+    --NodeCorpus -> 3
+    NodeCorpus -> 30 -- TODO ERRR
+    Annuaire   -> 31
+    Document   -> 4
+    UserPage   -> 41
+  --NodeSwap   -> 19
+
+----  Lists
+--  StopList   -> 5
+--  GroupList  -> 6
+--  MainList   -> 7
+--  MapList    -> 8
+
+----  Scores
+    Occurrences -> 10
+    Graph       -> 9
+    Dashboard   -> 5
+    Chart       -> 51
+
+--  Cooccurrences -> 9
+--
+--  Specclusion  -> 11
+--  Genclusion   -> 18
+--  Cvalue       -> 12
+--
+--  TfidfCorpus  -> 13
+--  TfidfGlobal  -> 14
+--
+--  TirankLocal  -> 16
+--  TirankGlobal -> 17
+
+----  Node management
+    Favorites    -> 15
+
+--  Project -> TODO
+--  Individu -> TODO
+--  Classification -> TODO
+--  Lists -> TODO
+--  Metrics -> TODO
+
+--
 -- | Nodes are typed in the database according to a specific ID
 --
+nodeTypeInv :: [(NodeTypeId, NodeType)]
+nodeTypeInv = map swap nodeTypes
+
 nodeTypes :: [(NodeType, NodeTypeId)]
-nodeTypes = [ (NodeUser      ,  1)
-            , (Folder        ,  2)
-            , (NodeCorpus    ,  30)
-            , (Annuaire      ,  31)
-            , (Document      ,  4)
-            , (UserPage      ,  41)
-            --, (NodeSwap      , 19)
-------  Lists
---            , (StopList      ,  5)
---            , (GroupList     ,  6)
---            , (MainList      ,  7)
---            , (MapList       ,  8)
-----  Scores
-            , (Occurrences   , 10)
---            , (Cooccurrences ,  9)
---
---            , (Specclusion   , 11)
---            , (Genclusion    , 18)
---            , (Cvalue       , 12)
---
---            , (TfidfCorpus  , 13)
---            , (TfidfGlobal  , 14)
---
---            , (TirankLocal  , 16)
---            , (TirankGlobal , 17)
---
-----  Node management
-            , (Favorites     , 15)
---
-            ]
---
-nodeTypeId :: NodeType -> NodeTypeId
-nodeTypeId tn = fromMaybe (panic $ pack $ "Typename " <> show tn <> " does not exist")
-                          (lookup tn nodeTypes)
+nodeTypes = [ (n, nodeTypeId n) | n <- allNodeTypes ]
 
-
-
+typeId2node :: NodeTypeId -> NodeType
+typeId2node tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")
+                            (lookup tId nodeTypeInv)

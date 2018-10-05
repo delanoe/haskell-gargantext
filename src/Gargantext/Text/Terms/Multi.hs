@@ -57,4 +57,4 @@ tokenTags' lang t =  map tokens2tokensTags
 group :: Lang -> [TokenTag] -> [TokenTag]
 group EN = En.group
 group FR = Fr.group
-
+-- group _  = panic $ pack "group :: Lang not implemeted yet"

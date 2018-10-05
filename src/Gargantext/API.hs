@@ -189,7 +189,15 @@ makeDevApp env = do
 type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 -- | API for serving main operational routes of @gargantext.org@
-type GargAPI =
+
+
+type GargAPI = "api" :> Summary "API " :> GargAPIVersion
+-- | TODO          :<|> Summary "Latest API" :> GargAPI'
+
+
+type GargAPIVersion = "v1.0" :> Summary "v1.0: " :> GargAPI'
+
+type GargAPI' =
           
            -- Roots endpoint
                 "user"  :> Summary "First user endpoint"
@@ -250,9 +258,9 @@ server env = do
      :<|> nodeAPI  conn
      :<|> nodeAPI  conn
      :<|> nodesAPI conn
-     :<|> count
+     :<|> count -- TODO: undefined
      :<|> search   conn
-     :<|> graphAPI conn
+     :<|> graphAPI conn -- TODO: mock
      :<|> treeAPI  conn
   --   :<|> orchestrator
   where

@@ -16,7 +16,7 @@ Domain Specific Language to manage Frequent Item Set (FIS)
 module Gargantext.Text.Metrics.FrequentItemSet
   ( Fis, Size(..)
   , occ_hlcm, cooc_hlcm
-  , all, between
+  , allFis, between
   , fisWithSize
   , fisWith
   , fisWithSizePoly
@@ -33,7 +33,7 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 import qualified Data.Vector as V
 
-import Data.List (filter, concat)
+import Data.List (filter, concat, null)
 import Data.Maybe (catMaybes)
 
 import HLCM
@@ -51,8 +51,8 @@ occ_hlcm = fisWithSize (Point 1)
 cooc_hlcm :: Frequency -> [[Item]] -> [Fis]
 cooc_hlcm = fisWithSize (Point 2)
 
-all :: Frequency -> [[Item]] -> [Fis]
-all = fisWith Nothing
+allFis :: Frequency -> [[Item]] -> [Fis]
+allFis = fisWith Nothing
 
 ------------------------------------------------------------------------
 between :: (Int, Int) -> Frequency -> [[Item]] -> [Fis]
@@ -93,7 +93,9 @@ fisWithSize n f is = case n of
 
                       --- Filter on Fis and not on [Item]
 fisWith :: Maybe ([Item] -> Bool) -> Frequency -> [[Item]] -> [Fis]
-fisWith s f is = catMaybes $ map items2fis $ filter' $ runLCMmatrix is f
+fisWith s f is = case filter (not . null) is of
+                   [] -> []
+                   js -> catMaybes $ map items2fis $ filter' $ runLCMmatrix js f
 -- drop unMaybe
   where
     filter' = case s of

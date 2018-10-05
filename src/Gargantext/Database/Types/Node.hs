@@ -20,7 +20,7 @@ Portability : POSIX
 
 module Gargantext.Database.Types.Node where
 
-import Prelude (Enum, Bounded, minBound, maxBound)
+import Prelude (Enum, Bounded, minBound, maxBound, mempty)
 
 import GHC.Generics (Generic)
 
@@ -274,11 +274,21 @@ type NodeCorpus = Node HyperdataCorpus
 type Document   = Node HyperdataDocument
 
 ------------------------------------------------------------------------
-data NodeType = NodeUser | Project | Folder | NodeCorpus | Annuaire | Document | Individu | UserPage | DocumentCopy | Favorites
-              | Classification
-              | Lists
-              | Metrics | Occurrences
-              deriving (Show, Read, Eq, Generic)
+data NodeType = NodeUser 
+              -- | Project
+              | Folder
+              | NodeCorpus | Annuaire 
+              | Document -- | Individu
+              | UserPage | Favorites
+              | Graph    | Dashboard | Chart
+              -- | Classification
+              -- | Lists
+              -- | Metrics
+              | Occurrences
+              deriving (Show, Read, Eq, Generic, Bounded, Enum)
+
+allNodeTypes :: [NodeType]
+allNodeTypes = [minBound ..]
 
 instance FromJSON NodeType
 instance ToJSON NodeType
@@ -307,11 +317,11 @@ $(deriveJSON (unPrefix "node_") ''NodePoly)
 
 
 instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime Value) where
-    arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (toJSON ("{}"::Text))]
+    arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (Object mempty)]
 
 
 instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime Value) where
-    arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) (toJSON ("{}"::Text))]
+    arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) (Object mempty)]
 
 instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime HyperdataDocument) where
     arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) ((hyperdataDocument))]
@@ -343,7 +353,7 @@ instance ToSchema HyperdataDocument where
 instance ToSchema Value where
   declareNamedSchema proxy = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions proxy
     L.& mapped.schema.description ?~ "a document"
-    L.& mapped.schema.example ?~ toJSON ("" :: Text)
+    L.& mapped.schema.example ?~ toJSON ("" :: Text) -- TODO
 
 
 instance ToSchema (NodePoly NodeId NodeTypeId NodeUserId
