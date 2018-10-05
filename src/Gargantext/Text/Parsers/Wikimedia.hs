@@ -40,9 +40,13 @@ import Data.Either
 --  (since there is no abstract) will see if other datas are relevant.
 data Page = Page
   {
-    _title :: Maybe T.Text
+    _markupFormat :: MarkupFormat
+  , _title :: Maybe T.Text
   , _text :: Maybe T.Text
   }
+  deriving (Show)
+
+data MarkupFormat = Mediawiki | Plaintext
   deriving (Show)
 
 parseRevision :: MonadThrow m => ConduitT Event o m (Maybe T.Text)
@@ -55,6 +59,7 @@ parseRevision =
     $ ignoreAnyTreeContent
   return text
 
+-- | Utility function that match everything but the tag given
 tagUntil :: Name -> NameMatcher Name
 tagUntil name = matching (/= name)
 
@@ -67,6 +72,8 @@ ignoreExcept name f = do
   _ <- consumeExcept name
   tagIgnoreAttrs (matching (==name)) f
 
+-- | Utility function that consume everything but the tag given
+-- usefull because we have to consume every data.
 consumeExcept :: MonadThrow m => Name -> ConduitT Event o m ()
 consumeExcept = many_ . ignoreTreeContent . tagUntil
 
@@ -80,19 +87,20 @@ parsePage =
   revision <-
     parseRevision
   many_ $ ignoreAnyTreeContent
-  return $ Page title revision
+  return $ Page Mediawiki title revision
 
 parseMediawiki :: MonadThrow m => ConduitT Event Page m (Maybe ())
 parseMediawiki =
   tagIgnoreAttrs "{http://www.mediawiki.org/xml/export-0.10/}mediawiki"
   $ manyYield' parsePage
 
--- | Need to wrap the result in IO to parse and to combine it.
+-- | Convert a Mediawiki Page to a Plaintext Page.
+-- Need to wrap the result in IO to parse and to combine it.
 mediawikiPageToPlain :: Page -> IO Page
 mediawikiPageToPlain page = do
   title <- mediaToPlain $ _title page
   revision <- mediaToPlain $ _text page
-  return $ Page title revision
+  return $ Page Plaintext title revision
   where mediaToPlain media =
           case media of
             (Nothing) -> return Nothing
