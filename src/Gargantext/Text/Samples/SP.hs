@@ -1,3 +1,17 @@
+{-|
+Module      : Gargantext.Text.Samples.SP
+Description : Sample of Spanish Text
+Copyright   : (c) CNRS, 2017 - present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+Source: Wikipedia
+Page  : text mining
+-}
+
+
 module Gargantext.Text.Samples.SP where
 
 import Data.String (String)

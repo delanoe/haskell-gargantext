@@ -18,6 +18,7 @@ Main type here is String.
 module Gargantext.Text.Terms.Stop
   where
 
+import GHC.Base (Functor)
 import Numeric.Probability.Distribution ((??))
 import qualified Numeric.Probability.Distribution as D
 
@@ -31,6 +32,7 @@ import qualified Data.Map.Strict as DM
 import Data.String (String)
 
 import Data.Text (pack, unpack)
+import Data.Tuple.Extra (both)
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..), allLangs)
@@ -84,29 +86,46 @@ type LangProba = Map Lang Double
 
 ------------------------------------------------------------------------
 detectLangs :: String -> [(Lang, Double)]
-detectLangs s = DL.reverse $ DL.sortOn snd
-                           $ toList
-                           $ detect (wordsToBook [0..2] s) testEL
+detectLangs s =  DL.reverse $ DL.sortOn snd
+                            $ toList
+                            $ detect (wordsToBook [0..2] s) eventLang
 
-textMining :: Lang -> String
-textMining EN = EN.textMining
-textMining FR = FR.textMining
---textMining DE = DE.textMining
---textMining SP = SP.textMining
---textMining CH = CH.textMining
+part :: (Eq p, Fractional p) => p -> p -> p
+part 0 _ = 0
+part _ 0 = 0
+part x y = x / y
+
+toProba :: (Eq b, Fractional b, Functor t, Foldable t) =>
+                 t (a, b) -> t (a, b)
+toProba xs = map (\(a,b) -> (a, part b total)) xs
+  where
+    total = sum $ map snd xs
+
+textSample :: Lang -> String
+textSample EN = EN.textSample
+textSample FR = FR.textSample
+--textSample DE = DE.textSample
+--textSample SP = SP.textSample
+--textSample CH = CH.textSample
 
 langWord :: Lang -> LangWord
-langWord l = LangWord l (textMining l)
+langWord l = LangWord l (textSample l)
 
-testEL :: EventLang
-testEL = toEventLangs [0..2] [ langWord l | l <- allLangs ]
+eventLang :: EventLang
+eventLang = toEventLangs [0..2] [ langWord l | l <- allLangs ]
 
 detect :: EventBook -> EventLang -> LangProba
-detect (EventBook mapFreq _) el = DM.unionsWith (+) $ map (\(s,n) -> DM.map (\eb -> (fromIntegral n) * peb s eb) el) $ filter (\x -> fst x /= "  ") $ DM.toList mapFreq
+detect (EventBook mapFreq _) el = 
+  DM.unionsWith (+) 
+  $ map DM.fromList
+  $ map (\(s,n) -> map (\(l,f) -> (l, (fromIntegral n) * f)) $ toPrior s el)
+  $ filter (\x -> fst x /= "  ")
+  $ DM.toList mapFreq
 
 ------------------------------------------------------------------------
 -- | TODO: monoids
 type EventLang = Map Lang EventBook
+
 toEventLangs :: [Int] -> [LangWord] -> EventLang
 toEventLangs ns = foldl' (opLang (+)) (emptyEventLang ns) . map (toLang ns)
 
@@ -128,6 +147,28 @@ peb st (EventBook mapFreq mapN) = (fromIntegral a) / (fromIntegral b)
     a = maybe 0 identity $ DM.lookup st mapFreq
     b = maybe 1 identity $ DM.lookup (length st) mapN
 
+peb' :: String -> EventBook -> (Freq, TotalFreq)
+peb' st (EventBook mapFreq mapN) = (fromIntegral a, fromIntegral b)
+  where
+    a = maybe 0 identity $ DM.lookup st mapFreq
+    b = maybe 1 identity $ DM.lookup (length st) mapN
+
+------------------------------------------------------------------------
+toPrior :: String -> EventLang -> [(Lang, Double)]
+toPrior s el = prior $ pebLang s el
+
+pebLang :: String -> EventLang -> [(Lang, (Freq,TotalFreq))]
+pebLang st = map (\(l,eb) -> (l, peb' st eb)) .  DM.toList
+
+------------------------------------------------------------------------
+prior :: [(Lang, (Freq, TotalFreq))] -> [(Lang, Double)]
+prior ps = zip ls $ zipWith (\x y -> x^99 * y) (map (\(a,_) -> part a (sum $ map fst ps')) ps') 
+                                (map (\(a,b) -> a / b) ps')
+  where
+   
+    (ls, ps'') = DL.unzip ps
+    ps' = map (both fromIntegral) ps''
+------------------------------------------------------------------------
 data EventBook = EventBook { events_freq :: Map String     Freq
                            , events_n    :: Map StringSize TotalFreq
                            }
