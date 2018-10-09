@@ -162,7 +162,7 @@ pebLang st = map (\(l,eb) -> (l, peb' st eb)) .  DM.toList
 
 ------------------------------------------------------------------------
 prior :: [(Lang, (Freq, TotalFreq))] -> [(Lang, Double)]
-prior ps = zip ls $ zipWith (\x y -> x^99 * y) (map (\(a,_) -> part a (sum $ map fst ps')) ps') 
+prior ps = zip ls $ zipWith (\x y -> x^(99::Int) * y) (map (\(a,_) -> part a (sum $ map fst ps')) ps') 
                                 (map (\(a,b) -> a / b) ps')
   where
    

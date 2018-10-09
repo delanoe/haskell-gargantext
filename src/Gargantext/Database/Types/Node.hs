@@ -271,13 +271,14 @@ type NodeUser   = Node HyperdataUser
 type Folder     = Node HyperdataFolder
 type Project    = Node HyperdataProject
 type NodeCorpus = Node HyperdataCorpus
+type NodeCorpusV3 = Node HyperdataCorpus
 type Document   = Node HyperdataDocument
 
 ------------------------------------------------------------------------
 data NodeType = NodeUser 
               -- | Project
               | Folder
-              | NodeCorpus | Annuaire 
+              | NodeCorpus | NodeCorpusV3 | Annuaire 
               | Document -- | Individu
               | UserPage | Favorites
               | Graph    | Dashboard | Chart

@@ -12,6 +12,8 @@ Page  : text mining
 -}
 
 
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.Text.Samples.SP where
 
 import Data.String (String)

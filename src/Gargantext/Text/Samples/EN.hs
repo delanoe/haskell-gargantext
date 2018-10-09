@@ -13,6 +13,7 @@ Page  : text mining
 -}
 
 
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Samples.EN where
 

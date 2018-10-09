@@ -100,7 +100,7 @@ dbTree conn rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> q
         UNION ALL
         SELECT n.id, n.typename, n.parent_id, n.name
         FROM nodes AS n JOIN descendants AS d ON n.parent_id = d.id
-        where n.typename in (2,30,31)
+        where n.typename in (2,3,30,31)
       ),
       ancestors (id, typename, parent_id, name) AS
       (

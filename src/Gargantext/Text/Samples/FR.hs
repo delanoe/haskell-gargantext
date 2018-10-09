@@ -12,9 +12,11 @@ Page  : text mining
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Gargantext.Text.Samples.FR where
 
-import Gargantext.Prelude
+import Gargantext.Prelude ((<>))
 import Data.String (String)
 
 textSample :: String
