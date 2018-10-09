@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Text.Parsers.WOS
-Description : 
+Description : Parser for Wikimedia dump
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -36,8 +36,8 @@ import Data.Either
 -- :}
 
 -- | A simple "Page" type.
--- For the moment it take only text and title
---  (since there is no abstract) will see if other datas are relevant.
+-- For the moment it takes only text and title
+--  (since there is no abstract) will see if others datas are relevant.
 data Page = Page
   {
     _markupFormat :: MarkupFormat
