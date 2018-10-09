@@ -37,7 +37,7 @@ import Data.Either
 
 -- | A simple "Page" type.
 -- For the moment it takes only text and title
---  (since there is no abstract) will see if others datas are relevant.
+--  (since there is no abstract) will see if other data are relevant.
 data Page = Page
   {
     _markupFormat :: MarkupFormat
