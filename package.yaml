@@ -52,6 +52,7 @@ library:
   - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Parsers.CSV
   - Gargantext.Text.Parsers.Date
+  - Gargantext.Text.Parsers.Wikimedia
   - Gargantext.Text.Parsers.WOS
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
@@ -111,6 +112,7 @@ library:
   - mtl
   - natural-transformation
   - opaleye
+  - pandoc
   - parsec
   - path
   - path-io
@@ -155,6 +157,8 @@ library:
   - wai-cors
   - wai-extra
   - warp
+  - xml-conduit
+  - xml-types
   - yaml
   - zip
   - zlib
