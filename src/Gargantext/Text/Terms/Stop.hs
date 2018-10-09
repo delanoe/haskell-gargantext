@@ -60,12 +60,17 @@ blanks xs = [' '] <> xs <> [' ']
 -- | Blocks increase the size of the word to ease computations
 -- some border and unexepected effects can happen, need to be tested
 blockOf :: Int -> String -> String
-blockOf n st = DL.concat $ DL.take n $ DL.repeat st
+blockOf n = DL.concat . DL.take n . DL.repeat
 
 -- | Chunks is the same function as splitBy in Context but for Strings,
 -- not Text (without pack and unpack operations that are not needed).
 chunks :: Int -> Int -> String -> [String]
-chunks n m = DL.take m . filter (not . all (== ' ')) . chunkAlong (n+1) 1 . DL.concat . DL.take 1000 . DL.repeat . blanks
+chunks n m = DL.take m . filter (not . all (== ' '))
+                       . chunkAlong (n+1) 1
+                       . DL.concat
+                       . DL.take 1000
+                       . DL.repeat
+                       . blanks
 
 allChunks :: [Int] -> Int -> String -> [String]
 allChunks ns m st = DL.concat $ map (\n -> chunks n m st) ns
@@ -116,7 +121,7 @@ eventLang = toEventLangs [0..2] [ langWord l | l <- allLangs ]
 
 detect :: EventBook -> EventLang -> LangProba
 detect (EventBook mapFreq _) el = 
-  DM.unionsWith (+) 
+  DM.unionsWith (+)
   $ map DM.fromList
   $ map (\(s,n) -> map (\(l,f) -> (l, (fromIntegral n) * f)) $ toPrior s el)
   $ filter (\x -> fst x /= "  ")
@@ -159,7 +164,6 @@ toPrior s el = prior $ pebLang s el
 
 pebLang :: String -> EventLang -> [(Lang, (Freq,TotalFreq))]
 pebLang st = map (\(l,eb) -> (l, peb' st eb)) .  DM.toList
-
 ------------------------------------------------------------------------
 prior :: [(Lang, (Freq, TotalFreq))] -> [(Lang, Double)]
 prior ps = zip ls $ zipWith (\x y -> x^(99::Int) * y) (map (\(a,_) -> part a (sum $ map fst ps')) ps') 
@@ -194,7 +198,6 @@ op :: (Freq -> Freq -> Freq) -> EventBook -> EventBook -> EventBook
 op f (EventBook ef1 en1)
      (EventBook ef2 en2) = EventBook (DM.unionWith f ef1 ef2)
                                      (DM.unionWith f en1 en2)
-
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
