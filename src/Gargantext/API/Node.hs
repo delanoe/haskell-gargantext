@@ -12,11 +12,12 @@ Node API
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
 
-{-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE OverloadedStrings  #-}
 
 -------------------------------------------------------------------
 module Gargantext.API.Node
@@ -28,13 +29,15 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
-import Data.Aeson (Value())
+import Data.Aeson (FromJSON, ToJSON, Value())
 --import Data.Text (Text(), pack)
 import Data.Text (Text())
+import Data.Swagger
 import Data.Time (UTCTime)
 
 import Database.PostgreSQL.Simple (Connection)
 
+import GHC.Generics (Generic)
 import Servant
 -- import Servant.Multipart
 
@@ -54,7 +57,9 @@ import Gargantext.Viz.Graph (Graph)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Text.Terms (TermType(..))
--------------------------------------------------------------------
+
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 -------------------------------------------------------------------
 -- | Node API Types management
 type Roots =  Get    '[JSON] [Node Value]
@@ -64,7 +69,21 @@ type Roots =  Get    '[JSON] [Node Value]
 
 type NodesAPI  = Delete '[JSON] Int
 
+
+
+data Rename = Rename { name :: Text }
+  deriving (Generic)
+
+instance FromJSON Rename
+instance ToJSON Rename
+instance ToSchema Rename
+instance Arbitrary Rename where
+  arbitrary = elements [Rename "test"]
+
 type NodeAPI   = Get '[JSON] (Node Value)
+             :<|> "rename" :> Summary " Rename Node" 
+                           :> ReqBody '[JSON] Rename
+                           :> Put     '[JSON] Int
              :<|> Post   '[JSON] Int
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
@@ -132,14 +151,19 @@ treeAPI = treeDB
 
 nodeAPI :: Connection -> NodeId -> Server NodeAPI
 nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              conn id )
-              :<|> postNode     conn id
-              :<|> putNode      conn id
+              :<|> rename        conn id
+              :<|> postNode      conn id
+              :<|> putNode       conn id
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id
               :<|> getFacet      conn id
               :<|> getChart      conn id
               -- :<|> upload
               -- :<|> query
+-- | Check if the name is less than 255 char
+--rename :: Connection -> NodeId -> Rename -> Server NodeAPI
+rename :: Connection -> NodeId -> Rename -> Handler Int
+rename = undefined
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
