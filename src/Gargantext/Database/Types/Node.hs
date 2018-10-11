@@ -70,23 +70,22 @@ $(deriveJSON (unPrefix "status_") ''Status)
 instance Arbitrary Status where
   arbitrary = Status <$> arbitrary <*> arbitrary <*> arbitrary
 
-
 ------------------------------------------------------------------------
 data StatusV3  = StatusV3 { statusV3_error  :: Maybe Text
                           , statusV3_action :: Maybe Text
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
 
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication_day    :: Maybe Int
                                                , hyperdataDocumentV3_language_iso2      :: Maybe Text
-                                               , hyperdataDocumentV3_publication_minute :: Maybe Int
-                                               , hyperdataDocumentV3_error              :: Maybe Text
-                                               , hyperdataDocumentV3_publication_month  :: Maybe Int
-                                               , hyperdataDocumentV3_language_iso3      :: Maybe Text
                                                , hyperdataDocumentV3_publication_second :: Maybe Int
+                                               , hyperdataDocumentV3_publication_minute :: Maybe Int
+                                               , hyperdataDocumentV3_publication_month  :: Maybe Int
+                                               , hyperdataDocumentV3_publication_hour   :: Maybe Int
+                                               , hyperdataDocumentV3_error              :: Maybe Text
+                                               , hyperdataDocumentV3_language_iso3      :: Maybe Text
                                                , hyperdataDocumentV3_authors            :: Maybe Text
                                                , hyperdataDocumentV3_publication_year   :: Maybe Int
                                                , hyperdataDocumentV3_publication_date   :: Maybe Text
@@ -96,7 +95,6 @@ data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication
                                                , hyperdataDocumentV3_source             :: Maybe Text
                                                , hyperdataDocumentV3_abstract           :: Maybe Text
                                                , hyperdataDocumentV3_title              :: Maybe Text
-                                               , hyperdataDocumentV3_publication_hour   :: Maybe Int
                                                } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
 

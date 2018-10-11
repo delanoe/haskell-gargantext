@@ -104,13 +104,11 @@ home = map node_id <$> Cmd (ReaderT (getNodesWithParentId 0 Nothing))
 ls :: PWD -> Cmd [Node Value]
 ls = get
 
-
 tree :: PWD -> Cmd [Node Value]
 tree p = do
   ns       <- get p
   children <- mapM (\n -> get [node_id n]) ns
   pure $ ns <> concat children
-
 
 -- | TODO
 post :: PWD -> [NodeWrite'] -> Cmd Int64
@@ -164,8 +162,6 @@ postAnnuaire corpusName title ns = do
 --------------------------------------------------------------
 -- Tests
 --------------------------------------------------------------
-
-
 get' :: PWD -> IO [Node Value]
 get' = runCmd' . get
 

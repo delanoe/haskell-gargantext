@@ -141,9 +141,9 @@ graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
 instance HasTreeError ServantErr where
   _TreeError = prism' mk (const Nothing) -- Note a prism
     where
-      mk NoRoot       = err404 { errBody = "Root node not found" }
+      mk NoRoot       = err404 { errBody = "Root node not found"           }
       mk EmptyRoot    = err500 { errBody = "Root node should not be empty" }
-      mk TooManyRoots = err500 { errBody = "Too many root nodes" }
+      mk TooManyRoots = err500 { errBody = "Too many root nodes"           }
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: Connection -> NodeId -> Server TreeAPI
