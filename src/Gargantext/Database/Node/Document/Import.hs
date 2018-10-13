@@ -41,6 +41,12 @@ instance).
 - Hash policy: this UniqId is a sha256 uniq id which is the result of
 the concatenation of the parameters defined by @hashParameters@.
 
+> -- * Example
+> insertTest :: FromRow r => CorpusId -> [Node HyperdataDocument] -> IO [r]
+> insertTest :: IO [ReturnId]
+> insertTest = connectGargandb "gargantext.ini"
+>          >>= \conn -> insertDocuments conn 1 452162 hyperdataDocuments
+
 -}
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric        #-}
@@ -71,10 +77,9 @@ import qualified Data.Text                   as DT (pack, unpack, concat)
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 
-import Gargantext (connectGargandb)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node
--- FIXME : the import of Document constructor below does not work
+-- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
 --import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
 --                                  , hyperdataDocument_uniqId
@@ -204,10 +209,4 @@ addUniqId doc = set hyperdataDocument_uniqId (Just hash) doc
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
 
 ---------------------------------------------------------------------------
--- * Tests
-
---insertTest :: FromRow r => CorpusId -> [Node HyperdataDocument] -> IO [r]
-insertTest :: IO [ReturnId]
-insertTest = connectGargandb "gargantext.ini"
-         >>= \conn -> insertDocuments conn 1 452162 hyperdataDocuments
 

@@ -60,36 +60,47 @@ AMS, and by SIAM.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 
-module Gargantext.Database.Bashql ( get, get'
-                                  , ls  , ls'
-                                  , home, home'
-                                  , post, post'
-                                  , del , del'
-                                  , tree, tree'
-                                  , postCorpus, postAnnuaire
+module Gargantext.Database.Bashql ( get
+                                  , ls
+                                  , home
+                                  , post
+                                  , del
+                                  , mv
+                                  , put
+                                  , rename
+                                  , tree
+                                  , mkCorpus, postAnnuaire
+                                  , runCmd'
                                  )
     where
 
 import Control.Monad.Reader -- (Reader, ask)
 
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Data.Aeson
 import Data.Aeson.Types
 import Data.List (last, concat)
+import Database.PostgreSQL.Simple (Only)
 
 import Gargantext.Core.Types
 import Gargantext.Database.Utils (connectGargandb)
 import Gargantext.Database.Node
+import qualified Gargantext.Database.Node.Update as U (Update(..), update)
 import Gargantext.Prelude
 
 import Opaleye hiding (FromField)
---type UserId = Int
---type NodeId = Int
+
 
 -- List of NodeId
 -- type PWD a = PWD UserId [a]
 type PWD = [NodeId]
 --data PWD' a = a | PWD' [a]
+
+rename :: NodeId -> Text -> Cmd [Only Int]
+rename n t = mkCmd $ \conn -> U.update (U.Rename n t) conn
+
+mv :: NodeId -> ParentId -> Cmd [Only Int]
+mv n p = mkCmd $ \conn -> U.update (U.Move n p) conn
 
 -- | TODO get Children or Node
 get :: PWD -> Cmd [Node Value]
@@ -129,8 +140,8 @@ del [] = pure 0
 del ns = deleteNodes ns
 
 -- | TODO
---put :: Connection -> PWD -> [a] -> IO Int64
---put = undefined
+put :: U.Update -> Cmd [Only Int]
+put u = mkCmd $ U.update u
 
 -- | TODO
 -- cd (Home UserId) | (Node NodeId)
@@ -140,8 +151,8 @@ del ns = deleteNodes ns
 
 type CorpusName = Text
 
-postCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd NewNode
-postCorpus corpusName title ns = do
+mkCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd NewNode
+mkCorpus corpusName title ns = do
   pid <- last <$> home
   let uid = 1
   postNode uid pid ( Node' NodeCorpus  corpusName emptyObject
@@ -160,46 +171,12 @@ postAnnuaire corpusName title ns = do
                    )
 
 --------------------------------------------------------------
--- Tests
---------------------------------------------------------------
-get' :: PWD -> IO [Node Value]
-get' = runCmd' . get
-
-home' :: IO PWD
-home' = runCmd' home
-
-ls' :: IO [Node Value]
-ls' = runCmd' $ do
-  h <- home
-  ls h
-
-tree' :: IO [Node Value]
-tree' = runCmd' $ do
-  h <- home
-  tree h
-
-post' :: IO NewNode
-post' = runCmd' $ do
-  pid <- last <$> home
-  let uid = 1
-  postNode uid pid ( Node' NodeCorpus  (pack "Premier corpus") emptyObject [ Node' Document (pack "Doc1") emptyObject []
-                                                          , Node' Document (pack "Doc2") emptyObject []
-                                                          , Node' Document (pack "Doc3") emptyObject []
-                                                          ]
-                     )
-
 -- | 
 -- myCorpus <- Prelude.map doc2hyperdataDocument <$> toDocs <$> snd <$> readCsv "doc/corpus_imt/Gargantext_Corpus_small.csv"
 -- There is an error in the CSV parsing...
 -- let myCorpus' = Prelude.filter (\n -> T.length (maybe "" identity (hyperdataDocument_title n)) > 30) myCorpus
 
-
-del' :: [NodeId] -> IO Int
-del' ns = runCmd' $ del ns
-
 -- corporaOf :: Username -> IO [Corpus]
 
 runCmd' :: Cmd a -> IO a
-runCmd' f = do
-  c <- connectGargandb "gargantext.ini"
-  runCmd c f
+runCmd' f = connectGargandb "gargantext.ini" >>= \c -> runCmd c f

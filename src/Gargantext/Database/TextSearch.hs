@@ -7,8 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -33,6 +32,7 @@ import Gargantext.Prelude
 
 newtype TSQuery = UnsafeTSQuery [Text]
 
+-- | TODO [""] -> panic "error"
 toTSQuery :: [Text] -> TSQuery
 toTSQuery txt = UnsafeTSQuery txt
 
@@ -66,19 +66,18 @@ instance ToField Order
 -- ADD ngrams count
 -- TESTS
 textSearchQuery :: Query
-textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'   \
+textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'     \
 \                   , n.hyperdata->'title'                          \
 \                   , n.hyperdata->'source'                         \
-\                   , n.hyperdata->'authors'                         \
-\                   , COALESCE(nn.score,null)                         \
-\                      FROM nodes n                                   \
-\            LEFT JOIN nodes_nodes nn  ON nn.node2_id = n.id          \
-\              WHERE                                                  \
-\                n.title_abstract @@ (?::tsquery)                    \
-\                AND n.parent_id = ?   AND n.typename  = 40            \
-\                ORDER BY n.hyperdata -> 'publication_date' ?         \
+\                   , n.hyperdata->'authors'                        \
+\                   , COALESCE(nn.score,null)                       \
+\                      FROM nodes n                                 \
+\            LEFT JOIN nodes_nodes nn  ON nn.node2_id = n.id        \
+\              WHERE                                                \
+\                n.search @@ (?::tsquery)                   \
+\                AND n.parent_id = ?   AND n.typename  = 40         \
+\                ORDER BY n.hyperdata -> 'publication_date' ?       \
 \            offset ? limit ?;"
-
 
 textSearch :: Connection 
            -> TSQuery -> ParentId
