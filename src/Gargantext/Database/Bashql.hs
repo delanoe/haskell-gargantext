@@ -80,7 +80,6 @@ import Data.Text (Text)
 import Data.Aeson
 import Data.Aeson.Types
 import Data.List (last, concat)
-import Database.PostgreSQL.Simple (Only)
 
 import Gargantext.Core.Types
 import Gargantext.Database.Utils (connectGargandb)
@@ -96,10 +95,10 @@ import Opaleye hiding (FromField)
 type PWD = [NodeId]
 --data PWD' a = a | PWD' [a]
 
-rename :: NodeId -> Text -> Cmd [Only Int]
+rename :: NodeId -> Text -> Cmd [Int]
 rename n t = mkCmd $ \conn -> U.update (U.Rename n t) conn
 
-mv :: NodeId -> ParentId -> Cmd [Only Int]
+mv :: NodeId -> ParentId -> Cmd [Int]
 mv n p = mkCmd $ \conn -> U.update (U.Move n p) conn
 
 -- | TODO get Children or Node
@@ -140,7 +139,7 @@ del [] = pure 0
 del ns = deleteNodes ns
 
 -- | TODO
-put :: U.Update -> Cmd [Only Int]
+put :: U.Update -> Cmd [Int]
 put u = mkCmd $ U.update u
 
 -- | TODO

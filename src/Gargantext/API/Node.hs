@@ -47,6 +47,7 @@ import Gargantext.Database.Node ( runCmd
                                 , getNodesWithParentId
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes)
+import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
                                  ,FacetChart)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
@@ -83,7 +84,7 @@ instance Arbitrary Rename where
 type NodeAPI   = Get '[JSON] (Node Value)
              :<|> "rename" :> Summary " Rename Node" 
                            :> ReqBody '[JSON] Rename
-                           :> Put     '[JSON] Int
+                           :> Put     '[JSON] [Int]
              :<|> Post   '[JSON] Int
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
@@ -162,8 +163,8 @@ nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              co
               -- :<|> query
 -- | Check if the name is less than 255 char
 --rename :: Connection -> NodeId -> Rename -> Server NodeAPI
-rename :: Connection -> NodeId -> Rename -> Handler Int
-rename = undefined
+rename :: Connection -> NodeId -> Rename -> Handler [Int]
+rename c nId (Rename name) = liftIO $ U.update (U.Rename nId name) c
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids

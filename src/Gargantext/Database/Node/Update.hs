@@ -37,10 +37,14 @@ data Update = Rename NodeId Name
 -- TODO : Field as parameter
 -- TODO jsonb values, consider this: 
 -- https://stackoverflow.com/questions/26703476/how-to-perform-update-operations-on-columns-of-type-jsonb-in-postgres-9-4
-update :: Update -> Connection -> IO [Only Int]
-update (Rename nId name) conn = query conn "UPDATE nodes SET name=? where id=? returning id"
+
+unOnly :: Only a -> a
+unOnly (Only a) = a
+
+update :: Update -> Connection -> IO [Int]
+update (Rename nId name) conn = map unOnly <$> query conn "UPDATE nodes SET name=? where id=? returning id"
                                            (DT.take 255 name,nId)
-update (Move nId pId) conn    = query conn "UPDATE nodes SET parent_id= ? where id=? returning id"
+update (Move nId pId) conn    = map unOnly <$> query conn "UPDATE nodes SET parent_id= ? where id=? returning id"
                                            (pId, nId)
 
 
