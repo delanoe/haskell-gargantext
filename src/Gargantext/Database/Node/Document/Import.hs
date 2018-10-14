@@ -59,7 +59,6 @@ the concatenation of the parameters defined by @hashParameters@.
 module Gargantext.Database.Node.Document.Import where
 
 import Control.Lens (set)
-import Control.Monad ((>>=))
 
 import Data.Aeson (toJSON, Value)
 import Data.ByteString.Internal (ByteString)

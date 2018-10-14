@@ -11,22 +11,16 @@ Portability : POSIX
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 
 module Gargantext.Database.Node.Update (Update(..), update) where
 
-import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
-import Control.Monad.Error.Class (MonadError(throwError))
-import Control.Monad.IO.Class (MonadIO(liftIO))
-import Data.Map (Map, fromListWith, lookup)
 import Data.Text (Text)
 import qualified Data.Text as DT
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
-import Gargantext.Database.Node (Cmd(..))
-import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Config (typeId2node)
 
 -- import Data.ByteString
 --rename :: Connection -> NodeId -> Text -> IO ByteString
