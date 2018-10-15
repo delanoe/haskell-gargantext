@@ -27,7 +27,7 @@ import Data.Text as T
 import Data.Either
 
 -- | Use case
--- >>> :{
+-- :{
 --  wikimediaFile <- BL.readFile "text.xml"
 --  _ <- runConduit $ parseLBS def wikimediaFile
 --        .| force "mediawiki required" parseMediawiki

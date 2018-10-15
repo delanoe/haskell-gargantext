@@ -169,12 +169,12 @@ executables:
     main: Main.hs
     source-dirs: bin/gargantext-server
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     - -O2
-    - -Wmissing-signatures
     - -Wcompat
+    - -Wmissing-signatures
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
     dependencies:
       - base
       - containers
@@ -232,11 +232,12 @@ tests:
     main: Main.hs
     source-dirs: src-doctest
     ghc-options:
-    - -Werror
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    - -O2
+    - -Wcompat
     - -Wmissing-signatures
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
     dependencies:
     - doctest
     - Glob

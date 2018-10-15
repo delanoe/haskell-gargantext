@@ -19,12 +19,13 @@ please follow the types.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PackageImports    #-}
 
-module Gargantext.Text.Parsers -- (parse, FileFormat(..))
+module Gargantext.Text.Parsers (parse, FileFormat(..), clean)
     where
 
 import System.FilePath (FilePath(), takeExtension)
-import Codec.Archive.Zip (withArchive, getEntry, getEntries)
+import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 
 import Data.Either.Extra (partitionEithers)
 import Data.List (concat)
@@ -49,15 +50,13 @@ import Gargantext.Prelude
 import Gargantext.Text.Parsers.WOS (wosParser)
 ------------------------------------------------------------------------
 
-
 type ParseError = String
-type Field      = Text
-type Document   = DM.Map Field Text
-
-type FilesParsed = DM.Map FilePath FileParsed
-data FileParsed  = FileParsed { _fileParsed_errors ::  Maybe ParseError
-                              , _fileParsed_result :: [Document]
-                              } deriving (Show)
+--type Field      = Text
+--type Document   = DM.Map Field Text
+--type FilesParsed = DM.Map FilePath FileParsed
+--data FileParsed  = FileParsed { _fileParsed_errors ::  Maybe ParseError
+--                              , _fileParsed_result :: [Document]
+--                              } deriving (Show)
 
 
 -- | According to the format of Input file,
@@ -85,7 +84,7 @@ parse format path = do
 
 
 -- | withParser:
--- According the format of the text, choosing the right parser.
+-- According to the format of the text, choose the right parser.
 -- TODO  withParser :: FileFormat -> Parser [Document]
 withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
 withParser WOS = wosParser
