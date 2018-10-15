@@ -148,24 +148,25 @@ put u = mkCmd $ U.update u
 -- jump NodeId
 -- touch Dir
 
-type CorpusName = Text
+type Name = Text
 
-mkCorpus :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd NewNode
-mkCorpus corpusName title ns = do
+
+mkCorpus :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
+mkCorpus name title ns = do
   pid <- last <$> home
   let uid = 1
-  postNode uid pid ( Node' NodeCorpus  corpusName emptyObject
+  postNode uid pid ( Node' NodeCorpus  name emptyObject
                        (map (\n -> Node' Document (title n) (toJSON n) []) ns)
                    )
 
 -- |
 -- import IMTClient as C
 -- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
-postAnnuaire :: ToJSON a => CorpusName -> (a -> Text) -> [a] -> Cmd NewNode
-postAnnuaire corpusName title ns = do
+postAnnuaire :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
+postAnnuaire name title ns = do
   pid <- last <$> home
   let uid = 1
-  postNode uid pid ( Node' Annuaire  corpusName emptyObject
+  postNode uid pid ( Node' Annuaire  name emptyObject
                        (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
                    )
 

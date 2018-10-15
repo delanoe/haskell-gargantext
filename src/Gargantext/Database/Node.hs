@@ -396,3 +396,9 @@ childWith uId pId (Node' Document txt v []) = node2table uId pId (Node' Document
 childWith uId pId (Node' UserPage txt v []) = node2table uId pId (Node' UserPage txt v [])
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
+
+mk :: Connection -> ParentId -> NodeType -> Text -> IO Int
+mk c pId nt name  = fromIntegral <$> mkNode pId [node 1 pId nt name ""] c
+
+
+

@@ -46,7 +46,7 @@ import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
                                 , getNodesWithParentId
                                 , getNode, getNodesWith
-                                , deleteNode, deleteNodes)
+                                , deleteNode, deleteNodes, mk)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
                                  ,FacetChart)
@@ -71,21 +71,38 @@ type Roots =  Get    '[JSON] [Node Value]
 type NodesAPI  = Delete '[JSON] Int
 
 
-
-data Rename = Rename { name :: Text }
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
 
-instance FromJSON Rename
-instance ToJSON Rename
-instance ToSchema Rename
-instance Arbitrary Rename where
-  arbitrary = elements [Rename "test"]
+instance FromJSON  RenameNode
+instance ToJSON    RenameNode
+instance ToSchema  RenameNode
+instance Arbitrary RenameNode where
+  arbitrary = elements [RenameNode "test"]
 
+------------------------------------------------------------------------
+
+data PostNode = PostNode { pn_name :: Text
+                         , pn_typename :: NodeType}
+  deriving (Generic)
+
+instance FromJSON  PostNode
+instance ToJSON    PostNode
+instance ToSchema  PostNode
+instance Arbitrary PostNode where
+  arbitrary = elements [PostNode "Node test" NodeCorpus]
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 type NodeAPI   = Get '[JSON] (Node Value)
-             :<|> "rename" :> Summary " Rename Node" 
-                           :> ReqBody '[JSON] Rename
+             :<|> "rename" :> Summary " RenameNode Node"
+                           :> ReqBody '[JSON] RenameNode
                            :> Put     '[JSON] [Int]
-             :<|> Post   '[JSON] Int
+             :<|> Summary " PostNode Node with ParentId as {id}"
+                           :> ReqBody '[JSON] PostNode
+                           :> Post    '[JSON] Int
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children" :> Summary " Summary children"
@@ -163,14 +180,14 @@ nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              co
               -- :<|> query
 -- | Check if the name is less than 255 char
 --rename :: Connection -> NodeId -> Rename -> Server NodeAPI
-rename :: Connection -> NodeId -> Rename -> Handler [Int]
-rename c nId (Rename name) = liftIO $ U.update (U.Rename nId name) c
+rename :: Connection -> NodeId -> RenameNode -> Handler [Int]
+rename c nId (RenameNode name) = liftIO $ U.update (U.Rename nId name) c
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
 
-postNode :: Connection -> NodeId -> Handler Int
-postNode = undefined -- TODO
+postNode :: Connection -> NodeId -> PostNode -> Handler Int
+postNode c pId (PostNode name nt) = liftIO $ mk c pId nt name
 
 putNode :: Connection -> NodeId -> Handler Int
 putNode = undefined -- TODO
