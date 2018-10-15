@@ -315,7 +315,7 @@ swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
   & info.description ?~ "REST API specifications"
   -- & tags             .~ Set.fromList [Tag "Garg" (Just "Main perations") Nothing]
   & applyTagsFor (subOperations (Proxy :: Proxy GargAPI)(Proxy :: Proxy GargAPI)) 
-                 ["Garg" & description ?~ "Main operations"]
+                 ["Gargantext" & description ?~ "Main operations"]
   & info.license     ?~ ("AGPLV3 (English) and CECILL (French)" & url ?~ URL urlLicence )
     where
         urlLicence = "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/blob/master/LICENSE"
