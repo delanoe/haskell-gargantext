@@ -20,13 +20,17 @@ please follow the types.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PackageImports    #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers (parse, FileFormat(..), clean)
+module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseDocs)
     where
 
 import System.FilePath (FilePath(), takeExtension)
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 
+import Control.Monad (join)
+import Data.Time (UTCTime(..))
+import qualified Data.Time as DT
 import Data.Either.Extra (partitionEithers)
 import Data.List (concat)
 import qualified Data.Map        as DM
@@ -44,10 +48,15 @@ import Control.Concurrent.Async as CCA (mapConcurrently)
 
 import Data.Text.Encoding (decodeUtf8)
 import Data.String (String())
+import Data.List (lookup)
 
 ------------------------------------------------------------------------
+import Gargantext.Core (Lang(..))
 import Gargantext.Prelude
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text.Parsers.WOS (wosParser)
+import Gargantext.Text.Parsers.Date (parseDate)
+import Gargantext.Text.Terms.Stop (detectLang)
 ------------------------------------------------------------------------
 
 type ParseError = String
@@ -61,7 +70,10 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS        -- Implemented (ISI Format)
+data FileFormat = WOS
+  deriving (Show)
+
+-- Implemented (ISI Format)
 --                | DOC        -- Not Implemented / import Pandoc
 --                | ODT        -- Not Implemented / import Pandoc
 --                | PDF        -- Not Implemented / pdftotext and import Pandoc ?
@@ -69,6 +81,57 @@ data FileFormat = WOS        -- Implemented (ISI Format)
 --                             -- > http://chrisdone.com/posts/fast-haskell-c-parsing-xml
 
 -- TODO: to debug maybe add the filepath in error message
+
+
+-- | Parse file into documents
+-- TODO manage errors here
+parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
+parseDocs format path = do
+  docs <- snd <$> parse format path
+  mapM (toDoc format) docs
+
+type Year = Int
+type Month = Int
+type Day   = Int
+
+-- | Parse date to Ints
+-- TODO add hours, minutes and seconds
+parseDate' :: Lang -> Maybe Text -> IO (Maybe UTCTime, (Maybe Year, Maybe Month, Maybe Day))
+parseDate' _ Nothing    = pure (Nothing, (Nothing, Nothing, Nothing))
+parseDate' l (Just txt) = do
+  utcTime <- parseDate l txt
+  let (UTCTime day _) = utcTime
+  let (y,m,d) = DT.toGregorian day
+  pure (Just utcTime, (Just (fromIntegral y),Just m,Just d))
+
+
+toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
+toDoc format d = do
+      
+      let abstract = lookup "abstract" d
+      let lang = maybe EN identity (join $ detectLang <$> (fmap (DT.take 50) abstract))
+      
+      let dateToParse = DT.replace "-" " " <$> lookup "PY" d <> Just " " <> lookup "publication_date" d
+      
+      (utcTime, (pub_year, pub_month, pub_day)) <- parseDate' lang  dateToParse
+
+      pure $ HyperdataDocument (Just $ DT.pack $ show format)
+                               (lookup "doi" d)
+                               (lookup "URL" d)
+                                Nothing
+                                Nothing
+                               (lookup "title" d)
+                               (lookup "authors" d)
+                               (lookup "source" d)
+                               (lookup "abstract" d)
+                               (fmap (DT.pack . show) utcTime)
+                               (pub_year)
+                               (pub_month)
+                               (pub_day)
+                               Nothing
+                               Nothing
+                               Nothing
+                               (Just $ (DT.pack . show) lang)
 
 
 parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])

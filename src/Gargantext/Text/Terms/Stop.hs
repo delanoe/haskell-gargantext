@@ -15,7 +15,7 @@ Main type here is String.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Terms.Stop
+module Gargantext.Text.Terms.Stop (detectLang, detectLangs, stopList)
   where
 
 import GHC.Base (Functor)
@@ -31,6 +31,7 @@ import qualified Data.Map.Strict as DM
 
 import Data.String (String)
 
+import Data.Text (Text)
 import Data.Text (pack, unpack)
 import Data.Tuple.Extra (both)
 
@@ -90,8 +91,14 @@ data LangWord = LangWord Lang Word
 type LangProba = Map Lang Double
 
 ------------------------------------------------------------------------
-detectLangs :: String -> [(Lang, Double)]
-detectLangs s =  DL.reverse $ DL.sortOn snd
+detectLang :: Text -> Maybe Lang
+detectLang = head . map fst . detectLangs
+
+detectLangs :: Text -> [(Lang, Double)]
+detectLangs = detectLangs' . unpack
+
+detectLangs' :: String -> [(Lang, Double)]
+detectLangs' s =  DL.reverse $ DL.sortOn snd
                             $ toList
                             $ detect (wordsToBook [0..2] s) eventLang
 

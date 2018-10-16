@@ -102,7 +102,7 @@ $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
 ------------------------------------------------------------------------
 
 data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: Maybe Text
-                                           , _hyperdataDocument_doi                :: Maybe Int
+                                           , _hyperdataDocument_doi                :: Maybe Text
                                            , _hyperdataDocument_url                :: Maybe Text
                                            , _hyperdataDocument_uniqId             :: Maybe Text
                                            , _hyperdataDocument_page               :: Maybe Int
@@ -113,11 +113,11 @@ data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd             
                                            , _hyperdataDocument_publication_date   :: Maybe Text
                                            , _hyperdataDocument_publication_year   :: Maybe Int
                                            , _hyperdataDocument_publication_month  :: Maybe Int
+                                           , _hyperdataDocument_publication_day    :: Maybe Int
                                            , _hyperdataDocument_publication_hour   :: Maybe Int
                                            , _hyperdataDocument_publication_minute :: Maybe Int
                                            , _hyperdataDocument_publication_second :: Maybe Int
-                                           , _hyperdataDocument_language_iso2       :: Maybe Text
-                                           , _hyperdataDocument_language_iso3       :: Maybe Text
+                                           , _hyperdataDocument_language_iso2      :: Maybe Text
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_hyperdataDocument_") ''HyperdataDocument)
 $(makeLenses ''HyperdataDocument)
@@ -128,7 +128,7 @@ instance ToField HyperdataDocument where
 toHyperdataDocuments :: [(Text, Text)] -> [HyperdataDocument]
 toHyperdataDocuments ts = map (\(t1,t2) -> HyperdataDocument Nothing Nothing Nothing Nothing Nothing (Just t1)
                                            Nothing (Just t2) Nothing Nothing Nothing
-                                           Nothing Nothing Nothing Nothing Nothing Nothing 
+                                           Nothing Nothing Nothing Nothing Nothing Nothing
                                            ) ts
 
 hyperdataDocuments :: [HyperdataDocument]

@@ -55,7 +55,7 @@ doc2hyperdataDocument :: Doc -> HyperdataDocument
 --doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
 doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
   HyperdataDocument (Just "CSV")
-                    (Just did)
+                    (Just . pack . show $ did)
                     Nothing
                     Nothing
                     Nothing

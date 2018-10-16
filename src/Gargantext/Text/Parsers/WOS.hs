@@ -28,10 +28,12 @@ import Data.Attoparsec.ByteString (Parser, try, string
 import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
 import Data.ByteString (ByteString, concat)
 import Data.ByteString.Char8 (pack)
-
 import Control.Applicative
 
---import Gargantext.Types
+-------------------------------------------------------------
+
+
+
 
 -- | wosParser parses ISI format from
 -- Web Of Science Database
@@ -48,7 +50,7 @@ notice = start *> fields <* end
     where
       start :: Parser ByteString
       start = "\nPT " *> takeTill isEndOfLine
-      
+
       end :: Parser [Char]
       end = manyTill anyChar (string $ pack "\nER\n")
 
@@ -75,11 +77,12 @@ lines = many line
 
 translate :: ByteString -> ByteString
 translate champs
-            | champs == "AU" = "author"
+            | champs == "AF" = "authors"
             | champs == "TI" = "title"
             | champs == "SO" = "source"
             | champs == "DI" = "doi"
             | champs == "PD" = "publication_date"
             | champs == "AB" = "abstract"
             | otherwise  = champs
+-------------------------------------------------------------
 

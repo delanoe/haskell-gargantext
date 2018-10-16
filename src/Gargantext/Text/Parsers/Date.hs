@@ -21,7 +21,7 @@ DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 module Gargantext.Text.Parsers.Date (parseDate, parseDateRaw) where
 
 import Data.HashMap.Strict as HM hiding (map)
-import Data.Text (Text, unpack, splitOn)
+import Data.Text (Text, unpack, splitOn, pack)
 import Data.Time (parseTimeOrError, defaultTimeLocale)
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Data.Time.LocalTime (utc)
@@ -82,15 +82,16 @@ parserLang EN = DC.EN
 -- parseDateRaw :: Context -> Text -> SomeErrorHandling Text
 
 -- TODO error handling
-parseDateRaw :: Lang -> Text -> IO Text
+parseDateRaw :: Lang -> Text -> IO (Text)
 parseDateRaw lang text = do
     maybeJson <- map jsonValue <$> parseDateWithDuckling lang text
     case headMay maybeJson of
       Just (Json.Object object) -> case HM.lookup "value" object of
                                      Just (Json.String date) -> pure date
                                      Just _                  -> panic "ParseDateRaw ERROR: should be a json String"
-                                     Nothing                 -> panic "ParseDateRaw ERROR: no date found"
-      _                         -> panic "ParseDateRaw ERROR: type error"
+                                     Nothing                 -> panic $ "ParseDateRaw ERROR: no date found" <> (pack . show) lang <> " " <> text
+
+      _                         -> panic $ "ParseDateRaw ERROR: type error" <> (pack . show) lang <> " " <> text
 
 
 -- | Current Time in DucklingTime format

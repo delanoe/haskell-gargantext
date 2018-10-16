@@ -66,7 +66,6 @@ toTree' m n =
   TreeN (toNodeTree n) $
     m ^.. at (Just $ dt_nodeId n) . _Just . each . to (toTree' m)
 
-
 ------------------------------------------------------------------------
 toNodeTree :: DbTreeNode -> NodeTree
 toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
