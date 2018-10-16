@@ -187,7 +187,7 @@ nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
 
 postNode :: Connection -> NodeId -> PostNode -> Handler Int
-postNode c pId (PostNode name nt) = liftIO $ mk c pId nt name
+postNode c pId (PostNode name nt) = liftIO $ mk c nt pId name
 
 putNode :: Connection -> NodeId -> Handler Int
 putNode = undefined -- TODO

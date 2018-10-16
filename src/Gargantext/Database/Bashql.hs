@@ -69,7 +69,7 @@ module Gargantext.Database.Bashql ( get
                                   , put
                                   , rename
                                   , tree
-                                  , mkCorpus, postAnnuaire
+                                  , mkCorpus, mkAnnuaire
                                   , runCmd'
                                  )
     where
@@ -162,8 +162,8 @@ mkCorpus name title ns = do
 -- |
 -- import IMTClient as C
 -- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
-postAnnuaire :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
-postAnnuaire name title ns = do
+mkAnnuaire :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
+mkAnnuaire name title ns = do
   pid <- last <$> home
   let uid = 1
   postNode uid pid ( Node' Annuaire  name emptyObject

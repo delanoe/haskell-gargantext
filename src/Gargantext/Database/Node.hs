@@ -62,19 +62,10 @@ import Database.PostgreSQL.Simple (Connection)
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
 import qualified Data.Profunctor.Product as PP
--- | Types for Node Database Management
-data PGTSVector
 
-newtype Cmd a = Cmd (ReaderT Connection IO a)
-  deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
+------------------------------------------------------------------------
+{- | Reader Monad reinvented here:
 
-runCmd :: Connection -> Cmd a -> IO a
-runCmd c (Cmd f) = runReaderT f c
-
-mkCmd :: (Connection -> IO a) -> Cmd a
-mkCmd = Cmd . ReaderT
-
-{-
 newtype Cmd a = Cmd { unCmd :: Connection -> IO a }
 
 instance Monad Cmd where
@@ -84,9 +75,19 @@ instance Monad Cmd where
     a <- unCmd m c
     unCmd (f a) c
 -}
+newtype Cmd a = Cmd (ReaderT Connection IO a)
+  deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
+
+runCmd :: Connection -> Cmd a -> IO a
+runCmd c (Cmd f) = runReaderT f c
+
+mkCmd :: (Connection -> IO a) -> Cmd a
+mkCmd = Cmd . ReaderT
 
 ------------------------------------------------------------------------
 type CorpusId = Int
+type UserId = NodeId
+type TypeId = Int
 ------------------------------------------------------------------------
 
 instance FromField HyperdataCorpus where
@@ -107,6 +108,7 @@ instance FromField HyperdataUser where
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3 where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -179,7 +181,6 @@ nodeTable' = Table "nodes" (PP.p7 ( optional "id"
 queryNodeTable :: Query NodeRead
 queryNodeTable = queryTable nodeTable
 
-
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode id = proc () -> do
     row <- queryNodeTable -< ()
@@ -188,6 +189,18 @@ selectNode id = proc () -> do
 
 runGetNodes :: Query NodeRead -> Cmd [Node Value]
 runGetNodes q = mkCmd $ \conn -> runQuery conn q
+
+------------------------------------------------------------------------
+selectRootUser :: UserId -> Query NodeRead
+selectRootUser userId = proc () -> do
+    row <- queryNodeTable -< ()
+    restrict -< node_userId   row .== (pgInt4 userId)
+    restrict -< node_typename row .== (pgInt4 $ nodeTypeId NodeUser)
+    returnA -< row
+
+getRootUser :: UserId -> Cmd [Node HyperdataUser]
+getRootUser userId = mkCmd $ \conn -> runQuery conn (selectRootUser userId)
+------------------------------------------------------------------------
 
 -- | order by publication date
 -- Favorites (Bool), node_ngrams
@@ -283,9 +296,6 @@ getNodesWithType :: Connection -> Column PGInt4 -> IO [Node HyperdataDocument]
 getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
-type UserId = NodeId
-type TypeId = Int
-
 
 ------------------------------------------------------------------------
 -- Quick and dirty
@@ -302,8 +312,7 @@ node userId parentId nodeType name nodeData = Node Nothing typeId userId parentI
 
 
 node2write :: (Functor f2, Functor f1) =>
-              Int
-              -> NodePoly (f1 Int) Int Int parentId Text (f2 UTCTime) ByteString
+              Int -> NodePoly (f1 Int) Int Int parentId Text (f2 UTCTime) ByteString
               -> (f1 (Column PGInt4), Column PGInt4, Column PGInt4,
                   Column PGInt4, Column PGText, f2 (Column PGTimestamptz),
                   Column PGJsonb)
@@ -397,8 +406,7 @@ childWith uId pId (Node' UserPage txt v []) = node2table uId pId (Node' UserPage
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
-mk :: Connection -> ParentId -> NodeType -> Text -> IO Int
-mk c pId nt name  = fromIntegral <$> mkNode pId [node 1 pId nt name ""] c
-
+mk :: Connection -> NodeType -> ParentId -> Text -> IO Int
+mk c nt pId name  = fromIntegral <$> mkNode pId [node 1 pId nt name ""] c
 
 
