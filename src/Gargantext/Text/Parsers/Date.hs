@@ -57,6 +57,12 @@ import qualified Duckling.Core as DC
 -- import qualified Text.ParserCombinators.Parsec (parse)
 
 ------------------------------------------------------------------------
+-- | Date Parser
+-- Parses dates mentions in full text given the language.
+-- >>> parseDate FR (pack "10 avril 1979 à 19H")
+-- 1979-04-10 19:00:00 UTC
+-- >>> parseDate EN (pack "April 10 1979")
+-- 1979-04-10 00:00:00 UTC
 parseDate :: Lang -> Text -> IO UTCTime
 parseDate lang s = do
   dateStr' <- parseDateRaw lang s
