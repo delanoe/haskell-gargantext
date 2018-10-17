@@ -32,7 +32,6 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS
 
 import Gargantext.Prelude
 import Gargantext.Database.Node (Cmd(..), mkCmd, runCmd)

@@ -23,7 +23,7 @@ Portability : POSIX
 
 module Gargantext.Database.Node where
 
-
+import Data.Text (pack)
 import GHC.Int (Int64)
 import Data.Maybe
 import Data.Time (UTCTime)
@@ -35,12 +35,12 @@ import Database.PostgreSQL.Simple.FromField ( Conversion
                                             )
 import Prelude hiding (null, id, map, sum)
 
+import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Prelude hiding (sum)
-
 
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Applicative (Applicative)
@@ -153,7 +153,7 @@ nodeTable = Table "nodes" (pNode Node { node_id                = optional "id"
 nodeTable' :: Table (Maybe (Column PGInt4)
                     ,       Column PGInt4
                     ,       Column PGInt4
-                    ,       Column PGInt4
+                    ,Maybe (Column PGInt4)
                     ,       Column PGText
                     ,Maybe (Column PGTimestamptz)
                     ,       Column PGJsonb
@@ -170,7 +170,7 @@ nodeTable' :: Table (Maybe (Column PGInt4)
 nodeTable' = Table "nodes" (PP.p7 ( optional "id"
                                , required "typename"
                                , required "user_id"
-                               , required "parent_id"
+                               , optional "parent_id"
                                , required "name"
                                , optional "date"
                                , required "hyperdata"
@@ -198,8 +198,8 @@ selectRootUser userId = proc () -> do
     restrict -< node_typename row .== (pgInt4 $ nodeTypeId NodeUser)
     returnA -< row
 
-getRootUser :: UserId -> Cmd [Node HyperdataUser]
-getRootUser userId = mkCmd $ \conn -> runQuery conn (selectRootUser userId)
+getRoot :: UserId -> Cmd [Node HyperdataUser]
+getRoot userId = mkCmd $ \conn -> runQuery conn (selectRootUser userId)
 ------------------------------------------------------------------------
 
 -- | order by publication date
@@ -300,36 +300,34 @@ getNodesWithType conn type_id = do
 ------------------------------------------------------------------------
 -- Quick and dirty
 ------------------------------------------------------------------------
-type NodeWrite' = NodePoly (Maybe Int) Int Int (ParentId) Text (Maybe UTCTime) ByteString
+type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString
 
---node :: UserId -> ParentId -> NodeType -> Text -> Value -> NodeWrite'
-node :: UserId -> ParentId -> NodeType -> Text -> Value -> NodeWrite'
+node :: ToJSON a => UserId -> Maybe ParentId -> NodeType -> Text -> Hyperdata a -> NodeWrite'
 node userId parentId nodeType name nodeData = Node Nothing typeId userId parentId name Nothing byteData
   where
     typeId = nodeTypeId nodeType
-    byteData = DB.pack $ DBL.unpack $ encode nodeData
+    byteData = DB.pack $ DBL.unpack $ encode $ unHyperdata nodeData
 
 
-
-node2write :: (Functor f2, Functor f1) =>
-              Int -> NodePoly (f1 Int) Int Int parentId Text (f2 UTCTime) ByteString
-              -> (f1 (Column PGInt4), Column PGInt4, Column PGInt4,
-                  Column PGInt4, Column PGText, f2 (Column PGTimestamptz),
+node2write :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
+              maybe1 Int -> NodePoly (maybe2 Int) Int Int parentId Text (maybe3 UTCTime) ByteString
+              -> (maybe2 (Column PGInt4), Column PGInt4, Column PGInt4,
+                  maybe1 (Column PGInt4), Column PGText, maybe3 (Column PGTimestamptz),
                   Column PGJsonb)
 node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
                                          ,(pgInt4        tn)
                                          ,(pgInt4        ud)
-                                         ,(pgInt4        pid)
+                                         ,(pgInt4   <$> pid)
                                          ,(pgStrictText  nm)
                                          ,(pgUTCTime <$> dt)
                                          ,(pgStrictJSONB hp)
                                          )
 
 
-mkNode :: ParentId -> [NodeWrite'] -> Connection -> IO Int64
+mkNode :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO Int64
 mkNode pid ns conn = runInsertMany conn nodeTable' $ map (node2write pid) ns
 
-mkNodeR :: ParentId -> [NodeWrite'] -> Connection -> IO [Int]
+mkNodeR :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO [Int]
 mkNodeR pid ns conn = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
 
 
@@ -350,8 +348,8 @@ post c uid pid [ Node' Corpus "name" "{}" []
 -- TODO
 -- currently this function remove the child relation
 -- needs a Temporary type between Node' and NodeWriteT
-node2table :: UserId -> ParentId -> Node' -> NodeWriteT
-node2table uid pid (Node' nt txt v []) = ( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (pgInt4 pid)
+node2table :: UserId -> Maybe ParentId -> Node' -> NodeWriteT
+node2table uid pid (Node' nt txt v []) = ( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (fmap pgInt4 pid)
                                          , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
@@ -364,10 +362,12 @@ data Node' = Node' { _n_type :: NodeType
 
 
 type NodeWriteT =  ( Maybe (Column PGInt4)
-                   , Column PGInt4, Column PGInt4
-                   , Column PGInt4, Column PGText
+                   ,        Column PGInt4
+                   ,        Column PGInt4
+                   , Maybe (Column PGInt4)
+                   ,        Column PGText
                    , Maybe (Column PGTimestamptz)
-                   , Column PGJsonb
+                   ,        Column PGJsonb
                    )
 
 
@@ -381,7 +381,7 @@ data NewNode = NewNode { _newNodeId :: Int
                        , _newNodeChildren :: [Int] }
 
 -- | postNode
-postNode :: UserId -> ParentId -> Node' -> Cmd NewNode
+postNode :: UserId -> Maybe ParentId -> Node' -> Cmd NewNode
 postNode uid pid (Node' nt txt v []) = do
   pids <- mkNodeR' [node2table uid pid (Node' nt txt v [])]
   case pids of
@@ -401,12 +401,30 @@ postNode _ _ (Node' _ _ _ _) = panic "TODO: postNode for this type not implement
 
 
 childWith :: UserId -> ParentId -> Node' -> NodeWriteT
-childWith uId pId (Node' Document txt v []) = node2table uId pId (Node' Document txt v [])
-childWith uId pId (Node' UserPage txt v []) = node2table uId pId (Node' UserPage txt v [])
+childWith uId pId (Node' Document txt v []) = node2table uId (Just pId) (Node' Document txt v [])
+childWith uId pId (Node' UserPage txt v []) = node2table uId (Just pId) (Node' UserPage txt v [])
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
-mk :: Connection -> NodeType -> ParentId -> Text -> IO Int
-mk c nt pId name  = fromIntegral <$> mkNode pId [node 1 pId nt name ""] c
+-- TODO: remove hardcoded userId (with Reader)
+-- TODO: user Reader in the API and adapt this function
+mk :: Connection -> NodeType -> Maybe ParentId -> Text -> IO [Int]
+mk c nt pId name  = mk' c nt 1 pId name
 
+mk' :: Connection -> NodeType -> UserId -> Maybe ParentId -> Text -> IO [Int]
+mk' c nt uId pId name  = map fromIntegral <$> mkNodeR pId [node uId pId nt name hd] c
+  where
+    hd = Hyperdata (HyperdataUser (Just $ (pack . show) EN))
 
+type Name = Text
+
+mk'' :: NodeType -> Maybe ParentId -> UserId -> Name -> Cmd [Int]
+mk'' NodeUser Nothing uId name  = mkCmd $ \c -> mk' c NodeUser uId Nothing name
+mk'' NodeUser _       _   _     = panic "NodeUser can not has a parent"
+mk'' _        Nothing _   _     = panic "NodeType needs a parent"
+mk'' nt       pId     uId name  = mkCmd $ \c -> mk' c nt uId pId name
+
+mkRoot :: UserId -> Cmd [Int]
+mkRoot uId = case uId > 0 of
+               False -> panic "UserId <= 0"
+               True  -> mk'' NodeUser Nothing uId ("User Node : " <> (pack . show) uId)

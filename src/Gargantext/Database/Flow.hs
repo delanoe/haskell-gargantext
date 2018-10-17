@@ -27,30 +27,38 @@ authors
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Database.Flow
     where
-
+import GHC.Base ((>>))
 import Data.Maybe (Maybe(..))
+import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd')
-import Gargantext.Database.Node (Cmd(..), getRootUser)
+import Gargantext.Database.Node (Cmd(..), getRoot, mkRoot)
 import Gargantext.Database.User (getUser, UserLight(..))
 import Gargantext.Database.Node.Document.Import (insertDocuments)
 
+--flow :: IO ()
 flow = do
-  gargantua_id <- runCmd' (getUser "gargantua")
-  -- createUser
-  userNode <- case gargantua_id of
-        Nothing     -> panic "no user"
-        Just userId -> runCmd' (getRootUser $ userLight_id userId)
+  masterUser <- runCmd' (getUser "gargantua")
   
-  case userNode of
-        [] -> pure ()
-        _  -> pure ()
+  let masterUserId = case masterUser of
+        Nothing   -> panic "no user"
+        Just user -> userLight_id user
+        
+  root <- map node_id <$> runCmd' (getRoot masterUserId)
   
-  -- getOrMk
-  --rootId       <- runCmd' (getNodeWith userId nodeType)
+  root' <- case root of
+        []  -> runCmd' (mkRoot masterUserId)
+        un  -> case length un >= 2 of
+                 True  -> panic "Error: more than 1 userNode / user"
+                 False -> pure root
+
+  printDebug "User Node : " root'
+  
+  pure ()
 {-
   rootId       <- mk NodeUser gargantua_id "Node Gargantua"
 
@@ -59,24 +67,11 @@ flow = do
   corpusId <- mk Corpus folderId (Name "WOS")  (Descr "WOS database description")
   
   docs <- parseDocuments WOS "doc/.."
-  ids <- addDocuments corpusId docs
+  ids  <- add (Documents corpusId) docs
 
   user_id <- runCmd' (get RootUser "alexandre")
+  rootUser_id <- runCmd' (getRootUser $ userLight_id user_id
+  corpusId <- mk Corpus 
 -}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

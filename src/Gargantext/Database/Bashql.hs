@@ -69,17 +69,18 @@ module Gargantext.Database.Bashql ( get
                                   , put
                                   , rename
                                   , tree
-                                  , mkCorpus, mkAnnuaire
+                                  -- , mkCorpus, mkAnnuaire
                                   , runCmd'
                                  )
     where
 
 import Control.Monad.Reader -- (Reader, ask)
 
+import Safe (lastMay)
 import Data.Text (Text)
 import Data.Aeson
 import Data.Aeson.Types
-import Data.List (last, concat)
+import Data.List (concat, last)
 
 import Gargantext.Core.Types
 import Gargantext.Database.Utils (connectGargandb)
@@ -124,16 +125,18 @@ tree p = do
 post :: PWD -> [NodeWrite'] -> Cmd Int64
 post [] _   = pure 0
 post _ []   = pure 0
-post pth ns = Cmd . ReaderT $ mkNode (last pth) ns
+post pth ns = Cmd . ReaderT $ mkNode (Just $ last pth) ns
 
 --postR :: PWD -> [NodeWrite'] -> Cmd [Int]
 --postR [] _ _ = pure [0]
 --postR _ [] _ = pure [0]
 --postR pth ns c = mkNodeR (last pth) ns c
 
+-- | WIP
+-- rm : mv to trash
+-- del : empty trash
 --rm :: Connection -> PWD -> [NodeId] -> IO Int
 --rm = del
-
 del :: [NodeId] -> Cmd Int
 del [] = pure 0
 del ns = deleteNodes ns
@@ -151,24 +154,32 @@ put u = mkCmd $ U.update u
 type Name = Text
 
 
-mkCorpus :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
-mkCorpus name title ns = do
-  pid <- last <$> home
-  let uid = 1
-  postNode uid pid ( Node' NodeCorpus  name emptyObject
-                       (map (\n -> Node' Document (title n) (toJSON n) []) ns)
-                   )
-
--- |
--- import IMTClient as C
--- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
-mkAnnuaire :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
-mkAnnuaire name title ns = do
-  pid <- last <$> home
-  let uid = 1
-  postNode uid pid ( Node' Annuaire  name emptyObject
-                       (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
-                   )
+--mkCorpus :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
+--mkCorpus name title ns = do
+--  pid <- home
+--  
+--  let pid' = case lastMay pid of
+--        Nothing -> printDebug "No home for" name
+--        Just p  -> p
+--  
+--  let uid = 1
+--  postNode uid (Just pid') ( Node' NodeCorpus  name emptyObject
+--                       (map (\n -> Node' Document (title n) (toJSON n) []) ns)
+--                   )
+--
+---- |
+---- import IMTClient as C
+---- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
+--mkAnnuaire :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
+--mkAnnuaire name title ns = do
+--  pid <- lastMay <$> home
+--  let pid' = case lastMay pid of
+--        Nothing -> printDebug "No home for" name
+--        Just p  -> p
+--  let uid = 1
+--  postNode uid (Just pid') ( Node' Annuaire  name emptyObject
+--                       (map (\n -> Node' UserPage (title n) (toJSON n) []) ns)
+--                   )
 
 --------------------------------------------------------------
 -- | 

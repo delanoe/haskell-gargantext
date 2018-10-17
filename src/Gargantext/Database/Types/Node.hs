@@ -191,6 +191,9 @@ instance Arbitrary Resource where
 
 ------------------------------------------------------------------------
 
+data Hyperdata a = Hyperdata { unHyperdata :: a} 
+$(deriveJSON (unPrefix "") ''Hyperdata)
+
 data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_resources    :: [Resource]
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)

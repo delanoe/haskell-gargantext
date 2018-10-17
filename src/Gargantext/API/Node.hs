@@ -102,7 +102,7 @@ type NodeAPI   = Get '[JSON] (Node Value)
                            :> Put     '[JSON] [Int]
              :<|> Summary " PostNode Node with ParentId as {id}"
                            :> ReqBody '[JSON] PostNode
-                           :> Post    '[JSON] Int
+                           :> Post    '[JSON] [Int]
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children" :> Summary " Summary children"
@@ -186,8 +186,8 @@ rename c nId (RenameNode name) = liftIO $ U.update (U.Rename nId name) c
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
 
-postNode :: Connection -> NodeId -> PostNode -> Handler Int
-postNode c pId (PostNode name nt) = liftIO $ mk c nt pId name
+postNode :: Connection -> NodeId -> PostNode -> Handler [Int]
+postNode c pId (PostNode name nt) = liftIO $ mk c nt (Just pId) name
 
 putNode :: Connection -> NodeId -> Handler Int
 putNode = undefined -- TODO
