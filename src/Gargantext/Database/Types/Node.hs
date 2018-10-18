@@ -206,13 +206,13 @@ data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
 $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
 
-data HyperdataFolder = HyperdataFolder { hyperdataFolder_descr   :: Maybe Text
+data HyperdataFolder = HyperdataFolder { hyperdataFolder_desc    :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 
 
 data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe Text
-                                       , hyperdataCorpus_descr        :: Maybe Text
+                                       , hyperdataCorpus_desc         :: Maybe Text
                                        , hyperdataCorpus_query        :: Maybe Text
                                        , hyperdataCorpus_authors      :: Maybe Text
                                        , hyperdataCorpus_resources    :: Maybe [Resource]
@@ -221,7 +221,7 @@ $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
 ------------------------------------------------------------------------
 data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: Maybe Text
-                                           , hyperdataAnnuaire_descr        :: Maybe Text
+                                           , hyperdataAnnuaire_desc         :: Maybe Text
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
 ------------------------------------------------------------------------
@@ -365,10 +365,13 @@ docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",
 corpusExample :: ByteString
 corpusExample = "" -- TODO
 
+defaultCorpus :: HyperdataCorpus
+defaultCorpus = (HyperdataCorpus (Just "Title") (Just "Descr") (Just "Bool query") (Just "Authors") Nothing)
+
 hyperdataCorpus :: HyperdataCorpus
 hyperdataCorpus = case decode corpusExample of
   Just hp -> hp
-  Nothing -> HyperdataCorpus Nothing Nothing Nothing Nothing Nothing
+  Nothing -> defaultCorpus
 
 instance ToSchema HyperdataCorpus where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
