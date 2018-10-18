@@ -55,7 +55,7 @@ import Gargantext.Database.Node ( runCmd
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes, mk, JSONB)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
-import Gargantext.Database.Facet (FacetDoc, getDocFacet
+import Gargantext.Database.Facet (FacetDoc {-,getDocFacet-}
                                  ,FacetChart)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 
@@ -214,7 +214,7 @@ getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p 
 
 getFacet :: Connection -> NodeId -> Maybe Int -> Maybe Int
                         -> Handler [FacetDoc]
-getFacet conn id offset limit = liftIO (putStrLn ( "/facet" :: Text)) >> liftIO (getDocFacet conn NodeCorpus id (Just NodeDocument) offset limit)
+getFacet conn id offset limit = undefined -- liftIO (putStrLn ( "/facet" :: Text)) >> liftIO (getDocFacet conn NodeCorpus id (Just NodeDocument) offset limit)
 
 getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
                         -> Handler [FacetChart]

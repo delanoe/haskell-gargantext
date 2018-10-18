@@ -8,17 +8,9 @@ Stability   : experimental
 Portability : POSIX
 
 
-
-add :: Corpus -> [Documents] -> IO Int
-if new id -> extractNgrams + extract Authors + extract Sources
-Map (Ngrams, NodeId)
-insert Ngrams -> NgramsId
 Map (NgramsId, NodeId) -> insert
-
 data NgramsType = Sources | Authors | Terms
-
 nodes_ngrams : column type, column list
-
 
 documents
 sources
@@ -39,7 +31,8 @@ import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
 import Gargantext.Database.Node (Cmd(..), getRoot, mkRoot, mkCorpus, defaultCorpus)
 import Gargantext.Database.User (getUser, UserLight(..), Username)
-import Gargantext.Database.Node.Document.Import (insertDocuments)
+import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(reId))
+import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
 
 type UserId = Int
@@ -76,7 +69,6 @@ flow fp = do
 
   (masterUserId, _, corpusId) <- subFlow "gargantua"
 
-
   docs <- parseDocs WOS fp
   ids  <- runCmd' $ insertDocuments masterUserId corpusId docs
   printDebug "Docs IDs : " ids
@@ -86,26 +78,16 @@ flow fp = do
   
   (userId, rootId, corpusId2) <- subFlow "alexandre"
 
-  runCmd' (del [corpusId])
+  inserted <- runCmd' $ add corpusId2 (map reId ids)
+  printDebug "Inserted : " inserted
 
-
-
-
-{-
-  --folderId <- mk Folder parentId (Name "Data") (Descr "All corpora DATA here")
-  folderId <- mk Folder rootId "Data"
-  corpusId <- mk Corpus folderId (Name "WOS")  (Descr "WOS database description")
--}
-
-
+  -- runCmd' (del [corpusId2, corpusId])
 
 {-
-  docs <- parseDocuments WOS "doc/.."
   ids  <- add (Documents corpusId) docs
 
   user_id <- runCmd' (get RootUser "alexandre")
   rootUser_id <- runCmd' (getRootUser $ userLight_id user_id
   corpusId <- mk Corpus 
 -}
-
 

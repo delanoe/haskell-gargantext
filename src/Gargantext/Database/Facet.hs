@@ -125,7 +125,7 @@ instance Arbitrary FacetChart where
 
 -----------------------------------------------------------------------
 
-
+{-
 getDocFacet :: Connection -> NodeType -> Int -> Maybe NodeType 
             -> Maybe Offset -> Maybe Limit
             -> IO [FacetDoc]
@@ -145,14 +145,14 @@ selectDocFacet pType parentId maybeNodeType maybeOffset maybeLimit =
 nodeNodeLeftJoin :: Query (NodeRead, NodeNodeReadNull)
 nodeNodeLeftJoin = leftJoin queryNodeTable queryNodeNodeTable (eqNode)
     where
-        eqNode (Node n1 _ _ _ _ _ _, NodeNode _ n2 _) = ((.==) n1 n2)
+        eqNode (Node n1 _ _ _ _ _ _, NodeNode _ n2 _ _ _ ) = ((.==) n1 n2)
 
 
 nodeNodeLeftJoin' :: (Column (Nullable PGInt4)) 
                   -> Query (NodeRead, NodeNodeReadNull)
 nodeNodeLeftJoin' nId = leftJoin queryNodeTable queryNodeNodeTable (eqNode nId)
         where
-            eqNode n (Node n1 _ _ _ _ _ _, NodeNode n1' n2 _) 
+            eqNode n (Node n1 _ _ _ _ _ _, NodeNode n1' n2 _ _ _)
                    = foldl (.&&) (pgBool True) [ ((.==) n1 n2)
                                                , ((.==) n1' n)
                                                ]
@@ -160,7 +160,7 @@ nodeNodeLeftJoin' nId = leftJoin queryNodeTable queryNodeNodeTable (eqNode nId)
 nodeNodeLeftJoin'' :: Query (NodeRead, NodeRead, NodeNodeRead)
 nodeNodeLeftJoin'' = join3 queryNodeTable queryNodeTable queryNodeNodeTable eqNode
         where
-            eqNode (Node n1 _ _ _ _ _ _, Node n2 _ _ _ _ _ _, NodeNode n1' n2' _) 
+            eqNode (Node n1 _ _ _ _ _ _, Node n2 _ _ _ _ _ _, NodeNode n1' n2' _ _ _)
                    = foldl (.&&) (pgBool True) [ ((.==) n2 n2')
                                                , ((.==) (toNullable n1) n1')
                                                ]
@@ -208,11 +208,11 @@ leftJoin3' = leftJoin3 queryNodeTable  queryNodeNodeNgramTable queryNodeTable co
 leftJoin3''' :: Query (NodeRead, (NodeNodeReadNull, NodeReadNull))
 leftJoin3''' = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12 cond23
     where
-         cond12 (NodeNode favId _ _, Node favId' _ _ _ _ _ _)
+         cond12 (NodeNode favId _ _ _ _, Node favId' _ _ _ _ _ _)
                 = (.||) ((.==) favId (toNullable favId')) (isNull $ toNullable favId)
 
          cond23 :: (NodeRead, (NodeNodeRead, NodeReadNull)) -> Column PGBool
-         cond23 (Node  nId _ _ _ _ _ _, (NodeNode _ nId' _, Node _ _ _ _ _ _ _ ))
+         cond23 (Node  nId _ _ _ _ _ _, (NodeNode _ nId' _ _ _, Node _ _ _ _ _ _ _ ))
                 = ((.==) (nId) (nId'))
 
 
@@ -233,4 +233,4 @@ selectDocFacet' _ pId _ = proc () -> do
 
         returnA  -< FacetDoc (_node_id n1) (_node_date n1) (_node_hyperdata n1) (isFav) (pgInt4 1)
 
-
+-}

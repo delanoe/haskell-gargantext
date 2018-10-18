@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Node.Document.Import
+Module      : Gargantext.Database.Node.Document.Insert
 Description : Importing context of texts (documents)
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -22,8 +22,8 @@ to be unique, then shared, but how to respect privacy if needed ?
 
 * Methodology to get uniqueness and privacy by design
 
-As a consequence, when importing a new document in Gargantext, a policy
-for the uniqueness of the inserted docuemnts has to be defined. 
+As a consequence, when importing/inserting a new document in Gargantext,
+a policy for the uniqueness of the inserted docuemnts has to be defined.
 
 That is the purpose of this module which defines its main concepts.
 
@@ -56,7 +56,7 @@ the concatenation of the parameters defined by @hashParameters@.
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
-module Gargantext.Database.Node.Document.Import where
+module Gargantext.Database.Node.Document.Insert where
 
 import Control.Lens (set)
 
@@ -113,8 +113,8 @@ insertDocuments uId pId hs = mkCmd $ \c -> query c queryInsert (Only $ Values fi
 -- | Debug SQL function
 --
 -- to print rendered query (Debug purpose) use @formatQuery@ function.
-insertDocuments_Debug :: Connection -> UserId -> ParentId -> [HyperdataDocument] -> IO ByteString
-insertDocuments_Debug conn uId pId hs = formatQuery conn queryInsert (Only $ Values fields inputData)
+insertDocuments_Debug :: UserId -> ParentId -> [HyperdataDocument] -> Cmd ByteString
+insertDocuments_Debug uId pId hs = mkCmd $ \conn -> formatQuery conn queryInsert (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
     inputData = prepare uId pId hs
