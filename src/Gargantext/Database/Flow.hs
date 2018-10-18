@@ -38,31 +38,44 @@ import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
 import Gargantext.Database.Node (Cmd(..), getRoot, mkRoot, mkCorpus, defaultCorpus)
-import Gargantext.Database.User (getUser, UserLight(..))
+import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Import (insertDocuments)
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
 
---flow :: FilePath -> IO ()
-flow fp = do
-  masterUser <- runCmd' (getUser "gargantua")
+type UserId = Int
+type RootId = Int
+type CorpusId = Int
+
+subFlow :: Username -> IO (UserId, RootId, CorpusId)
+subFlow username = do
+  maybeUserId <- runCmd' (getUser username)
   
-  let masterUserId = case masterUser of
+  let userId = case maybeUserId of
         Nothing   -> panic "Error: User does not exist (yet)" -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> userLight_id user
         
-  rootId' <- map _node_id <$> runCmd' (getRoot masterUserId)
+  rootId' <- map _node_id <$> runCmd' (getRoot userId)
   
   rootId'' <- case rootId' of
-        []  -> runCmd' (mkRoot masterUserId)
+        []  -> runCmd' (mkRoot userId)
         un  -> case length un >= 2 of
                  True  -> panic "Error: more than 1 userNode / user"
                  False -> pure rootId'
   let rootId = maybe (panic "error rootId") identity (head rootId'')
-  printDebug "Root ID : " rootId
-  
-  corpusId' <- runCmd' $ mkCorpus (Just "Corpus WOS") Nothing rootId masterUserId
+ 
+  corpusId' <- runCmd' $ mkCorpus (Just "Corpus WOS") Nothing rootId userId
   let corpusId = maybe (panic "error corpusId") identity (head corpusId')
-  printDebug "Corpus ID : " corpusId
+  
+  printDebug "(username, userId, rootId, corpusId"
+              (username, userId, rootId, corpusId)
+  pure (userId, rootId, corpusId)
+
+
+-- flow :: FilePath -> IO ()
+flow fp = do
+
+  (masterUserId, _, corpusId) <- subFlow "gargantua"
+
 
   docs <- parseDocs WOS fp
   ids  <- runCmd' $ insertDocuments masterUserId corpusId docs
@@ -71,7 +84,12 @@ flow fp = do
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId docs
   printDebug "Docs IDs : " idsRepeat
   
+  (userId, rootId, corpusId2) <- subFlow "alexandre"
+
   runCmd' (del [corpusId])
+
+
+
 
 {-
   --folderId <- mk Folder parentId (Name "Data") (Descr "All corpora DATA here")
