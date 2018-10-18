@@ -358,21 +358,7 @@ node nodeType name hyperData parentId userId = Node Nothing typeId userId parent
     typeId = nodeTypeId nodeType
     byteData = DB.pack $ DBL.unpack $ encode $ unHyperdata hyperData
 
-------------------------------------------------------------------------
-node2write :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
-              maybe1 Int -> NodePoly (maybe2 Int) Int Int parentId Text (maybe3 UTCTime) ByteString
-              -> (maybe2 (Column PGInt4), Column PGInt4, Column PGInt4,
-                  maybe1 (Column PGInt4), Column PGText, maybe3 (Column PGTimestamptz),
-                  Column PGJsonb)
-node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
-                                        ,(pgInt4        tn)
-                                         ,(pgInt4        ud)
-                                         ,(pgInt4   <$> pid)
-                                         ,(pgStrictText  nm)
-                                         ,(pgUTCTime <$> dt)
-                                         ,(pgStrictJSONB hp)
-                                         )
-
+                  -------------------------------
 node2row :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
               NodePoly (maybe2 Int)                      Int            Int  (maybe1           Int) 
                                 Text        (maybe3 UTCTime)             ByteString
