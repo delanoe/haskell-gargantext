@@ -30,19 +30,19 @@ authors
 {-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Database.Flow
+  (flow)
     where
 import System.FilePath (FilePath)
-import GHC.Base ((>>))
 import Data.Maybe (Maybe(..))
 import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
-import Gargantext.Database.Node (Cmd(..), getRoot, mkRoot, mkCorpus, defaultCorpus)
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus)
 import Gargantext.Database.User (getUser, UserLight(..))
 import Gargantext.Database.Node.Document.Import (insertDocuments)
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
 
---flow :: FilePath -> IO ()
+flow :: FilePath -> IO ()
 flow fp = do
   masterUser <- runCmd' (getUser "gargantua")
   
@@ -71,7 +71,8 @@ flow fp = do
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId docs
   printDebug "Docs IDs : " idsRepeat
   
-  runCmd' (del [corpusId])
+  _ <- runCmd' (del [corpusId])
+  pure ()
 
 {-
   --folderId <- mk Folder parentId (Name "Data") (Descr "All corpora DATA here")

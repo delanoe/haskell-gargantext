@@ -14,6 +14,7 @@ Node API
 
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TemplateHaskell    #-}
@@ -21,7 +22,13 @@ Node API
 
 -------------------------------------------------------------------
 module Gargantext.API.Node
-      where
+  ( module Gargantext.API.Node
+  , HyperdataCorpus(..)
+  , HyperdataResource(..)
+  , HyperdataUser(..)
+  , HyperdataDocument(..)
+  , HyperdataDocumentV3(..)
+  ) where
 -------------------------------------------------------------------
 
 import Control.Lens (prism')
@@ -46,7 +53,7 @@ import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
                                 , getNodesWithParentId
                                 , getNode, getNodesWith
-                                , deleteNode, deleteNodes, mk)
+                                , deleteNode, deleteNodes, mk, JSONB)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc, getDocFacet
                                  ,FacetChart)
@@ -96,7 +103,7 @@ instance Arbitrary PostNode where
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-type NodeAPI   = Get '[JSON] (Node Value)
+type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> Summary " RenameNode Node"
                            :> ReqBody '[JSON] RenameNode
                            :> Put     '[JSON] [Int]
@@ -109,7 +116,7 @@ type NodeAPI   = Get '[JSON] (Node Value)
                              :> QueryParam "type"   NodeType
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
-                             :> Get '[JSON] [Node Value]
+                             :> Get '[JSON] [Node a]
              :<|> "facet" :> Summary " Facet documents"
                           :> "documents" :> FacetDocAPI
 --             :<|> "facet" :<|> "sources"   :<|> FacetSourcesAPI
@@ -167,13 +174,15 @@ type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: Connection -> NodeId -> Server TreeAPI
 treeAPI = treeDB
 
-nodeAPI :: Connection -> NodeId -> Server NodeAPI
-nodeAPI conn id =  liftIO (putStrLn ("/node" :: Text) >> getNode              conn id )
+-- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
+nodeAPI :: JSONB a => Connection -> proxy a -> NodeId -> Server (NodeAPI a)
+nodeAPI conn p id
+                =  liftIO (getNode conn id p)
               :<|> rename        conn id
               :<|> postNode      conn id
               :<|> putNode       conn id
               :<|> deleteNode'   conn id
-              :<|> getNodesWith' conn id
+              :<|> getNodesWith' conn id p
               :<|> getFacet      conn id
               :<|> getChart      conn id
               -- :<|> upload
@@ -198,9 +207,9 @@ deleteNodes' conn ids = liftIO (runCmd conn $ deleteNodes ids)
 deleteNode' :: Connection -> NodeId -> Handler Int
 deleteNode' conn id = liftIO (runCmd conn $ deleteNode id)
 
-getNodesWith' :: Connection -> NodeId -> Maybe NodeType -> Maybe Int -> Maybe Int 
-                        -> Handler [Node Value]
-getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id nodeType offset limit)
+getNodesWith' :: JSONB a => Connection -> NodeId -> proxy a -> Maybe NodeType
+              -> Maybe Int -> Maybe Int -> Handler [Node a]
+getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p nodeType offset limit)
 
 
 getFacet :: Connection -> NodeId -> Maybe Int -> Maybe Int

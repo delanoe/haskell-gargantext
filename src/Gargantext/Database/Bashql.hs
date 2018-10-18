@@ -76,10 +76,8 @@ module Gargantext.Database.Bashql ( get
 
 import Control.Monad.Reader -- (Reader, ask)
 
-import Safe (lastMay)
 import Data.Text (Text)
 import Data.Aeson
-import Data.Aeson.Types
 import Data.List (concat, last)
 
 import Gargantext.Core.Types
@@ -151,7 +149,7 @@ put u = mkCmd $ U.update u
 -- jump NodeId
 -- touch Dir
 
-type Name = Text
+-- type Name = Text
 
 
 --mkCorpus :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode

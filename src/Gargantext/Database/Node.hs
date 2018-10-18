@@ -13,6 +13,8 @@ Portability : POSIX
 
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -235,9 +237,9 @@ deleteNodes ns = mkCmd $ \conn ->
                    (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
 
-getNodesWith :: Connection   -> Int         -> Maybe NodeType 
-             -> Maybe Offset -> Maybe Limit -> IO [Node Value]
-getNodesWith conn parentId nodeType maybeOffset maybeLimit = 
+getNodesWith :: JSONB a => Connection -> Int -> proxy a -> Maybe NodeType
+             -> Maybe Offset -> Maybe Limit -> IO [Node a]
+getNodesWith conn parentId _ nodeType maybeOffset maybeLimit =
     runQuery conn $ selectNodesWith 
                   parentId nodeType maybeOffset maybeLimit
 
@@ -279,9 +281,10 @@ selectNodesWithType type_id = proc () -> do
     restrict -< tn .== type_id
     returnA -< row
 
+type JSONB = QueryRunnerColumnDefault PGJsonb
 
-getNode :: Connection -> Int -> IO (Node Value)
-getNode conn id = do
+getNode :: JSONB a => Connection -> Int -> proxy a -> IO (Node a)
+getNode conn id _ = do
     fromMaybe (error $ "Node does node exist: " <> show id) . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
 
 
@@ -467,6 +470,7 @@ childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a c
 
 -- TODO: remove hardcoded userId (with Reader)
 -- TODO: user Reader in the API and adapt this function
+userId :: Int
 userId = 1
 
 mk :: Connection -> NodeType -> Maybe ParentId -> Text -> IO [Int]

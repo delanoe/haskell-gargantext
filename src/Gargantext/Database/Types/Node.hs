@@ -157,6 +157,9 @@ instance ToJSON EventLevel
 instance Arbitrary EventLevel where
   arbitrary = elements [minBound..maxBound]
 
+instance ToSchema EventLevel where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+
 ------------------------------------------------------------------------
 
 data Event = Event { event_level   :: EventLevel
@@ -167,6 +170,9 @@ $(deriveJSON (unPrefix "event_") ''Event)
 
 instance Arbitrary Event where
   arbitrary = Event <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance ToSchema Event where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 ------------------------------------------------------------------------
 
@@ -186,6 +192,9 @@ $(deriveJSON (unPrefix "resource_") ''Resource)
 
 instance Arbitrary Resource where
     arbitrary = Resource <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance ToSchema Resource where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 ------------------------------------------------------------------------
 
@@ -335,10 +344,11 @@ instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) N
 instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime HyperdataDocument) where
     arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) ((hyperdataDocument))]
 
-
 instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime HyperdataDocument) where
     arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) hyperdataDocument]
 
+instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime HyperdataCorpus) where
+    arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) hyperdataCorpus]
 
 ------------------------------------------------------------------------
 hyperdataDocument :: HyperdataDocument
@@ -351,6 +361,19 @@ hyperdataDocument = case decode docExample of
                                                    Nothing
 docExample :: ByteString
 docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
+
+corpusExample :: ByteString
+corpusExample = "" -- TODO
+
+hyperdataCorpus :: HyperdataCorpus
+hyperdataCorpus = case decode corpusExample of
+  Just hp -> hp
+  Nothing -> HyperdataCorpus Nothing Nothing Nothing Nothing Nothing
+
+instance ToSchema HyperdataCorpus where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+    L.& mapped.schema.description ?~ "a corpus"
+    L.& mapped.schema.example ?~ toJSON hyperdataCorpus
 
 
 instance ToSchema HyperdataDocument where
@@ -374,6 +397,18 @@ instance ToSchema (NodePoly NodeId NodeTypeId
                             (Maybe NodeUserId)
                             NodeParentId NodeName
                             UTCTime HyperdataDocument
+                  )
+
+instance ToSchema (NodePoly NodeId NodeTypeId
+                            (Maybe NodeUserId)
+                            NodeParentId NodeName
+                            UTCTime HyperdataCorpus
+                  )
+
+instance ToSchema (NodePoly NodeId NodeTypeId
+                            (NodeUserId)
+                            (Maybe NodeParentId) NodeName
+                            UTCTime HyperdataCorpus
                   )
 
 instance ToSchema (NodePoly NodeId NodeTypeId
