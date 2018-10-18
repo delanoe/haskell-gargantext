@@ -205,7 +205,7 @@ getNodesWith' conn id nodeType offset limit  = liftIO (getNodesWith conn id node
 
 getFacet :: Connection -> NodeId -> Maybe Int -> Maybe Int
                         -> Handler [FacetDoc]
-getFacet conn id offset limit = liftIO (putStrLn ( "/facet" :: Text)) >> liftIO (getDocFacet conn NodeCorpus id (Just Document) offset limit)
+getFacet conn id offset limit = liftIO (putStrLn ( "/facet" :: Text)) >> liftIO (getDocFacet conn NodeCorpus id (Just NodeDocument) offset limit)
 
 getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
                         -> Handler [FacetChart]

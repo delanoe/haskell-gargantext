@@ -60,25 +60,21 @@ userTree = TreeN (NodeTree "user name" NodeUser 1) [annuaireTree, projectTree]
 
 -- | Project Tree
 projectTree :: Tree NodeTree
-projectTree = TreeN (NodeTree "Project CNRS/IMT" Folder 2) [corpusTree 10 "A", corpusTree 20 "B"]
-
-type Individu  = Document
+projectTree = TreeN (NodeTree "Project CNRS/IMT" NodeFolder 2) [corpusTree 10 "A", corpusTree 20 "B"]
 
 -- | Corpus Tree
 annuaireTree :: Tree NodeTree
-annuaireTree = (leafT $ NodeTree "Annuaire" Annuaire 41)
-
+annuaireTree = (leafT $ NodeTree "Annuaire" NodeAnnuaire 41)
 
 corpusTree :: NodeId -> Text -> Tree NodeTree
-corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Dashboard" Dashboard (nId +1)
-                                                                         , leafT $ NodeTree "Graph" Graph (nId +2)
+corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT $ NodeTree "Dashboard" NodeDashboard (nId +1)
+                                                                         , leafT $ NodeTree "Graph" NodeGraph (nId +2)
                                                                          ]
 --                                                      <> [ leafT $ NodeTree "My lists"  Lists    5]
 --                          <> [ leafT (NodeTree "Metrics A" Metrics 6)  ]
 --                          <> [ leafT (NodeTree "Class A" Classification 7)]
                           )
 
-data Parent = NodeType NodeId
 
 --data Classification = Favorites | MyClassifcation
 

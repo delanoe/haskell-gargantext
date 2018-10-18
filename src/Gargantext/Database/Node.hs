@@ -89,7 +89,6 @@ type CorpusId = Int
 type UserId = NodeId
 type TypeId = Int
 ------------------------------------------------------------------------
-
 instance FromField HyperdataCorpus where
     fromField = fromField'
 
@@ -99,13 +98,9 @@ instance FromField HyperdataDocument where
 instance FromField HyperdataDocumentV3 where
     fromField = fromField'
 
-instance FromField HyperdataProject where
-    fromField = fromField'
-
 instance FromField HyperdataUser where
     fromField = fromField'
-
-
+------------------------------------------------------------------------
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -115,13 +110,9 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3 where
 instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataProject  where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
-
 instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
+------------------------------------------------------------------------
 
 fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DB.ByteString -> Conversion b
 fromField' field mb = do
@@ -261,10 +252,10 @@ getNodesWithParentId' n _ conn = runQuery conn $ selectNodesWithParentID n
 
 ------------------------------------------------------------------------
 getDocumentsV3WithParentId :: Connection -> Int -> IO [Node HyperdataDocumentV3]
-getDocumentsV3WithParentId conn n = runQuery conn $ selectNodesWith' n (Just Document)
+getDocumentsV3WithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeDocument)
 
 getDocumentsWithParentId :: Connection -> Int -> IO [Node HyperdataDocument]
-getDocumentsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just Document)
+getDocumentsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeDocument)
 
 ------------------------------------------------------------------------
 
@@ -298,15 +289,58 @@ getNodesWithType conn type_id = do
 
 
 ------------------------------------------------------------------------
--- Quick and dirty
+-- WIP
 ------------------------------------------------------------------------
-type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString
 
-node :: ToJSON a => UserId -> Maybe ParentId -> NodeType -> Text -> Hyperdata a -> NodeWrite'
-node userId parentId nodeType name nodeData = Node Nothing typeId userId parentId name Nothing byteData
+type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString
+------------------------------------------------------------------------
+defaultUser :: HyperdataUser
+defaultUser = HyperdataUser (Just $ (pack . show) EN)
+
+nodeUserW :: Maybe Name -> Maybe HyperdataUser -> UserId -> NodeWrite'
+nodeUserW maybeName maybeHyperdata = node NodeUser name (Hyperdata user) Nothing
+  where
+    name = maybe "User" identity maybeName
+    user = maybe defaultUser identity maybeHyperdata
+------------------------------------------------------------------------
+defaultFolder :: HyperdataFolder
+defaultFolder = HyperdataFolder (Just "Markdown Description")
+
+nodeFolderW :: Maybe Name -> Maybe HyperdataFolder -> ParentId -> UserId -> NodeWrite'
+nodeFolderW maybeName maybeFolder pid = node NodeFolder name (Hyperdata folder) (Just pid)
+  where
+    name   = maybe "Folder" identity maybeName
+    folder = maybe defaultFolder identity maybeFolder
+------------------------------------------------------------------------
+defaultCorpus :: HyperdataCorpus
+defaultCorpus = (HyperdataCorpus (Just "Title") (Just "Descr") (Just "Bool query") (Just "Authors") Nothing)
+
+nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite'
+nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name (Hyperdata corpus) (Just pId)
+  where
+    name   = maybe "Corpus" identity maybeName
+    corpus = maybe defaultCorpus identity maybeCorpus
+------------------------------------------------------------------------
+defaultDocument :: HyperdataDocument
+defaultDocument = hyperdataDocument
+
+nodeDocumentW :: Maybe Name -> Maybe HyperdataDocument -> CorpusId -> UserId -> NodeWrite'
+nodeDocumentW maybeName maybeDocument cId = node NodeDocument name (Hyperdata doc) (Just cId)
+  where
+    name = maybe "Document" identity maybeName
+    doc  = maybe defaultDocument identity maybeDocument
+------------------------------------------------------------------------
+--defaultAnnuaire :: HyperdataAnnuaire
+--defaultAnnuaire = HyperdataAnnuaire 
+--nodeAnnuaireW
+--nodeContactW
+
+------------------------------------------------------------------------
+node :: ToJSON a => NodeType -> Name -> Hyperdata a -> Maybe ParentId -> UserId -> NodeWrite'
+node nodeType name hyperData parentId userId = Node Nothing typeId userId parentId name Nothing byteData
   where
     typeId = nodeTypeId nodeType
-    byteData = DB.pack $ DBL.unpack $ encode $ unHyperdata nodeData
+    byteData = DB.pack $ DBL.unpack $ encode $ unHyperdata hyperData
 
 
 node2write :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
@@ -315,30 +349,27 @@ node2write :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
                   maybe1 (Column PGInt4), Column PGText, maybe3 (Column PGTimestamptz),
                   Column PGJsonb)
 node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
-                                         ,(pgInt4        tn)
+                                        ,(pgInt4        tn)
                                          ,(pgInt4        ud)
                                          ,(pgInt4   <$> pid)
                                          ,(pgStrictText  nm)
                                          ,(pgUTCTime <$> dt)
                                          ,(pgStrictJSONB hp)
                                          )
+------------------------------------------------------------------------
+insertNode :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO Int64
+insertNode pid ns conn = runInsertMany conn nodeTable' $ map (node2write pid) ns
 
-
-mkNode :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO Int64
-mkNode pid ns conn = runInsertMany conn nodeTable' $ map (node2write pid) ns
-
-mkNodeR :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO [Int]
-mkNodeR pid ns conn = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
-
-
+insertNodeR :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO [Int]
+insertNodeR pid ns conn = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
 ------------------------------------------------------------------------
 -- TODO Hierachy of Nodes
 -- post and get same types Node' and update if changes
 
 {- TODO semantic to achieve
-post c uid pid [ Node' Corpus "name" "{}" []
-               , Node' Folder "name" "{}" [Node' Corpus "test 2" "" [ Node' Document "title" "metaData" []
-                                                                    , Node' Document "title" "jsonData" []
+post c uid pid [ Node' NodeCorpus "name" "{}" []
+               , Node' NodeFolder "name" "{}" [Node' NodeCorpus "test 2" "" [ Node' NodeDocument "title" "metaData" []
+                                                                    , Node' NodeDocument "title" "jsonData" []
                                                                     ]
                                           ]
                ]
@@ -377,6 +408,9 @@ mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable' ns
 mkNodeR' :: [NodeWriteT] -> Cmd [Int]
 mkNodeR' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
 
+
+------------------------------------------------------------------------
+
 data NewNode = NewNode { _newNodeId :: Int
                        , _newNodeChildren :: [Int] }
 
@@ -393,26 +427,28 @@ postNode uid pid (Node' NodeCorpus txt v ns) = do
   pids  <- mkNodeR' (concat $ map (\n -> [childWith uid pid' n]) ns)
   pure $ NewNode pid' pids
 
-postNode uid pid (Node' Annuaire txt v ns) = do
-  NewNode pid' _ <- postNode uid pid (Node' Annuaire txt v [])
+postNode uid pid (Node' NodeAnnuaire txt v ns) = do
+  NewNode pid' _ <- postNode uid pid (Node' NodeAnnuaire txt v [])
   pids  <- mkNodeR' (concat $ map (\n -> [childWith uid pid' n]) ns)
   pure $ NewNode pid' pids
 postNode _ _ (Node' _ _ _ _) = panic "TODO: postNode for this type not implemented yet"
 
 
 childWith :: UserId -> ParentId -> Node' -> NodeWriteT
-childWith uId pId (Node' Document txt v []) = node2table uId (Just pId) (Node' Document txt v [])
-childWith uId pId (Node' UserPage txt v []) = node2table uId (Just pId) (Node' UserPage txt v [])
+childWith uId pId (Node' NodeDocument txt v []) = node2table uId (Just pId) (Node' NodeDocument txt v [])
+childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Node' NodeContact txt v [])
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
 -- TODO: remove hardcoded userId (with Reader)
 -- TODO: user Reader in the API and adapt this function
+userId = 1
+
 mk :: Connection -> NodeType -> Maybe ParentId -> Text -> IO [Int]
-mk c nt pId name  = mk' c nt 1 pId name
+mk c nt pId name  = mk' c nt userId pId name
 
 mk' :: Connection -> NodeType -> UserId -> Maybe ParentId -> Text -> IO [Int]
-mk' c nt uId pId name  = map fromIntegral <$> mkNodeR pId [node uId pId nt name hd] c
+mk' c nt uId pId name  = map fromIntegral <$> insertNodeR pId [node nt name hd pId uId] c
   where
     hd = Hyperdata (HyperdataUser (Just $ (pack . show) EN))
 

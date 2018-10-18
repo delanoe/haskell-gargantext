@@ -149,7 +149,7 @@ queryInsert = [sql|
 prepare :: UserId -> ParentId -> [HyperdataDocument] -> [InputData]
 prepare uId pId = map (\h -> InputData tId uId pId (DT.pack "Doc") (toJSON $ addUniqId h))
   where
-    tId = nodeTypeId Document
+    tId = nodeTypeId NodeDocument
 
 ------------------------------------------------------------------------
 -- * Main Types used

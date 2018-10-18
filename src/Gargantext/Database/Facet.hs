@@ -221,13 +221,13 @@ selectDocFacet' :: NodeType -> ParentId -> Maybe NodeType -> Query FacetDocRead
 selectDocFacet' _ pId _ = proc () -> do
         (n1,(nn,n2)) <- leftJoin3''' -< ()
         restrict -< (.&&) (node_parentId n1 .== (toNullable $ pgInt4 pId))
-                          (node_typename n1 .== (pgInt4 $ nodeTypeId Document))
+                          (node_typename n1 .== (pgInt4 $ nodeTypeId NodeDocument))
 
-        restrict -< (.||) (node_typename n2 .== (toNullable $ pgInt4 $ nodeTypeId Favorites))
-                          (isNull $ node_typename n2)
-
-        restrict -< (.||) (node_parentId n2 .== (toNullable $ pgInt4 $ nodeTypeId Favorites))
-                          (isNull $ node_parentId n2)
+--        restrict -< (.||) (node_typename n2 .== (toNullable $ pgInt4 $ nodeTypeId Favorites))
+--                          (isNull $ node_typename n2)
+--
+--        restrict -< (.||) (node_parentId n2 .== (toNullable $ pgInt4 $ nodeTypeId Favorites))
+--                          (isNull $ node_parentId n2)
 
         let isFav = ifThenElse (isNull $ nodeNode_score nn) (pgBool False) (pgBool True)
 

@@ -191,10 +191,14 @@ instance Arbitrary Resource where
 
 ------------------------------------------------------------------------
 
-data Hyperdata a = Hyperdata { unHyperdata :: a} 
+data Hyperdata a = Hyperdata { unHyperdata :: a}
 $(deriveJSON (unPrefix "") ''Hyperdata)
 
-data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_resources    :: [Resource]
+data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe Text
+                                       , hyperdataCorpus_descr        :: Maybe Text
+                                       , hyperdataCorpus_query        :: Maybe Text
+                                       , hyperdataCorpus_authors      :: Maybe Text
+                                       , hyperdataCorpus_resources    :: Maybe [Resource]
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
@@ -205,15 +209,9 @@ $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
 -- Preferences ?
 
-data HyperdataFolder = HyperdataFolder { hyperdataFolder_preferences   :: Maybe Text
+data HyperdataFolder = HyperdataFolder { hyperdataFolder_descr   :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
-
-
-data HyperdataProject = HyperdataProject { hyperdataProject_preferences   :: Maybe Text
-                                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataProject_") ''HyperdataProject)
-
 
 
 data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
@@ -223,7 +221,6 @@ $(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
 data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
-
 
 
 data HyperdataFavorites = HyperdataFavorites { hyperdataFavorites_preferences   :: Maybe Text
@@ -268,25 +265,23 @@ type NodeName     = Text
 --type NodeUser    = Node HyperdataUser
 
 -- | Then a Node can be either a Folder or a Corpus or a Document
-type NodeUser   = Node HyperdataUser
-type Folder     = Node HyperdataFolder
-type Project    = Node HyperdataProject
-type NodeCorpus = Node HyperdataCorpus
+type NodeUser     = Node HyperdataUser
+type NodeFolder   = Node HyperdataFolder
+type NodeCorpus   = Node HyperdataCorpus
 type NodeCorpusV3 = Node HyperdataCorpus
-type Document   = Node HyperdataDocument
+type NodeDocument = Node HyperdataDocument
 
 ------------------------------------------------------------------------
 data NodeType = NodeUser 
-              -- | Project
-              | Folder
-              | NodeCorpus | NodeCorpusV3 | Annuaire 
-              | Document -- | Individu
-              | UserPage | Favorites
-              | Graph    | Dashboard | Chart
+              | NodeFolder
+              | NodeCorpus     | NodeCorpusV3 | NodeDocument
+              | NodeAnnuaire   | NodeContact
+              | NodeOccurrences
+              | NodeGraph
+              | NodeDashboard  | NodeChart
               -- | Classification
               -- | Lists
               -- | Metrics
-              | Occurrences
               deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 allNodeTypes :: [NodeType]

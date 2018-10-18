@@ -31,14 +31,13 @@ import Gargantext.Prelude
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId n =
   case n of
-    NodeUser   -> 1
-    Folder     -> 2
-    --NodeCorpus -> 3
-    NodeCorpusV3 -> 3
-    NodeCorpus -> 30
-    Annuaire   -> 31
-    Document   -> 4
-    UserPage   -> 41
+    NodeUser      -> 1
+    NodeFolder    -> 2
+    NodeCorpusV3  -> 3
+    NodeCorpus    -> 30
+    NodeAnnuaire  -> 31
+    NodeDocument  -> 4
+    NodeContact   -> 41
   --NodeSwap   -> 19
 
 ----  Lists
@@ -48,10 +47,10 @@ nodeTypeId n =
 --  MapList    -> 8
 
 ----  Scores
-    Occurrences -> 10
-    Graph       -> 9
-    Dashboard   -> 5
-    Chart       -> 51
+    NodeOccurrences -> 10
+    NodeGraph       -> 9
+    NodeDashboard   -> 5
+    NodeChart       -> 51
 
 --  Cooccurrences -> 9
 --
@@ -65,14 +64,9 @@ nodeTypeId n =
 --  TirankLocal  -> 16
 --  TirankGlobal -> 17
 
-----  Node management
-    Favorites    -> 15
+--  Node management
+--  NodeFavorites    -> 15
 
---  Project -> TODO
---  Individu -> TODO
---  Classification -> TODO
---  Lists -> TODO
---  Metrics -> TODO
 
 --
 -- | Nodes are typed in the database according to a specific ID

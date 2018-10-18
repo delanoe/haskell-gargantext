@@ -45,7 +45,7 @@ flow = do
   masterUser <- runCmd' (getUser "gargantua")
   
   let masterUserId = case masterUser of
-        Nothing   -> panic "no user"
+        Nothing   -> panic "Error: User does not exist (yet)" -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> userLight_id user
         
   root <- map node_id <$> runCmd' (getRoot masterUserId)
@@ -60,7 +60,6 @@ flow = do
   
   pure ()
 {-
-  rootId       <- mk NodeUser gargantua_id "Node Gargantua"
 
   --folderId <- mk Folder parentId (Name "Data") (Descr "All corpora DATA here")
   folderId <- mk Folder rootId "Data"

@@ -125,7 +125,7 @@ tree p = do
 post :: PWD -> [NodeWrite'] -> Cmd Int64
 post [] _   = pure 0
 post _ []   = pure 0
-post pth ns = Cmd . ReaderT $ mkNode (Just $ last pth) ns
+post pth ns = Cmd . ReaderT $ insertNode (Just $ last pth) ns
 
 --postR :: PWD -> [NodeWrite'] -> Cmd [Int]
 --postR [] _ _ = pure [0]
