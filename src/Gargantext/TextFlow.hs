@@ -85,7 +85,7 @@ textFlow termType workType = do
                 FullText path -> splitBy (Sentences 5) <$> readFile path
                 CSV      path -> readCsvOn [csv_title, csv_abstract] path
                 Contexts ctxt -> pure ctxt
-                DB con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (node_hyperdata n)  <> hyperdataDocumentV3_abstract (node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
+                DB con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (_node_hyperdata n)  <> hyperdataDocumentV3_abstract (_node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
                 _             -> undefined -- TODO Query not supported
 
   textFlow' termType contexts

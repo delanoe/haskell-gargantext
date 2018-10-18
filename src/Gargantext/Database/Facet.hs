@@ -220,8 +220,8 @@ leftJoin3''' = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12
 selectDocFacet' :: NodeType -> ParentId -> Maybe NodeType -> Query FacetDocRead
 selectDocFacet' _ pId _ = proc () -> do
         (n1,(nn,n2)) <- leftJoin3''' -< ()
-        restrict -< (.&&) (node_parentId n1 .== (toNullable $ pgInt4 pId))
-                          (node_typename n1 .== (pgInt4 $ nodeTypeId NodeDocument))
+        restrict -< (.&&) (_node_parentId n1 .== (toNullable $ pgInt4 pId))
+                          (_node_typename n1 .== (pgInt4 $ nodeTypeId NodeDocument))
 
 --        restrict -< (.||) (node_typename n2 .== (toNullable $ pgInt4 $ nodeTypeId Favorites))
 --                          (isNull $ node_typename n2)
@@ -231,6 +231,6 @@ selectDocFacet' _ pId _ = proc () -> do
 
         let isFav = ifThenElse (isNull $ nodeNode_score nn) (pgBool False) (pgBool True)
 
-        returnA  -< FacetDoc (node_id n1) (node_date n1) (node_hyperdata n1) (isFav) (pgInt4 1)
+        returnA  -< FacetDoc (_node_id n1) (_node_date n1) (_node_hyperdata n1) (isFav) (pgInt4 1)
 
 

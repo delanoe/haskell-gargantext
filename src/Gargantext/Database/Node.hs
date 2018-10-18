@@ -25,6 +25,7 @@ module Gargantext.Database.Node where
 
 import Data.Text (pack)
 import GHC.Int (Int64)
+import Control.Lens (set)
 import Data.Maybe
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField ( Conversion
@@ -86,6 +87,7 @@ mkCmd = Cmd . ReaderT
 
 ------------------------------------------------------------------------
 type CorpusId = Int
+type AnnuaireId = Int
 type UserId = NodeId
 type TypeId = Int
 ------------------------------------------------------------------------
@@ -129,13 +131,13 @@ $(makeLensesWith abbreviatedFields ''NodePoly)
 
 
 nodeTable :: Table NodeWrite NodeRead
-nodeTable = Table "nodes" (pNode Node { node_id                = optional "id"
-                                        , node_typename        = required "typename"
-                                        , node_userId          = required "user_id"
-                                        , node_parentId        = required "parent_id"
-                                        , node_name            = required "name"
-                                        , node_date            = optional "date"
-                                        , node_hyperdata       = required "hyperdata"
+nodeTable = Table "nodes" (pNode Node { _node_id                = optional "id"
+                                        , _node_typename        = required "typename"
+                                        , _node_userId          = required "user_id"
+                                        , _node_parentId        = required "parent_id"
+                                        , _node_name            = required "name"
+                                        , _node_date            = optional "date"
+                                        , _node_hyperdata       = required "hyperdata"
                      --                   , node_titleAbstract   = optional "title_abstract"
                                         }
                             )
@@ -175,7 +177,7 @@ queryNodeTable = queryTable nodeTable
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode id = proc () -> do
     row <- queryNodeTable -< ()
-    restrict -< node_id row .== id
+    restrict -< _node_id row .== id
     returnA -< row
 
 runGetNodes :: Query NodeRead -> Cmd [Node Value]
@@ -185,8 +187,8 @@ runGetNodes q = mkCmd $ \conn -> runQuery conn q
 selectRootUser :: UserId -> Query NodeRead
 selectRootUser userId = proc () -> do
     row <- queryNodeTable -< ()
-    restrict -< node_userId   row .== (pgInt4 userId)
-    restrict -< node_typename row .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_userId   row .== (pgInt4 userId)
+    restrict -< _node_typename row .== (pgInt4 $ nodeTypeId NodeUser)
     returnA -< row
 
 getRoot :: UserId -> Cmd [Node HyperdataUser]
@@ -199,7 +201,7 @@ selectNodesWith :: ParentId     -> Maybe NodeType
                 -> Maybe Offset -> Maybe Limit   -> Query NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
-        limit' maybeLimit $ offset' maybeOffset $ orderBy (asc node_id) $ selectNodesWith' parentId maybeNodeType
+        limit' maybeLimit $ offset' maybeOffset $ orderBy (asc _node_id) $ selectNodesWith' parentId maybeNodeType
 
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
@@ -290,8 +292,9 @@ getNodesWithType conn type_id = do
 
 ------------------------------------------------------------------------
 -- WIP
+-- TODO Classe HasDefault where
+-- default NodeType = Hyperdata
 ------------------------------------------------------------------------
-
 type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString
 ------------------------------------------------------------------------
 defaultUser :: HyperdataUser
@@ -320,7 +323,7 @@ nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name (Hyperdata corpus) 
   where
     name   = maybe "Corpus" identity maybeName
     corpus = maybe defaultCorpus identity maybeCorpus
-------------------------------------------------------------------------
+                   --------------------------
 defaultDocument :: HyperdataDocument
 defaultDocument = hyperdataDocument
 
@@ -330,11 +333,24 @@ nodeDocumentW maybeName maybeDocument cId = node NodeDocument name (Hyperdata do
     name = maybe "Document" identity maybeName
     doc  = maybe defaultDocument identity maybeDocument
 ------------------------------------------------------------------------
---defaultAnnuaire :: HyperdataAnnuaire
---defaultAnnuaire = HyperdataAnnuaire 
---nodeAnnuaireW
---nodeContactW
+defaultAnnuaire :: HyperdataAnnuaire
+defaultAnnuaire = HyperdataAnnuaire (Just "Title") (Just "Description")
 
+nodeAnnuaireW :: Maybe Name -> Maybe HyperdataAnnuaire -> ParentId -> UserId -> NodeWrite'
+nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name (Hyperdata annuaire) (Just pId)
+  where
+    name     = maybe "Annuaire" identity maybeName
+    annuaire = maybe defaultAnnuaire identity maybeAnnuaire
+                   --------------------------
+defaultContact :: HyperdataContact
+defaultContact = HyperdataContact (Just "Name") (Just "email@here")
+
+nodeContactW :: Maybe Name -> Maybe HyperdataContact -> AnnuaireId -> UserId -> NodeWrite'
+nodeContactW maybeName maybeContact aId = node NodeContact name (Hyperdata contact) (Just aId)
+  where
+    name    = maybe "Contact" identity maybeName
+    contact = maybe defaultContact identity maybeContact
+------------------------------------------------------------------------
 ------------------------------------------------------------------------
 node :: ToJSON a => NodeType -> Name -> Hyperdata a -> Maybe ParentId -> UserId -> NodeWrite'
 node nodeType name hyperData parentId userId = Node Nothing typeId userId parentId name Nothing byteData
@@ -342,7 +358,7 @@ node nodeType name hyperData parentId userId = Node Nothing typeId userId parent
     typeId = nodeTypeId nodeType
     byteData = DB.pack $ DBL.unpack $ encode $ unHyperdata hyperData
 
-
+------------------------------------------------------------------------
 node2write :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
               maybe1 Int -> NodePoly (maybe2 Int) Int Int parentId Text (maybe3 UTCTime) ByteString
               -> (maybe2 (Column PGInt4), Column PGInt4, Column PGInt4,
@@ -356,12 +372,32 @@ node2write pid (Node id tn ud _ nm dt hp) = ((pgInt4    <$> id)
                                          ,(pgUTCTime <$> dt)
                                          ,(pgStrictJSONB hp)
                                          )
-------------------------------------------------------------------------
-insertNode :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO Int64
-insertNode pid ns conn = runInsertMany conn nodeTable' $ map (node2write pid) ns
 
-insertNodeR :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO [Int]
-insertNodeR pid ns conn = runInsertManyReturning conn nodeTable' (map (node2write pid) ns) (\(i,_,_,_,_,_,_) -> i)
+node2row :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
+              NodePoly (maybe2 Int)                      Int            Int  (maybe1           Int) 
+                                Text        (maybe3 UTCTime)             ByteString
+                    -> (maybe2 (Column PGInt4), Column PGInt4, Column PGInt4, maybe1 (Column PGInt4)
+                     , Column PGText, maybe3 (Column PGTimestamptz), Column PGJsonb)
+node2row (Node id tn ud pid nm dt hp) = ((pgInt4    <$> id)
+                                        ,(pgInt4        tn)
+                                        ,(pgInt4        ud)
+                                        ,(pgInt4   <$> pid)
+                                        ,(pgStrictText  nm)
+                                        ,(pgUTCTime <$> dt)
+                                        ,(pgStrictJSONB hp)
+                                        )
+------------------------------------------------------------------------
+insertNodes :: [NodeWrite'] -> Connection -> IO Int64
+insertNodes ns conn = runInsertMany conn nodeTable' (map node2row ns)
+
+insertNodesR :: [NodeWrite'] -> Connection -> IO [Int]
+insertNodesR ns conn = runInsertManyReturning conn nodeTable' (map node2row ns) (\(i,_,_,_,_,_,_) -> i)
+                       -------------------------
+insertNodesWithParent :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO Int64
+insertNodesWithParent pid ns conn = insertNodes (map (set node_parentId pid) ns) conn
+
+insertNodesWithParentR :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO [Int]
+insertNodesWithParentR pid ns conn = insertNodesR (map (set node_parentId pid) ns) conn
 ------------------------------------------------------------------------
 -- TODO Hierachy of Nodes
 -- post and get same types Node' and update if changes
@@ -448,7 +484,7 @@ mk :: Connection -> NodeType -> Maybe ParentId -> Text -> IO [Int]
 mk c nt pId name  = mk' c nt userId pId name
 
 mk' :: Connection -> NodeType -> UserId -> Maybe ParentId -> Text -> IO [Int]
-mk' c nt uId pId name  = map fromIntegral <$> insertNodeR pId [node nt name hd pId uId] c
+mk' c nt uId pId name  = map fromIntegral <$> insertNodesWithParentR pId [node nt name hd pId uId] c
   where
     hd = Hyperdata (HyperdataUser (Just $ (pack . show) EN))
 

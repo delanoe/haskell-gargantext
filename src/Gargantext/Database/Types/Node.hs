@@ -97,8 +97,6 @@ data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication
                                                , hyperdataDocumentV3_title              :: Maybe Text
                                                } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
-
-
 ------------------------------------------------------------------------
 
 data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: Maybe Text
@@ -194,6 +192,16 @@ instance Arbitrary Resource where
 data Hyperdata a = Hyperdata { unHyperdata :: a}
 $(deriveJSON (unPrefix "") ''Hyperdata)
 
+data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
+                                       } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
+
+
+data HyperdataFolder = HyperdataFolder { hyperdataFolder_descr   :: Maybe Text
+                                       } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
+
+
 data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe Text
                                        , hyperdataCorpus_descr        :: Maybe Text
                                        , hyperdataCorpus_query        :: Maybe Text
@@ -202,17 +210,17 @@ data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe T
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
-
-data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
-                                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
-
--- Preferences ?
-
-data HyperdataFolder = HyperdataFolder { hyperdataFolder_descr   :: Maybe Text
-                                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
-
+------------------------------------------------------------------------
+data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: Maybe Text
+                                           , hyperdataAnnuaire_descr        :: Maybe Text
+                                           } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
+------------------------------------------------------------------------
+data HyperdataContact = HyperdataContact { hyperdataContact_name        :: Maybe Text
+                                         , hyperdataContact_mail        :: Maybe Text
+                                         } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataContact_") ''HyperdataContact)
+------------------------------------------------------------------------
 
 data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
@@ -222,10 +230,6 @@ data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: Maybe Tex
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
 
-
-data HyperdataFavorites = HyperdataFavorites { hyperdataFavorites_preferences   :: Maybe Text
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataFavorites_") ''HyperdataFavorites)
 
 data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
@@ -267,16 +271,25 @@ type NodeName     = Text
 -- | Then a Node can be either a Folder or a Corpus or a Document
 type NodeUser     = Node HyperdataUser
 type NodeFolder   = Node HyperdataFolder
+
 type NodeCorpus   = Node HyperdataCorpus
 type NodeCorpusV3 = Node HyperdataCorpus
 type NodeDocument = Node HyperdataDocument
+
+type NodeAnnuaire = Node HyperdataAnnuaire
+type NodeContact  = Node HyperdataContact
+
+---- | Then a Node can be either a Graph or a Phylo or a Notebook
+type NodeGraph    = Node HyperdataGraph
+type NodePhylo    = Node HyperdataPhylo
+type NodeNotebook = Node HyperdataNotebook
 
 ------------------------------------------------------------------------
 data NodeType = NodeUser 
               | NodeFolder
               | NodeCorpus     | NodeCorpusV3 | NodeDocument
               | NodeAnnuaire   | NodeContact
-              | NodeOccurrences
+              -- | NodeOccurrences
               | NodeGraph
               | NodeDashboard  | NodeChart
               -- | Classification
@@ -298,18 +311,17 @@ instance ToParamSchema NodeType
 instance ToSchema      NodeType
 
 ------------------------------------------------------------------------
-data NodePoly id typename userId parentId name date hyperdata = Node { node_id        :: id
-                                                                     , node_typename  :: typename
-                                                                     , node_userId    :: userId
-                                                                --   , nodeHashId    :: hashId
-                                                                     , node_parentId  :: parentId
-                                                                     , node_name      :: name
-                                                                     , node_date      :: date
-                                                                     , node_hyperdata :: hyperdata
-                                                              --       , node_titleAbstract :: titleAbstract
+data NodePoly id typename userId parentId name date hyperdata = Node { _node_id        :: id
+                                                                     , _node_typename  :: typename
+                                                                     , _node_userId    :: userId
+                                                                --   , nodeUniqId    :: hashId
+                                                                     , _node_parentId  :: parentId
+                                                                     , _node_name      :: name
+                                                                     , _node_date      :: date
+                                                                     , _node_hyperdata :: hyperdata
                                                                      } deriving (Show, Generic)
-$(deriveJSON (unPrefix "node_") ''NodePoly)
-
+$(deriveJSON (unPrefix "_node_") ''NodePoly)
+$(makeLenses ''NodePoly)
 
 
 

@@ -87,9 +87,6 @@ data Lists  =  StopList    | MainList | MapList | GroupList
 -- | Community Manager Use Case
 type Annuaire  = NodeCorpus
 
--- | Favorites Node enable Node categorization
-type Favorites = Node HyperdataFavorites
-
 -- | Favorites Node enable Swap Node with some synonyms for clarity
 type NodeSwap  = Node HyperdataResource
 
@@ -114,12 +111,6 @@ type TfidfGlobal   = Tficf
 type TirankLocal   = Tficf
 type TirankGlobal  = Tficf
 --
----- | Then a Node can be either a Graph or a Phylo or a Notebook
-type Graph    = Node HyperdataGraph
-type Phylo    = Node HyperdataPhylo
-type Notebook = Node HyperdataNotebook
-
-
 -- Temporary types to be removed
 type ErrorMessage = Text
 

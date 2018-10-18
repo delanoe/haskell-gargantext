@@ -109,7 +109,7 @@ get pwd = Cmd . ReaderT $ \conn -> runQuery conn $ selectNodesWithParentID (last
 
 -- | Home, need to filter with UserId
 home :: Cmd PWD
-home = map node_id <$> Cmd (ReaderT (getNodesWithParentId 0 Nothing))
+home = map _node_id <$> Cmd (ReaderT (getNodesWithParentId 0 Nothing))
 
 -- | ls == get Children
 ls :: PWD -> Cmd [Node Value]
@@ -118,14 +118,14 @@ ls = get
 tree :: PWD -> Cmd [Node Value]
 tree p = do
   ns       <- get p
-  children <- mapM (\n -> get [node_id n]) ns
+  children <- mapM (\n -> get [_node_id n]) ns
   pure $ ns <> concat children
 
 -- | TODO
 post :: PWD -> [NodeWrite'] -> Cmd Int64
 post [] _   = pure 0
 post _ []   = pure 0
-post pth ns = Cmd . ReaderT $ insertNode (Just $ last pth) ns
+post pth ns = Cmd . ReaderT $ insertNodesWithParent (Just $ last pth) ns
 
 --postR :: PWD -> [NodeWrite'] -> Cmd [Int]
 --postR [] _ _ = pure [0]

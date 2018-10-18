@@ -48,7 +48,7 @@ flow = do
         Nothing   -> panic "Error: User does not exist (yet)" -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> userLight_id user
         
-  root <- map node_id <$> runCmd' (getRoot masterUserId)
+  root <- map _node_id <$> runCmd' (getRoot masterUserId)
   
   root' <- case root of
         []  -> runCmd' (mkRoot masterUserId)

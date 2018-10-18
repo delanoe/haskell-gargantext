@@ -47,7 +47,7 @@ nodeTypeId n =
 --  MapList    -> 8
 
 ----  Scores
-    NodeOccurrences -> 10
+--    NodeOccurrences -> 10
     NodeGraph       -> 9
     NodeDashboard   -> 5
     NodeChart       -> 51
