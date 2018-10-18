@@ -22,6 +22,7 @@ commentary with @some markup@.
 
 module Gargantext.Database.NodeNode where
 
+import Gargantext.Database.Node (Cmd(..), mkCmd)
 import Gargantext.Prelude
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -77,8 +78,8 @@ queryNodeNodeTable = queryTable nodeNodeTable
 
 
 -- | not optimized (get all ngrams without filters)
-nodeNodes :: PGS.Connection -> IO [NodeNode]
-nodeNodes conn = runQuery conn queryNodeNodeTable
+nodesNodes :: Cmd [NodeNode]
+nodesNodes = mkCmd $ \c -> runQuery c queryNodeNodeTable
 
 instance QueryRunnerColumnDefault (Nullable PGInt4) Int where
     queryRunnerColumnDefault = fieldQueryRunnerColumn

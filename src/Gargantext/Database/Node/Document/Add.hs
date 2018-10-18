@@ -64,14 +64,14 @@ add_debug pId ns = mkCmd $ \c -> formatQuery c queryAdd (Only $ Values fields in
 
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
-inputSqlTypes = map DT.pack ["int4","int4"]
+inputSqlTypes = map DT.pack ["int4","int4","bool"]
 
 -- | SQL query to add documents
 -- TODO return id of added documents only
 queryAdd :: Query
 queryAdd = [sql|
-       WITH input_rows(node1_id,node2_id) AS (?)
-       INSERT INTO nodes_nodes (node1_id, node2_id)
+       WITH input_rows(node1_id,node2_id, favorite) AS (?)
+       INSERT INTO nodes_nodes (node1_id, node2_id, favorite)
        SELECT * FROM input_rows
        ON CONFLICT (node1_id, node2_id) DO NOTHING -- on unique index
        RETURNING 1
@@ -79,7 +79,7 @@ queryAdd = [sql|
            |]
 
 prepare :: ParentId -> [NodeId] -> [InputData]
-prepare pId ns = map (\nId -> InputData pId nId) ns
+prepare pId ns = map (\nId -> InputData pId nId False) ns
 
 ------------------------------------------------------------------------
 -- * Main Types used
@@ -87,10 +87,12 @@ prepare pId ns = map (\nId -> InputData pId nId) ns
 
 data InputData = InputData { inNode1_id :: NodeId
                            , inNode2_id :: NodeId
+                           , inNode_fav :: Bool
                            } deriving (Show, Generic, Typeable)
 
 instance ToRow InputData where
   toRow inputData = [ toField (inNode1_id inputData)
                     , toField (inNode2_id inputData)
+                    , toField (inNode_fav inputData)
                     ]
 

@@ -67,7 +67,9 @@ import Gargantext.Database.Config (nodeTypeId)
 --instance FromJSON Facet
 --instance ToJSON   Facet
 
-type FacetDoc = Facet NodeId UTCTime HyperdataDocument Bool Int
+type Favorite = Bool
+
+type FacetDoc = Facet NodeId UTCTime HyperdataDocument Favorite Int
 type FacetSources = FacetDoc
 type FacetAuthors = FacetDoc
 type FacetTerms   = FacetDoc
@@ -108,7 +110,7 @@ $(makeLensesWith abbreviatedFields   ''Facet)
 type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGTimestamptz)
                           (Column PGJsonb      )
-                          (Column PGBool       )
+                          (Column PGBool)
                           (Column PGInt4       )
 
 -----------------------------------------------------------------------
@@ -124,6 +126,46 @@ instance Arbitrary FacetChart where
     arbitrary = FacetChart <$> arbitrary <*> arbitrary
 
 -----------------------------------------------------------------------
+
+data OrderBy =  DateAsc | DateDesc
+       --      | TitleAsc | TitleDesc 
+             | FavDesc  | FavAsc -- | NgramCount
+
+viewDocuments :: CorpusId -> NodeTypeId -> Query FacetDocRead
+viewDocuments cId ntId = proc () -> do
+  n  <- queryNodeTable -< ()
+  nn <- queryNodeNodeTable -< ()
+  restrict -< _node_id n .== nodeNode_node2_id nn
+  restrict -< nodeNode_node1_id nn .== (pgInt4 cId)
+  restrict -< _node_typename n     .== (pgInt4 ntId)
+  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_hyperdata n) (nodeNode_favorite nn) (pgInt4 1)
+
+
+filterDocuments :: (PGOrd date, PGOrd favorite) =>
+     Maybe Gargantext.Core.Types.Offset
+     -> Maybe Gargantext.Core.Types.Limit
+     -> OrderBy
+     -> Select (Facet id (Column date) hyperdata (Column favorite) ngramCount)
+     -> Query  (Facet id (Column date) hyperdata (Column favorite) ngramCount)
+filterDocuments o l order q = limit' l $ offset' o $ orderBy ordering q
+  where
+    ordering = case order of
+      DateAsc   -> asc  facetDoc_created
+      DateDesc  -> desc facetDoc_created
+      
+      --TitleAsc  -> asc  facetDoc_hyperdata
+      --TitleDesc -> desc facetDoc_hyperdata
+      
+      FavAsc    -> asc  facetDoc_favorite
+      FavDesc   -> desc facetDoc_favorite
+
+
+runViewDocuments :: CorpusId -> Maybe Offset -> Maybe Limit -> OrderBy -> Cmd [FacetDoc]
+runViewDocuments cId o l order = mkCmd $ \c -> runQuery c ( filterDocuments o l order
+                                                $ viewDocuments cId ntId)
+  where
+    ntId = nodeTypeId NodeDocument
+
 
 {-
 getDocFacet :: Connection -> NodeType -> Int -> Maybe NodeType 
