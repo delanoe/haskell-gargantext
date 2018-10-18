@@ -373,6 +373,9 @@ node2row (Node id tn ud pid nm dt hp) = ((pgInt4    <$> id)
                                         ,(pgStrictJSONB hp)
                                         )
 ------------------------------------------------------------------------
+insertNodesR' :: [NodeWrite'] -> Cmd [Int]
+insertNodesR' ns = mkCmd $ \c -> insertNodesR ns c
+
 insertNodes :: [NodeWrite'] -> Connection -> IO Int64
 insertNodes ns conn = runInsertMany conn nodeTable' (map node2row ns)
 
@@ -486,3 +489,8 @@ mkRoot :: UserId -> Cmd [Int]
 mkRoot uId = case uId > 0 of
                False -> panic "UserId <= 0"
                True  -> mk'' NodeUser Nothing uId ("User Node : " <> (pack . show) uId)
+
+mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd [Int]
+mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
+
+

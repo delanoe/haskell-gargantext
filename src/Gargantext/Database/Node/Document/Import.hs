@@ -77,6 +77,7 @@ import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 
 import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Database.Types.Node
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
@@ -103,8 +104,8 @@ import GHC.Generics (Generic)
 -- | Insert Document main function
 -- UserId : user who is inserting the documents
 -- ParentId : folder ID which is parent of the inserted documents
-insertDocuments :: Connection -> UserId -> ParentId -> [HyperdataDocument] -> IO [ReturnId]
-insertDocuments conn uId pId hs = query conn queryInsert (Only $ Values fields inputData)
+insertDocuments :: UserId -> ParentId -> [HyperdataDocument] -> Cmd [ReturnId]
+insertDocuments uId pId hs = mkCmd $ \c -> query c queryInsert (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
     inputData = prepare uId pId hs
