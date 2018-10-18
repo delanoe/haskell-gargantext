@@ -29,7 +29,7 @@ import Data.Maybe (Maybe(..))
 import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
-import Gargantext.Database.Node (Cmd(..), getRoot, mkRoot, mkCorpus, defaultCorpus)
+import Gargantext.Database.Node (Cmd(..), getRoot, mkRoot, mkCorpus)
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(reId))
 import Gargantext.Database.Node.Document.Add    (add)
