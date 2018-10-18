@@ -40,7 +40,7 @@ import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
-import Gargantext.Database.Types.Node (NodeType)
+import Gargantext.Database.Types.Node (NodeType, defaultCorpus)
 import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Prelude hiding (sum)
@@ -318,8 +318,6 @@ nodeFolderW maybeName maybeFolder pid = node NodeFolder name (Hyperdata folder) 
     name   = maybe "Folder" identity maybeName
     folder = maybe defaultFolder identity maybeFolder
 ------------------------------------------------------------------------
-defaultCorpus :: HyperdataCorpus
-defaultCorpus = (HyperdataCorpus (Just "Title") (Just "Descr") (Just "Bool query") (Just "Authors") Nothing)
 
 nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite'
 nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name (Hyperdata corpus) (Just pId)
