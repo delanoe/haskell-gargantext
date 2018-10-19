@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.TextSearch
-Description : 
+Description : Postgres text search experimentation
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -15,9 +15,6 @@ Portability : POSIX
 
 module Gargantext.Database.TextSearch where
 
-import Prelude (print)
-
-import Control.Monad
 
 import Data.Aeson
 import Data.List (intersperse)
@@ -27,7 +24,6 @@ import Data.Text (Text, words)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
 
-import Gargantext.Database.Node (Cmd(..), mkCmd, CorpusId, DocId)
 import Gargantext.Prelude
 
 newtype TSQuery = UnsafeTSQuery [Text]

@@ -19,6 +19,7 @@ commentary with @some markup@.
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.NodeNode where
