@@ -27,7 +27,7 @@ import Data.Text (Text, words)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
 
-import Gargantext.Database.Utils (connectGargandb)
+import Gargantext.Database.Node (Cmd(..), mkCmd, CorpusId, DocId)
 import Gargantext.Prelude
 
 newtype TSQuery = UnsafeTSQuery [Text]
@@ -74,18 +74,20 @@ textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'     \
 \                      FROM nodes n                                 \
 \            LEFT JOIN nodes_nodes nn  ON nn.node2_id = n.id        \
 \              WHERE                                                \
-\                n.search @@ (?::tsquery)                   \
-\                AND n.parent_id = ?   AND n.typename  = 40         \
+\                n.search @@ (?::tsquery)                           \
+\                AND n.parent_id = ?   AND n.typename  = 4          \
 \                ORDER BY n.hyperdata -> 'publication_date' ?       \
 \            offset ? limit ?;"
 
+-- | Text Search Function for Master Corpus
+-- TODO : text search for user corpus
+-- Example:
+-- textSearchTest :: ParentId -> TSQuery -> Cmd [(Int, Value, Value, Value, Value, Maybe Int)]
+-- textSearchTest pId q = mkCmd $ \c -> textSearch c q pId 5 0 Asc
 textSearch :: Connection 
            -> TSQuery -> ParentId
            -> Limit -> Offset -> Order
            -> IO [(Int,Value,Value,Value, Value, Maybe Int)]
 textSearch conn q p l o ord = query conn textSearchQuery (q,p,ord, o,l)
 
-textSearchTest :: ParentId -> TSQuery -> IO ()
-textSearchTest pId q = connectGargandb "gargantext.ini"
-  >>= \conn -> textSearch conn q pId 5 0 Asc
-  >>= mapM_ print
+

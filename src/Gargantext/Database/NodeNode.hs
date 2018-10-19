@@ -16,7 +16,7 @@ commentary with @some markup@.
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE QuasiQuotes          #-}
+{-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
