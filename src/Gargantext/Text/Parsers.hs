@@ -120,6 +120,7 @@ toDoc format d = do
                                (lookup "URL" d)
                                 Nothing
                                 Nothing
+                                Nothing
                                (lookup "title" d)
                                (lookup "authors" d)
                                (lookup "source" d)

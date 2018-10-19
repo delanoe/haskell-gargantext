@@ -131,7 +131,8 @@ queryInsert = [sql|
     , ins AS (
        INSERT INTO nodes (typename,user_id,parent_id,name,hyperdata)
        SELECT * FROM input_rows
-       ON CONFLICT (typename, parent_id, (hyperdata ->> 'uniqId')) DO NOTHING -- on unique index
+       ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO NOTHING -- on unique index
+       -- ON CONFLICT (typename, parent_id, (hyperdata ->> 'uniqId')) DO NOTHING -- on unique index
        RETURNING id,hyperdata
        )
 
@@ -197,13 +198,15 @@ hashParameters = [ \d -> maybe' (_hyperdataDocument_title    d)
                  , \d -> maybe' (_hyperdataDocument_source   d)
                  , \d -> maybe' (_hyperdataDocument_publication_date   d)
                  ]
-                   where
-                     maybe' = maybe (DT.pack "") identity
+
+maybe' = maybe (DT.pack "") identity
 
 addUniqId :: HyperdataDocument -> HyperdataDocument
-addUniqId doc = set hyperdataDocument_uniqId (Just hash) doc
+addUniqId doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
+              $ set hyperdataDocument_uniqId    (Just hash) doc
   where
-    hash = uniqId $ DT.concat $ map ($ doc) hashParameters
+    hash    = uniqId $ DT.concat $ map ($ doc) hashParameters
+    hashBdd = uniqId $ DT.concat $ map ($ doc) ([(\d -> maybe' (_hyperdataDocument_bdd d))] <> hashParameters)
 
     uniqId :: Text -> Text
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack

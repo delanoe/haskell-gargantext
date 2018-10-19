@@ -59,6 +59,7 @@ doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
                     Nothing
                     Nothing
                     Nothing
+                    Nothing
                     (Just dt)
                     (Just dau)
                     (Just dab)

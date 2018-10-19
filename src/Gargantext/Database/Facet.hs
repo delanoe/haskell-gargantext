@@ -126,18 +126,19 @@ instance Arbitrary FacetChart where
     arbitrary = FacetChart <$> arbitrary <*> arbitrary
 
 -----------------------------------------------------------------------
-
+type Trash   = Bool
 data OrderBy =  DateAsc | DateDesc
        --      | TitleAsc | TitleDesc 
              | FavDesc  | FavAsc -- | NgramCount
 
-viewDocuments :: CorpusId -> NodeTypeId -> Query FacetDocRead
-viewDocuments cId ntId = proc () -> do
+viewDocuments :: CorpusId -> Trash -> NodeTypeId -> Query FacetDocRead
+viewDocuments cId t ntId = proc () -> do
   n  <- queryNodeTable -< ()
   nn <- queryNodeNodeTable -< ()
   restrict -< _node_id n .== nodeNode_node2_id nn
   restrict -< nodeNode_node1_id nn .== (pgInt4 cId)
-  restrict -< _node_typename n     .== (pgInt4 ntId)
+  restrict -< _node_typename    n  .== (pgInt4 ntId)
+  restrict -< nodeNode_delete   nn .== (pgBool t)
   returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_hyperdata n) (nodeNode_favorite nn) (pgInt4 1)
 
 
@@ -160,9 +161,9 @@ filterDocuments o l order q = limit' l $ offset' o $ orderBy ordering q
       FavDesc   -> desc facetDoc_favorite
 
 
-runViewDocuments :: CorpusId -> Maybe Offset -> Maybe Limit -> OrderBy -> Cmd [FacetDoc]
-runViewDocuments cId o l order = mkCmd $ \c -> runQuery c ( filterDocuments o l order
-                                                $ viewDocuments cId ntId)
+runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> OrderBy -> Cmd [FacetDoc]
+runViewDocuments cId t o l order = mkCmd $ \c -> runQuery c ( filterDocuments o l order
+                                                $ viewDocuments cId t ntId)
   where
     ntId = nodeTypeId NodeDocument
 

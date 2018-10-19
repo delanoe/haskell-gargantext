@@ -7,11 +7,10 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-All Database related stuff here.
-
 Target: just import this module and nothing else to work with
 Gargantext's database.
 
+TODO: configure nodes table in Haskell (Config typenames etc.)
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
