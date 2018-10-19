@@ -49,11 +49,12 @@ the concatenation of the parameters defined by @hashParameters@.
 
 -}
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Node.Document.Insert where
@@ -64,7 +65,7 @@ import Data.Aeson (toJSON, Value)
 import Data.ByteString.Internal (ByteString)
 import Data.Maybe (maybe)
 import Data.Typeable (Typeable)
-import Database.PostgreSQL.Simple (Connection, FromRow, Query, formatQuery, query, Only(..))
+import Database.PostgreSQL.Simple (FromRow, Query, formatQuery, query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField)
@@ -149,9 +150,11 @@ queryInsert = [sql|
            |]
 
 prepare :: UserId -> ParentId -> [HyperdataDocument] -> [InputData]
-prepare uId pId = map (\h -> InputData tId uId pId (DT.pack "Doc") (toJSON $ addUniqId h))
+prepare uId pId = map (\h -> InputData tId uId pId (maybe "No Title of Document" identity $ _hyperdataDocument_title h) 
+                                                   (toJSON $ addUniqId h)
+                      )
   where
-    tId = nodeTypeId NodeDocument
+    tId  = nodeTypeId NodeDocument
 
 ------------------------------------------------------------------------
 -- * Main Types used
@@ -192,15 +195,6 @@ instance ToRow InputData where
 ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
 
-hashParameters :: [(HyperdataDocument -> Text)]
-hashParameters = [ \d -> maybe' (_hyperdataDocument_title    d)
-                 , \d -> maybe' (_hyperdataDocument_abstract d)
-                 , \d -> maybe' (_hyperdataDocument_source   d)
-                 , \d -> maybe' (_hyperdataDocument_publication_date   d)
-                 ]
-
-maybe' = maybe (DT.pack "") identity
-
 addUniqId :: HyperdataDocument -> HyperdataDocument
 addUniqId doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
               $ set hyperdataDocument_uniqId    (Just hash) doc
@@ -210,6 +204,17 @@ addUniqId doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
 
     uniqId :: Text -> Text
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
+
+
+hashParameters :: [(HyperdataDocument -> Text)]
+hashParameters = [ \d -> maybe' (_hyperdataDocument_title    d)
+                 , \d -> maybe' (_hyperdataDocument_abstract d)
+                 , \d -> maybe' (_hyperdataDocument_source   d)
+                 , \d -> maybe' (_hyperdataDocument_publication_date   d)
+                 ]
+
+maybe' :: Maybe Text -> Text
+maybe' = maybe (DT.pack "") identity
 
 ---------------------------------------------------------------------------
 

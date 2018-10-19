@@ -20,25 +20,18 @@ Add Documents/Contact to a Corpus/Annuaire.
 ------------------------------------------------------------------------
 module Gargantext.Database.Node.Document.Add where
 
-import Control.Lens (set)
 
-import Data.Aeson (toJSON, Value)
 import Data.ByteString.Internal (ByteString)
-import Data.Maybe (maybe)
 import Data.Typeable (Typeable)
-import Database.PostgreSQL.Simple (Connection, FromRow, Query, formatQuery, query, Only(..))
-import Database.PostgreSQL.Simple.FromRow (fromRow, field)
+import Database.PostgreSQL.Simple (Query, formatQuery, query, Only(..))
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 
 import Data.Text (Text)
-import qualified Data.Text                   as DT (pack, unpack, concat)
-import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
-import qualified Data.ByteString.Lazy.Char8  as DC (pack)
+import qualified Data.Text                   as DT (pack)
 
-import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude

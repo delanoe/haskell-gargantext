@@ -30,12 +30,13 @@ module Gargantext.API.Node
   , HyperdataDocumentV3(..)
   ) where
 -------------------------------------------------------------------
-
+import Prelude (Enum, Bounded, minBound, maxBound)
 import Control.Lens (prism')
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
+import Data.Either(Either(Left))
 import Data.Aeson (FromJSON, ToJSON, Value())
 --import Data.Text (Text(), pack)
 import Data.Text (Text())
@@ -46,7 +47,6 @@ import Database.PostgreSQL.Simple (Connection)
 
 import GHC.Generics (Generic)
 import Servant
--- import Servant.Multipart
 
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
@@ -55,7 +55,7 @@ import Gargantext.Database.Node ( runCmd
                                 , getNode, getNodesWith
                                 , deleteNode, deleteNodes, mk, JSONB)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
-import Gargantext.Database.Facet (FacetDoc {-,getDocFacet-}
+import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..)
                                  ,FacetChart)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 
@@ -63,6 +63,7 @@ import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.TextFlow
 import Gargantext.Viz.Graph (Graph)
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Text.Terms (TermType(..))
 
@@ -117,21 +118,35 @@ type NodeAPI a = Get '[JSON] (Node a)
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
                              :> Get '[JSON] [Node a]
-             :<|> "facet" :> Summary " Facet documents"
-                          :> "documents" :> FacetDocAPI
---             :<|> "facet" :<|> "sources"   :<|> FacetSourcesAPI
---             :<|> "facet" :<|> "authors"   :<|> FacetAuthorsAPI
---             :<|> "facet" :<|> "terms"     :<|> FacetTermsAPI
+             :<|> Summary " Tabs" :> FacetDocAPI
 
 --data FacetFormat = Table | Chart
---data FacetType   = Doc   | Term  | Source | Author
---data Facet       = Facet Doc Format
+data FacetType   = Docs   | Terms  | Sources | Authors | Trash
+  deriving (Generic, Enum, Bounded)
 
+instance FromHttpApiData FacetType
+  where
+    parseUrlPiece "Docs" = pure Docs
+    parseUrlPiece "Terms" = pure Terms
+    parseUrlPiece "Sources" = pure Sources
+    parseUrlPiece "Authors" = pure Authors
+    parseUrlPiece "Trash"   = pure Trash
+    parseUrlPiece _         = Left "Unexpected value of FacetType"
+
+instance ToParamSchema   FacetType
+instance ToJSON    FacetType
+instance FromJSON  FacetType
+instance ToSchema  FacetType
+instance Arbitrary FacetType
+  where
+    arbitrary = elements [minBound .. maxBound]
 
 type FacetDocAPI = "table"
                    :> Summary " Table data"
+                   :> QueryParam "view"   FacetType
                    :> QueryParam "offset" Int
                    :> QueryParam "limit"  Int
+                   :> QueryParam "order"  OrderBy
                    :> Get '[JSON] [FacetDoc]
 
                 :<|> "chart"
@@ -183,7 +198,7 @@ nodeAPI conn p id
               :<|> putNode       conn id
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id p
-              :<|> getFacet      conn id
+              :<|> getTable      conn id
               :<|> getChart      conn id
               -- :<|> upload
               -- :<|> query
@@ -194,6 +209,15 @@ rename c nId (RenameNode name) = liftIO $ U.update (U.Rename nId name) c
 
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
+
+getTable :: Connection -> NodeId -> Maybe FacetType -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Handler [FacetDoc]
+getTable c cId ft o l order = liftIO $ case ft of
+                                (Just Docs)  -> runViewDocuments' c cId False o l order
+                                (Just Trash) -> runViewDocuments' c cId True  o l order
+                                _     -> panic "not implemented"
+
+
+
 
 postNode :: Connection -> NodeId -> PostNode -> Handler [Int]
 postNode c pId (PostNode name nt) = liftIO $ mk c nt (Just pId) name
@@ -211,10 +235,6 @@ getNodesWith' :: JSONB a => Connection -> NodeId -> proxy a -> Maybe NodeType
               -> Maybe Int -> Maybe Int -> Handler [Node a]
 getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p nodeType offset limit)
 
-
-getFacet :: Connection -> NodeId -> Maybe Int -> Maybe Int
-                        -> Handler [FacetDoc]
-getFacet conn id offset limit = undefined -- liftIO (putStrLn ( "/facet" :: Text)) >> liftIO (getDocFacet conn NodeCorpus id (Just NodeDocument) offset limit)
 
 getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
                         -> Handler [FacetChart]

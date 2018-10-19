@@ -11,6 +11,7 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
+
 {-# LANGUAGE Arrows                    #-}
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE FlexibleContexts          #-}
@@ -19,41 +20,41 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoImplicitPrelude         #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell           #-}
-
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet 
   where
 ------------------------------------------------------------------------
 
-import Prelude hiding (null, id, map, sum, not)
+import Prelude hiding (null, id, map, sum, not, read)
+import Prelude (Enum, Bounded, minBound, maxBound)
 import GHC.Generics (Generic)
 
--- import Data.Aeson (Value)
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Either(Either(Left))
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 
 import Data.Aeson.TH (deriveJSON)
 import Data.Maybe (Maybe)
-import Data.Profunctor.Product.Default (Default)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
 import Data.Swagger
 
-import           Database.PostgreSQL.Simple (Connection)
+import Database.PostgreSQL.Simple (Connection)
 import           Opaleye
-import           Opaleye.Internal.Join (NullMaker)
 import qualified Opaleye.Internal.Unpackspec()
 
+import Servant.API
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 
 import Gargantext.Core.Types
-import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.NodeNode
-import Gargantext.Database.NodeNodeNgram
 import Gargantext.Database.Node
 import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
@@ -68,21 +69,23 @@ import Gargantext.Database.Config (nodeTypeId)
 --instance ToJSON   Facet
 
 type Favorite = Bool
+type Title    = Text
 
-type FacetDoc = Facet NodeId UTCTime HyperdataDocument Favorite Int
+type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument Favorite Int
 type FacetSources = FacetDoc
 type FacetAuthors = FacetDoc
 type FacetTerms   = FacetDoc
 
 
 
-data Facet id created hyperdata favorite ngramCount = 
+data Facet id created title hyperdata favorite ngramCount = 
      FacetDoc { facetDoc_id         :: id
-               , facetDoc_created    :: created
-               , facetDoc_hyperdata  :: hyperdata
-               , facetDoc_favorite   :: favorite
-               , facetDoc_ngramCount :: ngramCount
-               } deriving (Show, Generic)
+              , facetDoc_created    :: created
+              , facetDoc_title      :: title
+              , facetDoc_hyperdata  :: hyperdata
+              , facetDoc_favorite   :: favorite
+              , facetDoc_ngramCount :: ngramCount
+              } deriving (Show, Generic)
 
 -- | JSON instance
 
@@ -94,9 +97,10 @@ instance ToSchema FacetDoc
 -- | Mock and Quickcheck instances
 
 instance Arbitrary FacetDoc where
-    arbitrary = elements [ FacetDoc id' (jour year 01 01) hp fav ngramCount
+    arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp fav ngramCount
                          | id'  <- [1..10]
                          , year <- [1990..2000]
+                         , t    <- ["title", "another title"]
                          , hp   <- hyperdataDocuments
                          , fav  <- [True, False]
                          , ngramCount <- [3..100]
@@ -109,6 +113,7 @@ $(makeLensesWith abbreviatedFields   ''Facet)
 
 type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGTimestamptz)
+                          (Column PGText       )
                           (Column PGJsonb      )
                           (Column PGBool)
                           (Column PGInt4       )
@@ -128,8 +133,28 @@ instance Arbitrary FacetChart where
 -----------------------------------------------------------------------
 type Trash   = Bool
 data OrderBy =  DateAsc | DateDesc
-       --      | TitleAsc | TitleDesc 
-             | FavDesc  | FavAsc -- | NgramCount
+             | TitleAsc | TitleDesc
+             | FavDesc  | FavAsc
+             deriving (Generic, Enum, Bounded, Read, Show)
+             -- | NgramCoun
+
+instance FromHttpApiData OrderBy
+  where
+    parseUrlPiece "DateAsc"  = pure DateAsc
+    parseUrlPiece "DateDesc" = pure DateDesc
+    parseUrlPiece "TitleAsc" = pure TitleAsc
+    parseUrlPiece "TitleDesc" = pure TitleDesc
+    parseUrlPiece "FavAsc"   = pure FavAsc
+    parseUrlPiece "FavDesc"   = pure FavDesc
+    parseUrlPiece _           = Left "Unexpected value of OrderBy"
+
+instance ToParamSchema OrderBy
+instance FromJSON  OrderBy
+instance ToJSON    OrderBy
+instance ToSchema  OrderBy
+instance Arbitrary OrderBy
+  where
+    arbitrary = elements [minBound..maxBound]
 
 viewDocuments :: CorpusId -> Trash -> NodeTypeId -> Query FacetDocRead
 viewDocuments cId t ntId = proc () -> do
@@ -139,33 +164,39 @@ viewDocuments cId t ntId = proc () -> do
   restrict -< nodeNode_node1_id nn .== (pgInt4 cId)
   restrict -< _node_typename    n  .== (pgInt4 ntId)
   restrict -< nodeNode_delete   nn .== (pgBool t)
-  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_hyperdata n) (nodeNode_favorite nn) (pgInt4 1)
+  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (nodeNode_favorite nn) (pgInt4 1)
 
 
-filterDocuments :: (PGOrd date, PGOrd favorite) =>
+filterDocuments :: (PGOrd date, PGOrd title, PGOrd favorite) =>
      Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
-     -> OrderBy
-     -> Select (Facet id (Column date) hyperdata (Column favorite) ngramCount)
-     -> Query  (Facet id (Column date) hyperdata (Column favorite) ngramCount)
+     -> Maybe OrderBy
+     -> Select (Facet id (Column date) (Column title) hyperdata (Column favorite) ngramCount)
+     -> Query  (Facet id (Column date) (Column title) hyperdata (Column favorite) ngramCount)
 filterDocuments o l order q = limit' l $ offset' o $ orderBy ordering q
   where
     ordering = case order of
-      DateAsc   -> asc  facetDoc_created
-      DateDesc  -> desc facetDoc_created
+      (Just DateAsc)   -> asc  facetDoc_created
       
-      --TitleAsc  -> asc  facetDoc_hyperdata
-      --TitleDesc -> desc facetDoc_hyperdata
+      (Just TitleAsc)  -> asc  facetDoc_title
+      (Just TitleDesc) -> desc facetDoc_title
       
-      FavAsc    -> asc  facetDoc_favorite
-      FavDesc   -> desc facetDoc_favorite
+      (Just FavAsc)    -> asc  facetDoc_favorite
+      (Just FavDesc)   -> desc facetDoc_favorite
+      _                -> desc facetDoc_created
 
 
-runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> OrderBy -> Cmd [FacetDoc]
-runViewDocuments cId t o l order = mkCmd $ \c -> runQuery c ( filterDocuments o l order
+runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd [FacetDoc]
+runViewDocuments cId t o l order = mkCmd $ \c -> runViewDocuments' c cId t o l order
+
+-- | TODO use only Cmd with Reader and delete function below
+runViewDocuments' :: Connection -> CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
+runViewDocuments' c cId t o l order = runQuery c ( filterDocuments o l order
                                                 $ viewDocuments cId t ntId)
   where
     ntId = nodeTypeId NodeDocument
+
+
 
 
 {-

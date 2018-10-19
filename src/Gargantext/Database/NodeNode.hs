@@ -27,7 +27,6 @@ import Gargantext.Prelude
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import qualified Database.PostgreSQL.Simple as PGS
 
 import Opaleye
 

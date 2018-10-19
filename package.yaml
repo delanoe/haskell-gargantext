@@ -37,7 +37,8 @@ library:
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database
   - Gargantext.Database.Bashql
-  - Gargantext.Database.Node.Document.Import
+  - Gargantext.Database.Node.Document.Insert
+  - Gargantext.Database.Node.Document.Add
   - Gargantext.Database.Types.Node
   - Gargantext.Database.User
   - Gargantext.Database.Cooc

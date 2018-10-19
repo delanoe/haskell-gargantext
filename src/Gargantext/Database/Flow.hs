@@ -24,12 +24,11 @@ authors
 module Gargantext.Database.Flow
     where
 import System.FilePath (FilePath)
-import GHC.Base ((>>))
 import Data.Maybe (Maybe(..))
 import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
-import Gargantext.Database.Node (Cmd(..), getRoot, mkRoot, mkCorpus)
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus)
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(reId))
 import Gargantext.Database.Node.Document.Add    (add)
@@ -64,7 +63,7 @@ subFlow username = do
   pure (userId, rootId, corpusId)
 
 
--- flow :: FilePath -> IO ()
+flow :: FilePath -> IO Int
 flow fp = do
 
   (masterUserId, _, corpusId) <- subFlow "gargantua"
@@ -76,18 +75,10 @@ flow fp = do
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId docs
   printDebug "Docs IDs : " idsRepeat
   
-  (userId, rootId, corpusId2) <- subFlow "alexandre"
+  (_, _, corpusId2) <- subFlow "alexandre"
 
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " inserted
 
-  -- runCmd' (del [corpusId2, corpusId])
-
-{-
-  ids  <- add (Documents corpusId) docs
-
-  user_id <- runCmd' (get RootUser "alexandre")
-  rootUser_id <- runCmd' (getRootUser $ userLight_id user_id
-  corpusId <- mk Corpus 
--}
+  runCmd' (del [corpusId2, corpusId])
 
