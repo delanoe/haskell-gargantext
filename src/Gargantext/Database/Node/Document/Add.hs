@@ -11,11 +11,12 @@ Add Documents/Contact to a Corpus/Annuaire.
  
 -}
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Node.Document.Add where
@@ -30,7 +31,6 @@ import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 
 import Data.Text (Text)
-import qualified Data.Text                   as DT (pack)
 
 import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Database.Types.Node
@@ -57,7 +57,7 @@ add_debug pId ns = mkCmd $ \c -> formatQuery c queryAdd (Only $ Values fields in
 
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
-inputSqlTypes = map DT.pack ["int4","int4","bool","bool"]
+inputSqlTypes = ["int4","int4","bool","bool"]
 
 -- | SQL query to add documents
 -- TODO return id of added documents only

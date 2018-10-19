@@ -16,18 +16,21 @@ commentary with @some markup@.
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.NodeNode where
 
-import Gargantext.Database.Node (Cmd(..), mkCmd)
-import Gargantext.Prelude
+import qualified Database.PostgreSQL.Simple as PGS (Connection, Query, query, Only(..))
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-
+import Gargantext.Database.Node (Cmd(..), mkCmd, CorpusId, DocId)
+import Gargantext.Prelude
 import Opaleye
 
 
@@ -90,6 +93,66 @@ instance QueryRunnerColumnDefault PGBool (Maybe Bool) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
+------------------------------------------------------------------------
+-- | Favorite management
+nodeToFavorite :: PGS.Connection -> CorpusId -> DocId -> Bool -> IO [PGS.Only Int]
+nodeToFavorite c cId dId b = PGS.query c favQuery (b,cId,dId)
+  where
+    favQuery :: PGS.Query
+    favQuery = [sql|UPDATE nodes_nodes SET favorite = ?
+               WHERE node1_id = ? AND node2_id = ?
+               RETURNING node2_id;
+               |]
 
+nodesToFavorite :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [PGS.Only Int]
+nodesToFavorite c inputData = PGS.query c trashQuery (PGS.Only $ Values fields inputData)
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
+    trashQuery :: PGS.Query
+    trashQuery = [sql| UPDATE nodes_nodes as old SET
+                 favorite = new.favorite
+                 from (?) as new(node1_id,node2_id,favorite)
+                 WHERE old.node1_id = new.node1_id
+                 AND   old.node2_id = new.node2_id
+                 RETURNING new.node2_id
+                  |]
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- | Trash management
+nodeToTrash :: PGS.Connection -> CorpusId -> DocId -> Bool -> IO [PGS.Only Int]
+nodeToTrash c cId dId b = PGS.query c trashQuery (b,cId,dId)
+  where
+    trashQuery :: PGS.Query
+    trashQuery = [sql|UPDATE nodes_nodes SET delete = ?
+                  WHERE node1_id = ? AND node2_id = ?
+                  RETURNING node2_id
+                  |]
+
+-- | Trash Massive
+nodesToTrash :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [PGS.Only Int]
+nodesToTrash c inputData = PGS.query c trashQuery (PGS.Only $ Values fields inputData)
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
+    trashQuery :: PGS.Query
+    trashQuery = [sql| UPDATE nodes_nodes as old SET
+                 delete = new.delete
+                 from (?) as new(node1_id,node2_id,delete)
+                 WHERE old.node1_id = new.node1_id
+                 AND   old.node2_id = new.node2_id
+                 RETURNING new.node2_id
+                  |]
+
+-- | /!\ Really remove nodes in the Corpus or Annuaire
+emptyTrash :: PGS.Connection -> CorpusId -> IO [PGS.Only Int]
+emptyTrash c cId = PGS.query c delQuery (PGS.Only cId)
+  where
+    delQuery :: PGS.Query
+    delQuery = [sql|DELETE from nodes_nodes n
+                    WHERE n.node1_id = ?
+                      AND n.delete = true
+                    RETURNING n.node2_id
+                |]
+------------------------------------------------------------------------
 
 

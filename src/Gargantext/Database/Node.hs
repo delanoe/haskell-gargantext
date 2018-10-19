@@ -88,9 +88,11 @@ mkCmd :: (Connection -> IO a) -> Cmd a
 mkCmd = Cmd . ReaderT
 
 ------------------------------------------------------------------------
-type CorpusId = Int
+type CorpusId   = Int
 type AnnuaireId = Int
-type UserId = NodeId
+
+type DocId  = Int
+type UserId = Int
 type TypeId = Int
 ------------------------------------------------------------------------
 instance FromField HyperdataCorpus where
