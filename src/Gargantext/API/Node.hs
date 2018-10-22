@@ -52,13 +52,13 @@ import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
                                 , getNodesWithParentId
-                                , getNode, getNodesWith
+                                , getNode, getNodesWith, CorpusId
                                 , deleteNode, deleteNodes, mk, JSONB)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..)
                                  ,FacetChart)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
-
+import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
 import Gargantext.TextFlow
 import Gargantext.Viz.Graph (Graph)
@@ -103,6 +103,48 @@ instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
 ------------------------------------------------------------------------
+type DocsApi = "documents" :> Summary "Docs api"
+                          :> ReqBody '[JSON] Documents
+                          :> Delete  '[JSON] [Int]
+
+data Documents = Documents { documents :: [NodeId]}
+  deriving (Generic)
+
+instance FromJSON  Documents
+instance ToJSON    Documents
+instance ToSchema  Documents
+
+delDocs :: Connection -> CorpusId -> Documents -> Handler [Int]
+delDocs c cId ds = liftIO $ nodesToTrash c
+                $ map (\n -> (cId, n, True)) $ documents ds
+
+------------------------------------------------------------------------
+type FavApi = "favorites" :> Summary "Modify statut"
+                          :> ReqBody '[JSON] Favorites
+                          :> Put     '[JSON] [Int]
+                        :<|> Summary "Delete"
+                          :> ReqBody '[JSON] Favorites
+                          :> Delete  '[JSON] [Int]
+
+data Favorites = Favorites { favorites :: [NodeId]}
+  deriving (Generic)
+
+instance FromJSON  Favorites
+instance ToJSON    Favorites
+instance ToSchema  Favorites
+
+putFav :: Connection -> CorpusId -> Favorites -> Handler [Int]
+putFav c cId fs = liftIO $ nodesToFavorite c
+                $ map (\n -> (cId, n, True)) $ favorites fs
+
+delFav :: Connection -> CorpusId -> Favorites -> Handler [Int]
+delFav c cId fs = liftIO $ nodesToFavorite c
+                $ map (\n -> (cId, n, False)) $ favorites fs
+
+favApi :: Connection -> CorpusId -> (Favorites -> Handler [Int])
+                               :<|> (Favorites -> Handler [Int])
+favApi c cId = putFav c cId :<|> delFav c cId
+
 ------------------------------------------------------------------------
 type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> Summary " RenameNode Node"
@@ -118,7 +160,25 @@ type NodeAPI a = Get '[JSON] (Node a)
                              :> QueryParam "offset" Int
                              :> QueryParam "limit"  Int
                              :> Get '[JSON] [Node a]
-             :<|> Summary " Tabs" :> FacetDocAPI
+             :<|> Summary " Tabs"      :> FacetDocAPI
+
+
+-- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
+nodeAPI :: JSONB a => Connection -> proxy a -> NodeId -> Server (NodeAPI a)
+nodeAPI conn p id
+                =  liftIO (getNode conn id p)
+              :<|> rename        conn id
+              :<|> postNode      conn id
+              :<|> putNode       conn id
+              :<|> deleteNode'   conn id
+              :<|> getNodesWith' conn id p
+              :<|> getTable      conn id
+              :<|> getChart      conn id
+              :<|> favApi        conn id
+              :<|> delDocs       conn id
+              -- :<|> upload
+              -- :<|> query
+
 
 --data FacetFormat = Table | Chart
 data FacetType   = Docs   | Terms  | Sources | Authors | Trash
@@ -126,8 +186,8 @@ data FacetType   = Docs   | Terms  | Sources | Authors | Trash
 
 instance FromHttpApiData FacetType
   where
-    parseUrlPiece "Docs" = pure Docs
-    parseUrlPiece "Terms" = pure Terms
+    parseUrlPiece "Docs"    = pure Docs
+    parseUrlPiece "Terms"   = pure Terms
     parseUrlPiece "Sources" = pure Sources
     parseUrlPiece "Authors" = pure Authors
     parseUrlPiece "Trash"   = pure Trash
@@ -141,6 +201,7 @@ instance Arbitrary FacetType
   where
     arbitrary = elements [minBound .. maxBound]
 
+------------------------------------------------------------------------
 type FacetDocAPI = "table"
                    :> Summary " Table data"
                    :> QueryParam "view"   FacetType
@@ -154,6 +215,8 @@ type FacetDocAPI = "table"
                    :> QueryParam "from" UTCTime
                    :> QueryParam "to"   UTCTime
                    :> Get '[JSON] [FacetChart]
+                :<|> Summary " Favorites" :> FavApi
+                :<|> Summary " Documents" :> DocsApi
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
@@ -172,6 +235,7 @@ roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId 0 Nothi
           :<|> pure (panic "not implemented yet") -- TODO
 
 
+------------------------------------------------------------------------
 type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
 graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
@@ -189,19 +253,7 @@ type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: Connection -> NodeId -> Server TreeAPI
 treeAPI = treeDB
 
--- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: JSONB a => Connection -> proxy a -> NodeId -> Server (NodeAPI a)
-nodeAPI conn p id
-                =  liftIO (getNode conn id p)
-              :<|> rename        conn id
-              :<|> postNode      conn id
-              :<|> putNode       conn id
-              :<|> deleteNode'   conn id
-              :<|> getNodesWith' conn id p
-              :<|> getTable      conn id
-              :<|> getChart      conn id
-              -- :<|> upload
-              -- :<|> query
+------------------------------------------------------------------------
 -- | Check if the name is less than 255 char
 --rename :: Connection -> NodeId -> Rename -> Server NodeAPI
 rename :: Connection -> NodeId -> RenameNode -> Handler [Int]
@@ -210,14 +262,17 @@ rename c nId (RenameNode name) = liftIO $ U.update (U.Rename nId name) c
 nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
 nodesAPI conn ids = deleteNodes' conn ids
 
-getTable :: Connection -> NodeId -> Maybe FacetType -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Handler [FacetDoc]
+getTable :: Connection -> NodeId -> Maybe FacetType
+         -> Maybe Offset  -> Maybe Limit
+         -> Maybe OrderBy -> Handler [FacetDoc]
 getTable c cId ft o l order = liftIO $ case ft of
                                 (Just Docs)  -> runViewDocuments' c cId False o l order
                                 (Just Trash) -> runViewDocuments' c cId True  o l order
                                 _     -> panic "not implemented"
 
-
-
+getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
+                        -> Handler [FacetChart]
+getChart _ _ _ _ = undefined -- TODO
 
 postNode :: Connection -> NodeId -> PostNode -> Handler [Int]
 postNode c pId (PostNode name nt) = liftIO $ mk c nt (Just pId) name
@@ -235,10 +290,6 @@ getNodesWith' :: JSONB a => Connection -> NodeId -> proxy a -> Maybe NodeType
               -> Maybe Int -> Maybe Int -> Handler [Node a]
 getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p nodeType offset limit)
 
-
-getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
-                        -> Handler [FacetChart]
-getChart _ _ _ _ = undefined -- TODO
 
 
 query :: Text -> Handler Text

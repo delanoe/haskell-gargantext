@@ -206,16 +206,13 @@ type GargAPI' =
                 "user"  :> Summary "First user endpoint"
                         :> Roots
            
-           
            -- Node endpoint
            :<|> "node"  :> Summary "Node endpoint"
                         :> Capture "id" Int      :> NodeAPI Value
            
-           
            -- Corpus endpoint
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "id" Int      :> NodeAPI HyperdataCorpus
-           
            -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
                         :> ReqBody '[JSON] [Int] :> NodesAPI

@@ -96,8 +96,8 @@ instance QueryRunnerColumnDefault PGBool (Maybe Bool) where
 
 ------------------------------------------------------------------------
 -- | Favorite management
-nodeToFavorite :: PGS.Connection -> CorpusId -> DocId -> Bool -> IO [PGS.Only Int]
-nodeToFavorite c cId dId b = PGS.query c favQuery (b,cId,dId)
+nodeToFavorite :: PGS.Connection -> CorpusId -> DocId -> Bool -> IO [Int]
+nodeToFavorite c cId dId b = map (\(PGS.Only a) -> a) <$> PGS.query c favQuery (b,cId,dId)
   where
     favQuery :: PGS.Query
     favQuery = [sql|UPDATE nodes_nodes SET favorite = ?
@@ -105,8 +105,9 @@ nodeToFavorite c cId dId b = PGS.query c favQuery (b,cId,dId)
                RETURNING node2_id;
                |]
 
-nodesToFavorite :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [PGS.Only Int]
-nodesToFavorite c inputData = PGS.query c trashQuery (PGS.Only $ Values fields inputData)
+nodesToFavorite :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [Int]
+nodesToFavorite c inputData = map (\(PGS.Only a) -> a) 
+                            <$> PGS.query c trashQuery (PGS.Only $ Values fields inputData)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
     trashQuery :: PGS.Query
@@ -131,8 +132,9 @@ nodeToTrash c cId dId b = PGS.query c trashQuery (b,cId,dId)
                   |]
 
 -- | Trash Massive
-nodesToTrash :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [PGS.Only Int]
-nodesToTrash c inputData = PGS.query c trashQuery (PGS.Only $ Values fields inputData)
+nodesToTrash :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [Int]
+nodesToTrash c inputData = map (\(PGS.Only a) -> a)
+                        <$> PGS.query c trashQuery (PGS.Only $ Values fields inputData)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
     trashQuery :: PGS.Query
