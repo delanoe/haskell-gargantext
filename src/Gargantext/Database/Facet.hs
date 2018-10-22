@@ -23,7 +23,7 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell           #-}
 ------------------------------------------------------------------------
-module Gargantext.Database.Facet 
+module Gargantext.Database.Facet
   where
 ------------------------------------------------------------------------
 

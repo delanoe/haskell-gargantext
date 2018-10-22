@@ -213,6 +213,7 @@ type GargAPI' =
            -- Corpus endpoint
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "id" Int      :> NodeAPI HyperdataCorpus
+
            -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
                         :> ReqBody '[JSON] [Int] :> NodesAPI
