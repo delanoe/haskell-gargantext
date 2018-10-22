@@ -103,9 +103,9 @@ instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
 ------------------------------------------------------------------------
-type DocsApi = "documents" :> Summary "Docs api"
-                          :> ReqBody '[JSON] Documents
-                          :> Delete  '[JSON] [Int]
+type DocsApi = Summary "Move to trash"
+             :> ReqBody '[JSON] Documents
+             :> Delete  '[JSON] [Int]
 
 data Documents = Documents { documents :: [NodeId]}
   deriving (Generic)
@@ -119,12 +119,12 @@ delDocs c cId ds = liftIO $ nodesToTrash c
                 $ map (\n -> (cId, n, True)) $ documents ds
 
 ------------------------------------------------------------------------
-type FavApi = "favorites" :> Summary "Modify statut"
-                          :> ReqBody '[JSON] Favorites
-                          :> Put     '[JSON] [Int]
-                        :<|> Summary "Delete"
-                          :> ReqBody '[JSON] Favorites
-                          :> Delete  '[JSON] [Int]
+type FavApi =  Summary "Label as Favorites"
+            :> ReqBody '[JSON] Favorites
+            :> Put     '[JSON] [Int]
+          :<|> Summary "Unlabel as Favorites"
+            :> ReqBody '[JSON] Favorites
+            :> Delete  '[JSON] [Int]
 
 data Favorites = Favorites { favorites :: [NodeId]}
   deriving (Generic)
@@ -161,6 +161,10 @@ type NodeAPI a = Get '[JSON] (Node a)
                              :> QueryParam "limit"  Int
                              :> Get '[JSON] [Node a]
              :<|> Summary " Tabs"      :> FacetDocAPI
+-- How TODO ?
+--                :<|> "favorites" :> Summary " Favorites" :> FavApi
+--                :<|> "documents" :> Summary " Documents" :> DocsApi
+
 
 
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
@@ -215,8 +219,8 @@ type FacetDocAPI = "table"
                    :> QueryParam "from" UTCTime
                    :> QueryParam "to"   UTCTime
                    :> Get '[JSON] [FacetChart]
-                :<|> Summary " Favorites" :> FavApi
-                :<|> Summary " Documents" :> DocsApi
+                :<|> "favorites" :> Summary " Favorites" :> FavApi
+                :<|> "documents" :> Summary " Documents" :> DocsApi
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
@@ -233,7 +237,6 @@ roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId 0 Nothi
           :<|> pure (panic "not implemented yet") -- TODO
           :<|> pure (panic "not implemented yet") -- TODO
           :<|> pure (panic "not implemented yet") -- TODO
-
 
 ------------------------------------------------------------------------
 type GraphAPI   = Get '[JSON] Graph
