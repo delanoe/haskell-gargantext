@@ -162,8 +162,8 @@ type NodeAPI a = Get '[JSON] (Node a)
                              :> Get '[JSON] [Node a]
              :<|> Summary " Tabs"      :> FacetDocAPI
 -- How TODO ?
---                :<|> "favorites" :> Summary " Favorites" :> FavApi
---                :<|> "documents" :> Summary " Documents" :> DocsApi
+             :<|> "favorites" :> Summary " Favorites" :> FavApi
+             :<|> "documents" :> Summary " Documents" :> DocsApi
 
 
 
@@ -219,8 +219,8 @@ type FacetDocAPI = "table"
                    :> QueryParam "from" UTCTime
                    :> QueryParam "to"   UTCTime
                    :> Get '[JSON] [FacetChart]
-                :<|> "favorites" :> Summary " Favorites" :> FavApi
-                :<|> "documents" :> Summary " Documents" :> DocsApi
+                -- :<|> "favorites" :> Summary " Favorites" :> FavApi
+                -- :<|> "documents" :> Summary " Documents" :> DocsApi
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
