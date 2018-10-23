@@ -11,17 +11,18 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE BangPatterns         #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.Database.Types.Node where
 
-import Prelude (Enum, Bounded, minBound, maxBound, mempty)
+import Prelude (Enum, Bounded, minBound, maxBound)
 
 import GHC.Generics (Generic)
 
@@ -30,11 +31,13 @@ import qualified Control.Lens   as L
 import           Control.Applicative ((<*>))
 
 import           Data.Aeson
-import           Data.Aeson (Value(),toJSON)
+import           Data.Aeson.Types (emptyObject)
+import           Data.Aeson (Object, toJSON)
 import           Data.Aeson.TH (deriveJSON)
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Either
 import           Data.Eq (Eq)
+import           Data.Monoid (mempty)
 import           Data.Text (Text, unpack)
 import           Data.Time (UTCTime)
 import           Data.Time.Segment (jour, timesAfter, Granularity(D))
@@ -221,16 +224,43 @@ data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe T
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
+corpusExample :: ByteString
+corpusExample = "" -- TODO
+
+defaultCorpus :: HyperdataCorpus
+defaultCorpus = (HyperdataCorpus (Just "Title") (Just "Descr") (Just "Bool query") (Just "Authors") Nothing)
+
+hyperdataCorpus :: HyperdataCorpus
+hyperdataCorpus = case decode corpusExample of
+  Just hp -> hp
+  Nothing -> defaultCorpus
+
+instance Arbitrary HyperdataCorpus where
+    arbitrary = pure hyperdataCorpus -- TODO
+
 ------------------------------------------------------------------------
 data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: Maybe Text
                                            , hyperdataAnnuaire_desc         :: Maybe Text
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
+
+hyperdataAnnuaire :: HyperdataAnnuaire
+hyperdataAnnuaire = HyperdataAnnuaire (Just "Annuaire Title") (Just "Annuaire Description")
+
+instance Arbitrary HyperdataAnnuaire where
+    arbitrary = pure hyperdataAnnuaire -- TODO
+
 ------------------------------------------------------------------------
 data HyperdataContact = HyperdataContact { hyperdataContact_name        :: Maybe Text
                                          , hyperdataContact_mail        :: Maybe Text
                                          } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataContact_") ''HyperdataContact)
+------------------------------------------------------------------------
+newtype HyperdataAny = HyperdataAny Object
+  deriving (Show, Generic, ToJSON, FromJSON)
+
+instance Arbitrary HyperdataAny where
+    arbitrary = pure $ HyperdataAny mempty -- TODO produce arbitrary objects
 ------------------------------------------------------------------------
 
 data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
@@ -278,6 +308,8 @@ type NodeName     = Text
 --type NodeVector   = Vector
 
 --type NodeUser    = Node HyperdataUser
+
+type NodeAny      = Node HyperdataAny
 
 -- | Then a Node can be either a Folder or a Corpus or a Document
 type NodeUser     = Node HyperdataUser
@@ -334,23 +366,11 @@ data NodePoly id typename userId parentId name date hyperdata = Node { _node_id 
 $(deriveJSON (unPrefix "_node_") ''NodePoly)
 $(makeLenses ''NodePoly)
 
+instance Arbitrary hyperdata => Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime hyperdata) where
+    arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) <$> arbitrary
 
-
-instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime Value) where
-    arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (Object mempty)]
-
-
-instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime Value) where
-    arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) (Object mempty)]
-
-instance Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime HyperdataDocument) where
-    arbitrary = elements [Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) ((hyperdataDocument))]
-
-instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime HyperdataDocument) where
-    arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) hyperdataDocument]
-
-instance Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime HyperdataCorpus) where
-    arbitrary = elements [Node 1 1 1 (Just 1) "name" (jour 2018 01 01) hyperdataCorpus]
+instance Arbitrary hyperdata => Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime hyperdata) where
+    arbitrary = Node 1 1 1 (Just 1) "name" (jour 2018 01 01) <$> arbitrary
 
 ------------------------------------------------------------------------
 hyperdataDocument :: HyperdataDocument
@@ -364,21 +384,16 @@ hyperdataDocument = case decode docExample of
 docExample :: ByteString
 docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 
-corpusExample :: ByteString
-corpusExample = "" -- TODO
-
-defaultCorpus :: HyperdataCorpus
-defaultCorpus = (HyperdataCorpus (Just "Title") (Just "Descr") (Just "Bool query") (Just "Authors") Nothing)
-
-hyperdataCorpus :: HyperdataCorpus
-hyperdataCorpus = case decode corpusExample of
-  Just hp -> hp
-  Nothing -> defaultCorpus
-
 instance ToSchema HyperdataCorpus where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
     L.& mapped.schema.description ?~ "a corpus"
     L.& mapped.schema.example ?~ toJSON hyperdataCorpus
+
+
+instance ToSchema HyperdataAnnuaire where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+    L.& mapped.schema.description ?~ "an annuaire"
+    L.& mapped.schema.example ?~ toJSON hyperdataAnnuaire
 
 
 instance ToSchema HyperdataDocument where
@@ -387,46 +402,27 @@ instance ToSchema HyperdataDocument where
     L.& mapped.schema.example ?~ toJSON hyperdataDocument
 
 
-instance ToSchema Value where
-  declareNamedSchema proxy = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions proxy
-    L.& mapped.schema.description ?~ "a document"
-    L.& mapped.schema.example ?~ toJSON ("" :: Text) -- TODO
+instance ToSchema HyperdataAny where
+  declareNamedSchema proxy =
+    pure $ genericNameSchema defaultSchemaOptions proxy mempty
+             L.& schema.description ?~ "a node"
+             L.& schema.example ?~ emptyObject -- TODO
 
 
-instance ToSchema (NodePoly NodeId NodeTypeId NodeUserId
-                            (Maybe NodeParentId) NodeName
-                            UTCTime HyperdataDocument
-                  )
-
-instance ToSchema (NodePoly NodeId NodeTypeId
+instance ToSchema hyperdata =>
+         ToSchema (NodePoly NodeId NodeTypeId
                             (Maybe NodeUserId)
                             NodeParentId NodeName
-                            UTCTime HyperdataDocument
+                            UTCTime hyperdata
                   )
 
-instance ToSchema (NodePoly NodeId NodeTypeId
-                            (Maybe NodeUserId)
-                            NodeParentId NodeName
-                            UTCTime HyperdataCorpus
-                  )
-
-instance ToSchema (NodePoly NodeId NodeTypeId
-                            (NodeUserId)
+instance ToSchema hyperdata =>
+         ToSchema (NodePoly NodeId NodeTypeId
+                            NodeUserId
                             (Maybe NodeParentId) NodeName
-                            UTCTime HyperdataCorpus
+                            UTCTime hyperdata
                   )
 
-instance ToSchema (NodePoly NodeId NodeTypeId
-                            (Maybe NodeUserId)
-                            NodeParentId NodeName
-                            UTCTime Value
-                  )
-
-instance ToSchema (NodePoly NodeId NodeTypeId
-                            (NodeUserId)
-                            (Maybe NodeParentId) NodeName
-                            UTCTime Value
-                  )
 
 
 instance ToSchema Status

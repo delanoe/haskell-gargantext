@@ -23,6 +23,8 @@ Node API
 -------------------------------------------------------------------
 module Gargantext.API.Node
   ( module Gargantext.API.Node
+  , HyperdataAny(..)
+  , HyperdataAnnuaire(..)
   , HyperdataCorpus(..)
   , HyperdataResource(..)
   , HyperdataUser(..)
@@ -37,7 +39,7 @@ import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
 import Data.Either(Either(Left))
-import Data.Aeson (FromJSON, ToJSON, Value())
+import Data.Aeson (FromJSON, ToJSON)
 --import Data.Text (Text(), pack)
 import Data.Text (Text())
 import Data.Swagger
@@ -83,7 +85,7 @@ nodesAPI conn ids = deleteNodes' conn ids
 ------------------------------------------------------------------------
 -- | TODO: access by admin only
 -- To manager the Users roots
-type Roots =  Get    '[JSON] [Node Value]
+type Roots =  Get    '[JSON] [NodeAny]
          :<|> Post   '[JSON] Int -- TODO
          :<|> Put    '[JSON] Int -- TODO
          :<|> Delete '[JSON] Int -- TODO

@@ -95,6 +95,9 @@ type DocId  = Int
 type UserId = Int
 type TypeId = Int
 ------------------------------------------------------------------------
+instance FromField HyperdataAny where
+    fromField = fromField'
+
 instance FromField HyperdataCorpus where
     fromField = fromField'
 
@@ -106,7 +109,13 @@ instance FromField HyperdataDocumentV3 where
 
 instance FromField HyperdataUser where
     fromField = fromField'
+
+instance FromField HyperdataAnnuaire where
+    fromField = fromField'
 ------------------------------------------------------------------------
+instance QueryRunnerColumnDefault PGJsonb HyperdataAny where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -117,6 +126,9 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 ------------------------------------------------------------------------
 
@@ -184,7 +196,7 @@ selectNode id = proc () -> do
     restrict -< _node_id row .== id
     returnA -< row
 
-runGetNodes :: Query NodeRead -> Cmd [Node Value]
+runGetNodes :: Query NodeRead -> Cmd [NodeAny]
 runGetNodes q = mkCmd $ \conn -> runQuery conn q
 
 ------------------------------------------------------------------------
@@ -248,11 +260,11 @@ getNodesWith conn parentId _ nodeType maybeOffset maybeLimit =
 
 -- NP check type
 getNodesWithParentId :: Int
-                     -> Maybe Text -> Connection -> IO [Node Value]
+                     -> Maybe Text -> Connection -> IO [NodeAny]
 getNodesWithParentId n _ conn = runQuery conn $ selectNodesWithParentID n
 
 getNodesWithParentId' :: Int
-                     -> Maybe Text -> Connection -> IO [Node Value]
+                     -> Maybe Text -> Connection -> IO [NodeAny]
 getNodesWithParentId' n _ conn = runQuery conn $ selectNodesWithParentID n
 
 

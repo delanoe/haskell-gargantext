@@ -77,7 +77,6 @@ module Gargantext.Database.Bashql ( get
 import Control.Monad.Reader -- (Reader, ask)
 
 import Data.Text (Text)
-import Data.Aeson
 import Data.List (concat, last)
 
 import Gargantext.Core.Types
@@ -101,7 +100,7 @@ mv :: NodeId -> ParentId -> Cmd [Int]
 mv n p = mkCmd $ \conn -> U.update (U.Move n p) conn
 
 -- | TODO get Children or Node
-get :: PWD -> Cmd [Node Value]
+get :: PWD -> Cmd [NodeAny]
 get []  = pure []
 get pwd = Cmd . ReaderT $ \conn -> runQuery conn $ selectNodesWithParentID (last pwd)
 
@@ -110,10 +109,10 @@ home :: Cmd PWD
 home = map _node_id <$> Cmd (ReaderT (getNodesWithParentId 0 Nothing))
 
 -- | ls == get Children
-ls :: PWD -> Cmd [Node Value]
+ls :: PWD -> Cmd [NodeAny]
 ls = get
 
-tree :: PWD -> Cmd [Node Value]
+tree :: PWD -> Cmd [NodeAny]
 tree p = do
   ns       <- get p
   children <- mapM (\n -> get [_node_id n]) ns
