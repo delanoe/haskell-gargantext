@@ -79,8 +79,11 @@ data StatusV3  = StatusV3 { statusV3_error  :: Maybe Text
                           , statusV3_action :: Maybe Text
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
-
 ------------------------------------------------------------------------
+
+-- Only Hyperdata types should be member of this type class.
+class Hyperdata a
+
 ------------------------------------------------------------------------
 data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication_day    :: !(Maybe Int)
                                                , hyperdataDocumentV3_language_iso2      :: !(Maybe Text)
@@ -101,6 +104,8 @@ data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication
                                                , hyperdataDocumentV3_title              :: !(Maybe Text)
                                                } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
+
+instance Hyperdata HyperdataDocumentV3
 ------------------------------------------------------------------------
 
 data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: Maybe Text
@@ -124,6 +129,8 @@ data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd             
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_hyperdataDocument_") ''HyperdataDocument)
 $(makeLenses ''HyperdataDocument)
+
+instance Hyperdata HyperdataDocument
 
 instance ToField HyperdataDocument where
   toField = toJSONField
@@ -203,18 +210,17 @@ instance ToSchema Resource where
 
 ------------------------------------------------------------------------
 
-data Hyperdata a = Hyperdata { unHyperdata :: a}
-$(deriveJSON (unPrefix "") ''Hyperdata)
-
 data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
+instance Hyperdata HyperdataUser
 
 data HyperdataFolder = HyperdataFolder { hyperdataFolder_desc    :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 
+instance Hyperdata HyperdataFolder
 
 data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe Text
                                        , hyperdataCorpus_desc         :: Maybe Text
@@ -223,6 +229,8 @@ data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe T
                                        , hyperdataCorpus_resources    :: Maybe [Resource]
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
+
+instance Hyperdata HyperdataCorpus
 
 corpusExample :: ByteString
 corpusExample = "" -- TODO
@@ -244,6 +252,8 @@ data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: M
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
 
+instance Hyperdata HyperdataAnnuaire
+
 hyperdataAnnuaire :: HyperdataAnnuaire
 hyperdataAnnuaire = HyperdataAnnuaire (Just "Annuaire Title") (Just "Annuaire Description")
 
@@ -255,9 +265,13 @@ data HyperdataContact = HyperdataContact { hyperdataContact_name        :: Maybe
                                          , hyperdataContact_mail        :: Maybe Text
                                          } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataContact_") ''HyperdataContact)
+
+instance Hyperdata HyperdataContact
 ------------------------------------------------------------------------
 newtype HyperdataAny = HyperdataAny Object
   deriving (Show, Generic, ToJSON, FromJSON)
+
+instance Hyperdata HyperdataAny
 
 instance Arbitrary HyperdataAny where
     arbitrary = pure $ HyperdataAny mempty -- TODO produce arbitrary objects
@@ -267,15 +281,20 @@ data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
 
+instance Hyperdata HyperdataList
+
 data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
+
+instance Hyperdata HyperdataScore
 
 
 data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 
+instance Hyperdata HyperdataResource
 
 
 -- TODO add the Graph Structure here
@@ -283,16 +302,21 @@ data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: Maybe Tex
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
 
+instance Hyperdata HyperdataGraph
 
 -- TODO add the Graph Structure here
 data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 
+instance Hyperdata HyperdataPhylo
+
 -- | TODO FEATURE: Notebook saved in the node (to work with Python or Haskell)
 data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
+
+instance Hyperdata HyperdataNotebook
 
 
 
