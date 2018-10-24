@@ -150,8 +150,9 @@ queryInsert = [sql|
            |]
 
 prepare :: UserId -> ParentId -> [HyperdataDocument] -> [InputData]
-prepare uId pId = map (\h -> InputData tId uId pId (maybe "No Title of Document" identity $ _hyperdataDocument_title h) 
-                                                   (toJSON $ addUniqId h)
+prepare uId pId = map (\h -> InputData tId uId pId 
+                            (maybe "No Title of Document" identity $ _hyperdataDocument_title h)
+                                                   (toJSON h)
                       )
   where
     tId  = nodeTypeId NodeDocument
@@ -166,7 +167,7 @@ prepare uId pId = map (\h -> InputData tId uId pId (maybe "No Title of Document"
 data ReturnId = ReturnId { reInserted :: Bool -- ^ if the document is inserted (True: is new, False: is not new)
                          , reId       :: Int  -- ^ always return the id of the document (even new or not new)
                                          --   this is the uniq id in the database
-                         , reUniqId   :: Maybe Text -- ^ Hash Id with concatenation of hash parameters
+                         , reUniqId   :: Text -- ^ Hash Id with concatenation of hash parameters
                          } deriving (Show, Generic)
 
 instance FromRow ReturnId where
@@ -195,8 +196,8 @@ instance ToRow InputData where
 ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
 
-addUniqId :: HyperdataDocument -> HyperdataDocument
-addUniqId doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
+addUniqIds :: HyperdataDocument -> HyperdataDocument
+addUniqIds doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
               $ set hyperdataDocument_uniqId    (Just hash) doc
   where
     hash    = uniqId $ DT.concat $ map ($ doc) hashParameters

@@ -25,12 +25,17 @@ module Gargantext.Database.Flow
     where
 import System.FilePath (FilePath)
 import Data.Maybe (Maybe(..))
+import Data.Text (Text, unpack)
+import Data.Map (Map)
+import qualified Data.Map as DM
+
 import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
+import Gargantext.Database.Types.Node (Node(..), HyperdataDocument(..))
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus)
 import Gargantext.Database.User (getUser, UserLight(..), Username)
-import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(reId))
+import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
 
@@ -41,23 +46,24 @@ type CorpusId = Int
 subFlow :: Username -> IO (UserId, RootId, CorpusId)
 subFlow username = do
   maybeUserId <- runCmd' (getUser username)
-  
+
   let userId = case maybeUserId of
-        Nothing   -> panic "Error: User does not exist (yet)" -- mk NodeUser gargantua_id "Node Gargantua"
+        Nothing   -> panic "Error: User does not exist (yet)" 
+        -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> userLight_id user
-        
+
   rootId' <- map _node_id <$> runCmd' (getRoot userId)
-  
+
   rootId'' <- case rootId' of
         []  -> runCmd' (mkRoot userId)
         un  -> case length un >= 2 of
                  True  -> panic "Error: more than 1 userNode / user"
                  False -> pure rootId'
   let rootId = maybe (panic "error rootId") identity (head rootId'')
- 
+
   corpusId' <- runCmd' $ mkCorpus (Just "Corpus WOS") Nothing rootId userId
   let corpusId = maybe (panic "error corpusId") identity (head corpusId')
-  
+
   printDebug "(username, userId, rootId, corpusId"
               (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
@@ -68,17 +74,81 @@ flow fp = do
 
   (masterUserId, _, corpusId) <- subFlow "gargantua"
 
-  docs <- parseDocs WOS fp
+  docs <- map addUniqIds <$> parseDocs WOS fp
   ids  <- runCmd' $ insertDocuments masterUserId corpusId docs
   printDebug "Docs IDs : " ids
 
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId docs
   printDebug "Docs IDs : " idsRepeat
-  
+
   (_, _, corpusId2) <- subFlow "alexandre"
 
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " inserted
 
-  runCmd' (del [corpusId2, corpusId])
+  runCmd' $ del [corpusId2, corpusId]
+
+----------------------------------------------------------------
+
+type HashId = Text
+type ToInsert = Map HashId HyperdataDocument
+type Inserted = Map HashId ReturnId
+
+toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
+toInsert = DM.fromList . map (\d -> (hash (_hyperdataDocument_uniqIdBdd d), d))
+  where
+    hash = maybe "Error" identity
+
+toInserted :: [ReturnId] -> Map HashId ReturnId
+toInserted rs = DM.fromList $ map    (\r ->  (reUniqId r, r)    )
+                            $ filter (\r -> reInserted r == True) rs
+
+data DocumentWithId = DocumentWithId { documentId   :: NodeId
+                             , documentData :: HyperdataDocument
+                             }
+
+type NodeId  = Int
+
+mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument
+          -> [DocumentWithId]
+mergeData rs hs = map (\(hash,r) -> DocumentWithId (reId r) (lookup' hash hs)) $ DM.toList rs
+  where
+    lookup' h xs = maybe (panic $ "Error with " <> h) identity (DM.lookup h xs)
+
+
+data DocumentIdWithNgrams = DocumentIdWithNgrams { documentWithId :: DocumentWithId
+                                                 , document_ngrams :: Map Ngram Int
+                                                 }
+
+data NgramsType = Sources | Authors | Terms
+
+-- | Typed Ngrams
+data Ngrams   = Ngrams { ngramsType :: NgramsType
+                       , ngramsText :: Text
+                       , ngramsSize :: Int
+                       }
+
+type Ngram = Text
+type NgramId = Int
+
+documentIdWithNgrams :: (HyperdataDocument -> Map Ngram Int) -> [DocumentWithId] -> [DocumentIdWithNgrams]
+documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
+
+-- | TODO check optimization
+mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map Ngram [(NodeId,Int)]
+mapNodeIdNgrams ds = DM.fromListWith (<>) xs
+  where
+    xs  = [(ngId, [(nId, i)]) | (nId, n2i') <- n2i ds, (ngId, i) <- DM.toList n2i']
+    n2i = map (\d -> ((documentId . documentWithId) d, document_ngrams d))
+
+--indexNgram :: [Ngram] -> 
+
+
+
+---- insert to NodeNgram
+---- using insertNgrams from 
+--indexNgram :: Map Ngram (Map NodeId Int) -> Map NgramId (Map NodeId Int)
+--indexNgram = undefined
+
+-- grouping here
 
