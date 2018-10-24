@@ -45,7 +45,6 @@ import           GHC.Generics (D1, Meta (..), Rep)
 import           GHC.TypeLits (AppendSymbol, Symbol)
 
 import           Control.Lens
-import           Data.Aeson (Value)
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Swagger
@@ -71,7 +70,9 @@ import Gargantext.API.Node ( Roots    , roots
                            , NodesAPI , nodesAPI
                            , GraphAPI , graphAPI
                            , TreeAPI  , treeAPI
+                           , HyperdataAny
                            , HyperdataCorpus
+                           , HyperdataAnnuaire
                            )
 import Gargantext.Database.Types.Node ()
 import Gargantext.API.Count  ( CountAPI, count, Query)
@@ -208,11 +209,15 @@ type GargAPI' =
            
            -- Node endpoint
            :<|> "node"  :> Summary "Node endpoint"
-                        :> Capture "id" Int      :> NodeAPI Value
+                        :> Capture "id" Int      :> NodeAPI HyperdataAny
            
            -- Corpus endpoint
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "id" Int      :> NodeAPI HyperdataCorpus
+
+           -- Annuaire endpoint
+           :<|> "annuaire":> Summary "Annuaire endpoint"
+                          :> Capture "id" Int      :> NodeAPI HyperdataAnnuaire
 
            -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
@@ -256,8 +261,9 @@ server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $ swaggerFront
      :<|> roots    conn
-     :<|> nodeAPI  conn (Proxy :: Proxy Value)
+     :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAny)
      :<|> nodeAPI  conn (Proxy :: Proxy HyperdataCorpus)
+     :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAnnuaire)
      :<|> nodesAPI conn
      :<|> count -- TODO: undefined
      :<|> search   conn

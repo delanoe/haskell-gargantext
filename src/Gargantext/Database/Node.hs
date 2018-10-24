@@ -40,7 +40,7 @@ import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
-import Gargantext.Database.Types.Node (NodeType, defaultCorpus)
+import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
 import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Prelude hiding (sum)
@@ -95,6 +95,9 @@ type DocId  = Int
 type UserId = Int
 type TypeId = Int
 ------------------------------------------------------------------------
+instance FromField HyperdataAny where
+    fromField = fromField'
+
 instance FromField HyperdataCorpus where
     fromField = fromField'
 
@@ -106,7 +109,13 @@ instance FromField HyperdataDocumentV3 where
 
 instance FromField HyperdataUser where
     fromField = fromField'
+
+instance FromField HyperdataAnnuaire where
+    fromField = fromField'
 ------------------------------------------------------------------------
+instance QueryRunnerColumnDefault PGJsonb HyperdataAny where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -117,6 +126,9 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 ------------------------------------------------------------------------
 
@@ -184,7 +196,7 @@ selectNode id = proc () -> do
     restrict -< _node_id row .== id
     returnA -< row
 
-runGetNodes :: Query NodeRead -> Cmd [Node Value]
+runGetNodes :: Query NodeRead -> Cmd [NodeAny]
 runGetNodes q = mkCmd $ \conn -> runQuery conn q
 
 ------------------------------------------------------------------------
@@ -248,11 +260,11 @@ getNodesWith conn parentId _ nodeType maybeOffset maybeLimit =
 
 -- NP check type
 getNodesWithParentId :: Int
-                     -> Maybe Text -> Connection -> IO [Node Value]
+                     -> Maybe Text -> Connection -> IO [NodeAny]
 getNodesWithParentId n _ conn = runQuery conn $ selectNodesWithParentID n
 
 getNodesWithParentId' :: Int
-                     -> Maybe Text -> Connection -> IO [Node Value]
+                     -> Maybe Text -> Connection -> IO [NodeAny]
 getNodesWithParentId' n _ conn = runQuery conn $ selectNodesWithParentID n
 
 
@@ -306,7 +318,7 @@ defaultUser :: HyperdataUser
 defaultUser = HyperdataUser (Just $ (pack . show) EN)
 
 nodeUserW :: Maybe Name -> Maybe HyperdataUser -> UserId -> NodeWrite'
-nodeUserW maybeName maybeHyperdata = node NodeUser name (Hyperdata user) Nothing
+nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
   where
     name = maybe "User" identity maybeName
     user = maybe defaultUser identity maybeHyperdata
@@ -315,14 +327,14 @@ defaultFolder :: HyperdataFolder
 defaultFolder = HyperdataFolder (Just "Markdown Description")
 
 nodeFolderW :: Maybe Name -> Maybe HyperdataFolder -> ParentId -> UserId -> NodeWrite'
-nodeFolderW maybeName maybeFolder pid = node NodeFolder name (Hyperdata folder) (Just pid)
+nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
   where
     name   = maybe "Folder" identity maybeName
     folder = maybe defaultFolder identity maybeFolder
 ------------------------------------------------------------------------
 
 nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite'
-nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name (Hyperdata corpus) (Just pId)
+nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
   where
     name   = maybe "Corpus" identity maybeName
     corpus = maybe defaultCorpus identity maybeCorpus
@@ -331,7 +343,7 @@ defaultDocument :: HyperdataDocument
 defaultDocument = hyperdataDocument
 
 nodeDocumentW :: Maybe Name -> Maybe HyperdataDocument -> CorpusId -> UserId -> NodeWrite'
-nodeDocumentW maybeName maybeDocument cId = node NodeDocument name (Hyperdata doc) (Just cId)
+nodeDocumentW maybeName maybeDocument cId = node NodeDocument name doc (Just cId)
   where
     name = maybe "Document" identity maybeName
     doc  = maybe defaultDocument identity maybeDocument
@@ -340,7 +352,7 @@ defaultAnnuaire :: HyperdataAnnuaire
 defaultAnnuaire = HyperdataAnnuaire (Just "Title") (Just "Description")
 
 nodeAnnuaireW :: Maybe Name -> Maybe HyperdataAnnuaire -> ParentId -> UserId -> NodeWrite'
-nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name (Hyperdata annuaire) (Just pId)
+nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Just pId)
   where
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
@@ -349,17 +361,17 @@ defaultContact :: HyperdataContact
 defaultContact = HyperdataContact (Just "Name") (Just "email@here")
 
 nodeContactW :: Maybe Name -> Maybe HyperdataContact -> AnnuaireId -> UserId -> NodeWrite'
-nodeContactW maybeName maybeContact aId = node NodeContact name (Hyperdata contact) (Just aId)
+nodeContactW maybeName maybeContact aId = node NodeContact name contact (Just aId)
   where
     name    = maybe "Contact" identity maybeName
     contact = maybe defaultContact identity maybeContact
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-node :: ToJSON a => NodeType -> Name -> Hyperdata a -> Maybe ParentId -> UserId -> NodeWrite'
+node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite'
 node nodeType name hyperData parentId userId = Node Nothing typeId userId parentId name Nothing byteData
   where
     typeId = nodeTypeId nodeType
-    byteData = DB.pack $ DBL.unpack $ encode $ unHyperdata hyperData
+    byteData = DB.pack . DBL.unpack $ encode hyperData
 
                   -------------------------------
 node2row :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
@@ -479,7 +491,7 @@ mk c nt pId name  = mk' c nt userId pId name
 mk' :: Connection -> NodeType -> UserId -> Maybe ParentId -> Text -> IO [Int]
 mk' c nt uId pId name  = map fromIntegral <$> insertNodesWithParentR pId [node nt name hd pId uId] c
   where
-    hd = Hyperdata (HyperdataUser (Just $ (pack . show) EN))
+    hd = HyperdataUser . Just . pack $ show EN
 
 type Name = Text
 
