@@ -83,6 +83,11 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Sources | Authors | Terms
 
+ngramsTypeId :: NgramsType -> Int
+ngramsTypeId Terms   = 1
+ngramsTypeId Authors = 2
+ngramsTypeId Sources = 3
+
 type NgramsTerms = Text
 type NgramsId    = Int
 type Size       = Int

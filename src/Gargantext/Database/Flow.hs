@@ -39,8 +39,9 @@ import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.Node.Document.Add    (add)
+import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
-import Gargantext.Database.Ngram (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT)
+import Gargantext.Database.Ngram (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId)
 
 type UserId = Int
 type RootId = Int
@@ -128,25 +129,33 @@ documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int)
 documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
 
 -- | TODO check optimization
-mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map (NgramsT Ngrams) [(NodeId,Int)]
-mapNodeIdNgrams ds = DM.fromListWith (<>) xs
+mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map (NgramsT Ngrams) (Map NodeId Int)
+mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
   where
     xs  = [(ng, [(nId, i)]) | (nId, n2i') <- n2i ds, (ng, i) <- DM.toList n2i']
     n2i = map (\d -> ((documentId . documentWithId) d, document_ngrams d))
 
-indexNgrams :: Map (NgramsT Ngrams       ) [(NodeId, Int)]
-       -> Cmd (Map (NgramsT NgramsIndexed) [(NodeId, Int)])
+indexNgrams :: Map (NgramsT Ngrams       ) (Map NodeId Int)
+       -> Cmd (Map (NgramsT NgramsIndexed) (Map NodeId Int))
 indexNgrams ng2nId = do
   terms2id <- insertNgrams (map _ngramsT $ DM.keys ng2nId)
   pure $ DM.mapKeys (indexNgramsT terms2id) ng2nId
 
 
----- insert to NodeNgram
----- using insertNgrams from 
---indexNgram :: Map Ngram (Map NodeId Int) -> Map NgramId (Map NodeId Int)
---indexNgram = undefined
+insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd Int
+insertToNodeNgrams m = insertNodeNgrams $ [ NodeNgram Nothing nId ((_ngramsId    . _ngramsT   ) ng)
+                                               (fromIntegral n)   ((ngramsTypeId . _ngramsType) ng)
+                                      | (ng, nId2int) <- DM.toList m
+                                      , (nId, n)      <- DM.toList nId2int
+                                      ]
 
--- group Ngrams
--- insert GroupId
+
+-- mk List Group
+-- group by fun
+-- insertInto NodeNgramsNgrams
+
+-- get data of NgramsTable
+-- change List of ngrams
+-- group ngrams
 
 
