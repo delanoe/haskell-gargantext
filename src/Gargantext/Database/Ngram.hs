@@ -37,6 +37,7 @@ import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Prelude
 
 import qualified Database.PostgreSQL.Simple as DPS
+import Database.PostgreSQL.Simple.FromField ( FromField, fromField)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 
 
@@ -73,9 +74,9 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 
 type Ngram = Text
 type NgramId = Int
-type SizeN = Int
+type Size = Int
 
-data NgramIds = NgramIds { ngramId :: Int
+data NgramIds = NgramIds { ngramId    :: Int
                          , ngramTerms :: Text
      } deriving (Show, Generic)
 
@@ -83,18 +84,16 @@ instance DPS.FromRow NgramIds where
   fromRow = NgramIds <$> field <*> field
 
 ----------------------
-insertNgrams :: [(Ngram, SizeN)] -> Cmd [DPS.Only Int]
+insertNgrams :: [(Ngram, Size)] -> Cmd [NgramIds]
 insertNgrams ns = mkCmd $ \conn -> DPS.query conn queryInsertNgrams (DPS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
 
-insertNgrams_Debug :: [(Ngram, SizeN)] -> Cmd ByteString
+insertNgrams_Debug :: [(Ngram, Size)] -> Cmd ByteString
 insertNgrams_Debug ns = mkCmd $ \conn -> DPS.formatQuery conn queryInsertNgrams (DPS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
-
-
 
 ----------------------
 queryInsertNgrams :: DPS.Query
@@ -114,4 +113,3 @@ queryInsertNgrams = [sql|
     FROM   input_rows
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
-
