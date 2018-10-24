@@ -23,22 +23,25 @@ Ngrams connection to the Database.
 
 module Gargantext.Database.Ngram where
 
+-- import Opaleye
+import Control.Lens (makeLenses)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.ByteString.Internal (ByteString)
 import Data.List (find)
+import Data.Map (Map, fromList, lookup)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import GHC.Generics (Generic)
-import Data.ByteString.Internal (ByteString)
 import Data.Text (Text)
-import Database.PostgreSQL.Simple.FromRow (fromRow, field)
-import Database.PostgreSQL.Simple.SqlQQ
-import Gargantext.Database.Node (mkCmd, Cmd(..))
--- import Opaleye
-import Prelude
-
-import qualified Database.PostgreSQL.Simple as DPS
 import Database.PostgreSQL.Simple.FromField ( FromField, fromField)
+import Database.PostgreSQL.Simple.FromRow (fromRow, field)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Database.PostgreSQL.Simple.ToField (toField)
+import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
+import GHC.Generics (Generic)
+import Gargantext.Database.Node (runCmd, mkCmd, Cmd(..))
+import Gargantext.Prelude
+import qualified Database.PostgreSQL.Simple as DPS
 
 
 --data NgramPoly id terms n = NgramDb { ngram_id    :: id
@@ -72,10 +75,50 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 --dbGetNgrams :: PGS.Connection -> IO [NgramDb]
 --dbGetNgrams conn = runQuery conn queryNgramTable
 
-type Ngram = Text
-type NgramId = Int
-type Size = Int
+-- | Main Ngrams Types
+-- | Typed Ngrams
+-- Typed Ngrams localize the context of the ngrams
+-- ngrams in source field of document has Sources Type
+-- ngrams in authors field of document has Authors Type
+-- ngrams in text (title or abstract) of documents has Terms Type
+data NgramsType = Sources | Authors | Terms
 
+type NgramsTerms = Text
+type NgramsId    = Int
+type Size       = Int
+
+------------------------------------------------------------------------
+-- | TODO put it in Gargantext.Text.Ngrams
+data Ngrams = Ngrams { _ngramsTerms :: Text
+                     , _ngramsSize  :: Int
+           } deriving (Generic)
+instance Eq Ngrams where
+  (==) = (==)
+instance Ord Ngrams where
+  compare = compare
+makeLenses ''Ngrams
+instance DPS.ToRow Ngrams where
+  toRow (Ngrams t s) = [toField t, toField s]
+
+-------------------------------------------------------------------------
+-- | TODO put it in Gargantext.Text.Ngrams
+-- Named entity are typed ngrams of Terms Ngrams
+data NgramsT a = NgramsT { _ngramsType :: NgramsType
+                         , _ngramsT    :: a
+                         } deriving (Generic)
+instance Eq  (NgramsT a) where (==) = (==)
+instance Ord (NgramsT a) where compare = compare
+makeLenses ''NgramsT
+-----------------------------------------------------------------------
+data NgramsIndexed = NgramsIndexed { _ngrams   :: Ngrams
+                                   , _ngramsId :: NgramsId
+                                   } deriving (Generic)
+instance Eq NgramsIndexed where
+  (==) = (==)
+instance Ord NgramsIndexed where
+  compare = compare
+makeLenses ''NgramsIndexed
+------------------------------------------------------------------------
 data NgramIds = NgramIds { ngramId    :: Int
                          , ngramTerms :: Text
      } deriving (Show, Generic)
@@ -84,13 +127,24 @@ instance DPS.FromRow NgramIds where
   fromRow = NgramIds <$> field <*> field
 
 ----------------------
-insertNgrams :: [(Ngram, Size)] -> Cmd [NgramIds]
-insertNgrams ns = mkCmd $ \conn -> DPS.query conn queryInsertNgrams (DPS.Only $ Values fields ns)
+indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT NgramsIndexed
+indexNgramsT m n = indexNgramsTWith f n
+  where
+    f n = maybe (panic "indexNgramsT: should not happen") identity (lookup n m)
+
+indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams-> NgramsT NgramsIndexed
+indexNgramsTWith f (NgramsT t n) = NgramsT t (NgramsIndexed n ((f . _ngramsTerms) n))
+----------------------
+insertNgrams :: [Ngrams] -> Cmd (Map NgramsTerms NgramsId)
+insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
+
+insertNgrams' :: [Ngrams] -> Cmd [NgramIds]
+insertNgrams' ns = mkCmd $ \conn -> DPS.query conn queryInsertNgrams (DPS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
 
-insertNgrams_Debug :: [(Ngram, Size)] -> Cmd ByteString
+insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd ByteString
 insertNgrams_Debug ns = mkCmd $ \conn -> DPS.formatQuery conn queryInsertNgrams (DPS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]

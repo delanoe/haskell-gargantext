@@ -21,12 +21,10 @@ authors
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Database.Flow
     where
 import System.FilePath (FilePath)
-import Control.Lens (makeLenses)
 import Data.Maybe (Maybe(..))
 import Data.Text (Text, unpack)
 import Data.Map (Map)
@@ -37,12 +35,12 @@ import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
 import Gargantext.Database.Types.Node (Node(..), HyperdataDocument(..))
-import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus)
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
-import Gargantext.Database.Ngram (insertNgrams, NgramIds(..))
+import Gargantext.Database.Ngram (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT)
 
 type UserId = Int
 type RootId = Int
@@ -119,48 +117,14 @@ mergeData rs hs = map (\(hash,r) -> DocumentWithId (reId r) (lookup' hash hs)) $
   where
     lookup' h xs = maybe (panic $ "Error with " <> h) identity (DM.lookup h xs)
 
--- | Main Ngrams Types
--- | Typed Ngrams
--- Typed Ngrams localize the context of the ngrams
--- ngrams in source field of document has Sources Type
--- ngrams in authors field of document has Authors Type
--- ngrams in text (title or abstract) of documents has Terms Type
-data NgramsType = Sources | Authors | Terms
-
-type NgramId = Int
-
-data Ngrams = Ngrams { _ngramsTerms :: Text
-                     , _ngramsSize  :: Int
-           } deriving (Generic)
-instance Eq Ngrams where
-  (==) = (==)
-instance Ord Ngrams where
-  compare = compare
-makeLenses ''Ngrams
-
-data NgramsIndexed = NgramsIndexed { _ngrams   :: Ngrams
-                                   , _ngramsId :: NgramId
-                                   } deriving (Generic)
-instance Eq NgramsIndexed where
-  (==) = (==)
-instance Ord NgramsIndexed where
-  compare = compare
-makeLenses ''NgramsIndexed
-
-data NgramsT a = NgramsT { _ngramsType :: NgramsType
-                         , _ngramsT    :: a
-                         } deriving (Generic)
-instance Eq  (NgramsT a) where (==) = (==)
-instance Ord (NgramsT a) where compare = compare
-makeLenses ''NgramsT
-
 data DocumentIdWithNgrams = DocumentIdWithNgrams { documentWithId  :: DocumentWithId
                                                  , document_ngrams :: Map (NgramsT Ngrams)Int
                                                  }
 
 
 
-documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int) -> [DocumentWithId] -> [DocumentIdWithNgrams]
+documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int) 
+                     -> [DocumentWithId]   -> [DocumentIdWithNgrams]
 documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
 
 -- | TODO check optimization
@@ -171,10 +135,10 @@ mapNodeIdNgrams ds = DM.fromListWith (<>) xs
     n2i = map (\d -> ((documentId . documentWithId) d, document_ngrams d))
 
 indexNgrams :: Map (NgramsT Ngrams       ) [(NodeId, Int)]
-        -> IO (Map (NgramsT NgramsIndexed) [(NodeId, Int)])
-indexNgrams ng2nId = undefined
-  --let keys = DM.keys ng2nId
-
+       -> Cmd (Map (NgramsT NgramsIndexed) [(NodeId, Int)])
+indexNgrams ng2nId = do
+  terms2id <- insertNgrams (map _ngramsT $ DM.keys ng2nId)
+  pure $ DM.mapKeys (indexNgramsT terms2id) ng2nId
 
 
 ---- insert to NodeNgram
@@ -183,6 +147,6 @@ indexNgrams ng2nId = undefined
 --indexNgram = undefined
 
 -- group Ngrams
--- insert Groups
+-- insert GroupId
 
 
