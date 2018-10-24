@@ -497,4 +497,6 @@ mkRoot uId = case uId > 0 of
 mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd [Int]
 mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
 
+--mkNodeGroupList :: Maybe HyperdataAny -> ParentId -> UserId -> Cmd [Int]
+--mkNodeGroupList h p u = insertNodesR' [nodeCorpusW (Just "Group List" h p u)]
 

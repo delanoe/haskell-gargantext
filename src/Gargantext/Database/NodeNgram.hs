@@ -69,7 +69,11 @@ queryNodeNgramTable :: Query NodeNgramRead
 queryNodeNgramTable = queryTable nodeNgramTable
 
 insertNodeNgrams :: [NodeNgram] -> Cmd Int
-insertNodeNgrams nns = insertNodeNgramW $ map (\(NodeNgram i n g w t) -> NodeNgram Nothing (pgInt4 n) (pgInt4 g) (pgDouble w) (pgInt4 t) ) nns
+insertNodeNgrams = insertNodeNgramW
+                 . map (\(NodeNgram _ n g w t) ->
+                          NodeNgram Nothing (pgInt4 n)   (pgInt4 g)
+                                            (pgDouble w) (pgInt4 t)
+                        )
 
 insertNodeNgramW :: [NodeNgramWrite] -> Cmd Int
 insertNodeNgramW nns = mkCmd $ \c -> fromIntegral <$> runInsertMany c nodeNgramTable nns

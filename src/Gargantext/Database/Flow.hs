@@ -93,8 +93,8 @@ flow fp = do
   runCmd' $ del [corpusId2, corpusId]
 
 ----------------------------------------------------------------
-
-type HashId = Text
+type HashId   = Text
+type NodeId   = Int
 type ToInsert = Map HashId HyperdataDocument
 type Inserted = Map HashId ReturnId
 
@@ -111,7 +111,6 @@ data DocumentWithId = DocumentWithId { documentId   :: NodeId
                              , documentData :: HyperdataDocument
                              }
 
-type NodeId  = Int
 
 mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
 mergeData rs hs = map (\(hash,r) -> DocumentWithId (reId r) (lookup' hash hs)) $ DM.toList rs
@@ -121,7 +120,6 @@ mergeData rs hs = map (\(hash,r) -> DocumentWithId (reId r) (lookup' hash hs)) $
 data DocumentIdWithNgrams = DocumentIdWithNgrams { documentWithId  :: DocumentWithId
                                                  , document_ngrams :: Map (NgramsT Ngrams)Int
                                                  }
-
 
 
 documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int) 
@@ -143,19 +141,22 @@ indexNgrams ng2nId = do
 
 
 insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd Int
-insertToNodeNgrams m = insertNodeNgrams $ [ NodeNgram Nothing nId ((_ngramsId    . _ngramsT   ) ng)
-                                               (fromIntegral n)   ((ngramsTypeId . _ngramsType) ng)
-                                      | (ng, nId2int) <- DM.toList m
-                                      , (nId, n)      <- DM.toList nId2int
-                                      ]
+insertToNodeNgrams m = insertNodeNgrams $ [ NodeNgram Nothing nId  ((_ngramsId    . _ngramsT   ) ng)
+                                                  (fromIntegral n) ((ngramsTypeId . _ngramsType) ng)
 
+                                          | (ng, nId2int) <- DM.toList m
+                                          , (nId, n)      <- DM.toList nId2int
+                                          ]
 
--- mk List Group
--- group by fun
+-- mk ListGroup
+-- groupBy fun
 -- insertInto NodeNgramsNgrams
 
--- get data of NgramsTable
--- change List of ngrams
--- group ngrams
+-- compute Candidate / Map
+-- add column typelist
+-- insertNodeNodeNgram
 
+-- get data of NgramsTable
+-- post :: update NodeNodeNgrams
+-- group ngrams
 
