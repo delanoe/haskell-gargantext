@@ -153,7 +153,7 @@ insertToNodeNgrams m = insertNodeNgrams $ [ NodeNgram Nothing nId  ((_ngramsId  
 -- insertInto NodeNgramsNgrams
 
 -- compute Candidate / Map
--- add column typelist
+-- ALTER TABLE nodes_nodes_ngrams ADD COLUMN typelist int;
 -- insertNodeNodeNgram
 
 -- get data of NgramsTable

@@ -332,7 +332,6 @@ nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
     name   = maybe "Folder" identity maybeName
     folder = maybe defaultFolder identity maybeFolder
 ------------------------------------------------------------------------
-
 nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite'
 nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
   where
@@ -366,6 +365,15 @@ nodeContactW maybeName maybeContact aId = node NodeContact name contact (Just aI
     name    = maybe "Contact" identity maybeName
     contact = maybe defaultContact identity maybeContact
 ------------------------------------------------------------------------
+defaultList :: HyperdataList
+defaultList = HyperdataList (Just "Preferences")
+
+nodeListW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite'
+nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
+  where
+    name = maybe "Listes" identity maybeName
+    list = maybe defaultList identity maybeList
+
 ------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite'
 node nodeType name hyperData parentId userId = Node Nothing typeId userId parentId name Nothing byteData
@@ -497,8 +505,8 @@ type Name = Text
 
 mk'' :: NodeType -> Maybe ParentId -> UserId -> Name -> Cmd [Int]
 mk'' NodeUser Nothing uId name  = mkCmd $ \c -> mk' c NodeUser uId Nothing name
-mk'' NodeUser _       _   _     = panic "NodeUser can not has a parent"
-mk'' _        Nothing _   _     = panic "NodeType needs a parent"
+mk'' NodeUser _       _   _     = panic "NodeUser do not have any parent"
+mk'' _        Nothing _   _     = panic "NodeType does   have a   parent"
 mk'' nt       pId     uId name  = mkCmd $ \c -> mk' c nt uId pId name
 
 mkRoot :: UserId -> Cmd [Int]
@@ -509,6 +517,6 @@ mkRoot uId = case uId > 0 of
 mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd [Int]
 mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
 
---mkNodeGroupList :: Maybe HyperdataAny -> ParentId -> UserId -> Cmd [Int]
---mkNodeGroupList h p u = insertNodesR' [nodeCorpusW (Just "Group List" h p u)]
+mkList :: ParentId -> UserId -> Cmd [Int]
+mkList p u = insertNodesR' [nodeListW Nothing Nothing p u]
 

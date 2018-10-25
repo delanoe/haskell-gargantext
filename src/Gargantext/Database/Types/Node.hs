@@ -209,19 +209,18 @@ instance ToSchema Resource where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 ------------------------------------------------------------------------
-
 data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
 instance Hyperdata HyperdataUser
-
+------------------------------------------------------------------------
 data HyperdataFolder = HyperdataFolder { hyperdataFolder_desc    :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 
 instance Hyperdata HyperdataFolder
-
+------------------------------------------------------------------------
 data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe Text
                                        , hyperdataCorpus_desc         :: Maybe Text
                                        , hyperdataCorpus_query        :: Maybe Text
@@ -282,13 +281,14 @@ data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
 $(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
 
 instance Hyperdata HyperdataList
-
+------------------------------------------------------------------------
 data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
 
 instance Hyperdata HyperdataScore
 
+------------------------------------------------------------------------
 
 data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
@@ -296,6 +296,7 @@ $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 
 instance Hyperdata HyperdataResource
 
+------------------------------------------------------------------------
 
 -- TODO add the Graph Structure here
 data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: Maybe Text
@@ -303,6 +304,7 @@ data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: Maybe Tex
 $(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
 
 instance Hyperdata HyperdataGraph
+------------------------------------------------------------------------
 
 -- TODO add the Graph Structure here
 data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: Maybe Text
@@ -311,13 +313,13 @@ $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 
 instance Hyperdata HyperdataPhylo
 
--- | TODO FEATURE: Notebook saved in the node (to work with Python or Haskell)
+------------------------------------------------------------------------
+-- | TODO FEATURE: Notebook saved in the node
 data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
 
 instance Hyperdata HyperdataNotebook
-
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
@@ -347,10 +349,10 @@ type NodeAnnuaire = Node HyperdataAnnuaire
 type NodeContact  = Node HyperdataContact
 
 ---- | Then a Node can be either a Graph or a Phylo or a Notebook
+type NodeList     = Node HyperdataList
 type NodeGraph    = Node HyperdataGraph
 type NodePhylo    = Node HyperdataPhylo
 type NodeNotebook = Node HyperdataNotebook
-
 ------------------------------------------------------------------------
 data NodeType = NodeUser 
               | NodeFolder
@@ -360,7 +362,7 @@ data NodeType = NodeUser
               | NodeGraph
               | NodeDashboard  | NodeChart
               -- | Classification
-              -- | Lists
+              | NodeList
               -- | Metrics
               deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
