@@ -108,9 +108,11 @@ toInserted :: [ReturnId] -> Map HashId ReturnId
 toInserted rs = DM.fromList $ map    (\r ->  (reUniqId r, r)    )
                             $ filter (\r -> reInserted r == True) rs
 
-data DocumentWithId = DocumentWithId { documentId   :: NodeId
-                             , documentData :: HyperdataDocument
-                             }
+data DocumentWithId =
+  DocumentWithId
+  { documentId   :: NodeId
+  , documentData :: HyperdataDocument
+  }
 
 
 mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
@@ -118,10 +120,11 @@ mergeData rs hs = map (\(hash,r) -> DocumentWithId (reId r) (lookup' hash hs)) $
   where
     lookup' h xs = maybe (panic $ "Error with " <> h) identity (DM.lookup h xs)
 
-data DocumentIdWithNgrams = DocumentIdWithNgrams { documentWithId  :: DocumentWithId
-                                                 , document_ngrams :: Map (NgramsT Ngrams)Int
-                                                 }
-
+data DocumentIdWithNgrams =
+  DocumentIdWithNgrams
+  { documentWithId  :: DocumentWithId
+  , document_ngrams :: Map (NgramsT Ngrams) Int
+  }
 
 documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int) 
                      -> [DocumentWithId]   -> [DocumentIdWithNgrams]
@@ -149,19 +152,20 @@ insertToNodeNgrams m = insertNodeNgrams $ [ NodeNgram Nothing nId  ((_ngramsId  
                                           , (nId, n)      <- DM.toList nId2int
                                           ]
 
+------------------------------------------------------------------------
+groupNgramsBy :: fun
+
 listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd [ListId]
 listFlow uId cId ng = do
   lId <- mkList cId uId
--- groupNgramsBy fun
 -- insertGroups = NodeNgramsNgrams
-
-  pure lId
 
 
 -- compute Candidate / Map
 -- ALTER TABLE nodes_nodes_ngrams ADD COLUMN typelist int;
 -- insertLists = NodeNodeNgram
 
+  pure lId
 
 
 

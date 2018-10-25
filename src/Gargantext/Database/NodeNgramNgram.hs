@@ -7,8 +7,12 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
+NodeNgramNgram table is used to group Ngrams
+
+Next Step:
+- group with: https://en.wikipedia.org/wiki/Nested_set_model
+
+
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
