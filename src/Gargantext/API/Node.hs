@@ -62,7 +62,7 @@ import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
-import Gargantext.TextFlow
+import Gargantext.Text.Flow
 import Gargantext.Viz.Graph (Graph)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)

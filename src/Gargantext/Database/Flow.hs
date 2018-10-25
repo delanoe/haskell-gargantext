@@ -35,7 +35,7 @@ import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
 import Gargantext.Database.Types.Node (Node(..), HyperdataDocument(..))
-import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..))
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.Node.Document.Add    (add)
@@ -46,6 +46,26 @@ import Gargantext.Database.Ngram (insertNgrams, Ngrams(..), NgramsT(..), NgramsI
 type UserId = Int
 type RootId = Int
 type CorpusId = Int
+
+flow :: FilePath -> IO Int
+flow fp = do
+
+  (masterUserId, _, corpusId) <- subFlow "gargantua"
+
+  docs <- map addUniqIds <$> parseDocs WOS fp
+  ids  <- runCmd' $ insertDocuments masterUserId corpusId docs
+  printDebug "Docs IDs : " ids
+
+  idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId docs
+  printDebug "Docs IDs : " idsRepeat
+
+  (_, _, corpusId2) <- subFlow "alexandre"
+
+  inserted <- runCmd' $ add corpusId2 (map reId ids)
+  printDebug "Inserted : " inserted
+
+  runCmd' $ del [corpusId2, corpusId]
+
 
 subFlow :: Username -> IO (UserId, RootId, CorpusId)
 subFlow username = do
@@ -72,29 +92,10 @@ subFlow username = do
               (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
-
-flow :: FilePath -> IO Int
-flow fp = do
-
-  (masterUserId, _, corpusId) <- subFlow "gargantua"
-
-  docs <- map addUniqIds <$> parseDocs WOS fp
-  ids  <- runCmd' $ insertDocuments masterUserId corpusId docs
-  printDebug "Docs IDs : " ids
-
-  idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId docs
-  printDebug "Docs IDs : " idsRepeat
-
-  (_, _, corpusId2) <- subFlow "alexandre"
-
-  inserted <- runCmd' $ add corpusId2 (map reId ids)
-  printDebug "Inserted : " inserted
-
-  runCmd' $ del [corpusId2, corpusId]
-
 ----------------------------------------------------------------
 type HashId   = Text
 type NodeId   = Int
+type ListId   = Int
 type ToInsert = Map HashId HyperdataDocument
 type Inserted = Map HashId ReturnId
 
@@ -148,14 +149,23 @@ insertToNodeNgrams m = insertNodeNgrams $ [ NodeNgram Nothing nId  ((_ngramsId  
                                           , (nId, n)      <- DM.toList nId2int
                                           ]
 
--- mk ListGroup
--- groupBy fun
--- insertInto NodeNgramsNgrams
+listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd [ListId]
+listFlow uId cId ng = do
+  lId <- mkList cId uId
+-- groupNgramsBy fun
+-- insertGroups = NodeNgramsNgrams
+
+  pure lId
+
 
 -- compute Candidate / Map
 -- ALTER TABLE nodes_nodes_ngrams ADD COLUMN typelist int;
--- insertNodeNodeNgram
+-- insertLists = NodeNodeNgram
 
+
+
+
+-- | TODO ask on meeting
 -- get data of NgramsTable
 -- post :: update NodeNodeNgrams
 -- group ngrams

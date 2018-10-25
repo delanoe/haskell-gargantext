@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.TextFlow
+Module      : Gargantext.Text.Flow
 Description : Server API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ From text to viz, all the flow of texts in Gargantext.
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
 
-module Gargantext.TextFlow
+module Gargantext.Text.Flow
   where
 
 import GHC.IO (FilePath)
