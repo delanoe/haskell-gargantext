@@ -63,7 +63,7 @@ library:
   - Gargantext.Text.Terms.Multi.Lang.Fr
   - Gargantext.Text.Terms.Multi.RAKE
   - Gargantext.Text.Terms.WithList
-  - Gargantext.TextFlow
+  - Gargantext.Text.Flow
   - Gargantext.Viz.Graph
   - Gargantext.Viz.Graph.Distances.Matrice
   - Gargantext.Viz.Graph.Index

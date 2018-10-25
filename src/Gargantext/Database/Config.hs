@@ -40,10 +40,7 @@ nodeTypeId n =
   --NodeSwap   -> 19
 
 ----  Lists
---  StopList   -> 5
---  GroupList  -> 6
---  MainList   -> 7
---  MapList    -> 8
+    NodeList    -> 5
 
 ----  Scores
 --    NodeOccurrences -> 10

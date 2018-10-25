@@ -25,21 +25,16 @@ module Gargantext.Database.Ngram where
 
 -- import Opaleye
 import Control.Lens (makeLenses)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.ByteString.Internal (ByteString)
-import Data.List (find)
 import Data.Map (Map, fromList, lookup)
-import Data.Maybe (Maybe)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
-import Database.PostgreSQL.Simple.FromField ( FromField, fromField)
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
-import Gargantext.Database.Node (runCmd, mkCmd, Cmd(..))
+import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
 
@@ -108,38 +103,46 @@ instance DPS.ToRow Ngrams where
 -------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Text.Ngrams
 -- Named entity are typed ngrams of Terms Ngrams
-data NgramsT a = NgramsT { _ngramsType :: NgramsType
-                         , _ngramsT    :: a
-                         } deriving (Generic)
+data NgramsT a =
+  NgramsT { _ngramsType :: NgramsType
+          , _ngramsT    :: a
+          } deriving (Generic)
+
 instance Eq  (NgramsT a) where (==) = (==)
 instance Ord (NgramsT a) where compare = compare
 makeLenses ''NgramsT
 -----------------------------------------------------------------------
-data NgramsIndexed = NgramsIndexed { _ngrams   :: Ngrams
-                                   , _ngramsId :: NgramsId
-                                   } deriving (Generic)
+data NgramsIndexed =
+  NgramsIndexed
+  { _ngrams   :: Ngrams
+  , _ngramsId :: NgramsId
+  } deriving (Generic)
+
 instance Eq NgramsIndexed where
   (==) = (==)
 instance Ord NgramsIndexed where
   compare = compare
 makeLenses ''NgramsIndexed
+
 ------------------------------------------------------------------------
-data NgramIds = NgramIds { ngramId    :: Int
-                         , ngramTerms :: Text
-     } deriving (Show, Generic)
+data NgramIds =
+  NgramIds
+  { ngramId    :: Int
+  , ngramTerms :: Text
+  } deriving (Show, Generic)
 
 instance DPS.FromRow NgramIds where
   fromRow = NgramIds <$> field <*> field
 
 ----------------------
 indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT NgramsIndexed
-indexNgramsT m n = indexNgramsTWith f n
+indexNgramsT m ngrId = indexNgramsTWith f ngrId
   where
     f n = maybe (panic "indexNgramsT: should not happen") identity (lookup n m)
 
 indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams-> NgramsT NgramsIndexed
 indexNgramsTWith f (NgramsT t n) = NgramsT t (NgramsIndexed n ((f . _ngramsTerms) n))
-----------------------
+
 insertNgrams :: [Ngrams] -> Cmd (Map NgramsTerms NgramsId)
 insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
 

@@ -26,20 +26,22 @@ module Gargantext.Database.Flow
     where
 import System.FilePath (FilePath)
 import Data.Maybe (Maybe(..))
-import Data.Text (Text, unpack)
+import Data.Text (Text)
 import Data.Map (Map)
+import Data.Tuple.Extra (both)
 import qualified Data.Map as DM
-import GHC.Generics (Generic)
 
 import Gargantext.Core.Types (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
-import Gargantext.Database.Types.Node (Node(..), HyperdataDocument(..))
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
+import Gargantext.Database.NodeNgramNgram (NodeNgramNgramPoly(..), insertNodeNgramNgram)
+
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
 import Gargantext.Database.Ngram (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId)
 
@@ -153,20 +155,28 @@ insertToNodeNgrams m = insertNodeNgrams $ [ NodeNgram Nothing nId  ((_ngramsId  
                                           ]
 
 ------------------------------------------------------------------------
-groupNgramsBy :: fun
+groupNgramsBy :: (Ngrams -> Ngrams -> Bool) -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Map NgramsIndexed NgramsIndexed
+groupNgramsBy = undefined
 
-listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd [ListId]
+insertGroups :: ListId -> Map NgramsIndexed NgramsIndexed -> Cmd Int
+insertGroups lId ngrs = 
+  insertNodeNgramNgram $ [ NodeNgramNgram lId ng1 ng2 (Just 1)
+                       | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
+                       ]
+
+listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
 listFlow uId cId ng = do
-  lId <- mkList cId uId
--- insertGroups = NodeNgramsNgrams
+  lId <- maybe (panic "mkList error") identity <$> head <$> mkList cId uId
+  -- TODO add stemming equivalence of 2 ngrams
+  let groupEd = groupNgramsBy (==) ng
 
+  _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
 -- ALTER TABLE nodes_nodes_ngrams ADD COLUMN typelist int;
 -- insertLists = NodeNodeNgram
 
   pure lId
-
 
 
 -- | TODO ask on meeting

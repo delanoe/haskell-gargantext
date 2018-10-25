@@ -8,10 +8,13 @@ Stability   : experimental
 Portability : POSIX
 
 NodeNgramNgram table is used to group Ngrams
+- NodeId :: List Id
+- NgramId_1, NgramId_2 where all NgramId_2 will be added to NgramId_1
+- weight: probability of the relation (TODO, fixed to 1 for simple stemming)
 
-Next Step:
+Next Step benchmark:
+- recursive queries of postgres
 - group with: https://en.wikipedia.org/wiki/Nested_set_model
-
 
 -}
 
@@ -23,15 +26,16 @@ Next Step:
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.NodeNgramNgram where
+module Gargantext.Database.NodeNgramNgram
+  where
 
-import Gargantext.Prelude
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import qualified Database.PostgreSQL.Simple as PGS
-
+import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Prelude
 import Opaleye
+import qualified Database.PostgreSQL.Simple as PGS
 
 data NodeNgramNgramPoly node_id ngram1_id ngram2_id weight =
   NodeNgramNgram { nng_NodeId   :: node_id
@@ -42,7 +46,7 @@ data NodeNgramNgramPoly node_id ngram1_id ngram2_id weight =
 
 
 type NodeNgramNgramWrite =
-  NodeNgramNgramPoly (Maybe (Column PGInt4  ))
+  NodeNgramNgramPoly (Column PGInt4          )
                      (Column PGInt4          )
                      (Column PGInt4          )
                      (Maybe (Column PGFloat8))
@@ -54,10 +58,10 @@ type NodeNgramNgramRead  =
                      (Column PGFloat8)
 
 type NodeNgramNgram =
-  NodeNgramNgramPoly (Maybe Int   )
-                            Int
-                            Int
-                     (Maybe Double)
+  NodeNgramNgramPoly Int
+                     Int
+                     Int
+                    (Maybe Double)
 
 $(makeAdaptorAndInstance "pNodeNgramNgram"
                          ''NodeNgramNgramPoly)
@@ -69,7 +73,7 @@ nodeNgramNgramTable :: Table NodeNgramNgramWrite NodeNgramNgramRead
 nodeNgramNgramTable  =
   Table "nodes_ngrams_ngrams"
        ( pNodeNgramNgram NodeNgramNgram
-                       { nng_NodeId   = optional "node_id"
+                       { nng_NodeId   = required "node_id"
                        , nng_Ngram1Id = required "ngram1_id"
                        , nng_Ngram2Id = required "ngram2_id"
                        , nng_Weight   = optional "weight"
@@ -79,14 +83,31 @@ nodeNgramNgramTable  =
 queryNodeNgramNgramTable :: Query NodeNgramNgramRead
 queryNodeNgramNgramTable = queryTable nodeNgramNgramTable
 
--- | not optimized (get all ngrams without filters)
-nodeNgramNgrams :: PGS.Connection -> IO [NodeNgramNgram]
-nodeNgramNgrams conn = runQuery conn queryNodeNgramNgramTable
+-- | Select NodeNgramNgram
+-- TODO not optimized (get all ngrams without filters)
+nodeNgramNgram :: PGS.Connection -> IO [NodeNgramNgram]
+nodeNgramNgram conn = runQuery conn queryNodeNgramNgramTable
 
 instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
+insertNodeNgramNgram :: [NodeNgramNgram] -> Cmd Int
+insertNodeNgramNgram = insertNodeNgramNgramW
+                 . map (\(NodeNgramNgram n ng1 ng2 maybeWeight) ->
+                          NodeNgramNgram (pgInt4 n)
+                                         (pgInt4 ng1)
+                                         (pgInt4 ng2)
+                                         (pgDouble <$> maybeWeight)
+                        )
+
+
+insertNodeNgramNgramW :: [NodeNgramNgramWrite] -> Cmd Int
+insertNodeNgramNgramW ns =
+  mkCmd $ \c -> fromIntegral
+       <$> runInsertMany c nodeNgramNgramTable ns
 
 
