@@ -1,14 +1,17 @@
 {-|
 Module      : Gargantext.Database.NodeNgram
-Description : 
+Description : NodeNgram for Ngram indexation or Lists
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
+NodeNgram: relation between a Node and a Ngrams
+
+if Node is a Document then it is indexing
+if Node is a List     then it is listing (either Stop, Candidate or Map)
+
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
@@ -29,6 +32,7 @@ import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Opaleye
 
+-- | TODO : remove id
 data NodeNgramPoly id node_id ngram_id weight ngrams_type
    = NodeNgram { nodeNgram_NodeNgramId      :: id
                , nodeNgram_NodeNgramNodeId  :: node_id

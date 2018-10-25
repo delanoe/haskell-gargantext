@@ -78,7 +78,12 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 --data Classification = Favorites | MyClassifcation
 
-data Lists  =  StopList    | MainList | MapList | GroupList
+data ListType  =  Stop  | Candidate | Map
+
+listId :: ListType -> Int
+listId Stop      = 0
+listId Candidate = 1
+listId Map       = 2
 
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
