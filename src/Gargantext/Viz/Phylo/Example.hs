@@ -59,9 +59,9 @@ phyloTerms = toPeriodes date 5 3 $ cleanHistory  mapList phyloCorpus
 toPeriodes :: (Ord date, Enum date) => (event -> date)
      -> Grain -> Step -> [event] -> Map (date, date) [event]
 toPeriodes _ _ _ [] = panic "Empty history can not have any periods"
-toPeriodes f s o as = DM.fromList $ zip hs $ map (inPeriode f as) hs
+toPeriodes f g s es = DM.fromList $ zip hs $ map (inPeriode f es) hs
   where
-    hs = steps s o $ both f (DL.head as, DL.last as)
+    hs = steps g s $ both f (DL.head es, DL.last es)
 
 inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]
 inPeriode f h (start,end) =

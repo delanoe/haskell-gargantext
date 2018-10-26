@@ -124,8 +124,11 @@ type Grain = Int
 type Step  = Int
 
 -- | Function to split a range into chunks
+-- if   step == grain then linearity
+-- elif step < grain then overlapping
+-- else dotted with holes
 chunkAlong :: Eq a => Grain -> Step -> [a] -> [[a]]
-chunkAlong a b l = case a > 0 && b > 0 && a >= b of
+chunkAlong a b l = case a > 0 && b > 0 of
     True  -> chunkAlong_ a b l
     False -> panic "ChunkAlong: Parameters should be > 0 and Grain > Step"
 
