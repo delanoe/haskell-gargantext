@@ -107,7 +107,7 @@ variance xs = mean $ map (\x -> (x - m) ** 2) xs where
 deviation :: [Double] -> Double
 deviation = sqrt . variance
 
-movingAverage :: Fractional b => Int -> [b] -> [b]
+movingAverage :: (Eq b, Fractional b) => Int -> [b] -> [b]
 movingAverage steps xs = map mean $ chunkAlong steps 1 xs
 
 ma :: [Double] -> [Double]
@@ -120,21 +120,29 @@ splitEvery n xs =
   let (h,t) = L.splitAt n xs
   in  h : splitEvery n t
 
+type Grain = Int
+type Step  = Int
+
 -- | Function to split a range into chunks
-chunkAlong :: Int -> Int -> [a] -> [[a]]
-chunkAlong a b l = only (while  dropAlong)
+chunkAlong :: Eq a => Grain -> Step -> [a] -> [[a]]
+chunkAlong a b l = case a > 0 && b > 0 && a >= b of
+    True  -> chunkAlong_ a b l
+    False -> panic "ChunkAlong: Parameters should be > 0 and Grain > Step"
+
+chunkAlong_ :: Eq a => Int -> Int -> [a] -> [[a]]
+chunkAlong_ a b l = filter (/= []) $ only (while dropAlong)
     where
-        only      = map (take a)
-        while     = takeWhile  (\x -> length x >= a)
-        dropAlong = L.scanl (\x _y -> drop b x) l ([1..] :: [Integer])
+        only      = map       (take a)
+        while     = takeWhile (\x -> length x >= a)
+        dropAlong = L.scanl   (\x _y -> drop b x) l ([1..] :: [Integer])
 
 -- | Optimized version (Vector)
 chunkAlong' :: Int -> Int -> V.Vector a -> V.Vector (V.Vector a)
 chunkAlong' a b l = only (while  dropAlong)
     where
-        only      = V.map (V.take a)
-        while     = V.takeWhile  (\x -> V.length x >= a)
-        dropAlong = V.scanl (\x _y -> V.drop b x) l (V.fromList [1..])
+        only      = V.map       (V.take a)
+        while     = V.takeWhile (\x -> V.length x >= a)
+        dropAlong = V.scanl     (\x _y -> V.drop b x) l (V.fromList [1..])
 
 -- | TODO Inverse of chunk ? unchunkAlong ?
 -- unchunkAlong :: Int -> Int -> [[a]] -> [a]
