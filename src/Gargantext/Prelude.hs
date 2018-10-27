@@ -15,6 +15,7 @@ commentary with @some markup@.
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
 
 {-# LANGUAGE     NoImplicitPrelude       #-}
+{-# LANGUAGE     OverloadedStrings       #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude
