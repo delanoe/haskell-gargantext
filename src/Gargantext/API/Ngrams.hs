@@ -39,22 +39,23 @@ import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Core.Types (ListType(..))
 
-data NgramsTree = NgramsTree { _nn_ngrams :: Text
-                             , _nn_id     :: Int
-                             , _nn_list   :: ListType
-                    }
-$(deriveJSON (unPrefix "_nn_") ''NgramsTree)
+data NgramsElement =
+     NgramsElement { _nn_ngrams :: Text
+                   , _nn_id     :: Int
+                   , _nn_list   :: ListType
+                   }
+$(deriveJSON (unPrefix "_nn_") ''NgramsElement)
 
 
-data NgramsTable = NgramsTable { _ngramsTable :: [Tree NgramsTree] }
+data NgramsTable = NgramsTable { _ngramsTable :: [Tree NgramsElement] }
   deriving (Generic)
 
 instance ToJSON   NgramsTable
 instance FromJSON NgramsTable
 
-instance FromJSON (Tree NgramsTree)
+instance FromJSON (Tree NgramsElement)
 -- TODO
-instance ToJSON   (Tree NgramsTree)
+instance ToJSON   (Tree NgramsElement)
 -------------------------------------------------------------------
 -------------------------------------------------------------------
 -------------------------------------------------------------------
