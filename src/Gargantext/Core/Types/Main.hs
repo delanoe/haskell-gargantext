@@ -79,6 +79,10 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 --data Classification = Favorites | MyClassifcation
 
 data ListType  =  Stop  | Candidate | Map
+  deriving (Generic)
+
+instance ToJSON   ListType
+instance FromJSON ListType
 
 listId :: ListType -> Int
 listId Stop      = 0
