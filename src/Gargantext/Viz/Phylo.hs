@@ -33,6 +33,7 @@ import Data.Maybe   (Maybe)
 import Data.Text    (Text)
 import Data.Time.Clock.POSIX  (POSIXTime)
 import GHC.Generics (Generic)
+import Gargantext.Database.Ngram (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
@@ -53,8 +54,7 @@ type Start   = POSIXTime
 type End     = POSIXTime
 
 -- | Indexed Ngram
-type Ngram   = (NgramId, Text)
-type NgramId = Int
+type Ngram   = (NgramsId, Text)
 
 -- | PhyloStep : steps of phylomemy on temporal axis
 -- Period: tuple (start date, end date) of the step of the phylomemy
@@ -89,7 +89,7 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 data PhyloGroup =
      PhyloGroup { _phylo_GroupId    :: PhyloGroupId
                 , _phylo_GroupLabel :: Maybe Text
-                , _phylo_GroupNgrams        :: [NgramId]
+                , _phylo_GroupNgrams        :: [NgramsId]
                 
                 , _phylo_GroupPeriodParents :: [Edge]
                 , _phylo_GroupPeriodChilds  :: [Edge]

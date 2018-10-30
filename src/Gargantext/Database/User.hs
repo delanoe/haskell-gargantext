@@ -31,10 +31,12 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
+import Gargantext.Database.Node (Cmd(..), mkCmd, runCmd)
+import Gargantext.Prelude
 import Opaleye
 
-import Gargantext.Prelude
-import Gargantext.Database.Node (Cmd(..), mkCmd, runCmd)
+------------------------------------------------------------------------
+type UserId = Int
 
 
 data UserLight = UserLight { userLight_id   :: Int

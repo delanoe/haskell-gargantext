@@ -115,6 +115,7 @@ library:
   - opaleye
   - pandoc
   - parsec
+  - patches-map
   - path
   - path-io
   - postgresql-simple

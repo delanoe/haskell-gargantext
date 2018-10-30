@@ -14,9 +14,7 @@ Ngrams API
 -- post :: update NodeNodeNgrams
 -- group ngrams
 
-
 get ngrams filtered by NgramsType
-
 add get 
 
 -}
@@ -30,21 +28,28 @@ add get
 module Gargantext.API.Ngrams
   where
 
-import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
+
+import Data.Map.Strict (Map)
+import Data.Map.Strict.Patch (Patch, apply, transformWith)
 import Data.Text (Text)
-import Gargantext.Prelude
+import Data.Set (Set)
+import GHC.Generics (Generic)
+
+import Gargantext.Database.Ngram (NgramsId)
+import Gargantext.Database.User  (UserId)
+import Gargantext.Core.Types (ListType(..))
 import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Core.Types (ListType(..))
+import Gargantext.Prelude
 
 data NgramsElement =
-     NgramsElement { _nn_ngrams :: Text
-                   , _nn_id     :: Int
-                   , _nn_list   :: ListType
+     NgramsElement { _ne_id     :: Int
+                   , _ne_ngrams :: Text
+                   , _ne_list   :: ListType
                    }
-$(deriveJSON (unPrefix "_nn_") ''NgramsElement)
+$(deriveJSON (unPrefix "_ne_") ''NgramsElement)
 
 
 data NgramsTable = NgramsTable { _ngramsTable :: [Tree NgramsElement] }
@@ -56,6 +61,22 @@ instance FromJSON NgramsTable
 instance FromJSON (Tree NgramsElement)
 -- TODO
 instance ToJSON   (Tree NgramsElement)
+
+--data Action = InGroup     NgramsId NgramsId
+--            | OutGroup    NgramsId NgramsId
+--            | SetListType NgramsId ListType
+
+data NgramsPatch =
+     NgramsPatch { list_types   :: Map UserId ListType
+                 , add_children :: Set NgramsId
+                 , rem_children :: Set NgramsId
+                 }
+
+data Patch = Map NgramsId NgramsPatch
+
+-- applyPatchBack :: Patch -> IO Patch
+-- isEmptyPatch = Map.all (\x -> Set.isEmpty (add_children x) && Set.isEmpty ... )
+
 -------------------------------------------------------------------
 -------------------------------------------------------------------
 -------------------------------------------------------------------
