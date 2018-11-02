@@ -11,19 +11,25 @@ CSV parser for Gargantext corpus files.
 
 -}
 
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.List.Types where
 
-import Prelude (Bounded, Enum, minBound, maxBound)
-import Data.Text (Text)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Map (Map, empty, fromList)
+import Data.Text (Text)
+import GHC.Generics (Generic)
 import Gargantext.Prelude
+import Prelude (Bounded, Enum, minBound, maxBound)
 
 -------------------------------------------------------------------
 data ListType = GraphList | StopList | CandidateList
-  deriving (Show, Eq, Ord, Enum, Bounded)
+  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
+
+instance FromJSON ListType
+instance ToJSON   ListType
 
 type Lists = Map ListType (Map Text [Text])
 

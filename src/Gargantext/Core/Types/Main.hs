@@ -78,6 +78,7 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 --data Classification = Favorites | MyClassifcation
 
+-- TODO multiple ListType declaration, remove it
 data ListType  =  Stop  | Candidate | Map
   deriving (Generic)
 
@@ -132,7 +133,7 @@ type Offset   = Int
 ------------------------------------------------------------------------
 -- All the Database is structred like a hierarchical Tree
 data Tree a = TreeN a [Tree a]
-  deriving (Show, Read, Eq, Generic)
+  deriving (Show, Read, Eq, Generic, Ord)
 
 instance ToJSON   (Tree NodeTree) where
   toJSON (TreeN node nodes) =
