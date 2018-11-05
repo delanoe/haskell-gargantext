@@ -91,17 +91,17 @@ data Versioned a = Versioned
   }
 
 
-ngramsPatch :: NgramsPatch
-ngramsPatch = NgramsPatch (DM.fromList [(1, StopList)]) Set.empty Set.empty
+ngramsPatch :: Int -> NgramsPatch
+ngramsPatch n = NgramsPatch (DM.fromList [(1, StopList)]) (Set.fromList [n]) Set.empty
 
 {-
 toEdit :: NgramsId -> NgramsPatch -> Edit NgramsId NgramsPatch
 toEdit n p = Edit n p
 -}
 ngramsIdPatch :: Patch NgramsId NgramsPatch
-ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just ngramsPatch) Nothing
-                                       , replace (1::NgramsId) Nothing (Just ngramsPatch)
-                                       , replace (2::NgramsId) Nothing (Just ngramsPatch)
+ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ ngramsPatch 1) Nothing
+                                       , replace (1::NgramsId) Nothing (Just $ ngramsPatch 2)
+                                       , replace (2::NgramsId) Nothing (Just $ ngramsPatch 2)
                                        ]
 
 
