@@ -23,6 +23,10 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
 import Prelude (Bounded, Enum, minBound, maxBound)
+import Data.Swagger (ToSchema)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 
 -------------------------------------------------------------------
 data ListType = GraphList | StopList | CandidateList
@@ -30,6 +34,9 @@ data ListType = GraphList | StopList | CandidateList
 
 instance FromJSON ListType
 instance ToJSON   ListType
+instance ToSchema ListType
+instance Arbitrary ListType where
+  arbitrary = elements [minBound..maxBound]
 
 type Lists = Map ListType (Map Text [Text])
 

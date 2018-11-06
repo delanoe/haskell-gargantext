@@ -133,8 +133,8 @@ nodeToTrash c cId dId b = PGS.query c trashQuery (b,cId,dId)
 
 -- | Trash Massive
 nodesToTrash :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [Int]
-nodesToTrash c inputData = map (\(PGS.Only a) -> a)
-                        <$> PGS.query c trashQuery (PGS.Only $ Values fields inputData)
+nodesToTrash c input = map (\(PGS.Only a) -> a)
+                        <$> PGS.query c trashQuery (PGS.Only $ Values fields input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
     trashQuery :: PGS.Query

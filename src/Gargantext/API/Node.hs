@@ -32,13 +32,11 @@ module Gargantext.API.Node
   , HyperdataDocumentV3(..)
   ) where
 -------------------------------------------------------------------
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Control.Lens (prism')
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
-import Data.Either(Either(Left))
 import Data.Aeson (FromJSON, ToJSON)
 --import Data.Text (Text(), pack)
 import Data.Text (Text())
@@ -50,6 +48,7 @@ import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Servant
 
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, tableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack, ListId)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
@@ -106,7 +105,11 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
+             
+             -- TODO gather it
              :<|> "table"     :> TableApi
+             :<|> "list"      :> TableNgramsApi
+             
              :<|> "chart"     :> ChartApi
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi
@@ -134,7 +137,11 @@ nodeAPI conn p id
               :<|> putNode       conn id
               :<|> deleteNode'   conn id
               :<|> getNodesWith' conn id p
+              
+              -- TODO gather it
               :<|> getTable      conn id
+              :<|> tableNgramsPatch'  conn id
+              
               :<|> getChart      conn id
               :<|> favApi        conn id
               :<|> delDocs       conn id
@@ -150,7 +157,6 @@ instance ToSchema  RenameNode
 instance Arbitrary RenameNode where
   arbitrary = elements [RenameNode "test"]
 ------------------------------------------------------------------------
-
 data PostNode = PostNode { pn_name :: Text
                          , pn_typename :: NodeType}
   deriving (Generic)
@@ -205,28 +211,6 @@ favApi :: Connection -> CorpusId -> (Favorites -> Handler [Int])
 favApi c cId = putFav c cId :<|> delFav c cId
 
 ------------------------------------------------------------------------
---data FacetFormat = Table | Chart
-data TabType   = Docs   | Terms  | Sources | Authors | Trash
-  deriving (Generic, Enum, Bounded)
-
-instance FromHttpApiData TabType
-  where
-    parseUrlPiece "Docs"    = pure Docs
-    parseUrlPiece "Terms"   = pure Terms
-    parseUrlPiece "Sources" = pure Sources
-    parseUrlPiece "Authors" = pure Authors
-    parseUrlPiece "Trash"   = pure Trash
-    parseUrlPiece _         = Left "Unexpected value of TabType"
-
-instance ToParamSchema   TabType
-instance ToJSON    TabType
-instance FromJSON  TabType
-instance ToSchema  TabType
-instance Arbitrary TabType
-  where
-    arbitrary = elements [minBound .. maxBound]
-
-------------------------------------------------------------------------
 type TableApi = Summary " Table API"
               :> QueryParam "view"   TabType
               :> QueryParam "offset" Int
@@ -234,11 +218,11 @@ type TableApi = Summary " Table API"
               :> QueryParam "order"  OrderBy
               :> Get '[JSON] [FacetDoc]
 
+------------------------------------------------------------------------
 type ChartApi = Summary " Chart API"
               :> QueryParam "from" UTCTime
               :> QueryParam "to"   UTCTime
               :> Get '[JSON] [FacetChart]
-
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
@@ -300,6 +284,8 @@ getNodesWith' :: JSONB a => Connection -> NodeId -> proxy a -> Maybe NodeType
               -> Maybe Int -> Maybe Int -> Handler [Node a]
 getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p nodeType offset limit)
 
+tableNgramsPatch' :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> Handler NgramsIdPatchsBack
+tableNgramsPatch' c cId mL ns = liftIO $ tableNgramsPatch c cId mL ns
 
 query :: Text -> Handler Text
 query s = pure s

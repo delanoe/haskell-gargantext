@@ -21,16 +21,20 @@ if Node is a List     then it is listing (either Stop, Candidate or Map)
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 
 module Gargantext.Database.NodeNgram where
 
-import Gargantext.Prelude
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Prelude
 import Opaleye
+import qualified Database.PostgreSQL.Simple as PGS (Connection, query, Only(..))
 
 -- | TODO : remove id
 data NodeNgramPoly id node_id ngram_id weight ngrams_type
@@ -89,4 +93,23 @@ insertNodeNgramW :: [NodeNgramWrite] -> Cmd Int
 insertNodeNgramW nns =
   mkCmd $ \c -> fromIntegral
        <$> runInsertMany c nodeNgramTable nns
+
+-- TODO: remove these type (duplicate with others)
+type ListId     = Int
+type NgramsId   = Int
+type ListTypeId = Int
+
+updateNodeNgrams :: PGS.Connection -> [(ListId, NgramsId, ListTypeId)] -> IO [PGS.Only Int]
+updateNodeNgrams c input = PGS.query c updateQuery (PGS.Only $ Values fields $ input)
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    updateQuery = [sql| UPDATE nodes_ngrams as old SET
+                 ngrams_type = new.typeList
+                 from (?) as new(node_id,ngram_id,typeList)
+                 WHERE old.node_id = new.node_id
+                 AND   old.gram_id = new.gram_id
+                 RETURNING new.ngram_id
+                 |]
+
+
 

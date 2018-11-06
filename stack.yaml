@@ -6,6 +6,8 @@ packages:
 - 'deps/servant-job'
 - 'deps/clustering-louvain'
 - 'deps/patches-map'
+- 'deps/patches-class'
+
   #- 'deps/imt-api-client'
 
 allow-newer: true
