@@ -48,7 +48,7 @@ import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Servant
 
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, tableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack, ListId)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, tableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
@@ -62,6 +62,7 @@ import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
 import Gargantext.Text.Flow
+import Gargantext.Text.List.Types (ListId)
 import Gargantext.Viz.Graph (Graph)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)

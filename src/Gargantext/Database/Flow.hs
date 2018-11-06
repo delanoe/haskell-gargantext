@@ -40,10 +40,10 @@ import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
-import Gargantext.Database.NodeNgramNgram (NodeNgramNgramPoly(..), insertNodeNgramNgram)
+import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
-import Gargantext.Database.Ngram (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId)
+import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId)
 
 type UserId = Int
 type RootId = Int
@@ -162,7 +162,7 @@ groupNgramsBy = undefined
 
 insertGroups :: ListId -> Map NgramsIndexed NgramsIndexed -> Cmd Int
 insertGroups lId ngrs = 
-  insertNodeNgramNgram $ [ NodeNgramNgram lId ng1 ng2 (Just 1)
+  insertNodeNgramsNgramsNew $ [ NodeNgramsNgrams lId ng1 ng2 (Just 1)
                            | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
                          ]
 

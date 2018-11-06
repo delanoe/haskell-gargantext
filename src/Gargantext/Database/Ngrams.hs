@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Ngram
+Module      : Gargantext.Database.Ngrams
 Description : Ngram connection to the Database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -21,7 +21,7 @@ Ngrams connection to the Database.
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Ngram where
+module Gargantext.Database.Ngrams where
 
 -- import Opaleye
 import Control.Lens (makeLenses)

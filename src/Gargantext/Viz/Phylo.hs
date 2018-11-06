@@ -33,7 +33,7 @@ import Data.Maybe   (Maybe)
 import Data.Text    (Text)
 import Data.Time.Clock.POSIX  (POSIXTime)
 import GHC.Generics (Generic)
-import Gargantext.Database.Ngram (NgramsId)
+import Gargantext.Database.Ngrams (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 

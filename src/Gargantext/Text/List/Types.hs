@@ -40,6 +40,14 @@ instance Arbitrary ListType where
 
 type Lists = Map ListType (Map Text [Text])
 
+type ListId = Int
+type ListTypeId = Int
+
+listTypeId :: ListType -> ListTypeId
+listTypeId GraphList     = 1
+listTypeId StopList      = 2
+listTypeId CandidateList = 3
+
 
 emptyLists :: Lists
 emptyLists = fromList $ map (\lt -> (lt, empty))

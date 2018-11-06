@@ -67,6 +67,7 @@ import Opaleye.Internal.QueryArr (Query)
 import qualified Data.Profunctor.Product as PP
 
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
 {- | Reader Monad reinvented here:
 
 newtype Cmd a = Cmd { unCmd :: Connection -> IO a }
@@ -110,6 +111,9 @@ instance FromField HyperdataDocumentV3 where
 instance FromField HyperdataUser where
     fromField = fromField'
 
+instance FromField HyperdataList where
+    fromField = fromField'
+
 instance FromField HyperdataAnnuaire where
     fromField = fromField'
 ------------------------------------------------------------------------
@@ -126,6 +130,9 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataList     where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire where
@@ -222,15 +229,15 @@ selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node <- (proc () -> do
-            row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
-            restrict -< parentId' .== (toNullable $ pgInt4 parentId)
+      row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
+      restrict -< parentId' .== (toNullable $ pgInt4 parentId)
 
-            let typeId' = maybe 0 nodeTypeId maybeNodeType
+      let typeId' = maybe 0 nodeTypeId maybeNodeType
 
-            restrict -< if typeId' > 0
-                           then typeId   .== (pgInt4 (typeId' :: Int))
-                           else (pgBool True)
-            returnA  -< row ) -< ()
+      restrict -< if typeId' > 0
+                     then typeId   .== (pgInt4 (typeId' :: Int))
+                     else (pgBool True)
+      returnA  -< row ) -< ()
     returnA -< node
 
 
@@ -275,19 +282,17 @@ getDocumentsV3WithParentId conn n = runQuery conn $ selectNodesWith' n (Just Nod
 getDocumentsWithParentId :: Connection -> Int -> IO [Node HyperdataDocument]
 getDocumentsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeDocument)
 
+getListsWithParentId :: Connection -> Int -> IO [Node HyperdataList]
+getListsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeList)
+
 ------------------------------------------------------------------------
-
-
 selectNodesWithParentID :: Int -> Query NodeRead
 selectNodesWithParentID n = proc () -> do
     row@(Node _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
     restrict -< if n > 0
-                   then
-                        parent_id .== (toNullable $ pgInt4 n)
-                   else
-                        isNull parent_id
+      then parent_id .== (toNullable $ pgInt4 n)
+      else isNull parent_id
     returnA -< row
-
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead
 selectNodesWithType type_id = proc () -> do
@@ -301,11 +306,9 @@ getNode :: JSONB a => Connection -> Int -> proxy a -> IO (Node a)
 getNode conn id _ = do
     fromMaybe (error $ "Node does node exist: " <> show id) . headMay <$> runQuery conn (limit 1 $ selectNode (pgInt4 id))
 
-
 getNodesWithType :: Connection -> Column PGInt4 -> IO [Node HyperdataDocument]
 getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
-
 
 ------------------------------------------------------------------------
 -- WIP

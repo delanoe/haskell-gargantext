@@ -30,35 +30,35 @@ add get
 module Gargantext.API.Ngrams
   where
 
-import Prelude (Enum, Bounded, minBound, maxBound)
-import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (FromJSON, ToJSON)
-import Data.Either(Either(Left))
-import Data.Aeson.TH (deriveJSON)
-import Database.PostgreSQL.Simple (Connection)
-import Data.Map.Strict (Map)
-import GHC.Generics (Generic)
---import qualified Data.Map.Strict as DM
+-- import Gargantext.Database.User  (UserId)
 --import Data.Map.Strict.Patch (Patch, replace, fromList)
-import Data.Text (Text)
 --import Data.Maybe (catMaybes)
-import Data.Set (Set)
+--import qualified Data.Map.Strict as DM
 --import qualified Data.Set as Set
-
+import Control.Lens (view)
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.TH (deriveJSON)
+import Data.Either(Either(Left))
+import Data.List (concat)
+import Data.Set (Set)
+import Data.Swagger (ToSchema, ToParamSchema)
+import Data.Text (Text)
+import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
-
-import Gargantext.Database.Ngram (NgramsId)
-import Gargantext.Database.NodeNgram (updateNodeNgrams)
-import Gargantext.Database.User  (UserId)
-import Gargantext.Text.List.Types (ListType(..))
+import Gargantext.Core.Types (node_id)
 import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Ngrams (NgramsId)
+import Gargantext.Database.Node (getListsWithParentId)
+import Gargantext.Database.NodeNgram -- (NodeNgram(..), NodeNgram, updateNodeNgrams, NodeNgramPoly)
+import Gargantext.Database.NodeNgramsNgrams -- (NodeNgramsNgramsPoly(NodeNgramsNgrams))
 import Gargantext.Prelude
+import Gargantext.Text.List.Types (ListType(..), listTypeId, ListId, ListTypeId)
+import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant hiding (Patch)
-
-import Data.Swagger (ToSchema, ToParamSchema)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.Set as Set
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -108,7 +108,7 @@ instance ToJSON   (Tree NgramsElement)
 --            | SetListType NgramsId ListType
 
 data NgramsPatch =
-     NgramsPatch { _np_list_types   :: Map UserId ListType
+     NgramsPatch { _np_list_types   :: ListType   -- TODO Map UserId ListType
                  , _np_add_children :: Set NgramsId
                  , _np_rem_children :: Set NgramsId
                  }
@@ -178,7 +178,6 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 type CorpusId = Int
-type ListId   = Int
 type TableNgramsApi = Summary " Table Ngrams API"
                       :> QueryParam "list"   ListId
                       :> ReqBody '[JSON] NgramsIdPatchs
@@ -188,27 +187,35 @@ type NgramsIdPatchsFeed = NgramsIdPatchs
 type NgramsIdPatchsBack = NgramsIdPatchs
 
 
-getDefaultList :: Connection -> CorpusId -> IO ListId
-getDefaultList = undefined
+defaultList :: Connection -> CorpusId -> IO ListId
+defaultList c cId = view node_id <$> maybe (panic errorMessage) identity 
+  <$> head 
+  <$> getListsWithParentId c cId
+  where
+    errorMessage = "Gargantext.API.Ngrams.defaultList: no list found"
 
-type NgramsIdParent = Int
-type NgramsIdChild  = Int
+toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
+toLists lId np = map (toList lId) (_nip_ngramsIdPatchs np)
 
-data Action = Del | Add
+toList :: ListId -> NgramsIdPatch -> (ListId, NgramsId, ListTypeId)
+toList lId (NgramsIdPatch ngId (NgramsPatch lt _ _)) = (lId,ngId,listTypeId lt)
 
 
-doNgramsGroup :: Connection -> ListId -> Action -> [(NgramsIdParent, NgramsIdChild)] -> IO [Int] 
-doNgramsGroup = undefined
+toGroups :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatchs -> [NodeNgramsNgrams]
+toGroups lId addOrRem ps = concat $ map (toGroup lId addOrRem) $ _nip_ngramsIdPatchs ps
+
+toGroup :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatch -> [NodeNgramsNgrams]
+toGroup lId addOrRem (NgramsIdPatch ngId patch)  =
+  map (\ng -> (NodeNgramsNgrams lId ngId ng (Just 1))) (Set.toList $ addOrRem patch)
 
 
 tableNgramsPatch :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> IO NgramsIdPatchsBack
 tableNgramsPatch conn corpusId maybeList patchs = do
   listId <- case maybeList of
-              Nothing      -> getDefaultList conn corpusId
+              Nothing      -> defaultList conn corpusId
               Just listId' -> pure listId'
-  --_ <- doNgramsGroups conn listId Add $ 
-  --_ <- delNgramsGroups conn listId
-  --_ <- updateNodeNgrams   conn 
+  _ <- ngramsGroup' conn Add $ toGroups listId _np_add_children patchs
+  _ <- ngramsGroup' conn Del $ toGroups listId _np_rem_children patchs
+  _ <- updateNodeNgrams conn (toLists listId patchs)
   pure (NgramsIdPatchs [])
-
 

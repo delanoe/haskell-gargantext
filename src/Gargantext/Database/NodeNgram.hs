@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.NodeNgram
+Module      : Gargantext.Database.NodeNgrams
 Description : NodeNgram for Ngram indexation or Lists
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -21,16 +21,20 @@ if Node is a List     then it is listing (either Stop, Candidate or Map)
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 
+-- TODO NodeNgrams
 module Gargantext.Database.NodeNgram where
 
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Gargantext.Database.Ngrams (NgramsId)
+import Gargantext.Text.List.Types (ListId, ListTypeId)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import Opaleye
@@ -94,10 +98,6 @@ insertNodeNgramW nns =
   mkCmd $ \c -> fromIntegral
        <$> runInsertMany c nodeNgramTable nns
 
--- TODO: remove these type (duplicate with others)
-type ListId     = Int
-type NgramsId   = Int
-type ListTypeId = Int
 
 updateNodeNgrams :: PGS.Connection -> [(ListId, NgramsId, ListTypeId)] -> IO [PGS.Only Int]
 updateNodeNgrams c input = PGS.query c updateQuery (PGS.Only $ Values fields $ input)
@@ -110,6 +110,4 @@ updateNodeNgrams c input = PGS.query c updateQuery (PGS.Only $ Values fields $ i
                  AND   old.gram_id = new.gram_id
                  RETURNING new.ngram_id
                  |]
-
-
 
