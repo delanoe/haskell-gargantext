@@ -139,7 +139,7 @@ instance ToJSON a => ToJSON   (Tree a) where
   toJSON (TreeN node nodes) =
     object ["node" A..= toJSON node, "children" A..= toJSON nodes]
 
-instance FromJSON (Tree NodeTree)
+instance FromJSON a => FromJSON (Tree a)
 
 instance ToSchema NodeTree
 instance ToSchema  (Tree NodeTree)

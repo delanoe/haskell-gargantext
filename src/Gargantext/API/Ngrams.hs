@@ -84,11 +84,10 @@ instance Arbitrary TabType
 
 ------------------------------------------------------------------------
 data NgramsElement =
-     NgramsElement { _ne_id     :: Int
-                   , _ne_ngrams :: Text
+     NgramsElement { _ne_ngrams :: Text
                    , _ne_list   :: ListType
                    }
-      deriving (Ord, Eq)
+      deriving (Ord, Eq, Show)
 $(deriveJSON (unPrefix "_ne_") ''NgramsElement)
 
 
@@ -105,8 +104,8 @@ $(deriveJSON (unPrefix "_") ''NgramsTable)
 
 data NgramsPatch =
      NgramsPatch { _np_list_types   :: ListType   -- TODO Map UserId ListType
-                 , _np_add_children :: Set NgramsId
-                 , _np_rem_children :: Set NgramsId
+                 , _np_add_children :: Set NgramsElement
+                 , _np_rem_children :: Set NgramsElement
                  }
       deriving (Ord, Eq, Show, Generic)
 $(deriveJSON (unPrefix "_np_") ''NgramsPatch)
@@ -119,7 +118,7 @@ instance Arbitrary NgramsPatch where
                        --
 
 data NgramsIdPatch = 
-     NgramsIdPatch { _nip_ngramsId    :: NgramsId
+     NgramsIdPatch { _nip_ngramsId    :: NgramsElement
                    , _nip_ngramsPatch :: NgramsPatch
                    }
       deriving (Ord, Eq, Show, Generic)

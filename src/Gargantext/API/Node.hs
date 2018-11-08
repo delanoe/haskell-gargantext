@@ -48,7 +48,7 @@ import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Servant
 
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet,tableNgramsPatch, getTableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet,tableNgramsPatch, getTableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack, NgramsTable)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
@@ -289,7 +289,7 @@ getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p 
 tableNgramsPatch' :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> Handler NgramsIdPatchsBack
 tableNgramsPatch' c cId mL ns = liftIO $ tableNgramsPatch c cId mL ns
 
-getTableNgramsPatch' :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> Handler NgramsIdPatchsBack
+getTableNgramsPatch' :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> Handler NgramsTable
 getTableNgramsPatch' c cId nType mL = liftIO $ getTableNgramsPatch c cId nType mL
 
 query :: Text -> Handler Text
