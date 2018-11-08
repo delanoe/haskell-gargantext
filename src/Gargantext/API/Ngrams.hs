@@ -84,15 +84,16 @@ instance Arbitrary TabType
 
 ------------------------------------------------------------------------
 data NgramsElement =
-     NgramsElement { _ne_ngrams :: Text
-                   , _ne_list   :: ListType
+     NgramsElement { _ne_ngrams      :: Text
+                   , _ne_list        :: ListType
+                   , _ne_occurrences :: Int
                    }
       deriving (Ord, Eq, Show, Generic)
 $(deriveJSON (unPrefix "_ne_") ''NgramsElement)
 
 instance ToSchema NgramsElement
 instance Arbitrary NgramsElement where
-  arbitrary = elements [NgramsElement "sport" StopList]
+  arbitrary = elements [NgramsElement "sport" StopList 1]
 
 ------------------------------------------------------------------------
 data NgramsTable = NgramsTable { _ngramsTable :: [Tree NgramsElement] }
@@ -104,17 +105,17 @@ instance Arbitrary NgramsTable where
 
 -- TODO
 instance Arbitrary (Tree NgramsElement) where 
-  arbitrary = elements [ TreeN (NgramsElement "animal" GraphList) 
-                            [TreeN (NgramsElement "dog" GraphList) []
-                             , TreeN (NgramsElement "object" CandidateList) []
-                             , TreeN (NgramsElement "cat"     GraphList) []
-                             , TreeN (NgramsElement "nothing" StopList) []
+  arbitrary = elements [ TreeN (NgramsElement "animal" GraphList 1) 
+                            [TreeN (NgramsElement "dog" GraphList 3) []
+                             , TreeN (NgramsElement "object" CandidateList 2) []
+                             , TreeN (NgramsElement "cat"     GraphList 1) []
+                             , TreeN (NgramsElement "nothing" StopList 4) []
                             ]
-                       , TreeN (NgramsElement "plant" GraphList) 
-                            [TreeN (NgramsElement "flower" GraphList) []
-                             , TreeN (NgramsElement "moon" CandidateList) []
-                             , TreeN (NgramsElement "cat"     GraphList) []
-                             , TreeN (NgramsElement "sky" StopList) []
+                       , TreeN (NgramsElement "plant" GraphList 3)
+                            [TreeN (NgramsElement "flower" GraphList 3) []
+                             , TreeN (NgramsElement "moon" CandidateList 1) []
+                             , TreeN (NgramsElement "cat"     GraphList 2) []
+                             , TreeN (NgramsElement "sky" StopList 1) []
                             ]
                        ]
 instance ToSchema NgramsTable
