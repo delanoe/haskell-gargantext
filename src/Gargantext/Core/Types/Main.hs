@@ -142,9 +142,10 @@ instance ToJSON a => ToJSON   (Tree a) where
 instance FromJSON a => FromJSON (Tree a)
 
 instance ToSchema NodeTree
-instance ToSchema  (Tree NodeTree)
+instance ToSchema a => ToSchema  (Tree a)
 instance Arbitrary (Tree NodeTree) where
   arbitrary = elements [userTree, userTree]
+
 
 -- data Tree a = NodeT a [Tree a]
 -- same as Data.Tree

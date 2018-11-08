@@ -50,15 +50,15 @@ import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Ngrams (NgramsId)
 import Gargantext.Database.Node (getListsWithParentId)
-import Gargantext.Database.NodeNgram -- (NodeNgram(..), NodeNgram, updateNodeNgrams, NodeNgramPoly)
+-- import Gargantext.Database.NodeNgram -- (NodeNgram(..), NodeNgram, updateNodeNgrams, NodeNgramPoly)
 import Gargantext.Database.NodeNgramsNgrams -- (NodeNgramsNgramsPoly(NodeNgramsNgrams))
 import Gargantext.Prelude
-import Gargantext.Text.List.Types (ListType(..), listTypeId, ListId, ListTypeId)
+import Gargantext.Text.List.Types (ListType(..), ListId, ListTypeId) --,listTypeId )
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant hiding (Patch)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Data.Set as Set
+-- import qualified Data.Set as Set
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -87,14 +87,37 @@ data NgramsElement =
      NgramsElement { _ne_ngrams :: Text
                    , _ne_list   :: ListType
                    }
-      deriving (Ord, Eq, Show)
+      deriving (Ord, Eq, Show, Generic)
 $(deriveJSON (unPrefix "_ne_") ''NgramsElement)
 
+instance ToSchema NgramsElement
+instance Arbitrary NgramsElement where
+  arbitrary = elements [NgramsElement "sport" StopList]
 
+------------------------------------------------------------------------
 data NgramsTable = NgramsTable { _ngramsTable :: [Tree NgramsElement] }
   deriving (Ord, Eq, Generic)
 $(deriveJSON (unPrefix "_") ''NgramsTable)
 
+instance Arbitrary NgramsTable where
+  arbitrary = NgramsTable <$> arbitrary
+
+-- TODO
+instance Arbitrary (Tree NgramsElement) where 
+  arbitrary = elements [ TreeN (NgramsElement "animal" GraphList) 
+                            [TreeN (NgramsElement "dog" GraphList) []
+                             , TreeN (NgramsElement "object" CandidateList) []
+                             , TreeN (NgramsElement "cat"     GraphList) []
+                             , TreeN (NgramsElement "nothing" StopList) []
+                            ]
+                       , TreeN (NgramsElement "plant" GraphList) 
+                            [TreeN (NgramsElement "flower" GraphList) []
+                             , TreeN (NgramsElement "moon" CandidateList) []
+                             , TreeN (NgramsElement "cat"     GraphList) []
+                             , TreeN (NgramsElement "sky" StopList) []
+                            ]
+                       ]
+instance ToSchema NgramsTable
 
 ------------------------------------------------------------------------
 -- On the Client side:
@@ -180,7 +203,7 @@ type TableNgramsApi = Summary " Table Ngrams API Change"
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> QueryParam "ngramsType"   TabType
                       :> QueryParam "list"   ListId
-                      :> Get    '[JSON] NgramsIdPatchsBack
+                      :> Get    '[JSON] NgramsTable
 
 type NgramsIdPatchsFeed = NgramsIdPatchs
 type NgramsIdPatchsBack = NgramsIdPatchs
@@ -197,18 +220,23 @@ toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
 toLists lId np = map (toList lId) (_nip_ngramsIdPatchs np)
 
 toList :: ListId -> NgramsIdPatch -> (ListId, NgramsId, ListTypeId)
-toList lId (NgramsIdPatch ngId (NgramsPatch lt _ _)) = (lId,ngId,listTypeId lt)
-
+toList = undefined
+-- toList lId (NgramsIdPatch ngId (NgramsPatch lt _ _)) = (lId,ngId,listTypeId lt)
 
 toGroups :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatchs -> [NodeNgramsNgrams]
 toGroups lId addOrRem ps = concat $ map (toGroup lId addOrRem) $ _nip_ngramsIdPatchs ps
 
 toGroup :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatch -> [NodeNgramsNgrams]
+toGroup = undefined
+{-
 toGroup lId addOrRem (NgramsIdPatch ngId patch)  =
   map (\ng -> (NodeNgramsNgrams lId ngId ng (Just 1))) (Set.toList $ addOrRem patch)
+-}
 
 
 tableNgramsPatch :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> IO NgramsIdPatchsBack
+tableNgramsPatch = undefined 
+{-
 tableNgramsPatch conn corpusId maybeList patchs = do
   listId <- case maybeList of
               Nothing      -> defaultList conn corpusId
@@ -217,6 +245,7 @@ tableNgramsPatch conn corpusId maybeList patchs = do
   _ <- ngramsGroup' conn Del $ toGroups listId _np_rem_children patchs
   _ <- updateNodeNgrams conn (toLists listId patchs)
   pure (NgramsIdPatchs [])
+  -}
 
 getTableNgramsPatch :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
 getTableNgramsPatch = undefined
