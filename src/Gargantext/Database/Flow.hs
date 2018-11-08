@@ -25,56 +25,70 @@ authors
 module Gargantext.Database.Flow
     where
 import System.FilePath (FilePath)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text)
 import Data.Map (Map)
 import Data.Tuple.Extra (both, second)
 import qualified Data.Map as DM
 
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listId)
-import Gargantext.Prelude
 import Gargantext.Database.Bashql (runCmd', del)
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)
-import Gargantext.Database.User (getUser, UserLight(..), Username)
-import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.Node.Document.Add    (add)
+import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
-
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.User (getUser, UserLight(..), Username)
+import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
-import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId)
 
 type UserId = Int
 type RootId = Int
 type CorpusId = Int
 
-flow :: FilePath -> IO Int
-flow fp = do
+flow :: FilePath -> CorpusName -> IO [Int]
+flow fp cName = do
+  
+  -- Corus Flow
+  (masterUserId, _, corpusId) <- subFlow "gargantua" "Big Corpus"
 
-  (masterUserId, _, corpusId) <- subFlow "gargantua"
+  -- Documents Flow
+  hyperdataDocuments <- map addUniqIds <$> parseDocs WOS fp
+  ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
+  printDebug "Docs IDs : " (length ids)
+  idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
+  
+  -- Ngrams Flow
+  let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
+  let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
+  let maps            = mapNodeIdNgrams docsWithNgrams
+  indexedNgrams <- runCmd' $ indexNgrams maps
+  _             <- runCmd' $ insertToNodeNgrams indexedNgrams
 
-  docs <- map addUniqIds <$> parseDocs WOS fp
-  ids  <- runCmd' $ insertDocuments masterUserId corpusId docs
-  printDebug "Docs IDs : " ids
+  -- List Flow
+  listId <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
+  printDebug "list id:" listId
 
-  idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId docs
-  printDebug "Docs IDs : " idsRepeat
+  printDebug "Docs IDs : " (length idsRepeat)
 
-  (_, _, corpusId2) <- subFlow "alexandre"
-
+  (_, _, corpusId2) <- subFlow "alexandre" cName
   inserted <- runCmd' $ add corpusId2 (map reId ids)
-  printDebug "Inserted : " inserted
+  printDebug "Inserted : " (length inserted)
 
-  runCmd' $ del [corpusId2, corpusId]
+  pure [corpusId2, corpusId]
 
+  --runCmd' $ del [corpusId2, corpusId]
 
-subFlow :: Username -> IO (UserId, RootId, CorpusId)
-subFlow username = do
+type CorpusName = Text
+
+subFlow :: Username -> CorpusName -> IO (UserId, RootId, CorpusId)
+subFlow username cName = do
   maybeUserId <- runCmd' (getUser username)
 
   let userId = case maybeUserId of
-        Nothing   -> panic "Error: User does not exist (yet)" 
+        Nothing   -> panic "Error: User does not exist (yet)"
         -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> userLight_id user
 
@@ -82,24 +96,24 @@ subFlow username = do
 
   rootId'' <- case rootId' of
         []  -> runCmd' (mkRoot userId)
-        un  -> case length un >= 2 of
-                 True  -> panic "Error: more than 1 userNode / user"
-                 False -> pure rootId'
+        n  -> case length n >= 2 of
+          True  -> panic "Error: more than 1 userNode / user"
+          False -> pure rootId'
   let rootId = maybe (panic "error rootId") identity (head rootId'')
 
-  corpusId' <- runCmd' $ mkCorpus (Just "Corpus WOS") Nothing rootId userId
+  corpusId' <- runCmd' $ mkCorpus (Just cName) Nothing rootId userId
   let corpusId = maybe (panic "error corpusId") identity (head corpusId')
 
-  printDebug "(username, userId, rootId, corpusId"
+  printDebug "(username, userId, rootId, corpusId)"
               (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
-----------------------------------------------------------------
+------------------------------------------------------------------------
+
+
 type HashId   = Text
 type NodeId   = Int
 type ListId   = Int
-type ToInsert = Map HashId HyperdataDocument
-type Inserted = Map HashId ReturnId
 
 toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
 toInsert = DM.fromList . map (\d -> (hash (_hyperdataDocument_uniqIdBdd d), d))
@@ -111,24 +125,33 @@ toInserted rs = DM.fromList $ map    (\r ->  (reUniqId r, r)    )
                             $ filter (\r -> reInserted r == True) rs
 
 data DocumentWithId =
-  DocumentWithId
-  { documentId   :: NodeId
-  , documentData :: HyperdataDocument
-  }
-
+     DocumentWithId { documentId   :: NodeId
+                    , documentData :: HyperdataDocument
+                    }
 
 mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
 mergeData rs hs = map (\(hash,r) -> DocumentWithId (reId r) (lookup' hash hs)) $ DM.toList rs
   where
     lookup' h xs = maybe (panic $ "Error with " <> h) identity (DM.lookup h xs)
 
-data DocumentIdWithNgrams =
-  DocumentIdWithNgrams
-  { documentWithId  :: DocumentWithId
-  , document_ngrams :: Map (NgramsT Ngrams) Int
-  }
+------------------------------------------------------------------------
 
-documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int) 
+data DocumentIdWithNgrams =
+     DocumentIdWithNgrams
+     { documentWithId  :: DocumentWithId
+     , document_ngrams :: Map (NgramsT Ngrams) Int
+     }
+
+-- TODO add Authors and Terms (Title + Abstract)
+-- add f :: Text -> Text
+-- newtype Ngrams = Ngrams Text
+extractNgramsT :: HyperdataDocument -> Map (NgramsT Ngrams) Int
+extractNgramsT doc = DM.fromList $ [(NgramsT Sources ngrams, 1)]
+  where
+    ngrams      = text2ngrams $ maybe "Nothing" identity maybeNgrams
+    maybeNgrams = _hyperdataDocument_source doc
+
+documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int)
                      -> [DocumentWithId]   -> [DocumentIdWithNgrams]
 documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
 
@@ -149,22 +172,41 @@ indexNgrams ng2nId = do
 insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd Int
 insertToNodeNgrams m = insertNodeNgrams [ NodeNgram Nothing nId  ((_ngramsId    . _ngramsT   ) ng)
                                                   (fromIntegral n) ((ngramsTypeId . _ngramsType) ng)
-
-                                         | (ng, nId2int) <- DM.toList m
-                                         , (nId, n)      <- DM.toList nId2int
+                                          | (ng, nId2int) <- DM.toList m
+                                        , (nId, n)      <- DM.toList nId2int
                                         ]
 
+
 ------------------------------------------------------------------------
-groupNgramsBy :: (Ngrams -> Ngrams -> Bool)
+------------------------------------------------------------------------
+listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
+listFlow uId cId ng = do
+  lId <- maybe (panic "mkList error") identity <$> head <$> mkList cId uId
+  -- TODO add stemming equivalence of 2 ngrams
+  let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ng
+  _ <- insertGroups lId groupEd
+
+-- compute Candidate / Map
+  let lists = ngrams2list ng
+  _ <- insertLists lId lists
+
+  pure lId
+
+------------------------------------------------------------------------
+
+groupNgramsBy :: (NgramsT NgramsIndexed -> NgramsT NgramsIndexed -> Maybe (NgramsIndexed, NgramsIndexed))
               -> Map (NgramsT NgramsIndexed) (Map NodeId Int)
               -> Map NgramsIndexed NgramsIndexed
-groupNgramsBy = undefined
+groupNgramsBy isEqual cId = DM.fromList $ catMaybes [ isEqual n1 n2 | n1 <- DM.keys cId, n2 <- DM.keys cId]
 
+
+
+-- TODO check: do not insert duplicates
 insertGroups :: ListId -> Map NgramsIndexed NgramsIndexed -> Cmd Int
-insertGroups lId ngrs = 
-  insertNodeNgramsNgramsNew $ [ NodeNgramsNgrams lId ng1 ng2 (Just 1)
-                           | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
-                         ]
+insertGroups lId ngrs =
+  insertNodeNgramsNgramsNew [ NodeNgramsNgrams lId ng1 ng2 (Just 1)
+                              | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
+                            ]
 
 ------------------------------------------------------------------------
 ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Map ListType NgramsIndexed
@@ -177,18 +219,6 @@ insertLists lId list2ngrams =
                      | (l,ngr) <- map (second _ngramsId)   $ DM.toList list2ngrams
                    ]
 
-
-listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
-listFlow uId cId ng = do
-  lId <- maybe (panic "mkList error") identity <$> head <$> mkList cId uId
-  -- TODO add stemming equivalence of 2 ngrams
-  let groupEd = groupNgramsBy (==) ng
-  _ <- insertGroups lId groupEd
-
--- compute Candidate / Map
-  let lists = ngrams2list ng
-  _ <- insertLists lId lists
-
-  pure lId
+------------------------------------------------------------------------
 ------------------------------------------------------------------------
 

@@ -59,15 +59,15 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, l_community_id)
 
 contextText :: [T.Text]
 contextText = map T.pack ["The dog is an animal."
-              ,"The bird is a animal."
-              ,"The dog is a animal."
+              ,"The bird is an animal."
+              ,"The dog is an animal."
               ,"The animal is a bird or a dog ?"
-              ,"The table is a object."
-              ,"The pen is a object."
+              ,"The table is an object."
+              ,"The pen is an object."
               ,"The object is a pen or a table ?"
-              ,"The girl is human body."
-              ,"The boy  is human body."
-              ,"The boy or the girl are human body."
+              ,"The girl is a human."
+              ,"The boy  is a human."
+              ,"The boy or the girl are human."
               ]
 
 
@@ -75,7 +75,7 @@ contextText = map T.pack ["The dog is an animal."
 data TextFlow = CSV FilePath
               | FullText FilePath
               | Contexts [T.Text]
-              | DB Connection CorpusId
+              | DBV3 Connection CorpusId
               | Query T.Text
 
 
@@ -85,7 +85,7 @@ textFlow termType workType = do
                 FullText path -> splitBy (Sentences 5) <$> readFile path
                 CSV      path -> readCsvOn [csv_title, csv_abstract] path
                 Contexts ctxt -> pure ctxt
-                DB con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (_node_hyperdata n)  <> hyperdataDocumentV3_abstract (_node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
+                DBV3 con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (_node_hyperdata n)  <> hyperdataDocumentV3_abstract (_node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
                 _             -> undefined -- TODO Query not supported
 
   textFlow' termType contexts

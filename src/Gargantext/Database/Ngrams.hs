@@ -27,7 +27,7 @@ module Gargantext.Database.Ngrams where
 import Control.Lens (makeLenses)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup)
-import Data.Text (Text)
+import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.ToField (toField)
@@ -77,6 +77,7 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- ngrams in authors field of document has Authors Type
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Sources | Authors | Terms
+  deriving (Eq)
 
 ngramsTypeId :: NgramsType -> Int
 ngramsTypeId Terms   = 1
@@ -100,6 +101,9 @@ makeLenses ''Ngrams
 instance DPS.ToRow Ngrams where
   toRow (Ngrams t s) = [toField t, toField s]
 
+text2ngrams :: Text -> Ngrams
+text2ngrams txt = Ngrams txt $ length $ splitOn " " txt
+
 -------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Text.Ngrams
 -- Named entity are typed ngrams of Terms Ngrams
@@ -108,9 +112,16 @@ data NgramsT a =
           , _ngramsT    :: a
           } deriving (Generic)
 
-instance Eq  (NgramsT a) where (==) = (==)
+instance Eq  (NgramsT a)
+  where (==) = (==)
+--    where NgramsT
+--      t1 == t2
+--      n1 == n2
+
 instance Ord (NgramsT a) where compare = compare
 makeLenses ''NgramsT
+
+
 -----------------------------------------------------------------------
 data NgramsIndexed =
   NgramsIndexed

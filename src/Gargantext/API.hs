@@ -21,7 +21,6 @@ Thanks @yannEsposito for this.
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-
 {-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DeriveGeneric        #-}
@@ -317,7 +316,7 @@ type Desc t n = Description (AppendSymbol (TypeName t) (AppendSymbol " | " n))
 swaggerDoc :: Swagger
 swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
   & info.title       .~ "Gargantext"
-  & info.version     .~ "0.1.0"
+  & info.version     .~ "4.0.2" -- TODO same version as Gargantext
   -- & info.base_url     ?~ (URL "http://gargantext.org/")
   & info.description ?~ "REST API specifications"
   -- & tags             .~ Set.fromList [Tag "Garg" (Just "Main perations") Nothing]
