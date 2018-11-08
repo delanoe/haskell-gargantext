@@ -48,7 +48,7 @@ import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Servant
 
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, tableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet,tableNgramsPatch, getTableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
@@ -110,6 +110,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              -- TODO gather it
              :<|> "table"     :> TableApi
              :<|> "list"      :> TableNgramsApi
+             :<|> "listGet"   :> TableNgramsApiGet
              
              :<|> "chart"     :> ChartApi
              :<|> "favorites" :> FavApi
@@ -142,7 +143,8 @@ nodeAPI conn p id
               -- TODO gather it
               :<|> getTable      conn id
               :<|> tableNgramsPatch'  conn id
-              
+              :<|> getTableNgramsPatch' conn id
+
               :<|> getChart      conn id
               :<|> favApi        conn id
               :<|> delDocs       conn id
@@ -233,7 +235,6 @@ type ChartApi = Summary " Chart API"
                 -- To launch a query and update the corpus
              -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
-
 ------------------------------------------------------------------------
 type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
@@ -287,6 +288,9 @@ getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p 
 
 tableNgramsPatch' :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> Handler NgramsIdPatchsBack
 tableNgramsPatch' c cId mL ns = liftIO $ tableNgramsPatch c cId mL ns
+
+getTableNgramsPatch' :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> Handler NgramsIdPatchsBack
+getTableNgramsPatch' c cId nType mL = liftIO $ getTableNgramsPatch c cId nType mL
 
 query :: Text -> Handler Text
 query s = pure s

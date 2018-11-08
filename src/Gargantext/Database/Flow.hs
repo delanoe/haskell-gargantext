@@ -32,7 +32,7 @@ import Data.Tuple.Extra (both, second)
 import qualified Data.Map as DM
 
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listId)
-import Gargantext.Database.Bashql (runCmd', del)
+import Gargantext.Database.Bashql (runCmd')--, del)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)
 import Gargantext.Database.Node.Document.Add    (add)
@@ -68,8 +68,8 @@ flow fp cName = do
   _             <- runCmd' $ insertToNodeNgrams indexedNgrams
 
   -- List Flow
-  listId <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
-  printDebug "list id:" listId
+  listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
+  printDebug "list id:" listId2
 
   printDebug "Docs IDs : " (length idsRepeat)
 

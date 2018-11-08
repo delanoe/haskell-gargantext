@@ -97,10 +97,6 @@ data NgramsTable = NgramsTable { _ngramsTable :: [Tree NgramsElement] }
 $(deriveJSON (unPrefix "_") ''NgramsTable)
 
 
--- TODO
-instance FromJSON (Tree NgramsElement)
-instance ToJSON   (Tree NgramsElement)
-
 ------------------------------------------------------------------------
 -- On the Client side:
 --data Action = InGroup     NgramsId NgramsId
@@ -145,7 +141,6 @@ instance ToSchema  NgramsIdPatchs
 instance Arbitrary NgramsIdPatchs where
   arbitrary = NgramsIdPatchs <$> arbitrary
 
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 type Version = Int
@@ -178,10 +173,15 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 type CorpusId = Int
-type TableNgramsApi = Summary " Table Ngrams API"
+type TableNgramsApi = Summary " Table Ngrams API Change"
                       :> QueryParam "list"   ListId
                       :> ReqBody '[JSON] NgramsIdPatchs
                       :> Put     '[JSON] NgramsIdPatchsBack
+
+type TableNgramsApiGet = Summary " Table Ngrams API Get"
+                      :> QueryParam "ngramsType"   TabType
+                      :> QueryParam "list"   ListId
+                      :> Get    '[JSON] NgramsIdPatchsBack
 
 type NgramsIdPatchsFeed = NgramsIdPatchs
 type NgramsIdPatchsBack = NgramsIdPatchs
@@ -219,3 +219,5 @@ tableNgramsPatch conn corpusId maybeList patchs = do
   _ <- updateNodeNgrams conn (toLists listId patchs)
   pure (NgramsIdPatchs [])
 
+getTableNgramsPatch :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
+getTableNgramsPatch = undefined

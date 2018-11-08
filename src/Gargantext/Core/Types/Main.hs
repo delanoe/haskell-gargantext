@@ -135,7 +135,7 @@ type Offset   = Int
 data Tree a = TreeN a [Tree a]
   deriving (Show, Read, Eq, Generic, Ord)
 
-instance ToJSON   (Tree NodeTree) where
+instance ToJSON a => ToJSON   (Tree a) where
   toJSON (TreeN node nodes) =
     object ["node" A..= toJSON node, "children" A..= toJSON nodes]
 
