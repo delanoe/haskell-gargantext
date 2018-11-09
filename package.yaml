@@ -80,6 +80,7 @@ library:
   - bytestring
   - case-insensitive
   - cassava
+  #- charsetdetect-ae  # detect charset
   - clustering-louvain
   - conduit
   - conduit-extra
