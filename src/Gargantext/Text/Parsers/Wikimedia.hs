@@ -66,7 +66,7 @@ manyTagsUntil_ :: MonadThrow m => Name -> ConduitT Event o m ()
 manyTagsUntil_ = many_ . ignoreTreeContent . tagUntil
 
 manyTagsUntil_' :: MonadThrow m => Name -> ConduitT Event o m ()
-manyTagsUntil_' = many_ . ignoreTag . tagUntil
+manyTagsUntil_' = many_ . ignoreEmptyTag . tagUntil
 
 -- | Utility function that parses nothing but the tag given,
 -- usefull because we have to consume every data.

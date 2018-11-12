@@ -29,9 +29,9 @@ import System.FilePath (FilePath(), takeExtension)
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 
 import Control.Monad (join)
-import Data.Time (UTCTime(..))
 import qualified Data.Time as DT
 import Data.Either.Extra (partitionEithers)
+import Data.Time (UTCTime(..))
 import Data.List (concat)
 import qualified Data.Map        as DM
 import qualified Data.ByteString as DB
