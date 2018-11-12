@@ -16,15 +16,17 @@ and an wikimedia to plaintext converter for the wikipedia text field
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Parsers.Wikimedia where
-import Gargantext.Prelude
-import Text.XML.Stream.Parse
+module Gargantext.Text.Parsers.Wikimedia
+  where
+
 import Control.Monad.Catch
 import Data.Conduit
-import Data.XML.Types (Event, Name)
-import Text.Pandoc
-import Data.Text as T
 import Data.Either
+import Data.Text as T
+import Data.XML.Types (Event, Name)
+import Gargantext.Prelude
+import Text.Pandoc
+import Text.XML.Stream.Parse
 
 -- | Use case
 -- :{
@@ -38,52 +40,60 @@ import Data.Either
 -- | A simple "Page" type.
 -- For the moment it takes only text and title
 --  (since there is no abstract) will see if other data are relevant.
-data Page = Page
-  {
-    _markupFormat :: MarkupFormat
-  , _title :: Maybe T.Text
-  , _text :: Maybe T.Text
-  }
-  deriving (Show)
+data Page =
+     Page { _markupFormat :: MarkupFormat
+          , _title        :: Maybe T.Text
+          , _text         :: Maybe T.Text
+          }
+          deriving (Show)
 
 data MarkupFormat = Mediawiki | Plaintext
   deriving (Show)
 
 parseRevision :: MonadThrow m => ConduitT Event o m (Maybe T.Text)
-parseRevision =
-  tagNoAttr "{http://www.mediawiki.org/xml/export-0.10/}revision" $ do
-  text <-
-    force "text is missing" $ ignoreExcept
-    "{http://www.mediawiki.org/xml/export-0.10/}text" content
-  many_
-    $ ignoreAnyTreeContent
+parseRevision = tagNoAttr "{http://www.mediawiki.org/xml/export-0.10/}revision" $ do
+  text <- force "text is missing" $ ignoreExcept "{http://www.mediawiki.org/xml/export-0.10/}text" content
+  many_ ignoreAnyTreeContent
   return text
 
--- | Utility function that match everything but the tag given
+-- | Utility function that matches everything but the tag given
 tagUntil :: Name -> NameMatcher Name
 tagUntil name = matching (/= name)
 
--- | Utility function that parse nothing but the tag given,
+-- | Utility function that consumes everything but the tag given
+-- usefull because we have to consume every data.
+manyTagsUntil_ :: MonadThrow m => Name -> ConduitT Event o m ()
+manyTagsUntil_ = many_ . ignoreTreeContent . tagUntil
+
+manyTagsUntil_' :: MonadThrow m => Name -> ConduitT Event o m ()
+manyTagsUntil_' = many_ . ignoreTag . tagUntil
+
+-- | Utility function that parses nothing but the tag given,
 -- usefull because we have to consume every data.
 ignoreExcept :: MonadThrow m => Name
   -> ConduitT Event o m b
   -> ConduitT Event o m (Maybe b)
 ignoreExcept name f = do
-  _ <- consumeExcept name
-  tagIgnoreAttrs (matching (==name)) f
+  _ <- manyTagsUntil_ name
+  tagIgnoreAttrs (matching (== name)) f
 
--- | Utility function that consume everything but the tag given
--- usefull because we have to consume every data.
-consumeExcept :: MonadThrow m => Name -> ConduitT Event o m ()
-consumeExcept = many_ . ignoreTreeContent . tagUntil
+-- TODO: remove ignoreExcept to:
+-- many ignoreAnyTreeContentUntil "Article"
+manyTagsUntil :: MonadThrow m => Name
+  -> ConduitT Event o m b
+  -> ConduitT Event o m (Maybe b)
+manyTagsUntil name f = do
+  _ <- manyTagsUntil_ name
+  tagIgnoreAttrs (matching (== name)) f
+
+
 
 parsePage :: MonadThrow m => ConduitT Event o m (Maybe Page)
 parsePage =
   tagNoAttr "{http://www.mediawiki.org/xml/export-0.10/}page" $ do
   title <-
     tagNoAttr "{http://www.mediawiki.org/xml/export-0.10/}title" content
-  _ <-
-    consumeExcept "{http://www.mediawiki.org/xml/export-0.10/}revision"
+  _ <- manyTagsUntil_ "{http://www.mediawiki.org/xml/export-0.10/}revision"
   revision <-
     parseRevision
   many_ $ ignoreAnyTreeContent
@@ -109,5 +119,5 @@ mediawikiPageToPlain page = do
                 doc <- readMediaWiki def med
                 writePlain def doc
               case res of
-                (Left _) -> return Nothing
+                (Left _)  -> return Nothing
                 (Right r) -> return $ Just r
