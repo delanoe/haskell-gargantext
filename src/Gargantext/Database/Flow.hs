@@ -22,7 +22,7 @@ authors
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Database.Flow
+module Gargantext.Database.Flow (flowDatabase)
     where
 import System.FilePath (FilePath)
 import Data.Maybe (Maybe(..), catMaybes)
@@ -48,8 +48,8 @@ type UserId = Int
 type RootId = Int
 type CorpusId = Int
 
-flow :: FilePath -> CorpusName -> IO [Int]
-flow fp cName = do
+flowDatabase :: FilePath -> CorpusName -> IO [Int]
+flowDatabase fp cName = do
   
   -- Corus Flow
   (masterUserId, _, corpusId) <- subFlow "gargantua" "Big Corpus"
@@ -209,8 +209,9 @@ insertGroups lId ngrs =
                             ]
 
 ------------------------------------------------------------------------
+-- TODO: verify NgramsT lost here
 ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Map ListType NgramsIndexed
-ngrams2list = undefined
+ngrams2list = DM.fromList . zip (repeat Candidate) . map (\(NgramsT t ng) -> ng) . DM.keys
 
 -- | TODO: weight of the list could be a probability
 insertLists :: ListId -> Map ListType NgramsIndexed -> Cmd Int

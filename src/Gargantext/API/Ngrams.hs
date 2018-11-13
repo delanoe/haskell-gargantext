@@ -141,7 +141,7 @@ instance Arbitrary NgramsPatch where
 
                        --
 
-data NgramsIdPatch = 
+data NgramsIdPatch =
      NgramsIdPatch { _nip_ngramsId    :: NgramsElement
                    , _nip_ngramsPatch :: NgramsPatch
                    }
@@ -211,11 +211,11 @@ type NgramsIdPatchsBack = NgramsIdPatchs
 
 
 defaultList :: Connection -> CorpusId -> IO ListId
-defaultList c cId = view node_id <$> maybe (panic errorMessage) identity 
-  <$> head 
+defaultList c cId = view node_id <$> maybe (panic noListFound) identity 
+  <$> head
   <$> getListsWithParentId c cId
   where
-    errorMessage = "Gargantext.API.Ngrams.defaultList: no list found"
+    noListFound = "Gargantext.API.Ngrams.defaultList: no list found"
 
 toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
 toLists lId np = map (toList lId) (_nip_ngramsIdPatchs np)

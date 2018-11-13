@@ -80,7 +80,7 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 -- TODO multiple ListType declaration, remove it
 data ListType  =  Stop  | Candidate | Map
-  deriving (Generic)
+  deriving (Generic, Eq, Ord)
 
 instance ToJSON   ListType
 instance FromJSON ListType
