@@ -32,3 +32,4 @@ extra-deps:
 - servant-flatten-0.2
 - serialise-0.2.0.0  # imt-api-client
 - KMP-0.1.0.2
+- validity-0.8.0.0 # patches-{map,class}

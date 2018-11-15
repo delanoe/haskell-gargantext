@@ -116,6 +116,7 @@ library:
   - opaleye
   - pandoc
   - parsec
+  - patches-class
   - patches-map
   - path
   - path-io
