@@ -23,48 +23,49 @@ add get
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS -fno-warn-orphans #-}
 
 module Gargantext.API.Ngrams
   where
 
 -- import Gargantext.Database.User  (UserId)
-import Data.Patch.Class (Replace(..), replace)
-import qualified Data.Map.Strict.Patch as PM
+import Data.Patch.Class (Replace, replace)
+--import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
-import Data.Semigroup
+--import Data.Semigroup
 import Data.Set (Set)
 import qualified Data.Set as Set
 --import Data.Maybe (catMaybes)
 --import qualified Data.Map.Strict as DM
 --import qualified Data.Set as Set
-import Control.Lens (view)
-import Data.Aeson (FromJSON, ToJSON)
+import Control.Lens (view, (.~))
+import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
 import Data.List (concat)
-import Data.Set (Set)
-import Data.Swagger (ToSchema, ToParamSchema)
+import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
+import Data.Swagger
 import Data.Text (Text)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types (node_id)
-import Gargantext.Core.Types.Main (Tree(..))
+--import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Ngrams (NgramsId)
 import Gargantext.Database.Node (getListsWithParentId)
 -- import Gargantext.Database.NodeNgram -- (NodeNgram(..), NodeNgram, updateNodeNgrams, NodeNgramPoly)
 import Gargantext.Database.NodeNgramsNgrams -- (NodeNgramsNgramsPoly(NodeNgramsNgrams))
 import Gargantext.Prelude
-import Gargantext.Text.List.Types (ListType(..), ListId, ListTypeId) --,listTypeId )
+import Gargantext.Text.List.Types (ListType(..), ListId, ListTypeId) -- ,listTypeId )
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant hiding (Patch)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
--- import qualified Data.Set as Set
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -145,9 +146,26 @@ data PatchSet a = PatchSet
 instance (Ord a, Arbitrary a) => Arbitrary (PatchSet a) where
   arbitrary = PatchSet <$> arbitrary <*> arbitrary
 
+instance ToJSON a => ToJSON (PatchSet a) where
+  toJSON     = genericToJSON     $ unPrefix "_"
+  toEncoding = genericToEncoding $ unPrefix "_"
+
+instance (Ord a, FromJSON a) => FromJSON (PatchSet a) where
+  parseJSON = genericParseJSON $ unPrefix "_"
+
 instance ToSchema a => ToSchema (PatchSet a)
 
-instance ToSchema a => ToSchema (Replace a)
+instance ToSchema a => ToSchema (Replace a) where
+  declareNamedSchema (_ :: proxy (Replace a)) = do
+    aSchema <- declareSchemaRef (Proxy :: Proxy a)
+    return $ NamedSchema (Just "Replace") $ mempty
+      & type_ .~ SwaggerObject
+      & properties .~
+          InsOrdHashMap.fromList
+          [ ("old", aSchema)
+          , ("new", aSchema)
+          ]
+      & required .~ [ "old", "new" ]
 
 data NgramsPatch =
      NgramsPatch { _patch_children :: PatchSet NgramsElement
@@ -156,7 +174,7 @@ data NgramsPatch =
       deriving (Ord, Eq, Show, Generic)
 $(deriveJSON (unPrefix "_") ''NgramsPatch)
 
-instance Semigroup NgramsPatch where
+-- instance Semigroup NgramsPatch where
 
 instance ToSchema  NgramsPatch
 
@@ -239,10 +257,12 @@ defaultList c cId = view node_id <$> maybe (panic noListFound) identity
   where
     noListFound = "Gargantext.API.Ngrams.defaultList: no list found"
 
-{-
 toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
+toLists = undefined
+{-
 toLists lId np =
   [ (lId,ngId,listTypeId lt) | map (toList lId) (_nip_ngramsIdPatchs np) ]
+-}
 
 toList :: ListId -> NgramsIdPatch -> (ListId, NgramsId, ListTypeId)
 toList = undefined
@@ -252,7 +272,7 @@ toGroups lId addOrRem ps = concat $ map (toGroup lId addOrRem) $ _nip_ngramsIdPa
 
 toGroup :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatch -> [NodeNgramsNgrams]
 toGroup = undefined
--}
+
 {-
 toGroup lId addOrRem (NgramsIdPatch ngId patch)  =
   map (\ng -> (NodeNgramsNgrams lId ngId ng (Just 1))) (Set.toList $ addOrRem patch)

@@ -211,7 +211,7 @@ insertGroups lId ngrs =
 ------------------------------------------------------------------------
 -- TODO: verify NgramsT lost here
 ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Map ListType NgramsIndexed
-ngrams2list = DM.fromList . zip (repeat Candidate) . map (\(NgramsT t ng) -> ng) . DM.keys
+ngrams2list = DM.fromList . zip (repeat Candidate) . map (\(NgramsT _lost_t ng) -> ng) . DM.keys
 
 -- | TODO: weight of the list could be a probability
 insertLists :: ListId -> Map ListType NgramsIndexed -> Cmd Int

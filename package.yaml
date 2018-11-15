@@ -103,6 +103,7 @@ library:
   - hxt
   - hlcm
   - ini
+  - insert-ordered-containers
   - jose-jwt
     #  - kmeans-vector
   - KMP
