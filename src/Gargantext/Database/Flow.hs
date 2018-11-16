@@ -42,20 +42,20 @@ import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNod
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Prelude
-import Gargantext.Text.Parsers (parseDocs, FileFormat(WOS))
+import Gargantext.Text.Parsers (parseDocs, FileFormat)
 
 type UserId = Int
 type RootId = Int
 type CorpusId = Int
 
-flowDatabase :: FilePath -> CorpusName -> IO [Int]
-flowDatabase fp cName = do
+flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO [Int]
+flowDatabase ff fp cName = do
   
   -- Corus Flow
   (masterUserId, _, corpusId) <- subFlow "gargantua" "Big Corpus"
 
   -- Documents Flow
-  hyperdataDocuments <- map addUniqIds <$> parseDocs WOS fp
+  hyperdataDocuments <- map addUniqIds <$> parseDocs ff fp
   ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
   printDebug "Docs IDs : " (length ids)
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments

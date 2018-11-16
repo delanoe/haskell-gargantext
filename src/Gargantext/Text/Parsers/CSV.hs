@@ -25,8 +25,9 @@ import Control.Applicative
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.Text (Text, pack, length, intercalate)
+import Data.Text (Text, pack, length, intercalate, unpack)
 import qualified Data.ByteString.Lazy as BL
+import Data.Time.Segment (jour)
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
@@ -194,8 +195,6 @@ readHal fp = do
       Left e        -> panic (pack e)
       Right csvDocs -> pure csvDocs
 ------------------------------------------------------------------------
-
-
 writeCsv :: FilePath -> (Header, Vector CsvDoc) -> IO ()
 writeCsv fp (h, vs) = BL.writeFile fp $
                       encodeByNameWith csvEncodeOptions h (V.toList vs)
@@ -206,7 +205,7 @@ writeCsv fp (h, vs) = BL.writeFile fp $
 data CsvHal = CsvHal
     { csvHal_title  :: !Text
     , csvHal_source :: !Text
-    , csvHal_publication_year  :: !Int
+    , csvHal_publication_year  :: !Integer
     , csvHal_publication_month :: !Int
     , csvHal_publication_day   :: !Int
     , csvHal_abstract          :: !Text
@@ -257,9 +256,11 @@ instance ToNamedRecord CsvHal where
   toNamedRecord (CsvHal t s py  pm pd abst aut  url isbn iss jour lang  doi auth inst dept lab team doct) = 
     namedRecord [ "title"  .= t
                 , "source" .= s
+                
                 , "publication_year"  .= py
                 , "publication_month" .= pm
                 , "publication_day"   .= pd
+                
                 , "abstract"          .= abst
                 , "authors"           .= aut
 
@@ -278,3 +279,35 @@ instance ToNamedRecord CsvHal where
                 , "rteamStructId_i"    .= team
                 , "docType_s"          .= doct
                ]
+
+csvHal2doc :: CsvHal -> HyperdataDocument
+csvHal2doc (CsvHal title source
+       pub_year pub_month pub_day
+       abstract authors
+       url _ _ _ _
+       doi _ _ _ _
+       _ _ ) = HyperdataDocument (Just "CsvHal")
+                               (Just doi)
+                               (Just url)
+                               Nothing
+                               Nothing
+                               Nothing
+                               (Just title)
+                               (Just authors)
+                               (Just source)
+                               (Just abstract)
+                               (Just $ pack . show $ jour pub_year pub_month pub_day)
+                               (Just $ fromIntegral pub_year)
+                               (Just pub_month)
+                               (Just pub_day)
+                               Nothing
+                               Nothing
+                               Nothing
+                               Nothing
+
+------------------------------------------------------------------------
+parseHal :: FilePath -> IO [HyperdataDocument]
+parseHal fp = map csvHal2doc <$> V.toList <$> snd <$> readHal fp
+------------------------------------------------------------------------
+
+

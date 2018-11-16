@@ -56,6 +56,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text.Parsers.WOS (wosParser)
 import Gargantext.Text.Parsers.Date (parseDate)
+import Gargantext.Text.Parsers.CSV (parseHal)
 import Gargantext.Text.Terms.Stop (detectLang)
 ------------------------------------------------------------------------
 
@@ -70,7 +71,7 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS
+data FileFormat = WOS | CsvHalFormat -- | CsvGargV3
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -86,11 +87,10 @@ data FileFormat = WOS
 -- | Parse file into documents
 -- TODO manage errors here
 parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
-parseDocs format path = do
-  docs <- snd <$> parse format path
-  mapM (toDoc format) docs
+parseDocs WOS    path = join $ mapM (toDoc WOS) <$> snd <$> parse WOS path
+parseDocs CsvHalFormat p = parseHal p
 
-type Year = Int
+type Year  = Int
 type Month = Int
 type Day   = Int
 
@@ -102,11 +102,11 @@ parseDate' l (Just txt) = do
   utcTime <- parseDate l txt
   let (UTCTime day _) = utcTime
   let (y,m,d) = DT.toGregorian day
-  pure (Just utcTime, (Just (fromIntegral y),Just m,Just d))
+  pure (Just utcTime, (Just (fromIntegral y), Just m,Just d))
 
 
 toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
-toDoc format d = do
+toDoc WOS d = do
       
       let abstract = lookup "abstract" d
       let lang = maybe EN identity (join $ detectLang <$> (fmap (DT.take 50) abstract))
@@ -115,7 +115,7 @@ toDoc format d = do
       
       (utcTime, (pub_year, pub_month, pub_day)) <- parseDate' lang  dateToParse
 
-      pure $ HyperdataDocument (Just $ DT.pack $ show format)
+      pure $ HyperdataDocument (Just $ DT.pack $ show WOS)
                                (lookup "doi" d)
                                (lookup "URL" d)
                                 Nothing
@@ -133,7 +133,6 @@ toDoc format d = do
                                Nothing
                                Nothing
                                (Just $ (DT.pack . show) lang)
-
 
 parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
 parse format path = do
@@ -157,7 +156,7 @@ withParser WOS = wosParser
 --withParser XML = xmlParser
 --withParser _   = error "[ERROR] Parser not implemented yet"
 
-runParser :: FileFormat -> DB.ByteString 
+runParser :: FileFormat -> DB.ByteString
           -> IO (Either String [[(DB.ByteString, DB.ByteString)]])
 runParser format text = pure $ parseOnly (withParser format) text
 
@@ -172,5 +171,4 @@ clean txt = DT.map clean' txt
   where
     clean' '’' = '\''
     clean' c  = c
-
 
