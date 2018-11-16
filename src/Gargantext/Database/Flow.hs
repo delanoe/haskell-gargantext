@@ -59,6 +59,7 @@ flowDatabase ff fp cName = do
   ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
   printDebug "Docs IDs : " (length ids)
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
+  printDebug "Repeated Docs IDs : " (length ids)
   
   -- Ngrams Flow
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
@@ -69,7 +70,7 @@ flowDatabase ff fp cName = do
 
   -- List Flow
   listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
-  printDebug "list id:" listId2
+  printDebug "list id : " listId2
 
   printDebug "Docs IDs : " (length idsRepeat)
 
@@ -109,7 +110,6 @@ subFlow username cName = do
   pure (userId, rootId, corpusId)
 
 ------------------------------------------------------------------------
-
 
 type HashId   = Text
 type NodeId   = Int

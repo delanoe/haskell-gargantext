@@ -73,7 +73,7 @@ import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 
 import Data.Text (Text)
-import qualified Data.Text                   as DT (pack, unpack, concat)
+import qualified Data.Text                   as DT (pack, unpack, concat, take)
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 
@@ -151,7 +151,7 @@ queryInsert = [sql|
 
 prepare :: UserId -> ParentId -> [HyperdataDocument] -> [InputData]
 prepare uId pId = map (\h -> InputData tId uId pId 
-                            (maybe "No Title of Document" identity $ _hyperdataDocument_title h)
+                            (DT.take 255 <$> maybe "No Title of Document" identity $ _hyperdataDocument_title h)
                                                    (toJSON h)
                       )
   where
