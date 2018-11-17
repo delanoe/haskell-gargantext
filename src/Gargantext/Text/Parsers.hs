@@ -107,7 +107,6 @@ parseDate' l (Just txt) = do
 
 toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
 toDoc WOS d = do
-      
       let abstract = lookup "abstract" d
       let lang = maybe EN identity (join $ detectLang <$> (fmap (DT.take 50) abstract))
       
@@ -133,6 +132,7 @@ toDoc WOS d = do
                                Nothing
                                Nothing
                                (Just $ (DT.pack . show) lang)
+toDoc _ _ = undefined
 
 parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
 parse format path = do
@@ -154,7 +154,7 @@ withParser WOS = wosParser
 --withParser DOC = docParser
 --withParser ODT = odtParser
 --withParser XML = xmlParser
---withParser _   = error "[ERROR] Parser not implemented yet"
+withParser _   = panic "[ERROR] Parser not implemented yet"
 
 runParser :: FileFormat -> DB.ByteString
           -> IO (Either String [[(DB.ByteString, DB.ByteString)]])

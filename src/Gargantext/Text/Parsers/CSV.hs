@@ -25,7 +25,7 @@ import Control.Applicative
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.Text (Text, pack, length, intercalate, unpack)
+import Data.Text (Text, pack, length, intercalate)
 import qualified Data.ByteString.Lazy as BL
 import Data.Time.Segment (jour)
 
@@ -253,7 +253,7 @@ instance FromNamedRecord CsvHal where
                               <*> r .: "docType_s"
 
 instance ToNamedRecord CsvHal where
-  toNamedRecord (CsvHal t s py  pm pd abst aut  url isbn iss jour lang  doi auth inst dept lab team doct) = 
+  toNamedRecord (CsvHal t s py  pm pd abst aut  url isbn iss j lang  doi auth inst dept lab team doct) = 
     namedRecord [ "title"  .= t
                 , "source" .= s
                 
@@ -267,7 +267,7 @@ instance ToNamedRecord CsvHal where
                 , "url"                .= url
                 , "isbn_s"             .= isbn
                 , "issue_s"            .= iss
-                , "journalPublisher_s" .= jour
+                , "journalPublisher_s" .= j
                 , "language_s"         .= lang
                 
                 , "doiId_s"            .= doi
