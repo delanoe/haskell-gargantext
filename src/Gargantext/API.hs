@@ -36,14 +36,15 @@ Thanks @yannEsposito for this.
 module Gargantext.API
       where
 ---------------------------------------------------------------------
-import           Gargantext.Prelude
 
+import           Database.PostgreSQL.Simple (Connection)
 import           System.IO (FilePath)
 
 import           GHC.Generics (D1, Meta (..), Rep)
 import           GHC.TypeLits (AppendSymbol, Symbol)
 
 import           Control.Lens
+import Control.Monad.IO.Class (liftIO)
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Swagger
@@ -62,8 +63,10 @@ import           Servant.Swagger.UI
 -- import Servant.API.Stream
 
 --import Gargantext.API.Swagger
+import Gargantext.Prelude
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
+import Gargantext.API.Auth (AuthRequest, AuthResponse, auth')
 import Gargantext.API.Node ( Roots    , roots
                            , NodeAPI  , nodeAPI
                            , NodesAPI , nodesAPI
@@ -76,6 +79,7 @@ import Gargantext.API.Node ( Roots    , roots
 import Gargantext.Database.Types.Node ()
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
+
 --import Gargantext.API.Orchestrator
 --import Gargantext.API.Orchestrator.Types
 
@@ -200,10 +204,17 @@ type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 
 type GargAPIVersion = "v1.0" :> Summary "v1.0: " :> GargAPI'
 
+auth :: Connection -> AuthRequest -> Handler AuthResponse
+auth conn ar = liftIO $ auth' conn ar
+
 type GargAPI' =
+           -- Auth endpoint
+           "auth"      :> Summary "AUTH API"
+                       :> ReqBody '[JSON] AuthRequest
+                       :> Post    '[JSON] AuthResponse
           
            -- Roots endpoint
-                "user"  :> Summary "First user endpoint"
+          :<|>  "user"  :> Summary "First user endpoint"
                         :> Roots
            
            -- Node endpoint
@@ -251,14 +262,15 @@ type GargAPI' =
 ---------------------------------------------------------------------
 type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI 
 
-type API = SwaggerFrontAPI :<|> GargAPI
 
+type API = SwaggerFrontAPI :<|> GargAPI
 ---------------------------------------------------------------------
 -- | Server declaration
 server :: Env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $ swaggerFront
+     :<|> auth    conn
      :<|> roots    conn
      :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAny)
      :<|> nodeAPI  conn (Proxy :: Proxy HyperdataCorpus)

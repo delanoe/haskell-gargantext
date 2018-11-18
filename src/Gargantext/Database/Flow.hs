@@ -96,10 +96,10 @@ subFlow username cName = do
   rootId' <- map _node_id <$> runCmd' (getRoot userId)
 
   rootId'' <- case rootId' of
-        []  -> runCmd' (mkRoot userId)
-        n  -> case length n >= 2 of
-          True  -> panic "Error: more than 1 userNode / user"
-          False -> pure rootId'
+        []  -> runCmd' (mkRoot username userId)
+        n   -> case length n >= 2 of
+            True  -> panic "Error: more than 1 userNode / user"
+            False -> pure rootId'
   let rootId = maybe (panic "error rootId") identity (head rootId'')
 
   corpusId' <- runCmd' $ mkCorpus (Just cName) Nothing rootId userId

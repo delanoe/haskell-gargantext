@@ -18,18 +18,114 @@ Main authorisation of Gargantext are managed in this module
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.API.Auth
       where
 
---import Gargantext.Prelude
+import Data.Aeson.TH (deriveJSON)
+import Data.List (elem)
+import Data.Swagger
+import Data.Text (Text, reverse)
+import Database.PostgreSQL.Simple (Connection)
+import GHC.Generics (Generic)
+import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Node (getRootUsername)
+import Gargantext.Database.Types.Node (NodePoly(_node_id))
+import Gargantext.Prelude hiding (reverse)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
---data Auth = Auth { username :: Text
---                 , password :: Text
---                 } deriving (Generics)
+---------------------------------------------------
+
+-- | Main types for AUTH API
+type Username = Text
+type Password = Text
+
+data AuthRequest = AuthRequest { _authReq_username :: Username
+                               , _authReq_password :: Password
+                               }
+  deriving (Generic)
+
+data AuthResponse = AuthResponse { _authRes_valid :: Maybe AuthValid
+                                 , _authRes_inval :: Maybe AuthInvalid
+                                 }
+  deriving (Generic)
+
+data AuthInvalid = AuthInvalid { _authInv_message :: Text }
+  deriving (Generic)
+
+data AuthValid = AuthValid { _authVal_token   :: Token
+                           , _authVal_tree_id :: TreeId
+                           }
+  deriving (Generic)
+
+type Token  = Text
+type TreeId = Int
+
+-- | Main functions of authorization
+
+
+-- | Main types of authorization
+data CheckAuth = InvalidUser | InvalidPassword | Valid Token TreeId
+  deriving (Eq)
+
+arbitraryUsername :: [Username]
+arbitraryUsername = ["user1", "user2"]
+
+arbitraryPassword :: [Password]
+arbitraryPassword = map reverse arbitraryUsername
+
+checkAuthRequest :: Username -> Password -> Connection -> IO CheckAuth
+checkAuthRequest u p c = case elem u arbitraryUsername of
+    False -> pure InvalidUser
+    True  -> case u == (reverse p) of
+               False -> pure InvalidPassword
+               True  -> do
+                 muId <- getRootUsername u c
+                 let uId = maybe (panic "API.AUTH: no user node") _node_id $ head muId
+                 pure $ Valid "token" uId
+
+
+auth' :: Connection -> AuthRequest -> IO AuthResponse
+auth' c (AuthRequest u p) = do
+  checkAuthRequest' <- checkAuthRequest u p c
+  case checkAuthRequest' of
+    InvalidUser     -> pure $ AuthResponse Nothing (Just $ AuthInvalid "Invalid user")
+    InvalidPassword -> pure $ AuthResponse Nothing (Just $ AuthInvalid "Invalid password")
+    Valid to trId   -> pure $ AuthResponse (Just $ AuthValid to trId) Nothing
+
+-- | Instances
+$(deriveJSON (unPrefix "_authReq_") ''AuthRequest)
+instance ToSchema AuthRequest
+
+instance Arbitrary AuthRequest where
+  arbitrary = elements [ AuthRequest u p
+                       | u <- arbitraryUsername
+                       , p <- arbitraryPassword
+                       ]
+
+$(deriveJSON (unPrefix "_authRes_") ''AuthResponse)
+instance ToSchema AuthResponse
+instance Arbitrary AuthResponse where
+  arbitrary = AuthResponse <$> arbitrary <*> arbitrary
+
+$(deriveJSON (unPrefix "_authInv_") ''AuthInvalid)
+instance ToSchema AuthInvalid
+instance Arbitrary AuthInvalid where
+  arbitrary = elements [ AuthInvalid m 
+                       | m <- [ "Invalid user", "Invalid password"]
+                       ]
+
+$(deriveJSON (unPrefix "_authVal_") ''AuthValid)
+instance ToSchema AuthValid
+instance Arbitrary AuthValid where
+  arbitrary = elements [ AuthValid to tr
+                       | to <- ["token0", "token1"]
+                       , tr <- [1..3]
+                       ]
 

@@ -106,12 +106,12 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
-             
+
              -- TODO gather it
              :<|> "table"     :> TableApi
              :<|> "list"      :> TableNgramsApi
              :<|> "listGet"   :> TableNgramsApiGet
-             
+
              :<|> "chart"     :> ChartApi
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi

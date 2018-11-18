@@ -207,6 +207,17 @@ runGetNodes :: Query NodeRead -> Cmd [NodeAny]
 runGetNodes q = mkCmd $ \conn -> runQuery conn q
 
 ------------------------------------------------------------------------
+selectRootUsername :: Username -> Query NodeRead
+selectRootUsername username = proc () -> do
+    row <- queryNodeTable -< ()
+    restrict -< _node_typename row .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_name   row .== (pgStrictText username)
+    returnA -< row
+
+getRootUsername :: Username -> Connection -> IO [Node HyperdataUser]
+getRootUsername uname conn = runQuery conn (selectRootUsername uname)
+
+------------------------------------------------------------------------
 selectRootUser :: UserId -> Query NodeRead
 selectRootUser userId = proc () -> do
     row <- queryNodeTable -< ()
@@ -512,10 +523,12 @@ mk'' NodeUser _       _   _     = panic "NodeUser do not have any parent"
 mk'' _        Nothing _   _     = panic "NodeType does   have a   parent"
 mk'' nt       pId     uId name  = mkCmd $ \c -> mk' c nt uId pId name
 
-mkRoot :: UserId -> Cmd [Int]
-mkRoot uId = case uId > 0 of
+type Username = Text
+
+mkRoot :: Username -> UserId -> Cmd [Int]
+mkRoot uname uId = case uId > 0 of
                False -> panic "UserId <= 0"
-               True  -> mk'' NodeUser Nothing uId ("User Node : " <> (pack . show) uId)
+               True  -> mk'' NodeUser Nothing uId uname
 
 mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd [Int]
 mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
