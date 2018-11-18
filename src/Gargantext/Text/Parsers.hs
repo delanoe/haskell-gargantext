@@ -121,6 +121,7 @@ toDoc WOS d = do
                                 Nothing
                                 Nothing
                                (lookup "title" d)
+                                Nothing
                                (lookup "authors" d)
                                (lookup "source" d)
                                (lookup "abstract" d)

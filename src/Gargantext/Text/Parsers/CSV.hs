@@ -62,6 +62,7 @@ doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
                     Nothing
                     Nothing
                     (Just dt)
+                    Nothing
                     (Just dau)
                     (Just dab)
                     (Nothing)
@@ -285,7 +286,7 @@ csvHal2doc (CsvHal title source
        pub_year pub_month pub_day
        abstract authors
        url _ _ _ _
-       doi _ _ _ _
+       doi _ inst _ _
        _ _ ) = HyperdataDocument (Just "CsvHal")
                                (Just doi)
                                (Just url)
@@ -293,6 +294,7 @@ csvHal2doc (CsvHal title source
                                Nothing
                                Nothing
                                (Just title)
+                               (Just inst)
                                (Just authors)
                                (Just source)
                                (Just abstract)

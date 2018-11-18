@@ -116,6 +116,7 @@ data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd             
                                            , _hyperdataDocument_page               :: Maybe Int
                                            , _hyperdataDocument_title              :: Maybe Text
                                            , _hyperdataDocument_authors            :: Maybe Text
+                                           , _hyperdataDocument_institutes         :: Maybe Text
                                            , _hyperdataDocument_source             :: Maybe Text
                                            , _hyperdataDocument_abstract           :: Maybe Text
                                            , _hyperdataDocument_publication_date   :: Maybe Text
@@ -137,7 +138,7 @@ instance ToField HyperdataDocument where
 
 toHyperdataDocuments :: [(Text, Text)] -> [HyperdataDocument]
 toHyperdataDocuments ts = map (\(t1,t2) -> HyperdataDocument Nothing Nothing Nothing Nothing Nothing Nothing (Just t1)
-                                           Nothing (Just t2) Nothing Nothing Nothing Nothing Nothing 
+                                           Nothing Nothing (Just t2) Nothing Nothing Nothing Nothing Nothing 
                                            Nothing Nothing Nothing   Nothing
                                            ) ts
 
@@ -406,7 +407,7 @@ hyperdataDocument = case decode docExample of
                                                    Nothing Nothing Nothing Nothing
                                                    Nothing Nothing Nothing Nothing
                                                    Nothing Nothing Nothing Nothing
-                                                   Nothing Nothing
+                                                   Nothing Nothing Nothing
 docExample :: ByteString
 docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 
