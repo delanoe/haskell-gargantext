@@ -77,7 +77,7 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- ngrams in authors field of document has Authors Type
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Authors | Institutes | Sources | Terms
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 ngramsTypeId :: NgramsType -> Int
 ngramsTypeId Authors    = 1
@@ -93,11 +93,8 @@ type Size       = Int
 -- | TODO put it in Gargantext.Text.Ngrams
 data Ngrams = Ngrams { _ngramsTerms :: Text
                      , _ngramsSize  :: Int
-           } deriving (Generic, Show)
-instance Eq Ngrams where
-  (==) = (==)
-instance Ord Ngrams where
-  compare = compare
+           } deriving (Generic, Show, Eq, Ord)
+
 makeLenses ''Ngrams
 instance DPS.ToRow Ngrams where
   toRow (Ngrams t s) = [toField t, toField s]
@@ -111,37 +108,23 @@ text2ngrams txt = Ngrams txt $ length $ splitOn " " txt
 data NgramsT a =
   NgramsT { _ngramsType :: NgramsType
           , _ngramsT    :: a
-          } deriving (Generic, Show)
+          } deriving (Generic, Show, Eq, Ord)
 
-instance Eq  (NgramsT a)
-  where (==) = (==)
---    where NgramsT
---      t1 == t2
---      n1 == n2
-
-instance Ord (NgramsT a) where compare = compare
 makeLenses ''NgramsT
-
-
 -----------------------------------------------------------------------
 data NgramsIndexed =
   NgramsIndexed
   { _ngrams   :: Ngrams
   , _ngramsId :: NgramsId
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Eq, Ord)
 
-instance Eq NgramsIndexed where
-  (==) = (==)
-instance Ord NgramsIndexed where
-  compare = compare
 makeLenses ''NgramsIndexed
-
 ------------------------------------------------------------------------
 data NgramIds =
   NgramIds
   { ngramId    :: Int
   , ngramTerms :: Text
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Eq, Ord)
 
 instance DPS.FromRow NgramIds where
   fromRow = NgramIds <$> field <*> field
@@ -162,7 +145,6 @@ insertNgrams' :: [Ngrams] -> Cmd [NgramIds]
 insertNgrams' ns = mkCmd $ \conn -> DPS.query conn queryInsertNgrams (DPS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
-
 
 insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd ByteString
 insertNgrams_Debug ns = mkCmd $ \conn -> DPS.formatQuery conn queryInsertNgrams (DPS.Only $ Values fields ns)

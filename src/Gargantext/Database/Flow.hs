@@ -80,7 +80,6 @@ flowDatabase ff fp cName = do
 
   let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
   printDebug "docsWithNgrams" docsWithNgrams
-  {-
   
   let maps            = mapNodeIdNgrams docsWithNgrams
   printDebug "maps" (maps)
@@ -95,6 +94,7 @@ flowDatabase ff fp cName = do
 
   printDebug "Docs IDs : " (length idsRepeat)
 
+  {-
   -}
   (_, _, corpusId2) <- subFlow "user1" cName
   {-
