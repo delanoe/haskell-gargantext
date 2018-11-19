@@ -294,8 +294,8 @@ csvHal2doc (CsvHal title source
                                Nothing
                                Nothing
                                (Just title)
-                               (Just inst)
                                (Just authors)
+                               (Just inst)
                                (Just source)
                                (Just abstract)
                                (Just $ pack . show $ jour pub_year pub_month pub_day)

@@ -76,13 +76,14 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- ngrams in source field of document has Sources Type
 -- ngrams in authors field of document has Authors Type
 -- ngrams in text (title or abstract) of documents has Terms Type
-data NgramsType = Sources | Authors | Terms
-  deriving (Eq)
+data NgramsType = Authors | Institutes | Sources | Terms
+  deriving (Eq, Show)
 
 ngramsTypeId :: NgramsType -> Int
-ngramsTypeId Terms   = 1
-ngramsTypeId Authors = 2
-ngramsTypeId Sources = 3
+ngramsTypeId Authors    = 1
+ngramsTypeId Institutes = 2
+ngramsTypeId Sources    = 3
+ngramsTypeId Terms      = 4
 
 type NgramsTerms = Text
 type NgramsId    = Int
@@ -92,7 +93,7 @@ type Size       = Int
 -- | TODO put it in Gargantext.Text.Ngrams
 data Ngrams = Ngrams { _ngramsTerms :: Text
                      , _ngramsSize  :: Int
-           } deriving (Generic)
+           } deriving (Generic, Show)
 instance Eq Ngrams where
   (==) = (==)
 instance Ord Ngrams where
@@ -110,7 +111,7 @@ text2ngrams txt = Ngrams txt $ length $ splitOn " " txt
 data NgramsT a =
   NgramsT { _ngramsType :: NgramsType
           , _ngramsT    :: a
-          } deriving (Generic)
+          } deriving (Generic, Show)
 
 instance Eq  (NgramsT a)
   where (==) = (==)
@@ -127,7 +128,7 @@ data NgramsIndexed =
   NgramsIndexed
   { _ngrams   :: Ngrams
   , _ngramsId :: NgramsId
-  } deriving (Generic)
+  } deriving (Show, Generic)
 
 instance Eq NgramsIndexed where
   (==) = (==)

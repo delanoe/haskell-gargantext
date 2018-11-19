@@ -94,6 +94,10 @@ hal_data = snd <$> CSV.readHal "doc/corpus_imt/Gargantext_Corpus.csv"
 names :: S.Set Text
 names = S.fromList $ Gargantext.Prelude.map (\s -> school_id s) schools
 
+toSchoolName :: Text -> Text
+toSchoolName t = case M.lookup t mapIdSchool of
+  Nothing -> t
+  Just t' -> t'
 
 publisBySchool :: DV.Vector CsvHal -> [(Maybe Text, Int)]
 publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSchool, n))

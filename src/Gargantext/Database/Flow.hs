@@ -24,9 +24,11 @@ authors
 
 module Gargantext.Database.Flow (flowDatabase)
     where
+
+import GHC.Show (Show)
 import System.FilePath (FilePath)
 import Data.Maybe (Maybe(..), catMaybes)
-import Data.Text (Text)
+import Data.Text (Text, splitOn)
 import Data.Map (Map)
 import Data.Tuple.Extra (both, second)
 import qualified Data.Map as DM
@@ -43,6 +45,7 @@ import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
+import Gargantext.Ext.IMT (toSchoolName)
 
 type UserId = Int
 type RootId = Int
@@ -56,16 +59,34 @@ flowDatabase ff fp cName = do
 
   -- Documents Flow
   hyperdataDocuments <- map addUniqIds <$> parseDocs ff fp
+
+  --printDebug "hyperdataDocuments" hyperdataDocuments
+
   ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
-  printDebug "Docs IDs : " (length ids)
+  --printDebug "Docs IDs : " (ids)
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
-  printDebug "Repeated Docs IDs : " (length ids)
+  --printDebug "Repeated Docs IDs : " (length ids)
   
   -- Ngrams Flow
+  -- todo: flow for new documents only
+  let tids = toInserted ids
+  --printDebug "toInserted ids" (length tids, tids)
+
+  let tihs = toInsert hyperdataDocuments
+  --printDebug "toInsert hyperdataDocuments" (length tihs, tihs)
+
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
+  -- printDebug "documentsWithId" documentsWithId
+
   let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
+  printDebug "docsWithNgrams" docsWithNgrams
+  {-
+  
   let maps            = mapNodeIdNgrams docsWithNgrams
+  printDebug "maps" (maps)
+  
   indexedNgrams <- runCmd' $ indexNgrams maps
+  printDebug "inserted ngrams" indexedNgrams
   _             <- runCmd' $ insertToNodeNgrams indexedNgrams
 
   -- List Flow
@@ -74,10 +95,12 @@ flowDatabase ff fp cName = do
 
   printDebug "Docs IDs : " (length idsRepeat)
 
-  (_, _, corpusId2) <- subFlow "alexandre" cName
+  -}
+  (_, _, corpusId2) <- subFlow "user1" cName
+  {-
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " (length inserted)
-
+  -}
   pure [corpusId2, corpusId]
 
   --runCmd' $ del [corpusId2, corpusId]
@@ -116,7 +139,7 @@ type NodeId   = Int
 type ListId   = Int
 
 toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
-toInsert = DM.fromList . map (\d -> (hash (_hyperdataDocument_uniqIdBdd d), d))
+toInsert = DM.fromList . map (\d -> (hash (_hyperdataDocument_uniqId d), d))
   where
     hash = maybe "Error" identity
 
@@ -127,12 +150,12 @@ toInserted rs = DM.fromList $ map    (\r ->  (reUniqId r, r)    )
 data DocumentWithId =
      DocumentWithId { documentId   :: NodeId
                     , documentData :: HyperdataDocument
-                    }
+                    } deriving (Show)
 
 mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
-mergeData rs hs = map (\(hash,r) -> DocumentWithId (reId r) (lookup' hash hs)) $ DM.toList rs
-  where
-    lookup' h xs = maybe (panic $ "Error with " <> h) identity (DM.lookup h xs)
+mergeData rs hs = map (\(hash,hpd) -> DocumentWithId (lookup' hash rs) hpd) $ DM.toList hs
+                  where
+                    lookup' h xs = maybe (panic $ "Database.Flow.mergeData: Error with " <> h) reId (DM.lookup h rs)
 
 ------------------------------------------------------------------------
 
@@ -140,16 +163,20 @@ data DocumentIdWithNgrams =
      DocumentIdWithNgrams
      { documentWithId  :: DocumentWithId
      , document_ngrams :: Map (NgramsT Ngrams) Int
-     }
+     } deriving (Show)
 
--- TODO add Authors and Terms (Title + Abstract)
+-- TODO add Terms (Title + Abstract)
 -- add f :: Text -> Text
 -- newtype Ngrams = Ngrams Text
 extractNgramsT :: HyperdataDocument -> Map (NgramsT Ngrams) Int
-extractNgramsT doc = DM.fromList $ [(NgramsT Sources ngrams, 1)]
+extractNgramsT doc = DM.fromList $  [(NgramsT Sources source, 1)]
+                                 <> [(NgramsT Institutes i' , 1)| i' <- institutes ]
+                                 <> [(NgramsT Authors    a' , 1)| a' <- authors    ]
   where
-    ngrams      = text2ngrams $ maybe "Nothing" identity maybeNgrams
-    maybeNgrams = _hyperdataDocument_source doc
+    source    = text2ngrams $ maybe "Nothing" identity $ _hyperdataDocument_source doc
+    institutes = map text2ngrams $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))  $ _hyperdataDocument_institutes doc
+    authors    = map text2ngrams $ maybe ["Nothing"] (splitOn ", ") $ _hyperdataDocument_authors doc
+    -- TODO group terms
 
 documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int)
                      -> [DocumentWithId]   -> [DocumentIdWithNgrams]
@@ -171,9 +198,9 @@ indexNgrams ng2nId = do
 
 insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd Int
 insertToNodeNgrams m = insertNodeNgrams [ NodeNgram Nothing nId  ((_ngramsId    . _ngramsT   ) ng)
-                                                  (fromIntegral n) ((ngramsTypeId . _ngramsType) ng)
+                                                (fromIntegral n) ((ngramsTypeId . _ngramsType) ng)
                                           | (ng, nId2int) <- DM.toList m
-                                        , (nId, n)      <- DM.toList nId2int
+                                          , (nId, n)      <- DM.toList nId2int
                                         ]
 
 
