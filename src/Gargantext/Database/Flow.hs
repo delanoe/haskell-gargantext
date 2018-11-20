@@ -34,7 +34,7 @@ import Data.Tuple.Extra (both, second)
 import qualified Data.Map as DM
 
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listId)
-import Gargantext.Database.Bashql (runCmd')--, del)
+import Gargantext.Database.Bashql (runCmd', del)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)
 import Gargantext.Database.Node.Document.Add    (add)
@@ -51,7 +51,7 @@ type UserId = Int
 type RootId = Int
 type CorpusId = Int
 
-flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO [Int]
+flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
 flowDatabase ff fp cName = do
   
   -- Corus Flow
@@ -69,10 +69,10 @@ flowDatabase ff fp cName = do
   
   -- Ngrams Flow
   -- todo: flow for new documents only
-  let tids = toInserted ids
+  -- let tids = toInserted ids
   --printDebug "toInserted ids" (length tids, tids)
 
-  let tihs = toInsert hyperdataDocuments
+  -- let tihs = toInsert hyperdataDocuments
   --printDebug "toInsert hyperdataDocuments" (length tihs, tihs)
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
@@ -94,16 +94,12 @@ flowDatabase ff fp cName = do
 
   printDebug "Docs IDs : " (length idsRepeat)
 
-  {-
-  -}
   (_, _, corpusId2) <- subFlow "user1" cName
-  {-
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " (length inserted)
-  -}
-  pure [corpusId2, corpusId]
+  -- pure [corpusId2, corpusId]
 
-  --runCmd' $ del [corpusId2, corpusId]
+  runCmd' $ del [corpusId2, corpusId]
 
 type CorpusName = Text
 
@@ -155,7 +151,8 @@ data DocumentWithId =
 mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
 mergeData rs hs = map (\(hash,hpd) -> DocumentWithId (lookup' hash rs) hpd) $ DM.toList hs
                   where
-                    lookup' h xs = maybe (panic $ "Database.Flow.mergeData: Error with " <> h) reId (DM.lookup h rs)
+                    lookup' h xs = maybe (panic $ message  <> h) reId (DM.lookup h xs)
+                    message = "Database.Flow.mergeData: Error with "
 
 ------------------------------------------------------------------------
 
