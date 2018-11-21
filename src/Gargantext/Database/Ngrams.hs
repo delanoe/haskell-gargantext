@@ -34,6 +34,8 @@ import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
+import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
@@ -176,10 +178,8 @@ queryInsertNgrams = [sql|
 -- | Ngrams Table
 
 data NgramsTableParam =
-     NgramsTableParam { _nt_listId   :: Int
-                      , _nt_corpusId :: Int
-                      , _nt_typeNode :: Int
-                      , _nt_typeNgrams :: Int
+     NgramsTableParam { _nt_listId     :: Int
+                      , _nt_corpusId   :: Int
                       }
 
 type NgramsTableParamUser   = NgramsTableParam
@@ -191,9 +191,13 @@ data NgramsTableData = NgramsTableData { _ntd_terms :: Text
                                        , _ntd_weight :: Double
     } deriving (Show)
 
-getTableNgrams :: NgramsTableParamUser -> NgramsTableParamMaster -> Cmd [(Text, Int, Int, Double)]
-getTableNgrams (NgramsTableParam ul uc utn utg) (NgramsTableParam ml mc mtn mtg) =
-  mkCmd $ \conn -> DPS.query conn querySelectTableNgrams (ul,uc,utn,utg,ml,mc,mtn,mtg)
+getTableNgrams :: NodeType -> NgramsType -> NgramsTableParamUser -> NgramsTableParamMaster -> Cmd [(Text, Int, Int, Double)]
+getTableNgrams nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
+  mkCmd $ \conn -> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
+    where
+      nodeTId = nodeTypeId   nodeT
+      ngrmTId = ngramsTypeId ngrmT
+
 
 
 querySelectTableNgrams :: DPS.Query
@@ -220,8 +224,9 @@ querySelectTableNgrams = [sql|
   SELECT COALESCE(tu.terms,tm.terms) AS terms
        , COALESCE(tu.n,tm.n)         AS n
        , COALESCE(tu.ngrams_type,tm.ngrams_type) AS ngrams_type
-       , COALESCE(tu.weight,tm.weight) AS weight
-  FROM tableUser tu RIGHT JOIN tableMaster tm ON tu.terms = tm.terms;
+       , SUM(COALESCE(tu.weight,tm.weight)) AS weight
+  FROM tableUser tu RIGHT JOIN tableMaster tm ON tu.terms = tm.terms
+  GROUP BY tu.terms,tm.terms,tu.n,tm.n,tu.ngrams_type,tm.ngrams_type;
 
   |]
 
