@@ -51,7 +51,7 @@ type UserId = Int
 type RootId = Int
 type CorpusId = Int
 
-flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
+--flowDatabase :: FileFormat -> FilePath -> CorpusName -> Cmd Int
 flowDatabase ff fp cName = do
   
   -- Corus Flow
@@ -92,7 +92,11 @@ flowDatabase ff fp cName = do
   listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
   printDebug "list id : " listId2
 
-  (_, _, corpusId2) <- subFlow "user1" cName
+  (userId, _, corpusId2) <- subFlow "user1" cName
+  
+  userListId <- runCmd' $ listFlowUser userId corpusId2
+  printDebug "UserList : " userListId
+  
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " (length inserted)
   
@@ -218,6 +222,9 @@ listFlow uId cId ngs = do
   printDebug "listNgrams inserted :" is
 
   pure lId
+
+listFlowUser :: UserId -> CorpusId -> Cmd [Int]
+listFlowUser uId cId = mkList cId uId
 
 ------------------------------------------------------------------------
 

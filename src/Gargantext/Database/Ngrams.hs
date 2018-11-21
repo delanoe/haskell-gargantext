@@ -87,7 +87,7 @@ ngramsTypeId Terms      = 4
 
 type NgramsTerms = Text
 type NgramsId    = Int
-type Size       = Int
+type Size        = Int
 
 ------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Text.Ngrams
@@ -169,3 +169,86 @@ queryInsertNgrams = [sql|
     FROM   input_rows
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
+
+
+
+
+-- | Ngrams Table
+
+data NgramsTableParam =
+     NgramsTableParam { _nt_listId   :: Int
+                      , _nt_corpusId :: Int
+                      , _nt_typeNode :: Int
+                      , _nt_typeNgrams :: Int
+                      }
+
+type NgramsTableParamUser   = NgramsTableParam
+type NgramsTableParamMaster = NgramsTableParam
+
+data NgramsTableData = NgramsTableData { _ntd_terms :: Text
+                                       , _ntd_n     :: Int
+                                       , _ntd_ngramsType :: Int
+                                       , _ntd_weight :: Double
+    } deriving (Show)
+
+getTableNgrams :: NgramsTableParamUser -> NgramsTableParamMaster -> Cmd [(Text, Int, Int, Double)]
+getTableNgrams (NgramsTableParam ul uc utn utg) (NgramsTableParam ml mc mtn mtg) =
+  mkCmd $ \conn -> DPS.query conn querySelectTableNgrams (ul,uc,utn,utg,ml,mc,mtn,mtg)
+
+
+querySelectTableNgrams :: DPS.Query
+querySelectTableNgrams = [sql|
+
+    WITH tableUser AS (select ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
+      JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
+      JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
+      JOIN nodes        n   ON n.id         = nn2.node_id
+      WHERE nn1.node_id   = ?   -- User listId
+      AND n.parent_id     = ?   -- User CorpusId or AnnuaireId
+      AND n.typename      = ?   -- both type of childs (Documents or Contacts)
+      AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
+    ), tableMaster AS (select ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
+      JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
+      JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
+      JOIN nodes        n   ON n.id         = nn2.node_id
+      WHERE nn1.node_id   = ?   -- Master listId
+      AND n.parent_id     = ?   -- Master CorpusId or AnnuaireId
+      AND n.typename      = ?   -- both type of childs (Documents or Contacts)
+      AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
+    )
+    
+  SELECT COALESCE(tu.terms,tm.terms) AS terms
+       , COALESCE(tu.n,tm.n)         AS n
+       , COALESCE(tu.ngrams_type,tm.ngrams_type) AS ngrams_type
+       , COALESCE(tu.weight,tm.weight) AS weight
+  FROM tableUser tu RIGHT JOIN tableMaster tm ON tu.terms = tm.terms;
+
+  |]
+
+type ListIdUser   = Int
+type ListIdMaster = Int
+
+
+getNgramsGroup :: ListIdUser -> ListIdMaster -> Cmd [(Text, Text)]
+getNgramsGroup lu lm = mkCmd $ \conn -> DPS.query conn querySelectNgramsGroup (lu,lm)
+
+querySelectNgramsGroup :: DPS.Query
+querySelectNgramsGroup = [sql|
+    WITH groupUser AS (
+      SELECT n1.terms AS t1, n2.terms AS t2 FROM nodes_ngrams_ngrams nnn
+        JOIN ngrams n1 ON n1.id = nnn.ngram1_id
+        JOIN ngrams n2 ON n2.id = nnn.ngram2_id
+        WHERE
+        nnn.node_id = ? -- User listId
+      ),
+      groupMaster AS (
+      SELECT n1.terms AS t1, n2.terms AS t2 FROM nodes_ngrams_ngrams nnn
+        JOIN ngrams n1 ON n1.id = nnn.ngram1_id
+        JOIN ngrams n2 ON n2.id = nnn.ngram2_id
+        WHERE
+        nnn.node_id = ? -- Master listId
+      )
+    SELECT COALESCE(gu.t1,gm.t1) AS ngram1_id
+         , COALESCE(gu.t2,gm.t2) AS ngram2_id
+      FROM groupUser gu RIGHT JOIN groupMaster gm ON gu.t1 = gm.t1
+  |]
