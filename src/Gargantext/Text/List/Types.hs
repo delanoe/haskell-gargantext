@@ -29,6 +29,8 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 
 -------------------------------------------------------------------
+
+-- TODO : clean multiples types declaration
 data ListType = GraphList | StopList | CandidateList
   deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 

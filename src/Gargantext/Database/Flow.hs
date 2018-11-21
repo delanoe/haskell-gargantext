@@ -22,7 +22,7 @@ authors
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Database.Flow (flowDatabase)
+module Gargantext.Database.Flow (flowDatabase, ngrams2list)
     where
 
 import GHC.Show (Show)
@@ -66,7 +66,7 @@ flowDatabase ff fp cName = do
   --printDebug "Docs IDs : " (ids)
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
   --printDebug "Repeated Docs IDs : " (length ids)
-  
+
   -- Ngrams Flow
   -- todo: flow for new documents only
   -- let tids = toInserted ids
@@ -92,14 +92,12 @@ flowDatabase ff fp cName = do
   listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
   printDebug "list id : " listId2
 
-  printDebug "Docs IDs : " (length idsRepeat)
-
   (_, _, corpusId2) <- subFlow "user1" cName
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " (length inserted)
-  -- pure [corpusId2, corpusId]
-
-  runCmd' $ del [corpusId2, corpusId]
+  
+  pure corpusId2
+  -- runCmd' $ del [corpusId2, corpusId]
 
 type CorpusName = Text
 
@@ -204,15 +202,20 @@ insertToNodeNgrams m = insertNodeNgrams [ NodeNgram Nothing nId  ((_ngramsId    
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
-listFlow uId cId ng = do
+listFlow uId cId ngs = do
+  printDebug "ngs:" ngs
   lId <- maybe (panic "mkList error") identity <$> head <$> mkList cId uId
+  printDebug "ngs" (DM.keys ngs)
   -- TODO add stemming equivalence of 2 ngrams
-  let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ng
+  let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
   _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
-  let lists = ngrams2list ng
-  _ <- insertLists lId lists
+  let lists = ngrams2list ngs
+  printDebug "lists:" lists
+  
+  is <- insertLists lId lists
+  printDebug "listNgrams inserted :" is
 
   pure lId
 
@@ -230,18 +233,19 @@ insertGroups :: ListId -> Map NgramsIndexed NgramsIndexed -> Cmd Int
 insertGroups lId ngrs =
   insertNodeNgramsNgramsNew [ NodeNgramsNgrams lId ng1 ng2 (Just 1)
                               | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
+                              , ng1 /= ng2
                             ]
 
 ------------------------------------------------------------------------
 -- TODO: verify NgramsT lost here
-ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Map ListType NgramsIndexed
-ngrams2list = DM.fromList . zip (repeat Candidate) . map (\(NgramsT _lost_t ng) -> ng) . DM.keys
+ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> [(ListType,NgramsIndexed)]
+ngrams2list = zip (repeat Candidate) . map (\(NgramsT _lost_t ng) -> ng) . DM.keys
 
 -- | TODO: weight of the list could be a probability
-insertLists :: ListId -> Map ListType NgramsIndexed -> Cmd Int
-insertLists lId list2ngrams =
+insertLists :: ListId -> [(ListType,NgramsIndexed)] -> Cmd Int
+insertLists lId lngs =
   insertNodeNgrams [ NodeNgram Nothing lId ngr (fromIntegral $ listId l) (listId l)
-                     | (l,ngr) <- map (second _ngramsId)   $ DM.toList list2ngrams
+                     | (l,ngr) <- map (second _ngramsId) lngs
                    ]
 
 ------------------------------------------------------------------------

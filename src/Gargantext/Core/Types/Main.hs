@@ -80,7 +80,7 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 -- TODO multiple ListType declaration, remove it
 data ListType  =  Stop  | Candidate | Map
-  deriving (Generic, Eq, Ord)
+  deriving (Generic, Eq, Ord, Show)
 
 instance ToJSON   ListType
 instance FromJSON ListType
@@ -92,7 +92,6 @@ listId Map       = 2
 
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
-
 
 -- | Community Manager Use Case
 type Annuaire  = NodeCorpus

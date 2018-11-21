@@ -379,14 +379,14 @@ nodeContactW maybeName maybeContact aId = node NodeContact name contact (Just aI
     name    = maybe "Contact" identity maybeName
     contact = maybe defaultContact identity maybeContact
 ------------------------------------------------------------------------
-defaultList :: HyperdataList
-defaultList = HyperdataList (Just "Preferences")
+arbitraryList :: HyperdataList
+arbitraryList = HyperdataList (Just "Preferences")
 
 nodeListW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite'
 nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
   where
     name = maybe "Listes" identity maybeName
-    list = maybe defaultList identity maybeList
+    list = maybe arbitraryList identity maybeList
 
 ------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite'
@@ -469,7 +469,6 @@ mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable' ns
 
 mkNodeR' :: [NodeWriteT] -> Cmd [Int]
 mkNodeR' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
-
 
 ------------------------------------------------------------------------
 

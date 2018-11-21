@@ -29,6 +29,7 @@ if Node is a List     then it is listing (either Stop, Candidate or Map)
 -- TODO NodeNgrams
 module Gargantext.Database.NodeNgram where
 
+import Data.Text (Text)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
@@ -98,16 +99,18 @@ insertNodeNgramW nns =
   mkCmd $ \c -> fromIntegral
        <$> runInsertMany c nodeNgramTable nns
 
+type NgramsText = Text
 
-updateNodeNgrams :: PGS.Connection -> [(ListId, NgramsId, ListTypeId)] -> IO [PGS.Only Int]
+updateNodeNgrams :: PGS.Connection -> [(ListId, NgramsText, ListTypeId)] -> IO [PGS.Only Int]
 updateNodeNgrams c input = PGS.query c updateQuery (PGS.Only $ Values fields $ input)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
     updateQuery = [sql| UPDATE nodes_ngrams as old SET
                  ngrams_type = new.typeList
-                 from (?) as new(node_id,ngram_id,typeList)
+                 from (?) as new(node_id,terms,typeList)
+                 JOIN ngrams ON ngrams.terms = new.terms
                  WHERE old.node_id = new.node_id
-                 AND   old.gram_id = new.gram_id
-                 RETURNING new.ngram_id
+                 AND   old.ngram_id = ngrams.id;
+                 -- RETURNING new.ngram_id
                  |]
 

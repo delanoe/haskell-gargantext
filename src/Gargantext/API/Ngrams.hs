@@ -58,7 +58,7 @@ import Gargantext.Core.Types (node_id)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Ngrams (NgramsId)
 import Gargantext.Database.Node (getListsWithParentId)
--- import Gargantext.Database.NodeNgram -- (NodeNgram(..), NodeNgram, updateNodeNgrams, NodeNgramPoly)
+import Gargantext.Database.NodeNgram -- (NodeNgram(..), NodeNgram, updateNodeNgrams, NodeNgramPoly)
 import Gargantext.Database.NodeNgramsNgrams -- (NodeNgramsNgramsPoly(NodeNgramsNgrams))
 import Gargantext.Prelude
 import Gargantext.Text.List.Types (ListType(..), ListId, ListTypeId) -- ,listTypeId )
@@ -69,17 +69,18 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
-data TabType   = Docs   | Terms  | Sources | Authors | Trash
+data TabType   = Docs   | Terms  | Sources | Authors | Institutes | Trash
   deriving (Generic, Enum, Bounded)
 
 instance FromHttpApiData TabType
   where
-    parseUrlPiece "Docs"    = pure Docs
-    parseUrlPiece "Terms"   = pure Terms
-    parseUrlPiece "Sources" = pure Sources
-    parseUrlPiece "Authors" = pure Authors
-    parseUrlPiece "Trash"   = pure Trash
-    parseUrlPiece _         = Left "Unexpected value of TabType"
+    parseUrlPiece "Docs"       = pure Docs
+    parseUrlPiece "Terms"      = pure Terms
+    parseUrlPiece "Sources"    = pure Sources
+    parseUrlPiece "Institutes" = pure Institutes
+    parseUrlPiece "Authors"    = pure Authors
+    parseUrlPiece "Trash"      = pure Trash
+    parseUrlPiece _            = Left "Unexpected value of TabType"
 
 instance ToParamSchema   TabType
 instance ToJSON    TabType
@@ -104,7 +105,7 @@ $(deriveJSON (unPrefix "_ne_") ''NgramsElement)
 
 instance ToSchema NgramsElement
 instance Arbitrary NgramsElement where
-  arbitrary = elements [NgramsElement "sport" StopList 1 Nothing mempty]
+  arbitrary = elements [NgramsElement "sport" GraphList 1 Nothing mempty]
 
 ------------------------------------------------------------------------
 newtype NgramsTable = NgramsTable { _ngramsTable :: [NgramsElement] }
@@ -113,20 +114,19 @@ newtype NgramsTable = NgramsTable { _ngramsTable :: [NgramsElement] }
 instance Arbitrary NgramsTable where
   arbitrary = elements
               [ NgramsTable
-                [ NgramsElement "animal" GraphList 1 Nothing (Set.fromList ["dog"])
-                ,    NgramsElement "dog" GraphList 3 (Just "animal")
-                        (Set.fromList ["object", "cat", "nothing"])
-                ,    NgramsElement "object" CandidateList 2 (Just "animal") mempty
-                ,    NgramsElement "cat"    GraphList 1 (Just "animal") mempty
-                ,    NgramsElement "nothing" StopList 4 (Just "animal") mempty
+                [ NgramsElement "animal"  GraphList     1  Nothing       (Set.fromList ["dog", "cat"])
+                , NgramsElement "cat"     GraphList     1 (Just "animal") mempty
+                , NgramsElement "dog"     GraphList     3 (Just "animal")(Set.fromList ["dogs"])
+                , NgramsElement "dogs"    StopList      4 (Just "dog")    mempty
+                , NgramsElement "object"  CandidateList 2  Nothing        mempty
+                , NgramsElement "nothing" StopList      4  Nothing        mempty
                 ]
               , NgramsTable
-                [ NgramsElement "plant" GraphList 3 Nothing
-                        (Set.fromList ["flower", "moon", "cat", "sky"])
-                ,    NgramsElement "flower" GraphList 3 (Just "plant") mempty
-                ,    NgramsElement "moon" CandidateList 1 (Just "plant") mempty
-                ,    NgramsElement "cat"  GraphList 2 (Just "plant") mempty
-                ,    NgramsElement "sky" StopList 1 (Just "plant") mempty
+                [ NgramsElement "organic" GraphList     3  Nothing        (Set.singleton "flower")
+                , NgramsElement "flower"  GraphList     3 (Just "organic") mempty
+                , NgramsElement "moon"    CandidateList 1  Nothing         mempty
+                , NgramsElement "cat"     GraphList     2  Nothing         mempty
+                , NgramsElement "sky"     StopList      1  Nothing         mempty
                 ]
               ]
 instance ToSchema NgramsTable
@@ -182,11 +182,10 @@ instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
 
 data NgramsIdPatch =
-     NgramsIdPatch { _nip_ngramsId    :: NgramsTerm
+     NgramsIdPatch { _nip_ngrams      :: NgramsTerm
                    , _nip_ngramsPatch :: NgramsPatch
                    }
       deriving (Ord, Eq, Show, Generic)
-
 $(deriveJSON (unPrefix "_nip_") ''NgramsIdPatch)
 
 instance ToSchema  NgramsIdPatch
@@ -213,7 +212,6 @@ data Versioned a = Versioned
   , _v_data    :: a
   }
 
-
 {-
 -- TODO sequencs of modifications (Patchs)
 type NgramsIdPatch = Patch NgramsId NgramsPatch
@@ -236,15 +234,16 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 type CorpusId = Int
-type TableNgramsApi = Summary " Table Ngrams API Change"
-                      :> QueryParam "list"   ListId
-                      :> ReqBody '[JSON] NgramsIdPatchs -- Versioned ...
-                      :> Put     '[JSON] NgramsIdPatchsBack -- Versioned ...
 
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> QueryParam "ngramsType"   TabType
                       :> QueryParam "list"   ListId
                       :> Get    '[JSON] NgramsTable
+
+type TableNgramsApi = Summary " Table Ngrams API Change"
+                      :> QueryParam "list"   ListId
+                      :> ReqBody '[JSON] NgramsIdPatchsFeed -- Versioned ...
+                      :> Put     '[JSON] NgramsIdPatchsBack -- Versioned ...
 
 type NgramsIdPatchsFeed = NgramsIdPatchs
 type NgramsIdPatchsBack = NgramsIdPatchs
@@ -257,12 +256,10 @@ defaultList c cId = view node_id <$> maybe (panic noListFound) identity
   where
     noListFound = "Gargantext.API.Ngrams.defaultList: no list found"
 
-toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
-toLists = undefined
 {-
-toLists lId np =
-  [ (lId,ngId,listTypeId lt) | map (toList lId) (_nip_ngramsIdPatchs np) ]
--}
+toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
+-- toLists = undefined
+toLists lId np = [ (lId,ngId,listTypeId lt) | map (toList lId) (_nip_ngramsIdPatchs np) ]
 
 toList :: ListId -> NgramsIdPatch -> (ListId, NgramsId, ListTypeId)
 toList = undefined
@@ -271,13 +268,11 @@ toGroups :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatchs -> [NodeNg
 toGroups lId addOrRem ps = concat $ map (toGroup lId addOrRem) $ _nip_ngramsIdPatchs ps
 
 toGroup :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatch -> [NodeNgramsNgrams]
-toGroup = undefined
-
-{-
+-- toGroup = undefined
 toGroup lId addOrRem (NgramsIdPatch ngId patch)  =
   map (\ng -> (NodeNgramsNgrams lId ngId ng (Just 1))) (Set.toList $ addOrRem patch)
--}
 
+-}
 
 tableNgramsPatch :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> IO NgramsIdPatchsBack
 tableNgramsPatch = undefined 
@@ -290,7 +285,7 @@ tableNgramsPatch conn corpusId maybeList patchs = do
   _ <- ngramsGroup' conn Del $ toGroups listId _np_rem_children patchs
   _ <- updateNodeNgrams conn (toLists listId patchs)
   pure (NgramsIdPatchs [])
-  -}
+-}
 
 getTableNgramsPatch :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
 getTableNgramsPatch = undefined

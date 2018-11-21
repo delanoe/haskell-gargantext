@@ -32,6 +32,7 @@ module Gargantext.Database.NodeNgramsNgrams
   where
 
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.Text (Text)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
@@ -117,11 +118,14 @@ insertNodeNgramsNgramsW ns =
 ------------------------------------------------------------------------
 data Action   = Del | Add
 
-ngramsGroup :: Action -> [NodeNgramsNgrams] -> Cmd [Int]
+type NgramsParent = Text
+type NgramsChild  = Text
+
+ngramsGroup :: Action -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> Cmd [Int]
 ngramsGroup a ngs = mkCmd $ \c -> ngramsGroup' c a ngs
 
 -- TODO: remove this function (use Reader Monad only)
-ngramsGroup' :: DPS.Connection -> Action -> [NodeNgramsNgrams] -> IO [Int]
+ngramsGroup' :: DPS.Connection -> Action -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> IO [Int]
 ngramsGroup' c action ngs = runNodeNgramsNgrams c q ngs
   where
     q = case action of
@@ -129,32 +133,34 @@ ngramsGroup' c action ngs = runNodeNgramsNgrams c q ngs
           Add -> queryInsertNodeNgramsNgrams
 
 
-runNodeNgramsNgrams :: DPS.Connection -> DPS.Query -> [NodeNgramsNgrams] -> IO [Int]
+runNodeNgramsNgrams :: DPS.Connection -> DPS.Query -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> IO [Int]
 runNodeNgramsNgrams c q ngs = map (\(DPS.Only a) -> a) <$> DPS.query c q (DPS.Only $ Values fields ngs' )
   where
-    ngs'   = map (\(NodeNgramsNgrams n ng1 ng2 w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
+    ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
-                 ["int4","int4","int4","double"]
+                 ["int4","text","text","double"]
 
 --------------------------------------------------------------------
 -- TODO: on conflict update weight
 queryInsertNodeNgramsNgrams :: DPS.Query
 queryInsertNodeNgramsNgrams = [sql|
     WITH input_rows(nId,ng1,ng2,w) AS (?)
-    , ins AS (
-       INSERT INTO nodes_ngrams_ngrams (node_id,ngram1_id,ngram2_id,weight)
-       SELECT * FROM input_rows
-       ON CONFLICT (node_id,ngram1_id,ngram2_id) DO NOTHING -- unique index created here
-       )
+    INSERT INTO nodes_ngrams_ngrams (node_id,ngram1_id,ngram2_id,weight)
+    SELECT nId,ngrams1.id,ngrams2.id,w FROM input_rows
+    JOIN ngrams ngrams1 ON ngrams1.terms = ng1
+    JOIN ngrams ngrams2 ON ngrams2.terms = ng2
+    ON CONFLICT (node_id,ngram1_id,ngram2_id) DO NOTHING -- unique index created here
            |]
 
 queryDelNodeNgramsNgrams :: DPS.Query
 queryDelNodeNgramsNgrams = [sql|
     WITH input(nId,ng1,ng2,w) AS (?)
-    , DELETE FROM nodes_ngrams_ngrams
-    WHERE   node_id = input.nId
-      AND ngram1_id = input.ng1
-      AND ngram2_id = input.ng2
+    DELETE FROM nodes_ngrams_ngrams nnn
+    JOIN ngrams ngrams1 ON ngrams.terms = ng1
+    JOIN ngrams ngrams2 ON ngrams.terms = ng2
+    WHERE   nnn.node_id = input.nId
+      AND nnn.ngram1_id = ngrams1.id
+      AND nnn.ngram2_id = ngrams2.id
        ;)
            |]
 
