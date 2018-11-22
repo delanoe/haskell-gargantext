@@ -27,7 +27,7 @@ import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Config (typeId2node)
+import Gargantext.Database.Config (fromNodeTypeId)
 ------------------------------------------------------------------------
 -- import Gargantext (connectGargandb)
 -- import Control.Monad ((>>=))
@@ -70,7 +70,7 @@ toTree' m n =
 toNodeTree :: DbTreeNode -> NodeTree
 toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
   where
-    nodeType = typeId2node tId
+    nodeType = fromNodeTypeId tId
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode] -> Map (Maybe ParentId) [DbTreeNode]
 toTreeParent = fromListWith (<>) . map (\n -> (dt_parentId n, [n]))

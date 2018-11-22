@@ -73,6 +73,6 @@ nodeTypeInv = map swap nodeTypes
 nodeTypes :: [(NodeType, NodeTypeId)]
 nodeTypes = [ (n, nodeTypeId n) | n <- allNodeTypes ]
 
-typeId2node :: NodeTypeId -> NodeType
-typeId2node tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")
+fromNodeTypeId :: NodeTypeId -> NodeType
+fromNodeTypeId tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")
                             (lookup tId nodeTypeInv)

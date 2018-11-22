@@ -24,6 +24,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Ngrams where
 
 -- import Opaleye
+import Prelude (Enum, Bounded, minBound, maxBound)
 import Control.Lens (makeLenses)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup)
@@ -34,6 +35,7 @@ import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
+import Gargantext.Core.Types (fromListTypeId, ListType)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
@@ -79,13 +81,16 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- ngrams in authors field of document has Authors Type
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Authors | Institutes | Sources | Terms
-  deriving (Eq, Show, Ord)
+  deriving (Eq, Show, Ord, Enum, Bounded)
 
 ngramsTypeId :: NgramsType -> Int
 ngramsTypeId Authors    = 1
 ngramsTypeId Institutes = 2
 ngramsTypeId Sources    = 3
 ngramsTypeId Terms      = 4
+
+fromNgramsTypeId :: Int -> Maybe NgramsType
+fromNgramsTypeId id = lookup id $ fromList [(ngramsTypeId nt,nt) | nt <- [minBound .. maxBound] :: [NgramsType]]
 
 type NgramsTerms = Text
 type NgramsId    = Int
@@ -187,13 +192,13 @@ type NgramsTableParamMaster = NgramsTableParam
 
 data NgramsTableData = NgramsTableData { _ntd_terms :: Text
                                        , _ntd_n     :: Int
-                                       , _ntd_ngramsType :: Int
+                                       , _ntd_listType :: Maybe ListType
                                        , _ntd_weight :: Double
     } deriving (Show)
 
-getTableNgrams :: NodeType -> NgramsType -> NgramsTableParamUser -> NgramsTableParamMaster -> Cmd [(Text, Int, Int, Double)]
+getTableNgrams :: NodeType -> NgramsType -> NgramsTableParamUser -> NgramsTableParamMaster -> Cmd [NgramsTableData]
 getTableNgrams nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
-  mkCmd $ \conn -> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
+  mkCmd $ \conn -> map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
     where
       nodeTId = nodeTypeId   nodeT
       ngrmTId = ngramsTypeId ngrmT
@@ -232,7 +237,6 @@ querySelectTableNgrams = [sql|
 
 type ListIdUser   = Int
 type ListIdMaster = Int
-
 
 getNgramsGroup :: ListIdUser -> ListIdMaster -> Cmd [(Text, Text)]
 getNgramsGroup lu lm = mkCmd $ \conn -> DPS.query conn querySelectNgramsGroup (lu,lm)

@@ -21,9 +21,12 @@ Portability : POSIX
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
+
+import Prelude (Enum, Bounded, minBound, maxBound)
 import Data.Aeson (FromJSON, ToJSON, toJSON)
 import Data.Aeson as A
 import Data.Aeson.TH (deriveJSON)
+import Data.Map (fromList, lookup)
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
 import Data.Text (Text)
@@ -80,7 +83,7 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 -- TODO multiple ListType declaration, remove it
 data ListType  =  Stop  | Candidate | Map
-  deriving (Generic, Eq, Ord, Show)
+  deriving (Generic, Eq, Ord, Show, Enum, Bounded)
 
 instance ToJSON   ListType
 instance FromJSON ListType
@@ -89,6 +92,9 @@ listId :: ListType -> Int
 listId Stop      = 0
 listId Candidate = 1
 listId Map       = 2
+
+fromListTypeId :: Int -> Maybe ListType
+fromListTypeId i = lookup i $ fromList [ (listId l, l) | l <- [minBound..maxBound]]
 
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
