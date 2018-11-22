@@ -116,16 +116,15 @@ instance Arbitrary NgramsTable where
               [ NgramsTable
                 [ NgramsElement "animal"  GraphList     1  Nothing       (Set.fromList ["dog", "cat"])
                 , NgramsElement "cat"     GraphList     1 (Just "animal") mempty
+                , NgramsElement "cats"    StopList      4  Nothing        mempty
                 , NgramsElement "dog"     GraphList     3 (Just "animal")(Set.fromList ["dogs"])
                 , NgramsElement "dogs"    StopList      4 (Just "dog")    mempty
+                , NgramsElement "fox"     GraphList     1  Nothing        mempty
                 , NgramsElement "object"  CandidateList 2  Nothing        mempty
                 , NgramsElement "nothing" StopList      4  Nothing        mempty
-                ]
-              , NgramsTable
-                [ NgramsElement "organic" GraphList     3  Nothing        (Set.singleton "flower")
+                , NgramsElement "organic" GraphList     3  Nothing        (Set.singleton "flower")
                 , NgramsElement "flower"  GraphList     3 (Just "organic") mempty
                 , NgramsElement "moon"    CandidateList 1  Nothing         mempty
-                , NgramsElement "cat"     GraphList     2  Nothing         mempty
                 , NgramsElement "sky"     StopList      1  Nothing         mempty
                 ]
               ]
