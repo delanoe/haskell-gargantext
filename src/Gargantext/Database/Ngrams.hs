@@ -27,7 +27,9 @@ module Gargantext.Database.Ngrams where
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Control.Lens (makeLenses)
 import Data.ByteString.Internal (ByteString)
-import Data.Map (Map, fromList, lookup)
+import Data.Map (Map, fromList, lookup, fromListWith)
+import Data.Set (Set)
+import qualified Data.Set as DS
 import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
@@ -179,7 +181,6 @@ queryInsertNgrams = [sql|
 
 
 
-
 -- | Ngrams Table
 
 data NgramsTableParam =
@@ -238,8 +239,20 @@ querySelectTableNgrams = [sql|
 type ListIdUser   = Int
 type ListIdMaster = Int
 
-getNgramsGroup :: ListIdUser -> ListIdMaster -> Cmd [(Text, Text)]
-getNgramsGroup lu lm = mkCmd $ \conn -> DPS.query conn querySelectNgramsGroup (lu,lm)
+type MapChildren = Map Text (Set Text)
+type MapParent   = Map Text Text
+
+getNgramsGroup :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO (Map Text (Set Text))
+getNgramsGroup conn lu lm = fromListWith (<>)
+                         <$> map (\(a,b) -> (a, DS.singleton b))
+                         <$> getNgramsGroup' conn lu lm
+
+
+getNgramsGroup' :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO [(Text,Text)]
+getNgramsGroup' conn lu lm = DPS.query conn querySelectNgramsGroup (lu,lm)
+
+getNgramsGroup'' :: ListIdUser -> ListIdMaster -> Cmd [(Text, Text)]
+getNgramsGroup'' lu lm = mkCmd $ \conn -> DPS.query conn querySelectNgramsGroup (lu,lm)
 
 querySelectNgramsGroup :: DPS.Query
 querySelectNgramsGroup = [sql|
