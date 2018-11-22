@@ -240,13 +240,14 @@ type ListIdUser   = Int
 type ListIdMaster = Int
 
 type MapChildren = Map Text (Set Text)
-type MapParent   = Map Text Text
+type MapParent   = Map Text (Set Text)
 
-getNgramsGroup :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO (Map Text (Set Text))
-getNgramsGroup conn lu lm = fromListWith (<>)
-                         <$> map (\(a,b) -> (a, DS.singleton b))
-                         <$> getNgramsGroup' conn lu lm
-
+getNgramsGroup :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO (MapParent, MapChildren)
+getNgramsGroup conn lu lm = do
+  groups <- getNgramsGroup' conn lu lm
+  let mapChildren = fromListWith (<>) $ map (\(a,b) -> (a, DS.singleton b)) groups
+  let mapParent   = fromListWith (<>) $ map (\(a,b) -> (b, DS.singleton a)) groups
+  pure (mapParent, mapChildren)
 
 getNgramsGroup' :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO [(Text,Text)]
 getNgramsGroup' conn lu lm = DPS.query conn querySelectNgramsGroup (lu,lm)
