@@ -97,7 +97,7 @@ data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm
                    , _ne_list        :: ListType
                    , _ne_occurrences :: Int
-                   , _ne_root        :: Maybe NgramsTerm
+                   , _ne_parent      :: Maybe NgramsTerm
                    , _ne_children    :: Set NgramsTerm
                    }
       deriving (Ord, Eq, Show, Generic)
