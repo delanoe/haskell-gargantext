@@ -14,18 +14,30 @@ TODO: configure nodes table in Haskell (Config typenames etc.)
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Database.Config
     where
 
 
-import Data.Text        (pack)
+import Data.Text        (Text,pack)
 import Data.Tuple.Extra (swap)
 import Data.Maybe       (fromMaybe)
 import Data.List        (lookup)
 
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
+
+-- TODO put this in config.ini file
+corpusMasterName :: Text
+corpusMasterName = "Main"
+
+userMaster :: Text
+userMaster = "gargantua"
+
+userArbitrary :: Text
+userArbitrary = "user1"
+
 
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId n =
@@ -45,7 +57,7 @@ nodeTypeId n =
 ----  Scores
 --    NodeOccurrences -> 10
     NodeGraph       -> 9
-    NodeDashboard   -> 5
+    NodeDashboard   -> 7
     NodeChart       -> 51
 
 --  Cooccurrences -> 9

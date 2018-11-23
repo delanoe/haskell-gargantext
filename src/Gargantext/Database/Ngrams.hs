@@ -25,10 +25,11 @@ module Gargantext.Database.Ngrams where
 
 -- import Opaleye
 import Prelude (Enum, Bounded, minBound, maxBound)
-import Control.Lens (makeLenses)
+import Control.Lens (makeLenses, view)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Set (Set)
+import Data.Tuple.Extra (both)
 import qualified Data.Set as DS
 import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
@@ -37,13 +38,14 @@ import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
-import Gargantext.Core.Types (fromListTypeId, ListType)
-import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Core.Types -- (fromListTypeId, ListType, NodePoly(Node))
+import Gargantext.Database.Config (nodeTypeId,userMaster)
 import Gargantext.Database.Types.Node (NodeType)
-import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Node (mkCmd, Cmd(..),getRootUsername)
+import Gargantext.Database.Tree (dbTree, toNodeTree)
+import Gargantext.Core.Types.Main (NodeTree(..))
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
-
 
 --data NgramPoly id terms n = NgramDb { ngram_id    :: id
 --                                    , ngram_terms :: terms
@@ -82,14 +84,14 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- ngrams in source field of document has Sources Type
 -- ngrams in authors field of document has Authors Type
 -- ngrams in text (title or abstract) of documents has Terms Type
-data NgramsType = Authors | Institutes | Sources | Terms
+data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Ord, Enum, Bounded)
 
 ngramsTypeId :: NgramsType -> Int
-ngramsTypeId Authors    = 1
-ngramsTypeId Institutes = 2
-ngramsTypeId Sources    = 3
-ngramsTypeId Terms      = 4
+ngramsTypeId Authors     = 1
+ngramsTypeId Institutes  = 2
+ngramsTypeId Sources     = 3
+ngramsTypeId NgramsTerms = 4
 
 fromNgramsTypeId :: Int -> Maybe NgramsType
 fromNgramsTypeId id = lookup id $ fromList [(ngramsTypeId nt,nt) | nt <- [minBound .. maxBound] :: [NgramsType]]
@@ -182,6 +184,26 @@ queryInsertNgrams = [sql|
 
 
 -- | Ngrams Table
+-- TODO: the way we are getting main Master Corpus and List ID is not clean
+-- TODO: if ids are not present -> create
+-- TODO: Global Env State Monad to keep in memory the ids without retrieving it each time
+getNgramsTableDb :: DPS.Connection
+               -> NodeType             -> NgramsType
+               -> NgramsTableParamUser
+               -> IO ([NgramsTableData], MapToParent, MapToChildren)
+getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
+  let lieu = "Garg.Db.Ngrams.getTableNgrams: "
+  maybeRoot <- head <$> getRootUsername userMaster c
+  let masterRootId = maybe (panic $ lieu <> "no userMaster Tree") (view node_id) maybeRoot
+  tree <- map toNodeTree <$> dbTree c masterRootId
+  let maybeCorpus = head $ filter (\n -> _nt_type n == NodeCorpus) tree
+  let maybeList   = head $ filter (\n -> _nt_type n == NodeList)   tree
+  let maybeIds    = fmap (both _nt_id) $ (,) <$> maybeCorpus <*> maybeList
+  let (corpusMasterId, listMasterId) = maybe (panic $ lieu <> "no CorpusId or ListId") identity maybeIds
+  ngramsTableData <- getNgramsTableData c nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId)
+  (mapToParent,mapToChildren) <- getNgramsGroup c listIdUser listMasterId
+  pure (ngramsTableData, mapToParent,mapToChildren)
+
 
 data NgramsTableParam =
      NgramsTableParam { _nt_listId     :: Int
@@ -191,19 +213,22 @@ data NgramsTableParam =
 type NgramsTableParamUser   = NgramsTableParam
 type NgramsTableParamMaster = NgramsTableParam
 
-data NgramsTableData = NgramsTableData { _ntd_terms :: Text
-                                       , _ntd_n     :: Int
+data NgramsTableData = NgramsTableData { _ntd_ngrams   :: Text
+                                       , _ntd_n        :: Int
                                        , _ntd_listType :: Maybe ListType
-                                       , _ntd_weight :: Double
+                                       , _ntd_weight   :: Double
     } deriving (Show)
 
-getTableNgrams :: NodeType -> NgramsType -> NgramsTableParamUser -> NgramsTableParamMaster -> Cmd [NgramsTableData]
-getTableNgrams nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
-  mkCmd $ \conn -> map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
+getNgramsTableData :: DPS.Connection
+                   -> NodeType -> NgramsType
+                   -> NgramsTableParamUser -> NgramsTableParamMaster 
+                   -> IO [NgramsTableData]
+getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
+  map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w)
+  <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
     where
       nodeTId = nodeTypeId   nodeT
       ngrmTId = ngramsTypeId ngrmT
-
 
 
 querySelectTableNgrams :: DPS.Query
@@ -240,13 +265,13 @@ type ListIdUser   = Int
 type ListIdMaster = Int
 
 type MapToChildren = Map Text (Set Text)
-type MapToParent   = Map Text (Set Text)
+type MapToParent   = Map Text Text
 
 getNgramsGroup :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO (MapToParent, MapToChildren)
 getNgramsGroup conn lu lm = do
   groups <- getNgramsGroup' conn lu lm
   let mapChildren = fromListWith (<>) $ map (\(a,b) -> (a, DS.singleton b)) groups
-  let mapParent   = fromListWith (<>) $ map (\(a,b) -> (b, DS.singleton a)) groups
+  let mapParent   = fromListWith (<>) $ map (\(a,b) -> (b, a)) groups
   pure (mapParent, mapChildren)
 
 getNgramsGroup' :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO [(Text,Text)]
@@ -275,3 +300,4 @@ querySelectNgramsGroup = [sql|
          , COALESCE(gu.t2,gm.t2) AS ngram2_id
       FROM groupUser gu RIGHT JOIN groupMaster gm ON gu.t1 = gm.t1
   |]
+

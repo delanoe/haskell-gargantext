@@ -60,3 +60,4 @@ connectGargandb fp = databaseParameters fp >>= \params -> connect params
 printSql :: Default Unpackspec a a => Query a -> IO ()
 printSql = putStrLn . maybe "Empty query" identity . showSqlForPostgres
 
+

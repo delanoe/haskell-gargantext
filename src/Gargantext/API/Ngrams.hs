@@ -33,6 +33,7 @@ add get
 module Gargantext.API.Ngrams
   where
 
+import Prelude (round)
 -- import Gargantext.Database.User  (UserId)
 import Data.Patch.Class (Replace, replace)
 --import qualified Data.Map.Strict.Patch as PM
@@ -47,7 +48,7 @@ import Control.Lens (view, (.~))
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
-import Data.List (concat)
+import Data.Map (lookup)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger
 import Data.Text (Text)
@@ -56,12 +57,11 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Types (node_id)
 --import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Ngrams (NgramsId)
+import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Node (getListsWithParentId)
-import Gargantext.Database.NodeNgram -- (NodeNgram(..), NodeNgram, updateNodeNgrams, NodeNgramPoly)
-import Gargantext.Database.NodeNgramsNgrams -- (NodeNgramsNgramsPoly(NodeNgramsNgrams))
+import qualified Gargantext.Database.Ngrams as Ngrams
 import Gargantext.Prelude
-import Gargantext.Text.List.Types (ListType(..), ListId, ListTypeId) -- ,listTypeId )
+import Gargantext.Core.Types (ListType(..), ListId)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant hiding (Patch)
 import Test.QuickCheck (elements)
@@ -109,7 +109,7 @@ instance Arbitrary NgramsElement where
 
 ------------------------------------------------------------------------
 newtype NgramsTable = NgramsTable { _ngramsTable :: [NgramsElement] }
-  deriving (Ord, Eq, Generic, ToJSON, FromJSON)
+  deriving (Ord, Eq, Generic, ToJSON, FromJSON, Show)
 
 instance Arbitrary NgramsTable where
   arbitrary = elements
@@ -286,5 +286,35 @@ tableNgramsPatch conn corpusId maybeList patchs = do
   pure (NgramsIdPatchs [])
 -}
 
-getTableNgramsPatch :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
-getTableNgramsPatch = undefined
+-- | TODO Errors management
+--  TODO: polymorphic for Annuaire or Corpus or ...
+getTableNgrams :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
+getTableNgrams c cId maybeTabType maybeListId = do
+  let lieu = "Garg.API.Ngrams: " :: Text
+  let ngramsType = case maybeTabType of
+        Nothing  -> Ngrams.Sources -- panic (lieu <> "Indicate the Table")
+        Just tab -> case tab of
+            Sources    -> Ngrams.Sources
+            Authors    -> Ngrams.Authors
+            Institutes -> Ngrams.Institutes
+            Terms      -> Ngrams.Sources
+            _          -> panic $ lieu <> "No Ngrams for this tab"
+
+  listId <- case maybeListId of
+      Nothing -> defaultList c cId
+      Just lId -> pure lId
+
+  (ngramsTableDatas, mapToParent, mapToChildren) <-
+    Ngrams.getNgramsTableDb c NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId)
+
+  printDebug "ngramsTableDatas" ngramsTableDatas
+
+  pure $ NgramsTable $ map (\(Ngrams.NgramsTableData ngs _ lt w) ->
+                              NgramsElement ngs
+                                            (maybe (panic $ lieu <> "listType") identity lt)
+                                            (round w)
+                                            (lookup ngs mapToParent)
+                                            (maybe mempty identity $ lookup ngs mapToChildren)
+                           ) ngramsTableDatas
+
+

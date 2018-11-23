@@ -154,7 +154,7 @@ makeMockApp env = do
     pure $ logStdoutDev $ checkOriginAndHost $ corsMiddleware $ serverApp
 
 
---
+
 makeDevApp :: Env -> IO Application
 makeDevApp env = do
     serverApp <- makeApp env
@@ -187,8 +187,6 @@ makeDevApp env = do
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
     pure $ logStdoutDev $ corsMiddleware $ serverApp
 
---
-
 ---------------------------------------------------------------------
 -- | API Global
 
@@ -209,9 +207,9 @@ auth conn ar = liftIO $ auth' conn ar
 
 type GargAPI' =
            -- Auth endpoint
-           "auth"      :> Summary "AUTH API"
-                       :> ReqBody '[JSON] AuthRequest
-                       :> Post    '[JSON] AuthResponse
+                "auth"  :> Summary "AUTH API"
+                        :> ReqBody '[JSON] AuthRequest
+                        :> Post    '[JSON] AuthResponse
           
            -- Roots endpoint
           :<|>  "user"  :> Summary "First user endpoint"
@@ -255,7 +253,7 @@ type GargAPI' =
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
 -- /rename/<id>
-       -- :<|> "static"   
+       -- :<|> "static"
        -- :<|> "list"     :> Capture "id" Int  :> NodeAPI
        -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
        -- :<|> "auth"     :> Capture "id" Int  :> NodeAPI

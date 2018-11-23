@@ -15,7 +15,7 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Gargantext.Database.Tree (treeDB, TreeError(..), HasTreeError(..)) where
+module Gargantext.Database.Tree (treeDB, TreeError(..), HasTreeError(..), dbTree, toNodeTree, DbTreeNode) where
 
 import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
 import Control.Monad.Error.Class (MonadError(throwError))
@@ -81,7 +81,8 @@ data DbTreeNode = DbTreeNode { dt_nodeId :: Int
                              , dt_name     :: Text
                              } deriving (Show)
 
-
+-- | Main DB Tree function
+-- TODO add typenames as parameters
 dbTree :: Connection -> RootId -> IO [DbTreeNode]
 dbTree conn rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> query conn [sql|
   WITH RECURSIVE
@@ -99,7 +100,7 @@ dbTree conn rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> q
         UNION ALL
         SELECT n.id, n.typename, n.parent_id, n.name
         FROM nodes AS n JOIN descendants AS d ON n.parent_id = d.id
-        where n.typename in (2,3,30,31)
+        where n.typename in (2,3,30,31,5)
       ),
       ancestors (id, typename, parent_id, name) AS
       (

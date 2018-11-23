@@ -235,7 +235,9 @@ selectNodesWith :: ParentId     -> Maybe NodeType
                 -> Maybe Offset -> Maybe Limit   -> Query NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
-        limit' maybeLimit $ offset' maybeOffset $ orderBy (asc _node_id) $ selectNodesWith' parentId maybeNodeType
+  limit' maybeLimit $ offset' maybeOffset
+                    $ orderBy (asc _node_id)
+                    $ selectNodesWith' parentId maybeNodeType
 
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
@@ -534,4 +536,7 @@ mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
 
 mkList :: ParentId -> UserId -> Cmd [Int]
 mkList p u = insertNodesR' [nodeListW Nothing Nothing p u]
+
+-- | Default CorpusId Master and ListId Master
+
 

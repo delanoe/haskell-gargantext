@@ -48,7 +48,7 @@ import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Servant
 
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet,tableNgramsPatch, getTableNgramsPatch, NgramsIdPatchsFeed, NgramsIdPatchsBack, NgramsTable)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet,tableNgramsPatch, getTableNgrams, NgramsIdPatchsFeed, NgramsIdPatchsBack, NgramsTable)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
@@ -62,11 +62,10 @@ import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
 import Gargantext.Text.Flow
-import Gargantext.Text.List.Types (ListId)
 import Gargantext.Viz.Graph (Graph)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Core.Types.Main (Tree, NodeTree, ListId)
 import Gargantext.Text.Terms (TermType(..))
 
 import Test.QuickCheck (elements)
@@ -143,7 +142,7 @@ nodeAPI conn p id
               -- TODO gather it
               :<|> getTable      conn id
               :<|> tableNgramsPatch'  conn id
-              :<|> getTableNgramsPatch' conn id
+              :<|> getTableNgrams' conn id
 
               :<|> getChart      conn id
               :<|> favApi        conn id
@@ -289,8 +288,8 @@ getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p 
 tableNgramsPatch' :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> Handler NgramsIdPatchsBack
 tableNgramsPatch' c cId mL ns = liftIO $ tableNgramsPatch c cId mL ns
 
-getTableNgramsPatch' :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> Handler NgramsTable
-getTableNgramsPatch' c cId nType mL = liftIO $ getTableNgramsPatch c cId nType mL
+getTableNgrams' :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> Handler NgramsTable
+getTableNgrams' c cId nType mL = liftIO $ getTableNgrams c cId nType mL
 
 query :: Text -> Handler Text
 query s = pure s

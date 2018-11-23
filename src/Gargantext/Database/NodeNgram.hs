@@ -34,8 +34,7 @@ import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Gargantext.Database.Ngrams (NgramsId)
-import Gargantext.Text.List.Types (ListId, ListTypeId)
+import Gargantext.Core.Types.Main (ListId, ListTypeId)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import Opaleye

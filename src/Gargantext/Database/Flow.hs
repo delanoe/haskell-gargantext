@@ -33,8 +33,8 @@ import Data.Map (Map)
 import Data.Tuple.Extra (both, second)
 import qualified Data.Map as DM
 
-import Gargantext.Core.Types (NodePoly(..), ListType(..), listId)
-import Gargantext.Database.Bashql (runCmd', del)
+import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
+import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)
 import Gargantext.Database.Node.Document.Add    (add)
@@ -43,6 +43,7 @@ import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
+import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Ext.IMT (toSchoolName)
@@ -51,11 +52,11 @@ type UserId = Int
 type RootId = Int
 type CorpusId = Int
 
---flowDatabase :: FileFormat -> FilePath -> CorpusName -> Cmd Int
+flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
 flowDatabase ff fp cName = do
   
   -- Corus Flow
-  (masterUserId, _, corpusId) <- subFlow "gargantua" "Big Corpus"
+  (masterUserId, _, corpusId) <- subFlow userMaster corpusMasterName
 
   -- Documents Flow
   hyperdataDocuments <- map addUniqIds <$> parseDocs ff fp
@@ -65,7 +66,7 @@ flowDatabase ff fp cName = do
   ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
   --printDebug "Docs IDs : " (ids)
   idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
-  --printDebug "Repeated Docs IDs : " (length ids)
+  printDebug "Repeated Docs IDs : " (length idsRepeat)
 
   -- Ngrams Flow
   -- todo: flow for new documents only
@@ -92,7 +93,7 @@ flowDatabase ff fp cName = do
   listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
   printDebug "list id : " listId2
 
-  (userId, _, corpusId2) <- subFlow "user1" cName
+  (userId, _, corpusId2) <- subFlow userArbitrary cName
   
   userListId <- runCmd' $ listFlowUser userId corpusId2
   printDebug "UserList : " userListId
@@ -246,12 +247,12 @@ insertGroups lId ngrs =
 ------------------------------------------------------------------------
 -- TODO: verify NgramsT lost here
 ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> [(ListType,NgramsIndexed)]
-ngrams2list = zip (repeat Candidate) . map (\(NgramsT _lost_t ng) -> ng) . DM.keys
+ngrams2list = zip (repeat CandidateList) . map (\(NgramsT _lost_t ng) -> ng) . DM.keys
 
 -- | TODO: weight of the list could be a probability
 insertLists :: ListId -> [(ListType,NgramsIndexed)] -> Cmd Int
 insertLists lId lngs =
-  insertNodeNgrams [ NodeNgram Nothing lId ngr (fromIntegral $ listId l) (listId l)
+  insertNodeNgrams [ NodeNgram Nothing lId ngr (fromIntegral $ listTypeId l) (listTypeId l)
                      | (l,ngr) <- map (second _ngramsId) lngs
                    ]
 

@@ -81,20 +81,27 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 --data Classification = Favorites | MyClassifcation
 
+type ListId = Int
+
 -- TODO multiple ListType declaration, remove it
-data ListType  =  Stop  | Candidate | Map
+data ListType  =  StopList  | CandidateList | GraphList
   deriving (Generic, Eq, Ord, Show, Enum, Bounded)
 
 instance ToJSON   ListType
 instance FromJSON ListType
+instance ToSchema ListType
+instance Arbitrary ListType where
+  arbitrary = elements [minBound..maxBound]
 
-listId :: ListType -> Int
-listId Stop      = 0
-listId Candidate = 1
-listId Map       = 2
+type ListTypeId = Int
 
-fromListTypeId :: Int -> Maybe ListType
-fromListTypeId i = lookup i $ fromList [ (listId l, l) | l <- [minBound..maxBound]]
+listTypeId :: ListType -> ListTypeId
+listTypeId StopList      = 0
+listTypeId CandidateList = 1
+listTypeId GraphList       = 2
+
+fromListTypeId :: ListTypeId -> Maybe ListType
+fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]
 
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
