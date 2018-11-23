@@ -9,6 +9,7 @@ fi
 
 curl -sSL https://get.haskellstack.org/ | sh
 stack update
+stack upgrade
 
 git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/haskell-gargantext.git
 
@@ -24,8 +25,8 @@ git clone https://github.com/np/patches-map
 git clone https://gitlab.com/npouillard/patches-class.git
 cd ..
 
-stack docker pull
-stack --docker setup
-stack --docker build
-stack --docker install
+~/.local/bin/stack docker pull
+~/.local/bin/stack --docker setup
+~/.local/bin/stack --docker build
+~/.local/bin/stack --docker install
 
