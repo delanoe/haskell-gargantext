@@ -34,3 +34,7 @@ cd ..
 ~/.local/bin/stack --docker build
 ~/.local/bin/stack --docker install
 
+
+# Database configuration
+# CREATE USER gargantua WITH PASSWORD $(grep DB_PASS gargantext.ini)
+# GRANT ALL PRIVILEGES ON DATABASE gargandbV4 to gargantua

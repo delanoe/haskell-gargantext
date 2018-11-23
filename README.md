@@ -15,9 +15,17 @@ Institute of Paris Île-de-France (ISC-PIF) and its partners.
 
 curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/install-via-docker | sh
 
+
 ## Use Cases
 
 ### Multi-User with Graphical User Interface (Server Mode)
 
-### Command Line Mode
-(for now: simple cooccurrences computation)
+~/.local/bin/stack --docker exec gargantext-server -- --ini "gargantext.ini" --run Prod
+
+
+### Command Line Mode tools
+
+#### Simple cooccurrences computation and indexation from a list of Ngrams
+
+stack --docker exec gargantext-cli -- CorpusFromGarg.csv ListFromGarg.csv Ouput.json
+
