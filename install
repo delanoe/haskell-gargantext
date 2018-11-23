@@ -1,10 +1,14 @@
 #!/bin/bash
 
+
 if docker version; 
 then
   echo "Docker installed, ok"
 else
   curl -sSL https://get.docker.com/ | sh
+  echo "Docker has been installed"
+  echo "Configure your user rights:"
+  echo "   sudo usermod -a -G docker $USER"
 fi
 
 curl -sSL https://get.haskellstack.org/ | sh
