@@ -297,7 +297,7 @@ getTableNgrams c cId maybeTabType maybeListId = do
             Sources    -> Ngrams.Sources
             Authors    -> Ngrams.Authors
             Institutes -> Ngrams.Institutes
-            Terms      -> Ngrams.Sources
+            Terms      -> Ngrams.NgramsTerms
             _          -> panic $ lieu <> "No Ngrams for this tab"
 
   listId <- case maybeListId of

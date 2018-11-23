@@ -1,7 +1,8 @@
 #!/bin/bash
 
-if docker version; then
-  :
+if docker version; 
+then
+  echo "Docker installed, ok"
 else
   curl -sSL https://get.docker.com/ | sh
 fi
