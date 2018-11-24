@@ -29,7 +29,7 @@ import GHC.Show (Show)
 import System.FilePath (FilePath)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text, splitOn)
-import Data.Map (Map)
+import Data.Map (Map, lookup)
 import Data.Tuple.Extra (both, second)
 import qualified Data.Map as DM
 
@@ -79,6 +79,7 @@ flowDatabase ff fp cName = do
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
   -- printDebug "documentsWithId" documentsWithId
 
+  -- docsWithNgrams <- documentIdWithNgrams documentsWithId extractNgramsT
   let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
   printDebug "docsWithNgrams" docsWithNgrams
   
@@ -152,10 +153,11 @@ data DocumentWithId =
                     } deriving (Show)
 
 mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
-mergeData rs hs = map (\(hash,hpd) -> DocumentWithId (lookup' hash rs) hpd) $ DM.toList hs
-                  where
-                    lookup' h xs = maybe (panic $ message  <> h) reId (DM.lookup h xs)
-                    message = "Database.Flow.mergeData: Error with "
+mergeData rs = catMaybes . map toDocumentWithId . DM.toList
+  where
+    toDocumentWithId (hash,hpd) =
+      DocumentWithId <$> fmap reId (lookup hash rs)
+                     <*> Just hpd
 
 ------------------------------------------------------------------------
 
