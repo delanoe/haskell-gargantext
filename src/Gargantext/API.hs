@@ -56,11 +56,15 @@ import           Network.Wai
 import           Network.Wai.Handler.Warp hiding (defaultSettings)
 
 import           Servant
+import           Servant.HTML.Blaze (HTML)
 import           Servant.Mock (mock)
 --import           Servant.Job.Server (WithCallbacks)
+import           Servant.Static.TH.Internal.Server (fileTreeToServer)
+import           Servant.Static.TH.Internal.FileTree (fileTypeToFileTree, FileType(FileTypeFile))
 import           Servant.Swagger
 import           Servant.Swagger.UI
 -- import Servant.API.Stream
+import           Text.Blaze.Html (Html)
 
 --import Gargantext.API.Swagger
 import Gargantext.Prelude
@@ -258,17 +262,24 @@ type GargAPI' =
        -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
        -- :<|> "auth"     :> Capture "id" Int  :> NodeAPI
 ---------------------------------------------------------------------
-type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI 
+type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI
 
+type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 
-type API = SwaggerFrontAPI :<|> GargAPI
 ---------------------------------------------------------------------
--- | Server declaration
+-- | Server declarations
+
 server :: Env -> IO (Server API)
 server env = do
+  gargAPI <- serverGargAPI env
+  pure $  swaggerFront
+     :<|> gargAPI
+     :<|> serverIndex
+
+serverGargAPI :: Env -> IO (Server GargAPI)
+serverGargAPI env = do
   -- orchestrator <- scrapyOrchestrator env
-  pure $ swaggerFront
-     :<|> auth    conn
+  pure $  auth     conn
      :<|> roots    conn
      :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAny)
      :<|> nodeAPI  conn (Proxy :: Proxy HyperdataCorpus)
@@ -281,6 +292,10 @@ server env = do
   --   :<|> orchestrator
   where
     conn = env ^. env_conn
+
+serverIndex :: Server (Get '[HTML] Html)
+serverIndex = $(do (Just s) <- liftIO (fileTypeToFileTree (FileTypeFile "purescript-gargantext/dist/index.html"))
+                   fileTreeToServer s)
 
 ---------------------------------------------------------------------
 swaggerFront :: Server SwaggerFrontAPI
@@ -295,7 +310,7 @@ makeApp :: Env -> IO Application
 makeApp = fmap (serve api) . server
 
 appMock :: Application
-appMock = serve api (swaggerFront :<|> gargMock)
+appMock = serve api (swaggerFront :<|> gargMock :<|> serverIndex)
 
 ---------------------------------------------------------------------
 api :: Proxy API
