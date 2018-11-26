@@ -391,6 +391,29 @@ nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
     list = maybe arbitraryList identity maybeList
 
 ------------------------------------------------------------------------
+arbitraryGraph :: HyperdataGraph
+arbitraryGraph = HyperdataGraph (Just "Preferences")
+
+nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite'
+nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
+  where
+    name = maybe "Graph" identity maybeName
+    graph = maybe arbitraryGraph identity maybeGraph
+
+------------------------------------------------------------------------
+
+arbitraryDashboard :: HyperdataDashboard
+arbitraryDashboard = HyperdataDashboard (Just "Preferences")
+
+nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite'
+nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
+  where
+    name = maybe "Dashboard" identity maybeName
+    dashboard = maybe arbitraryDashboard identity maybeDashboard
+
+
+
+------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite'
 node nodeType name hyperData parentId userId = Node Nothing typeId userId parentId name Nothing byteData
   where
@@ -536,6 +559,13 @@ mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
 
 mkList :: ParentId -> UserId -> Cmd [Int]
 mkList p u = insertNodesR' [nodeListW Nothing Nothing p u]
+
+mkGraph :: ParentId -> UserId -> Cmd [Int]
+mkGraph p u = insertNodesR' [nodeGraphW Nothing Nothing p u]
+
+mkDashboard :: ParentId -> UserId -> Cmd [Int]
+mkDashboard p u = insertNodesR' [nodeDashboardW Nothing Nothing p u]
+
 
 -- | Default CorpusId Master and ListId Master
 

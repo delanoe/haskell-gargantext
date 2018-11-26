@@ -298,6 +298,11 @@ $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 instance Hyperdata HyperdataResource
 
 ------------------------------------------------------------------------
+data HyperdataDashboard = HyperdataDashboard { hyperdataDashboard_preferences   :: Maybe Text
+                                   } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
+
+instance Hyperdata HyperdataDashboard
 
 -- TODO add the Graph Structure here
 data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: Maybe Text

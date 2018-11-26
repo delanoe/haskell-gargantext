@@ -36,7 +36,7 @@ import qualified Data.Map as DM
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
-import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
@@ -102,6 +102,9 @@ flowDatabase ff fp cName = do
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " (length inserted)
   
+  _ <- runCmd' $ mkDashboard corpusId2 userId
+  _ <- runCmd' $ mkGraph corpusId2 userId
+
   pure corpusId2
   -- runCmd' $ del [corpusId2, corpusId]
 
