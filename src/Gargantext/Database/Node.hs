@@ -40,6 +40,7 @@ import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
+import Gargantext.Database.Utils (fromField')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
 import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
@@ -138,16 +139,6 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataList     where
 instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 ------------------------------------------------------------------------
-
-fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DB.ByteString -> Conversion b
-fromField' field mb = do
-    v <- fromField field mb
-    valueToHyperdata v
-      where
-          valueToHyperdata v = case fromJSON v of
-             Success a  -> pure a
-             Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
-
 
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
@@ -372,14 +363,7 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
                    --------------------------
-defaultContact :: HyperdataContact
-defaultContact = HyperdataContact (Just "Name") (Just "email@here")
 
-nodeContactW :: Maybe Name -> Maybe HyperdataContact -> AnnuaireId -> UserId -> NodeWrite'
-nodeContactW maybeName maybeContact aId = node NodeContact name contact (Just aId)
-  where
-    name    = maybe "Contact" identity maybeName
-    contact = maybe defaultContact identity maybeContact
 ------------------------------------------------------------------------
 arbitraryList :: HyperdataList
 arbitraryList = HyperdataList (Just "Preferences")
@@ -566,7 +550,8 @@ mkGraph p u = insertNodesR' [nodeGraphW Nothing Nothing p u]
 mkDashboard :: ParentId -> UserId -> Cmd [Int]
 mkDashboard p u = insertNodesR' [nodeDashboardW Nothing Nothing p u]
 
+mkAnnuaire :: ParentId -> UserId -> Cmd [Int]
+mkAnnuaire p u = insertNodesR' [nodeAnnuaireW Nothing Nothing p u]
 
 -- | Default CorpusId Master and ListId Master
-
 

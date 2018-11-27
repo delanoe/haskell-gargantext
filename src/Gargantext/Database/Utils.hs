@@ -19,15 +19,26 @@ module Gargantext.Database.Utils where
 
 import qualified Database.PostgreSQL.Simple as PGS
 
+import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
+import Data.Typeable (Typeable)
 import Data.Monoid ((<>))
 import Data.Either.Extra (Either(Left, Right))
-import Gargantext.Prelude
-import Data.Text (unpack, pack)
-import Text.Read (read)
+import Database.PostgreSQL.Simple.Internal  (Field)
+import qualified Data.ByteString      as DB
+import Database.PostgreSQL.Simple.FromField ( Conversion
+                                            , ResultError(ConversionFailed)
+                                            , FromField
+                                            , fromField
+                                            , returnError
+                                            )
+
 import Data.Ini (readIniFile, lookupValue)
+import Data.Text (unpack, pack)
 import Data.Word (Word16)
-import System.IO (FilePath)
 import Database.PostgreSQL.Simple (Connection, connect)
+import Gargantext.Prelude
+import System.IO (FilePath)
+import Text.Read (read)
 
 -- Utilities
 import Opaleye (Query, Unpackspec, showSqlForPostgres)
@@ -59,5 +70,15 @@ connectGargandb fp = databaseParameters fp >>= \params -> connect params
 
 printSql :: Default Unpackspec a a => Query a -> IO ()
 printSql = putStrLn . maybe "Empty query" identity . showSqlForPostgres
+
+fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DB.ByteString -> Conversion b
+fromField' field mb = do
+    v <- fromField field mb
+    valueToHyperdata v
+      where
+          valueToHyperdata v = case fromJSON v of
+             Success a  -> pure a
+             Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
+
 
 

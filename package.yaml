@@ -39,6 +39,7 @@ library:
   - Gargantext.Database.Bashql
   - Gargantext.Database.Node.Document.Insert
   - Gargantext.Database.Node.Document.Add
+  - Gargantext.Database.Node.Contact
   - Gargantext.Database.Types.Node
   - Gargantext.Database.User
   - Gargantext.Database.Cooc

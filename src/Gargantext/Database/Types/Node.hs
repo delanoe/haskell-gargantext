@@ -54,7 +54,6 @@ import           Test.QuickCheck (elements)
 
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
-
 ------------------------------------------------------------------------
 
 type UTCTime' = UTCTime
@@ -261,13 +260,6 @@ instance Arbitrary HyperdataAnnuaire where
     arbitrary = pure hyperdataAnnuaire -- TODO
 
 ------------------------------------------------------------------------
-data HyperdataContact = HyperdataContact { hyperdataContact_name        :: Maybe Text
-                                         , hyperdataContact_mail        :: Maybe Text
-                                         } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataContact_") ''HyperdataContact)
-
-instance Hyperdata HyperdataContact
-------------------------------------------------------------------------
 newtype HyperdataAny = HyperdataAny Object
   deriving (Show, Generic, ToJSON, FromJSON)
 
@@ -352,7 +344,6 @@ type NodeCorpusV3 = Node HyperdataCorpus
 type NodeDocument = Node HyperdataDocument
 
 type NodeAnnuaire = Node HyperdataAnnuaire
-type NodeContact  = Node HyperdataContact
 
 ---- | Then a Node can be either a Graph or a Phylo or a Notebook
 type NodeList     = Node HyperdataList

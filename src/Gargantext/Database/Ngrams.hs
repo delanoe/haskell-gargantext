@@ -234,22 +234,24 @@ getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam m
 querySelectTableNgrams :: DPS.Query
 querySelectTableNgrams = [sql|
 
-    WITH tableUser AS (select ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
-      JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
-      JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
-      JOIN nodes        n   ON n.id         = nn2.node_id
-      WHERE nn1.node_id   = ?   -- User listId
-      AND n.parent_id     = ?   -- User CorpusId or AnnuaireId
-      AND n.typename      = ?   -- both type of childs (Documents or Contacts)
-      AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
-    ), tableMaster AS (select ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
-      JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
-      JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
-      JOIN nodes        n   ON n.id         = nn2.node_id
-      WHERE nn1.node_id   = ?   -- Master listId
-      AND n.parent_id     = ?   -- Master CorpusId or AnnuaireId
-      AND n.typename      = ?   -- both type of childs (Documents or Contacts)
-      AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
+    WITH tableUser AS (
+      SELECT ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
+        JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
+        JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
+        JOIN nodes        n   ON n.id         = nn2.node_id
+      WHERE nn1.node_id     = ?   -- User listId
+        AND n.parent_id     = ?   -- User CorpusId or AnnuaireId
+        AND n.typename      = ?   -- both type of childs (Documents or Contacts)
+        AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
+    ), tableMaster AS (
+      SELECT ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
+        JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
+        JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
+        JOIN nodes        n   ON n.id         = nn2.node_id
+      WHERE nn1.node_id     = ?   -- Master listId
+        AND n.parent_id     = ?   -- Master CorpusId or AnnuaireId
+        AND n.typename      = ?   -- both type of childs (Documents or Contacts)
+        AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
     )
     
   SELECT COALESCE(tu.terms,tm.terms) AS terms

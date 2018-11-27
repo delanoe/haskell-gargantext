@@ -8,14 +8,6 @@ Stability   : experimental
 Portability : POSIX
 
 
-Map (NgramsId, NodeId) -> insert
-data NgramsType = Sources | Authors | Terms
-nodes_ngrams : column type, column list
-
-documents
-sources
-authors
-
 -}
 
 {-# LANGUAGE DeriveGeneric     #-}
@@ -36,7 +28,7 @@ import qualified Data.Map as DM
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
-import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard)
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
@@ -56,12 +48,12 @@ flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
 flowDatabase ff fp cName = do
   
   -- Corus Flow
-  (masterUserId, _, corpusId) <- subFlow userMaster corpusMasterName
+  (masterUserId, _, corpusId) <- subFlowCorpus userMaster corpusMasterName
 
   -- Documents Flow
   hyperdataDocuments <- map addUniqIds <$> parseDocs ff fp
 
-  --printDebug "hyperdataDocuments" hyperdataDocuments
+  printDebug "hyperdataDocuments" hyperdataDocuments
 
   ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
   --printDebug "Docs IDs : " (ids)
@@ -70,14 +62,14 @@ flowDatabase ff fp cName = do
 
   -- Ngrams Flow
   -- todo: flow for new documents only
-  -- let tids = toInserted ids
-  --printDebug "toInserted ids" (length tids, tids)
+  let tids = toInserted ids
+  printDebug "toInserted ids" (length tids, tids)
 
-  -- let tihs = toInsert hyperdataDocuments
-  --printDebug "toInsert hyperdataDocuments" (length tihs, tihs)
+  let tihs = toInsert hyperdataDocuments
+  printDebug "toInsert hyperdataDocuments" (length tihs, tihs)
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
-  -- printDebug "documentsWithId" documentsWithId
+  printDebug "documentsWithId" documentsWithId
 
   -- docsWithNgrams <- documentIdWithNgrams documentsWithId extractNgramsT
   let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
@@ -94,7 +86,7 @@ flowDatabase ff fp cName = do
   listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
   printDebug "list id : " listId2
 
-  (userId, _, corpusId2) <- subFlow userArbitrary cName
+  (userId, rootUserId, corpusId2) <- subFlowCorpus userArbitrary cName
   
   userListId <- runCmd' $ listFlowUser userId corpusId2
   printDebug "UserList : " userListId
@@ -103,15 +95,18 @@ flowDatabase ff fp cName = do
   printDebug "Inserted : " (length inserted)
   
   _ <- runCmd' $ mkDashboard corpusId2 userId
-  _ <- runCmd' $ mkGraph corpusId2 userId
+  _ <- runCmd' $ mkGraph     corpusId2 userId
+  
+  -- Annuaire Flow
+  annuaireId <- runCmd' $ mkAnnuaire  rootUserId userId
 
   pure corpusId2
   -- runCmd' $ del [corpusId2, corpusId]
 
 type CorpusName = Text
 
-subFlow :: Username -> CorpusName -> IO (UserId, RootId, CorpusId)
-subFlow username cName = do
+subFlowCorpus :: Username -> CorpusName -> IO (UserId, RootId, CorpusId)
+subFlowCorpus username cName = do
   maybeUserId <- runCmd' (getUser username)
 
   let userId = case maybeUserId of
