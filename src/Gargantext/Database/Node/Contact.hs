@@ -23,6 +23,7 @@ module Gargantext.Database.Node.Contact (NodeContact,HyperdataContact, ContactWh
 import GHC.Generics (Generic)
 import Data.Aeson.TH (deriveJSON)
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import qualified Data.Text as DT
 import Control.Lens (makeLenses)
 import Database.PostgreSQL.Simple
@@ -71,6 +72,8 @@ data ContactWhere =
                   , _cw_country      :: Maybe Text
                   , _cw_city         :: Maybe Text
                   , _cw_touch        :: Maybe ContactTouch
+                  , _cw_start        :: Maybe UTCTime
+                  , _cw_end          :: Maybe UTCTime
   } deriving (Eq, Show, Generic)
 
 data ContactTouch =
