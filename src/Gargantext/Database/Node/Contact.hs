@@ -63,7 +63,6 @@ data ContactWho =
                 , _cw_freetags :: Maybe [Text]
   } deriving (Eq, Show, Generic)
 
-
 data ContactWhere =
      ContactWhere { _cw_organization :: Maybe [Text]
                   , _cw_labTeamDepts :: Maybe [Text]

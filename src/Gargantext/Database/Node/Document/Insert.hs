@@ -61,7 +61,7 @@ module Gargantext.Database.Node.Document.Insert where
 
 import Control.Lens (set)
 
-import Data.Aeson (toJSON, Value)
+import Data.Aeson (toJSON, Value, ToJSON)
 import Data.ByteString.Internal (ByteString)
 import Data.Maybe (maybe)
 import Data.Typeable (Typeable)
@@ -79,6 +79,7 @@ import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Gargantext.Database.Types.Node
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
@@ -105,20 +106,29 @@ import GHC.Generics (Generic)
 -- | Insert Document main function
 -- UserId : user who is inserting the documents
 -- ParentId : folder ID which is parent of the inserted documents
-insertDocuments :: UserId -> ParentId -> [HyperdataDocument] -> Cmd [ReturnId]
+
+
+data Hyper = HyperDocument HyperdataDocument | HyperContact HyperdataContact
+
+insertDocuments :: UserId -> ParentId -> [Hyper] -> Cmd [ReturnId]
 insertDocuments uId pId hs = mkCmd $ \c -> query c queryInsert (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
-    inputData = prepare uId pId hs
+    inputData = case hs of
+                  [HyperDocument _] -> prepare _hyperdataDocument_title uId pId $ map (\(HyperDocument h) -> h) hs
+                  [HyperContact  _] -> prepare (\_ -> Just "name") uId pId $ map (\(HyperContact h) -> h) hs
+                  _                 -> panic "error"
 
 -- | Debug SQL function
 --
 -- to print rendered query (Debug purpose) use @formatQuery@ function.
-insertDocuments_Debug :: UserId -> ParentId -> [HyperdataDocument] -> Cmd ByteString
+{-
+insertDocuments_Debug :: (Hyperdata a, ToJSON a, ToRow a) => UserId -> ParentId -> [a] -> Cmd ByteString
 insertDocuments_Debug uId pId hs = mkCmd $ \conn -> formatQuery conn queryInsert (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
     inputData = prepare uId pId hs
+-}
 
 
 -- | Input Tables: types of the tables
@@ -149,9 +159,9 @@ queryInsert = [sql|
     JOIN   nodes c USING (hyperdata);         -- columns of unique index
            |]
 
-prepare :: UserId -> ParentId -> [HyperdataDocument] -> [InputData]
-prepare uId pId = map (\h -> InputData tId uId pId 
-                            (DT.take 255 <$> maybe "No Title of Document" identity $ _hyperdataDocument_title h)
+prepare :: (Hyperdata a, ToJSON a) => (a -> Maybe Text) -> UserId -> ParentId -> [a] -> [InputData]
+prepare f uId pId = map (\h -> InputData tId uId pId 
+                            (DT.take 255 <$> maybe "No Title" identity $ f h)
                                                    (toJSON h)
                       )
   where

@@ -7,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-
 -}
 
 {-# LANGUAGE DeriveGeneric     #-}
@@ -27,18 +26,19 @@ import qualified Data.Map as DM
 
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
+import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)
 import Gargantext.Database.Node.Document.Add    (add)
-import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds)
+import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds, Hyper(HyperDocument))
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
-import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
+import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
-import Gargantext.Ext.IMT (toSchoolName)
 
 type UserId = Int
 type RootId = Int
@@ -46,27 +46,27 @@ type CorpusId = Int
 
 flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
 flowDatabase ff fp cName = do
-  
+
   -- Corus Flow
   (masterUserId, _, corpusId) <- subFlowCorpus userMaster corpusMasterName
 
   -- Documents Flow
   hyperdataDocuments <- map addUniqIds <$> parseDocs ff fp
-
+  let hyperdataDocuments' = map (\h -> HyperDocument h) hyperdataDocuments
   printDebug "hyperdataDocuments" hyperdataDocuments
 
-  ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
+  ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
   --printDebug "Docs IDs : " (ids)
-  idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments
+  idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
   printDebug "Repeated Docs IDs : " (length idsRepeat)
 
   -- Ngrams Flow
   -- todo: flow for new documents only
   let tids = toInserted ids
-  printDebug "toInserted ids" (length tids, tids)
+  printDebug "toInserted ids" (length tids)
 
   let tihs = toInsert hyperdataDocuments
-  printDebug "toInsert hyperdataDocuments" (length tihs, tihs)
+  printDebug "toInsert hyperdataDocuments" (length tihs)
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
   printDebug "documentsWithId" documentsWithId

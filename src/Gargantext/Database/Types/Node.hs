@@ -20,7 +20,8 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell            #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
-module Gargantext.Database.Types.Node where
+module Gargantext.Database.Types.Node
+  where
 
 import Prelude (Enum, Bounded, minBound, maxBound)
 
@@ -106,6 +107,7 @@ $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
 
 instance Hyperdata HyperdataDocumentV3
 ------------------------------------------------------------------------
+
 
 data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: Maybe Text
                                            , _hyperdataDocument_doi                :: Maybe Text

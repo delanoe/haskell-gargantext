@@ -97,47 +97,61 @@ type DocId  = Int
 type UserId = Int
 type TypeId = Int
 ------------------------------------------------------------------------
-instance FromField HyperdataAny where
+instance FromField HyperdataAny
+  where
     fromField = fromField'
 
-instance FromField HyperdataCorpus where
+instance FromField HyperdataCorpus
+  where
     fromField = fromField'
 
-instance FromField HyperdataDocument where
+instance FromField HyperdataDocument
+  where
     fromField = fromField'
 
-instance FromField HyperdataDocumentV3 where
+instance FromField HyperdataDocumentV3
+  where
     fromField = fromField'
 
-instance FromField HyperdataUser where
+instance FromField HyperdataUser
+  where
     fromField = fromField'
 
-instance FromField HyperdataList where
+instance FromField HyperdataList
+  where
     fromField = fromField'
 
-instance FromField HyperdataAnnuaire where
+instance FromField HyperdataAnnuaire
+  where
     fromField = fromField'
 ------------------------------------------------------------------------
-instance QueryRunnerColumnDefault PGJsonb HyperdataAny where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataAny
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataDocument where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataDocument
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3 where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus   where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataUser     where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataUser
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataList     where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataList
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
+instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 ------------------------------------------------------------------------
 
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
