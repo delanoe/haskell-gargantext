@@ -20,32 +20,35 @@ Portability : POSIX
 module Gargantext.Database.Node.Contact
   where
 
-import GHC.Generics (Generic)
+import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
 import Data.Text (Text)
 import Data.Time (UTCTime)
--- import Control.Lens (makeLenses)
-import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
-import Gargantext.Database.Utils (fromField')
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Node (NodeWrite', AnnuaireId, UserId, Name, node)
-import Gargantext.Prelude
 import Gargantext.Database.Types.Node (Node,Hyperdata,NodeType(..))
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import Gargantext.Database.Utils (fromField')
+import Gargantext.Prelude
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 
 ------------------------------------------------------------------------
 
 type NodeContact  = Node HyperdataContact
 
 data HyperdataContact =
-     HyperdataContact { _hc_who    :: Maybe ContactWho
+     HyperdataContact { _hc_bdd    :: Maybe Text           -- ID of Database source
+                      , _hc_who    :: Maybe ContactWho
                       , _hc_where  :: Maybe [ContactWhere]
                       , _hc_lastValidation  :: Maybe Text
+                      , _hc_uniqIdBdd       :: Maybe Text
+                      , _hc_uniqId          :: Maybe Text
 
   } deriving (Eq, Show, Generic)
 
 arbitraryHyperdataContact :: HyperdataContact
-arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing
+arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing Nothing Nothing Nothing
 
 data ContactWho = 
      ContactWho { _cw_id          :: Maybe Int
@@ -90,12 +93,10 @@ instance FromField HyperdataContact where
 instance QueryRunnerColumnDefault PGJsonb HyperdataContact   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-{-
 makeLenses ''ContactWho
 makeLenses ''ContactWhere
 makeLenses ''ContactTouch
 makeLenses ''HyperdataContact
--}
 
 $(deriveJSON (unPrefix "_cw_") ''ContactWho)
 $(deriveJSON (unPrefix "_cw_") ''ContactWhere)

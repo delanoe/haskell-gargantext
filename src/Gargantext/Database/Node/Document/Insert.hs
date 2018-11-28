@@ -59,7 +59,10 @@ the concatenation of the parameters defined by @hashParameters@.
 ------------------------------------------------------------------------
 module Gargantext.Database.Node.Document.Insert where
 
-import Control.Lens (set)
+import Control.Lens (set, view)
+import Control.Lens.Prism
+import Control.Lens.Cons
+import Control.Monad (join)
 import Data.Aeson (toJSON, Value)
 import Data.Maybe (maybe)
 import Data.Text (Text)
@@ -73,7 +76,7 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
-import Gargantext.Database.Node.Contact (HyperdataContact(..))
+import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
@@ -208,23 +211,44 @@ instance ToRow InputData where
 ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
 
-addUniqIds :: HyperdataDocument -> HyperdataDocument
-addUniqIds doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
-              $ set hyperdataDocument_uniqId    (Just hash) doc
+addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
+addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
+               $ set hyperdataDocument_uniqId    (Just hash) doc
   where
-    hash    = uniqId $ DT.concat $ map ($ doc) hashParameters
-    hashBdd = uniqId $ DT.concat $ map ($ doc) ([(\d -> maybe' (_hyperdataDocument_bdd d))] <> hashParameters)
+    hash    = uniqId $ DT.concat $ map ($ doc) hashParametersDoc
+    hashBdd = uniqId $ DT.concat $ map ($ doc) ([(\d -> maybe' (_hyperdataDocument_bdd d))] <> hashParametersDoc)
 
     uniqId :: Text -> Text
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
 
 
-hashParameters :: [(HyperdataDocument -> Text)]
-hashParameters = [ \d -> maybe' (_hyperdataDocument_title    d)
-                 , \d -> maybe' (_hyperdataDocument_abstract d)
-                 , \d -> maybe' (_hyperdataDocument_source   d)
-                 , \d -> maybe' (_hyperdataDocument_publication_date   d)
-                 ]
+hashParametersDoc :: [(HyperdataDocument -> Text)]
+hashParametersDoc = [ \d -> maybe' (_hyperdataDocument_title    d)
+                    , \d -> maybe' (_hyperdataDocument_abstract d)
+                    , \d -> maybe' (_hyperdataDocument_source   d)
+                    , \d -> maybe' (_hyperdataDocument_publication_date   d)
+                    ]
+---------------------------------------------------------------------------
+-- * Uniqueness of document definition
+-- TODO factorize with above (use the function below for tests)
+addUniqIdsContact :: HyperdataContact -> HyperdataContact
+addUniqIdsContact hc = set hc_uniqIdBdd (Just hashBdd)
+                      $ set hc_uniqId    (Just hash) hc
+  where
+    hash    = uniqId $ DT.concat $ map ($ hc) hashParametersContact
+    hashBdd = uniqId $ DT.concat $ map ($ hc) ([(\d -> maybe' (view hc_bdd d))] <> hashParametersContact)
+
+    uniqId :: Text -> Text
+    uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
+
+-- | TODO add more hashparameters
+hashParametersContact :: [(HyperdataContact -> Text)]
+hashParametersContact = [ \d -> maybe' $ view (hc_who . _Just . cw_firstName) d
+                        , \d -> maybe' $ view (hc_who . _Just . cw_lastName ) d
+                        , \d -> maybe' $ view (hc_where . _Just . _head . cw_touch . _Just . ct_mail) d
+                        ]
+
+
 
 maybe' :: Maybe Text -> Text
 maybe' = maybe (DT.pack "") identity

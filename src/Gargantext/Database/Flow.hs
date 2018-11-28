@@ -28,9 +28,9 @@ import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
-import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)--, mkGraph, mkDashboard)--, mkAnnuaire)
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard)--, mkAnnuaire)
 import Gargantext.Database.Node.Document.Add    (add)
-import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds, ToDbData(..))
+import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, ToDbData(..))
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
@@ -44,23 +44,30 @@ type UserId = Int
 type RootId = Int
 type CorpusId = Int
 
+{-
+flowCorpus :: [ToDbData] -> CorpusName -> IO CorpusId
+flowCorpus = undefined
+--}
+
 flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
 flowDatabase ff fp cName = do
-
   -- Corpus Flow
   (masterUserId, _, corpusId) <- subFlowCorpus userMaster corpusMasterName
 
   -- Documents Flow
-  hyperdataDocuments <- map addUniqIds <$> parseDocs ff fp
+  hyperdataDocuments <- map addUniqIdsDoc <$> parseDocs ff fp
   let hyperdataDocuments' = map (\h -> ToDbDocument h) hyperdataDocuments
   printDebug "hyperdataDocuments" (length hyperdataDocuments)
+
+
+
 
   ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
   -- printDebug "Docs IDs : " (ids)
   -- idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
   -- printDebug "Repeated Docs IDs : " (length idsRepeat)
   let idsNotRepeated = filter (\r -> reInserted r == True) ids
--- {-
+--{-
   -- Ngrams Flow
   -- todo: flow for new documents only
   let tids = toInserted ids
@@ -87,17 +94,16 @@ flowDatabase ff fp cName = do
   listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
   printDebug "list id : " listId2
 
-  --(userId, rootUserId, corpusId2) <- subFlowCorpus userArbitrary cName
   --}
   (userId, _, corpusId2) <- subFlowCorpus userArbitrary cName
   
   userListId <- runCmd' $ listFlowUser userId corpusId2
   printDebug "UserList : " userListId
   inserted <- runCmd' $ add corpusId2 (map reId ids)
-  printDebug "Inserted : " (length inserted)
+  printDebug "Added : " (length inserted)
   
-  --_ <- runCmd' $ mkDashboard corpusId2 userId
-  --_ <- runCmd' $ mkGraph     corpusId2 userId
+  _ <- runCmd' $ mkDashboard corpusId2 userId
+  _ <- runCmd' $ mkGraph     corpusId2 userId
   
   -- Annuaire Flow
   -- _ <- runCmd' $ mkAnnuaire  rootUserId userId
