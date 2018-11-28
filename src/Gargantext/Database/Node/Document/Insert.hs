@@ -60,27 +60,26 @@ the concatenation of the parameters defined by @hashParameters@.
 module Gargantext.Database.Node.Document.Insert where
 
 import Control.Lens (set)
-
-import Data.Aeson (toJSON, Value, ToJSON)
-import Data.ByteString.Internal (ByteString)
+import Data.Aeson (toJSON, Value)
 import Data.Maybe (maybe)
+import Data.Text (Text)
 import Data.Typeable (Typeable)
-import Database.PostgreSQL.Simple (FromRow, Query, formatQuery, query, Only(..))
+import Database.PostgreSQL.Simple (FromRow, Query, query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-
-import Data.Text (Text)
-import qualified Data.Text                   as DT (pack, unpack, concat, take)
-import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
-import qualified Data.ByteString.Lazy.Char8  as DC (pack)
-
+import GHC.Generics (Generic)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Node (mkCmd, Cmd(..))
 import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Gargantext.Database.Types.Node
+import Gargantext.Prelude
+import qualified Data.ByteString.Lazy.Char8  as DC (pack)
+import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
+import qualified Data.Text                   as DT (pack, unpack, concat, take)
+
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
 --import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
@@ -93,9 +92,11 @@ import Gargantext.Database.Types.Node
 --                                            , node_parentId, node_name, node_hyperdata, hyperdataDocuments
 --                                  , NodeTypeId
 --                                  )
-import Gargantext.Prelude
+{-| To Print result query
+import Data.ByteString.Internal (ByteString)
+import Database.PostgreSQL.Simple (formatQuery)
+-}
 
-import GHC.Generics (Generic)
 ---------------------------------------------------------------------------
 -- * Main Insert functions
 
@@ -108,16 +109,12 @@ import GHC.Generics (Generic)
 -- ParentId : folder ID which is parent of the inserted documents
 
 
-data Hyper = HyperDocument HyperdataDocument | HyperContact HyperdataContact
+data ToDbData = ToDbDocument HyperdataDocument | ToDbContact HyperdataContact
 
-insertDocuments :: UserId -> ParentId -> [Hyper] -> Cmd [ReturnId]
-insertDocuments uId pId hs = mkCmd $ \c -> query c queryInsert (Only $ Values fields inputData)
+insertDocuments :: UserId -> ParentId -> [ToDbData] -> Cmd [ReturnId]
+insertDocuments uId pId hs = mkCmd $ \c -> query c queryInsert (Only $ Values fields $ prepare uId pId hs)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
-    inputData = case hs of
-                  [HyperDocument _] -> prepare _hyperdataDocument_title uId pId $ map (\(HyperDocument h) -> h) hs
-                  [HyperContact  _] -> prepare (\_ -> Just "name") uId pId $ map (\(HyperContact h) -> h) hs
-                  _                 -> panic "error"
 
 -- | Debug SQL function
 --
@@ -159,13 +156,18 @@ queryInsert = [sql|
     JOIN   nodes c USING (hyperdata);         -- columns of unique index
            |]
 
-prepare :: (Hyperdata a, ToJSON a) => (a -> Maybe Text) -> UserId -> ParentId -> [a] -> [InputData]
-prepare f uId pId = map (\h -> InputData tId uId pId 
-                            (DT.take 255 <$> maybe "No Title" identity $ f h)
-                                                   (toJSON h)
-                      )
+prepare :: UserId -> ParentId -> [ToDbData] -> [InputData]
+prepare uId pId = map (\h -> InputData tId uId pId (name h) (toJSON' h))
   where
-    tId  = nodeTypeId NodeDocument
+    tId    = nodeTypeId NodeDocument
+    
+    toJSON' (ToDbDocument hd) = toJSON hd
+    toJSON' (ToDbContact  hc) = toJSON hc
+    
+    name h = DT.take 255 <$> maybe "No Title" identity $ f h
+      where
+        f (ToDbDocument hd) = _hyperdataDocument_title hd
+        f (ToDbContact  _ ) = Just "Contact" -- TODO view FirstName . LastName
 
 ------------------------------------------------------------------------
 -- * Main Types used

@@ -17,30 +17,21 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Node.Contact (NodeContact,HyperdataContact, ContactWho, ContactWhere, ContactTouch)
+module Gargantext.Database.Node.Contact
   where
 
 import GHC.Generics (Generic)
 import Data.Aeson.TH (deriveJSON)
 import Data.Text (Text)
 import Data.Time (UTCTime)
-import qualified Data.Text as DT
-import Control.Lens (makeLenses)
-import Database.PostgreSQL.Simple
-import Opaleye (QueryRunnerColumnDefault
-               , queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
+-- import Control.Lens (makeLenses)
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Node (NodeWrite', AnnuaireId, UserId, Name, node)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (Node,Hyperdata,NodeType(..))
-import Data.Aeson (Result(Error,Success), fromJSON, FromJSON, ToJSON)
-import Database.PostgreSQL.Simple.FromField ( Conversion
-                                            , ResultError(ConversionFailed)
-                                            , FromField
-                                            , fromField
-                                            , returnError
-                                            )
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 
 ------------------------------------------------------------------------
 

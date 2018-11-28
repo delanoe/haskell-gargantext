@@ -24,6 +24,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Ngrams where
 
 -- import Opaleye
+import Debug.Trace (trace)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Control.Lens (makeLenses, view)
 import Data.ByteString.Internal (ByteString)
@@ -223,9 +224,11 @@ getNgramsTableData :: DPS.Connection
                    -> NodeType -> NgramsType
                    -> NgramsTableParamUser -> NgramsTableParamMaster 
                    -> IO [NgramsTableData]
-getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
+getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) = do
+  _ <- trace $ show (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
   map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w)
-  <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
+  -- <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
+  <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
     where
       nodeTId = nodeTypeId   nodeT
       ngrmTId = ngramsTypeId ngrmT
@@ -235,23 +238,28 @@ querySelectTableNgrams :: DPS.Query
 querySelectTableNgrams = [sql|
 
     WITH tableUser AS (
-      SELECT ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
-        JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
-        JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
-        JOIN nodes        n   ON n.id         = nn2.node_id
-      WHERE nn1.node_id     = ?   -- User listId
-        AND n.parent_id     = ?   -- User CorpusId or AnnuaireId
-        AND n.typename      = ?   -- both type of childs (Documents or Contacts)
-        AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
-    ), tableMaster AS (
-      SELECT ngs.terms, ngs.n, nn1.ngrams_type,nn2.weight FROM ngrams ngs
-        JOIN nodes_ngrams nn1 ON nn1.ngram_id = ngs.id
-        JOIN nodes_ngrams nn2 ON nn2.ngram_id = ngs.id
-        JOIN nodes        n   ON n.id         = nn2.node_id
-      WHERE nn1.node_id     = ?   -- Master listId
-        AND n.parent_id     = ?   -- Master CorpusId or AnnuaireId
-        AND n.typename      = ?   -- both type of childs (Documents or Contacts)
-        AND nn2.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
+      SELECT ngs.terms, ngs.n, list.ngrams_type, corp.weight FROM ngrams ngs
+        JOIN nodes_ngrams list ON list.ngram_id = ngs.id
+        JOIN nodes_ngrams corp ON corp.ngram_id = ngs.id
+        JOIN nodes        n    ON n.id          = corp.node_id
+      
+      WHERE list.node_id     = ?   -- User listId
+        AND n.parent_id      = ?   -- User CorpusId or AnnuaireId
+        AND n.typename       = ?   -- both type of childs (Documents or Contacts)
+        AND corp.ngrams_type = ?   -- both type of ngrams (Authors or Terms or...)
+    )
+    , tableMaster AS (
+      SELECT ngs.terms, ngs.n, list.ngrams_type, corp.weight FROM ngrams ngs
+        JOIN nodes_ngrams list ON list.ngram_id = ngs.id
+        JOIN nodes_ngrams corp ON corp.ngram_id = ngs.id
+        JOIN nodes        n    ON n.id          = corp.node_id
+        JOIN nodes_nodes  nn   ON nn.node2_id  = n.id
+        
+      WHERE list.node_id     = ?   -- Master listId
+        AND n.parent_id      = ?   -- Master CorpusId or AnnuaireId
+        AND n.typename       = ?   -- Master childs (Documents or Contacts)
+        AND corp.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
+        AND nn.node1_id      = ?   -- User CorpusId or AnnuaireId
     )
     
   SELECT COALESCE(tu.terms,tm.terms) AS terms

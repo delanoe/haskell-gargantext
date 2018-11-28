@@ -30,12 +30,7 @@ import GHC.Int (Int64)
 import Control.Lens (set)
 import Data.Maybe
 import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple.FromField ( Conversion
-                                            , ResultError(ConversionFailed)
-                                            , FromField
-                                            , fromField
-                                            , returnError
-                                            )
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core (Lang(..))
@@ -46,7 +41,6 @@ import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Prelude hiding (sum)
 
-import Database.PostgreSQL.Simple.Internal  (Field)
 import Control.Applicative (Applicative)
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -56,7 +50,6 @@ import Data.Aeson
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Text (Text)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Typeable (Typeable)
 
 import qualified Data.ByteString      as DB
 import qualified Data.ByteString.Lazy as DBL

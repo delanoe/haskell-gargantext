@@ -27,7 +27,6 @@ import Database.PostgreSQL.Simple.Internal  (Field)
 import qualified Data.ByteString      as DB
 import Database.PostgreSQL.Simple.FromField ( Conversion
                                             , ResultError(ConversionFailed)
-                                            , FromField
                                             , fromField
                                             , returnError
                                             )

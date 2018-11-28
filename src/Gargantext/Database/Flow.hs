@@ -28,13 +28,13 @@ import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
-import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)
+import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList)--, mkGraph, mkDashboard)--, mkAnnuaire)
 import Gargantext.Database.Node.Document.Add    (add)
-import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds, Hyper(HyperDocument))
+import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIds, ToDbData(..))
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Gargantext.Database.Node.Contact (HyperdataContact(..))
+-- import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
@@ -47,19 +47,20 @@ type CorpusId = Int
 flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
 flowDatabase ff fp cName = do
 
-  -- Corus Flow
+  -- Corpus Flow
   (masterUserId, _, corpusId) <- subFlowCorpus userMaster corpusMasterName
 
   -- Documents Flow
   hyperdataDocuments <- map addUniqIds <$> parseDocs ff fp
-  let hyperdataDocuments' = map (\h -> HyperDocument h) hyperdataDocuments
-  printDebug "hyperdataDocuments" hyperdataDocuments
+  let hyperdataDocuments' = map (\h -> ToDbDocument h) hyperdataDocuments
+  printDebug "hyperdataDocuments" (length hyperdataDocuments)
 
   ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
-  --printDebug "Docs IDs : " (ids)
-  idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
-  printDebug "Repeated Docs IDs : " (length idsRepeat)
-
+  -- printDebug "Docs IDs : " (ids)
+  -- idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
+  -- printDebug "Repeated Docs IDs : " (length idsRepeat)
+  let idsNotRepeated = filter (\r -> reInserted r == True) ids
+-- {-
   -- Ngrams Flow
   -- todo: flow for new documents only
   let tids = toInserted ids
@@ -68,37 +69,38 @@ flowDatabase ff fp cName = do
   let tihs = toInsert hyperdataDocuments
   printDebug "toInsert hyperdataDocuments" (length tihs)
 
-  let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
-  printDebug "documentsWithId" documentsWithId
+  let documentsWithId = mergeData (toInserted idsNotRepeated) (toInsert hyperdataDocuments)
+  -- printDebug "documentsWithId" documentsWithId
 
   -- docsWithNgrams <- documentIdWithNgrams documentsWithId extractNgramsT
   let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
-  printDebug "docsWithNgrams" docsWithNgrams
+  -- printDebug "docsWithNgrams" docsWithNgrams
   
   let maps            = mapNodeIdNgrams docsWithNgrams
-  printDebug "maps" (maps)
+  -- printDebug "maps" (maps)
   
   indexedNgrams <- runCmd' $ indexNgrams maps
-  printDebug "inserted ngrams" indexedNgrams
+  -- printDebug "inserted ngrams" indexedNgrams
   _             <- runCmd' $ insertToNodeNgrams indexedNgrams
 
   -- List Flow
   listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
   printDebug "list id : " listId2
 
-  (userId, rootUserId, corpusId2) <- subFlowCorpus userArbitrary cName
+  --(userId, rootUserId, corpusId2) <- subFlowCorpus userArbitrary cName
+  --}
+  (userId, _, corpusId2) <- subFlowCorpus userArbitrary cName
   
   userListId <- runCmd' $ listFlowUser userId corpusId2
   printDebug "UserList : " userListId
-  
   inserted <- runCmd' $ add corpusId2 (map reId ids)
   printDebug "Inserted : " (length inserted)
   
-  _ <- runCmd' $ mkDashboard corpusId2 userId
-  _ <- runCmd' $ mkGraph     corpusId2 userId
+  --_ <- runCmd' $ mkDashboard corpusId2 userId
+  --_ <- runCmd' $ mkGraph     corpusId2 userId
   
   -- Annuaire Flow
-  annuaireId <- runCmd' $ mkAnnuaire  rootUserId userId
+  -- _ <- runCmd' $ mkAnnuaire  rootUserId userId
 
   pure corpusId2
   -- runCmd' $ del [corpusId2, corpusId]
@@ -208,16 +210,16 @@ insertToNodeNgrams m = insertNodeNgrams [ NodeNgram Nothing nId  ((_ngramsId    
 ------------------------------------------------------------------------
 listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
 listFlow uId cId ngs = do
-  printDebug "ngs:" ngs
+  -- printDebug "ngs:" ngs
   lId <- maybe (panic "mkList error") identity <$> head <$> mkList cId uId
-  printDebug "ngs" (DM.keys ngs)
+  --printDebug "ngs" (DM.keys ngs)
   -- TODO add stemming equivalence of 2 ngrams
   let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
   _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
   let lists = ngrams2list ngs
-  printDebug "lists:" lists
+  -- printDebug "lists:" lists
   
   is <- insertLists lId lists
   printDebug "listNgrams inserted :" is
