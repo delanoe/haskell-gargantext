@@ -23,8 +23,6 @@ Ngrams connection to the Database.
 
 module Gargantext.Database.Ngrams where
 
--- import Opaleye
-import Debug.Trace (trace)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Control.Lens (makeLenses, view)
 import Data.ByteString.Internal (ByteString)
@@ -224,10 +222,8 @@ getNgramsTableData :: DPS.Connection
                    -> NodeType -> NgramsType
                    -> NgramsTableParamUser -> NgramsTableParamMaster 
                    -> IO [NgramsTableData]
-getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) = do
-  _ <- trace $ show (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
+getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
   map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w)
-  -- <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId)
   <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
     where
       nodeTId = nodeTypeId   nodeT
