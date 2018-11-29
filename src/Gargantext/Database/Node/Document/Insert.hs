@@ -62,7 +62,6 @@ module Gargantext.Database.Node.Document.Insert where
 import Control.Lens (set, view)
 import Control.Lens.Prism
 import Control.Lens.Cons
-import Control.Monad (join)
 import Data.Aeson (toJSON, Value)
 import Data.Maybe (maybe)
 import Data.Text (Text)
