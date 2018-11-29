@@ -212,7 +212,7 @@ instance ToRow InputData where
 
 addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
 addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
-               $ set hyperdataDocument_uniqId    (Just hash) doc
+                  $ set hyperdataDocument_uniqId    (Just hash) doc
   where
     hash    = uniqId $ DT.concat $ map ($ doc) hashParametersDoc
     hashBdd = uniqId $ DT.concat $ map ($ doc) ([(\d -> maybe' (_hyperdataDocument_bdd d))] <> hashParametersDoc)
@@ -231,8 +231,8 @@ hashParametersDoc = [ \d -> maybe' (_hyperdataDocument_title    d)
 -- * Uniqueness of document definition
 -- TODO factorize with above (use the function below for tests)
 addUniqIdsContact :: HyperdataContact -> HyperdataContact
-addUniqIdsContact hc = set  (hc_metaData . _Just . cm_uniqIdBdd . _Just) hashBdd
-                      $ set (hc_metaData . _Just . cm_uniqId    . _Just) hash    hc
+addUniqIdsContact hc = set (hc_uniqIdBdd) (Just hashBdd)
+                     $ set (hc_uniqId)    (Just hash)    hc
   where
     hash    = uniqId $ DT.concat $ map ($ hc) hashParametersContact
     hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybe' (view (hc_metaData . _Just . cm_bdd) d)] <> hashParametersContact)

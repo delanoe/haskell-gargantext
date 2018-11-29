@@ -41,19 +41,20 @@ data HyperdataContact =
      HyperdataContact { _hc_who      :: Maybe ContactWho
                       , _hc_where    :: Maybe [ContactWhere]
                       , _hc_metaData :: Maybe ContactMetaData
+                      , _hc_uniqId    :: Maybe Text
+                      , _hc_uniqIdBdd :: Maybe Text
 
   } deriving (Eq, Show, Generic)
 
 data ContactMetaData =
      ContactMetaData { _cm_bdd :: Maybe Text
                      , _cm_lastValidation  :: Maybe Text
-                     , _cm_uniqIdBdd       :: Maybe Text
-                     , _cm_uniqId          :: Maybe Text
   } deriving (Eq, Show, Generic)
 
 
 arbitraryHyperdataContact :: HyperdataContact
 arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing
+                                             Nothing Nothing
 
 data ContactWho = 
      ContactWho { _cw_id          :: Maybe Text

@@ -147,6 +147,7 @@ nodeAPI conn p id
               :<|> getChart      conn id
               :<|> favApi        conn id
               :<|> delDocs       conn id
+              -- Annuaire
               -- :<|> upload
               -- :<|> query
 ------------------------------------------------------------------------
