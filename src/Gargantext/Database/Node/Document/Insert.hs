@@ -62,7 +62,6 @@ module Gargantext.Database.Node.Document.Insert where
 import Control.Lens (set, view)
 import Control.Lens.Prism
 import Control.Lens.Cons
-import Control.Monad (join)
 import Data.Aeson (toJSON, Value)
 import Data.Maybe (maybe)
 import Data.Text (Text)
@@ -232,11 +231,11 @@ hashParametersDoc = [ \d -> maybe' (_hyperdataDocument_title    d)
 -- * Uniqueness of document definition
 -- TODO factorize with above (use the function below for tests)
 addUniqIdsContact :: HyperdataContact -> HyperdataContact
-addUniqIdsContact hc = set hc_uniqIdBdd (Just hashBdd)
-                      $ set hc_uniqId    (Just hash) hc
+addUniqIdsContact hc = set  (hc_metaData . _Just . cm_uniqIdBdd . _Just) hashBdd
+                      $ set (hc_metaData . _Just . cm_uniqId    . _Just) hash    hc
   where
     hash    = uniqId $ DT.concat $ map ($ hc) hashParametersContact
-    hashBdd = uniqId $ DT.concat $ map ($ hc) ([(\d -> maybe' (view hc_bdd d))] <> hashParametersContact)
+    hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybe' (view (hc_metaData . _Just . cm_bdd) d)] <> hashParametersContact)
 
     uniqId :: Text -> Text
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack

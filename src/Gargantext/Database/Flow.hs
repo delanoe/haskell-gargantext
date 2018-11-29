@@ -13,7 +13,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Database.Flow (flowDatabase, ngrams2list)
+module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
 import GHC.Show (Show)
@@ -29,87 +29,98 @@ import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
 import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard)--, mkAnnuaire)
+import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Node.Document.Add    (add)
-import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, ToDbData(..))
+import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
--- import Gargantext.Database.Node.Contact (HyperdataContact(..))
+import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 
-type UserId = Int
-type RootId = Int
+type UserId   = Int
+type MasterUserId = Int
+
+type RootId   = Int
 type CorpusId = Int
 
-{-
-flowCorpus :: [ToDbData] -> CorpusName -> IO CorpusId
-flowCorpus = undefined
---}
 
-flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO Int
+flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO CorpusId
 flowDatabase ff fp cName = do
   -- Corpus Flow
-  (masterUserId, _, corpusId) <- subFlowCorpus userMaster corpusMasterName
-
-  -- Documents Flow
   hyperdataDocuments <- map addUniqIdsDoc <$> parseDocs ff fp
-  let hyperdataDocuments' = map (\h -> ToDbDocument h) hyperdataDocuments
-  printDebug "hyperdataDocuments" (length hyperdataDocuments)
+  params <- flowInsert NodeCorpus hyperdataDocuments cName
+  flowCorpus NodeCorpus hyperdataDocuments params
 
 
+flowInsert :: NodeType -> [HyperdataDocument] -> CorpusName
+     -> IO ([ReturnId], MasterUserId, UserId, CorpusId)
+flowInsert nt hyperdataDocuments cName = do
+  let hyperdataDocuments' = case nt of
+        NodeCorpus   -> map (\h -> ToDbDocument h) hyperdataDocuments
+--        NodeAnnuaire -> map (\h -> ToDbContact  h) hyperdataDocuments
 
+  (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
+  ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId hyperdataDocuments'
+  
+  (userId, _, userCorpusId) <- subFlowCorpus userArbitrary cName
+  _ <- runCmd' $ add userCorpusId (map reId ids)
+  
+  pure (ids, masterUserId, userId, userCorpusId)
 
-  ids  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
-  -- printDebug "Docs IDs : " (ids)
-  -- idsRepeat  <- runCmd' $ insertDocuments masterUserId corpusId hyperdataDocuments'
-  -- printDebug "Repeated Docs IDs : " (length idsRepeat)
-  let idsNotRepeated = filter (\r -> reInserted r == True) ids
 --{-
-  -- Ngrams Flow
-  -- todo: flow for new documents only
-  let tids = toInserted ids
-  printDebug "toInserted ids" (length tids)
+flowInsertAnnuaire children name = do
 
-  let tihs = toInsert hyperdataDocuments
-  printDebug "toInsert hyperdataDocuments" (length tihs)
+  (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
+  ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId children
+  
+  (userId, _, userCorpusId) <- subFlowCorpus userArbitrary name
+  _ <- runCmd' $ add userCorpusId (map reId ids)
+  
+  pure (ids, masterUserId, userId, userCorpusId)
 
-  let documentsWithId = mergeData (toInserted idsNotRepeated) (toInsert hyperdataDocuments)
+
+--}
+
+--{-
+-- flowCorpus :: NodeType -> [HyperdataDocument] -> ([ReturnId],MasterUserId,UserId,CorpusId) -> IO CorpusId
+flowCorpus NodeCorpus hyperdataDocuments (ids,masterUserId,userId,userCorpusId) = do
+--}
+--------------------------------------------------
+  -- List Ngrams Flow
+  userListId <- runCmd' $ listFlowUser userId userCorpusId
+  printDebug "Working on User ListId : " userListId
+  
+  let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
   -- printDebug "documentsWithId" documentsWithId
-
-  -- docsWithNgrams <- documentIdWithNgrams documentsWithId extractNgramsT
   let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
   -- printDebug "docsWithNgrams" docsWithNgrams
-  
   let maps            = mapNodeIdNgrams docsWithNgrams
-  -- printDebug "maps" (maps)
   
+  -- printDebug "maps" (maps)
   indexedNgrams <- runCmd' $ indexNgrams maps
   -- printDebug "inserted ngrams" indexedNgrams
   _             <- runCmd' $ insertToNodeNgrams indexedNgrams
-
-  -- List Flow
-  listId2 <- runCmd' $ listFlow masterUserId corpusId indexedNgrams
-  printDebug "list id : " listId2
-
+  
+  listId2    <- runCmd' $ listFlow masterUserId userCorpusId indexedNgrams
+  printDebug "Working on ListId : " listId2
   --}
-  (userId, _, corpusId2) <- subFlowCorpus userArbitrary cName
-  
-  userListId <- runCmd' $ listFlowUser userId corpusId2
-  printDebug "UserList : " userListId
-  inserted <- runCmd' $ add corpusId2 (map reId ids)
-  printDebug "Added : " (length inserted)
-  
-  _ <- runCmd' $ mkDashboard corpusId2 userId
-  _ <- runCmd' $ mkGraph     corpusId2 userId
+
+--------------------------------------------------
+  _ <- runCmd' $ mkDashboard userCorpusId userId
+  _ <- runCmd' $ mkGraph     userCorpusId userId
   
   -- Annuaire Flow
   -- _ <- runCmd' $ mkAnnuaire  rootUserId userId
 
-  pure corpusId2
+  pure userCorpusId
   -- runCmd' $ del [corpusId2, corpusId]
+
+flowCorpus NodeAnnuaire _hyperdataDocuments (_ids,_masterUserId,_userId,_userCorpusId) = undefined
+flowCorpus _ _ _ = undefined
 
 type CorpusName = Text
 
@@ -145,13 +156,13 @@ type NodeId   = Int
 type ListId   = Int
 
 toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
-toInsert = DM.fromList . map (\d -> (hash (_hyperdataDocument_uniqId d), d))
+toInsert = DM.fromList . map (\d -> (maybe err identity (_hyperdataDocument_uniqId d), d))
   where
-    hash = maybe "Error" identity
+    err = "Database.Flow.toInsert"
 
 toInserted :: [ReturnId] -> Map HashId ReturnId
-toInserted rs = DM.fromList $ map    (\r ->  (reUniqId r, r)    )
-                            $ filter (\r -> reInserted r == True) rs
+toInserted = DM.fromList . map    (\r ->  (reUniqId r, r)    )
+                         . filter (\r -> reInserted r == True)
 
 data DocumentWithId =
      DocumentWithId { documentId   :: NodeId
@@ -185,6 +196,9 @@ extractNgramsT doc = DM.fromList $  [(NgramsT Sources source, 1)]
     institutes = map text2ngrams $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))  $ _hyperdataDocument_institutes doc
     authors    = map text2ngrams $ maybe ["Nothing"] (splitOn ", ") $ _hyperdataDocument_authors doc
     -- TODO group terms
+
+
+
 
 documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int)
                      -> [DocumentWithId]   -> [DocumentIdWithNgrams]

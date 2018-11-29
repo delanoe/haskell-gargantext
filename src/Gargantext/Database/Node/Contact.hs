@@ -38,17 +38,22 @@ import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fie
 type NodeContact  = Node HyperdataContact
 
 data HyperdataContact =
-     HyperdataContact { _hc_bdd    :: Maybe Text           -- ID of Database source
-                      , _hc_who    :: Maybe ContactWho
-                      , _hc_where  :: Maybe [ContactWhere]
-                      , _hc_lastValidation  :: Maybe Text
-                      , _hc_uniqIdBdd       :: Maybe Text
-                      , _hc_uniqId          :: Maybe Text
+     HyperdataContact { _hc_who      :: Maybe ContactWho
+                      , _hc_where    :: Maybe [ContactWhere]
+                      , _hc_metaData :: Maybe ContactMetaData
 
   } deriving (Eq, Show, Generic)
 
+data ContactMetaData =
+     ContactMetaData { _cm_bdd :: Maybe Text
+                     , _cm_lastValidation  :: Maybe Text
+                     , _cm_uniqIdBdd       :: Maybe Text
+                     , _cm_uniqId          :: Maybe Text
+  } deriving (Eq, Show, Generic)
+
+
 arbitraryHyperdataContact :: HyperdataContact
-arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing Nothing Nothing Nothing
+arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing
 
 data ContactWho = 
      ContactWho { _cw_id          :: Maybe Int
@@ -61,13 +66,17 @@ data ContactWho =
 data ContactWhere =
      ContactWhere { _cw_organization :: Maybe [Text]
                   , _cw_labTeamDepts :: Maybe [Text]
+                  
                   , _cw_role         :: Maybe Text
+                  
                   , _cw_office       :: Maybe Text
                   , _cw_country      :: Maybe Text
                   , _cw_city         :: Maybe Text
+                  
                   , _cw_touch        :: Maybe ContactTouch
-                  , _cw_start        :: Maybe UTCTime
-                  , _cw_end          :: Maybe UTCTime
+                  
+                  , _cw_entry        :: Maybe UTCTime
+                  , _cw_exit         :: Maybe UTCTime
   } deriving (Eq, Show, Generic)
 
 data ContactTouch =
@@ -86,21 +95,29 @@ nodeContactW maybeName maybeContact aId =
       contact = maybe arbitraryHyperdataContact identity maybeContact
 
 
+-- | Main instances of Contact
 
+-- | Specific Gargantext instance
 instance Hyperdata HyperdataContact
+
+-- | Database (Posgresql-simple instance)
 instance FromField HyperdataContact where
   fromField = fromField'
+
+-- | Database (Opaleye instance)
 instance QueryRunnerColumnDefault PGJsonb HyperdataContact   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+-- | All lenses
 makeLenses ''ContactWho
 makeLenses ''ContactWhere
 makeLenses ''ContactTouch
+makeLenses ''ContactMetaData
 makeLenses ''HyperdataContact
 
+-- | All Json instances
 $(deriveJSON (unPrefix "_cw_") ''ContactWho)
 $(deriveJSON (unPrefix "_cw_") ''ContactWhere)
 $(deriveJSON (unPrefix "_ct_") ''ContactTouch)
+$(deriveJSON (unPrefix "_cm_") ''ContactMetaData)
 $(deriveJSON (unPrefix "_hc_") ''HyperdataContact)
-
-
