@@ -35,7 +35,7 @@ import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), 
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Gargantext.Database.Node.Contact (HyperdataContact(..))
+--import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Gargantext.Database.User (getUser, UserLight(..), Username)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
@@ -59,10 +59,8 @@ flowDatabase ff fp cName = do
 
 flowInsert :: NodeType -> [HyperdataDocument] -> CorpusName
      -> IO ([ReturnId], MasterUserId, MasterCorpusId, UserId, CorpusId)
-flowInsert nt hyperdataDocuments cName = do
-  let hyperdataDocuments' = case nt of
-        NodeCorpus   -> map (\h -> ToDbDocument h) hyperdataDocuments
---        NodeAnnuaire -> map (\h -> ToDbContact  h) hyperdataDocuments
+flowInsert _nt hyperdataDocuments cName = do
+  let hyperdataDocuments' = map (\h -> ToDbDocument h) hyperdataDocuments
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
   ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId hyperdataDocuments'
@@ -72,12 +70,18 @@ flowInsert nt hyperdataDocuments cName = do
   
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
+
+flowAnnuaire :: FilePath -> IO ()
 flowAnnuaire filePath = do
   contacts <- deserialiseImtUsersFromFile filePath
   ps <- flowInsertAnnuaire "Annuaire" $ take 10 $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts 
   printDebug "length annuaire" (ps)
 
 --{-
+
+flowInsertAnnuaire :: CorpusName
+                                -> [ToDbData]
+                                -> IO ([ReturnId], UserId, CorpusId, UserId, CorpusId)
 flowInsertAnnuaire name children = do
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
@@ -94,7 +98,10 @@ flowInsertAnnuaire name children = do
 --}
 
 --{-
--- flowCorpus :: NodeType -> [HyperdataDocument] -> ([ReturnId],MasterUserId,UserId,CorpusId) -> IO CorpusId
+flowCorpus :: NodeType
+                        -> [HyperdataDocument]
+                        -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
+                        -> IO CorpusId
 flowCorpus NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
 --}
 --------------------------------------------------
@@ -160,7 +167,7 @@ subFlowCorpus username cName = do
 
 
 subFlowAnnuaire :: Username -> CorpusName -> IO (UserId, RootId, CorpusId)
-subFlowAnnuaire username cName = do
+subFlowAnnuaire username _cName = do
   maybeUserId <- runCmd' (getUser username)
 
   let userId = case maybeUserId of

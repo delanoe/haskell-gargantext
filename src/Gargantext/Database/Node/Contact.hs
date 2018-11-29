@@ -52,6 +52,7 @@ data HyperdataContact =
 
   } deriving (Eq, Show, Generic)
 
+-- TOD contact metadata (Type is too flat)
 data ContactMetaData =
      ContactMetaData { _cm_bdd :: Maybe Text
                      , _cm_lastValidation  :: Maybe Text

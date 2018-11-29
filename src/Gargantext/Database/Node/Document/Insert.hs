@@ -235,7 +235,7 @@ addUniqIdsContact hc = set (hc_uniqIdBdd) (Just hashBdd)
                      $ set (hc_uniqId)    (Just hash)    hc
   where
     hash    = uniqId $ DT.concat $ map ($ hc) hashParametersContact
-    hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybe' (view (hc_metaData . _Just . cm_bdd) d)] <> hashParametersContact)
+    hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybe' (view hc_bdd d)] <> hashParametersContact)
 
     uniqId :: Text -> Text
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
