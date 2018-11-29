@@ -38,7 +38,7 @@ import Gargantext.Core.Types.Main (ListId, ListTypeId)
 import Gargantext.Database.Utils (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS (Connection, query, Only(..))
+import qualified Database.PostgreSQL.Simple as PGS (query, Only(..))
 
 -- | TODO : remove id
 data NodeNgramPoly id node_id ngram_id weight ngrams_type
@@ -108,8 +108,8 @@ insertNodeNgramW nns =
 
 type NgramsText = Text
 
-updateNodeNgrams :: PGS.Connection -> [(ListId, NgramsText, ListTypeId)] -> IO [PGS.Only Int]
-updateNodeNgrams c input = PGS.query c updateQuery (PGS.Only $ Values fields $ input)
+updateNodeNgrams :: [(ListId, NgramsText, ListTypeId)] -> Cmd [PGS.Only Int]
+updateNodeNgrams input = mkCmd $ \c -> PGS.query c updateQuery (PGS.Only $ Values fields $ input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
     updateQuery = [sql| UPDATE nodes_ngrams as old SET

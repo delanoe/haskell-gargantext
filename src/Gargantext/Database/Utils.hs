@@ -15,11 +15,14 @@ commentary with @some markup@.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RankNTypes                 #-}
 
 module Gargantext.Database.Utils where
 
 import Control.Applicative (Applicative)
+import Control.Lens (Getter, view)
 import Control.Monad.Reader
+import Control.Monad.Error.Class
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.Either.Extra (Either(Left, Right))
 import Data.Ini (readIniFile, lookupValue)
@@ -33,11 +36,30 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
-import Opaleye (Query, Unpackspec, showSqlForPostgres)
+import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
 import System.IO (FilePath)
 import Text.Read (read)
 import qualified Data.ByteString      as DB
 import qualified Database.PostgreSQL.Simple as PGS
+
+class HasConnection env where
+  connection :: Getter env Connection
+
+instance HasConnection Connection where
+  connection = identity
+
+type Cmd' err a =
+  forall m env.
+  ( MonadReader env m
+  , HasConnection env
+  , MonadError err m
+  , MonadIO m
+  ) => m a
+
+runQuery' :: Default FromFields fields haskells => Select fields -> Cmd' err [haskells]
+runQuery' q = do
+  c <- view connection
+  liftIO $ runQuery c q
 
 ------------------------------------------------------------------------
 {- | Reader Monad reinvented here:
@@ -60,7 +82,6 @@ runCmd c (Cmd f) = runReaderT f c
 
 mkCmd :: (Connection -> IO a) -> Cmd a
 mkCmd = Cmd . ReaderT
-
 ------------------------------------------------------------------------
 
 databaseParameters :: FilePath -> IO PGS.ConnectInfo

@@ -252,6 +252,13 @@ graphAPI _ _ = do
   -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
 
+instance HasNodeError ServantErr where
+  _NodeError = prism' make match
+    where
+      err = err404 { errBody = "NodeError: No list found" }
+      make NoListFound = err
+      match = guard (== err) $> NoListFound
+
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
   _TreeError = prism' mk (const Nothing) -- Note a prism

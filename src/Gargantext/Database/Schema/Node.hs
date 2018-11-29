@@ -20,13 +20,16 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Schema.Node where
 
 import Control.Arrow (returnA)
-import Control.Lens (set)
+import Control.Lens (Prism', set, view, (#), (^?))
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.IO.Class (MonadIO(..))
 import Data.Aeson
 import Data.ByteString (ByteString)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -53,8 +56,26 @@ import qualified Data.ByteString.Lazy as DBL
 import qualified Data.Profunctor.Product as PP
 
 ------------------------------------------------------------------------
-instance FromField HyperdataAny
-  where
+
+data NodeError = NoListFound
+  deriving (Show)
+
+class HasNodeError e where
+  _NodeError :: Prism' e NodeError
+
+nodeError :: (MonadError e m, HasNodeError e) => NodeError -> m a
+nodeError ne = throwError $ _NodeError # ne
+
+catchNodeError :: (MonadError e m, HasNodeError e) => m a -> (NodeError -> m a) -> m a
+catchNodeError f g = catchError f (\e -> maybe (throwError e) g (e ^? _NodeError))
+
+------------------------------------------------------------------------
+type AnnuaireId = Int
+
+type DocId  = Int
+type TypeId = Int
+------------------------------------------------------------------------
+instance FromField HyperdataAny where
     fromField = fromField'
 
 instance FromField HyperdataCorpus
@@ -290,11 +311,6 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     returnA -< node
 
 
---type Cmd' a = forall m. (MonadReader env m, HasConnection env, MonadIO m) => m a
-
-
--- deleteNode :: (MonadReader Connection m, MonadIO m) => Int -> m Int
--- deleteNode :: Int -> Cmd' Int
 
 deleteNode :: Int -> Cmd Int
 deleteNode n = mkCmd $ \conn ->
@@ -330,8 +346,8 @@ getDocumentsV3WithParentId conn n = runQuery conn $ selectNodesWith' n (Just Nod
 getDocumentsWithParentId :: Connection -> Int -> IO [Node HyperdataDocument]
 getDocumentsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeDocument)
 
-getListsWithParentId :: Connection -> Int -> IO [Node HyperdataList]
-getListsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeList)
+getListsWithParentId :: Int -> Cmd' err [Node HyperdataList]
+getListsWithParentId n = runQuery' $ selectNodesWith' n (Just NodeList)
 
 getCorporaWithParentId :: Connection -> Int -> IO [Node HyperdataCorpus]
 getCorporaWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeCorpus)
@@ -470,20 +486,21 @@ node2row (Node id tn ud pid nm dt hp) = ((pgInt4       <$> id)
                                            ,(pgStrictJSONB    hp)
                                            )
 ------------------------------------------------------------------------
-insertNodesR' :: [NodeWrite'] -> Cmd [Int]
-insertNodesR' ns = mkCmd $ \c -> insertNodesR ns c
+insertNodes :: [NodeWrite'] -> Cmd' err Int64
+insertNodes ns = do
+  conn <- view connection
+  liftIO $ runInsertMany conn nodeTable' (map node2row ns)
 
-insertNodes :: [NodeWrite'] -> Connection -> IO Int64
-insertNodes ns conn = runInsertMany conn nodeTable' (map node2row ns)
+insertNodesR :: [NodeWrite'] -> Cmd' err [Int]
+insertNodesR ns = do
+  conn <- view connection
+  liftIO $ runInsert_ conn (Insert nodeTable' (node2row <$> ns) (rReturning (\(i,_,_,_,_,_,_) -> i)) Nothing)
 
-insertNodesR :: [NodeWrite'] -> Connection -> IO [Int]
-insertNodesR ns conn = runInsertManyReturning conn nodeTable' (map node2row ns) (\(i,_,_,_,_,_,_) -> i)
-                       -------------------------
-insertNodesWithParent :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO Int64
-insertNodesWithParent pid ns conn = insertNodes (map (set node_parentId pid) ns) conn
+insertNodesWithParent :: Maybe ParentId -> [NodeWrite'] -> Cmd' err Int64
+insertNodesWithParent pid ns = insertNodes (set node_parentId pid <$> ns)
 
-insertNodesWithParentR :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO [Int]
-insertNodesWithParentR pid ns conn = insertNodesR (map (set node_parentId pid) ns) conn
+insertNodesWithParentR :: Maybe ParentId -> [NodeWrite'] -> Cmd' err [Int]
+insertNodesWithParentR pid ns = insertNodesR (set node_parentId pid <$> ns)
 ------------------------------------------------------------------------
 -- TODO Hierachy of Nodes
 -- post and get same types Node' and update if changes
@@ -565,72 +582,53 @@ childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a c
 
 
 
-mk :: Connection -> NodeType -> Maybe ParentId -> Text -> IO [Int]
-mk c nt pId name  = mk' c nt userId pId name
+mk :: NodeType -> Maybe ParentId -> Text -> Cmd' err [Int]
+mk nt pId name  = mk' nt userId pId name
   where
     userId = 1
 
-mk' :: Connection -> NodeType -> UserId -> Maybe ParentId -> Text -> IO [Int]
-mk' c nt uId pId name  = map fromIntegral <$> insertNodesWithParentR pId [node nt name hd pId uId] c
+mk' :: NodeType -> UserId -> Maybe ParentId -> Text -> Cmd' err [Int]
+mk' nt uId pId name  = map fromIntegral <$> insertNodesWithParentR pId [node nt name hd pId uId]
   where
     hd = HyperdataUser . Just . pack $ show EN
 
 type Name = Text
 
-mk'' :: NodeType -> Maybe ParentId -> UserId -> Name -> Cmd [Int]
-mk'' NodeUser Nothing uId name  = mkCmd $ \c -> mk' c NodeUser uId Nothing name
+mk'' :: NodeType -> Maybe ParentId -> UserId -> Name -> Cmd' err [Int]
+mk'' NodeUser Nothing uId name  = mk' NodeUser uId Nothing name
 mk'' NodeUser _       _   _     = panic "NodeUser do not have any parent"
 mk'' _        Nothing _   _     = panic "NodeType does   have a   parent"
-mk'' nt       pId     uId name  = mkCmd $ \c -> mk' c nt uId pId name
+mk'' nt       pId     uId name  = mk' nt uId pId name
 
-
-mkRoot :: Username -> UserId -> Cmd [Int]
+mkRoot :: Username -> UserId -> Cmd' err [Int]
 mkRoot uname uId = case uId > 0 of
                False -> panic "UserId <= 0"
                True  -> mk'' NodeUser Nothing uId uname
 
-mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd [Int]
-mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
+mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd' err [Int]
+mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
 
---{-
-getOrMkList :: ParentId -> UserId -> Cmd Int
-getOrMkList pId uId = do
-  maybeList <- defaultListSafe' pId
-  case maybeList of
-    Nothing -> maybe (panic "no list") identity <$> headMay <$> mkList pId uId
-    Just x  -> pure x
+getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd' err Int
+getOrMkList pId uId =
+  defaultList pId
+    `catchNodeError`
+  (\NoListFound -> maybe (nodeError NoListFound) pure . headMay =<< mkList pId uId)
 
-defaultListSafe' :: CorpusId -> Cmd (Maybe ListId)
-defaultListSafe' cId = mkCmd $ \c -> do
-  maybeNode <- headMay <$> getListsWithParentId c cId
-  case maybeNode of
-    Nothing -> pure Nothing
-    (Just node) -> pure $ Just $ _node_id node
---}
+defaultList :: HasNodeError err => CorpusId -> Cmd' err ListId
+defaultList cId =
+  maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
 
-defaultListSafe :: Connection -> CorpusId -> IO (Maybe ListId)
-defaultListSafe c cId = do
-  maybeNode <- headMay <$> getListsWithParentId c cId
-  case maybeNode of
-    Nothing -> pure Nothing
-    (Just node) -> pure $ Just $ _node_id node
+mkList :: HasNodeError err => ParentId -> UserId -> Cmd' err [Int]
+mkList p u = insertNodesR [nodeListW Nothing Nothing p u]
 
-defaultList :: Connection -> CorpusId -> IO ListId
-defaultList c cId = maybe (panic errMessage) identity <$> defaultListSafe c cId
-  where
-    errMessage = "Gargantext.API.Ngrams.defaultList: no list found"
+mkGraph :: ParentId -> UserId -> Cmd' err [Int]
+mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
-mkList :: ParentId -> UserId -> Cmd [Int]
-mkList p u = insertNodesR' [nodeListW Nothing Nothing p u]
+mkDashboard :: ParentId -> UserId -> Cmd' err [Int]
+mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
 
-mkGraph :: ParentId -> UserId -> Cmd [Int]
-mkGraph p u = insertNodesR' [nodeGraphW Nothing Nothing p u]
-
-mkDashboard :: ParentId -> UserId -> Cmd [Int]
-mkDashboard p u = insertNodesR' [nodeDashboardW Nothing Nothing p u]
-
-mkAnnuaire :: ParentId -> UserId -> Cmd [Int]
-mkAnnuaire p u = insertNodesR' [nodeAnnuaireW Nothing Nothing p u]
+mkAnnuaire :: ParentId -> UserId -> Cmd' err [Int]
+mkAnnuaire p u = insertNodesR [nodeAnnuaireW Nothing Nothing p u]
 
 -- | Default CorpusId Master and ListId Master
 

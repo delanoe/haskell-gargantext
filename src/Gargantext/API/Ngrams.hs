@@ -42,7 +42,8 @@ import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set
 --import Data.Maybe (catMaybes)
---import qualified Data.Map.Strict as DM
+import qualified Data.Map.Strict as DM
+import Data.Map.Strict (Map)
 --import qualified Data.Set as Set
 import Control.Lens ((.~))
 import Data.Aeson
@@ -183,27 +184,14 @@ instance ToSchema  NgramsPatch
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
 
-data NgramsIdPatch =
-     NgramsIdPatch { _nip_ngrams      :: NgramsTerm
-                   , _nip_ngramsPatch :: NgramsPatch
-                   }
-      deriving (Ord, Eq, Show, Generic)
-$(deriveJSON (unPrefix "_nip_") ''NgramsIdPatch)
-
-instance ToSchema  NgramsIdPatch
-
-instance Arbitrary NgramsIdPatch where
-  arbitrary = NgramsIdPatch <$> arbitrary <*> arbitrary
-
-                       --
 -- TODO:
 -- * This should be a Map NgramsId NgramsPatch
 -- * Patchs -> Patches
-newtype NgramsIdPatchs =
-     NgramsIdPatchs { _nip_ngramsIdPatchs :: [NgramsIdPatch] }
+newtype NgramsTablePatch =
+     NgramsTablePatch { _nip_ngramsIdPatchs :: Map NgramsTerm NgramsPatch }
       deriving (Ord, Eq, Show, Generic, Arbitrary)
-$(deriveJSON (unPrefix "_nip_") ''NgramsIdPatchs)
-instance ToSchema  NgramsIdPatchs
+$(deriveJSON (unPrefix "_nip_") ''NgramsTablePatch)
+instance ToSchema  NgramsTablePatch
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -243,6 +231,7 @@ type TableNgramsApiGet = Summary " Table Ngrams API Get"
 
 type TableNgramsApi = Summary " Table Ngrams API Change"
                       :> QueryParam "list"   ListId
+<<<<<<< HEAD
                       :> ReqBody '[JSON] NgramsIdPatchsFeed -- Versioned ...
                       :> Put     '[JSON] NgramsIdPatchsBack -- Versioned ...
 
@@ -250,15 +239,60 @@ type NgramsIdPatchsFeed = NgramsIdPatchs
 type NgramsIdPatchsBack = NgramsIdPatchs
 
 
+||||||| parent of 06bfb6e... WIP
+                      :> ReqBody '[JSON] NgramsIdPatchsFeed -- Versioned ...
+                      :> Put     '[JSON] NgramsIdPatchsBack -- Versioned ...
+
+type NgramsIdPatchsFeed = NgramsIdPatchs
+type NgramsIdPatchsBack = NgramsIdPatchs
+
+
+defaultList :: Connection -> CorpusId -> IO ListId
+defaultList c cId = view node_id <$> maybe (panic noListFound) identity 
+  <$> head
+  <$> getListsWithParentId c cId
+  where
+    noListFound = "Gargantext.API.Ngrams.defaultList: no list found"
+
+=======
+                      :> ReqBody '[JSON] (Versioned NgramsTablePatch)
+                      :> Put     '[JSON] (Versioned NgramsTablePatch)
+
+data NgramError = NoListFound
+  deriving (Show)
+
+class HasNgramError e where
+  _NgramError :: Prism' e NgramError
+
+instance HasNgramError ServantErr where
+  _NgramError = prism' mk (const Nothing) -- Note a prism
+    where
+      mk NoListFound = err404 { errBody = "NgramError: No list found"           }
+      mk EmptyRoot    = err500 { errBody = "Root node should not be empty" }
+      mk TooManyRoots = err500 { errBody = "Too many root nodes"           }
+
+ngramError :: (MonadError e m, HasNgramError e) => NgramError -> m a
+ngramError nne = throwError $ _NgramError # nne
+
+defaultList :: ( MonadError e m
+               , HasNgramError e
+               , MonadReader env m
+               , HasConnection env
+               ) => CorpusId -> m ListId
+defaultList cId = view node_id =<< maybe (ngramError NoListFound) pure
+  <$> head
+  <$> getListsWithParentId cId
+
+>>>>>>> 06bfb6e... WIP
 {-
-toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
+toLists :: ListId -> NgramsTablePatch -> [(ListId, NgramsId, ListTypeId)]
 -- toLists = undefined
 toLists lId np = [ (lId,ngId,listTypeId lt) | map (toList lId) (_nip_ngramsIdPatchs np) ]
 
 toList :: ListId -> NgramsIdPatch -> (ListId, NgramsId, ListTypeId)
 toList = undefined
 
-toGroups :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatchs -> [NodeNgramsNgrams]
+toGroups :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsTablePatch -> [NodeNgramsNgrams]
 toGroups lId addOrRem ps = concat $ map (toGroup lId addOrRem) $ _nip_ngramsIdPatchs ps
 
 toGroup :: ListId -> (NgramsPatch -> Set NgramsId) -> NgramsIdPatch -> [NodeNgramsNgrams]
@@ -268,22 +302,34 @@ toGroup lId addOrRem (NgramsIdPatch ngId patch)  =
 
 -}
 
-tableNgramsPatch :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> IO NgramsIdPatchsBack
-tableNgramsPatch = undefined 
+-- Apply the given patch to the DB and returns the patch to be applied on the
+-- cilent.
+-- TODO:
+-- In this perliminary version the OT aspect is missing, therefore the version
+-- number is always 1 and the returned patch is always empty.
+tableNgramsPatch :: ( MonadError e m
+                    , HasNgramError e
+                    , MonadReader env m
+                    , HasConnection env
+                    , MonadIO m
+                    )
+                 => CorpusId -> Maybe ListId
+                 -> Versioned NgramsTablePatch
+                 -> m (Versioned NgramsTablePatch)
+tableNgramsPatch conn corpusId maybeList (Versioned version patch) = do
+  when (version /= 1) $ ngramError $ UnsupportedVersion v
+  listId <- maybe defaultList pure maybeList
 {-
-tableNgramsPatch conn corpusId maybeList patchs = do
-  listId <- case maybeList of
-              Nothing      -> defaultList conn corpusId
-              Just listId' -> pure listId'
-  _ <- ngramsGroup' conn Add $ toGroups listId _np_add_children patchs
-  _ <- ngramsGroup' conn Del $ toGroups listId _np_rem_children patchs
-  _ <- updateNodeNgrams conn (toLists listId patchs)
-  pure (NgramsIdPatchs [])
+  _ <- ngramsGroup' conn Add $ toGroups listId _np_add_children patch
+  _ <- ngramsGroup' conn Del $ toGroups listId _np_rem_children patch
+  _ <- updateNodeNgrams conn (toLists listId patch)
 -}
+  pure $ Version 1 mempty
 
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
-getTableNgrams :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
+-- getTableNgrams :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
+getTableNgrams :: Connection -> CorpusId -> Handler TableNgramsApiGet
 getTableNgrams c cId maybeTabType maybeListId = do
   let lieu = "Garg.API.Ngrams: " :: Text
   let ngramsType = case maybeTabType of

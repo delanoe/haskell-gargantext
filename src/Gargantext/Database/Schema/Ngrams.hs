@@ -19,6 +19,7 @@ Ngrams connection to the Database.
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Schema.Ngrams where
@@ -44,7 +45,7 @@ import Gargantext.Database.Config (nodeTypeId,userMaster)
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Database.Schema.Node (getListsWithParentId, getCorporaWithParentId)
-import Gargantext.Database.Utils (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (mkCmd, Cmd(..), Cmd')
 import Gargantext.Prelude
 import Opaleye
 import Prelude (Enum, Bounded, minBound, maxBound)
@@ -198,25 +199,24 @@ queryInsertNgrams = [sql|
 -- TODO: the way we are getting main Master Corpus and List ID is not clean
 -- TODO: if ids are not present -> create
 -- TODO: Global Env State Monad to keep in memory the ids without retrieving it each time
-getNgramsTableDb :: DPS.Connection
-               -> NodeType             -> NgramsType
-               -> NgramsTableParamUser
-               -> IO ([NgramsTableData], MapToParent, MapToChildren)
-getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
+getNgramsTableDb :: NodeType -> NgramsType
+                 -> NgramsTableParamUser
+                 -> Cmd' err ([NgramsTableData], MapToParent, MapToChildren)
+getNgramsTableDb nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
   
   
-  maybeRoot <- head <$> getRoot userMaster c
+  maybeRoot <- head <$> getRoot userMaster
   let path = "Garg.Db.Ngrams.getTableNgrams: "
   let masterRootId = maybe (panic $ path <> "no userMaster Tree") (view node_id) maybeRoot
   -- let errMess = panic "Error"
 
-  corpusMasterId <- maybe (panic "error master corpus") (view node_id) <$> head <$> getCorporaWithParentId c masterRootId
+  corpusMasterId <- maybe (panic "error master corpus") (view node_id) <$> head <$> getCorporaWithParentId masterRootId
   
-  listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId   c corpusMasterId
+  listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId corpusMasterId
   
-  ngramsTableData <- getNgramsTableData c nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId)
+  ngramsTableData <- getNgramsTableData nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId)
   
-  (mapToParent,mapToChildren) <- getNgramsGroup c listIdUser listMasterId
+  (mapToParent,mapToChildren) <- getNgramsGroup listIdUser listMasterId
   pure (ngramsTableData, mapToParent,mapToChildren)
 
 
