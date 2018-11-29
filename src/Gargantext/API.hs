@@ -80,6 +80,7 @@ import Gargantext.API.Node ( Roots    , roots
                            , HyperdataCorpus
                            , HyperdataAnnuaire
                            )
+import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Types.Node ()
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
@@ -283,7 +284,7 @@ serverGargAPI env = do
      :<|> roots    conn
      :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAny)
      :<|> nodeAPI  conn (Proxy :: Proxy HyperdataCorpus)
-     :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAnnuaire)
+     :<|> nodeAPI  conn (Proxy :: Proxy HyperdataContact)
      :<|> nodesAPI conn
      :<|> count -- TODO: undefined
      :<|> search   conn

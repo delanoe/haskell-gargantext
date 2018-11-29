@@ -272,8 +272,7 @@ deleteNodes ns = mkCmd $ \conn ->
 getNodesWith :: JSONB a => Connection -> Int -> proxy a -> Maybe NodeType
              -> Maybe Offset -> Maybe Limit -> IO [Node a]
 getNodesWith conn parentId _ nodeType maybeOffset maybeLimit =
-    runQuery conn $ selectNodesWith 
-                  parentId nodeType maybeOffset maybeLimit
+    runQuery conn $ selectNodesWith parentId nodeType maybeOffset maybeLimit
 
 
 -- NP check type

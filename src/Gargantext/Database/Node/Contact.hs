@@ -22,6 +22,7 @@ module Gargantext.Database.Node.Contact
 
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
+import Data.Swagger (ToSchema)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
@@ -32,17 +33,22 @@ import Gargantext.Database.Types.Node (Node,Hyperdata,NodeType(..))
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
 
 type NodeContact  = Node HyperdataContact
 
 data HyperdataContact =
-     HyperdataContact { _hc_who      :: Maybe ContactWho
-                      , _hc_where    :: Maybe [ContactWhere]
-                      , _hc_metaData :: Maybe ContactMetaData
-                      , _hc_uniqId    :: Maybe Text
-                      , _hc_uniqIdBdd :: Maybe Text
+     HyperdataContact { _hc_bdd    :: Maybe Text           -- ID of Database source
+                      , _hc_who    :: Maybe ContactWho
+                      , _hc_where  :: Maybe [ContactWhere]
+                      , _hc_title  :: Maybe Text -- TODO remove (only demo)
+                      , _hc_source :: Maybe Text -- TODO remove (only demo)
+                      , _hc_lastValidation  :: Maybe Text
+                      , _hc_uniqIdBdd       :: Maybe Text
+                      , _hc_uniqId          :: Maybe Text
 
   } deriving (Eq, Show, Generic)
 
@@ -54,6 +60,7 @@ data ContactMetaData =
 
 arbitraryHyperdataContact :: HyperdataContact
 arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing
+                                             Nothing Nothing Nothing
                                              Nothing Nothing
 
 data ContactWho = 
@@ -97,6 +104,14 @@ nodeContactW maybeName maybeContact aId =
 
 
 -- | Main instances of Contact
+instance ToSchema HyperdataContact
+instance ToSchema ContactWho
+instance ToSchema ContactWhere
+instance ToSchema ContactTouch
+
+instance Arbitrary HyperdataContact where
+  arbitrary = elements [HyperdataContact Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing]
+
 
 -- | Specific Gargantext instance
 instance Hyperdata HyperdataContact

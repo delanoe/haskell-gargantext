@@ -77,7 +77,7 @@ imtUser2gargContact (IMTUser id' entite' mail' nom' prenom' fonction' tel' _fax'
                      service' _groupe' bureau' url' _pservice' _pfonction' _afonction'
                      _grprech' lieu' _aprecision' _atel' _sexe' _statut' _idutilentite'
                      _entite2' _service2' _group2' _actif' _idutilsiecoles' date_modification')
-                  = HyperdataContact (Just qui) (Just [ou]) (Just meta) Nothing Nothing
+                  = HyperdataContact (Just qui) (Just [ou]) (Just meta) ((<>) <$> prenom' <*> nom') entite' Nothing Nothing
                     where
                       qui = ContactWho (Just id') prenom' nom' (Just $ catMaybes [service']) Nothing
                       ou  = ContactWhere (toList entite') (toList service') fonction' bureau' (Just "France") lieu' contact Nothing Nothing
