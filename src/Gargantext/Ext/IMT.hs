@@ -111,3 +111,4 @@ publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSc
                         $ DV.map (\n -> splitOn (pack ", ") (csvHal_instStructId_i n) )
                         $ DV.filter (\n -> csvHal_publication_year n == 2017) hal_data'
 
+

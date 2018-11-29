@@ -80,6 +80,7 @@ import Gargantext.API.Node ( Roots    , roots
                            , HyperdataCorpus
                            , HyperdataAnnuaire
                            )
+--import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Types.Node ()
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)

@@ -69,7 +69,8 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
-data TabType   = Docs   | Terms  | Sources | Authors | Institutes | Trash
+data TabType   = Docs     | Terms  | Sources | Authors | Institutes | Trash
+               | Contacts
   deriving (Generic, Enum, Bounded)
 
 instance FromHttpApiData TabType
@@ -80,6 +81,9 @@ instance FromHttpApiData TabType
     parseUrlPiece "Institutes" = pure Institutes
     parseUrlPiece "Authors"    = pure Authors
     parseUrlPiece "Trash"      = pure Trash
+    
+    parseUrlPiece "Contacts"   = pure Contacts
+    
     parseUrlPiece _            = Left "Unexpected value of TabType"
 
 instance ToParamSchema   TabType
