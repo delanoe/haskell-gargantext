@@ -37,7 +37,7 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Node (getRootUsername)
 import Gargantext.Database.Types.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
-import Test.QuickCheck (elements)
+import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ---------------------------------------------------
@@ -51,6 +51,7 @@ data AuthRequest = AuthRequest { _authReq_username :: Username
                                }
   deriving (Generic)
 
+-- TODO: Use an HTTP error to wrap AuthInvalid
 data AuthResponse = AuthResponse { _authRes_valid :: Maybe AuthValid
                                  , _authRes_inval :: Maybe AuthInvalid
                                  }
@@ -75,21 +76,18 @@ data CheckAuth = InvalidUser | InvalidPassword | Valid Token TreeId
   deriving (Eq)
 
 arbitraryUsername :: [Username]
-arbitraryUsername = ["user1", "user2"]
+arbitraryUsername = ["gargantua", "user1", "user2"]
 
 arbitraryPassword :: [Password]
 arbitraryPassword = map reverse arbitraryUsername
 
 checkAuthRequest :: Username -> Password -> Connection -> IO CheckAuth
-checkAuthRequest u p c = case elem u arbitraryUsername of
-    False -> pure InvalidUser
-    True  -> case u == (reverse p) of
-               False -> pure InvalidPassword
-               True  -> do
-                 muId <- getRootUsername u c
-                 let uId = maybe (panic "API.AUTH: no user node") _node_id $ head muId
-                 pure $ Valid "token" uId
-
+checkAuthRequest u p c
+  | not (u `elem` arbitraryUsername) = pure InvalidUser
+  | u /= reverse p = pure InvalidPassword
+  | otherwise = do
+      muId <- getRootUsername u c
+      pure $ maybe InvalidUser (Valid "token" . _node_id) $ head muId
 
 auth' :: Connection -> AuthRequest -> IO AuthResponse
 auth' c (AuthRequest u p) = do
@@ -112,7 +110,8 @@ instance Arbitrary AuthRequest where
 $(deriveJSON (unPrefix "_authRes_") ''AuthResponse)
 instance ToSchema AuthResponse
 instance Arbitrary AuthResponse where
-  arbitrary = AuthResponse <$> arbitrary <*> arbitrary
+  arbitrary = oneof [ AuthResponse Nothing . Just      <$> arbitrary
+                    , flip AuthResponse Nothing . Just <$> arbitrary ]
 
 $(deriveJSON (unPrefix "_authInv_") ''AuthInvalid)
 instance ToSchema AuthInvalid
