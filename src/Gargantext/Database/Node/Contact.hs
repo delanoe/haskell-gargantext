@@ -56,7 +56,7 @@ arbitraryHyperdataContact :: HyperdataContact
 arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing
 
 data ContactWho = 
-     ContactWho { _cw_id          :: Maybe Int
+     ContactWho { _cw_id          :: Maybe Text
                 , _cw_firstName   :: Maybe Text
                 , _cw_lastName    :: Maybe Text
                 , _cw_keywords :: Maybe [Text]

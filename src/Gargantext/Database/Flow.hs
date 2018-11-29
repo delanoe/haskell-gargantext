@@ -72,7 +72,7 @@ flowInsert nt hyperdataDocuments cName = do
   pure (ids, masterUserId, userId, userCorpusId)
 
 --{-
-flowInsertAnnuaire children name = do
+flowInsertAnnuaire name children = do
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
   ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId children
@@ -80,6 +80,8 @@ flowInsertAnnuaire children name = do
   (userId, _, userCorpusId) <- subFlowCorpus userArbitrary name
   _ <- runCmd' $ add userCorpusId (map reId ids)
   
+  printDebug "AnnuaireID" userCorpusId
+
   pure (ids, masterUserId, userId, userCorpusId)
 
 
@@ -121,6 +123,7 @@ flowCorpus NodeCorpus hyperdataDocuments (ids,masterUserId,userId,userCorpusId) 
 
 flowCorpus NodeAnnuaire _hyperdataDocuments (_ids,_masterUserId,_userId,_userCorpusId) = undefined
 flowCorpus _ _ _ = undefined
+
 
 type CorpusName = Text
 

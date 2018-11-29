@@ -8,8 +8,6 @@ packages:
 - 'deps/patches-map'
 - 'deps/patches-class'
 
-  #- 'deps/imt-api-client'
-
 allow-newer: true
 extra-deps:
 - git: https://github.com/delanoe/data-time-segment.git
@@ -30,6 +28,6 @@ extra-deps:
 - servant-multipart-0.11.2
 - stemmer-0.5.2
 - servant-flatten-0.2
-- serialise-0.2.0.0  # imt-api-client
+- serialise-0.2.0.0
 - KMP-0.1.0.2
 - validity-0.8.0.0 # patches-{map,class}
