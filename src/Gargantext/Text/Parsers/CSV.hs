@@ -39,6 +39,16 @@ import Gargantext.Text.Context
 import Gargantext.Prelude hiding (length)
 
 ---------------------------------------------------------------
+headerCsvGargV3 :: Header
+headerCsvGargV3 = header [ "title"
+         , "source"
+         , "publication_year"
+         , "publication_month"
+         , "publication_day"
+         , "abstract"
+         , "authors"
+         ]
+---------------------------------------------------------------
 data Doc = Doc
     { d_docId  :: !Int
     , d_title  :: !Text
