@@ -83,39 +83,42 @@ instance ToSchema Attributes
 instance ToSchema Edge
 instance ToSchema Graph
 
+defaultGraph :: Graph
+defaultGraph = Graph {graph_nodes = [Node {node_size = 4, node_type = Terms, node_id = pack "0", node_label = pack "animal", node_attributes = Attributes {clust_default = 0}},Node {node_size = 3, node_type = Terms, node_id = pack "1", node_label = pack "bird", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "2", node_label = pack "boy", node_attributes = Attributes {clust_default = 1}},Node {node_size = 2, node_type = Terms, node_id = pack "3", node_label = pack "dog", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "4", node_label = pack "girl", node_attributes = Attributes {clust_default = 1}},Node {node_size = 4, node_type = Terms, node_id = pack "5", node_label = pack "human body", node_attributes = Attributes {clust_default = 1}},Node {node_size = 3, node_type = Terms, node_id = pack "6", node_label = pack "object", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "7", node_label = pack "pen", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "8", node_label = pack "table", node_attributes = Attributes {clust_default = 2}}], graph_edges = [Edge {edge_source = pack "0", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "0"},Edge {edge_source = pack "1", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "1"},Edge {edge_source = pack "1", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "2"},Edge {edge_source = pack "2", edge_target = pack "2", edge_weight = 1.0, edge_id = pack "3"},Edge {edge_source = pack "2", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "4"},Edge {edge_source = pack "3", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "5"},Edge {edge_source = pack "3", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "6"},Edge {edge_source = pack "3", edge_target = pack "3", edge_weight = 1.0, edge_id = pack "7"},Edge {edge_source = pack "4", edge_target = pack "4", edge_weight = 1.0, edge_id = pack "8"},Edge {edge_source = pack "4", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "9"},Edge {edge_source = pack "5", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "10"},Edge {edge_source = pack "6", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "11"},Edge {edge_source = pack "7", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "12"},Edge {edge_source = pack "7", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "13"},Edge {edge_source = pack "8", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "14"},Edge {edge_source = pack "8", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "15"},Edge {edge_source = pack "8", edge_target = pack "8", edge_weight = 1.0, edge_id = pack "16"}]}
+
 -- | Intances for the mack
 instance Arbitrary Graph where
-  arbitrary = elements $ [Graph {graph_nodes = [Node {node_size = 4, node_type = Terms, node_id = pack "0", node_label = pack "animal", node_attributes = Attributes {clust_default = 0}},Node {node_size = 3, node_type = Terms, node_id = pack "1", node_label = pack "bird", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "2", node_label = pack "boy", node_attributes = Attributes {clust_default = 1}},Node {node_size = 2, node_type = Terms, node_id = pack "3", node_label = pack "dog", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "4", node_label = pack "girl", node_attributes = Attributes {clust_default = 1}},Node {node_size = 4, node_type = Terms, node_id = pack "5", node_label = pack "human body", node_attributes = Attributes {clust_default = 1}},Node {node_size = 3, node_type = Terms, node_id = pack "6", node_label = pack "object", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "7", node_label = pack "pen", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "8", node_label = pack "table", node_attributes = Attributes {clust_default = 2}}], graph_edges = [Edge {edge_source = pack "0", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "0"},Edge {edge_source = pack "1", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "1"},Edge {edge_source = pack "1", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "2"},Edge {edge_source = pack "2", edge_target = pack "2", edge_weight = 1.0, edge_id = pack "3"},Edge {edge_source = pack "2", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "4"},Edge {edge_source = pack "3", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "5"},Edge {edge_source = pack "3", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "6"},Edge {edge_source = pack "3", edge_target = pack "3", edge_weight = 1.0, edge_id = pack "7"},Edge {edge_source = pack "4", edge_target = pack "4", edge_weight = 1.0, edge_id = pack "8"},Edge {edge_source = pack "4", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "9"},Edge {edge_source = pack "5", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "10"},Edge {edge_source = pack "6", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "11"},Edge {edge_source = pack "7", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "12"},Edge {edge_source = pack "7", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "13"},Edge {edge_source = pack "8", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "14"},Edge {edge_source = pack "8", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "15"},Edge {edge_source = pack "8", edge_target = pack "8", edge_weight = 1.0, edge_id = pack "16"}]}]
+  arbitrary = elements $ [defaultGraph]
 
 
 -----------------------------------------------------------
--- Old Gargantext Version
+-- V3 Gargantext Version
 
-data AttributesOld = AttributesOld { cl :: Int }
+data AttributesV3 = AttributesV3 { cl :: Int }
   deriving (Show, Generic)
-$(deriveJSON (unPrefix "") ''AttributesOld)
+$(deriveJSON (unPrefix "") ''AttributesV3)
 
-data NodeOld = NodeOld { no_id :: Int
-                   , no_at :: AttributesOld
+data NodeV3 = NodeV3 { no_id :: Int
+                   , no_at :: AttributesV3
                    , no_s :: Int
                    , no_lb :: Text
                    }
   deriving (Show, Generic)
-$(deriveJSON (unPrefix "no_") ''NodeOld)
+$(deriveJSON (unPrefix "no_") ''NodeV3)
 
-data EdgeOld = EdgeOld { eo_s :: Int
+data EdgeV3 = EdgeV3 { eo_s :: Int
                  , eo_t :: Int
                  , eo_w :: Text
                  }
   deriving (Show, Generic)
-$(deriveJSON (unPrefix "eo_") ''EdgeOld)
+$(deriveJSON (unPrefix "eo_") ''EdgeV3)
 
-data GraphOld = GraphOld { 
-                           go_links :: [EdgeOld]
-                         , go_nodes :: [NodeOld]
+data GraphV3 = GraphV3 { 
+                           go_links :: [EdgeV3]
+                         , go_nodes :: [NodeV3]
                    }
   deriving (Show, Generic)
-$(deriveJSON (unPrefix "go_") ''GraphOld)
+$(deriveJSON (unPrefix "go_") ''GraphV3)
 
 ----------------------------------------------------------
 -- | From data to Graph
@@ -143,25 +146,28 @@ data2graph labels coocs distance partitions = Graph nodes edges
 -----------------------------------------------------------
 -----------------------------------------------------------
 
-graphOld2graph :: GraphOld -> Graph
-graphOld2graph (GraphOld links nodes) = Graph (map nodeOld2node nodes) (zipWith linkOld2edge [1..] links)
+graphV3ToGraph :: GraphV3 -> Graph
+graphV3ToGraph (GraphV3 links nodes) = Graph (map nodeV32node nodes) (zipWith linkV32edge [1..] links)
   where
-    nodeOld2node :: NodeOld -> Node
-    nodeOld2node (NodeOld no_id' (AttributesOld cl') no_s' no_lb')
+    nodeV32node :: NodeV3 -> Node
+    nodeV32node (NodeV3 no_id' (AttributesV3 cl') no_s' no_lb')
                 = Node no_s' Terms (cs $ show no_id') no_lb' (Attributes cl')
     
-    linkOld2edge :: Int -> EdgeOld -> Edge
-    linkOld2edge n (EdgeOld eo_s' eo_t' eo_w') = Edge (cs $ show eo_s') (cs $ show eo_t') ((T.read $ T.unpack eo_w') :: Double) (cs $ show n)
+    linkV32edge :: Int -> EdgeV3 -> Edge
+    linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') = Edge (cs $ show eo_s') (cs $ show eo_t') ((T.read $ T.unpack eo_w') :: Double) (cs $ show n)
 
 
-graphOld2graphWithFiles :: FilePath -> FilePath -> IO ()
-graphOld2graphWithFiles g1 g2 = do
-  -- GraphOld <- IO Fichier
+graphV3ToGraphWithFiles :: FilePath -> FilePath -> IO ()
+graphV3ToGraphWithFiles g1 g2 = do
+  -- GraphV3 <- IO Fichier
   graph <- DBL.readFile g1
-  let newGraph = case DA.decode graph :: Maybe GraphOld of
+  let newGraph = case DA.decode graph :: Maybe GraphV3 of
         Nothing -> panic (T.pack "no graph")
         Just new -> new
 
-  DBL.writeFile g2 (DA.encode $ graphOld2graph newGraph)
+  DBL.writeFile g2 (DA.encode $ graphV3ToGraph newGraph)
 
-
+readGraphFromJson :: FilePath -> IO (Maybe Graph)
+readGraphFromJson fp = do
+  graph <- DBL.readFile fp
+  pure $ DA.decode graph

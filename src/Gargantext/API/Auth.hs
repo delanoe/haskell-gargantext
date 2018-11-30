@@ -34,7 +34,7 @@ import Data.Text (Text, reverse)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Node (getRootUsername)
+import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Types.Node (NodePoly(_node_id))
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
@@ -86,7 +86,7 @@ checkAuthRequest u p c
   | not (u `elem` arbitraryUsername) = pure InvalidUser
   | u /= reverse p = pure InvalidPassword
   | otherwise = do
-      muId <- getRootUsername u c
+      muId <- getRoot u c
       pure $ maybe InvalidUser (Valid "token" . _node_id) $ head muId
 
 auth' :: Connection -> AuthRequest -> IO AuthResponse

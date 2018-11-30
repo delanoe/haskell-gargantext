@@ -35,6 +35,7 @@ import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
+import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
 import Gargantext.Database.Queries
@@ -205,26 +206,6 @@ runGetNodes :: Query NodeRead -> Cmd [NodeAny]
 runGetNodes q = mkCmd $ \conn -> runQuery conn q
 
 ------------------------------------------------------------------------
-selectRootUsername :: Username -> Query NodeRead
-selectRootUsername username = proc () -> do
-    row <- queryNodeTable -< ()
-    restrict -< _node_typename row .== (pgInt4 $ nodeTypeId NodeUser)
-    restrict -< _node_name   row .== (pgStrictText username)
-    returnA -< row
-
-getRootUsername :: Username -> Connection -> IO [Node HyperdataUser]
-getRootUsername uname conn = runQuery conn (selectRootUsername uname)
-
-------------------------------------------------------------------------
-selectRootUser :: UserId -> Query NodeRead
-selectRootUser userId = proc () -> do
-    row <- queryNodeTable -< ()
-    restrict -< _node_userId   row .== (pgInt4 userId)
-    restrict -< _node_typename row .== (pgInt4 $ nodeTypeId NodeUser)
-    returnA -< row
-
-getRoot :: UserId -> Cmd [Node HyperdataUser]
-getRoot userId = mkCmd $ \conn -> runQuery conn (selectRootUser userId)
 ------------------------------------------------------------------------
 
 -- | order by publication date
@@ -537,7 +518,6 @@ mk'' NodeUser _       _   _     = panic "NodeUser do not have any parent"
 mk'' _        Nothing _   _     = panic "NodeType does   have a   parent"
 mk'' nt       pId     uId name  = mkCmd $ \c -> mk' c nt uId pId name
 
-type Username = Text
 
 mkRoot :: Username -> UserId -> Cmd [Int]
 mkRoot uname uId = case uId > 0 of

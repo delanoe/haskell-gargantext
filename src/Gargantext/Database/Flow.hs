@@ -28,7 +28,8 @@ import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
-import Gargantext.Database.Node (getRoot, mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)
+import Gargantext.Database.Node (mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)
+import Gargantext.Database.Root (getRootCmd)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
@@ -36,7 +37,8 @@ import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 --import Gargantext.Database.Node.Contact (HyperdataContact(..))
-import Gargantext.Database.User (getUser, UserLight(..), Username)
+import Gargantext.Database.User (getUser, UserLight(..))
+import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
@@ -149,7 +151,7 @@ subFlowCorpus username cName = do
         -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> userLight_id user
 
-  rootId' <- map _node_id <$> runCmd' (getRoot userId)
+  rootId' <- map _node_id <$> runCmd' (getRootCmd username)
 
   rootId'' <- case rootId' of
         []  -> runCmd' (mkRoot username userId)
@@ -175,7 +177,7 @@ subFlowAnnuaire username _cName = do
         -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> userLight_id user
 
-  rootId' <- map _node_id <$> runCmd' (getRoot userId)
+  rootId' <- map _node_id <$> runCmd' (getRootCmd username)
 
   rootId'' <- case rootId' of
         []  -> runCmd' (mkRoot username userId)

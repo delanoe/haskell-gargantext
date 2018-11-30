@@ -40,7 +40,8 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Types -- (fromListTypeId, ListType, NodePoly(Node))
 import Gargantext.Database.Config (nodeTypeId,userMaster)
 import Gargantext.Database.Types.Node (NodeType)
-import Gargantext.Database.Node (mkCmd, Cmd(..),getRootUsername)
+import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Tree (dbTree, toNodeTree)
 import Gargantext.Core.Types.Main (NodeTree(..))
 import Gargantext.Prelude
@@ -192,7 +193,7 @@ getNgramsTableDb :: DPS.Connection
                -> IO ([NgramsTableData], MapToParent, MapToChildren)
 getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
   let lieu = "Garg.Db.Ngrams.getTableNgrams: "
-  maybeRoot <- head <$> getRootUsername userMaster c
+  maybeRoot <- head <$> getRoot userMaster c
   let masterRootId = maybe (panic $ lieu <> "no userMaster Tree") (view node_id) maybeRoot
   tree <- map toNodeTree <$> dbTree c masterRootId
   let maybeCorpus = head $ filter (\n -> _nt_type n == NodeCorpus) tree

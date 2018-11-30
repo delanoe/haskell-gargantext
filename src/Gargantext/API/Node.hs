@@ -61,12 +61,12 @@ import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
-import Gargantext.Text.Flow
-import Gargantext.Viz.Graph (Graph)
-import Gargantext.Core (Lang(..))
+--import Gargantext.Text.Flow
+import Gargantext.Viz.Graph (Graph,readGraphFromJson,defaultGraph)
+-- import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListId)
-import Gargantext.Text.Terms (TermType(..))
+-- import Gargantext.Text.Terms (TermType(..))
 
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -238,7 +238,10 @@ type ChartApi = Summary " Chart API"
 ------------------------------------------------------------------------
 type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
-graphAPI _ _ = liftIO $ textFlow (Mono EN) (Contexts contextText)
+graphAPI _ _ = do
+  liftIO $ maybe defaultGraph identity <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
+  -- t <- textFlow (Mono EN) (Contexts contextText)
+  -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.

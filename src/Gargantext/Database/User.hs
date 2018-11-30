@@ -32,6 +32,7 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
 import Gargantext.Database.Node (Cmd(..), mkCmd, runCmd)
+import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Prelude
 import Opaleye
 
@@ -139,7 +140,6 @@ users = mkCmd $ \conn -> runQuery conn queryUserTable
 usersLight :: Cmd [UserLight]
 usersLight = mkCmd $ \conn -> map toUserLight <$> runQuery conn queryUserTable
 
-type Username = Text
 
 getUser :: Username -> Cmd (Maybe UserLight)
 getUser u = mkCmd $ \c -> userLightWithUsername u <$> runCmd c usersLight
