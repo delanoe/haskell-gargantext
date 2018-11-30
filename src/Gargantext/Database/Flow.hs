@@ -74,7 +74,7 @@ flowInsert _nt hyperdataDocuments cName = do
 flowAnnuaire :: FilePath -> IO ()
 flowAnnuaire filePath = do
   contacts <- deserialiseImtUsersFromFile filePath
-  ps <- flowInsertAnnuaire "Annuaire" $ take 10 $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts 
+  ps <- flowInsertAnnuaire "Annuaire" $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts 
   printDebug "length annuaire" (ps)
 
 --{-
