@@ -81,6 +81,8 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 --data Classification = Favorites | MyClassifcation
 
+
+type CorpusId = Int
 type ListId = Int
 
 -- TODO multiple ListType declaration, remove it

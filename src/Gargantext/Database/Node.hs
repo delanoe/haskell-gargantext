@@ -18,7 +18,7 @@ Portability : POSIX
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
@@ -84,7 +84,6 @@ mkCmd :: (Connection -> IO a) -> Cmd a
 mkCmd = Cmd . ReaderT
 
 ------------------------------------------------------------------------
-type CorpusId   = Int
 type AnnuaireId = Int
 
 type DocId  = Int
@@ -275,6 +274,9 @@ getDocumentsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeD
 
 getListsWithParentId :: Connection -> Int -> IO [Node HyperdataList]
 getListsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeList)
+
+getCorporaWithParentId :: Connection -> Int -> IO [Node HyperdataCorpus]
+getCorporaWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeCorpus)
 
 ------------------------------------------------------------------------
 selectNodesWithParentID :: Int -> Query NodeRead

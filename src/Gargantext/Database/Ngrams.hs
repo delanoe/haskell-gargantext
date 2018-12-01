@@ -23,28 +23,27 @@ Ngrams connection to the Database.
 
 module Gargantext.Database.Ngrams where
 
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Control.Lens (makeLenses, view)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Set (Set)
-import Data.Tuple.Extra (both)
-import qualified Data.Set as DS
 import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
+import Debug.Trace (trace)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types -- (fromListTypeId, ListType, NodePoly(Node))
 import Gargantext.Database.Config (nodeTypeId,userMaster)
-import Gargantext.Database.Types.Node (NodeType)
-import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Node (mkCmd, Cmd(..),getListsWithParentId, getCorporaWithParentId)
 import Gargantext.Database.Root (getRoot)
-import Gargantext.Database.Tree (dbTree, toNodeTree)
-import Gargantext.Core.Types.Main (NodeTree(..))
+import Gargantext.Core.Types (CorpusId)
+import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Prelude
+import Prelude (Enum, Bounded, minBound, maxBound)
+import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as DPS
 
 --data NgramPoly id terms n = NgramDb { ngram_id    :: id
@@ -181,7 +180,12 @@ queryInsertNgrams = [sql|
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
 
-
+defaultList :: DPS.Connection -> CorpusId -> IO ListId
+defaultList c cId = view node_id <$> maybe (panic errMessage) identity
+  <$> head
+  <$> getListsWithParentId c cId
+  where
+    errMessage = "Gargantext.API.Ngrams.defaultList: no list found"
 
 -- | Ngrams Table
 -- TODO: the way we are getting main Master Corpus and List ID is not clean
@@ -192,15 +196,19 @@ getNgramsTableDb :: DPS.Connection
                -> NgramsTableParamUser
                -> IO ([NgramsTableData], MapToParent, MapToChildren)
 getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
-  let lieu = "Garg.Db.Ngrams.getTableNgrams: "
+  
+  
   maybeRoot <- head <$> getRoot userMaster c
-  let masterRootId = maybe (panic $ lieu <> "no userMaster Tree") (view node_id) maybeRoot
-  tree <- map toNodeTree <$> dbTree c masterRootId
-  let maybeCorpus = head $ filter (\n -> _nt_type n == NodeCorpus) tree
-  let maybeList   = head $ filter (\n -> _nt_type n == NodeList)   tree
-  let maybeIds    = fmap (both _nt_id) $ (,) <$> maybeCorpus <*> maybeList
-  let (corpusMasterId, listMasterId) = maybe (panic $ lieu <> "no CorpusId or ListId") identity maybeIds
+  let path = "Garg.Db.Ngrams.getTableNgrams: "
+  let masterRootId = maybe (panic $ path <> "no userMaster Tree") (view node_id) maybeRoot
+  -- let errMess = panic "Error"
+
+  corpusMasterId <- maybe (panic "error corpus master") (view node_id) <$> head <$> getCorporaWithParentId c masterRootId
+  
+  listMasterId   <- maybe (panic "error liste master") (view node_id) <$> head <$> getListsWithParentId   c corpusMasterId
+  
   ngramsTableData <- getNgramsTableData c nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId)
+  
   (mapToParent,mapToChildren) <- getNgramsGroup c listIdUser listMasterId
   pure (ngramsTableData, mapToParent,mapToChildren)
 
@@ -224,11 +232,14 @@ getNgramsTableData :: DPS.Connection
                    -> NgramsTableParamUser -> NgramsTableParamMaster 
                    -> IO [NgramsTableData]
 getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
-  map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w)
-  <$> DPS.query conn querySelectTableNgrams (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
-    where
-      nodeTId = nodeTypeId   nodeT
-      ngrmTId = ngramsTypeId ngrmT
+  trace ("Ngrams table params" <> show params) <$>
+  map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$>
+    DPS.query conn querySelectTableNgrams params
+      where
+        nodeTId = nodeTypeId   nodeT
+        ngrmTId = ngramsTypeId ngrmT
+        params  = (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
+      
 
 
 querySelectTableNgrams :: DPS.Query

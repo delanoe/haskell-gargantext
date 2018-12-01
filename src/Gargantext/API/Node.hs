@@ -53,7 +53,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
                                 , getNodesWithParentId
-                                , getNode, getNodesWith, CorpusId
+                                , getNode, getNodesWith
                                 , deleteNode, deleteNodes, mk, JSONB)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..)
@@ -65,7 +65,7 @@ import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.Viz.Graph (Graph,readGraphFromJson,defaultGraph)
 -- import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree, ListId)
+import Gargantext.Core.Types.Main (Tree, NodeTree, ListId, CorpusId)
 -- import Gargantext.Text.Terms (TermType(..))
 
 import Test.QuickCheck (elements)

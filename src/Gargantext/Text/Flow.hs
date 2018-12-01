@@ -42,6 +42,7 @@ import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
 import Gargantext.Text.Terms (TermType, extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
+import Gargantext.Core.Types (CorpusId)
 
 import Gargantext.Text.Parsers.CSV
 

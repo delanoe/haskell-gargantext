@@ -44,7 +44,7 @@ import qualified Data.Set as Set
 --import Data.Maybe (catMaybes)
 --import qualified Data.Map.Strict as DM
 --import qualified Data.Set as Set
-import Control.Lens (view, (.~))
+import Control.Lens ((.~))
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
@@ -54,14 +54,12 @@ import Data.Swagger
 import Data.Text (Text)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
-import Gargantext.Core.Types (node_id)
 --import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeType(..))
-import Gargantext.Database.Node (getListsWithParentId)
 import qualified Gargantext.Database.Ngrams as Ngrams
 import Gargantext.Prelude
-import Gargantext.Core.Types (ListType(..), ListId)
+import Gargantext.Core.Types (ListType(..), ListId, CorpusId)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant hiding (Patch)
 import Test.QuickCheck (elements)
@@ -236,7 +234,6 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-type CorpusId = Int
 
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> QueryParam "ngramsType"   TabType
@@ -251,13 +248,6 @@ type TableNgramsApi = Summary " Table Ngrams API Change"
 type NgramsIdPatchsFeed = NgramsIdPatchs
 type NgramsIdPatchsBack = NgramsIdPatchs
 
-
-defaultList :: Connection -> CorpusId -> IO ListId
-defaultList c cId = view node_id <$> maybe (panic noListFound) identity 
-  <$> head
-  <$> getListsWithParentId c cId
-  where
-    noListFound = "Gargantext.API.Ngrams.defaultList: no list found"
 
 {-
 toLists :: ListId -> NgramsIdPatchs -> [(ListId, NgramsId, ListTypeId)]
@@ -305,7 +295,7 @@ getTableNgrams c cId maybeTabType maybeListId = do
             _          -> panic $ lieu <> "No Ngrams for this tab"
 
   listId <- case maybeListId of
-      Nothing -> defaultList c cId
+      Nothing -> Ngrams.defaultList c cId
       Just lId -> pure lId
 
   (ngramsTableDatas, mapToParent, mapToChildren) <-
