@@ -65,7 +65,7 @@ flowInsert _nt hyperdataDocuments cName = do
   let hyperdataDocuments' = map (\h -> ToDbDocument h) hyperdataDocuments
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
-  ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId hyperdataDocuments'
+  ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'
   
   (userId, _, userCorpusId) <- subFlowCorpus userArbitrary cName
   _ <- runCmd' $ add userCorpusId (map reId ids)
@@ -79,7 +79,6 @@ flowAnnuaire filePath = do
   ps <- flowInsertAnnuaire "Annuaire" $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts 
   printDebug "length annuaire" (ps)
 
---{-
 
 flowInsertAnnuaire :: CorpusName
                                 -> [ToDbData]
@@ -87,7 +86,7 @@ flowInsertAnnuaire :: CorpusName
 flowInsertAnnuaire name children = do
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
-  ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId children
+  ids  <- runCmd' $ insertDocuments masterUserId masterCorpusId NodeContact children
   
   (userId, _, userCorpusId) <- subFlowAnnuaire userArbitrary name
   _ <- runCmd' $ add userCorpusId (map reId ids)

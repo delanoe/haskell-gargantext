@@ -203,9 +203,9 @@ getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
   let masterRootId = maybe (panic $ path <> "no userMaster Tree") (view node_id) maybeRoot
   -- let errMess = panic "Error"
 
-  corpusMasterId <- maybe (panic "error corpus master") (view node_id) <$> head <$> getCorporaWithParentId c masterRootId
+  corpusMasterId <- maybe (panic "error master corpus") (view node_id) <$> head <$> getCorporaWithParentId c masterRootId
   
-  listMasterId   <- maybe (panic "error liste master") (view node_id) <$> head <$> getListsWithParentId   c corpusMasterId
+  listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId   c corpusMasterId
   
   ngramsTableData <- getNgramsTableData c nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId)
   
@@ -239,7 +239,7 @@ getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam m
         nodeTId = nodeTypeId   nodeT
         ngrmTId = ngramsTypeId ngrmT
         params  = (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
-      
+
 
 
 querySelectTableNgrams :: DPS.Query

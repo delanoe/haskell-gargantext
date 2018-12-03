@@ -23,7 +23,8 @@ import Data.Text (Text, words)
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
-
+import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
 
 newtype TSQuery = UnsafeTSQuery [Text]
@@ -71,7 +72,8 @@ textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'     \
 \            LEFT JOIN nodes_nodes nn  ON nn.node2_id = n.id        \
 \              WHERE                                                \
 \                n.search @@ (?::tsquery)                           \
-\                AND n.parent_id = ?   AND n.typename  = 4          \
+\                AND (n.parent_id = ? OR nn.node1_id = ?)           \
+\                AND n.typename  = ?                                \
 \                ORDER BY n.hyperdata -> 'publication_date' ?       \
 \            offset ? limit ?;"
 
@@ -84,6 +86,8 @@ textSearch :: Connection
            -> TSQuery -> ParentId
            -> Limit -> Offset -> Order
            -> IO [(Int,Value,Value,Value, Value, Maybe Int)]
-textSearch conn q p l o ord = query conn textSearchQuery (q,p,ord, o,l)
+textSearch conn q p l o ord = query conn textSearchQuery (q,p,p,typeId,ord,o,l)
+  where
+    typeId = nodeTypeId NodeDocument
 
 

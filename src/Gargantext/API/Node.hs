@@ -53,8 +53,9 @@ import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Node ( runCmd
                                 , getNodesWithParentId
-                                , getNode, getNodesWith
+                                , getNode
                                 , deleteNode, deleteNodes, mk, JSONB)
+import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..)
                                  ,FacetChart)
@@ -137,7 +138,7 @@ nodeAPI conn p id
               :<|> postNode      conn id
               :<|> putNode       conn id
               :<|> deleteNode'   conn id
-              :<|> getNodesWith' conn id p
+              :<|> getChildren'  conn id p
               
               -- TODO gather it
               :<|> getTable      conn id
@@ -285,9 +286,9 @@ deleteNodes' conn ids = liftIO (runCmd conn $ deleteNodes ids)
 deleteNode' :: Connection -> NodeId -> Handler Int
 deleteNode' conn id = liftIO (runCmd conn $ deleteNode id)
 
-getNodesWith' :: JSONB a => Connection -> NodeId -> proxy a -> Maybe NodeType
+getChildren' :: JSONB a => Connection -> NodeId -> proxy a -> Maybe NodeType
               -> Maybe Int -> Maybe Int -> Handler [Node a]
-getNodesWith' conn id p nodeType offset limit  = liftIO (getNodesWith conn id p nodeType offset limit)
+getChildren' conn pId p nodeType offset limit  = liftIO (getChildren conn pId p nodeType offset limit)
 
 tableNgramsPatch' :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> Handler NgramsIdPatchsBack
 tableNgramsPatch' c cId mL ns = liftIO $ tableNgramsPatch c cId mL ns

@@ -113,8 +113,8 @@ import Database.PostgreSQL.Simple (formatQuery)
 
 data ToDbData = ToDbDocument HyperdataDocument | ToDbContact HyperdataContact
 
-insertDocuments :: UserId -> ParentId -> [ToDbData] -> Cmd [ReturnId]
-insertDocuments uId pId hs = mkCmd $ \c -> query c queryInsert (Only $ Values fields $ prepare uId pId hs)
+insertDocuments :: UserId -> ParentId -> NodeType -> [ToDbData] -> Cmd [ReturnId]
+insertDocuments uId pId nodeType hs = mkCmd $ \c -> query c queryInsert (Only $ Values fields $ prepare uId pId nodeType hs)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
 
@@ -158,10 +158,10 @@ queryInsert = [sql|
     JOIN   nodes c USING (hyperdata);         -- columns of unique index
            |]
 
-prepare :: UserId -> ParentId -> [ToDbData] -> [InputData]
-prepare uId pId = map (\h -> InputData tId uId pId (name h) (toJSON' h))
+prepare :: UserId -> ParentId -> NodeType -> [ToDbData] -> [InputData]
+prepare uId pId nodeType = map (\h -> InputData tId uId pId (name h) (toJSON' h))
   where
-    tId    = nodeTypeId NodeDocument
+    tId    = nodeTypeId nodeType
     
     toJSON' (ToDbDocument hd) = toJSON hd
     toJSON' (ToDbContact  hc) = toJSON hc
