@@ -44,7 +44,7 @@ type NodeContact  = Node HyperdataContact
 data HyperdataContact =
      HyperdataContact { _hc_bdd    :: Maybe Text           -- ID of Database source
                       , _hc_who    :: Maybe ContactWho
-                      , _hc_where  :: Maybe [ContactWhere]
+                      , _hc_where  :: [ContactWhere]
                       , _hc_title  :: Maybe Text -- TODO remove (only demo)
                       , _hc_source :: Maybe Text -- TODO remove (only demo)
                       , _hc_lastValidation  :: Maybe Text
@@ -61,7 +61,7 @@ data ContactMetaData =
 
 
 arbitraryHyperdataContact :: HyperdataContact
-arbitraryHyperdataContact = HyperdataContact Nothing Nothing Nothing
+arbitraryHyperdataContact = HyperdataContact Nothing Nothing []
                                              Nothing Nothing Nothing
                                              Nothing Nothing
 
@@ -69,13 +69,13 @@ data ContactWho =
      ContactWho { _cw_id          :: Maybe Text
                 , _cw_firstName   :: Maybe Text
                 , _cw_lastName    :: Maybe Text
-                , _cw_keywords :: Maybe [Text]
-                , _cw_freetags :: Maybe [Text]
+                , _cw_keywords :: [Text]
+                , _cw_freetags :: [Text]
   } deriving (Eq, Show, Generic)
 
 data ContactWhere =
-     ContactWhere { _cw_organization :: Maybe [Text]
-                  , _cw_labTeamDepts :: Maybe [Text]
+     ContactWhere { _cw_organization :: [Text]
+                  , _cw_labTeamDepts :: [Text]
                   
                   , _cw_role         :: Maybe Text
                   
@@ -112,7 +112,7 @@ instance ToSchema ContactWhere
 instance ToSchema ContactTouch
 
 instance Arbitrary HyperdataContact where
-  arbitrary = elements [HyperdataContact Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing]
+  arbitrary = elements [HyperdataContact Nothing Nothing [] Nothing Nothing Nothing Nothing Nothing]
 
 
 -- | Specific Gargantext instance

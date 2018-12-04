@@ -244,7 +244,7 @@ addUniqIdsContact hc = set (hc_uniqIdBdd) (Just hashBdd)
 hashParametersContact :: [(HyperdataContact -> Text)]
 hashParametersContact = [ \d -> maybe' $ view (hc_who . _Just . cw_firstName) d
                         , \d -> maybe' $ view (hc_who . _Just . cw_lastName ) d
-                        , \d -> maybe' $ view (hc_where . _Just . _head . cw_touch . _Just . ct_mail) d
+                        , \d -> maybe' $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
                         ]
 
 
