@@ -301,7 +301,7 @@ getTableNgrams c cId maybeTabType maybeListId = do
   (ngramsTableDatas, mapToParent, mapToChildren) <-
     Ngrams.getNgramsTableDb c NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId)
 
-  printDebug "ngramsTableDatas" ngramsTableDatas
+  -- printDebug "ngramsTableDatas" ngramsTableDatas
 
   pure $ NgramsTable $ map (\(Ngrams.NgramsTableData ngs _ lt w) ->
                               NgramsElement ngs

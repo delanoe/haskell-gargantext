@@ -28,7 +28,7 @@ import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams)
-import Gargantext.Database.Node (mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)--, getCorporaWithParentId')
+import Gargantext.Database.Node (mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId')
 import Gargantext.Database.Root (getRootCmd)
 import Gargantext.Database.Types.Node (NodeType(..), NodeId)
 import Gargantext.Database.Node.Document.Add    (add)
@@ -146,17 +146,18 @@ subFlowCorpus username cName = do
             True  -> panic "Error: more than 1 userNode / user"
             False -> pure rootId'
   let rootId = maybe (panic "error rootId") identity (head rootId'')
-  {-
+  --{-
   corpusId'' <- if username == userMaster
-                  then runCmd' $ getCorporaWithParentId' rootId
-                  else pure []
+                  then do
+                    ns <- runCmd' $ getCorporaWithParentId' rootId
+                    pure $ map _node_id ns
+                  else
+                    pure []
 
-  let corpusId''' = case map _node_id <$> head corpusId'' of
-      Nothing -> 
-                  -- panic "error" -- pure Nothing
-                  -- else (view node_id <$> head <$> runCmd' $ getCorporaWithParentId' rootId)
 --}
-  corpusId' <- runCmd' $ mkCorpus (Just cName) Nothing rootId userId
+  corpusId' <- if corpusId'' /= []
+                  then pure corpusId''
+                  else runCmd' $ mkCorpus (Just cName) Nothing rootId userId
 
   let corpusId = maybe (panic "error corpusId") identity (head corpusId')
 
