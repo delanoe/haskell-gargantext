@@ -32,7 +32,7 @@ import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Swagger
 
-import Gargantext.Database.Types.Node
+import Gargantext.Database.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
@@ -81,9 +81,23 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 --data Classification = Favorites | MyClassifcation
 
+type UserId   = Int
+type MasterUserId = Int
 
-type CorpusId = Int
-type ListId = Int
+type RootId   = Int
+type MasterCorpusId = Int
+
+type HashId   = Text
+
+type AnnuaireId = NodeId
+type ContactId  = NodeId
+
+type CorpusId   = NodeId
+type DocumentId = NodeId
+type DocId      = DocumentId -- todo: remove this
+
+type ListId     = NodeId
+type TypeId     = Int
 
 -- TODO multiple ListType declaration, remove it
 data ListType  =  StopList  | CandidateList | GraphList

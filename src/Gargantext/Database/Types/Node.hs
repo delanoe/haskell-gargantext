@@ -56,6 +56,7 @@ import           Test.QuickCheck (elements)
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
 ------------------------------------------------------------------------
+type NodeId = Int
 
 type UTCTime' = UTCTime
 
@@ -327,7 +328,6 @@ type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) No
 
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
-type NodeId       = Int
 type NodeParentId = Int
 type NodeUserId   = Int
 type NodeName     = Text

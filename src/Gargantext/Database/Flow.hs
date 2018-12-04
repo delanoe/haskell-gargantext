@@ -23,14 +23,13 @@ import Data.Text (Text, splitOn)
 import Data.Map (Map, lookup)
 import Data.Tuple.Extra (both, second)
 import qualified Data.Map as DM
-
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
-import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT, ngramsTypeId, NgramsType(..), text2ngrams)
+import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams)
 import Gargantext.Database.Node (mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)
 import Gargantext.Database.Root (getRootCmd)
-import Gargantext.Database.Types.Node (NodeType(..))
+import Gargantext.Database.Types.Node (NodeType(..), NodeId)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
@@ -43,13 +42,8 @@ import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
-
-type UserId   = Int
-type MasterUserId = Int
-
-type RootId   = Int
-type CorpusId = Int
-type MasterCorpusId = Int
+import Gargantext.Core.Types.Main
+import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 
 flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO CorpusId
 flowDatabase ff fp cName = do
@@ -95,16 +89,11 @@ flowInsertAnnuaire name children = do
 
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
-
---}
-
---{-
 flowCorpus :: NodeType
                         -> [HyperdataDocument]
                         -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
                         -> IO CorpusId
 flowCorpus NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
---}
 --------------------------------------------------
   -- List Ngrams Flow
   userListId <- runCmd' $ listFlowUser userId userCorpusId
@@ -195,11 +184,6 @@ subFlowAnnuaire username _cName = do
 
 
 ------------------------------------------------------------------------
-
-type HashId   = Text
-type NodeId   = Int
-type ListId   = Int
-
 toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
 toInsert = DM.fromList . map (\d -> (maybe err identity (_hyperdataDocument_uniqId d), d))
   where
@@ -261,14 +245,6 @@ indexNgrams :: Map (NgramsT Ngrams       ) (Map NodeId Int)
 indexNgrams ng2nId = do
   terms2id <- insertNgrams (map _ngramsT $ DM.keys ng2nId)
   pure $ DM.mapKeys (indexNgramsT terms2id) ng2nId
-
-
-insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd Int
-insertToNodeNgrams m = insertNodeNgrams [ NodeNgram Nothing nId  ((_ngramsId    . _ngramsT   ) ng)
-                                                (fromIntegral n) ((ngramsTypeId . _ngramsType) ng)
-                                          | (ng, nId2int) <- DM.toList m
-                                          , (nId, n)      <- DM.toList nId2int
-                                        ]
 
 
 ------------------------------------------------------------------------

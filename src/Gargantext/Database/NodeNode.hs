@@ -30,8 +30,8 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Gargantext.Database.Node (Cmd(..), mkCmd, DocId)
-import Gargantext.Core.Types (CorpusId)
+import Gargantext.Database.Node (Cmd(..), mkCmd)
+import Gargantext.Core.Types.Main (CorpusId, DocId)
 import Gargantext.Prelude
 import Opaleye
 

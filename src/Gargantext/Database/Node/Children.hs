@@ -24,10 +24,15 @@ import Gargantext.Database.Node
 import Gargantext.Database.NodeNode
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries
+import Gargantext.Database.Node.Contact (HyperdataContact)
 import Control.Arrow (returnA)
 
-getChildren :: JSONB a => Connection -> ParentId -> proxy a -> Maybe NodeType
-            -> Maybe Offset -> Maybe Limit -> IO [Node a]
+-- | TODO: use getChildren with Proxy ?
+getContacts :: ParentId -> Maybe NodeType -> Cmd [Node HyperdataContact]
+getContacts pId maybeNodeType = mkCmd $ \c -> runQuery c $ selectChildren pId maybeNodeType
+
+
+getChildren :: JSONB a => Connection -> ParentId -> proxy a -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [Node a]
 getChildren c pId _ maybeNodeType maybeOffset maybeLimit = runQuery c 
                   $ limit' maybeLimit $ offset' maybeOffset
                   $ orderBy (asc _node_id)

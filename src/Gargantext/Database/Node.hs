@@ -41,6 +41,7 @@ import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
 import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Prelude hiding (sum)
+import Gargantext.Core.Types.Main (UserId)
 
 import Control.Applicative (Applicative)
 import Control.Arrow (returnA)
@@ -84,11 +85,6 @@ mkCmd :: (Connection -> IO a) -> Cmd a
 mkCmd = Cmd . ReaderT
 
 ------------------------------------------------------------------------
-type AnnuaireId = Int
-
-type DocId  = Int
-type UserId = Int
-type TypeId = Int
 ------------------------------------------------------------------------
 instance FromField HyperdataAny
   where
