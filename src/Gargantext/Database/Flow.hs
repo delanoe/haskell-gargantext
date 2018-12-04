@@ -17,6 +17,7 @@ module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
 import GHC.Show (Show)
+--import Control.Lens (view)
 import System.FilePath (FilePath)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text, splitOn)
@@ -27,7 +28,7 @@ import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams)
-import Gargantext.Database.Node (mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)
+import Gargantext.Database.Node (mkRoot, mkCorpus, Cmd(..), mkList, mkGraph, mkDashboard, mkAnnuaire)--, getCorporaWithParentId')
 import Gargantext.Database.Root (getRootCmd)
 import Gargantext.Database.Types.Node (NodeType(..), NodeId)
 import Gargantext.Database.Node.Document.Add    (add)
@@ -43,14 +44,14 @@ import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Core.Types.Main
+--import Gargantext.Core.Types
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 
-flowDatabase :: FileFormat -> FilePath -> CorpusName -> IO CorpusId
-flowDatabase ff fp cName = do
-  -- Corpus Flow
-  hyperdataDocuments <- map addUniqIdsDoc <$> parseDocs ff fp
-  params <- flowInsert NodeCorpus hyperdataDocuments cName
-  flowCorpus NodeCorpus hyperdataDocuments params
+flowCorpus :: FileFormat -> FilePath -> CorpusName -> IO CorpusId
+flowCorpus ff fp cName = do
+  hyperdataDocuments' <- map addUniqIdsDoc <$> parseDocs ff fp
+  params <- flowInsert NodeCorpus hyperdataDocuments' cName
+  flowCorpus' NodeCorpus hyperdataDocuments' params
 
 
 flowInsert :: NodeType -> [HyperdataDocument] -> CorpusName
@@ -70,13 +71,12 @@ flowInsert _nt hyperdataDocuments cName = do
 flowAnnuaire :: FilePath -> IO ()
 flowAnnuaire filePath = do
   contacts <- deserialiseImtUsersFromFile filePath
-  ps <- flowInsertAnnuaire "Annuaire" $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts 
-  printDebug "length annuaire" (ps)
+  ps <- flowInsertAnnuaire "Annuaire" $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts
+  printDebug "length annuaire" ps
 
 
-flowInsertAnnuaire :: CorpusName
-                                -> [ToDbData]
-                                -> IO ([ReturnId], UserId, CorpusId, UserId, CorpusId)
+flowInsertAnnuaire :: CorpusName -> [ToDbData]
+                    -> IO ([ReturnId], UserId, CorpusId, UserId, CorpusId)
 flowInsertAnnuaire name children = do
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
@@ -89,14 +89,14 @@ flowInsertAnnuaire name children = do
 
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
-flowCorpus :: NodeType
-                        -> [HyperdataDocument]
-                        -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
-                        -> IO CorpusId
-flowCorpus NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
+
+flowCorpus' :: NodeType -> [HyperdataDocument]
+            -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
+            -> IO CorpusId
+flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
 --------------------------------------------------
   -- List Ngrams Flow
-  userListId <- runCmd' $ listFlowUser userId userCorpusId
+  userListId <- runCmd' $ flowListUser userId userCorpusId
   printDebug "Working on User ListId : " userListId
   
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
@@ -110,10 +110,9 @@ flowCorpus NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userI
   -- printDebug "inserted ngrams" indexedNgrams
   _             <- runCmd' $ insertToNodeNgrams indexedNgrams
   
-  listId2    <- runCmd' $ listFlow masterUserId masterCorpusId indexedNgrams
+  listId2    <- runCmd' $ flowList masterUserId masterCorpusId indexedNgrams
   printDebug "Working on ListId : " listId2
   --}
-
 --------------------------------------------------
   _ <- runCmd' $ mkDashboard userCorpusId userId
   _ <- runCmd' $ mkGraph     userCorpusId userId
@@ -124,8 +123,8 @@ flowCorpus NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userI
   pure userCorpusId
   -- runCmd' $ del [corpusId2, corpusId]
 
-flowCorpus NodeAnnuaire _hyperdataDocuments (_ids,_masterUserId,_masterCorpusId,_userId,_userCorpusId) = undefined
-flowCorpus _ _ _ = undefined
+flowCorpus' NodeAnnuaire _hyperdataDocuments (_ids,_masterUserId,_masterCorpusId,_userId,_userCorpusId) = undefined
+flowCorpus' _ _ _ = undefined
 
 
 type CorpusName = Text
@@ -147,8 +146,18 @@ subFlowCorpus username cName = do
             True  -> panic "Error: more than 1 userNode / user"
             False -> pure rootId'
   let rootId = maybe (panic "error rootId") identity (head rootId'')
+  {-
+  corpusId'' <- if username == userMaster
+                  then runCmd' $ getCorporaWithParentId' rootId
+                  else pure []
 
+  let corpusId''' = case map _node_id <$> head corpusId'' of
+      Nothing -> 
+                  -- panic "error" -- pure Nothing
+                  -- else (view node_id <$> head <$> runCmd' $ getCorporaWithParentId' rootId)
+--}
   corpusId' <- runCmd' $ mkCorpus (Just cName) Nothing rootId userId
+
   let corpusId = maybe (panic "error corpusId") identity (head corpusId')
 
   printDebug "(username, userId, rootId, corpusId)"
@@ -175,6 +184,7 @@ subFlowAnnuaire username _cName = do
   let rootId = maybe (panic "error rootId") identity (head rootId'')
 
   corpusId' <- runCmd' $ mkAnnuaire rootId userId
+  
   let corpusId = maybe (panic "error corpusId") identity (head corpusId')
 
   printDebug "(username, userId, rootId, corpusId)"
@@ -249,8 +259,8 @@ indexNgrams ng2nId = do
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-listFlow :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
-listFlow uId cId ngs = do
+flowList :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
+flowList uId cId ngs = do
   -- printDebug "ngs:" ngs
   lId <- maybe (panic "mkList error") identity <$> head <$> mkList cId uId
   --printDebug "ngs" (DM.keys ngs)
@@ -267,8 +277,8 @@ listFlow uId cId ngs = do
 
   pure lId
 
-listFlowUser :: UserId -> CorpusId -> Cmd [Int]
-listFlowUser uId cId = mkList cId uId
+flowListUser :: UserId -> CorpusId -> Cmd [Int]
+flowListUser uId cId = mkList cId uId
 
 ------------------------------------------------------------------------
 

@@ -40,7 +40,7 @@ import Gargantext.Database.Utils (fromField')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
 import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Prelude hiding (sum)
+import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Core.Types.Main (UserId)
 
 import Control.Applicative (Applicative)
@@ -273,6 +273,10 @@ getListsWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeList)
 
 getCorporaWithParentId :: Connection -> Int -> IO [Node HyperdataCorpus]
 getCorporaWithParentId conn n = runQuery conn $ selectNodesWith' n (Just NodeCorpus)
+
+getCorporaWithParentId' :: Int -> Cmd [Node HyperdataCorpus]
+getCorporaWithParentId' n = mkCmd $ \conn -> runQuery conn $ selectNodesWith' n (Just NodeCorpus)
+
 
 ------------------------------------------------------------------------
 selectNodesWithParentID :: Int -> Query NodeRead

@@ -17,8 +17,8 @@ Portability : POSIX
 module Gargantext.Database.Flow.Pairing
     where
 
-import Debug.Trace (trace)
-import Control.Lens (view,_Just)
+--import Debug.Trace (trace)
+import Control.Lens (_Just,view)
 import Database.PostgreSQL.Simple (Connection, query)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 -- import Opaleye
