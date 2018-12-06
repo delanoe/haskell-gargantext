@@ -25,7 +25,6 @@ module Gargantext.Database.Ngrams where
 
 
 import Database.PostgreSQL.Simple as DPS (Connection)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Opaleye
 import Control.Lens (makeLenses, view)

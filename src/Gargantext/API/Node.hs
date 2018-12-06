@@ -57,8 +57,7 @@ import Gargantext.Database.Node ( runCmd
                                 , deleteNode, deleteNodes, mk, JSONB)
 import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..)
-                                 ,FacetChart)
+import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..),FacetChart,runViewAuthorsDoc)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
@@ -66,7 +65,7 @@ import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.Viz.Graph (Graph,readGraphFromJson,defaultGraph)
 -- import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree, ListId, CorpusId)
+import Gargantext.Core.Types.Main (Tree, NodeTree, ListId, CorpusId, ContactId)
 -- import Gargantext.Text.Terms (TermType(..))
 
 import Test.QuickCheck (elements)
@@ -111,6 +110,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "table"     :> TableApi
              :<|> "list"      :> TableNgramsApi
              :<|> "listGet"   :> TableNgramsApiGet
+             :<|> "pairing"   :> PairingApi
 
              :<|> "chart"     :> ChartApi
              :<|> "favorites" :> FavApi
@@ -144,6 +144,7 @@ nodeAPI conn p id
               :<|> getTable      conn id
               :<|> tableNgramsPatch'  conn id
               :<|> getTableNgrams' conn id
+              :<|> getPairing      conn id
 
               :<|> getChart      conn id
               :<|> favApi        conn id
@@ -222,6 +223,13 @@ type TableApi = Summary " Table API"
               :> QueryParam "order"  OrderBy
               :> Get '[JSON] [FacetDoc]
 
+type PairingApi = Summary " Pairing API"
+              :> QueryParam "view"   TabType
+              :> QueryParam "offset" Int
+              :> QueryParam "limit"  Int
+              :> QueryParam "order"  OrderBy
+              :> Get '[JSON] [FacetDoc]
+
 ------------------------------------------------------------------------
 type ChartApi = Summary " Chart API"
               :> QueryParam "from" UTCTime
@@ -269,6 +277,15 @@ getTable c cId ft o l order = liftIO $ case ft of
                                 (Just Docs)  -> runViewDocuments' c cId False o l order
                                 (Just Trash) -> runViewDocuments' c cId True  o l order
                                 _     -> panic "not implemented"
+
+getPairing :: Connection -> ContactId -> Maybe TabType
+         -> Maybe Offset  -> Maybe Limit
+         -> Maybe OrderBy -> Handler [FacetDoc]
+getPairing c cId ft o l order = liftIO $ case ft of
+                                (Just Docs)  -> runViewAuthorsDoc c cId False o l order
+                                (Just Trash) -> runViewAuthorsDoc c cId True  o l order
+                                _     -> panic "not implemented"
+
 
 getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
                         -> Handler [FacetChart]

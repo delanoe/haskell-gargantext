@@ -27,45 +27,36 @@ module Gargantext.Database.Facet
   where
 ------------------------------------------------------------------------
 
-import Prelude hiding (null, id, map, sum, not, read)
-import Prelude (Enum, Bounded, minBound, maxBound)
-import GHC.Generics (Generic)
-
-import Data.Aeson (FromJSON, ToJSON)
-import Data.Either(Either(Left))
-import Data.Profunctor.Product.Default
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
+import Data.Either(Either(Left))
 import Data.Maybe (Maybe)
+import Data.Profunctor.Product.Default
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Swagger
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
-import Data.Swagger
-
-import qualified Database.PostgreSQL.Simple as DPS
 import Database.PostgreSQL.Simple (Connection)
-import           Opaleye
-import Opaleye.Join
-import Opaleye.Internal.Join (NullMaker)
-import qualified Opaleye.Internal.Unpackspec()
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-
-import Servant.API
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck (elements)
-
+import GHC.Generics (Generic)
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.NodeNode
-import Gargantext.Database.Node
-import Gargantext.Database.Ngrams
-import Gargantext.Database.NodeNgram
-import Gargantext.Database.Queries
 import Gargantext.Database.Config (nodeTypeId)
--- import Gargantext.Database.NodeNgram
+import Gargantext.Database.Ngrams
+import Gargantext.Database.Node
+import Gargantext.Database.NodeNgram
+import Gargantext.Database.NodeNode
+import Gargantext.Database.Queries
+import Opaleye
+import Opaleye.Internal.Join (NullMaker)
+import Prelude (Enum, Bounded, minBound, maxBound)
+import Prelude hiding (null, id, map, sum, not, read)
+import Servant.API
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
+import qualified Opaleye.Internal.Unpackspec()
 
 ------------------------------------------------------------------------
 -- | DocFacet
@@ -164,12 +155,14 @@ instance Arbitrary OrderBy
     arbitrary = elements [minBound..maxBound]
 
 
-runViewAuthorsDoc :: Connection -> ContactId -> Trash -> NodeType -> IO [FacetDoc]
-runViewAuthorsDoc c cId t nt = runQuery c (viewAuthorsDoc cId t nt)
+runViewAuthorsDoc :: Connection -> ContactId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
+runViewAuthorsDoc c cId t o l order = runQuery c (filterDocuments o l order $ viewAuthorsDoc cId t ntId)
+  where
+    ntId = NodeDocument
 
 -- TODO add delete ?
 viewAuthorsDoc :: ContactId -> Trash -> NodeType -> Query FacetDocRead
-viewAuthorsDoc cId t nt = proc () -> do
+viewAuthorsDoc cId _ nt = proc () -> do
   (doc,(_,(_,(_,contact)))) <- queryAuthorsDoc      -< ()
 
   {-nn         <- queryNodeNodeTable -< ()
@@ -202,6 +195,17 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
 
 
 
+------------------------------------------------------------------------
+
+runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd [FacetDoc]
+runViewDocuments cId t o l order = mkCmd $ \c -> runViewDocuments' c cId t o l order
+
+-- | TODO use only Cmd with Reader and delete function below
+runViewDocuments' :: Connection -> CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
+runViewDocuments' c cId t o l order = runQuery c ( filterDocuments o l order
+                                                $ viewDocuments cId t ntId)
+  where
+    ntId = nodeTypeId NodeDocument
 
 viewDocuments :: CorpusId -> Trash -> NodeTypeId -> Query FacetDocRead
 viewDocuments cId t ntId = proc () -> do
@@ -213,6 +217,8 @@ viewDocuments cId t ntId = proc () -> do
   restrict -< nodeNode_delete   nn .== (pgBool t)
   returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (nodeNode_favorite nn) (pgInt4 1)
 
+
+------------------------------------------------------------------------
 
 filterDocuments :: (PGOrd date, PGOrd title, PGOrd favorite) =>
      Maybe Gargantext.Core.Types.Offset
@@ -233,16 +239,10 @@ filterDocuments o l order q = limit' l $ offset' o $ orderBy ordering q
       _                -> desc facetDoc_created
 
 
-runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd [FacetDoc]
-runViewDocuments cId t o l order = mkCmd $ \c -> runViewDocuments' c cId t o l order
 
--- | TODO use only Cmd with Reader and delete function below
-runViewDocuments' :: Connection -> CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
-runViewDocuments' c cId t o l order = runQuery c ( filterDocuments o l order
-                                                $ viewDocuments cId t ntId)
-  where
-    ntId = nodeTypeId NodeDocument
 
+------------------------------------------------------------------------
+-- | TODO move this queries utilties elsewhere
 
 leftJoin3' :: Query (NodeRead, (NodeNodeReadNull, NodeReadNull))
 leftJoin3' = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12 cond23
