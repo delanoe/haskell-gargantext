@@ -104,7 +104,7 @@ type SearchAPI = Post '[JSON] SearchResults
 
 search :: Connection -> SearchQuery -> Handler SearchResults
 search c (SearchQuery q pId) =
-  liftIO $ SearchResults <$> map (\(i, _, t, _, a, _) -> SearchResult i (cs $ encode t) [arbitraryAuthor])
+  liftIO $ SearchResults <$> map (\(i, _, t, _, _, _) -> SearchResult i (cs $ encode t) [arbitraryAuthor])
                          <$> textSearch c (toTSQuery q) pId 5 0 Desc
 
 
