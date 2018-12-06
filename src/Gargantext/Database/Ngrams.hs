@@ -25,9 +25,9 @@ module Gargantext.Database.Ngrams where
 
 
 import Database.PostgreSQL.Simple as DPS (Connection)
---import Control.Lens.TH (makeLensesWith, abbreviatedFields)
---import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
---import Opaleye
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Opaleye
 import Control.Lens (makeLenses, view)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
@@ -51,38 +51,44 @@ import Prelude (Enum, Bounded, minBound, maxBound)
 import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as DPS
 
-{-
-data NgramPoly id terms n = NgramDb { ngram_id    :: id
-                                    , ngram_terms :: terms
-                                    , ngram_n     :: n
+--{-
+data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
+                                    , ngrams_terms :: terms
+                                    , ngrams_n     :: n
                                     } deriving (Show)
 
-type NgramWrite = NgramPoly (Maybe (Column PGInt4))
+--}
+type NgramsWrite = NgramsPoly (Maybe (Column PGInt4))
                                    (Column PGText)
                                    (Column PGInt4)
 
-type NgramRead  = NgramPoly        (Column PGInt4)
-                                   (Column PGText)
-                                   (Column PGInt4)
+type NgramsRead  = NgramsPoly (Column PGInt4)
+                              (Column PGText)
+                              (Column PGInt4)
 
---type Ngram = NgramPoly Int Text Int
+type NgramsReadNull = NgramsPoly (Column (Nullable PGInt4))
+                                 (Column (Nullable PGText))
+                                 (Column (Nullable PGInt4))
 
-$(makeAdaptorAndInstance "pNgram"    ''NgramPoly)
-$(makeLensesWith abbreviatedFields   ''NgramPoly)
+--{-
+type NgramsDb = NgramsPoly Int Text Int
 
-ngramTable :: Table NgramWrite NgramRead
-ngramTable = Table "ngrams" (pNgram NgramDb { ngram_id    = optional "id"
-                                            , ngram_terms = required "terms"
-                                            , ngram_n     = required "n"
+$(makeAdaptorAndInstance "pNgramsDb"    ''NgramsPoly)
+-- $(makeLensesWith abbreviatedFields   ''NgramsPoly)
+
+ngramsTable :: Table NgramsWrite NgramsRead
+ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { ngrams_id    = optional "id"
+                                            , ngrams_terms = required "terms"
+                                            , ngrams_n     = required "n"
                                             }
                                 )
+--{-
+queryNgramsTable :: Query NgramsRead
+queryNgramsTable = queryTable ngramsTable
 
-queryNgramTable :: Query NgramRead
-queryNgramTable = queryTable ngramTable
-
-dbGetNgrams :: DPS.Connection -> IO [NgramDb]
-dbGetNgrams conn = runQuery conn queryNgramTable
--}
+dbGetNgramsDb :: DPS.Connection -> IO [NgramsDb]
+dbGetNgramsDb conn = runQuery conn queryNgramsTable
+--}
 
 -- | Main Ngrams Types
 -- | Typed Ngrams

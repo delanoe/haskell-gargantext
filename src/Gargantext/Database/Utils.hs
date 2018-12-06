@@ -79,5 +79,5 @@ fromField' field mb = do
              Success a  -> pure a
              Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
 
-
+-- | Opaleye leftJoin* functions
 

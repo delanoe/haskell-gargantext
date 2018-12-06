@@ -65,6 +65,14 @@ type NodeNgramRead =
        (Column PGFloat8)
        (Column PGInt4  )
 
+type NodeNgramReadNull =
+     NodeNgramPoly
+       (Column (Nullable PGInt4  ))
+       (Column (Nullable PGInt4  ))
+       (Column (Nullable PGInt4  ))
+       (Column (Nullable PGFloat8))
+       (Column (Nullable PGInt4  ))
+
 type NodeNgram =
      NodeNgramPoly (Maybe Int) Int Int Double Int
 
