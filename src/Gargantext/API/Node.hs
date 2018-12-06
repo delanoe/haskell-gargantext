@@ -223,8 +223,9 @@ type TableApi = Summary " Table API"
               :> QueryParam "order"  OrderBy
               :> Get '[JSON] [FacetDoc]
 
+-- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
 type PairingApi = Summary " Pairing API"
-              :> QueryParam "view"   TabType
+              :> QueryParam "view"   TabType -- TODO change TabType -> DocType (CorpusId for pairing)
               :> QueryParam "offset" Int
               :> QueryParam "limit"  Int
               :> QueryParam "order"  OrderBy
