@@ -13,7 +13,7 @@ Institute of Paris Île-de-France (ISC-PIF) and its partners.
 
 ## Installation
 
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/install-via-docker | sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/install | sh
 
 
 ## Use Cases
