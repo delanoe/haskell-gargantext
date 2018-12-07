@@ -394,9 +394,13 @@ $(deriveJSON (unPrefix "_node_") ''NodePoly)
 $(makeLenses ''NodePoly)
 
 
-instance Arbitrary hyperdata => Arbitrary (NodePoly          NodeId       NodeTypeId
-                                          (Maybe NodeUserId) NodeParentId NodeName
-                                          UTCTime            hyperdata    (Maybe TSVector)) where
+instance (Arbitrary hyperdata
+         ,Arbitrary nodeId
+         ,Arbitrary nodeTypeId
+         ,Arbitrary nodeUserId
+         ,Arbitrary nodeParentId
+         ) => Arbitrary (NodePoly nodeId nodeTypeId nodeUserId nodeParentId
+                                  NodeName UTCTime hyperdata (Maybe TSVector)) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary <*> arbitrary
@@ -442,14 +446,14 @@ instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
                             (Maybe NodeUserId)
                             NodeParentId NodeName
-                            UTCTime hyperdata TSVector
+                            UTCTime hyperdata (Maybe TSVector)
                   )
 
 instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
                             NodeUserId
                             (Maybe NodeParentId) NodeName
-                            UTCTime hyperdata TSVector
+                            UTCTime hyperdata (Maybe TSVector)
                   )
 
 
