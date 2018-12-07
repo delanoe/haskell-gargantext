@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-if docker --version;
+if docker --version; 
 then
   echo "Docker installed, ok"
 else
@@ -9,30 +9,31 @@ else
   echo "Docker has been installed"
   echo "Configure your user rights:"
   echo "   sudo usermod -a -G docker $USER"
+  echo "   or : adduser $(whoami) docker"
 fi
 
 curl -sSL https://get.haskellstack.org/ | sh
 stack update
 stack upgrade
 
-git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/haskell-gargantext.git
+git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
 
 cd haskell-gargantext
 
-git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/purescript-gargantext
+git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
 
 mkdir deps
 cd deps
-git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/clustering-louvain.git
+git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
 git clone https://github.com/np/servant-job.git
 git clone https://github.com/np/patches-map
 git clone https://gitlab.com/npouillard/patches-class.git
 cd ..
 
-~/.local/bin/stack docker pull
-~/.local/bin/stack --docker setup
-~/.local/bin/stack --docker build
-~/.local/bin/stack --docker install
+stack docker pull
+stack --docker setup
+stack --docker build
+stack --docker install
 
 
 # Database configuration
