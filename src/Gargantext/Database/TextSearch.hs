@@ -10,6 +10,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE Arrows            #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -26,12 +27,29 @@ import Database.PostgreSQL.Simple.ToField
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
+import Gargantext.Database.Node
+import Gargantext.Database.Queries
+import Gargantext.Core.Types
+import Control.Arrow (returnA)
+import qualified Opaleye as O hiding (Order)
+import Opaleye hiding (Query, Order)
 
 newtype TSQuery = UnsafeTSQuery [Text]
+
+
+
+searchQuery :: O.Query NodeRead
+searchQuery = proc () -> do
+    row <- queryNodeTable -< ()
+    restrict -< (_node_search row) @@ (pgTSQuery "test")
+    returnA -< row
+
+
 
 -- | TODO [""] -> panic "error"
 toTSQuery :: [Text] -> TSQuery
 toTSQuery txt = UnsafeTSQuery txt
+
 
 instance IsString TSQuery
   where
@@ -48,9 +66,6 @@ instance ToField TSQuery
                                 ]
                     ) xs
 
-type ParentId = Int
-type Limit    = Int
-type Offset   = Int
 data Order    = Asc | Desc
 
 instance ToField Order

@@ -40,7 +40,7 @@ getChildren c pId _ maybeNodeType maybeOffset maybeLimit = runQuery c
 
 selectChildren :: ParentId -> Maybe NodeType -> Query NodeRead
 selectChildren parentId maybeNodeType = proc () -> do
-    row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
+    row@(Node nId typeName _ parent_id _ _ _ _) <- queryNodeTable -< ()
     (NodeNode n1id n2id _ _ _) <- queryNodeNodeTable -< ()
     
     let nodeType = maybe 0 nodeTypeId maybeNodeType

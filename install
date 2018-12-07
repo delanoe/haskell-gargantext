@@ -27,6 +27,7 @@ git clone ssh://git@gitlab.iscpif.fr:20022/gargantext/clustering-louvain.git
 git clone https://github.com/np/servant-job.git
 git clone https://github.com/np/patches-map
 git clone https://gitlab.com/npouillard/patches-class.git
+git clone https://github.com:delanoe/haskell-opaleye.git
 cd ..
 
 ~/.local/bin/stack docker pull

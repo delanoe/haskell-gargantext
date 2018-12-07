@@ -63,8 +63,6 @@ type UTCTime' = UTCTime
 instance Arbitrary UTCTime' where
     arbitrary = elements $ timesAfter 100 D (jour 2000 01 01)
 
-
-
 ------------------------------------------------------------------------
 data Status  = Status { status_failed    :: Int
                       , status_succeeded :: Int
@@ -324,18 +322,15 @@ instance Hyperdata HyperdataNotebook
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json -- NodeVector
+type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json (Maybe TSVector)
 
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
 type NodeParentId = Int
 type NodeUserId   = Int
 type NodeName     = Text
---type NodeVector   = Vector
+type TSVector     = Text
 
---type NodeUser    = Node HyperdataUser
-
-type NodeAny      = Node HyperdataAny
 
 -- | Then a Node can be either a Folder or a Corpus or a Document
 type NodeUser     = Node HyperdataUser
@@ -346,6 +341,9 @@ type NodeCorpusV3 = Node HyperdataCorpus
 type NodeDocument = Node HyperdataDocument
 
 type NodeAnnuaire = Node HyperdataAnnuaire
+
+-- | Any others nodes
+type NodeAny      = Node HyperdataAny
 
 ---- | Then a Node can be either a Graph or a Phylo or a Notebook
 type NodeList     = Node HyperdataList
@@ -379,24 +377,30 @@ instance ToParamSchema NodeType
 instance ToSchema      NodeType
 
 ------------------------------------------------------------------------
-data NodePoly id typename userId parentId name date hyperdata = Node { _node_id        :: id
-                                                                     , _node_typename  :: typename
-                                                                     , _node_userId    :: userId
+data NodePoly id        typename userId 
+              parentId  name     date 
+              hyperdata search = Node { _node_id        :: id
+                                      , _node_typename  :: typename
+                                      , _node_userId    :: userId
                                                                 --   , nodeUniqId    :: hashId
-                                                                     , _node_parentId  :: parentId
-                                                                     , _node_name      :: name
-                                                                     , _node_date      :: date
-                                                                     , _node_hyperdata :: hyperdata
-                                                                     } deriving (Show, Generic)
+                                      , _node_parentId  :: parentId
+                                      , _node_name      :: name
+                                      , _node_date      :: date
+                                  
+                                      , _node_hyperdata :: hyperdata
+                                      , _node_search    :: search
+                                      } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_node_") ''NodePoly)
 $(makeLenses ''NodePoly)
 
-instance Arbitrary hyperdata => Arbitrary (NodePoly NodeId NodeTypeId (Maybe NodeUserId) NodeParentId NodeName UTCTime hyperdata) where
-    arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) <$> arbitrary
 
-instance Arbitrary hyperdata => Arbitrary (NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime hyperdata) where
-    arbitrary = Node 1 1 1 (Just 1) "name" (jour 2018 01 01) <$> arbitrary
-
+instance Arbitrary hyperdata => Arbitrary (NodePoly          NodeId       NodeTypeId
+                                          (Maybe NodeUserId) NodeParentId NodeName
+                                          UTCTime            hyperdata    (Maybe TSVector)) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary <*> arbitrary
 ------------------------------------------------------------------------
 hyperdataDocument :: HyperdataDocument
 hyperdataDocument = case decode docExample of
@@ -438,16 +442,15 @@ instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
                             (Maybe NodeUserId)
                             NodeParentId NodeName
-                            UTCTime hyperdata
+                            UTCTime hyperdata TSVector
                   )
 
 instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
                             NodeUserId
                             (Maybe NodeParentId) NodeName
-                            UTCTime hyperdata
+                            UTCTime hyperdata TSVector
                   )
-
 
 
 instance ToSchema Status

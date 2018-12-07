@@ -37,7 +37,7 @@ type NodeWrite = NodePoly  (Maybe (Column  PGInt4              ))
                                   (Column (PGText              ))
                                   (Maybe  (Column PGTimestamptz))
                                   (Column  PGJsonb              )
-                                  -- (Maybe (Column PGTSVector))
+                                  (Maybe (Column PGTSVector))
 
 type NodeRead = NodePoly  (Column  PGInt4           )
                           (Column  PGInt4           )
@@ -46,8 +46,7 @@ type NodeRead = NodePoly  (Column  PGInt4           )
                           (Column (PGText          ))
                           (Column PGTimestamptz     )
                           (Column PGJsonb) 
-                          -- (Column PGTSVector)
-
+                          (Column PGTSVector)
 
 
 type NodeReadNull = NodePoly  (Column  (Nullable PGInt4           ))
@@ -57,8 +56,7 @@ type NodeReadNull = NodePoly  (Column  (Nullable PGInt4           ))
                               (Column (Nullable PGText          ))
                               (Column (Nullable PGTimestamptz     ))
                               (Column (Nullable PGJsonb))
-
-
+                              (Column (Nullable PGTSVector))
 
 
 join3 :: Query columnsA -> Query columnsB -> Query columnsC 

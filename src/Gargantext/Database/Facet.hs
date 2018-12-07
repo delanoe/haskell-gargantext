@@ -50,7 +50,7 @@ import Gargantext.Database.NodeNgram
 import Gargantext.Database.NodeNode
 import Gargantext.Database.Queries
 import Opaleye
-import Opaleye.Internal.Join (NullMaker)
+import Opaleye.Internal.Join (NullMaker(..))
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Prelude hiding (null, id, map, sum, not, read)
 import Servant.API
@@ -191,8 +191,6 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
          
          cond45 :: (NodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
          cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== nodeNgram_NodeNgramNodeId         nodeNgram2
-
-
 
 
 ------------------------------------------------------------------------

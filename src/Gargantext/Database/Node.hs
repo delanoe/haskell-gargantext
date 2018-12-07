@@ -18,48 +18,42 @@ Portability : POSIX
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Node where
 
-import Data.Text (pack)
-import GHC.Int (Int64)
-import Control.Lens (set)
-import Data.Maybe
-import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Prelude hiding (null, id, map, sum)
-
-import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types
-import Gargantext.Core.Types.Individu (Username)
-import Gargantext.Database.Utils (fromField')
-import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
-import Gargantext.Database.Queries
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Prelude hiding (sum, head)
-import Gargantext.Core.Types.Main (UserId)
-
 import Control.Applicative (Applicative)
 import Control.Arrow (returnA)
+import Control.Lens (set)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Data.Aeson
-import Data.Maybe (Maybe, fromMaybe)
-import Data.Text (Text)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-
-import qualified Data.ByteString      as DB
-import qualified Data.ByteString.Lazy as DBL
 import Data.ByteString (ByteString)
-
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Text (Text, unpack, pack)
+import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Connection)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import GHC.Int (Int64)
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types
+import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Core.Types.Main (UserId)
+import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Queries
+import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
+import Gargantext.Database.Utils (fromField')
+import Gargantext.Prelude hiding (sum, head)
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
+import Prelude hiding (null, id, map, sum)
+import qualified Data.ByteString      as DB
+import qualified Data.ByteString.Lazy as DBL
 import qualified Data.Profunctor.Product as PP
 
 ------------------------------------------------------------------------
@@ -141,6 +135,12 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataList
 instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
 ------------------------------------------------------------------------
 
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
@@ -148,15 +148,17 @@ $(makeLensesWith abbreviatedFields ''NodePoly)
 
 
 nodeTable :: Table NodeWrite NodeRead
-nodeTable = Table "nodes" (pNode Node { _node_id                = optional "id"
-                                        , _node_typename        = required "typename"
-                                        , _node_userId          = required "user_id"
-                                        , _node_parentId        = required "parent_id"
-                                        , _node_name            = required "name"
-                                        , _node_date            = optional "date"
-                                        , _node_hyperdata       = required "hyperdata"
-                     --                   , node_titleAbstract   = optional "title_abstract"
-                                        }
+nodeTable = Table "nodes" (pNode Node { _node_id           = optional "id"
+                                      , _node_typename   = required "typename"
+                                      , _node_userId     = required "user_id"
+                                      
+                                      , _node_parentId   = required "parent_id"
+                                      , _node_name       = required "name"
+                                      , _node_date       = optional "date"
+                                      
+                                      , _node_hyperdata  = required "hyperdata"
+                                      , _node_search     = optional "search"
+                                      }
                             )
 
 
@@ -167,6 +169,7 @@ nodeTable' :: Table (Maybe (Column PGInt4)
                     ,       Column PGText
                     ,Maybe (Column PGTimestamptz)
                     ,       Column PGJsonb
+                    ,Maybe (Column PGTSVector)
                     )
                     ((Column PGInt4)
                     ,       Column PGInt4
@@ -175,15 +178,19 @@ nodeTable' :: Table (Maybe (Column PGInt4)
                     ,       Column PGText
                     ,(Column PGTimestamptz)
                     ,       Column PGJsonb
+                    ,       Column PGTSVector
                     )
 
-nodeTable' = Table "nodes" (PP.p7 ( optional "id"
+nodeTable' = Table "nodes" (PP.p8 ( optional "id"
                                , required "typename"
                                , required "user_id"
+                               
                                , optional "parent_id"
                                , required "name"
                                , optional "date"
+                               
                                , required "hyperdata"
+                               , optional "search"
                                )
                             )
 
@@ -196,6 +203,7 @@ selectNode id = proc () -> do
     row <- queryNodeTable -< ()
     restrict -< _node_id row .== id
     returnA -< row
+
 
 runGetNodes :: Query NodeRead -> Cmd [NodeAny]
 runGetNodes q = mkCmd $ \conn -> runQuery conn q
@@ -216,7 +224,7 @@ selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node <- (proc () -> do
-      row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
+      row@(Node _ typeId _ parentId' _ _ _ _) <- queryNodeTable -< ()
       restrict -< parentId' .== (toNullable $ pgInt4 parentId)
 
       let typeId' = maybe 0 nodeTypeId maybeNodeType
@@ -237,12 +245,12 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
 deleteNode :: Int -> Cmd Int
 deleteNode n = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeTable
-                 (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
+                 (\(Node n_id _ _ _ _ _ _ _) -> n_id .== pgInt4 n)
 
 deleteNodes :: [Int] -> Cmd Int
 deleteNodes ns = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeTable
-                   (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
+                   (\(Node n_id _ _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
 
 getNodesWith :: JSONB a => Connection -> Int -> proxy a -> Maybe NodeType
@@ -281,7 +289,7 @@ getCorporaWithParentId' n = mkCmd $ \conn -> runQuery conn $ selectNodesWith' n 
 ------------------------------------------------------------------------
 selectNodesWithParentID :: Int -> Query NodeRead
 selectNodesWithParentID n = proc () -> do
-    row@(Node _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
+    row@(Node _ _ _ parent_id _ _ _ _) <- queryNodeTable -< ()
     restrict -< if n > 0
       then parent_id .== (toNullable $ pgInt4 n)
       else isNull parent_id
@@ -289,7 +297,7 @@ selectNodesWithParentID n = proc () -> do
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead
 selectNodesWithType type_id = proc () -> do
-    row@(Node _ tn _ _ _ _ _) <- queryNodeTable -< ()
+    row@(Node _ tn _ _ _ _ _ _) <- queryNodeTable -< ()
     restrict -< tn .== type_id
     returnA -< row
 
@@ -308,7 +316,7 @@ getNodesWithType conn type_id = do
 -- TODO Classe HasDefault where
 -- default NodeType = Hyperdata
 ------------------------------------------------------------------------
-type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString
+type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString (Maybe TSVector)
 ------------------------------------------------------------------------
 defaultUser :: HyperdataUser
 defaultUser = HyperdataUser (Just $ (pack . show) EN)
@@ -388,25 +396,30 @@ nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard 
 
 ------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite'
-node nodeType name hyperData parentId userId = Node Nothing typeId userId parentId name Nothing byteData
+node nodeType name hyperData parentId userId = Node Nothing typeId userId parentId name Nothing byteData Nothing
   where
     typeId = nodeTypeId nodeType
     byteData = DB.pack . DBL.unpack $ encode hyperData
 
                   -------------------------------
-node2row :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
-              NodePoly (maybe2 Int)                      Int            Int  (maybe1           Int) 
-                                Text        (maybe3 UTCTime)             ByteString
-                    -> (maybe2 (Column PGInt4), Column PGInt4, Column PGInt4, maybe1 (Column PGInt4)
-                     , Column PGText, maybe3 (Column PGTimestamptz), Column PGJsonb)
-node2row (Node id tn ud pid nm dt hp) = ((pgInt4    <$> id)
-                                        ,(pgInt4        tn)
-                                        ,(pgInt4        ud)
-                                        ,(pgInt4   <$> pid)
-                                        ,(pgStrictText  nm)
-                                        ,(pgUTCTime <$> dt)
-                                        ,(pgStrictJSONB hp)
-                                        )
+node2row :: (Functor maybe1, Functor maybe2, Functor maybe3, Functor maybe4) =>
+              NodePoly (maybe1 Int) Int  Int
+                       (maybe2 Int) Text (maybe3 UTCTime)
+                       ByteString   (maybe4 TSVector)
+                    -> ( maybe1 (Column PGInt4), Column PGInt4, Column PGInt4
+                       , maybe2 (Column PGInt4), Column PGText, maybe3 (Column PGTimestamptz)
+                     , Column PGJsonb, maybe4 (Column PGTSVector))
+node2row (Node id tn ud pid nm dt hp tv) = ((pgInt4       <$> id)
+                                           ,(pgInt4           tn)
+                                           ,(pgInt4           ud)
+                                           
+                                           ,(pgInt4       <$> pid)
+                                           ,(pgStrictText     nm)
+                                           ,(pgUTCTime    <$> dt)
+                                           
+                                           ,(pgStrictJSONB    hp)
+                                           ,(pgTSVector . unpack  <$> tv)
+                                           )
 ------------------------------------------------------------------------
 insertNodesR' :: [NodeWrite'] -> Cmd [Int]
 insertNodesR' ns = mkCmd $ \c -> insertNodesR ns c
@@ -415,7 +428,7 @@ insertNodes :: [NodeWrite'] -> Connection -> IO Int64
 insertNodes ns conn = runInsertMany conn nodeTable' (map node2row ns)
 
 insertNodesR :: [NodeWrite'] -> Connection -> IO [Int]
-insertNodesR ns conn = runInsertManyReturning conn nodeTable' (map node2row ns) (\(i,_,_,_,_,_,_) -> i)
+insertNodesR ns conn = runInsertManyReturning conn nodeTable' (map node2row ns) (\(i,_,_,_,_,_,_,_) -> i)
                        -------------------------
 insertNodesWithParent :: Maybe ParentId -> [NodeWrite'] -> Connection -> IO Int64
 insertNodesWithParent pid ns conn = insertNodes (map (set node_parentId pid) ns) conn
@@ -441,7 +454,7 @@ post c uid pid [ Node' NodeCorpus "name" "{}" []
 -- needs a Temporary type between Node' and NodeWriteT
 node2table :: UserId -> Maybe ParentId -> Node' -> NodeWriteT
 node2table uid pid (Node' nt txt v []) = ( Nothing, (pgInt4$ nodeTypeId nt), (pgInt4 uid), (fmap pgInt4 pid)
-                                         , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v)
+                                         , pgStrictText txt, Nothing, pgStrictJSONB $ DB.pack $ DBL.unpack $ encode v, Nothing)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 
@@ -459,6 +472,7 @@ type NodeWriteT =  ( Maybe (Column PGInt4)
                    ,        Column PGText
                    , Maybe (Column PGTimestamptz)
                    ,        Column PGJsonb
+                   , Maybe (Column PGTSVector)
                    )
 
 
@@ -466,7 +480,7 @@ mkNode' :: [NodeWriteT] -> Cmd Int64
 mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable' ns
 
 mkNodeR' :: [NodeWriteT] -> Cmd [Int]
-mkNodeR' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
+mkNodeR' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_,_) -> i)
 
 ------------------------------------------------------------------------
 
