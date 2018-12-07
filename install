@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-if docker version; 
+if docker --version;
 then
   echo "Docker installed, ok"
 else
