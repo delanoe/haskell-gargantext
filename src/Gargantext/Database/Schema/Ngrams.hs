@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Ngrams
+Module      : Gargantext.Database.Schema.Ngrams
 Description : Ngram connection to the Database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -21,7 +21,7 @@ Ngrams connection to the Database.
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Ngrams where
+module Gargantext.Database.Schema.Ngrams where
 
 
 import Database.PostgreSQL.Simple as DPS (Connection)

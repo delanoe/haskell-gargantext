@@ -18,7 +18,7 @@ module Gargantext.Database.Flow.Utils
 import Data.Map (Map)
 import qualified Data.Map as DM
 import Gargantext.Prelude
-import Gargantext.Database.Ngrams
+import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types.Node (NodeId, Node, NodePoly(..), Hyperdata)
 import Gargantext.Database.Node  -- (Cmd)
 import Gargantext.Database.NodeNgram

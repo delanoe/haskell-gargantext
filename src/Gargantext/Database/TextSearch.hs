@@ -28,7 +28,7 @@ import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
 import Gargantext.Database.Facet
 import Gargantext.Database.Node
-import Gargantext.Database.Ngrams
+import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.NodeNode
 import Gargantext.Database.NodeNgram
 import Gargantext.Database.Queries

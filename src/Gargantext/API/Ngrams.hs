@@ -57,7 +57,7 @@ import GHC.Generics (Generic)
 --import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeType(..))
-import qualified Gargantext.Database.Ngrams as Ngrams
+import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 import Gargantext.Prelude
 import Gargantext.Core.Types (ListType(..), ListId, CorpusId)
 import Prelude (Enum, Bounded, minBound, maxBound)
