@@ -47,6 +47,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Schema.NodeNode
+import Gargantext.Database.Utils
 import Gargantext.Database.Queries.Join
 import Gargantext.Database.Queries.Filter
 import Opaleye

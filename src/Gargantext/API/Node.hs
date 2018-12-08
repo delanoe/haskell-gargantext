@@ -51,10 +51,8 @@ import Servant
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet,tableNgramsPatch, getTableNgrams, NgramsIdPatchsFeed, NgramsIdPatchsBack, NgramsTable)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Schema.Node ( runCmd
-                                , getNodesWithParentId
-                                , getNode
-                                , deleteNode, deleteNodes, mk, JSONB)
+import Gargantext.Database.Utils (runCmd)
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mk, JSONB)
 import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..),FacetChart,runViewAuthorsDoc)

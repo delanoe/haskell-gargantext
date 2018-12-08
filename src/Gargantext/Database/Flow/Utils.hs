@@ -20,7 +20,7 @@ import qualified Data.Map as DM
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types.Node (NodeId, Node, NodePoly(..), Hyperdata)
-import Gargantext.Database.Schema.Node  -- (Cmd)
+import Gargantext.Database.Utils (Cmd)
 import Gargantext.Database.Schema.NodeNgram
 
 toMaps :: Hyperdata a => (a -> Map (NgramsT Ngrams) Int) -> [Node a] -> Map (NgramsT Ngrams) (Map NodeId Int)

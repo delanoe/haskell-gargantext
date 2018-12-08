@@ -32,7 +32,7 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 
 import Data.Text (Text)
 
-import Gargantext.Database.Schema.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (mkCmd, Cmd(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 

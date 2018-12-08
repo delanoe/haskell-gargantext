@@ -17,7 +17,6 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
@@ -25,12 +24,9 @@ Portability : POSIX
 
 module Gargantext.Database.Schema.Node where
 
-import Control.Applicative (Applicative)
 import Control.Arrow (returnA)
 import Control.Lens (set)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Control.Monad.IO.Class
-import Control.Monad.Reader
 import Data.Aeson
 import Data.ByteString (ByteString)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -44,6 +40,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main (UserId)
+import Gargantext.Database.Utils
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
@@ -56,29 +53,6 @@ import qualified Data.ByteString      as DB
 import qualified Data.ByteString.Lazy as DBL
 import qualified Data.Profunctor.Product as PP
 
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-{- | Reader Monad reinvented here:
-
-newtype Cmd a = Cmd { unCmd :: Connection -> IO a }
-
-instance Monad Cmd where
-  return a = Cmd $ \_ -> return a
-
-  m >>= f = Cmd $ \c -> do
-    a <- unCmd m c
-    unCmd (f a) c
--}
-newtype Cmd a = Cmd (ReaderT Connection IO a)
-  deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
-
-runCmd :: Connection -> Cmd a -> IO a
-runCmd c (Cmd f) = runReaderT f c
-
-mkCmd :: (Connection -> IO a) -> Cmd a
-mkCmd = Cmd . ReaderT
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 instance FromField HyperdataAny
   where

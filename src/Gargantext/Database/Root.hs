@@ -36,7 +36,7 @@ import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Database.Schema.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Core.Types.Individu (Username)
-import Gargantext.Database.Schema.Node (Cmd(..), mkCmd)
+import Gargantext.Database.Utils (Cmd(..), mkCmd)
 
 getRootCmd :: Username -> Cmd [Node HyperdataUser]
 getRootCmd u = mkCmd $ \c -> getRoot u c

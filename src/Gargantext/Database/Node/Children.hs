@@ -21,6 +21,7 @@ import Database.PostgreSQL.Simple (Connection)
 import Opaleye
 import Gargantext.Core.Types
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Utils
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter

@@ -24,14 +24,13 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams where
 
 
-import Database.PostgreSQL.Simple as DPS (Connection)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Opaleye
 import Control.Lens (makeLenses, view)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Set (Set)
 import Data.Text (Text, splitOn)
+import Database.PostgreSQL.Simple as DPS (Connection)
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.ToField (toField)
@@ -39,13 +38,15 @@ import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
+import Gargantext.Core.Types (CorpusId)
 import Gargantext.Core.Types -- (fromListTypeId, ListType, NodePoly(Node))
 import Gargantext.Database.Config (nodeTypeId,userMaster)
-import Gargantext.Database.Schema.Node (mkCmd, Cmd(..),getListsWithParentId, getCorporaWithParentId)
 import Gargantext.Database.Root (getRoot)
-import Gargantext.Core.Types (CorpusId)
 import Gargantext.Database.Types.Node (NodeType)
+import Gargantext.Database.Schema.Node (getListsWithParentId, getCorporaWithParentId)
+import Gargantext.Database.Utils (mkCmd, Cmd(..))
 import Gargantext.Prelude
+import Opaleye
 import Prelude (Enum, Bounded, minBound, maxBound)
 import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as DPS

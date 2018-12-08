@@ -31,8 +31,8 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
-import Gargantext.Database.Schema.Node (Cmd(..), mkCmd, runCmd)
 import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Database.Utils
 import Gargantext.Prelude
 import Opaleye
 

@@ -14,37 +14,54 @@ commentary with @some markup@.
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Gargantext.Database.Utils where
 
-import qualified Database.PostgreSQL.Simple as PGS
-
+import Control.Applicative (Applicative)
+import Control.Monad.Reader
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
-import Data.Typeable (Typeable)
-import Data.Monoid ((<>))
 import Data.Either.Extra (Either(Left, Right))
-import Database.PostgreSQL.Simple.Internal  (Field)
-import qualified Data.ByteString      as DB
-import Database.PostgreSQL.Simple.FromField ( Conversion
-                                            , ResultError(ConversionFailed)
-                                            , fromField
-                                            , returnError
-                                            )
-
 import Data.Ini (readIniFile, lookupValue)
+import Data.Maybe (maybe)
+import Data.Monoid ((<>))
+import Data.Profunctor.Product.Default (Default)
 import Data.Text (unpack, pack)
+import Data.Typeable (Typeable)
 import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
+import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
+import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
+import Opaleye (Query, Unpackspec, showSqlForPostgres)
 import System.IO (FilePath)
 import Text.Read (read)
+import qualified Data.ByteString      as DB
+import qualified Database.PostgreSQL.Simple as PGS
 
--- Utilities
-import Opaleye (Query, Unpackspec, showSqlForPostgres)
-import Data.Profunctor.Product.Default (Default)
-import Data.Maybe (maybe)
--- TODO add a reader Monad here
--- read this in the init file
+------------------------------------------------------------------------
+{- | Reader Monad reinvented here:
+
+newtype Cmd a = Cmd { unCmd :: Connection -> IO a }
+
+instance Monad Cmd where
+  return a = Cmd $ \_ -> return a
+
+  m >>= f = Cmd $ \c -> do
+    a <- unCmd m c
+    unCmd (f a) c
+-}
+
+newtype Cmd a = Cmd (ReaderT Connection IO a)
+  deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
+
+runCmd :: Connection -> Cmd a -> IO a
+runCmd c (Cmd f) = runReaderT f c
+
+mkCmd :: (Connection -> IO a) -> Cmd a
+mkCmd = Cmd . ReaderT
+
+------------------------------------------------------------------------
 
 databaseParameters :: FilePath -> IO PGS.ConnectInfo
 databaseParameters fp = do
