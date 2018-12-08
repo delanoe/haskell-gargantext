@@ -16,21 +16,17 @@ Portability : POSIX
 
 module Gargantext.Database.TextSearch where
 
-
 import Data.Aeson
 import Data.List (intersperse)
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack)
-import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple -- (Query, Connection)
 import Database.PostgreSQL.Simple.ToField
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
-import Gargantext.Database.Facet
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNode
-import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Queries
 import Gargantext.Core.Types
 import Control.Arrow (returnA)
