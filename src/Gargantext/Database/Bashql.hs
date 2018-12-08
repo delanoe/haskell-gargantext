@@ -81,7 +81,7 @@ import Data.List (concat, last)
 
 import Gargantext.Core.Types
 import Gargantext.Database.Utils (connectGargandb)
-import Gargantext.Database.Node
+import Gargantext.Database.Schema.Node
 import qualified Gargantext.Database.Node.Update as U (Update(..), update)
 import Gargantext.Prelude
 

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Node
+Module      : Gargantext.Database.Schema.Node
 Description : Main requests of Node to the database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -23,7 +23,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Node where
+module Gargantext.Database.Schema.Node where
 
 import Control.Applicative (Applicative)
 import Control.Arrow (returnA)

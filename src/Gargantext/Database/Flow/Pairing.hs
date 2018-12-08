@@ -36,7 +36,7 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 --import Gargantext.Database.Types.Node -- (Hyperdata(..))
 import Gargantext.Database.Node.Contact
 import Gargantext.Database.Flow.Utils
-import Gargantext.Database.Node (Cmd, mkCmd)
+import Gargantext.Database.Schema.Node (Cmd, mkCmd)
 import Gargantext.Database.Node.Children
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Types (NodeType(..))

@@ -51,7 +51,7 @@ import Servant
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet,tableNgramsPatch, getTableNgrams, NgramsIdPatchsFeed, NgramsIdPatchsBack, NgramsTable)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Node ( runCmd
+import Gargantext.Database.Schema.Node ( runCmd
                                 , getNodesWithParentId
                                 , getNode
                                 , deleteNode, deleteNodes, mk, JSONB)

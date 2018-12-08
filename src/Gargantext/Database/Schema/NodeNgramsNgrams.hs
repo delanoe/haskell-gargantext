@@ -37,7 +37,7 @@ import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Schema.Node (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as DPS

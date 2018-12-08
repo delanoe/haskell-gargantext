@@ -29,7 +29,7 @@ import qualified Data.Map.Strict as M
 ----------------------------------------------
 import Gargantext.Database (Connection)
 
-import Gargantext.Database.Node
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types.Node
 
 import Gargantext.Core (Lang)
