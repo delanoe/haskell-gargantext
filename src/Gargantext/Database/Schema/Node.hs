@@ -31,7 +31,7 @@ import Data.Aeson
 import Data.ByteString (ByteString)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Text (Text, unpack, pack)
+import Data.Text (Text, pack)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Connection)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
@@ -513,7 +513,7 @@ data Node' = Node' { _n_type :: NodeType
                    , _n_children :: [Node']
                    } deriving (Show)
 
--- | TODO mv in Database.Schema and factor
+-- | TODO NodeWriteT -> NodeWrite
 type NodeWriteT =  ( Maybe (Column PGInt4)
                    ,        Column PGInt4
                    ,        Column PGInt4
@@ -523,9 +523,12 @@ type NodeWriteT =  ( Maybe (Column PGInt4)
                    ,        Column PGJsonb
                    )
 
+mkNode' :: [NodeWrite] -> Cmd Int64
+mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
 
-mkNode' :: [NodeWriteT] -> Cmd Int64
-mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable' ns
+-- TODO: replace mkNodeR'
+mkNodeR'' :: [NodeWrite] -> Cmd [Int]
+mkNodeR'' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable ns (_node_id)
 
 mkNodeR' :: [NodeWriteT] -> Cmd [Int]
 mkNodeR' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)
