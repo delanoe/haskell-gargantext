@@ -47,8 +47,8 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Schema.NodeNode
-import Gargantext.Database.Queries
 import Gargantext.Database.Queries.Join
+import Gargantext.Database.Queries.Filter
 import Opaleye
 import Prelude hiding (null, id, map, sum, not, read)
 import Servant.API

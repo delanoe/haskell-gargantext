@@ -36,6 +36,7 @@ library:
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database
+  - Gargantext.Database.Schema.Node
   - Gargantext.Database.Cooc
   - Gargantext.Database.Tree
   - Gargantext.Prelude

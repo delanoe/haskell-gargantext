@@ -6,8 +6,6 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
-
-
 -}
 
 {-# LANGUAGE Arrows            #-}
@@ -27,7 +25,6 @@ import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNode
-import Gargantext.Database.Queries
 import Gargantext.Core.Types
 import Control.Arrow (returnA)
 import qualified Opaleye as O hiding (Order)

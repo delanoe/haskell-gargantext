@@ -45,7 +45,7 @@ import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main (UserId)
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Queries
+import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Prelude hiding (sum, head)
@@ -143,12 +143,46 @@ instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
 
 ------------------------------------------------------------------------
 
+-- WIP
+-- TODO Classe HasDefault where
+-- default NodeType = Hyperdata
+------------------------------------------------------------------------
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
+type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString (Maybe TSVector)
+
+
+type NodeWrite = NodePoly  (Maybe (Column  PGInt4              ))
+                                  (Column  PGInt4               )
+                                  (Column  PGInt4               )
+                                  (Column (Nullable PGInt4     ))
+                                  (Column (PGText              ))
+                                  (Maybe  (Column PGTimestamptz))
+                                  (Column  PGJsonb              )
+                                  (Maybe (Column PGTSVector))
+
+type NodeRead = NodePoly  (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column (Nullable PGInt4 ))
+                          (Column (PGText          ))
+                          (Column PGTimestamptz     )
+                          (Column PGJsonb) 
+                          (Column PGTSVector)
+
+
+type NodeReadNull = NodePoly  (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column (Nullable PGInt4 ))
+                              (Column (Nullable PGText          ))
+                              (Column (Nullable PGTimestamptz     ))
+                              (Column (Nullable PGJsonb))
+                              (Column (Nullable PGTSVector))
 
 
 nodeTable :: Table NodeWrite NodeRead
-nodeTable = Table "nodes" (pNode Node { _node_id           = optional "id"
+nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_typename   = required "typename"
                                       , _node_userId     = required "user_id"
                                       
@@ -160,7 +194,21 @@ nodeTable = Table "nodes" (pNode Node { _node_id           = optional "id"
                                       , _node_search     = optional "search"
                                       }
                             )
-
+{-
+nodeTableSearch :: Table NodeWriteSearch NodeReadSearch
+nodeTableSearch = Table "nodes" (pNode Node { _node_id         = optional "id"
+                                      , _node_typename   = required "typename"
+                                      , _node_userId     = required "user_id"
+                                      
+                                      , _node_parentId   = required "parent_id"
+                                      , _node_name       = required "name"
+                                      , _node_date       = optional "date"
+                                      
+                                      , _node_hyperdata  = required "hyperdata"
+                                      , _node_search     = optional "search"
+                                      }
+                            )
+--}
 
 nodeTable' :: Table (Maybe (Column PGInt4)
                     ,       Column PGInt4
@@ -197,6 +245,12 @@ nodeTable' = Table "nodes" (PP.p8 ( optional "id"
 
 queryNodeTable :: Query NodeRead
 queryNodeTable = queryTable nodeTable
+
+{-
+queryNodeTableSearch :: Query NodeReadSearch
+queryNodeTableSearch = queryTable nodeTableSearch
+-}
+
 
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode id = proc () -> do
@@ -312,11 +366,7 @@ getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
 ------------------------------------------------------------------------
--- WIP
--- TODO Classe HasDefault where
--- default NodeType = Hyperdata
-------------------------------------------------------------------------
-type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString (Maybe TSVector)
+
 ------------------------------------------------------------------------
 defaultUser :: HyperdataUser
 defaultUser = HyperdataUser (Just $ (pack . show) EN)

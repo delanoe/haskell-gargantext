@@ -27,8 +27,9 @@ module Gargantext.Database.Queries.Join
   where
 ------------------------------------------------------------------------
 
+import Control.Applicative ((<*>))
+import Control.Arrow ((>>>))
 import Data.Profunctor.Product.Default
-import Gargantext.Database.Queries
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNode
@@ -36,6 +37,17 @@ import Gargantext.Prelude
 import Opaleye
 import Opaleye.Internal.Join (NullMaker(..))
 import qualified Opaleye.Internal.Unpackspec()
+
+
+--leftJoin3 :: Query columnsL1 -> Query columnsR -> Query columnsL
+--     -> ((columnsL1, columnsR) -> Column PGBool)
+--     -> ((columnsL, (columnsL1, nullableColumnsR1)) -> Column PGBool)
+--     -> Query (columnsL, nullableColumnsR)
+--leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q1 q2 cond12) cond23
+join3 :: Query columnsA -> Query columnsB -> Query columnsC 
+      -> ((columnsA, columnsB, columnsC) -> Column PGBool) 
+      -> Query (columnsA, columnsB, columnsC)
+join3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
 
 ------------------------------------------------------------------------
 
