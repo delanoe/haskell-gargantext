@@ -29,7 +29,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Facet
 import Gargantext.Database.Node
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.NodeNode
+import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Queries
 import Gargantext.Core.Types

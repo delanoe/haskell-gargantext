@@ -47,7 +47,7 @@ import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Node
 import Gargantext.Database.Schema.NodeNgram
-import Gargantext.Database.NodeNode
+import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Queries
 import Opaleye
 import Opaleye.Internal.Join (NullMaker(..))

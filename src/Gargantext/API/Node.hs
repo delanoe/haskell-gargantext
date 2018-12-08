@@ -59,7 +59,7 @@ import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..),FacetChart,runViewAuthorsDoc)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
-import Gargantext.Database.NodeNode (nodesToFavorite, nodesToTrash)
+import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
 --import Gargantext.Text.Flow
 import Gargantext.Viz.Graph (Graph,readGraphFromJson,defaultGraph)

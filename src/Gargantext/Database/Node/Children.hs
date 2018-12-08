@@ -21,7 +21,7 @@ import Database.PostgreSQL.Simple (Connection)
 import Opaleye
 import Gargantext.Core.Types
 import Gargantext.Database.Node
-import Gargantext.Database.NodeNode
+import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries
 import Gargantext.Database.Node.Contact (HyperdataContact)

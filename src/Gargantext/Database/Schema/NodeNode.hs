@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.NodeNode
+Module      : Gargantext.Database.Schema.NodeNode
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -22,7 +22,7 @@ commentary with @some markup@.
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.NodeNode where
+module Gargantext.Database.Schema.NodeNode where
 
 import qualified Database.PostgreSQL.Simple as PGS (Connection, Query, query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
