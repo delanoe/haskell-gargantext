@@ -37,7 +37,7 @@ import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams
 import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 --import Gargantext.Database.Node.Contact (HyperdataContact(..))
-import Gargantext.Database.User (getUser, UserLight(..))
+import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)

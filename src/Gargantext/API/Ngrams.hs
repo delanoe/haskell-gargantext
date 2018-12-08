@@ -34,7 +34,7 @@ module Gargantext.API.Ngrams
   where
 
 import Prelude (round)
--- import Gargantext.Database.User  (UserId)
+-- import Gargantext.Database.Schema.User  (UserId)
 import Data.Patch.Class (Replace, replace)
 --import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid

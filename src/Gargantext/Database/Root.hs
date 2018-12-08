@@ -33,7 +33,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Types.Node (Node, NodePoly(..), NodeType(NodeUser), HyperdataUser)
 import Gargantext.Database.Queries (NodeRead)
 import Gargantext.Database.Node (queryNodeTable)
-import Gargantext.Database.User (queryUserTable, UserPoly(..))
+import Gargantext.Database.Schema.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Database.Node (Cmd(..), mkCmd)

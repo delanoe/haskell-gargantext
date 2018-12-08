@@ -20,7 +20,7 @@ Functions to deal with users, database side.
 {-# LANGUAGE Arrows                      #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
 
-module Gargantext.Database.User where
+module Gargantext.Database.Schema.User where
 
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
