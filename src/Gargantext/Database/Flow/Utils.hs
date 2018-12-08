@@ -26,7 +26,7 @@ import Gargantext.Database.Schema.NodeNgram
 toMaps :: Hyperdata a => (a -> Map (NgramsT Ngrams) Int) -> [Node a] -> Map (NgramsT Ngrams) (Map NodeId Int)
 toMaps fun ns = mapNodeIdNgrams $ documentIdWithNgrams fun ns'
   where
-    ns' = map (\(Node nId _ _ _ _ _ json _) -> DocumentWithId nId json) ns
+    ns' = map (\(Node nId _ _ _ _ _ json) -> DocumentWithId nId json) ns
 
 mapNodeIdNgrams :: Hyperdata a => [DocumentIdWithNgrams a] -> Map (NgramsT Ngrams) (Map NodeId Int)
 mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs

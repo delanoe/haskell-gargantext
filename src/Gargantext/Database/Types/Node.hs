@@ -322,8 +322,7 @@ instance Hyperdata HyperdataNotebook
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json (Maybe TSVector)
-type NodeSearch json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json (Maybe TSVector)
+type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json
 
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
@@ -380,17 +379,17 @@ instance ToSchema      NodeType
 ------------------------------------------------------------------------
 data NodePoly id        typename userId 
               parentId  name     date 
-              hyperdata search = Node { _node_id        :: id
-                                      , _node_typename  :: typename
-                                      , _node_userId    :: userId
-                                                                --   , nodeUniqId    :: hashId
-                                      , _node_parentId  :: parentId
-                                      , _node_name      :: name
-                                      , _node_date      :: date
-                                  
-                                      , _node_hyperdata :: hyperdata
-                                      , _node_search    :: search
-                                      } deriving (Show, Generic)
+              hyperdata  = Node { _node_id        :: id
+                                , _node_typename  :: typename
+                                
+                                , _node_userId    :: userId
+                                , _node_parentId  :: parentId
+                                
+                                , _node_name      :: name
+                                , _node_date      :: date
+                                
+                                , _node_hyperdata :: hyperdata
+                                } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_node_") ''NodePoly)
 $(makeLenses ''NodePoly)
 
@@ -411,6 +410,7 @@ data NodePolySearch id        typename userId
 $(deriveJSON (unPrefix "_ns_") ''NodePolySearch)
 $(makeLenses ''NodePolySearch)
 
+type NodeSearch json   = NodePolySearch NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json (Maybe TSVector)
 ------------------------------------------------------------------------
 
 
@@ -420,11 +420,25 @@ instance (Arbitrary hyperdata
          ,Arbitrary nodeUserId
          ,Arbitrary nodeParentId
          ) => Arbitrary (NodePoly nodeId nodeTypeId nodeUserId nodeParentId
-                                  NodeName UTCTime hyperdata (Maybe TSVector)) where
+                                  NodeName UTCTime hyperdata) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary
+
+instance (Arbitrary hyperdata
+         ,Arbitrary nodeId
+         ,Arbitrary nodeTypeId
+         ,Arbitrary nodeUserId
+         ,Arbitrary nodeParentId
+         ) => Arbitrary (NodePolySearch nodeId nodeTypeId nodeUserId nodeParentId
+                                  NodeName UTCTime hyperdata (Maybe TSVector)) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary
+
+
 ------------------------------------------------------------------------
 hyperdataDocument :: HyperdataDocument
 hyperdataDocument = case decode docExample of
@@ -466,11 +480,26 @@ instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
                             (Maybe NodeUserId)
                             NodeParentId NodeName
-                            UTCTime hyperdata (Maybe TSVector)
+                            UTCTime hyperdata
                   )
 
 instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
+                            NodeUserId
+                            (Maybe NodeParentId) NodeName
+                            UTCTime hyperdata
+                  )
+
+
+instance ToSchema hyperdata =>
+         ToSchema (NodePolySearch NodeId NodeTypeId
+                            (Maybe NodeUserId)
+                            NodeParentId NodeName
+                            UTCTime hyperdata (Maybe TSVector)
+                  )
+
+instance ToSchema hyperdata =>
+         ToSchema (NodePolySearch NodeId NodeTypeId
                             NodeUserId
                             (Maybe NodeParentId) NodeName
                             UTCTime hyperdata (Maybe TSVector)
