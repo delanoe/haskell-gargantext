@@ -38,10 +38,10 @@ globalTextSearch c p t = runQuery c (globalTextSearchQuery p t)
 -- | Global search query where ParentId is Master Node Corpus Id 
 globalTextSearchQuery :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
 globalTextSearchQuery _ q = proc () -> do
-    row <- queryNodeTable -< ()
-    restrict -< (_node_search row)    @@ (pgTSQuery (unpack q))
-    restrict -< (_node_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
-    returnA  -< (_node_id row, _node_hyperdata row)
+    row <- queryNodeSearchTable -< ()
+    restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
+    restrict -< (_ns_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
+    returnA  -< (_ns_id row, _ns_hyperdata row)
 
 ------------------------------------------------------------------------
 {-
@@ -65,16 +65,16 @@ graphCorpusAuthorQuery = leftJoin4 queryNgramsTable queryNodeNgramTable queryNod
 graphCorpusDocSearch :: CorpusId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
 graphCorpusDocSearch cId t = proc () -> do
   (n, nn) <- graphCorpusDocSearchQuery -< ()
-  restrict -< (_node_search n) @@ (pgTSQuery (unpack t))
+  restrict -< (_ns_search n) @@ (pgTSQuery (unpack t))
   restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgInt4 cId)
-  restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< (_node_id n, _node_hyperdata n)
+  restrict -< (_ns_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  returnA  -< (_ns_id n, _ns_hyperdata n)
 
-graphCorpusDocSearchQuery :: O.Query (NodeRead, NodeNodeReadNull)
-graphCorpusDocSearchQuery = leftJoin queryNodeTable queryNodeNodeTable cond
+graphCorpusDocSearchQuery :: O.Query (NodeSearchRead, NodeNodeReadNull)
+graphCorpusDocSearchQuery = leftJoin queryNodeSearchTable queryNodeNodeTable cond
   where
-    cond :: (NodeRead, NodeNodeRead) -> Column PGBool
-    cond (n, nn) = nodeNode_node1_id nn .== _node_id n
+    cond :: (NodeSearchRead, NodeNodeRead) -> Column PGBool
+    cond (n, nn) = nodeNode_node1_id nn .== _ns_id n
 
 
 

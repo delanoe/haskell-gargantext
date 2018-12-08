@@ -40,11 +40,10 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main (UserId)
-import Gargantext.Database.Utils
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
-import Gargantext.Database.Utils (fromField')
+import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
@@ -123,6 +122,10 @@ instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
 ------------------------------------------------------------------------
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
+$(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
+$(makeLensesWith abbreviatedFields ''NodePolySearch)
+
+
 type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString (Maybe TSVector)
 
 
@@ -168,22 +171,8 @@ nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_search     = optional "search"
                                       }
                             )
-{-
-nodeTableSearch :: Table NodeWriteSearch NodeReadSearch
-nodeTableSearch = Table "nodes" (pNode Node { _node_id         = optional "id"
-                                      , _node_typename   = required "typename"
-                                      , _node_userId     = required "user_id"
-                                      
-                                      , _node_parentId   = required "parent_id"
-                                      , _node_name       = required "name"
-                                      , _node_date       = optional "date"
-                                      
-                                      , _node_hyperdata  = required "hyperdata"
-                                      , _node_search     = optional "search"
-                                      }
-                            )
---}
 
+-- | TODO remove below
 nodeTable' :: Table (Maybe (Column PGInt4)
                     ,       Column PGInt4
                     ,       Column PGInt4
@@ -216,14 +205,61 @@ nodeTable' = Table "nodes" (PP.p8 ( optional "id"
                                )
                             )
 
-
 queryNodeTable :: Query NodeRead
 queryNodeTable = queryTable nodeTable
 
-{-
-queryNodeTableSearch :: Query NodeReadSearch
-queryNodeTableSearch = queryTable nodeTableSearch
--}
+------------------------------------------------------------------------
+-- | Node(Read|Write)Search is slower than Node(Write|Read) use it
+-- for full text search only
+
+
+type NodeSearchWrite = NodePolySearch  (Maybe (Column  PGInt4              ))
+                                  (Column  PGInt4               )
+                                  (Column  PGInt4               )
+                                  (Column (Nullable PGInt4     ))
+                                  (Column (PGText              ))
+                                  (Maybe  (Column PGTimestamptz))
+                                  (Column  PGJsonb              )
+                                  (Maybe (Column PGTSVector))
+
+type NodeSearchRead = NodePolySearch  (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column (Nullable PGInt4 ))
+                          (Column (PGText          ))
+                          (Column PGTimestamptz     )
+                          (Column PGJsonb) 
+                          (Column PGTSVector)
+
+
+type NodeSearchReadNull = NodePolySearch  (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column (Nullable PGInt4 ))
+                              (Column (Nullable PGText          ))
+                              (Column (Nullable PGTimestamptz     ))
+                              (Column (Nullable PGJsonb))
+                              (Column (Nullable PGTSVector))
+
+
+--{-
+nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
+nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
+                                      , _ns_typename   = required "typename"
+                                      , _ns_userId     = required "user_id"
+                                      
+                                      , _ns_parentId   = required "parent_id"
+                                      , _ns_name       = required "name"
+                                      , _ns_date       = optional "date"
+                                      
+                                      , _ns_hyperdata  = required "hyperdata"
+                                      , _ns_search     = optional "search"
+                                      }
+                            )
+--}
+
+queryNodeSearchTable :: Query NodeSearchRead
+queryNodeSearchTable = queryTable nodeTableSearch
 
 
 selectNode :: Column PGInt4 -> Query NodeRead

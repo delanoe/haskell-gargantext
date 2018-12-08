@@ -323,6 +323,7 @@ instance Hyperdata HyperdataNotebook
 
 -- | NodePoly indicates that Node has a Polymorphism Type
 type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json (Maybe TSVector)
+type NodeSearch json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json (Maybe TSVector)
 
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
@@ -392,6 +393,25 @@ data NodePoly id        typename userId
                                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_node_") ''NodePoly)
 $(makeLenses ''NodePoly)
+
+
+data NodePolySearch id        typename userId 
+              parentId  name     date 
+              hyperdata search = NodeSearch { _ns_id        :: id
+                                      , _ns_typename  :: typename
+                                      , _ns_userId    :: userId
+                                                                --   , nodeUniqId    :: hashId
+                                      , _ns_parentId  :: parentId
+                                      , _ns_name      :: name
+                                      , _ns_date      :: date
+                                  
+                                      , _ns_hyperdata :: hyperdata
+                                      , _ns_search    :: search
+                                      } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_ns_") ''NodePolySearch)
+$(makeLenses ''NodePolySearch)
+
+------------------------------------------------------------------------
 
 
 instance (Arbitrary hyperdata
