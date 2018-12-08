@@ -21,7 +21,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types.Node (NodeId, Node, NodePoly(..), Hyperdata)
 import Gargantext.Database.Node  -- (Cmd)
-import Gargantext.Database.NodeNgram
+import Gargantext.Database.Schema.NodeNgram
 
 toMaps :: Hyperdata a => (a -> Map (NgramsT Ngrams) Int) -> [Node a] -> Map (NgramsT Ngrams) (Map NodeId Int)
 toMaps fun ns = mapNodeIdNgrams $ documentIdWithNgrams fun ns'

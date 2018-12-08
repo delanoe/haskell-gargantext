@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.NodeNgramsNgrams
+Module      : Gargantext.Database.Schema.NodeNgramsNgrams
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -28,7 +28,7 @@ Next Step benchmark:
 {-# LANGUAGE TemplateHaskell        #-}
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-module Gargantext.Database.NodeNgramsNgrams
+module Gargantext.Database.Schema.NodeNgramsNgrams
   where
 
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)

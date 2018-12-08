@@ -46,7 +46,7 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Node
-import Gargantext.Database.NodeNgram
+import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.NodeNode
 import Gargantext.Database.Queries
 import Opaleye
