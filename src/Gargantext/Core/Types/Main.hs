@@ -21,7 +21,6 @@ Portability : POSIX
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
-
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Data.Aeson (FromJSON, ToJSON, toJSON)
 import Data.Aeson as A

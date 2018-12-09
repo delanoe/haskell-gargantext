@@ -74,7 +74,7 @@ import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (mkCmd, Cmd(..))
 import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude

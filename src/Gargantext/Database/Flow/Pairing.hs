@@ -31,12 +31,12 @@ import qualified Data.Map as DM
 import Data.Text (Text, toLower)
 import qualified Data.Text as DT
 import Gargantext.Prelude hiding (sum)
-import Gargantext.Database.Ngrams -- (NgramsType(..))
+import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 --import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
 --import Gargantext.Database.Types.Node -- (Hyperdata(..))
 import Gargantext.Database.Node.Contact
 import Gargantext.Database.Flow.Utils
-import Gargantext.Database.Node (Cmd, mkCmd)
+import Gargantext.Database.Utils (Cmd, mkCmd)
 import Gargantext.Database.Node.Children
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Types (NodeType(..))

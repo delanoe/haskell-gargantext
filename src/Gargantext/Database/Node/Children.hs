@@ -20,10 +20,11 @@ module Gargantext.Database.Node.Children where
 import Database.PostgreSQL.Simple (Connection)
 import Opaleye
 import Gargantext.Core.Types
-import Gargantext.Database.Node
-import Gargantext.Database.NodeNode
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Utils
+import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Queries
+import Gargantext.Database.Queries.Filter
 import Gargantext.Database.Node.Contact (HyperdataContact)
 import Control.Arrow (returnA)
 

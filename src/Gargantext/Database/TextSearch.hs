@@ -6,32 +6,95 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
-
-
 -}
 
+{-# LANGUAGE Arrows            #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Database.TextSearch where
 
-
 import Data.Aeson
 import Data.List (intersperse)
 import Data.String (IsString(..))
-import Data.Text (Text, words)
-
-import Database.PostgreSQL.Simple
+import Data.Text (Text, words, unpack)
+import Database.PostgreSQL.Simple -- (Query, Connection)
 import Database.PostgreSQL.Simple.ToField
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.NodeNode
+import Gargantext.Core.Types
+import Control.Arrow (returnA)
+import qualified Opaleye as O hiding (Order)
+import Opaleye hiding (Query, Order)
 
 newtype TSQuery = UnsafeTSQuery [Text]
+
+globalTextSearch :: Connection -> ParentId -> Text -> IO [(NodeId, HyperdataDocument)]
+globalTextSearch c p t = runQuery c (globalTextSearchQuery p t)
+
+-- | Global search query where ParentId is Master Node Corpus Id 
+globalTextSearchQuery :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
+globalTextSearchQuery _ q = proc () -> do
+    row <- queryNodeSearchTable -< ()
+    restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
+    restrict -< (_ns_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
+    returnA  -< (_ns_id row, _ns_hyperdata row)
+
+------------------------------------------------------------------------
+{-
+graphCorpusAuthorQuery :: O.Query (NodeRead, (NodeNgramRead, (NgramsReadNull, NodeNgramReadNull)))
+graphCorpusAuthorQuery = leftJoin4 queryNgramsTable queryNodeNgramTable queryNodeNgramTable queryNodeTable cond12 cond23 cond34
+  where
+    --cond12 :: (NgramsRead, NodeNgramRead) -> Column PGBool
+    cond12 = undefined
+
+    cond23 :: (NodeNgramRead, (NodeNgramRead, NodeNgramReadNull)) -> Column PGBool
+    cond23 = undefined
+    
+    cond34 :: (NodeRead, (NodeNgramRead, (NodeReadNull, NodeNgramReadNull))) -> Column PGBool
+    cond34 = undefined
+--}
+--runGraphCorpusDocSearch :: Connection -> CorpusId -> Text -> IO [(Column PGInt4, Column PGJsonb)]
+--runGraphCorpusDocSearch c cId t = runQuery c $ graphCorpusDocSearch cId t
+
+
+-- | todo add limit and offset and order
+graphCorpusDocSearch :: CorpusId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
+graphCorpusDocSearch cId t = proc () -> do
+  (n, nn) <- graphCorpusDocSearchQuery -< ()
+  restrict -< (_ns_search n) @@ (pgTSQuery (unpack t))
+  restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgInt4 cId)
+  restrict -< (_ns_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  returnA  -< (_ns_id n, _ns_hyperdata n)
+
+graphCorpusDocSearchQuery :: O.Query (NodeSearchRead, NodeNodeReadNull)
+graphCorpusDocSearchQuery = leftJoin queryNodeSearchTable queryNodeNodeTable cond
+  where
+    cond :: (NodeSearchRead, NodeNodeRead) -> Column PGBool
+    cond (n, nn) = nodeNode_node1_id nn .== _ns_id n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- | TODO [""] -> panic "error"
 toTSQuery :: [Text] -> TSQuery
 toTSQuery txt = UnsafeTSQuery txt
+
 
 instance IsString TSQuery
   where
@@ -48,9 +111,6 @@ instance ToField TSQuery
                                 ]
                     ) xs
 
-type ParentId = Int
-type Limit    = Int
-type Offset   = Int
 data Order    = Asc | Desc
 
 instance ToField Order

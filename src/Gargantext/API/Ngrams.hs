@@ -34,7 +34,7 @@ module Gargantext.API.Ngrams
   where
 
 import Prelude (round)
--- import Gargantext.Database.User  (UserId)
+-- import Gargantext.Database.Schema.User  (UserId)
 import Data.Patch.Class (Replace, replace)
 --import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
@@ -57,7 +57,7 @@ import GHC.Generics (Generic)
 --import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeType(..))
-import qualified Gargantext.Database.Ngrams as Ngrams
+import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 import Gargantext.Prelude
 import Gargantext.Core.Types (ListType(..), ListId, CorpusId)
 import Prelude (Enum, Bounded, minBound, maxBound)

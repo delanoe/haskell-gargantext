@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.NodeNgramsNgrams
+Module      : Gargantext.Database.Schema.NodeNgramsNgrams
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -28,7 +28,7 @@ Next Step benchmark:
 {-# LANGUAGE TemplateHaskell        #-}
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-module Gargantext.Database.NodeNgramsNgrams
+module Gargantext.Database.Schema.NodeNgramsNgrams
   where
 
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -37,7 +37,7 @@ import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as DPS

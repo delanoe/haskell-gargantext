@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.NodeNgrams
+Module      : Gargantext.Database.Schema.NodeNgrams
 Description : NodeNgram for Ngram indexation or Lists
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -27,7 +27,7 @@ if Node is a List     then it is listing (either Stop, Candidate or Map)
 
 
 -- TODO NodeNgrams
-module Gargantext.Database.NodeNgram where
+module Gargantext.Database.Schema.NodeNgram where
 
 import Data.Text (Text)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -35,7 +35,7 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types.Main (ListId, ListTypeId)
-import Gargantext.Database.Node (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (mkCmd, Cmd(..))
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS (Connection, query, Only(..))

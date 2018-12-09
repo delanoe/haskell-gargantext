@@ -1,5 +1,5 @@
 name: gargantext
-version: '4.0.0.2'
+version: '4.0.0.3'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -36,12 +36,8 @@ library:
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database
-  - Gargantext.Database.Bashql
-  - Gargantext.Database.Node.Document.Insert
-  - Gargantext.Database.Node.Document.Add
-  - Gargantext.Database.Node.Contact
-  - Gargantext.Database.Types.Node
-  - Gargantext.Database.User
+  - Gargantext.Database.Flow
+  - Gargantext.Database.Schema.Node
   - Gargantext.Database.Cooc
   - Gargantext.Database.Tree
   - Gargantext.Prelude

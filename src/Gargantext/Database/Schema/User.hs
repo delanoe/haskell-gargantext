@@ -20,7 +20,7 @@ Functions to deal with users, database side.
 {-# LANGUAGE Arrows                      #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
 
-module Gargantext.Database.User where
+module Gargantext.Database.Schema.User where
 
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -31,8 +31,8 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
-import Gargantext.Database.Node (Cmd(..), mkCmd, runCmd)
 import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Database.Utils
 import Gargantext.Prelude
 import Opaleye
 

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.NodeNodeNgram
+Module      : Gargantext.Database.Schema.NodeNodeNgram
 Description : TODO: remove this module and table in database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -18,7 +18,7 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 
-module Gargantext.Database.NodeNodeNgram where
+module Gargantext.Database.Schema.NodeNodeNgram where
 
 import Prelude
 import Data.Maybe (Maybe)

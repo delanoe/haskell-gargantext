@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Node
+Module      : Gargantext.Database.Schema.Node
 Description : Main requests of Node to the database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -17,74 +17,41 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Node where
+module Gargantext.Database.Schema.Node where
 
-import Data.Text (pack)
-import GHC.Int (Int64)
+import Control.Arrow (returnA)
 import Control.Lens (set)
-import Data.Maybe
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.Aeson
+import Data.ByteString (ByteString)
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Text (Text, pack)
 import Data.Time (UTCTime)
+import Database.PostgreSQL.Simple (Connection)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Prelude hiding (null, id, map, sum)
-
+import GHC.Int (Int64)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
-import Gargantext.Database.Utils (fromField')
-import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
-import Gargantext.Database.Queries
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Core.Types.Main (UserId)
-
-import Control.Applicative (Applicative)
-import Control.Arrow (returnA)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Control.Monad.IO.Class
-import Control.Monad.Reader
-import Data.Aeson
-import Data.Maybe (Maybe, fromMaybe)
-import Data.Text (Text)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-
-import qualified Data.ByteString      as DB
-import qualified Data.ByteString.Lazy as DBL
-import Data.ByteString (ByteString)
-
-import Database.PostgreSQL.Simple (Connection)
+import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Queries.Filter (limit', offset')
+import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
+import Gargantext.Database.Utils
+import Gargantext.Prelude hiding (sum, head)
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
+import Prelude hiding (null, id, map, sum)
+import qualified Data.ByteString      as DB
+import qualified Data.ByteString.Lazy as DBL
 import qualified Data.Profunctor.Product as PP
 
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-{- | Reader Monad reinvented here:
-
-newtype Cmd a = Cmd { unCmd :: Connection -> IO a }
-
-instance Monad Cmd where
-  return a = Cmd $ \_ -> return a
-
-  m >>= f = Cmd $ \c -> do
-    a <- unCmd m c
-    unCmd (f a) c
--}
-newtype Cmd a = Cmd (ReaderT Connection IO a)
-  deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
-
-runCmd :: Connection -> Cmd a -> IO a
-runCmd c (Cmd f) = runReaderT f c
-
-mkCmd :: (Connection -> IO a) -> Cmd a
-mkCmd = Cmd . ReaderT
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 instance FromField HyperdataAny
   where
@@ -141,25 +108,68 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataList
 instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
 ------------------------------------------------------------------------
 
+-- WIP
+-- TODO Classe HasDefault where
+-- default NodeType = Hyperdata
+------------------------------------------------------------------------
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
+$(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
+$(makeLensesWith abbreviatedFields ''NodePolySearch)
 
+type NodeWrite = NodePoly  (Maybe (Column  PGInt4              ))
+                                  (Column  PGInt4               )
+                                  (Column  PGInt4               )
+                                  (Column (Nullable PGInt4     ))
+                                  (Column (PGText              ))
+                                  (Maybe  (Column PGTimestamptz))
+                                  (Column  PGJsonb              )
+
+type NodeRead = NodePoly  (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column (Nullable PGInt4 ))
+                          (Column (PGText          ))
+                          (Column PGTimestamptz     )
+                          (Column PGJsonb) 
+
+
+type NodeReadNull = NodePoly  (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column (Nullable PGInt4 ))
+                              (Column (Nullable PGText          ))
+                              (Column (Nullable PGTimestamptz     ))
+                              (Column (Nullable PGJsonb))
 
 nodeTable :: Table NodeWrite NodeRead
-nodeTable = Table "nodes" (pNode Node { _node_id                = optional "id"
-                                        , _node_typename        = required "typename"
-                                        , _node_userId          = required "user_id"
-                                        , _node_parentId        = required "parent_id"
-                                        , _node_name            = required "name"
-                                        , _node_date            = optional "date"
-                                        , _node_hyperdata       = required "hyperdata"
-                     --                   , node_titleAbstract   = optional "title_abstract"
-                                        }
+nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
+                                      , _node_typename   = required "typename"
+                                      , _node_userId     = required "user_id"
+                                      
+                                      , _node_parentId   = required "parent_id"
+                                      , _node_name       = required "name"
+                                      , _node_date       = optional "date"
+                                      
+                                      , _node_hyperdata  = required "hyperdata"
+                                      }
                             )
 
+queryNodeTable :: Query NodeRead
+queryNodeTable = queryTable nodeTable
 
+-- | TODO remove below
+type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString
+
+--{-
 nodeTable' :: Table (Maybe (Column PGInt4)
                     ,       Column PGInt4
                     ,       Column PGInt4
@@ -180,22 +190,74 @@ nodeTable' :: Table (Maybe (Column PGInt4)
 nodeTable' = Table "nodes" (PP.p7 ( optional "id"
                                , required "typename"
                                , required "user_id"
+                               
                                , optional "parent_id"
                                , required "name"
                                , optional "date"
+                               
                                , required "hyperdata"
                                )
                             )
+--}
+------------------------------------------------------------------------
+-- | Node(Read|Write)Search is slower than Node(Write|Read) use it
+-- for full text search only
+
+type NodeSearchWrite = NodePolySearch  (Maybe (Column  PGInt4              ))
+                                  (Column  PGInt4               )
+                                  (Column  PGInt4               )
+                                  (Column (Nullable PGInt4     ))
+                                  (Column (PGText              ))
+                                  (Maybe  (Column PGTimestamptz))
+                                  (Column  PGJsonb              )
+                                  (Maybe (Column PGTSVector))
+
+type NodeSearchRead = NodePolySearch  (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column  PGInt4           )
+                          (Column (Nullable PGInt4 ))
+                          (Column (PGText          ))
+                          (Column PGTimestamptz     )
+                          (Column PGJsonb) 
+                          (Column PGTSVector)
 
 
-queryNodeTable :: Query NodeRead
-queryNodeTable = queryTable nodeTable
+type NodeSearchReadNull = NodePolySearch  (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column  (Nullable PGInt4           ))
+                              (Column (Nullable PGInt4 ))
+                              (Column (Nullable PGText          ))
+                              (Column (Nullable PGTimestamptz     ))
+                              (Column (Nullable PGJsonb))
+                              (Column (Nullable PGTSVector))
+
+
+--{-
+nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
+nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
+                                      , _ns_typename   = required "typename"
+                                      , _ns_userId     = required "user_id"
+                                      
+                                      , _ns_parentId   = required "parent_id"
+                                      , _ns_name       = required "name"
+                                      , _ns_date       = optional "date"
+                                      
+                                      , _ns_hyperdata  = required "hyperdata"
+                                      , _ns_search     = optional "search"
+                                      }
+                            )
+--}
+
+queryNodeSearchTable :: Query NodeSearchRead
+queryNodeSearchTable = queryTable nodeTableSearch
+
 
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode id = proc () -> do
     row <- queryNodeTable -< ()
     restrict -< _node_id row .== id
     returnA -< row
+
 
 runGetNodes :: Query NodeRead -> Cmd [NodeAny]
 runGetNodes q = mkCmd $ \conn -> runQuery conn q
@@ -304,11 +366,7 @@ getNodesWithType conn type_id = do
     runQuery conn $ selectNodesWithType type_id
 
 ------------------------------------------------------------------------
--- WIP
--- TODO Classe HasDefault where
--- default NodeType = Hyperdata
-------------------------------------------------------------------------
-type NodeWrite' = NodePoly (Maybe Int) Int Int (Maybe ParentId) Text (Maybe UTCTime) ByteString
+
 ------------------------------------------------------------------------
 defaultUser :: HyperdataUser
 defaultUser = HyperdataUser (Just $ (pack . show) EN)
@@ -395,18 +453,22 @@ node nodeType name hyperData parentId userId = Node Nothing typeId userId parent
 
                   -------------------------------
 node2row :: (Functor maybe1, Functor maybe2, Functor maybe3) =>
-              NodePoly (maybe2 Int)                      Int            Int  (maybe1           Int) 
-                                Text        (maybe3 UTCTime)             ByteString
-                    -> (maybe2 (Column PGInt4), Column PGInt4, Column PGInt4, maybe1 (Column PGInt4)
-                     , Column PGText, maybe3 (Column PGTimestamptz), Column PGJsonb)
-node2row (Node id tn ud pid nm dt hp) = ((pgInt4    <$> id)
-                                        ,(pgInt4        tn)
-                                        ,(pgInt4        ud)
-                                        ,(pgInt4   <$> pid)
-                                        ,(pgStrictText  nm)
-                                        ,(pgUTCTime <$> dt)
-                                        ,(pgStrictJSONB hp)
-                                        )
+              NodePoly (maybe1 Int) Int  Int
+                       (maybe2 Int) Text (maybe3 UTCTime)
+                       ByteString
+                    -> ( maybe1 (Column PGInt4), Column PGInt4, Column PGInt4
+                       , maybe2 (Column PGInt4), Column PGText, maybe3 (Column PGTimestamptz)
+                     , Column PGJsonb)
+node2row (Node id tn ud pid nm dt hp) = ((pgInt4       <$> id)
+                                           ,(pgInt4           tn)
+                                           ,(pgInt4           ud)
+                                           
+                                           ,(pgInt4       <$> pid)
+                                           ,(pgStrictText     nm)
+                                           ,(pgUTCTime    <$> dt)
+                                           
+                                           ,(pgStrictJSONB    hp)
+                                           )
 ------------------------------------------------------------------------
 insertNodesR' :: [NodeWrite'] -> Cmd [Int]
 insertNodesR' ns = mkCmd $ \c -> insertNodesR ns c
@@ -451,7 +513,7 @@ data Node' = Node' { _n_type :: NodeType
                    , _n_children :: [Node']
                    } deriving (Show)
 
-
+-- | TODO NodeWriteT -> NodeWrite
 type NodeWriteT =  ( Maybe (Column PGInt4)
                    ,        Column PGInt4
                    ,        Column PGInt4
@@ -461,9 +523,12 @@ type NodeWriteT =  ( Maybe (Column PGInt4)
                    ,        Column PGJsonb
                    )
 
+mkNode' :: [NodeWrite] -> Cmd Int64
+mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
 
-mkNode' :: [NodeWriteT] -> Cmd Int64
-mkNode' ns = mkCmd $ \conn -> runInsertMany conn nodeTable' ns
+-- TODO: replace mkNodeR'
+mkNodeR'' :: [NodeWrite] -> Cmd [Int]
+mkNodeR'' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable ns (_node_id)
 
 mkNodeR' :: [NodeWriteT] -> Cmd [Int]
 mkNodeR' ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable' ns (\(i,_,_,_,_,_,_) -> i)

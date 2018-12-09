@@ -33,7 +33,6 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
 import Data.Maybe (Maybe)
-import Data.Profunctor.Product.Default
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger
 import Data.Text (Text)
@@ -44,14 +43,14 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Ngrams
-import Gargantext.Database.Node
-import Gargantext.Database.NodeNgram
-import Gargantext.Database.NodeNode
-import Gargantext.Database.Queries
+import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.NodeNgram
+import Gargantext.Database.Schema.NodeNode
+import Gargantext.Database.Utils
+import Gargantext.Database.Queries.Join
+import Gargantext.Database.Queries.Filter
 import Opaleye
-import Opaleye.Internal.Join (NullMaker)
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Prelude hiding (null, id, map, sum, not, read)
 import Servant.API
 import Test.QuickCheck (elements)
@@ -193,8 +192,6 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
          cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== nodeNgram_NodeNgramNodeId         nodeNgram2
 
 
-
-
 ------------------------------------------------------------------------
 
 runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd [FacetDoc]
@@ -237,145 +234,4 @@ filterDocuments o l order q = limit' l $ offset' o $ orderBy ordering q
       (Just FavAsc)    -> asc  facetDoc_favorite
       (Just FavDesc)   -> desc facetDoc_favorite
       _                -> desc facetDoc_created
-
-
-
-
-------------------------------------------------------------------------
--- | TODO move this queries utilties elsewhere
-
-leftJoin3' :: Query (NodeRead, (NodeNodeReadNull, NodeReadNull))
-leftJoin3' = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12 cond23
-    where
-         cond12 = undefined
-         cond23 :: (NodeRead, (NodeNodeRead, NodeReadNull)) -> Column PGBool
-         cond23 = undefined
-
-
-leftJoin3 :: ( Default Unpackspec columnsL1 columnsL1
-             , Default Unpackspec columnsL2 columnsL2
-             , Default Unpackspec columnsL3 columnsL3
-             
-             , Default Unpackspec nullableColumnsL2 nullableColumnsL2
-             
-             , Default NullMaker  columnsL2  nullableColumnsL2
-             , Default NullMaker (columnsL1, nullableColumnsL2) nullableColumnsL3
-             )
-             =>
-              Query columnsL1 -> Query columnsL2 -> Query columnsL3
-                -> ((columnsL1, columnsL2) -> Column PGBool)
-                -> ((columnsL3, (columnsL1, nullableColumnsL2)) -> Column PGBool)
-                -> Query (columnsL3, nullableColumnsL3)
-leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q1 q2 cond12) cond23
-
---{-
-
-leftJoin4' :: Query (NodeRead, (NodeReadNull, (NodeReadNull, NodeReadNull)))
-leftJoin4' = leftJoin4 queryNodeTable queryNodeTable queryNodeTable queryNodeTable cond12 cond23 cond34
-    where
-         cond12 = undefined
-         
-         cond23 :: (NodeRead, (NodeRead, NodeReadNull)) -> Column PGBool
-         cond23 = undefined
-         
-         cond34 :: (NodeRead, (NodeRead, (NodeReadNull, NodeReadNull))) -> Column PGBool
-         cond34 = undefined
-
-
-leftJoin4 :: ( Default Unpackspec fieldsL1 fieldsL1,
-               Default Unpackspec fieldsL2 fieldsL2,
-               Default Unpackspec fieldsL3 fieldsL3,
-               Default Unpackspec fieldsR fieldsR,
-               
-               Default Unpackspec nullableFieldsL1 nullableFieldsL1,
-               Default Unpackspec nullableFieldsL2 nullableFieldsL2,
-               Default NullMaker fieldsR nullableFieldsL2,
-               Default NullMaker (fieldsL2, nullableFieldsL1) nullableFieldsL3,
-               Default NullMaker (fieldsL3, nullableFieldsL2) nullableFieldsL1) =>
-     Query fieldsL3
-     -> Query fieldsR
-     -> Query fieldsL2
-     -> Query fieldsL1
-     -> ((fieldsL3, fieldsR)
-         -> Column PGBool)
-     -> ((fieldsL2, (fieldsL3, nullableFieldsL2))
-         -> Column PGBool)
-     -> ((fieldsL1, (fieldsL2, nullableFieldsL1))
-         -> Column PGBool)
-     -> Query (fieldsL1, nullableFieldsL3)
-leftJoin4 q1 q2 q3 q4 cond12 cond23 cond34 = leftJoin q4 (leftJoin q3 (leftJoin q1 q2 cond12) cond23) cond34
---}
-
-{-
--}
-leftJoin5' :: Query (NodeRead, (NodeReadNull, (NodeReadNull, (NodeReadNull, NodeReadNull))))
-leftJoin5' = leftJoin5 queryNodeTable queryNodeTable queryNodeTable queryNodeTable queryNodeTable cond12 cond23 cond34 cond45
-    where
-         cond12 :: (NodeRead, NodeRead) -> Column PGBool
-         cond12 = undefined
-         
-         cond23 :: (NodeRead, (NodeRead, NodeReadNull)) -> Column PGBool
-         cond23 = undefined
-         
-         cond34 :: (NodeRead, (NodeRead, (NodeReadNull, NodeReadNull))) -> Column PGBool
-         cond34 = undefined
-         
-         cond45 :: (NodeRead, (NodeRead, (NodeReadNull, (NodeReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 = undefined
-
-
-leftJoin5 :: ( Default Unpackspec fieldsL1 fieldsL1,
-               Default Unpackspec fieldsL2 fieldsL2,
-               Default Unpackspec nullableFieldsR1 nullableFieldsR1,
-               Default Unpackspec fieldsL3 fieldsL3,
-               Default Unpackspec nullableFieldsR2 nullableFieldsR2,
-               Default Unpackspec fieldsL4 fieldsL4,
-               Default Unpackspec nullableFieldsR3 nullableFieldsR3,
-               Default Unpackspec fieldsR fieldsR,
-               Default NullMaker fieldsR nullableFieldsR3,
-               Default NullMaker (fieldsL2, nullableFieldsR1) nullableFieldsR4,
-               Default NullMaker (fieldsL3, nullableFieldsR2) nullableFieldsR1,
-               Default NullMaker (fieldsL4, nullableFieldsR3) nullableFieldsR2) =>
-               Query fieldsR
-               -> Query fieldsL4
-               -> Query fieldsL3
-               -> Query fieldsL2
-               -> Query fieldsL1
-               -> ((fieldsL4, fieldsR) -> Column PGBool)
-               -> ((fieldsL3, (fieldsL4, nullableFieldsR3)) -> Column PGBool)
-               -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
-               -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
-               -> Query (fieldsL1, nullableFieldsR4)
-leftJoin5 q1 q2 q3 q4 q5 cond12 cond23 cond34 cond45 = leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45
-
-
-leftJoin6 :: ( Default Unpackspec fieldsL1 fieldsL1,
-               Default Unpackspec fieldsL2 fieldsL2,
-               Default Unpackspec nullableFieldsR1 nullableFieldsR1,
-               Default Unpackspec fieldsL3 fieldsL3,
-               Default Unpackspec nullableFieldsR2 nullableFieldsR2,
-               Default Unpackspec fieldsL4 fieldsL4,
-               Default Unpackspec nullableFieldsR3 nullableFieldsR3,
-               Default Unpackspec fieldsL5 fieldsL5,
-               Default Unpackspec nullableFieldsR4 nullableFieldsR4,
-               Default Unpackspec fieldsR fieldsR,
-               Default NullMaker fieldsR nullableFieldsR4,
-               Default NullMaker (fieldsL2, nullableFieldsR1) nullableFieldsR5,
-               Default NullMaker (fieldsL3, nullableFieldsR2) nullableFieldsR1,
-               Default NullMaker (fieldsL4, nullableFieldsR3) nullableFieldsR2,
-               Default NullMaker (fieldsL5, nullableFieldsR4) nullableFieldsR3) =>
-     Query fieldsR
-     -> Query fieldsL5
-     -> Query fieldsL4
-     -> Query fieldsL3
-     -> Query fieldsL2
-     -> Query fieldsL1 -> ((fieldsL5, fieldsR) -> Column PGBool)
-     -> ((fieldsL4, (fieldsL5, nullableFieldsR4)) -> Column PGBool)
-     -> ((fieldsL3, (fieldsL4, nullableFieldsR3)) -> Column PGBool)
-     -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
-     -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
-     -> Query (fieldsL1, nullableFieldsR5)
-leftJoin6 q1 q2 q3 q4 q5 q6 cond12 cond23 cond34 cond45 cond56 =
-  leftJoin q6 (leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45) cond56
-
 
