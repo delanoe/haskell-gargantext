@@ -12,6 +12,10 @@ else
   echo "   or : adduser $(whoami) docker"
 fi
 
+sudo echo "#!/bin/sh
+exec sudo -E /usr/bin/docker \"\$@\"" > /usr/local/bin/docker
+sudo chmod +x /usr/local/bin/docker
+
 curl -sSL https://get.haskellstack.org/ | sh
 stack update
 stack upgrade
