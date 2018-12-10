@@ -564,13 +564,11 @@ childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Nod
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
--- TODO: remove hardcoded userId (with Reader)
--- TODO: user Reader in the API and adapt this function
-userId :: Int
-userId = 1
 
 mk :: Connection -> NodeType -> Maybe ParentId -> Text -> IO [Int]
 mk c nt pId name  = mk' c nt userId pId name
+  where
+    userId = 1
 
 mk' :: Connection -> NodeType -> UserId -> Maybe ParentId -> Text -> IO [Int]
 mk' c nt uId pId name  = map fromIntegral <$> insertNodesWithParentR pId [node nt name hd pId uId] c
@@ -593,6 +591,34 @@ mkRoot uname uId = case uId > 0 of
 
 mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd [Int]
 mkCorpus n h p u = insertNodesR' [nodeCorpusW n h p u]
+
+--{-
+getOrMkList :: ParentId -> UserId -> Cmd Int
+getOrMkList pId uId = do
+  maybeList <- defaultListSafe' pId
+  case maybeList of
+    Nothing -> maybe (panic "no list") identity <$> headMay <$> mkList pId uId
+    Just x  -> pure x
+
+defaultListSafe' :: CorpusId -> Cmd (Maybe ListId)
+defaultListSafe' cId = mkCmd $ \c -> do
+  maybeNode <- headMay <$> getListsWithParentId c cId
+  case maybeNode of
+    Nothing -> pure Nothing
+    (Just node) -> pure $ Just $ _node_id node
+--}
+
+defaultListSafe :: Connection -> CorpusId -> IO (Maybe ListId)
+defaultListSafe c cId = do
+  maybeNode <- headMay <$> getListsWithParentId c cId
+  case maybeNode of
+    Nothing -> pure Nothing
+    (Just node) -> pure $ Just $ _node_id node
+
+defaultList :: Connection -> CorpusId -> IO ListId
+defaultList c cId = maybe (panic errMessage) identity <$> defaultListSafe c cId
+  where
+    errMessage = "Gargantext.API.Ngrams.defaultList: no list found"
 
 mkList :: ParentId -> UserId -> Cmd [Int]
 mkList p u = insertNodesR' [nodeListW Nothing Nothing p u]

@@ -16,37 +16,37 @@ Portability : POSIX
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
-import GHC.Show (Show)
 --import Control.Lens (view)
-import System.FilePath (FilePath)
+--import Gargantext.Core.Types
+--import Gargantext.Database.Node.Contact (HyperdataContact(..))
+import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text, splitOn)
-import Data.Map (Map, lookup)
 import Data.Tuple.Extra (both, second)
-import qualified Data.Map as DM
+import GHC.Show (Show)
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
+import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Core.Types.Main
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
-import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams)
-import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, mkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId')
-import Gargantext.Database.Root (getRootCmd)
-import Gargantext.Database.Types.Node (NodeType(..), NodeId)
+import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
+import Gargantext.Database.Root (getRootCmd)
+import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams)
+import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId')
 import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Gargantext.Database.Utils (Cmd(..))
---import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
-import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Types.Node (NodeType(..), NodeId)
+import Gargantext.Database.Utils (Cmd(..))
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
-import Gargantext.Core.Types.Main
---import Gargantext.Core.Types
-import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
+import System.FilePath (FilePath)
+import qualified Data.Map as DM
 
 flowCorpus :: FileFormat -> FilePath -> CorpusName -> IO CorpusId
 flowCorpus ff fp cName = do
@@ -264,7 +264,7 @@ indexNgrams ng2nId = do
 flowList :: UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd ListId
 flowList uId cId ngs = do
   -- printDebug "ngs:" ngs
-  lId <- maybe (panic "mkList error") identity <$> head <$> mkList cId uId
+  lId <- getOrMkList cId uId
   --printDebug "ngs" (DM.keys ngs)
   -- TODO add stemming equivalence of 2 ngrams
   let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
@@ -279,8 +279,8 @@ flowList uId cId ngs = do
 
   pure lId
 
-flowListUser :: UserId -> CorpusId -> Cmd [Int]
-flowListUser uId cId = mkList cId uId
+flowListUser :: UserId -> CorpusId -> Cmd Int
+flowListUser uId cId = getOrMkList cId uId
 
 ------------------------------------------------------------------------
 

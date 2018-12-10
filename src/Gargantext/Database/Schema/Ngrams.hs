@@ -24,7 +24,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams where
 
 
-import Control.Lens (makeLenses, view)
+import Control.Lens (makeLenses, view, _Just, traverse)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -193,12 +193,6 @@ queryInsertNgrams = [sql|
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
 
-defaultList :: DPS.Connection -> CorpusId -> IO ListId
-defaultList c cId = view node_id <$> maybe (panic errMessage) identity
-  <$> head
-  <$> getListsWithParentId c cId
-  where
-    errMessage = "Gargantext.API.Ngrams.defaultList: no list found"
 
 -- | Ngrams Table
 -- TODO: the way we are getting main Master Corpus and List ID is not clean

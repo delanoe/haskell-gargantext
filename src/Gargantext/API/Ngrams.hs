@@ -57,6 +57,7 @@ import GHC.Generics (Generic)
 --import Gargantext.Core.Types.Main (Tree(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeType(..))
+import Gargantext.Database.Schema.Node (defaultList)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 import Gargantext.Prelude
 import Gargantext.Core.Types (ListType(..), ListId, CorpusId)
@@ -295,7 +296,7 @@ getTableNgrams c cId maybeTabType maybeListId = do
             _          -> panic $ lieu <> "No Ngrams for this tab"
 
   listId <- case maybeListId of
-      Nothing -> Ngrams.defaultList c cId
+      Nothing -> defaultList c cId
       Just lId -> pure lId
 
   (ngramsTableDatas, mapToParent, mapToChildren) <-
