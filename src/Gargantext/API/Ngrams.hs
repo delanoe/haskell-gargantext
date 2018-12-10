@@ -45,6 +45,7 @@ import qualified Data.Set as Set
 --import qualified Data.Map.Strict as DM
 --import qualified Data.Set as Set
 import Control.Lens ((.~))
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
@@ -60,7 +61,7 @@ import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Schema.Node (defaultList)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 import Gargantext.Prelude
-import Gargantext.Core.Types (ListType(..), ListId, CorpusId)
+import Gargantext.Core.Types (ListType(..), ListId, CorpusId, Limit, Offset)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant hiding (Patch)
 import Test.QuickCheck (elements)
@@ -239,6 +240,8 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> QueryParam "ngramsType"   TabType
                       :> QueryParam "list"   ListId
+                      :> QueryParam "limit"  Limit
+                      :> QueryParam "offset" Offset
                       :> Get    '[JSON] NgramsTable
 
 type TableNgramsApi = Summary " Table Ngrams API Change"
@@ -283,8 +286,11 @@ tableNgramsPatch conn corpusId maybeList patchs = do
 
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
-getTableNgrams :: Connection -> CorpusId -> Maybe TabType -> Maybe ListId -> IO NgramsTable
-getTableNgrams c cId maybeTabType maybeListId = do
+getTableNgrams :: MonadIO m
+               => Connection -> CorpusId -> Maybe TabType
+               -> Maybe ListId -> Maybe Limit -> Maybe Offset
+               -> m NgramsTable
+getTableNgrams c cId maybeTabType maybeListId mlimit moffset = liftIO $ do
   let lieu = "Garg.API.Ngrams: " :: Text
   let ngramsType = case maybeTabType of
         Nothing  -> Ngrams.Sources -- panic (lieu <> "Indicate the Table")
@@ -299,8 +305,13 @@ getTableNgrams c cId maybeTabType maybeListId = do
       Nothing -> defaultList c cId
       Just lId -> pure lId
 
+  let
+    defaultLimit = 10 -- TODO
+    limit_  = maybe defaultLimit identity mlimit
+    offset_ = maybe 0 identity moffset
+
   (ngramsTableDatas, mapToParent, mapToChildren) <-
-    Ngrams.getNgramsTableDb c NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId)
+    Ngrams.getNgramsTableDb c NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId) limit_ offset_
 
   -- printDebug "ngramsTableDatas" ngramsTableDatas
 
