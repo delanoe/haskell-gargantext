@@ -24,13 +24,13 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams where
 
 
-import Control.Lens (makeLenses, view, _Just, traverse)
+import Control.Lens (makeLenses, view)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Set (Set)
 import Data.Text (Text, splitOn)
-import Database.PostgreSQL.Simple as DPS (Connection)
+import Database.PostgreSQL.Simple ((:.)(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.ToField (toField)
@@ -38,7 +38,6 @@ import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
-import Gargantext.Core.Types (CorpusId)
 import Gargantext.Core.Types -- (fromListTypeId, ListType, NodePoly(Node))
 import Gargantext.Database.Config (nodeTypeId,userMaster)
 import Gargantext.Database.Root (getRoot)
@@ -201,8 +200,9 @@ queryInsertNgrams = [sql|
 getNgramsTableDb :: DPS.Connection
                -> NodeType             -> NgramsType
                -> NgramsTableParamUser
+               -> Limit -> Offset
                -> IO ([NgramsTableData], MapToParent, MapToChildren)
-getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
+getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _) limit_ offset_ = do
   
   
   maybeRoot <- head <$> getRoot userMaster c
@@ -214,7 +214,7 @@ getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _)  = do
   
   listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId   c corpusMasterId
   
-  ngramsTableData <- getNgramsTableData c nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId)
+  ngramsTableData <- getNgramsTableData c nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId) limit_ offset_
   
   (mapToParent,mapToChildren) <- getNgramsGroup c listIdUser listMasterId
   pure (ngramsTableData, mapToParent,mapToChildren)
@@ -237,15 +237,17 @@ data NgramsTableData = NgramsTableData { _ntd_ngrams   :: Text
 getNgramsTableData :: DPS.Connection
                    -> NodeType -> NgramsType
                    -> NgramsTableParamUser -> NgramsTableParamMaster 
+                   -> Limit -> Offset
                    -> IO [NgramsTableData]
-getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) =
+getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
   trace ("Ngrams table params" <> show params) <$>
   map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$>
     DPS.query conn querySelectTableNgrams params
       where
         nodeTId = nodeTypeId   nodeT
         ngrmTId = ngramsTypeId ngrmT
-        params  = (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc)
+        params  = (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc) :.
+                  (limit_, offset_)
 
 
 
@@ -282,7 +284,9 @@ querySelectTableNgrams = [sql|
        , COALESCE(tu.ngrams_type,tm.ngrams_type) AS ngrams_type
        , SUM(COALESCE(tu.weight,tm.weight)) AS weight
   FROM tableUser tu RIGHT JOIN tableMaster tm ON tu.terms = tm.terms
-  GROUP BY tu.terms,tm.terms,tu.n,tm.n,tu.ngrams_type,tm.ngrams_type;
+  GROUP BY tu.terms,tm.terms,tu.n,tm.n,tu.ngrams_type,tm.ngrams_type
+  LIMIT ?
+  OFFSET ?;
 
   |]
 
