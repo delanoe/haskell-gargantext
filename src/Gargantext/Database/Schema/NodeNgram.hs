@@ -104,7 +104,8 @@ insertNodeNgrams = insertNodeNgramW
 insertNodeNgramW :: [NodeNgramWrite] -> Cmd Int
 insertNodeNgramW nns =
   mkCmd $ \c -> fromIntegral
-       <$> runInsertManyOnConflictDoNothing c nodeNgramTable nns
+       <$> runInsertMany c nodeNgramTable nns
+       -- <$> runInsertManyOnConflictDoNothing c nodeNgramTable nns
 
 type NgramsText = Text
 
