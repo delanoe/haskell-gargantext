@@ -65,11 +65,11 @@ graphCorpusDocSearchQuery = leftJoin queryNodeSearchTable queryNodeNodeTable con
 
 
 getGraphCorpusAuthors :: Connection -> CorpusId -> Text -> IO [((Int, HyperdataDocument),(Maybe Int, Maybe HyperdataContact))]
-getGraphCorpusAuthors c cId q = runQuery c $ selectGraphCorpusAuthors' cId q
+getGraphCorpusAuthors c cId q = runQuery c $ selectGraphCorpusAuthors cId q
 
-selectGraphCorpusAuthors' :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb),(Column (Nullable PGInt4), Column (Nullable PGJsonb)))
-selectGraphCorpusAuthors' cId q = proc () -> do
-  (docs, (corpusDoc, (docNgrams, (ngrams, (ngramsContact, contacts))))) <- queryGraphCorpusAuthors' -< ()
+selectGraphCorpusAuthors :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb),(Column (Nullable PGInt4), Column (Nullable PGJsonb)))
+selectGraphCorpusAuthors cId q = proc () -> do
+  (docs, (corpusDoc, (docNgrams, (ngrams, (ngramsContact, contacts))))) <- queryGraphCorpusAuthors -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgInt4 cId)
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
@@ -78,41 +78,8 @@ selectGraphCorpusAuthors' cId q = proc () -> do
   returnA  -< ((_ns_id docs, _ns_hyperdata docs), (_node_id contacts, _node_hyperdata contacts))
 
 
-
--- | This query can be used to select document with Authors in Annuaire only
-selectGraphCorpusAuthors :: CorpusId -> Text -> O.Query (Column (Nullable PGInt4), Column PGInt4, Column PGJsonb)
-selectGraphCorpusAuthors cId q = proc () -> do
-  (contacts, (contactNgrams, (ngrams, (docNgrams, (corpusDoc, docSearch))))) <- queryGraphCorpusAuthors -< ()
-  restrict -< (_ns_search docSearch)         @@ (pgTSQuery  $ unpack q  )
-  restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgInt4 cId)
-  restrict -< (_ns_typename docSearch)      .== (toNullable $ pgInt4 $ nodeTypeId NodeDocument)
-  restrict -< (nodeNgram_type docNgrams)    .== (toNullable $ pgInt4 $ ngramsTypeId Authors)
-  restrict -< (_node_typename contacts)     .== (pgInt4 $ nodeTypeId NodeContact)
-  returnA  -< (_ns_id docSearch, _node_id contacts, _node_hyperdata contacts)
-  --returnA  -< (_ns_id docSearch, _ns_name docSearch)
-
-
-queryGraphCorpusAuthors :: O.Query (NodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, (NodeNodeReadNull, NodeSearchReadNull)))))
-queryGraphCorpusAuthors = leftJoin6 queryNodeSearchTable queryNodeNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeTable cond12 cond23 cond34 cond45 cond56
-    where
-         cond12 :: (NodeNodeRead, NodeSearchRead) -> Column PGBool
-         cond12 (nn, n) = nodeNode_node2_id nn .== _ns_id n
-         
-         cond23 :: (NodeNgramRead, (NodeNodeRead, NodeSearchReadNull)) -> Column PGBool
-         cond23 (nng, (nn, _)) = nodeNgram_node_id nng .== nodeNode_node2_id nn
-         
-         cond34 :: (NgramsRead, (NodeNgramRead, (NodeNodeReadNull, NodeSearchReadNull))) -> Column PGBool
-         cond34 (ng, (nng, (_,_))) = ngrams_id ng .== nodeNgram_ngrams_id nng
-         
-         cond45 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, (NodeNodeReadNull, NodeSearchReadNull)))) -> Column PGBool
-         cond45 (nng2, (ng2, (_,(_,_)))) = nodeNgram_ngrams_id nng2 .== ngrams_id ng2
-         
-         cond56 :: (NodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, (NodeNodeReadNull, NodeSearchReadNull))))) -> Column PGBool
-         cond56 (n2, (ng3, (_,(_,(_,_))))) = _node_id n2 .== nodeNgram_node_id ng3
-
-
-queryGraphCorpusAuthors' :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
-queryGraphCorpusAuthors' = leftJoin6 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
+queryGraphCorpusAuthors :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
+queryGraphCorpusAuthors = leftJoin6 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
     where
          cond12 :: (NodeNgramRead, NodeRead) -> Column PGBool
          cond12 (ng3, n2) = _node_id n2 .== nodeNgram_node_id ng3
@@ -128,8 +95,6 @@ queryGraphCorpusAuthors' = leftJoin6 queryNodeTable queryNodeNgramTable queryNgr
          
          cond56 :: (NodeSearchRead, (NodeNodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull))))) -> Column PGBool
          cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nodeNode_node2_id nn
-
-
 
 
 
