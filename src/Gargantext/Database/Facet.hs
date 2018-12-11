@@ -179,17 +179,17 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
     where
          cond12 :: (NodeNgramRead, NodeRead) -> Column PGBool
          cond12 (nodeNgram, doc) =  _node_id                  doc
-                                .== nodeNgram_NodeNgramNodeId nodeNgram
+                                .== nodeNgram_node_id nodeNgram
 
          cond23 :: (NgramsRead, (NodeNgramRead, NodeReadNull)) -> Column PGBool
          cond23 (ngrams, (nodeNgram, _)) =  ngrams_id                  ngrams
-                                        .== nodeNgram_NodeNgramNgramId nodeNgram
+                                        .== nodeNgram_ngrams_id nodeNgram
          
          cond34 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams_id ngrams     .== nodeNgram_NodeNgramNgramId        nodeNgram2
+         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams_id ngrams     .== nodeNgram_ngrams_id       nodeNgram2
          
          cond45 :: (NodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== nodeNgram_NodeNgramNodeId         nodeNgram2
+         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== nodeNgram_node_id         nodeNgram2
 
 
 ------------------------------------------------------------------------

@@ -42,11 +42,11 @@ import qualified Database.PostgreSQL.Simple as PGS (Connection, query, Only(..))
 
 -- | TODO : remove id
 data NodeNgramPoly id node_id ngram_id weight ngrams_type
-   = NodeNgram { nodeNgram_NodeNgramId      :: id
-               , nodeNgram_NodeNgramNodeId  :: node_id
-               , nodeNgram_NodeNgramNgramId :: ngram_id
-               , nodeNgram_NodeNgramWeight  :: weight
-               , nodeNgram_NodeNgramType    :: ngrams_type
+   = NodeNgram { nodeNgram_id      :: id
+               , nodeNgram_node_id  :: node_id
+               , nodeNgram_ngrams_id :: ngram_id
+               , nodeNgram_weight  :: weight
+               , nodeNgram_type    :: ngrams_type
                } deriving (Show)
 
 type NodeNgramWrite =
@@ -83,11 +83,11 @@ $(makeLensesWith abbreviatedFields    ''NodeNgramPoly)
 nodeNgramTable :: Table NodeNgramWrite NodeNgramRead
 nodeNgramTable  = Table "nodes_ngrams"
   ( pNodeNgram NodeNgram
-    { nodeNgram_NodeNgramId      = optional "id"
-    , nodeNgram_NodeNgramNodeId  = required "node_id"
-    , nodeNgram_NodeNgramNgramId = required "ngram_id"
-    , nodeNgram_NodeNgramWeight  = required "weight"
-    , nodeNgram_NodeNgramType    = required "ngrams_type"
+    { nodeNgram_id        = optional "id"
+    , nodeNgram_node_id   = required "node_id"
+    , nodeNgram_ngrams_id = required "ngram_id"
+    , nodeNgram_weight    = required "weight"
+    , nodeNgram_type      = required "ngrams_type"
     }
   )
 

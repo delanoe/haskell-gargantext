@@ -52,6 +52,8 @@ instance Monad Cmd where
     unCmd (f a) c
 -}
 
+--type Cmd' a = forall m. (MonadReader env m, HasConnection env, MonadIO m) => m a
+
 newtype Cmd a = Cmd (ReaderT Connection IO a)
   deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
 

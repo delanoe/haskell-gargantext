@@ -51,8 +51,8 @@ join3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
 
 ------------------------------------------------------------------------
 
-leftJoin3' :: Query (NodeRead, (NodeNodeReadNull, NodeReadNull))
-leftJoin3' = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12 cond23
+leftJoin3Ex :: Query (NodeRead, (NodeNodeReadNull, NodeReadNull))
+leftJoin3Ex = leftJoin3 queryNodeNodeTable queryNodeTable queryNodeTable cond12 cond23
     where
          cond12 = undefined
          cond23 :: (NodeRead, (NodeNodeRead, NodeReadNull)) -> Column PGBool
@@ -74,6 +74,22 @@ leftJoin3 :: ( Default Unpackspec columnsL1 columnsL1
                 -> ((columnsL3, (columnsL1, nullableColumnsL2)) -> Column PGBool)
                 -> Query (columnsL3, nullableColumnsL3)
 leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q1 q2 cond12) cond23
+
+
+leftJoin3'
+  :: (Default Unpackspec fieldsL1 fieldsL1,
+      Default Unpackspec fieldsL2 fieldsL2,
+      Default Unpackspec nullableFieldsR1 nullableFieldsR1,
+      Default Unpackspec fieldsR fieldsR,
+      Default NullMaker fieldsR nullableFieldsR1,
+      Default NullMaker (fieldsL2, nullableFieldsR1) nullableFieldsR2) =>
+     Opaleye.Select fieldsR
+     -> Opaleye.Select fieldsL2
+     -> Opaleye.Select fieldsL1
+     -> ((fieldsL2, fieldsR) -> Column PGBool)
+     -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
+     -> Opaleye.Select (fieldsL1, nullableFieldsR2)
+leftJoin3' q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q2 q1 cond12) cond23
 
 --{-
 leftJoin4' :: Query (NodeRead, (NodeReadNull, (NgramsReadNull, NodeReadNull)))
@@ -127,22 +143,22 @@ leftJoin4 q1 q2 q3 q4 cond12 cond23 cond34 = leftJoin q4 (leftJoin q3 (leftJoin 
 
 -- rightJoin4 q1 q2 q3 q4 cond12 cond23 cond34 = rightJoin q4 (rightJoin q3 (rightJoin q1 q2 cond12) cond23) cond34
 
-
-leftJoin5' :: Query (NodeRead, (NodeReadNull, (NodeReadNull, (NodeReadNull, NodeReadNull))))
-leftJoin5' = leftJoin5 queryNodeTable queryNodeTable queryNodeTable queryNodeTable queryNodeTable cond12 cond23 cond34 cond45
+--{-
+leftJoin5' :: Query (NodeRead, (NodeReadNull, (NodeReadNull, (NodeNodeReadNull, NodeSearchReadNull))))
+leftJoin5' = leftJoin5 queryNodeSearchTable queryNodeNodeTable queryNodeTable queryNodeTable queryNodeTable cond12 cond23 cond34 cond45
     where
-         cond12 :: (NodeRead, NodeRead) -> Column PGBool
+         cond12 :: (NodeNodeRead, NodeSearchRead) -> Column PGBool
          cond12 = undefined
          
-         cond23 :: (NodeRead, (NodeRead, NodeReadNull)) -> Column PGBool
+         cond23 :: (NodeRead, (NodeNodeRead, NodeSearchReadNull)) -> Column PGBool
          cond23 = undefined
          
-         cond34 :: (NodeRead, (NodeRead, (NodeReadNull, NodeReadNull))) -> Column PGBool
+         cond34 :: (NodeRead, (NodeRead, (NodeNodeReadNull, NodeSearchReadNull))) -> Column PGBool
          cond34 = undefined
          
-         cond45 :: (NodeRead, (NodeRead, (NodeReadNull, (NodeReadNull, NodeReadNull)))) -> Column PGBool
+         cond45 :: (NodeRead, (NodeRead, (NodeReadNull, (NodeNodeReadNull, NodeSearchReadNull)))) -> Column PGBool
          cond45 = undefined
-
+--}
 
 leftJoin5 :: ( Default Unpackspec fieldsL1 fieldsL1,
                Default Unpackspec fieldsL2 fieldsL2,
@@ -197,5 +213,26 @@ leftJoin6 :: ( Default Unpackspec fieldsL1 fieldsL1,
      -> Query (fieldsL1, nullableFieldsR5)
 leftJoin6 q1 q2 q3 q4 q5 q6 cond12 cond23 cond34 cond45 cond56 =
   leftJoin q6 (leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45) cond56
+
+--{-
+leftJoin6' :: Query (NodeRead, (NodeReadNull, (NodeReadNull, (NodeReadNull, (NodeNodeReadNull, NodeSearchReadNull)))))
+leftJoin6' = leftJoin6 queryNodeSearchTable queryNodeNodeTable queryNodeTable queryNodeTable queryNodeTable queryNodeTable cond12 cond23 cond34 cond45 cond56
+    where
+         cond12 :: (NodeNodeRead, NodeSearchRead) -> Column PGBool
+         cond12 = undefined
+         
+         cond23 :: (NodeRead, (NodeNodeRead, NodeSearchReadNull)) -> Column PGBool
+         cond23 = undefined
+         
+         cond34 :: (NodeRead, (NodeRead, (NodeNodeReadNull, NodeSearchReadNull))) -> Column PGBool
+         cond34 = undefined
+         
+         cond45 :: (NodeRead, (NodeRead, (NodeReadNull, (NodeNodeReadNull, NodeSearchReadNull)))) -> Column PGBool
+         cond45 = undefined
+         
+         cond56 :: (NodeRead, (NodeRead, (NodeReadNull, (NodeReadNull, (NodeNodeReadNull, NodeSearchReadNull))))) -> Column PGBool
+         cond56 = undefined
+
+--}
 
 

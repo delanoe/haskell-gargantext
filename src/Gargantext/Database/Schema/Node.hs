@@ -290,8 +290,6 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     returnA -< node
 
 
---type Cmd' a = forall m. (MonadReader env m, HasConnection env, MonadIO m) => m a
-
 
 -- deleteNode :: (MonadReader Connection m, MonadIO m) => Int -> m Int
 -- deleteNode :: Int -> Cmd' Int
