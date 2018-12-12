@@ -1,6 +1,13 @@
 #!/bin/bash
 
 
+if git --version;
+then 
+  echo "git installed, ok"
+else
+  sudo apt update && sudo apt install git
+fi
+
 if docker --version; 
 then
   echo "Docker installed, ok"
@@ -12,18 +19,32 @@ else
   echo "   or : adduser $(whoami) docker"
 fi
 
-sudo echo "#!/bin/sh
-exec sudo -E /usr/bin/docker \"\$@\"" > /usr/local/bin/docker
-sudo chmod +x /usr/local/bin/docker
+echo "---------------script docker-----------------------------"
+
+########################################################################
+# Docker path conf
+if [ -f "/usr/local/bin/docker" ]
+then
+  echo "docker alias exists already"
+else
+  DOCKERBIN="/usr/local/bin/docker"
+  sudo touch $DOCKERBIN
+  sudo chmod o+w $DOCKERBIN
+  sudo echo "#!/bin/sh
+exec sudo -E /usr/bin/docker \"\$@\"" >> $DOCKERBIN
+  sudo chmod gou+x $DOCKERBIN
+  sudo chmod o-w $DOCKERBIN
+fi
+########################################################################
 
 curl -sSL https://get.haskellstack.org/ | sh
 stack update
 stack upgrade
 
+
 git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
 
 cd haskell-gargantext
-
 git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
 
 mkdir deps
@@ -32,6 +53,7 @@ git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
 git clone https://github.com/np/servant-job.git
 git clone https://github.com/np/patches-map
 git clone https://gitlab.com/npouillard/patches-class.git
+git clone https://github.com/delanoe/haskell-opaleye
 cd ..
 
 stack docker pull
