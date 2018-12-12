@@ -17,6 +17,7 @@ module Gargantext.Viz.Graph
   where
 
 ------------------------------------------------------------------------
+import Control.Lens (makeLenses)
 import GHC.IO (FilePath)
 import GHC.Generics (Generic)
 import Data.Aeson.TH (deriveJSON)
@@ -31,7 +32,7 @@ import qualified Data.Text as T
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 
-import Data.Swagger (ToSchema)
+import Data.Swagger
 
 import Gargantext.Prelude
 import Gargantext.Core.Types (Label)
@@ -48,10 +49,12 @@ data TypeNode = Terms | Unknown
   deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "") ''TypeNode)
+instance ToSchema TypeNode
 
 data Attributes = Attributes { clust_default :: Int }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "") ''Attributes)
+instance ToSchema Attributes
 
 data Node = Node { node_size  :: Int
                  , node_type  :: TypeNode
@@ -61,6 +64,11 @@ data Node = Node { node_size  :: Int
                  }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "node_") ''Node)
+instance ToSchema Node where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 5 fieldLabel}
+
 
 data Edge = Edge { edge_source :: Text
                  , edge_target :: Text
@@ -69,22 +77,54 @@ data Edge = Edge { edge_source :: Text
                  }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "edge_") ''Edge)
+instance ToSchema Edge where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 5 fieldLabel}
 
-data Graph = Graph { graph_nodes :: [Node]
-                   , graph_edges :: [Edge]
+---------------------------------------------------------------
+data LegendField = LegendField { _lf_id :: Int
+                               , _lf_color :: Text
+                               , _lf_label :: Text
+   } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_lf_") ''LegendField)
+
+instance ToSchema LegendField where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+
+makeLenses ''LegendField
+--
+data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the graph
+                                   , _gm_corpusId :: [Int]  -- we can map with different corpus
+                                   , _gm_legend :: [LegendField] -- legend of the Graph
+                                   }
+  deriving (Show, Generic)
+$(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
+instance ToSchema GraphMetadata where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+makeLenses ''GraphMetadata
+
+
+data Graph = Graph { _graph_nodes :: [Node]
+                   , _graph_edges :: [Edge]
+                   , _graph_metadata :: Maybe GraphMetadata
                    }
   deriving (Show, Generic)
-$(deriveJSON (unPrefix "graph_") ''Graph)
+$(deriveJSON (unPrefix "_graph_") ''Graph)
+makeLenses ''Graph
 
--- | Intances for Swagger documentation
-instance ToSchema Node
-instance ToSchema TypeNode
-instance ToSchema Attributes
-instance ToSchema Edge
-instance ToSchema Graph
+instance ToSchema Graph where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 7 fieldLabel}
+
 
 defaultGraph :: Graph
-defaultGraph = Graph {graph_nodes = [Node {node_size = 4, node_type = Terms, node_id = pack "0", node_label = pack "animal", node_attributes = Attributes {clust_default = 0}},Node {node_size = 3, node_type = Terms, node_id = pack "1", node_label = pack "bird", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "2", node_label = pack "boy", node_attributes = Attributes {clust_default = 1}},Node {node_size = 2, node_type = Terms, node_id = pack "3", node_label = pack "dog", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "4", node_label = pack "girl", node_attributes = Attributes {clust_default = 1}},Node {node_size = 4, node_type = Terms, node_id = pack "5", node_label = pack "human body", node_attributes = Attributes {clust_default = 1}},Node {node_size = 3, node_type = Terms, node_id = pack "6", node_label = pack "object", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "7", node_label = pack "pen", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "8", node_label = pack "table", node_attributes = Attributes {clust_default = 2}}], graph_edges = [Edge {edge_source = pack "0", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "0"},Edge {edge_source = pack "1", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "1"},Edge {edge_source = pack "1", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "2"},Edge {edge_source = pack "2", edge_target = pack "2", edge_weight = 1.0, edge_id = pack "3"},Edge {edge_source = pack "2", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "4"},Edge {edge_source = pack "3", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "5"},Edge {edge_source = pack "3", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "6"},Edge {edge_source = pack "3", edge_target = pack "3", edge_weight = 1.0, edge_id = pack "7"},Edge {edge_source = pack "4", edge_target = pack "4", edge_weight = 1.0, edge_id = pack "8"},Edge {edge_source = pack "4", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "9"},Edge {edge_source = pack "5", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "10"},Edge {edge_source = pack "6", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "11"},Edge {edge_source = pack "7", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "12"},Edge {edge_source = pack "7", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "13"},Edge {edge_source = pack "8", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "14"},Edge {edge_source = pack "8", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "15"},Edge {edge_source = pack "8", edge_target = pack "8", edge_weight = 1.0, edge_id = pack "16"}]}
+defaultGraph = Graph {_graph_nodes = [Node {node_size = 4, node_type = Terms, node_id = pack "0", node_label = pack "animal", node_attributes = Attributes {clust_default = 0}},Node {node_size = 3, node_type = Terms, node_id = pack "1", node_label = pack "bird", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "2", node_label = pack "boy", node_attributes = Attributes {clust_default = 1}},Node {node_size = 2, node_type = Terms, node_id = pack "3", node_label = pack "dog", node_attributes = Attributes {clust_default = 0}},Node {node_size = 2, node_type = Terms, node_id = pack "4", node_label = pack "girl", node_attributes = Attributes {clust_default = 1}},Node {node_size = 4, node_type = Terms, node_id = pack "5", node_label = pack "human body", node_attributes = Attributes {clust_default = 1}},Node {node_size = 3, node_type = Terms, node_id = pack "6", node_label = pack "object", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "7", node_label = pack "pen", node_attributes = Attributes {clust_default = 2}},Node {node_size = 2, node_type = Terms, node_id = pack "8", node_label = pack "table", node_attributes = Attributes {clust_default = 2}}], _graph_edges = [Edge {edge_source = pack "0", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "0"},Edge {edge_source = pack "1", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "1"},Edge {edge_source = pack "1", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "2"},Edge {edge_source = pack "2", edge_target = pack "2", edge_weight = 1.0, edge_id = pack "3"},Edge {edge_source = pack "2", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "4"},Edge {edge_source = pack "3", edge_target = pack "0", edge_weight = 1.0, edge_id = pack "5"},Edge {edge_source = pack "3", edge_target = pack "1", edge_weight = 1.0, edge_id = pack "6"},Edge {edge_source = pack "3", edge_target = pack "3", edge_weight = 1.0, edge_id = pack "7"},Edge {edge_source = pack "4", edge_target = pack "4", edge_weight = 1.0, edge_id = pack "8"},Edge {edge_source = pack "4", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "9"},Edge {edge_source = pack "5", edge_target = pack "5", edge_weight = 1.0, edge_id = pack "10"},Edge {edge_source = pack "6", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "11"},Edge {edge_source = pack "7", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "12"},Edge {edge_source = pack "7", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "13"},Edge {edge_source = pack "8", edge_target = pack "6", edge_weight = 1.0, edge_id = pack "14"},Edge {edge_source = pack "8", edge_target = pack "7", edge_weight = 1.0, edge_id = pack "15"},Edge {edge_source = pack "8", edge_target = pack "8", edge_weight = 1.0, edge_id = pack "16"}], _graph_metadata = Nothing}
 
 -- | Intances for the mack
 instance Arbitrary Graph where
@@ -127,7 +167,7 @@ data2graph :: [(Label, Int)] -> Map (Int, Int) Int
                              -> Map (Int, Int) Double
                              -> [LouvainNode]
               -> Graph
-data2graph labels coocs distance partitions = Graph nodes edges
+data2graph labels coocs distance partitions = Graph nodes edges Nothing
   where
     community_id_by_node_id = M.fromList [ (n, c) | LouvainNode n c <- partitions ]
     nodes = [ Node { node_size = maybe 0 identity (M.lookup (n,n) coocs)
@@ -147,7 +187,7 @@ data2graph labels coocs distance partitions = Graph nodes edges
 -----------------------------------------------------------
 
 graphV3ToGraph :: GraphV3 -> Graph
-graphV3ToGraph (GraphV3 links nodes) = Graph (map nodeV32node nodes) (zipWith linkV32edge [1..] links)
+graphV3ToGraph (GraphV3 links nodes) = Graph (map nodeV32node nodes) (zipWith linkV32edge [1..] links) Nothing
   where
     nodeV32node :: NodeV3 -> Node
     nodeV32node (NodeV3 no_id' (AttributesV3 cl') no_s' no_lb')

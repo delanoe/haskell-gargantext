@@ -23,12 +23,13 @@ import Database.PostgreSQL.Simple.ToField
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
-import Gargantext.Database.Node.Contact
+--import Gargantext.Database.Node.Contact
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Schema.NodeNgram
-import Gargantext.Database.Queries.Join (leftJoin6, leftJoin3')
+import Gargantext.Database.Queries.Join (leftJoin6)
+import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types
 import Control.Arrow (returnA)
 import qualified Opaleye as O hiding (Order)
@@ -74,14 +75,14 @@ searchInCorpusWithContacts c cId q = runQuery c $ queryInCorpusWithContacts cId 
 
 queryInCorpusWithContacts :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb), (Column (PGInt4), Column (Nullable PGText)))
 queryInCorpusWithContacts cId q = proc () -> do
-  (docs, (corpusDoc, (docNgrams, (ngrams, (ngramsContact, contacts))))) <- joinInCorpusWithContacts -< ()
+  (docs, (corpusDoc, (docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
   restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgInt4 cId)
   restrict -< (nodeNgram_type docNgrams)    .== (toNullable $ pgInt4 $ ngramsTypeId Authors)
   restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
-  returnA  -< ((_ns_id docs, _ns_hyperdata docs),(fromNullable (pgInt4 0) (_node_id contacts), ngrams_terms ngrams))
+  returnA  -< ((_ns_id docs, _ns_hyperdata docs),(fromNullable (pgInt4 0) (_node_id contacts), ngrams_terms ngrams'))
 
 joinInCorpusWithContacts :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
 joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
@@ -125,7 +126,7 @@ newtype TSQuery = UnsafeTSQuery [Text]
 
 -- | TODO [""] -> panic "error"
 toTSQuery :: [Text] -> TSQuery
-toTSQuery txt = UnsafeTSQuery txt
+toTSQuery txt = UnsafeTSQuery $ map stemIt txt
 
 
 instance IsString TSQuery

@@ -77,6 +77,10 @@ instance FromField HyperdataList
   where
     fromField = fromField'
 
+instance FromField HyperdataGraph
+  where
+    fromField = fromField'
+
 instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
@@ -102,6 +106,10 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataUser
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataList
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 

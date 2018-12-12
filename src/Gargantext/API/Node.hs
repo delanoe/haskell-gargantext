@@ -32,7 +32,7 @@ module Gargantext.API.Node
   , HyperdataDocumentV3(..)
   ) where
 -------------------------------------------------------------------
-import Control.Lens (prism')
+import Control.Lens (prism', set)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
@@ -60,7 +60,7 @@ import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 -- Graph
 --import Gargantext.Text.Flow
-import Gargantext.Viz.Graph (Graph,readGraphFromJson,defaultGraph)
+import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
 -- import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListId, CorpusId, ContactId)
@@ -246,8 +246,23 @@ type ChartApi = Summary " Chart API"
 ------------------------------------------------------------------------
 type GraphAPI   = Get '[JSON] Graph
 graphAPI :: Connection -> NodeId -> Server GraphAPI
-graphAPI _ _ = do
-  liftIO $ maybe defaultGraph identity <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
+graphAPI c nId = liftIO $ graphAPI' c nId
+
+graphAPI' :: Connection -> NodeId -> IO Graph
+graphAPI' c nId = do
+  
+  nodeGraph <- getNode c nId HyperdataGraph
+
+  let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph] 
+                                       [ LegendField 1 "#FFFFFF" "Label 1"
+                                       , LegendField 2 "#0048BA" "Label 2"
+                                       ]
+
+  graph <- set graph_metadata (Just metadata) <$> maybe defaultGraph identity <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
+  
+  pure graph
+
+
   -- t <- textFlow (Mono EN) (Contexts contextText)
   -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
