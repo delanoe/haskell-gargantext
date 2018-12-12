@@ -67,12 +67,14 @@ joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
     cond (n, nn) = nodeNode_node2_id nn .== _ns_id n
 
 ------------------------------------------------------------------------
-getGraphCorpusAuthors :: Connection -> CorpusId -> Text -> IO [((Int, HyperdataDocument),(Int, Maybe Text))]
-getGraphCorpusAuthors c cId q = runQuery c $ selectGraphCorpusAuthors cId q
+type AuthorName = Text
 
-selectGraphCorpusAuthors :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb), (Column (PGInt4), Column (Nullable PGText)))
-selectGraphCorpusAuthors cId q = proc () -> do
-  (docs, (corpusDoc, (docNgrams, (ngrams, (ngramsContact, contacts))))) <- queryGraphCorpusAuthors -< ()
+searchInCorpusWithContacts :: Connection -> CorpusId -> Text -> IO [((Int, HyperdataDocument),(ContactId, Maybe AuthorName))]
+searchInCorpusWithContacts c cId q = runQuery c $ queryInCorpusWithContacts cId q
+
+queryInCorpusWithContacts :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb), (Column (PGInt4), Column (Nullable PGText)))
+queryInCorpusWithContacts cId q = proc () -> do
+  (docs, (corpusDoc, (docNgrams, (ngrams, (ngramsContact, contacts))))) <- joinInCorpusWithContacts -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
   restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgInt4 cId)
@@ -81,9 +83,8 @@ selectGraphCorpusAuthors cId q = proc () -> do
   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
   returnA  -< ((_ns_id docs, _ns_hyperdata docs),(fromNullable (pgInt4 0) (_node_id contacts), ngrams_terms ngrams))
 
-
-queryGraphCorpusAuthors :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
-queryGraphCorpusAuthors = leftJoin6 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
+joinInCorpusWithContacts :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
+joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
     where
          cond12 :: (NodeNgramRead, NodeRead) -> Column PGBool
          cond12 (ng3, n2) = _node_id n2 .== nodeNgram_node_id ng3
