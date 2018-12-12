@@ -34,14 +34,14 @@ import Control.Arrow (returnA)
 import qualified Opaleye as O hiding (Order)
 import Opaleye hiding (Query, Order)
 
-newtype TSQuery = UnsafeTSQuery [Text]
 
-globalTextSearch :: Connection -> ParentId -> Text -> IO [(NodeId, HyperdataDocument)]
-globalTextSearch c p t = runQuery c (globalTextSearchQuery p t)
+------------------------------------------------------------------------
+searchInDatabase :: Connection -> ParentId -> Text -> IO [(NodeId, HyperdataDocument)]
+searchInDatabase c p t = runQuery c (queryInDatabase p t)
 
 -- | Global search query where ParentId is Master Node Corpus Id 
-globalTextSearchQuery :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
-globalTextSearchQuery _ q = proc () -> do
+queryInDatabase :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
+queryInDatabase _ q = proc () -> do
     row <- queryNodeSearchTable -< ()
     restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
     restrict -< (_ns_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
@@ -49,33 +49,37 @@ globalTextSearchQuery _ q = proc () -> do
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
-graphCorpusDocSearch :: CorpusId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
-graphCorpusDocSearch cId q = proc () -> do
-  (n, nn) <- graphCorpusDocSearchQuery -< ()
-  restrict -< (_ns_search n) @@ (pgTSQuery (unpack q))
+searchInCorpus :: Connection -> CorpusId -> Text -> IO [(NodeId, HyperdataDocument)]
+searchInCorpus c cId q = runQuery c (queryInCorpus cId q)
+
+queryInCorpus :: CorpusId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
+queryInCorpus cId q = proc () -> do
+  (n, nn) <- joinInCorpus -< ()
   restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgInt4 cId)
-  restrict -< (_ns_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
+  restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA  -< (_ns_id n, _ns_hyperdata n)
 
-graphCorpusDocSearchQuery :: O.Query (NodeSearchRead, NodeNodeReadNull)
-graphCorpusDocSearchQuery = leftJoin queryNodeSearchTable queryNodeNodeTable cond
+joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
+joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
   where
     cond :: (NodeSearchRead, NodeNodeRead) -> Column PGBool
-    cond (n, nn) = nodeNode_node1_id nn .== _ns_id n
+    cond (n, nn) = nodeNode_node2_id nn .== _ns_id n
 
-
-getGraphCorpusAuthors :: Connection -> CorpusId -> Text -> IO [((Int, HyperdataDocument),(Maybe Int, Maybe HyperdataContact))]
+------------------------------------------------------------------------
+getGraphCorpusAuthors :: Connection -> CorpusId -> Text -> IO [((Int, HyperdataDocument),(Int, Maybe Text))]
 getGraphCorpusAuthors c cId q = runQuery c $ selectGraphCorpusAuthors cId q
 
-selectGraphCorpusAuthors :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb),(Column (Nullable PGInt4), Column (Nullable PGJsonb)))
+selectGraphCorpusAuthors :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb), (Column (PGInt4), Column (Nullable PGText)))
 selectGraphCorpusAuthors cId q = proc () -> do
   (docs, (corpusDoc, (docNgrams, (ngrams, (ngramsContact, contacts))))) <- queryGraphCorpusAuthors -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
-  restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgInt4 cId)
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgInt4 cId)
   restrict -< (nodeNgram_type docNgrams)    .== (toNullable $ pgInt4 $ ngramsTypeId Authors)
   restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
-  returnA  -< ((_ns_id docs, _ns_hyperdata docs), (_node_id contacts, _node_hyperdata contacts))
+  -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
+  returnA  -< ((_ns_id docs, _ns_hyperdata docs),(fromNullable (pgInt4 0) (_node_id contacts), ngrams_terms ngrams))
 
 
 queryGraphCorpusAuthors :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
@@ -97,12 +101,26 @@ queryGraphCorpusAuthors = leftJoin6 queryNodeTable queryNodeNgramTable queryNgra
          cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nodeNode_node2_id nn
 
 
+{-
+queryGraphCorpusAuthors' :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, NgramsReadNull)))
+queryGraphCorpusAuthors' = leftJoin4 queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34
+    where
+         cond23 :: (NgramsRead, (NodeNgramRead, NodeReadNull)) -> Column PGBool
+         cond23 (ng2, (nng2, _)) = nodeNgram_ngrams_id nng2 .== ngrams_id ng2
+         
+         cond34 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, NodeReadNull))) -> Column PGBool
+         cond34 (nng, (ng, (_,_))) = ngrams_id ng .== nodeNgram_ngrams_id nng
+         
+         cond45 :: (NodeNodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
+         cond45 (nn, (nng, (_,(_,_)))) = nodeNgram_node_id nng .== nodeNode_node2_id nn
+         
+         cond56 :: (NodeSearchRead, (NodeNodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull))))) -> Column PGBool
+         cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nodeNode_node2_id nn
+-}
 
 
 
-
-
-
+newtype TSQuery = UnsafeTSQuery [Text]
 
 -- | TODO [""] -> panic "error"
 toTSQuery :: [Text] -> TSQuery
