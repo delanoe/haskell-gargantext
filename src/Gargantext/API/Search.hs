@@ -42,6 +42,8 @@ import Gargantext.Database.TextSearch
 import Gargantext.Database.Facet
 
 -----------------------------------------------------------------------
+-- | SearchIn [NodesId] if empty then global search
+-- TODO [Int]
 data SearchQuery = SearchQuery { sq_query :: [Text]
                                , sq_corpus_id :: Int
                                } deriving (Generic)
@@ -53,6 +55,20 @@ instance ToSchema SearchQuery where
 
 instance Arbitrary SearchQuery where
   arbitrary = elements [SearchQuery ["electrodes"] 472764]
+
+--
+
+data SearchInQuery = SearchInQuery { siq_query :: [Text]
+                               } deriving (Generic)
+$(deriveJSON (unPrefix "siq_") ''SearchInQuery)
+instance ToSchema SearchInQuery where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+
+instance Arbitrary SearchInQuery where
+  arbitrary = SearchInQuery <$> arbitrary
+
 
 -----------------------------------------------------------------------
 
@@ -75,3 +91,9 @@ type SearchAPI = Post '[JSON] SearchResults
 search :: Connection -> SearchQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Handler SearchResults
 search c (SearchQuery q pId) o l order =
   liftIO $ SearchResults <$> searchInCorpusWithContacts c pId q o l order
+
+searchIn :: Connection -> NodeId -> SearchInQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Handler SearchResults
+searchIn c nId (SearchInQuery q ) o l order =
+  liftIO $ SearchResults <$> searchInCorpusWithContacts c nId q o l order
+
+

@@ -58,6 +58,7 @@ import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..),FacetChart,runViewAuthorsDoc)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
+import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 -- Graph
 --import Gargantext.Text.Flow
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
@@ -113,6 +114,12 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "chart"     :> ChartApi
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi
+             :<|> "search":> Summary "Node Search"
+                        :> ReqBody '[JSON] SearchInQuery
+                        :> QueryParam "offset" Int
+                        :> QueryParam "limit"  Int
+                        :> QueryParam "order"  OrderBy
+                        :> SearchAPI
 
 type RenameApi = Summary " RenameNode Node"
                :> ReqBody '[JSON] RenameNode
@@ -147,6 +154,8 @@ nodeAPI conn p id
               :<|> getChart      conn id
               :<|> favApi        conn id
               :<|> delDocs       conn id
+              :<|> searchIn      conn id
+
               -- Annuaire
               -- :<|> upload
               -- :<|> query

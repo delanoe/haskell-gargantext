@@ -151,7 +151,7 @@ subFlowCorpus username cName = do
             True  -> panic "Error: more than 1 userNode / user"
             False -> pure rootId'
   let rootId = maybe (panic "error rootId") identity (head rootId'')
-  --{-
+
   corpusId'' <- if username == userMaster
                   then do
                     ns <- runCmd' $ getCorporaWithParentId' rootId
@@ -159,7 +159,6 @@ subFlowCorpus username cName = do
                   else
                     pure []
 
---}
   corpusId' <- if corpusId'' /= []
                   then pure corpusId''
                   else runCmd' $ mkCorpus (Just cName) Nothing rootId userId
