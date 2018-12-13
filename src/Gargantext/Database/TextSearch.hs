@@ -18,12 +18,14 @@ import Data.Aeson
 import Data.List (intersperse)
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack)
+import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple -- (Query, Connection)
 import Database.PostgreSQL.Simple.ToField
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Prelude
 --import Gargantext.Database.Node.Contact
+import Gargantext.Database.Facet
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNode
@@ -50,16 +52,20 @@ queryInDatabase _ q = proc () -> do
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
-searchInCorpus :: Connection -> CorpusId -> Text -> IO [(NodeId, HyperdataDocument)]
-searchInCorpus c cId q = runQuery c (queryInCorpus cId q)
+searchInCorpus :: Connection -> CorpusId -> Text -> IO [FacetDoc]
+searchInCorpus c cId q = map toFacet <$> runQuery'
+  where
+    toFacet (nId, d, h) = FacetDoc nId d (maybe "Empty Title" identity $_hyperdataDocument_title h) h True 0
+    runQuery' :: IO [(Int, UTCTime, HyperdataDocument)]
+    runQuery' = runQuery c (queryInCorpus cId q)
 
-queryInCorpus :: CorpusId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
+queryInCorpus :: CorpusId -> Text -> O.Query (Column PGInt4, Column PGTimestamptz, Column PGJsonb)
 queryInCorpus cId q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgInt4 cId)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< (_ns_id n, _ns_hyperdata n)
+  returnA  -< (_ns_id n, _ns_date n, _ns_hyperdata n)
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond

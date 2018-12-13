@@ -26,7 +26,6 @@ Portability : POSIX
 module Gargantext.Database.Facet
   where
 ------------------------------------------------------------------------
-
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson (FromJSON, ToJSON)
@@ -74,7 +73,6 @@ type FacetAuthors = FacetDoc
 type FacetTerms   = FacetDoc
 
 
-
 data Facet id created title hyperdata favorite ngramCount = 
      FacetDoc { facetDoc_id         :: id
               , facetDoc_created    :: created
@@ -83,7 +81,14 @@ data Facet id created title hyperdata favorite ngramCount =
               , facetDoc_favorite   :: favorite
               , facetDoc_ngramCount :: ngramCount
               } deriving (Show, Generic)
-
+{- | TODO after demo
+data Facet id date hyperdata score = 
+     FacetDoc { facetDoc_id        :: id
+              , facetDoc_date      :: date
+              , facetDoc_hyperdata :: hyperdata
+              , facetDoc_score     :: score
+              } deriving (Show, Generic)
+-}
 -- | JSON instance
 
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
@@ -92,7 +97,6 @@ $(deriveJSON (unPrefix "facetDoc_") ''Facet)
 instance ToSchema FacetDoc
 
 -- | Mock and Quickcheck instances
-
 instance Arbitrary FacetDoc where
     arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp fav ngramCount
                          | id'  <- [1..10]
@@ -129,9 +133,9 @@ instance Arbitrary FacetChart where
 
 -----------------------------------------------------------------------
 type Trash   = Bool
-data OrderBy =  DateAsc | DateDesc
-             | TitleAsc | TitleDesc
-             | FavDesc  | FavAsc
+data OrderBy =  DateAsc   | DateDesc
+             | TitleAsc   | TitleDesc
+             | ScoreDesc  | ScoreAsc
              deriving (Generic, Enum, Bounded, Read, Show)
              -- | NgramCoun
 
@@ -141,8 +145,8 @@ instance FromHttpApiData OrderBy
     parseUrlPiece "DateDesc" = pure DateDesc
     parseUrlPiece "TitleAsc" = pure TitleAsc
     parseUrlPiece "TitleDesc" = pure TitleDesc
-    parseUrlPiece "FavAsc"   = pure FavAsc
-    parseUrlPiece "FavDesc"   = pure FavDesc
+    parseUrlPiece "ScoreAsc"   = pure ScoreAsc
+    parseUrlPiece "ScoreDesc"  = pure ScoreDesc
     parseUrlPiece _           = Left "Unexpected value of OrderBy"
 
 instance ToParamSchema OrderBy
@@ -155,7 +159,7 @@ instance Arbitrary OrderBy
 
 
 runViewAuthorsDoc :: Connection -> ContactId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
-runViewAuthorsDoc c cId t o l order = runQuery c (filterDocuments o l order $ viewAuthorsDoc cId t ntId)
+runViewAuthorsDoc c cId t o l order = runQuery c (filterWith o l order $ viewAuthorsDoc cId t ntId)
   where
     ntId = NodeDocument
 
@@ -199,7 +203,7 @@ runViewDocuments cId t o l order = mkCmd $ \c -> runViewDocuments' c cId t o l o
 
 -- | TODO use only Cmd with Reader and delete function below
 runViewDocuments' :: Connection -> CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
-runViewDocuments' c cId t o l order = runQuery c ( filterDocuments o l order
+runViewDocuments' c cId t o l order = runQuery c ( filterWith o l order
                                                 $ viewDocuments cId t ntId)
   where
     ntId = nodeTypeId NodeDocument
@@ -216,22 +220,23 @@ viewDocuments cId t ntId = proc () -> do
 
 
 ------------------------------------------------------------------------
-
-filterDocuments :: (PGOrd date, PGOrd title, PGOrd favorite) =>
+filterWith :: (PGOrd date, PGOrd title, PGOrd score) =>
      Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
-     -> Select (Facet id (Column date) (Column title) hyperdata (Column favorite) ngramCount)
-     -> Query  (Facet id (Column date) (Column title) hyperdata (Column favorite) ngramCount)
-filterDocuments o l order q = limit' l $ offset' o $ orderBy ordering q
-  where
-    ordering = case order of
-      (Just DateAsc)   -> asc  facetDoc_created
-      
-      (Just TitleAsc)  -> asc  facetDoc_title
-      (Just TitleDesc) -> desc facetDoc_title
-      
-      (Just FavAsc)    -> asc  facetDoc_favorite
-      (Just FavDesc)   -> desc facetDoc_favorite
-      _                -> desc facetDoc_created
+     -> Select (Facet id (Column date) (Column title) hyperdata (Column score) ngramCount)
+     -> Select (Facet id (Column date) (Column title) hyperdata (Column score) ngramCount)
+filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
+
+
+orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3) => Maybe OrderBy -> Order (Facet id (Column b1) (Column b2) hyperdata (Column b3) score)
+orderWith order = case order of
+  (Just DateAsc)   -> asc  facetDoc_created
+  
+  (Just TitleAsc)  -> asc  facetDoc_title
+  (Just TitleDesc) -> desc facetDoc_title
+  
+  (Just ScoreAsc)  -> asc  facetDoc_favorite
+  (Just ScoreDesc) -> desc facetDoc_favorite
+  _                -> desc facetDoc_created
 

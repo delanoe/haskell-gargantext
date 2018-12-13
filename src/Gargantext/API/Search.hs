@@ -97,7 +97,6 @@ instance ToSchema SearchResults where
       defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
 
 
-
 -----------------------------------------------------------------------
 type SearchAPI = Post '[JSON] SearchResults
 -----------------------------------------------------------------------
