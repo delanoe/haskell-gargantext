@@ -15,6 +15,8 @@ Portability : POSIX
 module Gargantext.Database.TextSearch where
 
 import Data.Aeson
+import Data.Map.Strict hiding (map)
+import Data.Maybe
 import Data.List (intersperse)
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack, intercalate)
@@ -75,7 +77,12 @@ joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
 type AuthorName = Text
 
 searchInCorpusWithContacts :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
-searchInCorpusWithContacts = undefined
+searchInCorpusWithContacts c cId q o l order = map (\((i,u,h,s), ps) -> FacetPaired i u h s (catMaybes ps)) <$> toList <$> fromListWith (<>) <$> map (\(FacetPaired i u h s p) -> ((i,u,h,s), [maybePair p])) <$> searchInCorpusWithContacts' c cId q o l order
+  where
+    maybePair (Pair Nothing Nothing) = Nothing
+    maybePair (Pair _ Nothing) = Nothing
+    maybePair (Pair Nothing _) = Nothing
+    maybePair (Pair (Just i) (Just l)) = Just $ Pair i l
 
 searchInCorpusWithContacts' :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
 searchInCorpusWithContacts' c cId q o l order = runQuery c $ queryInCorpusWithContacts cId q' o l order

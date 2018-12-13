@@ -131,6 +131,12 @@ data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd             
 $(deriveJSON (unPrefix "_hyperdataDocument_") ''HyperdataDocument)
 $(makeLenses ''HyperdataDocument)
 
+instance Eq HyperdataDocument where
+  (==) h1 h2 = (==) (_hyperdataDocument_uniqId h1) (_hyperdataDocument_uniqId h2)
+
+instance Ord HyperdataDocument where
+  compare h1 h2 = compare (_hyperdataDocument_uniqId h1) (_hyperdataDocument_uniqId h2)
+
 instance Hyperdata HyperdataDocument
 
 instance ToField HyperdataDocument where

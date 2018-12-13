@@ -90,13 +90,6 @@ data Facet id date hyperdata score =
               } deriving (Show, Generic)
 -}
 
-{-
-type PairLabel = Text
-instance ToJSON PairLabel
-instance ToSchema PairLabel
-instance Arbitrary PairLabel where
-  arbitrary = elements (["Label 1", "Label 2"] :: [PairLabel])
--}
 data Pair i l = Pair {_p_id    :: i
                      ,_p_label :: l
   } deriving (Show, Generic)
