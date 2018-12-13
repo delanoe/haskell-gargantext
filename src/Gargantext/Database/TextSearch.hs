@@ -57,7 +57,7 @@ queryInDatabase _ q = proc () -> do
 searchInCorpus :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
 searchInCorpus c cId q o l order = runQuery c (filterWith o l order $ queryInCorpus cId q')
   where
-    q' = intercalate " || " $ map stemIt q
+    q' = intercalate " | " $ map stemIt q
 
 queryInCorpus :: CorpusId -> Text -> O.Query FacetDocRead
 queryInCorpus cId q = proc () -> do
@@ -92,7 +92,7 @@ searchInCorpusWithContacts c cId q o l order = take (maybe 5 identity l) <$> dro
 searchInCorpusWithContacts' :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
 searchInCorpusWithContacts' c cId q o l order = runQuery c $ queryInCorpusWithContacts cId q' o l order
   where
-    q' = intercalate " || " $ map stemIt q
+    q' = intercalate " | " $ map stemIt q
 
 
 
