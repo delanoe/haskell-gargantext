@@ -21,15 +21,18 @@ module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
 --import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
-import Data.Text (Text, splitOn)
+import Data.Text (Text, splitOn, intercalate)
 import Data.Tuple.Extra (both, second)
+import Data.List (concat)
 import GHC.Show (Show)
-import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId)
+import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId, Terms(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main
+import Gargantext.Core (Lang(..))
 import Gargantext.Database.Bashql (runCmd') -- , del)
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
+import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRootCmd)
@@ -41,6 +44,7 @@ import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Database.Types.Node (NodeType(..), NodeId)
 import Gargantext.Database.Utils (Cmd(..))
+import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
@@ -102,7 +106,7 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
   -- printDebug "documentsWithId" documentsWithId
-  let docsWithNgrams  = documentIdWithNgrams extractNgramsT documentsWithId
+  docsWithNgrams <- documentIdWithNgrams extractNgramsT documentsWithId
   -- printDebug "docsWithNgrams" docsWithNgrams
   let maps            = mapNodeIdNgrams docsWithNgrams
   
@@ -228,22 +232,31 @@ data DocumentIdWithNgrams =
 -- TODO add Terms (Title + Abstract)
 -- add f :: Text -> Text
 -- newtype Ngrams = Ngrams Text
-extractNgramsT :: HyperdataDocument -> Map (NgramsT Ngrams) Int
-extractNgramsT doc = DM.fromList $  [(NgramsT Sources source, 1)]
-                                 <> [(NgramsT Institutes i' , 1)| i' <- institutes ]
-                                 <> [(NgramsT Authors    a' , 1)| a' <- authors    ]
+-- TODO group terms
+extractNgramsT :: HyperdataDocument -> IO (Map (NgramsT Ngrams) Int)
+extractNgramsT doc = do
+  
+  let source    = text2ngrams $ maybe "Nothing" identity $ _hyperdataDocument_source doc
+  let institutes = map text2ngrams $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))  $ _hyperdataDocument_institutes doc
+  let authors    = map text2ngrams $ maybe ["Nothing"] (splitOn ", ") $ _hyperdataDocument_authors doc
+  let leText = catMaybes [_hyperdataDocument_title doc, _hyperdataDocument_abstract doc]
+  terms' <- map text2ngrams <$> map (intercalate " " . _terms_label) <$> concat <$> extractTerms (Multi EN) leText
+
+  pure $ DM.fromList $  [(NgramsT Sources source, 1)]
+                     <> [(NgramsT Institutes  i' , 1)| i' <- institutes ]
+                     <> [(NgramsT Authors     a' , 1)| a' <- authors    ]
+                     <> [(NgramsT NgramsTerms t' , 1)| t' <- terms'     ]
+
+
+
+
+documentIdWithNgrams :: (HyperdataDocument -> IO (Map (NgramsT Ngrams) Int))
+                     -> [DocumentWithId]   -> IO [DocumentIdWithNgrams]
+documentIdWithNgrams f = mapM toDocumentIdWithNgrams
   where
-    source    = text2ngrams $ maybe "Nothing" identity $ _hyperdataDocument_source doc
-    institutes = map text2ngrams $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))  $ _hyperdataDocument_institutes doc
-    authors    = map text2ngrams $ maybe ["Nothing"] (splitOn ", ") $ _hyperdataDocument_authors doc
-    -- TODO group terms
-
-
-
-
-documentIdWithNgrams :: (HyperdataDocument -> Map (NgramsT Ngrams) Int)
-                     -> [DocumentWithId]   -> [DocumentIdWithNgrams]
-documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
+    toDocumentIdWithNgrams d = do
+      e <- f $ documentData d
+      pure $ DocumentIdWithNgrams d e
 
 -- | TODO check optimization
 mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map (NgramsT Ngrams) (Map NodeId Int)

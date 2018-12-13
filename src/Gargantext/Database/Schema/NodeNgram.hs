@@ -108,7 +108,7 @@ insertNodeNgramW nns =
       insertNothing = (Insert { iTable = nodeNgramTable
                               , iRows  = nns
                               , iReturning = rCount
-                              , iOnConflict = Nothing
+                              , iOnConflict = (Just DoNothing)
                               })
 
 type NgramsText = Text
