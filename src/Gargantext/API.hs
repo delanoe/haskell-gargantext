@@ -84,6 +84,7 @@ import Gargantext.API.Node ( Roots    , roots
 import Gargantext.Database.Types.Node ()
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
+import Gargantext.Database.Facet
 
 --import Gargantext.API.Orchestrator
 --import Gargantext.API.Orchestrator.Types
@@ -243,7 +244,11 @@ type GargAPI' =
            
            -- Corpus endpoint
            :<|> "search":> Summary "Search endpoint"
-                        :> ReqBody '[JSON] SearchQuery :> SearchAPI
+                        :> ReqBody '[JSON] SearchQuery 
+                        :> QueryParam "offset" Int
+                        :> QueryParam "limit"  Int
+                        :> QueryParam "order"  OrderBy
+                        :> SearchAPI
            
            :<|> "graph" :> Summary "Graph endpoint"
                         :> Capture "id" Int         :> GraphAPI

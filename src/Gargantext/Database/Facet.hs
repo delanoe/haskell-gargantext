@@ -89,8 +89,61 @@ data Facet id date hyperdata score =
               , facetDoc_score     :: score
               } deriving (Show, Generic)
 -}
--- | JSON instance
 
+{-
+type PairLabel = Text
+instance ToJSON PairLabel
+instance ToSchema PairLabel
+instance Arbitrary PairLabel where
+  arbitrary = elements (["Label 1", "Label 2"] :: [PairLabel])
+-}
+data Pair i l = Pair {_p_id    :: i
+                     ,_p_label :: l
+  } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_p_") ''Pair)
+$(makeAdaptorAndInstance "pPair" ''Pair)
+
+instance (ToSchema i, ToSchema l) => ToSchema (Pair i l) where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 3 fieldLabel}
+instance (Arbitrary i, Arbitrary l) => Arbitrary (Pair i l) where
+  arbitrary = Pair <$> arbitrary <*> arbitrary
+
+data FacetPaired id date hyperdata score pairs =
+  FacetPaired {_fp_id        :: id
+              ,_fp_date      :: date
+              ,_fp_hyperdata :: hyperdata
+              ,_fp_score     :: score
+              ,_fp_pairs     :: pairs
+  } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_fp_") ''FacetPaired)
+$(makeAdaptorAndInstance "pFacetPaired" ''FacetPaired)
+
+instance (ToSchema id, ToSchema date, ToSchema hyperdata, ToSchema pairs, ToSchema score) => ToSchema (FacetPaired id date hyperdata score pairs) where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+
+instance ( Arbitrary id
+         , Arbitrary date
+         , Arbitrary hyperdata
+         , Arbitrary score
+         , Arbitrary pairs
+         ) => Arbitrary (FacetPaired id date hyperdata score pairs) where
+  arbitrary = FacetPaired <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+--{-
+type FacetPairedRead = FacetPaired (Column PGInt4       )
+                                   (Column PGTimestamptz)
+                                   (Column PGJsonb      )
+                                   (Column PGInt4       )
+                                   (Pair (Column (Nullable PGInt4)) (Column (Nullable PGText)))
+--}
+
+
+
+-- | JSON instance
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
 
 -- | Documentation instance

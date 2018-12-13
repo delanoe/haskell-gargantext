@@ -74,11 +74,18 @@ joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
 ------------------------------------------------------------------------
 type AuthorName = Text
 
-searchInCorpusWithContacts :: Connection -> CorpusId -> Text -> IO [((Int, HyperdataDocument),(ContactId, Maybe AuthorName))]
-searchInCorpusWithContacts c cId q = runQuery c $ queryInCorpusWithContacts cId q
+searchInCorpusWithContacts :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
+searchInCorpusWithContacts = undefined
 
-queryInCorpusWithContacts :: CorpusId -> Text -> O.Query ((Column PGInt4, Column PGJsonb), (Column (PGInt4), Column (Nullable PGText)))
-queryInCorpusWithContacts cId q = proc () -> do
+searchInCorpusWithContacts' :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
+searchInCorpusWithContacts' c cId q o l order = runQuery c $ queryInCorpusWithContacts cId q' o l order
+  where
+    q' = intercalate " || " $ map stemIt q
+
+
+
+queryInCorpusWithContacts :: CorpusId -> Text -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> O.Query FacetPairedRead
+queryInCorpusWithContacts cId q _ _ _ = proc () -> do
   (docs, (corpusDoc, (docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
@@ -86,7 +93,7 @@ queryInCorpusWithContacts cId q = proc () -> do
   restrict -< (nodeNgram_type docNgrams)    .== (toNullable $ pgInt4 $ ngramsTypeId Authors)
   restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
-  returnA  -< ((_ns_id docs, _ns_hyperdata docs),(fromNullable (pgInt4 0) (_node_id contacts), ngrams_terms ngrams'))
+  returnA  -< FacetPaired (_ns_id docs) (_ns_date docs) (_ns_hyperdata docs) (pgInt4 0) (Pair (_node_id contacts) (ngrams_terms ngrams'))
 
 joinInCorpusWithContacts :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
 joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
