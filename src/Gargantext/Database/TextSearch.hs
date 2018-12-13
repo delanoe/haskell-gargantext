@@ -15,9 +15,9 @@ Portability : POSIX
 module Gargantext.Database.TextSearch where
 
 import Data.Aeson
-import Data.Map.Strict hiding (map)
+import Data.Map.Strict hiding (map, drop, take)
 import Data.Maybe
-import Data.List (intersperse)
+import Data.List (intersperse, take, drop)
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
@@ -76,13 +76,18 @@ joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
 ------------------------------------------------------------------------
 type AuthorName = Text
 
+-- | TODO Optim: Offset and Limit in the Query
 searchInCorpusWithContacts :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
-searchInCorpusWithContacts c cId q o l order = map (\((i,u,h,s), ps) -> FacetPaired i u h s (catMaybes ps)) <$> toList <$> fromListWith (<>) <$> map (\(FacetPaired i u h s p) -> ((i,u,h,s), [maybePair p])) <$> searchInCorpusWithContacts' c cId q o l order
+searchInCorpusWithContacts c cId q o l order = take (maybe 5 identity l) <$> drop (maybe 0 identity o)
+  <$> map (\((i,u,h,s), ps) -> FacetPaired i u h s (catMaybes ps))
+  <$> toList <$> fromListWith (<>)
+  <$> map (\(FacetPaired i u h s p) -> ((i,u,h,s), [maybePair p]))
+  <$> searchInCorpusWithContacts' c cId q o l order
   where
     maybePair (Pair Nothing Nothing) = Nothing
     maybePair (Pair _ Nothing) = Nothing
     maybePair (Pair Nothing _) = Nothing
-    maybePair (Pair (Just i) (Just l)) = Just $ Pair i l
+    maybePair (Pair (Just p_id) (Just p_label)) = Just $ Pair p_id p_label
 
 searchInCorpusWithContacts' :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
 searchInCorpusWithContacts' c cId q o l order = runQuery c $ queryInCorpusWithContacts cId q' o l order
