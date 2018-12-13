@@ -17,7 +17,7 @@ module Gargantext.Database.TextSearch where
 import Data.Aeson
 import Data.List (intersperse)
 import Data.String (IsString(..))
-import Data.Text (Text, words, unpack)
+import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple -- (Query, Connection)
 import Database.PostgreSQL.Simple.ToField
@@ -52,20 +52,18 @@ queryInDatabase _ q = proc () -> do
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
-searchInCorpus :: Connection -> CorpusId -> Text -> IO [FacetDoc]
-searchInCorpus c cId q = map toFacet <$> runQuery'
+searchInCorpus :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
+searchInCorpus c cId q o l order = runQuery c (filterWith o l order $ queryInCorpus cId q')
   where
-    toFacet (nId, d, h) = FacetDoc nId d (maybe "Empty Title" identity $_hyperdataDocument_title h) h True 0
-    runQuery' :: IO [(Int, UTCTime, HyperdataDocument)]
-    runQuery' = runQuery c (queryInCorpus cId q)
+    q' = intercalate " || " $ map stemIt q
 
-queryInCorpus :: CorpusId -> Text -> O.Query (Column PGInt4, Column PGTimestamptz, Column PGJsonb)
+queryInCorpus :: CorpusId -> Text -> O.Query FacetDocRead
 queryInCorpus cId q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgInt4 cId)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< (_ns_id n, _ns_date n, _ns_hyperdata n)
+  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgBool True) (pgInt4 1)
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
