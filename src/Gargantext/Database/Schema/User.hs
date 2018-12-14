@@ -19,6 +19,7 @@ Functions to deal with users, database side.
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE Arrows                      #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
+{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.Database.Schema.User where
 
@@ -70,7 +71,7 @@ type UserWrite = UserPoly (Maybe (Column PGInt4))        (Column PGText)
                                  (Column PGText)         (Column PGText)
                                  (Column PGText)         (Column PGText)
                                  (Column PGBool)         (Column PGBool)
-                                 (Column PGTimestamptz)
+                                 (Maybe (Column PGTimestamptz))
 
 type UserRead  = UserPoly        (Column PGInt4)         (Column PGText)
                                  (Column PGTimestamptz)  (Column PGBool)
@@ -96,9 +97,30 @@ userTable = Table "auth_user" (pUser User { user_id      = optional "id"
                                           , user_email       = required "email"
                                           , user_isStaff     = required "is_staff"
                                           , user_isActive    = required "is_active"
-                                          , user_dateJoined  = required "date_joined"
+                                          , user_dateJoined  = optional "date_joined"
                                           }
                               )
+
+-- TODO: on conflict, nice message
+insertUsers :: [UserWrite] -> Cmd Int64
+insertUsers us = mkCmd $ \c -> runInsertMany c userTable us
+
+gargantuaUser :: UserWrite
+gargantuaUser = User (Nothing) (pgStrictText "password")
+                         (Nothing) (pgBool True) (pgStrictText "gargantua")
+                         (pgStrictText "first_name")
+                         (pgStrictText "last_name")
+                         (pgStrictText "e@mail")
+                         (pgBool True) (pgBool True) (Nothing)
+
+simpleUser :: UserWrite
+simpleUser = User (Nothing) (pgStrictText "password")
+                         (Nothing) (pgBool False) (pgStrictText "user1")
+                         (pgStrictText "first_name")
+                         (pgStrictText "last_name")
+                         (pgStrictText "e@mail")
+                         (pgBool False) (pgBool True) (Nothing)
+
 
 ------------------------------------------------------------------
 queryUserTable :: Query UserRead
