@@ -103,7 +103,7 @@ userTable = Table "auth_user" (pUser User { user_id      = optional "id"
                               )
 
 -- TODO: on conflict, nice message
-insertUsers :: [UserWrite] -> Cmd Int64
+insertUsers :: [UserWrite] -> Cmd err Int64
 insertUsers us = mkCmd $ \c -> runInsertMany c userTable us
 
 gargantuaUser :: UserWrite
@@ -165,6 +165,5 @@ usersLight = map toUserLight <$> users
 
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
-
 
 

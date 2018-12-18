@@ -140,6 +140,9 @@ instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+instance QueryRunnerColumnDefault PGInt4 (Maybe NodeParentId)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 ------------------------------------------------------------------------
 
@@ -152,29 +155,29 @@ $(makeLensesWith abbreviatedFields ''NodePoly)
 $(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
 $(makeLensesWith abbreviatedFields ''NodePolySearch)
 
-type NodeWrite = NodePoly  (Maybe (Column  PGInt4              ))
-                                  (Column  PGInt4               )
-                                  (Column  PGInt4               )
-                                  (Column (Nullable PGInt4     ))
-                                  (Column (PGText              ))
-                                  (Maybe  (Column PGTimestamptz))
-                                  (Column  PGJsonb              )
+type NodeWrite = NodePoly  (Maybe (Column  PGInt4       ))
+                                  (Column  PGInt4       )
+                                  (Column  PGInt4       )
+                           (Maybe (Column  PGInt4       ))
+                                  (Column PGText        )
+                           (Maybe (Column  PGTimestamptz))
+                                  (Column  PGJsonb      )
 
-type NodeRead = NodePoly  (Column  PGInt4           )
-                          (Column  PGInt4           )
-                          (Column  PGInt4           )
-                          (Column (Nullable PGInt4 ))
-                          (Column (PGText          ))
-                          (Column PGTimestamptz     )
-                          (Column PGJsonb) 
+type NodeRead = NodePoly  (Column PGInt4        )
+                          (Column PGInt4        )
+                          (Column PGInt4        )
+                          (Column PGInt4        )
+                          (Column PGText        )
+                          (Column PGTimestamptz )
+                          (Column PGJsonb       )
 
 
-type NodeReadNull = NodePoly  (Column  (Nullable PGInt4           ))
-                              (Column  (Nullable PGInt4           ))
-                              (Column  (Nullable PGInt4           ))
+type NodeReadNull = NodePoly  (Column (Nullable PGInt4 ))
                               (Column (Nullable PGInt4 ))
-                              (Column (Nullable PGText          ))
-                              (Column (Nullable PGTimestamptz     ))
+                              (Column (Nullable PGInt4 ))
+                              (Column (Nullable PGInt4 ))
+                              (Column (Nullable PGText ))
+                              (Column (Nullable PGTimestamptz ))
                               (Column (Nullable PGJsonb))
 
 nodeTable :: Table NodeWrite NodeRead
@@ -182,7 +185,7 @@ nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_typename   = required "typename"
                                       , _node_userId     = required "user_id"
                                       
-                                      , _node_parentId   = required "parent_id"
+                                      , _node_parentId   = optional "parent_id"
                                       , _node_name       = required "name"
                                       , _node_date       = optional "date"
                                       
@@ -306,7 +309,7 @@ selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node <- (proc () -> do
       row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
-      restrict -< parentId' .== (toNullable $ pgInt4 parentId)
+      restrict -< parentId' .== (pgInt4 parentId)
 
       let typeId' = maybe 0 nodeTypeId maybeNodeType
 
@@ -359,9 +362,7 @@ getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 selectNodesWithParentID :: Int -> Query NodeRead
 selectNodesWithParentID n = proc () -> do
     row@(Node _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
-    restrict -< if n > 0
-      then parent_id .== (toNullable $ pgInt4 n)
-      else isNull parent_id
+    restrict -< parent_id .== (pgInt4 n)
     returnA -< row
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead

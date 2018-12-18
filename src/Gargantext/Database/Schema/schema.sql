@@ -1,21 +1,22 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-CREATE EXTENSION IF NOT EXISTS acl WITH SCHEMA public;
+-- needed for rights management
+-- CREATE EXTENSION IF NOT EXISTS acl WITH SCHEMA public;
 
 -- CREATE USER WITH ...
 -- createdb "gargandb"
 
 CREATE TABLE public.auth_user (
     id SERIAL,
-    password character varying(128) NOT NULL,
-    last_login timestamp with time zone,
+    password     character varying(128) NOT NULL,
+    last_login   timestamp with time zone,
     is_superuser boolean NOT NULL,
-    username character varying(150) NOT NULL,
-    first_name character varying(30) NOT NULL,
-    last_name character varying(30) NOT NULL,
-    email character varying(254) NOT NULL,
-    is_staff boolean NOT NULL,
-    is_active boolean NOT NULL,
+    username     character varying(150) NOT NULL,
+    first_name   character varying(30) NOT NULL,
+    last_name    character varying(30) NOT NULL,
+    email        character varying(254) NOT NULL,
+    is_staff     boolean NOT NULL,
+    is_active    boolean NOT NULL,
     date_joined timestamp with time zone DEFAULT now() NOT NULL,
     PRIMARY KEY (id)
 );

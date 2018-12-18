@@ -84,6 +84,7 @@ formatPGSQuery q a = mkCmd $ \conn -> PGS.formatQuery conn q a
 
 runPGSQuery :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
 runPGSQuery q a = mkCmd $ \conn -> PGS.query conn q a
+
 ------------------------------------------------------------------------
 
 databaseParameters :: FilePath -> IO PGS.ConnectInfo
@@ -107,9 +108,6 @@ databaseParameters fp = do
 connectGargandb :: FilePath -> IO Connection
 connectGargandb fp = databaseParameters fp >>= \params -> connect params
 
-printSql :: Default Unpackspec a a => Query a -> IO ()
-printSql = putStrLn . maybe "Empty query" identity . showSqlForPostgres
-
 fromField' :: (Typeable b, FromJSON b) => Field -> Maybe DB.ByteString -> Conversion b
 fromField' field mb = do
     v <- fromField field mb
@@ -119,5 +117,7 @@ fromField' field mb = do
              Success a  -> pure a
              Error _err -> returnError ConversionFailed field "cannot parse hyperdata"
 
--- | Opaleye leftJoin* functions
--- TODO add here from Node.hs
+printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
+printSqlOpa = putStrLn . maybe "Empty query" identity . showSqlForPostgres
+
+

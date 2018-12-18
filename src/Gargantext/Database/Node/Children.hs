@@ -47,7 +47,7 @@ selectChildren parentId maybeNodeType = proc () -> do
     let nodeType = maybe 0 nodeTypeId maybeNodeType
     restrict -< typeName  .== pgInt4 nodeType
     
-    restrict -< (.||) (parent_id .== (toNullable $ pgInt4 parentId))
+    restrict -< (.||) (parent_id .== (pgInt4 parentId))
                       ( (.&&) (n1id .== pgInt4 parentId)
                               (n2id .== nId))
     returnA -< row

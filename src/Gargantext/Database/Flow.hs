@@ -211,8 +211,8 @@ toInserted = DM.fromList . map    (\r ->  (reUniqId r, r)    )
                          . filter (\r -> reInserted r == True)
 
 data DocumentWithId =
-     DocumentWithId { documentId   :: NodeId
-                    , documentData :: HyperdataDocument
+     DocumentWithId { documentId   :: !NodeId
+                    , documentData :: !HyperdataDocument
                     } deriving (Show)
 
 mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
@@ -226,8 +226,8 @@ mergeData rs = catMaybes . map toDocumentWithId . DM.toList
 
 data DocumentIdWithNgrams =
      DocumentIdWithNgrams
-     { documentWithId  :: DocumentWithId
-     , document_ngrams :: Map (NgramsT Ngrams) Int
+     { documentWithId  :: !DocumentWithId
+     , document_ngrams :: !(Map (NgramsT Ngrams) Int)
      } deriving (Show)
 
 -- TODO add Terms (Title + Abstract)
@@ -327,4 +327,3 @@ insertLists lId lngs =
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-

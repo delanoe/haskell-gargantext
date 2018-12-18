@@ -13,6 +13,7 @@ From text to viz, all the flow of texts in Gargantext.
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
+{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.Text.Flow
   where
@@ -60,7 +61,7 @@ import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain, l_community_id)
 
 
 contextText :: [T.Text]
-contextText = map T.pack ["The dog is an animal."
+contextText = ["The dog is an animal."
               ,"The bird is an animal."
               ,"The dog is an animal."
               ,"The animal is a bird or a dog ?"

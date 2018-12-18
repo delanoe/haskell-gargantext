@@ -86,16 +86,12 @@ nodesAPI ids = deleteNodes ids
 -- | TODO: access by admin only
 -- To manager the Users roots
 type Roots =  Get    '[JSON] [NodeAny]
-         :<|> Post   '[JSON] Int -- TODO
          :<|> Put    '[JSON] Int -- TODO
-         :<|> Delete '[JSON] Int -- TODO
 
 -- | TODO: access by admin only
 roots :: GargServer Roots
 roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
-   :<|> pure (panic "not implemented yet") -- TODO
-   :<|> pure (panic "not implemented yet") -- TODO
-   :<|> pure (panic "not implemented yet") -- TODO
+   :<|> pure (panic "not implemented yet") -- TODO use patch map to update what we need
 
 -------------------------------------------------------------------
 -- | Node API Types management
@@ -260,11 +256,11 @@ graphAPI nId = do
                                        , LegendField 2 "#0048BA" "Label 2"
                                        ]
 
-  graph <- set graph_metadata (Just metadata) <$> maybe defaultGraph identity <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
-  
+  graph <- set graph_metadata (Just metadata)
+        <$> maybe defaultGraph identity
+        <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
+
   pure graph
-
-
   -- t <- textFlow (Mono EN) (Contexts contextText)
   -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
