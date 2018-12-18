@@ -29,7 +29,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Core.Types.Main (AnnuaireId, UserId)
-import Gargantext.Database.Schema.Node (NodeWrite', Name, node)
+import Gargantext.Database.Schema.Node (NodeWrite, Name, node)
 import Gargantext.Database.Types.Node (Node,Hyperdata,NodeType(..))
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Prelude
@@ -97,7 +97,7 @@ data ContactTouch =
 
 
 nodeContactW :: Maybe Name -> Maybe HyperdataContact
-             -> AnnuaireId -> UserId -> NodeWrite'
+             -> AnnuaireId -> UserId -> NodeWrite
 nodeContactW maybeName maybeContact aId = 
   node NodeContact name contact (Just aId)
     where

@@ -117,7 +117,7 @@ tree p = do
   pure $ ns <> concat children
 
 -- | TODO
-post :: PWD -> [NodeWrite'] -> Cmd err Int64
+post :: PWD -> [NodeWrite] -> Cmd err Int64
 post [] _   = pure 0
 post _ []   = pure 0
 post pth ns = insertNodesWithParent (Just $ last pth) ns
