@@ -19,17 +19,16 @@ Count API part of Gargantext.
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE RankNTypes         #-}
 
 module Gargantext.API.Search
       where
 
 import GHC.Generics (Generic)
 import Data.Time (UTCTime)
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
 import Data.Text (Text)
-import Database.PostgreSQL.Simple (Connection)
 import Servant
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
@@ -40,6 +39,7 @@ import Gargantext.Core.Types.Main (Offset, Limit)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.TextSearch
 import Gargantext.Database.Facet
+import Gargantext.Database.Utils (Cmd)
 
 -----------------------------------------------------------------------
 -- | SearchIn [NodesId] if empty then global search
@@ -88,12 +88,12 @@ instance ToSchema SearchResults where
 type SearchAPI = Post '[JSON] SearchResults
 -----------------------------------------------------------------------
 
-search :: Connection -> SearchQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Handler SearchResults
-search c (SearchQuery q pId) o l order =
-  liftIO $ SearchResults <$> searchInCorpusWithContacts c pId q o l order
+search :: SearchQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err SearchResults
+search (SearchQuery q pId) o l order =
+  SearchResults <$> searchInCorpusWithContacts pId q o l order
 
-searchIn :: Connection -> NodeId -> SearchInQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Handler SearchResults
-searchIn c nId (SearchInQuery q ) o l order =
-  liftIO $ SearchResults <$> searchInCorpusWithContacts c nId q o l order
+searchIn :: NodeId -> SearchInQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err SearchResults
+searchIn nId (SearchInQuery q ) o l order =
+  SearchResults <$> searchInCorpusWithContacts nId q o l order
 
 

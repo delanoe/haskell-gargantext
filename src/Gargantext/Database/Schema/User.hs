@@ -20,6 +20,7 @@ Functions to deal with users, database side.
 {-# LANGUAGE Arrows                      #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
 {-# LANGUAGE OverloadedStrings           #-}
+{-# LANGUAGE RankNTypes                  #-}
 
 module Gargantext.Database.Schema.User where
 
@@ -156,15 +157,14 @@ instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
-users :: Cmd [User]
-users = mkCmd $ \conn -> runQuery conn queryUserTable
+users :: Cmd err [User]
+users = runOpaQuery queryUserTable
 
-usersLight :: Cmd [UserLight]
-usersLight = mkCmd $ \conn -> map toUserLight <$> runQuery conn queryUserTable
+usersLight :: Cmd err [UserLight]
+usersLight = map toUserLight <$> users
 
-
-getUser :: Username -> Cmd (Maybe UserLight)
-getUser u = mkCmd $ \c -> userLightWithUsername u <$> runCmd c usersLight
+getUser :: Username -> Cmd err (Maybe UserLight)
+getUser u = userLightWithUsername u <$> usersLight
 
 
 

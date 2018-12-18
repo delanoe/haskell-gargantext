@@ -11,6 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Flow.Utils
     where
@@ -53,11 +54,11 @@ data DocumentIdWithNgrams a =
      } deriving (Show)
 
 
-insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd Int
+insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd err Int
 insertToNodeNgrams m = insertNodeNgrams [ NodeNgram Nothing nId  ((_ngramsId    . _ngramsT   ) ng)
                                                 (fromIntegral n) ((ngramsTypeId . _ngramsType) ng)
-                                          | (ng, nId2int) <- DM.toList m
-                                          , (nId, n)      <- DM.toList nId2int
+                                        | (ng, nId2int) <- DM.toList m
+                                        , (nId, n)      <- DM.toList nId2int
                                         ]
 
 

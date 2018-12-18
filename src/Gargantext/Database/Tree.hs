@@ -13,13 +13,13 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Tree (treeDB, TreeError(..), HasTreeError(..), dbTree, toNodeTree, DbTreeNode) where
 
 import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
 import Control.Monad.Error.Class (MonadError(throwError))
-import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Map (Map, fromListWith, lookup)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
@@ -28,11 +28,11 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Gargantext.Prelude
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
 import Gargantext.Database.Config (fromNodeTypeId)
+import Gargantext.Database.Utils (Cmd, runPGSQuery)
 ------------------------------------------------------------------------
--- import Gargantext (connectGargandb)
--- import Control.Monad ((>>=))
+-- import Gargantext.Database.Utils (runCmdDev)
 -- treeTest :: IO (Tree NodeTree)
--- treeTest = connectGargandb "gargantext.ini" >>= \c -> treeDB c 347474
+-- treeTest = runCmdDev $ treeDB 347474
 ------------------------------------------------------------------------
 
 data TreeError = NoRoot | EmptyRoot | TooManyRoots
@@ -45,9 +45,8 @@ treeError :: (MonadError e m, HasTreeError e) => TreeError -> m a
 treeError te = throwError $ _TreeError # te
 
 -- | Returns the Tree of Nodes in Database
-treeDB :: (MonadIO m, MonadError e m, HasTreeError e)
-       => Connection -> RootId -> m (Tree NodeTree)
-treeDB c r = toTree =<< (toTreeParent <$> liftIO (dbTree c r))
+treeDB :: HasTreeError err => RootId -> Cmd err (Tree NodeTree)
+treeDB r = toTree =<< (toTreeParent <$> dbTree r)
 
 type RootId = Int
 type ParentId = Int
@@ -83,8 +82,8 @@ data DbTreeNode = DbTreeNode { dt_nodeId :: Int
 
 -- | Main DB Tree function
 -- TODO add typenames as parameters
-dbTree :: Connection -> RootId -> IO [DbTreeNode]
-dbTree conn rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> query conn [sql|
+dbTree :: RootId -> Cmd err [DbTreeNode]
+dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> runPGSQuery [sql|
   WITH RECURSIVE
       -- starting node(s)
       starting (id, typename, parent_id, name) AS

@@ -17,6 +17,7 @@ From text to viz, all the flow of texts in Gargantext.
 module Gargantext.Text.Flow
   where
 
+import Control.Monad.Reader
 import GHC.IO (FilePath)
 import qualified Data.Text as T
 import Data.Text.IO (readFile)
@@ -27,7 +28,7 @@ import qualified Data.Set as DS
 import qualified Data.Array.Accelerate as A
 import qualified Data.Map.Strict as M
 ----------------------------------------------
-import Gargantext.Database (Connection)
+import Database.PostgreSQL.Simple (Connection)
 
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types.Node
@@ -86,7 +87,7 @@ textFlow termType workType = do
                 FullText path -> splitBy (Sentences 5) <$> readFile path
                 CSV      path -> readCsvOn [csv_title, csv_abstract] path
                 Contexts ctxt -> pure ctxt
-                DBV3 con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (_node_hyperdata n)  <> hyperdataDocumentV3_abstract (_node_hyperdata n))<$> getDocumentsV3WithParentId con corpusId
+                DBV3 con corpusId -> catMaybes <$> map (\n -> hyperdataDocumentV3_title (_node_hyperdata n)  <> hyperdataDocumentV3_abstract (_node_hyperdata n))<$> runReaderT (getDocumentsV3WithParentId corpusId) con
                 _             -> undefined -- TODO Query not supported
 
   textFlow' termType contexts

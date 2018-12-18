@@ -18,12 +18,8 @@ Gargantext's database.
 
 module Gargantext.Database ( module Gargantext.Database.Utils
                            , module Gargantext.Database.Bashql
-                           , Connection
                            )
     where
 
 import Gargantext.Database.Utils (connectGargandb)
 import Gargantext.Database.Bashql
-import Database.PostgreSQL.Simple (Connection)
-
-

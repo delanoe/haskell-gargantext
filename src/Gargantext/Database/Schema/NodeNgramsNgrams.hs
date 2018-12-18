@@ -25,22 +25,25 @@ Next Step benchmark:
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 module Gargantext.Database.Schema.NodeNgramsNgrams
   where
 
+import Control.Lens (view)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Gargantext.Database.Utils (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (Cmd, runOpaQuery, runPGSQuery, connection)
 import Gargantext.Prelude
 import Opaleye
-import qualified Database.PostgreSQL.Simple as DPS
+import qualified Database.PostgreSQL.Simple as PGS
 
 data NodeNgramsNgramsPoly node_id ngram1_id ngram2_id weight =
   NodeNgramsNgrams { _nng_NodeId   :: node_id
@@ -90,8 +93,8 @@ queryNodeNgramsNgramsTable = queryTable nodeNgramsNgramsTable
 
 -- | Select NodeNgramsNgrams
 -- TODO not optimized (get all ngrams without filters)
-nodeNgramsNgrams :: DPS.Connection -> IO [NodeNgramsNgrams]
-nodeNgramsNgrams conn = runQuery conn queryNodeNgramsNgramsTable
+nodeNgramsNgrams :: Cmd err [NodeNgramsNgrams]
+nodeNgramsNgrams = runOpaQuery queryNodeNgramsNgramsTable
 
 instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
@@ -101,7 +104,7 @@ instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
 
 
 -- TODO: Add option on conflict
-insertNodeNgramsNgramsNew :: [NodeNgramsNgrams] -> Cmd Int
+insertNodeNgramsNgramsNew :: [NodeNgramsNgrams] -> Cmd err Int
 insertNodeNgramsNgramsNew = insertNodeNgramsNgramsW
                  . map (\(NodeNgramsNgrams n ng1 ng2 maybeWeight) ->
                           NodeNgramsNgrams (pgInt4 n  )
@@ -110,10 +113,10 @@ insertNodeNgramsNgramsNew = insertNodeNgramsNgramsW
                                            (pgDouble <$> maybeWeight)
                         )
 
-insertNodeNgramsNgramsW :: [NodeNgramsNgramsWrite] -> Cmd Int
-insertNodeNgramsNgramsW ns =
-  mkCmd $ \c -> fromIntegral
-       <$> runInsertMany c nodeNgramsNgramsTable ns
+insertNodeNgramsNgramsW :: [NodeNgramsNgramsWrite] -> Cmd err Int
+insertNodeNgramsNgramsW ns = do
+  c <- view connection
+  liftIO $ fromIntegral <$> runInsertMany c nodeNgramsNgramsTable ns
 
 ------------------------------------------------------------------------
 data Action   = Del | Add
@@ -121,20 +124,17 @@ data Action   = Del | Add
 type NgramsParent = Text
 type NgramsChild  = Text
 
-ngramsGroup :: Action -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> Cmd [Int]
-ngramsGroup a ngs = mkCmd $ \c -> ngramsGroup' c a ngs
-
--- TODO: remove this function (use Reader Monad only)
-ngramsGroup' :: DPS.Connection -> Action -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> IO [Int]
-ngramsGroup' c action ngs = runNodeNgramsNgrams c q ngs
+ngramsGroup' :: Action -> [(Int, NgramsParent, NgramsChild, Maybe Double)]
+             -> Cmd err [Int]
+ngramsGroup' action ngs = runNodeNgramsNgrams q ngs
   where
     q = case action of
           Del -> queryDelNodeNgramsNgrams
           Add -> queryInsertNodeNgramsNgrams
 
 
-runNodeNgramsNgrams :: DPS.Connection -> DPS.Query -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> IO [Int]
-runNodeNgramsNgrams c q ngs = map (\(DPS.Only a) -> a) <$> DPS.query c q (DPS.Only $ Values fields ngs' )
+runNodeNgramsNgrams :: PGS.Query -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err [Int]
+runNodeNgramsNgrams q ngs = map (\(PGS.Only a) -> a) <$> runPGSQuery q (PGS.Only $ Values fields ngs' )
   where
     ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
@@ -142,7 +142,7 @@ runNodeNgramsNgrams c q ngs = map (\(DPS.Only a) -> a) <$> DPS.query c q (DPS.On
 
 --------------------------------------------------------------------
 -- TODO: on conflict update weight
-queryInsertNodeNgramsNgrams :: DPS.Query
+queryInsertNodeNgramsNgrams :: PGS.Query
 queryInsertNodeNgramsNgrams = [sql|
     WITH input_rows(nId,ng1,ng2,w) AS (?)
     INSERT INTO nodes_ngrams_ngrams (node_id,ngram1_id,ngram2_id,weight)
@@ -152,7 +152,7 @@ queryInsertNodeNgramsNgrams = [sql|
     ON CONFLICT (node_id,ngram1_id,ngram2_id) DO NOTHING -- unique index created here
            |]
 
-queryDelNodeNgramsNgrams :: DPS.Query
+queryDelNodeNgramsNgrams :: PGS.Query
 queryDelNodeNgramsNgrams = [sql|
     WITH input(nId,ng1,ng2,w) AS (?)
     DELETE FROM nodes_ngrams_ngrams nnn

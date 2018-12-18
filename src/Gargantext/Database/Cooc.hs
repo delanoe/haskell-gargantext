@@ -13,26 +13,24 @@ Portability : POSIX
 --{-# LANGUAGE OverloadedStrings #-}
 
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RankNTypes  #-}
 
 module Gargantext.Database.Cooc where
 
-import Control.Monad ((>>=))
-import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
-import Gargantext (connectGargandb)
+import Gargantext.Database.Utils (Cmd, runCmdDevNoErr, runPGSQuery)
 
 type CorpusId    = Int
 type MainListId  = Int
 type GroupListId = Int
 
 coocTest :: IO [(Int, Int, Int)]
-coocTest = connectGargandb "gargantext.ini"
-  >>= \conn -> dBcooc conn 421968 446602 446599 
+coocTest = runCmdDevNoErr $ dBcooc 421968 446602 446599
 
-dBcooc :: Connection -> CorpusId -> MainListId -> GroupListId -> IO [(Int, Int, Int)]
-dBcooc conn corpus mainList groupList = query conn [sql|
+dBcooc :: CorpusId -> MainListId -> GroupListId -> Cmd err [(Int, Int, Int)]
+dBcooc corpus mainList groupList = runPGSQuery [sql|
   set work_mem='1GB';
 
   --EXPLAIN ANALYZE

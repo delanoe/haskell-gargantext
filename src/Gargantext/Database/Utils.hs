@@ -11,15 +11,18 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
+{-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RankNTypes                 #-}
 
 module Gargantext.Database.Utils where
 
-import Control.Applicative (Applicative)
+import Control.Lens (Getter, view)
 import Control.Monad.Reader
+import Control.Monad.Except
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.Either.Extra (Either(Left, Right))
 import Data.Ini (readIniFile, lookupValue)
@@ -33,36 +36,54 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
-import Opaleye (Query, Unpackspec, showSqlForPostgres)
+import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
 import System.IO (FilePath)
 import Text.Read (read)
 import qualified Data.ByteString      as DB
 import qualified Database.PostgreSQL.Simple as PGS
 
-------------------------------------------------------------------------
-{- | Reader Monad reinvented here:
+class HasConnection env where
+  connection :: Getter env Connection
 
-newtype Cmd a = Cmd { unCmd :: Connection -> IO a }
+instance HasConnection Connection where
+  connection = identity
 
-instance Monad Cmd where
-  return a = Cmd $ \_ -> return a
+type CmdM env err m =
+  ( MonadReader env m
+  , HasConnection env
+  , MonadError err m
+  , MonadIO m
+  )
 
-  m >>= f = Cmd $ \c -> do
-    a <- unCmd m c
-    unCmd (f a) c
--}
+type Cmd err a = forall m env. CmdM env err m => m a
 
---type Cmd' a = forall m. (MonadReader env m, HasConnection env, MonadIO m) => m a
+-- TODO: ideally there should be very few calls to this functions.
+mkCmd :: (Connection -> IO a) -> Cmd err a
+mkCmd k = do
+  conn <- view connection
+  liftIO $ k conn
 
-newtype Cmd a = Cmd (ReaderT Connection IO a)
-  deriving (Functor, Applicative, Monad, MonadReader Connection, MonadIO)
+runCmd :: Connection -> Cmd err a -> IO (Either err a)
+runCmd conn m = runExceptT $ runReaderT m conn
 
-runCmd :: Connection -> Cmd a -> IO a
-runCmd c (Cmd f) = runReaderT f c
+-- Use only for dev
+runCmdDev :: Show err => Cmd err a -> IO a
+runCmdDev f = do
+  conn <- connectGargandb "gargantext.ini"
+  either (fail . show) pure =<< runCmd conn f
 
-mkCmd :: (Connection -> IO a) -> Cmd a
-mkCmd = Cmd . ReaderT
+-- Use only for dev
+runCmdDevNoErr :: Cmd () a -> IO a
+runCmdDevNoErr = runCmdDev
 
+runOpaQuery :: Default FromFields fields haskells => Select fields -> Cmd err [haskells]
+runOpaQuery q = mkCmd $ \c -> runQuery c q
+
+formatPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err DB.ByteString
+formatPGSQuery q a = mkCmd $ \conn -> PGS.formatQuery conn q a
+
+runPGSQuery :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
+runPGSQuery q a = mkCmd $ \conn -> PGS.query conn q a
 ------------------------------------------------------------------------
 
 databaseParameters :: FilePath -> IO PGS.ConnectInfo

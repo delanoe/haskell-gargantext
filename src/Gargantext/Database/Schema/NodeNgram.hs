@@ -23,6 +23,7 @@ if Node is a List     then it is listing (either Stop, Candidate or Map)
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 
@@ -35,10 +36,10 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types.Main (ListId, ListTypeId)
-import Gargantext.Database.Utils (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (mkCmd, Cmd, runPGSQuery)
 import Gargantext.Prelude
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS (Connection, query, Only(..))
+import qualified Database.PostgreSQL.Simple as PGS (Only(..))
 
 -- | TODO : remove id
 data NodeNgramPoly id node_id ngram_id weight ngrams_type
@@ -94,14 +95,14 @@ nodeNgramTable  = Table "nodes_ngrams"
 queryNodeNgramTable :: Query NodeNgramRead
 queryNodeNgramTable = queryTable nodeNgramTable
 
-insertNodeNgrams :: [NodeNgram] -> Cmd Int
+insertNodeNgrams :: [NodeNgram] -> Cmd err Int
 insertNodeNgrams = insertNodeNgramW
                  . map (\(NodeNgram _ n g w t) ->
                           NodeNgram Nothing (pgInt4 n)   (pgInt4 g)
                                             (pgDouble w) (pgInt4 t)
                         )
 
-insertNodeNgramW :: [NodeNgramWrite] -> Cmd Int
+insertNodeNgramW :: [NodeNgramWrite] -> Cmd err Int
 insertNodeNgramW nns =
   mkCmd $ \c -> fromIntegral <$> runInsert_ c insertNothing
     where
@@ -113,8 +114,8 @@ insertNodeNgramW nns =
 
 type NgramsText = Text
 
-updateNodeNgrams :: PGS.Connection -> [(ListId, NgramsText, ListTypeId)] -> IO [PGS.Only Int]
-updateNodeNgrams c input = PGS.query c updateQuery (PGS.Only $ Values fields $ input)
+updateNodeNgrams :: [(ListId, NgramsText, ListTypeId)] -> Cmd err [PGS.Only Int]
+updateNodeNgrams input = runPGSQuery updateQuery (PGS.Only $ Values fields $ input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
     updateQuery = [sql| UPDATE nodes_ngrams as old SET

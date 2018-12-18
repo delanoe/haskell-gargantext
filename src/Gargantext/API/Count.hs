@@ -146,5 +146,5 @@ instance ToSchema Count
 --    arbitrary = Count <$> arbitrary <*> arbitrary <*> arbitrary
 
 -----------------------------------------------------------------------
-count :: Query -> Handler Counts
+count :: Monad m => Query -> m Counts
 count _ = undefined

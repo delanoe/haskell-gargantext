@@ -19,6 +19,7 @@ Ngrams connection to the Database.
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Schema.Ngrams where
@@ -43,12 +44,12 @@ import Gargantext.Database.Config (nodeTypeId,userMaster)
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Database.Schema.Node (getListsWithParentId, getCorporaWithParentId)
-import Gargantext.Database.Utils (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
 import Gargantext.Prelude
 import Opaleye
 import Prelude (Enum, Bounded, minBound, maxBound)
 import qualified Data.Set as DS
-import qualified Database.PostgreSQL.Simple as DPS
+import qualified Database.PostgreSQL.Simple as PGS
 
 --{-
 data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
@@ -85,8 +86,8 @@ ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { ngrams_id    = optional "id"
 queryNgramsTable :: Query NgramsRead
 queryNgramsTable = queryTable ngramsTable
 
-dbGetNgramsDb :: DPS.Connection -> IO [NgramsDb]
-dbGetNgramsDb conn = runQuery conn queryNgramsTable
+dbGetNgramsDb :: Cmd err [NgramsDb]
+dbGetNgramsDb = runOpaQuery queryNgramsTable
 --}
 
 -- | Main Ngrams Types
@@ -118,7 +119,7 @@ data Ngrams = Ngrams { _ngramsTerms :: Text
            } deriving (Generic, Show, Eq, Ord)
 
 makeLenses ''Ngrams
-instance DPS.ToRow Ngrams where
+instance PGS.ToRow Ngrams where
   toRow (Ngrams t s) = [toField t, toField s]
 
 text2ngrams :: Text -> Ngrams
@@ -148,7 +149,7 @@ data NgramIds =
   , ngramTerms :: Text
   } deriving (Show, Generic, Eq, Ord)
 
-instance DPS.FromRow NgramIds where
+instance PGS.FromRow NgramIds where
   fromRow = NgramIds <$> field <*> field
 
 ----------------------
@@ -160,21 +161,21 @@ indexNgramsT m ngrId = indexNgramsTWith f ngrId
 indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams-> NgramsT NgramsIndexed
 indexNgramsTWith f (NgramsT t n) = NgramsT t (NgramsIndexed n ((f . _ngramsTerms) n))
 
-insertNgrams :: [Ngrams] -> Cmd (Map NgramsTerms NgramsId)
+insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
 insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
 
-insertNgrams' :: [Ngrams] -> Cmd [NgramIds]
-insertNgrams' ns = mkCmd $ \conn -> DPS.query conn queryInsertNgrams (DPS.Only $ Values fields ns)
+insertNgrams' :: [Ngrams] -> Cmd err [NgramIds]
+insertNgrams' ns = runPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
-insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd ByteString
-insertNgrams_Debug ns = mkCmd $ \conn -> DPS.formatQuery conn queryInsertNgrams (DPS.Only $ Values fields ns)
+insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd err ByteString
+insertNgrams_Debug ns = formatPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
 ----------------------
-queryInsertNgrams :: DPS.Query
+queryInsertNgrams :: PGS.Query
 queryInsertNgrams = [sql|
     WITH input_rows(terms,n) AS (?)
     , ins AS (
@@ -197,26 +198,25 @@ queryInsertNgrams = [sql|
 -- TODO: the way we are getting main Master Corpus and List ID is not clean
 -- TODO: if ids are not present -> create
 -- TODO: Global Env State Monad to keep in memory the ids without retrieving it each time
-getNgramsTableDb :: DPS.Connection
-               -> NodeType             -> NgramsType
-               -> NgramsTableParamUser
-               -> Limit -> Offset
-               -> IO ([NgramsTableData], MapToParent, MapToChildren)
-getNgramsTableDb c nt ngrt ntp@(NgramsTableParam listIdUser _) limit_ offset_ = do
+getNgramsTableDb :: NodeType -> NgramsType
+                 -> NgramsTableParamUser
+                 -> Limit -> Offset
+                 -> Cmd err ([NgramsTableData], MapToParent, MapToChildren)
+getNgramsTableDb nt ngrt ntp@(NgramsTableParam listIdUser _) limit_ offset_ = do
   
   
-  maybeRoot <- head <$> getRoot userMaster c
+  maybeRoot <- head <$> getRoot userMaster
   let path = "Garg.Db.Ngrams.getTableNgrams: "
   let masterRootId = maybe (panic $ path <> "no userMaster Tree") (view node_id) maybeRoot
   -- let errMess = panic "Error"
 
-  corpusMasterId <- maybe (panic "error master corpus") (view node_id) <$> head <$> getCorporaWithParentId c masterRootId
+  corpusMasterId <- maybe (panic "error master corpus") (view node_id) <$> head <$> getCorporaWithParentId masterRootId
   
-  listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId   c corpusMasterId
+  listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId corpusMasterId
   
-  ngramsTableData <- getNgramsTableData c nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId) limit_ offset_
+  ngramsTableData <- getNgramsTableData nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId) limit_ offset_
   
-  (mapToParent,mapToChildren) <- getNgramsGroup c listIdUser listMasterId
+  (mapToParent,mapToChildren) <- getNgramsGroup listIdUser listMasterId
   pure (ngramsTableData, mapToParent,mapToChildren)
 
 
@@ -234,15 +234,14 @@ data NgramsTableData = NgramsTableData { _ntd_ngrams   :: Text
                                        , _ntd_weight   :: Double
     } deriving (Show)
 
-getNgramsTableData :: DPS.Connection
-                   -> NodeType -> NgramsType
+getNgramsTableData :: NodeType -> NgramsType
                    -> NgramsTableParamUser -> NgramsTableParamMaster 
                    -> Limit -> Offset
-                   -> IO [NgramsTableData]
-getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
+                   -> Cmd err [NgramsTableData]
+getNgramsTableData nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
   trace ("Ngrams table params" <> show params) <$>
   map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$>
-    DPS.query conn querySelectTableNgrams params
+    runPGSQuery querySelectTableNgrams params
       where
         nodeTId = nodeTypeId   nodeT
         ngrmTId = ngramsTypeId ngrmT
@@ -251,7 +250,7 @@ getNgramsTableData conn nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam m
 
 
 
-querySelectTableNgrams :: DPS.Query
+querySelectTableNgrams :: PGS.Query
 querySelectTableNgrams = [sql|
 
     WITH tableUser AS (
@@ -296,20 +295,14 @@ type ListIdMaster = Int
 type MapToChildren = Map Text (Set Text)
 type MapToParent   = Map Text Text
 
-getNgramsGroup :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO (MapToParent, MapToChildren)
-getNgramsGroup conn lu lm = do
-  groups <- getNgramsGroup' conn lu lm
+getNgramsGroup :: ListIdUser -> ListIdMaster -> Cmd err (MapToParent, MapToChildren)
+getNgramsGroup lu lm = do
+  groups <- runPGSQuery querySelectNgramsGroup (lu,lm)
   let mapChildren = fromListWith (<>) $ map (\(a,b) -> (a, DS.singleton b)) groups
   let mapParent   = fromListWith (<>) $ map (\(a,b) -> (b, a)) groups
   pure (mapParent, mapChildren)
 
-getNgramsGroup' :: DPS.Connection -> ListIdUser -> ListIdMaster -> IO [(Text,Text)]
-getNgramsGroup' conn lu lm = DPS.query conn querySelectNgramsGroup (lu,lm)
-
-getNgramsGroup'' :: ListIdUser -> ListIdMaster -> Cmd [(Text, Text)]
-getNgramsGroup'' lu lm = mkCmd $ \conn -> DPS.query conn querySelectNgramsGroup (lu,lm)
-
-querySelectNgramsGroup :: DPS.Query
+querySelectNgramsGroup :: PGS.Query
 querySelectNgramsGroup = [sql|
     WITH groupUser AS (
       SELECT n1.terms AS t1, n2.terms AS t2 FROM nodes_ngrams_ngrams nnn

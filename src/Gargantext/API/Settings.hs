@@ -48,7 +48,7 @@ import qualified Jose.Jwa as Jose
 import Control.Monad.Logger
 import Control.Lens
 import Gargantext.Prelude
-import Gargantext.Database.Utils (databaseParameters)
+import Gargantext.Database.Utils (databaseParameters, HasConnection(..))
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -135,6 +135,9 @@ data Env = Env
   deriving (Generic)
 
 makeLenses ''Env
+
+instance HasConnection Env where
+  connection = env_conn
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall

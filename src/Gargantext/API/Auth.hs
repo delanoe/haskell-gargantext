@@ -22,6 +22,7 @@ Main authorisation of Gargantext are managed in this module
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.API.Auth
@@ -31,11 +32,11 @@ import Data.Aeson.TH (deriveJSON)
 import Data.List (elem)
 import Data.Swagger
 import Data.Text (Text, reverse)
-import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Types.Node (NodePoly(_node_id))
+import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -81,17 +82,17 @@ arbitraryUsername = ["gargantua", "user1", "user2"]
 arbitraryPassword :: [Password]
 arbitraryPassword = map reverse arbitraryUsername
 
-checkAuthRequest :: Username -> Password -> Connection -> IO CheckAuth
-checkAuthRequest u p c
+checkAuthRequest :: Username -> Password -> Cmd err CheckAuth
+checkAuthRequest u p
   | not (u `elem` arbitraryUsername) = pure InvalidUser
   | u /= reverse p = pure InvalidPassword
   | otherwise = do
-      muId <- getRoot u c
+      muId <- getRoot u
       pure $ maybe InvalidUser (Valid "token" . _node_id) $ head muId
 
-auth' :: Connection -> AuthRequest -> IO AuthResponse
-auth' c (AuthRequest u p) = do
-  checkAuthRequest' <- checkAuthRequest u p c
+auth :: AuthRequest -> Cmd err AuthResponse
+auth (AuthRequest u p) = do
+  checkAuthRequest' <- checkAuthRequest u p
   case checkAuthRequest' of
     InvalidUser     -> pure $ AuthResponse Nothing (Just $ AuthInvalid "Invalid user")
     InvalidPassword -> pure $ AuthResponse Nothing (Just $ AuthInvalid "Invalid password")

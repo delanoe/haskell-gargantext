@@ -21,12 +21,12 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Root where
 
-import Database.PostgreSQL.Simple (Connection)
-import Opaleye (restrict, (.==), Query, runQuery)
+import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)
 import Control.Arrow (returnA)
 import Gargantext.Prelude
@@ -36,13 +36,10 @@ import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Database.Schema.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Core.Types.Individu (Username)
-import Gargantext.Database.Utils (Cmd(..), mkCmd)
+import Gargantext.Database.Utils (Cmd, runOpaQuery)
 
-getRootCmd :: Username -> Cmd [Node HyperdataUser]
-getRootCmd u = mkCmd $ \c -> getRoot u c
-
-getRoot :: Username -> Connection -> IO [Node HyperdataUser]
-getRoot uname conn = runQuery conn (selectRoot uname)
+getRoot :: Username -> Cmd err [Node HyperdataUser]
+getRoot = runOpaQuery . selectRoot
 
 selectRoot :: Username -> Query NodeRead
 selectRoot username = proc () -> do

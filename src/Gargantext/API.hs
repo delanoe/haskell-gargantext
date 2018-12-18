@@ -24,6 +24,7 @@ Thanks @yannEsposito for this.
 {-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell      #-}
@@ -37,14 +38,14 @@ module Gargantext.API
       where
 ---------------------------------------------------------------------
 
-import           Database.PostgreSQL.Simple (Connection)
 import           System.IO (FilePath)
 
 import           GHC.Generics (D1, Meta (..), Rep)
 import           GHC.TypeLits (AppendSymbol, Symbol)
 
 import           Control.Lens
-import Control.Monad.IO.Class (liftIO)
+import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Reader (runReaderT)
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Swagger
@@ -70,8 +71,9 @@ import           Text.Blaze.Html (Html)
 import Gargantext.Prelude
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
-import Gargantext.API.Auth (AuthRequest, AuthResponse, auth')
-import Gargantext.API.Node ( Roots    , roots
+import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
+import Gargantext.API.Node ( GargServer
+                           , Roots    , roots
                            , NodeAPI  , nodeAPI
                            , NodesAPI , nodesAPI
                            , GraphAPI , graphAPI
@@ -208,9 +210,6 @@ type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 
 type GargAPIVersion = "v1.0" :> Summary "v1.0: " :> GargAPI'
 
-auth :: Connection -> AuthRequest -> Handler AuthResponse
-auth conn ar = liftIO $ auth' conn ar
-
 type GargAPI' =
            -- Auth endpoint
                 "auth"  :> Summary "AUTH API"
@@ -277,27 +276,24 @@ type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 
 server :: Env -> IO (Server API)
 server env = do
-  gargAPI <- serverGargAPI env
+  -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
-     :<|> gargAPI
+     :<|> hoistServer (Proxy :: Proxy GargAPI) (`runReaderT` env) serverGargAPI
      :<|> serverIndex
 
-serverGargAPI :: Env -> IO (Server GargAPI)
-serverGargAPI env = do
-  -- orchestrator <- scrapyOrchestrator env
-  pure $  auth     conn
-     :<|> roots    conn
-     :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAny)
-     :<|> nodeAPI  conn (Proxy :: Proxy HyperdataCorpus)
-     :<|> nodeAPI  conn (Proxy :: Proxy HyperdataAnnuaire)
-     :<|> nodesAPI conn
+serverGargAPI :: GargServer GargAPI
+serverGargAPI -- orchestrator
+       =  auth
+     :<|> roots
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire)
+     :<|> nodesAPI
      :<|> count -- TODO: undefined
-     :<|> search   conn
-     :<|> graphAPI conn -- TODO: mock
-     :<|> treeAPI  conn
+     :<|> search
+     :<|> graphAPI -- TODO: mock
+     :<|> treeAPI
   --   :<|> orchestrator
-  where
-    conn = env ^. env_conn
 
 serverIndex :: Server (Get '[HTML] Html)
 serverIndex = $(do (Just s) <- liftIO (fileTypeToFileTree (FileTypeFile "purescript-gargantext/dist/index.html"))

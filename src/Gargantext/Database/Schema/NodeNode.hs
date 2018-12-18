@@ -20,11 +20,12 @@ commentary with @some markup@.
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Schema.NodeNode where
 
-import qualified Database.PostgreSQL.Simple as PGS (Connection, Query, query, Only(..))
+import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -82,8 +83,8 @@ queryNodeNodeTable = queryTable nodeNodeTable
 
 
 -- | not optimized (get all ngrams without filters)
-nodesNodes :: Cmd [NodeNode]
-nodesNodes = mkCmd $ \c -> runQuery c queryNodeNodeTable
+nodesNodes :: Cmd err [NodeNode]
+nodesNodes = runOpaQuery queryNodeNodeTable
 
 instance QueryRunnerColumnDefault (Nullable PGInt4) Int where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
@@ -97,8 +98,8 @@ instance QueryRunnerColumnDefault PGBool (Maybe Bool) where
 
 ------------------------------------------------------------------------
 -- | Favorite management
-nodeToFavorite :: PGS.Connection -> CorpusId -> DocId -> Bool -> IO [Int]
-nodeToFavorite c cId dId b = map (\(PGS.Only a) -> a) <$> PGS.query c favQuery (b,cId,dId)
+nodeToFavorite :: CorpusId -> DocId -> Bool -> Cmd err [Int]
+nodeToFavorite cId dId b = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (b,cId,dId)
   where
     favQuery :: PGS.Query
     favQuery = [sql|UPDATE nodes_nodes SET favorite = ?
@@ -106,9 +107,9 @@ nodeToFavorite c cId dId b = map (\(PGS.Only a) -> a) <$> PGS.query c favQuery (
                RETURNING node2_id;
                |]
 
-nodesToFavorite :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [Int]
-nodesToFavorite c inputData = map (\(PGS.Only a) -> a) 
-                            <$> PGS.query c trashQuery (PGS.Only $ Values fields inputData)
+nodesToFavorite :: [(CorpusId,DocId,Bool)] -> Cmd err [Int]
+nodesToFavorite inputData = map (\(PGS.Only a) -> a)
+                            <$> runPGSQuery trashQuery (PGS.Only $ Values fields inputData)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
     trashQuery :: PGS.Query
@@ -123,8 +124,8 @@ nodesToFavorite c inputData = map (\(PGS.Only a) -> a)
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | Trash management
-nodeToTrash :: PGS.Connection -> CorpusId -> DocId -> Bool -> IO [PGS.Only Int]
-nodeToTrash c cId dId b = PGS.query c trashQuery (b,cId,dId)
+nodeToTrash :: CorpusId -> DocId -> Bool -> Cmd err [PGS.Only Int]
+nodeToTrash cId dId b = runPGSQuery trashQuery (b,cId,dId)
   where
     trashQuery :: PGS.Query
     trashQuery = [sql|UPDATE nodes_nodes SET delete = ?
@@ -133,9 +134,9 @@ nodeToTrash c cId dId b = PGS.query c trashQuery (b,cId,dId)
                   |]
 
 -- | Trash Massive
-nodesToTrash :: PGS.Connection -> [(CorpusId,DocId,Bool)] -> IO [Int]
-nodesToTrash c input = map (\(PGS.Only a) -> a)
-                        <$> PGS.query c trashQuery (PGS.Only $ Values fields input)
+nodesToTrash :: [(CorpusId,DocId,Bool)] -> Cmd err [Int]
+nodesToTrash input = map (\(PGS.Only a) -> a)
+                        <$> runPGSQuery trashQuery (PGS.Only $ Values fields input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
     trashQuery :: PGS.Query
@@ -148,8 +149,8 @@ nodesToTrash c input = map (\(PGS.Only a) -> a)
                   |]
 
 -- | /!\ Really remove nodes in the Corpus or Annuaire
-emptyTrash :: PGS.Connection -> CorpusId -> IO [PGS.Only Int]
-emptyTrash c cId = PGS.query c delQuery (PGS.Only cId)
+emptyTrash :: CorpusId -> Cmd err [PGS.Only Int]
+emptyTrash cId = runPGSQuery delQuery (PGS.Only cId)
   where
     delQuery :: PGS.Query
     delQuery = [sql|DELETE from nodes_nodes n

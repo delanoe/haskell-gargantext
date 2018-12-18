@@ -44,8 +44,7 @@ the concatenation of the parameters defined by @hashParameters@.
 > -- * Example
 > insertTest :: FromRow r => CorpusId -> [Node HyperdataDocument] -> IO [r]
 > insertTest :: IO [ReturnId]
-> insertTest = connectGargandb "gargantext.ini"
->          >>= \conn -> insertDocuments conn 1 452162 hyperdataDocuments
+> insertTest = runCmdDev $ insertDocuments 1 452162 hyperdataDocuments
 
 -}
 ------------------------------------------------------------------------
@@ -55,6 +54,7 @@ the concatenation of the parameters defined by @hashParameters@.
 {-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE QuasiQuotes          #-}
+{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Node.Document.Insert where
@@ -66,7 +66,7 @@ import Data.Aeson (toJSON, Value)
 import Data.Maybe (maybe)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
-import Database.PostgreSQL.Simple (FromRow, Query, query, Only(..))
+import Database.PostgreSQL.Simple (FromRow, Query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField)
@@ -74,7 +74,7 @@ import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Utils (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (Cmd, runPGSQuery)
 import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
@@ -113,8 +113,9 @@ import Database.PostgreSQL.Simple (formatQuery)
 
 data ToDbData = ToDbDocument HyperdataDocument | ToDbContact HyperdataContact
 
-insertDocuments :: UserId -> ParentId -> NodeType -> [ToDbData] -> Cmd [ReturnId]
-insertDocuments uId pId nodeType hs = mkCmd $ \c -> query c queryInsert (Only $ Values fields $ prepare uId pId nodeType hs)
+insertDocuments :: UserId -> ParentId -> NodeType -> [ToDbData] -> Cmd err [ReturnId]
+insertDocuments uId pId nodeType =
+    runPGSQuery queryInsert . Only . Values fields . prepare uId pId nodeType
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
 
@@ -123,7 +124,7 @@ insertDocuments uId pId nodeType hs = mkCmd $ \c -> query c queryInsert (Only $ 
 -- to print rendered query (Debug purpose) use @formatQuery@ function.
 {-
 insertDocuments_Debug :: (Hyperdata a, ToJSON a, ToRow a) => UserId -> ParentId -> [a] -> Cmd ByteString
-insertDocuments_Debug uId pId hs = mkCmd $ \conn -> formatQuery conn queryInsert (Only $ Values fields inputData)
+insertDocuments_Debug uId pId hs = formatPGSQuery queryInsert (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
     inputData = prepare uId pId hs

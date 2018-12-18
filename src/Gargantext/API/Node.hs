@@ -17,6 +17,7 @@ Node API
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE RankNTypes         #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 
@@ -34,28 +35,27 @@ module Gargantext.API.Node
 -------------------------------------------------------------------
 import Control.Lens (prism', set)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad ((>>))
+import Control.Monad ((>>), guard)
 --import System.IO (putStrLn, readFile)
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Functor (($>))
 --import Data.Text (Text(), pack)
 import Data.Text (Text())
 import Data.Swagger
 import Data.Time (UTCTime)
 
-import Database.PostgreSQL.Simple (Connection)
-
 import GHC.Generics (Generic)
 import Servant
 
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, NgramsIdPatchsFeed, NgramsIdPatchsBack)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils (runCmd)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mk, JSONB)
+import Gargantext.Database.Utils (Cmd, CmdM)
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mk, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments', OrderBy(..),FacetChart,runViewAuthorsDoc)
+import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
@@ -64,11 +64,13 @@ import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
 -- import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree, ListId, CorpusId, ContactId)
+import Gargantext.Core.Types.Main (Tree, NodeTree, CorpusId, ContactId)
 -- import Gargantext.Text.Terms (TermType(..))
 
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
+type GargServer api = forall env m. CmdM env ServantErr m => ServerT api m
 
 -------------------------------------------------------------------
 -- | TODO : access by admin only
@@ -77,8 +79,8 @@ type NodesAPI  = Delete '[JSON] Int
 -- | Delete Nodes
 -- Be careful: really delete nodes
 -- Access by admin only
-nodesAPI :: Connection -> [NodeId] -> Server NodesAPI
-nodesAPI conn ids = deleteNodes' conn ids
+nodesAPI :: [NodeId] -> GargServer NodesAPI
+nodesAPI ids = deleteNodes ids
 
 ------------------------------------------------------------------------
 -- | TODO: access by admin only
@@ -89,11 +91,11 @@ type Roots =  Get    '[JSON] [NodeAny]
          :<|> Delete '[JSON] Int -- TODO
 
 -- | TODO: access by admin only
-roots :: Connection -> Server Roots
-roots conn = liftIO (putStrLn ( "/user" :: Text) >> getNodesWithParentId 0 Nothing conn)
-          :<|> pure (panic "not implemented yet") -- TODO
-          :<|> pure (panic "not implemented yet") -- TODO
-          :<|> pure (panic "not implemented yet") -- TODO
+roots :: GargServer Roots
+roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
+   :<|> pure (panic "not implemented yet") -- TODO
+   :<|> pure (panic "not implemented yet") -- TODO
+   :<|> pure (panic "not implemented yet") -- TODO
 
 -------------------------------------------------------------------
 -- | Node API Types management
@@ -136,29 +138,27 @@ type ChildrenApi a = Summary " Summary children"
                  :> Get '[JSON] [Node a]
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: JSONB a => Connection -> proxy a -> NodeId -> Server (NodeAPI a)
-nodeAPI conn p id
-                =  liftIO (getNode conn id p)
-              :<|> rename        conn id
-              :<|> postNode      conn id
-              :<|> putNode       conn id
-              :<|> deleteNode'   conn id
-              :<|> getChildren'  conn id p
-              
-              -- TODO gather it
-              :<|> getTable      conn id
-              :<|> tableNgramsPatch'  conn id
-              :<|> getTableNgrams  conn id
-              :<|> getPairing      conn id
+nodeAPI :: JSONB a => proxy a -> NodeId -> GargServer (NodeAPI a)
+nodeAPI p id =  getNode     id p
+           :<|> rename      id
+           :<|> postNode    id
+           :<|> putNode     id
+           :<|> deleteNode  id
+           :<|> getChildren id p
 
-              :<|> getChart      conn id
-              :<|> favApi        conn id
-              :<|> delDocs       conn id
-              :<|> searchIn      conn id
+           -- TODO gather it
+           :<|> getTable         id
+           :<|> tableNgramsPatch id
+           :<|> getTableNgrams   id
+           :<|> getPairing       id
 
-              -- Annuaire
-              -- :<|> upload
-              -- :<|> query
+           :<|> getChart id
+           :<|> favApi   id
+           :<|> delDocs  id
+           :<|> searchIn id
+           -- Annuaire
+           -- :<|> upload
+           -- :<|> query
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
@@ -191,9 +191,8 @@ instance FromJSON  Documents
 instance ToJSON    Documents
 instance ToSchema  Documents
 
-delDocs :: Connection -> CorpusId -> Documents -> Handler [Int]
-delDocs c cId ds = liftIO $ nodesToTrash c
-                $ map (\n -> (cId, n, True)) $ documents ds
+delDocs :: CorpusId -> Documents -> Cmd err [Int]
+delDocs cId ds = nodesToTrash $ map (\n -> (cId, n, True)) $ documents ds
 
 ------------------------------------------------------------------------
 type FavApi =  Summary " Favorites label"
@@ -210,17 +209,14 @@ instance FromJSON  Favorites
 instance ToJSON    Favorites
 instance ToSchema  Favorites
 
-putFav :: Connection -> CorpusId -> Favorites -> Handler [Int]
-putFav c cId fs = liftIO $ nodesToFavorite c
-                $ map (\n -> (cId, n, True)) $ favorites fs
+putFav :: CorpusId -> Favorites -> Cmd err [Int]
+putFav cId fs = nodesToFavorite $ map (\n -> (cId, n, True)) $ favorites fs
 
-delFav :: Connection -> CorpusId -> Favorites -> Handler [Int]
-delFav c cId fs = liftIO $ nodesToFavorite c
-                $ map (\n -> (cId, n, False)) $ favorites fs
+delFav :: CorpusId -> Favorites -> Cmd err [Int]
+delFav cId fs = nodesToFavorite $ map (\n -> (cId, n, False)) $ favorites fs
 
-favApi :: Connection -> CorpusId -> (Favorites -> Handler [Int])
-                               :<|> (Favorites -> Handler [Int])
-favApi c cId = putFav c cId :<|> delFav c cId
+favApi :: CorpusId -> GargServer FavApi
+favApi cId = putFav cId :<|> delFav cId
 
 ------------------------------------------------------------------------
 type TableApi = Summary " Table API"
@@ -254,13 +250,10 @@ type ChartApi = Summary " Chart API"
 
 ------------------------------------------------------------------------
 type GraphAPI   = Get '[JSON] Graph
-graphAPI :: Connection -> NodeId -> Server GraphAPI
-graphAPI c nId = liftIO $ graphAPI' c nId
+graphAPI :: NodeId -> GargServer GraphAPI
+graphAPI nId = do
 
-graphAPI' :: Connection -> NodeId -> IO Graph
-graphAPI' c nId = do
-  
-  nodeGraph <- getNode c nId HyperdataGraph
+  nodeGraph <- getNode nId HyperdataGraph
 
   let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph] 
                                        [ LegendField 1 "#FFFFFF" "Label 1"
@@ -276,64 +269,58 @@ graphAPI' c nId = do
   -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
 
+instance HasNodeError ServantErr where
+  _NodeError = prism' make match
+    where
+      err = err404 { errBody = "NodeError: No list found" }
+      make NoListFound = err
+      match e = guard (e == err) $> NoListFound
+
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
-  _TreeError = prism' mk (const Nothing) -- Note a prism
+  _TreeError = prism' mk (const $ panic "HasTreeError ServantErr: not a prism")
     where
       mk NoRoot       = err404 { errBody = "Root node not found"           }
       mk EmptyRoot    = err500 { errBody = "Root node should not be empty" }
       mk TooManyRoots = err500 { errBody = "Too many root nodes"           }
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
-treeAPI :: Connection -> NodeId -> Server TreeAPI
+treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI = treeDB
 
 ------------------------------------------------------------------------
 -- | Check if the name is less than 255 char
-rename :: Connection -> NodeId -> RenameNode -> Handler [Int]
-rename c nId (RenameNode name) = liftIO $ U.update (U.Rename nId name) c
+rename :: NodeId -> RenameNode -> Cmd err [Int]
+rename nId (RenameNode name) = U.update (U.Rename nId name)
 
-getTable :: Connection -> NodeId -> Maybe TabType
+getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Handler [FacetDoc]
-getTable c cId ft o l order = liftIO $ case ft of
-                                (Just Docs)  -> runViewDocuments' c cId False o l order
-                                (Just Trash) -> runViewDocuments' c cId True  o l order
+         -> Maybe OrderBy -> Cmd err [FacetDoc]
+getTable cId ft o l order = case ft of
+                                (Just Docs)  -> runViewDocuments cId False o l order
+                                (Just Trash) -> runViewDocuments cId True  o l order
                                 _     -> panic "not implemented"
 
-getPairing :: Connection -> ContactId -> Maybe TabType
+getPairing :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Handler [FacetDoc]
-getPairing c cId ft o l order = liftIO $ case ft of
-                                (Just Docs)  -> runViewAuthorsDoc c cId False o l order
-                                (Just Trash) -> runViewAuthorsDoc c cId True  o l order
+         -> Maybe OrderBy -> Cmd err [FacetDoc]
+getPairing cId ft o l order = case ft of
+                                (Just Docs)  -> runViewAuthorsDoc cId False o l order
+                                (Just Trash) -> runViewAuthorsDoc cId True  o l order
                                 _     -> panic "not implemented"
 
 
-getChart :: Connection -> NodeId -> Maybe UTCTime -> Maybe UTCTime
-                        -> Handler [FacetChart]
-getChart _ _ _ _ = undefined -- TODO
+getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
+                   -> Cmd err [FacetChart]
+getChart _ _ _ = undefined -- TODO
 
-postNode :: Connection -> NodeId -> PostNode -> Handler [Int]
-postNode c pId (PostNode name nt) = liftIO $ mk c nt (Just pId) name
+postNode :: NodeId -> PostNode -> Cmd err [Int]
+postNode pId (PostNode name nt) = mk nt (Just pId) name
 
-putNode :: Connection -> NodeId -> Handler Int
+putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO
 
-deleteNodes' :: Connection -> [NodeId] -> Handler Int
-deleteNodes' conn ids = liftIO (runCmd conn $ deleteNodes ids)
-
-deleteNode' :: Connection -> NodeId -> Handler Int
-deleteNode' conn id = liftIO (runCmd conn $ deleteNode id)
-
-getChildren' :: JSONB a => Connection -> NodeId -> proxy a -> Maybe NodeType
-              -> Maybe Int -> Maybe Int -> Handler [Node a]
-getChildren' conn pId p nodeType offset limit  = liftIO (getChildren conn pId p nodeType offset limit)
-
-tableNgramsPatch' :: Connection -> CorpusId -> Maybe ListId -> NgramsIdPatchsFeed -> Handler NgramsIdPatchsBack
-tableNgramsPatch' c cId mL ns = liftIO $ tableNgramsPatch c cId mL ns
-
-query :: Text -> Handler Text
+query :: Monad m => Text -> m Text
 query s = pure s
 
 

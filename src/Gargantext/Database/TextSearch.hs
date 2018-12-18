@@ -11,6 +11,7 @@ Portability : POSIX
 {-# LANGUAGE Arrows            #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.TextSearch where
 
@@ -21,7 +22,7 @@ import Data.List (intersperse, take, drop)
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
-import Database.PostgreSQL.Simple -- (Query, Connection)
+import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (NodeType(..))
@@ -33,6 +34,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Queries.Join (leftJoin6)
+import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types
 import Control.Arrow (returnA)
@@ -41,8 +43,8 @@ import Opaleye hiding (Query, Order)
 
 
 ------------------------------------------------------------------------
-searchInDatabase :: Connection -> ParentId -> Text -> IO [(NodeId, HyperdataDocument)]
-searchInDatabase c p t = runQuery c (queryInDatabase p t)
+searchInDatabase :: ParentId -> Text -> Cmd err [(NodeId, HyperdataDocument)]
+searchInDatabase p t = runOpaQuery (queryInDatabase p t)
 
 -- | Global search query where ParentId is Master Node Corpus Id 
 queryInDatabase :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
@@ -54,8 +56,8 @@ queryInDatabase _ q = proc () -> do
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
-searchInCorpus :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
-searchInCorpus c cId q o l order = runQuery c (filterWith o l order $ queryInCorpus cId q')
+searchInCorpus :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+searchInCorpus cId q o l order = runOpaQuery (filterWith o l order $ queryInCorpus cId q')
   where
     q' = intercalate " | " $ map stemIt q
 
@@ -77,20 +79,20 @@ joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
 type AuthorName = Text
 
 -- | TODO Optim: Offset and Limit in the Query
-searchInCorpusWithContacts :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
-searchInCorpusWithContacts c cId q o l order = take (maybe 5 identity l) <$> drop (maybe 0 identity o)
+searchInCorpusWithContacts :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
+searchInCorpusWithContacts cId q o l order = take (maybe 5 identity l) <$> drop (maybe 0 identity o)
   <$> map (\((i,u,h,s), ps) -> FacetPaired i u h s (catMaybes ps))
   <$> toList <$> fromListWith (<>)
   <$> map (\(FacetPaired i u h s p) -> ((i,u,h,s), [maybePair p]))
-  <$> searchInCorpusWithContacts' c cId q o l order
+  <$> searchInCorpusWithContacts' cId q o l order
   where
     maybePair (Pair Nothing Nothing) = Nothing
     maybePair (Pair _ Nothing) = Nothing
     maybePair (Pair Nothing _) = Nothing
     maybePair (Pair (Just p_id) (Just p_label)) = Just $ Pair p_id p_label
 
-searchInCorpusWithContacts' :: Connection -> CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
-searchInCorpusWithContacts' c cId q o l order = runQuery c $ queryInCorpusWithContacts cId q' o l order
+searchInCorpusWithContacts' :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
+searchInCorpusWithContacts' cId q o l order = runOpaQuery $ queryInCorpusWithContacts cId q' o l order
   where
     q' = intercalate " | " $ map stemIt q
 
@@ -196,13 +198,12 @@ textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'     \
 -- | Text Search Function for Master Corpus
 -- TODO : text search for user corpus
 -- Example:
--- textSearchTest :: ParentId -> TSQuery -> Cmd [(Int, Value, Value, Value, Value, Maybe Int)]
--- textSearchTest pId q = mkCmd $ \c -> textSearch c q pId 5 0 Asc
-textSearch :: Connection 
-           -> TSQuery -> ParentId
+-- textSearchTest :: ParentId -> TSQuery -> Cmd err [(Int, Value, Value, Value, Value, Maybe Int)]
+-- textSearchTest pId q = textSearch q pId 5 0 Asc
+textSearch :: TSQuery -> ParentId
            -> Limit -> Offset -> Order
-           -> IO [(Int,Value,Value,Value, Value, Maybe Int)]
-textSearch conn q p l o ord = query conn textSearchQuery (q,p,p,typeId,ord,o,l)
+           -> Cmd err [(Int,Value,Value,Value, Value, Maybe Int)]
+textSearch q p l o ord = runPGSQuery textSearchQuery (q,p,p,typeId,ord,o,l)
   where
     typeId = nodeTypeId NodeDocument
 

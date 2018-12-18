@@ -10,8 +10,9 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE RankNTypes        #-}
 
 
 module Gargantext.Database.Node.Update (Update(..), update) where
@@ -21,10 +22,11 @@ import qualified Data.Text as DT
 import Database.PostgreSQL.Simple
 
 import Gargantext.Prelude
+import Gargantext.Database.Utils
 
 -- import Data.ByteString
---rename :: Connection -> NodeId -> Text -> IO ByteString
---rename conn nodeId name = formatQuery conn "UPDATE nodes SET name=? where id=?" (name,nodeId)
+--rename :: NodeId -> Text -> IO ByteString
+--rename nodeId name = formatPGSQuery "UPDATE nodes SET name=? where id=?" (name,nodeId)
 ------------------------------------------------------------------------
 type NodeId = Int
 type Name   = Text
@@ -41,10 +43,10 @@ data Update = Rename NodeId Name
 unOnly :: Only a -> a
 unOnly (Only a) = a
 
-update :: Update -> Connection -> IO [Int]
-update (Rename nId name) conn = map unOnly <$> query conn "UPDATE nodes SET name=? where id=? returning id"
+update :: Update -> Cmd err [Int]
+update (Rename nId name) = map unOnly <$> runPGSQuery "UPDATE nodes SET name=? where id=? returning id"
                                            (DT.take 255 name,nId)
-update (Move nId pId) conn    = map unOnly <$> query conn "UPDATE nodes SET parent_id= ? where id=? returning id"
+update (Move nId pId)    = map unOnly <$> runPGSQuery "UPDATE nodes SET parent_id= ? where id=? returning id"
                                            (pId, nId)
 
 

@@ -9,9 +9,10 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 -- {-# LANGUAGE Arrows #-}
 
 module Gargantext.Database.Flow.Pairing
@@ -19,7 +20,6 @@ module Gargantext.Database.Flow.Pairing
 
 --import Debug.Trace (trace)
 import Control.Lens (_Just,view)
-import Database.PostgreSQL.Simple (Connection, query)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 -- import Opaleye
 -- import Opaleye.Aggregate
@@ -36,27 +36,26 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 --import Gargantext.Database.Types.Node -- (Hyperdata(..))
 import Gargantext.Database.Node.Contact
 import Gargantext.Database.Flow.Utils
-import Gargantext.Database.Utils (Cmd, mkCmd)
+import Gargantext.Database.Utils (Cmd, runPGSQuery)
 import Gargantext.Database.Node.Children
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Types (NodeType(..))
-import Gargantext.Database.Bashql (runCmd')
 
 -- TODO mv this type in Types Main
 type Terms = Text
 
 -- | TODO : add paring policy as parameter
-pairing :: AnnuaireId -> CorpusId -> IO Int
+pairing :: AnnuaireId -> CorpusId -> Cmd err Int
 pairing aId cId = do
-  contacts' <- runCmd' $ getContacts aId (Just NodeContact)
+  contacts' <- getContacts aId (Just NodeContact)
   let contactsMap = pairingPolicyToMap toLower $ toMaps extractNgramsT contacts'
-  
-  ngramsMap' <- runCmd' $ getNgramsTindexed cId Authors
+
+  ngramsMap' <- getNgramsTindexed cId Authors
   let ngramsMap = pairingPolicyToMap lastName ngramsMap'
 
   let indexedNgrams = pairMaps contactsMap ngramsMap
-  
-  runCmd' $ insertToNodeNgrams indexedNgrams
+
+  insertToNodeNgrams indexedNgrams
   -- TODO add List
 
 lastName :: Terms -> Terms
@@ -92,13 +91,13 @@ pairMaps m1 m2 = DM.fromList $ catMaybes $ map (\(k,n) -> (,) <$> lookup' k m2 <
 
 
 -----------------------------------------------------------------------
-getNgramsTindexed:: CorpusId -> NgramsType -> Cmd (Map (NgramsT Ngrams) NgramsId)
-getNgramsTindexed corpusId ngramsType' = mkCmd $ \c -> fromList
+getNgramsTindexed:: CorpusId -> NgramsType -> Cmd err (Map (NgramsT Ngrams) NgramsId)
+getNgramsTindexed corpusId ngramsType' = fromList
     <$> map (\(ngramsId',t,n) -> (NgramsT ngramsType' (Ngrams t n),ngramsId'))
-    <$> selectNgramsTindexed c corpusId ngramsType'
+    <$> selectNgramsTindexed corpusId ngramsType'
 
-selectNgramsTindexed :: Connection -> CorpusId -> NgramsType -> IO [(NgramsId, Terms, Int)]
-selectNgramsTindexed c corpusId ngramsType'' = query c selectQuery (corpusId, ngramsTypeId ngramsType'')
+selectNgramsTindexed :: CorpusId -> NgramsType -> Cmd err [(NgramsId, Terms, Int)]
+selectNgramsTindexed corpusId ngramsType'' = runPGSQuery selectQuery (corpusId, ngramsTypeId ngramsType'')
   where
     selectQuery = [sql| SELECT n.id,n.terms,n.n from ngrams n
                   JOIN nodes_ngrams occ ON occ.ngram_id = n.id

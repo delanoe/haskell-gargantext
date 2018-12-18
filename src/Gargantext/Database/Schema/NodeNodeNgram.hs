@@ -24,7 +24,7 @@ import Prelude
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import qualified Database.PostgreSQL.Simple as PGS
+import Gargantext.Database.Utils (Cmd, runOpaQuery)
 
 import Opaleye
 
@@ -76,8 +76,8 @@ queryNodeNodeNgramTable :: Query NodeNodeNgramRead
 queryNodeNodeNgramTable = queryTable nodeNodeNgramTable
 
 -- | not optimized (get all ngrams without filters)
-nodeNodeNgrams :: PGS.Connection -> IO [NodeNodeNgram]
-nodeNodeNgrams conn = runQuery conn queryNodeNodeNgramTable
+nodeNodeNgrams :: Cmd err [NodeNodeNgram]
+nodeNodeNgrams = runOpaQuery queryNodeNodeNgramTable
 
 instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn

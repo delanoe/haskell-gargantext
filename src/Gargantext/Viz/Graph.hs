@@ -18,6 +18,7 @@ module Gargantext.Viz.Graph
 
 ------------------------------------------------------------------------
 import Control.Lens (makeLenses)
+import Control.Monad.IO.Class (MonadIO(liftIO))
 import GHC.IO (FilePath)
 import GHC.Generics (Generic)
 import Data.Aeson.TH (deriveJSON)
@@ -207,7 +208,7 @@ graphV3ToGraphWithFiles g1 g2 = do
 
   DBL.writeFile g2 (DA.encode $ graphV3ToGraph newGraph)
 
-readGraphFromJson :: FilePath -> IO (Maybe Graph)
+readGraphFromJson :: MonadIO m => FilePath -> m (Maybe Graph)
 readGraphFromJson fp = do
-  graph <- DBL.readFile fp
+  graph <- liftIO $ DBL.readFile fp
   pure $ DA.decode graph

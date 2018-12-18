@@ -59,6 +59,7 @@ AMS, and by SIAM.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Bashql ( get
                                   , ls
@@ -70,7 +71,6 @@ module Gargantext.Database.Bashql ( get
                                   , rename
                                   , tree
                                   -- , mkCorpus, mkAnnuaire
-                                  , runCmd'
                                  )
     where
 
@@ -80,12 +80,10 @@ import Data.Text (Text)
 import Data.List (concat, last)
 
 import Gargantext.Core.Types
-import Gargantext.Database.Utils (connectGargandb, Cmd(..), runCmd, mkCmd)
+import Gargantext.Database.Utils (runOpaQuery, Cmd)
 import Gargantext.Database.Schema.Node
 import qualified Gargantext.Database.Node.Update as U (Update(..), update)
 import Gargantext.Prelude
-
-import Opaleye hiding (FromField)
 
 
 -- List of NodeId
@@ -93,38 +91,38 @@ import Opaleye hiding (FromField)
 type PWD = [NodeId]
 --data PWD' a = a | PWD' [a]
 
-rename :: NodeId -> Text -> Cmd [Int]
-rename n t = mkCmd $ \conn -> U.update (U.Rename n t) conn
+rename :: NodeId -> Text -> Cmd err [Int]
+rename n t = U.update $ U.Rename n t
 
-mv :: NodeId -> ParentId -> Cmd [Int]
-mv n p = mkCmd $ \conn -> U.update (U.Move n p) conn
+mv :: NodeId -> ParentId -> Cmd err [Int]
+mv n p = U.update $ U.Move n p
 
 -- | TODO get Children or Node
-get :: PWD -> Cmd [NodeAny]
+get :: PWD -> Cmd err [NodeAny]
 get []  = pure []
-get pwd = Cmd . ReaderT $ \conn -> runQuery conn $ selectNodesWithParentID (last pwd)
+get pwd = runOpaQuery $ selectNodesWithParentID (last pwd)
 
 -- | Home, need to filter with UserId
-home :: Cmd PWD
-home = map _node_id <$> Cmd (ReaderT (getNodesWithParentId 0 Nothing))
+home :: Cmd err PWD
+home = map _node_id <$> getNodesWithParentId 0 Nothing
 
 -- | ls == get Children
-ls :: PWD -> Cmd [NodeAny]
+ls :: PWD -> Cmd err [NodeAny]
 ls = get
 
-tree :: PWD -> Cmd [NodeAny]
+tree :: PWD -> Cmd err [NodeAny]
 tree p = do
   ns       <- get p
   children <- mapM (\n -> get [_node_id n]) ns
   pure $ ns <> concat children
 
 -- | TODO
-post :: PWD -> [NodeWrite'] -> Cmd Int64
+post :: PWD -> [NodeWrite'] -> Cmd err Int64
 post [] _   = pure 0
 post _ []   = pure 0
-post pth ns = Cmd . ReaderT $ insertNodesWithParent (Just $ last pth) ns
+post pth ns = insertNodesWithParent (Just $ last pth) ns
 
---postR :: PWD -> [NodeWrite'] -> Cmd [Int]
+--postR :: PWD -> [NodeWrite'] -> Cmd err [Int]
 --postR [] _ _ = pure [0]
 --postR _ [] _ = pure [0]
 --postR pth ns c = mkNodeR (last pth) ns c
@@ -132,15 +130,15 @@ post pth ns = Cmd . ReaderT $ insertNodesWithParent (Just $ last pth) ns
 -- | WIP
 -- rm : mv to trash
 -- del : empty trash
---rm :: Connection -> PWD -> [NodeId] -> IO Int
+--rm :: PWD -> [NodeId] -> IO Int
 --rm = del
-del :: [NodeId] -> Cmd Int
+del :: [NodeId] -> Cmd err Int
 del [] = pure 0
 del ns = deleteNodes ns
 
 -- | TODO
-put :: U.Update -> Cmd [Int]
-put u = mkCmd $ U.update u
+put :: U.Update -> Cmd err [Int]
+put = U.update
 
 -- | TODO
 -- cd (Home UserId) | (Node NodeId)
@@ -151,7 +149,7 @@ put u = mkCmd $ U.update u
 -- type Name = Text
 
 
---mkCorpus :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
+--mkCorpus :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd err NewNode
 --mkCorpus name title ns = do
 --  pid <- home
 --  
@@ -167,7 +165,7 @@ put u = mkCmd $ U.update u
 ---- |
 ---- import IMTClient as C
 ---- postAnnuaire "Annuaire IMT" (\n -> (maybe "" identity (C.prenom n)) <> " " <> (maybe "" identity (C.nom n))) (take 30 annuaire)
---mkAnnuaire :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd NewNode
+--mkAnnuaire :: ToJSON a => Name -> (a -> Text) -> [a] -> Cmd err NewNode
 --mkAnnuaire name title ns = do
 --  pid <- lastMay <$> home
 --  let pid' = case lastMay pid of
@@ -185,6 +183,3 @@ put u = mkCmd $ U.update u
 -- let myCorpus' = Prelude.filter (\n -> T.length (maybe "" identity (hyperdataDocument_title n)) > 30) myCorpus
 
 -- corporaOf :: Username -> IO [Corpus]
-
-runCmd' :: Cmd a -> IO a
-runCmd' f = connectGargandb "gargantext.ini" >>= \c -> runCmd c f

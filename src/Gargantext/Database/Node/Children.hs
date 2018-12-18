@@ -14,10 +14,10 @@ Portability : POSIX
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE RankNTypes             #-}
 
 module Gargantext.Database.Node.Children where
 
-import Database.PostgreSQL.Simple (Connection)
 import Opaleye
 import Gargantext.Core.Types
 import Gargantext.Database.Schema.Node
@@ -29,12 +29,12 @@ import Gargantext.Database.Node.Contact (HyperdataContact)
 import Control.Arrow (returnA)
 
 -- | TODO: use getChildren with Proxy ?
-getContacts :: ParentId -> Maybe NodeType -> Cmd [Node HyperdataContact]
-getContacts pId maybeNodeType = mkCmd $ \c -> runQuery c $ selectChildren pId maybeNodeType
+getContacts :: ParentId -> Maybe NodeType -> Cmd err [Node HyperdataContact]
+getContacts pId maybeNodeType = runOpaQuery $ selectChildren pId maybeNodeType
 
 
-getChildren :: JSONB a => Connection -> ParentId -> proxy a -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> IO [Node a]
-getChildren c pId _ maybeNodeType maybeOffset maybeLimit = runQuery c 
+getChildren :: JSONB a => ParentId -> proxy a -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Cmd err [Node a]
+getChildren pId _ maybeNodeType maybeOffset maybeLimit = runOpaQuery
                   $ limit' maybeLimit $ offset' maybeOffset
                   $ orderBy (asc _node_id)
                   $ selectChildren pId maybeNodeType

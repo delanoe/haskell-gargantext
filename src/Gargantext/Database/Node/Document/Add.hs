@@ -17,6 +17,7 @@ Add Documents/Contact to a Corpus/Annuaire.
 {-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE QuasiQuotes          #-}
+{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Node.Document.Add where
@@ -24,7 +25,7 @@ module Gargantext.Database.Node.Document.Add where
 
 import Data.ByteString.Internal (ByteString)
 import Data.Typeable (Typeable)
-import Database.PostgreSQL.Simple (Query, formatQuery, query, Only(..))
+import Database.PostgreSQL.Simple (Query, Only(..))
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow (ToRow(..))
@@ -32,7 +33,7 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 
 import Data.Text (Text)
 
-import Gargantext.Database.Utils (mkCmd, Cmd(..))
+import Gargantext.Database.Utils (Cmd, runPGSQuery, formatPGSQuery)
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
@@ -41,14 +42,14 @@ import GHC.Generics (Generic)
 
 type ParentId = Int
 
-add :: ParentId -> [NodeId] -> Cmd [Only Int]
-add pId ns = mkCmd $ \c -> query c queryAdd (Only $ Values fields inputData)
+add :: ParentId -> [NodeId] -> Cmd err [Only Int]
+add pId ns = runPGSQuery queryAdd (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
     inputData = prepare pId ns
 
-add_debug :: ParentId -> [NodeId] -> Cmd ByteString
-add_debug pId ns = mkCmd $ \c -> formatQuery c queryAdd (Only $ Values fields inputData)
+add_debug :: ParentId -> [NodeId] -> Cmd err ByteString
+add_debug pId ns = formatPGSQuery queryAdd (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
     inputData = prepare pId ns

@@ -21,6 +21,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude         #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE TemplateHaskell           #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet
@@ -37,7 +38,6 @@ import Data.Swagger
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
-import Database.PostgreSQL.Simple (Connection)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix)
@@ -204,8 +204,8 @@ instance Arbitrary OrderBy
     arbitrary = elements [minBound..maxBound]
 
 
-runViewAuthorsDoc :: Connection -> ContactId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
-runViewAuthorsDoc c cId t o l order = runQuery c (filterWith o l order $ viewAuthorsDoc cId t ntId)
+runViewAuthorsDoc :: ContactId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
     ntId = NodeDocument
 
@@ -244,13 +244,9 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
 
 ------------------------------------------------------------------------
 
-runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd [FacetDoc]
-runViewDocuments cId t o l order = mkCmd $ \c -> runViewDocuments' c cId t o l order
-
--- | TODO use only Cmd with Reader and delete function below
-runViewDocuments' :: Connection -> CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> IO [FacetDoc]
-runViewDocuments' c cId t o l order = runQuery c ( filterWith o l order
-                                                $ viewDocuments cId t ntId)
+runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+runViewDocuments cId t o l order =
+    runOpaQuery $ filterWith o l order $ viewDocuments cId t ntId
   where
     ntId = nodeTypeId NodeDocument
 
