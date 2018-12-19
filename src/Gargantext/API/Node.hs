@@ -251,10 +251,13 @@ graphAPI nId = do
 
   nodeGraph <- getNode nId HyperdataGraph
 
-  let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph] 
-                                       [ LegendField 1 "#FFFFFF" "Label 1"
-                                       , LegendField 2 "#0048BA" "Label 2"
-                                       ]
+  let title = "IMT - Scientific publications - 1982-2017 - English"
+  let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph] [ LegendField 6 "#FFF" "Data processing"
+                                                                                   , LegendField 7 "#FFF" "Networks"
+                                                                                   , LegendField 1 "#FFF" "Material science"
+                                                                                   , LegendField 5 "#FFF" "Energy / Environment"
+                                                                                   ]
+                                       -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   graph <- set graph_metadata (Just metadata)
         <$> maybe defaultGraph identity
