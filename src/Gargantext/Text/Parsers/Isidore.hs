@@ -16,6 +16,7 @@ import Data.ByteString.Lazy (ByteString)
 import Prelude (String)
 import Network.Wreq
 
+route :: EndPoint
 route = "https://isidore.science/sparql/"
 
 selectQueryRaw' :: String -> String -> IO (Response ByteString)
@@ -25,8 +26,8 @@ selectQueryRaw' uri q = getWith opts uri
                     & header "User-Agent" .~ ["gargantext-hsparql-client"]
                     & param "query" .~ [Data.Text.pack q]
 
---selectExample :: IO (Maybe [Text])
-isidore q = do
+isidoreGet :: Text -> IO ByteString
+isidoreGet q = do
   let s = createSelectQuery $ simpleSelect q
   putStrLn s
   r <- selectQueryRaw' route s
@@ -44,18 +45,18 @@ simpleSelect q = do
 
   doc      <- var
   title    <- var
-  date     <- var
+  --date     <- var
   abstract <- var
-  source   <- var
+  --source   <- var
 
-  triple doc (rdf .:. "type") (isidore .:. "BibliographicalResource")
-  triple doc (dcterms .:. "title")       title
-  triple doc (dcterms .:. "date")        date
-  triple doc (dcterms .:. "source")      source
+  triple_ doc (rdf .:. "type")      (isidore .:. "BibliographicalResource")
+  triple_ doc (dcterms .:. "title")  title
+  --triple doc (dcterms .:. "date")        date
+  --triple doc (dcterms .:. "source")      source
   triple doc (dc      .:. "description") abstract
 
-  filterExpr $ (.||.) (contains title q) (contains abstract q)
-  groupBy title
-  groupBy source
+  --filterExpr $ (.||.) (contains title q) (contains abstract q)
+  filterExpr_ (contains title q) -- (contains abstract q)
+  limit_ 3
 
-  selectVars [title, date, source, abstract]
+  selectVars [title]
