@@ -163,6 +163,7 @@ library:
   - wai-cors
   - wai-extra
   - warp
+  - wreq
   - xml-conduit
   - xml-types
   - yaml

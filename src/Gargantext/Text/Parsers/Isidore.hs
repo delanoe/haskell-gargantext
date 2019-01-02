@@ -11,13 +11,29 @@ import Database.HSparql.QueryGenerator
 -- import Data.RDF hiding (triple)
 import Data.Text hiding (groupBy)
 
-route = "http://isidore.science/sparql/"
+import Control.Lens hiding (contains)
+import Data.ByteString.Lazy (ByteString)
+import Prelude (String)
+import Network.Wreq
 
+route = "https://isidore.science/sparql/"
+
+selectQueryRaw' :: String -> String -> IO (Response ByteString)
+selectQueryRaw' uri q = getWith opts uri
+  where
+    opts = defaults & header "Accept" .~ ["application/sparql-results+xml"]
+                    & header "User-Agent" .~ ["gargantext-hsparql-client"]
+                    & param "query" .~ [Data.Text.pack q]
 
 --selectExample :: IO (Maybe [Text])
 isidore q = do
-  res <- selectQuery route $ simpleSelect q
-  pure res
+  let s = createSelectQuery $ simpleSelect q
+  putStrLn s
+  r <- selectQueryRaw' route s
+  putStrLn $ show $ r ^. responseStatus
+  pure $ r ^. responseBody
+ -- res <- selectQuery route $ simpleSelect q
+ -- pure res
 
 simpleSelect :: Text -> Query SelectQuery
 simpleSelect q = do
