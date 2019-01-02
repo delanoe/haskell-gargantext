@@ -8,6 +8,7 @@ packages:
 - 'deps/patches-map'
 - 'deps/patches-class'
 - 'deps/haskell-opaleye'
+- 'deps/hsparql'
 
 allow-newer: true
 extra-deps:
@@ -24,7 +25,6 @@ extra-deps:
 - duckling-0.1.3.0
 - full-text-search-0.2.1.4
 - fullstop-0.1.4
-- hsparql-0.3.6 # Sparql for ISIDORE database
 - hgal-2.0.0.2
 - rdf4h-3.1.1
 - located-base-0.1.1.1

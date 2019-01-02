@@ -54,6 +54,7 @@ git clone https://github.com/np/servant-job.git
 git clone https://github.com/np/patches-map
 git clone https://gitlab.com/npouillard/patches-class.git
 git clone https://github.com/delanoe/haskell-opaleye
+git clone https://github.com/np/hsparql
 cd ..
 
 stack docker pull

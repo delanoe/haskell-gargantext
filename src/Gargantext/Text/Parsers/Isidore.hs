@@ -26,13 +26,13 @@ selectQueryRaw' uri q = getWith opts uri
                     & header "User-Agent" .~ ["gargantext-hsparql-client"]
                     & param  "query"      .~ [Data.Text.pack q]
 
-isidoreGet :: Text -> IO ByteString
+isidoreGet :: Text -> IO (Maybe [[BindingValue]])
 isidoreGet q = do
   let s = createSelectQuery $ simpleSelect q
   putStrLn s
   r <- selectQueryRaw' route s
   putStrLn $ show $ r ^. responseStatus
-  pure $ r ^. responseBody
+  pure $ structureContent $ r ^. responseBody
  -- res <- selectQuery route $ simpleSelect q
  -- pure res
 
