@@ -44,8 +44,9 @@ simpleSelect q = do
   rdf     <- prefix "rdf"     (iriRef "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
   dcterms <- prefix "dcterms" (iriRef "http://purl.org/dc/terms/")
   dc      <- prefix "dc"      (iriRef "http://purl.org/dc/elements/1.1/")
-  ore     <- prefix "ore"    (iriRef "http://www.openarchives.org/ore/terms/")
-  bif     <- prefix "bif"    (iriRef "bif:")
+  langFr  <- prefix "langFr"  (iriRef "http://lexvo.org/id/iso639-3/fra")
+  --ore     <- prefix "ore"    (iriRef "http://www.openarchives.org/ore/terms/")
+  --bif     <- prefix "bif"    (iriRef "bif:")
 
   link     <- var
   title    <- var
@@ -55,30 +56,26 @@ simpleSelect q = do
   source   <- var
   lang     <- var
   publisher <- var
-  agg       <- var
-
-  indexT  <- var
+  langFr   <- var
+  --agg       <- var
 
   triple_ link (rdf     .:. "type")     (isidore .:. "BibliographicalResource")
   triple_ link (dcterms .:. "title")    title
   triple_ link (dcterms .:. "date")     date
   triple_ link (dcterms .:. "creator")  authors
   triple_ link (dcterms .:. "language") lang
-  triple_ link (dcterms .:. "source")   source
-
-  triple_ link (ore .:. "isAggregatedBy") agg
+  --triple_ link (ore .:. "isAggregatedBy") agg
   --triple_ agg (dcterms .:. "title") title
 
-
+  optional $ triple_ link (dcterms .:. "source")   source
   optional $ triple_ link (dcterms .:. "publisher") publisher
   optional $ triple_ link (dc      .:. "description") abstract
 
-  --filterExpr $ (.||.) (contains title q) (contains abstract q)
-
-  --triple_ indexT (bif .:. "contains") title
-
-  --filterExpr_ (contains indexT q) -- (contains abstract q)
-  orderNextDesc date
+  --filterExpr $ (.||.) (contains title q) (contains title q)
+  filterExpr (containsWith title q) -- (contains abstract q)
+  --filterExpr $ langMatches title (str ("fra" :: Text))
+  --orderNextDesc date
   limit_ 10
   distinct_
-  selectVars [link, date, authors, source, title, lang, publisher, abstract]
+  selectVars [link, date, lang, title]
+  --selectVars [link, date, authors, source, title, lang, publisher, abstract]
