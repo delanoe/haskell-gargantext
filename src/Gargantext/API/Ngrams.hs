@@ -190,8 +190,7 @@ instance Arbitrary NgramsPatch where
 
 newtype NgramsTablePatch =
      NgramsTablePatch { _ntp_ngrams_patches :: Map NgramsTerm NgramsPatch }
-      deriving (Ord, Eq, Show, Generic, Arbitrary)
-deriveJSON (unPrefix "_ntp_") ''NgramsTablePatch
+      deriving (Ord, Eq, Show, Generic, Arbitrary, ToJSON, FromJSON)
 makeLenses ''NgramsTablePatch
 instance ToSchema  NgramsTablePatch
 
