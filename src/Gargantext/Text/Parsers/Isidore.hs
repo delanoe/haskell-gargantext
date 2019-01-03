@@ -1,20 +1,37 @@
+{-|
+Module      : Gargantext.Text.Parsers.Isidore
+Description : To query French Humanities publication database
+Copyright   : (c) CNRS, 2019-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+TODO:
+- put endpoint in configuration file
+- more flexible fields of research
+- type database name
+- use more ontologies to help building corpora
+-}
+
+
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings   #-}
 
 module Gargantext.Text.Parsers.Isidore where
 
-import Gargantext.Prelude
-import Database.HSparql.Connection
-import Database.HSparql.QueryGenerator
-
--- import Data.RDF hiding (triple)
-import Data.Text hiding (groupBy)
-
 import Control.Lens hiding (contains)
 import Data.ByteString.Lazy (ByteString)
-import Prelude (String)
+import Data.RDF hiding (triple, Query)
+import Data.Text hiding (groupBy, map)
+import Database.HSparql.Connection
+import Database.HSparql.QueryGenerator
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Prelude
+import Gargantext.Core (Lang)
 import Network.Wreq
+import Prelude (String)
 
 route :: EndPoint
 route = "https://isidore.science/sparql/"
@@ -26,8 +43,15 @@ selectQueryRaw' uri q = getWith opts uri
                     & header "User-Agent" .~ ["gargantext-hsparql-client"]
                     & param  "query"      .~ [Data.Text.pack q]
 
-isidoreGet :: Text -> IO (Maybe [[BindingValue]])
-isidoreGet q = do
+isidoreGet :: Lang -> Text -> IO (Maybe [HyperdataDocument])
+isidoreGet l q = do
+  bindingValues <- isidoreGet' q
+  case bindingValues of
+    Nothing -> pure Nothing
+    Just dv -> pure $ Just $ map (bind2doc l) dv
+
+isidoreGet' :: Text -> IO (Maybe [[BindingValue]])
+isidoreGet' q = do
   let s = createSelectQuery $ isidoreSelect q
   putStrLn s
   r <- selectQueryRaw' route s
@@ -84,3 +108,29 @@ isidoreSelect q = do
   limit_ 10
   distinct_
   selectVars [link, date, langDoc, authors, source, publisher, title, abstract]
+
+-- | TODO : check if all cases are taken into account
+unbound :: Lang -> BindingValue -> Maybe Text
+unbound _ Unbound         = Nothing
+unbound _ (Bound (UNode x)) = Just x
+unbound _ (Bound (LNode (TypedL x _))) = Just x
+unbound _ (Bound (LNode (PlainL x)))   = Just x
+unbound l (Bound (LNode (PlainLL x l')))   = if l' == (toLower $ cs $ show l) then Just x else Nothing
+unbound _ _ = Nothing
+
+bind2doc :: Lang -> [BindingValue] -> HyperdataDocument
+bind2doc l [ link, date, langDoc, authors, _source, publisher, title, abstract ] =
+  HyperdataDocument (Just "Isidore")
+                      Nothing
+                      (unbound l link)
+                      Nothing Nothing Nothing
+                      (unbound l title)
+                      (unbound l authors)
+                      Nothing
+                      (unbound l publisher)
+                      (unbound l abstract)
+                      (unbound l date)
+                      Nothing Nothing Nothing Nothing Nothing Nothing
+                      (unbound l langDoc)
+
+bind2doc _ _  = undefined
