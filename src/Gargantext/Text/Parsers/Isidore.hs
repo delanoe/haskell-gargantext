@@ -28,7 +28,7 @@ selectQueryRaw' uri q = getWith opts uri
 
 isidoreGet :: Text -> IO (Maybe [[BindingValue]])
 isidoreGet q = do
-  let s = createSelectQuery $ simpleSelect q
+  let s = createSelectQuery $ isidoreSelect q
   putStrLn s
   r <- selectQueryRaw' route s
   putStrLn $ show $ r ^. responseStatus
@@ -36,15 +36,15 @@ isidoreGet q = do
  -- res <- selectQuery route $ simpleSelect q
  -- pure res
 
-simpleSelect :: Text -> Query SelectQuery
-simpleSelect q = do
+isidoreSelect :: Text -> Query SelectQuery
+isidoreSelect q = do
   -- See Predefined Namespace Prefixes:
   -- https://isidore.science/sparql?nsdecl
   isidore <- prefix "isidore" (iriRef "http://www.rechercheisidore.fr/class/")
   rdf     <- prefix "rdf"     (iriRef "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
   dcterms <- prefix "dcterms" (iriRef "http://purl.org/dc/terms/")
   dc      <- prefix "dc"      (iriRef "http://purl.org/dc/elements/1.1/")
-  langFr  <- prefix "langFr"  (iriRef "http://lexvo.org/id/iso639-3/fra")
+  --iso     <- prefix "fra"        (iriRef "http://lexvo.org/id/iso639-3/")
   --ore     <- prefix "ore"    (iriRef "http://www.openarchives.org/ore/terms/")
   --bif     <- prefix "bif"    (iriRef "bif:")
 
@@ -54,28 +54,33 @@ simpleSelect q = do
   abstract <- var
   authors  <- var
   source   <- var
-  lang     <- var
+  langDoc  <- var
   publisher <- var
-  langFr   <- var
+  --langFr   <- var
   --agg       <- var
 
   triple_ link (rdf     .:. "type")     (isidore .:. "BibliographicalResource")
   triple_ link (dcterms .:. "title")    title
   triple_ link (dcterms .:. "date")     date
   triple_ link (dcterms .:. "creator")  authors
-  triple_ link (dcterms .:. "language") lang
+  triple_ link (dcterms .:. "language") langDoc
+  triple_ link (dc      .:. "description") abstract
   --triple_ link (ore .:. "isAggregatedBy") agg
   --triple_ agg (dcterms .:. "title") title
 
-  optional $ triple_ link (dcterms .:. "source")   source
-  optional $ triple_ link (dcterms .:. "publisher") publisher
-  optional $ triple_ link (dc      .:. "description") abstract
+  optional_ $ triple_ link (dcterms .:. "source")      source
+  optional_ $ triple_ link (dcterms .:. "publisher")   publisher
 
+  -- TODO FIX BUG with (.||.) operator
   --filterExpr $ (.||.) (contains title q) (contains title q)
-  filterExpr (containsWith title q) -- (contains abstract q)
+  filterExpr_ (containsWith title q) -- (contains abstract q)
+  --filterExpr (containsWith abstract q) -- (contains abstract q)
+
+  -- TODO FIX filter with lang
   --filterExpr $ langMatches title (str ("fra" :: Text))
-  --orderNextDesc date
+  --filterExpr $ (.==.) lang (str ("http://lexvo.org/id/iso639-3/fra" :: Text))
+  
+  orderNextDesc date
   limit_ 10
   distinct_
-  selectVars [link, date, lang, title]
-  --selectVars [link, date, authors, source, title, lang, publisher, abstract]
+  selectVars [link, date, langDoc, authors, source, publisher, title, abstract]
