@@ -41,6 +41,7 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Database.Utils (Cmd, runOpaQuery, runPGSQuery, connection)
+import Gargantext.Core.Types.Main (ListId)
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS
@@ -51,7 +52,6 @@ data NodeNgramsNgramsPoly node_id ngram1_id ngram2_id weight =
                    , _nng_Ngram2Id :: ngram2_id
                    , _nng_Weight   :: weight
                    } deriving (Show)
-
 
 type NodeNgramsNgramsWrite =
   NodeNgramsNgramsPoly (Column PGInt4          )
@@ -124,9 +124,9 @@ data Action   = Del | Add
 type NgramsParent = Text
 type NgramsChild  = Text
 
-ngramsGroup' :: Action -> [(Int, NgramsParent, NgramsChild, Maybe Double)]
+ngramsGroup :: Action -> [(ListId, NgramsParent, NgramsChild, Maybe Double)]
              -> Cmd err [Int]
-ngramsGroup' action ngs = runNodeNgramsNgrams q ngs
+ngramsGroup action ngs = runNodeNgramsNgrams q ngs
   where
     q = case action of
           Del -> queryDelNodeNgramsNgrams
