@@ -124,8 +124,10 @@ data Action   = Del | Add
 type NgramsParent = Text
 type NgramsChild  = Text
 
+
 ngramsGroup :: Action -> [(ListId, NgramsParent, NgramsChild, Maybe Double)]
              -> Cmd err [Int]
+ngramsGroup _ [] = pure []
 ngramsGroup action ngs = runNodeNgramsNgrams q ngs
   where
     q = case action of
@@ -133,7 +135,7 @@ ngramsGroup action ngs = runNodeNgramsNgrams q ngs
           Add -> queryInsertNodeNgramsNgrams
 
 
-runNodeNgramsNgrams :: PGS.Query -> [(Int, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err [Int]
+runNodeNgramsNgrams :: PGS.Query -> [(ListId, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err [Int]
 runNodeNgramsNgrams q ngs = map (\(PGS.Only a) -> a) <$> runPGSQuery q (PGS.Only $ Values fields ngs' )
   where
     ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
