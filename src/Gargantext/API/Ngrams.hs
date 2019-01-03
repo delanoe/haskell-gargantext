@@ -43,7 +43,7 @@ import qualified Data.Set as Set
 -- import qualified Data.Map.Strict as DM
 import Data.Map.Strict (Map)
 --import qualified Data.Set as Set
-import Control.Lens (makeLenses, Prism', prism', (^..), (^?), (.~), (#), to, each, withIndex, folded, ifolded)
+import Control.Lens (makeLenses, Prism', prism', (^..), (.~), (#), to, withIndex, folded, ifolded)
 import Control.Monad (guard, void)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Data.Aeson
@@ -51,7 +51,7 @@ import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
 import Data.Map (lookup)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import Data.Swagger hiding (version)
+import Data.Swagger hiding (version, patch)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
@@ -272,7 +272,7 @@ mkListsUpdate :: ListId -> NgramsTablePatch -> [(ListId, NgramsTerm, ListTypeId)
 mkListsUpdate lId patches =
   [ (lId, ng, listTypeId lt)
   | (ng, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex
-  , let (Just lt) = patch ^? patch_list . new
+  , lt <- patch ^.. patch_list . new
   ]
 
 mkChildrenGroups :: ListId
