@@ -37,6 +37,7 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types.Main (ListId, ListTypeId)
 import Gargantext.Database.Utils (mkCmd, Cmd, runPGSQuery)
+import Gargantext.Database.Schema.NodeNgramsNgrams
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS (Only(..))
@@ -114,8 +115,10 @@ insertNodeNgramW nns =
 
 type NgramsText = Text
 
-updateNodeNgrams :: [(ListId, NgramsText, ListTypeId)] -> Cmd err [PGS.Only Int]
-updateNodeNgrams input = runPGSQuery updateQuery (PGS.Only $ Values fields $ input)
+updateNodeNgrams' :: [(ListId, NgramsText, ListTypeId)] -> Cmd err [Int]
+updateNodeNgrams' [] = pure []
+updateNodeNgrams' input = map (\(PGS.Only a) -> a) <$>
+                          runPGSQuery updateQuery (PGS.Only $ Values fields $ input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
     updateQuery = [sql| UPDATE nodes_ngrams as old SET
@@ -127,3 +130,16 @@ updateNodeNgrams input = runPGSQuery updateQuery (PGS.Only $ Values fields $ inp
                  -- RETURNING new.ngram_id
                  |]
 
+data NodeNgramsUpdate = NodeNgramsUpdate
+  { _nnu_lists_update :: [(ListId, NgramsText, ListTypeId)]
+  , _nnu_add_children :: [(ListId, NgramsParent, NgramsChild, Maybe Double)]
+  , _nnu_rem_children :: [(ListId, NgramsParent, NgramsChild, Maybe Double)]
+  }
+
+-- TODO wrap these updates in a transaction.
+updateNodeNgrams :: NodeNgramsUpdate -> Cmd err [Int]
+updateNodeNgrams nnu = do
+  xs <- updateNodeNgrams' $ _nnu_lists_update nnu
+  ys <- ngramsGroup Del   $ _nnu_rem_children nnu
+  zs <- ngramsGroup Add   $ _nnu_add_children nnu
+  pure $ xs <> ys <> zs
