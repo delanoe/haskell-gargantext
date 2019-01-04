@@ -37,6 +37,7 @@ import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(Conversion
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
+import Servant (ServantErr)
 import System.IO (FilePath)
 import Text.Read (read)
 import qualified Data.ByteString      as DB
@@ -69,6 +70,11 @@ runCmd conn m = runExceptT $ runReaderT m conn
 -- Use only for dev
 runCmdDev :: Show err => Cmd err a -> IO a
 runCmdDev f = do
+  conn <- connectGargandb "gargantext.ini"
+  either (fail . show) pure =<< runCmd conn f
+
+runCmdDev' :: Cmd ServantErr a -> IO a
+runCmdDev' f = do
   conn <- connectGargandb "gargantext.ini"
   either (fail . show) pure =<< runCmd conn f
 

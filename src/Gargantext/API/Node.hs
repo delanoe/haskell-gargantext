@@ -267,7 +267,7 @@ graphAPI nId = do
   -- TODO what do we get about the node? to replace contextText
 
 instance HasNodeError ServantErr where
-  _NodeError = prism' mk (const $ panic "HasNodeError ServantErr: not a prism")
+  _NodeError = prism' mk (const Nothing) -- $ panic "HasNodeError ServantErr: not a prism")
     where
       e = "NodeError: "
       mk NoListFound   = err404 { errBody = e <> "No list found"         }
@@ -276,7 +276,7 @@ instance HasNodeError ServantErr where
       mk NoUserFound   = err404 { errBody = e <> "No User found"         }
       
       mk MkNode        = err500 { errBody = e <> "Cannot mk node"        }
-      mk NegativeId    = err500 { errBody = e <> "Node Id non positive"  }
+      mk NegativeId    = err500 { errBody = e <> "Node with negative Id" }
       mk UserNoParent  = err500 { errBody = e <> "Should not have parent"}
       mk HasParent     = err500 { errBody = e <> "NodeType has parent"   }
       mk NotImplYet    = err500 { errBody = e <> "Not implemented yet"   }
@@ -285,7 +285,7 @@ instance HasNodeError ServantErr where
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
-  _TreeError = prism' mk (const $ panic "HasTreeError ServantErr: not a prism")
+  _TreeError = prism' mk (const Nothing) -- $ panic "HasTreeError ServantErr: not a prism")
     where
       e = "TreeError: "
       mk NoRoot       = err404 { errBody = e <> "Root node not found"           }
