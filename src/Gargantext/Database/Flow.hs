@@ -141,7 +141,7 @@ subFlowCorpus username cName = do
   maybeUserId <- getUser username
 
   userId <- case maybeUserId of
-        Nothing   -> nodeError NoUser
+        Nothing   -> nodeError NoUserFound
         -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> pure $ userLight_id user
 
@@ -177,7 +177,7 @@ subFlowAnnuaire username _cName = do
   maybeUserId <- getUser username
 
   userId <- case maybeUserId of
-        Nothing   -> nodeError NoUser
+        Nothing   -> nodeError NoUserFound
         -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> pure $ userLight_id user
 

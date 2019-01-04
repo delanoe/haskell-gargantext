@@ -53,13 +53,13 @@ import Prelude hiding (null, id, map, sum)
 data NodeError = NoListFound
                | NoRootFound
                | NoCorpusFound
+               | NoUserFound
                | MkNode
                | UserNoParent
                | HasParent
                | ManyParents
                | NegativeId
                | NotImplYet
-               | NoUser
                | ManyNodeUsers
   deriving (Show)
 
