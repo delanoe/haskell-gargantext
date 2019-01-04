@@ -35,12 +35,10 @@ module Gargantext.API.Node
 -------------------------------------------------------------------
 import Control.Lens (prism', set)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad ((>>), guard)
+import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Functor (($>))
---import Data.Text (Text(), pack)
 import Data.Text (Text())
 import Data.Swagger
 import Data.Time (UTCTime)
@@ -269,11 +267,10 @@ graphAPI nId = do
   -- TODO what do we get about the node? to replace contextText
 
 instance HasNodeError ServantErr where
-  _NodeError = prism' make match
+  _NodeError = prism' mk (const $ panic "HasNodeError ServantErr: not a prism")
     where
-      err = err404 { errBody = "NodeError: No list found" }
-      make NoListFound = err
-      match e = guard (e == err) $> NoListFound
+      mk NoListFound = err404 { errBody = "NodeError: No list found" }
+      mk MkNodeError = err404 { errBody = "NodeError: Cannot mk node" }
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where

@@ -60,7 +60,7 @@ flowCorpus ff fp cName = do
   flowCorpus' NodeCorpus hyperdataDocuments' params
 
 
-flowInsert :: NodeType -> [HyperdataDocument] -> CorpusName
+flowInsert :: HasNodeError err => NodeType -> [HyperdataDocument] -> CorpusName
      -> Cmd err ([ReturnId], MasterUserId, MasterCorpusId, UserId, CorpusId)
 flowInsert _nt hyperdataDocuments cName = do
   let hyperdataDocuments' = map (\h -> ToDbDocument h) hyperdataDocuments
@@ -74,14 +74,14 @@ flowInsert _nt hyperdataDocuments cName = do
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
 
-flowAnnuaire :: FilePath -> Cmd err ()
+flowAnnuaire :: HasNodeError err => FilePath -> Cmd err ()
 flowAnnuaire filePath = do
   contacts <- liftIO $ deserialiseImtUsersFromFile filePath
   ps <- flowInsertAnnuaire "Annuaire" $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts
   printDebug "length annuaire" ps
 
 
-flowInsertAnnuaire :: CorpusName -> [ToDbData]
+flowInsertAnnuaire :: HasNodeError err => CorpusName -> [ToDbData]
                     -> Cmd err ([ReturnId], UserId, CorpusId, UserId, CorpusId)
 flowInsertAnnuaire name children = do
 
@@ -136,7 +136,7 @@ flowCorpus' _ _ _ = undefined
 
 type CorpusName = Text
 
-subFlowCorpus :: Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
+subFlowCorpus :: HasNodeError err => Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
 subFlowCorpus username cName = do
   maybeUserId <- getUser username
 
@@ -172,7 +172,7 @@ subFlowCorpus username cName = do
   pure (userId, rootId, corpusId)
 
 
-subFlowAnnuaire :: Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
+subFlowAnnuaire :: HasNodeError err => Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
 subFlowAnnuaire username _cName = do
   maybeUserId <- getUser username
 
@@ -228,7 +228,7 @@ data DocumentIdWithNgrams =
      } deriving (Show)
 
 -- TODO group terms
-extractNgramsT :: HyperdataDocument -> Cmd err (Map (NgramsT Ngrams) Int)
+extractNgramsT :: HasNodeError err => HyperdataDocument -> Cmd err (Map (NgramsT Ngrams) Int)
 extractNgramsT doc = do
   
   let source    = text2ngrams $ maybe "Nothing" identity $ _hyperdataDocument_source doc
@@ -244,7 +244,7 @@ extractNgramsT doc = do
 
 
 
-documentIdWithNgrams :: (HyperdataDocument -> Cmd err (Map (NgramsT Ngrams) Int))
+documentIdWithNgrams :: HasNodeError err => (HyperdataDocument -> Cmd err (Map (NgramsT Ngrams) Int))
                      -> [DocumentWithId]   -> Cmd err [DocumentIdWithNgrams]
 documentIdWithNgrams f = mapM toDocumentIdWithNgrams
   where
@@ -259,7 +259,7 @@ mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
     xs  = [(ng, [(nId, i)]) | (nId, n2i') <- n2i ds, (ng, i) <- DM.toList n2i']
     n2i = map (\d -> ((documentId . documentWithId) d, document_ngrams d))
 
-indexNgrams :: Map (NgramsT Ngrams       ) (Map NodeId Int)
+indexNgrams :: HasNodeError err => Map (NgramsT Ngrams       ) (Map NodeId Int)
   -> Cmd err (Map (NgramsT NgramsIndexed) (Map NodeId Int))
 indexNgrams ng2nId = do
   terms2id <- insertNgrams (map _ngramsT $ DM.keys ng2nId)
@@ -297,7 +297,7 @@ groupNgramsBy isEqual cId = DM.fromList $ catMaybes [ isEqual n1 n2 | n1 <- DM.k
 
 
 -- TODO check: do not insert duplicates
-insertGroups :: ListId -> Map NgramsIndexed NgramsIndexed -> Cmd err Int
+insertGroups :: HasNodeError err => ListId -> Map NgramsIndexed NgramsIndexed -> Cmd err Int
 insertGroups lId ngrs =
   insertNodeNgramsNgramsNew [ NodeNgramsNgrams lId ng1 ng2 (Just 1)
                             | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
@@ -310,7 +310,7 @@ ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> [(ListType,Ngrams
 ngrams2list = zip (repeat CandidateList) . map (\(NgramsT _lost_t ng) -> ng) . DM.keys
 
 -- | TODO: weight of the list could be a probability
-insertLists :: ListId -> [(ListType,NgramsIndexed)] -> Cmd err Int
+insertLists :: HasNodeError err => ListId -> [(ListType,NgramsIndexed)] -> Cmd err Int
 insertLists lId lngs =
   insertNodeNgrams [ NodeNgram Nothing lId ngr (fromIntegral $ listTypeId l) (listTypeId l)
                      | (l,ngr) <- map (second _ngramsId) lngs

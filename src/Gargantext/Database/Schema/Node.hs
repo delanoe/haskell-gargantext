@@ -50,7 +50,7 @@ import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------
 
-data NodeError = NoListFound
+data NodeError = NoListFound | MkNodeError
   deriving (Show)
 
 class HasNodeError e where
@@ -518,7 +518,7 @@ getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err Int
 getOrMkList pId uId =
   defaultList pId
     `catchNodeError`
-  (\NoListFound -> maybe (nodeError NoListFound) pure . headMay =<< mkList pId uId)
+  (\_ -> maybe (nodeError MkNodeError) pure . headMay =<< mkList pId uId)
 
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
 defaultList cId =
