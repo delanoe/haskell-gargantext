@@ -131,6 +131,7 @@ library:
   - rake
   - regex-compat
   - resourcet
+  - rdf4h
   - safe
   - semigroups
   - servant
