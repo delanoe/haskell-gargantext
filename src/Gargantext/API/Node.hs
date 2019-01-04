@@ -270,13 +270,18 @@ instance HasNodeError ServantErr where
   _NodeError = prism' mk (const $ panic "HasNodeError ServantErr: not a prism")
     where
       e = "NodeError: "
-      mk NoListFound = err404 { errBody = e <> "No list found"         }
-      mk MkNode      = err500 { errBody = e <> "Cannot mk node"        }
-      mk NegativeId  = err500 { errBody = e <> "Node Id non positive"  }
-      mk UserNoParent= err500 { errBody = e <> "Should not have parent"}
-      mk HasParent   = err500 { errBody = e <> "NodeType has parent"   }
-      mk NotImplYet  = err500 { errBody = e <> "Not implemented yet"   }
-      mk ManyParents = err500 { errBody = e <> "Too many parents"      }
+      mk NoListFound   = err404 { errBody = e <> "No list found"         }
+      mk NoRootFound   = err404 { errBody = e <> "No Root found"         }
+      mk NoCorpusFound = err404 { errBody = e <> "No Corpus found"       }
+      mk NoUserFound   = err404 { errBody = e <> "No User found"         }
+      
+      mk MkNode        = err500 { errBody = e <> "Cannot mk node"        }
+      mk NegativeId    = err500 { errBody = e <> "Node Id non positive"  }
+      mk UserNoParent  = err500 { errBody = e <> "Should not have parent"}
+      mk HasParent     = err500 { errBody = e <> "NodeType has parent"   }
+      mk NotImplYet    = err500 { errBody = e <> "Not implemented yet"   }
+      mk ManyParents   = err500 { errBody = e <> "Too many parents"      }
+      mk ManyNodeUsers = err500 { errBody = e <> "Many userNode/user"    }
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where

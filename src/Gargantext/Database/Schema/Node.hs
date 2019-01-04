@@ -51,12 +51,16 @@ import Prelude hiding (null, id, map, sum)
 ------------------------------------------------------------------------
 
 data NodeError = NoListFound
+               | NoRootFound
+               | NoCorpusFound
                | MkNode
                | UserNoParent
                | HasParent
                | ManyParents
                | NegativeId
                | NotImplYet
+               | NoUser
+               | ManyNodeUsers
   deriving (Show)
 
 class HasNodeError e where

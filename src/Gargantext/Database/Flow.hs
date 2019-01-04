@@ -38,7 +38,7 @@ import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams)
-import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError)
+import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
@@ -140,19 +140,19 @@ subFlowCorpus :: HasNodeError err => Username -> CorpusName -> Cmd err (UserId, 
 subFlowCorpus username cName = do
   maybeUserId <- getUser username
 
-  let userId = case maybeUserId of
-        Nothing   -> panic "Error: User does not exist (yet)"
+  userId <- case maybeUserId of
+        Nothing   -> nodeError NoUser
         -- mk NodeUser gargantua_id "Node Gargantua"
-        Just user -> userLight_id user
+        Just user -> pure $ userLight_id user
 
   rootId' <- map _node_id <$> getRoot username
 
   rootId'' <- case rootId' of
         []  -> mkRoot username userId
         n   -> case length n >= 2 of
-            True  -> panic "Error: more than 1 userNode / user"
+            True  -> nodeError ManyNodeUsers
             False -> pure rootId'
-  let rootId = maybe (panic "error rootId") identity (head rootId'')
+  rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
 
   corpusId'' <- if username == userMaster
                   then do
@@ -165,7 +165,7 @@ subFlowCorpus username cName = do
                   then pure corpusId''
                   else mkCorpus (Just cName) Nothing rootId userId
 
-  let corpusId = maybe (panic "error corpusId") identity (head corpusId')
+  corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
   printDebug "(username, userId, rootId, corpusId)"
               (username, userId, rootId, corpusId)
@@ -176,23 +176,23 @@ subFlowAnnuaire :: HasNodeError err => Username -> CorpusName -> Cmd err (UserId
 subFlowAnnuaire username _cName = do
   maybeUserId <- getUser username
 
-  let userId = case maybeUserId of
-        Nothing   -> panic "Error: User does not exist (yet)"
+  userId <- case maybeUserId of
+        Nothing   -> nodeError NoUser
         -- mk NodeUser gargantua_id "Node Gargantua"
-        Just user -> userLight_id user
+        Just user -> pure $ userLight_id user
 
   rootId' <- map _node_id <$> getRoot username
 
   rootId'' <- case rootId' of
         []  -> mkRoot username userId
         n   -> case length n >= 2 of
-            True  -> panic "Error: more than 1 userNode / user"
+            True  -> nodeError ManyNodeUsers
             False -> pure rootId'
-  let rootId = maybe (panic "error rootId") identity (head rootId'')
+  rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
 
   corpusId' <- mkAnnuaire rootId userId
-  
-  let corpusId = maybe (panic "error corpusId") identity (head corpusId')
+
+  corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
   printDebug "(username, userId, rootId, corpusId)"
               (username, userId, rootId, corpusId)
