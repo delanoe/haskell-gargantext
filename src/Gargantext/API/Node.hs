@@ -269,16 +269,23 @@ graphAPI nId = do
 instance HasNodeError ServantErr where
   _NodeError = prism' mk (const $ panic "HasNodeError ServantErr: not a prism")
     where
-      mk NoListFound = err404 { errBody = "NodeError: No list found" }
-      mk MkNodeError = err404 { errBody = "NodeError: Cannot mk node" }
+      e = "NodeError: "
+      mk NoListFound = err404 { errBody = e <> "No list found"         }
+      mk MkNode      = err500 { errBody = e <> "Cannot mk node"        }
+      mk NegativeId  = err500 { errBody = e <> "Node Id non positive"  }
+      mk UserNoParent= err500 { errBody = e <> "Should not have parent"}
+      mk HasParent   = err500 { errBody = e <> "NodeType has parent"   }
+      mk NotImplYet  = err500 { errBody = e <> "Not implemented yet"   }
+      mk ManyParents = err500 { errBody = e <> "Too many parents"      }
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
   _TreeError = prism' mk (const $ panic "HasTreeError ServantErr: not a prism")
     where
-      mk NoRoot       = err404 { errBody = "Root node not found"           }
-      mk EmptyRoot    = err500 { errBody = "Root node should not be empty" }
-      mk TooManyRoots = err500 { errBody = "Too many root nodes"           }
+      e = "TreeError: "
+      mk NoRoot       = err404 { errBody = e <> "Root node not found"           }
+      mk EmptyRoot    = err500 { errBody = e <> "Root node should not be empty" }
+      mk TooManyRoots = err500 { errBody = e <> "Too many root nodes"           }
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
 treeAPI :: NodeId -> GargServer TreeAPI

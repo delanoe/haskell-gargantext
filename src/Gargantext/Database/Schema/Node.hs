@@ -50,7 +50,13 @@ import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------
 
-data NodeError = NoListFound | MkNodeError
+data NodeError = NoListFound
+               | MkNode
+               | UserNoParent
+               | HasParent
+               | ManyParents
+               | NegativeId
+               | NotImplYet
   deriving (Show)
 
 class HasNodeError e where
@@ -415,7 +421,7 @@ insertNodes ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
 
 insertNodesR :: [NodeWrite] -> Cmd err [Int]
 insertNodesR ns = mkCmd $ \conn ->
-  runInsert_ conn (Insert nodeTable ns (rReturning (\(Node i _ _ _ _ _ __) -> i)) Nothing)
+  runInsert_ conn (Insert nodeTable ns (rReturning (\(Node i _ _ _ _ _ _) -> i)) Nothing)
 
 insertNodesWithParent :: Maybe ParentId -> [NodeWrite] -> Cmd err Int64
 insertNodesWithParent pid ns = insertNodes (set node_parentId (pgInt4 <$> pid) <$> ns)
@@ -462,12 +468,12 @@ data NewNode = NewNode { _newNodeId :: Int
                        , _newNodeChildren :: [Int] }
 
 -- | postNode
-postNode :: UserId -> Maybe ParentId -> Node' -> Cmd err NewNode
+postNode :: HasNodeError err => UserId -> Maybe ParentId -> Node' -> Cmd err NewNode
 postNode uid pid (Node' nt txt v []) = do
   pids <- mkNodeR [node2table uid pid (Node' nt txt v [])]
   case pids of
     [pid] -> pure $ NewNode pid []
-    _ -> panic "postNode: only one pid expected"
+    _ -> nodeError ManyParents
 
 postNode uid pid (Node' NodeCorpus txt v ns) = do
   NewNode pid' _ <- postNode uid pid (Node' NodeCorpus txt v [])
@@ -478,14 +484,13 @@ postNode uid pid (Node' NodeAnnuaire txt v ns) = do
   NewNode pid' _ <- postNode uid pid (Node' NodeAnnuaire txt v [])
   pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
   pure $ NewNode pid' pids
-postNode _ _ (Node' _ _ _ _) = panic "TODO: postNode for this type not implemented yet"
+postNode _ _ (Node' _ _ _ _) = nodeError NotImplYet
 
 
 childWith :: UserId -> ParentId -> Node' -> NodeWrite
 childWith uId pId (Node' NodeDocument txt v []) = node2table uId (Just pId) (Node' NodeDocument txt v [])
 childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Node' NodeContact txt v [])
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
-
 
 
 mk :: NodeType -> Maybe ParentId -> Text -> Cmd err [Int]
@@ -500,15 +505,15 @@ mk' nt uId pId name  = map fromIntegral <$> insertNodesWithParentR pId [node nt 
 
 type Name = Text
 
-mk'' :: NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [Int]
+mk'' :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [Int]
 mk'' NodeUser Nothing uId name  = mk' NodeUser uId Nothing name
-mk'' NodeUser _       _   _     = panic "NodeUser do not have any parent"
-mk'' _        Nothing _   _     = panic "NodeType does   have a   parent"
+mk'' NodeUser _       _   _     = nodeError UserNoParent
+mk'' _        Nothing _   _     = nodeError HasParent
 mk'' nt       pId     uId name  = mk' nt uId pId name
 
-mkRoot :: Username -> UserId -> Cmd err [Int]
+mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [Int]
 mkRoot uname uId = case uId > 0 of
-               False -> panic "UserId <= 0"
+               False -> nodeError NegativeId
                True  -> mk'' NodeUser Nothing uId uname
 
 mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd err [Int]
@@ -516,9 +521,8 @@ mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
 
 getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err Int
 getOrMkList pId uId =
-  defaultList pId
-    `catchNodeError`
-  (\_ -> maybe (nodeError MkNodeError) pure . headMay =<< mkList pId uId)
+  defaultList pId `catchNodeError`
+  (\_ -> maybe (nodeError MkNode) pure . headMay =<< mkList pId uId)
 
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
 defaultList cId =
