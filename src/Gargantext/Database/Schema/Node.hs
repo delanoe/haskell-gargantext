@@ -63,11 +63,6 @@ catchNodeError :: (MonadError e m, HasNodeError e) => m a -> (NodeError -> m a) 
 catchNodeError f g = catchError f (\e -> maybe (throwError e) g (e ^? _NodeError))
 
 ------------------------------------------------------------------------
-type AnnuaireId = Int
-
-type DocId  = Int
-type TypeId = Int
-------------------------------------------------------------------------
 instance FromField HyperdataAny where
     fromField = fromField'
 
@@ -140,7 +135,6 @@ instance QueryRunnerColumnDefault PGInt4 (Maybe NodeParentId)
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 ------------------------------------------------------------------------
-
 -- WIP
 -- TODO Classe HasDefault where
 -- default NodeType = Hyperdata
@@ -165,7 +159,6 @@ type NodeRead = NodePoly  (Column PGInt4        )
                           (Column PGText        )
                           (Column PGTimestamptz )
                           (Column PGJsonb       )
-
 
 type NodeReadNull = NodePoly  (Column (Nullable PGInt4 ))
                               (Column (Nullable PGInt4 ))
@@ -212,7 +205,6 @@ type NodeSearchRead = NodePolySearch  (Column  PGInt4           )
                           (Column PGJsonb) 
                           (Column PGTSVector)
 
-
 type NodeSearchReadNull = NodePolySearch  (Column  (Nullable PGInt4           ))
                               (Column  (Nullable PGInt4           ))
                               (Column  (Nullable PGInt4           ))
@@ -221,7 +213,6 @@ type NodeSearchReadNull = NodePolySearch  (Column  (Nullable PGInt4           ))
                               (Column (Nullable PGTimestamptz     ))
                               (Column (Nullable PGJsonb))
                               (Column (Nullable PGTSVector))
-
 
 --{-
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
@@ -242,13 +233,11 @@ nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optio
 queryNodeSearchTable :: Query NodeSearchRead
 queryNodeSearchTable = queryTable nodeTableSearch
 
-
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode id = proc () -> do
     row <- queryNodeTable -< ()
     restrict -< _node_id row .== id
     returnA -< row
-
 
 runGetNodes :: Query NodeRead -> Cmd err [NodeAny]
 runGetNodes = runOpaQuery
@@ -291,19 +280,16 @@ deleteNodes ns = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeTable
                    (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
 
-
 -- TODO: NodeType should match with `a'
 getNodesWith :: JSONB a => Int -> proxy a -> Maybe NodeType
              -> Maybe Offset -> Maybe Limit -> Cmd err [Node a]
 getNodesWith parentId _ nodeType maybeOffset maybeLimit =
     runOpaQuery $ selectNodesWith parentId nodeType maybeOffset maybeLimit
 
-
 -- TODO: Why is the second parameter ignored?
 -- TODO: Why not use getNodesWith?
 getNodesWithParentId :: Int -> Maybe Text -> Cmd err [NodeAny]
 getNodesWithParentId n _ = runOpaQuery $ selectNodesWithParentID n
-
 
 ------------------------------------------------------------------------
 getDocumentsV3WithParentId :: Int -> Cmd err [Node HyperdataDocumentV3]
@@ -342,7 +328,6 @@ getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
 getNodesWithType = runOpaQuery . selectNodesWithType
 
 ------------------------------------------------------------------------
-
 ------------------------------------------------------------------------
 defaultUser :: HyperdataUser
 defaultUser = HyperdataUser (Just $ (pack . show) EN)
@@ -417,8 +402,6 @@ nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard 
   where
     name = maybe "Dashboard" identity maybeName
     dashboard = maybe arbitraryDashboard identity maybeDashboard
-
-
 
 ------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite

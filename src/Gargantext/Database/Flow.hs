@@ -198,8 +198,6 @@ subFlowAnnuaire username _cName = do
               (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
-
-
 ------------------------------------------------------------------------
 toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
 toInsert = DM.fromList . map (\d -> (maybe err identity (_hyperdataDocument_uniqId d), d))
@@ -223,16 +221,12 @@ mergeData rs = catMaybes . map toDocumentWithId . DM.toList
                      <*> Just hpd
 
 ------------------------------------------------------------------------
-
 data DocumentIdWithNgrams =
      DocumentIdWithNgrams
      { documentWithId  :: !DocumentWithId
      , document_ngrams :: !(Map (NgramsT Ngrams) Int)
      } deriving (Show)
 
--- TODO add Terms (Title + Abstract)
--- add f :: Text -> Text
--- newtype Ngrams = Ngrams Text
 -- TODO group terms
 extractNgramsT :: HyperdataDocument -> Cmd err (Map (NgramsT Ngrams) Int)
 extractNgramsT doc = do
@@ -247,7 +241,6 @@ extractNgramsT doc = do
                      <> [(NgramsT Institutes  i' , 1)| i' <- institutes ]
                      <> [(NgramsT Authors     a' , 1)| a' <- authors    ]
                      <> [(NgramsT NgramsTerms t' , 1)| t' <- terms'     ]
-
 
 
 
@@ -272,8 +265,6 @@ indexNgrams ng2nId = do
   terms2id <- insertNgrams (map _ngramsT $ DM.keys ng2nId)
   pure $ DM.mapKeys (indexNgramsT terms2id) ng2nId
 
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 flowList :: HasNodeError err => UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd err ListId
 flowList uId cId ngs = do
@@ -324,6 +315,4 @@ insertLists lId lngs =
   insertNodeNgrams [ NodeNgram Nothing lId ngr (fromIntegral $ listTypeId l) (listTypeId l)
                      | (l,ngr) <- map (second _ngramsId) lngs
                    ]
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
