@@ -525,9 +525,11 @@ mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
 
 getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err Int
 getOrMkList pId uId =
-  defaultList pId `catchNodeError`
-  (\x -> maybe (nodeError x) pure . headMay =<< mkList pId uId)
+  maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
+    where
+      mkList' pId uId = maybe (nodeError MkNode) pure . headMay =<< mkList pId uId
 
+-- | TODO remove defaultList
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
 defaultList cId =
   maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
