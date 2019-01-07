@@ -140,7 +140,7 @@ runNodeNgramsNgrams q ngs = map (\(PGS.Only a) -> a) <$> runPGSQuery q (PGS.Only
   where
     ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
-                 ["int4","text","text","double"]
+                 ["int4","text","text","double precision"]
 
 --------------------------------------------------------------------
 -- TODO: on conflict update weight
