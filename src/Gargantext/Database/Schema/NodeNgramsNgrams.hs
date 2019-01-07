@@ -135,20 +135,24 @@ ngramsGroup action ngs = runNodeNgramsNgrams q ngs
           Add -> queryInsertNodeNgramsNgrams
 
 
-runNodeNgramsNgrams :: PGS.Query -> [(ListId, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err [Int]
+runNodeNgramsNgrams :: PGS.Query -> [(ListId, NgramsParent, NgramsChild{-, Maybe Double-})] -> Cmd err [Int]
 runNodeNgramsNgrams q ngs = map (\(PGS.Only a) -> a) <$> runPGSQuery q (PGS.Only $ Values fields ngs' )
   where
-    ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
+    ngs'   = map (\(n,ng1,ng2{-,w-}) -> (n,ng1,ng2{-,maybe 0 identity w-})) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
-                 ["int4","text","text","double"]
+                 ["int4","text","text"{-,"double precision"-}]
 
 --------------------------------------------------------------------
 -- TODO: on conflict update weight
 queryInsertNodeNgramsNgrams :: PGS.Query
 queryInsertNodeNgramsNgrams = [sql|
-    WITH input_rows(nId,ng1,ng2,w) AS (?)
+    WITH input_rows(nId,ng1,ng2
+      -- ,w
+      ) AS (?)
     INSERT INTO nodes_ngrams_ngrams (node_id,ngram1_id,ngram2_id,weight)
-    SELECT nId,ngrams1.id,ngrams2.id,w FROM input_rows
+    SELECT nId,ngrams1.id,ngrams2.id
+      -- ,w
+      FROM input_rows
     JOIN ngrams ngrams1 ON ngrams1.terms = ng1
     JOIN ngrams ngrams2 ON ngrams2.terms = ng2
     ON CONFLICT (node_id,ngram1_id,ngram2_id) DO NOTHING -- unique index created here
