@@ -163,6 +163,7 @@ instance ToSchema a => ToSchema (PatchSet a)
 
 instance ToSchema a => ToSchema (Replace a) where
   declareNamedSchema (_ :: proxy (Replace a)) = do
+    -- TODO Keep constructor is not supported here.
     aSchema <- declareSchemaRef (Proxy :: Proxy a)
     return $ NamedSchema (Just "Replace") $ mempty
       & type_ .~ SwaggerObject
@@ -174,7 +175,7 @@ instance ToSchema a => ToSchema (Replace a) where
       & required .~ [ "old", "new" ]
 
 data NgramsPatch =
-     NgramsPatch { _patch_children :: PatchSet NgramsElement
+     NgramsPatch { _patch_children :: PatchSet NgramsTerm
                  , _patch_list     :: Replace ListType   -- TODO Map UserId ListType
                  }
       deriving (Ord, Eq, Show, Generic)
@@ -275,13 +276,13 @@ mkListsUpdate lId patches =
   ]
 
 mkChildrenGroups :: ListId
-                 -> (PatchSet NgramsElement -> Set NgramsElement)
+                 -> (PatchSet NgramsTerm -> Set NgramsTerm)
                  -> NgramsTablePatch
                  -> [(ListId, NgramsParent, NgramsChild, Maybe Double)]
 mkChildrenGroups lId addOrRem patches =
   [ (lId, parent, child, Just 1)
   | (parent, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex
-  , child <- patch ^.. patch_children . to addOrRem . folded . ne_ngrams
+  , child <- patch ^.. patch_children . to addOrRem . folded
   ]
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
