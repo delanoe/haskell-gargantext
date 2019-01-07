@@ -34,13 +34,14 @@ module Gargantext.Database.Schema.NodeNgramsNgrams
 
 import Control.Lens (view)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Gargantext.Database.Utils (Cmd, runOpaQuery, runPGSQuery, connection)
+import Gargantext.Database.Utils (Cmd, runOpaQuery, execPGSQuery, connection)
 import Gargantext.Core.Types.Main (ListId)
 import Gargantext.Prelude
 import Opaleye
@@ -126,8 +127,8 @@ type NgramsChild  = Text
 
 
 ngramsGroup :: Action -> [(ListId, NgramsParent, NgramsChild, Maybe Double)]
-             -> Cmd err [Int]
-ngramsGroup _ [] = pure []
+             -> Cmd err ()
+ngramsGroup _ [] = pure ()
 ngramsGroup action ngs = runNodeNgramsNgrams q ngs
   where
     q = case action of
@@ -135,8 +136,8 @@ ngramsGroup action ngs = runNodeNgramsNgrams q ngs
           Add -> queryInsertNodeNgramsNgrams
 
 
-runNodeNgramsNgrams :: PGS.Query -> [(ListId, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err [Int]
-runNodeNgramsNgrams q ngs = map (\(PGS.Only a) -> a) <$> runPGSQuery q (PGS.Only $ Values fields ngs' )
+runNodeNgramsNgrams :: PGS.Query -> [(ListId, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ()
+runNodeNgramsNgrams q ngs = void $ execPGSQuery q (PGS.Only $ Values fields ngs')
   where
     ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
