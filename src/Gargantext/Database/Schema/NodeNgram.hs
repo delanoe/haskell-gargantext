@@ -126,8 +126,7 @@ updateNodeNgrams' input = void $ execPGSQuery updateQuery (PGS.Only $ Values fie
                  from (?) as new(node_id,terms,typeList)
                  JOIN ngrams ON ngrams.terms = new.terms
                  WHERE old.node_id = new.node_id
-                 AND   old.ngram_id = ngrams.id
-                 RETURNING old.ngram_id;
+                 AND   old.ngram_id = ngrams.id;
                  |]
 
 data NodeNgramsUpdate = NodeNgramsUpdate
