@@ -32,11 +32,12 @@ module Gargantext.Database.Schema.NodeNgram where
 
 import Data.Text (Text)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Monad (void)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types.Main (ListId, ListTypeId)
-import Gargantext.Database.Utils (mkCmd, Cmd, runPGSQuery)
+import Gargantext.Database.Utils (mkCmd, Cmd, execPGSQuery)
 import Gargantext.Database.Schema.NodeNgramsNgrams
 import Gargantext.Prelude
 import Opaleye
@@ -115,10 +116,9 @@ insertNodeNgramW nns =
 
 type NgramsText = Text
 
-updateNodeNgrams' :: [(ListId, NgramsText, ListTypeId)] -> Cmd err [Int]
-updateNodeNgrams' [] = pure []
-updateNodeNgrams' input = map (\(PGS.Only a) -> a) <$>
-                          runPGSQuery updateQuery (PGS.Only $ Values fields $ input)
+updateNodeNgrams' :: [(ListId, NgramsText, ListTypeId)] -> Cmd err ()
+updateNodeNgrams' [] = pure ()
+updateNodeNgrams' input = void $ execPGSQuery updateQuery (PGS.Only $ Values fields input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
     updateQuery = [sql| UPDATE nodes_ngrams as old SET
@@ -126,8 +126,7 @@ updateNodeNgrams' input = map (\(PGS.Only a) -> a) <$>
                  from (?) as new(node_id,terms,typeList)
                  JOIN ngrams ON ngrams.terms = new.terms
                  WHERE old.node_id = new.node_id
-                 AND   old.ngram_id = ngrams.id
-                 RETURNING old.ngram_id;
+                 AND   old.ngram_id = ngrams.id;
                  |]
 
 data NodeNgramsUpdate = NodeNgramsUpdate
@@ -137,9 +136,8 @@ data NodeNgramsUpdate = NodeNgramsUpdate
   }
 
 -- TODO wrap these updates in a transaction.
-updateNodeNgrams :: NodeNgramsUpdate -> Cmd err [Int]
+updateNodeNgrams :: NodeNgramsUpdate -> Cmd err ()
 updateNodeNgrams nnu = do
-  xs <- updateNodeNgrams' $ _nnu_lists_update nnu
-  ys <- ngramsGroup Del   $ _nnu_rem_children nnu
-  zs <- ngramsGroup Add   $ _nnu_add_children nnu
-  pure $ xs <> ys <> zs
+  updateNodeNgrams' $ _nnu_lists_update nnu
+  ngramsGroup Del   $ _nnu_rem_children nnu
+  ngramsGroup Add   $ _nnu_add_children nnu

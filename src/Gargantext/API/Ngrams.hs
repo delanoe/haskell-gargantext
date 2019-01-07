@@ -44,7 +44,7 @@ import qualified Data.Set as Set
 import Data.Map.Strict (Map)
 --import qualified Data.Set as Set
 import Control.Lens (makeLenses, Prism', prism', (^..), (.~), (#), to, withIndex, folded, ifolded)
-import Control.Monad (guard, void)
+import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
@@ -297,7 +297,7 @@ tableNgramsPatch :: (HasNgramError err, HasNodeError err)
 tableNgramsPatch corpusId maybeList (Versioned version patch) = do
   when (version /= 1) $ ngramError UnsupportedVersion
   listId <- maybe (defaultList corpusId) pure maybeList
-  void $ updateNodeNgrams $ NodeNgramsUpdate
+  updateNodeNgrams $ NodeNgramsUpdate
     { _nnu_lists_update = mkListsUpdate listId patch
     , _nnu_rem_children = mkChildrenGroups listId _rem patch
     , _nnu_add_children = mkChildrenGroups listId _add patch
