@@ -43,9 +43,9 @@ import Gargantext.Prelude
 -- Ngrams   : list of all (possible) terms contained in the phylomemy (with their id)
 -- Steps    : list of all steps to build the phylomemy
 data Phylo =
-     Phylo { _phylo_Duration :: (Start, End)
-           , _phylo_Ngrams   :: [Ngram]
-           , _phylo_Periods  :: [PhyloPeriod]
+     Phylo { _phylo_puration :: (Start, End)
+           , _phylo_ngrams   :: [Ngram]
+           , _phylo_periods  :: [PhyloPeriod]
            }
            deriving (Generic)
 
@@ -60,8 +60,8 @@ type Ngram   = (NgramsId, Text)
 -- Period: tuple (start date, end date) of the step of the phylomemy
 -- Levels: levels of granularity
 data PhyloPeriod =
-     PhyloPeriod { _phylo_PeriodId     :: PhyloPeriodId
-                 , _phylo_PeriodLevels :: [PhyloLevel]
+     PhyloPeriod { _phylo_periodId     :: PhyloPeriodId
+                 , _phylo_periodLevels :: [PhyloLevel]
                  } 
                  deriving (Generic)
 
@@ -74,8 +74,8 @@ type PhyloPeriodId = (Start, End)
 -- Level  1: First level of clustering
 -- Level  N: Nth   level of clustering
 data PhyloLevel =
-     PhyloLevel { _phylo_LevelId     :: PhyloLevelId
-                , _phylo_LevelGroups :: [PhyloGroup]
+     PhyloLevel { _phylo_levelId     :: PhyloLevelId
+                , _phylo_levelGroups :: [PhyloGroup]
                 }
                 deriving (Generic)
 
@@ -87,15 +87,15 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 -- Period Parents|Childs: weighted link to Parents|Childs (Temporal Period   axis)
 -- Level  Parents|Childs: weighted link to Parents|Childs (Level Granularity axis)
 data PhyloGroup =
-     PhyloGroup { _phylo_GroupId    :: PhyloGroupId
-                , _phylo_GroupLabel :: Maybe Text
-                , _phylo_GroupNgrams        :: [NgramsId]
+     PhyloGroup { _phylo_groupId    :: PhyloGroupId
+                , _phylo_groupLabel :: Maybe Text
+                , _phylo_groupNgrams        :: [NgramsId]
                 
-                , _phylo_GroupPeriodParents :: [Edge]
-                , _phylo_GroupPeriodChilds  :: [Edge]
+                , _phylo_groupPeriodParents :: [Edge]
+                , _phylo_groupPeriodChilds  :: [Edge]
                 
-                , _phylo_GroupLevelParents  :: [Edge]
-                , _phylo_GroupLevelChilds   :: [Edge]
+                , _phylo_groupLevelParents  :: [Edge]
+                , _phylo_groupLevelChilds   :: [Edge]
                 }
                 deriving (Generic)
 
