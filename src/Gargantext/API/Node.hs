@@ -62,7 +62,8 @@ import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
 -- import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree, CorpusId, ContactId)
+import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Database.Types.Node (CorpusId, ContactId)
 -- import Gargantext.Text.Terms (TermType(..))
 
 import Test.QuickCheck (elements)
@@ -117,7 +118,7 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
 
-type RenameApi = Summary " RenameNode Node"
+type RenameApi = Summary " Rename Node"
                :> ReqBody '[JSON] RenameNode
                :> Put     '[JSON] [Int]
 
@@ -176,7 +177,7 @@ instance Arbitrary PostNode where
 ------------------------------------------------------------------------
 type DocsApi = Summary "Docs : Move to trash"
              :> ReqBody '[JSON] Documents
-             :> Delete  '[JSON] [Int]
+             :> Delete  '[JSON] [NodeId]
 
 data Documents = Documents { documents :: [NodeId]}
   deriving (Generic)
@@ -322,7 +323,7 @@ getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
                    -> Cmd err [FacetChart]
 getChart _ _ _ = undefined -- TODO
 
-postNode :: NodeId -> PostNode -> Cmd err [Int]
+postNode :: NodeId -> PostNode -> Cmd err [NodeId]
 postNode pId (PostNode name nt) = mk nt (Just pId) name
 
 putNode :: NodeId -> Cmd err Int

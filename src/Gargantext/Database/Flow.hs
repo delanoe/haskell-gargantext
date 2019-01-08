@@ -42,8 +42,7 @@ import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, getOrMkList, mkGraph, 
 import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Gargantext.Database.Types.Node (NodeType(..), NodeId)
+import Gargantext.Database.Types.Node (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Ext.IMT (toSchoolName)
@@ -52,6 +51,7 @@ import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
 import qualified Data.Map as DM
+
 
 flowCorpus :: HasNodeError err => FileFormat -> FilePath -> CorpusName -> Cmd err CorpusId
 flowCorpus ff fp cName = do
@@ -67,10 +67,10 @@ flowInsert _nt hyperdataDocuments cName = do
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
   ids  <- insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'
-  
+
   (userId, _, userCorpusId) <- subFlowCorpus userArbitrary cName
   _ <- add userCorpusId (map reId ids)
-  
+
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
 
@@ -87,10 +87,10 @@ flowInsertAnnuaire name children = do
 
   (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
   ids  <- insertDocuments masterUserId masterCorpusId NodeContact children
-  
+
   (userId, _, userCorpusId) <- subFlowAnnuaire userArbitrary name
   _ <- add userCorpusId (map reId ids)
-  
+
   printDebug "AnnuaireID" userCorpusId
 
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
@@ -105,25 +105,25 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   -- List Ngrams Flow
   userListId <- flowListUser userId userCorpusId
   printDebug "Working on User ListId : " userListId
-  
+
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
   -- printDebug "documentsWithId" documentsWithId
   docsWithNgrams <- documentIdWithNgrams extractNgramsT documentsWithId
   -- printDebug "docsWithNgrams" docsWithNgrams
   let maps            = mapNodeIdNgrams docsWithNgrams
-  
+
   -- printDebug "maps" (maps)
   indexedNgrams <- indexNgrams maps
   -- printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
-  
+
   listId2    <- flowList masterUserId masterCorpusId indexedNgrams
   printDebug "Working on ListId : " listId2
   --}
 --------------------------------------------------
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph     userCorpusId userId
-  
+
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
 
@@ -284,7 +284,7 @@ flowList uId cId ngs = do
 
   pure lId
 
-flowListUser :: HasNodeError err => UserId -> CorpusId -> Cmd err Int
+flowListUser :: HasNodeError err => UserId -> CorpusId -> Cmd err NodeId
 flowListUser uId cId = getOrMkList cId uId
 
 ------------------------------------------------------------------------

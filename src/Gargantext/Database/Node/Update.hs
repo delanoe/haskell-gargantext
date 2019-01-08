@@ -23,14 +23,13 @@ import Database.PostgreSQL.Simple
 
 import Gargantext.Prelude
 import Gargantext.Database.Utils
+import Gargantext.Database.Types.Node (NodeId, ParentId)
+import Gargantext.Database.Schema.Node (Name)
 
 -- import Data.ByteString
 --rename :: NodeId -> Text -> IO ByteString
 --rename nodeId name = formatPGSQuery "UPDATE nodes SET name=? where id=?" (name,nodeId)
 ------------------------------------------------------------------------
-type NodeId = Int
-type Name   = Text
-type ParentId = Int
 
 data Update = Rename NodeId Name
             | Move   NodeId ParentId

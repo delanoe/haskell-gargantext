@@ -36,7 +36,7 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
-import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
+import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery, Column)
 import Servant (ServantErr)
 import System.IO (FilePath)
 import Text.Read (read)
@@ -125,5 +125,4 @@ fromField' field mb = do
 
 printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSqlForPostgres
-
 

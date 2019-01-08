@@ -83,7 +83,7 @@ import Gargantext.API.Node ( GargServer
                            , HyperdataAnnuaire
                            )
 --import Gargantext.Database.Node.Contact (HyperdataContact)
-import Gargantext.Database.Types.Node ()
+import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
 import Gargantext.Database.Facet
@@ -222,19 +222,19 @@ type GargAPI' =
            
            -- Node endpoint
            :<|> "node"  :> Summary "Node endpoint"
-                        :> Capture "id" Int      :> NodeAPI HyperdataAny
+                        :> Capture "id" NodeId      :> NodeAPI HyperdataAny
            
            -- Corpus endpoint
            :<|> "corpus":> Summary "Corpus endpoint"
-                        :> Capture "id" Int      :> NodeAPI HyperdataCorpus
+                        :> Capture "id" CorpusId      :> NodeAPI HyperdataCorpus
 
            -- Annuaire endpoint
            :<|> "annuaire":> Summary "Annuaire endpoint"
-                          :> Capture "id" Int      :> NodeAPI HyperdataAnnuaire
+                          :> Capture "id" AnnuaireId      :> NodeAPI HyperdataAnnuaire
 
            -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
-                        :> ReqBody '[JSON] [Int] :> NodesAPI
+                        :> ReqBody '[JSON] [NodeId] :> NodesAPI
        
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
            -- Corpus endpoint
@@ -250,11 +250,11 @@ type GargAPI' =
                         :> SearchAPI
            
            :<|> "graph" :> Summary "Graph endpoint"
-                        :> Capture "id" Int         :> GraphAPI
+                        :> Capture "id" NodeId       :> GraphAPI
            
            -- Tree endpoint
            :<|> "tree" :> Summary "Tree endpoint"
-                       :> Capture "id" Int          :> TreeAPI
+                       :> Capture "id" NodeId        :> TreeAPI
 
 
        --    :<|> "scraper" :> WithCallbacks ScraperAPI

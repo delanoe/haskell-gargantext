@@ -35,7 +35,7 @@ import Data.Text (Text, reverse)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Root (getRoot)
-import Gargantext.Database.Types.Node (NodePoly(_node_id))
+import Gargantext.Database.Types.Node (NodePoly(_node_id), NodeId)
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
@@ -67,7 +67,7 @@ data AuthValid = AuthValid { _authVal_token   :: Token
   deriving (Generic)
 
 type Token  = Text
-type TreeId = Int
+type TreeId = NodeId
 
 -- | Main functions of authorization
 

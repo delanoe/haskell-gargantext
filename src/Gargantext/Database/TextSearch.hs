@@ -64,7 +64,7 @@ searchInCorpus cId q o l order = runOpaQuery (filterWith o l order $ queryInCorp
 queryInCorpus :: CorpusId -> Text -> O.Query FacetDocRead
 queryInCorpus cId q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgInt4 cId)
+  restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgNodeId cId)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgBool True) (pgInt4 1)
@@ -103,7 +103,7 @@ queryInCorpusWithContacts cId q _ _ _ = proc () -> do
   (docs, (corpusDoc, (docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
-  restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgInt4 cId)
+  restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgNodeId cId)
   restrict -< (nodeNgram_type docNgrams)    .== (toNullable $ pgInt4 $ ngramsTypeId Authors)
   restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)

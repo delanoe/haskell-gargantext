@@ -45,7 +45,7 @@ import Gargantext.Database.Utils (Cmd)
 -- | SearchIn [NodesId] if empty then global search
 -- TODO [Int]
 data SearchQuery = SearchQuery { sq_query :: [Text]
-                               , sq_corpus_id :: Int
+                               , sq_corpus_id :: NodeId
                                } deriving (Generic)
 $(deriveJSON (unPrefix "sq_") ''SearchQuery)
 instance ToSchema SearchQuery where

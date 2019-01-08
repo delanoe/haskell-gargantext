@@ -41,6 +41,8 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Database.Utils (Cmd, runOpaQuery, runPGSQuery, connection)
+import Gargantext.Database.Types.Node (ListId)
+import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS
@@ -66,7 +68,7 @@ type NodeNgramsNgramsRead  =
                      (Column PGFloat8)
 
 type NodeNgramsNgrams =
-  NodeNgramsNgramsPoly Int
+  NodeNgramsNgramsPoly ListId
                      Int
                      Int
                     (Maybe Double)
@@ -107,7 +109,7 @@ instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
 insertNodeNgramsNgramsNew :: [NodeNgramsNgrams] -> Cmd err Int
 insertNodeNgramsNgramsNew = insertNodeNgramsNgramsW
                  . map (\(NodeNgramsNgrams n ng1 ng2 maybeWeight) ->
-                          NodeNgramsNgrams (pgInt4 n  )
+                          NodeNgramsNgrams (pgNodeId n  )
                                            (pgInt4 ng1)
                                            (pgInt4 ng2)
                                            (pgDouble <$> maybeWeight)

@@ -221,8 +221,8 @@ getNgramsTableDb nt ngrt ntp@(NgramsTableParam listIdUser _) limit_ offset_ = do
 
 
 data NgramsTableParam =
-     NgramsTableParam { _nt_listId     :: Int
-                      , _nt_corpusId   :: Int
+     NgramsTableParam { _nt_listId     :: NodeId
+                      , _nt_corpusId   :: NodeId
                       }
 
 type NgramsTableParamUser   = NgramsTableParam
@@ -289,8 +289,8 @@ querySelectTableNgrams = [sql|
 
   |]
 
-type ListIdUser   = Int
-type ListIdMaster = Int
+type ListIdUser   = NodeId
+type ListIdMaster = NodeId
 
 type MapToChildren = Map Text (Set Text)
 type MapToParent   = Map Text Text

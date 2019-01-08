@@ -180,7 +180,7 @@ prepare uId pId nodeType = map (\h -> InputData tId uId pId (name h) (toJSON' h)
 -- | When documents are inserted
 -- ReturnType after insertion
 data ReturnId = ReturnId { reInserted :: Bool -- ^ if the document is inserted (True: is new, False: is not new)
-                         , reId       :: Int  -- ^ always return the id of the document (even new or not new)
+                         , reId       :: NodeId  -- ^ always return the id of the document (even new or not new)
                                          --   this is the uniq id in the database
                          , reUniqId   :: Text -- ^ Hash Id with concatenation of hash parameters
                          } deriving (Show, Generic)
@@ -189,9 +189,6 @@ instance FromRow ReturnId where
   fromRow = ReturnId <$> field <*> field <*> field
 
 -- ** Insert Types
-
-type UserId   = Int
-type ParentId = Int
 
 data InputData = InputData { inTypenameId :: NodeTypeId
                            , inUserId     :: UserId
