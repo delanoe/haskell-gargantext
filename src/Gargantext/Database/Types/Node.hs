@@ -31,6 +31,7 @@ import GHC.Generics (Generic)
 import           Control.Lens hiding (elements)
 import qualified Control.Lens   as L
 import           Control.Applicative ((<*>))
+import           Control.Monad (mzero)
 
 import           Data.Aeson
 import           Data.Aeson.Types (emptyObject)
@@ -57,7 +58,7 @@ import           Test.QuickCheck (elements)
 
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Utils
+--import Gargantext.Database.Utils
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum)
@@ -66,7 +67,10 @@ instance ToField NodeId where
   toField (NodeId n) = toField n
 
 instance FromField NodeId where
-  fromField = fromField'
+  fromField field mdata = do
+    n <- fromField field mdata
+    if (n :: Int) > 0 then return $ NodeId n
+                      else mzero
 
 instance ToJSON NodeId
 instance FromJSON NodeId
