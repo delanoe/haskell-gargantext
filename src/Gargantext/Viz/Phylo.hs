@@ -105,6 +105,6 @@ type Weight       = Double
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
-$(deriveJSON (unPrefix "_phylo_Period" ) ''PhyloPeriod )
-$(deriveJSON (unPrefix "_phylo_Level"  ) ''PhyloLevel  )
-$(deriveJSON (unPrefix "_phylo_Group"  ) ''PhyloGroup  )
+$(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
+$(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
+$(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
