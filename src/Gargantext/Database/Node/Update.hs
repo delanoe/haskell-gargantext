@@ -17,7 +17,6 @@ Portability : POSIX
 
 module Gargantext.Database.Node.Update (Update(..), update) where
 
-import Data.Text (Text)
 import qualified Data.Text as DT
 import Database.PostgreSQL.Simple
 

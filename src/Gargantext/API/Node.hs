@@ -124,7 +124,7 @@ type RenameApi = Summary " Rename Node"
 
 type PostNodeApi = Summary " PostNode Node with ParentId as {id}"
                  :> ReqBody '[JSON] PostNode
-                 :> Post    '[JSON] [Int]
+                 :> Post    '[JSON] [NodeId]
 
 type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "type"   NodeType
@@ -177,7 +177,7 @@ instance Arbitrary PostNode where
 ------------------------------------------------------------------------
 type DocsApi = Summary "Docs : Move to trash"
              :> ReqBody '[JSON] Documents
-             :> Delete  '[JSON] [NodeId]
+             :> Delete  '[JSON] [Int]
 
 data Documents = Documents { documents :: [NodeId]}
   deriving (Generic)

@@ -49,7 +49,7 @@ import           Text.Read (read)
 import           Text.Show (Show())
 
 import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
-import Database.PostgreSQL.Simple.FromField (FromField)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Servant
 
 import           Test.QuickCheck.Arbitrary
@@ -57,19 +57,27 @@ import           Test.QuickCheck (elements)
 
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Utils
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum)
 
-instance ToField NodeId
-instance FromField NodeId
+instance ToField NodeId where
+  toField (NodeId n) = toField n
+
+instance FromField NodeId where
+  fromField = fromField'
+
 instance ToJSON NodeId
 instance FromJSON NodeId
 instance ToSchema NodeId
 
-instance FromHttpApiData NodeId
+instance FromHttpApiData NodeId where
+  parseUrlPiece n = pure $ NodeId $ (read . cs) n
+
 instance ToParamSchema NodeId
-instance Arbitrary NodeId
+instance Arbitrary NodeId where
+  arbitrary = NodeId <$> arbitrary
 
 type ParentId = NodeId
 type GraphId  = NodeId
@@ -404,8 +412,8 @@ allNodeTypes = [minBound ..]
 instance FromJSON NodeType
 instance ToJSON NodeType
 
-instance FromHttpApiData NodeType 
-  where 
+instance FromHttpApiData NodeType
+  where
       parseUrlPiece = Right . read . unpack
 
 instance ToParamSchema NodeType
