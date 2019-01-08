@@ -18,6 +18,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude          #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.Database.Types.Node
@@ -48,6 +49,7 @@ import           Text.Read (read)
 import           Text.Show (Show())
 
 import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import           Servant
 
 import           Test.QuickCheck.Arbitrary
@@ -55,8 +57,45 @@ import           Test.QuickCheck (elements)
 
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Utils
 ------------------------------------------------------------------------
-type NodeId = Int
+newtype NodeId = NodeId Int
+  deriving (Show, Read, Generic, Num, Eq, Ord, Enum)
+
+instance ToField NodeId where
+  toField (NodeId n) = toField n
+
+instance FromField NodeId where
+  fromField = fromField'
+
+instance ToJSON NodeId
+instance FromJSON NodeId
+instance ToSchema NodeId
+
+instance FromHttpApiData NodeId where
+  parseUrlPiece n = pure $ NodeId $ (read . cs) n
+
+instance ToParamSchema NodeId
+instance Arbitrary NodeId where
+  arbitrary = NodeId <$> arbitrary
+
+type ParentId = NodeId
+type GraphId  = NodeId
+type CorpusId = NodeId
+type ListId   = NodeId
+type DocumentId = NodeId
+type DocId      = DocumentId -- todo: remove this
+type RootId   = NodeId
+type MasterCorpusId = NodeId
+type AnnuaireId = NodeId
+type ContactId  = NodeId
+
+type UserId   = Int
+type MasterUserId = UserId
+
+id2int :: NodeId -> Int
+id2int (NodeId n) = n
+
 
 type UTCTime' = UTCTime
 
@@ -328,12 +367,10 @@ instance Hyperdata HyperdataNotebook
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json
+type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
 
 -- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
-type NodeParentId = Int
-type NodeUserId   = Int
 type NodeName     = Text
 type TSVector     = Text
 
@@ -375,8 +412,8 @@ allNodeTypes = [minBound ..]
 instance FromJSON NodeType
 instance ToJSON NodeType
 
-instance FromHttpApiData NodeType 
-  where 
+instance FromHttpApiData NodeType
+  where
       parseUrlPiece = Right . read . unpack
 
 instance ToParamSchema NodeType
@@ -416,16 +453,16 @@ data NodePolySearch id        typename userId
 $(deriveJSON (unPrefix "_ns_") ''NodePolySearch)
 $(makeLenses ''NodePolySearch)
 
-type NodeSearch json   = NodePolySearch NodeId NodeTypeId NodeUserId (Maybe NodeParentId) NodeName UTCTime json (Maybe TSVector)
+type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
 ------------------------------------------------------------------------
 
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
          ,Arbitrary nodeTypeId
-         ,Arbitrary nodeUserId
+         ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePoly nodeId nodeTypeId nodeUserId nodeParentId
+         ) => Arbitrary (NodePoly nodeId nodeTypeId userId nodeParentId
                                   NodeName UTCTime hyperdata) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
@@ -435,9 +472,9 @@ instance (Arbitrary hyperdata
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
          ,Arbitrary nodeTypeId
-         ,Arbitrary nodeUserId
+         ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePolySearch nodeId nodeTypeId nodeUserId nodeParentId
+         ) => Arbitrary (NodePolySearch nodeId nodeTypeId userId nodeParentId
                                   NodeName UTCTime hyperdata (Maybe TSVector)) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
@@ -484,30 +521,30 @@ instance ToSchema HyperdataAny where
 
 instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
-                            (Maybe NodeUserId)
-                            NodeParentId NodeName
+                            (Maybe UserId)
+                            ParentId NodeName
                             UTCTime hyperdata
                   )
 
 instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
-                            NodeUserId
-                            (Maybe NodeParentId) NodeName
+                            UserId
+                            (Maybe ParentId) NodeName
                             UTCTime hyperdata
                   )
 
 
 instance ToSchema hyperdata =>
          ToSchema (NodePolySearch NodeId NodeTypeId
-                            (Maybe NodeUserId)
-                            NodeParentId NodeName
+                            (Maybe UserId)
+                            ParentId NodeName
                             UTCTime hyperdata (Maybe TSVector)
                   )
 
 instance ToSchema hyperdata =>
          ToSchema (NodePolySearch NodeId NodeTypeId
-                            NodeUserId
-                            (Maybe NodeParentId) NodeName
+                            UserId
+                            (Maybe ParentId) NodeName
                             UTCTime hyperdata (Maybe TSVector)
                   )
 

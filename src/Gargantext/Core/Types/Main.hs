@@ -42,7 +42,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 ------------------------------------------------------------------------
 data NodeTree = NodeTree { _nt_name :: Text
                          , _nt_type :: NodeType
-                         , _nt_id   :: Int
+                         , _nt_id   :: NodeId
                          } deriving (Show, Read, Generic)
 
 $(deriveJSON (unPrefix "_nt_") ''NodeTree)
@@ -80,24 +80,9 @@ corpusTree nId t  = TreeN (NodeTree ("Corpus " <> t)  NodeCorpus nId) (  [ leafT
 
 --data Classification = Favorites | MyClassifcation
 
-type UserId   = Int
-type MasterUserId = Int
-
-type RootId   = Int
-type MasterCorpusId = Int
-
 type HashId   = Text
 
-type AnnuaireId = NodeId
-type ContactId  = NodeId
-
-type CorpusId   = NodeId
-type DocumentId = NodeId
-type DocId      = DocumentId -- todo: remove this
-
-type ListId     = NodeId
 type TypeId     = Int
-
 -- TODO multiple ListType declaration, remove it
 data ListType  =  StopList  | CandidateList | GraphList
   deriving (Generic, Eq, Ord, Show, Enum, Bounded)
@@ -152,7 +137,6 @@ type TirankGlobal  = Tficf
 type ErrorMessage = Text
 
 -- Queries
-type ParentId = NodeId
 type Limit    = Int
 type Offset   = Int
 

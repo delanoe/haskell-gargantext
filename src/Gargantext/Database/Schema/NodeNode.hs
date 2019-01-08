@@ -32,7 +32,7 @@ import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Gargantext.Database.Utils
-import Gargantext.Core.Types.Main (CorpusId, DocId)
+import Gargantext.Database.Types.Node (CorpusId, DocId)
 import Gargantext.Prelude
 import Opaleye
 

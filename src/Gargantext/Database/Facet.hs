@@ -219,7 +219,7 @@ viewAuthorsDoc cId _ nt = proc () -> do
   -- restrict -< nodeNode_delete   nn .== (pgBool t)
   -}
 
-  restrict -< _node_id   contact   .== (toNullable $ pgInt4 cId)
+  restrict -< _node_id   contact   .== (toNullable $ pgNodeId cId)
   restrict -< _node_typename doc   .== (pgInt4 $ nodeTypeId nt)
 
   returnA  -< FacetDoc (_node_id doc) (_node_date doc) (_node_name doc) (_node_hyperdata doc) (pgBool True) (pgInt4 1)
@@ -255,7 +255,7 @@ viewDocuments cId t ntId = proc () -> do
   n  <- queryNodeTable     -< ()
   nn <- queryNodeNodeTable -< ()
   restrict -< _node_id          n  .== nodeNode_node2_id nn
-  restrict -< nodeNode_node1_id nn .== (pgInt4 cId)
+  restrict -< nodeNode_node1_id nn .== (pgNodeId cId)
   restrict -< _node_typename    n  .== (pgInt4 ntId)
   restrict -< nodeNode_delete   nn .== (pgBool t)
   returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (nodeNode_favorite nn) (pgInt4 1)

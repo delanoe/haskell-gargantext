@@ -38,7 +38,6 @@ import GHC.Int (Int64)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
-import Gargantext.Core.Types.Main (UserId)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
@@ -140,9 +139,14 @@ instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGInt4 (Maybe NodeParentId)
+instance QueryRunnerColumnDefault PGInt4 (Maybe NodeId)
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGInt4 NodeId
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 
 ------------------------------------------------------------------------
 -- WIP
@@ -269,7 +273,7 @@ selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node <- (proc () -> do
       row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
-      restrict -< parentId' .== (pgInt4 parentId)
+      restrict -< parentId' .== (pgNodeId parentId)
 
       let typeId' = maybe 0 nodeTypeId maybeNodeType
 
@@ -280,46 +284,46 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
     returnA -< node
 
 
-deleteNode :: Int -> Cmd err Int
+deleteNode :: NodeId -> Cmd err Int
 deleteNode n = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeTable
-                 (\(Node n_id _ _ _ _ _ _) -> n_id .== pgInt4 n)
+                 (\(Node n_id _ _ _ _ _ _) -> n_id .== pgNodeId n)
 
-deleteNodes :: [Int] -> Cmd err Int
+deleteNodes :: [NodeId] -> Cmd err Int
 deleteNodes ns = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeTable
-                   (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgInt4 ns)) n_id)
+                   (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgNodeId ns)) n_id)
 
 -- TODO: NodeType should match with `a'
-getNodesWith :: JSONB a => Int -> proxy a -> Maybe NodeType
+getNodesWith :: JSONB a => NodeId -> proxy a -> Maybe NodeType
              -> Maybe Offset -> Maybe Limit -> Cmd err [Node a]
 getNodesWith parentId _ nodeType maybeOffset maybeLimit =
     runOpaQuery $ selectNodesWith parentId nodeType maybeOffset maybeLimit
 
 -- TODO: Why is the second parameter ignored?
 -- TODO: Why not use getNodesWith?
-getNodesWithParentId :: Int -> Maybe Text -> Cmd err [NodeAny]
+getNodesWithParentId :: NodeId -> Maybe Text -> Cmd err [NodeAny]
 getNodesWithParentId n _ = runOpaQuery $ selectNodesWithParentID n
 
 ------------------------------------------------------------------------
-getDocumentsV3WithParentId :: Int -> Cmd err [Node HyperdataDocumentV3]
+getDocumentsV3WithParentId :: NodeId -> Cmd err [Node HyperdataDocumentV3]
 getDocumentsV3WithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)
 
 -- TODO: merge with getDocumentsWithParentId by having a class IsHyperdataDocument
-getDocumentsWithParentId :: Int -> Cmd err [Node HyperdataDocument]
+getDocumentsWithParentId :: NodeId -> Cmd err [Node HyperdataDocument]
 getDocumentsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)
 
-getListsWithParentId :: Int -> Cmd err [Node HyperdataList]
+getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
 
-getCorporaWithParentId :: Int -> Cmd err [Node HyperdataCorpus]
+getCorporaWithParentId :: NodeId -> Cmd err [Node HyperdataCorpus]
 getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 
 ------------------------------------------------------------------------
-selectNodesWithParentID :: Int -> Query NodeRead
+selectNodesWithParentID :: NodeId -> Query NodeRead
 selectNodesWithParentID n = proc () -> do
     row@(Node _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
-    restrict -< parent_id .== (pgInt4 n)
+    restrict -< parent_id .== (pgNodeId n)
     returnA -< row
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead
@@ -330,9 +334,9 @@ selectNodesWithType type_id = proc () -> do
 
 type JSONB = QueryRunnerColumnDefault PGJsonb
 
-getNode :: JSONB a => Int -> proxy a -> Cmd err (Node a)
-getNode id _ = do
-    fromMaybe (error $ "Node does node exist: " <> show id) . headMay <$> runOpaQuery (limit 1 $ selectNode (pgInt4 id))
+getNode :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
+getNode nId _ = do
+    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
 getNodesWithType = runOpaQuery . selectNodesWithType
@@ -415,7 +419,7 @@ nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard 
 
 ------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
-node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgInt4 userId) (pgInt4 <$> parentId) (pgStrictText name) Nothing (pgJSONB $ cs $ encode hyperData)
+node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgInt4 userId) (pgNodeId <$> parentId) (pgStrictText name) Nothing (pgJSONB $ cs $ encode hyperData)
   where
     typeId = nodeTypeId nodeType
 
@@ -423,15 +427,15 @@ node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgI
 insertNodes :: [NodeWrite] -> Cmd err Int64
 insertNodes ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
 
-insertNodesR :: [NodeWrite] -> Cmd err [Int]
+insertNodesR :: [NodeWrite] -> Cmd err [NodeId]
 insertNodesR ns = mkCmd $ \conn ->
   runInsert_ conn (Insert nodeTable ns (rReturning (\(Node i _ _ _ _ _ _) -> i)) Nothing)
 
 insertNodesWithParent :: Maybe ParentId -> [NodeWrite] -> Cmd err Int64
-insertNodesWithParent pid ns = insertNodes (set node_parentId (pgInt4 <$> pid) <$> ns)
+insertNodesWithParent pid ns = insertNodes (set node_parentId (pgNodeId <$> pid) <$> ns)
 
-insertNodesWithParentR :: Maybe ParentId -> [NodeWrite] -> Cmd err [Int]
-insertNodesWithParentR pid ns = insertNodesR (set node_parentId (pgInt4 <$> pid) <$> ns)
+insertNodesWithParentR :: Maybe ParentId -> [NodeWrite] -> Cmd err [NodeId]
+insertNodesWithParentR pid ns = insertNodesR (set node_parentId (pgNodeId <$> pid) <$> ns)
 ------------------------------------------------------------------------
 -- TODO Hierachy of Nodes
 -- post and get same types Node' and update if changes
@@ -447,10 +451,10 @@ post c uid pid [ Node' NodeCorpus "name" "{}" []
 ------------------------------------------------------------------------
 
 -- TODO
--- currently this function remove the child relation
+-- currently this function removes the child relation
 -- needs a Temporary type between Node' and NodeWriteT
 node2table :: UserId -> Maybe ParentId -> Node' -> NodeWrite
-node2table uid pid (Node' nt txt v []) = Node Nothing (pgInt4$ nodeTypeId nt) (pgInt4 uid) (fmap pgInt4 pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
+node2table uid pid (Node' nt txt v []) = Node Nothing (pgInt4 $ nodeTypeId nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 
@@ -463,20 +467,19 @@ data Node' = Node' { _n_type :: NodeType
 mkNode :: [NodeWrite] -> Cmd err Int64
 mkNode ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
 
-mkNodeR :: [NodeWrite] -> Cmd err [Int]
+mkNodeR :: [NodeWrite] -> Cmd err [NodeId]
 mkNodeR ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable ns (_node_id)
 
 ------------------------------------------------------------------------
 
-data NewNode = NewNode { _newNodeId :: Int
-                       , _newNodeChildren :: [Int] }
+data NewNode = NewNode { _newNodeId :: NodeId
+                       , _newNodeChildren :: [NodeId] }
 
--- | postNode
 postNode :: HasNodeError err => UserId -> Maybe ParentId -> Node' -> Cmd err NewNode
 postNode uid pid (Node' nt txt v []) = do
   pids <- mkNodeR [node2table uid pid (Node' nt txt v [])]
   case pids of
-    [pid] -> pure $ NewNode pid []
+    [pid'] -> pure $ NewNode pid' []
     _ -> nodeError ManyParents
 
 postNode uid pid (Node' NodeCorpus txt v ns) = do
@@ -497,33 +500,34 @@ childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Nod
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
-mk :: NodeType -> Maybe ParentId -> Text -> Cmd err [Int]
+-- | TODO Use right userId
+mk :: NodeType -> Maybe ParentId -> Text -> Cmd err [NodeId]
 mk nt pId name  = mk' nt userId pId name
   where
     userId = 1
 
-mk' :: NodeType -> UserId -> Maybe ParentId -> Text -> Cmd err [Int]
-mk' nt uId pId name  = map fromIntegral <$> insertNodesWithParentR pId [node nt name hd pId uId]
+mk' :: NodeType -> UserId -> Maybe ParentId -> Text -> Cmd err [NodeId]
+mk' nt uId pId name  = insertNodesWithParentR pId [node nt name hd pId uId]
   where
     hd = HyperdataUser . Just . pack $ show EN
 
 type Name = Text
 
-mk'' :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [Int]
+mk'' :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
 mk'' NodeUser Nothing uId name  = mk' NodeUser uId Nothing name
 mk'' NodeUser _       _   _     = nodeError UserNoParent
 mk'' _        Nothing _   _     = nodeError HasParent
 mk'' nt       pId     uId name  = mk' nt uId pId name
 
-mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [Int]
+mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
 mkRoot uname uId = case uId > 0 of
                False -> nodeError NegativeId
                True  -> mk'' NodeUser Nothing uId uname
 
-mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd err [Int]
+mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd err [CorpusId]
 mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
 
-getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err Int
+getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err NodeId
 getOrMkList pId uId =
   maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
     where
@@ -534,17 +538,19 @@ defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
 defaultList cId =
   maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
 
-mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [Int]
+mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkList p u = insertNodesR [nodeListW Nothing Nothing p u]
 
-mkGraph :: ParentId -> UserId -> Cmd err [Int]
+mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
 mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
-mkDashboard :: ParentId -> UserId -> Cmd err [Int]
+mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
 
-mkAnnuaire :: ParentId -> UserId -> Cmd err [Int]
+mkAnnuaire :: ParentId -> UserId -> Cmd err [NodeId]
 mkAnnuaire p u = insertNodesR [nodeAnnuaireW Nothing Nothing p u]
 
 -- | Default CorpusId Master and ListId Master
 
+pgNodeId :: NodeId -> Column PGInt4
+pgNodeId = pgInt4 . id2int

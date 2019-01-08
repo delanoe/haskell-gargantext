@@ -26,6 +26,7 @@ import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter
 import Gargantext.Database.Node.Contact (HyperdataContact)
+import Gargantext.Database.Schema.Node (pgNodeId)
 import Control.Arrow (returnA)
 
 -- | TODO: use getChildren with Proxy ?
@@ -47,8 +48,8 @@ selectChildren parentId maybeNodeType = proc () -> do
     let nodeType = maybe 0 nodeTypeId maybeNodeType
     restrict -< typeName  .== pgInt4 nodeType
     
-    restrict -< (.||) (parent_id .== (pgInt4 parentId))
-                      ( (.&&) (n1id .== pgInt4 parentId)
+    restrict -< (.||) (parent_id .== (pgNodeId parentId))
+                      ( (.&&) (n1id .== pgNodeId parentId)
                               (n2id .== nId))
     returnA -< row
 

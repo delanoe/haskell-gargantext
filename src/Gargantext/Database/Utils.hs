@@ -129,4 +129,3 @@ fromField' field mb = do
 printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSqlForPostgres
 
-

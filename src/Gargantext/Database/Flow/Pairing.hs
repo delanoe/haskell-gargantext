@@ -37,8 +37,8 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Node.Contact
 import Gargantext.Database.Flow.Utils
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
+import Gargantext.Database.Types.Node (AnnuaireId, CorpusId, ContactId)
 import Gargantext.Database.Node.Children
-import Gargantext.Core.Types.Main
 import Gargantext.Core.Types (NodeType(..))
 
 -- TODO mv this type in Types Main

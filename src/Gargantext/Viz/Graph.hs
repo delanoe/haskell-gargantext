@@ -38,6 +38,7 @@ import Data.Swagger
 import Gargantext.Prelude
 import Gargantext.Core.Types (Label)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Types.Node (NodeId)
 
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
 
@@ -98,7 +99,7 @@ instance ToSchema LegendField where
 makeLenses ''LegendField
 --
 data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the graph
-                                   , _gm_corpusId :: [Int]  -- we can map with different corpus
+                                   , _gm_corpusId :: [NodeId]  -- we can map with different corpus
                                    , _gm_legend :: [LegendField] -- legend of the Graph
                                    }
   deriving (Show, Generic)
@@ -140,24 +141,23 @@ data AttributesV3 = AttributesV3 { cl :: Int }
 $(deriveJSON (unPrefix "") ''AttributesV3)
 
 data NodeV3 = NodeV3 { no_id :: Int
-                   , no_at :: AttributesV3
-                   , no_s :: Int
-                   , no_lb :: Text
-                   }
+                     , no_at :: AttributesV3
+                     , no_s  :: Int
+                     , no_lb :: Text
+                     }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "no_") ''NodeV3)
 
 data EdgeV3 = EdgeV3 { eo_s :: Int
-                 , eo_t :: Int
-                 , eo_w :: Text
-                 }
+                     , eo_t :: Int
+                     , eo_w :: Text
+                     }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "eo_") ''EdgeV3)
 
-data GraphV3 = GraphV3 { 
-                           go_links :: [EdgeV3]
-                         , go_nodes :: [NodeV3]
-                   }
+data GraphV3 = GraphV3 { go_links :: [EdgeV3]
+                       , go_nodes :: [NodeV3]
+                       }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "go_") ''GraphV3)
 

@@ -27,6 +27,7 @@ import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
+import Gargantext.Database.Types.Node (NodeId)
 import Gargantext.Database.Config (fromNodeTypeId)
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
 ------------------------------------------------------------------------
@@ -48,8 +49,8 @@ treeError te = throwError $ _TreeError # te
 treeDB :: HasTreeError err => RootId -> Cmd err (Tree NodeTree)
 treeDB r = toTree =<< (toTreeParent <$> dbTree r)
 
-type RootId = Int
-type ParentId = Int
+type RootId = NodeId
+type ParentId = NodeId
 ------------------------------------------------------------------------
 toTree :: (MonadError e m, HasTreeError e)
        => Map (Maybe ParentId) [DbTreeNode] -> m (Tree NodeTree)
@@ -74,9 +75,9 @@ toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
 toTreeParent :: [DbTreeNode] -> Map (Maybe ParentId) [DbTreeNode]
 toTreeParent = fromListWith (<>) . map (\n -> (dt_parentId n, [n]))
 ------------------------------------------------------------------------
-data DbTreeNode = DbTreeNode { dt_nodeId :: Int
+data DbTreeNode = DbTreeNode { dt_nodeId :: NodeId
                              , dt_typeId :: Int
-                             , dt_parentId :: Maybe Int
+                             , dt_parentId :: Maybe NodeId
                              , dt_name     :: Text
                              } deriving (Show)
 

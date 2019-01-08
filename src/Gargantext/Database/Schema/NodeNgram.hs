@@ -36,9 +36,11 @@ import Control.Monad (void)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Gargantext.Core.Types.Main (ListId, ListTypeId)
+import Gargantext.Core.Types.Main (ListTypeId)
 import Gargantext.Database.Utils (mkCmd, Cmd, execPGSQuery)
-import Gargantext.Database.Schema.NodeNgramsNgrams
+import Gargantext.Database.Types.Node (NodeId, ListId)
+import Gargantext.Database.Schema.Node (pgNodeId)
+import Gargantext.Database.Schema.NodeNgramsNgrams (NgramsChild, NgramsParent, ngramsGroup, Action(..))
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS (Only(..))
@@ -77,7 +79,7 @@ type NodeNgramReadNull =
        (Column (Nullable PGInt4  ))
 
 type NodeNgram =
-     NodeNgramPoly (Maybe Int) Int Int Double Int
+     NodeNgramPoly (Maybe NodeId) NodeId Int Double Int
 
 $(makeAdaptorAndInstance "pNodeNgram" ''NodeNgramPoly)
 $(makeLensesWith abbreviatedFields    ''NodeNgramPoly)
@@ -100,7 +102,7 @@ queryNodeNgramTable = queryTable nodeNgramTable
 insertNodeNgrams :: [NodeNgram] -> Cmd err Int
 insertNodeNgrams = insertNodeNgramW
                  . map (\(NodeNgram _ n g w t) ->
-                          NodeNgram Nothing (pgInt4 n)   (pgInt4 g)
+                          NodeNgram Nothing (pgNodeId n)   (pgInt4 g)
                                             (pgDouble w) (pgInt4 t)
                         )
 

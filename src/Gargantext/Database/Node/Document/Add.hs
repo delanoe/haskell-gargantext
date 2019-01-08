@@ -40,7 +40,6 @@ import Gargantext.Prelude
 import GHC.Generics (Generic)
 ---------------------------------------------------------------------------
 
-type ParentId = Int
 
 add :: ParentId -> [NodeId] -> Cmd err [Only Int]
 add pId ns = runPGSQuery queryAdd (Only $ Values fields inputData)
