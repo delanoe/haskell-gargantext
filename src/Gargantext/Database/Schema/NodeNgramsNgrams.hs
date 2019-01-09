@@ -36,12 +36,14 @@ import Control.Lens (view)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
+import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Gargantext.Database.Utils (Cmd, runOpaQuery, execPGSQuery, connection)
+import Debug.Trace (trace)
+import Gargantext.Database.Utils (Cmd, runOpaQuery, execPGSQuery, connection, formatPGSQuery)
 import Gargantext.Database.Types.Node (ListId)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Prelude
@@ -130,7 +132,7 @@ type NgramsChild  = Text
 ngramsGroup :: Action -> [(ListId, NgramsParent, NgramsChild, Maybe Double)]
              -> Cmd err ()
 ngramsGroup _ [] = pure ()
-ngramsGroup action ngs = runNodeNgramsNgrams q ngs
+ngramsGroup action ngs = trace (show ngs) $ runNodeNgramsNgrams q ngs
   where
     q = case action of
           Del -> queryDelNodeNgramsNgrams
@@ -143,6 +145,14 @@ runNodeNgramsNgrams q ngs = void $ execPGSQuery q (PGS.Only $ Values fields ngs'
     ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
                  ["int4","text","text","float8"]
+
+runNodeNgramsNgramsDebug :: PGS.Query -> [(ListId, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ByteString
+runNodeNgramsNgramsDebug q ngs = formatPGSQuery q (PGS.Only $ Values fields ngs')
+  where
+    ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
+    fields = map (\t -> QualifiedIdentifier Nothing t)
+                 ["int4","text","text","float8"]
+
 
 --------------------------------------------------------------------
 -- TODO: on conflict update weight
@@ -159,12 +169,16 @@ queryInsertNodeNgramsNgrams = [sql|
 queryDelNodeNgramsNgrams :: PGS.Query
 queryDelNodeNgramsNgrams = [sql|
     WITH input(nId,ng1,ng2,w) AS (?)
-    DELETE FROM nodes_ngrams_ngrams nnn
-    JOIN ngrams ngrams1 ON ngrams.terms = ng1
-    JOIN ngrams ngrams2 ON ngrams.terms = ng2
-    WHERE   nnn.node_id = input.nId
+    DELETE FROM nodes_ngrams_ngrams AS nnn
+    USING ngrams AS ngrams1,
+          ngrams AS ngrams2,
+          input  AS input
+    WHERE
+          ngrams1.terms = input.ng1
+      AND ngrams2.terms = input.ng2
+      AND nnn.node_id   = input.nId
       AND nnn.ngram1_id = ngrams1.id
       AND nnn.ngram2_id = ngrams2.id
-       ;)
+       ;
            |]
 

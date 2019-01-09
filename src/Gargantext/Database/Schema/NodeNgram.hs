@@ -30,8 +30,9 @@ if Node is a List     then it is listing (either Stop, Candidate or Map)
 -- TODO NodeNgrams
 module Gargantext.Database.Schema.NodeNgram where
 
+import Data.ByteString (ByteString)
 import Data.Text (Text)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Lens.TH (makeLenses)
 import Control.Monad (void)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
@@ -42,57 +43,58 @@ import Gargantext.Database.Types.Node (NodeId, ListId)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Database.Schema.NodeNgramsNgrams (NgramsChild, NgramsParent, ngramsGroup, Action(..))
 import Gargantext.Prelude
+import Gargantext.Database.Utils (formatPGSQuery)
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS (Only(..))
+import qualified Database.PostgreSQL.Simple as PGS (Only(..), Query)
 
 -- | TODO : remove id
-data NodeNgramPoly id node_id ngram_id weight ngrams_type
-   = NodeNgram { nodeNgram_id      :: id
-               , nodeNgram_node_id  :: node_id
-               , nodeNgram_ngrams_id :: ngram_id
-               , nodeNgram_weight  :: weight
-               , nodeNgram_type    :: ngrams_type
+data NodeNgramPoly node_id ngrams_id ngrams_type list_type weight
+   = NodeNgram { _nn_node_id    :: node_id
+               , _nn_ngrams_id  :: ngrams_id
+               , _nn_ngramsType :: ngrams_type
+               , _nn_listType   :: list_type
+               , _nn_weight     :: weight
                } deriving (Show)
 
 type NodeNgramWrite =
      NodeNgramPoly
-        (Maybe (Column PGInt4  ))
+               (Column PGInt4  )
+               (Column PGInt4  )
                (Column PGInt4  )
                (Column PGInt4  )
                (Column PGFloat8)
-               (Column PGInt4  )
 
 type NodeNgramRead =
      NodeNgramPoly
        (Column PGInt4  )
        (Column PGInt4  )
        (Column PGInt4  )
-       (Column PGFloat8)
        (Column PGInt4  )
+       (Column PGFloat8)
 
 type NodeNgramReadNull =
      NodeNgramPoly
        (Column (Nullable PGInt4  ))
        (Column (Nullable PGInt4  ))
        (Column (Nullable PGInt4  ))
-       (Column (Nullable PGFloat8))
        (Column (Nullable PGInt4  ))
+       (Column (Nullable PGFloat8))
 
 type NodeNgram =
-     NodeNgramPoly (Maybe NodeId) NodeId Int Double Int
+     NodeNgramPoly NodeId Int Int Int Double
 
 $(makeAdaptorAndInstance "pNodeNgram" ''NodeNgramPoly)
-$(makeLensesWith abbreviatedFields    ''NodeNgramPoly)
+makeLenses ''NodeNgramPoly
 
 
 nodeNgramTable :: Table NodeNgramWrite NodeNgramRead
 nodeNgramTable  = Table "nodes_ngrams"
   ( pNodeNgram NodeNgram
-    { nodeNgram_id        = optional "id"
-    , nodeNgram_node_id   = required "node_id"
-    , nodeNgram_ngrams_id = required "ngram_id"
-    , nodeNgram_weight    = required "weight"
-    , nodeNgram_type      = required "ngrams_type"
+    { _nn_node_id    = required "node_id"
+    , _nn_ngrams_id  = required "ngrams_id"
+    , _nn_ngramsType = required "ngrams_type"
+    , _nn_listType   = required "list_type"
+    , _nn_weight     = required "weight"
     }
   )
 
@@ -101,9 +103,12 @@ queryNodeNgramTable = queryTable nodeNgramTable
 
 insertNodeNgrams :: [NodeNgram] -> Cmd err Int
 insertNodeNgrams = insertNodeNgramW
-                 . map (\(NodeNgram _ n g w t) ->
-                          NodeNgram Nothing (pgNodeId n)   (pgInt4 g)
-                                            (pgDouble w) (pgInt4 t)
+                 . map (\(NodeNgram n g ngt lt w) ->
+                          NodeNgram (pgNodeId n)
+                                    (pgInt4 g)
+                                    (pgInt4 ngt)
+                                    (pgInt4 lt)
+                                    (pgDouble w)
                         )
 
 insertNodeNgramW :: [NodeNgramWrite] -> Cmd err Int
@@ -123,13 +128,29 @@ updateNodeNgrams' [] = pure ()
 updateNodeNgrams' input = void $ execPGSQuery updateQuery (PGS.Only $ Values fields input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
-    updateQuery = [sql| UPDATE nodes_ngrams as old SET
-                 ngrams_type = new.typeList
-                 from (?) as new(node_id,terms,typeList)
-                 JOIN ngrams ON ngrams.terms = new.terms
-                 WHERE old.node_id = new.node_id
-                 AND   old.ngram_id = ngrams.id;
-                 |]
+
+updateNodeNgrams'' :: [(ListId, NgramsText, ListTypeId)] -> Cmd err ByteString
+updateNodeNgrams'' input = formatPGSQuery updateQuery (PGS.Only $ Values fields input)
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
+
+updateQuery :: PGS.Query
+updateQuery = [sql| 
+WITH new(node_id,terms,typeList) as (?)
+
+INSERT into nodes_ngrams (node_id,ngrams_id,ngrams_type,list_type,weight)
+
+SELECT node_id,ngrams.id,4,typeList,1 FROM new
+JOIN ngrams ON ngrams.terms = new.terms
+ON CONFLICT (node_id, ngrams_id, ngrams_type) DO
+-- DO NOTHING-
+
+UPDATE SET list_type = excluded.list_type
+;
+
+               |]
+
+
 
 data NodeNgramsUpdate = NodeNgramsUpdate
   { _nnu_lists_update :: [(ListId, NgramsText, ListTypeId)]

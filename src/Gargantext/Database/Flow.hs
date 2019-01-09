@@ -24,7 +24,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text, splitOn, intercalate)
-import Data.Tuple.Extra (both, second)
+import Data.Tuple.Extra (both)
 import Data.List (concat)
 import GHC.Show (Show)
 import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId, Terms(..))
@@ -37,7 +37,7 @@ import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
-import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams)
+import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
@@ -276,10 +276,7 @@ flowList uId cId ngs = do
   _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
-  let lists = ngrams2list ngs
-  -- printDebug "lists:" lists
-  
-  is <- insertLists lId lists
+  is <- insertLists lId $ ngrams2list ngs
   printDebug "listNgrams inserted :" is
 
   pure lId
@@ -306,13 +303,12 @@ insertGroups lId ngrs =
 
 ------------------------------------------------------------------------
 -- TODO: verify NgramsT lost here
-ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> [(ListType,NgramsIndexed)]
-ngrams2list = zip (repeat CandidateList) . map (\(NgramsT _lost_t ng) -> ng) . DM.keys
+ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> [(ListType, (NgramsType,NgramsIndexed))]
+ngrams2list = zip (repeat GraphList) . map (\(NgramsT ngt ng) -> (ngt, ng)) . DM.keys
 
 -- | TODO: weight of the list could be a probability
-insertLists :: HasNodeError err => ListId -> [(ListType,NgramsIndexed)] -> Cmd err Int
-insertLists lId lngs =
-  insertNodeNgrams [ NodeNgram Nothing lId ngr (fromIntegral $ listTypeId l) (listTypeId l)
-                     | (l,ngr) <- map (second _ngramsId) lngs
+insertLists :: HasNodeError err => ListId -> [(ListType, (NgramsType, NgramsIndexed))] -> Cmd err Int
+insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) (fromIntegral $ ngramsTypeId ngt) (fromIntegral $ listTypeId l) 1
+                     | (l,(ngt, ng)) <- lngs
                    ]
 ------------------------------------------------------------------------

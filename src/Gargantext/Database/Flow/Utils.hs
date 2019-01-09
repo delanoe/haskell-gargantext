@@ -23,6 +23,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types.Node (NodeId, Node, NodePoly(..), Hyperdata)
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Database.Schema.NodeNgram
+import Gargantext.Core.Types.Main (ListType(..), listTypeId)
 
 toMaps :: Hyperdata a => (a -> Map (NgramsT Ngrams) Int) -> [Node a] -> Map (NgramsT Ngrams) (Map NodeId Int)
 toMaps fun ns = mapNodeIdNgrams $ documentIdWithNgrams fun ns'
@@ -53,12 +54,10 @@ data DocumentIdWithNgrams a =
      , document_ngrams :: Map (NgramsT Ngrams) Int
      } deriving (Show)
 
-
+-- | TODO for now, list Type is CandidateList, why ?
 insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd err Int
-insertToNodeNgrams m = insertNodeNgrams [ NodeNgram Nothing nId  ((_ngramsId    . _ngramsT   ) ng)
-                                                (fromIntegral n) ((ngramsTypeId . _ngramsType) ng)
+insertToNodeNgrams m = insertNodeNgrams [ NodeNgram nId ((_ngramsId . _ngramsT) ng) ((ngramsTypeId . _ngramsType) ng) (listTypeId CandidateList) (fromIntegral n)
                                         | (ng, nId2int) <- DM.toList m
                                         , (nId, n)      <- DM.toList nId2int
                                         ]
-
 

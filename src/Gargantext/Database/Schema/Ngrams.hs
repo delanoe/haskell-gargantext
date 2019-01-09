@@ -37,7 +37,7 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Debug.Trace (trace)
+--import Debug.Trace (trace)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types -- (fromListTypeId, ListType, NodePoly(Node))
 import Gargantext.Database.Config (nodeTypeId,userMaster)
@@ -239,7 +239,7 @@ getNgramsTableData :: NodeType -> NgramsType
                    -> Limit -> Offset
                    -> Cmd err [NgramsTableData]
 getNgramsTableData nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
-  trace ("Ngrams table params" <> show params) <$>
+  -- trace ("Ngrams table params" <> show params) <$>
   map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$>
     runPGSQuery querySelectTableNgrams params
       where
@@ -254,20 +254,21 @@ querySelectTableNgrams :: PGS.Query
 querySelectTableNgrams = [sql|
 
     WITH tableUser AS (
-      SELECT ngs.terms, ngs.n, list.ngrams_type, corp.weight FROM ngrams ngs
-        JOIN nodes_ngrams list ON list.ngram_id = ngs.id
-        JOIN nodes_ngrams corp ON corp.ngram_id = ngs.id
-        JOIN nodes        n    ON n.id          = corp.node_id
+      SELECT ngs.terms, ngs.n, list.list_type, corp.weight FROM ngrams ngs
+        JOIN nodes_ngrams list ON list.ngrams_id = ngs.id
+        JOIN nodes_ngrams corp ON corp.ngrams_id = ngs.id
+        JOIN nodes_nodes  nn   ON nn.node2_id    = corp.node_id
+        JOIN nodes        n    ON n.id           = corp.node_id
       
       WHERE list.node_id     = ?   -- User listId
-        AND n.parent_id      = ?   -- User CorpusId or AnnuaireId
+        AND nn.node1_id      = ?   -- User CorpusId or AnnuaireId
         AND n.typename       = ?   -- both type of childs (Documents or Contacts)
         AND corp.ngrams_type = ?   -- both type of ngrams (Authors or Terms or...)
     )
     , tableMaster AS (
-      SELECT ngs.terms, ngs.n, list.ngrams_type, corp.weight FROM ngrams ngs
-        JOIN nodes_ngrams list ON list.ngram_id = ngs.id
-        JOIN nodes_ngrams corp ON corp.ngram_id = ngs.id
+      SELECT ngs.terms, ngs.n, list.list_type, corp.weight FROM ngrams ngs
+        JOIN nodes_ngrams list ON list.ngrams_id = ngs.id
+        JOIN nodes_ngrams corp ON corp.ngrams_id = ngs.id
         JOIN nodes        n    ON n.id          = corp.node_id
         JOIN nodes_nodes  nn   ON nn.node2_id  = n.id
         
@@ -280,10 +281,11 @@ querySelectTableNgrams = [sql|
     
   SELECT COALESCE(tu.terms,tm.terms) AS terms
        , COALESCE(tu.n,tm.n)         AS n
-       , COALESCE(tu.ngrams_type,tm.ngrams_type) AS ngrams_type
+       , COALESCE(tu.list_type,tm.list_type) AS ngrams_type
        , SUM(COALESCE(tu.weight,tm.weight)) AS weight
   FROM tableUser tu RIGHT JOIN tableMaster tm ON tu.terms = tm.terms
-  GROUP BY tu.terms,tm.terms,tu.n,tm.n,tu.ngrams_type,tm.ngrams_type
+  GROUP BY tu.terms,tm.terms,tu.n,tm.n,tu.list_type,tm.list_type
+  ORDER BY 1,2
   LIMIT ?
   OFFSET ?;
 
@@ -320,6 +322,6 @@ querySelectNgramsGroup = [sql|
       )
     SELECT COALESCE(gu.t1,gm.t1) AS ngram1_id
          , COALESCE(gu.t2,gm.t2) AS ngram2_id
-      FROM groupUser gu RIGHT JOIN groupMaster gm ON gu.t1 = gm.t1
+      FROM groupUser gu LEFT JOIN groupMaster gm ON gu.t1 = gm.t1
   |]
 
