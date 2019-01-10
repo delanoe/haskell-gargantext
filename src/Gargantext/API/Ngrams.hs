@@ -268,7 +268,7 @@ ngramError nne = throwError $ _NgramError # nne
 -- `GraphList` and that the patch is `Replace CandidateList StopList` then
 -- the list is going to be `StopList` while it should keep `GraphList`.
 -- However this should not happen in non conflicting situations.
-mkListsUpdate :: ListId -> NgramsTablePatch -> [(ListId, NgramsTerm, ListTypeId)]
+mkListsUpdate :: ListId -> NgramsTablePatch -> [(ListId, NgramsTypeId, NgramsTerm, ListTypeId)]
 mkListsUpdate lId patches =
   [ (lId, ng, listTypeId lt)
   | (ng, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex

@@ -11,10 +11,11 @@ Ngrams connection to the Database.
 
 -}
 
-{-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE Arrows                     #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE OverloadedStrings      #-}
@@ -26,6 +27,7 @@ module Gargantext.Database.Schema.Ngrams where
 
 
 import Control.Lens (makeLenses, view)
+import Control.Monad (mzero)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -34,7 +36,8 @@ import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple ((:.)(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.ToField (toField)
+import Database.PostgreSQL.Simple.ToField (toField, ToField)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 --import Debug.Trace (trace)
@@ -46,7 +49,7 @@ import Gargantext.Database.Types.Node (NodeType)
 import Gargantext.Database.Schema.Node (getListsWithParentId, getCorporaWithParentId)
 import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
 import Gargantext.Prelude
-import Opaleye
+import Opaleye hiding (FromField)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as PGS
@@ -99,13 +102,29 @@ dbGetNgramsDb = runOpaQuery queryNgramsTable
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Ord, Enum, Bounded)
 
-ngramsTypeId :: NgramsType -> Int
+newtype NgramsTypeId = NgramsTypeId Int
+  deriving (Eq, Show, Ord, Num)
+
+instance ToField NgramsTypeId where
+  toField (NgramsTypeId n) = toField n
+
+instance FromField NgramsTypeId where
+  fromField field mdata = do
+    n <- fromField field mdata
+    if (n :: Int) > 0 then return $ NgramsTypeId n
+                      else mzero
+
+pgNgramsTypeId :: NgramsTypeId -> Column PGInt4
+pgNgramsTypeId (NgramsTypeId n) = pgInt4 n
+
+
+ngramsTypeId :: NgramsType -> NgramsTypeId
 ngramsTypeId Authors     = 1
 ngramsTypeId Institutes  = 2
 ngramsTypeId Sources     = 3
 ngramsTypeId NgramsTerms = 4
 
-fromNgramsTypeId :: Int -> Maybe NgramsType
+fromNgramsTypeId :: NgramsTypeId -> Maybe NgramsType
 fromNgramsTypeId id = lookup id $ fromList [(ngramsTypeId nt,nt) | nt <- [minBound .. maxBound] :: [NgramsType]]
 
 type NgramsTerms = Text
