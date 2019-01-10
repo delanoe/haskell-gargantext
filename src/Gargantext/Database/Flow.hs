@@ -113,7 +113,8 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   let maps            = mapNodeIdNgrams docsWithNgrams
 
   -- printDebug "maps" (maps)
-  indexedNgrams <- indexNgrams maps
+  terms2id <- insertNgrams (map _ngramsT $ DM.keys maps)
+  let indexedNgrams = DM.mapKeys (indexNgramsT terms2id) maps
   -- printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
 
@@ -258,12 +259,6 @@ mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
   where
     xs  = [(ng, [(nId, i)]) | (nId, n2i') <- ds', (ng, i) <- DM.toList n2i']
     ds' = (\d -> ((documentId . documentWithId) d, document_ngrams d)) <$> ds
-
-indexNgrams :: HasNodeError err => Map (NgramsT Ngrams       ) (Map NodeId Int)
-  -> Cmd err (Map (NgramsT NgramsIndexed) (Map NodeId Int))
-indexNgrams ng2nId = do
-  terms2id <- insertNgrams (map _ngramsT $ DM.keys ng2nId)
-  pure $ DM.mapKeys (indexNgramsT terms2id) ng2nId
 
 ------------------------------------------------------------------------
 flowList :: HasNodeError err => UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd err ListId
