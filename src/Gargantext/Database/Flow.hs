@@ -51,6 +51,7 @@ import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 
 
 flowCorpus :: HasNodeError err => FileFormat -> FilePath -> CorpusName -> Cmd err CorpusId
@@ -113,7 +114,7 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   let maps            = mapNodeIdNgrams docsWithNgrams
 
   -- printDebug "maps" (maps)
-  terms2id <- insertNgrams (map _ngramsT $ DM.keys maps)
+  terms2id <- insertNgrams (DS.toList $ DS.map _ngramsT (DM.keysSet maps))
   let indexedNgrams = DM.mapKeys (indexNgramsT terms2id) maps
   -- printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
