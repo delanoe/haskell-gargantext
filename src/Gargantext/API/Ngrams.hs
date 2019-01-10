@@ -57,6 +57,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Schema.Node (defaultList, HasNodeError)
+import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTypeId, ngramsTypeId)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Schema.NodeNgramsNgrams
@@ -244,6 +245,7 @@ type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> Get    '[JSON] (Versioned NgramsTable)
 
 type TableNgramsApi = Summary " Table Ngrams API Change"
+                      :> QueryParam "ngramsType"   TabType
                       :> QueryParam "list"   ListId
                       :> ReqBody '[JSON] (Versioned NgramsTablePatch)
                       :> Put     '[JSON] (Versioned NgramsTablePatch)
@@ -268,9 +270,9 @@ ngramError nne = throwError $ _NgramError # nne
 -- `GraphList` and that the patch is `Replace CandidateList StopList` then
 -- the list is going to be `StopList` while it should keep `GraphList`.
 -- However this should not happen in non conflicting situations.
-mkListsUpdate :: ListId -> NgramsTablePatch -> [(ListId, NgramsTypeId, NgramsTerm, ListTypeId)]
-mkListsUpdate lId patches =
-  [ (lId, ng, listTypeId lt)
+mkListsUpdate :: ListId -> NgramsType -> NgramsTablePatch -> [(ListId, NgramsTypeId, NgramsTerm, ListTypeId)]
+mkListsUpdate lId nt patches =
+  [ (lId, ngramsTypeId nt, ng, listTypeId lt)
   | (ng, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex
   , lt <- patch ^.. patch_list . new
   ]
@@ -285,20 +287,34 @@ mkChildrenGroups lId addOrRem patches =
   , child <- patch ^.. patch_children . to addOrRem . folded
   ]
 
+ngramsTypeFromTabType :: Maybe TabType -> NgramsType
+ngramsTypeFromTabType maybeTabType =
+  let lieu = "Garg.API.Ngrams: " :: Text in
+  case maybeTabType of
+        Nothing  -> Ngrams.Sources -- panic (lieu <> "Indicate the Table")
+        Just tab -> case tab of
+            Sources    -> Ngrams.Sources
+            Authors    -> Ngrams.Authors
+            Institutes -> Ngrams.Institutes
+            Terms      -> Ngrams.NgramsTerms
+            _          -> panic $ lieu <> "No Ngrams for this tab"
+
+
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- cilent.
 -- TODO:
 -- In this perliminary version the OT aspect is missing, therefore the version
 -- number is always 1 and the returned patch is always empty.
 tableNgramsPatch :: (HasNgramError err, HasNodeError err)
-                 => CorpusId -> Maybe ListId
+                 => CorpusId -> Maybe TabType -> Maybe ListId
                  -> Versioned NgramsTablePatch
                  -> Cmd err (Versioned NgramsTablePatch)
-tableNgramsPatch corpusId maybeList (Versioned version patch) = do
+tableNgramsPatch corpusId maybeTabType maybeList (Versioned version patch) = do
   when (version /= 1) $ ngramError UnsupportedVersion
+  let ngramsType = ngramsTypeFromTabType maybeTabType
   listId <- maybe (defaultList corpusId) pure maybeList
   updateNodeNgrams $ NodeNgramsUpdate
-    { _nnu_lists_update = mkListsUpdate listId patch
+    { _nnu_lists_update = mkListsUpdate listId ngramsType patch
     , _nnu_rem_children = mkChildrenGroups listId _rem patch
     , _nnu_add_children = mkChildrenGroups listId _add patch
     }
@@ -312,15 +328,7 @@ getTableNgrams :: HasNodeError err
                -> Cmd err (Versioned NgramsTable)
 getTableNgrams cId maybeTabType maybeListId mlimit moffset = do
   let lieu = "Garg.API.Ngrams: " :: Text
-  let ngramsType = case maybeTabType of
-        Nothing  -> Ngrams.Sources -- panic (lieu <> "Indicate the Table")
-        Just tab -> case tab of
-            Sources    -> Ngrams.Sources
-            Authors    -> Ngrams.Authors
-            Institutes -> Ngrams.Institutes
-            Terms      -> Ngrams.NgramsTerms
-            _          -> panic $ lieu <> "No Ngrams for this tab"
-
+  let ngramsType = ngramsTypeFromTabType maybeTabType
   listId <- maybe (defaultList cId) pure maybeListId
 
   let

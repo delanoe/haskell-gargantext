@@ -109,8 +109,8 @@ instance ToField NgramsTypeId where
   toField (NgramsTypeId n) = toField n
 
 instance FromField NgramsTypeId where
-  fromField field mdata = do
-    n <- fromField field mdata
+  fromField fld mdata = do
+    n <- fromField fld mdata
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
 
