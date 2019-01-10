@@ -104,7 +104,7 @@ queryInCorpusWithContacts cId q _ _ _ = proc () -> do
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
   restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgNodeId cId)
-  restrict -< (_nn_listType docNgrams)    .== (toNullable $ pgInt4 $ ngramsTypeId Authors)
+  restrict -< (_nn_listType docNgrams)      .== (toNullable $ pgNgramsType Authors)
   restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
   returnA  -< FacetPaired (_ns_id docs) (_ns_date docs) (_ns_hyperdata docs) (pgInt4 0) (Pair (_node_id contacts) (ngrams_terms ngrams'))

@@ -127,7 +127,7 @@ updateNodeNgrams' :: [(ListId, NgramsTypeId, NgramsText, ListTypeId)] -> Cmd err
 updateNodeNgrams' [] = pure ()
 updateNodeNgrams' input = void $ execPGSQuery updateQuery (PGS.Only $ Values fields input)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","text","int4"]
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","text","int4"]
 
 updateNodeNgrams'' :: [(ListId, NgramsTypeId, NgramsText, ListTypeId)] -> Cmd err ByteString
 updateNodeNgrams'' input = formatPGSQuery updateQuery (PGS.Only $ Values fields input)

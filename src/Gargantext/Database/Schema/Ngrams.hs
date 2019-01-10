@@ -114,9 +114,11 @@ instance FromField NgramsTypeId where
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
 
+pgNgramsType :: NgramsType -> Column PGInt4
+pgNgramsType = pgNgramsTypeId . ngramsTypeId
+
 pgNgramsTypeId :: NgramsTypeId -> Column PGInt4
 pgNgramsTypeId (NgramsTypeId n) = pgInt4 n
-
 
 ngramsTypeId :: NgramsType -> NgramsTypeId
 ngramsTypeId Authors     = 1
