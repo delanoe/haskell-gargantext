@@ -255,9 +255,9 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
 
 -- | TODO check optimization
 mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map (NgramsT Ngrams) (Map NodeId Int)
-mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
+mapNodeIdNgrams ds = DM.fromListWith (DM.unionWith (+)) xs
   where
-    xs  = [(ng, [(nId, i)]) | (nId, n2i') <- ds', (ng, i) <- DM.toList n2i']
+    xs  = [(ng, DM.singleton nId i) | (nId, n2i') <- ds', (ng, i) <- DM.toList n2i']
     ds' = (\d -> ((documentId . documentWithId) d, document_ngrams d)) <$> ds
 
 ------------------------------------------------------------------------
