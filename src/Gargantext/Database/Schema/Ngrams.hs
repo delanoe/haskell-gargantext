@@ -26,7 +26,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams where
 
 
-import Control.Lens (makeLenses, view)
+import Control.Lens (makeLenses, view, over)
 import Control.Monad (mzero)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
@@ -50,7 +50,7 @@ import Gargantext.Database.Schema.Node (getListsWithParentId, getCorporaWithPare
 import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
 import Gargantext.Prelude
 import Opaleye hiding (FromField)
-import Prelude (Enum, Bounded, minBound, maxBound)
+import Prelude (Enum, Bounded, minBound, maxBound, Functor)
 import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -155,6 +155,9 @@ data NgramsT a =
           } deriving (Generic, Show, Eq, Ord)
 
 makeLenses ''NgramsT
+
+instance Functor NgramsT where
+  fmap = over ngramsT
 -----------------------------------------------------------------------
 data NgramsIndexed =
   NgramsIndexed
