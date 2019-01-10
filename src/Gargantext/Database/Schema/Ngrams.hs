@@ -177,13 +177,21 @@ instance PGS.FromRow NgramIds where
   fromRow = NgramIds <$> field <*> field
 
 ----------------------
-indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT NgramsIndexed
-indexNgramsT m ngrId = indexNgramsTWith f ngrId
-  where
-    f n = maybe (panic "indexNgramsT: should not happen") identity (lookup n m)
+withMap :: Map NgramsTerms NgramsId -> NgramsTerms -> NgramsId
+withMap m n = maybe (panic "withMap: should not happen") identity (lookup n m)
 
-indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams-> NgramsT NgramsIndexed
-indexNgramsTWith f (NgramsT t n) = NgramsT t (NgramsIndexed n ((f . _ngramsTerms) n))
+indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT NgramsIndexed
+indexNgramsT = fmap . indexNgramsWith . withMap
+
+indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> NgramsIndexed
+indexNgrams = indexNgramsWith . withMap
+
+-- NP: not sure we need it anymore
+indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams -> NgramsT NgramsIndexed
+indexNgramsTWith = fmap . indexNgramsWith
+
+indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed
+indexNgramsWith f n = NgramsIndexed n (f $ _ngramsTerms n)
 
 insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
 insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
