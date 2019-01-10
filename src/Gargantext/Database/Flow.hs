@@ -256,8 +256,8 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
 mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map (NgramsT Ngrams) (Map NodeId Int)
 mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
   where
-    xs  = [(ng, [(nId, i)]) | (nId, n2i') <- n2i ds, (ng, i) <- DM.toList n2i']
-    n2i = map (\d -> ((documentId . documentWithId) d, document_ngrams d))
+    xs  = [(ng, [(nId, i)]) | (nId, n2i') <- ds', (ng, i) <- DM.toList n2i']
+    ds' = (\d -> ((documentId . documentWithId) d, document_ngrams d)) <$> ds
 
 indexNgrams :: HasNodeError err => Map (NgramsT Ngrams       ) (Map NodeId Int)
   -> Cmd err (Map (NgramsT NgramsIndexed) (Map NodeId Int))
