@@ -73,10 +73,15 @@ runCmdDev f = do
   conn <- connectGargandb "gargantext.ini"
   either (fail . show) pure =<< runCmd conn f
 
-runCmdDev' :: Cmd ServantErr a -> IO a
-runCmdDev' f = do
-  conn <- connectGargandb "gargantext.ini"
+runCmdDevWith :: FilePath -> Cmd ServantErr a -> IO a
+runCmdDevWith fp f = do
+  conn <- connectGargandb fp
   either (fail . show) pure =<< runCmd conn f
+
+runCmdDevWith' :: Cmd ServantErr a -> IO a
+runCmdDevWith' f = runCmdDevWith "gargantext.ini" f
+
+
 
 -- Use only for dev
 runCmdDevNoErr :: Cmd () a -> IO a

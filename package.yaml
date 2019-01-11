@@ -40,6 +40,7 @@ library:
   - Gargantext.Database.Schema.Node
   - Gargantext.Database.Cooc
   - Gargantext.Database.Tree
+  - Gargantext.Database.Utils
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
@@ -48,6 +49,7 @@ library:
   - Gargantext.Text.Metrics
   - Gargantext.Text.Metrics.CharByChar
   - Gargantext.Text.Metrics.Count
+  - Gargantext.Text.Parsers
   - Gargantext.Text.Parsers.CSV
   - Gargantext.Text.Parsers.Date
   - Gargantext.Text.Parsers.Wikimedia
@@ -217,6 +219,20 @@ executables:
       - split
       - unordered-containers
       - full-text-search
+
+  gargantext-import:
+    main: Main.hs
+    source-dirs: bin/gargantext-import
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - gargantext
+      - base
+      - servant
 
 tests:
 #   garg-test:
