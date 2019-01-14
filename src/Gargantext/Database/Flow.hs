@@ -37,7 +37,7 @@ import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
-import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsT(..), NgramsIndexed(..), indexNgramsT,  NgramsType(..), text2ngrams, ngramsTypeId)
+import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
@@ -51,7 +51,6 @@ import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
 import qualified Data.Map as DM
-import qualified Data.Set as DS
 
 
 flowCorpus :: HasNodeError err => FileFormat -> FilePath -> CorpusName -> Cmd err CorpusId
@@ -114,8 +113,8 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   let maps            = mapNodeIdNgrams docsWithNgrams
 
   -- printDebug "maps" (maps)
-  terms2id <- insertNgrams (DS.toList $ DS.map _ngramsT (DM.keysSet maps))
-  let indexedNgrams = DM.mapKeys (indexNgramsT terms2id) maps
+  terms2id <- insertNgrams $ DM.keys maps
+  let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
   -- printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
 
@@ -226,27 +225,27 @@ mergeData rs = catMaybes . map toDocumentWithId . DM.toList
 data DocumentIdWithNgrams =
      DocumentIdWithNgrams
      { documentWithId  :: !DocumentWithId
-     , document_ngrams :: !(Map (NgramsT Ngrams) Int)
+     , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
      } deriving (Show)
 
 -- TODO group terms
-extractNgramsT :: HasNodeError err => HyperdataDocument -> Cmd err (Map (NgramsT Ngrams) Int)
+extractNgramsT :: HasNodeError err => HyperdataDocument -> Cmd err (Map Ngrams (Map NgramsType Int))
 extractNgramsT doc = do
-  
   let source    = text2ngrams $ maybe "Nothing" identity $ _hyperdataDocument_source doc
   let institutes = map text2ngrams $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))  $ _hyperdataDocument_institutes doc
   let authors    = map text2ngrams $ maybe ["Nothing"] (splitOn ", ") $ _hyperdataDocument_authors doc
   let leText = catMaybes [_hyperdataDocument_title doc, _hyperdataDocument_abstract doc]
   terms' <- map text2ngrams <$> map (intercalate " " . _terms_label) <$> concat <$> liftIO (extractTerms (Multi EN) leText)
 
-  pure $ DM.fromList $  [(NgramsT Sources source, 1)]
-                     <> [(NgramsT Institutes  i' , 1)| i' <- institutes ]
-                     <> [(NgramsT Authors     a' , 1)| a' <- authors    ]
-                     <> [(NgramsT NgramsTerms t' , 1)| t' <- terms'     ]
+  pure $ DM.fromList $  [(source, DM.singleton Sources 1)]
+                     <> [(i', DM.singleton Institutes  1) | i' <- institutes ]
+                     <> [(a', DM.singleton Authors     1) | a' <- authors    ]
+                     <> [(t', DM.singleton NgramsTerms 1) | t' <- terms'     ]
 
 
 
-documentIdWithNgrams :: HasNodeError err => (HyperdataDocument -> Cmd err (Map (NgramsT Ngrams) Int))
+documentIdWithNgrams :: HasNodeError err
+                     => (HyperdataDocument -> Cmd err (Map Ngrams (Map NgramsType Int)))
                      -> [DocumentWithId]   -> Cmd err [DocumentIdWithNgrams]
 documentIdWithNgrams f = mapM toDocumentIdWithNgrams
   where
@@ -255,14 +254,17 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
       pure $ DocumentIdWithNgrams d e
 
 -- | TODO check optimization
-mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map (NgramsT Ngrams) (Map NodeId Int)
-mapNodeIdNgrams ds = DM.fromListWith (DM.unionWith (+)) xs
+mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map Ngrams (Map NgramsType (Map NodeId Int))
+mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
   where
-    xs  = [(ng, DM.singleton nId i) | (nId, n2i') <- ds', (ng, i) <- DM.toList n2i']
-    ds' = (\d -> ((documentId . documentWithId) d, document_ngrams d)) <$> ds
+    f :: DocumentIdWithNgrams -> Map Ngrams (Map NgramsType (Map NodeId Int))
+    f d = fmap (fmap (DM.singleton nId)) $ document_ngrams d
+      where
+        nId = documentId $ documentWithId d
 
 ------------------------------------------------------------------------
-flowList :: HasNodeError err => UserId -> CorpusId -> Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd err ListId
+flowList :: HasNodeError err => UserId -> CorpusId
+         -> Map NgramsIndexed (Map NgramsType (Map NodeId Int)) -> Cmd err ListId
 flowList uId cId ngs = do
   -- printDebug "ngs:" ngs
   lId <- getOrMkList cId uId
@@ -303,9 +305,13 @@ insertGroups lId ngrs =
                             ]
 
 ------------------------------------------------------------------------
--- TODO: verify NgramsT lost here
-ngrams2list :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> [(ListType, (NgramsType,NgramsIndexed))]
-ngrams2list = zip (repeat GraphList) . map (\(NgramsT ngt ng) -> (ngt, ng)) . DM.keys
+ngrams2list :: Map NgramsIndexed (Map NgramsType a)
+            -> [(ListType, (NgramsType,NgramsIndexed))]
+ngrams2list m =
+  [ (GraphList, (t, ng))
+  | (ng, tm) <- DM.toList m
+  , t <- DM.keys tm
+  ]
 
 -- | TODO: weight of the list could be a probability
 insertLists :: HasNodeError err => ListId -> [(ListType, (NgramsType, NgramsIndexed))] -> Cmd err Int

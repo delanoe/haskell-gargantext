@@ -37,7 +37,7 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Node.Contact
 import Gargantext.Database.Flow.Utils
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
-import Gargantext.Database.Types.Node (AnnuaireId, CorpusId, ContactId)
+import Gargantext.Database.Types.Node (AnnuaireId, CorpusId)
 import Gargantext.Database.Node.Children
 import Gargantext.Core.Types (NodeType(..))
 
@@ -79,16 +79,16 @@ extractNgramsT contact = fromList [(NgramsT Authors    a' , 1)| a' <- authors   
     authors    = map text2ngrams $ catMaybes [view (hc_who . _Just . cw_lastName) contact]
 --}
 
-
-pairMaps :: Map (NgramsT Ngrams) (Map ContactId Int)
+-- NP: notice how this function is no longer specific to the ContactId type
+pairMaps :: Map (NgramsT Ngrams) a
          -> Map (NgramsT Ngrams) NgramsId
-         -> Map (NgramsT NgramsIndexed) (Map ContactId Int)
-pairMaps m1 m2 = DM.fromList $ catMaybes $ map (\(k,n) -> (,) <$> lookup' k m2 <*> Just n) $ DM.toList m1
-  where
-    lookup' k@(NgramsT nt ng) m = case DM.lookup k m of
-        Nothing -> Nothing
-        Just nId -> Just $ NgramsT nt (NgramsIndexed ng nId)
-
+         -> Map NgramsIndexed (Map NgramsType a)
+pairMaps m1 m2 =
+  DM.fromList
+    [ (NgramsIndexed ng nId, DM.singleton nt n2i)
+    | (k@(NgramsT nt ng),n2i) <- DM.toList m1
+    , Just nId <- [DM.lookup k m2]
+    ]
 
 -----------------------------------------------------------------------
 getNgramsTindexed:: CorpusId -> NgramsType -> Cmd err (Map (NgramsT Ngrams) NgramsId)
