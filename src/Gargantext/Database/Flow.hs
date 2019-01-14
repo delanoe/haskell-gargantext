@@ -268,8 +268,9 @@ flowList uId cId ngs = do
   lId <- getOrMkList cId uId
   --printDebug "ngs" (DM.keys ngs)
   -- TODO add stemming equivalence of 2 ngrams
-  let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
-  _ <- insertGroups lId groupEd
+  -- TODO needs rework
+  -- let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
+  -- _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
   is <- insertLists lId $ ngrams2list ngs
@@ -282,11 +283,15 @@ flowListUser uId cId = getOrMkList cId uId
 
 ------------------------------------------------------------------------
 
+{-
+  TODO rework:
+    * quadratic
+    * DM.keys called twice
 groupNgramsBy :: (NgramsT NgramsIndexed -> NgramsT NgramsIndexed -> Maybe (NgramsIndexed, NgramsIndexed))
               -> Map (NgramsT NgramsIndexed) (Map NodeId Int)
               -> Map NgramsIndexed NgramsIndexed
 groupNgramsBy isEqual cId = DM.fromList $ catMaybes [ isEqual n1 n2 | n1 <- DM.keys cId, n2 <- DM.keys cId]
-
+-}
 
 
 -- TODO check: do not insert duplicates
