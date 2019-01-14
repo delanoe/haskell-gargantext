@@ -270,19 +270,18 @@ ngramError nne = throwError $ _NgramError # nne
 -- `GraphList` and that the patch is `Replace CandidateList StopList` then
 -- the list is going to be `StopList` while it should keep `GraphList`.
 -- However this should not happen in non conflicting situations.
-mkListsUpdate :: ListId -> NgramsType -> NgramsTablePatch -> [(ListId, NgramsTypeId, NgramsTerm, ListTypeId)]
-mkListsUpdate lId nt patches =
-  [ (lId, ngramsTypeId nt, ng, listTypeId lt)
+mkListsUpdate :: NgramsType -> NgramsTablePatch -> [(NgramsTypeId, NgramsTerm, ListTypeId)]
+mkListsUpdate nt patches =
+  [ (ngramsTypeId nt, ng, listTypeId lt)
   | (ng, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex
   , lt <- patch ^.. patch_list . new
   ]
 
-mkChildrenGroups :: ListId
-                 -> (PatchSet NgramsTerm -> Set NgramsTerm)
+mkChildrenGroups :: (PatchSet NgramsTerm -> Set NgramsTerm)
                  -> NgramsTablePatch
-                 -> [(ListId, NgramsParent, NgramsChild, Maybe Double)]
-mkChildrenGroups lId addOrRem patches =
-  [ (lId, parent, child, Just 1)
+                 -> [(NgramsParent, NgramsChild, Maybe Double)]
+mkChildrenGroups addOrRem patches =
+  [ (parent, child, Just 1)
   | (parent, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex
   , child <- patch ^.. patch_children . to addOrRem . folded
   ]
@@ -314,9 +313,10 @@ tableNgramsPatch corpusId maybeTabType maybeList (Versioned version patch) = do
   let ngramsType = ngramsTypeFromTabType maybeTabType
   listId <- maybe (defaultList corpusId) pure maybeList
   updateNodeNgrams $ NodeNgramsUpdate
-    { _nnu_lists_update = mkListsUpdate listId ngramsType patch
-    , _nnu_rem_children = mkChildrenGroups listId _rem patch
-    , _nnu_add_children = mkChildrenGroups listId _add patch
+    { _nnu_user_list_id = listId
+    , _nnu_lists_update = mkListsUpdate ngramsType patch
+    , _nnu_rem_children = mkChildrenGroups _rem patch
+    , _nnu_add_children = mkChildrenGroups _add patch
     }
   pure $ Versioned 1 emptyNgramsTablePatch
 

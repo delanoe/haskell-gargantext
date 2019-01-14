@@ -129,27 +129,27 @@ type NgramsParent = Text
 type NgramsChild  = Text
 
 
-ngramsGroup :: Action -> [(ListId, NgramsParent, NgramsChild, Maybe Double)]
+ngramsGroup :: Action -> ListId -> [(NgramsParent, NgramsChild, Maybe Double)]
              -> Cmd err ()
-ngramsGroup _ [] = pure ()
-ngramsGroup action ngs = trace (show ngs) $ runNodeNgramsNgrams q ngs
+ngramsGroup _ _ [] = pure ()
+ngramsGroup action listId ngs = trace (show ngs) $ runNodeNgramsNgrams q listId ngs
   where
     q = case action of
           Del -> queryDelNodeNgramsNgrams
           Add -> queryInsertNodeNgramsNgrams
 
 
-runNodeNgramsNgrams :: PGS.Query -> [(ListId, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ()
-runNodeNgramsNgrams q ngs = void $ execPGSQuery q (PGS.Only $ Values fields ngs')
+runNodeNgramsNgrams :: PGS.Query -> ListId -> [(NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ()
+runNodeNgramsNgrams q listId ngs = void $ execPGSQuery q (listId, Values fields ngs')
   where
-    ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
+    ngs'   = map (\(ng1,ng2,w) -> (ng1,ng2,maybe 0 identity w)) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
                  ["int4","text","text","float8"]
 
-runNodeNgramsNgramsDebug :: PGS.Query -> [(ListId, NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ByteString
-runNodeNgramsNgramsDebug q ngs = formatPGSQuery q (PGS.Only $ Values fields ngs')
+runNodeNgramsNgramsDebug :: PGS.Query -> ListId -> [(NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ByteString
+runNodeNgramsNgramsDebug q listId ngs = formatPGSQuery q (listId, Values fields ngs')
   where
-    ngs'   = map (\(n,ng1,ng2,w) -> (n,ng1,ng2,maybe 0 identity w)) ngs
+    ngs'   = map (\(ng1,ng2,w) -> (ng1,ng2,maybe 0 identity w)) ngs
     fields = map (\t -> QualifiedIdentifier Nothing t)
                  ["int4","text","text","float8"]
 
@@ -158,7 +158,8 @@ runNodeNgramsNgramsDebug q ngs = formatPGSQuery q (PGS.Only $ Values fields ngs'
 -- TODO: on conflict update weight
 queryInsertNodeNgramsNgrams :: PGS.Query
 queryInsertNodeNgramsNgrams = [sql|
-    WITH input_rows(nId,ng1,ng2,w) AS (?)
+    WITH nId AS ?
+    WITH input_rows(ng1,ng2,w) AS (?)
     INSERT INTO nodes_ngrams_ngrams (node_id,ngram1_id,ngram2_id,weight)
     SELECT nId,ngrams1.id,ngrams2.id,w FROM input_rows
     JOIN ngrams ngrams1 ON ngrams1.terms = ng1
@@ -168,7 +169,8 @@ queryInsertNodeNgramsNgrams = [sql|
 
 queryDelNodeNgramsNgrams :: PGS.Query
 queryDelNodeNgramsNgrams = [sql|
-    WITH input(nId,ng1,ng2,w) AS (?)
+    WITH nId AS ?
+    WITH input(ng1,ng2,w) AS (?)
     DELETE FROM nodes_ngrams_ngrams AS nnn
     USING ngrams AS ngrams1,
           ngrams AS ngrams2,

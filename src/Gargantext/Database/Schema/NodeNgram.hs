@@ -46,7 +46,7 @@ import Gargantext.Database.Schema.NodeNgramsNgrams (NgramsChild, NgramsParent, n
 import Gargantext.Prelude
 import Gargantext.Database.Utils (formatPGSQuery)
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS (Only(..), Query)
+import qualified Database.PostgreSQL.Simple as PGS (Query)
 
 -- | TODO : remove id
 data NodeNgramPoly node_id ngrams_id ngrams_type list_type weight
@@ -123,14 +123,14 @@ insertNodeNgramW nns =
 
 type NgramsText = Text
 
-updateNodeNgrams' :: [(ListId, NgramsTypeId, NgramsText, ListTypeId)] -> Cmd err ()
-updateNodeNgrams' [] = pure ()
-updateNodeNgrams' input = void $ execPGSQuery updateQuery (PGS.Only $ Values fields input)
+updateNodeNgrams' :: ListId -> [(NgramsTypeId, NgramsText, ListTypeId)] -> Cmd err ()
+updateNodeNgrams' _      []    = pure ()
+updateNodeNgrams' listId input = void $ execPGSQuery updateQuery (listId, Values fields input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","text","int4"]
 
-updateNodeNgrams'' :: [(ListId, NgramsTypeId, NgramsText, ListTypeId)] -> Cmd err ByteString
-updateNodeNgrams'' input = formatPGSQuery updateQuery (PGS.Only $ Values fields input)
+updateNodeNgrams'_debug :: ListId -> [(NgramsTypeId, NgramsText, ListTypeId)] -> Cmd err ByteString
+updateNodeNgrams'_debug listId input = formatPGSQuery updateQuery (listId, Values fields input)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","text","int4"]
 
@@ -153,14 +153,17 @@ UPDATE SET list_type = excluded.list_type
 
 
 data NodeNgramsUpdate = NodeNgramsUpdate
-  { _nnu_lists_update :: [(ListId, NgramsTypeId, NgramsText, ListTypeId)]
-  , _nnu_add_children :: [(ListId, NgramsParent, NgramsChild, Maybe Double)]
-  , _nnu_rem_children :: [(ListId, NgramsParent, NgramsChild, Maybe Double)]
+  { _nnu_user_list_id :: ListId
+  , _nnu_lists_update :: [(NgramsTypeId, NgramsText, ListTypeId)]
+  , _nnu_add_children :: [(NgramsParent, NgramsChild, Maybe Double)]
+  , _nnu_rem_children :: [(NgramsParent, NgramsChild, Maybe Double)]
   }
 
 -- TODO wrap these updates in a transaction.
 updateNodeNgrams :: NodeNgramsUpdate -> Cmd err ()
 updateNodeNgrams nnu = do
-  updateNodeNgrams' $ _nnu_lists_update nnu
-  ngramsGroup Del   $ _nnu_rem_children nnu
-  ngramsGroup Add   $ _nnu_add_children nnu
+  updateNodeNgrams' userListId $ _nnu_lists_update nnu
+  ngramsGroup Del   userListId $ _nnu_rem_children nnu
+  ngramsGroup Add   userListId $ _nnu_add_children nnu
+  where
+    userListId = _nnu_user_list_id nnu
