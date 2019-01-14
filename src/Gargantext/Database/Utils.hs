@@ -68,24 +68,18 @@ runCmd :: Connection -> Cmd err a -> IO (Either err a)
 runCmd conn m = runExceptT $ runReaderT m conn
 
 -- Use only for dev
-runCmdDev :: Show err => Cmd err a -> IO a
-runCmdDev f = do
-  conn <- connectGargandb "gargantext.ini"
-  either (fail . show) pure =<< runCmd conn f
-
 runCmdDevWith :: FilePath -> Cmd ServantErr a -> IO a
 runCmdDevWith fp f = do
   conn <- connectGargandb fp
   either (fail . show) pure =<< runCmd conn f
 
-runCmdDev' :: Cmd ServantErr a -> IO a
-runCmdDev' = runCmdDevWith "gargantext.ini"
-
-
+-- Use only for dev
+runCmdDev :: Cmd ServantErr a -> IO a
+runCmdDev = runCmdDevWith "gargantext.ini"
 
 -- Use only for dev
 runCmdDevNoErr :: Cmd () a -> IO a
-runCmdDevNoErr = runCmdDev
+runCmdDevNoErr = runCmdDevWith "gargantext.ini"
 
 runOpaQuery :: Default FromFields fields haskells => Select fields -> Cmd err [haskells]
 runOpaQuery q = mkCmd $ \c -> runQuery c q
