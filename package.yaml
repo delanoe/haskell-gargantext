@@ -28,6 +28,7 @@ library:
   - Gargantext.API.Auth
   - Gargantext.API.Count
   - Gargantext.API.FrontEnd
+  - Gargantext.API.Node
   - Gargantext.API.Orchestrator
   - Gargantext.API.Search
   - Gargantext.API.Settings
@@ -40,6 +41,7 @@ library:
   - Gargantext.Database.Schema.Node
   - Gargantext.Database.Cooc
   - Gargantext.Database.Tree
+  - Gargantext.Database.Types.Node
   - Gargantext.Database.Utils
   - Gargantext.Prelude
   - Gargantext.Text
@@ -232,7 +234,7 @@ executables:
     dependencies:
       - gargantext
       - base
-      - servant
+      - servant-server
 
 tests:
 #   garg-test:
