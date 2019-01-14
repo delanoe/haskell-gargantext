@@ -24,12 +24,18 @@ import Gargantext.Database.Flow (flowCorpus)
 import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
 import Gargantext.Database.Utils (Cmd, connectGargandb, runCmdDevWith)
 import Gargantext.Database.Types.Node (NodeId)
+--import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
 import Gargantext.API.Node () -- instances
 import System.Environment (getArgs)
 
--- main :: IO ()
+main :: IO ()
 main = do
   [iniPath, name, corpusPath] <- getArgs
+
+  {-let createUsers :: Cmd ServantErr Int64
+      createUsers = insertUsers [gargantuaUser,simpleUser]
+  _ <- runCmdDevWith iniPath createUsers
+  -}
   let cmd :: Cmd ServantErr NodeId
       cmd = flowCorpus CsvHalFormat corpusPath (cs name)
   r <- runCmdDevWith iniPath cmd

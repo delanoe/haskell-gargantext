@@ -43,6 +43,7 @@ library:
   - Gargantext.Database.Tree
   - Gargantext.Database.Types.Node
   - Gargantext.Database.Utils
+  - Gargantext.Database.Schema.User
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
