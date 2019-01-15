@@ -54,12 +54,14 @@ CREATE TABLE public.nodes_ngrams (
     id SERIAL,
     node_id integer NOT NULL,
     ngrams_id integer NOT NULL,
+    parent_id integer REFERENCES public.nodes_ngrams(id) ON DELETE SET NULL,
     ngrams_type integer,
     list_type integer,
     weight double precision,
     FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
     FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
-    PRIMARY KEY (node_id,ngrams_id)
+    PRIMARY KEY (id)
+    -- PRIMARY KEY (node_id,ngrams_id)
 );
 ALTER TABLE public.nodes_ngrams OWNER TO gargantua;
 
@@ -103,10 +105,10 @@ CREATE UNIQUE INDEX nodes_expr_idx2 ON public.nodes USING btree (((hyperdata ->>
 CREATE UNIQUE INDEX nodes_typename_parent_id_expr_idx ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
 CREATE INDEX nodes_user_id_typename_parent_id_idx ON public.nodes USING btree (user_id, typename, parent_id);
 
-
 CREATE UNIQUE INDEX ON public.ngrams(terms);
 --CREATE UNIQUE INDEX ON public.ngrams(terms,n);
 
+CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id);
 CREATE INDEX nodes_ngrams_ngrams_id_idx ON public.nodes_ngrams USING btree (ngrams_id);
 CREATE INDEX nodes_ngrams_ngrams_node_id_idx ON public.nodes_ngrams_ngrams USING btree (node_id);
 CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id,ngrams_type);

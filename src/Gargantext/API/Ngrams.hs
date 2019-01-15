@@ -39,9 +39,10 @@ import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
 import qualified Data.Set as Set
---import Data.Maybe (catMaybes)
+import Data.Maybe (isJust)
+import Data.Tuple.Extra (first)
 -- import qualified Data.Map.Strict as DM
-import Data.Map.Strict (Map)
+import Data.Map.Strict (Map, mapKeys, fromListWith)
 --import qualified Data.Set as Set
 import Control.Lens (makeLenses, Prism', prism', (^..), (.~), (#), to, withIndex, folded, ifolded)
 import Control.Monad (guard)
@@ -57,10 +58,9 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Schema.Node (defaultList, HasNodeError)
-import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTypeId, ngramsTypeId)
+import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTypeId, ngramsTypeId, NgramsTableData'(..))
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 import Gargantext.Database.Schema.NodeNgram
-import Gargantext.Database.Schema.NodeNgramsNgrams
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
 import Gargantext.Core.Types (ListType(..), ListTypeId, ListId, CorpusId, Limit, Offset, listTypeId)
@@ -118,6 +118,29 @@ instance Arbitrary NgramsElement where
 ------------------------------------------------------------------------
 newtype NgramsTable = NgramsTable { _ngramsTable :: [NgramsElement] }
   deriving (Ord, Eq, Generic, ToJSON, FromJSON, Show)
+
+-- | TODO Check N and Weight
+toNgramsElement :: [NgramsTableData'] -> [NgramsElement]
+toNgramsElement ns = map toNgramsElement' ns
+    where
+      toNgramsElement' (NgramsTableData' _ p t _ lt w) = NgramsElement t lt' (round w) p' c'
+        where
+          p' = case p of
+                 Nothing -> Nothing
+                 Just x  -> lookup x mapParent
+          c' = maybe mempty identity $ lookup t mapChildren
+          lt' = maybe (panic "API.Ngrams: listypeId") identity lt
+      
+      mapParent :: Map Int Text
+      mapParent   = fromListWith (<>) $ map (\(NgramsTableData' i _ t _ _ _) -> (i,t)) ns
+      
+      mapChildren :: Map Text (Set Text)
+      mapChildren = mapKeys (\i -> (maybe (panic "API.Ngrams.mapChildren: ParentId with no Terms: Impossible") identity $ lookup i mapParent))
+                  $ fromListWith (<>)
+                  $ map (first fromJust)
+                  $ filter (isJust . fst)
+                  $ map (\(NgramsTableData' _ p t _ _ _) -> (p, Set.singleton t)) ns
+
 
 instance Arbitrary NgramsTable where
   arbitrary = elements
@@ -278,10 +301,11 @@ mkListsUpdate nt patches =
   ]
 
 mkChildrenGroups :: (PatchSet NgramsTerm -> Set NgramsTerm)
+                 -> NgramsType
                  -> NgramsTablePatch
-                 -> [(NgramsParent, NgramsChild, Maybe Double)]
-mkChildrenGroups addOrRem patches =
-  [ (parent, child, Just 1)
+                 -> [(NgramsTypeId, NgramsParent, NgramsChild)]
+mkChildrenGroups addOrRem nt patches =
+  [ (ngramsTypeId nt, parent, child)
   | (parent, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex
   , child <- patch ^.. patch_children . to addOrRem . folded
   ]
@@ -289,14 +313,14 @@ mkChildrenGroups addOrRem patches =
 ngramsTypeFromTabType :: Maybe TabType -> NgramsType
 ngramsTypeFromTabType maybeTabType =
   let lieu = "Garg.API.Ngrams: " :: Text in
-  case maybeTabType of
-        Nothing  -> Ngrams.Sources -- panic (lieu <> "Indicate the Table")
-        Just tab -> case tab of
-            Sources    -> Ngrams.Sources
-            Authors    -> Ngrams.Authors
-            Institutes -> Ngrams.Institutes
-            Terms      -> Ngrams.NgramsTerms
-            _          -> panic $ lieu <> "No Ngrams for this tab"
+    case maybeTabType of
+          Nothing  -> panic (lieu <> "Indicate the Table")
+          Just tab -> case tab of
+              Sources    -> Ngrams.Sources
+              Authors    -> Ngrams.Authors
+              Institutes -> Ngrams.Institutes
+              Terms      -> Ngrams.NgramsTerms
+              _          -> panic $ lieu <> "No Ngrams for this tab"
 
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
@@ -315,8 +339,8 @@ tableNgramsPatch corpusId maybeTabType maybeList (Versioned version patch) = do
   updateNodeNgrams $ NodeNgramsUpdate
     { _nnu_user_list_id = listId
     , _nnu_lists_update = mkListsUpdate ngramsType patch
-    , _nnu_rem_children = mkChildrenGroups _rem patch
-    , _nnu_add_children = mkChildrenGroups _add patch
+    , _nnu_rem_children = mkChildrenGroups _rem ngramsType patch
+    , _nnu_add_children = mkChildrenGroups _add ngramsType patch
     }
   pure $ Versioned 1 emptyNgramsTablePatch
 
@@ -327,7 +351,6 @@ getTableNgrams :: HasNodeError err
                -> Maybe ListId -> Maybe Limit -> Maybe Offset
                -> Cmd err (Versioned NgramsTable)
 getTableNgrams cId maybeTabType maybeListId mlimit moffset = do
-  let lieu = "Garg.API.Ngrams: " :: Text
   let ngramsType = ngramsTypeFromTabType maybeTabType
   listId <- maybe (defaultList cId) pure maybeListId
 
@@ -336,18 +359,9 @@ getTableNgrams cId maybeTabType maybeListId mlimit moffset = do
     limit_  = maybe defaultLimit identity mlimit
     offset_ = maybe 0 identity moffset
 
-  (ngramsTableDatas, mapToParent, mapToChildren) <-
+  ngramsTableDatas <-
     Ngrams.getNgramsTableDb NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId) limit_ offset_
 
   -- printDebug "ngramsTableDatas" ngramsTableDatas
 
-  pure $ Versioned 1 $
-         NgramsTable $ map (\(Ngrams.NgramsTableData ngs _ lt w) ->
-                              NgramsElement ngs
-                                            (maybe (panic $ lieu <> "listType") identity lt)
-                                            (round w)
-                                            (lookup ngs mapToParent)
-                                            (maybe mempty identity $ lookup ngs mapToChildren)
-                           ) ngramsTableDatas
-
-
+  pure $ Versioned 1 $ NgramsTable (toNgramsElement ngramsTableDatas)

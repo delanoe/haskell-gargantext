@@ -34,21 +34,14 @@ module Gargantext.Database.Schema.NodeNgramsNgrams
 
 import Control.Lens (view)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
-import Data.ByteString (ByteString)
-import Data.Text (Text)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Debug.Trace (trace)
-import Gargantext.Database.Utils (Cmd, runOpaQuery, execPGSQuery, connection, formatPGSQuery)
+import Gargantext.Database.Utils (Cmd, runOpaQuery, connection)
 import Gargantext.Database.Types.Node (ListId)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Prelude
 import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS
 
 data NodeNgramsNgramsPoly node_id ngram1_id ngram2_id weight =
   NodeNgramsNgrams { _nng_NodeId   :: node_id
@@ -121,66 +114,4 @@ insertNodeNgramsNgramsW :: [NodeNgramsNgramsWrite] -> Cmd err Int
 insertNodeNgramsNgramsW ns = do
   c <- view connection
   liftIO $ fromIntegral <$> runInsertMany c nodeNgramsNgramsTable ns
-
-------------------------------------------------------------------------
-data Action   = Del | Add
-
-type NgramsParent = Text
-type NgramsChild  = Text
-
-
-ngramsGroup :: Action -> ListId -> [(NgramsParent, NgramsChild, Maybe Double)]
-             -> Cmd err ()
-ngramsGroup _ _ [] = pure ()
-ngramsGroup action listId ngs = trace (show ngs) $ runNodeNgramsNgrams q listId ngs
-  where
-    q = case action of
-          Del -> queryDelNodeNgramsNgrams
-          Add -> queryInsertNodeNgramsNgrams
-
-
-runNodeNgramsNgrams :: PGS.Query -> ListId -> [(NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ()
-runNodeNgramsNgrams q listId ngs = void $ execPGSQuery q (listId, Values fields ngs')
-  where
-    ngs'   = map (\(ng1,ng2,w) -> (ng1,ng2,maybe 0 identity w)) ngs
-    fields = map (\t -> QualifiedIdentifier Nothing t)
-                 ["int4","text","text","float8"]
-
-runNodeNgramsNgramsDebug :: PGS.Query -> ListId -> [(NgramsParent, NgramsChild, Maybe Double)] -> Cmd err ByteString
-runNodeNgramsNgramsDebug q listId ngs = formatPGSQuery q (listId, Values fields ngs')
-  where
-    ngs'   = map (\(ng1,ng2,w) -> (ng1,ng2,maybe 0 identity w)) ngs
-    fields = map (\t -> QualifiedIdentifier Nothing t)
-                 ["int4","text","text","float8"]
-
-
---------------------------------------------------------------------
--- TODO: on conflict update weight
-queryInsertNodeNgramsNgrams :: PGS.Query
-queryInsertNodeNgramsNgrams = [sql|
-    WITH nId AS ?
-    WITH input_rows(ng1,ng2,w) AS (?)
-    INSERT INTO nodes_ngrams_ngrams (node_id,ngram1_id,ngram2_id,weight)
-    SELECT nId,ngrams1.id,ngrams2.id,w FROM input_rows
-    JOIN ngrams ngrams1 ON ngrams1.terms = ng1
-    JOIN ngrams ngrams2 ON ngrams2.terms = ng2
-    ON CONFLICT (node_id,ngram1_id,ngram2_id) DO NOTHING -- unique index created here
-           |]
-
-queryDelNodeNgramsNgrams :: PGS.Query
-queryDelNodeNgramsNgrams = [sql|
-    WITH nId AS ?
-    WITH input(ng1,ng2,w) AS (?)
-    DELETE FROM nodes_ngrams_ngrams AS nnn
-    USING ngrams AS ngrams1,
-          ngrams AS ngrams2,
-          input  AS input
-    WHERE
-          ngrams1.terms = input.ng1
-      AND ngrams2.terms = input.ng2
-      AND nnn.node_id   = input.nId
-      AND nnn.ngram1_id = ngrams1.id
-      AND nnn.ngram2_id = ngrams2.id
-       ;
-           |]
 
