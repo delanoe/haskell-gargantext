@@ -56,7 +56,7 @@ data DocumentIdWithNgrams a =
 
 -- | TODO for now, list Type is CandidateList, why ?
 insertToNodeNgrams :: Map (NgramsT NgramsIndexed) (Map NodeId Int) -> Cmd err Int
-insertToNodeNgrams m = insertNodeNgrams [ NodeNgram nId ((_ngramsId . _ngramsT) ng) ((ngramsTypeId . _ngramsType) ng) (listTypeId CandidateList) (fromIntegral n)
+insertToNodeNgrams m = insertNodeNgrams [ NodeNgram nId ((_ngramsId . _ngramsT) ng) Nothing ((ngramsTypeId . _ngramsType) ng) (listTypeId CandidateList) (fromIntegral n)
                                         | (ng, nId2int) <- DM.toList m
                                         , (nId, n)      <- DM.toList nId2int
                                         ]

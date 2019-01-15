@@ -25,7 +25,6 @@ Ngrams connection to the Database.
 
 module Gargantext.Database.Schema.Ngrams where
 
-
 import Control.Lens (makeLenses, view, over)
 import Control.Monad (mzero)
 import Data.ByteString.Internal (ByteString)
@@ -40,7 +39,7 @@ import Database.PostgreSQL.Simple.ToField (toField, ToField)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
---import Debug.Trace (trace)
+import Debug.Trace (trace)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types -- (fromListTypeId, ListType, NodePoly(Node))
 import Gargantext.Database.Config (nodeTypeId,userMaster)
@@ -233,8 +232,8 @@ queryInsertNgrams = [sql|
 getNgramsTableDb :: NodeType -> NgramsType
                  -> NgramsTableParamUser
                  -> Limit -> Offset
-                 -> Cmd err ([NgramsTableData], MapToParent, MapToChildren)
-getNgramsTableDb nt ngrt ntp@(NgramsTableParam listIdUser _) limit_ offset_ = do
+                 -> Cmd err [NgramsTableData']
+getNgramsTableDb nt ngrt ntp limit_ offset_ = do
   
   
   maybeRoot <- head <$> getRoot userMaster
@@ -246,11 +245,7 @@ getNgramsTableDb nt ngrt ntp@(NgramsTableParam listIdUser _) limit_ offset_ = do
   
   listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId corpusMasterId
   
-  ngramsTableData <- getNgramsTableData nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId) limit_ offset_
-  
-  (mapToParent,mapToChildren) <- getNgramsGroup listIdUser listMasterId
-  pure (ngramsTableData, mapToParent,mapToChildren)
-
+  getNgramsTableData' nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId) limit_ offset_
 
 data NgramsTableParam =
      NgramsTableParam { _nt_listId     :: NodeId
@@ -271,7 +266,7 @@ getNgramsTableData :: NodeType -> NgramsType
                    -> Limit -> Offset
                    -> Cmd err [NgramsTableData]
 getNgramsTableData nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
-  -- trace ("Ngrams table params" <> show params) <$>
+  trace ("Ngrams table params" <> show params) <$>
   map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$>
     runPGSQuery querySelectTableNgrams params
       where
@@ -280,6 +275,32 @@ getNgramsTableData nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc)
         params  = (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc) :.
                   (limit_, offset_)
 
+
+data NgramsTableData' = NgramsTableData' { _ntd2_id        :: Int
+                                         , _ntd2_parent_id :: Maybe Int
+                                         , _ntd2_terms     :: Text
+                                         , _ntd2_n         :: Int
+                                         , _ntd2_listType  :: Maybe ListType
+                                         , _ntd2_weight    :: Double
+                                         } deriving (Show)
+
+
+
+getNgramsTableData' :: NodeType -> NgramsType
+                   -> NgramsTableParamUser -> NgramsTableParamMaster 
+                   -> Limit -> Offset
+                   -> Cmd err [NgramsTableData']
+getNgramsTableData' nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
+  trace ("Ngrams table params: " <> show params) <$>
+  map (\(i,p,t,n,lt,w) -> NgramsTableData' i p t n (fromListTypeId lt) w) <$>
+    runPGSQuery querySelectTableNgramsTrees params
+      where
+        nodeTId = nodeTypeId   nodeT
+        ngrmTId = ngramsTypeId ngrmT
+        params  = (ul,ml,uc,mc,nodeTId,ngrmTId) :. (limit_, offset_)
+
+getNgramsTableDataDebug :: PGS.ToRow a => a -> Cmd err ByteString
+getNgramsTableDataDebug = formatPGSQuery querySelectTableNgramsTrees
 
 
 querySelectTableNgrams :: PGS.Query
@@ -296,6 +317,7 @@ querySelectTableNgrams = [sql|
         AND nn.node1_id      = ?   -- User CorpusId or AnnuaireId
         AND n.typename       = ?   -- both type of childs (Documents or Contacts)
         AND corp.ngrams_type = ?   -- both type of ngrams (Authors or Terms or...)
+        AND list.parent_id   IS NULL
     )
     , tableMaster AS (
       SELECT ngs.terms, ngs.n, list.list_type, corp.weight FROM ngrams ngs
@@ -309,6 +331,7 @@ querySelectTableNgrams = [sql|
         AND n.typename       = ?   -- Master childs (Documents or Contacts)
         AND corp.ngrams_type = ?   -- both type of ngrams (Authors or Terms?)
         AND nn.node1_id      = ?   -- User CorpusId or AnnuaireId
+        AND list.parent_id   IS NULL
     )
     
   SELECT COALESCE(tu.terms,tm.terms) AS terms
@@ -322,6 +345,123 @@ querySelectTableNgrams = [sql|
   OFFSET ?;
 
   |]
+
+
+querySelectTableNgramsTrees :: PGS.Query
+querySelectTableNgramsTrees = [sql|
+
+DROP FUNCTION tree_start(integer,integer,integer,integer,integer,integer,integer,integer);
+DROP FUNCTION tree_end(integer,integer,integer,integer,integer,integer);
+DROP FUNCTION tree_ngrams(integer,integer,integer,integer,integer,integer,integer,integer);
+
+CREATE OR REPLACE FUNCTION public.tree_start(luid INT, lmid INT,cuid INT, cmid INT, tdoc INT, tngrams INT, lmt INT, ofst INT)
+ RETURNS TABLE (id INT, parent_id INT, terms VARCHAR(255), n int, list_type int, weight float8) AS $$
+BEGIN
+    RETURN QUERY
+    WITH tableUser AS (
+        SELECT list.id, list.parent_id, ngs.terms, ngs.n, list.list_type, corp.weight FROM ngrams ngs
+          JOIN nodes_ngrams list ON list.ngrams_id = ngs.id
+          JOIN nodes_ngrams corp ON corp.ngrams_id = ngs.id
+          JOIN nodes_nodes  nn   ON nn.node2_id    = corp.node_id
+          JOIN nodes        n    ON n.id           = corp.node_id
+        
+        WHERE list.node_id     = luid   -- User listId
+          AND nn.node1_id      = cuid   -- User CorpusId or AnnuaireId
+          AND n.typename       = tdoc   -- both type of childs (Documents or Contacts)
+          AND corp.ngrams_type = tngrams   -- both type of ngrams (Authors or Terms or...)
+          AND list.parent_id   IS NULL
+      ),
+      tableMaster AS (
+        SELECT list.id, list.parent_id, ngs.terms, ngs.n, list.list_type, corp.weight FROM ngrams ngs
+          JOIN nodes_ngrams list ON list.ngrams_id = ngs.id
+          JOIN nodes_ngrams corp ON corp.ngrams_id = ngs.id
+          JOIN nodes        n    ON n.id          = corp.node_id
+          JOIN nodes_nodes  nn   ON nn.node2_id  = n.id
+          
+        WHERE list.node_id     = lmid   -- Master listId
+          AND n.parent_id      = cmid   -- Master CorpusId or AnnuaireId
+          AND n.typename       = tdoc   -- Master childs (Documents or Contacts)
+          AND corp.ngrams_type = tngrams -- both type of ngrams (Authors or Terms1)
+          AND nn.node1_id      = cuid    -- User CorpusId or AnnuaireId
+          AND list.parent_id   IS NULL
+      )
+      
+      SELECT COALESCE(tu.id,tm.id) AS id
+           , COALESCE(tu.parent_id,tm.parent_id) AS parent_id
+           , COALESCE(tu.terms,tm.terms) AS terms
+           , COALESCE(tu.n,tm.n)         AS n
+           , COALESCE(tu.list_type,tm.list_type) AS ngrams_type
+           , SUM(COALESCE(tu.weight,tm.weight)) AS weight
+      FROM tableUser tu RIGHT JOIN tableMaster tm ON tu.terms = tm.terms
+      GROUP BY tu.id,tm.id,tu.parent_id,tm.parent_id,tu.terms,tm.terms,tu.n,tm.n,tu.list_type,tm.list_type
+      ORDER BY 5,6
+      LIMIT lmt
+      OFFSET ofst
+      ;
+END $$
+LANGUAGE plpgsql ;
+
+CREATE OR REPLACE FUNCTION public.tree_end(luid INT, lmid INT,cuid INT, cmid INT, tdoc INT, tngrams INT)
+ RETURNS TABLE (id INT, parent_id INT, terms VARCHAR(255), n int, list_type int, weight float8) AS $$
+BEGIN
+    RETURN QUERY
+      WITH tableUser2 AS (
+          SELECT list.id, list.parent_id, ngs.terms, ngs.n, list.list_type, corp.weight FROM ngrams ngs
+            JOIN nodes_ngrams list ON list.ngrams_id = ngs.id
+            JOIN nodes_ngrams corp ON corp.ngrams_id = ngs.id
+            JOIN nodes_nodes  nn   ON nn.node2_id    = corp.node_id
+            JOIN nodes        n    ON n.id           = corp.node_id
+          
+          WHERE list.node_id     = luid   -- User listId
+            AND nn.node1_id      = cuid   -- User CorpusId or AnnuaireId
+            AND n.typename       = tdoc   -- both type of childs (Documents or Contacts)
+            AND corp.ngrams_type = tngrams  -- both type of ngrams (Authors or Terms or...)
+        )
+        , tableMaster2 AS (
+          SELECT list.id, list.parent_id, ngs.terms, ngs.n, list.list_type, corp.weight FROM ngrams ngs
+            JOIN nodes_ngrams list ON list.ngrams_id = ngs.id
+            JOIN nodes_ngrams corp ON corp.ngrams_id = ngs.id
+            JOIN nodes        n    ON n.id          = corp.node_id
+            JOIN nodes_nodes  nn   ON nn.node2_id  = n.id
+            
+          WHERE list.node_id     = lmid   -- Master listId
+            AND n.parent_id      = cmid   -- Master CorpusId or AnnuaireId
+            AND n.typename       = tdoc   -- Master childs (Documents or Contacts)
+            AND corp.ngrams_type = tngrams   -- both type of ngrams (Authors or Terms1)
+            AND nn.node1_id      = cuid   -- User CorpusId or AnnuaireId
+        )
+        SELECT COALESCE(tu.id,tm.id) as id
+             , COALESCE(tu.parent_id,tm.parent_id) as parent_id
+             , COALESCE(tu.terms,tm.terms) AS terms
+             , COALESCE(tu.n,tm.n)         AS n
+             , COALESCE(tu.list_type,tm.list_type) AS list_type
+             , SUM(COALESCE(tu.weight,tm.weight)) AS weight
+        FROM tableUser2 tu RIGHT JOIN tableMaster2 tm ON tu.terms = tm.terms
+        GROUP BY tu.id,tm.id,tu.parent_id,tm.parent_id,tu.terms,tm.terms,tu.n,tm.n,tu.list_type,tm.list_type
+    ;
+END $$
+LANGUAGE plpgsql ;
+
+
+CREATE OR REPLACE FUNCTION public.tree_ngrams(luid INT, lmid INT,cuid INT, cmid INT, tdoc INT, tngrams INT, lmt INT, ofst INT)
+ RETURNS TABLE (id INT, parent_id INT, terms VARCHAR(255), n int, list_type int, weight float8) AS $$
+BEGIN 
+ RETURN QUERY WITH RECURSIVE
+    ngrams_tree (id,parent_id,terms,n,list_type,weight) AS (
+     SELECT ts.id,ts.parent_id,ts.terms,ts.n,ts.list_type,ts.weight FROM tree_start($1,$2,$3,$4,$5,$6,$7,$8) ts
+      UNION
+     SELECT te.id,te.parent_id,te.terms,te.n,te.list_type,te.weight FROM tree_end($1,$2,$3,$4,$5,$6) as te
+     INNER JOIN ngrams_tree ON te.parent_id = ngrams_tree.id
+     )
+    SELECT * from ngrams_tree;
+END $$
+LANGUAGE plpgsql ;
+
+select * from tree_ngrams(?,?,?,?,?,?,?,?)
+
+  |]
+
+
 
 type ListIdUser   = NodeId
 type ListIdMaster = NodeId

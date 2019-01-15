@@ -309,7 +309,7 @@ ngrams2list = zip (repeat GraphList) . map (\(NgramsT ngt ng) -> (ngt, ng)) . DM
 
 -- | TODO: weight of the list could be a probability
 insertLists :: HasNodeError err => ListId -> [(ListType, (NgramsType, NgramsIndexed))] -> Cmd err Int
-insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) (ngramsTypeId ngt) (fromIntegral $ listTypeId l) 1
+insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) Nothing (ngramsTypeId ngt) (fromIntegral $ listTypeId l) 1
                      | (l,(ngt, ng)) <- lngs
                    ]
 ------------------------------------------------------------------------

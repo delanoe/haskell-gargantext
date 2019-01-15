@@ -16,15 +16,16 @@ if Node is a List     then it is listing (either Stop, Candidate or Map)
 
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-{-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE QuasiQuotes            #-}
-{-# LANGUAGE RankNTypes             #-}
-{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE Arrows                     #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 
 -- TODO NodeNgrams
@@ -32,26 +33,30 @@ module Gargantext.Database.Schema.NodeNgram where
 
 import Data.ByteString (ByteString)
 import Data.Text (Text)
+import Debug.Trace (trace)
 import Control.Lens.TH (makeLenses)
 import Control.Monad (void)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Gargantext.Core.Types.Main (ListTypeId)
 import Gargantext.Database.Utils (mkCmd, Cmd, execPGSQuery)
-import Gargantext.Database.Types.Node (NodeId, ListId)
+import Gargantext.Core.Types.Main (ListTypeId)
+import Gargantext.Database.Types.Node (NodeId, ListId, NodeType(..))
+import Gargantext.Database.Config (nodeTypeId, userMaster)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId)
-import Gargantext.Database.Schema.NodeNgramsNgrams (NgramsChild, NgramsParent, ngramsGroup, Action(..))
+import Gargantext.Database.Schema.NodeNgramsNgrams (NgramsChild, NgramsParent, Action(..))
 import Gargantext.Prelude
 import Gargantext.Database.Utils (formatPGSQuery)
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS (Only(..), Query)
 
 -- | TODO : remove id
-data NodeNgramPoly node_id ngrams_id ngrams_type list_type weight
+data NodeNgramPoly node_id ngrams_id parent_id ngrams_type list_type weight
    = NodeNgram { _nn_node_id    :: node_id
                , _nn_ngrams_id  :: ngrams_id
+               , _nn_parent_id  :: parent_id
+               
                , _nn_ngramsType :: ngrams_type
                , _nn_listType   :: list_type
                , _nn_weight     :: weight
@@ -61,6 +66,8 @@ type NodeNgramWrite =
      NodeNgramPoly
                (Column PGInt4  )
                (Column PGInt4  )
+               (Maybe (Column PGInt4))
+               
                (Column PGInt4  )
                (Column PGInt4  )
                (Column PGFloat8)
@@ -70,6 +77,8 @@ type NodeNgramRead =
        (Column PGInt4  )
        (Column PGInt4  )
        (Column PGInt4  )
+       
+       (Column PGInt4  )
        (Column PGInt4  )
        (Column PGFloat8)
 
@@ -78,11 +87,19 @@ type NodeNgramReadNull =
        (Column (Nullable PGInt4  ))
        (Column (Nullable PGInt4  ))
        (Column (Nullable PGInt4  ))
+       
+       (Column (Nullable PGInt4  ))
        (Column (Nullable PGInt4  ))
        (Column (Nullable PGFloat8))
 
 type NodeNgram =
-     NodeNgramPoly NodeId Int NgramsTypeId Int Double
+     NodeNgramPoly NodeId Int (Maybe NgramsParentId) NgramsTypeId Int Double
+
+newtype NgramsParentId = NgramsParentId Int
+  deriving (Show, Eq, Num)
+
+pgNgramsParentId :: NgramsParentId -> Column PGInt4
+pgNgramsParentId (NgramsParentId n) = pgInt4 n
 
 $(makeAdaptorAndInstance "pNodeNgram" ''NodeNgramPoly)
 makeLenses ''NodeNgramPoly
@@ -92,6 +109,7 @@ nodeNgramTable  = Table "nodes_ngrams"
   ( pNodeNgram NodeNgram
     { _nn_node_id    = required "node_id"
     , _nn_ngrams_id  = required "ngrams_id"
+    , _nn_parent_id  = optional "parent_id"
     , _nn_ngramsType = required "ngrams_type"
     , _nn_listType   = required "list_type"
     , _nn_weight     = required "weight"
@@ -103,9 +121,10 @@ queryNodeNgramTable = queryTable nodeNgramTable
 
 insertNodeNgrams :: [NodeNgram] -> Cmd err Int
 insertNodeNgrams = insertNodeNgramW
-                 . map (\(NodeNgram n g ngt lt w) ->
+                 . map (\(NodeNgram n g p ngt lt w) ->
                           NodeNgram (pgNodeId n)
                                     (pgInt4 g)
+                                    (pgNgramsParentId <$> p)
                                     (pgNgramsTypeId ngt)
                                     (pgInt4 lt)
                                     (pgDouble w)
@@ -150,17 +169,122 @@ UPDATE SET list_type = excluded.list_type
 
                |]
 
+ngramsGroup' :: Action -> [(ListId, NgramsTypeId, NgramsParent, NgramsChild)] -> Cmd err ()
+ngramsGroup' _ [] = pure ()
+ngramsGroup' a input = void $ trace (show input) $ execPGSQuery (ngramsGroupQuery a) (PGS.Only $ Values fields input')
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","text","int4","text","text"]
+    input' = map (\(lid,ntpid,p,c) -> (lid, nodeTypeId NodeList, userMaster, ntpid, p,c)) input
+
+
+ngramsGroupQuery :: Action -> PGS.Query
+ngramsGroupQuery a = case a of
+  Add -> [sql|
+WITH input(lid,listTypeId,masterUsername,ntype,parent_terms,child_terms)
+  AS (?),
+  -- (VALUES (15::"int4",5::"int4",'gargantua'::"text",4::"int4",'input'::"text",'designer'::"text"))),
+
+list_master AS (
+   SELECT n.id from nodes n
+   JOIN auth_user u ON n.user_id = u.id
+   JOIN input ON n.typename = input.listTypeId
+   WHERE u.username = input.masterUsername
+   LIMIT 1
+),
+
+list_user AS(
+    -- FIRST import parent from master to user list
+    INSERT INTO nodes_ngrams (node_id,ngrams_id,parent_id,ngrams_type,list_type,weight)
+    SELECT input.lid,nn.ngrams_id,nn.parent_id,nn.ngrams_type,nn.list_type, nn.weight
+      FROM INPUT
+      JOIN ngrams ng       ON ng.terms     = input.parent_terms
+      JOIN nodes_ngrams nn ON nn.ngrams_id = ng.id
+      JOIN list_master     ON nn.node_id   = list_master.id
+    WHERE
+      nn.ngrams_id = ng.id
+      ON CONFLICT (node_id,ngrams_id,ngrams_type) DO NOTHING
+    )
+
+INSERT INTO nodes_ngrams (node_id,ngrams_id,parent_id,ngrams_type,list_type,weight)
+
+SELECT input.lid, nc.id, nnpu.id, input.ntype, nnmaster.list_type, nnmaster.weight
+FROM input
+
+JOIN ngrams np ON np.terms = input.parent_terms
+JOIN ngrams nc ON nc.terms = input.child_terms
+
+JOIN nodes_ngrams nnpu     ON nnpu.ngrams_id     = np.id
+JOIN nodes_ngrams nnmaster ON nnmaster.ngrams_id = nc.id
+JOIN list_master           ON nnmaster.node_id   = list_master.id
+
+WHERE
+    nnpu.node_id     = input.lid
+AND nnpu.ngrams_type = input.ntype
+
+AND nnmaster.ngrams_id   = nc.id
+AND nnmaster.ngrams_type = ntype
+
+ON CONFLICT (node_id,ngrams_id,ngrams_type) DO
+UPDATE SET parent_id = excluded.parent_id
+
+
+  |]
+  Del -> [sql|
+WITH input(lid,listTypeId,masterUsername,ntype,parent_terms,child_terms)
+  AS (?),
+  -- (VALUES (15::"int4",5::"int4",'gargantua'::"text",4::"int4",'input'::"text",'designer'::"text"))),
+
+list_master AS (
+   SELECT n.id from nodes n
+   JOIN auth_user u ON n.user_id = u.id
+   JOIN input ON n.typename = input.listTypeId
+   WHERE u.username = input.masterUsername
+   LIMIT 1
+),
+
+list_user AS(
+    -- FIRST import parent from master to user list
+    INSERT INTO nodes_ngrams (node_id,ngrams_id,parent_id,ngrams_type,list_type,weight)
+    SELECT input.lid,nn.ngrams_id,nn.parent_id,nn.ngrams_type,nn.list_type, nn.weight
+      FROM INPUT
+      JOIN ngrams ng       ON ng.terms     = input.parent_terms
+      JOIN nodes_ngrams nn ON nn.ngrams_id = ng.id
+      JOIN list_master     ON nn.node_id   = list_master.id
+    WHERE
+      nn.ngrams_id = ng.id
+      ON CONFLICT (node_id,ngrams_id,ngrams_type) DO NOTHING
+    )
+
+INSERT INTO nodes_ngrams (node_id,ngrams_id,parent_id,ngrams_type,list_type,weight)
+
+SELECT input.lid, nc.id, NULL, input.ntype, nnmaster.list_type, nnmaster.weight
+FROM input
+
+JOIN ngrams np ON np.terms = input.parent_terms
+JOIN ngrams nc ON nc.terms = input.child_terms
+
+JOIN nodes_ngrams nnmaster ON nnmaster.ngrams_id = nc.id
+JOIN list_master           ON nnmaster.node_id   = list_master.id
+
+WHERE
+    nnmaster.ngrams_id   = nc.id
+AND nnmaster.ngrams_type = ntype
+
+ON CONFLICT (node_id,ngrams_id,ngrams_type) DO
+UPDATE SET parent_id = NULL
+
+  |]
 
 
 data NodeNgramsUpdate = NodeNgramsUpdate
   { _nnu_lists_update :: [(ListId, NgramsTypeId, NgramsText, ListTypeId)]
-  , _nnu_add_children :: [(ListId, NgramsParent, NgramsChild, Maybe Double)]
-  , _nnu_rem_children :: [(ListId, NgramsParent, NgramsChild, Maybe Double)]
+  , _nnu_add_children :: [(ListId, NgramsTypeId, NgramsParent, NgramsChild)]
+  , _nnu_rem_children :: [(ListId, NgramsTypeId, NgramsParent, NgramsChild)]
   }
 
 -- TODO wrap these updates in a transaction.
 updateNodeNgrams :: NodeNgramsUpdate -> Cmd err ()
 updateNodeNgrams nnu = do
   updateNodeNgrams' $ _nnu_lists_update nnu
-  ngramsGroup Del   $ _nnu_rem_children nnu
-  ngramsGroup Add   $ _nnu_add_children nnu
+  ngramsGroup' Add  $ (trace $ show $ _nnu_add_children nnu) _nnu_add_children nnu
+  ngramsGroup' Del  $ _nnu_rem_children nnu

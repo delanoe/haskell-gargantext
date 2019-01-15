@@ -86,33 +86,24 @@ data DbTreeNode = DbTreeNode { dt_nodeId :: NodeId
 dbTree :: RootId -> Cmd err [DbTreeNode]
 dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> runPGSQuery [sql|
   WITH RECURSIVE
-      -- starting node(s)
-      starting (id, typename, parent_id, name) AS
+      tree (id, typename, parent_id, name) AS
       (
-        SELECT n.id, n.typename, n.parent_id, n.name
-        FROM nodes AS n
-        WHERE n.parent_id = ?           -- this can be arbitrary
-      ),
-      descendants (id, typename, parent_id, name) AS
-      (
-        SELECT id, typename, parent_id, name
-        FROM starting 
-        UNION ALL
-        SELECT n.id, n.typename, n.parent_id, n.name
-        FROM nodes AS n JOIN descendants AS d ON n.parent_id = d.id
-        where n.typename in (2,3,30,31,5,7,9)
-      ),
-      ancestors (id, typename, parent_id, name) AS
-      (
-        SELECT n.id, n.typename, n.parent_id, n.name
-        FROM nodes AS n 
-        WHERE n.id IN (SELECT parent_id FROM starting)
-        UNION ALL
-        SELECT n.id, n.typename, n.parent_id, n.name
-        FROM nodes AS n JOIN ancestors AS a ON n.id = a.parent_id
+        SELECT p.id, p.typename, p.parent_id, p.name
+        FROM nodes AS p
+        WHERE p.id = ?
+        
+        UNION
+        
+        SELECT c.id, c.typename, c.parent_id, c.name
+        FROM nodes AS c
+        
+        INNER JOIN tree AS s ON c.parent_id = s.id
+        WHERE c.typename IN (2,3,30,31,5,7,9)
       )
-  TABLE ancestors
-  UNION ALL
-  TABLE descendants ;
+  SELECT * from tree;
   |] (Only rootId)
+
+
+
+
 
