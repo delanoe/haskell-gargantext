@@ -350,9 +350,9 @@ querySelectTableNgrams = [sql|
 querySelectTableNgramsTrees :: PGS.Query
 querySelectTableNgramsTrees = [sql|
 
-DROP FUNCTION tree_start(integer,integer,integer,integer,integer,integer,integer,integer);
-DROP FUNCTION tree_end(integer,integer,integer,integer,integer,integer);
-DROP FUNCTION tree_ngrams(integer,integer,integer,integer,integer,integer,integer,integer);
+-- DROP FUNCTION tree_start(integer,integer,integer,integer,integer,integer,integer,integer);
+-- DROP FUNCTION tree_end(integer,integer,integer,integer,integer,integer);
+-- DROP FUNCTION tree_ngrams(integer,integer,integer,integer,integer,integer,integer,integer);
 
 CREATE OR REPLACE FUNCTION public.tree_start(luid INT, lmid INT,cuid INT, cmid INT, tdoc INT, tngrams INT, lmt INT, ofst INT)
  RETURNS TABLE (id INT, parent_id INT, terms VARCHAR(255), n int, list_type int, weight float8) AS $$

@@ -30,7 +30,7 @@ import Database.HSparql.QueryGenerator
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Prelude
 import Gargantext.Core (Lang)
-import Network.Wreq
+import Network.Wreq (getWith, Response, defaults, header, param, responseStatus, responseBody)
 import Prelude (String)
 
 route :: EndPoint

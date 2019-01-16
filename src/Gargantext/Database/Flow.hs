@@ -308,7 +308,7 @@ insertGroups lId ngrs =
 ngrams2list :: Map NgramsIndexed (Map NgramsType a)
             -> [(ListType, (NgramsType,NgramsIndexed))]
 ngrams2list m =
-  [ (GraphList, (t, ng))
+  [ (CandidateList, (t, ng))
   | (ng, tm) <- DM.toList m
   , t <- DM.keys tm
   ]
