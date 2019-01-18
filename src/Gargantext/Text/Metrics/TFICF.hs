@@ -7,38 +7,43 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Definition of TFICF
+Definition of TFICF : Term Frequency - Inverse of Context Frequency
 
 -}
 
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Metrics.TFICF where
 
-import GHC.Generics (Generic)
-
-import Data.Maybe (Maybe)
-import Data.Text (Text)
-import Text.Show (Show())
-
--- import Gargantext.Types
+--import Data.Text (Text)
 import Gargantext.Prelude
+import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsTerms)
+
+data TficfContext n m = TficfLanguage n m | TficfCorpus n m | TficfDocument n m
+  deriving (Show)
+
+data Tficf = Tficf { tficf_ngramsId :: NgramsId
+                   , tficf_ngramsTerms :: NgramsTerms
+                   , tficf_score       :: Double
+}
 
 
-data Context = Corpus | Document
-  deriving (Show, Generic)
+type SupraContext = TficfContext
+type InfraContext = TficfContext
 
-data TFICF = TFICF { _tficfTerms    :: Text
-                   , _tficfContext1 :: Context
-                   , _tficfContext2 :: Context
-                   , _tficfScore    :: Maybe Double
-                   } deriving (Show, Generic)
+-- | TFICF is a generalization of TFIDF
+-- https://en.wikipedia.org/wiki/Tf%E2%80%93idf
+tficf :: InfraContext Double Double -> SupraContext Double Double -> Double
+tficf (TficfCorpus c c')  (TficfLanguage l l') = tficf' c c' l l'
+tficf (TficfDocument d d')(TficfCorpus   c c') = tficf' d d' c c'
+tficf _ _ = panic "Not in definition"
+
+tficf' :: Double -> Double -> Double -> Double -> Double
+tficf' c c' l l'
+    | c <= c' && l < l' = (c/c') / log (l/l')
+    | otherwise        = panic "Frequency impossible"
 
 
---tfidf :: Text -> TFICF
---tfidf txt = TFICF txt Document Corpus score
---    where
---        score = Nothing
-
+tficf_example :: [(Double,Double,Double,Double)]
+tficf_example = undefined

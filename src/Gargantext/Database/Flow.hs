@@ -281,7 +281,10 @@ flowList uId cId ngs = do
   pure lId
 
 flowListUser :: HasNodeError err => UserId -> CorpusId -> Cmd err NodeId
-flowListUser uId cId = getOrMkList cId uId
+flowListUser uId cId = do
+  lid <- getOrMkList cId uId
+  -- is <- insertLists lId $ ngrams2list ngs
+  pure lid
 
 ------------------------------------------------------------------------
 
@@ -319,3 +322,11 @@ insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) Nothing (
                      | (l,(ngt, ng)) <- lngs
                    ]
 ------------------------------------------------------------------------
+
+
+
+
+
+
+
+
