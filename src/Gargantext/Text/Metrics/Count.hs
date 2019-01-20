@@ -121,6 +121,7 @@ coocOn' fun ts = DMS.fromListWith (+) xs
            , x >= y
            ]
 
+
 ------------------------------------------------------------------------
 
 coocOnContexts :: (a -> [Text]) -> [[a]] -> Map ([Text], [Text]) Int

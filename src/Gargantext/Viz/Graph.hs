@@ -59,8 +59,8 @@ $(deriveJSON (unPrefix "") ''Attributes)
 instance ToSchema Attributes
 
 data Node = Node { node_size  :: Int
-                 , node_type  :: TypeNode
-                 , node_id    :: Text
+                 , node_type  :: TypeNode -- TODO NgramsType | Person
+                 , node_id    :: Text     -- TODO NgramId
                  , node_label :: Text
                  , node_attributes :: Attributes
                  }
@@ -173,9 +173,9 @@ data2graph labels coocs distance partitions = Graph nodes edges Nothing
     community_id_by_node_id = M.fromList [ (n, c) | LouvainNode n c <- partitions ]
     nodes = [ Node { node_size = maybe 0 identity (M.lookup (n,n) coocs)
                    , node_type = Terms -- or Unknown
-                   , node_id = cs (show n)
+                   , node_id    = cs (show n)
                    , node_label = T.unwords l
-                   , node_attributes = 
+                   , node_attributes =
                      Attributes { clust_default = maybe 0 identity 
                                 (M.lookup n community_id_by_node_id) } }
             | (l, n) <- labels ]
