@@ -33,7 +33,9 @@ import Gargantext.Core.Types.Main
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
+import Gargantext.Database.Metrics.TFICF (getTficf)
 import Gargantext.Text.Terms (extractTerms)
+import Gargantext.Text.Metrics.TFICF (Tficf(..))
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
@@ -103,7 +105,7 @@ flowCorpus' :: HasNodeError err
 flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
 --------------------------------------------------
   -- List Ngrams Flow
-  userListId <- flowListUser userId userCorpusId
+  userListId <- flowListUser userId userCorpusId 300
   printDebug "Working on User ListId : " userListId
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
@@ -280,11 +282,15 @@ flowList uId cId ngs = do
 
   pure lId
 
-flowListUser :: HasNodeError err => UserId -> CorpusId -> Cmd err NodeId
-flowListUser uId cId = do
-  lid <- getOrMkList cId uId
+flowListUser :: HasNodeError err => UserId -> CorpusId -> Int -> Cmd err NodeId
+flowListUser uId cId n = do
+  lId <- getOrMkList cId uId
   -- is <- insertLists lId $ ngrams2list ngs
-  pure lid
+
+  ngs <- take n <$> sortWith tficf_score <$> getTficf userMaster cId lId NgramsTerms
+  _ <- insertNodeNgrams [ NodeNgram lId (tficf_ngramsId ng) Nothing (ngramsTypeId NgramsTerms) (fromIntegral $ listTypeId GraphList) 1 | ng <- ngs]
+
+  pure lId
 
 ------------------------------------------------------------------------
 
@@ -322,11 +328,4 @@ insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) Nothing (
                      | (l,(ngt, ng)) <- lngs
                    ]
 ------------------------------------------------------------------------
-
-
-
-
-
-
-
 

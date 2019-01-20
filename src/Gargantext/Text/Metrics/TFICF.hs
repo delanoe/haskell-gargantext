@@ -26,7 +26,7 @@ data TficfContext n m = TficfLanguage n m | TficfCorpus n m | TficfDocument n m
 data Tficf = Tficf { tficf_ngramsId :: NgramsId
                    , tficf_ngramsTerms :: NgramsTerms
                    , tficf_score       :: Double
-}
+} deriving (Show)
 
 
 type SupraContext = TficfContext
@@ -41,7 +41,7 @@ tficf _ _ = panic "Not in definition"
 
 tficf' :: Double -> Double -> Double -> Double -> Double
 tficf' c c' l l'
-    | c <= c' && l < l' = (c/c') / log (l/l')
+    | c <= c' && l < l' = (l/l') / log (c/c')
     | otherwise        = panic "Frequency impossible"
 
 
