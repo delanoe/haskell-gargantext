@@ -53,6 +53,11 @@ import Prelude (Enum, Bounded, minBound, maxBound, Functor)
 import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as PGS
 
+
+type NgramsTerms = Text
+type NgramsId    = Int
+type Size        = Int
+
 --{-
 data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
                                     , ngrams_terms :: terms
@@ -127,10 +132,6 @@ ngramsTypeId NgramsTerms = 4
 
 fromNgramsTypeId :: NgramsTypeId -> Maybe NgramsType
 fromNgramsTypeId id = lookup id $ fromList [(ngramsTypeId nt,nt) | nt <- [minBound .. maxBound] :: [NgramsType]]
-
-type NgramsTerms = Text
-type NgramsId    = Int
-type Size        = Int
 
 ------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Text.Ngrams
@@ -232,7 +233,7 @@ queryInsertNgrams = [sql|
 getNgramsTableDb :: NodeType -> NgramsType
                  -> NgramsTableParamUser
                  -> Limit -> Offset
-                 -> Cmd err [NgramsTableData']
+                 -> Cmd err [NgramsTableData]
 getNgramsTableDb nt ngrt ntp limit_ offset_ = do
   
   
@@ -245,7 +246,7 @@ getNgramsTableDb nt ngrt ntp limit_ offset_ = do
   
   listMasterId   <- maybe (panic "error master list") (view node_id) <$> head <$> getListsWithParentId corpusMasterId
   
-  getNgramsTableData' nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId) limit_ offset_
+  getNgramsTableData nt ngrt ntp (NgramsTableParam listMasterId corpusMasterId) limit_ offset_
 
 data NgramsTableParam =
      NgramsTableParam { _nt_listId     :: NodeId
@@ -255,44 +256,24 @@ data NgramsTableParam =
 type NgramsTableParamUser   = NgramsTableParam
 type NgramsTableParamMaster = NgramsTableParam
 
-data NgramsTableData = NgramsTableData { _ntd_ngrams   :: Text
-                                       , _ntd_n        :: Int
-                                       , _ntd_listType :: Maybe ListType
-                                       , _ntd_weight   :: Double
-    } deriving (Show)
+
+data NgramsTableData = NgramsTableData { _ntd_id        :: Int
+                                         , _ntd_parent_id :: Maybe Int
+                                         , _ntd_terms     :: Text
+                                         , _ntd_n         :: Int
+                                         , _ntd_listType  :: Maybe ListType
+                                         , _ntd_weight    :: Double
+                                         } deriving (Show)
+
+
 
 getNgramsTableData :: NodeType -> NgramsType
                    -> NgramsTableParamUser -> NgramsTableParamMaster 
                    -> Limit -> Offset
                    -> Cmd err [NgramsTableData]
 getNgramsTableData nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
-  trace ("Ngrams table params" <> show params) <$>
-  map (\(t,n,nt,w) -> NgramsTableData t n (fromListTypeId nt) w) <$>
-    runPGSQuery querySelectTableNgrams params
-      where
-        nodeTId = nodeTypeId   nodeT
-        ngrmTId = ngramsTypeId ngrmT
-        params  = (ul,uc,nodeTId,ngrmTId,ml,mc,nodeTId,ngrmTId,uc) :.
-                  (limit_, offset_)
-
-
-data NgramsTableData' = NgramsTableData' { _ntd2_id        :: Int
-                                         , _ntd2_parent_id :: Maybe Int
-                                         , _ntd2_terms     :: Text
-                                         , _ntd2_n         :: Int
-                                         , _ntd2_listType  :: Maybe ListType
-                                         , _ntd2_weight    :: Double
-                                         } deriving (Show)
-
-
-
-getNgramsTableData' :: NodeType -> NgramsType
-                   -> NgramsTableParamUser -> NgramsTableParamMaster 
-                   -> Limit -> Offset
-                   -> Cmd err [NgramsTableData']
-getNgramsTableData' nodeT ngrmT (NgramsTableParam ul uc) (NgramsTableParam ml mc) limit_ offset_ =
   trace ("Ngrams table params: " <> show params) <$>
-  map (\(i,p,t,n,lt,w) -> NgramsTableData' i p t n (fromListTypeId lt) w) <$>
+  map (\(i,p,t,n,lt,w) -> NgramsTableData i p t n (fromListTypeId lt) w) <$>
     runPGSQuery querySelectTableNgramsTrees params
       where
         nodeTId = nodeTypeId   nodeT

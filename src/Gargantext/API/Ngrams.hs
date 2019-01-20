@@ -58,7 +58,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Schema.Node (defaultList, HasNodeError)
-import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTypeId, ngramsTypeId, NgramsTableData'(..))
+import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Utils (Cmd)
@@ -120,10 +120,10 @@ newtype NgramsTable = NgramsTable { _ngramsTable :: [NgramsElement] }
   deriving (Ord, Eq, Generic, ToJSON, FromJSON, Show)
 
 -- | TODO Check N and Weight
-toNgramsElement :: [NgramsTableData'] -> [NgramsElement]
+toNgramsElement :: [NgramsTableData] -> [NgramsElement]
 toNgramsElement ns = map toNgramsElement' ns
     where
-      toNgramsElement' (NgramsTableData' _ p t _ lt w) = NgramsElement t lt' (round w) p' c'
+      toNgramsElement' (NgramsTableData _ p t _ lt w) = NgramsElement t lt' (round w) p' c'
         where
           p' = case p of
                  Nothing -> Nothing
@@ -132,14 +132,14 @@ toNgramsElement ns = map toNgramsElement' ns
           lt' = maybe (panic "API.Ngrams: listypeId") identity lt
       
       mapParent :: Map Int Text
-      mapParent   = fromListWith (<>) $ map (\(NgramsTableData' i _ t _ _ _) -> (i,t)) ns
+      mapParent   = fromListWith (<>) $ map (\(NgramsTableData i _ t _ _ _) -> (i,t)) ns
       
       mapChildren :: Map Text (Set Text)
       mapChildren = mapKeys (\i -> (maybe (panic "API.Ngrams.mapChildren: ParentId with no Terms: Impossible") identity $ lookup i mapParent))
                   $ fromListWith (<>)
                   $ map (first fromJust)
                   $ filter (isJust . fst)
-                  $ map (\(NgramsTableData' _ p t _ _ _) -> (p, Set.singleton t)) ns
+                  $ map (\(NgramsTableData _ p t _ _ _) -> (p, Set.singleton t)) ns
 
 
 instance Arbitrary NgramsTable where

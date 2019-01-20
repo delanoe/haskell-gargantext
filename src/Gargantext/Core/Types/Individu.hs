@@ -18,3 +18,6 @@ module Gargantext.Core.Types.Individu
 import Data.Text (Text)
 
 type Username = Text
+type UsernameMaster = Username
+type UsernameSimple = Username
+

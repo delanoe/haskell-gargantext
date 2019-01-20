@@ -527,7 +527,7 @@ mkRoot uname uId = case uId > 0 of
 mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd err [CorpusId]
 mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
 
-getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err NodeId
+getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err ListId
 getOrMkList pId uId =
   maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
     where
