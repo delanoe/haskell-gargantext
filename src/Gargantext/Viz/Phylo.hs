@@ -28,6 +28,7 @@ one 8, e54847.
 
 module Gargantext.Viz.Phylo where
 
+import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
 import Data.Maybe   (Maybe)
 import Data.Text    (Text)
@@ -36,6 +37,28 @@ import GHC.Generics (Generic)
 import Gargantext.Database.Schema.Ngrams (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
+
+------------------------------------------------------------------------
+data PhyloFormat =
+     PhyloFormat { _phyloFormat_parm :: PhyloParam
+                 , _phyloFormat_data :: Phylo
+     } deriving (Generic)
+
+-- | .phylo parameters
+data PhyloParam = 
+     PhyloParam { _phyloParam_version     :: Text -- Double ?
+                , _phyloParam_software    :: Software
+                , _phyloParam_params      :: Hash
+     } deriving (Generic)
+
+type Hash = Text
+
+-- | Software
+-- TODO move somewhere since it is generic
+data Software =
+     Software { _software_name    :: Text
+              , _software_version :: Text
+     } deriving (Generic)
 
 ------------------------------------------------------------------------
 -- | Phylo datatype descriptor of a phylomemy
@@ -103,8 +126,18 @@ type PhyloGroupId = (PhyloLevelId, Int)
 type Edge         = (PhyloGroupId, Weight)
 type Weight       = Double
 
+-- | Lenses
+makeLenses ''Phylo
+makeLenses ''PhyloParam
+makeLenses ''PhyloFormat
+makeLenses ''Software
+
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
+-- 
+$(deriveJSON (unPrefix "_software_"  ) ''Software )
+$(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
+$(deriveJSON (unPrefix "_phyloFormat_" ) ''PhyloFormat  )
