@@ -193,7 +193,7 @@ graphV3ToGraph (GraphV3 links nodes) = Graph (map nodeV32node nodes) (zipWith li
     nodeV32node :: NodeV3 -> Node
     nodeV32node (NodeV3 no_id' (AttributesV3 cl') no_s' no_lb')
                 = Node no_s' Terms (cs $ show no_id') no_lb' (Attributes cl')
-    
+
     linkV32edge :: Int -> EdgeV3 -> Edge
     linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') = Edge (cs $ show eo_s') (cs $ show eo_t') ((T.read $ T.unpack eo_w') :: Double) (cs $ show n)
 

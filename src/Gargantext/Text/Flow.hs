@@ -23,8 +23,10 @@ import GHC.IO (FilePath)
 import qualified Data.Text as T
 import Data.Text.IO (readFile)
 
+import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
 import qualified Data.Set as DS
+import Data.Text (Text)
 
 import qualified Data.Array.Accelerate as A
 import qualified Data.Map.Strict as M
@@ -116,7 +118,12 @@ textFlow' termType contexts = do
   let myCooc2 = M.filter (>0) myCooc1
   printDebug "myCooc2 size" (M.size myCooc2)
   printDebug "myCooc2" myCooc2
+  g <- cooc2graph myCooc2
+  pure g
 
+-- TODO use Text only here instead of [Text]
+cooc2graph :: (Map ([Text], [Text]) Int) -> IO Graph
+cooc2graph myCooc = do
 
   -- Filtering terms with inclusion/Exclusion and Specificity/Genericity scores
   let myCooc3 = filterCooc ( FilterConfig (MapListSize    350 )
@@ -124,7 +131,7 @@ textFlow' termType contexts = do
                                           (SampleBins      10 )
                                           (Clusters         3 )
                                           (DefaultValue     0 )
-                           ) myCooc2
+                           ) myCooc
   printDebug "myCooc3 size" $ M.size myCooc3
   printDebug "myCooc3" myCooc3
 
@@ -146,7 +153,7 @@ textFlow' termType contexts = do
   --let distanceMat = distributional matCooc
   printDebug "distanceMat shape" $ A.arrayShape distanceMat
   printDebug "distanceMat" distanceMat
---
+
   --let distanceMap = M.filter (>0) $ mat2map distanceMat
   let distanceMap = M.map (\_ -> 1) $ M.filter (>0) $ mat2map distanceMat
   printDebug "distanceMap size" $ M.size distanceMap
