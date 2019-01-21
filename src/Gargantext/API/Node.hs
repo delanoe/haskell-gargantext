@@ -49,7 +49,7 @@ import Servant
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils (Cmd, CmdM)
+import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mk, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
@@ -59,6 +59,7 @@ import Gargantext.Database.Metrics.Count (getCoocByDocDev)
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
+
 -- Graph
 import Gargantext.Text.Flow (cooc2graph)
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
@@ -252,7 +253,7 @@ graphAPI :: NodeId -> GargServer GraphAPI
 graphAPI cId = undefined
 
 --graphAPI' :: NodeId -> GargServer GraphAPI
---graphAPI' :: NodeId -> Cmd err Graph -- GargServer GraphAPI
+graphAPI' :: NodeId -> Cmd err Graph -- GargServer GraphAPI
 graphAPI' cId = do
 
   nodeGraph <- getNode cId HyperdataGraph

@@ -40,7 +40,7 @@ import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 data PhyloFormat =
-     PhyloFormat { _phyloFormat_parm :: PhyloParam
+     PhyloFormat { _phyloFormat_param :: PhyloParam
                  , _phyloFormat_data :: Phylo
      } deriving (Generic)
 
