@@ -93,7 +93,7 @@ flowInsertAnnuaire name children = do
   (userId, _, userCorpusId) <- subFlowAnnuaire userArbitrary name
   _ <- add userCorpusId (map reId ids)
 
-  printDebug "AnnuaireID" userCorpusId
+ --printDebug "AnnuaireID" userCorpusId
 
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
@@ -102,11 +102,11 @@ flowCorpus' :: HasNodeError err
             => NodeType -> [HyperdataDocument]
             -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
             -> Cmd err CorpusId
-flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
+flowCorpus' NodeCorpus hyperdataDocuments (ids,_masterUserId,_masterCorpusId, userId,userCorpusId) = do
 --------------------------------------------------
   -- List Ngrams Flow
-  userListId <- flowListUser userId userCorpusId 3000
-  printDebug "Working on User ListId : " userListId
+  --userListId <- flowListUser userId userCorpusId 500
+  --printDebug "Working on User ListId : " userListId
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
   -- printDebug "documentsWithId" documentsWithId
@@ -120,8 +120,8 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   -- printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
 
-  listId2    <- flowList masterUserId masterCorpusId indexedNgrams
-  printDebug "Working on ListId : " listId2
+  --listId2    <- flowList masterUserId masterCorpusId indexedNgrams
+  --printDebug "Working on ListId : " listId2
   --}
 --------------------------------------------------
   _ <- mkDashboard userCorpusId userId
@@ -170,8 +170,8 @@ subFlowCorpus username cName = do
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
-  printDebug "(username, userId, rootId, corpusId)"
-              (username, userId, rootId, corpusId)
+  --printDebug "(username, userId, rootId, corpusId)"
+  --            (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
 
@@ -197,8 +197,8 @@ subFlowAnnuaire username _cName = do
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
-  printDebug "(username, userId, rootId, corpusId)"
-              (username, userId, rootId, corpusId)
+  --printDebug "(username, userId, rootId, corpusId)"
+  --            (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
 ------------------------------------------------------------------------
@@ -267,7 +267,7 @@ mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
 ------------------------------------------------------------------------
 flowList :: HasNodeError err => UserId -> CorpusId
          -> Map NgramsIndexed (Map NgramsType (Map NodeId Int)) -> Cmd err ListId
-flowList uId cId ngs = do
+flowList uId cId _ngs = do
   -- printDebug "ngs:" ngs
   lId <- getOrMkList cId uId
   --printDebug "ngs" (DM.keys ngs)
@@ -277,8 +277,8 @@ flowList uId cId ngs = do
   -- _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
-  is <- insertLists lId $ ngrams2list ngs
-  printDebug "listNgrams inserted :" is
+  --is <- insertLists lId $ ngrams2list ngs
+  --printDebug "listNgrams inserted :" is
 
   pure lId
 

@@ -262,16 +262,14 @@ graphAPI nId = do
                                      , LegendField 5 "#FFF" "Energy / Environment"
                                      ]
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-  
-  myCooc <- getCoocByDocDev nId <$> defaultList (maybe (panic "no parentId") identity $ _node_parentId nodeGraph)
-  myCooc' <- myCooc
-  --{-
+  let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
+  lId <- defaultList cId
+  myCooc <- getCoocByDocDev cId lId
   liftIO $ set graph_metadata (Just metadata)
-        <$> cooc2graph myCooc'
+        <$> cooc2graph myCooc
         
         -- <$> maybe defaultGraph identity
         -- <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
-
   -- t <- textFlow (Mono EN) (Contexts contextText)
   -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
