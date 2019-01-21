@@ -35,7 +35,6 @@ import Database.PostgreSQL.Simple (Connection)
 
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils (Cmd, mkCmd)
 
 import Gargantext.Core (Lang)
 import Gargantext.Prelude

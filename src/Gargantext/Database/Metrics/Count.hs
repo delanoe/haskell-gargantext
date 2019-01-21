@@ -11,9 +11,10 @@ Count Ngrams by Context
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Metrics.Count where
 
@@ -30,7 +31,7 @@ import Gargantext.Database.Types.Node (ListId, CorpusId)
 import Gargantext.Database.Types.Node (NodeId)
 import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsType(..), ngramsTypeId, Ngrams(..), NgramsIndexed(..), ngrams, ngramsTerms)
 
-getCoocByDocDev :: HasNodeError err => CorpusId -> ListId -> Cmd err (Map ([Text], [Text]) Coocs)
+getCoocByDocDev :: HasNodeError err => CorpusId -> ListId -> Cmd err (Map ([Text], [Text]) Int)
 getCoocByDocDev cId lId = coocOn (\n-> [ view ( ngrams . ngramsTerms) n]) <$> getNgramsByDoc cId lId
 
 getCoocByDoc :: CorpusId -> ListId -> Cmd err (Map (NgramsIndexed, NgramsIndexed) Coocs)

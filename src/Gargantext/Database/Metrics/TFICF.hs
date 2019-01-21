@@ -14,6 +14,7 @@ TFICF, generalization of TFIDF
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Metrics.TFICF where
 

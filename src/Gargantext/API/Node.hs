@@ -250,34 +250,28 @@ type ChartApi = Summary " Chart API"
 type GraphAPI   = Get '[JSON] Graph
 
 graphAPI :: NodeId -> GargServer GraphAPI
-graphAPI cId = undefined
+graphAPI nId = do
 
---graphAPI' :: NodeId -> GargServer GraphAPI
-graphAPI' :: NodeId -> Cmd err Graph -- GargServer GraphAPI
-graphAPI' cId = do
-
-  nodeGraph <- getNode cId HyperdataGraph
+  nodeGraph <- getNode nId HyperdataGraph
 
   let title = "IMT - Scientific publications - 1982-2017 - English"
-  let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph] [ LegendField 6 "#FFF" "Data processing"
-                                                                                   , LegendField 7 "#FFF" "Networks"
-                                                                                   , LegendField 1 "#FFF" "Material science"
-                                                                                   , LegendField 5 "#FFF" "Energy / Environment"
-                                                                                   ]
-                                       -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-  lId <- defaultList cId
+  let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph]
+                                     [ LegendField 6 "#FFF" "Data processing"
+                                     , LegendField 7 "#FFF" "Networks"
+                                     , LegendField 1 "#FFF" "Material science"
+                                     , LegendField 5 "#FFF" "Energy / Environment"
+                                     ]
+                         -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
   
-  cooc <- getCoocByDocDev cId lId
-
-  graph <- set graph_metadata (Just metadata)
+  myCooc <- getCoocByDocDev nId <$> defaultList (maybe (panic "no parentId") identity $ _node_parentId nodeGraph)
+  myCooc' <- myCooc
+  --{-
+  liftIO $ set graph_metadata (Just metadata)
+        <$> cooc2graph myCooc'
+        
         -- <$> maybe defaultGraph identity
-        <$> cooc2graph cooc
-  {-
-        <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
-  -}
+        -- <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
 
-  pure graph
-  
   -- t <- textFlow (Mono EN) (Contexts contextText)
   -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
