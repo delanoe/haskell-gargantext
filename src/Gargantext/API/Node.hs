@@ -55,10 +55,12 @@ import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
+import Gargantext.Database.Metrics.Count (getCoocByDocDev)
+import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 -- Graph
---import Gargantext.Text.Flow
+import Gargantext.Text.Flow (cooc2graph)
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
 -- import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Offset, Limit)
@@ -245,10 +247,15 @@ type ChartApi = Summary " Chart API"
 
 ------------------------------------------------------------------------
 type GraphAPI   = Get '[JSON] Graph
-graphAPI :: NodeId -> GargServer GraphAPI
-graphAPI nId = do
 
-  nodeGraph <- getNode nId HyperdataGraph
+graphAPI :: NodeId -> GargServer GraphAPI
+graphAPI cId = undefined
+
+--graphAPI' :: NodeId -> GargServer GraphAPI
+--graphAPI' :: NodeId -> Cmd err Graph -- GargServer GraphAPI
+graphAPI' cId = do
+
+  nodeGraph <- getNode cId HyperdataGraph
 
   let title = "IMT - Scientific publications - 1982-2017 - English"
   let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph] [ LegendField 6 "#FFF" "Data processing"
@@ -257,12 +264,19 @@ graphAPI nId = do
                                                                                    , LegendField 5 "#FFF" "Energy / Environment"
                                                                                    ]
                                        -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
+  lId <- defaultList cId
+  
+  cooc <- getCoocByDocDev cId lId
 
   graph <- set graph_metadata (Just metadata)
-        <$> maybe defaultGraph identity
+        -- <$> maybe defaultGraph identity
+        <$> cooc2graph cooc
+  {-
         <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
+  -}
 
   pure graph
+  
   -- t <- textFlow (Mono EN) (Contexts contextText)
   -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
   -- TODO what do we get about the node? to replace contextText
@@ -275,7 +289,7 @@ instance HasNodeError ServantErr where
       mk NoRootFound   = err404 { errBody = e <> "No Root found"         }
       mk NoCorpusFound = err404 { errBody = e <> "No Corpus found"       }
       mk NoUserFound   = err404 { errBody = e <> "No User found"         }
-      
+
       mk MkNode        = err500 { errBody = e <> "Cannot mk node"        }
       mk NegativeId    = err500 { errBody = e <> "Node with negative Id" }
       mk UserNoParent  = err500 { errBody = e <> "Should not have parent"}
