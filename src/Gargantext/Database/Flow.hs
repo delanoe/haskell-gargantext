@@ -105,7 +105,7 @@ flowCorpus' :: HasNodeError err
 flowCorpus' NodeCorpus hyperdataDocuments (ids,_masterUserId,_masterCorpusId, userId,userCorpusId) = do
 --------------------------------------------------
   -- List Ngrams Flow
-  --userListId <- flowListUser userId userCorpusId 500
+  _userListId <- flowListUser userId userCorpusId 500
   --printDebug "Working on User ListId : " userListId
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
