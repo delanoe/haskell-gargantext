@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Graph.Distances.Utils
+Module      : Gargantext.Viz.Graph.Utils
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3

@@ -26,12 +26,14 @@ module Gargantext.Prelude
   , module Text.Read
   , cs
   , module Data.Maybe
+  , round
   , sortWith
   )
   where
 
 import GHC.Exts (sortWith)
 import GHC.Err.Located (undefined)
+import GHC.Real (round)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Maybe (isJust, fromJust, maybe)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer

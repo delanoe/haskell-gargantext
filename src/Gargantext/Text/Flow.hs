@@ -43,6 +43,7 @@ import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
 import Gargantext.Viz.Graph (Graph(..), data2graph)
 import Gargantext.Text.Metrics.Count (cooc)
+import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
 import Gargantext.Text.Terms (TermType, extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
@@ -168,5 +169,6 @@ cooc2graph myCooc = do
 -- Building : -> Graph -> JSON
   --printDebug "partitions" $ DS.size $ DS.fromList $ map (l_community_id) partitions
   --printDebug "partitions" partitions
-  pure $ data2graph (M.toList ti) myCooc4 distanceMap partitions
+  let distanceMap' = bridgeness 5 partitions distanceMap
+  pure $ data2graph (M.toList ti) myCooc4 distanceMap' partitions
 
