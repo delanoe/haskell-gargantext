@@ -75,7 +75,11 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 type GargServer api = forall env m. CmdM env ServantErr m => ServerT api m
 
 -------------------------------------------------------------------
--- | TODO : access by admin only
+-- TODO-ACCESS: access by admin only.
+--              At first let's just have an isAdmin check.
+--              Later: check userId CanDeleteNodes Nothing
+-- TODO-EVENTS: DeletedNodes [NodeId]
+--              {"tag": "DeletedNodes", "nodes": [Int*]}
 type NodesAPI  = Delete '[JSON] Int
 
 -- | Delete Nodes
@@ -85,8 +89,13 @@ nodesAPI :: [NodeId] -> GargServer NodesAPI
 nodesAPI ids = deleteNodes ids
 
 ------------------------------------------------------------------------
--- | TODO: access by admin only
--- To manager the Users roots
+-- | TODO-ACCESS: access by admin only.
+-- At first let's just have an isAdmin check.
+-- Later: CanAccessAnyNode or (CanGetAnyNode, CanPutAnyNode)
+-- To manage the Users roots
+-- TODO-EVENTS:
+--   PutNode ?
+-- TODO needs design discussion.
 type Roots =  Get    '[JSON] [NodeAny]
          :<|> Put    '[JSON] Int -- TODO
 
@@ -97,10 +106,21 @@ roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
 
 -------------------------------------------------------------------
 -- | Node API Types management
--- TODO : access by users
+-- TODO-ACCESS : access by users
+-- No ownership check is needed if we strictly follow the capability model.
+--
+-- CanGetNode (Node, Children, TableApi, TableNgramsApiGet, PairingApi, ChartApi,
+--             SearchAPI)
+-- CanRenameNode (or part of CanEditNode?)
+-- CanCreateChildren (PostNodeApi)
+-- CanEditNode / CanPutNode TODO not implemented yet
+-- CanDeleteNode
+-- CanPatch (TableNgramsApi)
+-- CanFavorite
+-- CanMoveToTrash
 type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> RenameApi
-             :<|> PostNodeApi
+             :<|> PostNodeApi -- TODO move to children POST
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
@@ -121,6 +141,8 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
 
+-- TODO-ACCESS: check userId CanRenameNode nodeId
+-- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
 type RenameApi = Summary " Rename Node"
                :> ReqBody '[JSON] RenameNode
                :> Put     '[JSON] [Int]
@@ -248,6 +270,8 @@ type ChartApi = Summary " Chart API"
              -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
 ------------------------------------------------------------------------
+-- TODO-ACCESS: CanGetNode
+-- TODO-EVENTS: No events as this is a read only query.
 type GraphAPI   = Get '[JSON] Graph
 
 graphAPI :: NodeId -> GargServer GraphAPI
@@ -302,6 +326,8 @@ instance HasTreeError ServantErr where
       mk TooManyRoots = err500 { errBody = e <> "Too many root nodes"           }
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
+-- TODO-ACCESS: CanTree or CanGetNode
+-- TODO-EVENTS: No events as this is a read only query.
 treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI = treeDB
 

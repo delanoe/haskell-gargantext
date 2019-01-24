@@ -248,10 +248,12 @@ type GargAPI' =
                         :> QueryParam "limit"  Int
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
-           
+
+           -- TODO move to NodeAPI?
            :<|> "graph" :> Summary "Graph endpoint"
                         :> Capture "id" NodeId       :> GraphAPI
-           
+
+           -- TODO move to NodeAPI?
            -- Tree endpoint
            :<|> "tree" :> Summary "Tree endpoint"
                        :> Capture "id" NodeId        :> TreeAPI

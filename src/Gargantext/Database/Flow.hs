@@ -97,7 +97,13 @@ flowInsertAnnuaire name children = do
 
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
-
+-- TODO-ACCESS:
+--   check userId       CanFillUserCorpus   userCorpusId
+--   check masterUserId CanFillMasterCorpus masterCorpusId
+--
+-- TODO-EVENTS:
+--   InsertedNgrams ?
+--   InsertedNodeNgrams ?
 flowCorpus' :: HasNodeError err
             => NodeType -> [HyperdataDocument]
             -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)

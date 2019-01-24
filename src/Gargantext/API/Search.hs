@@ -85,6 +85,8 @@ instance ToSchema SearchResults where
       defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
 
 -----------------------------------------------------------------------
+-- TODO-ACCESS: CanSearch? or is it part of CanGetNode
+-- TODO-EVENTS: No event, this is a read-only query.
 type SearchAPI = Post '[JSON] SearchResults
 -----------------------------------------------------------------------
 
