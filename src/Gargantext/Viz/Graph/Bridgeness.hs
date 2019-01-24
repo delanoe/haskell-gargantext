@@ -35,7 +35,7 @@ ordEdgesBetween :: (Ord distance, Ord node)
                 => [node] -> [node]
                 -> Map (node, node) distance
                 -> [((node, node), distance)]
-ordEdgesBetween c1 c2 d = reverse $ sortOn snd $ catMaybes
+ordEdgesBetween c1 c2 d = sortOn snd $ catMaybes
               [ (,) <$> Just   (n1,n2)
                     <*> lookup (n1,n2) d
               | n1 <- c1
@@ -49,11 +49,10 @@ filterEdgesBetween :: (RealFrac b, Ord node, Ord distance) =>
      -> [((node, node), distance)]
 filterEdgesBetween b c1 c2 d = take n d'
   where
-    n  = round $ b * i / (s1 + s2)
+    n  = round $ b * i / (len c1 + len c2)
     d' = ordEdgesBetween c1 c2 d
     i  = fromIntegral $ length d'
-    s1 = fromIntegral $ length (ordEdgesBetween c1 c2 d)
-    s2 = fromIntegral $ length (ordEdgesBetween c2 c2 d)
+    len c = fromIntegral $ length (ordEdgesBetween c c d)
 
 
 bridgeness :: Bridgeness
