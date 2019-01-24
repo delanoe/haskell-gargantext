@@ -50,7 +50,7 @@ import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, ta
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mk, JSONB, NodeError(..), HasNodeError(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
@@ -136,10 +136,11 @@ type ChildrenApi a = Summary " Summary children"
                  :> Get '[JSON] [Node a]
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: JSONB a => proxy a -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p id =  getNode     id p
+nodeAPI :: JSONB a => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
+nodeAPI p uId id
+             =  getNode     id p
            :<|> rename      id
-           :<|> postNode    id
+           :<|> postNode    uId id
            :<|> putNode     id
            :<|> deleteNode  id
            :<|> getChildren id p
@@ -330,8 +331,8 @@ getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
                    -> Cmd err [FacetChart]
 getChart _ _ _ = undefined -- TODO
 
-postNode :: NodeId -> PostNode -> Cmd err [NodeId]
-postNode pId (PostNode name nt) = mk nt (Just pId) name
+postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
+postNode uId pId (PostNode name nt) = mkNodeWithParent nt (Just pId) uId name
 
 putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO
