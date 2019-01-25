@@ -193,9 +193,11 @@ indexNgramsTWith = fmap . indexNgramsWith
 indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed
 indexNgramsWith f n = NgramsIndexed n (f $ _ngramsTerms n)
 
+-- TODO-ACCESS: access must not be checked here but when insertNgrams is called.
 insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
 insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
 
+-- TODO-ACCESS: access must not be checked here but when insertNgrams' is called.
 insertNgrams' :: [Ngrams] -> Cmd err [NgramIds]
 insertNgrams' ns = runPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where

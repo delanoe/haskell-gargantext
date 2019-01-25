@@ -113,6 +113,8 @@ import Database.PostgreSQL.Simple (formatQuery)
 
 data ToDbData = ToDbDocument HyperdataDocument | ToDbContact HyperdataContact
 
+-- TODO-ACCESS: check uId CanInsertDoc pId && checkDocType nodeType
+-- TODO-EVENTS: InsertedNodes
 insertDocuments :: UserId -> ParentId -> NodeType -> [ToDbData] -> Cmd err [ReturnId]
 insertDocuments uId pId nodeType =
     runPGSQuery queryInsert . Only . Values fields . prepare uId pId nodeType

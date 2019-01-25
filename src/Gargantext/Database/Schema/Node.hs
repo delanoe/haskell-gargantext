@@ -500,29 +500,20 @@ childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Nod
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
--- | TODO Use right userId
-mk :: NodeType -> Maybe ParentId -> Text -> Cmd err [NodeId]
-mk nt pId name  = mk' nt userId pId name
-  where
-    userId = 1
-
-mk' :: NodeType -> UserId -> Maybe ParentId -> Text -> Cmd err [NodeId]
-mk' nt uId pId name  = insertNodesWithParentR pId [node nt name hd pId uId]
-  where
-    hd = HyperdataUser . Just . pack $ show EN
-
 type Name = Text
 
-mk'' :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
-mk'' NodeUser Nothing uId name  = mk' NodeUser uId Nothing name
-mk'' NodeUser _       _   _     = nodeError UserNoParent
-mk'' _        Nothing _   _     = nodeError HasParent
-mk'' nt       pId     uId name  = mk' nt uId pId name
+mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
+mkNodeWithParent NodeUser (Just _) _   _     = nodeError UserNoParent
+mkNodeWithParent _        Nothing  _   _     = nodeError HasParent
+mkNodeWithParent nt       pId     uId name   =
+    insertNodesWithParentR pId [node nt name hd pId uId]
+  where
+    hd = HyperdataUser . Just . pack $ show EN
 
 mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
 mkRoot uname uId = case uId > 0 of
                False -> nodeError NegativeId
-               True  -> mk'' NodeUser Nothing uId uname
+               True  -> mkNodeWithParent NodeUser Nothing uId uname
 
 mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd err [CorpusId]
 mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
