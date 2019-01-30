@@ -58,13 +58,11 @@ type NgramsTerms = Text
 type NgramsId    = Int
 type Size        = Int
 
---{-
 data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
-                                    , ngrams_terms :: terms
-                                    , ngrams_n     :: n
-                                    } deriving (Show)
+                                      , ngrams_terms :: terms
+                                      , ngrams_n     :: n
+                                      } deriving (Show)
 
---}
 type NgramsWrite = NgramsPoly (Maybe (Column PGInt4))
                                    (Column PGText)
                                    (Column PGInt4)
@@ -77,7 +75,6 @@ type NgramsReadNull = NgramsPoly (Column (Nullable PGInt4))
                                  (Column (Nullable PGText))
                                  (Column (Nullable PGInt4))
 
---{-
 type NgramsDb = NgramsPoly Int Text Int
 
 $(makeAdaptorAndInstance "pNgramsDb"    ''NgramsPoly)
@@ -85,17 +82,16 @@ $(makeAdaptorAndInstance "pNgramsDb"    ''NgramsPoly)
 
 ngramsTable :: Table NgramsWrite NgramsRead
 ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { ngrams_id    = optional "id"
-                                            , ngrams_terms = required "terms"
-                                            , ngrams_n     = required "n"
-                                            }
-                                )
---{-
+                                                 , ngrams_terms = required "terms"
+                                                 , ngrams_n     = required "n"
+                                                 }
+                              )
+
 queryNgramsTable :: Query NgramsRead
 queryNgramsTable = queryTable ngramsTable
 
 dbGetNgramsDb :: Cmd err [NgramsDb]
 dbGetNgramsDb = runOpaQuery queryNgramsTable
---}
 
 -- | Main Ngrams Types
 -- | Typed Ngrams

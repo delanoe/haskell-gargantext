@@ -279,7 +279,7 @@ graphAPI nId = do
 
   nodeGraph <- getNode nId HyperdataGraph
 
-  let title = "Graph Title"
+  let title = "Title"
   let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"

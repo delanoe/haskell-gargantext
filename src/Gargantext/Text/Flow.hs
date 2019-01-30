@@ -43,6 +43,7 @@ import Gargantext.Text.Terms (TermType, extractTerms)
 import Gargantext.Viz.Graph (Graph(..), data2graph)
 import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
+--import Gargantext.Viz.Graph.Distances.Matrice (distributional)
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
 {-
   ____                             _            _
@@ -153,7 +154,7 @@ cooc2graph myCooc = do
 
 --  let distance = fromIndex fi distanceMap
   --printDebug "distance" $ M.size distance
-  
+
   partitions <- case M.size distanceMap > 0 of
                   True  -> cLouvain distanceMap
                   False -> panic "Text.Flow: DistanceMap is empty"
