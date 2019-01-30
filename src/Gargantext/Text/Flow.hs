@@ -18,41 +18,32 @@ From text to viz, all the flow of texts in Gargantext.
 module Gargantext.Text.Flow
   where
 
+--import qualified Data.Array.Accelerate as A
+--import qualified Data.Set as DS
 import Control.Monad.Reader
-import GHC.IO (FilePath)
-import qualified Data.Text as T
-import Data.Text.IO (readFile)
-
+import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
---import qualified Data.Set as DS
-import Data.Text (Text)
-
---import qualified Data.Array.Accelerate as A
 import qualified Data.Map.Strict as M
-----------------------------------------------
+import qualified Data.Text as T
+import Data.Text (Text)
+import Data.Text.IO (readFile)
 import Database.PostgreSQL.Simple (Connection)
-
+import GHC.IO (FilePath)
+import Gargantext.Core (Lang)
+import Gargantext.Core.Types (CorpusId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types.Node
-
-import Gargantext.Core (Lang)
 import Gargantext.Prelude
-
-import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
-import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
-import Gargantext.Viz.Graph (Graph(..), data2graph)
-import Gargantext.Text.Metrics.Count (cooc)
-import Gargantext.Viz.Graph.Bridgeness (bridgeness)
-import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
-import Gargantext.Text.Terms (TermType, extractTerms)
 import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
-import Gargantext.Core.Types (CorpusId)
-
+import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
+import Gargantext.Text.Metrics.Count (cooc)
 import Gargantext.Text.Parsers.CSV
-
-import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
-
+import Gargantext.Text.Terms (TermType, extractTerms)
+import Gargantext.Viz.Graph (Graph(..), data2graph)
+import Gargantext.Viz.Graph.Bridgeness (bridgeness)
+import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
+import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
 {-
   ____                             _            _
  / ___| __ _ _ __ __ _  __ _ _ __ | |_ _____  _| |_
@@ -169,6 +160,6 @@ cooc2graph myCooc = do
 -- Building : -> Graph -> JSON
   --printDebug "partitions" $ DS.size $ DS.fromList $ map (l_community_id) partitions
   --printDebug "partitions" partitions
-  let distanceMap' = bridgeness 5 partitions distanceMap
+  let distanceMap' = bridgeness 300 partitions distanceMap
   pure $ data2graph (M.toList ti) myCooc4 distanceMap' partitions
 
