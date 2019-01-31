@@ -15,6 +15,7 @@ add get
 
 -}
 
+{-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -24,17 +25,19 @@ add get
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# OPTIONS -fno-warn-orphans #-}
 
 module Gargantext.API.Ngrams
   where
 
-import Prelude (round)
+import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound, round)
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
-import Data.Patch.Class (Replace, replace, new)
---import qualified Data.Map.Strict.Patch as PM
+import Data.Patch.Class (Replace, replace, Action(act), Applicable(..), Composable(..), Group(..), Transformable(..), PairPatch(..), Patched, ConflictResolution)
+import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
@@ -44,9 +47,11 @@ import Data.Tuple.Extra (first)
 -- import qualified Data.Map.Strict as DM
 import Data.Map.Strict (Map, mapKeys, fromListWith)
 --import qualified Data.Set as Set
-import Control.Lens (makeLenses, Prism', prism', (^..), (.~), (#), to, withIndex, folded, ifolded)
+import Control.Concurrent
+import Control.Lens (makeLenses, makePrisms, Getter, Lens', Prism', prism', Iso', iso, (^..), (.~), (#), {-to, withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), dropping, taking)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
+import Control.Monad.Reader
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
@@ -54,17 +59,18 @@ import Data.Map (lookup)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text)
+import Data.Validity
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Schema.Node (defaultList, HasNodeError)
-import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTypeId, ngramsTypeId, NgramsTableData(..))
+-- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId)
+import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTableData(..))
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
-import Gargantext.Database.Schema.NodeNgram
-import Gargantext.Database.Utils (Cmd)
+-- import Gargantext.Database.Schema.NodeNgram hiding (Action)
+import Gargantext.Database.Utils (CmdM)
 import Gargantext.Prelude
-import Gargantext.Core.Types (ListType(..), ListTypeId, ListId, CorpusId, Limit, Offset, listTypeId)
-import Prelude (Enum, Bounded, minBound, maxBound)
+-- import Gargantext.Core.Types (ListTypeId, listTypeId)
+import Gargantext.Core.Types (ListType(..), ListId, CorpusId, Limit, Offset)
 import Servant hiding (Patch)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -116,9 +122,15 @@ instance Arbitrary NgramsElement where
   arbitrary = elements [NgramsElement "sport" GraphList 1 Nothing mempty]
 
 ------------------------------------------------------------------------
-newtype NgramsTable = NgramsTable { _ngramsTable :: [NgramsElement] }
+newtype NgramsTable = NgramsTable [NgramsElement]
   deriving (Ord, Eq, Generic, ToJSON, FromJSON, Show)
 
+makePrisms ''NgramsTable
+
+instance Each NgramsTable NgramsTable NgramsElement NgramsElement where
+  each = _NgramsTable . each
+
+-- TODO discuss
 -- | TODO Check N and Weight
 toNgramsElement :: [NgramsTableData] -> [NgramsElement]
 toNgramsElement ns = map toNgramsElement' ns
@@ -173,8 +185,44 @@ data PatchSet a = PatchSet
   }
   deriving (Eq, Ord, Show, Generic)
 
+makeLenses ''PatchSet
+
 instance (Ord a, Arbitrary a) => Arbitrary (PatchSet a) where
   arbitrary = PatchSet <$> arbitrary <*> arbitrary
+
+type instance ConflictResolution (PatchSet a) = PatchSet a -> PatchSet a -> PatchSet a
+
+instance Ord a => Semigroup (PatchSet a) where
+  p <> q = PatchSet { _rem = (q ^. rem) `Set.difference` (p ^. add) <> p ^. rem
+                    , _add = (q ^. add) `Set.difference` (p ^. rem) <> p ^. add
+                    } -- TODO Review
+
+instance Ord a => Monoid (PatchSet a) where
+  mempty = PatchSet mempty mempty
+
+instance Ord a => Group (PatchSet a) where
+  invert (PatchSet r a) = PatchSet a r
+
+instance Ord a => Composable (PatchSet a) where
+  composable _ _ = mempty
+
+instance Ord a => Action (PatchSet a) (Set a) where
+  act p source = (source `Set.difference` (p ^. rem)) <> p ^. add
+
+instance Applicable (PatchSet a) (Set a) where
+  applicable _ _ = mempty
+
+type instance Patched (PatchSet a) = Set a
+
+instance Ord a => Validity (PatchSet a) where
+  validate p = check (Set.disjoint (p ^. rem) (p ^. add)) "_rem and _add should be dijoint"
+
+instance Ord a => Transformable (PatchSet a) where
+  transformable = undefined
+
+  conflicts _p _q = undefined
+
+  transformWith = undefined
 
 instance ToJSON a => ToJSON (PatchSet a) where
   toJSON     = genericToJSON     $ unPrefix "_"
@@ -203,25 +251,49 @@ data NgramsPatch =
                  , _patch_list     :: Replace ListType   -- TODO Map UserId ListType
                  }
       deriving (Ord, Eq, Show, Generic)
+
 deriveJSON (unPrefix "_") ''NgramsPatch
 makeLenses ''NgramsPatch
-
--- instance Semigroup NgramsPatch where
 
 instance ToSchema  NgramsPatch
 
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
 
-newtype NgramsTablePatch =
-     NgramsTablePatch { _ntp_ngrams_patches :: Map NgramsTerm NgramsPatch }
-      deriving (Ord, Eq, Show, Generic, Arbitrary, ToJSON, FromJSON)
-makeLenses ''NgramsTablePatch
+_NgramsPatch :: Iso' NgramsPatch (PairPatch (PatchSet NgramsTerm) (Replace ListType))
+_NgramsPatch = iso (\(NgramsPatch c l) -> c :*: l) (\(c :*: l) -> NgramsPatch c l)
+
+instance Semigroup NgramsPatch where
+  p <> q = _NgramsPatch # (p ^. _NgramsPatch <> q ^. _NgramsPatch)
+
+instance Monoid NgramsPatch where
+  mempty = _NgramsPatch # mempty
+
+type PatchMap = PM.Patch
+
+newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid)
+makePrisms ''NgramsTablePatch
+instance ToSchema  (PatchMap NgramsTerm NgramsPatch)
 instance ToSchema  NgramsTablePatch
+
+instance Arbitrary NgramsTablePatch where
+  arbitrary = NgramsTablePatch <$> PM.fromMap <$> arbitrary
+
+instance Validity NgramsTablePatch where
+  validate = undefined
+
+ntp_ngrams_patches :: Lens' NgramsTablePatch (Map NgramsTerm NgramsPatch)
+ntp_ngrams_patches = undefined
 
 -- TODO: replace by mempty once we have the Monoid instance
 emptyNgramsTablePatch :: NgramsTablePatch
 emptyNgramsTablePatch = NgramsTablePatch mempty
+
+instance Transformable NgramsTablePatch where
+  transformWith = undefined
+  transformable = undefined
+  conflicts     = undefined
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -289,6 +361,7 @@ instance HasNgramError ServantErr where
 ngramError :: (MonadError e m, HasNgramError e) => NgramError -> m a
 ngramError nne = throwError $ _NgramError # nne
 
+{-
 -- TODO: Replace.old is ignored which means that if the current list
 -- `GraphList` and that the patch is `Replace CandidateList StopList` then
 -- the list is going to be `StopList` while it should keep `GraphList`.
@@ -309,6 +382,7 @@ mkChildrenGroups addOrRem nt patches =
   | (parent, patch) <- patches ^.. ntp_ngrams_patches . ifolded . withIndex
   , child <- patch ^.. patch_children . to addOrRem . folded
   ]
+-}
 
 ngramsTypeFromTabType :: Maybe TabType -> NgramsType
 ngramsTypeFromTabType maybeTabType =
@@ -322,20 +396,87 @@ ngramsTypeFromTabType maybeTabType =
               Terms      -> Ngrams.NgramsTerms
               _          -> panic $ lieu <> "No Ngrams for this tab"
 
+------------------------------------------------------------------------
+data Repo s p = Repo
+  { _r_version :: Version
+  , _r_state   :: s
+  , _r_history :: [p]
+    -- ^ first patch in the list is the most recent
+  }
+
+makeLenses ''Repo
+
+initRepo :: Monoid s => Repo s p
+initRepo = Repo 1 mempty []
+
+type NgramsState      = Map ListId (Map NgramsType NgramsTable)
+type NgramsStatePatch = PatchMap ListId (PatchMap NgramsType NgramsTablePatch)
+type NgramsRepo       = Repo NgramsState NgramsStatePatch
+
+class HasRepoVar env where
+  repoVar :: Getter env (MVar NgramsRepo)
+
+instance HasRepoVar (MVar NgramsRepo) where
+  repoVar = identity
+
+type RepoCmdM env err m =
+  ( CmdM env err m
+  , HasRepoVar env
+  , HasNodeError err
+  )
+------------------------------------------------------------------------
+
+ngramsStatePatchConflictResolution :: ListId -> NgramsType -> ConflictResolution NgramsTablePatch
+ngramsStatePatchConflictResolution = undefined -- TODO
+
+makePrisms ''PM.Patch
+
+class HasInvalidError e where
+  _InvalidError :: Prism' e Validation
+
+instance HasInvalidError ServantErr where
+  _InvalidError = undefined {-prism' make match
+    where
+      err = err500 { errBody = "InvalidError" }
+      make _ = err
+      match e = guard (e == err) $> UnsupportedVersion-}
+
+assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
+assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- cilent.
 -- TODO:
 -- In this perliminary version the OT aspect is missing, therefore the version
 -- number is always 1 and the returned patch is always empty.
-tableNgramsPatch :: (HasNgramError err, HasNodeError err)
+tableNgramsPatch :: (HasNgramError err, HasNodeError err, HasInvalidError err,
+                     RepoCmdM env err m)
                  => CorpusId -> Maybe TabType -> Maybe ListId
                  -> Versioned NgramsTablePatch
-                 -> Cmd err (Versioned NgramsTablePatch)
-tableNgramsPatch corpusId maybeTabType maybeList (Versioned version patch) = do
-  when (version /= 1) $ ngramError UnsupportedVersion
+                 -> m (Versioned NgramsTablePatch)
+tableNgramsPatch corpusId maybeTabType maybeList (Versioned p_version p_table) = do
   let ngramsType = ngramsTypeFromTabType maybeTabType
   listId <- maybe (defaultList corpusId) pure maybeList
+  let (p0, p0_validity) = PM.singleton ngramsType p_table
+  let (p, p_validity) = PM.singleton listId p0
+
+  assertValid p0_validity
+  assertValid p_validity
+
+  var <- view repoVar
+  liftIO $ modifyMVar var $ \r ->
+    let
+      q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
+      (p', q') = transformWith ngramsStatePatchConflictResolution p q
+      r' = r & r_version +~ 1
+             & r_state   %~ undefined -- act p'
+             & r_history %~ (p' :)
+      q'_table = q' ^. _Patch . at listId . _Just . _Patch . at ngramsType . _Just
+    in
+    pure (r', Versioned (r' ^. r_version) q'_table)
+
+  {- DB version
+  when (version /= 1) $ ngramError UnsupportedVersion
   updateNodeNgrams $ NodeNgramsUpdate
     { _nnu_user_list_id = listId
     , _nnu_lists_update = mkListsUpdate ngramsType patch
@@ -343,13 +484,17 @@ tableNgramsPatch corpusId maybeTabType maybeList (Versioned version patch) = do
     , _nnu_add_children = mkChildrenGroups _add ngramsType patch
     }
   pure $ Versioned 1 emptyNgramsTablePatch
+  -}
 
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
-getTableNgrams :: HasNodeError err
+getTableNgrams :: RepoCmdM env err m
                => CorpusId -> Maybe TabType
                -> Maybe ListId -> Maybe Limit -> Maybe Offset
-               -> Cmd err (Versioned NgramsTable)
+               -- -> Maybe MinSize -> Maybe MaxSize
+               -- -> Maybe ListType
+               -- -> Maybe Text -- full text search
+               -> m (Versioned NgramsTable)
 getTableNgrams cId maybeTabType maybeListId mlimit moffset = do
   let ngramsType = ngramsTypeFromTabType maybeTabType
   listId <- maybe (defaultList cId) pure maybeListId
@@ -359,9 +504,21 @@ getTableNgrams cId maybeTabType maybeListId mlimit moffset = do
     limit_  = maybe defaultLimit identity mlimit
     offset_ = maybe 0 identity moffset
 
+  v <- view repoVar
+  repo <- liftIO $ readMVar v
+
+  let ngrams = repo ^.. r_state
+                      . at listId . _Just
+                      . at ngramsType . _Just
+                      . taking limit_ (dropping offset_ each)
+
+  pure $ Versioned (repo ^. r_version) (NgramsTable ngrams)
+
+  {-
   ngramsTableDatas <-
     Ngrams.getNgramsTableDb NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId) limit_ offset_
 
   -- printDebug "ngramsTableDatas" ngramsTableDatas
 
   pure $ Versioned 1 $ NgramsTable (toNgramsElement ngramsTableDatas)
+  -}

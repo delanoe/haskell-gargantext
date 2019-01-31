@@ -68,7 +68,7 @@ runCmd :: Connection -> Cmd err a -> IO (Either err a)
 runCmd conn m = runExceptT $ runReaderT m conn
 
 -- Use only for dev
-runCmdDevWith :: FilePath -> Cmd ServantErr a -> IO a
+runCmdDevWith :: Show err => FilePath -> Cmd err a -> IO a
 runCmdDevWith fp f = do
   conn <- connectGargandb fp
   either (fail . show) pure =<< runCmd conn f
