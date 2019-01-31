@@ -45,10 +45,12 @@ import Web.HttpApiData (parseUrlPiece)
 import qualified Jose.Jwk as Jose
 import qualified Jose.Jwa as Jose
 
+import Control.Concurrent
 import Control.Monad.Logger
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..))
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), initRepo)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -128,6 +130,7 @@ data Env = Env
   { _env_settings :: !Settings
   , _env_logger   :: !LoggerSet
   , _env_conn     :: !Connection
+  , _env_repo_var :: !(MVar NgramsRepo)
   , _env_manager  :: !Manager
   , _env_self_url :: !BaseUrl
   , _env_scrapers :: !ScrapersEnv
@@ -138,6 +141,9 @@ makeLenses ''Env
 
 instance HasConnection Env where
   connection = env_conn
+
+instance HasRepoVar Env where
+  repoVar = env_repo_var
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
@@ -155,12 +161,14 @@ newEnv port file = do
   self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   param <- databaseParameters file
   conn <- connect param
+  repo_var <- newMVar initRepo
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
   pure $ Env
     { _env_settings = settings
     , _env_logger   = logger
     , _env_conn     = conn
+    , _env_repo_var = repo_var
     , _env_manager  = manager
     , _env_scrapers = scrapers_env
     , _env_self_url = self_url
