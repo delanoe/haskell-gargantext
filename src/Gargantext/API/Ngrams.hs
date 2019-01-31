@@ -36,7 +36,11 @@ module Gargantext.API.Ngrams
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound, round)
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
-import Data.Patch.Class (Replace, replace, Action(act), Applicable(..), Composable(..), Group(..), Transformable(..), PairPatch(..), Patched, ConflictResolution)
+import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
+                         Composable(..), Group(..), Transformable(..),
+                         PairPatch(..), Patched, ConflictResolution,
+                         ConflictResolutionReplace,
+                         SimpleConflictResolution')
 import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
 --import Data.Semigroup
@@ -48,7 +52,7 @@ import Data.Tuple.Extra (first)
 import Data.Map.Strict (Map, mapKeys, fromListWith)
 --import qualified Data.Set as Set
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Lens', Prism', prism', Iso', iso, (^..), (.~), (#), {-to, withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), dropping, taking)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), dropping, taking)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
@@ -174,6 +178,9 @@ instance Arbitrary NgramsTable where
 instance ToSchema NgramsTable
 
 ------------------------------------------------------------------------
+type NgramsTableMap = Map NgramsTerm NgramsElement
+
+------------------------------------------------------------------------
 -- On the Client side:
 --data Action = InGroup     NgramsId NgramsId
 --            | OutGroup    NgramsId NgramsId
@@ -190,7 +197,10 @@ makeLenses ''PatchSet
 instance (Ord a, Arbitrary a) => Arbitrary (PatchSet a) where
   arbitrary = PatchSet <$> arbitrary <*> arbitrary
 
-type instance ConflictResolution (PatchSet a) = PatchSet a -> PatchSet a -> PatchSet a
+type instance Patched (PatchSet a) = Set a
+
+type ConflictResolutionPatchSet a = SimpleConflictResolution' (Set a)
+type instance ConflictResolution (PatchSet a) = ConflictResolutionPatchSet a
 
 instance Ord a => Semigroup (PatchSet a) where
   p <> q = PatchSet { _rem = (q ^. rem) `Set.difference` (p ^. add) <> p ^. rem
@@ -212,8 +222,6 @@ instance Ord a => Action (PatchSet a) (Set a) where
 instance Applicable (PatchSet a) (Set a) where
   applicable _ _ = mempty
 
-type instance Patched (PatchSet a) = Set a
-
 instance Ord a => Validity (PatchSet a) where
   validate p = check (Set.disjoint (p ^. rem) (p ^. add)) "_rem and _add should be dijoint"
 
@@ -222,7 +230,7 @@ instance Ord a => Transformable (PatchSet a) where
 
   conflicts _p _q = undefined
 
-  transformWith = undefined
+  transformWith conflict p q = undefined conflict p q
 
 instance ToJSON a => ToJSON (PatchSet a) where
   toJSON     = genericToJSON     $ unPrefix "_"
@@ -260,7 +268,9 @@ instance ToSchema  NgramsPatch
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
 
-_NgramsPatch :: Iso' NgramsPatch (PairPatch (PatchSet NgramsTerm) (Replace ListType))
+type NgramsPatchIso = PairPatch (PatchSet NgramsTerm) (Replace ListType)
+
+_NgramsPatch :: Iso' NgramsPatch NgramsPatchIso
 _NgramsPatch = iso (\(NgramsPatch c l) -> c :*: l) (\(c :*: l) -> NgramsPatch c l)
 
 instance Semigroup NgramsPatch where
@@ -269,31 +279,80 @@ instance Semigroup NgramsPatch where
 instance Monoid NgramsPatch where
   mempty = _NgramsPatch # mempty
 
-type PatchMap = PM.Patch
+instance Validity NgramsPatch where
+  validate p = p ^. _NgramsPatch . to validate
+
+instance Transformable NgramsPatch where
+  transformable p q = transformable (p ^. _NgramsPatch) (q ^. _NgramsPatch)
+
+  conflicts p q = conflicts (p ^. _NgramsPatch) (q ^. _NgramsPatch)
+
+  transformWith conflict p q = (_NgramsPatch # p', _NgramsPatch # q')
+    where
+      (p', q') = transformWith conflict (p ^. _NgramsPatch) (q ^. _NgramsPatch)
+
+type ConflictResolutionNgramsPatch =
+  ( ConflictResolutionPatchSet NgramsTerm
+  , ConflictResolutionReplace ListType
+  )
+type instance ConflictResolution NgramsPatch =
+  ConflictResolutionNgramsPatch
+
+type PatchedNgramsPatch = (Set NgramsTerm, ListType)
+  -- ~ Patched NgramsPatchIso
+type instance Patched NgramsPatch = PatchedNgramsPatch
+
+instance Applicable NgramsPatch (Maybe NgramsElement) where
+  applicable p Nothing   = check (p == mempty) "NgramsPatch should be empty here"
+  applicable p (Just ne) =
+    -- TODO how to patch _ne_parent ?
+    applicable (p ^. patch_children) (ne ^. ne_children) <>
+    applicable (p ^. patch_list)     (ne ^. ne_list)
+
+instance Action NgramsPatch (Maybe NgramsElement) where
+  act _ Nothing   = Nothing
+  act p (Just ne) =
+    -- TODO how to patch _ne_parent ?
+    ne & ne_children %~ act (p ^. patch_children)
+       & ne_list     %~ act (p ^. patch_list)
+       & Just
+
+type PatchMap = PM.PatchMap
 
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
-  deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid)
+  deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
+
+--instance (Ord k, Action pv (Maybe v)) => Action (PatchMap k pv) (Map k v) where
+--
+type instance ConflictResolution NgramsTablePatch =
+  NgramsTerm -> ConflictResolutionNgramsPatch
+
+type PatchedNgramsTablePatch = Map NgramsTerm PatchedNgramsPatch
+  -- ~ Patched (PatchMap NgramsTerm NgramsPatch)
+type instance Patched NgramsTablePatch = PatchedNgramsTablePatch
+
 makePrisms ''NgramsTablePatch
 instance ToSchema  (PatchMap NgramsTerm NgramsPatch)
 instance ToSchema  NgramsTablePatch
 
+instance Applicable NgramsTablePatch (Maybe NgramsTableMap) where
+  applicable p = applicable (p ^. _NgramsTablePatch)
+
+instance Action NgramsTablePatch (Maybe NgramsTableMap) where
+  act p = act (p ^. _NgramsTablePatch)
+              -- (v ^? _Just . _NgramsTable)
+              -- ^? _Just . from _NgramsTable
+
 instance Arbitrary NgramsTablePatch where
   arbitrary = NgramsTablePatch <$> PM.fromMap <$> arbitrary
 
-instance Validity NgramsTablePatch where
-  validate = undefined
-
-ntp_ngrams_patches :: Lens' NgramsTablePatch (Map NgramsTerm NgramsPatch)
-ntp_ngrams_patches = undefined
+-- Should it be less than an Lens' to preserve PatchMap's abstraction.
+-- ntp_ngrams_patches :: Lens' NgramsTablePatch (Map NgramsTerm NgramsPatch)
+-- ntp_ngrams_patches = _NgramsTablePatch .  undefined
 
 -- TODO: replace by mempty once we have the Monoid instance
 emptyNgramsTablePatch :: NgramsTablePatch
 emptyNgramsTablePatch = NgramsTablePatch mempty
-
-instance Transformable NgramsTablePatch where
-  transformWith = undefined
-  transformable = undefined
-  conflicts     = undefined
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -409,7 +468,7 @@ makeLenses ''Repo
 initRepo :: Monoid s => Repo s p
 initRepo = Repo 1 mempty []
 
-type NgramsState      = Map ListId (Map NgramsType NgramsTable)
+type NgramsState      = Map ListId (Map NgramsType NgramsTableMap)
 type NgramsStatePatch = PatchMap ListId (PatchMap NgramsType NgramsTablePatch)
 type NgramsRepo       = Repo NgramsState NgramsStatePatch
 
@@ -426,10 +485,16 @@ type RepoCmdM env err m =
   )
 ------------------------------------------------------------------------
 
-ngramsStatePatchConflictResolution :: ListId -> NgramsType -> ConflictResolution NgramsTablePatch
-ngramsStatePatchConflictResolution = undefined -- TODO
+listTypeConflictResolution :: ListType -> ListType -> ListType
+listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
 
-makePrisms ''PM.Patch
+ngramsStatePatchConflictResolution
+  :: ListId -> NgramsType -> NgramsTerm
+  -> ConflictResolutionNgramsPatch
+ngramsStatePatchConflictResolution _listId _ngramsType _ngramsTerm
+  = ((<>) {- TODO think this through -}, listTypeConflictResolution)
+
+makePrisms ''PM.PatchMap
 
 class HasInvalidError e where
   _InvalidError :: Prism' e Validation
@@ -464,16 +529,19 @@ tableNgramsPatch corpusId maybeTabType maybeList (Versioned p_version p_table) =
   assertValid p_validity
 
   var <- view repoVar
-  liftIO $ modifyMVar var $ \r ->
+  (p'_applicable, vq') <- liftIO $ modifyMVar var $ \r ->
     let
       q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
       r' = r & r_version +~ 1
-             & r_state   %~ undefined -- act p'
+             & r_state   %~ act p'
              & r_history %~ (p' :)
-      q'_table = q' ^. _Patch . at listId . _Just . _Patch . at ngramsType . _Just
+      q'_table = q' ^. _PatchMap . at listId . _Just . _PatchMap . at ngramsType . _Just
+      p'_applicable = applicable p' (r ^. r_state)
     in
-    pure (r', Versioned (r' ^. r_version) q'_table)
+    pure (r', (p'_applicable, Versioned (r' ^. r_version) q'_table))
+  assertValid p'_applicable
+  pure vq'
 
   {- DB version
   when (version /= 1) $ ngramError UnsupportedVersion
