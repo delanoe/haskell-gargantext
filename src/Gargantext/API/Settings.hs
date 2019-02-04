@@ -50,7 +50,7 @@ import Control.Monad.Logger
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..))
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), initRepo)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), initMockRepo)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -161,7 +161,7 @@ newEnv port file = do
   self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   param <- databaseParameters file
   conn <- connect param
-  repo_var <- newMVar initRepo
+  repo_var <- newMVar initMockRepo
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
   pure $ Env

@@ -176,23 +176,25 @@ toNgramsElement ns = map toNgramsElement' ns
                   $ map (\(NgramsTableData _ p t _ _ _) -> (p, Set.singleton t)) ns
 -}
 
+mockTable :: NgramsTable
+mockTable = NgramsTable
+  [ NgramsElement "animal"  GraphList     1  Nothing       (mSetFromList ["dog", "cat"])
+  , NgramsElement "cat"     GraphList     1 (Just "animal") mempty
+  , NgramsElement "cats"    StopList      4  Nothing        mempty
+  , NgramsElement "dog"     GraphList     3 (Just "animal")(mSetFromList ["dogs"])
+  , NgramsElement "dogs"    StopList      4 (Just "dog")    mempty
+  , NgramsElement "fox"     GraphList     1  Nothing        mempty
+  , NgramsElement "object"  CandidateList 2  Nothing        mempty
+  , NgramsElement "nothing" StopList      4  Nothing        mempty
+  , NgramsElement "organic" GraphList     3  Nothing        (mSetFromList ["flower"])
+  , NgramsElement "flower"  GraphList     3 (Just "organic") mempty
+  , NgramsElement "moon"    CandidateList 1  Nothing         mempty
+  , NgramsElement "sky"     StopList      1  Nothing         mempty
+  ]
+
 instance Arbitrary NgramsTable where
-  arbitrary = elements
-              [ NgramsTable
-                [ NgramsElement "animal"  GraphList     1  Nothing       (mSetFromList ["dog", "cat"])
-                , NgramsElement "cat"     GraphList     1 (Just "animal") mempty
-                , NgramsElement "cats"    StopList      4  Nothing        mempty
-                , NgramsElement "dog"     GraphList     3 (Just "animal")(mSetFromList ["dogs"])
-                , NgramsElement "dogs"    StopList      4 (Just "dog")    mempty
-                , NgramsElement "fox"     GraphList     1  Nothing        mempty
-                , NgramsElement "object"  CandidateList 2  Nothing        mempty
-                , NgramsElement "nothing" StopList      4  Nothing        mempty
-                , NgramsElement "organic" GraphList     3  Nothing        (mSetFromList ["flower"])
-                , NgramsElement "flower"  GraphList     3 (Just "organic") mempty
-                , NgramsElement "moon"    CandidateList 1  Nothing         mempty
-                , NgramsElement "sky"     StopList      1  Nothing         mempty
-                ]
-              ]
+  arbitrary = pure mockTable
+
 instance ToSchema NgramsTable
 
 ------------------------------------------------------------------------
@@ -546,6 +548,14 @@ initRepo = Repo 1 mempty []
 type NgramsState      = Map ListId (Map NgramsType NgramsTableMap)
 type NgramsStatePatch = PatchMap ListId (PatchMap NgramsType NgramsTablePatch)
 type NgramsRepo       = Repo NgramsState NgramsStatePatch
+
+initMockRepo :: NgramsRepo
+initMockRepo = Repo 1 s []
+  where
+    s = Map.singleton 1
+      $ Map.singleton Ngrams.NgramsTerms
+      $ Map.fromList
+      [ (n ^. ne_ngrams, n) | n <- mockTable ^. _NgramsTable ]
 
 class HasRepoVar env where
   repoVar :: Getter env (MVar NgramsRepo)
