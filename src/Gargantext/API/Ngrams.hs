@@ -33,33 +33,31 @@ add get
 module Gargantext.API.Ngrams
   where
 
-import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound, round)
+import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-})
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
 import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
-                         Composable(..), Group(..), Transformable(..),
+                         Composable(..), Transformable(..),
                          PairPatch(..), Patched, ConflictResolution,
-                         ConflictResolutionReplace,
-                         SimpleConflictResolution')
+                         ConflictResolutionReplace)
 import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Maybe (isJust)
-import Data.Tuple.Extra (first)
--- import qualified Data.Map.Strict as DM
-import Data.Map.Strict (Map, mapKeys, fromListWith)
+-- import Data.Maybe (isJust)
+-- import Data.Tuple.Extra (first)
+import qualified Data.Map.Strict as Map
+import Data.Map.Strict (Map)
 --import qualified Data.Set as Set
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), dropping, taking)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), dropping, taking)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
-import Data.Map (lookup)
+-- import Data.Map (lookup)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text)
@@ -67,8 +65,8 @@ import Data.Validity
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Schema.Node (defaultList, HasNodeError)
--- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId)
-import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTableData(..))
+-- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
+import Gargantext.Database.Schema.Ngrams (NgramsType)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
 import Gargantext.Database.Utils (CmdM)
@@ -106,6 +104,25 @@ instance Arbitrary TabType
   where
     arbitrary = elements [minBound .. maxBound]
 
+newtype MSet a = MSet (Map a ())
+  deriving (Eq, Ord, Show, Generic, Arbitrary, Semigroup, Monoid)
+
+instance ToJSON a => ToJSON (MSet a) where
+  toJSON     (MSet m) = toJSON     (Map.keys m)
+  toEncoding (MSet m) = toEncoding (Map.keys m)
+
+mSetFromSet :: Set a -> MSet a
+mSetFromSet = MSet . Map.fromSet (const ())
+
+mSetFromList :: Ord a => [a] -> MSet a
+mSetFromList = MSet . Map.fromList . map (\x -> (x, ()))
+
+instance (Ord a, FromJSON a) => FromJSON (MSet a) where
+  parseJSON = fmap mSetFromList . parseJSON
+
+instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
+  -- TODO
+
 ------------------------------------------------------------------------
 type NgramsTerm = Text
 
@@ -114,7 +131,7 @@ data NgramsElement =
                    , _ne_list        :: ListType
                    , _ne_occurrences :: Int
                    , _ne_parent      :: Maybe NgramsTerm
-                   , _ne_children    :: Set NgramsTerm
+                   , _ne_children    :: MSet NgramsTerm
                    }
       deriving (Ord, Eq, Show, Generic)
 
@@ -136,6 +153,7 @@ instance Each NgramsTable NgramsTable NgramsElement NgramsElement where
 
 -- TODO discuss
 -- | TODO Check N and Weight
+{-
 toNgramsElement :: [NgramsTableData] -> [NgramsElement]
 toNgramsElement ns = map toNgramsElement' ns
     where
@@ -148,28 +166,28 @@ toNgramsElement ns = map toNgramsElement' ns
           lt' = maybe (panic "API.Ngrams: listypeId") identity lt
       
       mapParent :: Map Int Text
-      mapParent   = fromListWith (<>) $ map (\(NgramsTableData i _ t _ _ _) -> (i,t)) ns
+      mapParent   = Map.fromListWith (<>) $ map (\(NgramsTableData i _ t _ _ _) -> (i,t)) ns
       
       mapChildren :: Map Text (Set Text)
-      mapChildren = mapKeys (\i -> (maybe (panic "API.Ngrams.mapChildren: ParentId with no Terms: Impossible") identity $ lookup i mapParent))
-                  $ fromListWith (<>)
+      mapChildren = Map.mapKeys (\i -> (maybe (panic "API.Ngrams.mapChildren: ParentId with no Terms: Impossible") identity $ lookup i mapParent))
+                  $ Map.fromListWith (<>)
                   $ map (first fromJust)
                   $ filter (isJust . fst)
                   $ map (\(NgramsTableData _ p t _ _ _) -> (p, Set.singleton t)) ns
-
+-}
 
 instance Arbitrary NgramsTable where
   arbitrary = elements
               [ NgramsTable
-                [ NgramsElement "animal"  GraphList     1  Nothing       (Set.fromList ["dog", "cat"])
+                [ NgramsElement "animal"  GraphList     1  Nothing       (mSetFromList ["dog", "cat"])
                 , NgramsElement "cat"     GraphList     1 (Just "animal") mempty
                 , NgramsElement "cats"    StopList      4  Nothing        mempty
-                , NgramsElement "dog"     GraphList     3 (Just "animal")(Set.fromList ["dogs"])
+                , NgramsElement "dog"     GraphList     3 (Just "animal")(mSetFromList ["dogs"])
                 , NgramsElement "dogs"    StopList      4 (Just "dog")    mempty
                 , NgramsElement "fox"     GraphList     1  Nothing        mempty
                 , NgramsElement "object"  CandidateList 2  Nothing        mempty
                 , NgramsElement "nothing" StopList      4  Nothing        mempty
-                , NgramsElement "organic" GraphList     3  Nothing        (Set.singleton "flower")
+                , NgramsElement "organic" GraphList     3  Nothing        (mSetFromList ["flower"])
                 , NgramsElement "flower"  GraphList     3 (Just "organic") mempty
                 , NgramsElement "moon"    CandidateList 1  Nothing         mempty
                 , NgramsElement "sky"     StopList      1  Nothing         mempty
@@ -193,7 +211,16 @@ data PatchSet a = PatchSet
   deriving (Eq, Ord, Show, Generic)
 
 makeLenses ''PatchSet
+makePrisms ''PatchSet
 
+instance ToJSON a => ToJSON (PatchSet a) where
+  toJSON     = genericToJSON     $ unPrefix "_"
+  toEncoding = genericToEncoding $ unPrefix "_"
+
+instance (Ord a, FromJSON a) => FromJSON (PatchSet a) where
+  parseJSON = genericParseJSON $ unPrefix "_"
+
+{-
 instance (Ord a, Arbitrary a) => Arbitrary (PatchSet a) where
   arbitrary = PatchSet <$> arbitrary <*> arbitrary
 
@@ -214,7 +241,7 @@ instance Ord a => Group (PatchSet a) where
   invert (PatchSet r a) = PatchSet a r
 
 instance Ord a => Composable (PatchSet a) where
-  composable _ _ = mempty
+  composable _ _ = undefined
 
 instance Ord a => Action (PatchSet a) (Set a) where
   act p source = (source `Set.difference` (p ^. rem)) <> p ^. add
@@ -232,14 +259,64 @@ instance Ord a => Transformable (PatchSet a) where
 
   transformWith conflict p q = undefined conflict p q
 
-instance ToJSON a => ToJSON (PatchSet a) where
-  toJSON     = genericToJSON     $ unPrefix "_"
-  toEncoding = genericToEncoding $ unPrefix "_"
-
-instance (Ord a, FromJSON a) => FromJSON (PatchSet a) where
-  parseJSON = genericParseJSON $ unPrefix "_"
-
 instance ToSchema a => ToSchema (PatchSet a)
+-}
+
+type AddRem = Replace (Maybe ())
+
+type PatchMap = PM.PatchMap
+
+newtype PatchMSet a = PatchMSet (PatchMap a AddRem)
+  deriving (Eq, Show, Generic, Validity, Semigroup, Monoid, Transformable, Composable)
+
+type ConflictResolutionPatchMSet a = a -> ConflictResolutionReplace (Maybe ())
+type instance ConflictResolution (PatchMSet a) = ConflictResolutionPatchMSet a
+
+-- TODO this breaks module abstraction
+makePrisms ''PM.PatchMap
+
+makePrisms ''PatchMSet
+
+_PatchMSetIso :: Ord a => Iso' (PatchMSet a) (PatchSet a)
+_PatchMSetIso = _PatchMSet . _PatchMap . iso f g . from _PatchSet
+  where
+    remPatch = replace (Just ()) Nothing
+    addPatch = replace Nothing (Just ())
+    isRem :: Replace (Maybe ()) -> Bool
+    isRem = (== remPatch)
+    f :: Ord a => Map a (Replace (Maybe ())) -> (Set a, Set a)
+    f m = (Map.keysSet rems, Map.keysSet adds)
+      where
+        (rems, adds) = Map.partition isRem m
+    g :: Ord a => (Set a, Set a) -> Map a (Replace (Maybe ()))
+    g (rems, adds) = Map.fromSet (const remPatch) rems
+                  <> Map.fromSet (const addPatch) adds
+
+instance Ord a => Action (PatchMSet a) (MSet a) where
+  act (PatchMSet p) (MSet m) = MSet $ act p m
+
+instance Ord a => Applicable (PatchMSet a) (MSet a) where
+  applicable (PatchMSet p) (MSet m) = applicable p m
+
+instance (Ord a, ToJSON a) => ToJSON (PatchMSet a) where
+  toJSON     = toJSON . view _PatchMSetIso
+  toEncoding = toEncoding . view _PatchMSetIso
+
+instance (Ord a, FromJSON a) => FromJSON (PatchMSet a) where
+  parseJSON = fmap (_PatchMSetIso #) . parseJSON
+
+instance (Ord a, Arbitrary a) => Arbitrary (PatchMSet a) where
+  arbitrary = (PatchMSet . PM.fromMap) <$> arbitrary
+
+instance ToSchema a => ToSchema (PatchMSet a) where
+  -- TODO
+  declareNamedSchema _ = undefined
+
+type instance Patched (PatchMSet a) = MSet a
+
+instance (Eq a, Arbitrary a) => Arbitrary (Replace a) where
+  arbitrary = uncurry replace <$> arbitrary
+    -- If they happen to be equal then the patch is Keep.
 
 instance ToSchema a => ToSchema (Replace a) where
   declareNamedSchema (_ :: proxy (Replace a)) = do
@@ -255,10 +332,10 @@ instance ToSchema a => ToSchema (Replace a) where
       & required .~ [ "old", "new" ]
 
 data NgramsPatch =
-     NgramsPatch { _patch_children :: PatchSet NgramsTerm
+     NgramsPatch { _patch_children :: PatchMSet NgramsTerm
                  , _patch_list     :: Replace ListType   -- TODO Map UserId ListType
                  }
-      deriving (Ord, Eq, Show, Generic)
+      deriving (Eq, Show, Generic)
 
 deriveJSON (unPrefix "_") ''NgramsPatch
 makeLenses ''NgramsPatch
@@ -268,7 +345,7 @@ instance ToSchema  NgramsPatch
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
 
-type NgramsPatchIso = PairPatch (PatchSet NgramsTerm) (Replace ListType)
+type NgramsPatchIso = PairPatch (PatchMSet NgramsTerm) (Replace ListType)
 
 _NgramsPatch :: Iso' NgramsPatch NgramsPatchIso
 _NgramsPatch = iso (\(NgramsPatch c l) -> c :*: l) (\(c :*: l) -> NgramsPatch c l)
@@ -292,7 +369,7 @@ instance Transformable NgramsPatch where
       (p', q') = transformWith conflict (p ^. _NgramsPatch) (q ^. _NgramsPatch)
 
 type ConflictResolutionNgramsPatch =
-  ( ConflictResolutionPatchSet NgramsTerm
+  ( ConflictResolutionPatchMSet NgramsTerm
   , ConflictResolutionReplace ListType
   )
 type instance ConflictResolution NgramsPatch =
@@ -316,8 +393,6 @@ instance Action NgramsPatch (Maybe NgramsElement) where
     ne & ne_children %~ act (p ^. patch_children)
        & ne_list     %~ act (p ^. patch_list)
        & Just
-
-type PatchMap = PM.PatchMap
 
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
   deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
@@ -492,9 +567,7 @@ ngramsStatePatchConflictResolution
   :: ListId -> NgramsType -> NgramsTerm
   -> ConflictResolutionNgramsPatch
 ngramsStatePatchConflictResolution _listId _ngramsType _ngramsTerm
-  = ((<>) {- TODO think this through -}, listTypeConflictResolution)
-
-makePrisms ''PM.PatchMap
+  = (undefined {- TODO think this through -}, listTypeConflictResolution)
 
 class HasInvalidError e where
   _InvalidError :: Prism' e Validation
