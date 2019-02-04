@@ -50,6 +50,7 @@ library:
   - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
   - Gargantext.Text.Metrics
+  - Gargantext.Text.Metrics.TFICF
   - Gargantext.Text.Metrics.CharByChar
   - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Parsers

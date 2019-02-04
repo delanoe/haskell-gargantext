@@ -44,6 +44,8 @@ import Gargantext.Prelude
 import Gargantext.Core.Utils.Prefix (unPrefix)
 
 -----------------------------------------------------------------------
+-- TODO-ACCESS: CanCount
+-- TODO-EVENTS: No events as this is a read only query.
 type CountAPI = Post '[JSON] Counts
 
 -----------------------------------------------------------------------

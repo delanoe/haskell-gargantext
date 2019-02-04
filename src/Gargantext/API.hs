@@ -248,10 +248,12 @@ type GargAPI' =
                         :> QueryParam "limit"  Int
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
-           
+
+           -- TODO move to NodeAPI?
            :<|> "graph" :> Summary "Graph endpoint"
                         :> Capture "id" NodeId       :> GraphAPI
-           
+
+           -- TODO move to NodeAPI?
            -- Tree endpoint
            :<|> "tree" :> Summary "Tree endpoint"
                        :> Capture "id" NodeId        :> TreeAPI
@@ -285,15 +287,17 @@ serverGargAPI :: GargServer GargAPI
 serverGargAPI -- orchestrator
        =  auth
      :<|> roots
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire)
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      fakeUserId
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   fakeUserId
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire) fakeUserId
      :<|> nodesAPI
      :<|> count -- TODO: undefined
      :<|> search
      :<|> graphAPI -- TODO: mock
      :<|> treeAPI
   --   :<|> orchestrator
+  where
+    fakeUserId = 1 -- TODO
 
 serverIndex :: Server (Get '[HTML] Html)
 serverIndex = $(do (Just s) <- liftIO (fileTypeToFileTree (FileTypeFile "purescript-gargantext/dist/index.html"))

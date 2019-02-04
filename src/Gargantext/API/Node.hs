@@ -50,7 +50,7 @@ import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, ta
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mk, JSONB, NodeError(..), HasNodeError(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
@@ -76,7 +76,11 @@ type GargServer api = forall env m. (CmdM env ServantErr m, HasRepoVar env)
                                  => ServerT api m
 
 -------------------------------------------------------------------
--- | TODO : access by admin only
+-- TODO-ACCESS: access by admin only.
+--              At first let's just have an isAdmin check.
+--              Later: check userId CanDeleteNodes Nothing
+-- TODO-EVENTS: DeletedNodes [NodeId]
+--              {"tag": "DeletedNodes", "nodes": [Int*]}
 type NodesAPI  = Delete '[JSON] Int
 
 -- | Delete Nodes
@@ -86,8 +90,13 @@ nodesAPI :: [NodeId] -> GargServer NodesAPI
 nodesAPI ids = deleteNodes ids
 
 ------------------------------------------------------------------------
--- | TODO: access by admin only
--- To manager the Users roots
+-- | TODO-ACCESS: access by admin only.
+-- At first let's just have an isAdmin check.
+-- Later: CanAccessAnyNode or (CanGetAnyNode, CanPutAnyNode)
+-- To manage the Users roots
+-- TODO-EVENTS:
+--   PutNode ?
+-- TODO needs design discussion.
 type Roots =  Get    '[JSON] [NodeAny]
          :<|> Put    '[JSON] Int -- TODO
 
@@ -98,10 +107,21 @@ roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
 
 -------------------------------------------------------------------
 -- | Node API Types management
--- TODO : access by users
+-- TODO-ACCESS : access by users
+-- No ownership check is needed if we strictly follow the capability model.
+--
+-- CanGetNode (Node, Children, TableApi, TableNgramsApiGet, PairingApi, ChartApi,
+--             SearchAPI)
+-- CanRenameNode (or part of CanEditNode?)
+-- CanCreateChildren (PostNodeApi)
+-- CanEditNode / CanPutNode TODO not implemented yet
+-- CanDeleteNode
+-- CanPatch (TableNgramsApi)
+-- CanFavorite
+-- CanMoveToTrash
 type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> RenameApi
-             :<|> PostNodeApi
+             :<|> PostNodeApi -- TODO move to children POST
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
@@ -122,6 +142,8 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
 
+-- TODO-ACCESS: check userId CanRenameNode nodeId
+-- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
 type RenameApi = Summary " Rename Node"
                :> ReqBody '[JSON] RenameNode
                :> Put     '[JSON] [Int]
@@ -137,10 +159,11 @@ type ChildrenApi a = Summary " Summary children"
                  :> Get '[JSON] [Node a]
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: JSONB a => proxy a -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p id =  getNode     id p
+nodeAPI :: JSONB a => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
+nodeAPI p uId id
+             =  getNode     id p
            :<|> rename      id
-           :<|> postNode    id
+           :<|> postNode    uId id
            :<|> putNode     id
            :<|> deleteNode  id
            :<|> getChildren id p
@@ -248,6 +271,8 @@ type ChartApi = Summary " Chart API"
              -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
 ------------------------------------------------------------------------
+-- TODO-ACCESS: CanGetNode
+-- TODO-EVENTS: No events as this is a read only query.
 type GraphAPI   = Get '[JSON] Graph
 
 graphAPI :: NodeId -> GargServer GraphAPI
@@ -255,12 +280,10 @@ graphAPI nId = do
 
   nodeGraph <- getNode nId HyperdataGraph
 
-  let title = "IMT - Scientific publications - 1982-2017 - English"
+  let title = "Title"
   let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph]
-                                     [ LegendField 6 "#FFF" "Data processing"
-                                     , LegendField 7 "#FFF" "Networks"
-                                     , LegendField 1 "#FFF" "Material science"
-                                     , LegendField 5 "#FFF" "Energy / Environment"
+                                     [ LegendField 1 "#FFF" "Cluster"
+                                     , LegendField 2 "#FFF" "Cluster"
                                      ]
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
@@ -302,6 +325,8 @@ instance HasTreeError ServantErr where
       mk TooManyRoots = err500 { errBody = e <> "Too many root nodes"           }
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
+-- TODO-ACCESS: CanTree or CanGetNode
+-- TODO-EVENTS: No events as this is a read only query.
 treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI = treeDB
 
@@ -331,8 +356,8 @@ getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
                    -> Cmd err [FacetChart]
 getChart _ _ _ = undefined -- TODO
 
-postNode :: NodeId -> PostNode -> Cmd err [NodeId]
-postNode pId (PostNode name nt) = mk nt (Just pId) name
+postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
+postNode uId pId (PostNode name nt) = mkNodeWithParent nt (Just pId) uId name
 
 putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO

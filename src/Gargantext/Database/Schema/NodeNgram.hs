@@ -288,6 +288,8 @@ data NodeNgramsUpdate = NodeNgramsUpdate
   }
 
 -- TODO wrap these updates in a transaction.
+-- TODO-ACCESS:
+-- * check userId CanUpdateNgrams userListId
 updateNodeNgrams :: NodeNgramsUpdate -> Cmd err ()
 updateNodeNgrams nnu = do
   updateNodeNgrams' userListId $ _nnu_lists_update nnu

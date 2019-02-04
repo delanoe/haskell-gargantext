@@ -63,7 +63,7 @@ filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = trace ("coocScored "
   where
     selection  = [(x,y) | x <- ts
                         , y <- ts
-                      --  , x >= y
+                        , x > y
                         ]
 
 
