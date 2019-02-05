@@ -615,6 +615,10 @@ assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # 
 --   Insertions are not considered as patches,
 --   they do not extend history,
 --   they do not bump version.
+insertNewOnly :: a -> Maybe a -> Maybe a
+insertNewOnly a = maybe (Just a) (const $ error "insertNewOnly: impossible")
+  -- TODO error handling
+
 insertNewListOfNgramsElements :: RepoCmdM env err m => ListId
                               -> Map NgramsType [NgramsElement] -> m ()
 insertNewListOfNgramsElements listId m = do
