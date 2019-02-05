@@ -26,6 +26,7 @@ import Gargantext.Database.Utils (Cmd, connectGargandb, runCmdDevWith)
 import Gargantext.Database.Types.Node (NodeId)
 --import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
 import Gargantext.API.Node () -- instances
+import Gargantext.API.Ngrams (RepoCmdM)
 import System.Environment (getArgs)
 
 main :: IO ()
@@ -36,9 +37,12 @@ main = do
       createUsers = insertUsers [gargantuaUser,simpleUser]
   _ <- runCmdDevWith iniPath createUsers
   -}
-  let cmd :: Cmd ServantErr NodeId
+
+  {- -- TODO missing repo var...
+  let cmd :: RepoCmdM env ServantErr m => m NodeId
       cmd = flowCorpus CsvHalFormat corpusPath (cs name)
   r <- runCmdDevWith iniPath cmd
+  -}
   pure ()
 
 

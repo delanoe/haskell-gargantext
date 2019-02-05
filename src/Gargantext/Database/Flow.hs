@@ -23,6 +23,7 @@ import Control.Monad.IO.Class (liftIO)
 --import Gargantext.Database.Node.Contact (HyperdataContact(..))
 import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
+import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
 import Data.Tuple.Extra (both)
 import Data.List (concat)
@@ -52,10 +53,13 @@ import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
+
+import Gargantext.API.Ngrams (NgramsElement(..), insertNewListOfNgramsElements, RepoCmdM)
+
 import qualified Data.Map as DM
 
 
-flowCorpus :: HasNodeError err => FileFormat -> FilePath -> CorpusName -> Cmd err CorpusId
+flowCorpus :: RepoCmdM env err m => FileFormat -> FilePath -> CorpusName -> m CorpusId
 flowCorpus ff fp cName = do
   hyperdataDocuments' <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
   params <- flowInsert NodeCorpus hyperdataDocuments' cName
@@ -104,10 +108,10 @@ flowInsertAnnuaire name children = do
 -- TODO-EVENTS:
 --   InsertedNgrams ?
 --   InsertedNodeNgrams ?
-flowCorpus' :: HasNodeError err
+flowCorpus' :: RepoCmdM env err m
             => NodeType -> [HyperdataDocument]
             -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
-            -> Cmd err CorpusId
+            -> m CorpusId
 flowCorpus' NodeCorpus hyperdataDocuments (ids,_masterUserId,_masterCorpusId, userId,userCorpusId) = do
 --------------------------------------------------
   -- List Ngrams Flow
@@ -288,13 +292,19 @@ flowList uId cId _ngs = do
 
   pure lId
 
-flowListUser :: HasNodeError err => UserId -> CorpusId -> Int -> Cmd err NodeId
+flowListUser :: RepoCmdM env err m
+             => UserId -> CorpusId -> Int -> m NodeId
 flowListUser uId cId n = do
   lId <- getOrMkList cId uId
   -- is <- insertLists lId $ ngrams2list ngs
 
   ngs <- take n <$> sortWith tficf_score <$> getTficf userMaster cId lId NgramsTerms
-  _ <- insertNodeNgrams [ NodeNgram lId (tficf_ngramsId ng) Nothing (ngramsTypeId NgramsTerms) (fromIntegral $ listTypeId GraphList) 1 | ng <- ngs]
+--  _ <- insertNodeNgrams [ NodeNgram lId (tficf_ngramsId ng) Nothing (ngramsTypeId NgramsTerms) (fromIntegral $ listTypeId GraphList) 1 | ng <- ngs]
+
+  insertNewListOfNgramsElements lId $
+    DM.singleton NgramsTerms
+      [ NgramsElement (tficf_ngramsTerms ng) GraphList 1 Nothing mempty
+      | ng <- ngs ]
 
   pure lId
 

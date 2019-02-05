@@ -28,6 +28,7 @@ library:
   - Gargantext.API.Auth
   - Gargantext.API.Count
   - Gargantext.API.FrontEnd
+  - Gargantext.API.Ngrams
   - Gargantext.API.Node
   - Gargantext.API.Orchestrator
   - Gargantext.API.Search

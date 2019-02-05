@@ -34,7 +34,7 @@ add get
 module Gargantext.API.Ngrams
   where
 
-import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-})
+import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
 import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
@@ -610,6 +610,18 @@ instance HasInvalidError ServantErr where
 
 assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
 assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
+
+-- Current state:
+--   Insertions are not considered as patches,
+--   they do not extend history,
+--   they do not bump version.
+insertNewListOfNgramsElements :: RepoCmdM env err m => ListId
+                              -> Map NgramsType [NgramsElement] -> m ()
+insertNewListOfNgramsElements listId m = do
+  var <- view repoVar
+  liftIO $ modifyMVar_ var $ pure . (r_state . at listId %~ insertNewOnly m')
+  where
+    m' = (Map.fromList . fmap (\n -> (n ^. ne_ngrams, n))) <$> m
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- cilent.
