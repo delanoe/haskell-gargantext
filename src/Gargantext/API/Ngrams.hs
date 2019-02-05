@@ -23,6 +23,7 @@ add get
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -49,12 +50,14 @@ import Data.Set (Set)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 --import qualified Data.Set as Set
+import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), dropping, taking)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), dropping, taking, itraverse_, (.=), both)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
-import Data.Aeson
+import Control.Monad.State
+import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
 -- import Data.Map (lookup)
@@ -266,10 +269,18 @@ instance ToSchema a => ToSchema (PatchSet a)
 
 type AddRem = Replace (Maybe ())
 
+remPatch, addPatch :: AddRem
+remPatch = replace (Just ()) Nothing
+addPatch = replace Nothing (Just ())
+
+isRem :: Replace (Maybe ()) -> Bool
+isRem = (== remPatch)
+
 type PatchMap = PM.PatchMap
 
 newtype PatchMSet a = PatchMSet (PatchMap a AddRem)
-  deriving (Eq, Show, Generic, Validity, Semigroup, Monoid, Transformable, Composable)
+  deriving (Eq, Show, Generic, Validity, Semigroup, Monoid,
+            Transformable, Composable)
 
 type ConflictResolutionPatchMSet a = a -> ConflictResolutionReplace (Maybe ())
 type instance ConflictResolution (PatchMSet a) = ConflictResolutionPatchMSet a
@@ -282,14 +293,9 @@ makePrisms ''PatchMSet
 _PatchMSetIso :: Ord a => Iso' (PatchMSet a) (PatchSet a)
 _PatchMSetIso = _PatchMSet . _PatchMap . iso f g . from _PatchSet
   where
-    remPatch = replace (Just ()) Nothing
-    addPatch = replace Nothing (Just ())
-    isRem :: Replace (Maybe ()) -> Bool
-    isRem = (== remPatch)
     f :: Ord a => Map a (Replace (Maybe ())) -> (Set a, Set a)
-    f m = (Map.keysSet rems, Map.keysSet adds)
-      where
-        (rems, adds) = Map.partition isRem m
+    f = Map.partition isRem >>> both %~ Map.keysSet
+
     g :: Ord a => (Set a, Set a) -> Map a (Replace (Maybe ()))
     g (rems, adds) = Map.fromSet (const remPatch) rems
                   <> Map.fromSet (const addPatch) adds
@@ -388,13 +394,12 @@ instance Applicable NgramsPatch (Maybe NgramsElement) where
     applicable (p ^. patch_children) (ne ^. ne_children) <>
     applicable (p ^. patch_list)     (ne ^. ne_list)
 
+instance Action NgramsPatch NgramsElement where
+  act p = (ne_children %~ act (p ^. patch_children))
+        . (ne_list     %~ act (p ^. patch_list))
+
 instance Action NgramsPatch (Maybe NgramsElement) where
-  act _ Nothing   = Nothing
-  act p (Just ne) =
-    -- TODO how to patch _ne_parent ?
-    ne & ne_children %~ act (p ^. patch_children)
-       & ne_list     %~ act (p ^. patch_list)
-       & Just
+  act = fmap . act
 
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
   deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
@@ -416,9 +421,9 @@ instance Applicable NgramsTablePatch (Maybe NgramsTableMap) where
   applicable p = applicable (p ^. _NgramsTablePatch)
 
 instance Action NgramsTablePatch (Maybe NgramsTableMap) where
-  act p = act (p ^. _NgramsTablePatch)
-              -- (v ^? _Just . _NgramsTable)
-              -- ^? _Just . from _NgramsTable
+  act p =
+    fmap (execState (reParentNgramsTablePatch p)) .
+    act (p ^. _NgramsTablePatch)
 
 instance Arbitrary NgramsTablePatch where
   arbitrary = NgramsTablePatch <$> PM.fromMap <$> arbitrary
@@ -427,9 +432,23 @@ instance Arbitrary NgramsTablePatch where
 -- ntp_ngrams_patches :: Lens' NgramsTablePatch (Map NgramsTerm NgramsPatch)
 -- ntp_ngrams_patches = _NgramsTablePatch .  undefined
 
--- TODO: replace by mempty once we have the Monoid instance
-emptyNgramsTablePatch :: NgramsTablePatch
-emptyNgramsTablePatch = NgramsTablePatch mempty
+type ReParent a = forall m. MonadState NgramsTableMap m => a -> m ()
+
+reParent :: Maybe NgramsTerm -> ReParent NgramsTerm
+reParent parent child = at child . _Just . ne_parent .= parent
+
+reParentAddRem :: NgramsTerm -> NgramsTerm -> ReParent AddRem
+reParentAddRem parent child p =
+  reParent (if isRem p then Nothing else Just parent) child
+
+reParentNgramsPatch :: NgramsTerm -> ReParent NgramsPatch
+reParentNgramsPatch parent ngramsPatch =
+  itraverse_ (reParentAddRem parent) (ngramsPatch ^. patch_children . _PatchMSet . _PatchMap)
+  -- TODO FoldableWithIndex/TraversableWithIndex for PatchMap
+
+reParentNgramsTablePatch :: ReParent NgramsTablePatch
+reParentNgramsTablePatch p = itraverse_ reParentNgramsPatch (p ^. _NgramsTablePatch. _PatchMap)
+  -- TODO FoldableWithIndex/TraversableWithIndex for PatchMap
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -634,7 +653,7 @@ tableNgramsPatch corpusId maybeTabType maybeList (Versioned p_version p_table) =
     , _nnu_rem_children = mkChildrenGroups _rem ngramsType patch
     , _nnu_add_children = mkChildrenGroups _add ngramsType patch
     }
-  pure $ Versioned 1 emptyNgramsTablePatch
+  pure $ Versioned 1 mempty
   -}
 
 -- | TODO Errors management
