@@ -34,6 +34,7 @@ add get
 module Gargantext.API.Ngrams
   where
 
+--import Debug.Trace (trace)
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
@@ -45,6 +46,7 @@ import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
+-- import qualified Data.List as List
 -- import Data.Maybe (isJust)
 -- import Data.Tuple.Extra (first)
 import qualified Data.Map.Strict as Map
@@ -562,15 +564,15 @@ makeLenses ''Repo
 initRepo :: Monoid s => Repo s p
 initRepo = Repo 1 mempty []
 
+type NgramsRepo       = Repo NgramsState NgramsStatePatch
 type NgramsState      = Map NgramsType (Map NodeId NgramsTableMap)
 type NgramsStatePatch = PatchMap NgramsType (PatchMap NodeId NgramsTablePatch)
-type NgramsRepo       = Repo NgramsState NgramsStatePatch
 
 initMockRepo :: NgramsRepo
 initMockRepo = Repo 1 s []
   where
     s = Map.singleton Ngrams.NgramsTerms
-      $ Map.singleton 1
+      $ Map.singleton 47254
       $ Map.fromList
       [ (n ^. ne_ngrams, n) | n <- mockTable ^. _NgramsTable ]
 
@@ -632,7 +634,7 @@ insertNewListOfNgramsElements listId ngramsType nes = do
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
--- cilent.
+-- client.
 -- TODO:
 -- In this perliminary version the OT aspect is missing, therefore the version
 -- number is always 1 and the returned patch is always empty.
@@ -729,10 +731,15 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset = do
                       . at ngramsType . _Just
                       . taking limit_ (dropping offset_ each)
 
-  pure $ Versioned (repo ^. r_version) (NgramsTable ngrams)
-  -}
+  let ngrams' = case List.null ngrams of
+        True   -> [] -- buildRepoFromDb (TODO sync with DB at shutdown)
+        False  -> ngrams
 
-  {-
+  pure $ Versioned (repo ^. r_version) (NgramsTable ngrams')
+-}
+
+{-
+buildRepoFromDb listId  = do
   ngramsTableDatas <-
     Ngrams.getNgramsTableDb NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId) limit_ offset_
 
