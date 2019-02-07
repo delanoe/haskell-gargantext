@@ -293,7 +293,7 @@ flowList uId cId _ngs = do
   pure lId
 
 flowListUser :: RepoCmdM env err m
-             => UserId -> CorpusId -> Int -> m NodeId
+             => UserId -> CorpusId -> Int -> m ListId
 flowListUser uId cId n = do
   lId <- getOrMkList cId uId
   -- is <- insertLists lId $ ngrams2list ngs
