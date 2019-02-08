@@ -72,6 +72,7 @@ import Gargantext.Prelude
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
+import Gargantext.API.Ngrams (HasRepoVar)
 import Gargantext.API.Node ( GargServer
                            , Roots    , roots
                            , NodeAPI  , nodeAPI
@@ -83,6 +84,7 @@ import Gargantext.API.Node ( GargServer
                            , HyperdataAnnuaire
                            )
 --import Gargantext.Database.Node.Contact (HyperdataContact)
+import Gargantext.Database.Utils (HasConnection)
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
@@ -163,9 +165,8 @@ makeMockApp env = do
 
 
 
-makeDevApp :: Env -> IO Application
-makeDevApp env = do
-    serverApp <- makeApp env
+makeDevMiddleware :: IO Middleware
+makeDevMiddleware = do
 
     -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
     --logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
@@ -192,8 +193,8 @@ makeDevApp env = do
     --let warpS = Warp.setPort (8008 :: Int)   -- (env^.settings.appPort)
     --          $ Warp.defaultSettings
     
-    --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
-    pure $ logStdoutDev $ corsMiddleware $ serverApp
+    --pure (warpS, logWare . checkOriginAndHost . corsMiddleware)
+    pure $ logStdoutDev . corsMiddleware
 
 ---------------------------------------------------------------------
 -- | API Global
@@ -276,7 +277,8 @@ type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 ---------------------------------------------------------------------
 -- | Server declarations
 
-server :: Env -> IO (Server API)
+server :: (HasConnection env, HasRepoVar env) => env
+       -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
@@ -312,7 +314,7 @@ gargMock :: Server GargAPI
 gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
-makeApp :: Env -> IO Application
+makeApp :: (HasConnection env, HasRepoVar env) => env -> IO Application
 makeApp = fmap (serve api) . server
 
 appMock :: Application
@@ -372,8 +374,9 @@ startGargantext :: PortNumber -> FilePath -> IO ()
 startGargantext port file = do
   env <- newEnv port file
   portRouteInfo port
-  app <- makeDevApp env
-  run port app
+  app <- makeApp env
+  mid <- makeDevMiddleware
+  run port $ mid app
 
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
