@@ -20,14 +20,14 @@ module Gargantext.Database.Cooc where
 import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
-import Gargantext.Database.Utils (Cmd, runCmdDevNoErr, runPGSQuery)
+import Gargantext.Database.Utils (Cmd, HasConnection, runCmdDevNoErr, runPGSQuery)
 
 type CorpusId    = Int
 type MainListId  = Int
 type GroupListId = Int
 
-coocTest :: IO [(Int, Int, Int)]
-coocTest = runCmdDevNoErr $ dBcooc 421968 446602 446599
+coocTest :: HasConnection env => env -> IO [(Int, Int, Int)]
+coocTest env = runCmdDevNoErr env $ dBcooc 421968 446602 446599
 
 dBcooc :: CorpusId -> MainListId -> GroupListId -> Cmd err [(Int, Int, Int)]
 dBcooc corpus mainList groupList = runPGSQuery [sql|

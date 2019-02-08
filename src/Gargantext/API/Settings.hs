@@ -173,3 +173,29 @@ newEnv port file = do
     , _env_scrapers = scrapers_env
     , _env_self_url = self_url
     }
+
+data DevEnv = DevEnv
+  { _dev_env_conn     :: !Connection
+  , _dev_env_repo_var :: !(MVar NgramsRepo)
+  }
+
+makeLenses ''DevEnv
+
+instance HasConnection DevEnv where
+  connection = dev_env_conn
+
+instance HasRepoVar DevEnv where
+  repoVar = dev_env_repo_var
+
+newDevEnvWith :: FilePath -> IO DevEnv
+newDevEnvWith file = do
+  param <- databaseParameters file
+  conn <- connect param
+  repo_var <- newMVar initMockRepo
+  pure $ DevEnv
+    { _dev_env_conn     = conn
+    , _dev_env_repo_var = repo_var
+    }
+
+newDevEnv :: IO DevEnv
+newDevEnv = newDevEnvWith "gargantext.ini"
