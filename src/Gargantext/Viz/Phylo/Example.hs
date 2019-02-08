@@ -59,7 +59,37 @@ type PeriodeSize = Int
 type Occurrences = Int
 
 
+------------------------------------------------------------------------
+-- | Phylo'' ?
+-- | phylo_id = date && source data && query && [operations]
+-- | node_type = 0 | 1 | 2 | 3 <=> root | emergence | recombination | steady
 
+data Phylo'' a = Phylo'' { phylo_id :: a
+                         , branch_list :: [Branch a]
+                         }
+
+data Branch a = Branch { branch_id :: Int
+                       , cluster_list :: [Cluster' a]
+                       , cluster_edge :: [Edge a]
+                       } 
+
+data Cluster' a = Cluster' { cluster_node :: Node a
+                           , cluster_date :: Date
+                           , term_list :: [Node a]
+                           , term_edge :: [Edge a]
+                           }
+
+data Edge a = Edge { edge_id :: Int
+                   , edge_source :: Node a
+                   , edge_target :: Node a
+                   }
+
+
+data Node a = Node { node_id :: Int
+                   , node_label :: Ngrams
+                   , node_type :: a
+                   , node_score :: a
+                   }
 
 ------------------------------------------------------------------------
 -- | Phylo == Phylo' ?
@@ -103,20 +133,24 @@ phylo :: (Document -> [Ngrams])
       -> Map (Date, Date) [Document]
       -> Map (Date, Date) (Map (Set Ngrams) Int)
 phylo f = DM.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
+
 ------------------------------------------------------------------------
+-- | Create a Map of (time steps) and [documents]
 toPeriodes :: (Ord date, Enum date) => (doc -> date)
      -> Grain -> Step -> [doc] -> Map (date, date) [doc]
 toPeriodes _ _ _ [] = panic "Empty corpus can not have any periods"
 toPeriodes f g s es = DM.fromList $ zip hs $ map (inPeriode f es) hs
   where
     hs = steps g s $ both f (DL.head es, DL.last es)
-
+    ------------------------------------------------------------------------
+    -- | select documents by given periods, following steps
     inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]
     inPeriode f' h (start,end) =
       fst $ DL.partition (\d -> f' d >= start && f' d <= end) h
     ------------------------------------------------------------------------
     -- | Steps of linear and homogenous time of integer as granalurity measure
     -- chunkAlong deals with [] case (not error with head and last then)
+    -- | Split a period of time (first and last date of Corpus) into regular steps 
     steps :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
     steps s' o' (start,end) = map (\l -> (DL.head l, DL.last l))
                           $ chunkAlong s' o' [start .. end]
