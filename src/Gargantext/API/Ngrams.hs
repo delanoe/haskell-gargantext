@@ -71,6 +71,8 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Schema.Ngrams (NgramsType)
+import Gargantext.Database.Utils (fromField')
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
 import Gargantext.Prelude
@@ -404,6 +406,14 @@ instance Action NgramsPatch (Maybe NgramsElement) where
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
   deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
 
+instance FromField NgramsTablePatch
+  where
+    fromField = fromField'
+
+instance FromField (PatchMap NgramsType (PatchMap NodeId NgramsTablePatch))
+  where
+    fromField = fromField'
+
 --instance (Ord k, Action pv (Maybe v)) => Action (PatchMap k pv) (Map k v) where
 --
 type instance ConflictResolution NgramsTablePatch =
@@ -722,28 +732,4 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset = do
 
   getTableNgrams' listIds ngramsType
     & mapped . v_data . _NgramsTable %~ (take limit_ . drop offset_)
-{-
-  v <- view repoVar
-  repo <- liftIO $ readMVar v
 
-  let ngrams = repo ^.. r_state
-                      . at listId . _Just
-                      . at ngramsType . _Just
-                      . taking limit_ (dropping offset_ each)
-
-  let ngrams' = case List.null ngrams of
-        True   -> [] -- buildRepoFromDb (TODO sync with DB at shutdown)
-        False  -> ngrams
-
-  pure $ Versioned (repo ^. r_version) (NgramsTable ngrams')
--}
-
-{-
-buildRepoFromDb listId  = do
-  ngramsTableDatas <-
-    Ngrams.getNgramsTableDb NodeDocument ngramsType (Ngrams.NgramsTableParam listId cId) limit_ offset_
-
-  -- printDebug "ngramsTableDatas" ngramsTableDatas
-
-  pure $ Versioned 1 $ NgramsTable (toNgramsElement ngramsTableDatas)
-  -}

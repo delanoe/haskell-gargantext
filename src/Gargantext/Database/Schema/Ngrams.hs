@@ -25,6 +25,7 @@ Ngrams connection to the Database.
 
 module Gargantext.Database.Schema.Ngrams where
 
+import Data.Aeson (FromJSON, FromJSONKey)
 import Control.Lens (makeLenses, view, over)
 import Control.Monad (mzero)
 import Data.ByteString.Internal (ByteString)
@@ -100,7 +101,10 @@ dbGetNgramsDb = runOpaQuery queryNgramsTable
 -- ngrams in authors field of document has Authors Type
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
-  deriving (Eq, Show, Ord, Enum, Bounded)
+  deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+
+instance FromJSON NgramsType
+instance FromJSONKey NgramsType
 
 newtype NgramsTypeId = NgramsTypeId Int
   deriving (Eq, Show, Ord, Num)

@@ -60,7 +60,7 @@ import Gargantext.API.Ngrams (NgramsElement(..), insertNewListOfNgramsElements, 
 import qualified Data.Map as DM
 
 type FlowCmdM env err m =
-  ( CmdM env err m
+  ( CmdM     env err m
   , RepoCmdM env err m
   , HasNodeError err
   )
@@ -349,4 +349,3 @@ insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) Nothing (
                      | (l,(ngt, ng)) <- lngs
                    ]
 ------------------------------------------------------------------------
-

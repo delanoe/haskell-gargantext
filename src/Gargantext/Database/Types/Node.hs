@@ -28,8 +28,7 @@ import Prelude (Enum, Bounded, minBound, maxBound)
 
 import GHC.Generics (Generic)
 
-import           Control.Lens hiding (elements)
-import qualified Control.Lens   as L
+import           Control.Lens hiding (elements, (&))
 import           Control.Applicative ((<*>))
 import           Control.Monad (mzero)
 
@@ -41,7 +40,7 @@ import           Data.ByteString.Lazy (ByteString)
 import           Data.Either
 import           Data.Eq (Eq)
 import           Data.Monoid (mempty)
-import           Data.Text (Text, unpack)
+import           Data.Text (Text, unpack, pack)
 import           Data.Time (UTCTime)
 import           Data.Time.Segment (jour, timesAfter, Granularity(D))
 import           Data.Swagger
@@ -72,9 +71,10 @@ instance FromField NodeId where
     if (n :: Int) > 0 then return $ NodeId n
                       else mzero
 
-instance ToJSON NodeId
-instance FromJSON NodeId
-instance ToSchema NodeId
+instance ToJSON      NodeId
+instance FromJSON    NodeId
+instance FromJSONKey NodeId
+instance ToSchema    NodeId
 
 instance FromHttpApiData NodeId where
   parseUrlPiece n = pure $ NodeId $ (read . cs) n
@@ -237,11 +237,8 @@ instance ToSchema Event where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 ------------------------------------------------------------------------
-
-type Text' = Text
-
-instance Arbitrary Text' where
-  arbitrary = elements ["ici", "la"]
+instance Arbitrary Text where
+  arbitrary = elements $ map (\c -> pack [c]) ['a'..'z']
 
 data Resource = Resource { resource_path    :: Maybe Text
                          , resource_scraper :: Maybe Text
@@ -500,27 +497,24 @@ docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",
 
 instance ToSchema HyperdataCorpus where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
-    L.& mapped.schema.description ?~ "a corpus"
-    L.& mapped.schema.example ?~ toJSON hyperdataCorpus
-
+    & mapped.schema.description ?~ "a corpus"
+    & mapped.schema.example ?~ toJSON hyperdataCorpus
 
 instance ToSchema HyperdataAnnuaire where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
-    L.& mapped.schema.description ?~ "an annuaire"
-    L.& mapped.schema.example ?~ toJSON hyperdataAnnuaire
-
+    & mapped.schema.description ?~ "an annuaire"
+    & mapped.schema.example ?~ toJSON hyperdataAnnuaire
 
 instance ToSchema HyperdataDocument where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
-    L.& mapped.schema.description ?~ "a document"
-    L.& mapped.schema.example ?~ toJSON hyperdataDocument
-
+    & mapped.schema.description ?~ "a document"
+    & mapped.schema.example ?~ toJSON hyperdataDocument
 
 instance ToSchema HyperdataAny where
   declareNamedSchema proxy =
     pure $ genericNameSchema defaultSchemaOptions proxy mempty
-             L.& schema.description ?~ "a node"
-             L.& schema.example ?~ emptyObject -- TODO
+             & schema.description ?~ "a node"
+             & schema.example ?~ emptyObject -- TODO
 
 
 instance ToSchema hyperdata =>

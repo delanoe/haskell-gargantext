@@ -1,7 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
--- needed for rights management
--- CREATE EXTENSION IF NOT EXISTS acl WITH SCHEMA public;
 
 -- CREATE USER WITH ...
 -- createdb "gargandb"
@@ -23,6 +21,7 @@ CREATE TABLE public.auth_user (
 
 ALTER TABLE public.auth_user OWNER TO gargantua;
 
+
 -- TODO add publication_date
 -- TODO typename -> type_id
 CREATE TABLE public.nodes (
@@ -40,7 +39,6 @@ CREATE TABLE public.nodes (
 ALTER TABLE public.nodes OWNER TO gargantua;
 
 
-
 CREATE TABLE public.ngrams (
     id SERIAL,
     terms character varying(255),
@@ -49,7 +47,9 @@ CREATE TABLE public.ngrams (
 );
 ALTER TABLE public.ngrams OWNER TO gargantua;
 
--- TODO: delete ID
+--------------------------------------------------------------
+--------------------------------------------------------------
+-- TODO: delete delete this table
 CREATE TABLE public.nodes_ngrams (
     id SERIAL,
     node_id integer NOT NULL,
@@ -64,13 +64,21 @@ CREATE TABLE public.nodes_ngrams (
     -- PRIMARY KEY (node_id,ngrams_id)
 );
 ALTER TABLE public.nodes_ngrams OWNER TO gargantua;
+--------------------------------------------------------------
 
---
--- Name: nodes_ngrams_ngrams; Type: TABLE; Schema: public; Owner: gargantua
---
+CREATE TABLE public.nodes_ngrams_repo (
+    version integer NOT NULL,
+    patches jsonb DEFAULT '{}'::jsonb NOT NULL,
+    PRIMARY KEY (version)
+);
+ALTER TABLE public.nodes_ngrams_repo OWNER TO gargantua;
 
+--------------------------------------------------------------
+--
+--
+-- TODO: delete delete this table
 CREATE TABLE public.nodes_ngrams_ngrams (
-    node_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
+    node_id   integer NOT NULL REFERENCES public.nodes(id)  ON DELETE CASCADE,
     ngram1_id integer NOT NULL REFERENCES public.ngrams(id) ON DELETE CASCADE,
     ngram2_id integer NOT NULL REFERENCES public.ngrams(id) ON DELETE CASCADE,
     weight double precision,
@@ -79,7 +87,7 @@ CREATE TABLE public.nodes_ngrams_ngrams (
 
 ALTER TABLE public.nodes_ngrams_ngrams OWNER TO gargantua;
 
-
+---------------------------------------------------------
 CREATE TABLE public.nodes_nodes (
     node1_id integer NOT NULL,
     node2_id integer NOT NULL,
@@ -89,8 +97,23 @@ CREATE TABLE public.nodes_nodes (
     PRIMARY KEY (node1_id, node2_id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
+---------------------------------------------------------
+
+-- If needed for rights management at row level
+-- CREATE EXTENSION IF NOT EXISTS acl WITH SCHEMA public;
+
+CREATE TABLE public.rights (
+  user_id INTEGER NOT NULL REFERENCES public.auth_user(id) ON DELETE CASCADE,
+  node_id INTEGER NOT NULL REFERENCES public.nodes(id)     ON DELETE CASCADE,
+  rights  INTEGER NOT NULL,
+  PRIMARY KEY (user_id, node_id)
+);
+ALTER TABLE public.rights OWNER TO gargantua;
+
+CREATE INDEX rights_userId_nodeId ON public.rights USING btree (user_id,node_id);
 
 
+------------------------------------------------------------
 -- INDEXES
 CREATE UNIQUE INDEX ON public.auth_user(username);
 
