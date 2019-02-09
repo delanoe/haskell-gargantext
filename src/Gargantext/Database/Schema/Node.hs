@@ -510,13 +510,14 @@ childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a c
 
 type Name = Text
 
+-- | TODO mk all others nodes
 mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
-mkNodeWithParent NodeUser (Just _) _   _     = nodeError UserNoParent
---mkNodeWithParent _        Nothing  _   _     = nodeError HasParent
-mkNodeWithParent nt       pId     uId name   =
-    insertNodesWithParentR pId [node nt name hd pId uId]
-  where
-    hd = HyperdataUser . Just . pack $ show EN
+mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
+mkNodeWithParent NodeUser Nothing  uId name =
+  insertNodesWithParentR Nothing [node NodeUser name hd Nothing uId]
+    where
+      hd = HyperdataUser . Just . pack $ show EN
+mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 
 mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
 mkRoot uname uId = case uId > 0 of
