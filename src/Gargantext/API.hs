@@ -44,6 +44,7 @@ import           GHC.Generics (D1, Meta (..), Rep)
 import           GHC.TypeLits (AppendSymbol, Symbol)
 
 import           Control.Lens
+import           Control.Exception (finally)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader (runReaderT)
 import           Data.Aeson.Encode.Pretty (encodePretty)
@@ -72,7 +73,7 @@ import Gargantext.Prelude
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
-import Gargantext.API.Ngrams (HasRepoVar)
+import Gargantext.API.Ngrams (HasRepoVar(..))
 import Gargantext.API.Node ( GargServer
                            , Roots    , roots
                            , NodeAPI  , nodeAPI
@@ -369,6 +370,11 @@ portRouteInfo port = do
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
+stopGargantext :: HasRepoVar env => env -> IO ()
+stopGargantext env = do
+  T.putStrLn "----- Stopping gargantext -----"
+  cleanEnv env
+
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: PortNumber -> FilePath -> IO ()
 startGargantext port file = do
@@ -376,7 +382,7 @@ startGargantext port file = do
   portRouteInfo port
   app <- makeApp env
   mid <- makeDevMiddleware
-  run port $ mid app
+  run port (mid app) `finally` stopGargantext env
 
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do

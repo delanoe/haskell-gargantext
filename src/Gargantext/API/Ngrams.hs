@@ -568,6 +568,14 @@ data Repo s p = Repo
   , _r_history :: [p]
     -- ^ first patch in the list is the most recent
   }
+  deriving (Generic)
+
+instance (FromJSON s, FromJSON p) => FromJSON (Repo s p) where
+  parseJSON = genericParseJSON $ unPrefix "_r_"
+
+instance (ToJSON s, ToJSON p) => ToJSON (Repo s p) where
+  toJSON     = genericToJSON     $ unPrefix "_r_"
+  toEncoding = genericToEncoding $ unPrefix "_r_"
 
 makeLenses ''Repo
 

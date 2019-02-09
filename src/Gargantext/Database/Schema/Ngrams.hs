@@ -28,6 +28,7 @@ module Gargantext.Database.Schema.Ngrams where
 import Data.Aeson (FromJSON, FromJSONKey)
 import Control.Lens (makeLenses, view, over)
 import Control.Monad (mzero)
+import Data.Aeson
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -105,6 +106,8 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
 
 instance FromJSON NgramsType
 instance FromJSONKey NgramsType
+instance ToJSON NgramsType
+instance ToJSONKey NgramsType
 
 newtype NgramsTypeId = NgramsTypeId Int
   deriving (Eq, Show, Ord, Num)

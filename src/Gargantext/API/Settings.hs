@@ -22,16 +22,18 @@ Portability : POSIX
 module Gargantext.API.Settings
     where
 
+import System.Directory
 import System.Log.FastLogger
 import GHC.Enum
 import GHC.Generics (Generic)
-import Prelude (Bounded())
+import Prelude (Bounded(), fail)
 import System.Environment (lookupEnv)
 import System.IO (FilePath)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
 
+import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
 import Data.Text
@@ -50,7 +52,7 @@ import Control.Monad.Logger
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..))
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), initMockRepo)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), initMockRepo, r_version)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -152,6 +154,26 @@ data MockEnv = MockEnv
 
 makeLenses ''MockEnv
 
+repoSnapshot :: FilePath
+repoSnapshot = "repo.json"
+
+readRepo :: IO (MVar NgramsRepo)
+readRepo = do
+  repoExists <- doesFileExist repoSnapshot
+  newMVar =<<
+    if repoExists
+      then do
+        e_repo <- eitherDecodeFileStrict repoSnapshot
+        repo <- either fail pure e_repo
+        let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
+        renameFile repoSnapshot archive
+        pure repo
+      else
+        pure initMockRepo
+
+cleanEnv :: HasRepoVar env => env -> IO ()
+cleanEnv env = encodeFile repoSnapshot =<< readMVar (env ^. repoVar)
+
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
   manager <- newTlsManager
@@ -161,7 +183,7 @@ newEnv port file = do
   self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   param <- databaseParameters file
   conn <- connect param
-  repo_var <- newMVar initMockRepo
+  repo_var <- readRepo
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
   pure $ Env
