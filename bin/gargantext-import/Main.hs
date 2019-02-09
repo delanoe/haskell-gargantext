@@ -19,6 +19,7 @@ Import a corpus binary.
 
 module Main where
 
+import Control.Exception (finally)
 import Servant (ServantErr)
 import Gargantext.Prelude
 import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
@@ -27,7 +28,7 @@ import Gargantext.Database.Utils (Cmd, connectGargandb, runCmdDev)
 import Gargantext.Database.Types.Node (CorpusId)
 --import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
 import Gargantext.API.Node () -- instances
-import Gargantext.API.Settings (newDevEnvWith, DevEnv)
+import Gargantext.API.Settings (newDevEnvWith, cleanEnv, DevEnv)
 import System.Environment (getArgs)
 
 main :: IO ()
@@ -36,14 +37,16 @@ main = do
 
   env <- newDevEnvWith iniPath
 
-  {-let createUsers :: Cmd ServantErr Int64
-      createUsers = insertUsers [gargantuaUser,simpleUser]
-  _ <- runCmdDev env createUsers
-  -}
+  (do
+    {-let createUsers :: Cmd ServantErr Int64
+        createUsers = insertUsers [gargantuaUser,simpleUser]
+    _ <- runCmdDev env createUsers
+    -}
 
-  let cmd :: FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmd = flowCorpus CsvHalFormat corpusPath (cs name)
-  r <- runCmdDev env cmd
-  pure ()
+    let cmd :: FlowCmdM DevEnv ServantErr m => m CorpusId
+        cmd = flowCorpus CsvHalFormat corpusPath (cs name)
+    _ <- runCmdDev env cmd
+    pure ()
+    ) `finally` cleanEnv env
 
 

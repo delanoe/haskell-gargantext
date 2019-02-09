@@ -60,7 +60,7 @@ import           Gargantext.Core.Utils.Prefix (unPrefix)
 --import Gargantext.Database.Utils
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
-  deriving (Show, Read, Generic, Num, Eq, Ord, Enum)
+  deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
 
 instance ToField NodeId where
   toField (NodeId n) = toField n
@@ -71,10 +71,7 @@ instance FromField NodeId where
     if (n :: Int) > 0 then return $ NodeId n
                       else mzero
 
-instance ToJSON      NodeId
-instance FromJSON    NodeId
-instance FromJSONKey NodeId
-instance ToSchema    NodeId
+instance ToSchema NodeId
 
 instance FromHttpApiData NodeId where
   parseUrlPiece n = pure $ NodeId $ (read . cs) n
