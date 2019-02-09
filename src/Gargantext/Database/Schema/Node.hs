@@ -512,7 +512,7 @@ type Name = Text
 
 mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
 mkNodeWithParent NodeUser (Just _) _   _     = nodeError UserNoParent
-mkNodeWithParent _        Nothing  _   _     = nodeError HasParent
+--mkNodeWithParent _        Nothing  _   _     = nodeError HasParent
 mkNodeWithParent nt       pId     uId name   =
     insertNodesWithParentR pId [node nt name hd pId uId]
   where

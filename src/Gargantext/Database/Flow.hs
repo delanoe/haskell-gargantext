@@ -14,6 +14,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE FlexibleContexts  #-}
 
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
@@ -54,19 +55,24 @@ import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
-
+import Gargantext.API.Ngrams (HasRepoVar)
+import Servant (ServantErr)
 import Gargantext.API.Ngrams (NgramsElement(..), insertNewListOfNgramsElements, RepoCmdM)
-
+--import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
 import qualified Data.Map as DM
 
 type FlowCmdM env err m =
   ( CmdM     env err m
   , RepoCmdM env err m
   , HasNodeError err
+  , HasRepoVar env
   )
 
-flowCorpus :: FlowCmdM env err m => FileFormat -> FilePath -> CorpusName -> m CorpusId
+
+flowCorpus :: FlowCmdM env ServantErr m
+           => FileFormat -> FilePath -> CorpusName -> m CorpusId
 flowCorpus ff fp cName = do
+  --insertUsers [gargantuaUser, simpleUser]
   hyperdataDocuments' <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
   params <- flowInsert NodeCorpus hyperdataDocuments' cName
   flowCorpus' NodeCorpus hyperdataDocuments' params
@@ -86,7 +92,7 @@ flowInsert _nt hyperdataDocuments cName = do
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
 
-flowAnnuaire :: HasNodeError err => FilePath -> Cmd err ()
+flowAnnuaire :: FlowCmdM env ServantErr m => FilePath -> m ()
 flowAnnuaire filePath = do
   contacts <- liftIO $ deserialiseImtUsersFromFile filePath
   ps <- flowInsertAnnuaire "Annuaire" $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts
@@ -103,7 +109,7 @@ flowInsertAnnuaire name children = do
   (userId, _, userCorpusId) <- subFlowAnnuaire userArbitrary name
   _ <- add userCorpusId (map reId ids)
 
- --printDebug "AnnuaireID" userCorpusId
+  printDebug "AnnuaireID" userCorpusId
 
   pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
 
@@ -118,26 +124,26 @@ flowCorpus' :: FlowCmdM env err m
             => NodeType -> [HyperdataDocument]
             -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
             -> m CorpusId
-flowCorpus' NodeCorpus hyperdataDocuments (ids,_masterUserId,_masterCorpusId, userId,userCorpusId) = do
+flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
 --------------------------------------------------
   -- List Ngrams Flow
-  _userListId <- flowListUser userId userCorpusId 500
-  --printDebug "Working on User ListId : " userListId
+  userListId <- flowListUser userId userCorpusId 500
+  printDebug "Working on User ListId : " userListId
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
-  -- printDebug "documentsWithId" documentsWithId
+  printDebug "documentsWithId" documentsWithId
   docsWithNgrams <- documentIdWithNgrams extractNgramsT documentsWithId
-  -- printDebug "docsWithNgrams" docsWithNgrams
+  printDebug "docsWithNgrams" docsWithNgrams
   let maps            = mapNodeIdNgrams docsWithNgrams
 
   -- printDebug "maps" (maps)
   terms2id <- insertNgrams $ DM.keys maps
   let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
-  -- printDebug "inserted ngrams" indexedNgrams
+  printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
 
-  --listId2    <- flowList masterUserId masterCorpusId indexedNgrams
-  --printDebug "Working on ListId : " listId2
+  listId2    <- flowList masterUserId masterCorpusId indexedNgrams
+  printDebug "Working on ListId : " listId2
   --}
 --------------------------------------------------
   _ <- mkDashboard userCorpusId userId
@@ -158,21 +164,24 @@ type CorpusName = Text
 subFlowCorpus :: HasNodeError err => Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
 subFlowCorpus username cName = do
   maybeUserId <- getUser username
-
   userId <- case maybeUserId of
         Nothing   -> nodeError NoUserFound
         -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> pure $ userLight_id user
 
+  printDebug "userId" userId
   rootId' <- map _node_id <$> getRoot username
 
+  printDebug "rootId'" rootId'
   rootId'' <- case rootId' of
         []  -> mkRoot username userId
         n   -> case length n >= 2 of
             True  -> nodeError ManyNodeUsers
             False -> pure rootId'
-  rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
 
+  printDebug "rootId''" rootId''
+  rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
+  
   corpusId'' <- if username == userMaster
                   then do
                     ns <- getCorporaWithParentId rootId
@@ -186,8 +195,8 @@ subFlowCorpus username cName = do
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
-  --printDebug "(username, userId, rootId, corpusId)"
-  --            (username, userId, rootId, corpusId)
+  printDebug "(username, userId, rootId, corpusId)"
+              (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
 
@@ -213,8 +222,8 @@ subFlowAnnuaire username _cName = do
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
-  --printDebug "(username, userId, rootId, corpusId)"
-  --            (username, userId, rootId, corpusId)
+  printDebug "(username, userId, rootId, corpusId)"
+              (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
 ------------------------------------------------------------------------
@@ -283,18 +292,18 @@ mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
 ------------------------------------------------------------------------
 flowList :: HasNodeError err => UserId -> CorpusId
          -> Map NgramsIndexed (Map NgramsType (Map NodeId Int)) -> Cmd err ListId
-flowList uId cId _ngs = do
+flowList uId cId ngs = do
   -- printDebug "ngs:" ngs
   lId <- getOrMkList cId uId
-  --printDebug "ngs" (DM.keys ngs)
+  printDebug "ngs" (DM.keys ngs)
   -- TODO add stemming equivalence of 2 ngrams
   -- TODO needs rework
   -- let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
   -- _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
-  --is <- insertLists lId $ ngrams2list ngs
-  --printDebug "listNgrams inserted :" is
+  is <- insertLists lId $ ngrams2list ngs
+  printDebug "listNgrams inserted :" is
 
   pure lId
 
