@@ -518,6 +518,8 @@ mkNodeWithParent NodeUser Nothing  uId name =
     where
       hd = HyperdataUser . Just . pack $ show EN
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
+mkNodeWithParent _ _ _ _ = nodeError NotImplYet
+
 
 mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
 mkRoot uname uId = case uId > 0 of
