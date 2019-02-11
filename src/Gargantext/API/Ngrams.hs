@@ -644,9 +644,9 @@ something :: Monoid a => Maybe a -> a
 something Nothing  = mempty
 something (Just a) = a
 
-insertNewListOfNgramsElements :: RepoCmdM env err m => NodeId -> NgramsType
+putListNgrams :: RepoCmdM env err m => NodeId -> NgramsType
                               -> [NgramsElement] -> m ()
-insertNewListOfNgramsElements listId ngramsType nes = do
+putListNgrams listId ngramsType nes = do
   var <- view repoVar
   liftIO $ modifyMVar_ var $
     pure . (r_state . at ngramsType %~ (Just . (at listId %~ insertNewOnly m) . something))
