@@ -151,6 +151,8 @@ instance Arbitrary NgramsElement where
 newtype NgramsTable = NgramsTable [NgramsElement]
   deriving (Ord, Eq, Generic, ToJSON, FromJSON, Show)
 
+type ListNgrams = NgramsTable
+
 makePrisms ''NgramsTable
 
 instance Each NgramsTable NgramsTable NgramsElement NgramsElement where
@@ -662,9 +664,9 @@ tableNgramsPatch :: (HasNgramError err, HasInvalidError err,
                  -> Versioned NgramsTablePatch
                  -> m (Versioned NgramsTablePatch)
 tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table) = do
-  let ngramsType = ngramsTypeFromTabType maybeTabType
-  let (p0, p0_validity) = PM.singleton listId p_table
-  let (p, p_validity) = PM.singleton ngramsType p0
+  let ngramsType        = ngramsTypeFromTabType maybeTabType
+      (p0, p0_validity) = PM.singleton listId p_table
+      (p, p_validity)   = PM.singleton ngramsType p0
 
   assertValid p0_validity
   assertValid p_validity
@@ -681,6 +683,7 @@ tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table) = d
       p'_applicable = applicable p' (r ^. r_state)
     in
     pure (r', (p'_applicable, Versioned (r' ^. r_version) q'_table))
+
   assertValid p'_applicable
   pure vq'
 
@@ -705,9 +708,9 @@ mergeNgramsElement _neOld neNew = neNew
   }
   -}
 
-getTableNgrams' :: RepoCmdM env err m
-                => [NodeId] -> NgramsType -> m (Versioned NgramsTable)
-getTableNgrams' nodeIds ngramsType = do
+getListNgrams :: RepoCmdM env err m
+                => [NodeId] -> NgramsType -> m (Versioned ListNgrams)
+getListNgrams nodeIds ngramsType = do
   v <- view repoVar
   repo <- liftIO $ readMVar v
 
@@ -723,6 +726,7 @@ getTableNgrams' nodeIds ngramsType = do
 
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
+-- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 getTableNgrams :: RepoCmdM env err m
                => CorpusId -> Maybe TabType
                -> [ListId] -> Maybe Limit -> Maybe Offset
@@ -738,6 +742,6 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset = do
     limit_  = maybe defaultLimit identity mlimit
     offset_ = maybe 0 identity moffset
 
-  getTableNgrams' listIds ngramsType
+  getListNgrams listIds ngramsType
     & mapped . v_data . _NgramsTable %~ (take limit_ . drop offset_)
 

@@ -318,6 +318,10 @@ data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
 $(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
 
 instance Hyperdata HyperdataList
+
+instance Arbitrary HyperdataList where
+  arbitrary = elements [HyperdataList (Just "from list A")]
+
 ------------------------------------------------------------------------
 data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: Maybe Text
                                    } deriving (Show, Generic)

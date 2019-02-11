@@ -200,7 +200,8 @@ subFlowCorpus username cName = do
   pure (userId, rootId, corpusId)
 
 
-subFlowAnnuaire :: HasNodeError err => Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
+subFlowAnnuaire :: HasNodeError err =>
+  Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
 subFlowAnnuaire username _cName = do
   maybeUserId <- getUser username
 
