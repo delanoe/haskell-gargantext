@@ -155,6 +155,8 @@ type ListNgrams = NgramsTable
 
 makePrisms ''NgramsTable
 
+-- | Question: why these repetition of Type in this instance
+-- may you document it please ?
 instance Each NgramsTable NgramsTable NgramsElement NgramsElement where
   each = _NgramsTable . each
 
@@ -644,8 +646,9 @@ something :: Monoid a => Maybe a -> a
 something Nothing  = mempty
 something (Just a) = a
 
-putListNgrams :: RepoCmdM env err m => NodeId -> NgramsType
-                              -> [NgramsElement] -> m ()
+putListNgrams :: RepoCmdM env err m
+              => NodeId -> NgramsType
+              -> [NgramsElement] -> m ()
 putListNgrams listId ngramsType nes = do
   var <- view repoVar
   liftIO $ modifyMVar_ var $

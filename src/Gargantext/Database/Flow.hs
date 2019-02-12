@@ -19,6 +19,7 @@ Portability : POSIX
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
+--import Debug.Trace (trace)
 --import Control.Lens (view)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
@@ -121,9 +122,7 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
 
   -- List Ngrams Flow
   _masterListId <- flowList masterUserId masterCorpusId indexedNgrams
-  _userListId    <- flowListUser userId userCorpusId 500
-  --printDebug "Working on User ListId : " userListId
-  --}
+  _userListId   <- flowListUser userId userCorpusId 500
 --------------------------------------------------
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph     userCorpusId userId
@@ -249,6 +248,7 @@ flowList :: FlowCmdM env err m => UserId -> CorpusId
 flowList uId cId ngs = do
   --printDebug "ngs:" ngs
   lId <- getOrMkList cId uId
+  printDebug "listId flowList" lId
   --printDebug "ngs" (DM.keys ngs)
   -- TODO add stemming equivalence of 2 ngrams
   -- TODO needs rework
@@ -256,8 +256,7 @@ flowList uId cId ngs = do
   -- _ <- insertGroups lId groupEd
 
 -- compute Candidate / Map
-  _is <- mapM_ (\(typeList, ngElements) -> putListNgrams lId typeList ngElements) $ toList $ ngrams2list' ngs
-  --printDebug "listNgrams inserted :" is
+  mapM_ (\(typeList, ngElmts) -> putListNgrams lId typeList ngElmts) $ toList $ ngrams2list' ngs
 
   pure lId
 
