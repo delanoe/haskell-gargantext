@@ -278,8 +278,8 @@ type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 ---------------------------------------------------------------------
 -- | Server declarations
 
-server :: (HasConnection env, HasRepoVar env) => env
-       -> IO (Server API)
+server :: (HasConnection env, HasRepoVar env, HasRepoSaver env)
+       => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
@@ -315,7 +315,7 @@ gargMock :: Server GargAPI
 gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
-makeApp :: (HasConnection env, HasRepoVar env) => env -> IO Application
+makeApp :: (HasConnection env, HasRepoVar env, HasRepoSaver env) => env -> IO Application
 makeApp = fmap (serve api) . server
 
 appMock :: Application

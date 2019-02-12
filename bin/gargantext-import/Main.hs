@@ -28,7 +28,7 @@ import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId)
 --import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
 import Gargantext.API.Node () -- instances
-import Gargantext.API.Settings (newDevEnvWith, runCmdDev, cleanEnv, DevEnv)
+import Gargantext.API.Settings (newDevEnvWith, runCmdDev, DevEnv)
 import System.Environment (getArgs)
 
 main :: IO ()
