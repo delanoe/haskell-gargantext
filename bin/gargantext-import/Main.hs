@@ -24,29 +24,29 @@ import Servant (ServantErr)
 import Gargantext.Prelude
 import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
-import Gargantext.Database.Utils (Cmd, connectGargandb, runCmdDev)
+import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId)
 --import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
 import Gargantext.API.Node () -- instances
-import Gargantext.API.Settings (newDevEnvWith, cleanEnv, DevEnv)
+import Gargantext.API.Settings (newDevEnvWith, runCmdDev, cleanEnv, DevEnv)
 import System.Environment (getArgs)
 
 main :: IO ()
 main = do
   [iniPath, name, corpusPath] <- getArgs
 
+  {-let createUsers :: Cmd ServantErr Int64
+      createUsers = insertUsers [gargantuaUser,simpleUser]
+  -}
+
+  let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
+      cmdCorpus = flowCorpus CsvHalFormat corpusPath (cs name)
+
+     -- cmd = {-createUsers >>-} cmdCorpus
+
   env <- newDevEnvWith iniPath
-
-  (do
-    {-let createUsers :: Cmd ServantErr Int64
-        createUsers = insertUsers [gargantuaUser,simpleUser]
-    _ <- runCmdDev env createUsers
-    -}
-
-    let cmd :: FlowCmdM DevEnv ServantErr m => m CorpusId
-        cmd = flowCorpus CsvHalFormat corpusPath (cs name)
-    _ <- runCmdDev env cmd
-    pure ()
-    ) `finally` cleanEnv env
+  -- Better if we keep only one call to runCmdDev.
+  _ <- runCmdDev env cmdCorpus
+  pure ()
 
 

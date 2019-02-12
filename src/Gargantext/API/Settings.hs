@@ -17,7 +17,9 @@ Portability : POSIX
 {-# LANGUAGE ScopedTypeVariables         #-}
 {-# LANGUAGE TemplateHaskell             #-}
 {-# LANGUAGE OverloadedStrings           #-}
+{-# LANGUAGE FlexibleContexts            #-}
 {-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE RankNTypes                  #-}
 
 module Gargantext.API.Settings
     where
@@ -48,10 +50,11 @@ import qualified Jose.Jwk as Jose
 import qualified Jose.Jwa as Jose
 
 import Control.Concurrent
+import Control.Exception (finally)
 import Control.Monad.Logger
 import Control.Lens
 import Gargantext.Prelude
-import Gargantext.Database.Utils (databaseParameters, HasConnection(..))
+import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), initMockRepo, r_version)
 import Gargantext.API.Orchestrator.Types
 
@@ -171,9 +174,6 @@ readRepo = do
       else
         pure initMockRepo
 
-cleanEnv :: HasRepoVar env => env -> IO ()
-cleanEnv env = encodeFile repoSnapshot =<< readMVar (env ^. repoVar)
-
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
   manager <- newTlsManager
@@ -221,3 +221,27 @@ newDevEnvWith file = do
 
 newDevEnv :: IO DevEnv
 newDevEnv = newDevEnvWith "gargantext.ini"
+
+-- So far `cleanEnv` is just writing the repo file.
+-- Therefor it is called in `runCmdDev*` for convenience.
+cleanEnv :: HasRepoVar env => env -> IO ()
+cleanEnv env = encodeFile repoSnapshot =<< readMVar (env ^. repoVar)
+
+-- Use only for dev
+-- In particular this writes the repo file after running
+-- the command.
+-- This function is constrained to the DevEnv rather than
+-- using HasConnection and HasRepoVar.
+-- This is to avoid calling cleanEnv unintentionally on a prod env.
+runCmdDev :: Show err => DevEnv -> Cmd' DevEnv err a -> IO a
+runCmdDev env f = do
+  (either (fail . show) pure =<< runCmd env f)
+    `finally` cleanEnv env
+
+-- Use only for dev
+runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
+runCmdDevNoErr = runCmdDev
+
+-- Use only for dev
+runCmdDevServantErr :: DevEnv -> Cmd' DevEnv ServantErr a -> IO a
+runCmdDevServantErr = runCmdDev

@@ -37,7 +37,6 @@ import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(Conversion
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
-import Servant (ServantErr)
 import System.IO (FilePath)
 import Text.Read (read)
 import qualified Data.ByteString      as DB
@@ -74,20 +73,6 @@ runCmd :: HasConnection env => env
        -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
-
--- Use only for dev
-runCmdDev :: (HasConnection env, Show err) => env
-          -> Cmd' env err a
-          -> IO a
-runCmdDev env f = either (fail . show) pure =<< runCmd env f
-
--- Use only for dev
-runCmdDevNoErr :: HasConnection env => env -> Cmd' env () a -> IO a
-runCmdDevNoErr = runCmdDev
-
--- Use only for dev
-runCmdDevServantErr :: HasConnection env => env -> Cmd ServantErr a -> IO a
-runCmdDevServantErr = runCmdDev
 
 runOpaQuery :: Default FromFields fields haskells => Select fields -> Cmd err [haskells]
 runOpaQuery q = mkCmd $ \c -> runQuery c q
