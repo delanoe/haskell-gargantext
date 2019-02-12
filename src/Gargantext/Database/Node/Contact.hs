@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -16,6 +17,7 @@ Portability : POSIX
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeFamilies           #-}
 
 module Gargantext.Database.Node.Contact
   where
@@ -29,7 +31,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Schema.Node (NodeWrite, Name, node)
-import Gargantext.Database.Types.Node (Node,Hyperdata,NodeType(..), UserId, AnnuaireId)
+import Gargantext.Database.Types.Node (Node, Sing(SNodeContact), Hyperdata,NodeType(..), UserId, AnnuaireId)
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
@@ -98,7 +100,7 @@ data ContactTouch =
 nodeContactW :: Maybe Name -> Maybe HyperdataContact
              -> AnnuaireId -> UserId -> NodeWrite
 nodeContactW maybeName maybeContact aId = 
-  node NodeContact name contact (Just aId)
+  node SNodeContact name contact (Just aId)
     where
       name    = maybe "Contact" identity maybeName
       contact = maybe arbitraryHyperdataContact identity maybeContact
@@ -115,7 +117,7 @@ instance Arbitrary HyperdataContact where
 
 
 -- | Specific Gargantext instance
-instance Hyperdata HyperdataContact
+type instance Hyperdata 'NodeContact = HyperdataContact
 
 -- | Database (Posgresql-simple instance)
 instance FromField HyperdataContact where

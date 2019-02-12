@@ -52,6 +52,7 @@ import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader (ReaderT, runReaderT)
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
+import           Data.Singletons.Prelude
 import           Data.Swagger
 import           Data.Text (Text)
 import qualified Data.Text.IO as T
@@ -85,6 +86,7 @@ import Gargantext.API.Node ( GargServer
                            , NodesAPI , nodesAPI
                            , GraphAPI , graphAPI
                            , TreeAPI  , treeAPI
+                           -- , ChildrenAPI , childrenAPI
                            , HyperdataAny
                            , HyperdataCorpus
                            , HyperdataAnnuaire

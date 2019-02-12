@@ -40,7 +40,7 @@ import GHC.Generics (Generic)
 import Servant.API (FromHttpApiData(..))
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Text.Read (read)
+import Web.HttpApiData (readTextData)
 
 ------------------------------------------------------------------------
 data NodeTree = NodeTree { _nt_name :: Text

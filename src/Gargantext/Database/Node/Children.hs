@@ -12,8 +12,10 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE RankNTypes             #-}
 
 module Gargantext.Database.Node.Children where
@@ -28,17 +30,20 @@ import Gargantext.Database.Queries.Filter
 import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Control.Arrow (returnA)
+import Data.Singletons.Prelude
 
 -- | TODO: use getChildren with Proxy ?
 getContacts :: ParentId -> Maybe NodeType -> Cmd err [Node HyperdataContact]
 getContacts pId maybeNodeType = runOpaQuery $ selectChildren pId maybeNodeType
 
 
-getChildren :: JSONB a => ParentId -> proxy a -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Cmd err [Node a]
-getChildren pId _ maybeNodeType maybeOffset maybeLimit = runOpaQuery
+getChildren :: forall (t :: NodeType) err. JSONB (Hyperdata t) =>
+               ParentId -> Maybe (Sing t) ->
+               Maybe Offset -> Maybe Limit -> Cmd err [Node (Hyperdata t)]
+getChildren pId maybeNodeType maybeOffset maybeLimit = runOpaQuery
                   $ limit' maybeLimit $ offset' maybeOffset
                   $ orderBy (asc _node_id)
-                  $ selectChildren pId maybeNodeType
+                  $ selectChildren pId (fromSing <$> maybeNodeType)
 
 selectChildren :: ParentId -> Maybe NodeType -> Query NodeRead
 selectChildren parentId maybeNodeType = proc () -> do

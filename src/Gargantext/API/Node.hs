@@ -15,6 +15,7 @@ Node API
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE KindSignatures     #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE RankNTypes         #-}
@@ -134,7 +135,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> PostNodeApi -- TODO move to children POST
              :<|> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
-             :<|> "children"  :> ChildrenApi a
+             :<|> "children"  :> ChildrenAPI
 
              -- TODO gather it
              :<|> "table"     :> TableApi
@@ -163,11 +164,26 @@ type PostNodeApi = Summary " PostNode Node with ParentId as {id}"
                  :> ReqBody '[JSON] PostNode
                  :> Post    '[JSON] [NodeId]
 
-type ChildrenApi a = Summary " Summary children"
-                 :> QueryParam "type"   NodeType
-                 :> QueryParam "offset" Int
-                 :> QueryParam "limit"  Int
-                 :> Get '[JSON] [Node a]
+-- Ideally we would like to hide `t` existentially.
+type ChildrenAPI' (t :: NodeType)
+  =  Summary " Summary children"
+  :> QueryParam "type"   (Sing t)
+  :> QueryParam "offset" Int
+  :> QueryParam "limit"  Int
+  :> Get '[JSON] [Node (Hyperdata t)]
+
+type ChildrenAPI
+    =  ChildrenAPI' 'NodeCorpus
+  :<|> ChildrenAPI' 'NodeList
+  :<|> ChildrenAPI' 'NodeContact
+  -- ...
+
+childrenAPI :: NodeId -> GargServer ChildrenAPI
+childrenAPI n
+    =  getChildren n
+  :<|> getChildren n
+  :<|> getChildren n
+
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
 nodeAPI :: JSONB a => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
@@ -177,7 +193,7 @@ nodeAPI p uId id
            :<|> postNode    uId id
            :<|> putNode     id
            :<|> deleteNode  id
-           :<|> getChildren id p
+           :<|> childrenAPI id
 
            -- TODO gather it
            :<|> getTable         id

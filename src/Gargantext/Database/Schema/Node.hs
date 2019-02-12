@@ -32,6 +32,7 @@ import Control.Monad.Error.Class (MonadError(..))
 import Data.Aeson
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Singletons.Prelude
 import Data.Text (Text, pack)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Int (Int64)
@@ -374,7 +375,7 @@ defaultUser :: HyperdataUser
 defaultUser = HyperdataUser (Just $ (pack . show) EN)
 
 nodeUserW :: Maybe Name -> Maybe HyperdataUser -> UserId -> NodeWrite
-nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
+nodeUserW maybeName maybeHyperdata = node SNodeUser name user Nothing
   where
     name = maybe "User" identity maybeName
     user = maybe defaultUser identity maybeHyperdata
@@ -383,13 +384,13 @@ defaultFolder :: HyperdataFolder
 defaultFolder = HyperdataFolder (Just "Markdown Description")
 
 nodeFolderW :: Maybe Name -> Maybe HyperdataFolder -> ParentId -> UserId -> NodeWrite
-nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
+nodeFolderW maybeName maybeFolder pid = node SNodeFolder name folder (Just pid)
   where
     name   = maybe "Folder" identity maybeName
     folder = maybe defaultFolder identity maybeFolder
 ------------------------------------------------------------------------
 nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
-nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
+nodeCorpusW maybeName maybeCorpus pId = node SNodeCorpus name corpus (Just pId)
   where
     name   = maybe "Corpus" identity maybeName
     corpus = maybe defaultCorpus identity maybeCorpus
@@ -398,7 +399,7 @@ defaultDocument :: HyperdataDocument
 defaultDocument = hyperdataDocument
 
 nodeDocumentW :: Maybe Name -> Maybe HyperdataDocument -> CorpusId -> UserId -> NodeWrite
-nodeDocumentW maybeName maybeDocument cId = node NodeDocument name doc (Just cId)
+nodeDocumentW maybeName maybeDocument cId = node SNodeDocument name doc (Just cId)
   where
     name = maybe "Document" identity maybeName
     doc  = maybe defaultDocument identity maybeDocument
@@ -407,7 +408,7 @@ defaultAnnuaire :: HyperdataAnnuaire
 defaultAnnuaire = HyperdataAnnuaire (Just "Title") (Just "Description")
 
 nodeAnnuaireW :: Maybe Name -> Maybe HyperdataAnnuaire -> ParentId -> UserId -> NodeWrite
-nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Just pId)
+nodeAnnuaireW maybeName maybeAnnuaire pId = node SNodeAnnuaire name annuaire (Just pId)
   where
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
@@ -417,7 +418,7 @@ arbitraryList :: HyperdataList
 arbitraryList = HyperdataList (Just "Preferences")
 
 nodeListW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
-nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
+nodeListW maybeName maybeList pId = node SNodeList name list (Just pId)
   where
     name = maybe "Listes" identity maybeName
     list = maybe arbitraryList identity maybeList
@@ -431,7 +432,7 @@ mkListModelNode :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkListModelNode p u = insertNodesR [nodeListModelW Nothing Nothing p u]
 
 nodeListModelW :: Maybe Name -> Maybe HyperdataListModel -> ParentId -> UserId -> NodeWrite
-nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just pId)
+nodeListModelW maybeName maybeListModel pId = node SNodeListModel name list (Just pId)
   where
     name = maybe "List Model" identity maybeName
     list = maybe arbitraryListModel identity maybeListModel
@@ -441,7 +442,7 @@ arbitraryGraph :: HyperdataGraph
 arbitraryGraph = HyperdataGraph (Just "Preferences")
 
 nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite
-nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
+nodeGraphW maybeName maybeGraph pId = node SNodeGraph name graph (Just pId)
   where
     name = maybe "Graph" identity maybeName
     graph = maybe arbitraryGraph identity maybeGraph
@@ -452,16 +453,16 @@ arbitraryDashboard :: HyperdataDashboard
 arbitraryDashboard = HyperdataDashboard (Just "Preferences")
 
 nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite
-nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
+nodeDashboardW maybeName maybeDashboard pId = node SNodeDashboard name dashboard (Just pId)
   where
     name = maybe "Dashboard" identity maybeName
     dashboard = maybe arbitraryDashboard identity maybeDashboard
 
 ------------------------------------------------------------------------
-node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
-node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgInt4 userId) (pgNodeId <$> parentId) (pgStrictText name) Nothing (pgJSONB $ cs $ encode hyperData)
+node :: ToJSON (Hyperdata t) => Sing t -> Name -> Hyperdata t -> Maybe ParentId -> UserId -> NodeWrite
+node nodeTypeS name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgInt4 userId) (pgNodeId <$> parentId) (pgStrictText name) Nothing (pgJSONB $ cs $ encode hyperData)
   where
-    typeId = nodeTypeId nodeType
+    typeId = nodeTypeId (fromSing nodeTypeS)
 
                   -------------------------------
 insertNodes :: [NodeWrite] -> Cmd err Int64
@@ -546,7 +547,7 @@ type Name = Text
 mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
 mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
 mkNodeWithParent NodeUser Nothing  uId name =
-  insertNodesWithParentR Nothing [node NodeUser name hd Nothing uId]
+  insertNodesWithParentR Nothing [node SNodeUser name hd Nothing uId]
     where
       hd = HyperdataUser . Just . pack $ show EN
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent

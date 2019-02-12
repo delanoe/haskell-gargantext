@@ -12,13 +12,21 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE EmptyCase                  #-}
 {-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE NoImplicitPrelude          #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.Database.Types.Node
@@ -40,20 +48,22 @@ import           Data.ByteString.Lazy (ByteString)
 import           Data.Either
 import           Data.Eq (Eq)
 import           Data.Monoid (mempty)
-import           Data.Text (Text, unpack, pack)
+import           Data.Text (Text, pack)
 import           Data.Time (UTCTime)
 import           Data.Time.Segment (jour, timesAfter, Granularity(D))
+import           Data.Singletons.Prelude
+import           Data.Singletons.TH
 import           Data.Swagger
 
-import           Text.Read (read)
 import           Text.Show (Show())
 
 import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import           Servant
+import           Servant hiding (STrue, SFalse)
 
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck (elements)
+import           Web.HttpApiData (readTextData)
 
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
@@ -75,7 +85,7 @@ instance FromField NodeId where
 instance ToSchema NodeId
 
 instance FromHttpApiData NodeId where
-  parseUrlPiece n = pure $ NodeId $ (read . cs) n
+  parseUrlPiece = fmap NodeId . parseUrlPiece
 
 instance ToParamSchema NodeId
 instance Arbitrary NodeId where
@@ -123,8 +133,63 @@ data StatusV3  = StatusV3 { statusV3_error  :: !(Maybe Text)
 $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
 ------------------------------------------------------------------------
 
--- Only Hyperdata types should be member of this type class.
-class Hyperdata a
+singletons [d|
+  data NodeType = NodeUser
+                | NodeFolder
+                | NodeCorpus     | NodeCorpusV3 | NodeDocument
+                | NodeAnnuaire   | NodeContact
+                -- | NodeOccurrences
+                | NodeGraph
+                | NodeDashboard  | NodeChart
+                -- | Classification
+                | NodeList | NodeListModel
+                -- | Metrics
+                deriving (Show, Read, Eq, Generic, Bounded)
+  |]
+
+-- Singletons claims to support Enum but this yields an error.
+deriving instance Enum NodeType
+
+allNodeTypes :: [NodeType]
+allNodeTypes = [minBound ..]
+
+-- This could be better as a `data family`.
+-- The change would be a bit more invasive though.
+type family Hyperdata (t :: NodeType)
+
+instance FromJSON NodeType
+instance ToJSON NodeType
+
+instance FromHttpApiData NodeType where parseUrlPiece = readTextData
+
+instance ToParamSchema NodeType
+instance ToSchema      NodeType
+
+instance ToParamSchema (Sing 'NodeCorpus) where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy NodeType)
+  -- Here we weaken the spec by approximating a NodeCorpus as any NodeType.
+
+instance ToParamSchema (Sing 'NodeContact) where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy NodeType)
+  -- Same remark as above.
+
+instance ToParamSchema (Sing 'NodeList) where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy NodeType)
+  -- Same remark as above.
+
+parseUrlPieceSing :: Text -> a -> Text -> Either Text a
+parseUrlPieceSing s a t | s == t    = Right a
+                        | otherwise = Left $ "could not parse: `" <> t <>
+                                             "', expecting `" <> s <> "'"
+
+instance FromHttpApiData (Sing 'NodeCorpus) where
+  parseUrlPiece = parseUrlPieceSing "NodeCorpus" SNodeCorpus
+
+instance FromHttpApiData (Sing 'NodeList) where
+  parseUrlPiece = parseUrlPieceSing "NodeList" SNodeList
+
+instance FromHttpApiData (Sing 'NodeContact) where
+  parseUrlPiece = parseUrlPieceSing "NodeContact" SNodeContact
 
 ------------------------------------------------------------------------
 data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication_day    :: !(Maybe Int)
@@ -147,7 +212,8 @@ data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication
                                                } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
 
-instance Hyperdata HyperdataDocumentV3
+-- type instance Hyperdata 'NodeDocumentV3 HyperdataDocumentV3
+------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: !(Maybe Text)
@@ -187,7 +253,7 @@ instance Eq HyperdataDocument where
 instance Ord HyperdataDocument where
   compare h1 h2 = compare (_hyperdataDocument_publication_date h1) (_hyperdataDocument_publication_date h2)
 
-instance Hyperdata HyperdataDocument
+type instance Hyperdata 'NodeDocument = HyperdataDocument
 
 instance ToField HyperdataDocument where
   toField = toJSONField
@@ -271,13 +337,14 @@ data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
-instance Hyperdata HyperdataUser
+type instance Hyperdata 'NodeUser = HyperdataUser
+
 ------------------------------------------------------------------------
 data HyperdataFolder = HyperdataFolder { hyperdataFolder_desc    :: Maybe Text
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 
-instance Hyperdata HyperdataFolder
+type instance Hyperdata 'NodeFolder = HyperdataFolder
 ------------------------------------------------------------------------
 data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: !(Maybe Text)
                                        , hyperdataCorpus_desc         :: !(Maybe Text)
@@ -287,7 +354,7 @@ data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: !(Maybe
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
-instance Hyperdata HyperdataCorpus
+type instance Hyperdata 'NodeCorpus = HyperdataCorpus
 
 corpusExample :: ByteString
 corpusExample = "" -- TODO
@@ -309,7 +376,7 @@ data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: !
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
 
-instance Hyperdata HyperdataAnnuaire
+type instance Hyperdata 'NodeAnnuaire = HyperdataAnnuaire
 
 hyperdataAnnuaire :: HyperdataAnnuaire
 hyperdataAnnuaire = HyperdataAnnuaire (Just "Annuaire Title") (Just "Annuaire Description")
@@ -321,7 +388,7 @@ instance Arbitrary HyperdataAnnuaire where
 newtype HyperdataAny = HyperdataAny Object
   deriving (Show, Generic, ToJSON, FromJSON)
 
-instance Hyperdata HyperdataAny
+-- instance Hyperdata HyperdataAny
 
 instance Arbitrary HyperdataAny where
     arbitrary = pure $ HyperdataAny mempty -- TODO produce arbitrary objects
@@ -331,7 +398,7 @@ data HyperdataList = HyperdataList { hyperdataList_preferences   :: !(Maybe Text
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
 
-instance Hyperdata HyperdataList
+type instance Hyperdata 'NodeList = HyperdataList
 
 instance Arbitrary HyperdataList where
   arbitrary = elements [HyperdataList (Just "from list A")]
@@ -342,7 +409,7 @@ data HyperdataListModel = HyperdataListModel { _hlm_params  :: !(Int, Int)
                                              , _hlm_score   :: !(Maybe Double)
                                    } deriving (Show, Generic)
 
-instance Hyperdata HyperdataListModel
+type instance Hyperdata 'NodeListModel = HyperdataListModel
 instance Arbitrary HyperdataListModel where
   arbitrary = elements [HyperdataListModel (100,100) "models/example.model" Nothing]
 
@@ -354,7 +421,7 @@ data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: !(Maybe T
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
 
-instance Hyperdata HyperdataScore
+-- type instance Hyperdata 'NodeScore = HyperdataScore
 
 ------------------------------------------------------------------------
 
@@ -362,21 +429,21 @@ data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: 
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 
-instance Hyperdata HyperdataResource
+-- type instance Hyperdata 'NodeResource = HyperdataResource
 
 ------------------------------------------------------------------------
 data HyperdataDashboard = HyperdataDashboard { hyperdataDashboard_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
 
-instance Hyperdata HyperdataDashboard
+type instance Hyperdata 'NodeDashboard = HyperdataDashboard
 
 -- TODO add the Graph Structure here
 data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
 
-instance Hyperdata HyperdataGraph
+type instance Hyperdata 'NodeGraph = HyperdataGraph
 ------------------------------------------------------------------------
 
 -- TODO add the Graph Structure here
@@ -384,7 +451,7 @@ data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: !(Maybe T
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 
-instance Hyperdata HyperdataPhylo
+-- type instance Hyperdata 'NodePhylo = HyperdataPhylo
 
 ------------------------------------------------------------------------
 -- | TODO FEATURE: Notebook saved in the node
@@ -392,7 +459,7 @@ data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: 
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
 
-instance Hyperdata HyperdataNotebook
+-- type instance Hyperdata 'NodeNotebook = HyperdataNotebook
 
 
 -- | NodePoly indicates that Node has a Polymorphism Type
@@ -423,30 +490,6 @@ type NodeGraph    = Node HyperdataGraph
 type NodePhylo    = Node HyperdataPhylo
 type NodeNotebook = Node HyperdataNotebook
 ------------------------------------------------------------------------
-data NodeType = NodeUser 
-              | NodeFolder
-              | NodeCorpus     | NodeCorpusV3 | NodeDocument
-              | NodeAnnuaire   | NodeContact
-              -- | NodeOccurrences
-              | NodeGraph
-              | NodeDashboard  | NodeChart
-              -- | Classification
-              | NodeList | NodeListModel
-              -- | Metrics
-              deriving (Show, Read, Eq, Generic, Bounded, Enum)
-
-allNodeTypes :: [NodeType]
-allNodeTypes = [minBound ..]
-
-instance FromJSON NodeType
-instance ToJSON NodeType
-
-instance FromHttpApiData NodeType
-  where
-      parseUrlPiece = Right . read . unpack
-
-instance ToParamSchema NodeType
-instance ToSchema      NodeType
 
 ------------------------------------------------------------------------
 data NodePoly id        typename userId 
@@ -538,6 +581,11 @@ instance ToSchema HyperdataDocument where
     & mapped.schema.description ?~ "a document"
     & mapped.schema.example ?~ toJSON hyperdataDocument
 
+instance ToSchema HyperdataList where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+    & mapped.schema.description ?~ "a list"
+    & mapped.schema.example ?~ emptyObject -- TODO: toJSON hyperdataList
+
 instance ToSchema HyperdataAny where
   declareNamedSchema proxy =
     pure $ genericNameSchema defaultSchemaOptions proxy mempty
@@ -576,5 +624,4 @@ instance ToSchema hyperdata =>
 
 
 instance ToSchema Status
-
 

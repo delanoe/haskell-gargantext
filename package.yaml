@@ -161,6 +161,7 @@ library:
   - servant-swagger-ui
   - servant-static-th
   - serialise
+  - singletons
   - split
   - stemmer
   - string-conversions
