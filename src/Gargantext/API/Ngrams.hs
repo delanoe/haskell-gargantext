@@ -472,7 +472,7 @@ data Versioned a = Versioned
   { _v_version :: Version
   , _v_data    :: a
   }
-  deriving (Generic)
+  deriving (Generic, Show)
 deriveJSON (unPrefix "_v_") ''Versioned
 makeLenses ''Versioned
 instance ToSchema a => ToSchema (Versioned a)
@@ -758,6 +758,6 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset = do
     limit_  = maybe defaultLimit identity mlimit
     offset_ = maybe 0 identity moffset
 
-  getListNgrams listIds ngramsType
+  getListNgrams ([104] <> listIds) ngramsType
     & mapped . v_data . _NgramsTable %~ (take limit_ . drop offset_)
 
