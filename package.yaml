@@ -111,6 +111,7 @@ library:
   - ini
   - insert-ordered-containers
   - jose-jwt
+  - json-state
     #  - kmeans-vector
   - KMP
   - lens
@@ -161,6 +162,7 @@ library:
   - text-metrics
   - time
   - time-locale-compat
+  - time-units
   - timezone-series
   - transformers
   - transformers-base

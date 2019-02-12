@@ -73,7 +73,7 @@ import Gargantext.Prelude
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
-import Gargantext.API.Ngrams (HasRepoVar(..))
+import Gargantext.API.Ngrams (HasRepoVar(..), HasRepoSaver(..), saveRepo)
 import Gargantext.API.Node ( GargServer
                            , Roots    , roots
                            , NodeAPI  , nodeAPI
@@ -370,10 +370,10 @@ portRouteInfo port = do
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
-stopGargantext :: HasRepoVar env => env -> IO ()
+stopGargantext :: HasRepoSaver env => env -> IO ()
 stopGargantext env = do
   T.putStrLn "----- Stopping gargantext -----"
-  cleanEnv env
+  runReaderT saveRepo env
 
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: PortNumber -> FilePath -> IO ()

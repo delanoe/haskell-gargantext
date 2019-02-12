@@ -38,8 +38,10 @@ import Network.HTTP.Client.TLS (newTlsManager)
 import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
+import Data.JsonState
 import Data.Text
 import Data.Text.Encoding (encodeUtf8)
+import Data.Time.Units
 import Data.ByteString.Lazy.Internal
 
 import Servant
@@ -52,10 +54,11 @@ import qualified Jose.Jwa as Jose
 import Control.Concurrent
 import Control.Exception (finally)
 import Control.Monad.Logger
+import Control.Monad.Reader
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), initMockRepo, r_version)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), initMockRepo, r_version, saveRepo)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -132,13 +135,14 @@ optSetting name d = do
 data FireWall = FireWall { unFireWall :: Bool }
 
 data Env = Env
-  { _env_settings :: !Settings
-  , _env_logger   :: !LoggerSet
-  , _env_conn     :: !Connection
-  , _env_repo_var :: !(MVar NgramsRepo)
-  , _env_manager  :: !Manager
-  , _env_self_url :: !BaseUrl
-  , _env_scrapers :: !ScrapersEnv
+  { _env_settings   :: !Settings
+  , _env_logger     :: !LoggerSet
+  , _env_conn       :: !Connection
+  , _env_repo_var   :: !(MVar NgramsRepo)
+  , _env_repo_saver :: !(IO ())
+  , _env_manager    :: !Manager
+  , _env_self_url   :: !BaseUrl
+  , _env_scrapers   :: !ScrapersEnv
   }
   deriving (Generic)
 
@@ -149,6 +153,9 @@ instance HasConnection Env where
 
 instance HasRepoVar Env where
   repoVar = env_repo_var
+
+instance HasRepoSaver Env where
+  repoSaver = env_repo_saver
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
@@ -174,6 +181,11 @@ readRepo = do
       else
         pure initMockRepo
 
+mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
+mkRepoSaver repo_var = do
+  saveAction <- mkSaveState (10 :: Second) repoSnapshot
+  pure $ readMVar repo_var >>= saveAction
+
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
   manager <- newTlsManager
@@ -184,21 +196,24 @@ newEnv port file = do
   param <- databaseParameters file
   conn <- connect param
   repo_var <- readRepo
+  repo_saver <- mkRepoSaver repo_var
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
   pure $ Env
-    { _env_settings = settings
-    , _env_logger   = logger
-    , _env_conn     = conn
-    , _env_repo_var = repo_var
-    , _env_manager  = manager
-    , _env_scrapers = scrapers_env
-    , _env_self_url = self_url
+    { _env_settings   = settings
+    , _env_logger     = logger
+    , _env_conn       = conn
+    , _env_repo_var   = repo_var
+    , _env_repo_saver = repo_saver
+    , _env_manager    = manager
+    , _env_scrapers   = scrapers_env
+    , _env_self_url   = self_url
     }
 
 data DevEnv = DevEnv
-  { _dev_env_conn     :: !Connection
-  , _dev_env_repo_var :: !(MVar NgramsRepo)
+  { _dev_env_conn       :: !Connection
+  , _dev_env_repo_var   :: !(MVar NgramsRepo)
+  , _dev_env_repo_saver :: !(IO ())
   }
 
 makeLenses ''DevEnv
@@ -209,34 +224,34 @@ instance HasConnection DevEnv where
 instance HasRepoVar DevEnv where
   repoVar = dev_env_repo_var
 
+instance HasRepoSaver DevEnv where
+  repoSaver = dev_env_repo_saver
+
 newDevEnvWith :: FilePath -> IO DevEnv
 newDevEnvWith file = do
   param <- databaseParameters file
   conn <- connect param
   repo_var <- newMVar initMockRepo
+  repo_saver <- mkRepoSaver repo_var
   pure $ DevEnv
-    { _dev_env_conn     = conn
-    , _dev_env_repo_var = repo_var
+    { _dev_env_conn       = conn
+    , _dev_env_repo_var   = repo_var
+    , _dev_env_repo_saver = repo_saver
     }
 
 newDevEnv :: IO DevEnv
 newDevEnv = newDevEnvWith "gargantext.ini"
-
--- So far `cleanEnv` is just writing the repo file.
--- Therefor it is called in `runCmdDev*` for convenience.
-cleanEnv :: HasRepoVar env => env -> IO ()
-cleanEnv env = encodeFile repoSnapshot =<< readMVar (env ^. repoVar)
 
 -- Use only for dev
 -- In particular this writes the repo file after running
 -- the command.
 -- This function is constrained to the DevEnv rather than
 -- using HasConnection and HasRepoVar.
--- This is to avoid calling cleanEnv unintentionally on a prod env.
 runCmdDev :: Show err => DevEnv -> Cmd' DevEnv err a -> IO a
-runCmdDev env f = do
+runCmdDev env f =
   (either (fail . show) pure =<< runCmd env f)
-    `finally` cleanEnv env
+    `finally`
+  runReaderT saveRepo env
 
 -- Use only for dev
 runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a

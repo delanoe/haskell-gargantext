@@ -604,13 +604,24 @@ class HasRepoVar env where
 instance HasRepoVar (MVar NgramsRepo) where
   repoVar = identity
 
+class HasRepoSaver env where
+  repoSaver :: Getter env (IO ())
+
+instance HasRepoSaver (IO ()) where
+  repoSaver = identity
+
 type RepoCmdM env err m =
   ( MonadReader env m
   , MonadError err m
   , MonadIO m
   , HasRepoVar env
+  , HasRepoSaver env
   )
 ------------------------------------------------------------------------
+
+saveRepo :: ( MonadReader env m, MonadIO m, HasRepoSaver env )
+         => m ()
+saveRepo = liftIO =<< view repoSaver
 
 listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
@@ -653,6 +664,7 @@ putListNgrams listId ngramsType nes = do
   var <- view repoVar
   liftIO $ modifyMVar_ var $
     pure . (r_state . at ngramsType %~ (Just . (at listId %~ insertNewOnly m) . something))
+  saveRepo
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 
@@ -687,6 +699,7 @@ tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table) = d
     in
     pure (r', (p'_applicable, Versioned (r' ^. r_version) q'_table))
 
+  saveRepo
   assertValid p'_applicable
   pure vq'
 
