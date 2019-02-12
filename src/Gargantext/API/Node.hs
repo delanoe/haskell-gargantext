@@ -72,8 +72,10 @@ import Gargantext.Database.Types.Node (CorpusId, ContactId)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
-type GargServer api = forall env m. (CmdM env ServantErr m, HasRepoVar env)
-                                 => ServerT api m
+type GargServer api =
+  forall env m.
+    (CmdM env ServantErr m, HasRepoVar env, HasRepoSaver env)
+    => ServerT api m
 
 -------------------------------------------------------------------
 -- TODO-ACCESS: access by admin only.
