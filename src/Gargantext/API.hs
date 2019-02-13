@@ -284,7 +284,7 @@ server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
      :<|> hoistServer (Proxy :: Proxy GargAPI) (`runReaderT` env) serverGargAPI
-     :<|> serverIndex
+     :<|> serverStatic
 
 serverGargAPI :: GargServer GargAPI
 serverGargAPI -- orchestrator
@@ -302,9 +302,12 @@ serverGargAPI -- orchestrator
   where
     fakeUserId = 1 -- TODO
 
-serverIndex :: Server (Get '[HTML] Html)
-serverIndex = $(do (Just s) <- liftIO (fileTypeToFileTree (FileTypeFile "purescript-gargantext/dist/index.html"))
-                   fileTreeToServer s)
+serverStatic :: Server (Get '[HTML] Html)
+serverStatic = $(do
+                let path = "purescript-gargantext/dist/index.html"
+                Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
+                fileTreeToServer s
+                )
 
 ---------------------------------------------------------------------
 swaggerFront :: Server SwaggerFrontAPI
@@ -315,11 +318,12 @@ gargMock :: Server GargAPI
 gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
-makeApp :: (HasConnection env, HasRepoVar env, HasRepoSaver env) => env -> IO Application
+makeApp :: (HasConnection env, HasRepoVar env, HasRepoSaver env) 
+        => env -> IO Application
 makeApp = fmap (serve api) . server
 
 appMock :: Application
-appMock = serve api (swaggerFront :<|> gargMock :<|> serverIndex)
+appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
 
 ---------------------------------------------------------------------
 api :: Proxy API
