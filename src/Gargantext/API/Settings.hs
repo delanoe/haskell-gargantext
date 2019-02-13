@@ -38,7 +38,7 @@ import Network.HTTP.Client.TLS (newTlsManager)
 import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
-import Data.JsonState
+import Data.JsonState (mkSaveState)
 import Data.Text
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time.Units
@@ -169,14 +169,21 @@ repoSnapshot = "repo.json"
 
 readRepo :: IO (MVar NgramsRepo)
 readRepo = do
-  repoExists <- doesFileExist repoSnapshot
+  -- | Does file exist ? :: Bool
+  repoFile <- doesFileExist repoSnapshot
+  
+  -- | Is file not empty ? :: Bool
+  repoExists <- if repoFile
+             then (>0) <$> getFileSize repoSnapshot
+             else pure repoFile
+  
   newMVar =<<
     if repoExists
       then do
         e_repo <- eitherDecodeFileStrict repoSnapshot
-        repo <- either fail pure e_repo
+        repo   <- either fail pure e_repo
         let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
-        renameFile repoSnapshot archive
+        copyFile repoSnapshot archive
         pure repo
       else
         pure initMockRepo
@@ -192,13 +199,16 @@ newEnv port file = do
   settings <- pure (devSettings & appPort .~ port) -- TODO read from 'file'
   when (port /= settings ^. appPort) $
     panic "TODO: conflicting settings of port"
+  
   self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
-  param <- databaseParameters file
-  conn <- connect param
-  repo_var <- readRepo
-  repo_saver <- mkRepoSaver repo_var
+  param    <- databaseParameters file
+  conn     <- connect param
+  
+  repo_var     <- readRepo
+  repo_saver   <- mkRepoSaver repo_var
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
+  
   pure $ Env
     { _env_settings   = settings
     , _env_logger     = logger
@@ -229,9 +239,9 @@ instance HasRepoSaver DevEnv where
 
 newDevEnvWith :: FilePath -> IO DevEnv
 newDevEnvWith file = do
-  param <- databaseParameters file
-  conn <- connect param
-  repo_var <- newMVar initMockRepo
+  param      <- databaseParameters file
+  conn       <- connect param
+  repo_var   <- newMVar initMockRepo
   repo_saver <- mkRepoSaver repo_var
   pure $ DevEnv
     { _dev_env_conn       = conn
