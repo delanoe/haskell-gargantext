@@ -41,7 +41,7 @@ import Data.Functor (($>))
 import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
                          Composable(..), Transformable(..),
                          PairPatch(..), Patched, ConflictResolution,
-                         ConflictResolutionReplace)
+                         ConflictResolutionReplace, ours)
 import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
 --import Data.Semigroup
@@ -630,13 +630,14 @@ ngramsStatePatchConflictResolution
   :: NgramsType -> NodeId -> NgramsTerm
   -> ConflictResolutionNgramsPatch
 ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
-  = (undefined {- TODO think this through -}, listTypeConflictResolution)
+  = (const ours, ours)
+  -- undefined {- TODO think this through -}, listTypeConflictResolution)
 
 class HasInvalidError e where
   _InvalidError :: Prism' e Validation
 
 instance HasInvalidError ServantErr where
-  _InvalidError = undefined {-prism' make match
+  _InvalidError = panic "error" {-prism' make match
     where
       err = err500 { errBody = "InvalidError" }
       make _ = err
