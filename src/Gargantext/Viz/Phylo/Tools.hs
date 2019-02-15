@@ -37,6 +37,10 @@ import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Example
 
+-- | Some types to help reading
+type Clique = Set Ngrams
+type Support = Int
+type MinSize = Int
 
 -- | Building a phylo
 -- (Indicative and schematic function)
@@ -69,10 +73,6 @@ filterCliques s ms = maximalCliques
                    . filterWithSizeSet ms
                    . Map.keys
                    . filterWithSupport s
-
-type Clique = Set Ngrams
-type Support = Int
-type MinSize = Int
 
 -- | Hapaxify / Threshold
 -- hapax s = 1
