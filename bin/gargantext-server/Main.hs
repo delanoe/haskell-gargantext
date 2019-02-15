@@ -44,40 +44,37 @@ instance ParseField  Mode
 instance ParseFields Mode
 
 
-data MyOptions w = MyOptions { run  :: w ::: Mode        <?> "Possible modes: Dev | Mock | Prod"
-                             , port :: w ::: Maybe Int   <?> "By default: 8008"
-                             , ini  :: w ::: Maybe Text  <?> "Ini-file path of gargantext.ini"
-                             }
-          deriving (Generic)
+data MyOptions w =
+  MyOptions { run  :: w ::: Mode
+                        <?> "Possible modes: Dev | Mock | Prod"
+            , port :: w ::: Maybe Int
+                        <?> "By default: 8008"
+            , ini  :: w ::: Maybe Text
+                        <?> "Ini-file path of gargantext.ini"
+            }
+   deriving (Generic)
 
 instance ParseRecord (MyOptions Wrapped)
 deriving instance Show (MyOptions Unwrapped)
 
 
-
 main :: IO ()
-main = do 
-    MyOptions myMode myPort myIniFile  <- unwrapRecord
-            "Gargantext: collaborative platform for text-mining"
+main = do
+  MyOptions myMode myPort myIniFile  <- unwrapRecord
+          "Gargantext server"
 
-    let myPort' = case myPort of
-            Just p  -> p
-            Nothing -> 8008
+  let myPort' = case myPort of
+        Just p  -> p
+        Nothing -> 8008
 
-    let start = case myMode of
-            --Nothing   -> startGargantext myPort' (unpack myIniFile')
-            Prod -> startGargantext myPort' (unpack myIniFile')
-                    where
-                        myIniFile' = case myIniFile of
-                                       Nothing -> panic "For Prod mode, you need to fill a gargantext.ini file"
-                                       Just i  -> i
-            Mock -> startGargantextMock myPort'
-            _  -> startGargantextMock myPort'
+  let start = case myMode of
+        Prod -> startGargantext myPort' (unpack myIniFile')
+            where
+              myIniFile' = case myIniFile of
+                  Nothing -> panic "[ERROR] gargantext.ini needed"
+                  Just i  -> i
+        _ -> startGargantextMock myPort'
 
-    putStrLn $ "Starting Gargantext with mode: " <> show myMode
-    start
-
--- main' :: IO ()
---main' = putStrLn $ show $ M.conditional $ M.myMat 10
-
+  putStrLn $ "Starting with " <> show myMode <> " mode."
+  start
 

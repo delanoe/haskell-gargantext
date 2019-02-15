@@ -17,25 +17,31 @@ Portability : POSIX
 {-# LANGUAGE ScopedTypeVariables         #-}
 {-# LANGUAGE TemplateHaskell             #-}
 {-# LANGUAGE OverloadedStrings           #-}
+{-# LANGUAGE FlexibleContexts            #-}
 {-# LANGUAGE FlexibleInstances           #-}
+{-# LANGUAGE RankNTypes                  #-}
 
 module Gargantext.API.Settings
     where
 
+import System.Directory
 import System.Log.FastLogger
 import GHC.Enum
 import GHC.Generics (Generic)
-import Prelude (Bounded())
+import Prelude (Bounded(), fail)
 import System.Environment (lookupEnv)
 import System.IO (FilePath)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
 
+import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
+import Data.JsonState (mkSaveState)
 import Data.Text
 import Data.Text.Encoding (encodeUtf8)
+import Data.Time.Units
 import Data.ByteString.Lazy.Internal
 
 import Servant
@@ -45,10 +51,14 @@ import Web.HttpApiData (parseUrlPiece)
 import qualified Jose.Jwk as Jose
 import qualified Jose.Jwa as Jose
 
+import Control.Concurrent
+import Control.Exception (finally)
 import Control.Monad.Logger
+import Control.Monad.Reader
 import Control.Lens
 import Gargantext.Prelude
-import Gargantext.Database.Utils (databaseParameters, HasConnection(..))
+import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), initMockRepo, r_version, saveRepo)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -125,12 +135,14 @@ optSetting name d = do
 data FireWall = FireWall { unFireWall :: Bool }
 
 data Env = Env
-  { _env_settings :: !Settings
-  , _env_logger   :: !LoggerSet
-  , _env_conn     :: !Connection
-  , _env_manager  :: !Manager
-  , _env_self_url :: !BaseUrl
-  , _env_scrapers :: !ScrapersEnv
+  { _env_settings   :: !Settings
+  , _env_logger     :: !LoggerSet
+  , _env_conn       :: !Connection
+  , _env_repo_var   :: !(MVar NgramsRepo)
+  , _env_repo_saver :: !(IO ())
+  , _env_manager    :: !Manager
+  , _env_self_url   :: !BaseUrl
+  , _env_scrapers   :: !ScrapersEnv
   }
   deriving (Generic)
 
@@ -139,6 +151,12 @@ makeLenses ''Env
 instance HasConnection Env where
   connection = env_conn
 
+instance HasRepoVar Env where
+  repoVar = env_repo_var
+
+instance HasRepoSaver Env where
+  repoSaver = env_repo_saver
+
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
   }
@@ -146,22 +164,109 @@ data MockEnv = MockEnv
 
 makeLenses ''MockEnv
 
+repoSnapshot :: FilePath
+repoSnapshot = "repo.json"
+
+readRepo :: IO (MVar NgramsRepo)
+readRepo = do
+  -- | Does file exist ? :: Bool
+  repoFile <- doesFileExist repoSnapshot
+  
+  -- | Is file not empty ? :: Bool
+  repoExists <- if repoFile
+             then (>0) <$> getFileSize repoSnapshot
+             else pure repoFile
+  
+  newMVar =<<
+    if repoExists
+      then do
+        e_repo <- eitherDecodeFileStrict repoSnapshot
+        repo   <- either fail pure e_repo
+        let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
+        copyFile repoSnapshot archive
+        pure repo
+      else
+        pure initMockRepo
+
+mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
+mkRepoSaver repo_var = do
+  saveAction <- mkSaveState (10 :: Second) repoSnapshot
+  pure $ readMVar repo_var >>= saveAction
+
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
   manager <- newTlsManager
   settings <- pure (devSettings & appPort .~ port) -- TODO read from 'file'
   when (port /= settings ^. appPort) $
     panic "TODO: conflicting settings of port"
+  
   self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
-  param <- databaseParameters file
-  conn <- connect param
+  param    <- databaseParameters file
+  conn     <- connect param
+  
+  repo_var     <- readRepo
+  repo_saver   <- mkRepoSaver repo_var
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
+  
   pure $ Env
-    { _env_settings = settings
-    , _env_logger   = logger
-    , _env_conn     = conn
-    , _env_manager  = manager
-    , _env_scrapers = scrapers_env
-    , _env_self_url = self_url
+    { _env_settings   = settings
+    , _env_logger     = logger
+    , _env_conn       = conn
+    , _env_repo_var   = repo_var
+    , _env_repo_saver = repo_saver
+    , _env_manager    = manager
+    , _env_scrapers   = scrapers_env
+    , _env_self_url   = self_url
     }
+
+data DevEnv = DevEnv
+  { _dev_env_conn       :: !Connection
+  , _dev_env_repo_var   :: !(MVar NgramsRepo)
+  , _dev_env_repo_saver :: !(IO ())
+  }
+
+makeLenses ''DevEnv
+
+instance HasConnection DevEnv where
+  connection = dev_env_conn
+
+instance HasRepoVar DevEnv where
+  repoVar = dev_env_repo_var
+
+instance HasRepoSaver DevEnv where
+  repoSaver = dev_env_repo_saver
+
+newDevEnvWith :: FilePath -> IO DevEnv
+newDevEnvWith file = do
+  param      <- databaseParameters file
+  conn       <- connect param
+  repo_var   <- newMVar initMockRepo
+  repo_saver <- mkRepoSaver repo_var
+  pure $ DevEnv
+    { _dev_env_conn       = conn
+    , _dev_env_repo_var   = repo_var
+    , _dev_env_repo_saver = repo_saver
+    }
+
+newDevEnv :: IO DevEnv
+newDevEnv = newDevEnvWith "gargantext.ini"
+
+-- Use only for dev
+-- In particular this writes the repo file after running
+-- the command.
+-- This function is constrained to the DevEnv rather than
+-- using HasConnection and HasRepoVar.
+runCmdDev :: Show err => DevEnv -> Cmd' DevEnv err a -> IO a
+runCmdDev env f =
+  (either (fail . show) pure =<< runCmd env f)
+    `finally`
+  runReaderT saveRepo env
+
+-- Use only for dev
+runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
+runCmdDevNoErr = runCmdDev
+
+-- Use only for dev
+runCmdDevServantErr :: DevEnv -> Cmd' DevEnv ServantErr a -> IO a
+runCmdDevServantErr = runCmdDev

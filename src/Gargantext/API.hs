@@ -44,6 +44,7 @@ import           GHC.Generics (D1, Meta (..), Rep)
 import           GHC.TypeLits (AppendSymbol, Symbol)
 
 import           Control.Lens
+import           Control.Exception (finally)
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Reader (runReaderT)
 import           Data.Aeson.Encode.Pretty (encodePretty)
@@ -72,6 +73,7 @@ import Gargantext.Prelude
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
+import Gargantext.API.Ngrams (HasRepoVar(..), HasRepoSaver(..), saveRepo)
 import Gargantext.API.Node ( GargServer
                            , Roots    , roots
                            , NodeAPI  , nodeAPI
@@ -83,6 +85,7 @@ import Gargantext.API.Node ( GargServer
                            , HyperdataAnnuaire
                            )
 --import Gargantext.Database.Node.Contact (HyperdataContact)
+import Gargantext.Database.Utils (HasConnection)
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
@@ -163,9 +166,8 @@ makeMockApp env = do
 
 
 
-makeDevApp :: Env -> IO Application
-makeDevApp env = do
-    serverApp <- makeApp env
+makeDevMiddleware :: IO Middleware
+makeDevMiddleware = do
 
     -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
     --logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
@@ -192,8 +194,8 @@ makeDevApp env = do
     --let warpS = Warp.setPort (8008 :: Int)   -- (env^.settings.appPort)
     --          $ Warp.defaultSettings
     
-    --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
-    pure $ logStdoutDev $ corsMiddleware $ serverApp
+    --pure (warpS, logWare . checkOriginAndHost . corsMiddleware)
+    pure $ logStdoutDev . corsMiddleware
 
 ---------------------------------------------------------------------
 -- | API Global
@@ -276,12 +278,13 @@ type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 ---------------------------------------------------------------------
 -- | Server declarations
 
-server :: Env -> IO (Server API)
+server :: (HasConnection env, HasRepoVar env, HasRepoSaver env)
+       => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
      :<|> hoistServer (Proxy :: Proxy GargAPI) (`runReaderT` env) serverGargAPI
-     :<|> serverIndex
+     :<|> serverStatic
 
 serverGargAPI :: GargServer GargAPI
 serverGargAPI -- orchestrator
@@ -299,9 +302,12 @@ serverGargAPI -- orchestrator
   where
     fakeUserId = 1 -- TODO
 
-serverIndex :: Server (Get '[HTML] Html)
-serverIndex = $(do (Just s) <- liftIO (fileTypeToFileTree (FileTypeFile "purescript-gargantext/dist/index.html"))
-                   fileTreeToServer s)
+serverStatic :: Server (Get '[HTML] Html)
+serverStatic = $(do
+                let path = "purescript-gargantext/dist/index.html"
+                Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
+                fileTreeToServer s
+                )
 
 ---------------------------------------------------------------------
 swaggerFront :: Server SwaggerFrontAPI
@@ -312,11 +318,12 @@ gargMock :: Server GargAPI
 gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
-makeApp :: Env -> IO Application
+makeApp :: (HasConnection env, HasRepoVar env, HasRepoSaver env) 
+        => env -> IO Application
 makeApp = fmap (serve api) . server
 
 appMock :: Application
-appMock = serve api (swaggerFront :<|> gargMock :<|> serverIndex)
+appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
 
 ---------------------------------------------------------------------
 api :: Proxy API
@@ -367,13 +374,19 @@ portRouteInfo port = do
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
+stopGargantext :: HasRepoSaver env => env -> IO ()
+stopGargantext env = do
+  T.putStrLn "----- Stopping gargantext -----"
+  runReaderT saveRepo env
+
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: PortNumber -> FilePath -> IO ()
 startGargantext port file = do
   env <- newEnv port file
   portRouteInfo port
-  app <- makeDevApp env
-  run port app
+  app <- makeApp env
+  mid <- makeDevMiddleware
+  run port (mid app) `finally` stopGargantext env
 
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do

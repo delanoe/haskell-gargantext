@@ -14,18 +14,21 @@ Import a corpus binary.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE Strict            #-}
 
 module Main where
 
+import Control.Exception (finally)
 import Servant (ServantErr)
 import Gargantext.Prelude
-import Gargantext.Database.Flow (flowCorpus)
+import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
-import Gargantext.Database.Utils (Cmd, connectGargandb, runCmdDevWith)
-import Gargantext.Database.Types.Node (NodeId)
+import Gargantext.Database.Utils (Cmd, )
+import Gargantext.Database.Types.Node (CorpusId)
 --import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
 import Gargantext.API.Node () -- instances
+import Gargantext.API.Settings (newDevEnvWith, runCmdDev, DevEnv)
 import System.Environment (getArgs)
 
 main :: IO ()
@@ -34,11 +37,16 @@ main = do
 
   {-let createUsers :: Cmd ServantErr Int64
       createUsers = insertUsers [gargantuaUser,simpleUser]
-  _ <- runCmdDevWith iniPath createUsers
   -}
-  let cmd :: Cmd ServantErr NodeId
-      cmd = flowCorpus CsvHalFormat corpusPath (cs name)
-  r <- runCmdDevWith iniPath cmd
+
+  let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
+      cmdCorpus = flowCorpus CsvHalFormat corpusPath (cs name)
+
+     -- cmd = {-createUsers >>-} cmdCorpus
+
+  env <- newDevEnvWith iniPath
+  -- Better if we keep only one call to runCmdDev.
+  _ <- runCmdDev env cmdCorpus
   pure ()
 
 

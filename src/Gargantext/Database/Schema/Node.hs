@@ -155,32 +155,33 @@ instance QueryRunnerColumnDefault PGInt4 NodeId
 ------------------------------------------------------------------------
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
+
 $(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
 $(makeLensesWith abbreviatedFields ''NodePolySearch)
 
-type NodeWrite = NodePoly  (Maybe (Column  PGInt4       ))
-                                  (Column  PGInt4       )
-                                  (Column  PGInt4       )
-                           (Maybe (Column  PGInt4       ))
-                                  (Column PGText        )
-                           (Maybe (Column  PGTimestamptz))
-                                  (Column  PGJsonb      )
+type NodeWrite = NodePoly (Maybe (Column PGInt4)      )
+                                 (Column PGInt4)
+                                 (Column PGInt4)
+                          (Maybe (Column PGInt4)      )
+                                 (Column PGText)
+                          (Maybe (Column PGTimestamptz))
+                                 (Column PGJsonb)
 
-type NodeRead = NodePoly  (Column PGInt4        )
-                          (Column PGInt4        )
-                          (Column PGInt4        )
-                          (Column PGInt4        )
-                          (Column PGText        )
-                          (Column PGTimestamptz )
-                          (Column PGJsonb       )
+type NodeRead = NodePoly (Column PGInt4        )
+                         (Column PGInt4        )
+                         (Column PGInt4        )
+                         (Column PGInt4        )
+                         (Column PGText        )
+                         (Column PGTimestamptz )
+                         (Column PGJsonb       )
 
-type NodeReadNull = NodePoly  (Column (Nullable PGInt4 ))
-                              (Column (Nullable PGInt4 ))
-                              (Column (Nullable PGInt4 ))
-                              (Column (Nullable PGInt4 ))
-                              (Column (Nullable PGText ))
-                              (Column (Nullable PGTimestamptz ))
-                              (Column (Nullable PGJsonb))
+type NodeReadNull = NodePoly (Column (Nullable PGInt4))
+                             (Column (Nullable PGInt4))
+                             (Column (Nullable PGInt4))
+                             (Column (Nullable PGInt4))
+                             (Column (Nullable PGText))
+                             (Column (Nullable PGTimestamptz))
+                             (Column (Nullable PGJsonb))
 
 nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
@@ -201,32 +202,38 @@ queryNodeTable = queryTable nodeTable
 ------------------------------------------------------------------------
 -- | Node(Read|Write)Search is slower than Node(Write|Read) use it
 -- for full text search only
-type NodeSearchWrite = NodePolySearch  (Maybe (Column  PGInt4              ))
-                                  (Column  PGInt4               )
-                                  (Column  PGInt4               )
-                                  (Column (Nullable PGInt4     ))
-                                  (Column (PGText              ))
-                                  (Maybe  (Column PGTimestamptz))
-                                  (Column  PGJsonb              )
-                                  (Maybe (Column PGTSVector))
+type NodeSearchWrite =
+  NodePolySearch
+    (Maybe  (Column  PGInt4)      )
+    (Column  PGInt4               )
+    (Column  PGInt4               )
+    (Column (Nullable PGInt4)     )
+    (Column PGText                )
+    (Maybe  (Column PGTimestamptz))
+    (Column  PGJsonb              )
+    (Maybe  (Column PGTSVector)   )
 
-type NodeSearchRead = NodePolySearch  (Column  PGInt4           )
-                          (Column  PGInt4           )
-                          (Column  PGInt4           )
-                          (Column (Nullable PGInt4 ))
-                          (Column (PGText          ))
-                          (Column PGTimestamptz     )
-                          (Column PGJsonb) 
-                          (Column PGTSVector)
+type NodeSearchRead =
+  NodePolySearch
+    (Column  PGInt4           )
+    (Column  PGInt4           )
+    (Column  PGInt4           )
+    (Column (Nullable PGInt4 ))
+    (Column  PGText           )
+    (Column  PGTimestamptz    )
+    (Column  PGJsonb          )
+    (Column  PGTSVector       )
 
-type NodeSearchReadNull = NodePolySearch  (Column  (Nullable PGInt4           ))
-                              (Column  (Nullable PGInt4           ))
-                              (Column  (Nullable PGInt4           ))
-                              (Column (Nullable PGInt4 ))
-                              (Column (Nullable PGText          ))
-                              (Column (Nullable PGTimestamptz     ))
-                              (Column (Nullable PGJsonb))
-                              (Column (Nullable PGTSVector))
+type NodeSearchReadNull =
+  NodePolySearch
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGText)       )
+    (Column (Nullable PGTimestamptz))
+    (Column (Nullable PGJsonb)      )
+    (Column (Nullable PGTSVector)   )
 
 --{-
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
@@ -336,7 +343,8 @@ type JSONB = QueryRunnerColumnDefault PGJsonb
 
 getNode :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
 getNode nId _ = do
-    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
 getNodesWithType = runOpaQuery . selectNodesWithType
@@ -502,13 +510,16 @@ childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a c
 
 type Name = Text
 
+-- | TODO mk all others nodes
 mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
-mkNodeWithParent NodeUser (Just _) _   _     = nodeError UserNoParent
-mkNodeWithParent _        Nothing  _   _     = nodeError HasParent
-mkNodeWithParent nt       pId     uId name   =
-    insertNodesWithParentR pId [node nt name hd pId uId]
-  where
-    hd = HyperdataUser . Just . pack $ show EN
+mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
+mkNodeWithParent NodeUser Nothing  uId name =
+  insertNodesWithParentR Nothing [node NodeUser name hd Nothing uId]
+    where
+      hd = HyperdataUser . Just . pack $ show EN
+mkNodeWithParent _ Nothing _ _ = nodeError HasParent
+mkNodeWithParent _ _ _ _ = nodeError NotImplYet
+
 
 mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
 mkRoot uname uId = case uId > 0 of

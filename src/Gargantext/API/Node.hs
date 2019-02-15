@@ -46,7 +46,7 @@ import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Servant
 
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepoVar, HasRepoSaver)
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
@@ -72,7 +72,10 @@ import Gargantext.Database.Types.Node (CorpusId, ContactId)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
-type GargServer api = forall env m. CmdM env ServantErr m => ServerT api m
+type GargServer api =
+  forall env m.
+    (CmdM env ServantErr m, HasRepoVar env, HasRepoSaver env)
+    => ServerT api m
 
 -------------------------------------------------------------------
 -- TODO-ACCESS: access by admin only.
@@ -279,7 +282,7 @@ graphAPI nId = do
 
   nodeGraph <- getNode nId HyperdataGraph
 
-  let title = "Graph Title"
+  let title = "Title"
   let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"

@@ -7,7 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Specifications of Phylomemy format.
+Specifications of Phylomemy export format.
 
 Phylomemy can be described as a Temporal Graph with different scale of
 granularity of group of ngrams (terms and multi-terms).
@@ -39,9 +39,9 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
-data PhyloFormat =
-     PhyloFormat { _phyloFormat_param :: PhyloParam
-                 , _phyloFormat_data :: Phylo
+data PhyloExport =
+     PhyloExport { _phyloExport_param :: PhyloParam
+                 , _phyloExport_data :: Phylo
      } deriving (Generic)
 
 -- | .phylo parameters
@@ -66,7 +66,7 @@ data Software =
 -- Ngrams   : list of all (possible) terms contained in the phylomemy (with their id)
 -- Steps    : list of all steps to build the phylomemy
 data Phylo =
-     Phylo { _phylo_puration :: (Start, End)
+     Phylo { _phylo_duration :: (Start, End)
            , _phylo_ngrams   :: [Ngram]
            , _phylo_periods  :: [PhyloPeriod]
            }
@@ -109,27 +109,28 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 -- Ngrams: set of terms that build the group
 -- Period Parents|Childs: weighted link to Parents|Childs (Temporal Period   axis)
 -- Level  Parents|Childs: weighted link to Parents|Childs (Level Granularity axis)
+-- Pointers are directed link from Self to any PhyloGroup (/= Self ?)
 data PhyloGroup =
      PhyloGroup { _phylo_groupId    :: PhyloGroupId
                 , _phylo_groupLabel :: Maybe Text
                 , _phylo_groupNgrams        :: [NgramsId]
                 
-                , _phylo_groupPeriodParents :: [Edge]
-                , _phylo_groupPeriodChilds  :: [Edge]
+                , _phylo_groupPeriodParents :: [Pointer]
+                , _phylo_groupPeriodChilds  :: [Pointer]
                 
-                , _phylo_groupLevelParents  :: [Edge]
-                , _phylo_groupLevelChilds   :: [Edge]
+                , _phylo_groupLevelParents  :: [Pointer]
+                , _phylo_groupLevelChilds   :: [Pointer]
                 }
                 deriving (Generic)
 
 type PhyloGroupId = (PhyloLevelId, Int)
-type Edge         = (PhyloGroupId, Weight)
+type Pointer      = (PhyloGroupId, Weight)
 type Weight       = Double
 
 -- | Lenses
 makeLenses ''Phylo
 makeLenses ''PhyloParam
-makeLenses ''PhyloFormat
+makeLenses ''PhyloExport
 makeLenses ''Software
 
 -- | JSON instances
@@ -138,9 +139,9 @@ $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
 -- 
-$(deriveJSON (unPrefix "_software_"  ) ''Software )
+$(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
-$(deriveJSON (unPrefix "_phyloFormat_" ) ''PhyloFormat  )
+$(deriveJSON (unPrefix "_phyloExport_" ) ''PhyloExport )
 
 -- | TODO XML instances
 

@@ -28,6 +28,7 @@ library:
   - Gargantext.API.Auth
   - Gargantext.API.Count
   - Gargantext.API.FrontEnd
+  - Gargantext.API.Ngrams
   - Gargantext.API.Node
   - Gargantext.API.Orchestrator
   - Gargantext.API.Search
@@ -50,6 +51,7 @@ library:
   - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
   - Gargantext.Text.Metrics
+  - Gargantext.Text.Metrics.TFICF
   - Gargantext.Text.Metrics.CharByChar
   - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Parsers
@@ -109,6 +111,7 @@ library:
   - ini
   - insert-ordered-containers
   - jose-jwt
+  - json-state
     #  - kmeans-vector
   - KMP
   - lens
@@ -159,11 +162,13 @@ library:
   - text-metrics
   - time
   - time-locale-compat
+  - time-units
   - timezone-series
   - transformers
   - transformers-base
   - unordered-containers
   - uuid
+  - validity
   - vector
   - wai
   - wai-cors
