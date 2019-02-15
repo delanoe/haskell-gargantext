@@ -32,9 +32,11 @@ import Data.Text (Text, unwords, toLower, words)
 import Data.Tuple.Extra (both)
 
 import Data.Map (Map)
-import qualified Data.Map as DM
+import qualified Data.Map as Map
 
 import Data.Set (Set)
+import qualified Data.Set as DS
+import qualified Data.Matrix as DM'
 
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Gargantext.Text.Terms.Mono (monoTexts)
@@ -59,53 +61,19 @@ type PeriodeSize = Int
 type Occurrences = Int
 
 
-------------------------------------------------------------------------
--- | Phylo'' ?
--- | phylo_id = date && source data && query && [operations]
--- | node_type = 0 | 1 | 2 | 3 <=> root | emergence | recombination | steady
+-- | number of Documents in a given Corpus where a set of Ngrams co-occurs 
+type Support = Int 
+-- | frequent items set
+type Fis = Map (Set Ngrams) Support
 
-data Phylo'' a = Phylo'' { phylo_id :: a
-                         , branch_list :: [Branch a]
-                         }
-
-data Branch a = Branch { branch_id :: Int
-                       , cluster_list :: [Cluster' a]
-                       , cluster_edge :: [Edge a]
-                       } 
-
-data Cluster' a = Cluster' { cluster_node :: Node a
-                           , cluster_date :: Date
-                           , term_list :: [Node a]
-                           , term_edge :: [Edge a]
-                           }
-
-data Edge a = Edge { edge_id :: Int
-                   , edge_source :: Node a
-                   , edge_target :: Node a
-                   }
+--------------------------------------------------------------------
 
 
-data Node a = Node { node_id :: Int
-                   , node_label :: Ngrams
-                   , node_type :: a
-                   , node_score :: a
-                   }
+data PhyloField = PhyloField {
+    phyloField_id :: Int
+}
 
-------------------------------------------------------------------------
--- | Phylo == Phylo' ?
-type Phylo' a = [Strate a]
-
-data Strate a = Strate { strate_date     :: (Date,Date)
-                       , strate_clusters :: [Cluster a]
-                       }
-
-data Cluster a = Cluster { cluster_id :: Int
-                         , cluster_ngrams :: Set Ngrams
-                         , cluster_score  :: a
-                         , cluster_parent :: [(Cluster a, Double)]
-                         }
-
-------------------------------------------------------------------------
+--------------------------------------------------------------------
 phyloExampleFinal :: Phylo
 phyloExampleFinal = undefined
 
@@ -115,12 +83,21 @@ appariement = undefined
 
 --------------------------------------------------------------------
 
-phyloExample :: Map (Date, Date) (Map (Set Ngrams) Int)
-phyloExample = fis phyloTerms
+fisToFields :: Fis
+    -> [PhyloField]
+fisToFields = undefined
 
-fis :: Map (Date, Date) [Document]
-    -> Map (Date, Date) (Map (Set Ngrams) Int)
-fis = phylo (words . text)
+phyloClusters :: Map (Date,Date) [PhyloField]
+phyloClusters = undefined
+
+--------------------------------------------------------------------
+
+phyloFis :: Map (Date, Date) Fis
+phyloFis = termsToFis phyloTerms 
+
+termsToFis :: Map (Date, Date) [Document]
+    -> Map (Date, Date) Fis
+termsToFis = phylo (words . text)
 
 phyloTerms :: Map (Date, Date) [Document]
 phyloTerms = toPeriodes date 5 3 $ cleanCorpus mapList phyloCorpus
@@ -132,14 +109,14 @@ phyloTerms = toPeriodes date 5 3 $ cleanCorpus mapList phyloCorpus
 phylo :: (Document -> [Ngrams])
       -> Map (Date, Date) [Document]
       -> Map (Date, Date) (Map (Set Ngrams) Int)
-phylo f = DM.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
+phylo f = Map.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
 
 ------------------------------------------------------------------------
 -- | Create a Map of (time steps) and [documents]
 toPeriodes :: (Ord date, Enum date) => (doc -> date)
      -> Grain -> Step -> [doc] -> Map (date, date) [doc]
 toPeriodes _ _ _ [] = panic "Empty corpus can not have any periods"
-toPeriodes f g s es = DM.fromList $ zip hs $ map (inPeriode f es) hs
+toPeriodes f g s es = Map.fromList $ zip hs $ map (inPeriode f es) hs
   where
     hs = steps g s $ both f (DL.head es, DL.last es)
     ------------------------------------------------------------------------
