@@ -32,6 +32,9 @@ import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
 import Data.Maybe   (Maybe)
 import Data.Text    (Text)
+import Data.Set     (Set)
+import Data.Map     (Map)
+import Data.Vector  (Vector)
 import Data.Time.Clock.POSIX  (POSIXTime)
 import GHC.Generics (Generic)
 import Gargantext.Database.Schema.Ngrams (NgramsId)
@@ -67,17 +70,17 @@ data Software =
 -- Steps    : list of all steps to build the phylomemy
 data Phylo =
      Phylo { _phylo_duration :: (Start, End)
-           , _phylo_ngrams   :: [Ngram]
+           , _phylo_ngrams   :: PhyloNgrams
            , _phylo_periods  :: [PhyloPeriod]
            }
-           deriving (Generic)
+           deriving (Generic, Show)
 
 -- | UTCTime in seconds since UNIX epoch
-type Start   = POSIXTime
-type End     = POSIXTime
+-- type Start   = POSIXTime
+-- type End     = POSIXTime
+type Start   = Int
+type End     = Int
 
--- | Indexed Ngram
-type Ngram   = (NgramsId, Text)
 
 -- | PhyloStep : steps of phylomemy on temporal axis
 -- Period: tuple (start date, end date) of the step of the phylomemy
@@ -86,7 +89,7 @@ data PhyloPeriod =
      PhyloPeriod { _phylo_periodId     :: PhyloPeriodId
                  , _phylo_periodLevels :: [PhyloLevel]
                  } 
-                 deriving (Generic)
+                 deriving (Generic, Show)
 
 type PhyloPeriodId = (Start, End)
 
@@ -100,7 +103,7 @@ data PhyloLevel =
      PhyloLevel { _phylo_levelId     :: PhyloLevelId
                 , _phylo_levelGroups :: [PhyloGroup]
                 }
-                deriving (Generic)
+                deriving (Generic, Show)
 
 type PhyloLevelId = (PhyloPeriodId, Int)
 
@@ -121,17 +124,34 @@ data PhyloGroup =
                 , _phylo_groupLevelParents  :: [Pointer]
                 , _phylo_groupLevelChilds   :: [Pointer]
                 }
-                deriving (Generic)
+                deriving (Generic, Show)
 
 type PhyloGroupId = (PhyloLevelId, Int)
 type Pointer      = (PhyloGroupId, Weight)
 type Weight       = Double
+
+
+
+-- | Ngrams : a contiguous sequence of n terms
+type Ngrams = Text
+-- | PhyloNgrams : Vector of all the Ngrams (PhyloGroup of level -1) used within a Phylo
+type PhyloNgrams = Vector Ngrams
+
+
+-- | Clique : Set of ngrams cooccurring in the same Document
+type Clique  = Set Ngrams
+-- | Support : Number of Documents where a Clique occurs
+type Support = Int 
+-- | Fis : Frequent Items Set (ie: the association between a Clique and a Support) 
+type Fis = Map Clique Support
+
 
 -- | Lenses
 makeLenses ''Phylo
 makeLenses ''PhyloParam
 makeLenses ''PhyloExport
 makeLenses ''Software
+
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )

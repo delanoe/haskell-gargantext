@@ -32,25 +32,22 @@ module Gargantext.Viz.Phylo.Tools where
 
 import Data.Set (Set)
 import Data.Map (Map)
-import Data.Map as Map hiding (Map)
+import qualified Data.Map as Map
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Example
 
--- | Some types to help reading
-type Clique = Set Ngrams
-type Support = Int
 type MinSize = Int
 
 -- | Building a phylo
 -- (Indicative and schematic function)
-buildPhylo :: Support -> MinSize
-                      -> Map Clique Support -> Phylo
-buildPhylo s m mcs = level2Phylo
-                   . groups2level
-                   . clusters2group
-                   . map clique2cluster
-                   . filterCliques s m
+-- buildPhylo :: Support -> MinSize
+--                       -> Map Clique Support -> Phylo
+-- buildPhylo s m mcs = level2Phylo
+--                    . groups2level
+--                    . clusters2group
+--                    . Map.map clique2cluster
+--                    . filterCliques s m
 
 level2Phylo :: PhyloLevel -> Phylo -> Phylo
 level2Phylo = undefined
@@ -58,11 +55,11 @@ level2Phylo = undefined
 groups2level :: [PhyloGroup] -> PhyloLevel
 groups2level = undefined
 
-clusters2group :: [Cluster Ngrams] -> PhyloGroup
-clusters2group = undefined
+-- clusters2group :: [Cluster Ngrams] -> PhyloGroup
+-- clusters2group = undefined
 
-clique2cluster :: Clique -> Cluster Ngrams
-clique2cluster = undefined
+-- clique2cluster :: Clique -> Cluster Ngrams
+-- clique2cluster = undefined
 
 -- | Filtering the cliques before bulding the Phylo
 -- (Support and MinSize as parameter of the finale function to build a phylo)
