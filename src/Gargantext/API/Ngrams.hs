@@ -34,7 +34,7 @@ add get
 module Gargantext.API.Ngrams
   where
 
---import Debug.Trace (trace)
+import Debug.Trace (trace)
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
@@ -47,7 +47,7 @@ import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
 -- import qualified Data.List as List
--- import Data.Maybe (isJust)
+import Data.Maybe (catMaybes)
 -- import Data.Tuple.Extra (first)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
@@ -70,8 +70,11 @@ import Data.Validity
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
+import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
-import Gargantext.Database.Utils (fromField')
+import Gargantext.Database.Utils (fromField', HasConnection)
+import Gargantext.Database.Lists (listsWith)
+import Gargantext.Database.Schema.Node (HasNodeError)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
@@ -744,7 +747,7 @@ getListNgrams nodeIds ngramsType = do
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
-getTableNgrams :: RepoCmdM env err m
+getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                => CorpusId -> Maybe TabType
                -> [ListId] -> Maybe Limit -> Maybe Offset
                -- -> Maybe MinSize -> Maybe MaxSize
@@ -758,7 +761,8 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset = do
     defaultLimit = 10 -- TODO
     limit_  = maybe defaultLimit identity mlimit
     offset_ = maybe 0 identity moffset
-
-  getListNgrams ([104] <> listIds) ngramsType
+  
+  lists <- catMaybes <$> listsWith userMaster
+  trace (show lists) $ getListNgrams (lists <> listIds) ngramsType
     & mapped . v_data . _NgramsTable %~ (take limit_ . drop offset_)
 
