@@ -32,7 +32,7 @@ module Gargantext.Viz.Phylo.Tools where
 
 import Data.Set (Set)
 import Data.Map (Map)
-import Data.Map as Map hiding (Map)
+import qualified Data.Map as Map hiding (Map)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Example
@@ -44,6 +44,7 @@ type MinSize = Int
 
 -- | Building a phylo
 -- (Indicative and schematic function)
+{-
 buildPhylo :: Support -> MinSize
                       -> Map Clique Support -> Phylo
 buildPhylo s m mcs = level2Phylo
@@ -51,8 +52,9 @@ buildPhylo s m mcs = level2Phylo
                    . clusters2group
                    . map clique2cluster
                    . filterCliques s m
+-}
 
-level2Phylo :: PhyloLevel -> Phylo -> Phylo
+level2Phylo :: [PhyloLevel] -> Phylo -> Phylo
 level2Phylo = undefined
 
 groups2level :: [PhyloGroup] -> PhyloLevel

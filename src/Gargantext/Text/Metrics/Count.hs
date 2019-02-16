@@ -108,10 +108,10 @@ labelPolicy m g =  case _terms_label <$> fst <$> maximumWith snd <$> DMS.toList 
                      Nothing    -> panic $ "Label of Grouped not found: " <> (pack $ show g)
 -}
 
-coocOn :: Ord b => (a -> b) -> [[a]] -> Map (b, b) Coocs
+coocOn :: Ord b => (a -> b) -> [[a]] -> Map (b, b) Int
 coocOn f as = DMS.unionsWith (+) $ map (coocOn' f) as
 
-coocOn' :: Ord b => (a -> b) -> [a] -> Map (b, b) Coocs
+coocOn' :: Ord b => (a -> b) -> [a] -> Map (b, b) Int
 coocOn' fun ts = DMS.fromListWith (+) xs
   where
       ts' = List.nub $ map fun ts

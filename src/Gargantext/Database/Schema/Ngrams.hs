@@ -56,8 +56,8 @@ import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as PGS
 
 
-type NgramsTerms = Text
 type NgramsId    = Int
+type NgramsTerms = Text
 type Size        = Int
 
 data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
@@ -263,12 +263,12 @@ type NgramsTableParamMaster = NgramsTableParam
 
 
 data NgramsTableData = NgramsTableData { _ntd_id        :: Int
-                                         , _ntd_parent_id :: Maybe Int
-                                         , _ntd_terms     :: Text
-                                         , _ntd_n         :: Int
-                                         , _ntd_listType  :: Maybe ListType
-                                         , _ntd_weight    :: Double
-                                         } deriving (Show)
+                                       , _ntd_parent_id :: Maybe Int
+                                       , _ntd_terms     :: Text
+                                       , _ntd_n         :: Int
+                                       , _ntd_listType  :: Maybe ListType
+                                       , _ntd_weight    :: Double
+                                       } deriving (Show)
 
 
 

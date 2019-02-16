@@ -36,7 +36,6 @@ import qualified Data.Map.Strict as M
 import Data.Swagger
 
 import Gargantext.Prelude
-import Gargantext.Core.Types (Label)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Types.Node (NodeId)
 
@@ -164,9 +163,9 @@ $(deriveJSON (unPrefix "go_") ''GraphV3)
 ----------------------------------------------------------
 -- | From data to Graph
 -- FIXME: distance should not be a map since we just "toList" it (same as cLouvain)
-data2graph :: [(Label, Int)] -> Map (Int, Int) Int
-                             -> Map (Int, Int) Double
-                             -> [LouvainNode]
+data2graph :: [(Text, Int)] -> Map (Int, Int) Int
+                            -> Map (Int, Int) Double
+                            -> [LouvainNode]
               -> Graph
 data2graph labels coocs distance partitions = Graph nodes edges Nothing
   where
@@ -174,7 +173,7 @@ data2graph labels coocs distance partitions = Graph nodes edges Nothing
     nodes = [ Node { node_size = maybe 0 identity (M.lookup (n,n) coocs)
                    , node_type = Terms -- or Unknown
                    , node_id    = cs (show n)
-                   , node_label = T.unwords l
+                   , node_label = l
                    , node_attributes =
                      Attributes { clust_default = maybe 0 identity 
                                 (M.lookup n community_id_by_node_id) } }

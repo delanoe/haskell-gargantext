@@ -20,26 +20,26 @@ module Gargantext.Text.Flow
 
 --import qualified Data.Array.Accelerate as A
 --import qualified Data.Set as DS
-import Control.Monad.Reader
+--import Control.Monad.Reader
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map.Strict (Map)
-import Data.Maybe (catMaybes)
-import qualified Data.Map.Strict as M
+--import Data.Maybe (catMaybes)
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import Data.Text (Text)
-import Data.Text.IO (readFile)
+--import Data.Text.IO (readFile)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.IO (FilePath)
-import Gargantext.Core (Lang)
+--import Gargantext.Core (Lang)
 import Gargantext.Core.Types (CorpusId)
-import Gargantext.Database.Schema.Node
-import Gargantext.Database.Types.Node
+--import Gargantext.Database.Schema.Node
+--import Gargantext.Database.Types.Node
 import Gargantext.Prelude
-import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
+--import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
 import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
-import Gargantext.Text.Metrics.Count (cooc)
-import Gargantext.Text.Parsers.CSV
-import Gargantext.Text.Terms (TermType, extractTerms)
+--import Gargantext.Text.Metrics.Count (coocOn)
+--import Gargantext.Text.Parsers.CSV
+--import Gargantext.Text.Terms (TermType, extractTerms)
 import Gargantext.Viz.Graph (Graph(..), data2graph)
 import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
@@ -76,7 +76,7 @@ data TextFlow = CSV FilePath
               | DBV3 Connection CorpusId
               | Query T.Text
 
-
+{-
 textFlow :: TermType Lang -> TextFlow -> IO Graph
 textFlow termType workType = do
   contexts <- case workType of
@@ -104,18 +104,19 @@ textFlow' termType contexts = do
   -- Bulding the map list
   -- compute copresences of terms, i.e. cooccurrences of terms in same context of text
   -- Cooc = Map (Term, Term) Int
-  let myCooc1 = cooc myterms
+  let myCooc1 = coocOn (_terms_label) myterms
   --printDebug "myCooc1 size" (M.size myCooc1)
 
   -- Remove Apax: appears one time only => lighting the matrix
-  let myCooc2 = M.filter (>0) myCooc1
+  let myCooc2 = Map.filter (>0) myCooc1
   --printDebug "myCooc2 size" (M.size myCooc2)
   --printDebug "myCooc2" myCooc2
   g <- cooc2graph myCooc2
   pure g
+-}
 
 -- TODO use Text only here instead of [Text]
-cooc2graph :: (Map ([Text], [Text]) Int) -> IO Graph
+cooc2graph :: (Map (Text, Text) Int) -> IO Graph
 cooc2graph myCooc = do
   --printDebug "myCooc" myCooc
   -- Filtering terms with inclusion/Exclusion and Specificity/Genericity scores
@@ -137,7 +138,7 @@ cooc2graph myCooc = do
   --printDebug "myCooc4 size" $ M.size myCooc4
   --printDebug "myCooc4" myCooc4
 
-  let matCooc = map2mat (0) (M.size ti) myCooc4
+  let matCooc = map2mat (0) (Map.size ti) myCooc4
   --printDebug "matCooc shape" $ A.arrayShape matCooc
   --printDebug "matCooc" matCooc
 
@@ -148,19 +149,19 @@ cooc2graph myCooc = do
   --printDebug "distanceMat" distanceMat
 
   --let distanceMap = M.filter (>0) $ mat2map distanceMat
-  let distanceMap = M.map (\_ -> 1) $ M.filter (>0) $ mat2map distanceMat
+  let distanceMap = Map.map (\_ -> 1) $ Map.filter (>0) $ mat2map distanceMat
   --printDebug "distanceMap size" $ M.size distanceMap
   --printDebug "distanceMap" distanceMap
 
 --  let distance = fromIndex fi distanceMap
   --printDebug "distance" $ M.size distance
 
-  partitions <- case M.size distanceMap > 0 of
+  partitions <- case Map.size distanceMap > 0 of
                   True  -> cLouvain distanceMap
                   False -> panic "Text.Flow: DistanceMap is empty"
 -- Building : -> Graph -> JSON
   --printDebug "partitions" $ DS.size $ DS.fromList $ map (l_community_id) partitions
   --printDebug "partitions" partitions
   let distanceMap' = bridgeness 300 partitions distanceMap
-  pure $ data2graph (M.toList ti) myCooc4 distanceMap' partitions
+  pure $ data2graph (Map.toList ti) myCooc4 distanceMap' partitions
 

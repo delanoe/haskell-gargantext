@@ -102,6 +102,10 @@ instance FromField HyperdataGraph
 instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
+
+instance FromField (NodeId, Text)
+  where
+    fromField = fromField'
 ------------------------------------------------------------------------
 instance QueryRunnerColumnDefault PGJsonb HyperdataAny
   where
@@ -146,6 +150,11 @@ instance QueryRunnerColumnDefault PGInt4 (Maybe NodeId)
 instance QueryRunnerColumnDefault PGInt4 NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 
 
 ------------------------------------------------------------------------

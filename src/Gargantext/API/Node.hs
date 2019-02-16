@@ -38,6 +38,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
+--import qualified Data.Map as Map
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text())
 import Data.Swagger
@@ -55,11 +56,12 @@ import Gargantext.Database.Node.Children (getChildren)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
-import Gargantext.Database.Metrics.Count (getCoocByDocDev)
+import Gargantext.Database.Metrics.Count (getNgramsByNode)
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
-
+import Gargantext.Text.Metrics.Count (coocOn)
 -- Graph
 import Gargantext.Text.Flow (cooc2graph)
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
@@ -289,8 +291,10 @@ graphAPI nId = do
                                      ]
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
-  lId <- defaultList cId
-  myCooc <- getCoocByDocDev cId lId
+  _lId <- defaultList cId
+  -- lId' <- listsWith masterUser
+  --myCooc <- getCoocByDocDev cId lId -- (lid' <> [lId])
+  myCooc <- coocOn identity <$> getNgramsByNode cId NgramsTerms
   liftIO $ set graph_metadata (Just metadata)
         <$> cooc2graph myCooc
         
