@@ -30,7 +30,8 @@ import GHC.Enum
 import GHC.Generics (Generic)
 import Prelude (Bounded(), fail)
 import System.Environment (lookupEnv)
-import System.IO (FilePath)
+import System.IO (FilePath, hClose)
+import System.IO.Temp (withTempFile)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
@@ -38,11 +39,11 @@ import Network.HTTP.Client.TLS (newTlsManager)
 import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
-import Data.JsonState (mkSaveState)
 import Data.Text
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time.Units
-import Data.ByteString.Lazy.Internal
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as L
 
 import Servant
 import Servant.Client (BaseUrl, parseBaseUrl)
@@ -52,7 +53,8 @@ import qualified Jose.Jwk as Jose
 import qualified Jose.Jwa as Jose
 
 import Control.Concurrent
-import Control.Exception (finally)
+import Control.Debounce (mkDebounce)
+import Control.Exception (SomeException, finally, handle)
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Control.Lens
@@ -188,9 +190,20 @@ readRepo = do
       else
         pure initRepo
 
+ignoreExc :: IO () -> IO ()
+ignoreExc = handle $ \(_ :: SomeException) -> return ()
+
+repoSaverAction :: ToJSON a => a -> IO ()
+repoSaverAction a = ignoreExc $ do
+  -- TODO file locking
+  withTempFile "." "tmp-repo.json" $ \fp h -> do
+    L.hPut h $ encode a
+    hClose h
+    renameFile fp repoSnapshot
+
 mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
 mkRepoSaver repo_var = do
-  saveAction <- mkSaveState (10 :: Second) repoSnapshot
+  (saveAction, _) <- mkDebounce (10 :: Second) repoSaverAction
   pure $ readMVar repo_var >>= saveAction
 
 newEnv :: PortNumber -> FilePath -> IO Env
