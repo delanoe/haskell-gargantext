@@ -58,7 +58,7 @@ import Control.Monad.Reader
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), initMockRepo, r_version, saveRepo)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), r_version, saveRepo, initRepo)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -186,7 +186,7 @@ readRepo = do
         copyFile repoSnapshot archive
         pure repo
       else
-        pure mempty
+        pure initRepo
 
 mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
 mkRepoSaver repo_var = do
