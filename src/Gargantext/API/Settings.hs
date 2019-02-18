@@ -249,6 +249,10 @@ newDevEnvWith file = do
     , _dev_env_repo_saver = repo_saver
     }
 
+-- | Run Cmd Sugar for the Repl (GHCI)
+runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
+runCmdRepl f = newDevEnv >>= \env -> runCmdDev env f
+
 newDevEnv :: IO DevEnv
 newDevEnv = newDevEnvWith "gargantext.ini"
 

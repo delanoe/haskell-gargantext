@@ -52,13 +52,13 @@ import qualified Database.PostgreSQL.Simple as DPS
 
 -- | TODO : remove id
 data NodeNgramPoly node_id ngrams_id parent_id ngrams_type list_type weight
-   = NodeNgram { _nn_node_id    :: node_id
-               , _nn_ngrams_id  :: ngrams_id
-               , _nn_parent_id  :: parent_id
-               
-               , _nn_ngramsType :: ngrams_type
-               , _nn_listType   :: list_type
-               , _nn_weight     :: weight
+   = NodeNgram { nng_node_id    :: node_id
+               , nng_ngrams_id  :: ngrams_id
+               , nng_parent_id  :: parent_id
+              
+               , nng_ngramsType :: ngrams_type
+               , nng_listType   :: list_type
+               , nng_weight     :: weight
                } deriving (Show)
 
 type NodeNgramWrite =
@@ -106,12 +106,12 @@ makeLenses ''NodeNgramPoly
 nodeNgramTable :: Table NodeNgramWrite NodeNgramRead
 nodeNgramTable  = Table "nodes_ngrams"
   ( pNodeNgram NodeNgram
-    { _nn_node_id    = required "node_id"
-    , _nn_ngrams_id  = required "ngrams_id"
-    , _nn_parent_id  = optional "parent_id"
-    , _nn_ngramsType = required "ngrams_type"
-    , _nn_listType   = required "list_type"
-    , _nn_weight     = required "weight"
+    { nng_node_id    = required "node_id"
+    , nng_ngrams_id  = required "ngrams_id"
+    , nng_parent_id  = optional "parent_id"
+    , nng_ngramsType = required "ngrams_type"
+    , nng_listType   = required "list_type"
+    , nng_weight     = required "weight"
     }
   )
 

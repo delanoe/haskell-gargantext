@@ -89,8 +89,8 @@ getNgramsByNodeIndexed nId nt = runOpaQuery (select' nId)
     select' nId' = proc () -> do
       (ng,(nng,(_,n))) <- getNgramsByNodeIndexedJoin -< ()
       restrict          -< _node_id n         .== toNullable (pgNodeId nId')
-      restrict          -< _nn_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt)
-      returnA           -< (_nn_node_id nng, ngrams_terms ng)
+      restrict          -< nng_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt)
+      returnA           -< (nng_node_id nng, ngrams_terms ng)
 
 --}
 getNgramsByNodeIndexedJoin :: Query ( NgramsRead
@@ -114,7 +114,7 @@ getNgramsByNodeIndexedJoin = leftJoin4 queryNodeTable
             , NodeReadNull
             )
           ) -> Column PGBool
-    c2 (nng,(nn',_)) = (_nn_node_id nng)   .== nn_node2_id nn'
+    c2 (nng,(nn',_)) = (nng_node_id nng)   .== nn_node2_id nn'
 
     c3 :: ( NgramsRead
           , ( NodeNgramRead
@@ -123,7 +123,7 @@ getNgramsByNodeIndexedJoin = leftJoin4 queryNodeTable
               )
             )
           ) -> Column PGBool
-    c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== _nn_ngrams_id nng'
+    c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== nng_ngrams_id nng'
 
 
 getNgramsByNodeIndexedJoin' :: Query ( NodeNodeNgramsRead
@@ -150,7 +150,7 @@ getNgramsByNodeIndexedJoin' = leftJoin5 queryNodeTable
             , NodeReadNull
             )
           ) -> Column PGBool
-    c2 (nng,(nn',_)) = (_nn_node_id nng)   .== nn_node2_id nn'
+    c2 (nng,(nn',_)) = (nng_node_id nng)   .== nn_node2_id nn'
 
     c3 :: ( NgramsRead
           , ( NodeNgramRead
@@ -159,7 +159,7 @@ getNgramsByNodeIndexedJoin' = leftJoin5 queryNodeTable
               )
             )
           ) -> Column PGBool
-    c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== _nn_ngrams_id nng'
+    c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== nng_ngrams_id nng'
 
 
     c4 :: ( NodeNodeNgramsRead
