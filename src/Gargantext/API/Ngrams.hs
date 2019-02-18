@@ -54,7 +54,7 @@ import Data.Map.Strict (Map)
 --import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (<>~), (%~), at, _Just, Each(..), itraverse_, (.=), both, mapped)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), itraverse_, (.=), both, mapped)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
@@ -677,7 +677,6 @@ copyListNgrams srcListId dstListId ngramsType = do
   where
     f :: Map NodeId NgramsTableMap -> Map NodeId NgramsTableMap
     f m = m & at dstListId %~ insertNewOnly (m ^. at srcListId)
--}
 
 -- TODO refactor with putListNgrams
 -- The list must be non-empty!
@@ -692,6 +691,7 @@ addListNgrams listId ngramsType nes = do
   saveRepo
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
+-}
 
 putListNgrams :: RepoCmdM env err m
               => NodeId -> NgramsType
@@ -699,7 +699,7 @@ putListNgrams :: RepoCmdM env err m
 putListNgrams listId ngramsType nes = do
   var <- view repoVar
   liftIO $ modifyMVar_ var $
-    pure . (r_state . at ngramsType %~ (Just . (at listId %~ insertNewOnly (Just m)) . something))
+    pure . (r_state . at ngramsType %~ (Just . (at listId %~ (Just . (m <>) . something)) . something))
   saveRepo
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes

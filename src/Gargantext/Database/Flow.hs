@@ -59,7 +59,7 @@ import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
 import Gargantext.API.Ngrams (HasRepoVar)
 import Servant (ServantErr)
-import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, addListNgrams, RepoCmdM)
+import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, RepoCmdM)
 --import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
 import qualified Data.Map as DM
 
@@ -274,7 +274,7 @@ flowListUser uId cId ngsM n = do
                 <$> getTficf userMaster cId lId NgramsTerms
 
   flowListBase lId ngsM
-  addListNgrams lId NgramsTerms $
+  putListNgrams lId NgramsTerms $
     [ NgramsElement (tficf_ngramsTerms ng) GraphList 1 Nothing mempty
     | ng <- ngs 
     ]
