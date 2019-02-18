@@ -115,7 +115,7 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 -- Pointers are directed link from Self to any PhyloGroup (/= Self ?)
 data PhyloGroup =
      PhyloGroup { _phylo_groupId    :: PhyloGroupId
-                , _phylo_groupLabel :: Maybe Text
+                , _phylo_groupLabel :: Text
                 , _phylo_groupNgrams        :: [NgramsId]
                 
                 , _phylo_groupPeriodParents :: [Pointer]
