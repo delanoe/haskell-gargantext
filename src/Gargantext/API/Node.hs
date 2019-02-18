@@ -38,7 +38,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
 --import System.IO (putStrLn, readFile)
 
---import qualified Data.Map as Map
+import qualified Data.Map as Map
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text())
 import Data.Swagger
@@ -284,8 +284,7 @@ graphAPI nId = do
 
   nodeGraph <- getNode nId HyperdataGraph
 
-  let title = "Title"
-  let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph]
+  let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
@@ -294,9 +293,8 @@ graphAPI nId = do
   _lId <- defaultList cId
   -- lId' <- listsWith masterUser
   --myCooc <- getCoocByDocDev cId lId -- (lid' <> [lId])
-  myCooc <- coocOn identity <$> getNgramsByNode cId NgramsTerms
-  liftIO $ set graph_metadata (Just metadata)
-        <$> cooc2graph myCooc
+  myCooc <- Map.filter (>2) <$> coocOn identity <$> getNgramsByNode cId NgramsTerms
+  liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
         
         -- <$> maybe defaultGraph identity
         -- <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"

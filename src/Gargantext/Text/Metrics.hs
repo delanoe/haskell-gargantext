@@ -18,25 +18,19 @@ Mainly reexport functions in @Data.Text.Metrics@
 module Gargantext.Text.Metrics
   where
 
-import Data.Ord (Down(..))
-import qualified Data.List as L
-
-import Data.Map (Map)
-import qualified Data.Map  as M
-
+--import Data.Array.Accelerate ((:.)(..), Z(..))
+--import Debug.Trace (trace)
 --import Math.KMeans (kmeans, euclidSq, elements)
-
+import Data.Map (Map)
+import Data.Ord (Down(..))
+import GHC.Real (round)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.Distances.Matrice
 import Gargantext.Viz.Graph.Index
-
-import qualified Data.Array.Accelerate.Interpreter as DAA
 import qualified Data.Array.Accelerate as DAA
--- import Data.Array.Accelerate ((:.)(..), Z(..))
-
-import GHC.Real (round)
-
-import Debug.Trace (trace)
+import qualified Data.Array.Accelerate.Interpreter as DAA
+import qualified Data.List as L
+import qualified Data.Map  as M
 
 data MapListSize   = MapListSize   Int
 data InclusionSize = InclusionSize Int
@@ -57,7 +51,8 @@ filterCooc fc cc = (filterCooc' fc) ts cc
     ts     = map _scored_terms $ takeSome fc $ coocScored cc
 
 filterCooc' :: (Show t, Ord t) => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
-filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m = trace ("coocScored " <> show ts) $
+filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m =
+  -- trace ("coocScored " <> show ts) $
   foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
     M.empty selection
   where

@@ -122,7 +122,7 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
 
   -- List Ngrams Flow
   _masterListId <- flowList masterUserId masterCorpusId indexedNgrams
-  _userListId   <- flowListUser userId userCorpusId 500
+  _userListId   <- flowListUser userId userCorpusId 100
 --------------------------------------------------
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph     userCorpusId userId
@@ -270,7 +270,8 @@ flowListUser uId cId n = do
 
   putListNgrams lId NgramsTerms $
     [ NgramsElement (tficf_ngramsTerms ng) GraphList 1 Nothing mempty
-    | ng <- ngs ]
+    | ng <- ngs 
+    ]
 
   pure lId
 
