@@ -171,12 +171,12 @@ readRepo :: IO (MVar NgramsRepo)
 readRepo = do
   -- | Does file exist ? :: Bool
   repoFile <- doesFileExist repoSnapshot
-  
+
   -- | Is file not empty ? :: Bool
   repoExists <- if repoFile
              then (>0) <$> getFileSize repoSnapshot
-             else pure repoFile
-  
+             else pure False
+
   newMVar =<<
     if repoExists
       then do
@@ -186,7 +186,7 @@ readRepo = do
         copyFile repoSnapshot archive
         pure repo
       else
-        pure initMockRepo
+        pure mempty
 
 mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
 mkRepoSaver repo_var = do
@@ -241,7 +241,7 @@ newDevEnvWith :: FilePath -> IO DevEnv
 newDevEnvWith file = do
   param      <- databaseParameters file
   conn       <- connect param
-  repo_var   <- newMVar initMockRepo
+  repo_var   <- readRepo
   repo_saver <- mkRepoSaver repo_var
   pure $ DevEnv
     { _dev_env_conn       = conn
