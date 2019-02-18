@@ -25,13 +25,14 @@ import Data.Map.Strict (Map, fromListWith, elems)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types.Main (listTypeId, ListType(..))
-import Gargantext.Database.Queries.Join (leftJoin4)
+import Gargantext.Database.Queries.Join (leftJoin4, leftJoin5)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsType(..), ngramsTypeId, Ngrams(..), NgramsIndexed(..), ngrams, ngramsTerms)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Node (HasNodeError(..))
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Schema.NodeNode
+import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Utils
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
@@ -106,14 +107,14 @@ getNgramsByNodeIndexedJoin = leftJoin4 queryNodeTable
                                        c1 c2 c3
   where
     c1 :: (NodeNodeRead, NodeRead) -> Column PGBool
-    c1 (nn,n)       = nodeNode_node1_id nn .== _node_id n
+    c1 (nn,n)       = nn_node1_id nn .== _node_id n
 
     c2 :: ( NodeNgramRead
           , (NodeNodeRead
             , NodeReadNull
             )
           ) -> Column PGBool
-    c2 (nng,(nn',_)) = (_nn_node_id nng)   .== nodeNode_node2_id nn'
+    c2 (nng,(nn',_)) = (_nn_node_id nng)   .== nn_node2_id nn'
 
     c3 :: ( NgramsRead
           , ( NodeNgramRead
@@ -123,6 +124,59 @@ getNgramsByNodeIndexedJoin = leftJoin4 queryNodeTable
             )
           ) -> Column PGBool
     c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== _nn_ngrams_id nng'
+
+
+getNgramsByNodeIndexedJoin' :: Query ( NodeNodeNgramsRead
+                                    , (NgramsReadNull
+                                      , (NodeNgramReadNull
+                                        , (NodeNodeReadNull
+                                          , NodeReadNull
+                                          )
+                                        )
+                                      )
+                                    )
+getNgramsByNodeIndexedJoin' = leftJoin5 queryNodeTable
+                                       queryNodeNodeTable
+                                       queryNodeNgramTable
+                                       queryNgramsTable
+                                       queryNodeNodeNgramsTable
+                                       c1 c2 c3 c4
+  where
+    c1 :: (NodeNodeRead, NodeRead) -> Column PGBool
+    c1 (nn,n)       = nn_node1_id nn .== _node_id n
+
+    c2 :: ( NodeNgramRead
+          , (NodeNodeRead
+            , NodeReadNull
+            )
+          ) -> Column PGBool
+    c2 (nng,(nn',_)) = (_nn_node_id nng)   .== nn_node2_id nn'
+
+    c3 :: ( NgramsRead
+          , ( NodeNgramRead
+            , ( NodeNodeReadNull
+              , NodeReadNull
+              )
+            )
+          ) -> Column PGBool
+    c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== _nn_ngrams_id nng'
+
+
+    c4 :: ( NodeNodeNgramsRead
+            , (NgramsRead
+              , ( NodeNgramReadNull
+                , ( NodeNodeReadNull
+                  , NodeReadNull
+                  )
+                )
+              )
+            ) -> Column PGBool
+    c4 (nnng,(_,(_,(nn,_)))) =  (toNullable $ nnng_node1_id nnng) .== (nn_node1_id nn)
+                            .&& (toNullable $ nnng_node2_id nnng) .== (nn_node2_id nn)
+
+
+
+
 
 --}
 

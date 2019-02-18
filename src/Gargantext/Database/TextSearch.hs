@@ -64,7 +64,7 @@ searchInCorpus cId q o l order = runOpaQuery (filterWith o l order $ queryInCorp
 queryInCorpus :: CorpusId -> Text -> O.Query FacetDocRead
 queryInCorpus cId q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nodeNode_node1_id nn) .== (toNullable $ pgNodeId cId)
+  restrict -< ( nn_node1_id nn) .== (toNullable $ pgNodeId cId)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgBool True) (pgInt4 1)
@@ -73,7 +73,7 @@ joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
   where
     cond :: (NodeSearchRead, NodeNodeRead) -> Column PGBool
-    cond (n, nn) = nodeNode_node2_id nn .== _ns_id n
+    cond (n, nn) = nn_node2_id nn .== _ns_id n
 
 ------------------------------------------------------------------------
 type AuthorName = Text
@@ -103,7 +103,7 @@ queryInCorpusWithContacts cId q _ _ _ = proc () -> do
   (docs, (corpusDoc, (docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
-  restrict -< (nodeNode_node1_id corpusDoc) .== (toNullable $ pgNodeId cId)
+  restrict -< (nn_node1_id corpusDoc) .== (toNullable $ pgNodeId cId)
   restrict -< (_nn_listType docNgrams)      .== (toNullable $ pgNgramsType Authors)
   restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
@@ -122,10 +122,10 @@ joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNgramTable queryNgr
          cond34 (nng, (ng, (_,_))) = ngrams_id ng .== _nn_ngrams_id nng
          
          cond45 :: (NodeNodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (nn, (nng, (_,(_,_)))) = _nn_node_id nng .== nodeNode_node2_id nn
+         cond45 (nn, (nng, (_,(_,_)))) = _nn_node_id nng .== nn_node2_id nn
          
          cond56 :: (NodeSearchRead, (NodeNodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull))))) -> Column PGBool
-         cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nodeNode_node2_id nn
+         cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nn_node2_id nn
 
 
 {-
