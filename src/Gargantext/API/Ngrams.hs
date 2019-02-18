@@ -34,7 +34,7 @@ add get
 module Gargantext.API.Ngrams
   where
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
@@ -47,7 +47,7 @@ import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
 -- import qualified Data.List as List
-import Data.Maybe (catMaybes)
+-- import Data.Maybe (catMaybes)
 -- import Data.Tuple.Extra (first)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
