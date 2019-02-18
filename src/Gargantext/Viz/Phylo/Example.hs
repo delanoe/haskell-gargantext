@@ -34,6 +34,8 @@ import Data.Tuple.Extra
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
+import qualified Data.Maybe as Maybe
+import qualified Data.Tuple as Tuple
 
 import Data.Set (Set)
 import qualified Data.Set as DS
@@ -122,6 +124,34 @@ corpusToFis f = Map.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
 ------------------------------------------------------------------------
 -- | STEP 4 | -- Build level -1 and 0 of the Phylo 
 
+-- makePointer :: a -> PhyloGroup -> PhyloGroup -> PhyloGroup
+-- makePointer field source target = source {field = _phylo_groupId target : field source}
+
+alterLvl :: PhyloGroup -> PhyloGroup
+alterLvl g = g {_phylo_groupId = ((Tuple.fst $ Tuple.fst $ _phylo_groupId g, 0), Tuple.snd $ _phylo_groupId g)} 
+
+-- | for the moment level 0 is just a copy of level -1
+level0PhyloGroups :: [PhyloGroup]
+level0PhyloGroups = map alterLvl initPhyloGroups
+
+findIdx :: Ngrams -> Int
+findIdx n = Maybe.fromJust $ Vector.elemIndex n phyloNgrams
+
+ngramsToGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> PhyloGroup
+ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (map (\x -> findIdx x) terms) [] [] [] []
+
+docsToGroups :: (Date, Date) -> [Document] -> [PhyloGroup]
+docsToGroups k v = map (\x ->
+                          ngramsToGroup [Tuple.snd x] (Tuple.snd x) (Tuple.fst x) (-1) (Tuple.fst k) (Tuple.snd k) 
+                       ) $ zip [1,2..] $ (List.nub . List.concat) $ map (words . text) v
+
+toPhyloGroups :: a -> Int -> [PhyloGroup]
+toPhyloGroups m lvl = case lvl of 
+  (-1) -> List.concat $ Map.elems $ Map.mapWithKey docsToGroups phyloTerms
+
+-- | aka: level -1
+initPhyloGroups :: [PhyloGroup]
+initPhyloGroups = toPhyloGroups phyloTerms (-1)
 
 
 ------------------------------------------------------------------------
@@ -156,10 +186,10 @@ cleanCorpus ml = map (\(Document d t) -> Document d (unwords $ filter (\x -> ele
 -- | STEP 2 | -- Find some Ngrams (ie: phyloGroup of level -1) out of the Corpus & init the phylo  
 
 
-phylo = Phylo (both date $ (List.last &&& List.head) phyloCorpus) (initPhyloNgrams cleanedActants) []
+-- phylo = Phylo (both date $ (List.last &&& List.head) phyloCorpus) (initPhyloNgrams cleanedActants) undefined
 
-initPhyloNgrams :: [Ngrams] -> PhyloNgrams
-initPhyloNgrams n = Vector.fromList n
+phyloNgrams :: PhyloNgrams
+phyloNgrams = Vector.fromList cleanedActants
 
 cleanedActants :: [Ngrams]
 cleanedActants = map toLower actants
