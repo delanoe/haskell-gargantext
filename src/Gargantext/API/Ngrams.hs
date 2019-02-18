@@ -70,10 +70,10 @@ import Data.Validity
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
-import Gargantext.Database.Config (userMaster)
+--import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Utils (fromField', HasConnection)
-import Gargantext.Database.Lists (listsWith)
+--import Gargantext.Database.Lists (listsWith)
 import Gargantext.Database.Schema.Node (HasNodeError)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
@@ -792,8 +792,9 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset = do
     defaultLimit = 10 -- TODO
     limit_  = maybe defaultLimit identity mlimit
     offset_ = maybe 0 identity moffset
-  
-  lists <- catMaybes <$> listsWith userMaster
-  trace (show lists) $ getListNgrams (lists <> listIds) ngramsType
+
+  -- lists <- catMaybes <$> listsWith userMaster
+  -- trace (show lists) $
+  getListNgrams ({-lists <>-} listIds) ngramsType
     & mapped . v_data . _NgramsTable %~ (take limit_ . drop offset_)
 
