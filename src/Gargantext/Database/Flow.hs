@@ -59,7 +59,7 @@ import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
 import Gargantext.API.Ngrams (HasRepoVar)
 import Servant (ServantErr)
-import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, RepoCmdM)
+import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, addListNgrams, RepoCmdM)
 --import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
 import qualified Data.Map as DM
 
@@ -121,8 +121,9 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   _             <- insertToNodeNgrams indexedNgrams
 
   -- List Ngrams Flow
-  _masterListId <- flowList masterUserId masterCorpusId indexedNgrams
-  _userListId   <- flowListUser userId userCorpusId 100
+  let ngs = ngrams2list' indexedNgrams
+  _masterListId <- flowList masterUserId masterCorpusId ngs
+  _userListId   <- flowListUser userId userCorpusId ngs 100
 --------------------------------------------------
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph     userCorpusId userId
@@ -242,8 +243,13 @@ mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
         nId = documentId $ documentWithId d
 
 ------------------------------------------------------------------------
+flowListBase :: FlowCmdM env err m => ListId -> Map NgramsType [NgramsElement] -> m ()
+flowListBase lId ngs = do
+-- compute Candidate / Map
+  mapM_ (\(typeList, ngElmts) -> putListNgrams lId typeList ngElmts) $ toList ngs
+
 flowList :: FlowCmdM env err m => UserId -> CorpusId
-         -> Map NgramsIndexed (Map NgramsType (Map NodeId Int))
+         -> Map NgramsType [NgramsElement]
          -> m ListId
 flowList uId cId ngs = do
   --printDebug "ngs:" ngs
@@ -255,20 +261,20 @@ flowList uId cId ngs = do
   -- let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
   -- _ <- insertGroups lId groupEd
 
--- compute Candidate / Map
-  mapM_ (\(typeList, ngElmts) -> putListNgrams lId typeList ngElmts) $ toList $ ngrams2list' ngs
+  flowListBase lId ngs
 
   pure lId
 
 flowListUser :: FlowCmdM env err m
-             => UserId -> CorpusId -> Int -> m ListId
-flowListUser uId cId n = do
+             => UserId -> CorpusId -> Map NgramsType [NgramsElement] -> Int -> m ListId
+flowListUser uId cId ngsM n = do
   lId <- getOrMkList cId uId
 
   ngs <- take n <$> sortWith tficf_score
                 <$> getTficf userMaster cId lId NgramsTerms
 
-  putListNgrams lId NgramsTerms $
+  flowListBase lId ngsM
+  addListNgrams lId NgramsTerms $
     [ NgramsElement (tficf_ngramsTerms ng) GraphList 1 Nothing mempty
     | ng <- ngs 
     ]

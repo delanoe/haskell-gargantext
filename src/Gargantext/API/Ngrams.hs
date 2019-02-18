@@ -54,7 +54,7 @@ import Data.Map.Strict (Map)
 --import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), itraverse_, (.=), both, mapped)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (<>~), (%~), at, _Just, Each(..), itraverse_, (.=), both, mapped)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
@@ -646,20 +646,52 @@ instance HasInvalidError ServantErr where
       make _ = err
       match e = guard (e == err) $> UnsupportedVersion-}
 
-assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
-assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
+-- assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
+-- assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
+
+assertValid :: MonadIO m => Validation -> m ()
+assertValid v = when (not $ validationIsValid v) $ fail $ show v
 
 -- Current state:
 --   Insertions are not considered as patches,
 --   they do not extend history,
 --   they do not bump version.
-insertNewOnly :: a -> Maybe a -> Maybe a
-insertNewOnly a = maybe (Just a) (const $ error "insertNewOnly: impossible")
+insertNewOnly :: a -> Maybe b -> a
+insertNewOnly m = maybe m (const $ error "insertNewOnly: impossible")
   -- TODO error handling
 
 something :: Monoid a => Maybe a -> a
 something Nothing  = mempty
 something (Just a) = a
+
+{- unused
+-- TODO refactor with putListNgrams
+copyListNgrams :: RepoCmdM env err m
+               => NodeId -> NodeId -> NgramsType
+               -> m ()
+copyListNgrams srcListId dstListId ngramsType = do
+  var <- view repoVar
+  liftIO $ modifyMVar_ var $
+    pure . (r_state . at ngramsType %~ (Just . f . something))
+  saveRepo
+  where
+    f :: Map NodeId NgramsTableMap -> Map NodeId NgramsTableMap
+    f m = m & at dstListId %~ insertNewOnly (m ^. at srcListId)
+-}
+
+-- TODO refactor with putListNgrams
+-- The list must be non-empty!
+-- The added ngrams must be non-existent!
+addListNgrams :: RepoCmdM env err m
+              => NodeId -> NgramsType
+              -> [NgramsElement] -> m ()
+addListNgrams listId ngramsType nes = do
+  var <- view repoVar
+  liftIO $ modifyMVar_ var $
+    pure . (r_state . at ngramsType . _Just . at listId . _Just <>~ m)
+  saveRepo
+  where
+    m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 
 putListNgrams :: RepoCmdM env err m
               => NodeId -> NgramsType
@@ -667,7 +699,7 @@ putListNgrams :: RepoCmdM env err m
 putListNgrams listId ngramsType nes = do
   var <- view repoVar
   liftIO $ modifyMVar_ var $
-    pure . (r_state . at ngramsType %~ (Just . (at listId %~ insertNewOnly m) . something))
+    pure . (r_state . at ngramsType %~ (Just . (at listId %~ insertNewOnly (Just m)) . something))
   saveRepo
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
@@ -691,7 +723,7 @@ tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table) = d
   assertValid p_validity
 
   var <- view repoVar
-  (p'_applicable, vq') <- liftIO $ modifyMVar var $ \r ->
+  vq' <- liftIO $ modifyMVar var $ \r -> do
     let
       q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
@@ -699,12 +731,11 @@ tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table) = d
              & r_state   %~ act p'
              & r_history %~ (p' :)
       q'_table = q' ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
-      p'_applicable = applicable p' (r ^. r_state)
-    in
-    pure (r', (p'_applicable, Versioned (r' ^. r_version) q'_table))
+    assertValid $ transformable p q
+    assertValid $ applicable p' (r ^. r_state)
+    pure (r', Versioned (r' ^. r_version) q'_table)
 
   saveRepo
-  assertValid p'_applicable
   pure vq'
 
   {- DB version
