@@ -90,9 +90,10 @@ getNgramsByNodeNodeIndexed :: NodeId -> NgramsType -> Cmd err [(NodeId, Text)]
 getNgramsByNodeNodeIndexed nId nt = runOpaQuery (select' nId)
   where
     select' nId' = proc () -> do
-      (ng,(nng,(_,n))) <- getNgramsByNodeNodeIndexedJoin -< ()
+      (ng,(nng,(nn,n))) <- getNgramsByNodeNodeIndexedJoin -< ()
       restrict          -< _node_id n         .== toNullable (pgNodeId nId')
       restrict          -< nng_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt)
+      restrict          -< nn_delete      nn  ./= (toNullable . pgBool) True
       returnA           -< (nng_node_id nng, ngrams_terms ng)
 
 
