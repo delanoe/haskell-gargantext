@@ -60,7 +60,7 @@ import Control.Monad.Reader
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), r_version, saveRepo, initRepo)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -137,14 +137,13 @@ optSetting name d = do
 data FireWall = FireWall { unFireWall :: Bool }
 
 data Env = Env
-  { _env_settings   :: !Settings
-  , _env_logger     :: !LoggerSet
-  , _env_conn       :: !Connection
-  , _env_repo_var   :: !(MVar NgramsRepo)
-  , _env_repo_saver :: !(IO ())
-  , _env_manager    :: !Manager
-  , _env_self_url   :: !BaseUrl
-  , _env_scrapers   :: !ScrapersEnv
+  { _env_settings :: !Settings
+  , _env_logger   :: !LoggerSet
+  , _env_conn     :: !Connection
+  , _env_repo     :: !RepoEnv
+  , _env_manager  :: !Manager
+  , _env_self_url :: !BaseUrl
+  , _env_scrapers :: !ScrapersEnv
   }
   deriving (Generic)
 
@@ -154,10 +153,13 @@ instance HasConnection Env where
   connection = env_conn
 
 instance HasRepoVar Env where
-  repoVar = env_repo_var
+  repoVar = repoEnv . repoVar
 
 instance HasRepoSaver Env where
-  repoSaver = env_repo_saver
+  repoSaver = repoEnv . repoSaver
+
+instance HasRepo Env where
+  repoEnv = env_repo
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
@@ -168,27 +170,6 @@ makeLenses ''MockEnv
 
 repoSnapshot :: FilePath
 repoSnapshot = "repo.json"
-
-readRepo :: IO (MVar NgramsRepo)
-readRepo = do
-  -- | Does file exist ? :: Bool
-  repoFile <- doesFileExist repoSnapshot
-
-  -- | Is file not empty ? :: Bool
-  repoExists <- if repoFile
-             then (>0) <$> getFileSize repoSnapshot
-             else pure False
-
-  newMVar =<<
-    if repoExists
-      then do
-        e_repo <- eitherDecodeFileStrict repoSnapshot
-        repo   <- either fail pure e_repo
-        let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
-        copyFile repoSnapshot archive
-        pure repo
-      else
-        pure initRepo
 
 ignoreExc :: IO () -> IO ()
 ignoreExc = handle $ \(_ :: SomeException) -> return ()
@@ -206,37 +187,57 @@ mkRepoSaver repo_var = do
   (saveAction, _) <- mkDebounce (10 :: Second) repoSaverAction
   pure $ readMVar repo_var >>= saveAction
 
+readRepoEnv :: IO RepoEnv
+readRepoEnv = do
+  -- | Does file exist ? :: Bool
+  repoFile <- doesFileExist repoSnapshot
+
+  -- | Is file not empty ? :: Bool
+  repoExists <- if repoFile
+             then (>0) <$> getFileSize repoSnapshot
+             else pure False
+
+  mvar <- newMVar =<<
+    if repoExists
+      then do
+        e_repo <- eitherDecodeFileStrict repoSnapshot
+        repo   <- either fail pure e_repo
+        let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
+        copyFile repoSnapshot archive
+        pure repo
+      else
+        pure initRepo
+
+  saver <- mkRepoSaver mvar
+  pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver }
+
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
   manager <- newTlsManager
   settings <- pure (devSettings & appPort .~ port) -- TODO read from 'file'
   when (port /= settings ^. appPort) $
     panic "TODO: conflicting settings of port"
-  
+
   self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   param    <- databaseParameters file
   conn     <- connect param
-  
-  repo_var     <- readRepo
-  repo_saver   <- mkRepoSaver repo_var
+  repo     <- readRepoEnv
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
-  
+
   pure $ Env
     { _env_settings   = settings
     , _env_logger     = logger
     , _env_conn       = conn
-    , _env_repo_var   = repo_var
-    , _env_repo_saver = repo_saver
+    , _env_repo       = repo
     , _env_manager    = manager
     , _env_scrapers   = scrapers_env
     , _env_self_url   = self_url
     }
 
 data DevEnv = DevEnv
-  { _dev_env_conn       :: !Connection
-  , _dev_env_repo_var   :: !(MVar NgramsRepo)
-  , _dev_env_repo_saver :: !(IO ())
+  { _dev_env_conn :: !Connection
+  , _dev_env_repo :: !RepoEnv
   }
 
 makeLenses ''DevEnv
@@ -245,21 +246,22 @@ instance HasConnection DevEnv where
   connection = dev_env_conn
 
 instance HasRepoVar DevEnv where
-  repoVar = dev_env_repo_var
+  repoVar = repoEnv . repoVar
 
 instance HasRepoSaver DevEnv where
-  repoSaver = dev_env_repo_saver
+  repoSaver = repoEnv . repoSaver
+
+instance HasRepo DevEnv where
+  repoEnv = dev_env_repo
 
 newDevEnvWith :: FilePath -> IO DevEnv
 newDevEnvWith file = do
-  param      <- databaseParameters file
-  conn       <- connect param
-  repo_var   <- readRepo
-  repo_saver <- mkRepoSaver repo_var
+  param <- databaseParameters file
+  conn  <- connect param
+  repo  <- readRepoEnv
   pure $ DevEnv
-    { _dev_env_conn       = conn
-    , _dev_env_repo_var   = repo_var
-    , _dev_env_repo_saver = repo_saver
+    { _dev_env_conn = conn
+    , _dev_env_repo = repo
     }
 
 -- | Run Cmd Sugar for the Repl (GHCI)

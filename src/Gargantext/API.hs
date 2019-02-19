@@ -73,7 +73,7 @@ import Gargantext.Prelude
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
-import Gargantext.API.Ngrams (HasRepoVar(..), HasRepoSaver(..), saveRepo)
+import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo)
 import Gargantext.API.Node ( GargServer
                            , Roots    , roots
                            , NodeAPI  , nodeAPI
@@ -278,7 +278,7 @@ type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 ---------------------------------------------------------------------
 -- | Server declarations
 
-server :: (HasConnection env, HasRepoVar env, HasRepoSaver env)
+server :: (HasConnection env, HasRepo env)
        => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
@@ -318,7 +318,7 @@ gargMock :: Server GargAPI
 gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
-makeApp :: (HasConnection env, HasRepoVar env, HasRepoSaver env) 
+makeApp :: (HasConnection env, HasRepo env)
         => env -> IO Application
 makeApp = fmap (serve api) . server
 

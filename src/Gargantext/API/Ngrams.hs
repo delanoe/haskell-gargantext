@@ -601,6 +601,14 @@ initMockRepo = Repo 1 s []
       $ Map.fromList
       [ (n ^. ne_ngrams, n) | n <- mockTable ^. _NgramsTable ]
 
+data RepoEnv = RepoEnv
+  { _renv_var   :: !(MVar NgramsRepo)
+  , _renv_saver :: !(IO ())
+  }
+  deriving (Generic)
+
+makeLenses ''RepoEnv
+
 class HasRepoVar env where
   repoVar :: Getter env (MVar NgramsRepo)
 
@@ -610,15 +618,23 @@ instance HasRepoVar (MVar NgramsRepo) where
 class HasRepoSaver env where
   repoSaver :: Getter env (IO ())
 
-instance HasRepoSaver (IO ()) where
-  repoSaver = identity
+class (HasRepoVar env, HasRepoSaver env) => HasRepo env where
+  repoEnv :: Getter env RepoEnv
+
+instance HasRepo RepoEnv where
+  repoEnv = identity
+
+instance HasRepoVar RepoEnv where
+  repoVar = renv_var
+
+instance HasRepoSaver RepoEnv where
+  repoSaver = renv_saver
 
 type RepoCmdM env err m =
   ( MonadReader env m
   , MonadError err m
   , MonadIO m
-  , HasRepoVar env
-  , HasRepoSaver env
+  , HasRepo env
   )
 ------------------------------------------------------------------------
 
