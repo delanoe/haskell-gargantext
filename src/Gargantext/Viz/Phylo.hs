@@ -116,7 +116,7 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 data PhyloGroup =
      PhyloGroup { _phylo_groupId    :: PhyloGroupId
                 , _phylo_groupLabel :: Text
-                , _phylo_groupNgrams        :: [NgramsId]
+                , _phylo_groupNgrams        :: [Int]
                 
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]

@@ -67,17 +67,16 @@ type PeriodeSize = Int
 -- data Periodes b a = Map (b,b) a
 type Occurrences = Int
 
---------------------------------------------------------------------
+data Levels = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
+  deriving (Show, Eq, Enum, Bounded)
+
+data LinkLevels = Link_m1To0 | Link_0To1 | Link_mxTox
+  deriving (Show, Eq, Enum, Bounded)
 
 data PhyloError = LevelDoesNotExist
                 | LevelUnassigned
           deriving (Show)
 
-
-
-data PhyloField = PhyloField {
-    phyloField_id :: Int
-}
 
 --------------------------------------------------------------------
 phyloExampleFinal :: Phylo
@@ -87,29 +86,20 @@ phyloExampleFinal = undefined
 appariement :: Map (Date, Date) (Map (Set Ngrams) Int)
 appariement = undefined
 
---------------------------------------------------------------------
-
-fisToFields :: Fis
-    -> [PhyloField]
-fisToFields = undefined
-
-phyloClusters :: Map (Date,Date) [PhyloField]
-phyloClusters = undefined
-
 ------------------------------------------------------------------------
--- | STEP 8 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
+-- | STEP 10 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
 
 
 ------------------------------------------------------------------------
--- | STEP 7 | -- Link the PhyloGroups of level 1 through the Periods 
+-- | STEP 9 | -- Link the PhyloGroups of level 1 through the Periods 
 
 
 ------------------------------------------------------------------------
--- | STEP 6 | -- Cluster the Fis and buil level 1 of the Phylo
+-- | STEP 8 | -- Cluster the Fis and buil level 1 of the Phylo
 
 
 ------------------------------------------------------------------------
--- | STEP 5 | -- Find the Fis out of Documents and Ngrams and build level 1 of the Phylo 
+-- | STEP 7 | -- Find the Fis out of Documents and Ngrams and build level 1 of the Phylo 
 
 
 phyloFis :: Map (Date, Date) Fis
@@ -128,52 +118,91 @@ corpusToFis f = Map.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
 
 
 ------------------------------------------------------------------------
--- | STEP 4 | -- Build level -1 and 0 of the Phylo 
+-- | STEP 6 | -- Link level 0 to level -1
+
+
 addPointer :: Semigroup field
-           => ASetter source target identity (field -> field)
-           -> field -> source -> target
-addPointer field targetPointer source =
-  set field (<> targetPointer) source
+           => ASetter current target identity (field -> field)
+           -> field -> current -> target
+addPointer field targetPointer current =
+  set field (<> targetPointer) current
 
-alterLvl :: PhyloGroup -> PhyloGroup
-alterLvl g = g {_phylo_groupId = ((Tuple.fst $ Tuple.fst $ _phylo_groupId g, 0), Tuple.snd $ _phylo_groupId g)} 
+containsIdx :: [Int] -> [Int] -> Bool
+containsIdx l l'
+  | List.null l' = False
+  | List.last l < List.head l' = False
+  | List.head l' `List.elem` l = True
+  | otherwise = containsIdx l (List.tail l')
 
-alterLvl' :: PhyloGroup -> PhyloGroup
-alterLvl' (PhyloGroup ((dates, _lvl), ix) gLabel gNgrams gPeriodParents gPeriodChilds gLevelParent gLevelChilds)
- = PhyloGroup gId' gLabel gNgrams' gPeriodParents gPeriodChilds gLevelParent gLevelChilds
-   where
-     gId' = ((dates, 0), ix)
-     gNgrams' = gNgrams
+shouldLink :: LinkLevels -> PhyloGroup -> PhyloGroup -> Bool
+shouldLink lvl current target = case lvl of 
+  Link_m1To0  -> containsIdx (_phylo_groupNgrams target) (_phylo_groupNgrams current)
+  Link_0To1   -> containsIdx (_phylo_groupNgrams target) (_phylo_groupNgrams current)
+  Link_mxTox  -> undefined
+  _           -> panic ("error link level to be defined")
+  
 
--- | for the moment level 0 is just a copy of level -1
---level0PhyloGroups :: [PhyloGroup]
---level0PhyloGroups = map alterLvl initPhyloGroups
+------------------------------------------------------------------------
+-- | STEP 5 | -- Build level 0 (for the moment it's just a durty copy of level -1)
+
+
+setGroupIdLvl :: Int -> PhyloGroup -> PhyloGroup
+setGroupIdLvl lvl (PhyloGroup ((period, lvl'), idx) gLabel gNgrams gPP gPC gLP gLC)
+  = PhyloGroup ((period, lvl), idx) gLabel gNgrams gPP gPC gLP gLC
+
+setPhyloLevel :: Int -> PhyloLevel -> PhyloLevel
+setPhyloLevel lvl (PhyloLevel (periodId, lvl') lvlGroups) 
+  = PhyloLevel (periodId, lvl) lvlGroups'
+    where
+      lvlGroups' = map (\g -> setGroupIdLvl lvl g) lvlGroups
+
+copyPhyloLevel :: Int -> [PhyloLevel] -> [PhyloLevel]
+copyPhyloLevel lvl l = (setPhyloLevel lvl (List.head l)) : l 
+
+alterLvl :: Int -> [PhyloPeriod] -> [PhyloPeriod]
+alterLvl lvl l = map (\p -> PhyloPeriod (_phylo_periodId p) (copyPhyloLevel lvl $ _phylo_periodLevels p)) l
+
+phyloWithGroups0 :: Phylo
+phyloWithGroups0 = updatePhyloByLevel Level_0 phyloWithGroupsm1
+
+
+------------------------------------------------------------------------
+-- | STEP 4 | -- Build level -1 
+
 
 findIdx :: Ngrams -> Int
-findIdx n = case (Vector.elemIndex n phyloNgrams) of
+findIdx n = case (Vector.elemIndex n (_phylo_ngrams phylo)) of
               Nothing -> panic "PhyloError"
               Just i  -> i
 
 ngramsToGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> PhyloGroup
-ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (map (\x -> findIdx x) terms) [] [] [] []
+ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (List.sort (map (\x -> findIdx x) terms)) [] [] [] []
 
-docsToGroups :: (Date, Date) -> Corpus -> [PhyloGroup]
-docsToGroups k v = map (\x ->
+docsToLevel :: (Date, Date) -> Corpus -> PhyloLevel
+docsToLevel k v = PhyloLevel (k,(-1)) (map (\x ->
                           ngramsToGroup [Tuple.snd x] (Tuple.snd x) (Tuple.fst x) (-1) (Tuple.fst k) (Tuple.snd k) 
-                       ) $ zip [1..] $ (List.nub . List.concat) $ map (words . text) v
+                       ) $ zip [1..] $ (List.nub . List.concat) $ map (words . text) v)
 
-data Levels = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
-  deriving (Show, Eq, Enum, Bounded)
+corpusToPhyloPeriod :: Map (Date,Date) Corpus -> [PhyloPeriod]
+corpusToPhyloPeriod corpus = map (\x -> PhyloPeriod (Tuple.fst x) [(Tuple.snd x)]) $ zip (Map.keys mapLvl) (Map.elems mapLvl)
+    where
+      mapLvl :: Map (Date,Date) PhyloLevel 
+      mapLvl = Map.mapWithKey docsToLevel corpus
 
-toPhyloGroups :: Levels -> Map (Date,Date) Corpus -> [PhyloGroup]
-toPhyloGroups lvl corpus = case lvl of 
-  Level_m1 -> List.concat $ Map.elems $ Map.mapWithKey docsToGroups corpus
-  _        -> panic ("error phylo to be defined")
+updatePhyloByLevel :: Levels -> Phylo -> Phylo 
+updatePhyloByLevel lvl (Phylo pDuration pNgrams pPeriods) 
+  = case lvl of 
+    
+    Level_m1 -> Phylo pDuration pNgrams pPeriods'
+      where pPeriods' = (corpusToPhyloPeriod phyloTerms) List.++ pPeriods
+    
+    Level_0  -> Phylo pDuration pNgrams pPeriods'
+      where pPeriods' = alterLvl 0 pPeriods
+    
+    _        -> panic ("error level to be defined")
 
-
--- | aka: level -1
-initPhyloGroups :: [PhyloGroup]
-initPhyloGroups = toPhyloGroups Level_m1 phyloTerms
+phyloWithGroupsm1 :: Phylo
+phyloWithGroupsm1 = updatePhyloByLevel Level_m1 phylo
 
 
 ------------------------------------------------------------------------
@@ -208,7 +237,7 @@ cleanCorpus ml = map (\(Document d t) -> Document d (unwords $ filter (\x -> ele
 -- | STEP 2 | -- Find some Ngrams (ie: phyloGroup of level -1) out of the Corpus & init the phylo  
 
 
--- phylo = Phylo (both date $ (List.last &&& List.head) phyloCorpus) (initPhyloNgrams cleanedActants) undefined
+phylo = Phylo (both date $ (List.last &&& List.head) phyloCorpus) phyloNgrams []
 
 phyloNgrams :: PhyloNgrams
 phyloNgrams = Vector.fromList cleanedActants
