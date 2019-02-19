@@ -151,7 +151,7 @@ makeLenses ''Phylo
 makeLenses ''PhyloParam
 makeLenses ''PhyloExport
 makeLenses ''Software
-
+makeLenses ''PhyloGroup
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
