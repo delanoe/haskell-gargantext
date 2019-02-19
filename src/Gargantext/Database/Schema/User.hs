@@ -33,10 +33,12 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
-import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Core.Types.Individu (Username, arbitraryUsername)
 import Gargantext.Database.Utils
 import Gargantext.Prelude
 import Opaleye
+
+------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 type UserId = Int
@@ -106,29 +108,17 @@ userTable = Table "auth_user" (pUser User { user_id      = optional "id"
 insertUsers :: [UserWrite] -> Cmd err Int64
 insertUsers us = mkCmd $ \c -> runInsertMany c userTable us
 
-gargantuaUser :: UserWrite
-gargantuaUser = User (Nothing) (pgStrictText "password")
-                         (Nothing) (pgBool True) (pgStrictText "gargantua")
+
+gargantextUser :: Username -> UserWrite
+gargantextUser u = User (Nothing) (pgStrictText "password")
+                         (Nothing) (pgBool True) (pgStrictText u)
                          (pgStrictText "first_name")
                          (pgStrictText "last_name")
                          (pgStrictText "e@mail")
                          (pgBool True) (pgBool True) (Nothing)
 
-simpleUser1 :: UserWrite
-simpleUser1 = User (Nothing) (pgStrictText "password")
-                         (Nothing) (pgBool False) (pgStrictText "user1")
-                         (pgStrictText "first_name")
-                         (pgStrictText "last_name")
-                         (pgStrictText "e@mail")
-                         (pgBool False) (pgBool True) (Nothing)
-
-simpleUser2 :: UserWrite
-simpleUser2 = User (Nothing) (pgStrictText "password")
-                         (Nothing) (pgBool False) (pgStrictText "user2")
-                         (pgStrictText "first_name")
-                         (pgStrictText "last_name")
-                         (pgStrictText "e@mail")
-                         (pgBool False) (pgBool True) (Nothing)
+insertUsersDemo :: Cmd err Int64
+insertUsersDemo = insertUsers $ map (\u -> gargantextUser u) arbitraryUsername
 
 
 ------------------------------------------------------------------

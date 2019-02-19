@@ -40,13 +40,11 @@ import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import Gargantext.Core.Types.Individu (Username, Password, arbitraryUsername, arbitraryPassword)
 
 ---------------------------------------------------
 
 -- | Main types for AUTH API
-type Username = Text
-type Password = Text
-
 data AuthRequest = AuthRequest { _authReq_username :: Username
                                , _authReq_password :: Password
                                }
@@ -76,18 +74,12 @@ type TreeId = NodeId
 data CheckAuth = InvalidUser | InvalidPassword | Valid Token TreeId
   deriving (Eq)
 
-arbitraryUsername :: [Username]
-arbitraryUsername = ["gargantua", "user1", "user2"]
-
-arbitraryPassword :: [Password]
-arbitraryPassword = map reverse arbitraryUsername
-
 checkAuthRequest :: Username -> Password -> Cmd err CheckAuth
 checkAuthRequest u p
   | not (u `elem` arbitraryUsername) = pure InvalidUser
   | u /= reverse p = pure InvalidPassword
   | otherwise = do
-      muId <- getRoot u
+      muId <- getRoot "user1"
       pure $ maybe InvalidUser (Valid "token" . _node_id) $ head muId
 
 auth :: AuthRequest -> Cmd err AuthResponse

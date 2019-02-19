@@ -219,7 +219,7 @@ extractNgramsT doc = do
   let institutes = map text2ngrams $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))  $ _hyperdataDocument_institutes doc
   let authors    = map text2ngrams $ maybe ["Nothing"] (splitOn ", ") $ _hyperdataDocument_authors doc
   let leText = catMaybes [_hyperdataDocument_title doc, _hyperdataDocument_abstract doc]
-  terms' <- map text2ngrams <$> map (intercalate " " . _terms_label) <$> concat <$> liftIO (extractTerms (Mono EN) leText)
+  terms' <- map text2ngrams <$> map (intercalate " " . _terms_label) <$> concat <$> liftIO (extractTerms (Multi EN) leText)
 
   pure $ DM.fromList $  [(source, DM.singleton Sources 1)]
                      <> [(i', DM.singleton Institutes  1) | i' <- institutes ]
