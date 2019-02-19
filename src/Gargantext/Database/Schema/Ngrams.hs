@@ -25,15 +25,15 @@ Ngrams connection to the Database.
 
 module Gargantext.Database.Schema.Ngrams where
 
-import Data.Aeson (FromJSON, FromJSONKey)
 import Control.Lens (makeLenses, view, over)
 import Control.Monad (mzero)
 import Data.Aeson
+import Data.Aeson.Types (toJSONKeyText)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Set (Set)
-import Data.Text (Text, splitOn)
+import Data.Text (Text, splitOn, pack)
 import Database.PostgreSQL.Simple ((:.)(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
@@ -105,9 +105,11 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Ord, Enum, Bounded, Generic)
 
 instance FromJSON NgramsType
-instance FromJSONKey NgramsType
+instance FromJSONKey NgramsType where
+   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
 instance ToJSON NgramsType
-instance ToJSONKey NgramsType
+instance ToJSONKey NgramsType where
+   toJSONKey = toJSONKeyText (pack . show)
 
 newtype NgramsTypeId = NgramsTypeId Int
   deriving (Eq, Show, Ord, Num)
