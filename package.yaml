@@ -99,6 +99,7 @@ library:
   - fullstop
   - fclabels
   - fast-logger
+  - filelock
   - full-text-search
   - http-client
   - http-client-tls

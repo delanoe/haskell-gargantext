@@ -32,6 +32,7 @@ import Prelude (Bounded(), fail)
 import System.Environment (lookupEnv)
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
+import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
 import Database.PostgreSQL.Simple (Connection, connect)
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
@@ -60,7 +61,7 @@ import Control.Monad.Reader
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_lock)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -197,6 +198,9 @@ readRepoEnv = do
              then (>0) <$> getFileSize repoSnapshot
              else pure False
 
+  mlock <- tryLockFile repoSnapshot Exclusive
+  lock <- maybe (panic "Repo file already locked") pure mlock
+
   mvar <- newMVar =<<
     if repoExists
       then do
@@ -209,7 +213,7 @@ readRepoEnv = do
         pure initRepo
 
   saver <- mkRepoSaver mvar
-  pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver }
+  pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver, _renv_lock = lock }
 
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
@@ -264,9 +268,14 @@ newDevEnvWith file = do
     , _dev_env_repo = repo
     }
 
+withDevEnv :: (DevEnv -> IO a) -> IO a
+withDevEnv k = do
+  env <- newDevEnv
+  k env `finally` unlockFile (env ^. repoEnv . renv_lock)
+
 -- | Run Cmd Sugar for the Repl (GHCI)
 runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
-runCmdRepl f = newDevEnv >>= \env -> runCmdDev env f
+runCmdRepl f = withDevEnv $ \env -> runCmdDev env f
 
 newDevEnv :: IO DevEnv
 newDevEnv = newDevEnvWith "gargantext.ini"

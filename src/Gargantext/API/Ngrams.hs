@@ -82,6 +82,7 @@ import Gargantext.Prelude
 -- import Gargantext.Core.Types (ListTypeId, listTypeId)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, CorpusId, Limit, Offset)
 import Servant hiding (Patch)
+import System.FileLock (FileLock)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
@@ -604,6 +605,7 @@ initMockRepo = Repo 1 s []
 data RepoEnv = RepoEnv
   { _renv_var   :: !(MVar NgramsRepo)
   , _renv_saver :: !(IO ())
+  , _renv_lock  :: !FileLock
   }
   deriving (Generic)
 
