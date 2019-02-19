@@ -114,9 +114,17 @@ gargantuaUser = User (Nothing) (pgStrictText "password")
                          (pgStrictText "e@mail")
                          (pgBool True) (pgBool True) (Nothing)
 
-simpleUser :: UserWrite
-simpleUser = User (Nothing) (pgStrictText "password")
+simpleUser1 :: UserWrite
+simpleUser1 = User (Nothing) (pgStrictText "password")
                          (Nothing) (pgBool False) (pgStrictText "user1")
+                         (pgStrictText "first_name")
+                         (pgStrictText "last_name")
+                         (pgStrictText "e@mail")
+                         (pgBool False) (pgBool True) (Nothing)
+
+simpleUser2 :: UserWrite
+simpleUser2 = User (Nothing) (pgStrictText "password")
+                         (Nothing) (pgBool False) (pgStrictText "user2")
                          (pgStrictText "first_name")
                          (pgStrictText "last_name")
                          (pgStrictText "e@mail")

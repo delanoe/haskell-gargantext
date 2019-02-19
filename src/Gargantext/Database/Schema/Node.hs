@@ -156,7 +156,6 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
-
 ------------------------------------------------------------------------
 -- WIP
 -- TODO Classe HasDefault where

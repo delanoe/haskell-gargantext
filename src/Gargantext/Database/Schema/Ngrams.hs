@@ -123,6 +123,10 @@ instance FromField NgramsTypeId where
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
 
+instance QueryRunnerColumnDefault (Nullable PGInt4) NgramsTypeId
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 pgNgramsType :: NgramsType -> Column PGInt4
 pgNgramsType = pgNgramsTypeId . ngramsTypeId
 

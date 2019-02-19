@@ -19,15 +19,18 @@ Count Ngrams by Context
 
 module Gargantext.Database.Metrics.Count where
 
+import Data.Monoid (mempty)
 import Control.Arrow (returnA)
 import Control.Lens (view)
 import Data.Map.Strict (Map, fromListWith, elems)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Gargantext.API.Ngrams (NgramsElement(..))
 import Gargantext.Core.Types.Main (listTypeId, ListType(..))
-import Gargantext.Database.Queries.Join (leftJoin4, leftJoin5)
+import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Queries.Join (leftJoin4, leftJoin5, leftJoin3)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsType(..), ngramsTypeId, Ngrams(..), NgramsIndexed(..), ngrams, ngramsTerms)
+import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsType(..), ngramsTypeId, Ngrams(..), NgramsIndexed(..), ngrams, ngramsTerms, fromNgramsTypeId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Node (HasNodeError(..))
 import Gargantext.Database.Schema.NodeNgram
@@ -80,27 +83,45 @@ getNgramsByNode :: NodeId -> NgramsType -> Cmd err [[Text]]
 getNgramsByNode nId nt =  elems
                    <$> fromListWith (<>)
                    <$> map (\(i,t) -> (i,[t]))
-                   <$> getNgramsByNodeIndexed nId nt
+                   <$> getNgramsByNodeNodeIndexed nId nt
 
 -- | TODO add join with nodeNodeNgram (if it exists)
-getNgramsByNodeIndexed :: NodeId -> NgramsType -> Cmd err [(NodeId, Text)]
-getNgramsByNodeIndexed nId nt = runOpaQuery (select' nId)
+getNgramsByNodeNodeIndexed :: NodeId -> NgramsType -> Cmd err [(NodeId, Text)]
+getNgramsByNodeNodeIndexed nId nt = runOpaQuery (select' nId)
   where
     select' nId' = proc () -> do
-      (ng,(nng,(_,n))) <- getNgramsByNodeIndexedJoin -< ()
+      (ng,(nng,(_,n))) <- getNgramsByNodeNodeIndexedJoin -< ()
       restrict          -< _node_id n         .== toNullable (pgNodeId nId')
       restrict          -< nng_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt)
       returnA           -< (nng_node_id nng, ngrams_terms ng)
 
+
+{-
+getNgramsByNodeIndexed' :: NodeId -> NgramsType -> Cmd err [(NodeId, Maybe Text)]
+getNgramsByNodeIndexed' nId nt = runOpaQuery (select' nId)
+  where
+    select' nId' = proc () -> do
+      (nnng,(ng,(nng,(_,n)))) <- getNgramsByNodeIndexedJoin5 -< ()
+      restrict          -< _node_id n         .== toNullable (pgNodeId nId')
+      restrict          -< nng_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt)
+
+      let node_id' = ifThenElse (isNull $ toNullable $ nnng_node1_id nnng)
+                          (nng_node_id nng)
+                          (nnng_node2_id nng)
+      let t1 = ifThenElse (isNull $ toNullable $ nnng_node1_id nnng)
+                          (ngrams_terms ng)
+                          (nnng_terms nng)
+      returnA           -< (n1, t1)
 --}
-getNgramsByNodeIndexedJoin :: Query ( NgramsRead
+
+getNgramsByNodeNodeIndexedJoin :: Query ( NgramsRead
                                     , (NodeNgramReadNull
                                       , (NodeNodeReadNull
                                         , NodeReadNull
                                         )
                                       )
                                     )
-getNgramsByNodeIndexedJoin = leftJoin4 queryNodeTable
+getNgramsByNodeNodeIndexedJoin = leftJoin4 queryNodeTable
                                        queryNodeNodeTable
                                        queryNodeNgramTable
                                        queryNgramsTable
@@ -126,7 +147,7 @@ getNgramsByNodeIndexedJoin = leftJoin4 queryNodeTable
     c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== nng_ngrams_id nng'
 
 
-getNgramsByNodeIndexedJoin' :: Query ( NodeNodeNgramsRead
+getNgramsByNodeNodeIndexedJoin5 :: Query ( NodeNodeNgramsRead
                                     , (NgramsReadNull
                                       , (NodeNgramReadNull
                                         , (NodeNodeReadNull
@@ -135,7 +156,7 @@ getNgramsByNodeIndexedJoin' :: Query ( NodeNodeNgramsRead
                                         )
                                       )
                                     )
-getNgramsByNodeIndexedJoin' = leftJoin5 queryNodeTable
+getNgramsByNodeNodeIndexedJoin5 = leftJoin5 queryNodeTable
                                        queryNodeNodeTable
                                        queryNodeNgramTable
                                        queryNgramsTable
@@ -161,7 +182,6 @@ getNgramsByNodeIndexedJoin' = leftJoin5 queryNodeTable
           ) -> Column PGBool
     c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== nng_ngrams_id nng'
 
-
     c4 :: ( NodeNodeNgramsRead
             , (NgramsRead
               , ( NodeNgramReadNull
@@ -174,9 +194,41 @@ getNgramsByNodeIndexedJoin' = leftJoin5 queryNodeTable
     c4 (nnng,(_,(_,(nn,_)))) =  (toNullable $ nnng_node1_id nnng) .== (nn_node1_id nn)
                             .&& (toNullable $ nnng_node2_id nnng) .== (nn_node2_id nn)
 
-
-
-
-
 --}
+
+--{-
+
+getNgramsElementsWithParentNodeId :: NodeId -> Cmd err (Map NgramsType [NgramsElement])
+getNgramsElementsWithParentNodeId nId = do
+  ns <- getNgramsWithParentNodeId nId
+  pure $ fromListWith (<>) [ (maybe (panic "error") identity $ fromNgramsTypeId nt, [NgramsElement ng CandidateList 1 Nothing mempty]) 
+                | (_,(nt,ng)) <- ns
+                ]
+
+
+-------------------------------------------------------------------------
+getNgramsWithParentNodeId :: NodeId -> Cmd err [(NodeId, (NgramsTypeId, Text))]
+getNgramsWithParentNodeId nId = runOpaQuery (select nId)
+  where
+    select nId' = proc () -> do
+      (ng,(nng,n)) <- getNgramsWithParentNodeIdJoin -< ()
+      restrict -< _node_parentId n .== (toNullable $ pgNodeId nId')
+      restrict -< _node_typename n .== (toNullable $ pgInt4 $ nodeTypeId NodeDocument)
+      returnA  -< (nng_node_id nng, (nng_ngramsType nng, ngrams_terms ng))
+--}
+
+getNgramsWithParentNodeIdJoin :: Query ( NgramsRead
+                                       , ( NodeNgramReadNull
+                                         , NodeReadNull
+                                         )
+                                       )
+getNgramsWithParentNodeIdJoin = leftJoin3 queryNodeTable queryNodeNgramTable queryNgramsTable on1 on2
+  where
+    on1 :: (NodeNgramRead, NodeRead) -> Column PGBool
+    on1 (nng,n) = nng_node_id nng .== _node_id n
+
+    on2 :: (NgramsRead, (NodeNgramRead, NodeReadNull))-> Column PGBool
+    on2 (ng, (nng,_)) = ngrams_id ng .== nng_ngrams_id nng
+
+
 

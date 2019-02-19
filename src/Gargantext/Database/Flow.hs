@@ -19,7 +19,7 @@ Portability : POSIX
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
---import Debug.Trace (trace)
+import Debug.Trace (trace)
 --import Control.Lens (view)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
@@ -41,6 +41,7 @@ import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 import Gargantext.Database.Metrics.TFICF (getTficf)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Metrics.TFICF (Tficf(..))
+--import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
@@ -121,7 +122,10 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   _             <- insertToNodeNgrams indexedNgrams
 
   -- List Ngrams Flow
+  -- get elements
+  -- filter by TFICF
   let ngs = ngrams2list' indexedNgrams
+  --let ngs = getNgramsElementsWithParentNodeId masterCorpusId
   _masterListId <- flowList masterUserId masterCorpusId ngs
   _userListId   <- flowListUser userId userCorpusId ngs 100
 --------------------------------------------------
@@ -256,7 +260,8 @@ flowList uId cId ngs = do
   lId <- getOrMkList cId uId
   printDebug "listId flowList" lId
   --printDebug "ngs" (DM.keys ngs)
-  -- TODO add stemming equivalence of 2 ngrams
+  
+  -- TODO grouping
   -- TODO needs rework
   -- let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
   -- _ <- insertGroups lId groupEd
@@ -273,7 +278,8 @@ flowListUser uId cId ngsM n = do
   ngs <- take n <$> sortWith tficf_score
                 <$> getTficf userMaster cId lId NgramsTerms
 
-  flowListBase lId ngsM
+  trace ("flowListBase" <> show lId) flowListBase lId ngsM
+  
   putListNgrams lId NgramsTerms $
     [ NgramsElement (tficf_ngramsTerms ng) GraphList 1 Nothing mempty
     | ng <- ngs 
@@ -318,7 +324,6 @@ ngrams2list' m = fromListWith (<>)
   | (ng, tm) <- DM.toList m
   , t <- DM.keys tm
   ]
-
 
 
 
