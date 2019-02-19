@@ -27,10 +27,11 @@ TODO:
 
 module Gargantext.Viz.Phylo.Example where
 
+import Control.Lens hiding (both)
 import qualified Data.List as List
 import Data.Text (Text, unwords, toLower, words)
 import Data.Tuple.Extra
-
+import Data.Semigroup (Semigroup)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
@@ -67,6 +68,11 @@ type PeriodeSize = Int
 type Occurrences = Int
 
 --------------------------------------------------------------------
+
+data PhyloError = LevelDoesNotExist
+                | LevelUnassigned
+          deriving (Show)
+
 
 
 data PhyloField = PhyloField {
@@ -123,35 +129,51 @@ corpusToFis f = Map.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
 
 ------------------------------------------------------------------------
 -- | STEP 4 | -- Build level -1 and 0 of the Phylo 
-
--- makePointer :: a -> PhyloGroup -> PhyloGroup -> PhyloGroup
--- makePointer field source target = source {field = _phylo_groupId target : field source}
+addPointer :: Semigroup field
+           => ASetter source target identity (field -> field)
+           -> field -> source -> target
+addPointer field targetPointer source =
+  set field (<> targetPointer) source
 
 alterLvl :: PhyloGroup -> PhyloGroup
 alterLvl g = g {_phylo_groupId = ((Tuple.fst $ Tuple.fst $ _phylo_groupId g, 0), Tuple.snd $ _phylo_groupId g)} 
 
+alterLvl' :: PhyloGroup -> PhyloGroup
+alterLvl' (PhyloGroup ((dates, _lvl), ix) gLabel gNgrams gPeriodParents gPeriodChilds gLevelParent gLevelChilds)
+ = PhyloGroup gId' gLabel gNgrams' gPeriodParents gPeriodChilds gLevelParent gLevelChilds
+   where
+     gId' = ((dates, 0), ix)
+     gNgrams' = gNgrams
+
 -- | for the moment level 0 is just a copy of level -1
-level0PhyloGroups :: [PhyloGroup]
-level0PhyloGroups = map alterLvl initPhyloGroups
+--level0PhyloGroups :: [PhyloGroup]
+--level0PhyloGroups = map alterLvl initPhyloGroups
 
 findIdx :: Ngrams -> Int
-findIdx n = Maybe.fromJust $ Vector.elemIndex n phyloNgrams
+findIdx n = case (Vector.elemIndex n phyloNgrams) of
+              Nothing -> panic "PhyloError"
+              Just i  -> i
 
 ngramsToGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> PhyloGroup
 ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (map (\x -> findIdx x) terms) [] [] [] []
 
-docsToGroups :: (Date, Date) -> [Document] -> [PhyloGroup]
+docsToGroups :: (Date, Date) -> Corpus -> [PhyloGroup]
 docsToGroups k v = map (\x ->
                           ngramsToGroup [Tuple.snd x] (Tuple.snd x) (Tuple.fst x) (-1) (Tuple.fst k) (Tuple.snd k) 
-                       ) $ zip [1,2..] $ (List.nub . List.concat) $ map (words . text) v
+                       ) $ zip [1..] $ (List.nub . List.concat) $ map (words . text) v
 
-toPhyloGroups :: a -> Int -> [PhyloGroup]
-toPhyloGroups m lvl = case lvl of 
-  (-1) -> List.concat $ Map.elems $ Map.mapWithKey docsToGroups phyloTerms
+data Levels = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
+  deriving (Show, Eq, Enum, Bounded)
+
+toPhyloGroups :: Levels -> Map (Date,Date) Corpus -> [PhyloGroup]
+toPhyloGroups lvl corpus = case lvl of 
+  Level_m1 -> List.concat $ Map.elems $ Map.mapWithKey docsToGroups corpus
+  _        -> panic ("error phylo to be defined")
+
 
 -- | aka: level -1
 initPhyloGroups :: [PhyloGroup]
-initPhyloGroups = toPhyloGroups phyloTerms (-1)
+initPhyloGroups = toPhyloGroups Level_m1 phyloTerms
 
 
 ------------------------------------------------------------------------
