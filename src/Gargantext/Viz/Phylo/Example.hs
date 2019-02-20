@@ -70,8 +70,18 @@ type Occurrences = Int
 data Levels = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
   deriving (Show, Eq, Enum, Bounded)
 
-data LinkLevels = Link_m1To0 | Link_0To1 | Link_mxTox
-  deriving (Show, Eq, Enum, Bounded)
+
+
+
+data LinkLvlLabel = Link_0_m1 | Link_1_0 | Link_x_y
+  deriving (Show, Eq, Enum, Bounded) 
+
+data LinkLvl = LinkLvl
+  { linkLvlLabel :: LinkLvlLabel
+  , linkLvlFrom  :: Int
+  , linkLvlTo    :: Int
+  } deriving (Show)
+
 
 data PhyloError = LevelDoesNotExist
                 | LevelUnassigned
@@ -127,6 +137,21 @@ addPointer :: Semigroup field
 addPointer field targetPointer current =
   set field (<> targetPointer) current
 
+addPointerLevelParents :: [Pointer] -> PhyloGroup -> PhyloGroup
+addPointerLevelParents pointers = over phylo_groupLevelParents (List.++ pointers)
+
+addPointerLevelChilds :: [Pointer] -> PhyloGroup -> PhyloGroup
+addPointerLevelChilds pointers = over phylo_groupLevelChilds (List.++ pointers)
+
+getGroupPeriod :: PhyloGroup -> PhyloPeriodId
+getGroupPeriod group = Tuple.fst $ Tuple.fst $ _phylo_groupId group
+
+getGroupLevel :: PhyloGroup -> Int
+getGroupLevel group = Tuple.snd $ Tuple.fst $ _phylo_groupId group
+
+getGroupIndex :: PhyloGroup -> Int
+getGroupIndex group = Tuple.snd $ _phylo_groupId group
+
 containsIdx :: [Int] -> [Int] -> Bool
 containsIdx l l'
   | List.null l' = False
@@ -134,13 +159,45 @@ containsIdx l l'
   | List.head l' `List.elem` l = True
   | otherwise = containsIdx l (List.tail l')
 
-shouldLink :: LinkLevels -> PhyloGroup -> PhyloGroup -> Bool
-shouldLink lvl current target = case lvl of 
-  Link_m1To0  -> containsIdx (_phylo_groupNgrams target) (_phylo_groupNgrams current)
-  Link_0To1   -> containsIdx (_phylo_groupNgrams target) (_phylo_groupNgrams current)
-  Link_mxTox  -> undefined
-  _           -> panic ("error link level to be defined")
-  
+shouldLink :: LinkLvl -> [Int] -> [Int] -> Bool
+shouldLink lvl current target = case linkLvlLabel lvl of 
+  Link_0_m1  -> containsIdx target current
+  Link_1_0   -> containsIdx target current
+  Link_x_y   -> undefined
+  _          -> panic ("error link level to be defined")
+
+linkToGroups :: LinkLvl -> PhyloGroup -> [PhyloGroup] -> PhyloGroup 
+linkToGroups lvl current targets = 
+  if (getGroupLevel current) == linkLvlFrom lvl
+    then addPointerLevelChilds  links current 
+    else addPointerLevelParents links current 
+  where links = Maybe.mapMaybe (\x -> if (shouldLink lvl (_phylo_groupNgrams current) (_phylo_groupNgrams x))
+                                      then Just ((_phylo_groupId x),1)
+                                      else Nothing
+                               ) targets
+
+foo :: LinkLvl -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
+foo lvl current targets = map (\x -> linkToGroups lvl x targets) current
+
+linkLevelToLevel :: LinkLvl -> PhyloPeriod -> PhyloPeriod
+linkLevelToLevel lvl (PhyloPeriod periodId phyloLevels)
+  = PhyloPeriod periodId phyloLevels'
+    where 
+      phyloLevels' = current' : target' : (List.tail $ List.tail phyloLevels)
+      current  = List.head phyloLevels
+      target   = List.head $ List.tail phyloLevels
+      current' = PhyloLevel (_phylo_levelId current) $ foo lvl (_phylo_levelGroups current) (_phylo_levelGroups target)
+      target'  = PhyloLevel (_phylo_levelId target) $ foo lvl (_phylo_levelGroups target) (_phylo_levelGroups current)
+
+bar :: LinkLvl -> Phylo -> Phylo 
+bar lvl (Phylo pDuration pNgrams pPeriods)
+  = Phylo pDuration pNgrams pPeriods'
+    where pPeriods' = map (\x -> linkLevelToLevel lvl x) pPeriods
+
+-- idea link from 0 to -1 by looking at idx intersection then link from -1 to 0 by looking at id contained in childs  
+
+-- Bad and full of mistakes ...
+phyloWithLinks_0_m1 = bar (LinkLvl Link_0_m1 0 (-1)) phyloWithGroups0
 
 ------------------------------------------------------------------------
 -- | STEP 5 | -- Build level 0 (for the moment it's just a durty copy of level -1)

@@ -86,8 +86,6 @@ maximalCliques :: [Clique] -> [Clique]
 maximalCliques = undefined
 
 
-
-
 -- | Phylo management
 
 -- | PhyloLevel Management
