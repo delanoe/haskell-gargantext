@@ -73,7 +73,7 @@ data Levels = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
 
 
 
-data LinkLvlLabel = Link_0_m1 | Link_1_0 | Link_x_y
+data LinkLvlLabel = Link_m1_0 | Link_0_m1 | Link_1_0 | Link_x_y
   deriving (Show, Eq, Enum, Bounded) 
 
 data LinkLvl = LinkLvl
@@ -126,6 +126,14 @@ corpusToFis :: (Document -> [Ngrams])
       -> Map (Date, Date) (Map (Set Ngrams) Int)
 corpusToFis f = Map.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
 
+------------------------------------------------------------------------
+-- | STEP 7 | -- Link level -1 to level 0
+
+phyloLinked_m1_0 :: Phylo
+phyloLinked_m1_0 = phyloToLinks lvl_m1_0  phyloLinked_0_m1
+
+lvl_m1_0 :: LinkLvl
+lvl_m1_0 = (LinkLvl Link_m1_0 (-1) 0)
 
 ------------------------------------------------------------------------
 -- | STEP 6 | -- Link level 0 to level -1
@@ -137,20 +145,20 @@ addPointer :: Semigroup field
 addPointer field targetPointer current =
   set field (<> targetPointer) current
 
-addPointerLevelParents :: [Pointer] -> PhyloGroup -> PhyloGroup
-addPointerLevelParents pointers = over phylo_groupLevelParents (List.++ pointers)
+getGroups :: Phylo -> [PhyloGroup]
+getGroups = view (phylo_periods . traverse . phylo_periodLevels . traverse . phylo_levelGroups) 
 
-addPointerLevelChilds :: [Pointer] -> PhyloGroup -> PhyloGroup
-addPointerLevelChilds pointers = over phylo_groupLevelChilds (List.++ pointers)
+getGroupId :: PhyloGroup -> PhyloGroupId
+getGroupId = view (phylo_groupId)
 
-getGroupPeriod :: PhyloGroup -> PhyloPeriodId
-getGroupPeriod group = Tuple.fst $ Tuple.fst $ _phylo_groupId group
+getGroupLvl :: PhyloGroup -> Int
+getGroupLvl group = Tuple.snd $ Tuple.fst $ getGroupId group
 
-getGroupLevel :: PhyloGroup -> Int
-getGroupLevel group = Tuple.snd $ Tuple.fst $ _phylo_groupId group
+getGroupPeriod :: PhyloGroup -> (Date,Date)
+getGroupPeriod group = Tuple.fst $ Tuple.fst $ getGroupId group
 
-getGroupIndex :: PhyloGroup -> Int
-getGroupIndex group = Tuple.snd $ _phylo_groupId group
+getGroupsByLevelAndPeriod :: Int -> (Date,Date) -> Phylo -> [PhyloGroup]
+getGroupsByLevelAndPeriod lvl period p = List.filter (\group -> (getGroupLvl group == lvl) && (getGroupPeriod group == period)) (getGroups p) 
 
 containsIdx :: [Int] -> [Int] -> Bool
 containsIdx l l'
@@ -162,42 +170,45 @@ containsIdx l l'
 shouldLink :: LinkLvl -> [Int] -> [Int] -> Bool
 shouldLink lvl current target = case linkLvlLabel lvl of 
   Link_0_m1  -> containsIdx target current
-  Link_1_0   -> containsIdx target current
+  Link_m1_0  -> containsIdx target current
   Link_x_y   -> undefined
   _          -> panic ("error link level to be defined")
 
-linkToGroups :: LinkLvl -> PhyloGroup -> [PhyloGroup] -> PhyloGroup 
-linkToGroups lvl current targets = 
-  if (getGroupLevel current) == linkLvlFrom lvl
-    then addPointerLevelChilds  links current 
-    else addPointerLevelParents links current 
-  where links = Maybe.mapMaybe (\x -> if (shouldLink lvl (_phylo_groupNgrams current) (_phylo_groupNgrams x))
-                                      then Just ((_phylo_groupId x),1)
-                                      else Nothing
-                               ) targets
+linkGroupToGroups :: LinkLvl -> PhyloGroup -> [PhyloGroup] -> PhyloGroup
+linkGroupToGroups lvl current targets 
+  | linkLvlFrom lvl < linkLvlTo lvl = setLevelParents current 
+  | linkLvlFrom lvl > linkLvlTo lvl = setLevelChilds current
+  | otherwise = current  
+  where 
+    setLevelChilds :: PhyloGroup -> PhyloGroup 
+    setLevelChilds =  over (phylo_groupLevelChilds) addPointers
 
-foo :: LinkLvl -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
-foo lvl current targets = map (\x -> linkToGroups lvl x targets) current
+    setLevelParents :: PhyloGroup -> PhyloGroup 
+    setLevelParents =  over (phylo_groupLevelParents) addPointers
 
-linkLevelToLevel :: LinkLvl -> PhyloPeriod -> PhyloPeriod
-linkLevelToLevel lvl (PhyloPeriod periodId phyloLevels)
-  = PhyloPeriod periodId phyloLevels'
-    where 
-      phyloLevels' = current' : target' : (List.tail $ List.tail phyloLevels)
-      current  = List.head phyloLevels
-      target   = List.head $ List.tail phyloLevels
-      current' = PhyloLevel (_phylo_levelId current) $ foo lvl (_phylo_levelGroups current) (_phylo_levelGroups target)
-      target'  = PhyloLevel (_phylo_levelId target) $ foo lvl (_phylo_levelGroups target) (_phylo_levelGroups current)
+    addPointers :: [Pointer] -> [Pointer]
+    addPointers lp = lp List.++ Maybe.mapMaybe (\target -> if shouldLink lvl (_phylo_groupNgrams current) (_phylo_groupNgrams target)
+                                                           then Just ((getGroupId target),1)
+                                                           else Nothing
+                                               ) targets 
 
-bar :: LinkLvl -> Phylo -> Phylo 
-bar lvl (Phylo pDuration pNgrams pPeriods)
-  = Phylo pDuration pNgrams pPeriods'
-    where pPeriods' = map (\x -> linkLevelToLevel lvl x) pPeriods
+    addPointers' :: [Pointer] -> [Pointer]
+    addPointers' lp = lp List.++ map (\target -> ((getGroupId target),1)) targets    
 
--- idea link from 0 to -1 by looking at idx intersection then link from -1 to 0 by looking at id contained in childs  
+linkGroupsByLevel :: LinkLvl -> Phylo -> [PhyloGroup] -> [PhyloGroup]
+linkGroupsByLevel lvl p groups  = map (\group ->
+  if getGroupLvl group == linkLvlFrom lvl 
+  then linkGroupToGroups lvl group (getGroupsByLevelAndPeriod (linkLvlTo lvl) (getGroupPeriod group) p)
+  else group ) groups
 
--- Bad and full of mistakes ...
-phyloWithLinks_0_m1 = bar (LinkLvl Link_0_m1 0 (-1)) phyloWithGroups0
+phyloToLinks :: LinkLvl -> Phylo -> Phylo
+phyloToLinks lvl p = over (phylo_periods . traverse . phylo_periodLevels . traverse . phylo_levelGroups) (\groups -> linkGroupsByLevel lvl p groups) p
+
+phyloLinked_0_m1 :: Phylo
+phyloLinked_0_m1 = phyloToLinks lvl_0_m1  phyloWithGroups0
+
+lvl_0_m1 :: LinkLvl
+lvl_0_m1 = (LinkLvl Link_0_m1 0 (-1))
 
 ------------------------------------------------------------------------
 -- | STEP 5 | -- Build level 0 (for the moment it's just a durty copy of level -1)
