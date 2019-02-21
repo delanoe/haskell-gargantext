@@ -41,7 +41,7 @@ import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 import Gargantext.Database.Metrics.TFICF (getTficf)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Metrics.TFICF (Tficf(..))
---import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
+import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
 import Gargantext.Database.Node.Document.Add    (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
@@ -70,7 +70,6 @@ type FlowCmdM env err m =
   , HasNodeError err
   , HasRepoVar env
   )
-
 
 flowCorpus :: FlowCmdM env ServantErr m
            => FileFormat -> FilePath -> CorpusName -> m CorpusId
@@ -106,7 +105,12 @@ flowCorpus' :: FlowCmdM env err m
             => NodeType -> [HyperdataDocument]
             -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
             -> m CorpusId
-flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, userId,userCorpusId) = do
+flowCorpus' NodeCorpus
+            hyperdataDocuments
+            ( ids
+            , masterUserId
+            , masterCorpusId
+            , userId,userCorpusId) = do
 --------------------------------------------------
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
@@ -124,8 +128,8 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   -- List Ngrams Flow
   -- get elements
   -- filter by TFICF
-  let ngs = ngrams2list' indexedNgrams
-  --let ngs = getNgramsElementsWithParentNodeId masterCorpusId
+  --let ngs = ngrams2list' indexedNgrams
+  ngs <- getNgramsElementsWithParentNodeId masterCorpusId
   _masterListId <- flowList masterUserId masterCorpusId ngs
   _userListId   <- flowListUser userId userCorpusId ngs 100
 --------------------------------------------------
@@ -138,13 +142,21 @@ flowCorpus' NodeCorpus hyperdataDocuments (ids,masterUserId,masterCorpusId, user
   pure userCorpusId
   -- del [corpusId2, corpusId]
 
-flowCorpus' NodeAnnuaire _hyperdataDocuments (_ids,_masterUserId,_masterCorpusId,_userId,_userCorpusId) = undefined
+flowCorpus' NodeAnnuaire
+            _hyperdataDocuments
+            ( _ids
+            , _masterUserId
+            , _masterCorpusId
+            , _userId
+            , _userCorpusId) = undefined
 flowCorpus' _ _ _ = undefined
 
 
 type CorpusName = Text
 
-subFlowCorpus :: HasNodeError err => Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
+subFlowCorpus :: HasNodeError err
+              => Username -> CorpusName
+              -> Cmd err (UserId, RootId, CorpusId)
 subFlowCorpus username cName = do
   maybeUserId <- getUser username
   userId <- case maybeUserId of
@@ -187,7 +199,7 @@ subFlowCorpus username cName = do
 toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
 toInsert = DM.fromList . map (\d -> (maybe err identity (_hyperdataDocument_uniqId d), d))
   where
-    err = "Database.Flow.toInsert"
+    err = "[ERROR] Database.Flow.toInsert"
 
 toInserted :: [ReturnId] -> Map HashId ReturnId
 toInserted = DM.fromList . map    (\r ->  (reUniqId r, r)    )
@@ -198,7 +210,9 @@ data DocumentWithId =
                     , documentData :: !HyperdataDocument
                     } deriving (Show)
 
-mergeData :: Map HashId ReturnId -> Map HashId HyperdataDocument -> [DocumentWithId]
+mergeData :: Map HashId ReturnId
+          -> Map HashId HyperdataDocument
+          -> [DocumentWithId]
 mergeData rs = catMaybes . map toDocumentWithId . DM.toList
   where
     toDocumentWithId (hash,hpd) =
@@ -213,13 +227,30 @@ data DocumentIdWithNgrams =
      } deriving (Show)
 
 -- TODO group terms
-extractNgramsT :: HasNodeError err => HyperdataDocument -> Cmd err (Map Ngrams (Map NgramsType Int))
+extractNgramsT :: HasNodeError err
+               => HyperdataDocument
+               -> Cmd err (Map Ngrams (Map NgramsType Int))
 extractNgramsT doc = do
-  let source    = text2ngrams $ maybe "Nothing" identity $ _hyperdataDocument_source doc
-  let institutes = map text2ngrams $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))  $ _hyperdataDocument_institutes doc
-  let authors    = map text2ngrams $ maybe ["Nothing"] (splitOn ", ") $ _hyperdataDocument_authors doc
-  let leText = catMaybes [_hyperdataDocument_title doc, _hyperdataDocument_abstract doc]
-  terms' <- map text2ngrams <$> map (intercalate " " . _terms_label) <$> concat <$> liftIO (extractTerms (Multi EN) leText)
+  let source    = text2ngrams
+                $ maybe "Nothing" identity
+                $ _hyperdataDocument_source doc
+
+      institutes = map text2ngrams
+                 $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))
+                 $ _hyperdataDocument_institutes doc
+
+      authors    = map text2ngrams
+                 $ maybe ["Nothing"] (splitOn ", ")
+                 $ _hyperdataDocument_authors doc
+
+      leText = catMaybes [ _hyperdataDocument_title    doc
+                         , _hyperdataDocument_abstract doc
+                         ]
+
+  terms' <- map text2ngrams
+         <$> map (intercalate " " . _terms_label)
+         <$> concat
+         <$> liftIO (extractTerms (Multi EN) leText)
 
   pure $ DM.fromList $  [(source, DM.singleton Sources 1)]
                      <> [(i', DM.singleton Institutes  1) | i' <- institutes ]
@@ -229,8 +260,10 @@ extractNgramsT doc = do
 
 
 documentIdWithNgrams :: HasNodeError err
-                     => (HyperdataDocument -> Cmd err (Map Ngrams (Map NgramsType Int)))
-                     -> [DocumentWithId]   -> Cmd err [DocumentIdWithNgrams]
+                     => (HyperdataDocument
+                     -> Cmd err (Map Ngrams (Map NgramsType Int)))
+                     -> [DocumentWithId]
+                     -> Cmd err [DocumentIdWithNgrams]
 documentIdWithNgrams f = mapM toDocumentIdWithNgrams
   where
     toDocumentIdWithNgrams d = do
@@ -238,10 +271,12 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
       pure $ DocumentIdWithNgrams d e
 
 -- | TODO check optimization
-mapNodeIdNgrams :: [DocumentIdWithNgrams] -> Map Ngrams (Map NgramsType (Map NodeId Int))
+mapNodeIdNgrams :: [DocumentIdWithNgrams]
+                -> Map Ngrams (Map NgramsType (Map NodeId Int))
 mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
   where
-    f :: DocumentIdWithNgrams -> Map Ngrams (Map NgramsType (Map NodeId Int))
+    f :: DocumentIdWithNgrams
+      -> Map Ngrams (Map NgramsType (Map NodeId Int))
     f d = fmap (fmap (DM.singleton nId)) $ document_ngrams d
       where
         nId = documentId $ documentWithId d
@@ -271,7 +306,10 @@ flowList uId cId ngs = do
   pure lId
 
 flowListUser :: FlowCmdM env err m
-             => UserId -> CorpusId -> Map NgramsType [NgramsElement] -> Int -> m ListId
+             => UserId -> CorpusId
+             -> Map NgramsType [NgramsElement]
+             -> Int
+             -> m ListId
 flowListUser uId cId ngsM n = do
   lId <- getOrMkList cId uId
 
@@ -301,7 +339,10 @@ groupNgramsBy isEqual cId = DM.fromList $ catMaybes [ isEqual n1 n2 | n1 <- DM.k
 
 
 -- TODO check: do not insert duplicates
-insertGroups :: HasNodeError err => ListId -> Map NgramsIndexed NgramsIndexed -> Cmd err Int
+insertGroups :: HasNodeError err
+             => ListId
+             -> Map NgramsIndexed NgramsIndexed
+             -> Cmd err Int
 insertGroups lId ngrs =
   insertNodeNgramsNgramsNew [ NodeNgramsNgrams lId ng1 ng2 (Just 1)
                             | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
@@ -329,7 +370,10 @@ ngrams2list' m = fromListWith (<>)
 
 
 -- | TODO: weight of the list could be a probability
-insertLists :: HasNodeError err => ListId -> [(ListType, (NgramsType, NgramsIndexed))] -> Cmd err Int
+insertLists :: HasNodeError err
+            => ListId
+            -> [(ListType, (NgramsType, NgramsIndexed))]
+            -> Cmd err Int
 insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) Nothing (ngramsTypeId ngt) (fromIntegral $ listTypeId l) 1
                      | (l,(ngt, ng)) <- lngs
                    ]
