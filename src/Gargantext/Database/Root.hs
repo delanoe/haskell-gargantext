@@ -45,8 +45,8 @@ selectRoot :: Username -> Query NodeRead
 selectRoot username = proc () -> do
     row   <- queryNodeTable -< ()
     users <- queryUserTable -< ()
-    restrict -< _node_typename   row .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< user_username  users .== (pgStrictText username)
-    restrict -< _node_userId    row .== (user_id users)
+    restrict -< _node_userId   row   .== (user_id users)
     returnA  -< row
 

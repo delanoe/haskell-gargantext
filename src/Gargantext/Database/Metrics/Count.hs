@@ -11,6 +11,7 @@ Count Ngrams by Context
 
 -}
 
+{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE Arrows            #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -19,14 +20,15 @@ Count Ngrams by Context
 
 module Gargantext.Database.Metrics.Count where
 
-import Data.Monoid (mempty)
 import Control.Arrow (returnA)
 import Control.Lens (view)
 import Data.Map.Strict (Map, fromListWith, elems)
+import Data.Monoid (mempty)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.API.Ngrams (NgramsElement(..))
 import Gargantext.Core.Types.Main (listTypeId, ListType(..))
+import Gargantext.Database.Access
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Join (leftJoin4, leftJoin5, leftJoin3)
 import Gargantext.Database.Schema.Ngrams
@@ -39,9 +41,11 @@ import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Utils
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
-import Gargantext.Prelude
+import Gargantext.Prelude hiding (sum)
 import Gargantext.Text.Metrics.Count (Coocs, coocOn)
 import Opaleye
+import Safe (headMay)
+import qualified Database.PostgreSQL.Simple as PGS
 
 getCoocByDocDev :: HasNodeError err => CorpusId -> ListId -> Cmd err (Map ([Text], [Text]) Int)
 getCoocByDocDev cId lId = coocOn (\n-> [ view ( ngrams . ngramsTerms) n]) <$> getNgramsByDoc cId lId
@@ -230,6 +234,20 @@ getNgramsWithParentNodeIdJoin = leftJoin3 queryNodeTable queryNodeNgramTable que
 
     on2 :: (NgramsRead, (NodeNgramRead, NodeReadNull))-> Column PGBool
     on2 (ng, (nng,_)) = ngrams_id ng .== nng_ngrams_id nng
+
+
+countCorpusDocuments :: Roles -> Int -> Cmd err Int
+countCorpusDocuments r cId = maybe 0 identity 
+                        <$> headMay
+                        <$> map (\(PGS.Only n) -> n)
+                        <$> runQuery' r cId
+  where
+    runQuery' RoleUser cId' = runPGSQuery 
+                        "SELECT count(*) from nodes_nodes nn WHERE nn.node1_id = ?"
+                        (PGS.Only cId')
+    runQuery' RoleMaster cId' = runPGSQuery
+                        "SELECT count(*) from nodes n WHERE n.parent_id = ? AND n.typename = ?"
+                        (cId', nodeTypeId NodeDocument)
 
 
 
