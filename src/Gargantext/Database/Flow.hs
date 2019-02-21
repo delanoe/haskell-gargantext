@@ -312,9 +312,13 @@ flowListUser :: FlowCmdM env err m
              -> m ListId
 flowListUser uId cId ngsM n = do
   lId <- getOrMkList cId uId
-
+  
+  {-
   ngs <- take n <$> sortWith tficf_score
                 <$> getTficf userMaster cId lId NgramsTerms
+  -}
+
+  let ngs = []
 
   trace ("flowListBase" <> show lId) flowListBase lId ngsM
   

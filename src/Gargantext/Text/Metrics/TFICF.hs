@@ -28,6 +28,10 @@ data Tficf = Tficf { tficf_ngramsId :: NgramsId
                    , tficf_score       :: Double
 } deriving (Show)
 
+data Tficf' = Tficf' { tficf'_terms :: NgramsTerms
+                     , tficf'_score       :: Double
+                     } deriving (Show)
+
 
 type SupraContext = TficfContext
 type InfraContext = TficfContext

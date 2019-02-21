@@ -18,9 +18,9 @@ TFICF, generalization of TFIDF
 
 module Gargantext.Database.Metrics.TFICF where
 
+import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import qualified Database.PostgreSQL.Simple as DPS
-
 import Safe (headMay)
 import Gargantext.Text.Metrics.TFICF -- (tficf)
 import Gargantext.Prelude
@@ -33,23 +33,31 @@ import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsTerms, NgramsType, ngr
 type OccGlobal = Double
 type OccCorpus = Double
 
+data TficfTerms = TficfTerms
+  { tt_terms  :: !Text
+  , tt_global :: !Double
+  , tt_corpus :: !Double
+  } deriving (Show)
 
-getTficf :: UsernameMaster -> CorpusId -> ListId -> NgramsType
-          -> Cmd err [Tficf]
-getTficf u cId lId ngType = do
-  g   <- getTficfGlobal u
-  c   <- getTficfCorpus cId
-  ngs <- getTficfNgrams u cId lId ngType
+data TficfData = TficfData
+  { td_global :: !Double
+  , td_corpus :: !Double
+  , td_terms  :: ![TficfTerms]
+  } deriving (Show)
 
-  pure $ map (\(nId, nTerms, wm, wn)
-        -> Tficf nId nTerms
-                 (tficf (TficfCorpus   wn (fromIntegral c))
-                        (TficfLanguage wm (fromIntegral g))
-                  )
-              ) ngs
+getTficf :: UsernameMaster -> CorpusId -> NgramsType
+          -> Cmd err TficfData
+getTficf u cId ngType = do
+  g   <- countDocsInDatabase u
+  c   <- countDocsInCorpus   cId
+  ngs <- getOccByNgrams u cId ngType
 
-getTficfGlobal :: UsernameMaster -> Cmd err Int
-getTficfGlobal u = maybe 0 identity <$> headMay
+  pure $ TficfData (fromIntegral g) (fromIntegral c) ngs
+
+
+-- | TODO add filters with LANG and Database type
+countDocsInDatabase :: UsernameMaster -> Cmd err Int
+countDocsInDatabase u = maybe 0 identity <$> headMay
                 <$> map (\(DPS.Only n) -> n )
                 <$> runPGSQuery q p
   where
@@ -61,8 +69,8 @@ getTficfGlobal u = maybe 0 identity <$> headMay
               AND n.typename = ?
   |]
 
-getTficfCorpus :: CorpusId -> Cmd err Int
-getTficfCorpus cId = maybe 0 identity <$> headMay
+countDocsInCorpus :: CorpusId -> Cmd err Int
+countDocsInCorpus cId = maybe 0 identity <$> headMay
                   <$> map (\(DPS.Only n) -> n )
                   <$> runPGSQuery q p
   where
@@ -76,31 +84,21 @@ getTficfCorpus cId = maybe 0 identity <$> headMay
 
 
 
-getTficfNgrams :: UsernameMaster -> CorpusId -> ListId -> NgramsType
-             -> Cmd err [(NgramsId, NgramsTerms, OccGlobal, OccCorpus)]
-getTficfNgrams u cId lId ngType = runPGSQuery queryTficf p
+getOccByNgrams :: UsernameMaster -> CorpusId -> NgramsType
+               -> Cmd err [TficfTerms]
+getOccByNgrams u cId ngType = map (\(t,g,c) -> TficfTerms t g c)
+                           <$> runPGSQuery queryTficf p
   where
-    p = (u, nodeTypeId NodeList, nodeTypeId NodeDocument, ngramsTypeId ngType, cId, lId)
+    p = (u, nodeTypeId NodeDocument, ngramsTypeId ngType, cId)
 
 
 queryTficf :: DPS.Query
 queryTficf = [sql|
--- TODO add CTE for groups
-WITH input(masterUsername,typenameList,typenameDoc,ngramsTypeId,corpusId,listId) 
-  AS ((VALUES(?::"text", ? :: "int4", ?::"int4", ?::"int4",?::"int4",?::"int4"))),
-  -- AS ((VALUES('gargantua'::"text", 5 :: "int4", 4::"int4", 4::"int4",1018::"int4",1019::"int4"))),
-
-list_master AS (
-SELECT n.id,n.name,n.user_id from nodes n
-JOIN input       ON n.typename = input.typenameList
-JOIN auth_user a ON a.id       = n.user_id
-WHERE
-a.username = input.masterUsername
-),
+WITH input(masterUsername,typenameDoc,ngramsTypeId,corpusId) 
+  AS ((VALUES(?::"text", ?::"int4",?::"int4",?::"int4"))),
 
 ngrams_master AS (
 SELECT ng.id, ng.terms, SUM(nng2.weight) AS weight FROM nodes_ngrams nng
-JOIN list_master       ON list_master.id       = nng.node_id
 JOIN nodes_ngrams nng2 ON nng2.ngrams_id = nng.ngrams_id
 JOIN nodes        n   ON n.id          = nng2.node_id
 JOIN input            ON input.typenameDoc = n.typename
@@ -114,7 +112,6 @@ GROUP BY ng.id,ng.terms
 ngrams_user AS (
 SELECT ng.id, ng.terms, SUM(nng2.weight) AS weight
 FROM nodes_ngrams nng
-JOIN list_master       ON list_master.id        = nng.node_id
 
 JOIN nodes_ngrams nng2 ON nng2.ngrams_id = nng.ngrams_id
 JOIN nodes_nodes  nn   ON nn.node2_id    = nng2.node_id
@@ -129,7 +126,7 @@ GROUP BY ng.id,ng.terms
 )
 
 
-SELECT nu.id,nu.terms,SUM(nm.weight) wm,SUM(nu.weight) wu
+SELECT nu.terms,SUM(nm.weight) wm,SUM(nu.weight) wu
 FROM ngrams_user nu
 JOIN ngrams_master nm ON nm.id = nu.id
 WHERE
