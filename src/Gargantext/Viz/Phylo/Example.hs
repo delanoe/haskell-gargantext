@@ -37,9 +37,10 @@ import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 import qualified Data.Maybe as Maybe
 import qualified Data.Tuple as Tuple
+import qualified Data.Bool as Bool
 
 import Data.Set (Set)
-import qualified Data.Set as DS
+import qualified Data.Set as Set
 import qualified Data.Matrix as DM'
 
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
@@ -73,7 +74,7 @@ data Levels = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
 
 
 
-data LinkLvlLabel = Link_m1_0 | Link_0_m1 | Link_1_0 | Link_x_y
+data LinkLvlLabel = Link_m1_0 | Link_0_m1 | Link_1_0 | Link_0_1 | Link_x_y
   deriving (Show, Eq, Enum, Bounded) 
 
 data LinkLvl = LinkLvl
@@ -101,16 +102,75 @@ appariement = undefined
 
 
 ------------------------------------------------------------------------
+-- | STEP 8 | -- Cluster the Fis
+
+------------------------------------------------------------------------
 -- | STEP 9 | -- Link the PhyloGroups of level 1 through the Periods 
 
-
 ------------------------------------------------------------------------
--- | STEP 8 | -- Cluster the Fis and buil level 1 of the Phylo
+-- | STEP 8 | -- Find the Fis out of Documents and Ngrams and build level 1 of the Phylo 
+
+phyloLinked_0_1 :: Phylo
+phyloLinked_0_1 = phyloToLinks lvl_0_1  phyloLinked_1_0
+
+lvl_0_1 :: LinkLvl
+lvl_0_1 = (LinkLvl Link_0_1 0 1)
+
+phyloLinked_1_0 :: Phylo
+phyloLinked_1_0 = phyloToLinks lvl_1_0  phyloWithGroups1
+
+lvl_1_0 :: LinkLvl
+lvl_1_0 = (LinkLvl Link_1_0 1 0)
+
+phyloWithGroups1 :: Phylo
+phyloWithGroups1 = updatePhyloByLevel Level_1 phyloLinked_m1_0
+
+-- | Doit-on conserver le support dans les phylogroups ? Oui (faire un champ groups quality ...)
+
+cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> PhyloGroup
+cliqueToGroup period lvl idx label fis = PhyloGroup ((period, lvl), idx) label (List.sort (map (\x -> findIdx x) (Set.toList $ Tuple.fst fis))) [] [] [] []
+
+fisToPhyloLevel :: Map (Date, Date) Fis -> Phylo -> Phylo
+fisToPhyloLevel m p = over (phylo_periods . traverse) 
+                           (\period ->
+                                    let periodId = _phylo_periodId period
+                                        fisList  = zip [1..] (Map.toList (m Map.! periodId))
+                                    in  over (phylo_periodLevels) 
+                                             (\levels ->
+                                                let groups = map (\fis -> cliqueToGroup periodId 1 (Tuple.fst fis) "" (Tuple.snd fis)) fisList
+                                                in (PhyloLevel (periodId, 1) groups) : levels 
+                                             ) period 
+                           ) p
+
+-- | Doit-on mettre une rêgle pour éviter que les filtres ne suppriment tous les Fis d'une période ? Oui : en fonction de ce qu'il reste après les nested on peut mettre une optrion (pas forcément par défaut) pour descendre le seuil de support jusqu'à trouver un ensemble non nul de Fis
+
+phyloFisFiltered :: Map (Date, Date) Fis
+phyloFisFiltered = filterFisByNested $ filterFisBySupport 1 phyloFis
+
+filterFisBySupport :: Int -> Map (Date, Date) Fis -> Map (Date, Date) Fis
+filterFisBySupport minSupport m = Map.map (\fis -> Map.filter (\s -> s > minSupport) fis) m
+
+doesContains :: [Ngrams] -> [Ngrams] -> Bool
+doesContains l l'
+  | List.null l'                   = True
+  | List.length l' > List.length l = False
+  | List.elem (List.head l') l     = doesContains l (List.tail l') 
+  | otherwise                      = False 
+
+doesAnyContains :: Set Ngrams -> [Set Ngrams] -> [Set Ngrams] -> Bool
+doesAnyContains h l l' = List.any (\c -> doesContains (Set.toList c) (Set.toList h)) (l' List.++ l)
+
+filterNestedCliques :: Set Ngrams -> [Set Ngrams] -> [Set Ngrams] -> [Set Ngrams]
+filterNestedCliques h l l'
+  | List.null l            = if doesAnyContains h l l'
+                             then l' 
+                             else h : l'
+  | doesAnyContains h l l' = filterNestedCliques (List.head l) (List.tail l) l'
+  | otherwise              = filterNestedCliques (List.head l) (List.tail l) (h : l')
 
 
-------------------------------------------------------------------------
--- | STEP 7 | -- Find the Fis out of Documents and Ngrams and build level 1 of the Phylo 
-
+filterFisByNested :: Map (Date, Date) Fis -> Map (Date, Date) Fis
+filterFisByNested m = Map.map(\fis -> Map.restrictKeys fis (Set.fromList (filterNestedCliques (List.head (Map.keys fis)) (Map.keys fis) []))) m
 
 phyloFis :: Map (Date, Date) Fis
 phyloFis = termsToFis phyloTerms 
@@ -126,14 +186,17 @@ corpusToFis :: (Document -> [Ngrams])
       -> Map (Date, Date) (Map (Set Ngrams) Int)
 corpusToFis f = Map.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
 
+
 ------------------------------------------------------------------------
 -- | STEP 7 | -- Link level -1 to level 0
+
 
 phyloLinked_m1_0 :: Phylo
 phyloLinked_m1_0 = phyloToLinks lvl_m1_0  phyloLinked_0_m1
 
 lvl_m1_0 :: LinkLvl
 lvl_m1_0 = (LinkLvl Link_m1_0 (-1) 0)
+
 
 ------------------------------------------------------------------------
 -- | STEP 6 | -- Link level 0 to level -1
@@ -171,6 +234,8 @@ shouldLink :: LinkLvl -> [Int] -> [Int] -> Bool
 shouldLink lvl current target = case linkLvlLabel lvl of 
   Link_0_m1  -> containsIdx target current
   Link_m1_0  -> containsIdx target current
+  Link_0_1   -> containsIdx target current
+  Link_1_0   -> containsIdx target current
   Link_x_y   -> undefined
   _          -> panic ("error link level to be defined")
 
@@ -209,6 +274,7 @@ phyloLinked_0_m1 = phyloToLinks lvl_0_m1  phyloWithGroups0
 
 lvl_0_m1 :: LinkLvl
 lvl_0_m1 = (LinkLvl Link_0_m1 0 (-1))
+
 
 ------------------------------------------------------------------------
 -- | STEP 5 | -- Build level 0 (for the moment it's just a durty copy of level -1)
@@ -266,6 +332,8 @@ updatePhyloByLevel lvl (Phylo pDuration pNgrams pPeriods)
     
     Level_0  -> Phylo pDuration pNgrams pPeriods'
       where pPeriods' = alterLvl 0 pPeriods
+
+    Level_1  -> fisToPhyloLevel phyloFisFiltered (Phylo pDuration pNgrams pPeriods) 
     
     _        -> panic ("error level to be defined")
 
