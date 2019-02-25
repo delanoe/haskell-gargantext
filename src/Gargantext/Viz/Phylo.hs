@@ -110,13 +110,15 @@ type PhyloLevelId = (PhyloPeriodId, Int)
 -- | PhyloGroup : group of ngrams at each level and step
 -- Label : maybe has a label as text
 -- Ngrams: set of terms that build the group
+-- Quality : map of measures (support, etc.) that depict some qualitative aspects of a phylo 
 -- Period Parents|Childs: weighted link to Parents|Childs (Temporal Period   axis)
 -- Level  Parents|Childs: weighted link to Parents|Childs (Level Granularity axis)
 -- Pointers are directed link from Self to any PhyloGroup (/= Self ?)
 data PhyloGroup =
-     PhyloGroup { _phylo_groupId    :: PhyloGroupId
-                , _phylo_groupLabel :: Text
+     PhyloGroup { _phylo_groupId            :: PhyloGroupId
+                , _phylo_groupLabel         :: Text
                 , _phylo_groupNgrams        :: [Int]
+                , _phylo_groupQuality       :: Map Text Double
                 
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]
