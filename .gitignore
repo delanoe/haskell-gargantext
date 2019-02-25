@@ -24,3 +24,6 @@ _darcs
 *.pdf
 
 # Runtime
+
+# Repo
+repo.json*

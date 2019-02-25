@@ -29,6 +29,7 @@ import Data.Map (Map, lookup, fromListWith, toList)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
+import qualified Data.Text as Text
 import Data.Tuple.Extra (both)
 import Data.List (concat)
 import GHC.Show (Show)
@@ -38,7 +39,7 @@ import Gargantext.Core.Types.Main
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
-import Gargantext.Database.Metrics.TFICF (getTficf)
+--import Gargantext.Database.Metrics.TFICF (getTficf)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Metrics.TFICF (Tficf(..))
 import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
@@ -205,10 +206,10 @@ toInserted :: [ReturnId] -> Map HashId ReturnId
 toInserted = DM.fromList . map    (\r ->  (reUniqId r, r)    )
                          . filter (\r -> reInserted r == True)
 
-data DocumentWithId =
-     DocumentWithId { documentId   :: !NodeId
-                    , documentData :: !HyperdataDocument
-                    } deriving (Show)
+data DocumentWithId = DocumentWithId
+  { documentId   :: !NodeId
+  , documentData :: !HyperdataDocument
+  } deriving (Show)
 
 mergeData :: Map HashId ReturnId
           -> Map HashId HyperdataDocument
@@ -220,17 +221,23 @@ mergeData rs = catMaybes . map toDocumentWithId . DM.toList
                      <*> Just hpd
 
 ------------------------------------------------------------------------
-data DocumentIdWithNgrams =
-     DocumentIdWithNgrams
-     { documentWithId  :: !DocumentWithId
-     , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
-     } deriving (Show)
+data DocumentIdWithNgrams = DocumentIdWithNgrams
+  { documentWithId  :: !DocumentWithId
+  , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
+  } deriving (Show)
 
 -- TODO group terms
+
 extractNgramsT :: HasNodeError err
                => HyperdataDocument
                -> Cmd err (Map Ngrams (Map NgramsType Int))
-extractNgramsT doc = do
+extractNgramsT hd = filterNgramsT 255 <$> extractNgramsT' hd
+
+
+extractNgramsT' :: HasNodeError err
+               => HyperdataDocument
+               -> Cmd err (Map Ngrams (Map NgramsType Int))
+extractNgramsT' doc = do
   let source    = text2ngrams
                 $ maybe "Nothing" identity
                 $ _hyperdataDocument_source doc
@@ -257,7 +264,15 @@ extractNgramsT doc = do
                      <> [(a', DM.singleton Authors     1) | a' <- authors    ]
                      <> [(t', DM.singleton NgramsTerms 1) | t' <- terms'     ]
 
-
+--{-
+filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
+                     -> Map Ngrams (Map NgramsType Int)
+filterNgramsT s ms = DM.fromList $ map (\a -> filter' s a) $ DM.toList ms
+  where
+    filter' s' (ng@(Ngrams t n),y) = case (Text.length t) < s' of
+          True  -> (ng,y)
+          False -> (Ngrams (Text.take s' t) n , y)
+--}
 
 documentIdWithNgrams :: HasNodeError err
                      => (HyperdataDocument
@@ -310,7 +325,7 @@ flowListUser :: FlowCmdM env err m
              -> Map NgramsType [NgramsElement]
              -> Int
              -> m ListId
-flowListUser uId cId ngsM n = do
+flowListUser uId cId ngsM _n = do
   lId <- getOrMkList cId uId
   
   {-

@@ -1,19 +1,18 @@
 {-|
 Module      : Gargantext.Database.Metrics.TFICF
-Description : Ngram connection to the Database
+Description : Building TFICF Data from Database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-TFICF, generalization of TFIDF
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE QuasiQuotes            #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Metrics.TFICF where
@@ -22,13 +21,13 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import qualified Database.PostgreSQL.Simple as DPS
 import Safe (headMay)
-import Gargantext.Text.Metrics.TFICF -- (tficf)
+--import Gargantext.Text.Metrics.TFICF -- (tficf)
 import Gargantext.Prelude
 import Gargantext.Core.Types.Individu (UsernameMaster)
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
-import Gargantext.Database.Types.Node (ListId, CorpusId, NodeType(..))
+import Gargantext.Database.Types.Node ({-ListId,-} CorpusId, NodeType(..))
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsTerms, NgramsType, ngramsTypeId)
+import Gargantext.Database.Schema.Ngrams ({-NgramsId, NgramsTerms,-} NgramsType, ngramsTypeId)
 
 type OccGlobal = Double
 type OccCorpus = Double
@@ -44,6 +43,7 @@ data TficfData = TficfData
   , td_corpus :: !Double
   , td_terms  :: ![TficfTerms]
   } deriving (Show)
+
 
 getTficf :: UsernameMaster -> CorpusId -> NgramsType
           -> Cmd err TficfData

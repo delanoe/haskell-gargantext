@@ -89,8 +89,8 @@ ALTER TABLE public.nodes_ngrams_ngrams OWNER TO gargantua;
 
 ---------------------------------------------------------
 CREATE TABLE public.nodes_nodes (
-    node1_id integer NOT NULL,
-    node2_id integer NOT NULL,
+    node1_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
+    node2_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     score real,
     favorite boolean,
     delete boolean,
