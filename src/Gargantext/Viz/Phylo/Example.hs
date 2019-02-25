@@ -125,10 +125,8 @@ lvl_1_0 = (LinkLvl Link_1_0 1 0)
 phyloWithGroups1 :: Phylo
 phyloWithGroups1 = updatePhyloByLevel Level_1 phyloLinked_m1_0
 
--- | Doit-on conserver le support dans les phylogroups ? Oui (faire un champ groups quality ...)
-
 cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> PhyloGroup
-cliqueToGroup period lvl idx label fis = PhyloGroup ((period, lvl), idx) label (List.sort (map (\x -> findIdx x) (Set.toList $ Tuple.fst fis))) [] [] [] []
+cliqueToGroup period lvl idx label fis = PhyloGroup ((period, lvl), idx) label (List.sort (map (\x -> findIdx x) (Set.toList $ Tuple.fst fis))) (Map.singleton "support" (fromIntegral $ Tuple.snd fis)) [] [] [] []
 
 fisToPhyloLevel :: Map (Date, Date) Fis -> Phylo -> Phylo
 fisToPhyloLevel m p = over (phylo_periods . traverse) 
@@ -142,13 +140,24 @@ fisToPhyloLevel m p = over (phylo_periods . traverse)
                                              ) period 
                            ) p
 
--- | Doit-on mettre une rêgle pour éviter que les filtres ne suppriment tous les Fis d'une période ? Oui : en fonction de ce qu'il reste après les nested on peut mettre une optrion (pas forcément par défaut) pour descendre le seuil de support jusqu'à trouver un ensemble non nul de Fis
-
+-- | To preserve nonempty periods from filtering, please use : filterFisBySupport False ...
 phyloFisFiltered :: Map (Date, Date) Fis
-phyloFisFiltered = filterFisByNested $ filterFisBySupport 1 phyloFis
+phyloFisFiltered = filterFisBySupport True 1 (filterFisByNested phyloFis)
 
-filterFisBySupport :: Int -> Map (Date, Date) Fis -> Map (Date, Date) Fis
-filterFisBySupport minSupport m = Map.map (\fis -> Map.filter (\s -> s > minSupport) fis) m
+filterFisBySupport :: Bool -> Int -> Map (Date, Date) Fis -> Map (Date, Date) Fis 
+filterFisBySupport empty min m = case empty of
+  True  -> Map.map (\fis -> filterMinorFis min fis) m
+  False -> Map.map (\fis -> filterMinorFisNonEmpty min fis) m  
+
+filterMinorFis :: Int -> Fis -> Fis
+filterMinorFis min fis = Map.filter (\s -> s > min) fis
+
+filterMinorFisNonEmpty :: Int -> Fis -> Fis
+filterMinorFisNonEmpty min fis = if (Map.null fis') && (Bool.not $ Map.null fis)
+                                 then filterMinorFisNonEmpty (min - 1) fis
+                                 else fis'
+  where 
+    fis' = filterMinorFis min fis
 
 doesContains :: [Ngrams] -> [Ngrams] -> Bool
 doesContains l l'
@@ -281,8 +290,8 @@ lvl_0_m1 = (LinkLvl Link_0_m1 0 (-1))
 
 
 setGroupIdLvl :: Int -> PhyloGroup -> PhyloGroup
-setGroupIdLvl lvl (PhyloGroup ((period, lvl'), idx) gLabel gNgrams gPP gPC gLP gLC)
-  = PhyloGroup ((period, lvl), idx) gLabel gNgrams gPP gPC gLP gLC
+setGroupIdLvl lvl (PhyloGroup ((period, lvl'), idx) gLabel gNgrams gQ gPP gPC gLP gLC)
+  = PhyloGroup ((period, lvl), idx) gLabel gNgrams gQ gPP gPC gLP gLC
 
 setPhyloLevel :: Int -> PhyloLevel -> PhyloLevel
 setPhyloLevel lvl (PhyloLevel (periodId, lvl') lvlGroups) 
@@ -310,7 +319,7 @@ findIdx n = case (Vector.elemIndex n (_phylo_ngrams phylo)) of
               Just i  -> i
 
 ngramsToGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> PhyloGroup
-ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (List.sort (map (\x -> findIdx x) terms)) [] [] [] []
+ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (List.sort (map (\x -> findIdx x) terms)) (Map.empty) [] [] [] []
 
 docsToLevel :: (Date, Date) -> Corpus -> PhyloLevel
 docsToLevel k v = PhyloLevel (k,(-1)) (map (\x ->
