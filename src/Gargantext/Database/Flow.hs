@@ -7,6 +7,11 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+
+-- TODO-ACCESS:
+--   check userId       CanFillUserCorpus   userCorpusId
+--   check masterUserId CanFillMasterCorpus masterCorpusId
+
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
@@ -43,7 +48,7 @@ import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Metrics.TFICF (Tficf(..))
 import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
-import Gargantext.Database.Node.Document.Add    (add)
+import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
 import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
@@ -72,52 +77,54 @@ type FlowCmdM env err m =
   , HasRepoVar env
   )
 
+type DocId = NodeId
+
+
+
 flowCorpus :: FlowCmdM env ServantErr m
-           => FileFormat -> FilePath -> CorpusName -> m CorpusId
-flowCorpus ff fp cName = do
-  --insertUsers [gargantuaUser, simpleUser]
-  hyperdataDocuments' <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
-  params <- flowInsert NodeCorpus hyperdataDocuments' cName
-  flowCorpus' NodeCorpus hyperdataDocuments' params
+           => Username -> FileFormat -> FilePath -> CorpusName -> m CorpusId
+flowCorpus userName ff fp corpusName = do
+
+  -- Master Flow
+  docs <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
+  -- ChunkAlong needed for big corpora
+  ids  <- mapM insertMasterDocs $ chunkAlong 10000 10000 docs
+
+  -- User Flow
+  (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName
+  -- TODO: check if present already, ignore
+  _ <- Doc.add userCorpusId $ concat ids
+
+  -- User List Flow
+  -- ngs <- getNgramsElementsWithParentNodeId masterCorpusId
+  --_masterListId <- flowList masterUserId masterCorpusId ngs
+  --_userListId   <- flowListUser userId userCorpusId ngs 100
+
+  -- User Graph Flow
+  _ <- mkGraph     userCorpusId userId
+
+  -- User Dashboard Flow
+  _ <- mkDashboard userCorpusId userId
+
+  -- Annuaire Flow
+  -- _ <- mkAnnuaire  rootUserId userId
+
+  pure userCorpusId
 
 
-flowInsert :: HasNodeError err => NodeType -> [HyperdataDocument] -> CorpusName
-     -> Cmd err ([ReturnId], MasterUserId, MasterCorpusId, UserId, CorpusId)
-flowInsert _nt hyperdataDocuments cName = do
-  let hyperdataDocuments' = map (\h -> ToDbDocument h) hyperdataDocuments
+insertMasterDocs :: FlowCmdM env ServantErr m
+                => [HyperdataDocument] -> m [DocId]
+insertMasterDocs hs  =  do
 
-  (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
-  ids  <- insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'
+  let hyperdataDocuments' = map (\h -> ToDbDocument h) hs
+  
+  -- TODO put in State Monad
+  (masterUserId, _, masterCorpusId) <- getOrMkRootWithCorpus userMaster corpusMasterName
+  ids <- insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'
 
-  (userId, _, userCorpusId) <- subFlowCorpus userArbitrary cName
-  _ <- add userCorpusId (map reId ids)
-
-  pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
-
-
--- TODO-ACCESS:
---   check userId       CanFillUserCorpus   userCorpusId
---   check masterUserId CanFillMasterCorpus masterCorpusId
---
--- TODO-EVENTS:
---   InsertedNgrams ?
---   InsertedNodeNgrams ?
-flowCorpus' :: FlowCmdM env err m
-            => NodeType -> [HyperdataDocument]
-            -> ([ReturnId], UserId, CorpusId, UserId, CorpusId)
-            -> m CorpusId
-flowCorpus' NodeCorpus
-            hyperdataDocuments
-            ( ids
-            , masterUserId
-            , masterCorpusId
-            , userId,userCorpusId) = do
---------------------------------------------------
-
-  let documentsWithId = mergeData (toInserted ids) (toInsert hyperdataDocuments)
-  --printDebug "documentsWithId" documentsWithId
+  let documentsWithId = mergeData (toInserted ids) (toInsert hs)
   docsWithNgrams <- documentIdWithNgrams extractNgramsT documentsWithId
-  --printDebug "docsWithNgrams" docsWithNgrams
+
   let maps            = mapNodeIdNgrams docsWithNgrams
 
   --printDebug "maps" (maps)
@@ -125,57 +132,44 @@ flowCorpus' NodeCorpus
   let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
   --printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
+  pure $ map reId ids
 
-  -- List Ngrams Flow
-  -- get elements
-  -- filter by TFICF
-  --let ngs = ngrams2list' indexedNgrams
-  ngs <- getNgramsElementsWithParentNodeId masterCorpusId
-  _masterListId <- flowList masterUserId masterCorpusId ngs
-  _userListId   <- flowListUser userId userCorpusId ngs 100
---------------------------------------------------
-  _ <- mkDashboard userCorpusId userId
-  _ <- mkGraph     userCorpusId userId
 
-  -- Annuaire Flow
-  -- _ <- mkAnnuaire  rootUserId userId
 
-  pure userCorpusId
-  -- del [corpusId2, corpusId]
 
-flowCorpus' NodeAnnuaire
-            _hyperdataDocuments
-            ( _ids
-            , _masterUserId
-            , _masterCorpusId
-            , _userId
-            , _userCorpusId) = undefined
-flowCorpus' _ _ _ = undefined
+
+
+getUserCorpusNgrams :: FlowCmdM env ServantErr m
+                => CorpusId -> m [Ngrams]
+getUserCorpusNgrams = undefined
+
+
+
+
+
+
+
 
 
 type CorpusName = Text
 
-subFlowCorpus :: HasNodeError err
+getOrMkRootWithCorpus :: HasNodeError err
               => Username -> CorpusName
               -> Cmd err (UserId, RootId, CorpusId)
-subFlowCorpus username cName = do
+getOrMkRootWithCorpus username cName = do
   maybeUserId <- getUser username
   userId <- case maybeUserId of
         Nothing   -> nodeError NoUserFound
-        -- mk NodeUser gargantua_id "Node Gargantua"
         Just user -> pure $ userLight_id user
 
-  --printDebug "userId" userId
   rootId' <- map _node_id <$> getRoot username
 
-  --printDebug "rootId'" rootId'
   rootId'' <- case rootId' of
         []  -> mkRoot username userId
         n   -> case length n >= 2 of
             True  -> nodeError ManyNodeUsers
             False -> pure rootId'
 
-  --printDebug "rootId''" rootId''
   rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
 
   corpusId'' <- if username == userMaster
@@ -191,9 +185,9 @@ subFlowCorpus username cName = do
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
-  --printDebug "(username, userId, rootId, corpusId)"
-  --            (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
+
+
 
 
 ------------------------------------------------------------------------
@@ -357,17 +351,6 @@ groupNgramsBy isEqual cId = DM.fromList $ catMaybes [ isEqual n1 n2 | n1 <- DM.k
 -}
 
 
--- TODO check: do not insert duplicates
-insertGroups :: HasNodeError err
-             => ListId
-             -> Map NgramsIndexed NgramsIndexed
-             -> Cmd err Int
-insertGroups lId ngrs =
-  insertNodeNgramsNgramsNew [ NodeNgramsNgrams lId ng1 ng2 (Just 1)
-                            | (ng1, ng2) <- map (both _ngramsId) $ DM.toList ngrs
-                            , ng1 /= ng2
-                            ]
-
 ------------------------------------------------------------------------
 ngrams2list :: Map NgramsIndexed (Map NgramsType a)
             -> [(ListType, (NgramsType, NgramsIndexed))]
@@ -388,17 +371,9 @@ ngrams2list' m = fromListWith (<>)
 
 
 
--- | TODO: weight of the list could be a probability
-insertLists :: HasNodeError err
-            => ListId
-            -> [(ListType, (NgramsType, NgramsIndexed))]
-            -> Cmd err Int
-insertLists lId lngs = insertNodeNgrams [ NodeNgram lId (_ngramsId ng) Nothing (ngramsTypeId ngt) (fromIntegral $ listTypeId l) 1
-                     | (l,(ngt, ng)) <- lngs
-                   ]
 ------------------------------------------------------------------------
 
-
+{-
 -- | Annuaire
 
 flowAnnuaire :: FlowCmdM env ServantErr m => FilePath -> m ()
@@ -450,4 +425,4 @@ subFlowAnnuaire username _cName = do
               (username, userId, rootId, corpusId)
   pure (userId, rootId, corpusId)
 
-
+-}
