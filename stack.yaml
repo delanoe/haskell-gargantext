@@ -36,3 +36,4 @@ extra-deps:
 - servant-multipart-0.11.2
 - stemmer-0.5.2
 - validity-0.9.0.0 # patches-{map,class}
+- multiset-0.3.4.1 # stack test
