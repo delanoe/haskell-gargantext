@@ -19,7 +19,6 @@ import Data.Map
 import Gargantext.Prelude
 import Gargantext.Database.Metrics.TFICF
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Text.Metrics.TFICF
 import Gargantext.API.Ngrams
 
 

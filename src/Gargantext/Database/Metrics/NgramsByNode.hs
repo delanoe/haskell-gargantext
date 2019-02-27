@@ -14,6 +14,7 @@ Ngrams by node enable special metrics.
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Metrics.NgramsByNode
   where

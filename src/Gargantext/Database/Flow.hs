@@ -35,32 +35,30 @@ import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
 import qualified Data.Text as Text
-import Data.Tuple.Extra (both)
 import Data.List (concat)
 import GHC.Show (Show)
-import Gargantext.Core.Types (NodePoly(..), ListType(..), listTypeId, Terms(..))
+import Gargantext.Core.Types (NodePoly(..), ListType(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Config (userMaster, userArbitrary, corpusMasterName)
+import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 --import Gargantext.Database.Metrics.TFICF (getTficf)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Metrics.TFICF (Tficf(..))
-import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
-import Gargantext.Database.Node.Document.Insert (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
+import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
-import Gargantext.Database.Schema.Ngrams (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
-import Gargantext.Database.Schema.Node (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
-import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
-import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
+import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
+import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
+-- import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
+--import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
-import Gargantext.Database.Types.Node (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
+import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd, CmdM)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Ext.IMT (toSchoolName)
-import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
+--import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
@@ -76,9 +74,6 @@ type FlowCmdM env err m =
   , HasNodeError err
   , HasRepoVar env
   )
-
-type DocId = NodeId
-
 
 
 flowCorpus :: FlowCmdM env ServantErr m

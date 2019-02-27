@@ -33,14 +33,14 @@ import System.Environment (getArgs)
 
 main :: IO ()
 main = do
-  [iniPath, name, corpusPath] <- getArgs
+  [user, iniPath, name, corpusPath] <- getArgs
 
   {-let createUsers :: Cmd ServantErr Int64
       createUsers = insertUsers [gargantuaUser,simpleUser]
   -}
 
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmdCorpus = flowCorpus CsvHalFormat corpusPath (cs name)
+      cmdCorpus = flowCorpus (cs user) CsvHalFormat corpusPath (cs name)
 
      -- cmd = {-createUsers >>-} cmdCorpus
 
