@@ -77,15 +77,15 @@ ALTER TABLE public.nodes_ngrams_repo OWNER TO gargantua;
 --
 --
 -- TODO: delete delete this table
-CREATE TABLE public.nodes_ngrams_ngrams (
-    node_id   integer NOT NULL REFERENCES public.nodes(id)  ON DELETE CASCADE,
-    ngram1_id integer NOT NULL REFERENCES public.ngrams(id) ON DELETE CASCADE,
-    ngram2_id integer NOT NULL REFERENCES public.ngrams(id) ON DELETE CASCADE,
-    weight double precision,
-    PRIMARY KEY (node_id,ngram1_id,ngram2_id)
-);
-
-ALTER TABLE public.nodes_ngrams_ngrams OWNER TO gargantua;
+--CREATE TABLE public.nodes_ngrams_ngrams (
+--    node_id   integer NOT NULL REFERENCES public.nodes(id)  ON DELETE CASCADE,
+--    ngram1_id integer NOT NULL REFERENCES public.ngrams(id) ON DELETE CASCADE,
+--    ngram2_id integer NOT NULL REFERENCES public.ngrams(id) ON DELETE CASCADE,
+--    weight double precision,
+--    PRIMARY KEY (node_id,ngram1_id,ngram2_id)
+--);
+--
+--ALTER TABLE public.nodes_ngrams_ngrams OWNER TO gargantua;
 
 ---------------------------------------------------------
 CREATE TABLE public.nodes_nodes (
@@ -110,33 +110,32 @@ CREATE TABLE public.rights (
 );
 ALTER TABLE public.rights OWNER TO gargantua;
 
-CREATE INDEX rights_userId_nodeId ON public.rights USING btree (user_id,node_id);
 
 
 ------------------------------------------------------------
 -- INDEXES
-CREATE UNIQUE INDEX ON public.auth_user(username);
 
-CREATE INDEX auth_user_username_like ON public.auth_user USING btree (username varchar_pattern_ops);
+CREATE INDEX        ON public.auth_user USING btree (username varchar_pattern_ops);
+CREATE UNIQUE INDEX ON public.auth_user USING btree (username);
 
---CREATE INDEX ix_nodes_typename ON public.nodes USING btree (typename);
---CREATE INDEX ngrams_n_idx    ON public.ngrams USING btree (n);
-CREATE INDEX nodes_hyperdata_idx ON public.nodes USING gin (hyperdata);
-CREATE UNIQUE INDEX nodes_expr_idx ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
+CREATE INDEX        ON public.rights USING btree (user_id,node_id);
 
-CREATE UNIQUE INDEX nodes_expr_idx2 ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
-CREATE UNIQUE INDEX nodes_typename_parent_id_expr_idx ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
-CREATE INDEX nodes_user_id_typename_parent_id_idx ON public.nodes USING btree (user_id, typename, parent_id);
+CREATE INDEX        ON public.nodes USING gin (hyperdata);
+CREATE INDEX        ON public.nodes USING btree (user_id, typename, parent_id);
+CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
+CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
+CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
 
-CREATE UNIQUE INDEX ON public.ngrams(terms);
---CREATE UNIQUE INDEX ON public.ngrams(terms,n);
+CREATE UNIQUE INDEX ON public.ngrams       USING gin (terms); -- TEST GIN
 
+CREATE INDEX        ON public.nodes_ngrams USING btree (ngrams_id);
 CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id);
-CREATE INDEX nodes_ngrams_ngrams_id_idx ON public.nodes_ngrams USING btree (ngrams_id);
-CREATE INDEX nodes_ngrams_ngrams_node_id_idx ON public.nodes_ngrams_ngrams USING btree (node_id);
 CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id,ngrams_type);
-CREATE INDEX nodes_nodes_delete ON public.nodes_nodes USING btree (node1_id, node2_id, delete);
-CREATE UNIQUE INDEX nodes_nodes_node1_id_node2_id_idx ON public.nodes_nodes USING btree (node1_id, node2_id);
+
+CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, delete);
+CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
+
+CREATE INDEX        ON public.nodes_nodes_ngrams USING btree (node1_id,nod2_id);
 
 -- TRIGGERS
 -- TODO user haskell-postgresql-simple to create this function
