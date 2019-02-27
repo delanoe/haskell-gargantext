@@ -27,7 +27,7 @@ TODO:
 
 module Gargantext.Viz.Phylo.Example where
 
-import Control.Lens hiding (both)
+import Control.Lens hiding (both, Level)
 import Data.List (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), nub)
 import qualified Data.List as List
 import Data.Text (Text, unwords, toLower, words)
@@ -75,11 +75,8 @@ type PeriodeSize = Int
 -- data Periodes b a = Map (b,b) a
 type Occurrences = Int
 
-data Levels = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
+data Level = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
   deriving (Show, Eq, Enum, Bounded)
-
-
-
 
 data LinkLvlLabel = Link_m1_0 | Link_0_m1 | Link_1_0 | Link_0_1 | Link_x_y
   deriving (Show, Eq, Enum, Bounded)
@@ -137,11 +134,11 @@ listToCombi f l = [ (f x, f y) | (x:rest) <- tails l
                                ,  y       <- rest
                                ]
 
-fisToCooc :: Map (Date, Date) Fis -> Map (Int, Int) Double
-fisToCooc m = map   (/docs)
-            $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
-            $ concat
-            $ map (\x -> listToCombi findIdx $ (Set.toList . fst) x) fis
+fisToCooc :: Map (Date, Date) Fis -> Phylo -> Map (Int, Int) Double
+fisToCooc m p = map   (/docs)
+              $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
+              $ concat
+              $ map (\x -> listToCombi (\x -> ngramsToIdx x p) $ (Set.toList . fst) x) fis
   where
     --------------------------------------
     fis :: [(Clique,Support)]
@@ -154,7 +151,7 @@ fisToCooc m = map   (/docs)
     docs = fromIntegral $ foldl (\mem x -> mem + (snd x)) 0 fis
     --------------------------------------
     cooc :: Map (Int, Int) (Double)
-    cooc = Map.fromList $ map (\x -> (x,0)) (listToCombi findIdx fisNgrams)
+    cooc = Map.fromList $ map (\x -> (x,0)) (listToCombi (\x -> ngramsToIdx x p) fisNgrams)
     --------------------------------------
 
 
@@ -180,10 +177,10 @@ lvl_1_0 = (LinkLvl Link_1_0 1 0)
 phyloWithGroups1 :: Phylo
 phyloWithGroups1 = updatePhyloByLevel Level_1 phyloLinked_m1_0
 
-cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> PhyloGroup
-cliqueToGroup period lvl idx label fis = PhyloGroup ((period, lvl), idx)
+cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> Phylo -> PhyloGroup
+cliqueToGroup period lvl idx label fis p = PhyloGroup ((period, lvl), idx)
                                                     label
-                                                    (sort $ map findIdx
+                                                    (sort $ map (\x -> ngramsToIdx x p)
                                                           $ Set.toList
                                                           $ fst fis
                                                           )
@@ -197,7 +194,7 @@ fisToPhyloLevel m p = over (phylo_periods . traverse)
                                   fisList  = zip [1..] (Map.toList (m ! periodId))
                               in  over (phylo_periodLevels)
                                        (\levels ->
-                                          let groups = map (\fis -> cliqueToGroup periodId 1 (fst fis) "" (snd fis)) fisList
+                                          let groups = map (\fis -> cliqueToGroup periodId 1 (fst fis) "" (snd fis) p) fisList
                                           in (PhyloLevel (periodId, 1) groups) : levels
                                        ) period
                            ) p
@@ -322,8 +319,8 @@ linkGroupToGroups lvl current targets
 
 linkGroupsByLevel :: LinkLvl -> Phylo -> [PhyloGroup] -> [PhyloGroup]
 linkGroupsByLevel lvl p groups  = map (\group ->
-  if getGroupLvl group == linkLvlFrom lvl 
-  then linkGroupToGroups lvl group (getGroupsByLevelAndPeriod (linkLvlTo lvl) (getGroupPeriod group) p)
+  if getGroupLevel group == linkLvlFrom lvl 
+  then linkGroupToGroups lvl group (getGroupsWithFilters (linkLvlTo lvl) (getGroupPeriod group) p)
   else group ) groups
 
 phyloToLinks :: LinkLvl -> Phylo -> Phylo
@@ -370,41 +367,45 @@ phyloWithGroups0 = updatePhyloByLevel Level_0 phyloWithGroupsm1
 -- | STEP 4 | -- Build level -1 
 
 
-findIdx :: Ngrams -> Int
-findIdx n = case (elemIndex n (_phylo_ngrams phylo)) of
-              Nothing -> panic "PhyloError"
-              Just i  -> i
+docsToLevel :: (Date, Date) -> Corpus -> Phylo -> PhyloLevel
+docsToLevel k v p = PhyloLevel 
+  (k,(-1)) 
+  (map (\x -> initGroup [snd x] (snd x) (fst x) (-1) (fst k) (snd k) p) 
+       $ zip [1..] 
+       $ (nub . concat) 
+       $ map (words . text) v)
 
-ngramsToGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> PhyloGroup
-ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx)
-                                                       label
-                                                       (sort (map (\x -> findIdx x) terms))
-                                                       (Map.empty)
-                                                       [] [] [] []
-
-docsToLevel :: (Date, Date) -> Corpus -> PhyloLevel
-docsToLevel k v = PhyloLevel (k,(-1)) (map (\x ->
-                          ngramsToGroup [snd x] (snd x) (fst x) (-1) (fst k) (snd k) 
-                       ) $ zip [1..] $ (nub . concat) $ map (words . text) v)
-
-corpusToPhyloPeriod :: Map (Date,Date) Corpus -> [PhyloPeriod]
-corpusToPhyloPeriod corpus = map (\x -> PhyloPeriod (fst x) [(snd x)]) $ zip (keys mapLvl) (elems mapLvl)
+corpusToPhyloPeriod :: Map (Date,Date) Corpus -> Phylo -> [PhyloPeriod]
+corpusToPhyloPeriod corpus p = map (\x -> PhyloPeriod (fst x) [(snd x)]) $ zip (keys mapLvl) (elems mapLvl)
     where
       mapLvl :: Map (Date,Date) PhyloLevel 
-      mapLvl = mapWithKey docsToLevel corpus
+      mapLvl = mapWithKey (\k v -> docsToLevel k v p) corpus 
 
-updatePhyloByLevel :: Levels -> Phylo -> Phylo 
+
+-- | To update a Phylo by adding a new PhyloLevel to each PhyloPeriod
+updatePhyloByLevel :: Level -> Phylo -> Phylo 
 updatePhyloByLevel lvl (Phylo pDuration pNgrams pPeriods) 
   = case lvl of 
     
     Level_m1 -> Phylo pDuration pNgrams pPeriods'
-      where pPeriods' = (corpusToPhyloPeriod phyloTerms) ++ pPeriods
-    
+      where pPeriods' = (corpusToPhyloPeriod phyloTerms (Phylo pDuration pNgrams pPeriods)) ++ pPeriods
+
     Level_0  -> Phylo pDuration pNgrams pPeriods'
       where pPeriods' = alterLvl 0 pPeriods
 
     Level_1  -> fisToPhyloLevel phyloFisFiltered (Phylo pDuration pNgrams pPeriods) 
     
+    Level_N  -> alterPhyloPeriods (\x -> x) (Phylo pDuration pNgrams pPeriods)
+
+    _        -> panic ("error level to be defined")
+
+
+
+-- | To update a Phylo by adding a new PhyloLevel to each PhyloPeriod
+updatePhyloByLevel' :: Level -> Phylo -> Phylo 
+updatePhyloByLevel' lvl p 
+  = case lvl of 
+    Level_m1 -> appendPhyloPeriods (corpusToPhyloPeriod phyloTerms p) p  
     _        -> panic ("error level to be defined")
 
 phyloWithGroupsm1 :: Phylo
