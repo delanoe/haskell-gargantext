@@ -48,6 +48,7 @@ type InfraContext = TficfContext
 tficf :: InfraContext Double Double -> SupraContext Double Double -> Double
 tficf (TficfCorpus c c')  (TficfLanguage l l') = tficf' c c' l l'
 tficf (TficfDocument d d')(TficfCorpus   c c') = tficf' d d' c c'
+tficf (TficfInfra d d')(TficfSupra   c c') = tficf' d d' c c'
 tficf _ _ = panic "Not in definition"
 
 tficf' :: Double -> Double -> Double -> Double -> Double

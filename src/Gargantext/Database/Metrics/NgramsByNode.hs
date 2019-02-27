@@ -24,22 +24,41 @@ import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Gargantext.Core (Lang(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.TFICF -- (tficf)
+import Gargantext.Text.Terms.Mono.Stem (stem)
+import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Database.PostgreSQL.Simple as DPS
 
+-- | TODO: group with 2 terms only can be
+-- discussed. Main purpose of this is offering
+-- a first grouping option to user and get some
+-- enriched data to better learn and improve that algo
+ngramsGroup :: Lang -> Int -> Text -> Text
+ngramsGroup l n = Text.intercalate " "
+                . map (stem l)
+                . take n
+                . List.sort
+                . Text.splitOn " "
+                . Text.replace "-" " "
 
 
+sortTficf :: (Map Text (Double, Set Text))
+          -> [(Double, Set Text)]
+sortTficf  = List.reverse . List.sortOn fst . elems
 
-getTficf :: UserCorpusId -> MasterCorpusId -> (Text -> Text)
+
+getTficf' :: UserCorpusId -> MasterCorpusId -> (Text -> Text)
          -> Cmd err (Map Text (Double, Set Text))
-getTficf u m f = do
+getTficf' u m f = do
   u' <- getNodesByNgramsUser   u
   m' <- getNodesByNgramsMaster u m
 
@@ -54,14 +73,13 @@ type Infra = Context
 toTficfData :: Infra -> Supra
             -> Map Text (Double, Set Text)
 toTficfData (ti, mi) (ts, ms) =
-  fromList [ (t, ( tficf (TficfInfra ti n)
-                         (TficfSupra ts $ maybe 0 fst $ Map.lookup t ms)
+  fromList [ (t, ( tficf (TficfInfra n ti)
+                         (TficfSupra (maybe 0 fst $ Map.lookup t ms) ts)
                  , ns
                  )
              )
            | (t, (n,ns)) <- toList mi
            ]
-
 
 
 -- | fst is size of Supra Corpus
@@ -72,7 +90,8 @@ countNodesByNgramsWith :: (Text -> Text)
 countNodesByNgramsWith f m = (total, m')
   where
     total = fromIntegral $ Set.size $ Set.unions $ elems m
-    m'    = Map.map (swap . second (fromIntegral . Set.size)) $ groupNodesByNgramsWith f m
+    m'    = Map.map ( swap . second (fromIntegral . Set.size))
+                    $ groupNodesByNgramsWith f m
 
 
 groupNodesByNgramsWith :: (Text -> Text)
@@ -157,10 +176,4 @@ SELECT nng.node_id, ng.id, ng.terms FROM nodes_ngrams nng
 SELECT m.node_id, m.terms FROM nodesByNgramsMaster m
 RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
 
-
   |]
-
-
-
-
-

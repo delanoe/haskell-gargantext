@@ -173,13 +173,14 @@ data Action   = Del | Add
 type NgramsParent = Text
 type NgramsChild  = Text
 
+{-
 ngramsGroup :: Action -> ListId -> [(NgramsTypeId, NgramsParent, NgramsChild)] -> Cmd err ()
 ngramsGroup _ _ [] = pure ()
 ngramsGroup a lid input = void $ trace (show input) $ execPGSQuery (ngramsGroupQuery a) (DPS.Only $ Values fields input')
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","text","int4","text","text"]
     input' = map (\(ntpid,p,c) -> (lid, nodeTypeId NodeList, userMaster, ntpid, p,c)) input
-
+-}
 
 ngramsGroupQuery :: Action -> DPS.Query
 ngramsGroupQuery a = case a of
@@ -290,6 +291,8 @@ data NodeNgramsUpdate = NodeNgramsUpdate
 -- TODO wrap these updates in a transaction.
 -- TODO-ACCESS:
 -- * check userId CanUpdateNgrams userListId
+
+{-
 updateNodeNgrams :: NodeNgramsUpdate -> Cmd err ()
 updateNodeNgrams nnu = do
   updateNodeNgrams' userListId $ _nnu_lists_update nnu
@@ -299,3 +302,4 @@ updateNodeNgrams nnu = do
   ngramsGroup Add   userListId $ _nnu_add_children nnu
   where
     userListId = _nnu_user_list_id nnu
+-}
