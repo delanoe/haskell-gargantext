@@ -87,7 +87,9 @@ type ListId   = NodeId
 type DocumentId = NodeId
 type DocId      = DocumentId -- todo: remove this
 type RootId   = NodeId
-type MasterCorpusId = NodeId
+type MasterCorpusId = CorpusId
+type UserCorpusId   = CorpusId
+
 type AnnuaireId = NodeId
 type ContactId  = NodeId
 

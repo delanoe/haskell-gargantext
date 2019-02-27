@@ -20,17 +20,24 @@ module Gargantext.Text.Metrics.TFICF where
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsTerms)
 
-data TficfContext n m = TficfLanguage n m | TficfCorpus n m | TficfDocument n m
+data TficfContext n m = TficfLanguage n m
+                      | TficfCorpus   n m
+                      | TficfDocument n m
+                      | TficfInfra n m
+                      | TficfSupra n m
   deriving (Show)
 
-data Tficf = Tficf { tficf_ngramsId :: NgramsId
-                   , tficf_ngramsTerms :: NgramsTerms
-                   , tficf_score       :: Double
-} deriving (Show)
+data Tficf = Tficf
+  { tficf_ngramsId :: NgramsId
+  , tficf_ngramsTerms :: NgramsTerms
+  , tficf_score       :: Double
+  } deriving (Show)
 
-data Tficf' = Tficf' { tficf'_terms :: NgramsTerms
-                     , tficf'_score       :: Double
-                     } deriving (Show)
+data Tficf' = Tficf'
+  { tficf'_terms :: NgramsTerms
+  , tficf'_score :: Double
+  } deriving (Show)
+
 
 
 type SupraContext = TficfContext
