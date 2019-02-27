@@ -61,8 +61,6 @@ import Gargantext.Viz.Phylo.Tools
 -- | Types | --
 
 
--- | Date : a simple Integer
-type Date = Int
 -- | Document : a piece of Text linked to a Date
 data Document = Document
       { date :: Date
@@ -133,8 +131,11 @@ getKeyPair (x,y) m = case findPair (x,y) m of
                         | otherwise      = Nothing
                       --------------------------------------
 
-listToCombi :: (a -> b) -> [a] -> [(b,b)]
-listToCombi f l = [(f x, f y) | (x:rest) <- tails l, y <- rest]
+-- | 
+listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
+listToCombi f l = [ (f x, f y) | (x:rest) <- tails l
+                               ,  y       <- rest
+                               ]
 
 fisToCooc :: Map (Date, Date) Fis -> Map (Int, Int) Double
 fisToCooc m = map   (/docs)
@@ -182,19 +183,22 @@ phyloWithGroups1 = updatePhyloByLevel Level_1 phyloLinked_m1_0
 cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> PhyloGroup
 cliqueToGroup period lvl idx label fis = PhyloGroup ((period, lvl), idx)
                                                     label
-                                                    (sort $ map (\x ->  findIdx x) $ Set.toList $ fst fis)
+                                                    (sort $ map findIdx
+                                                          $ Set.toList
+                                                          $ fst fis
+                                                          )
                                                     (singleton "support" (fromIntegral $ snd fis))
                                                     [] [] [] []
 
 fisToPhyloLevel :: Map (Date, Date) Fis -> Phylo -> Phylo
-fisToPhyloLevel m p = over (phylo_periods . traverse) 
+fisToPhyloLevel m p = over (phylo_periods . traverse)
                            (\period ->
                               let periodId = _phylo_periodId period
                                   fisList  = zip [1..] (Map.toList (m ! periodId))
                               in  over (phylo_periodLevels)
                                        (\levels ->
                                           let groups = map (\fis -> cliqueToGroup periodId 1 (fst fis) "" (snd fis)) fisList
-                                          in (PhyloLevel (periodId, 1) groups) : levels 
+                                          in (PhyloLevel (periodId, 1) groups) : levels
                                        ) period
                            ) p
 
@@ -202,7 +206,7 @@ fisToPhyloLevel m p = over (phylo_periods . traverse)
 phyloFisFiltered :: Map (Date, Date) Fis
 phyloFisFiltered = filterFisBySupport True 1 (filterFisByNested phyloFis)
 
-filterFisBySupport :: Bool -> Int -> Map (Date, Date) Fis -> Map (Date, Date) Fis 
+filterFisBySupport :: Bool -> Int -> Map (Date, Date) Fis -> Map (Date, Date) Fis
 filterFisBySupport empty min m = case empty of
   True  -> Map.map (\fis -> filterMinorFis min fis) m
   False -> Map.map (\fis -> filterMinorFisNonEmpty min fis) m
@@ -277,27 +281,6 @@ addPointer :: Semigroup field
            -> field -> current -> target
 addPointer field targetPointer current =
   set field (<> targetPointer) current
-
-getNgrams :: PhyloGroup -> [Int]
-getNgrams =  _phylo_groupNgrams
-
-getGroups :: Phylo -> [PhyloGroup]
-getGroups = view (phylo_periods . traverse . phylo_periodLevels . traverse . phylo_levelGroups)
-
-getGroupId :: PhyloGroup -> PhyloGroupId
-getGroupId = view (phylo_groupId)
-
-getGroupLvl :: PhyloGroup -> Int
-getGroupLvl = snd . fst . getGroupId
-
-getGroupPeriod :: PhyloGroup -> (Date,Date)
-getGroupPeriod = fst . fst . getGroupId
-
-getGroupsByLevelAndPeriod :: Int -> (Date,Date) -> Phylo -> [PhyloGroup]
-getGroupsByLevelAndPeriod lvl period p = List.filter testGroup  (getGroups p)
-  where
-    testGroup group = (getGroupLvl    group == lvl   )
-                   && (getGroupPeriod group == period)
 
 containsIdx :: [Int] -> [Int] -> Bool
 containsIdx l l'
@@ -374,7 +357,7 @@ setPhyloLevel lvl (PhyloLevel (periodId, lvl') lvlGroups)
       lvlGroups' = map (\g -> setGroupIdLvl lvl g) lvlGroups
 
 copyPhyloLevel :: Int -> [PhyloLevel] -> [PhyloLevel]
-copyPhyloLevel lvl l = (setPhyloLevel lvl (head l)) : l 
+copyPhyloLevel lvl l = (setPhyloLevel lvl (head l)) : l
 
 alterLvl :: Int -> [PhyloPeriod] -> [PhyloPeriod]
 alterLvl lvl l = map (\p -> PhyloPeriod (_phylo_periodId p) (copyPhyloLevel lvl $ _phylo_periodLevels p)) l

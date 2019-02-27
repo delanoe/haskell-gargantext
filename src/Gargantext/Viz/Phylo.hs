@@ -75,12 +75,15 @@ data Phylo =
            }
            deriving (Generic, Show)
 
+
+-- | Date : a simple Integer
+type Date = Int
+
 -- | UTCTime in seconds since UNIX epoch
 -- type Start   = POSIXTime
 -- type End     = POSIXTime
-type Start   = Int
-type End     = Int
-
+type Start   = Date
+type End     = Date
 
 -- | PhyloStep : steps of phylomemy on temporal axis
 -- Period: tuple (start date, end date) of the step of the phylomemy
