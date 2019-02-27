@@ -129,7 +129,7 @@ data PhyloGroup =
                 , _phylo_groupLevelParents  :: [Pointer]
                 , _phylo_groupLevelChilds   :: [Pointer]
                 }
-                deriving (Generic, Show)
+                deriving (Generic, Show, Eq)
 
 type PhyloGroupId = (PhyloLevelId, Int)
 type Pointer      = (PhyloGroupId, Weight)
