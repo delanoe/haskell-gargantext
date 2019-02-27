@@ -26,7 +26,7 @@ import Data.Map.Strict (Map, fromListWith, elems)
 import Data.Monoid (mempty)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Gargantext.API.Ngrams (NgramsElement(..))
+import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement)
 import Gargantext.Core.Types.Main (listTypeId, ListType(..))
 import Gargantext.Database.Access
 import Gargantext.Database.Config (nodeTypeId)
@@ -206,7 +206,9 @@ getNgramsByNodeNodeIndexedJoin5 = leftJoin5 queryNodeTable
 getNgramsElementsWithParentNodeId :: NodeId -> Cmd err (Map NgramsType [NgramsElement])
 getNgramsElementsWithParentNodeId nId = do
   ns <- getNgramsWithParentNodeId nId
-  pure $ fromListWith (<>) [ (maybe (panic "error") identity $ fromNgramsTypeId nt, [NgramsElement ng CandidateList 1 Nothing mempty]) 
+  pure $ fromListWith (<>)
+                [ (maybe (panic "error") identity $ fromNgramsTypeId nt,
+                   [mkNgramsElement ng CandidateList Nothing mempty])
                 | (_,(nt,ng)) <- ns
                 ]
 
