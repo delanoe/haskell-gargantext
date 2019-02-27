@@ -28,15 +28,23 @@ TODO:
 module Gargantext.Viz.Phylo.Example where
 
 import Control.Lens hiding (both)
+import Data.List (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), nub)
 import qualified Data.List as List
 import Data.Text (Text, unwords, toLower, words)
 import Data.Tuple.Extra
 import Data.Semigroup (Semigroup)
-import Data.Map (Map)
+
+import Data.Map (Map, elems, member, adjust, singleton, (!), keys, restrictKeys, mapWithKey)
 import qualified Data.Map as Map
+
+import Data.Vector (Vector, fromList, elemIndex)
 import qualified Data.Vector as Vector
 import qualified Data.Maybe as Maybe
+
+import Data.Tuple (fst, snd)
 import qualified Data.Tuple as Tuple
+
+import Data.Bool (Bool, not)
 import qualified Data.Bool as Bool
 
 import Data.Set (Set)
@@ -45,7 +53,7 @@ import qualified Data.Matrix as DM'
 
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Gargantext.Text.Terms.Mono (monoTexts)
-import Gargantext.Prelude
+import Gargantext.Prelude hiding (head)
 import Gargantext.Viz.Phylo
 
 ------------------------------------------------------------------------
@@ -107,6 +115,51 @@ appariement = undefined
 ------------------------------------------------------------------------
 -- | STEP 9 | -- Link the PhyloGroups of level 1 through the Periods 
 
+shouldPair :: PhyloGroup -> PhyloGroup -> Bool
+shouldPair g g' = (not . null) $ intersect (getNgrams g) (getNgrams g') 
+
+
+getKeyPair :: (Int,Int) -> Map (Int,Int) a -> (Int,Int)
+getKeyPair (x,y) m = case findPair (x,y) m of 
+                      Nothing -> panic "PhyloError"
+                      Just i  -> i
+                     where 
+                      --------------------------------------
+                      findPair :: (Int,Int) -> Map (Int,Int) a -> Maybe (Int,Int)
+                      findPair (x,y) m  
+                        | member (x,y) m = Just (x,y)
+                        | member (y,x) m = Just (y,x)
+                        | otherwise      = Nothing
+                      --------------------------------------
+
+listToCombi :: (a -> b) -> [a] -> [(b,b)]
+listToCombi f l = [(f x, f y) | (x:rest) <- tails l, y <- rest]
+
+fisToCooc :: Map (Date, Date) Fis -> Map (Int, Int) Double
+fisToCooc m = map (\v -> v/docs) $ 
+                foldl (\mem x -> 
+                        adjust (+1) (getKeyPair x mem) mem) cooc (concat (map (\x -> 
+                                                                                listToCombi findIdx $ (Set.toList . fst) x) fis))
+  where 
+    --------------------------------------
+    fis :: [(Clique,Support)]
+    fis = concat $ map (\x -> Map.toList x) (elems m)
+    --------------------------------------
+    fisNgrams :: [Ngrams]
+    fisNgrams = foldl (\mem x -> union mem $ (Set.toList . fst) x) [] fis
+    --------------------------------------
+    docs :: Double
+    docs = fromIntegral $ foldl (\mem x -> mem + (snd x)) 0 fis   
+    --------------------------------------
+    cooc :: Map (Int, Int) (Double)
+    cooc = Map.fromList $ map (\x -> (x,0)) (listToCombi findIdx fisNgrams)
+    --------------------------------------
+
+
+
+phyloWithAppariement1 :: Phylo
+phyloWithAppariement1 = phyloLinked_0_1
+
 ------------------------------------------------------------------------
 -- | STEP 8 | -- Find the Fis out of Documents and Ngrams and build level 1 of the Phylo 
 
@@ -126,18 +179,19 @@ phyloWithGroups1 :: Phylo
 phyloWithGroups1 = updatePhyloByLevel Level_1 phyloLinked_m1_0
 
 cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> PhyloGroup
-cliqueToGroup period lvl idx label fis = PhyloGroup ((period, lvl), idx) label (List.sort (map (\x -> findIdx x) (Set.toList $ Tuple.fst fis))) (Map.singleton "support" (fromIntegral $ Tuple.snd fis)) [] [] [] []
+cliqueToGroup period lvl idx label fis = PhyloGroup ((period, lvl), idx) label (sort (map (\x -> 
+                                                                                           findIdx x) (Set.toList $ fst fis))) (singleton "support" (fromIntegral $ snd fis)) [] [] [] []
 
 fisToPhyloLevel :: Map (Date, Date) Fis -> Phylo -> Phylo
 fisToPhyloLevel m p = over (phylo_periods . traverse) 
                            (\period ->
-                                    let periodId = _phylo_periodId period
-                                        fisList  = zip [1..] (Map.toList (m Map.! periodId))
-                                    in  over (phylo_periodLevels) 
-                                             (\levels ->
-                                                let groups = map (\fis -> cliqueToGroup periodId 1 (Tuple.fst fis) "" (Tuple.snd fis)) fisList
-                                                in (PhyloLevel (periodId, 1) groups) : levels 
-                                             ) period 
+                              let periodId = _phylo_periodId period
+                                  fisList  = zip [1..] (Map.toList (m ! periodId))
+                              in  over (phylo_periodLevels) 
+                                       (\levels ->
+                                          let groups = map (\fis -> cliqueToGroup periodId 1 (fst fis) "" (snd fis)) fisList
+                                          in (PhyloLevel (periodId, 1) groups) : levels 
+                                       ) period 
                            ) p
 
 -- | To preserve nonempty periods from filtering, please use : filterFisBySupport False ...
@@ -153,7 +207,7 @@ filterMinorFis :: Int -> Fis -> Fis
 filterMinorFis min fis = Map.filter (\s -> s > min) fis
 
 filterMinorFisNonEmpty :: Int -> Fis -> Fis
-filterMinorFisNonEmpty min fis = if (Map.null fis') && (Bool.not $ Map.null fis)
+filterMinorFisNonEmpty min fis = if (Map.null fis') && (not $ Map.null fis)
                                  then filterMinorFisNonEmpty (min - 1) fis
                                  else fis'
   where 
@@ -161,25 +215,25 @@ filterMinorFisNonEmpty min fis = if (Map.null fis') && (Bool.not $ Map.null fis)
 
 doesContains :: [Ngrams] -> [Ngrams] -> Bool
 doesContains l l'
-  | List.null l'                   = True
-  | List.length l' > List.length l = False
-  | List.elem (List.head l') l     = doesContains l (List.tail l') 
-  | otherwise                      = False 
+  | null l'               = True
+  | length l' > length l  = False
+  | elem (head l') l      = doesContains l (tail l') 
+  | otherwise             = False 
 
 doesAnyContains :: Set Ngrams -> [Set Ngrams] -> [Set Ngrams] -> Bool
-doesAnyContains h l l' = List.any (\c -> doesContains (Set.toList c) (Set.toList h)) (l' List.++ l)
+doesAnyContains h l l' = any (\c -> doesContains (Set.toList c) (Set.toList h)) (l' ++ l)
 
 filterNestedCliques :: Set Ngrams -> [Set Ngrams] -> [Set Ngrams] -> [Set Ngrams]
 filterNestedCliques h l l'
-  | List.null l            = if doesAnyContains h l l'
+  | null l                 = if doesAnyContains h l l'
                              then l' 
                              else h : l'
-  | doesAnyContains h l l' = filterNestedCliques (List.head l) (List.tail l) l'
-  | otherwise              = filterNestedCliques (List.head l) (List.tail l) (h : l')
+  | doesAnyContains h l l' = filterNestedCliques (head l) (tail l) l'
+  | otherwise              = filterNestedCliques (head l) (tail l) (h : l')
 
 
 filterFisByNested :: Map (Date, Date) Fis -> Map (Date, Date) Fis
-filterFisByNested m = Map.map(\fis -> Map.restrictKeys fis (Set.fromList (filterNestedCliques (List.head (Map.keys fis)) (Map.keys fis) []))) m
+filterFisByNested m = map (\fis -> restrictKeys fis (Set.fromList (filterNestedCliques (head (keys fis)) (keys fis) []))) m
 
 phyloFis :: Map (Date, Date) Fis
 phyloFis = termsToFis phyloTerms 
@@ -193,7 +247,7 @@ termsToFis = corpusToFis (words . text)
 corpusToFis :: (Document -> [Ngrams])
       -> Map (Date, Date) [Document]
       -> Map (Date, Date) (Map (Set Ngrams) Int)
-corpusToFis f = Map.map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
+corpusToFis f = map (\d -> fisWithSizePolyMap (Segment 1 20) 1 (map f d))
 
 
 ------------------------------------------------------------------------
@@ -217,6 +271,9 @@ addPointer :: Semigroup field
 addPointer field targetPointer current =
   set field (<> targetPointer) current
 
+getNgrams :: PhyloGroup -> [Int]
+getNgrams g =  _phylo_groupNgrams g 
+
 getGroups :: Phylo -> [PhyloGroup]
 getGroups = view (phylo_periods . traverse . phylo_periodLevels . traverse . phylo_levelGroups) 
 
@@ -224,20 +281,20 @@ getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId = view (phylo_groupId)
 
 getGroupLvl :: PhyloGroup -> Int
-getGroupLvl group = Tuple.snd $ Tuple.fst $ getGroupId group
+getGroupLvl group = snd $ fst $ getGroupId group
 
 getGroupPeriod :: PhyloGroup -> (Date,Date)
-getGroupPeriod group = Tuple.fst $ Tuple.fst $ getGroupId group
+getGroupPeriod group = fst $ fst $ getGroupId group
 
 getGroupsByLevelAndPeriod :: Int -> (Date,Date) -> Phylo -> [PhyloGroup]
 getGroupsByLevelAndPeriod lvl period p = List.filter (\group -> (getGroupLvl group == lvl) && (getGroupPeriod group == period)) (getGroups p) 
 
 containsIdx :: [Int] -> [Int] -> Bool
 containsIdx l l'
-  | List.null l' = False
-  | List.last l < List.head l' = False
-  | List.head l' `List.elem` l = True
-  | otherwise = containsIdx l (List.tail l')
+  | null l'          = False
+  | last l < head l' = False
+  | head l' `elem` l = True
+  | otherwise        = containsIdx l (tail l')
 
 shouldLink :: LinkLvl -> [Int] -> [Int] -> Bool
 shouldLink lvl current target = case linkLvlLabel lvl of 
@@ -261,13 +318,13 @@ linkGroupToGroups lvl current targets
     setLevelParents =  over (phylo_groupLevelParents) addPointers
 
     addPointers :: [Pointer] -> [Pointer]
-    addPointers lp = lp List.++ Maybe.mapMaybe (\target -> if shouldLink lvl (_phylo_groupNgrams current) (_phylo_groupNgrams target)
-                                                           then Just ((getGroupId target),1)
-                                                           else Nothing
+    addPointers lp = lp ++ Maybe.mapMaybe (\target -> if shouldLink lvl (_phylo_groupNgrams current) (_phylo_groupNgrams target)
+                                                      then Just ((getGroupId target),1)
+                                                      else Nothing
                                                ) targets 
 
     addPointers' :: [Pointer] -> [Pointer]
-    addPointers' lp = lp List.++ map (\target -> ((getGroupId target),1)) targets    
+    addPointers' lp = lp ++ map (\target -> ((getGroupId target),1)) targets    
 
 linkGroupsByLevel :: LinkLvl -> Phylo -> [PhyloGroup] -> [PhyloGroup]
 linkGroupsByLevel lvl p groups  = map (\group ->
@@ -300,7 +357,7 @@ setPhyloLevel lvl (PhyloLevel (periodId, lvl') lvlGroups)
       lvlGroups' = map (\g -> setGroupIdLvl lvl g) lvlGroups
 
 copyPhyloLevel :: Int -> [PhyloLevel] -> [PhyloLevel]
-copyPhyloLevel lvl l = (setPhyloLevel lvl (List.head l)) : l 
+copyPhyloLevel lvl l = (setPhyloLevel lvl (head l)) : l 
 
 alterLvl :: Int -> [PhyloPeriod] -> [PhyloPeriod]
 alterLvl lvl l = map (\p -> PhyloPeriod (_phylo_periodId p) (copyPhyloLevel lvl $ _phylo_periodLevels p)) l
@@ -314,30 +371,30 @@ phyloWithGroups0 = updatePhyloByLevel Level_0 phyloWithGroupsm1
 
 
 findIdx :: Ngrams -> Int
-findIdx n = case (Vector.elemIndex n (_phylo_ngrams phylo)) of
+findIdx n = case (elemIndex n (_phylo_ngrams phylo)) of
               Nothing -> panic "PhyloError"
               Just i  -> i
 
 ngramsToGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> PhyloGroup
-ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (List.sort (map (\x -> findIdx x) terms)) (Map.empty) [] [] [] []
+ngramsToGroup terms label idx lvl from to = PhyloGroup (((from, to), lvl), idx) label (sort (map (\x -> findIdx x) terms)) (Map.empty) [] [] [] []
 
 docsToLevel :: (Date, Date) -> Corpus -> PhyloLevel
 docsToLevel k v = PhyloLevel (k,(-1)) (map (\x ->
-                          ngramsToGroup [Tuple.snd x] (Tuple.snd x) (Tuple.fst x) (-1) (Tuple.fst k) (Tuple.snd k) 
-                       ) $ zip [1..] $ (List.nub . List.concat) $ map (words . text) v)
+                          ngramsToGroup [snd x] (snd x) (fst x) (-1) (fst k) (snd k) 
+                       ) $ zip [1..] $ (nub . concat) $ map (words . text) v)
 
 corpusToPhyloPeriod :: Map (Date,Date) Corpus -> [PhyloPeriod]
-corpusToPhyloPeriod corpus = map (\x -> PhyloPeriod (Tuple.fst x) [(Tuple.snd x)]) $ zip (Map.keys mapLvl) (Map.elems mapLvl)
+corpusToPhyloPeriod corpus = map (\x -> PhyloPeriod (fst x) [(snd x)]) $ zip (keys mapLvl) (elems mapLvl)
     where
       mapLvl :: Map (Date,Date) PhyloLevel 
-      mapLvl = Map.mapWithKey docsToLevel corpus
+      mapLvl = mapWithKey docsToLevel corpus
 
 updatePhyloByLevel :: Levels -> Phylo -> Phylo 
 updatePhyloByLevel lvl (Phylo pDuration pNgrams pPeriods) 
   = case lvl of 
     
     Level_m1 -> Phylo pDuration pNgrams pPeriods'
-      where pPeriods' = (corpusToPhyloPeriod phyloTerms) List.++ pPeriods
+      where pPeriods' = (corpusToPhyloPeriod phyloTerms) ++ pPeriods
     
     Level_0  -> Phylo pDuration pNgrams pPeriods'
       where pPeriods' = alterLvl 0 pPeriods
@@ -362,7 +419,7 @@ toPeriodes :: (Ord date, Enum date) => (doc -> date)
 toPeriodes _ _ _ [] = panic "Empty corpus can not have any periods"
 toPeriodes f g s es = Map.fromList $ zip hs $ map (inPeriode f es) hs
   where
-    hs = steps g s $ both f (List.head es, List.last es)
+    hs = steps g s $ both f (head es, last es)
     --------------------------------------------------------------------
     -- | Define overlapping periods of time by following regular steps
     inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]
@@ -371,18 +428,18 @@ toPeriodes f g s es = Map.fromList $ zip hs $ map (inPeriode f es) hs
     --------------------------------------------------------------------
     -- | Find steps of linear and homogenous time of integer
     steps :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
-    steps s' o' (start,end) = map (\l -> (List.head l, List.last l))
+    steps s' o' (start,end) = map (\l -> (head l, last l))
                           $ chunkAlong s' o' [start .. end]
 
 cleanCorpus :: MapList -> Corpus -> Corpus
-cleanCorpus ml = map (\(Document d t) -> Document d (unwords $ filter (\x -> elem  x ml) $ monoTexts t))
+cleanCorpus ml = map (\(Document d t) -> Document d (unwords $ filter (\x -> elem x ml) $ monoTexts t))
 
 
 ------------------------------------------------------------------------
 -- | STEP 2 | -- Find some Ngrams (ie: phyloGroup of level -1) out of the Corpus & init the phylo  
 
 
-phylo = Phylo (both date $ (List.last &&& List.head) phyloCorpus) phyloNgrams []
+phylo = Phylo (both date $ (last &&& head) phyloCorpus) phyloNgrams []
 
 phyloNgrams :: PhyloNgrams
 phyloNgrams = Vector.fromList cleanedActants
