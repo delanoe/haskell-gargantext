@@ -64,7 +64,7 @@ import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
 import Gargantext.API.Ngrams (HasRepoVar)
 import Servant (ServantErr)
-import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, RepoCmdM)
+import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, putListNgrams, RepoCmdM)
 --import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
 import qualified Data.Map as DM
 
@@ -326,8 +326,8 @@ flowListUser uId cId ngsM _n = do
   trace ("flowListBase" <> show lId) flowListBase lId ngsM
   
   putListNgrams lId NgramsTerms $
-    [ NgramsElement (tficf_ngramsTerms ng) GraphList 1 Nothing mempty
-    | ng <- ngs 
+    [ mkNgramsElement (tficf_ngramsTerms ng) GraphList Nothing mempty
+    | ng <- ngs
     ]
 
   pure lId
@@ -357,7 +357,7 @@ ngrams2list m =
 ngrams2list' :: Map NgramsIndexed (Map NgramsType a)
             -> Map NgramsType [NgramsElement]
 ngrams2list' m = fromListWith (<>)
-  [ (t, [NgramsElement (_ngramsTerms $ _ngrams ng) CandidateList 1 Nothing mempty])
+  [ (t, [mkNgramsElement (_ngramsTerms $ _ngrams ng) CandidateList Nothing mempty])
   | (ng, tm) <- DM.toList m
   , t <- DM.keys tm
   ]

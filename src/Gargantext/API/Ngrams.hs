@@ -65,7 +65,7 @@ import Data.Either(Either(Left))
 -- import Data.Map (lookup)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
-import Data.Text (Text)
+import Data.Text (Text, isInfixOf, count)
 import Data.Validity
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
@@ -137,6 +137,7 @@ type NgramsTerm = Text
 
 data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm
+                   , _ne_size        :: Int
                    , _ne_list        :: ListType
                    , _ne_occurrences :: Int
                    , _ne_parent      :: Maybe NgramsTerm
@@ -147,9 +148,16 @@ data NgramsElement =
 deriveJSON (unPrefix "_ne_") ''NgramsElement
 makeLenses ''NgramsElement
 
+mkNgramsElement :: NgramsTerm -> ListType -> Maybe NgramsTerm -> MSet NgramsTerm -> NgramsElement
+mkNgramsElement ngrams list parent children =
+  NgramsElement ngrams size list 1 parent children
+  where
+    -- TODO review
+    size = 1 + count " " ngrams
+
 instance ToSchema NgramsElement
 instance Arbitrary NgramsElement where
-  arbitrary = elements [NgramsElement "sport" GraphList 1 Nothing mempty]
+  arbitrary = elements [mkNgramsElement "sport" GraphList Nothing mempty]
 
 ------------------------------------------------------------------------
 newtype NgramsTable = NgramsTable [NgramsElement]
@@ -191,18 +199,18 @@ toNgramsElement ns = map toNgramsElement' ns
 
 mockTable :: NgramsTable
 mockTable = NgramsTable
-  [ NgramsElement "animal"  GraphList     1  Nothing       (mSetFromList ["dog", "cat"])
-  , NgramsElement "cat"     GraphList     1 (Just "animal") mempty
-  , NgramsElement "cats"    StopList      4  Nothing        mempty
-  , NgramsElement "dog"     GraphList     3 (Just "animal")(mSetFromList ["dogs"])
-  , NgramsElement "dogs"    StopList      4 (Just "dog")    mempty
-  , NgramsElement "fox"     GraphList     1  Nothing        mempty
-  , NgramsElement "object"  CandidateList 2  Nothing        mempty
-  , NgramsElement "nothing" StopList      4  Nothing        mempty
-  , NgramsElement "organic" GraphList     3  Nothing        (mSetFromList ["flower"])
-  , NgramsElement "flower"  GraphList     3 (Just "organic") mempty
-  , NgramsElement "moon"    CandidateList 1  Nothing         mempty
-  , NgramsElement "sky"     StopList      1  Nothing         mempty
+  [ mkNgramsElement "animal"  GraphList      Nothing       (mSetFromList ["dog", "cat"])
+  , mkNgramsElement "cat"     GraphList     (Just "animal") mempty
+  , mkNgramsElement "cats"    StopList       Nothing        mempty
+  , mkNgramsElement "dog"     GraphList     (Just "animal")(mSetFromList ["dogs"])
+  , mkNgramsElement "dogs"    StopList      (Just "dog")    mempty
+  , mkNgramsElement "fox"     GraphList      Nothing        mempty
+  , mkNgramsElement "object"  CandidateList  Nothing        mempty
+  , mkNgramsElement "nothing" StopList       Nothing        mempty
+  , mkNgramsElement "organic" GraphList      Nothing        (mSetFromList ["flower"])
+  , mkNgramsElement "flower"  GraphList     (Just "organic") mempty
+  , mkNgramsElement "moon"    CandidateList  Nothing         mempty
+  , mkNgramsElement "sky"     StopList       Nothing         mempty
   ]
 
 instance Arbitrary NgramsTable where
@@ -506,10 +514,14 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 ------------------------------------------------------------------------
 
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
-                      :> QueryParam "ngramsType"   TabType
-                      :> QueryParams "list"   ListId
-                      :> QueryParam "limit"  Limit
-                      :> QueryParam "offset" Offset
+                      :> QueryParam  "ngramsType"  TabType
+                      :> QueryParams "list"        ListId
+                      :> QueryParam  "limit"       Limit
+                      :> QueryParam  "offset"      Offset
+                      :> QueryParam  "listType"    ListType
+                      :> QueryParam  "minTermSize" Int
+                      :> QueryParam  "maxTermSize" Int
+                      :> QueryParam  "search"      Text
                       :> Get    '[JSON] (Versioned NgramsTable)
 
 type TableNgramsApi = Summary " Table Ngrams API Change"
@@ -792,6 +804,8 @@ getListNgrams nodeIds ngramsType = do
 
   pure $ Versioned (repo ^. r_version) (NgramsTable (ngrams ^.. each))
 
+type MinSize = Int
+type MaxSize = Int
 
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
@@ -799,22 +813,34 @@ getListNgrams nodeIds ngramsType = do
 getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                => CorpusId -> Maybe TabType
                -> [ListId] -> Maybe Limit -> Maybe Offset
-               -- -> Maybe MinSize -> Maybe MaxSize
-               -- -> Maybe ListType
-               -- -> Maybe Text -- full text search
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
-getTableNgrams _cId maybeTabType listIds mlimit moffset = do
+getTableNgrams _cId maybeTabType listIds mlimit moffset
+               mlistType mminSize mmaxSize msearchQuery = do
   let ngramsType = ngramsTypeFromTabType maybeTabType
 
   let
     defaultLimit = 10 -- TODO
     limit_  = maybe defaultLimit identity mlimit
     offset_ = maybe 0 identity moffset
+    listType = maybe (const True) (==) mlistType
+    minSize  = maybe (const True) (<=) mminSize
+    maxSize  = maybe (const True) (>=) mmaxSize
+    searchQuery = maybe (const True) isInfixOf msearchQuery
+    selected n = minSize     s
+              && maxSize     s
+              && searchQuery (n ^. ne_ngrams)
+              && listType    (n ^. ne_list)
+      where
+        s = n ^. ne_size
 
   -- lists <- catMaybes <$> listsWith userMaster
   -- trace (show lists) $
   getListNgrams ({-lists <>-} listIds) ngramsType
-    & mapped . v_data . _NgramsTable %~ (take limit_ . drop offset_)
+    & mapped . v_data . _NgramsTable
+    %~ (filter selected . take limit_ . drop offset_)
 
 
 
