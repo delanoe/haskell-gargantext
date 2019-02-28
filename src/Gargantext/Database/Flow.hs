@@ -54,6 +54,7 @@ import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsInd
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 -- import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 --import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
+import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd, CmdM)
@@ -92,15 +93,17 @@ flowCorpus userName ff fp corpusName = do
   _ <- Doc.add userCorpusId $ concat ids
 
   -- User List Flow
-  let masterCorpusId = 2
+  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
   -- /!\ this extract NgramsTerms Only
   _ngs <- sortTficf <$> getTficf' userCorpusId masterCorpusId (ngramsGroup EN 2)
 
   -- TODO getNgramsElement of NgramsType...
-  --ngs <- getNgramsElementsWithParentNodeId masterCorpusId
+  ngs <- getNgramsElementsWithParentNodeId masterCorpusId
   
-  --_masterListId <- flowList masterUserId masterCorpusId ngs
-  --_userListId   <- flowListUser userId userCorpusId ngs 100
+  -- TEMP fix
+  let masterUserId = 2
+  _masterListId <- flowList masterUserId masterCorpusId ngs
+  _userListId   <- flowListUser userId userCorpusId ngs 100
 
   -- User Graph Flow
   _ <- mkGraph     userCorpusId userId
