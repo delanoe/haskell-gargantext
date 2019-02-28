@@ -749,29 +749,42 @@ tableNgramsPatch :: (HasNgramError err, HasInvalidError err,
                  => CorpusId -> Maybe TabType -> ListId
                  -> Versioned NgramsTablePatch
                  -> m (Versioned NgramsTablePatch)
-tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table) = do
-  let ngramsType        = ngramsTypeFromTabType maybeTabType
-      (p0, p0_validity) = PM.singleton listId p_table
-      (p, p_validity)   = PM.singleton ngramsType p0
+tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table)
+  | p_table == mempty = do
+      let ngramsType        = ngramsTypeFromTabType maybeTabType
 
-  assertValid p0_validity
-  assertValid p_validity
+      var <- view repoVar
+      r <- liftIO $ readMVar var
 
-  var <- view repoVar
-  vq' <- liftIO $ modifyMVar var $ \r -> do
-    let
-      q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
-      (p', q') = transformWith ngramsStatePatchConflictResolution p q
-      r' = r & r_version +~ 1
-             & r_state   %~ act p'
-             & r_history %~ (p' :)
-      q'_table = q' ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
-    assertValid $ transformable p q
-    assertValid $ applicable p' (r ^. r_state)
-    pure (r', Versioned (r' ^. r_version) q'_table)
+      let
+        q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
+        q_table = q ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
 
-  saveRepo
-  pure vq'
+      pure (Versioned (r ^. r_version) q_table)
+
+  | otherwise         = do
+      let ngramsType        = ngramsTypeFromTabType maybeTabType
+          (p0, p0_validity) = PM.singleton listId p_table
+          (p, p_validity)   = PM.singleton ngramsType p0
+
+      assertValid p0_validity
+      assertValid p_validity
+
+      var <- view repoVar
+      vq' <- liftIO $ modifyMVar var $ \r -> do
+        let
+          q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
+          (p', q') = transformWith ngramsStatePatchConflictResolution p q
+          r' = r & r_version +~ 1
+                & r_state   %~ act p'
+                & r_history %~ (p' :)
+          q'_table = q' ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
+        assertValid $ transformable p q
+        assertValid $ applicable p' (r ^. r_state)
+        pure (r', Versioned (r' ^. r_version) q'_table)
+
+      saveRepo
+      pure vq'
 
   {- DB version
   when (version /= 1) $ ngramError UnsupportedVersion
