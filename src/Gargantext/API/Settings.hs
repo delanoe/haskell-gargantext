@@ -277,6 +277,9 @@ withDevEnv k = do
 runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
 runCmdRepl f = withDevEnv $ \env -> runCmdDev env f
 
+runCmdReplServantErr :: Cmd' DevEnv ServantErr a -> IO a
+runCmdReplServantErr = runCmdRepl
+
 newDevEnv :: IO DevEnv
 newDevEnv = newDevEnvWith "gargantext.ini"
 
