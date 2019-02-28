@@ -45,7 +45,7 @@ import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 --import Gargantext.Database.Metrics.TFICF (getTficf)
 import Gargantext.Text.Terms (extractTerms)
-import Gargantext.Text.Metrics.TFICF (Tficf(..))
+--import Gargantext.Text.Metrics.TFICF (Tficf(..))
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
 import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup)
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
@@ -96,10 +96,12 @@ flowCorpus userName ff fp corpusName = do
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
   -- /!\ this extract NgramsTerms Only
   _ngs <- sortTficf <$> getTficf' userCorpusId masterCorpusId (ngramsGroup EN 2)
+  printDebug "tficf size ngs" (length _ngs)
 
   -- TODO getNgramsElement of NgramsType...
   ngs <- getNgramsElementsWithParentNodeId masterCorpusId
-  
+  printDebug "getNgramsElementsWithParentNodeId size ngs" (length ngs)
+
   -- TEMP fix
   let masterUserId = 2
   _masterListId <- flowList masterUserId masterCorpusId ngs
@@ -312,7 +314,11 @@ flowListUser :: FlowCmdM env err m
 flowListUser uId cId ngsM _n = do
   lId <- getOrMkList cId uId
 
-  let ngs = []
+  let ngs =
+        [ "test" <> Text.pack [x,y]
+        | x <- ['A'..'Z']
+        , y <- ['A'..'Z']
+        ]
 
   trace ("flowListBase" <> show lId) flowListBase lId ngsM
 
