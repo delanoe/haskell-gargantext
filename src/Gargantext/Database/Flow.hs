@@ -47,6 +47,7 @@ import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Metrics.TFICF (Tficf(..))
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
+import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup)
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
@@ -91,7 +92,13 @@ flowCorpus userName ff fp corpusName = do
   _ <- Doc.add userCorpusId $ concat ids
 
   -- User List Flow
-  -- ngs <- getNgramsElementsWithParentNodeId masterCorpusId
+  let masterCorpusId = 2
+  -- /!\ this extract NgramsTerms Only
+  _ngs <- sortTficf <$> getTficf' userCorpusId masterCorpusId (ngramsGroup EN 2)
+
+  -- TODO getNgramsElement of NgramsType...
+  --ngs <- getNgramsElementsWithParentNodeId masterCorpusId
+  
   --_masterListId <- flowList masterUserId masterCorpusId ngs
   --_userListId   <- flowListUser userId userCorpusId ngs 100
 
@@ -131,16 +138,9 @@ insertMasterDocs hs  =  do
 
 
 
-
-
 getUserCorpusNgrams :: FlowCmdM env ServantErr m
                 => CorpusId -> m [Ngrams]
 getUserCorpusNgrams = undefined
-
-
-
-
-
 
 
 
@@ -252,7 +252,7 @@ extractNgramsT' doc = do
                      <> [(a', DM.singleton Authors     1) | a' <- authors    ]
                      <> [(t', DM.singleton NgramsTerms 1) | t' <- terms'     ]
 
---{-
+
 filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
                      -> Map Ngrams (Map NgramsType Int)
 filterNgramsT s ms = DM.fromList $ map (\a -> filter' s a) $ DM.toList ms
@@ -260,7 +260,7 @@ filterNgramsT s ms = DM.fromList $ map (\a -> filter' s a) $ DM.toList ms
     filter' s' (ng@(Ngrams t n),y) = case (Text.length t) < s' of
           True  -> (ng,y)
           False -> (Ngrams (Text.take s' t) n , y)
---}
+
 
 documentIdWithNgrams :: HasNodeError err
                      => (HyperdataDocument
@@ -285,7 +285,9 @@ mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
         nId = documentId $ documentWithId d
 
 ------------------------------------------------------------------------
-flowListBase :: FlowCmdM env err m => ListId -> Map NgramsType [NgramsElement] -> m ()
+flowListBase :: FlowCmdM env err m
+             => ListId -> Map NgramsType [NgramsElement]
+             -> m ()
 flowListBase lId ngs = do
 -- compute Candidate / Map
   mapM_ (\(typeList, ngElmts) -> putListNgrams lId typeList ngElmts) $ toList ngs
@@ -294,18 +296,9 @@ flowList :: FlowCmdM env err m => UserId -> CorpusId
          -> Map NgramsType [NgramsElement]
          -> m ListId
 flowList uId cId ngs = do
-  --printDebug "ngs:" ngs
   lId <- getOrMkList cId uId
   printDebug "listId flowList" lId
-  --printDebug "ngs" (DM.keys ngs)
-  
-  -- TODO grouping
-  -- TODO needs rework
-  -- let groupEd = groupNgramsBy (\(NgramsT t1 n1) (NgramsT t2 n2) -> if (((==) t1 t2) && ((==) n1 n2)) then (Just (n1,n2)) else Nothing) ngs
-  -- _ <- insertGroups lId groupEd
-
   flowListBase lId ngs
-
   pure lId
 
 flowListUser :: FlowCmdM env err m
@@ -315,35 +308,17 @@ flowListUser :: FlowCmdM env err m
              -> m ListId
 flowListUser uId cId ngsM _n = do
   lId <- getOrMkList cId uId
-  
-  {-
-  ngs <- take n <$> sortWith tficf_score
-                <$> getTficf userMaster cId lId NgramsTerms
-  -}
 
   let ngs = []
 
   trace ("flowListBase" <> show lId) flowListBase lId ngsM
-  
+
   putListNgrams lId NgramsTerms $
     [ mkNgramsElement (tficf_ngramsTerms ng) GraphList Nothing mempty
     | ng <- ngs
     ]
 
   pure lId
-
-------------------------------------------------------------------------
-
-{-
-  TODO rework:
-    * quadratic
-    * DM.keys called twice
-groupNgramsBy :: (NgramsT NgramsIndexed -> NgramsT NgramsIndexed -> Maybe (NgramsIndexed, NgramsIndexed))
-              -> Map (NgramsT NgramsIndexed) (Map NodeId Int)
-              -> Map NgramsIndexed NgramsIndexed
-groupNgramsBy isEqual cId = DM.fromList $ catMaybes [ isEqual n1 n2 | n1 <- DM.keys cId, n2 <- DM.keys cId]
--}
-
 
 ------------------------------------------------------------------------
 ngrams2list :: Map NgramsIndexed (Map NgramsType a)

@@ -7,7 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Ngrams by node enable special metrics.
+Ngrams by node enable contextual metrics.
 
 -}
 
@@ -29,6 +29,7 @@ import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
+
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.TFICF -- (tficf)
 import Gargantext.Text.Terms.Mono.Stem (stem)
@@ -53,7 +54,9 @@ ngramsGroup l n = Text.intercalate " "
 
 sortTficf :: (Map Text (Double, Set Text))
           -> [(Double, Set Text)]
-sortTficf  = List.reverse . List.sortOn fst . elems
+sortTficf  = List.reverse
+           . List.sortOn fst
+           . elems
 
 
 getTficf' :: UserCorpusId -> MasterCorpusId -> (Text -> Text)
