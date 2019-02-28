@@ -87,7 +87,7 @@ type HashId   = Text
 
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
-data ListType  =  StopList  | CandidateList | GraphList
+data ListType  =  StopTerm | CandidateTerm | GraphTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
@@ -103,9 +103,9 @@ instance FromHttpApiData ListType where
 type ListTypeId = Int
 
 listTypeId :: ListType -> ListTypeId
-listTypeId StopList      = 0
-listTypeId CandidateList = 1
-listTypeId GraphList       = 2
+listTypeId StopTerm      = 0
+listTypeId CandidateTerm = 1
+listTypeId GraphTerm       = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
 fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]

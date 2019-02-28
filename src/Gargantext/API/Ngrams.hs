@@ -157,7 +157,7 @@ mkNgramsElement ngrams list parent children =
 
 instance ToSchema NgramsElement
 instance Arbitrary NgramsElement where
-  arbitrary = elements [mkNgramsElement "sport" GraphList Nothing mempty]
+  arbitrary = elements [mkNgramsElement "sport" GraphTerm Nothing mempty]
 
 ------------------------------------------------------------------------
 newtype NgramsTable = NgramsTable [NgramsElement]
@@ -199,18 +199,18 @@ toNgramsElement ns = map toNgramsElement' ns
 
 mockTable :: NgramsTable
 mockTable = NgramsTable
-  [ mkNgramsElement "animal"  GraphList      Nothing       (mSetFromList ["dog", "cat"])
-  , mkNgramsElement "cat"     GraphList     (Just "animal") mempty
-  , mkNgramsElement "cats"    StopList       Nothing        mempty
-  , mkNgramsElement "dog"     GraphList     (Just "animal")(mSetFromList ["dogs"])
-  , mkNgramsElement "dogs"    StopList      (Just "dog")    mempty
-  , mkNgramsElement "fox"     GraphList      Nothing        mempty
-  , mkNgramsElement "object"  CandidateList  Nothing        mempty
-  , mkNgramsElement "nothing" StopList       Nothing        mempty
-  , mkNgramsElement "organic" GraphList      Nothing        (mSetFromList ["flower"])
-  , mkNgramsElement "flower"  GraphList     (Just "organic") mempty
-  , mkNgramsElement "moon"    CandidateList  Nothing         mempty
-  , mkNgramsElement "sky"     StopList       Nothing         mempty
+  [ mkNgramsElement "animal"  GraphTerm      Nothing       (mSetFromList ["dog", "cat"])
+  , mkNgramsElement "cat"     GraphTerm     (Just "animal") mempty
+  , mkNgramsElement "cats"    StopTerm       Nothing        mempty
+  , mkNgramsElement "dog"     GraphTerm     (Just "animal")(mSetFromList ["dogs"])
+  , mkNgramsElement "dogs"    StopTerm      (Just "dog")    mempty
+  , mkNgramsElement "fox"     GraphTerm      Nothing        mempty
+  , mkNgramsElement "object"  CandidateTerm  Nothing        mempty
+  , mkNgramsElement "nothing" StopTerm       Nothing        mempty
+  , mkNgramsElement "organic" GraphTerm      Nothing        (mSetFromList ["flower"])
+  , mkNgramsElement "flower"  GraphTerm     (Just "organic") mempty
+  , mkNgramsElement "moon"    CandidateTerm  Nothing         mempty
+  , mkNgramsElement "sky"     StopTerm       Nothing         mempty
   ]
 
 instance Arbitrary NgramsTable where
@@ -501,7 +501,7 @@ instance Arbitrary a => Arbitrary (Versioned a) where
 type NgramsIdPatch = Patch NgramsId NgramsPatch
 
 ngramsPatch :: Int -> NgramsPatch
-ngramsPatch n = NgramsPatch (DM.fromList [(1, StopList)]) (Set.fromList [n]) Set.empty
+ngramsPatch n = NgramsPatch (DM.fromList [(1, StopTerm)]) (Set.fromList [n]) Set.empty
 
 toEdit :: NgramsId -> NgramsPatch -> Edit NgramsId NgramsPatch
 toEdit n p = Edit n p
@@ -553,8 +553,8 @@ ngramError nne = throwError $ _NgramError # nne
 
 {-
 -- TODO: Replace.old is ignored which means that if the current list
--- `GraphList` and that the patch is `Replace CandidateList StopList` then
--- the list is going to be `StopList` while it should keep `GraphList`.
+-- `GraphTerm` and that the patch is `Replace CandidateTerm StopTerm` then
+-- the list is going to be `StopTerm` while it should keep `GraphTerm`.
 -- However this should not happen in non conflicting situations.
 mkListsUpdate :: NgramsType -> NgramsTablePatch -> [(NgramsTypeId, NgramsTerm, ListTypeId)]
 mkListsUpdate nt patches =

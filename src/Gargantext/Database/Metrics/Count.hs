@@ -65,7 +65,7 @@ getNgramsByDoc cId lId =
 getNgramsByDocDb :: CorpusId -> ListId -> Cmd err [(NodeId, NgramsId, Text, Int)]
 getNgramsByDocDb cId lId = runPGSQuery query params
   where
-    params = (cId, lId, listTypeId GraphList, ngramsTypeId NgramsTerms)
+    params = (cId, lId, listTypeId GraphTerm, ngramsTypeId NgramsTerms)
     query  = [sql|
 
     -- TODO add CTE
@@ -208,7 +208,7 @@ getNgramsElementsWithParentNodeId nId = do
   ns <- getNgramsWithParentNodeId nId
   pure $ fromListWith (<>)
                 [ (maybe (panic "error") identity $ fromNgramsTypeId nt,
-                   [mkNgramsElement ng CandidateList Nothing mempty])
+                   [mkNgramsElement ng CandidateTerm Nothing mempty])
                 | (_,(nt,ng)) <- ns
                 ]
 

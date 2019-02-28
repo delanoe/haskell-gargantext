@@ -317,7 +317,7 @@ flowListUser uId cId ngsM _n = do
   trace ("flowListBase" <> show lId) flowListBase lId ngsM
 
   putListNgrams lId NgramsTerms $
-    [ mkNgramsElement (tficf_ngramsTerms ng) GraphList Nothing mempty
+    [ mkNgramsElement ng GraphTerm Nothing mempty
     | ng <- ngs
     ]
 
@@ -327,7 +327,7 @@ flowListUser uId cId ngsM _n = do
 ngrams2list :: Map NgramsIndexed (Map NgramsType a)
             -> [(ListType, (NgramsType, NgramsIndexed))]
 ngrams2list m =
-  [ (CandidateList, (t, ng))
+  [ (CandidateTerm, (t, ng))
   | (ng, tm) <- DM.toList m
   , t <- DM.keys tm
   ]
@@ -335,7 +335,7 @@ ngrams2list m =
 ngrams2list' :: Map NgramsIndexed (Map NgramsType a)
             -> Map NgramsType [NgramsElement]
 ngrams2list' m = fromListWith (<>)
-  [ (t, [mkNgramsElement (_ngramsTerms $ _ngrams ng) CandidateList Nothing mempty])
+  [ (t, [mkNgramsElement (_ngramsTerms $ _ngrams ng) CandidateTerm Nothing mempty])
   | (ng, tm) <- DM.toList m
   , t <- DM.keys tm
   ]
