@@ -33,7 +33,6 @@ module Gargantext.Database.Schema.NodeNgram where
 
 import Data.ByteString (ByteString)
 import Data.Text (Text)
-import Debug.Trace (trace)
 import Control.Lens.TH (makeLenses)
 import Control.Monad (void)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -41,8 +40,7 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Database.Utils (mkCmd, Cmd, execPGSQuery)
 import Gargantext.Core.Types.Main (ListTypeId)
-import Gargantext.Database.Types.Node (NodeId, ListId, NodeType(..))
-import Gargantext.Database.Config (nodeTypeId, userMaster)
+import Gargantext.Database.Types.Node (NodeId, ListId)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId)
 import Gargantext.Prelude
