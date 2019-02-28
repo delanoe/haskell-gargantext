@@ -334,9 +334,14 @@ instance (Ord a, FromJSON a) => FromJSON (PatchMSet a) where
 instance (Ord a, Arbitrary a) => Arbitrary (PatchMSet a) where
   arbitrary = (PatchMSet . PM.fromMap) <$> arbitrary
 
+data TODO = TODO
+  deriving (Generic)
+
+instance ToSchema TODO where
+
 instance ToSchema a => ToSchema (PatchMSet a) where
   -- TODO
-  declareNamedSchema _ = undefined
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 type instance Patched (PatchMSet a) = MSet a
 
