@@ -27,7 +27,7 @@ TODO:
 
 module Gargantext.Viz.Phylo.Example where
 
-import Control.Lens hiding (both, Level)
+import Control.Lens hiding (makeLenses, both, Level)
 import Data.List (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), nub)
 import qualified Data.List as List
 import Data.Text (Text, unwords, toLower, words)
@@ -70,13 +70,10 @@ data Document = Document
 type Corpus   = [Document]
 
 
-type MapList = [Ngrams]
+
 type PeriodeSize = Int
 -- data Periodes b a = Map (b,b) a
 type Occurrences = Int
-
-data Level = Level_m1 | Level_0 | Level_1 | Level_2 | Level_N
-  deriving (Show, Eq, Enum, Bounded)
 
 data LinkLvlLabel = Link_m1_0 | Link_0_m1 | Link_1_0 | Link_0_1 | Link_x_y
   deriving (Show, Eq, Enum, Bounded)
@@ -112,7 +109,7 @@ appariement = undefined
 -- | STEP 9 | -- Link the PhyloGroups of level 1 through the Periods 
 
 shouldPair :: PhyloGroup -> PhyloGroup -> Bool
-shouldPair g g' = (not . null) $ intersect (getNgrams g) (getNgrams g')
+shouldPair g g' = (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g')
 
 
 getKeyPair :: (Int,Int) -> Map (Int,Int) a -> (Int,Int)
@@ -175,7 +172,7 @@ lvl_1_0 :: LinkLvl
 lvl_1_0 = (LinkLvl Link_1_0 1 0)
 
 phyloWithGroups1 :: Phylo
-phyloWithGroups1 = updatePhyloByLevel Level_1 phyloLinked_m1_0
+phyloWithGroups1 = updatePhyloByLevel (initLevel 1 Level_1) phyloLinked_m1_0
 
 cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> Phylo -> PhyloGroup
 cliqueToGroup period lvl idx label fis p = PhyloGroup ((period, lvl), idx)
@@ -244,7 +241,7 @@ filterFisByNested = map (\fis -> restrictKeys fis
                             )
 
 phyloFis :: Map (Date, Date) Fis
-phyloFis = termsToFis phyloTerms 
+phyloFis = termsToFis phyloPeriods 
 
 termsToFis :: Map (Date, Date) [Document]
     -> Map (Date, Date) Fis
@@ -340,131 +337,138 @@ lvl_0_m1 = (LinkLvl Link_0_m1 0 (-1))
 
 
 ------------------------------------------------------------------------
--- | STEP 5 | -- Build level 0 (for the moment it's just a durty copy of level -1)
+-- | STEP 5 | -- Build level 0 as a copy of level -1
 
 
-setGroupIdLvl :: Int -> PhyloGroup -> PhyloGroup
-setGroupIdLvl lvl (PhyloGroup ((period, lvl'), idx) gLabel gNgrams gQ gPP gPC gLP gLC)
-  = PhyloGroup ((period, lvl), idx) gLabel gNgrams gQ gPP gPC gLP gLC
-
-setPhyloLevel :: Int -> PhyloLevel -> PhyloLevel
-setPhyloLevel lvl (PhyloLevel (periodId, lvl') lvlGroups) 
-  = PhyloLevel (periodId, lvl) lvlGroups'
-    where
-      lvlGroups' = map (\g -> setGroupIdLvl lvl g) lvlGroups
-
-copyPhyloLevel :: Int -> [PhyloLevel] -> [PhyloLevel]
-copyPhyloLevel lvl l = (setPhyloLevel lvl (head l)) : l
-
-alterLvl :: Int -> [PhyloPeriod] -> [PhyloPeriod]
-alterLvl lvl l = map (\p -> PhyloPeriod (_phylo_periodId p) (copyPhyloLevel lvl $ _phylo_periodLevels p)) l
+-- | To clone the last PhyloLevel of each PhyloPeriod and update it with a new LevelValue 
+clonePhyloLevel :: Int -> Phylo -> Phylo
+clonePhyloLevel lvl p = alterPhyloLevels (\l -> addPhyloLevel 
+                                               (setPhyloLevelId lvl $ head l) 
+                                               l) p 
 
 phyloWithGroups0 :: Phylo
-phyloWithGroups0 = updatePhyloByLevel Level_0 phyloWithGroupsm1
+phyloWithGroups0 = updatePhyloByLevel (initLevel 0 Level_0) phyloWithGroupsm1
 
 
 ------------------------------------------------------------------------
 -- | STEP 4 | -- Build level -1 
 
 
-docsToLevel :: (Date, Date) -> Corpus -> Phylo -> PhyloLevel
-docsToLevel k v p = PhyloLevel 
-  (k,(-1)) 
-  (map (\x -> initGroup [snd x] (snd x) (fst x) (-1) (fst k) (snd k) p) 
-       $ zip [1..] 
-       $ (nub . concat) 
-       $ map (words . text) v)
+-- | To transform a list of Documents into a PhyloLevel
+docsToPhyloLevel :: Int ->(Date, Date) -> [Document] -> Phylo -> PhyloLevel
+docsToPhyloLevel lvl (d, d') docs p = initPhyloLevel 
+                                        ((d, d'), lvl)
+                                        (map (\(f,s) -> initGroup [s] s f lvl d d' p) 
+                                             $ zip [1..] 
+                                             $ (nub . concat) 
+                                             $ map (words . text) docs) 
 
-corpusToPhyloPeriod :: Map (Date,Date) Corpus -> Phylo -> [PhyloPeriod]
-corpusToPhyloPeriod corpus p = map (\x -> PhyloPeriod (fst x) [(snd x)]) $ zip (keys mapLvl) (elems mapLvl)
-    where
-      mapLvl :: Map (Date,Date) PhyloLevel 
-      mapLvl = mapWithKey (\k v -> docsToLevel k v p) corpus 
+-- | To transform a Map of Periods and Documents into a list of [PhyloPeriod]
+docsToPhyloPeriods :: Int -> Map (Date,Date) [Document] -> Phylo -> [PhyloPeriod]
+docsToPhyloPeriods lvl docs p = map (\(id,l) -> initPhyloPeriod id l) 
+                                    $ Map.toList levels 
+  where
+    -------------------------------------- 
+    levels :: Map (Date,Date) [PhyloLevel]
+    levels = mapWithKey (\k v -> [docsToPhyloLevel lvl k v p]) docs
+    --------------------------------------
 
-
--- | To update a Phylo by adding a new PhyloLevel to each PhyloPeriod
+-- | To update a Phylo for a given Levels
 updatePhyloByLevel :: Level -> Phylo -> Phylo 
-updatePhyloByLevel lvl (Phylo pDuration pNgrams pPeriods) 
-  = case lvl of 
-    
-    Level_m1 -> Phylo pDuration pNgrams pPeriods'
-      where pPeriods' = (corpusToPhyloPeriod phyloTerms (Phylo pDuration pNgrams pPeriods)) ++ pPeriods
+updatePhyloByLevel lvl p 
+  = case getLevelLabel lvl of
+     
+    Level_m1 -> appendPhyloPeriods (docsToPhyloPeriods (getLevelValue lvl) lvlData p) p
+      where
+        --------------------------------------
+        lvlData :: Map (Date,Date) [Document]
+        lvlData = phyloPeriods
+        --------------------------------------
 
-    Level_0  -> Phylo pDuration pNgrams pPeriods'
-      where pPeriods' = alterLvl 0 pPeriods
+    Level_0  -> clonePhyloLevel (getLevelValue lvl) p
 
-    Level_1  -> fisToPhyloLevel phyloFisFiltered (Phylo pDuration pNgrams pPeriods) 
-    
-    Level_N  -> alterPhyloPeriods (\x -> x) (Phylo pDuration pNgrams pPeriods)
+    Level_1  -> fisToPhyloLevel phyloFisFiltered p
 
-    _        -> panic ("error level to be defined")
-
-
-
--- | To update a Phylo by adding a new PhyloLevel to each PhyloPeriod
-updatePhyloByLevel' :: Level -> Phylo -> Phylo 
-updatePhyloByLevel' lvl p 
-  = case lvl of 
-    Level_m1 -> appendPhyloPeriods (corpusToPhyloPeriod phyloTerms p) p  
-    _        -> panic ("error level to be defined")
+    _        -> panic ("[ERR][Viz.Phylo.Example.updatePhyloByLevel] Level not defined")
 
 phyloWithGroupsm1 :: Phylo
-phyloWithGroupsm1 = updatePhyloByLevel Level_m1 phylo
+phyloWithGroupsm1 = updatePhyloByLevel (initLevel (-1) Level_m1) phylo
 
 
 ------------------------------------------------------------------------
--- | STEP 3 | -- Split the Corpus into Periods and reduce each Document as a list of Ngrams
+-- | STEP 3 | -- Parse the Documents and group them by Periods
 
 
-phyloTerms :: Map (Date, Date) [Document]
-phyloTerms = toPeriodes date 5 3 $ cleanCorpus cleanedActants phyloCorpus
-
-toPeriodes :: (Ord date, Enum date) => (doc -> date)
+-- | To init a set of periods out of a given Grain and Step 
+docsToPeriods :: (Ord date, Enum date) => (doc -> date)
      -> Grain -> Step -> [doc] -> Map (date, date) [doc]
-toPeriodes _ _ _ [] = panic "Empty corpus can not have any periods"
-toPeriodes f g s es = Map.fromList $ zip hs $ map (inPeriode f es) hs
+docsToPeriods _ _ _ [] = panic "[ERR][Viz.Phylo.Example.docsToPeriods] Empty [Documents] can not have any periods"
+docsToPeriods f g s es = Map.fromList $ zip hs $ map (inPeriode f es) hs
   where
+    --------------------------------------
     hs = steps g s $ both f (head es, last es)
-    --------------------------------------------------------------------
-    -- | Define overlapping periods of time by following regular steps
+    --------------------------------------
     inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]
     inPeriode f' h (start,end) =
       fst $ List.partition (\d -> f' d >= start && f' d <= end) h
-    --------------------------------------------------------------------
-    -- | Find steps of linear and homogenous time of integer
+    --------------------------------------
     steps :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
     steps s' o' (start,end) = map (\l -> (head l, last l))
                           $ chunkAlong s' o' [start .. end]
+    --------------------------------------
 
-cleanCorpus :: MapList -> Corpus -> Corpus
-cleanCorpus ml = map (\(Document d t) -> Document d (unwords $ filter (\x -> elem x ml) $ monoTexts t))
+-- | To parse a list of Documents by filtering on a Vector of Ngrams 
+parseDocs :: PhyloNgrams -> [Document] -> [Document]
+parseDocs l docs = map (\(Document d t) -> Document d (unwords 
+                                                      $ filter (\x -> Vector.elem x l)
+                                                      $ monoTexts t)) docs
+
+-- | To group a list of Documents by fixed periods
+groupDocsByPeriod :: Grain -> Step -> [Document] -> Phylo -> Map (Date, Date) [Document]
+groupDocsByPeriod g s docs p = docsToPeriods date g s 
+                             $ parseDocs (getPhyloNgrams p) docs 
+
+phyloPeriods :: Map (Date, Date) [Document]
+phyloPeriods = groupDocsByPeriod 5 3 phyloDocs phylo
 
 
 ------------------------------------------------------------------------
--- | STEP 2 | -- Find some Ngrams (ie: phyloGroup of level -1) out of the Corpus & init the phylo  
+-- | STEP 2 | -- Init an initial list of Ngrams and a Phylo  
 
 
-phylo = Phylo (both date $ (last &&& head) phyloCorpus) phyloNgrams []
+-- | To init a Phylomemy
+initPhylo :: [Document] -> PhyloNgrams -> Phylo
+initPhylo docs ngrams = Phylo (both date $ (last &&& head) docs) ngrams []
 
-phyloNgrams :: PhyloNgrams
-phyloNgrams = Vector.fromList cleanedActants
+-- | To init a PhyloNgrams as a Vector of Ngrams 
+initNgrams :: [Ngrams] -> PhyloNgrams
+initNgrams l = Vector.fromList $ map toLower l
 
-cleanedActants :: [Ngrams]
-cleanedActants = map toLower actants
+phylo :: Phylo
+phylo = initPhylo phyloDocs (initNgrams actants) 
+
+
+------------------------------------------------------------------------
+-- | STEP 1 | -- Get a list of Document 
+
+
+-- | To transform a corpus of texts into a structured list of Documents
+corpusToDocs :: [(Date, Text)] -> [Document]
+corpusToDocs l = map (\(d,t) -> Document d t) l   
+
+phyloDocs :: [Document]
+phyloDocs = corpusToDocs corpus
+
+
+------------------------------------------------------------------------
+-- | STEP 0 | -- Let's start with an example
+
 
 actants :: [Ngrams]
 actants = [ "Cleopatre"   , "Ptolemee", "Ptolemee-XIII", "Ptolemee-XIV"
           , "Marc-Antoine", "Cesar"   , "Antoine"      , "Octave"  , "Rome"
           , "Alexandrie"  , "Auguste" , "Pompee"       , "Cassius" , "Brutus"]
 
-
-------------------------------------------------------------------------
--- | STEP 1 | -- Get a corpus of Documents 
-
-
-phyloCorpus :: Corpus
-phyloCorpus = map (\(d,t) -> Document d t) exampleDocuments
-
-exampleDocuments :: [(Date, Text)]
-exampleDocuments = List.sortOn fst [ (-51,"Cleopatre règne sur l’egypte entre 51 et 30 av. J.-C. avec ses frères-epoux Ptolemee-XIII et Ptolemee-XIV, puis aux côtes du general romain Marc-Antoine. Elle est celèbre pour avoir ete la compagne de Jules Cesar puis d'Antoine, avec lesquels elle a eu plusieurs enfants. Partie prenante dans la guerre civile opposant Antoine à Octave, elle est vaincue à la bataille d'Actium en 31 av. J.-C. Sa defaite va permettre aux Romains de mener à bien la conquête de l’egypte, evenement qui marquera la fin de l'epoque hellenistique."), (-40,"Il existe relativement peu d'informations sur son sejour à Rome, au lendemain de l'assassinat de Cesar, ou sur la periode passee à Alexandrie durant l'absence d'Antoine, entre -40 et -37."), (-48,"L'historiographie antique lui est globalement defavorable car inspiree par son vainqueur, l'empereur Auguste, et par son entourage, dont l'interêt est de la noircir, afin d'en faire l'adversaire malfaisant de Rome et le mauvais genie d'Antoine. On observe par ailleurs que Cesar ne fait aucune mention de sa liaison avec elle dans les Commentaires sur la Guerre civile"), (-69,"Cleopatre est nee au cours de l'hiver -69/-686 probablement à Alexandrie."), (-48,"Pompee a en effet ete le protecteur de Ptolemee XII, le père de Cleopatre et de Ptolemee-XIII dont il se considère comme le tuteur."), (-48,"Ptolemee-XIII et Cleopatre auraient d'ailleurs aide Pompee par l'envoi d'une flotte de soixante navires."), (-48,"Mais le jeune roi Ptolemee-XIII et ses conseillers jugent sa cause perdue et pensent s'attirer les bonnes graces du vainqueur en le faisant assassiner à peine a-t-il pose le pied sur le sol egyptien, près de Peluse, le 30 juillet 48 av. J.-C., sous les yeux de son entourage."), (-48,"Cesar fait enterrer la tête de Pompee dans le bosquet de Nemesis en bordure du mur est de l'enceinte d'Alexandrie. Pour autant la mort de Pompee est une aubaine pour Cesar qui tente par ailleurs de profiter des querelles dynastiques pour annexer l’egypte."), (-48,"Il est difficile de se prononcer clairement sur les raisons qui ont pousse Cesar à s'attarder à Alexandrie. Il y a des raisons politiques, mais aussi des raisons plus sentimentales (Cleopatre ?). Il tente d'abord d'obtenir le remboursement de dettes que Ptolemee XII"), (-46,"Les deux souverains sont convoques par Cesar au palais royal d'Alexandrie. Ptolemee-XIII s'y rend après diverses tergiversations ainsi que Cleopatre."), (-47,"A Rome, Cleopatre epouse alors un autre de ses frères cadets, à Alexandrie, Ptolemee-XIV, sur l'injonction de Jules Cesar"), (-46,"Cesar a-t-il comme objectif de montrer ce qu'il en coûte de se revolter contre Rome en faisant figurer dans son triomphe la sœur de Cleopatre et de Ptolemee-XIV, Arsinoe, qui s'est fait reconnaître reine par les troupes de Ptolemee-XIII ?"), (-44,"Au debut de l'annee -44, Cesar est assassine par Brutus. Profitant de la situation confuse qui s'ensuit, Cleopatre quitte alors Rome à la mi-avril, faisant escale en Grèce. Elle parvient à Alexandrie en juillet -44."), (-44,"La guerre que se livrent les assassins de Cesar, Cassius et Brutus et ses heritiers, Octave et Marc-Antoine, oblige Cleopatre à des contorsions diplomatiques."), (-41,"Nous ignorons depuis quand Cleopatre, agee de 29 ans en -41, et Marc-Antoine, qui a une quarantaine d'annees, se connaissent. Marc-Antoine est l'un des officiers qui ont participe au retablissement de Ptolemee XII.  Il est plus vraisemblable qu'ils se soient frequentes lors du sejour à Rome de Cleopatre."), (-42,"Brutus tient la Grèce tandis que Cassius s'installe en Syrie. Le gouverneur de Cleopatre à Chypre, Serapion, vient en aide à Cassius."), (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]
+corpus :: [(Date, Text)]
+corpus = List.sortOn fst [ (-51,"Cleopatre règne sur l’egypte entre 51 et 30 av. J.-C. avec ses frères-epoux Ptolemee-XIII et Ptolemee-XIV, puis aux côtes du general romain Marc-Antoine. Elle est celèbre pour avoir ete la compagne de Jules Cesar puis d'Antoine, avec lesquels elle a eu plusieurs enfants. Partie prenante dans la guerre civile opposant Antoine à Octave, elle est vaincue à la bataille d'Actium en 31 av. J.-C. Sa defaite va permettre aux Romains de mener à bien la conquête de l’egypte, evenement qui marquera la fin de l'epoque hellenistique."), (-40,"Il existe relativement peu d'informations sur son sejour à Rome, au lendemain de l'assassinat de Cesar, ou sur la periode passee à Alexandrie durant l'absence d'Antoine, entre -40 et -37."), (-48,"L'historiographie antique lui est globalement defavorable car inspiree par son vainqueur, l'empereur Auguste, et par son entourage, dont l'interêt est de la noircir, afin d'en faire l'adversaire malfaisant de Rome et le mauvais genie d'Antoine. On observe par ailleurs que Cesar ne fait aucune mention de sa liaison avec elle dans les Commentaires sur la Guerre civile"), (-69,"Cleopatre est nee au cours de l'hiver -69/-686 probablement à Alexandrie."), (-48,"Pompee a en effet ete le protecteur de Ptolemee XII, le père de Cleopatre et de Ptolemee-XIII dont il se considère comme le tuteur."), (-48,"Ptolemee-XIII et Cleopatre auraient d'ailleurs aide Pompee par l'envoi d'une flotte de soixante navires."), (-48,"Mais le jeune roi Ptolemee-XIII et ses conseillers jugent sa cause perdue et pensent s'attirer les bonnes graces du vainqueur en le faisant assassiner à peine a-t-il pose le pied sur le sol egyptien, près de Peluse, le 30 juillet 48 av. J.-C., sous les yeux de son entourage."), (-48,"Cesar fait enterrer la tête de Pompee dans le bosquet de Nemesis en bordure du mur est de l'enceinte d'Alexandrie. Pour autant la mort de Pompee est une aubaine pour Cesar qui tente par ailleurs de profiter des querelles dynastiques pour annexer l’egypte."), (-48,"Il est difficile de se prononcer clairement sur les raisons qui ont pousse Cesar à s'attarder à Alexandrie. Il y a des raisons politiques, mais aussi des raisons plus sentimentales (Cleopatre ?). Il tente d'abord d'obtenir le remboursement de dettes que Ptolemee XII"), (-46,"Les deux souverains sont convoques par Cesar au palais royal d'Alexandrie. Ptolemee-XIII s'y rend après diverses tergiversations ainsi que Cleopatre."), (-47,"A Rome, Cleopatre epouse alors un autre de ses frères cadets, à Alexandrie, Ptolemee-XIV, sur l'injonction de Jules Cesar"), (-46,"Cesar a-t-il comme objectif de montrer ce qu'il en coûte de se revolter contre Rome en faisant figurer dans son triomphe la sœur de Cleopatre et de Ptolemee-XIV, Arsinoe, qui s'est fait reconnaître reine par les troupes de Ptolemee-XIII ?"), (-44,"Au debut de l'annee -44, Cesar est assassine par Brutus. Profitant de la situation confuse qui s'ensuit, Cleopatre quitte alors Rome à la mi-avril, faisant escale en Grèce. Elle parvient à Alexandrie en juillet -44."), (-44,"La guerre que se livrent les assassins de Cesar, Cassius et Brutus et ses heritiers, Octave et Marc-Antoine, oblige Cleopatre à des contorsions diplomatiques."), (-41,"Nous ignorons depuis quand Cleopatre, agee de 29 ans en -41, et Marc-Antoine, qui a une quarantaine d'annees, se connaissent. Marc-Antoine est l'un des officiers qui ont participe au retablissement de Ptolemee XII.  Il est plus vraisemblable qu'ils se soient frequentes lors du sejour à Rome de Cleopatre."), (-42,"Brutus tient la Grèce tandis que Cassius s'installe en Syrie. Le gouverneur de Cleopatre à Chypre, Serapion, vient en aide à Cassius."), (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]
 
