@@ -137,6 +137,7 @@ type Weight       = Double
 
 
 
+
 -- | Ngrams : a contiguous sequence of n terms
 type Ngrams = Text
 -- | PhyloNgrams : Vector of all the Ngrams (PhyloGroup of level -1) used within a Phylo
@@ -151,6 +152,22 @@ type Support = Int
 type Fis = Map Clique Support
 
 
+data Direction = From | To
+    deriving (Show, Eq)
+
+data LevelLabel = Level_m1 | Level_0 | Level_1 | Level_mN | Level_N | Level_pN
+  deriving (Show, Eq, Enum, Bounded)
+
+data Level = 
+     Level { _levelLabel :: LevelLabel
+           , _levelValue :: Int 
+           } deriving (Show)
+
+data LevelLink =
+     LevelLink { _levelFrom :: Level
+               , _levelTo   :: Level
+               } deriving (Show)
+
 -- | Lenses
 makeLenses ''Phylo
 makeLenses ''PhyloParam
@@ -159,6 +176,8 @@ makeLenses ''Software
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
+makeLenses ''Level
+makeLenses ''LevelLink
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )

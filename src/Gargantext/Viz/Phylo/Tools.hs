@@ -17,7 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Tools
   where
 
-import Control.Lens         hiding (both)
+import Control.Lens         hiding (both, Level)
 import Data.List            (filter, intersect, (++), sort)
 import Data.Map             (Map)
 import Data.Text            (Text)
@@ -49,13 +49,47 @@ initGroup ngrams lbl idx lvl from to p = PhyloGroup
   (Map.empty)
   [] [] [] []
 
+-- | To create a Level
+initLevel :: Int -> LevelLabel -> Level
+initLevel lvl lbl = Level lbl lvl
+
+-- | To create a LevelLink
+initLevelLink :: Level -> Level -> LevelLink 
+initLevelLink lvl lvl' = LevelLink lvl lvl' 
+
+-- | To get the label of a Level
+getLevelLabel :: Level -> LevelLabel
+getLevelLabel lvl = _levelLabel lvl
+
+-- | To get the value of a Level
+getLevelValue :: Level -> Int
+getLevelValue lvl = _levelValue lvl
+
+-- | To get the label of a LevelLink based on a Direction
+getLevelLinkLabel :: Direction -> LevelLink -> LevelLabel
+getLevelLinkLabel dir link = case dir of 
+    From -> view (levelFrom . levelLabel) link
+    To   -> view (levelTo   . levelLabel) link 
+    _    -> panic "[ERR][Viz.Phylo.Tools.getLevelLinkLabel] Wrong direction"
+
+-- | To get the value of a LevelLink based on a Direction
+getLevelLinkValue :: Direction -> LevelLink -> Int
+getLevelLinkValue dir link = case dir of 
+    From -> view (levelFrom . levelValue) link
+    To   -> view (levelTo   . levelValue) link 
+    _    -> panic "[ERR][Viz.Phylo.Tools.getLevelLinkValue] Wrong direction"
+
 -- | To transform an Ngrams into its corresponding index in a Phylo 
 ngramsToIdx :: Ngrams -> Phylo -> Int
 ngramsToIdx x p = getIdx x (_phylo_ngrams p)
 
+-- | To get the Ngrams of a Phylo
+getPhyloNgrams :: Phylo -> PhyloNgrams
+getPhyloNgrams = _phylo_ngrams
+
 -- | To get the Ngrams of a PhyloGroup
-getNgrams :: PhyloGroup -> [Int]
-getNgrams =  _phylo_groupNgrams
+getGroupNgrams :: PhyloGroup -> [Int]
+getGroupNgrams =  _phylo_groupNgrams
 
 -- | To get the id of a PhyloGroup
 getGroupId :: PhyloGroup -> PhyloGroupId
@@ -87,6 +121,36 @@ getGroupsWithFilters :: Int -> (Date,Date) -> Phylo -> [PhyloGroup]
 getGroupsWithFilters lvl prd p = (filterGroups getGroupLevel lvl p)
                                  `intersect`
                                  (filterGroups getGroupPeriod prd p)
+
+-- | To create a PhyloLevel
+initPhyloLevel :: PhyloLevelId -> [PhyloGroup] -> PhyloLevel
+initPhyloLevel id groups = PhyloLevel id groups
+
+-- | To set the LevelId of a PhyloLevel and of all its PhyloGroups
+setPhyloLevelId :: Int -> PhyloLevel -> PhyloLevel
+setPhyloLevelId lvl' (PhyloLevel (id, lvl) groups)
+    = PhyloLevel (id, lvl') groups'
+        where 
+            groups' = over (traverse . phylo_groupId) (\((period, lvl), idx) -> ((period, lvl'), idx)) groups 
+
+-- | To get all the Phylolevels of a given PhyloPeriod
+getPhyloLevels :: PhyloPeriod -> [PhyloLevel]
+getPhyloLevels = view (phylo_periodLevels)
+
+-- | To add a PhyloLevel at the end of a list of PhyloLevels
+addPhyloLevel :: PhyloLevel -> [PhyloLevel] -> [PhyloLevel]
+addPhyloLevel lvl l = l ++ [lvl] 
+
+-- | To alter a list of PhyloLevels following a given function
+alterPhyloLevels :: ([PhyloLevel] -> [PhyloLevel]) -> Phylo -> Phylo
+alterPhyloLevels f p = over ( phylo_periods
+                            .  traverse
+                            . phylo_periodLevels) f p
+
+
+-- | To create a PhyloPeriod
+initPhyloPeriod :: PhyloPeriodId -> [PhyloLevel] -> PhyloPeriod
+initPhyloPeriod id l = PhyloPeriod id l
 
 -- | To alter each PhyloPeriod of a Phylo following a given function
 alterPhyloPeriods :: (PhyloPeriod -> PhyloPeriod) -> Phylo -> Phylo
