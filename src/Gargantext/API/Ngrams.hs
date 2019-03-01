@@ -47,7 +47,7 @@ import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
 -- import qualified Data.List as List
--- import Data.Maybe (catMaybes)
+import Data.Maybe (isNothing)
 -- import Data.Tuple.Extra (first)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
@@ -847,7 +847,12 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset
     minSize  = maybe (const True) (<=) mminSize
     maxSize  = maybe (const True) (>=) mmaxSize
     searchQuery = maybe (const True) isInfixOf msearchQuery
-    selected n = minSize     s
+    -- TODO
+    -- * non root selected ngrams should be replaced by their root
+    --   + what to do with duplicates
+    --   + which order
+    selected n = isNothing   (n ^. ne_parent)
+              && minSize     s
               && maxSize     s
               && searchQuery (n ^. ne_ngrams)
               && listType    (n ^. ne_list)
@@ -858,7 +863,7 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset
   -- trace (show lists) $
   getListNgrams ({-lists <>-} listIds) ngramsType
     & mapped . v_data . _NgramsTable
-    %~ (filter selected . take limit_ . drop offset_)
+    %~ (take limit_ . drop offset_ . filter selected)
 
 
 
