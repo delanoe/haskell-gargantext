@@ -168,6 +168,16 @@ data LevelLink =
                , _levelTo   :: Level
                } deriving (Show)
 
+-- | Document : a piece of Text linked to a Date
+data Document = Document
+      { date :: Date
+      , text :: Text
+      } deriving (Show)
+
+data PhyloError = LevelDoesNotExist
+                | LevelUnassigned
+          deriving (Show)               
+
 -- | Lenses
 makeLenses ''Phylo
 makeLenses ''PhyloParam
