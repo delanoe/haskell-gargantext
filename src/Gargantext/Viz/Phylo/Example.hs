@@ -30,7 +30,7 @@ module Gargantext.Viz.Phylo.Example where
 import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
-import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), nub)
+import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse)
 import Data.Map         (Map, elems, member, adjust, singleton, (!), keys, restrictKeys, mapWithKey)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
@@ -66,9 +66,9 @@ import qualified Data.Vector as Vector
 -- | STEP 10 | -- Link the PhyloGroups of level 1 through the Periods 
 
 
--- | To pair two PhyloGroups sharing at leats one Ngrams 
-shouldPair :: PhyloGroup -> PhyloGroup -> Bool
-shouldPair g g' = (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g')
+-- | Are two PhyloGroups sharing at leats one Ngrams 
+shareNgrams :: PhyloGroup -> PhyloGroup -> Bool
+shareNgrams g g' = (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g')
 
 
 -- | To get the good pair of keys (x,y) or (y,x) in a given Map (a,b) c
@@ -88,8 +88,7 @@ getKeyPair (x,y) m = case findPair (x,y) m of
 
 -- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
 listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
-listToCombi f l = [ (f x, f y) | (x:rest) <- tails l
-                               ,  y       <- rest ]
+listToCombi f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
 
 
 -- | To transform the Fis into a coocurency Matrix in a Phylo 
@@ -112,6 +111,56 @@ fisToCooc m p = map   (/docs)
     cooc :: Map (Int, Int) (Double)
     cooc = Map.fromList $ map (\x -> (x,0)) (listToCombi (\x -> ngramsToIdx x p) fisNgrams)
     --------------------------------------
+
+data Proximity  = WeightedLogJaccard | Other
+
+data Candidates = Childs | Parents 
+
+weightedLogJaccard :: PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+weightedLogJaccard group group' = (getGroupId group', 1)
+
+getProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+getProximity p group group' = case p of 
+  WeightedLogJaccard -> weightedLogJaccard group group'
+  Other              -> undefined
+  _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
+
+getPhyloPeriods :: Phylo -> [PhyloPeriodId]
+getPhyloPeriods p = map _phylo_periodId 
+                  $ view (phylo_periods) p
+
+-- | Trouver un moyen de naviguer dans la liste des périodes next or prévious depuis getCandidates
+-- | lié getCandidates à pair group
+-- | faire rentrer de la récurence de profondeur 5 au plus dans pair group
+-- | faire le jaccard 
+-- | faire les pointeurs 
+-- | faire l'amont de pair group
+-- | faire le double sens 
+
+getCandidates :: Candidates -> PhyloGroup -> Phylo -> [PhyloGroup]
+getCandidates c group p = getGroupsWithFilters (getGroupLevel group) prd p
+  where
+    -------------------------------------- 
+    prd = case c of
+      Childs  -> getGroupPeriod group
+      Parents -> getGroupPeriod group
+      _       -> panic ("[ERR][Viz.Phylo.Example.getCandidates] Candidates type not defined")
+
+pairGroupToGroups :: Double -> PhyloGroup -> [PhyloGroup] -> PhyloGroup
+pairGroupToGroups thr group l = if (not . null) $ keepBest thr scores
+                                then group
+                                else group
+  where
+    --------------------------------------
+    scores :: [(PhyloGroupId, Double)]
+    scores = map (\group' -> getProximity WeightedLogJaccard group group') l
+    --------------------------------------
+    keepBest :: Double -> [(PhyloGroupId, Double)] -> [(PhyloGroupId, Double)]
+    keepBest thr l = reverse
+                   $ sortOn snd 
+                   $ filter (\(id,s) -> s >= thr) l
+    --------------------------------------
+
 
 
 phyloWithAppariement1 :: Phylo
