@@ -31,7 +31,7 @@ import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
 
 import Gargantext.Prelude
-import Gargantext.Text.Metrics.TFICF -- (tficf)
+import Gargantext.Text.Metrics.TFICF
 import Gargantext.Text.Terms.Mono.Stem (stem)
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
@@ -76,8 +76,8 @@ type Infra = Context
 toTficfData :: Infra -> Supra
             -> Map Text (Double, Set Text)
 toTficfData (ti, mi) (ts, ms) =
-  fromList [ (t, ( tficf (TficfInfra n ti)
-                         (TficfSupra (maybe 0 fst $ Map.lookup t ms) ts)
+  fromList [ (t, ( tficf (TficfInfra (Total ti) (Count n                              ))
+                         (TficfSupra (Total ts) (Count $ maybe 0 fst $ Map.lookup t ms))
                  , ns
                  )
              )

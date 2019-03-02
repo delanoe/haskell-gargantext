@@ -18,44 +18,25 @@ module Gargantext.Text.Metrics.TFICF where
 
 --import Data.Text (Text)
 import Gargantext.Prelude
-import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsTerms)
 
-data TficfContext n m = TficfLanguage n m
-                      | TficfCorpus   n m
-                      | TficfDocument n m
-                      | TficfInfra n m
+data TficfContext n m = TficfInfra n m
                       | TficfSupra n m
   deriving (Show)
 
-data Tficf = Tficf
-  { tficf_ngramsId :: NgramsId
-  , tficf_ngramsTerms :: NgramsTerms
-  , tficf_score       :: Double
-  } deriving (Show)
-
-data Tficf' = Tficf'
-  { tficf'_terms :: NgramsTerms
-  , tficf'_score :: Double
-  } deriving (Show)
-
-
-
-type SupraContext = TficfContext
-type InfraContext = TficfContext
+data Total = Total {unTotal :: !Double}
+data Count = Count {unCount :: !Double}
 
 -- | TFICF is a generalization of TFIDF
 -- https://en.wikipedia.org/wiki/Tf%E2%80%93idf
-tficf :: InfraContext Double Double -> SupraContext Double Double -> Double
-tficf (TficfCorpus c c')  (TficfLanguage l l') = tficf' c c' l l'
-tficf (TficfDocument d d')(TficfCorpus   c c') = tficf' d d' c c'
-tficf (TficfInfra d d')(TficfSupra   c c') = tficf' d d' c c'
-tficf _ _ = panic "Not in definition"
+tficf :: TficfContext Total Count -> TficfContext Total Count -> Double
+tficf (TficfInfra (Total it) (Count ic))
+      (TficfSupra (Total st) (Count sc))
+      = tficf' it ic st sc
+          where
+            tficf' :: Double -> Double -> Double -> Double -> Double
+            tficf' it' ic' st' sc'
+                  | it' >= ic' && st' >= sc' = (ic'/it') / log (sc'/st')
+                  | otherwise         = panic "Frequency impossible"
+tficf _ _ = panic "Undefined for these contexts"
 
-tficf' :: Double -> Double -> Double -> Double -> Double
-tficf' c c' l l'
-    | c <= c' && l < l' = (l/l') / log (c/c')
-    | otherwise        = panic "Frequency impossible"
 
-
-tficf_example :: [(Double,Double,Double,Double)]
-tficf_example = undefined
