@@ -15,9 +15,19 @@ TFICF is a generalization of [TFIDF](https://en.wikipedia.org/wiki/Tf%E2%80%93id
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Metrics.TFICF where
+module Gargantext.Text.Metrics.TFICF ( TFICF
+                                     , TficfContext(..)
+                                     , Total(..)
+                                     , Count(..)
+                                     , tficf
+                                     )
+  where
 
+import Data.Text (Text)
 import Gargantext.Prelude
+
+path :: Text
+path = "Gargantext.Text.Metrics.TFICF"
 
 type TFICF = Double
 
@@ -34,7 +44,7 @@ tficf :: TficfContext Count Total
 tficf (TficfInfra (Count ic) (Total it) )
       (TficfSupra (Count sc) (Total st) )
             | it >= ic && st >= sc = (ic/it) / log (sc/st)
-            | otherwise            = panic "Frequency impossible"
-tficf _ _ = panic "Undefined for these contexts"
+            | otherwise            = panic $ "[ERR]" <> path <>" Frequency impossible"
+tficf _ _ = panic $ "[ERR]" <> path <> "Undefined for these contexts"
 
 
