@@ -54,9 +54,7 @@ ngramsGroup l n = Text.intercalate " "
 
 sortTficf :: (Map Text (Double, Set Text))
           -> [(Double, Set Text)]
-sortTficf  = List.reverse
-           . List.sortOn fst
-           . elems
+sortTficf  = List.sortOn fst . elems
 
 
 getTficf' :: UserCorpusId -> MasterCorpusId -> (Text -> Text)
@@ -76,8 +74,8 @@ type Infra = Context
 toTficfData :: Infra -> Supra
             -> Map Text (Double, Set Text)
 toTficfData (ti, mi) (ts, ms) =
-  fromList [ (t, ( tficf (TficfInfra (Total ti) (Count n                              ))
-                         (TficfSupra (Total ts) (Count $ maybe 0 fst $ Map.lookup t ms))
+  fromList [ (t, ( tficf (TficfInfra (Count n                              )(Total ti))
+                         (TficfSupra (Count $ maybe 0 fst $ Map.lookup t ms)(Total ts))
                  , ns
                  )
              )

@@ -9,15 +9,17 @@ Portability : POSIX
 
 Definition of TFICF : Term Frequency - Inverse of Context Frequency
 
+TFICF is a generalization of [TFIDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf).
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Metrics.TFICF where
 
---import Data.Text (Text)
 import Gargantext.Prelude
+
+type TFICF = Double
 
 data TficfContext n m = TficfInfra n m
                       | TficfSupra n m
@@ -26,17 +28,13 @@ data TficfContext n m = TficfInfra n m
 data Total = Total {unTotal :: !Double}
 data Count = Count {unCount :: !Double}
 
--- | TFICF is a generalization of TFIDF
--- https://en.wikipedia.org/wiki/Tf%E2%80%93idf
-tficf :: TficfContext Total Count -> TficfContext Total Count -> Double
-tficf (TficfInfra (Total it) (Count ic))
-      (TficfSupra (Total st) (Count sc))
-      = tficf' it ic st sc
-          where
-            tficf' :: Double -> Double -> Double -> Double -> Double
-            tficf' it' ic' st' sc'
-                  | it' >= ic' && st' >= sc' = (ic'/it') / log (sc'/st')
-                  | otherwise         = panic "Frequency impossible"
+tficf :: TficfContext Count Total
+      -> TficfContext Count Total
+      -> TFICF
+tficf (TficfInfra (Count ic) (Total it) )
+      (TficfSupra (Count sc) (Total st) )
+            | it >= ic && st >= sc = (ic/it) / log (sc/st)
+            | otherwise            = panic "Frequency impossible"
 tficf _ _ = panic "Undefined for these contexts"
 
 
