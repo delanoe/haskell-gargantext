@@ -20,6 +20,7 @@ commentary with @some markup@.
 module Gargantext.Text.List
   where
 
+import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, mSetFromList)
@@ -32,23 +33,37 @@ import Gargantext.Prelude
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import qualified Data.List as List
 
-buildNgramsList :: UserCorpusId -> MasterCorpusId -> Cmd err (Map NgramsType [NgramsElement])
+buildNgramsList :: UserCorpusId -> MasterCorpusId
+                -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsList uCid mCid = do
             candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup EN 2)
-            printDebug "candidate" (length candidates)
-            
+            --printDebug "candidate" (length candidates)
+
             let termList = toTermList (isStopTerm . fst) candidates
-            printDebug "termlist" (length termList)
+            --printDebug "termlist" (length termList)
 
-
-            let ngs = map (\(lt, (stm, (_score, setext)))
-                                  -> mkNgramsElement stm lt
-                                        (Just stm)
-                                        (mSetFromList $ Set.toList setext)
-                                  ) termList
+            let ngs = List.concat $ map toNgramsElement termList
 
             pure $ Map.fromList [(NgramsTerms, ngs)]
+
+
+toNgramsElement :: (ListType, (Text, (Double, Set Text))) -> [NgramsElement]
+toNgramsElement (listType, (_stem, (_score, setNgrams))) =
+  case Set.toList setNgrams of
+    []                -> []
+    (parent:children) -> [parentElem] <> childrenElems
+      where
+        parentElem    = mkNgramsElement parent
+                                        listType
+                                        Nothing
+                                        (mSetFromList children)
+        childrenElems = map (\t -> mkNgramsElement t listType
+                                                   (Just parent)
+                                                   (mSetFromList [])
+                            ) children
+
 
 toTermList :: (a -> Bool) -> [a] -> [(ListType, a)]
 toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
