@@ -50,6 +50,19 @@ alterPhyloGroups f p = over ( phylo_periods
                             . phylo_levelGroups
                             ) f p 
 
+-- | To alter a sub list of PhyloGroups (filtered) following a given function
+alterPhyloGroupsWith :: Eq a => ([PhyloGroup] -> [PhyloGroup]) -> (PhyloGroup -> a) -> a -> Phylo -> Phylo
+alterPhyloGroupsWith f f' x p = over ( phylo_periods
+                            .  traverse
+                            . phylo_periodLevels
+                            .  traverse
+                            . phylo_levelGroups
+                            ) (f . subGroups) p
+    where
+        --------------------------------------
+        subGroups :: [PhyloGroup] -> [PhyloGroup] 
+        subGroups l = filterGroups f' x l
+        --------------------------------------
 
 -- | To alter each PhyloPeriod of a Phylo following a given function
 alterPhyloPeriods :: (PhyloPeriod -> PhyloPeriod) -> Phylo -> Phylo
@@ -93,8 +106,8 @@ doesContainsOrd l l'
 
 
  -- | To filter the PhyloGroup of a Phylo according to a function and a value
-filterGroups :: Eq a => (PhyloGroup -> a) -> a -> Phylo -> [PhyloGroup]
-filterGroups f x p = filter (\g -> (f g) == x) (getGroups p)
+filterGroups :: Eq a => (PhyloGroup -> a) -> a -> [PhyloGroup] -> [PhyloGroup]
+filterGroups f x l = filter (\g -> (f g) == x) l
 
 
 -- | To filter nested Sets of a
@@ -139,9 +152,9 @@ getGroups = view ( phylo_periods
 
 -- | To get all the PhyloGroup of a Phylo with a given level and period
 getGroupsWithFilters :: Int -> (Date,Date) -> Phylo -> [PhyloGroup]
-getGroupsWithFilters lvl prd p = (filterGroups getGroupLevel lvl p)
+getGroupsWithFilters lvl prd p = (filterGroups getGroupLevel lvl (getGroups p))
                                  `intersect`
-                                 (filterGroups getGroupPeriod prd p)
+                                 (filterGroups getGroupPeriod prd (getGroups p))
 
 
 -- | To get the index of an element of a Vector
@@ -185,6 +198,12 @@ getPhyloLevels = view (phylo_periodLevels)
 -- | To get the Ngrams of a Phylo
 getPhyloNgrams :: Phylo -> PhyloNgrams
 getPhyloNgrams = _phylo_ngrams
+
+
+-- | To get all the PhyloPeriodIds of a Phylo
+getPhyloPeriods :: Phylo -> [PhyloPeriodId]
+getPhyloPeriods p = map _phylo_periodId 
+                  $ view (phylo_periods) p
 
 
 -- | To create a PhyloGroup in a Phylo out of a list of Ngrams and a set of parameters 
