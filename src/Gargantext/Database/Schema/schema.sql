@@ -135,7 +135,7 @@ CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id,ngrams
 CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, delete);
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
 
-CREATE INDEX        ON public.nodes_nodes_ngrams USING btree (node1_id,nod2_id);
+--CREATE INDEX        ON public.nodes_nodes_ngrams USING btree (node1_id,nod2_id);
 
 -- TRIGGERS
 -- TODO user haskell-postgresql-simple to create this function
