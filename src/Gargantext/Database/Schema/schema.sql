@@ -126,7 +126,7 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)
 CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
 CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
 
-CREATE UNIQUE INDEX ON public.ngrams       USING gin (terms); -- TEST GIN
+CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 
 CREATE INDEX        ON public.nodes_ngrams USING btree (ngrams_id);
 CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id);
