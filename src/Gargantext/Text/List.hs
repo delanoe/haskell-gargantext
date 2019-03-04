@@ -14,50 +14,61 @@ commentary with @some markup@.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
+
 
 module Gargantext.Text.List
   where
 
+import Data.Map (Map)
 import Data.Text (Text)
-import qualified Data.Text as DT
+import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, mSetFromList)
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
+import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.Text as Text
 
--- | TODO normalize text
+buildNgramsList :: UserCorpusId -> MasterCorpusId -> Cmd err (Map NgramsType [NgramsElement])
+buildNgramsList uCid mCid = do
+            candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup EN 2)
+            printDebug "candidate" (length candidates)
+            
+            let termList = toTermList (isStopTerm . fst) candidates
+            printDebug "termlist" (length termList)
 
--- | TODO Order the seperators in probability of apparition
-separators :: [Text]
-separators = [" ", ",", ".", "?", "!", "\""]
 
-isIn :: Text -> Text -> Bool
-isIn term context = any (\x   -> DT.isInfixOf x context)
-                        $ map (\sep -> term <> sep) separators
+            let ngs = map (\(lt, (stm, (_score, setext)))
+                                  -> mkNgramsElement stm lt
+                                        (Just stm)
+                                        (mSetFromList $ Set.toList setext)
+                                  ) termList
 
-------------------------------------------------------------------------
---graph :: [Ngrams] -> [Ngrams]
---graph ngs = filter (\ng -> _ngramsListName ng == Just Graph) ngs
---
---candidates :: [Ngrams] -> [Ngrams]
---candidates ngs = filter (\ng -> _ngramsListName ng == Just Candidate) ngs
---
---stop :: [Ngrams] -> [Ngrams]
---stop ngs = filter (\ng -> _ngramsListName ng == Just Stop) ngs
-------------------------------------------------------------------------
--- | Attoparsec solution to index test 
---import Data.Attoparsec.ByteString (Parser, parseOnly, try, string
---                                  , takeTill, take
---                                  , manyTill, many1)
---import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
---import Data.ByteString (ByteString, concat)
---import Data.ByteString.Char8 (pack)
---import Control.Applicative
--- | Attoparsec version
---indexParser :: (ByteString -> b) -> ByteString -> Parser b
---indexParser form2label x = do
---    _  <- manyTill anyChar (string x)
---    pure $ form2label x
+            pure $ Map.fromList [(NgramsTerms, ngs)]
 
---doIndex :: Applicative f => ByteString -> ByteString -> f (Either String [ByteString]
---doIndex f x txt = pure $ parseOnly (many $ indexParser f x) txt
-------------------------------------------------------------------------
+toTermList :: (a -> Bool) -> [a] -> [(ListType, a)]
+toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
+                   <> map (toTermList' stop GraphTerm)     ys
+                   <> map (toTermList' stop CandidateTerm) zs
+    where
+      toTermList' stop' l n = case stop' n of
+          True  -> (StopTerm, n)
+          False -> (l, n)
+
+      -- TODO use % of size of list
+      -- TODO user ML
+      xs = take a ns
+      ys = take b $ drop a ns
+      zs = drop b $ drop a ns
+
+      a = 100
+      b = 1000
+
+isStopTerm :: Text -> Bool
+isStopTerm x = Text.length x < 3
 
 

@@ -24,20 +24,17 @@ Portability : POSIX
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
-import Debug.Trace (trace)
---import Control.Lens (view)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
---import Gargantext.Core.Types
 --import Gargantext.Database.Node.Contact (HyperdataContact(..))
-import Data.Map (Map, lookup, fromListWith, toList)
+import Data.Map (Map, lookup, toList)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
 import qualified Data.Text as Text
 import Data.List (concat)
 import GHC.Show (Show)
-import Gargantext.Core.Types (NodePoly(..), ListType(..), Terms(..))
+import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main
 import Gargantext.Core (Lang(..))
@@ -47,14 +44,13 @@ import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 import Gargantext.Text.Terms (extractTerms)
 --import Gargantext.Text.Metrics.TFICF (Tficf(..))
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
-import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup)
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 -- import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
 --import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
-import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
+--import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd, CmdM)
@@ -62,11 +58,12 @@ import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Ext.IMT (toSchoolName)
 --import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
+import Gargantext.Text.List
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import System.FilePath (FilePath)
 import Gargantext.API.Ngrams (HasRepoVar)
 import Servant (ServantErr)
-import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, putListNgrams, RepoCmdM)
+import Gargantext.API.Ngrams (NgramsElement, putListNgrams, RepoCmdM)
 --import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
 import qualified Data.Map as DM
 
@@ -103,19 +100,12 @@ flowCorpus userName ff fp corpusName = do
   -- User List Flow
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
   -- /!\ this extract NgramsTerms Only
-  _ngs <- toTermList (isStopTerm . fst) <$> sortTficf
-                                       <$> getTficf' userCorpusId masterCorpusId (ngramsGroup EN 2)
-  
-  --printDebug "tficf size ngs" (take 100 $ ngs)
-
+  ngs <- buildNgramsList userCorpusId masterCorpusId
+  --printDebug "ngs" ngs
   -- TODO getNgramsElement of NgramsType...
-  ngs <- getNgramsElementsWithParentNodeId masterCorpusId
-  printDebug "getNgramsElementsWithParentNodeId size ngs" (length ngs)
-
-  -- TEMP fix
-  let masterUserId = 2
-  _masterListId <- flowList masterUserId masterCorpusId ngs
-  _userListId   <- flowListUser userId userCorpusId ngs 100
+  --ngs <- getNgramsElementsWithParentNodeId masterCorpusId
+  userListId   <- flowList userId userCorpusId ngs
+  printDebug "userListId" userListId
 
   -- User Graph Flow
   _ <- mkGraph     userCorpusId userId
@@ -288,6 +278,9 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
       e <- f $ documentData d
       pure $ DocumentIdWithNgrams d e
 
+
+
+-- FLOW LIST
 -- | TODO check optimization
 mapNodeIdNgrams :: [DocumentIdWithNgrams]
                 -> Map Ngrams (Map NgramsType (Map NodeId Int))
@@ -316,70 +309,8 @@ flowList uId cId ngs = do
   flowListBase lId ngs
   pure lId
 
-flowListUser :: FlowCmdM env err m
-             => UserId -> CorpusId
-             -> Map NgramsType [NgramsElement]
-             -> Int
-             -> m ListId
-flowListUser uId cId ngsM _n = do
-  lId <- getOrMkList cId uId
-
-  let ngs =
-        [ "test" <> Text.pack [x,y]
-        | x <- ['A'..'Z']
-        , y <- ['A'..'Z']
-        ]
-
-  trace ("flowListBase" <> show lId) flowListBase lId ngsM
-
-  putListNgrams lId NgramsTerms $
-    [ mkNgramsElement ng GraphTerm Nothing mempty
-    | ng <- ngs
-    ]
-
-  pure lId
 
 ------------------------------------------------------------------------
-ngrams2list :: Map NgramsIndexed (Map NgramsType a)
-            -> [(ListType, (NgramsType, NgramsIndexed))]
-ngrams2list m =
-  [ (CandidateTerm, (t, ng))
-  | (ng, tm) <- DM.toList m
-  , t <- DM.keys tm
-  ]
-
-ngrams2list' :: Map NgramsIndexed (Map NgramsType a)
-            -> Map NgramsType [NgramsElement]
-ngrams2list' m = fromListWith (<>)
-  [ (t, [mkNgramsElement (_ngramsTerms $ _ngrams ng) CandidateTerm Nothing mempty])
-  | (ng, tm) <- DM.toList m
-  , t <- DM.keys tm
-  ]
-
-
-------------------------------------------------------------------------
-
-toTermList :: (a -> Bool) -> [a] -> [(ListType, a)]
-toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
-                <> map (toTermList' stop GraphTerm)     ys
-                <> map (toTermList' stop CandidateTerm) zs
-    where
-      toTermList' stop' l n = case stop' n of
-          True  -> (StopTerm, n)
-          False -> (l, n)
-      
-      -- TODO use % of size of list
-      -- TODO user ML
-      xs = take a ns
-      ys = take b $ drop a xs
-      zs = drop b ys
-
-      a = 100
-      b = 1000
-
-isStopTerm :: Text -> Bool
-isStopTerm x = Text.length x < 3
-
 ------------------------------------------------------------------------
 
 {-
