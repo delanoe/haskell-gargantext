@@ -130,25 +130,31 @@ type Step  = Int
 -- if   step == grain then linearity
 -- elif step < grain then overlapping
 -- else dotted with holes
+-- TODO FIX BUG if Steps*Grain /= length l
 chunkAlong :: Eq a => Grain -> Step -> [a] -> [[a]]
-chunkAlong a b l = case a > 0 && b > 0 of
-    True  -> chunkAlong_ a b l
-    False -> panic "ChunkAlong: Parameters should be > 0 and Grain > Step"
+chunkAlong a b l = case a >= length l of
+  True  -> [l]
+  False -> chunkAlong' a b l
 
-chunkAlong_ :: Eq a => Int -> Int -> [a] -> [[a]]
-chunkAlong_ a b l = filter (/= []) $ only (while dropAlong)
-    where
-        only      = map       (take a)
-        while     = takeWhile (\x -> length x >= a)
-        dropAlong = L.scanl   (\x _y -> drop b x) l ([1..] :: [Integer])
+chunkAlong' :: Eq a => Grain -> Step -> [a] -> [[a]]
+chunkAlong' a b l = case a > 0 && b > 0 of
+  True  -> chunkAlong'' a b l
+  False -> panic "ChunkAlong: Parameters should be > 0 and Grain > Step"
+
+chunkAlong'' :: Eq a => Int -> Int -> [a] -> [[a]]
+chunkAlong'' a b l = filter (/= []) $ only (while dropAlong)
+  where
+    only      = map       (take a)
+    while     = takeWhile (\x -> length x >= a)
+    dropAlong = L.scanl   (\x _y -> drop b x) l ([1..] :: [Integer])
 
 -- | Optimized version (Vector)
-chunkAlong' :: Int -> Int -> V.Vector a -> V.Vector (V.Vector a)
-chunkAlong' a b l = only (while  dropAlong)
-    where
-        only      = V.map       (V.take a)
-        while     = V.takeWhile (\x -> V.length x >= a)
-        dropAlong = V.scanl     (\x _y -> V.drop b x) l (V.fromList [1..])
+chunkAlongV :: Int -> Int -> V.Vector a -> V.Vector (V.Vector a)
+chunkAlongV a b l = only (while  dropAlong)
+  where
+    only      = V.map       (V.take a)
+    while     = V.takeWhile (\x -> V.length x >= a)
+    dropAlong = V.scanl     (\x _y -> V.drop b x) l (V.fromList [1..])
 
 -- | TODO Inverse of chunk ? unchunkAlong ?
 -- unchunkAlong :: Int -> Int -> [[a]] -> [a]

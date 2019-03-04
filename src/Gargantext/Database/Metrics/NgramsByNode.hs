@@ -53,8 +53,8 @@ ngramsGroup l n = Text.intercalate " "
 
 
 sortTficf :: (Map Text (Double, Set Text))
-          -> [(Double, Set Text)]
-sortTficf  = List.sortOn fst . elems
+          -> [(Text, (Double, Set Text))]
+sortTficf  = List.sortOn (fst . snd) . toList
 
 
 getTficf' :: UserCorpusId -> MasterCorpusId -> (Text -> Text)

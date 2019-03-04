@@ -85,6 +85,14 @@ flowCorpus userName ff fp corpusName = do
   -- Master Flow
   docs <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
   -- ChunkAlong needed for big corpora
+  -- TODO add LANG as parameter
+  -- TODO uniformize language of corpus
+                                   -- TODO ChunkAlong is not the right function here
+                                   -- chunkAlong 10 10 [1..15] == [1..10]
+                                   -- BUG: what about the rest (divMod 15 10)?
+                                   -- but if temporary enables big corpora insert for tests
+                                   -- TODO: chunkAlongNoRest or chunkAlongWithRest
+                                   -- default: NoRest
   ids  <- mapM insertMasterDocs $ chunkAlong 10000 10000 docs
 
   -- User Flow
@@ -95,8 +103,10 @@ flowCorpus userName ff fp corpusName = do
   -- User List Flow
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
   -- /!\ this extract NgramsTerms Only
-  _ngs <- sortTficf <$> getTficf' userCorpusId masterCorpusId (ngramsGroup EN 2)
-  printDebug "tficf size ngs" (length _ngs)
+  _ngs <- toTermList (isStopTerm . fst) <$> sortTficf
+                                       <$> getTficf' userCorpusId masterCorpusId (ngramsGroup EN 2)
+  
+  --printDebug "tficf size ngs" (take 100 $ ngs)
 
   -- TODO getNgramsElement of NgramsType...
   ngs <- getNgramsElementsWithParentNodeId masterCorpusId
@@ -347,7 +357,28 @@ ngrams2list' m = fromListWith (<>)
   ]
 
 
+------------------------------------------------------------------------
 
+toTermList :: (a -> Bool) -> [a] -> [(ListType, a)]
+toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
+                <> map (toTermList' stop GraphTerm)     ys
+                <> map (toTermList' stop CandidateTerm) zs
+    where
+      toTermList' stop' l n = case stop' n of
+          True  -> (StopTerm, n)
+          False -> (l, n)
+      
+      -- TODO use % of size of list
+      -- TODO user ML
+      xs = take a ns
+      ys = take b $ drop a xs
+      zs = drop b ys
+
+      a = 100
+      b = 1000
+
+isStopTerm :: Text -> Bool
+isStopTerm x = Text.length x < 3
 
 ------------------------------------------------------------------------
 

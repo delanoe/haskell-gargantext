@@ -37,10 +37,10 @@ sentences :: Text -> [Text]
 sentences txt = map DT.pack $ segment $ DT.unpack txt
 
 sentences' :: Text -> [Text]
-sentences' txt = split isStop txt
+sentences' txt = split isCharStop txt
 
-isStop :: Char -> Bool
-isStop c = c `elem` ['.','?','!']
+isCharStop :: Char -> Bool
+isCharStop c = c `elem` ['.','?','!']
 
 unsentences :: [Text] -> Text
 unsentences txts = DT.intercalate " " txts
