@@ -30,7 +30,7 @@ module Gargantext.Viz.Phylo.Example where
 import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
-import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse)
+import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take)
 import Data.Map         (Map, elems, member, adjust, singleton, (!), keys, restrictKeys, mapWithKey)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
@@ -55,15 +55,110 @@ import qualified Data.Vector as Vector
 
 
 ------------------------------------------------------------------------
--- | STEP 12 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
+-- | STEP 13 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
 
 
 ------------------------------------------------------------------------
--- | STEP 11 | -- Cluster the Fis
+-- | STEP 12 | -- Cluster the Fis
 
 
 ------------------------------------------------------------------------
--- | STEP 10 | -- Link the PhyloGroups of level 1 through the Periods 
+-- | STEP 11 | -- Link the PhyloGroups of level 1 through the Periods 
+
+
+-- | To process the weightedLogJaccard between two PhyloGroups
+weightedLogJaccard :: PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+weightedLogJaccard group group' = (getGroupId group', 1)
+
+
+-- | To apply the corresponding proximity function based on a given Proximity
+getProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+getProximity p group group' = case p of 
+  WeightedLogJaccard -> weightedLogJaccard group group'
+  Other              -> undefined
+  _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
+
+
+-- | To get the next or previous PhyloPeriod based on a given PhyloPeriodId
+getNextPeriods :: PairTo -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId] 
+getNextPeriods to id l = case to of 
+    Childs  -> (tail . snd) next 
+    Parents -> (reverse . fst) next
+    _       -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] PairTo type not defined")
+    where 
+      --------------------------------------
+      next :: ([PhyloPeriodId], [PhyloPeriodId])
+      next = splitAt idx l
+      --------------------------------------
+      idx :: Int
+      idx = case (List.elemIndex id l) of 
+        Nothing -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] PhyloPeriodId not defined")
+        Just i  -> i
+      --------------------------------------
+
+
+-- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )  
+findBestCandidates :: PairTo -> Int -> Int -> Double -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
+findBestCandidates to depth max thr group p
+  | depth > max || (null . head) next = [] 
+  | (not . null) best = take 2 best
+  | otherwise = findBestCandidates to (depth + 1) max thr group p   
+  where
+    --------------------------------------
+    next :: [PhyloPeriodId]
+    next = getNextPeriods to (getGroupPeriod group) (getPhyloPeriods p)
+    --------------------------------------
+    candidates :: [PhyloGroup] 
+    candidates = getGroupsWithFilters (getGroupLevel group) (head next) p
+    --------------------------------------
+    scores :: [(PhyloGroupId, Double)]
+    scores = map (\group' -> getProximity WeightedLogJaccard group group') candidates
+    --------------------------------------
+    best :: [(PhyloGroupId, Double)]
+    best = reverse
+         $ sortOn snd 
+         $ filter (\(id,s) -> s >= thr) scores
+    --------------------------------------
+
+
+-- | To add a new list of Pointers into an existing Childs/Parents list of Pointers 
+makePair :: PairTo -> PhyloGroup -> [(PhyloGroupId, Double)] -> PhyloGroup
+makePair to group ids = case to of 
+    Childs  -> over (phylo_groupPeriodChilds) addPointers group
+    Parents -> over (phylo_groupPeriodParents) addPointers group
+    _       -> panic ("[ERR][Viz.Phylo.Example.makePair] PairTo type not defined")
+    where
+      -------------------------------------- 
+      addPointers :: [Pointer] -> [Pointer]
+      addPointers l = nub $ (l ++ ids)
+      --------------------------------------
+
+
+-- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
+pairGroupsToGroups :: PairTo -> Level -> Double -> Phylo -> Phylo
+pairGroupsToGroups to lvl thr p = alterPhyloGroupsWith 
+                                    (\groups -> 
+                                      map (\group -> 
+                                            let
+                                              --------------------------------------
+                                              candidates :: [(PhyloGroupId, Double)] 
+                                              candidates = findBestCandidates to 1 5 thr group p
+                                              --------------------------------------
+                                            in 
+                                              makePair to group candidates ) groups)
+                                    getGroupLevel (getLevelValue lvl) p
+
+
+phyloWithPair_1_Childs :: Phylo
+phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.5 phyloLinked_0_1
+
+
+phyloWithPair_1_Parents :: Phylo
+phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.5 phyloLinked_0_1
+
+
+------------------------------------------------------------------------
+-- | STEP 10 | -- Build the coocurency Matrix of the Phylo 
 
 
 -- | Are two PhyloGroups sharing at leats one Ngrams 
@@ -112,59 +207,9 @@ fisToCooc m p = map   (/docs)
     cooc = Map.fromList $ map (\x -> (x,0)) (listToCombi (\x -> ngramsToIdx x p) fisNgrams)
     --------------------------------------
 
-data Proximity  = WeightedLogJaccard | Other
 
-data Candidates = Childs | Parents 
-
-weightedLogJaccard :: PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-weightedLogJaccard group group' = (getGroupId group', 1)
-
-getProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-getProximity p group group' = case p of 
-  WeightedLogJaccard -> weightedLogJaccard group group'
-  Other              -> undefined
-  _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
-
-getPhyloPeriods :: Phylo -> [PhyloPeriodId]
-getPhyloPeriods p = map _phylo_periodId 
-                  $ view (phylo_periods) p
-
--- | Trouver un moyen de naviguer dans la liste des périodes next or prévious depuis getCandidates
--- | lié getCandidates à pair group
--- | faire rentrer de la récurence de profondeur 5 au plus dans pair group
--- | faire le jaccard 
--- | faire les pointeurs 
--- | faire l'amont de pair group
--- | faire le double sens 
-
-getCandidates :: Candidates -> PhyloGroup -> Phylo -> [PhyloGroup]
-getCandidates c group p = getGroupsWithFilters (getGroupLevel group) prd p
-  where
-    -------------------------------------- 
-    prd = case c of
-      Childs  -> getGroupPeriod group
-      Parents -> getGroupPeriod group
-      _       -> panic ("[ERR][Viz.Phylo.Example.getCandidates] Candidates type not defined")
-
-pairGroupToGroups :: Double -> PhyloGroup -> [PhyloGroup] -> PhyloGroup
-pairGroupToGroups thr group l = if (not . null) $ keepBest thr scores
-                                then group
-                                else group
-  where
-    --------------------------------------
-    scores :: [(PhyloGroupId, Double)]
-    scores = map (\group' -> getProximity WeightedLogJaccard group group') l
-    --------------------------------------
-    keepBest :: Double -> [(PhyloGroupId, Double)] -> [(PhyloGroupId, Double)]
-    keepBest thr l = reverse
-                   $ sortOn snd 
-                   $ filter (\(id,s) -> s >= thr) l
-    --------------------------------------
-
-
-
-phyloWithAppariement1 :: Phylo
-phyloWithAppariement1 = phyloLinked_0_1
+phyloCooc :: Map (Int, Int) Double
+phyloCooc = fisToCooc phyloFisFiltered phyloLinked_0_1
 
 
 ------------------------------------------------------------------------

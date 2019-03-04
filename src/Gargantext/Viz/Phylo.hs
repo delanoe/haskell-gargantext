@@ -178,6 +178,12 @@ data PhyloError = LevelDoesNotExist
                 | LevelUnassigned
           deriving (Show)               
 
+
+data Proximity  = WeightedLogJaccard | Other
+
+
+data PairTo = Childs | Parents 
+
 -- | Lenses
 makeLenses ''Phylo
 makeLenses ''PhyloParam
