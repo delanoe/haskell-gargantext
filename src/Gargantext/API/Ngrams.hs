@@ -47,14 +47,14 @@ import Data.Monoid
 --import Data.Semigroup
 import Data.Set (Set)
 -- import qualified Data.List as List
-import Data.Maybe (isNothing)
+import Data.Maybe (fromMaybe)
 -- import Data.Tuple.Extra (first)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
---import qualified Data.Set as Set
+import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (^..), (.~), (#), to, {-withIndex, folded, ifolded,-} view, (^.), (+~), (%~), at, _Just, Each(..), itraverse_, (.=), both, mapped)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (#), to, {-withIndex, folded, ifolded,-} view, use, (^.), (+~), (%~), (%=), at, _Just, Each(..), itraverse_, both, mapped)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
@@ -85,6 +85,11 @@ import Servant hiding (Patch)
 import System.FileLock (FileLock)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
+data TODO = TODO
+  deriving (Generic)
+
+instance ToSchema TODO where
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -131,15 +136,39 @@ instance (Ord a, FromJSON a) => FromJSON (MSet a) where
 
 instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
   -- TODO
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 ------------------------------------------------------------------------
 type NgramsTerm = Text
+
+data RootParent = RootParent
+  { _rp_root   :: NgramsTerm
+  , _rp_parent :: NgramsTerm
+  }
+  deriving (Ord, Eq, Show, Generic)
+
+deriveJSON (unPrefix "_rp_") ''RootParent
+makeLenses ''RootParent
+
+data NgramsRepoElement = NgramsRepoElement
+  { _nre_size        :: Int
+  , _nre_list        :: ListType
+--, _nre_root_parent :: Maybe RootParent
+  , _nre_root        :: Maybe NgramsTerm
+  , _nre_parent      :: Maybe NgramsTerm
+  , _nre_children    :: MSet NgramsTerm
+  }
+  deriving (Ord, Eq, Show, Generic)
+
+deriveJSON (unPrefix "_nre_") ''NgramsRepoElement
+makeLenses ''NgramsRepoElement
 
 data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm
                    , _ne_size        :: Int
                    , _ne_list        :: ListType
                    , _ne_occurrences :: Int
+                   , _ne_root        :: Maybe NgramsTerm
                    , _ne_parent      :: Maybe NgramsTerm
                    , _ne_children    :: MSet NgramsTerm
                    }
@@ -148,9 +177,9 @@ data NgramsElement =
 deriveJSON (unPrefix "_ne_") ''NgramsElement
 makeLenses ''NgramsElement
 
-mkNgramsElement :: NgramsTerm -> ListType -> Maybe NgramsTerm -> MSet NgramsTerm -> NgramsElement
-mkNgramsElement ngrams list parent children =
-  NgramsElement ngrams size list 1 parent children
+mkNgramsElement :: NgramsTerm -> ListType -> Maybe RootParent -> MSet NgramsTerm -> NgramsElement
+mkNgramsElement ngrams list rp children =
+  NgramsElement ngrams size list 1 (_rp_root <$> rp) (_rp_parent <$> rp) children
   where
     -- TODO review
     size = 1 + count " " ngrams
@@ -158,6 +187,41 @@ mkNgramsElement ngrams list parent children =
 instance ToSchema NgramsElement
 instance Arbitrary NgramsElement where
   arbitrary = elements [mkNgramsElement "sport" GraphTerm Nothing mempty]
+
+ngramsElementToRepo :: NgramsElement -> NgramsRepoElement
+ngramsElementToRepo
+  (NgramsElement { _ne_size = s
+                 , _ne_list = l
+                 , _ne_root = r
+                 , _ne_parent = p
+                 , _ne_children = c
+                 }) =
+  NgramsRepoElement
+    { _nre_size = s
+    , _nre_list = l
+    , _nre_parent = p
+    , _nre_root   = r
+    , _nre_children = c
+    }
+
+ngramsElementFromRepo :: (NgramsTerm, NgramsRepoElement) -> NgramsElement
+ngramsElementFromRepo
+  (ngrams,
+   NgramsRepoElement
+      { _nre_size = s
+      , _nre_list = l
+      , _nre_parent = p
+      , _nre_root = r
+      , _nre_children = c
+      }) =
+  NgramsElement { _ne_size = s
+                , _ne_list = l
+                , _ne_root = r
+                , _ne_parent = p
+                , _ne_children = c
+                , _ne_ngrams = ngrams
+                , _ne_occurrences = 1 -- TODO
+                }
 
 ------------------------------------------------------------------------
 newtype NgramsTable = NgramsTable [NgramsElement]
@@ -200,18 +264,20 @@ toNgramsElement ns = map toNgramsElement' ns
 mockTable :: NgramsTable
 mockTable = NgramsTable
   [ mkNgramsElement "animal"  GraphTerm      Nothing       (mSetFromList ["dog", "cat"])
-  , mkNgramsElement "cat"     GraphTerm     (Just "animal") mempty
-  , mkNgramsElement "cats"    StopTerm       Nothing        mempty
-  , mkNgramsElement "dog"     GraphTerm     (Just "animal")(mSetFromList ["dogs"])
-  , mkNgramsElement "dogs"    StopTerm      (Just "dog")    mempty
-  , mkNgramsElement "fox"     GraphTerm      Nothing        mempty
-  , mkNgramsElement "object"  CandidateTerm  Nothing        mempty
-  , mkNgramsElement "nothing" StopTerm       Nothing        mempty
-  , mkNgramsElement "organic" GraphTerm      Nothing        (mSetFromList ["flower"])
-  , mkNgramsElement "flower"  GraphTerm     (Just "organic") mempty
-  , mkNgramsElement "moon"    CandidateTerm  Nothing         mempty
-  , mkNgramsElement "sky"     StopTerm       Nothing         mempty
+  , mkNgramsElement "cat"     GraphTerm     (rp "animal")  mempty
+  , mkNgramsElement "cats"    StopTerm       Nothing       mempty
+  , mkNgramsElement "dog"     GraphTerm     (rp "animal")  (mSetFromList ["dogs"])
+  , mkNgramsElement "dogs"    StopTerm      (rp "dog")     mempty
+  , mkNgramsElement "fox"     GraphTerm      Nothing       mempty
+  , mkNgramsElement "object"  CandidateTerm  Nothing       mempty
+  , mkNgramsElement "nothing" StopTerm       Nothing       mempty
+  , mkNgramsElement "organic" GraphTerm      Nothing       (mSetFromList ["flower"])
+  , mkNgramsElement "flower"  GraphTerm     (rp "organic") mempty
+  , mkNgramsElement "moon"    CandidateTerm  Nothing       mempty
+  , mkNgramsElement "sky"     StopTerm       Nothing       mempty
   ]
+  where
+    rp n = Just $ RootParent n n
 
 instance Arbitrary NgramsTable where
   arbitrary = pure mockTable
@@ -219,7 +285,7 @@ instance Arbitrary NgramsTable where
 instance ToSchema NgramsTable
 
 ------------------------------------------------------------------------
-type NgramsTableMap = Map NgramsTerm NgramsElement
+type NgramsTableMap = Map NgramsTerm NgramsRepoElement
 
 ------------------------------------------------------------------------
 -- On the Client side:
@@ -334,11 +400,6 @@ instance (Ord a, FromJSON a) => FromJSON (PatchMSet a) where
 instance (Ord a, Arbitrary a) => Arbitrary (PatchMSet a) where
   arbitrary = (PatchMSet . PM.fromMap) <$> arbitrary
 
-data TODO = TODO
-  deriving (Generic)
-
-instance ToSchema TODO where
-
 instance ToSchema a => ToSchema (PatchMSet a) where
   -- TODO
   declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
@@ -410,18 +471,17 @@ type PatchedNgramsPatch = (Set NgramsTerm, ListType)
   -- ~ Patched NgramsPatchIso
 type instance Patched NgramsPatch = PatchedNgramsPatch
 
-instance Applicable NgramsPatch (Maybe NgramsElement) where
+instance Applicable NgramsPatch (Maybe NgramsRepoElement) where
   applicable p Nothing   = check (p == mempty) "NgramsPatch should be empty here"
-  applicable p (Just ne) =
-    -- TODO how to patch _ne_parent ?
-    applicable (p ^. patch_children) (ne ^. ne_children) <>
-    applicable (p ^. patch_list)     (ne ^. ne_list)
+  applicable p (Just nre) =
+    applicable (p ^. patch_children) (nre ^. nre_children) <>
+    applicable (p ^. patch_list)     (nre ^. nre_list)
 
-instance Action NgramsPatch NgramsElement where
-  act p = (ne_children %~ act (p ^. patch_children))
-        . (ne_list     %~ act (p ^. patch_list))
+instance Action NgramsPatch NgramsRepoElement where
+  act p = (nre_children %~ act (p ^. patch_children))
+        . (nre_list     %~ act (p ^. patch_list))
 
-instance Action NgramsPatch (Maybe NgramsElement) where
+instance Action NgramsPatch (Maybe NgramsRepoElement) where
   act = fmap . act
 
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
@@ -465,16 +525,22 @@ instance Arbitrary NgramsTablePatch where
 
 type ReParent a = forall m. MonadState NgramsTableMap m => a -> m ()
 
-reParent :: Maybe NgramsTerm -> ReParent NgramsTerm
-reParent parent child = at child . _Just . ne_parent .= parent
+reParent :: Maybe RootParent -> ReParent NgramsTerm
+reParent rp child = at child . _Just %= ( (nre_parent .~ (_rp_parent <$> rp))
+                                        . (nre_root   .~ (_rp_root   <$> rp))
+                                        )
 
-reParentAddRem :: NgramsTerm -> NgramsTerm -> ReParent AddRem
-reParentAddRem parent child p =
-  reParent (if isRem p then Nothing else Just parent) child
+reParentAddRem :: RootParent -> NgramsTerm -> ReParent AddRem
+reParentAddRem rp child p =
+  reParent (if isRem p then Nothing else Just rp) child
 
 reParentNgramsPatch :: NgramsTerm -> ReParent NgramsPatch
-reParentNgramsPatch parent ngramsPatch =
-  itraverse_ (reParentAddRem parent) (ngramsPatch ^. patch_children . _PatchMSet . _PatchMap)
+reParentNgramsPatch parent ngramsPatch = do
+  root_of_parent <- use (at parent . _Just . nre_root)
+  let
+    root = fromMaybe parent root_of_parent
+    rp   = RootParent { _rp_root = root, _rp_parent = parent }
+  itraverse_ (reParentAddRem rp) (ngramsPatch ^. patch_children . _PatchMSet . _PatchMap)
   -- TODO FoldableWithIndex/TraversableWithIndex for PatchMap
 
 reParentNgramsTablePatch :: ReParent NgramsTablePatch
@@ -617,7 +683,7 @@ initMockRepo = Repo 1 s []
     s = Map.singleton Ngrams.NgramsTerms
       $ Map.singleton 47254
       $ Map.fromList
-      [ (n ^. ne_ngrams, n) | n <- mockTable ^. _NgramsTable ]
+      [ (n ^. ne_ngrams, ngramsElementToRepo n) | n <- mockTable ^. _NgramsTable ]
 
 data RepoEnv = RepoEnv
   { _renv_var   :: !(MVar NgramsRepo)
@@ -737,7 +803,7 @@ putListNgrams listId ngramsType nes = do
     pure . (r_state . at ngramsType %~ (Just . (at listId %~ (Just . (m <>) . something)) . something))
   saveRepo
   where
-    m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
+    m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
@@ -797,7 +863,7 @@ tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table)
   pure $ Versioned 1 mempty
   -}
 
-mergeNgramsElement :: NgramsElement -> NgramsElement -> NgramsElement
+mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
   {-
   { _ne_list        :: ListType
@@ -807,9 +873,18 @@ mergeNgramsElement _neOld neNew = neNew
   }
   -}
 
-getListNgrams :: RepoCmdM env err m
+getNgramsTableMap :: RepoCmdM env err m
+                  => NodeId -> NgramsType -> m (Versioned NgramsTableMap)
+getNgramsTableMap nodeId ngramsType = do
+  v <- view repoVar
+  repo <- liftIO $ readMVar v
+  pure $ Versioned (repo ^. r_version)
+                   (repo ^. r_state . at ngramsType . _Just . at nodeId . _Just)
+
+-- UNUSED
+_getListNgrams :: RepoCmdM env err m
                 => [NodeId] -> NgramsType -> m (Versioned ListNgrams)
-getListNgrams nodeIds ngramsType = do
+_getListNgrams nodeIds ngramsType = do
   v <- view repoVar
   repo <- liftIO $ readMVar v
 
@@ -820,7 +895,8 @@ getListNgrams nodeIds ngramsType = do
       Map.unionsWith mergeNgramsElement
         [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
-  pure $ Versioned (repo ^. r_version) (NgramsTable (ngrams ^.. each))
+  pure $ Versioned (repo ^. r_version)
+       $ NgramsTable (ngramsElementFromRepo <$> Map.toList ngrams)
 
 type MinSize = Int
 type MaxSize = Int
@@ -851,19 +927,31 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset
     -- * non root selected ngrams should be replaced by their root
     --   + what to do with duplicates
     --   + which order
-    selected n = isNothing   (n ^. ne_parent)
-              && minSize     s
-              && maxSize     s
-              && searchQuery (n ^. ne_ngrams)
-              && listType    (n ^. ne_list)
+    selected_node n = minSize     s
+                   && maxSize     s
+                   && searchQuery (n ^. ne_ngrams)
+                   && listType    (n ^. ne_list)
       where
         s = n ^. ne_size
 
+    selected_inner roots n = maybe False (`Set.member` roots) (n ^. ne_root)
+
+    finalize tableMap = NgramsTable $ roots <> inners
+      where
+        rootOf ne = maybe ne (\r -> ngramsElementFromRepo (r, fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. at r)))
+                             (ne ^. ne_root)
+        list = ngramsElementFromRepo <$> Map.toList tableMap
+        selected_nodes = list & take limit_ . drop offset_ . filter selected_node
+        roots = rootOf <$> selected_nodes
+        rootsSet = Set.fromList (_ne_ngrams <$> roots)
+        inners = list & filter (selected_inner rootsSet)
+
   -- lists <- catMaybes <$> listsWith userMaster
   -- trace (show lists) $
-  getListNgrams ({-lists <>-} listIds) ngramsType
-    & mapped . v_data . _NgramsTable
-    %~ (take limit_ . drop offset_ . filter selected)
+  -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
+  let listId = fromMaybe (panic "getTableNgrams: expecting a single ListId") (head listIds)
+
+  getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
 
 
 

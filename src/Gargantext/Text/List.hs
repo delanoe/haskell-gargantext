@@ -23,7 +23,7 @@ module Gargantext.Text.List
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
-import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, mSetFromList)
+import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
@@ -83,7 +83,7 @@ toNgramsElement (listType, (_stem, (_score, setNgrams))) =
                                         Nothing
                                         (mSetFromList children)
         childrenElems = map (\t -> mkNgramsElement t listType
-                                                   (Just parent)
+                                                   (Just $ RootParent parent parent)
                                                    (mSetFromList [])
                             ) children
 
