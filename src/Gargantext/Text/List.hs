@@ -34,6 +34,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.List as List
+import qualified Data.Char as Char
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
 buildNgramsLists :: UserCorpusId -> MasterCorpusId
@@ -110,5 +111,6 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
 
 isStopTerm :: Text -> Bool
 isStopTerm x = Text.length x < 3
+             || not (all Char.isAlpha (Text.unpack x))
 
 
