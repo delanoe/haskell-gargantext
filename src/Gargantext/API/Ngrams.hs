@@ -44,6 +44,7 @@ import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
                          ConflictResolutionReplace, ours)
 import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
+import Data.Foldable
 --import Data.Semigroup
 import Data.Set (Set)
 -- import qualified Data.List as List
@@ -54,7 +55,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (#), to, {-withIndex, folded, ifolded,-} view, use, (^.), (+~), (%~), (%=), at, _Just, Each(..), itraverse_, both, mapped)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (.=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (+~), (%~), (%=), at, _Just, Each(..), itraverse_, both, mapped, forOf_)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
@@ -130,6 +131,9 @@ mSetFromSet = MSet . Map.fromSet (const ())
 
 mSetFromList :: Ord a => [a] -> MSet a
 mSetFromList = MSet . Map.fromList . map (\x -> (x, ()))
+
+instance Foldable MSet where
+  foldMap f (MSet m) = Map.foldMapWithKey (\k _ -> f k) m
 
 instance (Ord a, FromJSON a) => FromJSON (MSet a) where
   parseJSON = fmap mSetFromList . parseJSON
@@ -525,10 +529,19 @@ instance Arbitrary NgramsTablePatch where
 
 type ReParent a = forall m. MonadState NgramsTableMap m => a -> m ()
 
+reRootChildren :: Maybe NgramsTerm -> ReParent NgramsTerm
+reRootChildren root ngram = do
+  nre <- use $ at ngram
+  forOf_ (_Just . nre_children . folded) nre $ \child -> do
+    at child . _Just . nre_root .= root
+    reRootChildren root child
+
 reParent :: Maybe RootParent -> ReParent NgramsTerm
-reParent rp child = at child . _Just %= ( (nre_parent .~ (_rp_parent <$> rp))
-                                        . (nre_root   .~ (_rp_root   <$> rp))
-                                        )
+reParent rp child = do
+  at child . _Just %= ( (nre_parent .~ (_rp_parent <$> rp))
+                      . (nre_root   .~ (_rp_root   <$> rp))
+                      )
+  reRootChildren (rp ^? _Just . rp_root) child
 
 reParentAddRem :: RootParent -> NgramsTerm -> ReParent AddRem
 reParentAddRem rp child p =
