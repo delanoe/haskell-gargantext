@@ -31,7 +31,7 @@ import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
 import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take)
-import Data.Map         (Map, elems, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey)
+import Data.Map         (Map, elems, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey, mapKeys, intersectionWith, unionWith)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
 import Data.Text        (Text, unwords, toLower, words)
@@ -63,18 +63,37 @@ import qualified Data.Vector as Vector
 
 
 ------------------------------------------------------------------------
--- | STEP 11 | -- Link the PhyloGroups of level 1 through the Periods 
+-- | STEP 11 | -- Link the PhyloGroups of level 1 through the Periods  
 
 
--- | To process the weightedLogJaccard between two PhyloGroups
-weightedLogJaccard :: PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-weightedLogJaccard group group' = (getGroupId group', 1)
+-- | To process the weightedLogJaccard between two PhyloGroups fields
+weightedLogJaccard :: Double -> PhyloGroupId -> Map (Int, Int) Double -> Map (Int, Int) Double -> (PhyloGroupId, Double)
+weightedLogJaccard s id f1 f2
+  | null wUnion      = (id,0)
+  | wUnion == wInter = (id,1) 
+  | s == 0           = (id,(fromIntegral $ length wInter)/(fromIntegral $ length wUnion))
+  | s > 0            = (id,(sumInvLog wInter)/(sumInvLog wUnion))
+  | otherwise        = (id,(sumLog wInter)/(sumLog wUnion))
+  where 
+    --------------------------------------
+    wInter :: [Double]
+    wInter = elems $ intersectionWith (+) f1 f2
+    --------------------------------------
+    wUnion :: [Double]
+    wUnion = elems $ unionWith (+) f1 f2  
+    --------------------------------------
+    sumInvLog :: [Double] -> Double
+    sumInvLog l = foldl (\mem x -> mem + (1 / log (s + x))) 0 l
+    --------------------------------------
+    sumLog :: [Double] -> Double
+    sumLog l = foldl (\mem x -> mem + log (s + x)) 0 l  
+    --------------------------------------  
 
 
 -- | To apply the corresponding proximity function based on a given Proximity
-getProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-getProximity p group group' = case p of 
-  WeightedLogJaccard -> weightedLogJaccard group group'
+getProximity :: Proximity -> Double -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+getProximity prox s g1 g2 = case prox of 
+  WeightedLogJaccard -> weightedLogJaccard s (getGroupId g2) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1))
   Other              -> undefined
   _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
 
@@ -109,11 +128,11 @@ getNextPeriods to id l = case to of
 
 
 -- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )  
-findBestCandidates :: PairTo -> Int -> Int -> Double -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
-findBestCandidates to depth max thr group p
+findBestCandidates :: PairTo -> Int -> Int -> Double -> Double -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
+findBestCandidates to depth max thr s group p
   | depth > max || (null . head) next = [] 
   | (not . null) best = take 2 best
-  | otherwise = findBestCandidates to (depth + 1) max thr group p   
+  | otherwise = findBestCandidates to (depth + 1) max thr s group p   
   where
     --------------------------------------
     next :: [PhyloPeriodId]
@@ -123,12 +142,12 @@ findBestCandidates to depth max thr group p
     candidates = getGroupsWithFilters (getGroupLevel group) (head next) p
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
-    scores = map (\group' -> getProximity WeightedLogJaccard group group') candidates
+    scores = map (\group' -> getProximity WeightedLogJaccard s group group') candidates
     --------------------------------------
     best :: [(PhyloGroupId, Double)]
     best = reverse
          $ sortOn snd 
-         $ filter (\(id,s) -> s >= thr) scores
+         $ filter (\(id,score) -> score >= thr) scores
     --------------------------------------
 
 
@@ -146,14 +165,14 @@ makePair to group ids = case to of
 
 
 -- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
-pairGroupsToGroups :: PairTo -> Level -> Double -> Phylo -> Phylo
-pairGroupsToGroups to lvl thr p = alterPhyloGroupsWith 
+pairGroupsToGroups :: PairTo -> Level -> Double -> Double -> Phylo -> Phylo
+pairGroupsToGroups to lvl thr s p = alterPhyloGroupsWith 
                                     (\groups -> 
                                       map (\group -> 
                                             let
                                               --------------------------------------
                                               candidates :: [(PhyloGroupId, Double)] 
-                                              candidates = findBestCandidates to 1 5 thr group p
+                                              candidates = findBestCandidates to 1 5 thr s group p
                                               --------------------------------------
                                             in 
                                               makePair to group candidates ) groups)
@@ -161,11 +180,11 @@ pairGroupsToGroups to lvl thr p = alterPhyloGroupsWith
 
 
 phyloWithPair_1_Childs :: Phylo
-phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.5 phyloLinked_0_1
+phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.1 0.5 phyloWithPair_1_Parents
 
 
 phyloWithPair_1_Parents :: Phylo
-phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.5 phyloLinked_0_1
+phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.1 0.5 phyloLinked_0_1
 
 
 ------------------------------------------------------------------------

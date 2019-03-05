@@ -125,6 +125,11 @@ getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId = _phylo_groupId
 
 
+-- | To get the Cooc Matrix of a PhyloGroup
+getGroupCooc :: PhyloGroup -> Map (Int,Int) Double
+getGroupCooc = _phylo_groupCooc
+
+
 -- | To get the level out of the id of a PhyloGroup
 getGroupLevel :: PhyloGroup -> Int
 getGroupLevel = snd . fst . getGroupId
@@ -261,3 +266,10 @@ shouldLink lvl l l'
     from :: Int
     from = getLevelLinkValue From lvl
     --------------------------------------
+
+
+-- | To unify the keys (x,y) that Map 1 share with Map 2 such as: (x,y) <=> (y,x)
+unifySharedKeys :: Eq a => Ord a => Map (a,a) b -> Map (a,a) b -> Map (a,a) b
+unifySharedKeys m1 m2 = mapKeys (\(x,y) -> if member (y,x) m2
+                                           then (y,x)
+                                           else (x,y) ) m1 
