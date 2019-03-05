@@ -26,7 +26,7 @@ import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, mSetFromList)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
-import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup)
+import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
@@ -35,9 +35,31 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.List as List
 
-buildNgramsList :: UserCorpusId -> MasterCorpusId
+-- | TODO improve grouping functions of Authors, Sources, Institutes..
+buildNgramsLists :: UserCorpusId -> MasterCorpusId
+                 -> Cmd err (Map NgramsType [NgramsElement])
+buildNgramsLists uCid mCid = do
+  ngTerms     <- buildNgramsTermsList uCid mCid
+  othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
+  pure $ Map.unions $ othersTerms <> [ngTerms]
+
+
+buildNgramsOthersList :: UserCorpusId -> (Text -> Text) -> NgramsType 
+                      -> Cmd err (Map NgramsType [NgramsElement])
+buildNgramsOthersList uCid groupIt nt = do
+  ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
+
+  pure $ Map.fromList [(nt, [ mkNgramsElement t CandidateTerm Nothing (mSetFromList [])
+                            | (t,_ns) <- Map.toList ngs
+                            ]
+                        )
+                      ]
+
+
+
+buildNgramsTermsList :: UserCorpusId -> MasterCorpusId
                 -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsList uCid mCid = do
+buildNgramsTermsList uCid mCid = do
             candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup EN 2)
             --printDebug "candidate" (length candidates)
 
@@ -63,6 +85,9 @@ toNgramsElement (listType, (_stem, (_score, setNgrams))) =
                                                    (Just parent)
                                                    (mSetFromList [])
                             ) children
+
+
+
 
 
 toTermList :: (a -> Bool) -> [a] -> [(ListType, a)]

@@ -24,48 +24,48 @@ Portability : POSIX
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
+--import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
+--import Gargantext.Database.Metrics.TFICF (getTficf)
+--import Gargantext.Database.Node.Contact (HyperdataContact(..))
+--import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
+--import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
+--import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
+--import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
+--import Gargantext.Text.Metrics.TFICF (Tficf(..))
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
---import Gargantext.Database.Node.Contact (HyperdataContact(..))
+import Data.List (concat)
 import Data.Map (Map, lookup, toList)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
-import qualified Data.Text as Text
-import Data.List (concat)
 import GHC.Show (Show)
+import Gargantext.API.Ngrams (HasRepoVar)
+import Gargantext.API.Ngrams (NgramsElement, putListNgrams, RepoCmdM)
+import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main
-import Gargantext.Core (Lang(..))
 import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
---import Gargantext.Database.Metrics.TFICF (getTficf)
-import Gargantext.Text.Terms (extractTerms)
---import Gargantext.Text.Metrics.TFICF (Tficf(..))
-import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
--- import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
---import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
---import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd, CmdM)
-import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Ext.IMT (toSchoolName)
---import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.List
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
-import System.FilePath (FilePath)
-import Gargantext.API.Ngrams (HasRepoVar)
+import Gargantext.Text.Terms (TermType(..))
+import Gargantext.Text.Terms (extractTerms)
 import Servant (ServantErr)
-import Gargantext.API.Ngrams (NgramsElement, putListNgrams, RepoCmdM)
---import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
+import System.FilePath (FilePath)
 import qualified Data.Map as DM
+import qualified Data.Text as Text
+import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
 
 type FlowCmdM env err m =
   ( CmdM     env err m
@@ -86,10 +86,9 @@ flowCorpus userName ff fp corpusName = do
   -- TODO uniformize language of corpus
                                    -- TODO ChunkAlong is not the right function here
                                    -- chunkAlong 10 10 [1..15] == [1..10]
-                                   -- BUG: what about the rest (divMod 15 10)?
-                                   -- but if temporary enables big corpora insert for tests
+                                   -- BUG: what about the rest of (divMod 15 10)?
                                    -- TODO: chunkAlongNoRest or chunkAlongWithRest
-                                   -- default: NoRest
+                                   -- default behavior: NoRest
   ids  <- mapM insertMasterDocs $ chunkAlong 10000 10000 docs
 
   -- User Flow
@@ -100,11 +99,11 @@ flowCorpus userName ff fp corpusName = do
   -- User List Flow
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
   -- /!\ this extract NgramsTerms Only
-  ngs <- buildNgramsList userCorpusId masterCorpusId
+  ngs <- buildNgramsLists userCorpusId masterCorpusId
   --printDebug "ngs" ngs
-  -- TODO getNgramsElement of NgramsType...
+  --TODO getNgramsElement of NgramsType...
   --ngs <- getNgramsElementsWithParentNodeId masterCorpusId
-  userListId   <- flowList userId userCorpusId ngs
+  userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
 
   -- User Graph Flow
@@ -124,8 +123,7 @@ insertMasterDocs :: FlowCmdM env ServantErr m
 insertMasterDocs hs  =  do
 
   let hyperdataDocuments' = map (\h -> ToDbDocument h) hs
-  
-  -- TODO put in State Monad
+
   (masterUserId, _, masterCorpusId) <- getOrMkRootWithCorpus userMaster corpusMasterName
   ids <- insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'
 
@@ -134,19 +132,10 @@ insertMasterDocs hs  =  do
 
   let maps            = mapNodeIdNgrams docsWithNgrams
 
-  --printDebug "maps" (maps)
   terms2id <- insertNgrams $ DM.keys maps
   let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
-  --printDebug "inserted ngrams" indexedNgrams
   _             <- insertToNodeNgrams indexedNgrams
   pure $ map reId ids
-
-
-
-getUserCorpusNgrams :: FlowCmdM env ServantErr m
-                => CorpusId -> m [Ngrams]
-getUserCorpusNgrams = undefined
-
 
 
 
@@ -188,7 +177,6 @@ getOrMkRootWithCorpus username cName = do
 
 
 
-
 ------------------------------------------------------------------------
 toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
 toInsert = DM.fromList . map (\d -> (maybe err identity (_hyperdataDocument_uniqId d), d))
@@ -219,7 +207,6 @@ data DocumentIdWithNgrams = DocumentIdWithNgrams
   , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
 
--- TODO group terms
 
 extractNgramsT :: HasNodeError err
                => HyperdataDocument
@@ -297,7 +284,6 @@ flowListBase :: FlowCmdM env err m
              => ListId -> Map NgramsType [NgramsElement]
              -> m ()
 flowListBase lId ngs = do
--- compute Candidate / Map
   mapM_ (\(typeList, ngElmts) -> putListNgrams lId typeList ngElmts) $ toList ngs
 
 flowList :: FlowCmdM env err m => UserId -> CorpusId

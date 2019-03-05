@@ -60,7 +60,7 @@ sortTficf  = List.sortOn (fst . snd) . toList
 getTficf' :: UserCorpusId -> MasterCorpusId -> (Text -> Text)
          -> Cmd err (Map Text (Double, Set Text))
 getTficf' u m f = do
-  u' <- getNodesByNgramsUser   u
+  u' <- getNodesByNgramsUser   u NgramsTerms
   m' <- getNodesByNgramsMaster u m
 
   pure $ toTficfData (countNodesByNgramsWith f u')
@@ -104,16 +104,16 @@ groupNodesByNgramsWith f m =
     $ toList m
 
 ------------------------------------------------------------------------
-getNodesByNgramsUser :: CorpusId -> Cmd err (Map Text (Set NodeId))
-getNodesByNgramsUser cId = fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
-                                         <$> selectNgramsByNodeUser cId
+getNodesByNgramsUser :: CorpusId -> NgramsType -> Cmd err (Map Text (Set NodeId))
+getNodesByNgramsUser cId nt = fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
+                                         <$> selectNgramsByNodeUser cId nt
 
-selectNgramsByNodeUser :: CorpusId -> Cmd err [(NodeId, Text)]
-selectNgramsByNodeUser cId = runPGSQuery
+selectNgramsByNodeUser :: CorpusId -> NgramsType -> Cmd err [(NodeId, Text)]
+selectNgramsByNodeUser cId nt = runPGSQuery
                                queryNgramsByNodeUser
                                  ( cId
                                  , nodeTypeId NodeDocument
-                                 , ngramsTypeId NgramsTerms
+                                 , ngramsTypeId nt
                                  )
 
 queryNgramsByNodeUser :: DPS.Query

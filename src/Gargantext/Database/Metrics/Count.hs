@@ -245,7 +245,7 @@ countCorpusDocuments r cId = maybe 0 identity
                         <$> runQuery' r cId
   where
     runQuery' RoleUser cId' = runPGSQuery 
-                        "SELECT count(*) from nodes_nodes nn WHERE nn.node1_id = ?"
+                        "SELECT count(*) from nodes_nodes nn WHERE nn.node1_id = ? AND nn.delete = False"
                         (PGS.Only cId')
     runQuery' RoleMaster cId' = runPGSQuery
                         "SELECT count(*) from nodes n WHERE n.parent_id = ? AND n.typename = ?"
