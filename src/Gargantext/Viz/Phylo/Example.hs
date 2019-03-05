@@ -31,7 +31,7 @@ import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
 import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take)
-import Data.Map         (Map, elems, member, adjust, singleton, (!), keys, restrictKeys, mapWithKey)
+import Data.Map         (Map, elems, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
 import Data.Text        (Text, unwords, toLower, words)
@@ -82,8 +82,8 @@ getProximity p group group' = case p of
 -- | To get the next or previous PhyloPeriod based on a given PhyloPeriodId
 getNextPeriods :: PairTo -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId] 
 getNextPeriods to id l = case to of 
-    Childs  -> (tail . snd) next 
-    Parents -> (reverse . fst) next
+    Childs  -> unNested id ((tail . snd) next) 
+    Parents -> unNested id ((reverse . fst) next)
     _       -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] PairTo type not defined")
     where 
       --------------------------------------
@@ -94,6 +94,17 @@ getNextPeriods to id l = case to of
       idx = case (List.elemIndex id l) of 
         Nothing -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] PhyloPeriodId not defined")
         Just i  -> i
+      --------------------------------------
+      -- | To have an non-overlapping next period
+      unNested :: PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
+      unNested x l
+        | null l                  = []
+        | nested (fst $ head l) x = unNested x (tail l)
+        | nested (snd $ head l) x = unNested x (tail l)
+        | otherwise               = l
+      --------------------------------------
+      nested :: Date -> PhyloPeriodId -> Bool
+      nested d prd = d >= fst prd && d <= snd prd
       --------------------------------------
 
 
@@ -217,15 +228,24 @@ phyloCooc = fisToCooc phyloFisFiltered phyloLinked_0_1
 
 
 -- | To Cliques into Groups
-cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> Phylo -> PhyloGroup
-cliqueToGroup period lvl idx label fis p = PhyloGroup ((period, lvl), idx)
+cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> Map (Date, Date) Fis -> Phylo -> PhyloGroup
+cliqueToGroup period lvl idx label fis m p = PhyloGroup ((period, lvl), idx)
                                                     label
-                                                    (sort $ map (\x -> ngramsToIdx x p)
-                                                          $ Set.toList
-                                                          $ fst fis
-                                                          )
+                                                    ngrams
                                                     (singleton "support" (fromIntegral $ snd fis))
+                                                    cooc
                                                     [] [] [] []
+  where
+    --------------------------------------
+    ngrams :: [Int]
+    ngrams = sort $ map (\x -> ngramsToIdx x p)
+                  $ Set.toList
+                  $ fst fis
+    --------------------------------------
+    cooc :: Map (Int, Int) Double 
+    cooc =  filterWithKey (\k _ -> elem (fst k) ngrams && elem (snd k) ngrams) 
+                          $ fisToCooc (restrictKeys m $ Set.fromList [period]) p
+    -------------------------------------- 
 
 
 -- | To transform Fis into PhyloLevels
@@ -236,7 +256,7 @@ fisToPhyloLevel m p = over (phylo_periods . traverse)
                                   fisList  = zip [1..] (Map.toList (m ! periodId))
                               in  over (phylo_periodLevels)
                                        (\levels ->
-                                          let groups = map (\fis -> cliqueToGroup periodId 1 (fst fis) "" (snd fis) p) fisList
+                                          let groups = map (\fis -> cliqueToGroup periodId 1 (fst fis) "" (snd fis) m p) fisList
                                           in  levels ++ [PhyloLevel (periodId, 1) groups] 
                                        ) period ) p
 

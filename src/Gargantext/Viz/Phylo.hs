@@ -122,6 +122,7 @@ data PhyloGroup =
                 , _phylo_groupLabel         :: Text
                 , _phylo_groupNgrams        :: [Int]
                 , _phylo_groupQuality       :: Map Text Double
+                , _phylo_groupCooc          :: Map (Int, Int) Double 
                 
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]

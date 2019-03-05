@@ -213,6 +213,7 @@ initGroup ngrams lbl idx lvl from to p = PhyloGroup
   lbl
   (sort $ map (\x -> ngramsToIdx x p) ngrams)
   (Map.empty)
+  (Map.empty)
   [] [] [] []
 
 
