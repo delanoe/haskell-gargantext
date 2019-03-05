@@ -111,6 +111,11 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
 
 isStopTerm :: Text -> Bool
 isStopTerm x = Text.length x < 3
-             || not (all Char.isAlpha (Text.unpack x))
+             || not (all Char.isAlpha (Text.unpack x'))
+                where
+                  x' = ( Text.replace "-" ""
+                       . Text.replace " " ""
+                       . Text.replace "/" ""
+                       ) x
 
 
