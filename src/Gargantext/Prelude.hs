@@ -258,3 +258,8 @@ zipSnd f xs = zip xs (f xs)
 maximumWith :: (Ord a1, Foldable t) => (a2 -> a1) -> t a2 -> a2
 maximumWith f = L.maximumBy (compare `on` f)
 
+
+-- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
+listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
+listToCombi f l = [ (f x, f y) | (x:rest) <- L.tails l,  y <- rest ]
+

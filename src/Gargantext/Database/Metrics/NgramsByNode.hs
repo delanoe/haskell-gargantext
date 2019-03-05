@@ -147,9 +147,7 @@ getCoocByNgramsOnly cId nt ngs = do
                                          <$> Map.lookup t1 ngs'
                                          <*> Map.lookup t2 ngs'
                        )
-                      | (t1,t2) <- list2combi $ Map.keys ngs']
-                        where
-                          list2combi = undefined
+                      | (t1,t2) <- listToCombi identity $ Map.keys ngs']
 
 getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text] -> Cmd err (Map Text (Set NodeId))
 getNodesByNgramsOnlyUser cId nt ngs = fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
