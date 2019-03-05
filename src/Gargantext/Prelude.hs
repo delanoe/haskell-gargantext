@@ -16,6 +16,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE     NoImplicitPrelude       #-}
 {-# LANGUAGE     OverloadedStrings       #-}
+{-# LANGUAGE     RankNTypes              #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude
