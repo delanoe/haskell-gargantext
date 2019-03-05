@@ -28,6 +28,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
 
 import Gargantext.Prelude
@@ -129,6 +130,55 @@ queryNgramsByNodeUser = [sql|
       AND nn.delete = False
       GROUP BY nng.node_id, ng.terms
   |]
+------------------------------------------------------------------------
+-- TODO add groups
+getOccByNgramsOnly :: CorpusId -> NgramsType -> [Text]
+                   -> Cmd err (Map Text Int)
+getOccByNgramsOnly cId nt ngs = Map.map Set.size
+                             <$> getNodesByNgramsOnlyUser cId nt ngs
+
+-- TODO add groups
+getCoocByNgramsOnly :: CorpusId -> NgramsType -> [Text]
+                    -> Cmd err (Map (Text,Text) Int)
+getCoocByNgramsOnly cId nt ngs = do
+  ngs' <- getNodesByNgramsOnlyUser cId nt ngs
+  pure $ Map.fromList [( (t1,t2)
+                       , maybe 0 Set.size $ Set.intersection
+                                         <$> Map.lookup t1 ngs'
+                                         <*> Map.lookup t2 ngs'
+                       )
+                      | (t1,t2) <- list2combi $ Map.keys ngs']
+                        where
+                          list2combi = undefined
+
+getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text] -> Cmd err (Map Text (Set NodeId))
+getNodesByNgramsOnlyUser cId nt ngs = fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
+                                         <$> selectNgramsOnlyByNodeUser cId nt ngs
+
+
+selectNgramsOnlyByNodeUser :: CorpusId -> NgramsType -> [Text] -> Cmd err [(NodeId, Text)]
+selectNgramsOnlyByNodeUser cId nt tms = runPGSQuery queryNgramsOnlyByNodeUser (DPS.Only $ Values fields tms' )
+    where
+      fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4", "int4", "int4"]
+      tms'   = map (\t -> (t,cId,nodeTypeId NodeDocument, ngramsTypeId nt)) tms
+
+queryNgramsOnlyByNodeUser :: DPS.Query
+queryNgramsOnlyByNodeUser = [sql|
+
+  WITH input_rows(terms,corpus_id,docType,ngramsType) AS (?)
+  SELECT nng.node_id, ng.terms FROM nodes_ngrams nng
+    JOIN ngrams ng      ON nng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
+    JOIN nodes  n       ON nn.node2_id   = n.id
+    WHERE nn.node1_id = ir.corpus_id      -- CorpusId
+      AND n.typename  = ir.docType        -- NodeTypeId
+      AND nng.ngrams_type = ir.ngramsType -- NgramsTypeId
+      AND nn.delete = False
+      GROUP BY nng.node_id, ng.terms
+  |]
+
+
 
 ------------------------------------------------------------------------
 -- | TODO filter by language, database, any social field
@@ -178,3 +228,7 @@ SELECT m.node_id, m.terms FROM nodesByNgramsMaster m
 RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
 
   |]
+
+
+
+
