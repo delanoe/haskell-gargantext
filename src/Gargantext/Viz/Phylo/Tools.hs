@@ -19,7 +19,7 @@ module Gargantext.Viz.Phylo.Tools
 
 import Control.Lens         hiding (both, Level)
 import Data.List            (filter, intersect, (++), sort, null, head, tail, last)
-import Data.Map             (Map)
+import Data.Map             (Map, mapKeys, member)
 import Data.Set             (Set)
 import Data.Text            (Text)
 import Data.Tuple.Extra
@@ -50,24 +50,16 @@ alterPhyloGroups f p = over ( phylo_periods
                             . phylo_levelGroups
                             ) f p 
 
--- | To alter a sub list of PhyloGroups (filtered) following a given function
-alterPhyloGroupsWith :: Eq a => ([PhyloGroup] -> [PhyloGroup]) -> (PhyloGroup -> a) -> a -> Phylo -> Phylo
-alterPhyloGroupsWith f f' x p = over ( phylo_periods
-                            .  traverse
-                            . phylo_periodLevels
-                            .  traverse
-                            . phylo_levelGroups
-                            ) (f . subGroups) p
-    where
-        --------------------------------------
-        subGroups :: [PhyloGroup] -> [PhyloGroup] 
-        subGroups l = filterGroups f' x l
-        --------------------------------------
 
 -- | To alter each PhyloPeriod of a Phylo following a given function
 alterPhyloPeriods :: (PhyloPeriod -> PhyloPeriod) -> Phylo -> Phylo
 alterPhyloPeriods f p = over ( phylo_periods
                              .  traverse) f p
+
+
+-- | To alter the list of PhyloBranches of a Phylo
+alterPhyloBranches :: ([PhyloBranch] -> [PhyloBranch]) -> Phylo -> Phylo
+alterPhyloBranches f p = over ( phylo_branches ) f p
 
 
 -- | To alter a list of PhyloLevels following a given function
@@ -120,6 +112,11 @@ filterNestedSets h l l'
   | otherwise              = filterNestedSets (head l) (tail l) (h : l')
 
 
+-- | To get the PhyloGroups Childs of a PhyloGroup
+getGroupChilds :: PhyloGroup -> Phylo -> [PhyloGroup]
+getGroupChilds g p = getGroupsFromIds (map fst $ _phylo_groupPeriodChilds g) p
+
+
 -- | To get the id of a PhyloGroup
 getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId = _phylo_groupId
@@ -140,6 +137,11 @@ getGroupNgrams :: PhyloGroup -> [Int]
 getGroupNgrams =  _phylo_groupNgrams
 
 
+-- | To get the PhyloGroups Parents of a PhyloGroup
+getGroupParents :: PhyloGroup -> Phylo -> [PhyloGroup]
+getGroupParents g p = getGroupsFromIds (map fst $ _phylo_groupPeriodParents g) p
+
+
 -- | To get the period out of the id of a PhyloGroup
 getGroupPeriod :: PhyloGroup -> (Date,Date)
 getGroupPeriod = fst . fst . getGroupId
@@ -155,11 +157,26 @@ getGroups = view ( phylo_periods
                  )
 
 
+-- | To all PhyloGroups matching a list of PhyloGroupIds in a Phylo
+getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
+getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
+
+
 -- | To get all the PhyloGroup of a Phylo with a given level and period
 getGroupsWithFilters :: Int -> (Date,Date) -> Phylo -> [PhyloGroup]
-getGroupsWithFilters lvl prd p = (filterGroups getGroupLevel lvl (getGroups p))
+getGroupsWithFilters lvl prd p = (getGroupsWithLevel  lvl p)
                                  `intersect`
-                                 (filterGroups getGroupPeriod prd (getGroups p))
+                                 (getGroupsWithPeriod prd p)
+
+
+-- | To get all the PhyloGroup of a Phylo with a given Level
+getGroupsWithLevel :: Int -> Phylo -> [PhyloGroup]
+getGroupsWithLevel lvl p = filterGroups getGroupLevel lvl (getGroups p)
+
+
+-- | To get all the PhyloGroup of a Phylo with a given Period
+getGroupsWithPeriod :: (Date,Date) -> Phylo -> [PhyloGroup]
+getGroupsWithPeriod prd p = filterGroups getGroupPeriod prd (getGroups p)
 
 
 -- | To get the index of an element of a Vector
@@ -193,6 +210,11 @@ getLevelLinkValue dir link = case dir of
     From -> view (levelFrom . levelValue) link
     To   -> view (levelTo   . levelValue) link 
     _    -> panic "[ERR][Viz.Phylo.Tools.getLevelLinkValue] Wrong direction"
+
+
+-- | To get the Branches of a Phylo
+getPhyloBranches :: Phylo -> [PhyloBranch] 
+getPhyloBranches = _phylo_branches
 
 
 -- | To get all the Phylolevels of a given PhyloPeriod

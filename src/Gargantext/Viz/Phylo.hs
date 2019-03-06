@@ -72,6 +72,7 @@ data Phylo =
      Phylo { _phylo_duration :: (Start, End)
            , _phylo_ngrams   :: PhyloNgrams
            , _phylo_periods  :: [PhyloPeriod]
+           , _phylo_branches :: [PhyloBranch]
            }
            deriving (Generic, Show)
 
@@ -94,7 +95,6 @@ data PhyloPeriod =
                  } 
                  deriving (Generic, Show)
 
-type PhyloPeriodId = (Start, End)
 
 -- | PhyloLevel : levels of phylomemy on level axis
 -- Levels description:
@@ -108,7 +108,6 @@ data PhyloLevel =
                 }
                 deriving (Generic, Show)
 
-type PhyloLevelId = (PhyloPeriodId, Int)
 
 -- | PhyloGroup : group of ngrams at each level and step
 -- Label : maybe has a label as text
@@ -122,7 +121,7 @@ data PhyloGroup =
                 , _phylo_groupLabel         :: Text
                 , _phylo_groupNgrams        :: [Int]
                 , _phylo_groupQuality       :: Map Text Double
-                , _phylo_groupCooc          :: Map (Int, Int) Double 
+                , _phylo_groupCooc          :: Map (Int, Int) Double
                 
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]
@@ -132,11 +131,21 @@ data PhyloGroup =
                 }
                 deriving (Generic, Show, Eq)
 
-type PhyloGroupId = (PhyloLevelId, Int)
-type Pointer      = (PhyloGroupId, Weight)
-type Weight       = Double
+data PhyloBranch =
+     PhyloBranch { _phylo_branchId     :: (Int,Int)
+                 , _phylo_branchLabel  :: Text
+                 , _phylo_branchGroups :: [PhyloGroupId] 
+                 }
+                 deriving (Generic, Show)                
 
+type PhyloPeriodId = (Start, End)
+type PhyloLevelId  = (PhyloPeriodId, Int)
+type PhyloGroupId  = (PhyloLevelId, Int)
 
+type Pointer       = (PhyloGroupId, Weight)
+type Weight        = Double
+
+type PhyloBranchId = (Int, Int)
 
 
 -- | Ngrams : a contiguous sequence of n terms
@@ -162,7 +171,7 @@ data LevelLabel = Level_m1 | Level_0 | Level_1 | Level_mN | Level_N | Level_pN
 data Level = 
      Level { _levelLabel :: LevelLabel
            , _levelValue :: Int 
-           } deriving (Show)
+           } deriving (Show, Eq)
 
 data LevelLink =
      LevelLink { _levelFrom :: Level
@@ -195,12 +204,14 @@ makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
 makeLenses ''Level
 makeLenses ''LevelLink
+makeLenses ''PhyloBranch
 
 -- | JSON instances
-$(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
-$(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
+$(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
+$(deriveJSON (unPrefix "_phylo_period" ) 'PhyloPeriod  )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
+$(deriveJSON (unPrefix "_phylo_branch" ) ''PhyloBranch )
 -- 
 $(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
