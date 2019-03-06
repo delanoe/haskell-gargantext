@@ -30,7 +30,7 @@ module Gargantext.Viz.Phylo.Example where
 import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
-import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take)
+import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete)
 import Data.Map         (Map, elems, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey, mapKeys, intersectionWith, unionWith)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
@@ -55,12 +55,62 @@ import qualified Data.Vector as Vector
 
 
 ------------------------------------------------------------------------
--- | STEP 13 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
+-- | STEP 14 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
 
 
 ------------------------------------------------------------------------
--- | STEP 12 | -- Cluster the Fis
+-- | STEP 13 | -- Cluster the Fis
 
+
+------------------------------------------------------------------------
+-- | STEP 12 | -- Find the Branches
+
+initPhyloBranch :: (Int,Int) -> Text -> [PhyloGroupId] -> PhyloBranch
+initPhyloBranch (lvl,idx) lbl l = PhyloBranch (lvl,idx) lbl l
+
+addPhyloBranch :: (Int,Int) -> Text ->  [PhyloGroupId] -> [PhyloBranch] -> [PhyloBranch]
+addPhyloBranch (lvl,idx) lbl ids b = b ++ [initPhyloBranch (lvl,idx) lbl ids]
+
+
+-- cur : current PhyloGroup 
+-- rst : rest of the initial list of PhyloGroups
+-- nxt : next PhyloGroups to be added in the current Branch 
+-- nbr : direct neighbours (Childs & Parents) of cur
+-- ids : PhyloGroupIds allready added in the current Branch 
+-- mem : memory of the allready created Branches 
+
+getGroupPairs :: PhyloGroup -> Phylo -> [PhyloGroup]
+getGroupPairs g p = (getGroupChilds g p) ++ (getGroupParents g p)
+
+
+groupsToBranchs :: (Int,Int) -> PhyloGroup -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroupId] -> [PhyloBranch] -> Phylo -> [PhyloBranch]
+groupsToBranchs (lvl,idx) curr rest next memId mem p 
+  | null rest && null next = addPhyloBranch  (lvl,idx) "" (memId ++ [getGroupId curr]) mem
+  | (not . null) next      = groupsToBranchs (lvl,idx) (head next') rest' (tail next') (memId ++ [getGroupId curr]) mem p
+  | otherwise              = groupsToBranchs (lvl,idx + 1) (head rest') (tail rest') [] [] (addPhyloBranch  (lvl,idx) "" (memId ++ [getGroupId curr]) mem) p 
+    where 
+      next' = nub $ next ++ (getGroupPairs curr p)
+      rest' = filter (\x -> not $ elem x next') rest   
+
+
+
+
+
+setPhyloBranches :: Level -> Phylo -> Phylo 
+setPhyloBranches lvl p = alterPhyloBranches (\branches 
+                                              -> branches ++ (groupsToBranchs 
+                                                              (getLevelValue lvl, 0)
+                                                              (head groups)
+                                                              (tail groups)
+                                                              [] [] [] p)) p
+  where 
+    --------------------------------------
+    groups :: [PhyloGroup]
+    groups = getGroupsWithLevel (getLevelValue lvl) p
+    --------------------------------------
+
+
+phyloWithBranches_1 = setPhyloBranches (initLevel 1 Level_1) phyloWithPair_1_Childs
 
 ------------------------------------------------------------------------
 -- | STEP 11 | -- Link the PhyloGroups of level 1 through the Periods  
@@ -130,7 +180,7 @@ getNextPeriods to id l = case to of
 -- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )  
 findBestCandidates :: PairTo -> Int -> Int -> Double -> Double -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
 findBestCandidates to depth max thr s group p
-  | depth > max || (null . head) next = [] 
+  | depth > max || null next = [] 
   | (not . null) best = take 2 best
   | otherwise = findBestCandidates to (depth + 1) max thr s group p   
   where
@@ -166,25 +216,28 @@ makePair to group ids = case to of
 
 -- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
 pairGroupsToGroups :: PairTo -> Level -> Double -> Double -> Phylo -> Phylo
-pairGroupsToGroups to lvl thr s p = alterPhyloGroupsWith 
+pairGroupsToGroups to lvl thr s p = alterPhyloGroups
                                     (\groups -> 
-                                      map (\group -> 
-                                            let
-                                              --------------------------------------
-                                              candidates :: [(PhyloGroupId, Double)] 
-                                              candidates = findBestCandidates to 1 5 thr s group p
-                                              --------------------------------------
-                                            in 
-                                              makePair to group candidates ) groups)
-                                    getGroupLevel (getLevelValue lvl) p
+                                      map (\group ->
+                                            if (getGroupLevel group) ==  (getLevelValue lvl)
+                                            then 
+                                              let
+                                                --------------------------------------
+                                                candidates :: [(PhyloGroupId, Double)] 
+                                                candidates = findBestCandidates to 1 5 thr s group p
+                                                --------------------------------------
+                                              in 
+                                                makePair to group candidates
+                                            else 
+                                              group ) groups) p
 
 
 phyloWithPair_1_Childs :: Phylo
-phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.1 0.5 phyloWithPair_1_Parents
+phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.01 0 phyloWithPair_1_Parents
 
 
 phyloWithPair_1_Parents :: Phylo
-phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.1 0.5 phyloLinked_0_1
+phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.01 0 phyloLinked_0_1
 
 
 ------------------------------------------------------------------------
@@ -526,7 +579,7 @@ phyloPeriods = groupDocsByPeriod 5 3 phyloDocs phylo
 
 -- | To init a Phylomemy
 initPhylo :: [Document] -> PhyloNgrams -> Phylo
-initPhylo docs ngrams = Phylo (both date $ (last &&& head) docs) ngrams []
+initPhylo docs ngrams = Phylo (both date $ (last &&& head) docs) ngrams [] []
 
 
 -- | To init a PhyloNgrams as a Vector of Ngrams 
