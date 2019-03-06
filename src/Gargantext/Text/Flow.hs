@@ -36,7 +36,7 @@ import Gargantext.Core.Types (CorpusId)
 --import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 --import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
-import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
+--import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
 --import Gargantext.Text.Metrics.Count (coocOn)
 --import Gargantext.Text.Parsers.CSV
 --import Gargantext.Text.Terms (TermType, extractTerms)
@@ -120,21 +120,21 @@ cooc2graph :: (Map (Text, Text) Int) -> IO Graph
 cooc2graph myCooc = do
   --printDebug "myCooc" myCooc
   -- Filtering terms with inclusion/Exclusion and Specificity/Genericity scores
-  let myCooc3 = filterCooc ( FilterConfig (MapListSize    350 )
+{-  let myCooc3 = filterCooc ( FilterConfig (MapListSize    350 )
                                           (InclusionSize  500 )
                                           (SampleBins      10 )
                                           (Clusters         3 )
                                           (DefaultValue     0 )
                            ) myCooc
-  --printDebug "myCooc3 size" $ M.size myCooc3
+-}  --printDebug "myCooc3 size" $ M.size myCooc3
   --printDebug "myCooc3" myCooc3
 
   -- Cooc -> Matrix
-  let (ti, _) = createIndices myCooc3
+  let (ti, _) = createIndices myCooc
   --printDebug "ti size" $ M.size ti
   --printDebug "ti" ti
 
-  let myCooc4 = toIndex ti myCooc3
+  let myCooc4 = toIndex ti myCooc
   --printDebug "myCooc4 size" $ M.size myCooc4
   --printDebug "myCooc4" myCooc4
 

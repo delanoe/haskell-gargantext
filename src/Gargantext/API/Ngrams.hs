@@ -894,23 +894,6 @@ getNgramsTableMap nodeId ngramsType = do
   pure $ Versioned (repo ^. r_version)
                    (repo ^. r_state . at ngramsType . _Just . at nodeId . _Just)
 
--- UNUSED
-_getListNgrams :: RepoCmdM env err m
-                => [NodeId] -> NgramsType -> m (Versioned ListNgrams)
-_getListNgrams nodeIds ngramsType = do
-  v <- view repoVar
-  repo <- liftIO $ readMVar v
-
-  let
-    ngramsMap = repo ^. r_state . at ngramsType . _Just
-
-    ngrams =
-      Map.unionsWith mergeNgramsElement
-        [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
-
-  pure $ Versioned (repo ^. r_version)
-       $ NgramsTable (ngramsElementFromRepo <$> Map.toList ngrams)
-
 type MinSize = Int
 type MaxSize = Int
 
