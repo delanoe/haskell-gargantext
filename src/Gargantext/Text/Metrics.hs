@@ -38,28 +38,25 @@ data SampleBins    = SampleBins    Double
 data Clusters      = Clusters      Int
 data DefaultValue  = DefaultValue  Int
 
-data FilterConfig = FilterConfig { fc_mapListSize   :: MapListSize
-                                 , fc_inclusionSize :: InclusionSize
-                                 , fc_sampleBins    :: SampleBins
-                                 , fc_clusters      :: Clusters
-                                 , fc_defaultValue  :: DefaultValue
-                             }
+data FilterConfig = FilterConfig
+  { fc_mapListSize   :: MapListSize
+  , fc_inclusionSize :: InclusionSize
+  , fc_sampleBins    :: SampleBins
+  , fc_clusters      :: Clusters
+  , fc_defaultValue  :: DefaultValue
+  }
 
 filterCooc :: (Show t, Ord t) => FilterConfig -> Map (t, t) Int -> Map (t, t) Int
 filterCooc fc cc = (filterCooc' fc) ts cc
   where
     ts     = map _scored_terms $ takeSome fc $ coocScored cc
 
+
 filterCooc' :: (Show t, Ord t) => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
 filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m =
   -- trace ("coocScored " <> show ts) $
   foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
-    M.empty selection
-  where
-    selection  = [(x,y) | x <- ts
-                        , y <- ts
-                        , x > y
-                        ]
+    M.empty (listToCombi identity ts)
 
 
 -- | Map list creation
@@ -70,7 +67,8 @@ filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m =
 takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
 takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters _) _) scores = L.take l
                     $ takeSample n m
-                    $ L.take l' $ reverse $ sortWith (Down . _scored_incExc) scores
+                    $ L.take l'
+                    $ reverse $ sortWith (Down . _scored_incExc) scores
                     -- splitKmeans k scores
   where
     -- TODO: benchmark with accelerate-example kmeans version
@@ -90,16 +88,17 @@ takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Cluste
                                  $ sortWith (Down . _scored_speGen) xs
 
 
-data Scored ts = Scored { _scored_terms :: !ts
-                        , _scored_incExc :: !InclusionExclusion
-                        , _scored_speGen :: !SpecificityGenericity
-                        } deriving (Show)
+data Scored ts = Scored
+  { _scored_terms  :: !ts
+  , _scored_incExc :: !InclusionExclusion
+  , _scored_speGen :: !SpecificityGenericity
+  } deriving (Show)
 
 -- TODO in the textflow we end up needing these indices, it might be better
 -- to compute them earlier and pass them around.
 coocScored :: Ord t => Map (t,t) Int -> [Scored t]
 coocScored m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
   where
-    (ti,fi) = createIndices m
+    (ti, fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
     scores = DAA.toList $ DAA.run $ DAA.zip (DAA.use is) (DAA.use ss)
