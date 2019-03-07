@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level)
-import Data.List            (filter, intersect, (++), sort, null, head, tail, last)
+import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails)
 import Data.Map             (Map, mapKeys, member)
 import Data.Set             (Set)
 import Data.Text            (Text)
@@ -272,6 +272,26 @@ initPhyloLevel id groups = PhyloLevel id groups
 -- | To create a PhyloPeriod
 initPhyloPeriod :: PhyloPeriodId -> [PhyloLevel] -> PhyloPeriod
 initPhyloPeriod id l = PhyloPeriod id l
+
+
+-- | To get all combinations of a list
+listToDirectedCombi :: Eq a => [a] -> [(a,a)]
+listToDirectedCombi l = [(x,y) | x <- l, y <- l, x /= y]
+
+
+-- | To get all combinations of a list and apply a function to the resulting list of pairs
+listToDirectedCombiWith :: Eq a => forall b. (a -> b) -> [a] -> [(b,b)]
+listToDirectedCombiWith f l = [(f x,f y) | x <- l, y <- l, x /= y]
+
+
+-- | To get all combinations of a list with no repetition
+listToUnDirectedCombi :: [a] -> [(a,a)]
+listToUnDirectedCombi l = [ (x,y) | (x:rest) <- tails l,  y <- rest ]
+
+
+-- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
+listToUnDirectedCombiWith :: forall a b. (a -> b) -> [a] -> [(b,b)]
+listToUnDirectedCombiWith f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
 
 
 -- | To transform an Ngrams into its corresponding index in a Phylo 
