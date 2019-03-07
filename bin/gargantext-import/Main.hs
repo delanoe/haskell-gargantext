@@ -40,7 +40,7 @@ main = do
   -}
 
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmdCorpus = flowCorpus (cs user) CsvHalFormat corpusPath (cs name)
+      cmdCorpus = flowCorpus (cs user) (cs name) CsvHalFormat corpusPath
 
      -- cmd = {-createUsers >>-} cmdCorpus
 

@@ -46,6 +46,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main
+import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
@@ -61,6 +62,7 @@ import Gargantext.Text.List
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Text.Terms (extractTerms)
+import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Servant (ServantErr)
 import System.FilePath (FilePath)
 import qualified Data.Map as DM
@@ -76,8 +78,21 @@ type FlowCmdM env err m =
 
 
 flowCorpus :: FlowCmdM env ServantErr m
-           => Username -> FileFormat -> FilePath -> CorpusName -> m CorpusId
-flowCorpus userName ff fp corpusName = do
+           => Username -> CorpusName -> FileFormat -> FilePath -> m CorpusId
+flowCorpus u cn ff fp = do
+  ids <- flowCorpusMaster ff fp
+  flowCorpusUser u cn ids
+
+flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
+          => Username -> Text -> m CorpusId
+flowCorpusSearchInDatabase u q = do
+  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
+  ids <- chunkAlong 10000 10000 <$> map fst <$> searchInDatabase cId (stemIt q)
+  flowCorpusUser u q ids
+
+
+flowCorpusMaster :: FlowCmdM env ServantErr m => FileFormat -> FilePath -> m [[NodeId]]
+flowCorpusMaster ff fp = do
 
   -- Master Flow
   docs <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
@@ -90,7 +105,11 @@ flowCorpus userName ff fp corpusName = do
                                    -- TODO: chunkAlongNoRest or chunkAlongWithRest
                                    -- default behavior: NoRest
   ids  <- mapM insertMasterDocs $ chunkAlong 10000 10000 docs
+  pure ids
 
+
+flowCorpusUser :: FlowCmdM env ServantErr m => Username -> CorpusName -> [[NodeId]] -> m CorpusId
+flowCorpusUser userName corpusName ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName
   -- TODO: check if present already, ignore
@@ -280,11 +299,12 @@ mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
         nId = documentId $ documentWithId d
 
 ------------------------------------------------------------------------
-flowListBase :: FlowCmdM env err m
+listInsert :: FlowCmdM env err m
              => ListId -> Map NgramsType [NgramsElement]
              -> m ()
-flowListBase lId ngs = do
-  mapM_ (\(typeList, ngElmts) -> putListNgrams lId typeList ngElmts) $ toList ngs
+listInsert lId ngs = mapM_ (\(typeList, ngElmts)
+                             -> putListNgrams lId typeList ngElmts
+                             ) $ toList ngs
 
 flowList :: FlowCmdM env err m => UserId -> CorpusId
          -> Map NgramsType [NgramsElement]
@@ -292,7 +312,7 @@ flowList :: FlowCmdM env err m => UserId -> CorpusId
 flowList uId cId ngs = do
   lId <- getOrMkList cId uId
   printDebug "listId flowList" lId
-  flowListBase lId ngs
+  listInsert lId ngs
   pure lId
 
 

@@ -137,18 +137,6 @@ getOccByNgramsOnly :: CorpusId -> NgramsType -> [Text]
 getOccByNgramsOnly cId nt ngs = Map.map Set.size
                              <$> getNodesByNgramsOnlyUser cId nt ngs
 
--- TODO add groups
-getCoocByNgramsOnly :: CorpusId -> NgramsType -> [Text]
-                    -> Cmd err (Map (Text,Text) Int)
-getCoocByNgramsOnly cId nt ngs = do
-  ngs' <- getNodesByNgramsOnlyUser cId nt ngs
-  pure $ Map.fromList [( (t1,t2)
-                       , maybe 0 Set.size $ Set.intersection
-                                         <$> Map.lookup t1 ngs'
-                                         <*> Map.lookup t2 ngs'
-                       )
-                      | (t1,t2) <- listToCombi identity $ Map.keys ngs']
-
 getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text] -> Cmd err (Map Text (Set NodeId))
 getNodesByNgramsOnlyUser cId nt ngs = fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
                                          <$> selectNgramsOnlyByNodeUser cId nt ngs

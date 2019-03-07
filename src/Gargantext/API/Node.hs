@@ -10,7 +10,7 @@ Portability : POSIX
 Node API
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE DeriveGeneric      #-}
@@ -21,7 +21,6 @@ Node API
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 
--------------------------------------------------------------------
 module Gargantext.API.Node
   ( module Gargantext.API.Node
   , HyperdataAny(..)
@@ -32,47 +31,41 @@ module Gargantext.API.Node
   , HyperdataDocument(..)
   , HyperdataDocumentV3(..)
   ) where
--------------------------------------------------------------------
+
 import Control.Lens (prism', set)
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
---import System.IO (putStrLn, readFile)
-
-import qualified Data.Map as Map
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Text (Text())
 import Data.Swagger
+import Data.Text (Text())
 import Data.Time (UTCTime)
-
+import Debug.Trace (trace)
 import GHC.Generics (Generic)
-import Servant
-
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo)
-import Gargantext.Prelude
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
-import Gargantext.Database.Node.Children (getChildren)
-import qualified Gargantext.Database.Node.Update as U (update, Update(..))
+import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
+import Gargantext.Core.Types (Offset, Limit, ListType(..))
+import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
-import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
-import Gargantext.Database.Metrics.Count (getNgramsByNode)
+import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Node.Children (getChildren)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
-import Gargantext.Text.Metrics.Count (coocOn)
--- Graph
+import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
+import Gargantext.Database.Types.Node
+import Gargantext.Database.Types.Node (CorpusId, ContactId)
+import Gargantext.Database.Utils -- (Cmd, CmdM)
+import Gargantext.Prelude
 import Gargantext.Text.Flow (cooc2graph)
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
--- import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree)
-import Gargantext.Database.Types.Node (CorpusId, ContactId)
--- import Gargantext.Text.Terms (TermType(..))
-
+import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.Map as Map
+import qualified Gargantext.Database.Node.Update as U (update, Update(..))
+
 
 type GargServer api =
   forall env m.
@@ -281,7 +274,6 @@ type GraphAPI   = Get '[JSON] Graph
 
 graphAPI :: NodeId -> GargServer GraphAPI
 graphAPI nId = do
-
   nodeGraph <- getNode nId HyperdataGraph
 
   let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
@@ -290,17 +282,16 @@ graphAPI nId = do
                                      ]
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
-  _lId <- defaultList cId
-  -- lId' <- listsWith masterUser
-  --myCooc <- getCoocByDocDev cId lId -- (lid' <> [lId])
-  myCooc <- Map.filter (>2) <$> coocOn identity <$> getNgramsByNode cId NgramsTerms
-  liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
-        
-        -- <$> maybe defaultGraph identity
-        -- <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
-  -- t <- textFlow (Mono EN) (Contexts contextText)
-  -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
-  -- TODO what do we get about the node? to replace contextText
+  lId <- defaultList cId
+
+  ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
+
+  myCooc <- Map.filter (>1) <$> getCoocByNgrams
+                            <$> groupNodesByNgrams ngs
+                            <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
+
+  liftIO $ trace (show myCooc) $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
+
 
 instance HasNodeError ServantErr where
   _NodeError = prism' mk (const Nothing) -- $ panic "HasNodeError ServantErr: not a prism")
@@ -337,7 +328,7 @@ treeAPI = treeDB
 ------------------------------------------------------------------------
 -- | Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
-rename nId (RenameNode name) = U.update (U.Rename nId name)
+rename nId (RenameNode name') = U.update (U.Rename nId name')
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
@@ -361,7 +352,7 @@ getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
 getChart _ _ _ = undefined -- TODO
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
-postNode uId pId (PostNode name nt) = mkNodeWithParent nt (Just pId) uId name
+postNode uId pId (PostNode nodeName nt) = mkNodeWithParent nt (Just pId) uId nodeName
 
 putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO
