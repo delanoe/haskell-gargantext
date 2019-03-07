@@ -30,7 +30,7 @@ module Gargantext.Viz.Phylo.Example where
 import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
-import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete)
+import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete, init)
 import Data.Map         (Map, elems, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey, mapKeys, intersectionWith, unionWith)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
@@ -65,44 +65,58 @@ import qualified Data.Vector as Vector
 ------------------------------------------------------------------------
 -- | STEP 12 | -- Find the Branches
 
-initPhyloBranch :: (Int,Int) -> Text -> [PhyloGroupId] -> PhyloBranch
-initPhyloBranch (lvl,idx) lbl l = PhyloBranch (lvl,idx) lbl l
 
-addPhyloBranch :: (Int,Int) -> Text ->  [PhyloGroupId] -> [PhyloBranch] -> [PhyloBranch]
-addPhyloBranch (lvl,idx) lbl ids b = b ++ [initPhyloBranch (lvl,idx) lbl ids]
-
-
--- cur : current PhyloGroup 
--- rst : rest of the initial list of PhyloGroups
--- nxt : next PhyloGroups to be added in the current Branch 
--- nbr : direct neighbours (Childs & Parents) of cur
--- ids : PhyloGroupIds allready added in the current Branch 
--- mem : memory of the allready created Branches 
-
-getGroupPairs :: PhyloGroup -> Phylo -> [PhyloGroup]
-getGroupPairs g p = (getGroupChilds g p) ++ (getGroupParents g p)
-
-
-groupsToBranchs :: (Int,Int) -> PhyloGroup -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroupId] -> [PhyloBranch] -> Phylo -> [PhyloBranch]
-groupsToBranchs (lvl,idx) curr rest next memId mem p 
-  | null rest && null next = addPhyloBranch  (lvl,idx) "" (memId ++ [getGroupId curr]) mem
-  | (not . null) next      = groupsToBranchs (lvl,idx) (head next') rest' (tail next') (memId ++ [getGroupId curr]) mem p
-  | otherwise              = groupsToBranchs (lvl,idx + 1) (head rest') (tail rest') [] [] (addPhyloBranch  (lvl,idx) "" (memId ++ [getGroupId curr]) mem) p 
-    where 
-      next' = nub $ next ++ (getGroupPairs curr p)
-      rest' = filter (\x -> not $ elem x next') rest   
+-- | To add a PhyloGroupId to list of Branches with conditions
+addToBranches :: (Int,Int) -> PhyloGroupId -> [PhyloBranch] -> [PhyloBranch]
+addToBranches (lvl,idx) id branches 
+  | null branches  = [newBranch]
+  | idx == lastIdx = (init branches) ++ [addGroupIdToBranch id (last branches)]
+  | otherwise      = branches ++ [newBranch] 
+  where
+    --------------------------------------
+    newBranch :: PhyloBranch
+    newBranch = PhyloBranch (lvl,idx) "" [id]
+    --------------------------------------
+    lastIdx :: Int
+    lastIdx = (snd . _phylo_branchId . last) branches
+    --------------------------------------
 
 
+-- | To transform a list of PhyloGroups into a list of PhyloBranches where :
+-- curr = the current PhyloGroup 
+-- rest = the rest of the initial list of PhyloGroups
+-- next = the next PhyloGroups to be added in the current Branch  
+-- memo = the memory of the allready created Branches, the last one is the current one
+groupsToBranches :: (Int,Int) -> PhyloGroup -> [PhyloGroup] -> [PhyloGroup] -> [PhyloBranch] -> Phylo -> [PhyloBranch]
+groupsToBranches (lvl,idx) curr rest next memo p
+  | null rest' && null next' = memo'
+  | (not . null) next'       = groupsToBranches (lvl,idx) (head next') rest' (tail next') memo' p
+  | otherwise                = groupsToBranches (lvl,idx + 1) (head rest') (tail rest') [] memo' p 
+    where
+      -------------------------------------- 
+      done :: [PhyloGroups]
+      done  = getGroupsFromIds (concat $ map (_phylo_branchGroups) memo) p
+      --------------------------------------
+      memo' :: [PhyloBranch]
+      memo' = addToBranches (lvl,idx) (getGroupId curr) memo 
+      --------------------------------------
+      next' :: [PhyloGroups]
+      next' = filter (\x -> not $ elem x done) $ nub $ next ++ (getGroupPairs curr p)
+      --------------------------------------
+      rest' :: [PhyloGroups]
+      rest' = filter (\x -> not $ elem x next') rest
+      --------------------------------------
 
 
-
+-- | To set all the PhyloBranches for a given Level in a Phylo
 setPhyloBranches :: Level -> Phylo -> Phylo 
-setPhyloBranches lvl p = alterPhyloBranches (\branches 
-                                              -> branches ++ (groupsToBranchs 
-                                                              (getLevelValue lvl, 0)
-                                                              (head groups)
-                                                              (tail groups)
-                                                              [] [] [] p)) p
+setPhyloBranches lvl p = alterPhyloBranches 
+                          (\branches -> branches ++ (groupsToBranches 
+                                                      (getLevelValue lvl, 0)
+                                                      (head groups)
+                                                      (tail groups)
+                                                      [] [] p)
+                          ) p
   where 
     --------------------------------------
     groups :: [PhyloGroup]
@@ -111,6 +125,7 @@ setPhyloBranches lvl p = alterPhyloBranches (\branches
 
 
 phyloWithBranches_1 = setPhyloBranches (initLevel 1 Level_1) phyloWithPair_1_Childs
+
 
 ------------------------------------------------------------------------
 -- | STEP 11 | -- Link the PhyloGroups of level 1 through the Periods  

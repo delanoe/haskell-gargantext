@@ -36,6 +36,11 @@ import qualified Data.Set   as Set
 -- | Tools | --
 
 
+-- | To add a new PhyloGroupId to a PhyloBranch
+addGroupIdToBranch :: PhyloGroupId -> PhyloBranch -> PhyloBranch
+addGroupIdToBranch id b = over (phylo_branchGroups) (++ [id]) b
+
+
 -- | To add a PhyloLevel at the end of a list of PhyloLevels
 addPhyloLevel :: PhyloLevel -> [PhyloLevel] -> [PhyloLevel]
 addPhyloLevel lvl l = l ++ [lvl] 
@@ -135,6 +140,11 @@ getGroupLevel = snd . fst . getGroupId
 -- | To get the Ngrams of a PhyloGroup
 getGroupNgrams :: PhyloGroup -> [Int]
 getGroupNgrams =  _phylo_groupNgrams
+
+
+-- | To get the list of pairs (Childs & Parents) of a PhyloGroup
+getGroupPairs :: PhyloGroup -> Phylo -> [PhyloGroup]
+getGroupPairs g p = (getGroupChilds g p) ++ (getGroupParents g p)
 
 
 -- | To get the PhyloGroups Parents of a PhyloGroup
