@@ -55,7 +55,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (.=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (+~), (%~), (%=), at, _Just, Each(..), itraverse_, both, mapped, forOf_)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (.=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, mapped, forOf_)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
@@ -72,6 +72,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 --import Gargantext.Database.Config (userMaster)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnly)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Utils (fromField', HasConnection)
 --import Gargantext.Database.Lists (listsWith)
@@ -224,7 +225,11 @@ ngramsElementFromRepo
                 , _ne_parent = p
                 , _ne_children = c
                 , _ne_ngrams = ngrams
-                , _ne_occurrences = 1 -- TODO
+                , _ne_occurrences = panic "API.Ngrams._ne_occurrences"
+                -- ^ Here we could use 0 if we want to avoid any `panic`.
+                -- It will not happen using getTableNgrams if
+                -- getOccByNgramsOnly provides a count of occurrences for
+                -- all the ngrams given.
                 }
 
 ------------------------------------------------------------------------
@@ -820,9 +825,6 @@ putListNgrams listId ngramsType nes = do
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
--- TODO:
--- In this perliminary version the OT aspect is missing, therefore the version
--- number is always 1 and the returned patch is always empty.
 tableNgramsPatch :: (HasNgramError err, HasInvalidError err,
                      RepoCmdM env err m)
                  => CorpusId -> Maybe TabType -> ListId
@@ -865,17 +867,6 @@ tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table)
       saveRepo
       pure vq'
 
-  {- DB version
-  when (version /= 1) $ ngramError UnsupportedVersion
-  updateNodeNgrams $ NodeNgramsUpdate
-    { _nnu_user_list_id = listId
-    , _nnu_lists_update = mkListsUpdate ngramsType patch
-    , _nnu_rem_children = mkChildrenGroups _rem ngramsType patch
-    , _nnu_add_children = mkChildrenGroups _add ngramsType patch
-    }
-  pure $ Versioned 1 mempty
-  -}
-
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
   {-
@@ -917,6 +908,7 @@ type MaxSize = Int
 -- | TODO Errors management
 --  TODO: polymorphic for Annuaire or Corpus or ...
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
+-- TODO: should take only one ListId
 getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                => CorpusId -> Maybe TabType
                -> [ListId] -> Maybe Limit -> Maybe Offset
@@ -924,7 +916,7 @@ getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                -> Maybe MinSize -> Maybe MaxSize
                -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
-getTableNgrams _cId maybeTabType listIds mlimit moffset
+getTableNgrams cId maybeTabType listIds mlimit moffset
                mlistType mminSize mmaxSize msearchQuery = do
   let ngramsType = ngramsTypeFromTabType maybeTabType
 
@@ -936,10 +928,6 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset
     minSize  = maybe (const True) (<=) mminSize
     maxSize  = maybe (const True) (>=) mmaxSize
     searchQuery = maybe (const True) isInfixOf msearchQuery
-    -- TODO
-    -- * non root selected ngrams should be replaced by their root
-    --   + what to do with duplicates
-    --   + which order
     selected_node n = minSize     s
                    && maxSize     s
                    && searchQuery (n ^. ne_ngrams)
@@ -964,7 +952,13 @@ getTableNgrams _cId maybeTabType listIds mlimit moffset
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
   let listId = fromMaybe (panic "getTableNgrams: expecting a single ListId") (head listIds)
 
-  getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
+  table <- getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
+  occurrences <- getOccByNgramsOnly cId ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+
+  let
+    setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+
+  pure $ table & v_data . _NgramsTable . each %~ setOcc
 
 
 
