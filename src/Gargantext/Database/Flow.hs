@@ -84,10 +84,11 @@ flowCorpus u cn ff fp = do
   flowCorpusUser u cn ids
 
 flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
-          => Username -> CorpusName -> Text -> m CorpusId
-flowCorpusSearchInDatabase u cn q = do
-  ids <- chunkAlong 10000 10000 <$> map fst <$> searchInDatabase 2 (stemIt q)
-  flowCorpusUser u cn ids
+          => Username -> Text -> m CorpusId
+flowCorpusSearchInDatabase u q = do
+  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
+  ids <- chunkAlong 10000 10000 <$> map fst <$> searchInDatabase cId (stemIt q)
+  flowCorpusUser u q ids
 
 
 flowCorpusMaster :: FlowCmdM env ServantErr m => FileFormat -> FilePath -> m [[NodeId]]
