@@ -62,6 +62,28 @@ import qualified Data.Vector as Vector
 -- | STEP 13 | -- Cluster the Fis
 
 
+-- Il faudrait plutôt passer (Proximity,[Double]) où [Double] serait la liste des paramètres
+groupsToGraph :: Proximity -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
+groupsToGraph prox groups = case prox of 
+  WeightedLogJaccard -> map (\(x,y) -> ((x,y), weightedLogJaccard 0 (getGroupCooc x) (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) edges
+  _                  -> undefined
+  where
+    edges :: [(PhyloGroup,PhyloGroup)]
+    edges = listToDirectedCombi groups 
+
+
+phyloToGraphs :: Level -> Proximity -> Phylo -> Map (Date,Date) [((PhyloGroup,PhyloGroup),Double)]
+phyloToGraphs lvl prox p = Map.fromList 
+                    $ zip periods 
+                          (map (\prd -> groupsToGraph prox 
+                                      $ getGroupsWithFilters (getLevelValue lvl) prd p) periods)
+  where
+    --------------------------------------
+    periods :: [PhyloPeriodId]
+    periods = getPhyloPeriods p
+    -------------------------------------- 
+
+
 ------------------------------------------------------------------------
 -- | STEP 12 | -- Find the Branches
 
@@ -94,16 +116,16 @@ groupsToBranches (lvl,idx) curr rest next memo p
   | otherwise                = groupsToBranches (lvl,idx + 1) (head rest') (tail rest') [] memo' p 
     where
       -------------------------------------- 
-      done :: [PhyloGroups]
+      done :: [PhyloGroup]
       done  = getGroupsFromIds (concat $ map (_phylo_branchGroups) memo) p
       --------------------------------------
       memo' :: [PhyloBranch]
       memo' = addToBranches (lvl,idx) (getGroupId curr) memo 
       --------------------------------------
-      next' :: [PhyloGroups]
+      next' :: [PhyloGroup]
       next' = filter (\x -> not $ elem x done) $ nub $ next ++ (getGroupPairs curr p)
       --------------------------------------
-      rest' :: [PhyloGroups]
+      rest' :: [PhyloGroup]
       rest' = filter (\x -> not $ elem x next') rest
       --------------------------------------
 
@@ -132,13 +154,13 @@ phyloWithBranches_1 = setPhyloBranches (initLevel 1 Level_1) phyloWithPair_1_Chi
 
 
 -- | To process the weightedLogJaccard between two PhyloGroups fields
-weightedLogJaccard :: Double -> PhyloGroupId -> Map (Int, Int) Double -> Map (Int, Int) Double -> (PhyloGroupId, Double)
-weightedLogJaccard s id f1 f2
-  | null wUnion      = (id,0)
-  | wUnion == wInter = (id,1) 
-  | s == 0           = (id,(fromIntegral $ length wInter)/(fromIntegral $ length wUnion))
-  | s > 0            = (id,(sumInvLog wInter)/(sumInvLog wUnion))
-  | otherwise        = (id,(sumLog wInter)/(sumLog wUnion))
+weightedLogJaccard :: Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double
+weightedLogJaccard s f1 f2
+  | null wUnion      = 0
+  | wUnion == wInter = 1 
+  | s == 0           = (fromIntegral $ length wInter)/(fromIntegral $ length wUnion)
+  | s > 0            = (sumInvLog wInter)/(sumInvLog wUnion)
+  | otherwise        = (sumLog wInter)/(sumLog wUnion)
   where 
     --------------------------------------
     wInter :: [Double]
@@ -158,7 +180,7 @@ weightedLogJaccard s id f1 f2
 -- | To apply the corresponding proximity function based on a given Proximity
 getProximity :: Proximity -> Double -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
 getProximity prox s g1 g2 = case prox of 
-  WeightedLogJaccard -> weightedLogJaccard s (getGroupId g2) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1))
+  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard s (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
   Other              -> undefined
   _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
 
@@ -279,17 +301,12 @@ getKeyPair (x,y) m = case findPair (x,y) m of
                       --------------------------------------
 
 
--- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
-listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
-listToCombi f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
-
-
 -- | To transform the Fis into a coocurency Matrix in a Phylo 
 fisToCooc :: Map (Date, Date) Fis -> Phylo -> Map (Int, Int) Double
 fisToCooc m p = map   (/docs)
               $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
               $ concat
-              $ map (\x -> listToCombi (\x -> ngramsToIdx x p) $ (Set.toList . fst) x) fis
+              $ map (\x -> listToUnDirectedCombiWith (\x -> ngramsToIdx x p) $ (Set.toList . fst) x) fis
   where
     --------------------------------------
     fis :: [(Clique,Support)]
@@ -302,7 +319,7 @@ fisToCooc m p = map   (/docs)
     docs = fromIntegral $ foldl (\mem x -> mem + (snd x)) 0 fis
     --------------------------------------
     cooc :: Map (Int, Int) (Double)
-    cooc = Map.fromList $ map (\x -> (x,0)) (listToCombi (\x -> ngramsToIdx x p) fisNgrams)
+    cooc = Map.fromList $ map (\x -> (x,0)) (listToUnDirectedCombiWith (\x -> ngramsToIdx x p) fisNgrams)
     --------------------------------------
 
 
