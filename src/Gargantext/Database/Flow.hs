@@ -299,11 +299,12 @@ mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
         nId = documentId $ documentWithId d
 
 ------------------------------------------------------------------------
-flowListBase :: FlowCmdM env err m
+listInsert :: FlowCmdM env err m
              => ListId -> Map NgramsType [NgramsElement]
              -> m ()
-flowListBase lId ngs = do
-  mapM_ (\(typeList, ngElmts) -> putListNgrams lId typeList ngElmts) $ toList ngs
+listInsert lId ngs = mapM_ (\(typeList, ngElmts)
+                             -> putListNgrams lId typeList ngElmts
+                             ) $ toList ngs
 
 flowList :: FlowCmdM env err m => UserId -> CorpusId
          -> Map NgramsType [NgramsElement]
@@ -311,7 +312,7 @@ flowList :: FlowCmdM env err m => UserId -> CorpusId
 flowList uId cId ngs = do
   lId <- getOrMkList cId uId
   printDebug "listId flowList" lId
-  flowListBase lId ngs
+  listInsert lId ngs
   pure lId
 
 

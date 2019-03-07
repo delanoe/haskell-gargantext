@@ -33,9 +33,10 @@ import qualified Data.Set as Set
 
 type RootTerm = Text
 
+
 getListNgrams :: RepoCmdM env err m
                => [ListId] -> NgramsType
-               -> m (Map Text (ListType, (Maybe Text)))
+               -> m (Map Text NgramsRepoElement)
 getListNgrams nodeIds ngramsType = do
   v    <- view repoVar
   repo <- liftIO $ readMVar v
@@ -46,12 +47,16 @@ getListNgrams nodeIds ngramsType = do
     ngrams    = Map.unionsWith mergeNgramsElement
               [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
-    mapTermListRoot = Map.fromList
-                    [(t, (_nre_list nre, _nre_root nre))
-                    | (t, nre) <- Map.toList ngrams
-                    ]
+  pure ngrams
 
-  pure mapTermListRoot
+mapTermListRoot :: RepoCmdM env err m
+               => [ListId] -> NgramsType
+               -> m (Map Text (ListType, (Maybe Text)))
+mapTermListRoot nodeIds ngramsType = do
+  ngrams <- getListNgrams nodeIds ngramsType
+  pure $ Map.fromList [(t, (_nre_list nre, _nre_root nre))
+                      | (t, nre) <- Map.toList ngrams
+                      ]
 
 
 filterListWithRoot :: ListType -> Map Text (ListType, Maybe Text)

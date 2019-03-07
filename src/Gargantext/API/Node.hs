@@ -284,7 +284,7 @@ graphAPI nId = do
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
   lId <- defaultList cId
 
-  ngs    <- filterListWithRoot GraphTerm <$> getListNgrams [lId] NgramsTerms
+  ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams
                             <$> groupNodesByNgrams ngs
