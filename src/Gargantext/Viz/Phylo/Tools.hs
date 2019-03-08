@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level)
-import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails)
+import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub)
 import Data.Map             (Map, mapKeys, member)
 import Data.Set             (Set)
 import Data.Text            (Text)
@@ -115,6 +115,11 @@ filterNestedSets h l l'
                              else h : l'
   | doesAnySetContains h l l' = filterNestedSets (head l) (tail l) l'
   | otherwise              = filterNestedSets (head l) (tail l) (h : l')
+
+
+-- | To filter some PhyloEdges with a given threshold
+filterPhyloEdges :: Double -> PhyloEdges -> PhyloEdges
+filterPhyloEdges thr edges = filter (\((s,t),w) -> w > thr) edges 
 
 
 -- | To get the PhyloGroups Childs of a PhyloGroup
@@ -220,6 +225,15 @@ getLevelLinkValue dir link = case dir of
     From -> view (levelFrom . levelValue) link
     To   -> view (levelTo   . levelValue) link 
     _    -> panic "[ERR][Viz.Phylo.Tools.getLevelLinkValue] Wrong direction"
+
+
+-- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of PhyloEdges 
+getNeighbours :: Bool -> PhyloGroup -> PhyloEdges -> [PhyloGroup]
+getNeighbours directed g e = case directed of 
+  True  -> map (\((s,t),w) -> t) 
+             $ filter (\((s,t),w) -> s == g) e 
+  False -> map (\((s,t),w) -> head $ delete g $ nub [s,t,g]) 
+             $ filter (\((s,t),w) -> s == g || t == g) e
 
 
 -- | To get the Branches of a Phylo

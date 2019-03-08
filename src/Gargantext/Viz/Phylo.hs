@@ -189,7 +189,14 @@ data PhyloError = LevelDoesNotExist
           deriving (Show)               
 
 
-data Proximity  = WeightedLogJaccard | Other
+type PhyloGraph = (PhyloNodes,PhyloEdges)
+type PhyloNodes = [PhyloGroup]
+type PhyloEdges = [(((PhyloGroup,PhyloGroup)),Double)]
+
+
+data Proximity  = WeightedLogJaccard | Hamming | FromPairs
+
+data Clustering  = Louvain | RelatedComponents
 
 
 data PairTo = Childs | Parents 
