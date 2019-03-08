@@ -62,82 +62,117 @@ import qualified Data.Vector as Vector
 -- | STEP 13 | -- Cluster the Fis
 
 
--- Il faudrait plutôt passer (Proximity,[Double]) où [Double] serait la liste des paramètres
-groupsToGraph :: Proximity -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
-groupsToGraph prox groups = case prox of 
-  WeightedLogJaccard -> map (\(x,y) -> ((x,y), weightedLogJaccard 0 (getGroupCooc x) (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) edges
-  _                  -> undefined
-  where
-    edges :: [(PhyloGroup,PhyloGroup)]
-    edges = listToDirectedCombi groups 
+-- | To do : ajouter de nouveaux clusters / proxi
+-- gérer les cooc à level 2 et +, idem pour les quality
+-- réfléchir aux formats de sortie 
 
 
-phyloToGraphs :: Level -> Proximity -> Phylo -> Map (Date,Date) [((PhyloGroup,PhyloGroup),Double)]
-phyloToGraphs lvl prox p = Map.fromList 
-                    $ zip periods 
-                          (map (\prd -> groupsToGraph prox 
-                                      $ getGroupsWithFilters (getLevelValue lvl) prd p) periods)
-  where
-    --------------------------------------
-    periods :: [PhyloPeriodId]
-    periods = getPhyloPeriods p
-    -------------------------------------- 
+-- | To apply a Clustering method to a PhyloGraph
+graphToClusters :: (Clustering,[Double]) -> PhyloGraph -> [[PhyloGroup]]
+graphToClusters (clust,param) (nodes,edges) = case clust of 
+  Louvain           -> undefined
+  RelatedComponents -> relatedComp 0 (head nodes) (tail nodes,edges) [] []   
 
+
+-- | To transform a Phylo into Clusters of PhyloGroups at a given level
+phyloToClusters :: Level -> (Proximity,[Double]) -> (Clustering,[Double]) -> Phylo -> Map (Date,Date) [[PhyloGroup]]
+phyloToClusters lvl (prox,param) (clus,param') p = Map.fromList 
+                                                 $ zip (getPhyloPeriods p) 
+                                                       (map (\prd -> let graph = groupsToGraph (prox,param) (getGroupsWithFilters (getLevelValue lvl) prd p) p
+                                                                     in if null (fst graph) 
+                                                                        then []
+                                                                        else graphToClusters (clus,param') graph) 
+                                                       (getPhyloPeriods p))
+
+
+-- | To transform a Cluster into  a Phylogroup 
+clusterToGroup :: PhyloPeriodId -> Int -> Int -> Text -> [PhyloGroup] -> PhyloGroup
+clusterToGroup prd lvl idx lbl groups = PhyloGroup ((prd, lvl), idx)
+                                                   lbl
+                                                   ((sort . nub . concat) $ map getGroupNgrams groups)
+                                                   empty
+                                                   empty
+                                                   [] [] []
+                                                   (map (\g -> (getGroupId g, 1)) groups)
+
+-- | To transform a list of Clusters into a new Phylolevel
+clustersToPhyloLevel :: Level -> Map (Date,Date) [[PhyloGroup]] -> Phylo -> Phylo
+clustersToPhyloLevel lvl m p = over (phylo_periods . traverse)
+                                    (\period -> 
+                                      let periodId = _phylo_periodId period
+                                          clusters = zip [1..] (m ! periodId)
+                                      in  over (phylo_periodLevels)
+                                          (\levels -> 
+                                            let groups = map (\cluster -> clusterToGroup periodId (getLevelValue lvl) (fst cluster) "" (snd cluster)) clusters
+                                            in  levels ++ [PhyloLevel (periodId, (getLevelValue lvl)) groups]
+                                          ) period) p
+
+
+phyloWithGroups2 = clustersToPhyloLevel (initLevel 2 Level_N) 
+                                        (phyloToClusters (initLevel 1 Level_1) (WeightedLogJaccard,[0]) (RelatedComponents, []) phyloWithBranches_1)
+                                        phyloWithBranches_1
 
 ------------------------------------------------------------------------
 -- | STEP 12 | -- Find the Branches
 
 
--- | To add a PhyloGroupId to list of Branches with conditions
-addToBranches :: (Int,Int) -> PhyloGroupId -> [PhyloBranch] -> [PhyloBranch]
-addToBranches (lvl,idx) id branches 
-  | null branches  = [newBranch]
-  | idx == lastIdx = (init branches) ++ [addGroupIdToBranch id (last branches)]
-  | otherwise      = branches ++ [newBranch] 
+-- | To apply the related components method to a PhyloGraph
+-- curr = the current PhyloGroup 
+-- (nodes,edges) = the initial PhyloGraph minus the current PhyloGroup
+-- next = the next PhyloGroups to be added in the cluster  
+-- memo = the memory of the allready created clusters
+relatedComp :: Int -> PhyloGroup -> PhyloGraph -> [PhyloGroup] -> [[PhyloGroup]] -> [[PhyloGroup]]
+relatedComp idx curr (nodes,edges) next memo
+  | null nodes' && null next' = memo'
+  | (not . null) next'        = relatedComp idx (head next') (nodes',edges) (tail next') memo'
+  | otherwise                 = relatedComp (idx + 1) (head nodes') (tail nodes',edges) [] memo'
   where
     --------------------------------------
-    newBranch :: PhyloBranch
-    newBranch = PhyloBranch (lvl,idx) "" [id]
+    memo' :: [[PhyloGroup]]
+    memo' 
+      | null memo                  = [[curr]]
+      | idx == ((length memo) - 1) = (init memo) ++ [(last memo) ++ [curr]]
+      | otherwise                  = memo ++ [[curr]]
     --------------------------------------
-    lastIdx :: Int
-    lastIdx = (snd . _phylo_branchId . last) branches
+    next' :: [PhyloGroup]
+    next' = filter (\x -> not $ elem x $ concat memo) $ nub $ next ++ (getNeighbours False curr edges)
+    --------------------------------------
+    nodes' :: [PhyloGroup]
+    nodes' = filter (\x -> not $ elem x next') nodes
     --------------------------------------
 
 
--- | To transform a list of PhyloGroups into a list of PhyloBranches where :
--- curr = the current PhyloGroup 
--- rest = the rest of the initial list of PhyloGroups
--- next = the next PhyloGroups to be added in the current Branch  
--- memo = the memory of the allready created Branches, the last one is the current one
-groupsToBranches :: (Int,Int) -> PhyloGroup -> [PhyloGroup] -> [PhyloGroup] -> [PhyloBranch] -> Phylo -> [PhyloBranch]
-groupsToBranches (lvl,idx) curr rest next memo p
-  | null rest' && null next' = memo'
-  | (not . null) next'       = groupsToBranches (lvl,idx) (head next') rest' (tail next') memo' p
-  | otherwise                = groupsToBranches (lvl,idx + 1) (head rest') (tail rest') [] memo' p 
-    where
-      -------------------------------------- 
-      done :: [PhyloGroup]
-      done  = getGroupsFromIds (concat $ map (_phylo_branchGroups) memo) p
-      --------------------------------------
-      memo' :: [PhyloBranch]
-      memo' = addToBranches (lvl,idx) (getGroupId curr) memo 
-      --------------------------------------
-      next' :: [PhyloGroup]
-      next' = filter (\x -> not $ elem x done) $ nub $ next ++ (getGroupPairs curr p)
-      --------------------------------------
-      rest' :: [PhyloGroup]
-      rest' = filter (\x -> not $ elem x next') rest
-      --------------------------------------
+-- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
+graphToBranches :: Int -> PhyloGraph -> Phylo -> [PhyloBranch]
+graphToBranches lvl (nodes,edges) p = map (\(idx,c) -> PhyloBranch (lvl,idx) "" (map getGroupId c)) $ zip [0..] clusters
+  where
+    -------------------------------------- 
+    clusters :: [[PhyloGroup]]
+    clusters = relatedComp 0 (head nodes) (tail nodes,edges) [] []
+    --------------------------------------
+
+
+-- | To transform a list of PhyloGroups into a PhyloGraph by using a given Proximity mesure
+groupsToGraph :: (Proximity,[Double]) -> [PhyloGroup] -> Phylo -> PhyloGraph
+groupsToGraph (prox,param) groups p = (groups,edges)
+  where 
+    edges :: PhyloEdges
+    edges = case prox of  
+      FromPairs          -> (nub . concat) $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
+                                                        ++
+                                                        (map (\g' -> ((g,g'),1)) $ getGroupChilds g p)) groups 
+      WeightedLogJaccard -> map (\(x,y) -> ((x,y), weightedLogJaccard 
+                                                   (param !! 0) (getGroupCooc x) 
+                                                   (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups
+      _                  -> undefined 
 
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
 setPhyloBranches :: Level -> Phylo -> Phylo 
 setPhyloBranches lvl p = alterPhyloBranches 
-                          (\branches -> branches ++ (groupsToBranches 
-                                                      (getLevelValue lvl, 0)
-                                                      (head groups)
-                                                      (tail groups)
-                                                      [] [] p)
+                          (\branches -> branches 
+                                        ++
+                                        (graphToBranches (getLevelValue lvl) (groupsToGraph (FromPairs,[]) groups p) p)
                           ) p
   where 
     --------------------------------------
@@ -178,10 +213,9 @@ weightedLogJaccard s f1 f2
 
 
 -- | To apply the corresponding proximity function based on a given Proximity
-getProximity :: Proximity -> Double -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-getProximity prox s g1 g2 = case prox of 
-  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard s (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
-  Other              -> undefined
+getProximity :: (Proximity,[Double]) -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+getProximity (prox,param) g1 g2 = case prox of 
+  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard (param !! 0) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
   _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
 
 
@@ -215,11 +249,11 @@ getNextPeriods to id l = case to of
 
 
 -- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )  
-findBestCandidates :: PairTo -> Int -> Int -> Double -> Double -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
-findBestCandidates to depth max thr s group p
+findBestCandidates :: PairTo -> Int -> Int -> Double -> (Proximity,[Double]) -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
+findBestCandidates to depth max thr (prox,param) group p
   | depth > max || null next = [] 
   | (not . null) best = take 2 best
-  | otherwise = findBestCandidates to (depth + 1) max thr s group p   
+  | otherwise = findBestCandidates to (depth + 1) max thr (prox,param) group p   
   where
     --------------------------------------
     next :: [PhyloPeriodId]
@@ -229,7 +263,7 @@ findBestCandidates to depth max thr s group p
     candidates = getGroupsWithFilters (getGroupLevel group) (head next) p
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
-    scores = map (\group' -> getProximity WeightedLogJaccard s group group') candidates
+    scores = map (\group' -> getProximity (prox,param) group group') candidates
     --------------------------------------
     best :: [(PhyloGroupId, Double)]
     best = reverse
@@ -252,8 +286,8 @@ makePair to group ids = case to of
 
 
 -- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
-pairGroupsToGroups :: PairTo -> Level -> Double -> Double -> Phylo -> Phylo
-pairGroupsToGroups to lvl thr s p = alterPhyloGroups
+pairGroupsToGroups :: PairTo -> Level -> Double -> (Proximity,[Double]) -> Phylo -> Phylo
+pairGroupsToGroups to lvl thr (prox,param) p = alterPhyloGroups
                                     (\groups -> 
                                       map (\group ->
                                             if (getGroupLevel group) ==  (getLevelValue lvl)
@@ -261,7 +295,7 @@ pairGroupsToGroups to lvl thr s p = alterPhyloGroups
                                               let
                                                 --------------------------------------
                                                 candidates :: [(PhyloGroupId, Double)] 
-                                                candidates = findBestCandidates to 1 5 thr s group p
+                                                candidates = findBestCandidates to 1 5 thr (prox,param) group p
                                                 --------------------------------------
                                               in 
                                                 makePair to group candidates
@@ -270,11 +304,11 @@ pairGroupsToGroups to lvl thr s p = alterPhyloGroups
 
 
 phyloWithPair_1_Childs :: Phylo
-phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.01 0 phyloWithPair_1_Parents
+phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.01 (WeightedLogJaccard,[0]) phyloWithPair_1_Parents
 
 
 phyloWithPair_1_Parents :: Phylo
-phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.01 0 phyloLinked_0_1
+phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.01 (WeightedLogJaccard,[0]) phyloLinked_0_1
 
 
 ------------------------------------------------------------------------
