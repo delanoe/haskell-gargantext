@@ -58,7 +58,7 @@ import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (CorpusId, ContactId)
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.Text.Flow (cooc2graph)
+import Gargantext.Viz.Graph.Tools (cooc2graph)
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
 import Servant
 import Test.QuickCheck (elements)

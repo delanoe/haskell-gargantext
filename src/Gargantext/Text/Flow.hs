@@ -11,40 +11,19 @@ From text to viz, all the flow of texts in Gargantext.
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
 {-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.Text.Flow
   where
 
---import qualified Data.Array.Accelerate as A
---import qualified Data.Set as DS
---import Control.Monad.Reader
-import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
-import Data.Map.Strict (Map)
---import Data.Maybe (catMaybes)
-import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
-import Data.Text (Text)
 --import Data.Text.IO (readFile)
 import Database.PostgreSQL.Simple (Connection)
 import GHC.IO (FilePath)
 --import Gargantext.Core (Lang)
 import Gargantext.Core.Types (CorpusId)
---import Gargantext.Database.Schema.Node
---import Gargantext.Database.Types.Node
-import Gargantext.Prelude
---import Gargantext.Text.Context (splitBy, SplitContext(Sentences))
---import Gargantext.Text.Metrics (filterCooc, FilterConfig(..), Clusters(..), SampleBins(..), DefaultValue(..), MapListSize(..), InclusionSize(..))
---import Gargantext.Text.Metrics.Count (coocOn)
---import Gargantext.Text.Parsers.CSV
---import Gargantext.Text.Terms (TermType, extractTerms)
-import Gargantext.Viz.Graph (Graph(..), data2graph)
-import Gargantext.Viz.Graph.Bridgeness (bridgeness)
-import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
---import Gargantext.Viz.Graph.Distances.Matrice (distributional)
-import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
+
 {-
   ____                             _            _
  / ___| __ _ _ __ __ _  __ _ _ __ | |_ _____  _| |_
@@ -114,54 +93,4 @@ textFlow' termType contexts = do
   g <- cooc2graph myCooc2
   pure g
 -}
-
--- TODO use Text only here instead of [Text]
-cooc2graph :: (Map (Text, Text) Int) -> IO Graph
-cooc2graph myCooc = do
-  --printDebug "myCooc" myCooc
-  -- Filtering terms with inclusion/Exclusion and Specificity/Genericity scores
-{-
-  let myCooc3 = filterCooc ( FilterConfig (MapListSize    350 )
-                                          (InclusionSize  500 )
-                                          (SampleBins      10 )
-                                          (Clusters         3 )
-                                          (DefaultValue     0 )
-                           ) myCooc
---}  --printDebug "myCooc3 size" $ M.size myCooc3
-
-  -- Cooc -> Matrix
-  let (ti, _) = createIndices myCooc
-  --printDebug "ti size" $ M.size ti
-  --printDebug "ti" ti
-
-  let myCooc4 = toIndex ti myCooc
-  --printDebug "myCooc4 size" $ M.size myCooc4
-  --printDebug "myCooc4" myCooc4
-
-  let matCooc = map2mat (0) (Map.size ti) myCooc4
-  --printDebug "matCooc shape" $ A.arrayShape matCooc
-  --printDebug "matCooc" matCooc
-
-  -- Matrix -> Clustering
-  let distanceMat = measureConditional matCooc
-  --let distanceMat = distributional matCooc
-  --printDebug "distanceMat shape" $ A.arrayShape distanceMat
-  --printDebug "distanceMat" distanceMat
-
-  --let distanceMap = M.filter (>0) $ mat2map distanceMat
-  let distanceMap = Map.map (\_ -> 1) $ Map.filter (>0) $ mat2map distanceMat
-  --printDebug "distanceMap size" $ M.size distanceMap
-  --printDebug "distanceMap" distanceMap
-
-  --let distance = fromIndex fi distanceMap
-  --printDebug "distance" $ M.size distance
-
-  partitions <- case Map.size distanceMap > 0 of
-                  True  -> cLouvain distanceMap
-                  False -> panic "Text.Flow: DistanceMap is empty"
--- Building : -> Graph -> JSON
-  --printDebug "partitions" $ DS.size $ DS.fromList $ map (l_community_id) partitions
-  --printDebug "partitions" partitions
-  let distanceMap' = bridgeness 300 partitions distanceMap
-  pure $ data2graph (Map.toList ti) myCooc4 distanceMap' partitions
 
