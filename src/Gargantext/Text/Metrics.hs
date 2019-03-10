@@ -46,13 +46,16 @@ data FilterConfig = FilterConfig
   , fc_defaultValue  :: DefaultValue
   }
 
-filterCooc :: (Show t, Ord t) => FilterConfig -> Map (t, t) Int -> Map (t, t) Int
+
+filterCooc :: (Show t, Ord t)
+           => FilterConfig -> Map (t, t) Int -> Map (t, t) Int
 filterCooc fc cc = (filterCooc' fc) ts cc
   where
     ts     = map _scored_terms $ takeSome fc $ coocScored cc
 
 
-filterCooc' :: (Show t, Ord t) => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
+filterCooc' :: (Show t, Ord t)
+            => FilterConfig -> [t] -> Map (t, t) Int -> Map (t, t) Int
 filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m =
   -- trace ("coocScored " <> show ts) $
   foldl' (\m' k -> M.insert k (maybe dv identity $ M.lookup k m) m')
@@ -64,7 +67,8 @@ filterCooc' (FilterConfig _ _ _ _ (DefaultValue dv)) ts m =
 -- Sample the main cluster ordered by specificity/genericity in (SampleBins::Double) parts
 -- each parts is then ordered by Inclusion/Exclusion
 -- take n scored terms in each parts where n * SampleBins = MapListSize.
-takeSome :: Ord t => FilterConfig -> [Scored t] -> [Scored t]
+takeSome :: Ord t
+         => FilterConfig -> [Scored t] -> [Scored t]
 takeSome (FilterConfig (MapListSize l) (InclusionSize l') (SampleBins s) (Clusters _) _) scores = L.take l
                     $ takeSample n m
                     $ L.take l'

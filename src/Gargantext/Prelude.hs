@@ -128,10 +128,15 @@ type Grain = Int
 type Step  = Int
 
 -- | Function to split a range into chunks
--- if   step == grain then linearity
+-- if   step == grain then linearity (splitEvery)
 -- elif step < grain then overlapping
 -- else dotted with holes
 -- TODO FIX BUG if Steps*Grain /= length l
+-- chunkAlong 10 10 [1..15] == [1..10]
+-- BUG: what about the rest of (divMod 15 10)?
+-- TODO: chunkAlongNoRest or chunkAlongWithRest
+-- default behavior: NoRest
+
 chunkAlong :: Eq a => Grain -> Step -> [a] -> [[a]]
 chunkAlong a b l = case a >= length l of
   True  -> [l]

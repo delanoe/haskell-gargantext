@@ -87,8 +87,8 @@ flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
           => Username -> Text -> m CorpusId
 flowCorpusSearchInDatabase u q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
-  ids <- chunkAlong 10000 10000 <$> map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser u q ids
+  ids <-  map fst <$> searchInDatabase cId (stemIt q)
+  flowCorpusUser u q [ids]
 
 
 flowCorpusMaster :: FlowCmdM env ServantErr m => FileFormat -> FilePath -> m [[NodeId]]
@@ -99,12 +99,7 @@ flowCorpusMaster ff fp = do
   -- ChunkAlong needed for big corpora
   -- TODO add LANG as parameter
   -- TODO uniformize language of corpus
-                                   -- TODO ChunkAlong is not the right function here
-                                   -- chunkAlong 10 10 [1..15] == [1..10]
-                                   -- BUG: what about the rest of (divMod 15 10)?
-                                   -- TODO: chunkAlongNoRest or chunkAlongWithRest
-                                   -- default behavior: NoRest
-  ids  <- mapM insertMasterDocs $ chunkAlong 10000 10000 docs
+  ids  <- mapM insertMasterDocs $ splitEvery 10000 docs
   pure ids
 
 
