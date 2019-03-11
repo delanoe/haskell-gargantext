@@ -13,6 +13,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.Tools
   where
@@ -40,11 +41,6 @@ import qualified Data.Vector as Vector
 -- | To add a new PhyloGroupId to a PhyloBranch
 addGroupIdToBranch :: PhyloGroupId -> PhyloBranch -> PhyloBranch
 addGroupIdToBranch id b = over (phylo_branchGroups) (++ [id]) b
-
-
--- | To add a PhyloLevel at the end of a list of PhyloLevels
-addPhyloLevel :: PhyloLevel -> [PhyloLevel] -> [PhyloLevel]
-addPhyloLevel lvl l = l ++ [lvl] 
 
 
 -- | To alter each list of PhyloGroups following a given function
@@ -76,8 +72,8 @@ alterPhyloLevels f p = over ( phylo_periods
 
 
 -- | To append a list of PhyloPeriod to a Phylo
-appendPhyloPeriods :: [PhyloPeriod] -> Phylo -> Phylo
-appendPhyloPeriods l p = over (phylo_periods) (++ l) p
+appendToPhyloPeriods :: [PhyloPeriod] -> Phylo -> Phylo
+appendToPhyloPeriods l p = over (phylo_periods) (++ l) p
 
 
 -- | Does a List of Sets contains at least one Set of an other List
@@ -245,6 +241,11 @@ getPhyloNgrams = _phylo_ngrams
 getPhyloPeriods :: Phylo -> [PhyloPeriodId]
 getPhyloPeriods p = map _phylo_periodId 
                   $ view (phylo_periods) p
+
+
+-- | To get the id of a given PhyloPeriod
+getPhyloPeriodId :: PhyloPeriod -> PhyloPeriodId
+getPhyloPeriodId prd = _phylo_periodId prd 
 
 
 -- | To create a PhyloGroup in a Phylo out of a list of Ngrams and a set of parameters 

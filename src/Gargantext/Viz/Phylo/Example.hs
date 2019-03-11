@@ -24,6 +24,7 @@ TODO:
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.Example where
 
@@ -42,7 +43,7 @@ import Data.Vector      (Vector, fromList, elemIndex)
 import Gargantext.Prelude                      hiding (head)
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Gargantext.Text.Terms.Mono              (monoTexts)
-import Gargantext.Viz.Phylo
+import Gargantext.Viz.Phylo                    
 import Gargantext.Viz.Phylo.Tools
 
 import qualified Data.Bool   as Bool
@@ -87,13 +88,9 @@ phyloToClusters lvl (prox,param) (clus,param') p = Map.fromList
 
 -- | To transform a Cluster into  a Phylogroup 
 clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> [PhyloGroup] -> PhyloGroup
-clusterToGroup prd lvl idx lbl groups = PhyloGroup ((prd, lvl), idx)
-                                                   lbl
-                                                   ((sort . nub . concat) $ map getGroupNgrams groups)
-                                                   empty
-                                                   empty
-                                                   [] [] []
-                                                   (map (\g -> (getGroupId g, 1)) groups)
+clusterToGroup prd lvl idx lbl groups = 
+    PhyloGroup ((prd, lvl), idx) lbl ((sort . nub . concat) $ map getGroupNgrams groups) empty empty [] [] [] (map (\g -> (getGroupId g, 1)) groups)
+
 
 -- | To transform a list of Clusters into a new Phylolevel
 clustersToPhyloLevel :: Level -> Map (Date,Date) [[PhyloGroup]] -> Phylo -> Phylo
@@ -108,7 +105,9 @@ clustersToPhyloLevel lvl m p = over (phylo_periods . traverse)
                                           ) period) p
 
 
-phyloWithGroups2 = clustersToPhyloLevel 2 (phyloToClusters 1 (WeightedLogJaccard,[0]) (RelatedComponents, []) phyloWithBranches_1) phyloWithBranches_1
+phyloWithGroups2 = clustersToPhyloLevel 
+                    2 
+                    (phyloToClusters 1 (WeightedLogJaccard,[0]) (RelatedComponents, []) phyloWithBranches_1) phyloWithBranches_1
 
 ------------------------------------------------------------------------
 -- | STEP 12 | -- Find the Branches
@@ -142,12 +141,9 @@ relatedComp idx curr (nodes,edges) next memo
 
 -- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
 graphToBranches :: Level -> PhyloGraph -> Phylo -> [PhyloBranch]
-graphToBranches lvl (nodes,edges) p = map (\(idx,c) -> PhyloBranch (lvl,idx) "" (map getGroupId c)) $ zip [0..] clusters
-  where
-    -------------------------------------- 
-    clusters :: [[PhyloGroup]]
-    clusters = relatedComp 0 (head nodes) (tail nodes,edges) [] []
-    --------------------------------------
+graphToBranches lvl (nodes,edges) p = map (\(idx,c) -> PhyloBranch (lvl,idx) "" (map getGroupId c)) 
+                                    $ zip [0..] 
+                                    $ relatedComp 0 (head nodes) (tail nodes,edges) [] []
 
 
 -- | To transform a list of PhyloGroups into a PhyloGraph by using a given Proximity mesure
@@ -167,10 +163,7 @@ groupsToGraph (prox,param) groups p = (groups,edges)
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
 setPhyloBranches :: Level -> Phylo -> Phylo 
-setPhyloBranches lvl p = alterPhyloBranches 
-                          (\branches -> branches 
-                                        ++
-                                        (graphToBranches lvl (groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p)p)p))p
+setPhyloBranches lvl p = alterPhyloBranches (\l -> l ++ (graphToBranches lvl (groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p) p) p) ) p
 
 
 phyloWithBranches_1 = setPhyloBranches 1 phyloWithPair_1_Childs
@@ -365,6 +358,20 @@ fisToPhyloLevel m p = over (phylo_periods . traverse)
                                        ) period ) p
 
 
+-- | to do :  ajouter ce truc à addPhylolevel puis le rendre polymorphique (Fis/Document -> Group)
+
+-- aggregateToPhyloLevel' :: (a -> PhyloGroup) -> Map (Date, Date) [a] -> Phylo -> Phylo 
+-- aggregateToPhyloLevel' f m p = alterPhyloPeriods (\period -> 
+--                                            let periodId = _phylo_periodId period 
+--                                                aggList  = zip [1..] (m ! periodId)
+--                                            in  over (phylo_periodLevels)
+--                                                (\phyloLevels ->
+--                                                   let groups = map f aggList 
+--                                                   in  phyloLevels ++ [PhyloLevel (periodId, 1) groups]
+--                                                ) period) p
+
+
+
 phyloLinked_0_1 :: Phylo
 phyloLinked_0_1 = alterLevelLinks (0,1)  phyloLinked_1_0
 
@@ -472,7 +479,7 @@ phyloLinked_0_m1 = alterLevelLinks (0,(-1)) phyloWithGroups0
 
 -- | To clone the last PhyloLevel of each PhyloPeriod and update it with a new LevelValue 
 clonePhyloLevel :: Level -> Phylo -> Phylo
-clonePhyloLevel lvl p = alterPhyloLevels (\l -> addPhyloLevel (setPhyloLevelId lvl $ head l) l) p 
+clonePhyloLevel lvl p = alterPhyloLevels (\l -> l ++ [setPhyloLevelId lvl $ head l]) p 
 
 
 phyloWithGroups0 :: Phylo
@@ -503,11 +510,39 @@ docsToPhyloPeriods lvl docs p = map (\(id,l) -> initPhyloPeriod id l)
 -- | To update a Phylo for a given Levels
 updatePhyloByLevel :: Level -> Phylo -> Phylo 
 updatePhyloByLevel lvl p
-  | lvl < 0   = appendPhyloPeriods (docsToPhyloPeriods lvl phyloPeriods p) p
+  | lvl < 0   = appendToPhyloPeriods (docsToPhyloPeriods lvl phyloPeriods p) p
   | lvl == 0  = clonePhyloLevel lvl p
   | lvl == 1  = fisToPhyloLevel phyloFisFiltered p
   | lvl > 1   = undefined
   | otherwise = panic ("[ERR][Viz.Phylo.Example.updatePhyloByLevel] Level not defined")
+
+
+instance AppendToPhylo Fis 
+  where
+    --------------------------------------
+    -- | Level -> Map (Date,Date) [Fis] -> Phylo -> Phylo 
+    addPhyloLevel lvl m p
+      | lvl == 1  = fisToPhyloLevel m p
+      | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Fis at level <> 1")    
+    --------------------------------------
+
+
+instance AppendToPhylo Cluster 
+  where
+  --------------------------------------
+  -- | appendByLevel :: Level -> Map (Date,Date) [Cluster] -> Phylo -> Phylo 
+    addPhyloLevel lvl m p = undefined
+  --------------------------------------
+
+
+instance AppendToPhylo Document 
+  where
+  --------------------------------------
+  -- | Level -> Map (Date,Date) [Document] -> Phylo -> Phylo 
+    addPhyloLevel lvl m p 
+      | lvl < 0   = over (phylo_periods) (++ docsToPhyloPeriods lvl m p) p
+      | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Documents at level <> -1")
+  --------------------------------------
 
 
 phyloWithGroupsm1 :: Phylo
