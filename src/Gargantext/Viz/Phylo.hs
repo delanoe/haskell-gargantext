@@ -25,6 +25,7 @@ one 8, e54847.
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo where
 
@@ -64,6 +65,7 @@ data Software =
      } deriving (Generic)
 
 ------------------------------------------------------------------------
+
 -- | Phylo datatype descriptor of a phylomemy
 -- Duration : time Segment of the whole phylomemy (start,end)
 -- Ngrams   : list of all (possible) terms contained in the phylomemy (with their id)
@@ -139,27 +141,22 @@ data PhyloBranch =
                  deriving (Generic, Show)                
 
 
--- | PhyloPeriodId : A period of time framed by a starting Date and an ending Date
-type PhyloPeriodId = (Start, End)
 -- | Level : A level of aggregation (-1 = Txt, 0 = Ngrams, 1 = Fis, [2..] = Cluster)  
 type Level = Int 
 -- | Index : A generic index of an element (PhyloGroup, PhyloBranch, etc) in a given List
 type Index = Int
 
 
+type PhyloPeriodId = (Start, End)
 type PhyloLevelId  = (PhyloPeriodId, Level)
 type PhyloGroupId  = (PhyloLevelId, Index)
 type PhyloBranchId = (Level, Index)
 
-type Pointer       = (PhyloGroupId, Weight)
 
-type Weight        = Double
-
-
-
-
-
-
+-- | Weight : A generic mesure that can be associated with an Id
+type Weight = Double
+-- | Pointer : A weighted linked with a given PhyloGroup
+type Pointer = (PhyloGroupId, Weight)
 
 
 -- | Ngrams : a contiguous sequence of n terms
@@ -176,7 +173,6 @@ type Support = Int
 type Fis = (Clique,Support)
 
 
-
 -- | Document : a piece of Text linked to a Date
 data Document = Document
       { date :: Date
@@ -184,6 +180,19 @@ data Document = Document
       } deriving (Show)
 
 
+type Cluster = [PhyloGroup]
+
+
+class AppendToPhylo a where
+    addPhyloLevel  :: Level -> Map (Date,Date) [a] -> Phylo -> Phylo
+    initPhyloGroup :: a -> PhyloGroup
+
+-- | A List of PhyloGroup in a PhyloGraph
+type PhyloNodes = [PhyloGroup]
+-- | A List of weighted links between some PhyloGroups in a PhyloGraph
+type PhyloEdges = [(((PhyloGroup,PhyloGroup)),Weight)]
+-- | The association as a Graph between a list of Nodes and a list of Edges
+type PhyloGraph = (PhyloNodes,PhyloEdges)
 
 
 data PhyloError = LevelDoesNotExist
@@ -191,13 +200,9 @@ data PhyloError = LevelDoesNotExist
           deriving (Show)               
 
 
-type PhyloGraph = (PhyloNodes,PhyloEdges)
-type PhyloNodes = [PhyloGroup]
-type PhyloEdges = [(((PhyloGroup,PhyloGroup)),Double)]
-
-
+-- | A List of Proximity mesures or strategies 
 data Proximity  = WeightedLogJaccard | Hamming | FromPairs
-
+-- | A List of Clustering methods 
 data Clustering  = Louvain | RelatedComponents
 
 
