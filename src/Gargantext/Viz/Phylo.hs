@@ -138,14 +138,28 @@ data PhyloBranch =
                  }
                  deriving (Generic, Show)                
 
+
+-- | PhyloPeriodId : A period of time framed by a starting Date and an ending Date
 type PhyloPeriodId = (Start, End)
-type PhyloLevelId  = (PhyloPeriodId, Int)
-type PhyloGroupId  = (PhyloLevelId, Int)
+-- | Level : A level of aggregation (-1 = Txt, 0 = Ngrams, 1 = Fis, [2..] = Cluster)  
+type Level = Int 
+-- | Index : A generic index of an element (PhyloGroup, PhyloBranch, etc) in a given List
+type Index = Int
+
+
+type PhyloLevelId  = (PhyloPeriodId, Level)
+type PhyloGroupId  = (PhyloLevelId, Index)
+type PhyloBranchId = (Level, Index)
 
 type Pointer       = (PhyloGroupId, Weight)
+
 type Weight        = Double
 
-type PhyloBranchId = (Int, Int)
+
+
+
+
+
 
 
 -- | Ngrams : a contiguous sequence of n terms
@@ -159,30 +173,18 @@ type Clique  = Set Ngrams
 -- | Support : Number of Documents where a Clique occurs
 type Support = Int 
 -- | Fis : Frequent Items Set (ie: the association between a Clique and a Support) 
-type Fis = Map Clique Support
+type Fis = (Clique,Support)
 
 
-data Direction = From | To
-    deriving (Show, Eq)
-
-data LevelLabel = Level_m1 | Level_0 | Level_1 | Level_mN | Level_N | Level_pN
-  deriving (Show, Eq, Enum, Bounded)
-
-data Level = 
-     Level { _levelLabel :: LevelLabel
-           , _levelValue :: Int 
-           } deriving (Show, Eq)
-
-data LevelLink =
-     LevelLink { _levelFrom :: Level
-               , _levelTo   :: Level
-               } deriving (Show)
 
 -- | Document : a piece of Text linked to a Date
 data Document = Document
       { date :: Date
       , text :: Text
       } deriving (Show)
+
+
+
 
 data PhyloError = LevelDoesNotExist
                 | LevelUnassigned
@@ -209,8 +211,6 @@ makeLenses ''Software
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
-makeLenses ''Level
-makeLenses ''LevelLink
 makeLenses ''PhyloBranch
 
 -- | JSON instances
