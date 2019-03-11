@@ -78,7 +78,7 @@ graphToClusters (clust,param) (nodes,edges) = case clust of
 phyloToClusters :: Level -> (Proximity,[Double]) -> (Clustering,[Double]) -> Phylo -> Map (Date,Date) [[PhyloGroup]]
 phyloToClusters lvl (prox,param) (clus,param') p = Map.fromList 
                                                  $ zip (getPhyloPeriods p) 
-                                                       (map (\prd -> let graph = groupsToGraph (prox,param) (getGroupsWithFilters (getLevelValue lvl) prd p) p
+                                                       (map (\prd -> let graph = groupsToGraph (prox,param) (getGroupsWithFilters lvl prd p) p
                                                                      in if null (fst graph) 
                                                                         then []
                                                                         else graphToClusters (clus,param') graph) 
@@ -86,7 +86,7 @@ phyloToClusters lvl (prox,param) (clus,param') p = Map.fromList
 
 
 -- | To transform a Cluster into  a Phylogroup 
-clusterToGroup :: PhyloPeriodId -> Int -> Int -> Text -> [PhyloGroup] -> PhyloGroup
+clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> [PhyloGroup] -> PhyloGroup
 clusterToGroup prd lvl idx lbl groups = PhyloGroup ((prd, lvl), idx)
                                                    lbl
                                                    ((sort . nub . concat) $ map getGroupNgrams groups)
@@ -103,14 +103,12 @@ clustersToPhyloLevel lvl m p = over (phylo_periods . traverse)
                                           clusters = zip [1..] (m ! periodId)
                                       in  over (phylo_periodLevels)
                                           (\levels -> 
-                                            let groups = map (\cluster -> clusterToGroup periodId (getLevelValue lvl) (fst cluster) "" (snd cluster)) clusters
-                                            in  levels ++ [PhyloLevel (periodId, (getLevelValue lvl)) groups]
+                                            let groups = map (\cluster -> clusterToGroup periodId lvl (fst cluster) "" (snd cluster)) clusters
+                                            in  levels ++ [PhyloLevel (periodId, lvl) groups]
                                           ) period) p
 
 
-phyloWithGroups2 = clustersToPhyloLevel (initLevel 2 Level_N) 
-                                        (phyloToClusters (initLevel 1 Level_1) (WeightedLogJaccard,[0]) (RelatedComponents, []) phyloWithBranches_1)
-                                        phyloWithBranches_1
+phyloWithGroups2 = clustersToPhyloLevel 2 (phyloToClusters 1 (WeightedLogJaccard,[0]) (RelatedComponents, []) phyloWithBranches_1) phyloWithBranches_1
 
 ------------------------------------------------------------------------
 -- | STEP 12 | -- Find the Branches
@@ -143,7 +141,7 @@ relatedComp idx curr (nodes,edges) next memo
 
 
 -- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
-graphToBranches :: Int -> PhyloGraph -> Phylo -> [PhyloBranch]
+graphToBranches :: Level -> PhyloGraph -> Phylo -> [PhyloBranch]
 graphToBranches lvl (nodes,edges) p = map (\(idx,c) -> PhyloBranch (lvl,idx) "" (map getGroupId c)) $ zip [0..] clusters
   where
     -------------------------------------- 
@@ -172,16 +170,10 @@ setPhyloBranches :: Level -> Phylo -> Phylo
 setPhyloBranches lvl p = alterPhyloBranches 
                           (\branches -> branches 
                                         ++
-                                        (graphToBranches (getLevelValue lvl) (groupsToGraph (FromPairs,[]) groups p) p)
-                          ) p
-  where 
-    --------------------------------------
-    groups :: [PhyloGroup]
-    groups = getGroupsWithLevel (getLevelValue lvl) p
-    --------------------------------------
+                                        (graphToBranches lvl (groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p)p)p))p
 
 
-phyloWithBranches_1 = setPhyloBranches (initLevel 1 Level_1) phyloWithPair_1_Childs
+phyloWithBranches_1 = setPhyloBranches 1 phyloWithPair_1_Childs
 
 
 ------------------------------------------------------------------------
@@ -290,7 +282,7 @@ pairGroupsToGroups :: PairTo -> Level -> Double -> (Proximity,[Double]) -> Phylo
 pairGroupsToGroups to lvl thr (prox,param) p = alterPhyloGroups
                                     (\groups -> 
                                       map (\group ->
-                                            if (getGroupLevel group) ==  (getLevelValue lvl)
+                                            if (getGroupLevel group) == lvl
                                             then 
                                               let
                                                 --------------------------------------
@@ -304,53 +296,31 @@ pairGroupsToGroups to lvl thr (prox,param) p = alterPhyloGroups
 
 
 phyloWithPair_1_Childs :: Phylo
-phyloWithPair_1_Childs = pairGroupsToGroups Childs (initLevel 1 Level_1) 0.01 (WeightedLogJaccard,[0]) phyloWithPair_1_Parents
+phyloWithPair_1_Childs = pairGroupsToGroups Childs 1 0.01 (WeightedLogJaccard,[0]) phyloWithPair_1_Parents
 
 
 phyloWithPair_1_Parents :: Phylo
-phyloWithPair_1_Parents = pairGroupsToGroups Parents (initLevel 1 Level_1) 0.01 (WeightedLogJaccard,[0]) phyloLinked_0_1
+phyloWithPair_1_Parents = pairGroupsToGroups Parents 1 0.01 (WeightedLogJaccard,[0]) phyloLinked_0_1
 
 
 ------------------------------------------------------------------------
 -- | STEP 10 | -- Build the coocurency Matrix of the Phylo 
 
 
--- | Are two PhyloGroups sharing at leats one Ngrams 
-shareNgrams :: PhyloGroup -> PhyloGroup -> Bool
-shareNgrams g g' = (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g')
-
-
--- | To get the good pair of keys (x,y) or (y,x) in a given Map (a,b) c
-getKeyPair :: (Int,Int) -> Map (Int,Int) a -> (Int,Int)
-getKeyPair (x,y) m = case findPair (x,y) m of
-                      Nothing -> panic "[ERR][Viz.Phylo.Example.getKeyPair] Nothing"
-                      Just i  -> i
-                     where
-                      --------------------------------------
-                      findPair :: (Int,Int) -> Map (Int,Int) a -> Maybe (Int,Int)
-                      findPair (x,y) m
-                        | member (x,y) m = Just (x,y)
-                        | member (y,x) m = Just (y,x)
-                        | otherwise      = Nothing
-                      --------------------------------------
-
-
 -- | To transform the Fis into a coocurency Matrix in a Phylo 
-fisToCooc :: Map (Date, Date) Fis -> Phylo -> Map (Int, Int) Double
+fisToCooc :: Map (Date, Date) [Fis] -> Phylo -> Map (Int, Int) Double
 fisToCooc m p = map   (/docs)
               $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
               $ concat
-              $ map (\x -> listToUnDirectedCombiWith (\x -> ngramsToIdx x p) $ (Set.toList . fst) x) fis
+              $ map (\x -> listToUnDirectedCombiWith (\x -> ngramsToIdx x p) $ (Set.toList . fst) x) 
+              $ (concat . elems) m
   where
     --------------------------------------
-    fis :: [(Clique,Support)]
-    fis = concat $ map (\x -> Map.toList x) (elems m)
-    --------------------------------------
     fisNgrams :: [Ngrams]
-    fisNgrams = foldl (\mem x -> union mem $ (Set.toList . fst) x) [] fis
+    fisNgrams = foldl (\mem x -> union mem $ (Set.toList . fst) x) [] $ (concat . elems) m
     --------------------------------------
     docs :: Double
-    docs = fromIntegral $ foldl (\mem x -> mem + (snd x)) 0 fis
+    docs = fromIntegral $ foldl (\mem x -> mem + (snd x)) 0 $ (concat . elems) m
     --------------------------------------
     cooc :: Map (Int, Int) (Double)
     cooc = Map.fromList $ map (\x -> (x,0)) (listToUnDirectedCombiWith (\x -> ngramsToIdx x p) fisNgrams)
@@ -366,13 +336,9 @@ phyloCooc = fisToCooc phyloFisFiltered phyloLinked_0_1
 
 
 -- | To Cliques into Groups
-cliqueToGroup :: PhyloPeriodId -> Int -> Int -> Ngrams -> (Clique,Support) -> Map (Date, Date) Fis -> Phylo -> PhyloGroup
-cliqueToGroup period lvl idx label fis m p = PhyloGroup ((period, lvl), idx)
-                                                    label
-                                                    ngrams
-                                                    (singleton "support" (fromIntegral $ snd fis))
-                                                    cooc
-                                                    [] [] [] []
+cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Ngrams -> (Clique,Support) -> Map (Date, Date) [Fis] -> Phylo -> PhyloGroup
+cliqueToGroup period lvl idx label fis m p = 
+  PhyloGroup ((period, lvl), idx) label ngrams (singleton "support" (fromIntegral $ snd fis)) cooc [] [] [] []
   where
     --------------------------------------
     ngrams :: [Int]
@@ -382,41 +348,33 @@ cliqueToGroup period lvl idx label fis m p = PhyloGroup ((period, lvl), idx)
     --------------------------------------
     cooc :: Map (Int, Int) Double 
     cooc =  filterWithKey (\k _ -> elem (fst k) ngrams && elem (snd k) ngrams) 
-                          $ fisToCooc (restrictKeys m $ Set.fromList [period]) p
+                                 $ fisToCooc (restrictKeys m $ Set.fromList [period]) p
     -------------------------------------- 
 
 
 -- | To transform Fis into PhyloLevels
-fisToPhyloLevel :: Map (Date, Date) Fis -> Phylo -> Phylo
+fisToPhyloLevel :: Map (Date, Date) [Fis] -> Phylo -> Phylo
 fisToPhyloLevel m p = over (phylo_periods . traverse)
                            (\period ->
                               let periodId = _phylo_periodId period
-                                  fisList  = zip [1..] (Map.toList (m ! periodId))
+                                  fisList  = zip [1..] (m ! periodId)
                               in  over (phylo_periodLevels)
-                                       (\levels ->
+                                       (\phyloLevels ->
                                           let groups = map (\fis -> cliqueToGroup periodId 1 (fst fis) "" (snd fis) m p) fisList
-                                          in  levels ++ [PhyloLevel (periodId, 1) groups] 
+                                          in  phyloLevels ++ [PhyloLevel (periodId, 1) groups] 
                                        ) period ) p
 
 
 phyloLinked_0_1 :: Phylo
-phyloLinked_0_1 = alterLevelLinks lvl_0_1  phyloLinked_1_0
-
-
-lvl_0_1 :: LevelLink
-lvl_0_1 = initLevelLink (initLevel 0 Level_0) (initLevel 1 Level_1) 
+phyloLinked_0_1 = alterLevelLinks (0,1)  phyloLinked_1_0
 
 
 phyloLinked_1_0 :: Phylo
-phyloLinked_1_0 = alterLevelLinks lvl_1_0  phyloWithGroups1
-
-
-lvl_1_0 :: LevelLink
-lvl_1_0 = initLevelLink (initLevel 1 Level_1) (initLevel 0 Level_0) 
+phyloLinked_1_0 = alterLevelLinks (1,0)  phyloWithGroups1
 
 
 phyloWithGroups1 :: Phylo
-phyloWithGroups1 = updatePhyloByLevel (initLevel 1 Level_1) phyloLinked_m1_0
+phyloWithGroups1 = updatePhyloByLevel 1 phyloLinked_m1_0
 
 
 ------------------------------------------------------------------------
@@ -424,50 +382,34 @@ phyloWithGroups1 = updatePhyloByLevel (initLevel 1 Level_1) phyloLinked_m1_0
 
 
 -- | To Filter Fis by support 
-filterFisBySupport :: Bool -> Int -> Map (Date, Date) Fis -> Map (Date, Date) Fis
+filterFisBySupport :: Bool -> Int -> Map (Date, Date) [Fis] -> Map (Date, Date) [Fis]
 filterFisBySupport empty min m = case empty of
-  True  -> Map.map (\fis -> filterMinorFis min fis) m
-  False -> Map.map (\fis -> filterMinorFisNonEmpty min fis) m
+  True  -> Map.map (\l -> filterMinorFis min l) m
+  False -> Map.map (\l -> keepFilled (filterMinorFis) min l) m
 
 
 -- | To filter Fis with small Support, to preserve nonempty periods please use : filterFisBySupport False
-filterMinorFis :: Int -> Fis -> Fis
-filterMinorFis min fis = Map.filter (\s -> s > min) fis
-
-
--- | To filter Fis with small Support but by keeping non empty Periods
-filterMinorFisNonEmpty :: Int -> Fis -> Fis
-filterMinorFisNonEmpty min fis = if (Map.null fis') && (not $ Map.null fis)
-                                 then filterMinorFisNonEmpty (min - 1) fis
-                                 else fis'
-  where
-    -------------------------------------- 
-    fis' :: Fis
-    fis' = filterMinorFis min fis
-    --------------------------------------
+filterMinorFis :: Int -> [Fis] -> [Fis]
+filterMinorFis min l = filter (\fis -> snd fis > min) l
 
 
 -- | To filter nested Fis 
-filterFisByNested :: Map (Date, Date) Fis -> Map (Date, Date) Fis
-filterFisByNested = map (\fis -> restrictKeys fis
-                              $ Set.fromList
-                              $ filterNestedSets (head (keys fis)) (keys fis) []
-                            )
+filterFisByNested :: Map (Date, Date) [Fis] -> Map (Date, Date) [Fis]
+filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head $ map fst l) (map fst l) []
+                               in  filter (\fis -> elem (fst fis) cliqueMax) l)
 
 
 -- | To transform a list of Documents into a Frequent Items Set 
-docsToFis :: Map (Date, Date) [Document] -> Map (Date, Date) Fis
-docsToFis docs = map (\d -> fisWithSizePolyMap 
-                              (Segment 1 20) 
-                              1 
-                              (map (words . text) d)) docs
+docsToFis :: Map (Date, Date) [Document] -> Map (Date, Date) [Fis]
+docsToFis docs = map (\d -> Map.toList 
+                          $ fisWithSizePolyMap (Segment 1 20) 1 (map (words . text) d)) docs
 
 
-phyloFisFiltered :: Map (Date, Date) Fis
+phyloFisFiltered :: Map (Date, Date) [Fis]
 phyloFisFiltered = filterFisBySupport True 1 (filterFisByNested phyloFis)
 
 
-phyloFis :: Map (Date, Date) Fis
+phyloFis :: Map (Date, Date) [Fis]
 phyloFis = docsToFis phyloPeriods 
 
 
@@ -476,11 +418,7 @@ phyloFis = docsToFis phyloPeriods
 
 
 phyloLinked_m1_0 :: Phylo
-phyloLinked_m1_0 = alterLevelLinks lvl_m1_0  phyloLinked_0_m1
-
-
-lvl_m1_0 :: LevelLink
-lvl_m1_0 = initLevelLink (initLevel (-1) Level_m1) (initLevel 0 Level_0) 
+phyloLinked_m1_0 = alterLevelLinks ((-1),0)  phyloLinked_0_m1
 
 
 ------------------------------------------------------------------------
@@ -488,10 +426,10 @@ lvl_m1_0 = initLevelLink (initLevel (-1) Level_m1) (initLevel 0 Level_0)
 
 
 -- | To set the LevelLinks between a given PhyloGroup and a list of childs/parents PhyloGroups
-linkGroupToGroups :: LevelLink -> PhyloGroup -> [PhyloGroup] -> PhyloGroup
-linkGroupToGroups lvl current targets 
-  | getLevelLinkValue From lvl < getLevelLinkValue To lvl = setLevelParents current 
-  | getLevelLinkValue From lvl > getLevelLinkValue To lvl = setLevelChilds current
+linkGroupToGroups :: (Level,Level) -> PhyloGroup -> [PhyloGroup] -> PhyloGroup
+linkGroupToGroups (lvl,lvl') current targets 
+  | lvl < lvl' = setLevelParents current 
+  | lvl > lvl' = setLevelChilds current
   | otherwise = current  
   where
     -------------------------------------- 
@@ -503,32 +441,29 @@ linkGroupToGroups lvl current targets
     --------------------------------------
     addPointers :: [Pointer] -> [Pointer]
     addPointers lp = lp ++ Maybe.mapMaybe (\target -> 
-                                            if shouldLink lvl (_phylo_groupNgrams current)
-                                                              (_phylo_groupNgrams target )
+                                            if shouldLink (lvl,lvl') 
+                                                          (_phylo_groupNgrams current)
+                                                          (_phylo_groupNgrams target )
                                             then Just ((getGroupId target),1)
                                             else Nothing) targets 
     --------------------------------------
 
 
 -- | To set the LevelLinks between two lists of PhyloGroups 
-linkGroupsByLevel :: LevelLink -> Phylo -> [PhyloGroup] -> [PhyloGroup]
-linkGroupsByLevel lvl p groups  = map (\group ->
-  if getGroupLevel group == getLevelLinkValue From lvl 
-  then linkGroupToGroups lvl group (getGroupsWithFilters (getLevelLinkValue To lvl) (getGroupPeriod group) p)
-  else group ) groups
+linkGroupsByLevel :: (Level,Level) -> Phylo -> [PhyloGroup] -> [PhyloGroup]
+linkGroupsByLevel (lvl,lvl') p groups  = map (\group ->
+                                              if getGroupLevel group == lvl 
+                                              then linkGroupToGroups (lvl,lvl') group (getGroupsWithFilters lvl' (getGroupPeriod group) p)
+                                              else group) groups
 
 
 -- | To set the LevelLink of all the PhyloGroups of a Phylo
-alterLevelLinks :: LevelLink -> Phylo -> Phylo
-alterLevelLinks lvl p = alterPhyloGroups (linkGroupsByLevel lvl p) p
+alterLevelLinks :: (Level,Level) -> Phylo -> Phylo
+alterLevelLinks (lvl,lvl') p = alterPhyloGroups (linkGroupsByLevel (lvl,lvl') p) p
 
 
 phyloLinked_0_m1 :: Phylo
-phyloLinked_0_m1 = alterLevelLinks lvl_0_m1  phyloWithGroups0
-
-
-lvl_0_m1 :: LevelLink
-lvl_0_m1 = initLevelLink (initLevel 0 Level_0) (initLevel (-1) Level_m1) 
+phyloLinked_0_m1 = alterLevelLinks (0,(-1)) phyloWithGroups0
 
 
 ------------------------------------------------------------------------
@@ -536,14 +471,12 @@ lvl_0_m1 = initLevelLink (initLevel 0 Level_0) (initLevel (-1) Level_m1)
 
 
 -- | To clone the last PhyloLevel of each PhyloPeriod and update it with a new LevelValue 
-clonePhyloLevel :: Int -> Phylo -> Phylo
-clonePhyloLevel lvl p = alterPhyloLevels (\l -> addPhyloLevel 
-                                               (setPhyloLevelId lvl $ head l) 
-                                               l) p 
+clonePhyloLevel :: Level -> Phylo -> Phylo
+clonePhyloLevel lvl p = alterPhyloLevels (\l -> addPhyloLevel (setPhyloLevelId lvl $ head l) l) p 
 
 
 phyloWithGroups0 :: Phylo
-phyloWithGroups0 = updatePhyloByLevel (initLevel 0 Level_0) phyloWithGroupsm1
+phyloWithGroups0 = updatePhyloByLevel 0 phyloWithGroupsm1
 
 
 ------------------------------------------------------------------------
@@ -551,7 +484,7 @@ phyloWithGroups0 = updatePhyloByLevel (initLevel 0 Level_0) phyloWithGroupsm1
 
 
 -- | To transform a list of Documents into a PhyloLevel
-docsToPhyloLevel :: Int ->(Date, Date) -> [Document] -> Phylo -> PhyloLevel
+docsToPhyloLevel :: Level -> (Date, Date) -> [Document] -> Phylo -> PhyloLevel
 docsToPhyloLevel lvl (d, d') docs p = initPhyloLevel 
                                         ((d, d'), lvl)
                                         (map (\(f,s) -> initGroup [s] s f lvl d d' p) 
@@ -561,42 +494,24 @@ docsToPhyloLevel lvl (d, d') docs p = initPhyloLevel
 
 
 -- | To transform a Map of Periods and Documents into a list of PhyloPeriods
-docsToPhyloPeriods :: Int -> Map (Date,Date) [Document] -> Phylo -> [PhyloPeriod]
+docsToPhyloPeriods :: Level -> Map (Date,Date) [Document] -> Phylo -> [PhyloPeriod]
 docsToPhyloPeriods lvl docs p = map (\(id,l) -> initPhyloPeriod id l) 
-                                    $ Map.toList levels 
-  where
-    -------------------------------------- 
-    levels :: Map (Date,Date) [PhyloLevel]
-    levels = mapWithKey (\k v -> [docsToPhyloLevel lvl k v p]) docs
-    --------------------------------------
+                                    $ Map.toList 
+                                    $ mapWithKey (\k v -> [docsToPhyloLevel lvl k v p]) docs 
 
 
 -- | To update a Phylo for a given Levels
 updatePhyloByLevel :: Level -> Phylo -> Phylo 
-updatePhyloByLevel lvl p 
-  = case getLevelLabel lvl of
-     
-    Level_m1 -> appendPhyloPeriods (docsToPhyloPeriods (getLevelValue lvl) lvlData p) p
-      where
-        --------------------------------------
-        lvlData :: Map (Date,Date) [Document]
-        lvlData = phyloPeriods
-        --------------------------------------
-
-    Level_0  -> clonePhyloLevel (getLevelValue lvl) p
-
-    Level_1  -> fisToPhyloLevel lvlData p
-      where 
-        --------------------------------------
-        lvlData :: Map (Date, Date) Fis
-        lvlData = phyloFisFiltered
-        --------------------------------------
-
-    _        -> panic ("[ERR][Viz.Phylo.Example.updatePhyloByLevel] Level not defined")
+updatePhyloByLevel lvl p
+  | lvl < 0   = appendPhyloPeriods (docsToPhyloPeriods lvl phyloPeriods p) p
+  | lvl == 0  = clonePhyloLevel lvl p
+  | lvl == 1  = fisToPhyloLevel phyloFisFiltered p
+  | lvl > 1   = undefined
+  | otherwise = panic ("[ERR][Viz.Phylo.Example.updatePhyloByLevel] Level not defined")
 
 
 phyloWithGroupsm1 :: Phylo
-phyloWithGroupsm1 = updatePhyloByLevel (initLevel (-1) Level_m1) phylo
+phyloWithGroupsm1 = updatePhyloByLevel (-1) phylo
 
 
 ------------------------------------------------------------------------
@@ -624,15 +539,15 @@ docsToPeriods f g s es = Map.fromList $ zip hs $ map (inPeriode f es) hs
 
 -- | To parse a list of Documents by filtering on a Vector of Ngrams 
 parseDocs :: PhyloNgrams -> [Document] -> [Document]
-parseDocs l docs = map (\(Document d t) -> Document d (unwords 
-                                                      $ filter (\x -> Vector.elem x l)
-                                                      $ monoTexts t)) docs
+parseDocs l docs = map (\(Document d t) 
+                        -> Document d ( unwords 
+                                      $ filter (\x -> Vector.elem x l)
+                                      $ monoTexts t)) docs
 
 
 -- | To group a list of Documents by fixed periods
 groupDocsByPeriod :: Grain -> Step -> [Document] -> Phylo -> Map (Date, Date) [Document]
-groupDocsByPeriod g s docs p = docsToPeriods date g s 
-                             $ parseDocs (getPhyloNgrams p) docs 
+groupDocsByPeriod g s docs p = docsToPeriods date g s $ parseDocs (getPhyloNgrams p) docs 
 
 
 phyloPeriods :: Map (Date, Date) [Document]
@@ -641,16 +556,6 @@ phyloPeriods = groupDocsByPeriod 5 3 phyloDocs phylo
 
 ------------------------------------------------------------------------
 -- | STEP 2 | -- Init an initial list of Ngrams and a Phylo  
-
-
--- | To init a Phylomemy
-initPhylo :: [Document] -> PhyloNgrams -> Phylo
-initPhylo docs ngrams = Phylo (both date $ (last &&& head) docs) ngrams [] []
-
-
--- | To init a PhyloNgrams as a Vector of Ngrams 
-initNgrams :: [Ngrams] -> PhyloNgrams
-initNgrams l = Vector.fromList $ map toLower l
 
 
 phylo :: Phylo

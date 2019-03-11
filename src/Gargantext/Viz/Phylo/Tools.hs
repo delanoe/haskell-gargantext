@@ -21,15 +21,16 @@ import Control.Lens         hiding (both, Level)
 import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub)
 import Data.Map             (Map, mapKeys, member)
 import Data.Set             (Set)
-import Data.Text            (Text)
+import Data.Text            (Text, toLower)
 import Data.Tuple.Extra
 import Data.Vector          (Vector,elemIndex)
 import Gargantext.Prelude   hiding (head)
 import Gargantext.Viz.Phylo
 
-import qualified Data.List  as List
-import qualified Data.Map   as Map
-import qualified Data.Set   as Set
+import qualified Data.List   as List
+import qualified Data.Map    as Map
+import qualified Data.Set    as Set
+import qualified Data.Vector as Vector
 
 
 ------------------------------------------------------------------------
@@ -201,30 +202,19 @@ getIdx x v = case (elemIndex x v) of
               Just i  -> i
 
 
--- | To get the label of a Level
-getLevelLabel :: Level -> LevelLabel
-getLevelLabel lvl = _levelLabel lvl
-
-
--- | To get the value of a Level
-getLevelValue :: Level -> Int
-getLevelValue lvl = _levelValue lvl
-
-
--- | To get the label of a LevelLink based on a Direction
-getLevelLinkLabel :: Direction -> LevelLink -> LevelLabel
-getLevelLinkLabel dir link = case dir of 
-    From -> view (levelFrom . levelLabel) link
-    To   -> view (levelTo   . levelLabel) link 
-    _    -> panic "[ERR][Viz.Phylo.Tools.getLevelLinkLabel] Wrong direction"
-
-
--- | To get the value of a LevelLink based on a Direction
-getLevelLinkValue :: Direction -> LevelLink -> Int
-getLevelLinkValue dir link = case dir of 
-    From -> view (levelFrom . levelValue) link
-    To   -> view (levelTo   . levelValue) link 
-    _    -> panic "[ERR][Viz.Phylo.Tools.getLevelLinkValue] Wrong direction"
+-- | To get the good pair of keys (x,y) or (y,x) in a given Map (a,b) c
+getKeyPair :: (Int,Int) -> Map (Int,Int) a -> (Int,Int)
+getKeyPair (x,y) m = case findPair (x,y) m of
+                      Nothing -> panic "[ERR][Viz.Phylo.Example.getKeyPair] Nothing"
+                      Just i  -> i
+                     where
+                      --------------------------------------
+                      findPair :: (Int,Int) -> Map (Int,Int) a -> Maybe (Int,Int)
+                      findPair (x,y) m
+                        | member (x,y) m = Just (x,y)
+                        | member (y,x) m = Just (y,x)
+                        | otherwise      = Nothing
+                      --------------------------------------
 
 
 -- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of PhyloEdges 
@@ -268,14 +258,14 @@ initGroup ngrams lbl idx lvl from to p = PhyloGroup
   [] [] [] []
 
 
--- | To create a Level
-initLevel :: Int -> LevelLabel -> Level
-initLevel lvl lbl = Level lbl lvl
+-- | To init a PhyloNgrams as a Vector of Ngrams 
+initNgrams :: [Ngrams] -> PhyloNgrams
+initNgrams l = Vector.fromList $ map toLower l
 
 
--- | To create a LevelLink
-initLevelLink :: Level -> Level -> LevelLink 
-initLevelLink lvl lvl' = LevelLink lvl lvl' 
+-- | To init a Phylomemy
+initPhylo :: [Document] -> PhyloNgrams -> Phylo
+initPhylo docs ngrams = Phylo (both date $ (last &&& head) docs) ngrams [] []
 
 
 -- | To create a PhyloLevel
@@ -286,6 +276,13 @@ initPhyloLevel id groups = PhyloLevel id groups
 -- | To create a PhyloPeriod
 initPhyloPeriod :: PhyloPeriodId -> [PhyloLevel] -> PhyloPeriod
 initPhyloPeriod id l = PhyloPeriod id l
+
+
+-- | To filter Fis with small Support but by keeping non empty Periods
+keepFilled :: (Int -> [a] -> [a]) -> Int -> [a] -> [a] 
+keepFilled f thr l = if (null $ f thr l) && (not $ null l)
+                     then keepFilled f (thr - 1) l
+                     else f thr l  
 
 
 -- | To get all combinations of a list
@@ -322,16 +319,11 @@ setPhyloLevelId lvl' (PhyloLevel (id, lvl) groups)
 
 
 -- | To choose a LevelLink strategy based an a given Level 
-shouldLink :: LevelLink -> [Int] -> [Int] -> Bool
-shouldLink lvl l l'
-  | from <= 1 = doesContainsOrd l l'
-  | from > 1  = undefined
+shouldLink :: (Level,Level) -> [Int] -> [Int] -> Bool
+shouldLink (lvl,lvl') l l'
+  | lvl <= 1  = doesContainsOrd l l'
+  | lvl >  1  = undefined
   | otherwise = panic ("[ERR][Viz.Phylo.Tools.shouldLink] LevelLink not defined") 
-  where
-    -------------------------------------- 
-    from :: Int
-    from = getLevelLinkValue From lvl
-    --------------------------------------
 
 
 -- | To unify the keys (x,y) that Map 1 share with Map 2 such as: (x,y) <=> (y,x)
