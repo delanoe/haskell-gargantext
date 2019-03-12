@@ -28,9 +28,10 @@ module Gargantext.API.Metrics
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
-import Data.Aeson (ToJSON)
+import Data.Aeson.TH (deriveJSON)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Gargantext.Core.Types (ListType(..))
+import Gargantext.Core.Utils.Prefix (unPrefix)
 import Data.Swagger
 
 
@@ -38,7 +39,6 @@ data Metrics = Metrics
   { metrics_data :: [Metric]}
   deriving (Generic)
 
-instance ToJSON   Metrics
 instance ToSchema Metrics
 instance Arbitrary Metrics
   where
@@ -51,7 +51,6 @@ data Metric = Metric
   , m_cat   :: !ListType
   } deriving (Generic)
 
-instance ToJSON   Metric
 instance ToSchema Metric
 instance Arbitrary Metric
   where
@@ -60,4 +59,5 @@ instance Arbitrary Metric
                        <*> arbitrary
                        <*> arbitrary
 
-
+deriveJSON (unPrefix "metrics_") ''Metrics
+deriveJSON (unPrefix "m_") ''Metric

@@ -41,7 +41,7 @@ import Data.Text (Text())
 import Data.Time (UTCTime)
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo, ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.API.Metrics
@@ -389,24 +389,26 @@ query s = pure s
 -------------------------------------------------------------------------------
 
 type MetricsAPI = Summary "SepGen IncExc metrics"
-                :> QueryParam "list"  ListId
-                :> QueryParam "limit" Int
+                :> QueryParam "list"       ListId
+                :> QueryParam "ngramsType" TabType
+                :> QueryParam "limit"      Int
                 :> Get '[JSON] Metrics
 
-
 getMetrics :: NodeId -> GargServer MetricsAPI
-getMetrics cId maybeListId maybeLimit = do
+getMetrics cId maybeListId maybeTabType maybeLimit = do
   lId <- case maybeListId of
     Nothing   -> defaultList cId
     Just lId' -> pure lId'
 
+  let ngramsType = ngramsTypeFromTabType maybeTabType
+
   -- TODO all terms
-  ngs'    <- mapTermListRoot [lId] NgramsTerms
+  ngs'    <- mapTermListRoot [lId] ngramsType
   let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs') [GraphTerm, StopTerm, CandidateTerm]
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams
                             <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
+                            <$> getNodesByNgramsOnlyUser cId ngramsType (Map.keys ngs)
 
   let
     metrics = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) $ scored myCooc
