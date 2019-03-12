@@ -183,10 +183,6 @@ data Document = Document
 type Cluster = [PhyloGroup]
 
 
-class AppendToPhylo a where
-    addPhyloLevel  :: Level -> Map (Date,Date) [a] -> Phylo -> Phylo
-    initPhyloGroup :: a -> PhyloGroup
-
 -- | A List of PhyloGroup in a PhyloGraph
 type PhyloNodes = [PhyloGroup]
 -- | A List of weighted links between some PhyloGroups in a PhyloGraph

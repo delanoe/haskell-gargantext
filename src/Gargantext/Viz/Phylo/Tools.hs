@@ -13,14 +13,13 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level)
-import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub)
-import Data.Map             (Map, mapKeys, member)
+import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, union)
+import Data.Map             (Map, mapKeys, member, elems, adjust)
 import Data.Set             (Set)
 import Data.Text            (Text, toLower)
 import Data.Tuple.Extra
@@ -264,10 +263,9 @@ initNgrams :: [Ngrams] -> PhyloNgrams
 initNgrams l = Vector.fromList $ map toLower l
 
 
--- | To init a Phylomemy
-initPhylo :: [Document] -> PhyloNgrams -> Phylo
-initPhylo docs ngrams = Phylo (both date $ (last &&& head) docs) ngrams [] []
-
+-- | To create a Phylo from a list of PhyloPeriods and Ngrams
+initPhylo :: [(Date, Date)] -> PhyloNgrams -> Phylo
+initPhylo l ngrams = Phylo ((fst . head) l, (snd . last) l) ngrams (map (\prd -> initPhyloPeriod prd []) l) []
 
 -- | To create a PhyloLevel
 initPhyloLevel :: PhyloLevelId -> [PhyloGroup] -> PhyloLevel
@@ -317,14 +315,6 @@ setPhyloLevelId lvl' (PhyloLevel (id, lvl) groups)
     = PhyloLevel (id, lvl') groups'
         where 
             groups' = over (traverse . phylo_groupId) (\((period, lvl), idx) -> ((period, lvl'), idx)) groups 
-
-
--- | To choose a LevelLink strategy based an a given Level 
-shouldLink :: (Level,Level) -> [Int] -> [Int] -> Bool
-shouldLink (lvl,lvl') l l'
-  | lvl <= 1  = doesContainsOrd l l'
-  | lvl >  1  = undefined
-  | otherwise = panic ("[ERR][Viz.Phylo.Tools.shouldLink] LevelLink not defined") 
 
 
 -- | To unify the keys (x,y) that Map 1 share with Map 2 such as: (x,y) <=> (y,x)
