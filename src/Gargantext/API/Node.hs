@@ -282,8 +282,8 @@ graphAPI nId = do
                                      ]
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
-  lId <- defaultList cId
 
+  lId <- defaultList cId
   ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams
@@ -296,7 +296,7 @@ graphAPI nId = do
 instance HasNodeError ServantErr where
   _NodeError = prism' mk (const Nothing) -- $ panic "HasNodeError ServantErr: not a prism")
     where
-      e = "NodeError: "
+      e = "Gargantext.NodeError: "
       mk NoListFound   = err404 { errBody = e <> "No list found"         }
       mk NoRootFound   = err404 { errBody = e <> "No Root found"         }
       mk NoCorpusFound = err404 { errBody = e <> "No Corpus found"       }
@@ -333,18 +333,20 @@ rename nId (RenameNode name') = U.update (U.Rename nId name')
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getTable cId ft o l order = case ft of
-                                (Just Docs)  -> runViewDocuments cId False o l order
-                                (Just Trash) -> runViewDocuments cId True  o l order
-                                _     -> panic "not implemented"
+getTable cId ft o l order =
+  case ft of
+    (Just Docs)  -> runViewDocuments cId False o l order
+    (Just Trash) -> runViewDocuments cId True  o l order
+    _     -> panic "not implemented"
 
 getPairing :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getPairing cId ft o l order = case ft of
-                                (Just Docs)  -> runViewAuthorsDoc cId False o l order
-                                (Just Trash) -> runViewAuthorsDoc cId True  o l order
-                                _     -> panic "not implemented"
+getPairing cId ft o l order =
+  case ft of
+    (Just Docs)  -> runViewAuthorsDoc cId False o l order
+    (Just Trash) -> runViewAuthorsDoc cId True  o l order
+    _     -> panic "not implemented"
 
 
 getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime

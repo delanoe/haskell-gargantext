@@ -83,6 +83,7 @@ flowCorpus u cn ff fp = do
   ids <- flowCorpusMaster ff fp
   flowCorpusUser u cn ids
 
+-- TODO query with complex query
 flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
           => Username -> Text -> m CorpusId
 flowCorpusSearchInDatabase u q = do
@@ -112,11 +113,7 @@ flowCorpusUser userName corpusName ids = do
 
   -- User List Flow
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
-  -- /!\ this extract NgramsTerms Only
-  ngs <- buildNgramsLists userCorpusId masterCorpusId
-  --printDebug "ngs" ngs
-  --TODO getNgramsElement of NgramsType...
-  --ngs <- getNgramsElementsWithParentNodeId masterCorpusId
+  ngs         <- buildNgramsLists userCorpusId masterCorpusId
   userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
 
@@ -124,11 +121,10 @@ flowCorpusUser userName corpusName ids = do
   _ <- mkGraph     userCorpusId userId
 
   -- User Dashboard Flow
-  _ <- mkDashboard userCorpusId userId
+  -- _ <- mkDashboard userCorpusId userId
 
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
-
   pure userCorpusId
 
 
@@ -142,7 +138,7 @@ insertMasterDocs hs  =  do
   ids <- insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hs)
-  docsWithNgrams <- documentIdWithNgrams extractNgramsT documentsWithId
+  docsWithNgrams     <- documentIdWithNgrams extractNgramsT documentsWithId
 
   let maps            = mapNodeIdNgrams docsWithNgrams
 

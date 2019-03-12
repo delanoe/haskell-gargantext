@@ -24,13 +24,12 @@ import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
-
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.TFICF
 import Gargantext.Text.Terms.Mono.Stem (stem)
@@ -54,7 +53,7 @@ ngramsGroup l n = Text.intercalate " "
 
 
 sortTficf :: (Map Text (Double, Set Text))
-          -> [(Text, (Double, Set Text))]
+          -> [   (Text,(Double, Set Text))]
 sortTficf  = List.sortOn (fst . snd) . toList
 
 
@@ -69,8 +68,8 @@ getTficf' u m f = do
 
 
 type Context = (Double, Map Text (Double, Set Text))
-type Supra = Context
-type Infra = Context
+type Supra   = Context
+type Infra   = Context
 
 toTficfData :: Infra -> Supra
             -> Map Text (Double, Set Text)
@@ -105,17 +104,20 @@ groupNodesByNgramsWith f m =
     $ toList m
 
 ------------------------------------------------------------------------
-getNodesByNgramsUser :: CorpusId -> NgramsType -> Cmd err (Map Text (Set NodeId))
-getNodesByNgramsUser cId nt = fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
-                                         <$> selectNgramsByNodeUser cId nt
+getNodesByNgramsUser :: CorpusId -> NgramsType
+                     -> Cmd err (Map Text (Set NodeId))
+getNodesByNgramsUser cId nt =
+  fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
+                    <$> selectNgramsByNodeUser cId nt
 
-selectNgramsByNodeUser :: CorpusId -> NgramsType -> Cmd err [(NodeId, Text)]
-selectNgramsByNodeUser cId nt = runPGSQuery
-                               queryNgramsByNodeUser
-                                 ( cId
-                                 , nodeTypeId NodeDocument
-                                 , ngramsTypeId nt
-                                 )
+selectNgramsByNodeUser :: CorpusId -> NgramsType
+                       -> Cmd err [(NodeId, Text)]
+selectNgramsByNodeUser cId nt =
+  runPGSQuery queryNgramsByNodeUser
+              ( cId
+              , nodeTypeId NodeDocument
+              , ngramsTypeId nt
+              )
 
 queryNgramsByNodeUser :: DPS.Query
 queryNgramsByNodeUser = [sql|
@@ -137,13 +139,17 @@ getOccByNgramsOnly :: CorpusId -> NgramsType -> [Text]
 getOccByNgramsOnly cId nt ngs = Map.map Set.size
                              <$> getNodesByNgramsOnlyUser cId nt ngs
 
-getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text] -> Cmd err (Map Text (Set NodeId))
-getNodesByNgramsOnlyUser cId nt ngs = fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
-                                         <$> selectNgramsOnlyByNodeUser cId nt ngs
+getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text]
+                         -> Cmd err (Map Text (Set NodeId))
+getNodesByNgramsOnlyUser cId nt ngs =
+  fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
+                    <$> selectNgramsOnlyByNodeUser cId nt ngs
 
 
-selectNgramsOnlyByNodeUser :: CorpusId -> NgramsType -> [Text] -> Cmd err [(NodeId, Text)]
-selectNgramsOnlyByNodeUser cId nt tms = runPGSQuery queryNgramsOnlyByNodeUser (DPS.Only $ Values fields tms' )
+selectNgramsOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
+                           -> Cmd err [(NodeId, Text)]
+selectNgramsOnlyByNodeUser cId nt tms =
+  runPGSQuery queryNgramsOnlyByNodeUser (DPS.Only $ Values fields tms' )
     where
       fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4", "int4", "int4"]
       tms'   = map (\t -> (t,cId,nodeTypeId NodeDocument, ngramsTypeId nt)) tms
