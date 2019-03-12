@@ -99,7 +99,7 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
       zs = drop b $ drop a ns
 
       a = 10
-      b = 3000
+      b = 5000
 
 isStopTerm :: Text -> Bool
 isStopTerm x = Text.length x < 3

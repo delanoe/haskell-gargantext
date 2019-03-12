@@ -44,11 +44,13 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
+import Gargantext.API.Metrics
 import Gargantext.Core.Types (Offset, Limit, ListType(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Node.Children (getChildren)
+import Gargantext.Text.Metrics
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Schema.Node (defaultList)
@@ -138,6 +140,7 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> QueryParam "limit"  Int
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
+            :<|> "metrics" :> MetricsAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -175,9 +178,11 @@ nodeAPI p uId id
            :<|> favApi   id
            :<|> delDocs  id
            :<|> searchIn id
+           :<|> getMetrics' id
            -- Annuaire
            -- :<|> upload
            -- :<|> query
+
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
@@ -296,7 +301,7 @@ graphAPI nId = do
 instance HasNodeError ServantErr where
   _NodeError = prism' mk (const Nothing) -- $ panic "HasNodeError ServantErr: not a prism")
     where
-      e = "Gargantext.NodeError: "
+      e = "Gargantext NodeError: "
       mk NoListFound   = err404 { errBody = e <> "No list found"         }
       mk NoRootFound   = err404 { errBody = e <> "No Root found"         }
       mk NoCorpusFound = err404 { errBody = e <> "No Corpus found"       }
@@ -379,4 +384,41 @@ query s = pure s
 --              <> " at " <> fdFilePath file
 --      putStrLn content
 --  pure (pack "Data loaded")
+
+
+-------------------------------------------------------------------------------
+
+getMetrics' = undefined
+
+type MetricsAPI = Summary "SepGen IncExc metrics"
+                :> QueryParam "list"  Int
+                :> QueryParam "limit" Int
+                :> Get '[JSON] Metrics
+
+
+--getMetrics :: NodeId -> Maybe ListId -> Maybe Limit -> GargServer MetricsAPI
+getMetrics cId maybeListId maybeLimit = do
+  lId <- case maybeListId of
+    Nothing   -> defaultList cId
+    Just lId' -> pure lId'
+
+  -- TODO all terms
+  ngs'    <- mapTermListRoot [lId] NgramsTerms
+  let ngs = filterListWithRoot GraphTerm ngs'
+
+  myCooc <- Map.filter (>1) <$> getCoocByNgrams
+                            <$> groupNodesByNgrams ngs
+                            <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
+
+  let
+    metrics = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) $ scored myCooc
+    
+    listType t m = maybe (panic "error") fst $ Map.lookup t m
+    
+    metricsFiltered = case maybeLimit of
+      Nothing -> metrics
+      Just  l -> take l metrics
+
+  pure $ Metrics metricsFiltered
+
 

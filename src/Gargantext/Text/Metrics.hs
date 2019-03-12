@@ -35,6 +35,8 @@ import qualified Data.Map  as M
 type GraphListSize = Int
 type InclusionSize = Int
 
+
+
 takeScored :: Ord t => GraphListSize -> InclusionSize -> Map (t,t) Int -> [t]
 takeScored listSize incSize = map _scored_terms
                             . linearTakes listSize incSize _scored_speGen
@@ -63,7 +65,8 @@ scored m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
 -- >>> linearTakes 2 3 fst snd $ Prelude.zip ([1..10] :: [Int]) (reverse $ [1..10] :: [Int])
 -- [(3,8),(6,5)]
 linearTakes :: (Ord b1, Ord b2)
-            => GraphListSize -> InclusionSize -> (a -> b2) -> (a -> b1) -> [a] -> [a]
+            => GraphListSize -> InclusionSize
+            -> (a -> b2) -> (a -> b1) -> [a] -> [a]
 linearTakes gls incSize speGen incExc = take gls
                       . L.concat
                       . map (take $ round
