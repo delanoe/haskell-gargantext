@@ -28,18 +28,10 @@ module Gargantext.API.Metrics
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
-import Data.Aeson (FromJSON, ToJSON)
-import Gargantext.Text.Metrics
+import Data.Aeson (ToJSON)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Gargantext.Core.Types (Limit, ListType(..))
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils (Cmd)
-import Gargantext.API.Ngrams.Tools -- (groupNodesByNgrams, getCoocByNgrams)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Schema.Node (defaultList)
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Core.Types (ListType(..))
 import Data.Swagger
-import qualified Data.Map as Map
 
 
 data Metrics = Metrics

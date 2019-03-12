@@ -178,7 +178,7 @@ nodeAPI p uId id
            :<|> favApi   id
            :<|> delDocs  id
            :<|> searchIn id
-           :<|> getMetrics' id
+           :<|> getMetrics id
            -- Annuaire
            -- :<|> upload
            -- :<|> query
@@ -388,15 +388,13 @@ query s = pure s
 
 -------------------------------------------------------------------------------
 
-getMetrics' = undefined
-
 type MetricsAPI = Summary "SepGen IncExc metrics"
-                :> QueryParam "list"  Int
+                :> QueryParam "list"  ListId
                 :> QueryParam "limit" Int
                 :> Get '[JSON] Metrics
 
 
---getMetrics :: NodeId -> Maybe ListId -> Maybe Limit -> GargServer MetricsAPI
+getMetrics :: NodeId -> GargServer MetricsAPI
 getMetrics cId maybeListId maybeLimit = do
   lId <- case maybeListId of
     Nothing   -> defaultList cId
@@ -404,7 +402,7 @@ getMetrics cId maybeListId maybeLimit = do
 
   -- TODO all terms
   ngs'    <- mapTermListRoot [lId] NgramsTerms
-  let ngs = filterListWithRoot GraphTerm ngs'
+  let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs') [GraphTerm, StopTerm, CandidateTerm]
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams
                             <$> groupNodesByNgrams ngs
@@ -412,13 +410,12 @@ getMetrics cId maybeListId maybeLimit = do
 
   let
     metrics = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) $ scored myCooc
-    
-    listType t m = maybe (panic "error") fst $ Map.lookup t m
-    
+    errorMsg = "API.Node.metrics: key absent"
+    listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
+
     metricsFiltered = case maybeLimit of
       Nothing -> metrics
       Just  l -> take l metrics
 
   pure $ Metrics metricsFiltered
-
 
