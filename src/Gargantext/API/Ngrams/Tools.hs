@@ -91,7 +91,7 @@ getCoocByNgrams m =
                 ,maybe 0 Set.size $ Set.intersection
                                  <$> Map.lookup t1 m
                                  <*> Map.lookup t2 m
-                ) | (t1,t2) <- listToCombi identity $ Map.keys m
+                ) | (t1,t2) <- [ (x,y) | x <- Map.keys m, y <- Map.keys m, x <= y]
                ]
 
 

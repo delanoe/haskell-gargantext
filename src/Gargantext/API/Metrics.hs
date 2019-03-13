@@ -37,7 +37,7 @@ import Data.Swagger
 
 data Metrics = Metrics
   { metrics_data :: [Metric]}
-  deriving (Generic)
+  deriving (Generic, Show)
 
 instance ToSchema Metrics
 instance Arbitrary Metrics
@@ -49,7 +49,7 @@ data Metric = Metric
   , m_x     :: !Double
   , m_y     :: !Double
   , m_cat   :: !ListType
-  } deriving (Generic)
+  } deriving (Generic, Show)
 
 instance ToSchema Metric
 instance Arbitrary Metric
@@ -61,3 +61,6 @@ instance Arbitrary Metric
 
 deriveJSON (unPrefix "metrics_") ''Metrics
 deriveJSON (unPrefix "m_") ''Metric
+
+
+

@@ -39,7 +39,6 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
-import Debug.Trace (trace)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo, ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools
@@ -67,7 +66,6 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Map as Map
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
-
 
 type GargServer api =
   forall env m.
@@ -295,7 +293,7 @@ graphAPI nId = do
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
 
-  liftIO $ trace (show myCooc) $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
+  liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
 
 
 instance HasNodeError ServantErr where
@@ -396,13 +394,13 @@ type MetricsAPI = Summary "SepGen IncExc metrics"
 
 getMetrics :: NodeId -> GargServer MetricsAPI
 getMetrics cId maybeListId maybeTabType maybeLimit = do
+
   lId <- case maybeListId of
     Nothing   -> defaultList cId
     Just lId' -> pure lId'
 
   let ngramsType = ngramsTypeFromTabType maybeTabType
 
-  -- TODO all terms
   ngs'    <- mapTermListRoot [lId] ngramsType
   let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs') [GraphTerm, StopTerm, CandidateTerm]
 
@@ -411,7 +409,8 @@ getMetrics cId maybeListId maybeTabType maybeLimit = do
                             <$> getNodesByNgramsOnlyUser cId ngramsType (Map.keys ngs)
 
   let
-    metrics = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) $ scored myCooc
+    scores   = scored myCooc
+    metrics  = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
     errorMsg = "API.Node.metrics: key absent"
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
 
@@ -420,4 +419,5 @@ getMetrics cId maybeListId maybeTabType maybeLimit = do
       Just  l -> take l metrics
 
   pure $ Metrics metricsFiltered
+
 
