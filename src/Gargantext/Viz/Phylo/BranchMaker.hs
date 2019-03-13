@@ -49,9 +49,13 @@ groupsToGraph (prox,param) groups p = (groups,edges)
       FromPairs          -> (nub . concat) $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
                                                         ++
                                                         (map (\g' -> ((g,g'),1)) $ getGroupChilds g p)) groups 
-      WeightedLogJaccard -> map (\(x,y) -> ((x,y), weightedLogJaccard 
-                                                   (param !! 0) (getGroupCooc x) 
-                                                   (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups
+      WeightedLogJaccard -> filter (\edge -> snd edge >= (param !! 0)) 
+                          $ map (\(x,y) -> ((x,y), weightedLogJaccard 
+                                (param !! 1) (getGroupCooc x) 
+                                (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups
+      Hamming            -> filter (\edge -> snd edge <= (param !! 0)) 
+                          $ map (\(x,y) -> ((x,y), hamming (getGroupCooc x) 
+                                (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups                          
       _                  -> undefined 
 
 

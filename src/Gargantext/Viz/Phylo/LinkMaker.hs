@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.LinkMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sort, concat, nub, words, zip, sortOn, head, null, tail, splitAt, (!!))
+import Data.List                    ((++), sort, concat, nub, words, zip, sortOn, head, null, tail, splitAt, (!!), elem)
 import Data.Map                     (Map)
 import Data.Set                     (Set)
 import Data.Tuple.Extra
@@ -38,11 +38,11 @@ import qualified Data.Maybe as Maybe
 
 
 -- | To choose a LevelLink strategy based an a given Level 
-shouldLink :: (Level,Level) -> [Int] -> [Int] -> Bool
-shouldLink (lvl,lvl') l l'
-  | lvl <= 1  = doesContainsOrd l l'
-  | lvl >  1  = undefined
-  | otherwise = panic ("[ERR][Viz.Phylo.Tools.shouldLink] LevelLink not defined") 
+shouldLink :: (Level,Level) -> PhyloGroup -> PhyloGroup -> Bool
+shouldLink (lvl,lvl') g g'
+  | lvl <= 1  = doesContainsOrd (getGroupNgrams g) (getGroupNgrams g')
+  | lvl >  1  = elem (getGroupId g) (getGroupLevelChildsId g')
+  | otherwise = panic ("[ERR][Viz.Phylo.LinkMaker.shouldLink] Level not defined") 
 
 
 -- | To set the LevelLinks between a given PhyloGroup and a list of childs/parents PhyloGroups
@@ -61,9 +61,7 @@ linkGroupToGroups (lvl,lvl') current targets
     --------------------------------------
     addPointers :: [Pointer] -> [Pointer]
     addPointers lp = lp ++ Maybe.mapMaybe (\target -> 
-                                            if shouldLink (lvl,lvl') 
-                                                          (_phylo_groupNgrams current)
-                                                          (_phylo_groupNgrams target )
+                                            if shouldLink (lvl,lvl') current target
                                             then Just ((getGroupId target),1)
                                             else Nothing) targets 
     --------------------------------------
@@ -89,7 +87,8 @@ setLevelLinks (lvl,lvl') p = alterPhyloGroups (linkGroupsByLevel (lvl,lvl') p) p
 -- | To apply the corresponding proximity function based on a given Proximity
 getProximity :: (Proximity,[Double]) -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
 getProximity (prox,param) g1 g2 = case prox of 
-  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard (param !! 0) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
+  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard (param !! 1) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
+  Hamming            -> ((getGroupId g2),hamming (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
   _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
 
 
@@ -123,11 +122,11 @@ getNextPeriods to id l = case to of
 
 
 -- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )  
-findBestCandidates :: PairTo -> Int -> Int -> Double -> (Proximity,[Double]) -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
-findBestCandidates to depth max thr (prox,param) group p
+findBestCandidates :: PairTo -> Int -> Int -> (Proximity,[Double]) -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
+findBestCandidates to depth max (prox,param) group p
   | depth > max || null next = [] 
   | (not . null) best = take 2 best
-  | otherwise = findBestCandidates to (depth + 1) max thr (prox,param) group p   
+  | otherwise = findBestCandidates to (depth + 1) max (prox,param) group p   
   where
     --------------------------------------
     next :: [PhyloPeriodId]
@@ -142,7 +141,9 @@ findBestCandidates to depth max thr (prox,param) group p
     best :: [(PhyloGroupId, Double)]
     best = reverse
          $ sortOn snd 
-         $ filter (\(id,score) -> score >= thr) scores
+         $ filter (\(id,score) -> case prox of 
+            WeightedLogJaccard -> score >= (param !! 0)
+            Hamming            -> score <= (param !! 0)) scores
     --------------------------------------
 
 
@@ -160,8 +161,8 @@ makePair to group ids = case to of
 
 
 -- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
-pairGroupsToGroups :: PairTo -> Level -> Double -> (Proximity,[Double]) -> Phylo -> Phylo
-pairGroupsToGroups to lvl thr (prox,param) p = alterPhyloGroups
+pairGroupsToGroups :: PairTo -> Level -> (Proximity,[Double]) -> Phylo -> Phylo
+pairGroupsToGroups to lvl (prox,param) p = alterPhyloGroups
                                     (\groups -> 
                                       map (\group ->
                                             if (getGroupLevel group) == lvl
@@ -169,7 +170,7 @@ pairGroupsToGroups to lvl thr (prox,param) p = alterPhyloGroups
                                               let
                                                 --------------------------------------
                                                 candidates :: [(PhyloGroupId, Double)] 
-                                                candidates = findBestCandidates to 1 5 thr (prox,param) group p
+                                                candidates = findBestCandidates to 1 5 (prox,param) group p
                                                 --------------------------------------
                                               in 
                                                 makePair to group candidates
