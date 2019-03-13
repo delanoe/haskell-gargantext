@@ -17,10 +17,12 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Metrics.Clustering
   where
 
-import Data.List        (last,head,union,concat,null,nub,(++),init,tail)
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith)
+import Data.List        (last,head,union,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!))
+import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,fromList,mapKeys)
 import Data.Set         (Set)
 import Data.Tuple       (fst, snd)
+
+import Data.Graph.Clustering.Louvain.CplusPlus
 
 import Gargantext.Prelude             hiding (head)
 import Gargantext.Viz.Phylo
@@ -55,3 +57,21 @@ relatedComp idx curr (nodes,edges) next memo
     nodes' :: [PhyloGroup]
     nodes' = filter (\x -> not $ elem x next') nodes
     --------------------------------------
+
+
+louvain :: (PhyloNodes,PhyloEdges) -> [Cluster]
+louvain (nodes,edges) = undefined 
+
+-- louvain :: (PhyloNodes,PhyloEdges) -> [Cluster]
+-- louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
+--                       $ groupBy (l_community_id)
+--                       $ cLouvain 
+--                       $ mapKeys (\(x,y) -> (idx x, idx y)) 
+--                       $ fromList edges
+--   where
+--     -------------------------------------- 
+--     idx :: PhyloGroup -> Int
+--     idx e = case elemIndex e nodes of
+--       Nothing -> panic "[ERR][Gargantext.Viz.Phylo.Metrics.Clustering] a node is missing"
+--       Just i  -> i
+--     --------------------------------------  

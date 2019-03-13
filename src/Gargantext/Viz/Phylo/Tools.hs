@@ -138,6 +138,11 @@ getGroupLevel :: PhyloGroup -> Int
 getGroupLevel = snd . fst . getGroupId
 
 
+-- | To get the PhyloGroups Level Childs Ids of a PhyloGroup
+getGroupLevelChildsId :: PhyloGroup -> [PhyloGroupId]
+getGroupLevelChildsId g = map fst $ _phylo_groupLevelChilds g
+
+
 -- | To get the Ngrams of a PhyloGroup
 getGroupNgrams :: PhyloGroup -> [Int]
 getGroupNgrams =  _phylo_groupNgrams
@@ -195,7 +200,7 @@ getIdx :: Eq a => a -> Vector a -> Int
 getIdx x v = case (elemIndex x v) of
               Nothing -> panic "[ERR][Viz.Phylo.Tools.getIndex] Nothing"
               Just i  -> i
-
+              
 
 -- | To get the good pair of keys (x,y) or (y,x) in a given Map (a,b) c
 getKeyPair :: (Int,Int) -> Map (Int,Int) a -> (Int,Int)
@@ -212,6 +217,15 @@ getKeyPair (x,y) m = case findPair (x,y) m of
                       --------------------------------------
 
 
+-- | To get the last computed Level in a Phylo
+getLastLevel :: Phylo -> Level 
+getLastLevel p = (last . sort) 
+               $ map (snd . getPhyloLevelId) 
+               $ view ( phylo_periods
+                      .  traverse
+                      . phylo_periodLevels ) p
+
+
 -- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of PhyloEdges 
 getNeighbours :: Bool -> PhyloGroup -> PhyloEdges -> [PhyloGroup]
 getNeighbours directed g e = case directed of 
@@ -224,6 +238,11 @@ getNeighbours directed g e = case directed of
 -- | To get the Branches of a Phylo
 getPhyloBranches :: Phylo -> [PhyloBranch] 
 getPhyloBranches = _phylo_branches
+
+
+-- | To get the PhylolevelId of a given PhyloLevel
+getPhyloLevelId :: PhyloLevel -> PhyloLevelId
+getPhyloLevelId = _phylo_levelId
 
 
 -- | To get all the Phylolevels of a given PhyloPeriod

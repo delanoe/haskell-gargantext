@@ -31,14 +31,14 @@ module Gargantext.Viz.Phylo.Example where
 import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
-import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete, init)
+import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete, init, groupBy)
 import Data.Map         (Map, elems, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey, mapKeys, intersectionWith, unionWith)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
 import Data.Text        (Text, unwords, toLower, words)
 import Data.Tuple       (fst, snd)
 import Data.Tuple.Extra
-import Data.Vector      (Vector, fromList, elemIndex)
+import Data.Vector      (Vector, fromList, elemIndex, (!))
 
 import Gargantext.Prelude          hiding (head)
 import Gargantext.Text.Terms.Mono  (monoTexts)
@@ -66,23 +66,73 @@ import qualified Data.Vector as Vector
 
 
 ------------------------------------------------------------------------
+-- | STEP 12 | -- Return a Phylo for upcomming visiualization tasks 
+
+-- mostFreqNgramsVerbose :: Int -> [PhyloGroup] -> PhyloNgrams -> Text
+-- mostFreqNgramsVerbose thr groups ngrams = unwords $ map (\idx -> ngrams Vector.(!) idx) $ mostFreqNgrams thr groups
+
+mostFreqNgrams :: Int -> [PhyloGroup] -> [Int]
+mostFreqNgrams thr groups = map fst 
+                          $ take thr 
+                          $ reverse 
+                          $ sortOn snd 
+                          $ map (\g -> (head g,length g)) 
+                          $ groupBy (==) 
+                          $ (sort . concat) 
+                          $ map getGroupNgrams groups
+
+toPhyloView :: Level -> Phylo -> [PhyloBranch]
+toPhyloView lvl p = branchesLbl 
+  where 
+    branchesLbl = map (\b -> over (phylo_branchLabel) (\lbl -> "toto") b) branches 
+    branches = filter (\b -> (fst . _phylo_branchId) b == lvl) $ getPhyloBranches p 
+
+view1 = toPhyloView 2 phylo3 
+
+------------------------------------------------------------------------
 -- | STEP 11 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
+
+
+phylo6 :: Phylo
+phylo6 = toNthLevel 6 (WeightedLogJaccard,[0.01,0]) (RelatedComponents, []) (WeightedLogJaccard,[0.01,0]) phylo3  
+
+
+phylo3 :: Phylo
+phylo3 = setPhyloBranches 3
+       $ pairGroupsToGroups Childs  3 (WeightedLogJaccard,[0.01,0])
+       $ pairGroupsToGroups Parents 3 (WeightedLogJaccard,[0.01,0]) 
+       $ setLevelLinks (2,3) 
+       $ addPhyloLevel 3 
+          (phyloToClusters 2 (WeightedLogJaccard,[0.01,0]) (RelatedComponents, []) phyloBranch2) 
+          phyloBranch2
 
 
 ------------------------------------------------------------------------
 -- | STEP 10 | -- Cluster the Fis
 
+phyloBranch2 :: Phylo
+phyloBranch2 = setPhyloBranches 2 phylo2_c
 
--- | To do : ajouter de nouveaux clusters / proxi
--- gérer les cooc à level 2 et +, idem pour les quality
--- réfléchir aux formats de sortie 
 
+phylo2_c :: Phylo
+phylo2_c = pairGroupsToGroups Childs 2 (WeightedLogJaccard,[0.01,0]) phylo2_p
+
+
+phylo2_p :: Phylo
+phylo2_p = pairGroupsToGroups Parents 2 (WeightedLogJaccard,[0.01,0]) phylo2_1_2
+
+
+phylo2_1_2 :: Phylo
+phylo2_1_2 = setLevelLinks (1,2) phylo2
+
+
+-- | phylo2 allready contains the LevelChilds links from 2 to 1
 phylo2 :: Phylo
 phylo2 = addPhyloLevel 2 phyloCluster phyloBranch1
 
 
 phyloCluster :: Map (Date,Date) [Cluster] 
-phyloCluster = phyloToClusters 1 (WeightedLogJaccard,[0]) (RelatedComponents, []) phyloBranch1
+phyloCluster = phyloToClusters 1 (WeightedLogJaccard,[0.01,0]) (RelatedComponents, []) phyloBranch1
 
 
 ------------------------------------------------------------------------
@@ -98,11 +148,11 @@ phyloBranch1 = setPhyloBranches 1 phylo1_c
 
 
 phylo1_c :: Phylo
-phylo1_c = pairGroupsToGroups Childs 1 0.01 (WeightedLogJaccard,[0]) phylo1_p
+phylo1_c = pairGroupsToGroups Childs 1 (WeightedLogJaccard,[0.01,0]) phylo1_p
 
 
 phylo1_p :: Phylo
-phylo1_p = pairGroupsToGroups Parents 1 0.01 (WeightedLogJaccard,[0]) phylo1_0_1
+phylo1_p = pairGroupsToGroups Parents 1 (WeightedLogJaccard,[0.01,0]) phylo1_0_1
 
 
 ------------------------------------------------------------------------

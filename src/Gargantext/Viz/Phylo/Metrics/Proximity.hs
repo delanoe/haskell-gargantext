@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.Metrics.Proximity
   where
 
 import Data.List        (last,head,union,concat,null)
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith)
+import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,intersection,size)
 import Data.Set         (Set)
 import Data.Tuple       (fst, snd)
 
@@ -31,7 +31,7 @@ import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 
 
--- | To process the weightedLogJaccard between two PhyloGroups fields
+-- | To process the weightedLogJaccard between two PhyloGroup fields
 weightedLogJaccard :: Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double
 weightedLogJaccard s f1 f2
   | null wUnion      = 0
@@ -53,3 +53,13 @@ weightedLogJaccard s f1 f2
     sumLog :: [Double] -> Double
     sumLog l = foldl (\mem x -> mem + log (s + x)) 0 l  
     --------------------------------------  
+
+
+-- | To process the Hamming distance between two PhyloGroup fields 
+hamming :: Map (Int, Int) Double -> Map (Int, Int) Double -> Double
+hamming f1 f2 = fromIntegral $ max ((size inter) - (size f1)) ((size inter) - (size f2))
+  where
+    --------------------------------------
+    inter :: Map (Int, Int) Double
+    inter = intersection f1 f2 
+    --------------------------------------

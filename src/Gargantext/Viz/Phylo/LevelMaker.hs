@@ -19,15 +19,18 @@ module Gargantext.Viz.Phylo.LevelMaker
 
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sort, concat, nub, words, zip)
-import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKey, singleton)
+import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKey, singleton, union)
 import Data.Set                     (Set)
 import Data.Text                    (Text, words)
 import Data.Tuple.Extra
 
 import Gargantext.Prelude                   hiding (head)
+import Gargantext.Viz.Phylo.Aggregates.Cluster
 import Gargantext.Viz.Phylo.Aggregates.Cooc
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.Viz.Phylo.LinkMaker
+import Gargantext.Viz.Phylo.BranchMaker
 
 import qualified Data.List   as List
 import qualified Data.Map    as Map
@@ -89,7 +92,18 @@ instance PhyloLevelMaker Document
 -- | To transform a Cluster into a Phylogroup 
 clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> Cluster -> Map (Date,Date) [Cluster] -> Phylo -> PhyloGroup
 clusterToGroup prd lvl idx lbl groups m p = 
-    PhyloGroup ((prd, lvl), idx) lbl ((sort . nub . concat) $ map getGroupNgrams groups) empty empty [] [] [] (map (\g -> (getGroupId g, 1)) groups)
+    PhyloGroup ((prd, lvl), idx) lbl ngrams empty cooc [] [] [] (map (\g -> (getGroupId g, 1)) groups)
+      where
+        --------------------------------------
+        ngrams :: [Int]
+        ngrams = (sort . nub . concat) $ map getGroupNgrams groups 
+        --------------------------------------
+        cooc :: Map (Int, Int) Double 
+        cooc = filterWithKey (\k _ -> elem (fst k) ngrams && elem (snd k) ngrams) 
+              $ foldl union empty
+              $ map getGroupCooc 
+              $ getGroupsWithFilters 1 prd p        
+        --------------------------------------
 
 
 -- | To transform a Clique into a PhyloGroup
@@ -124,3 +138,21 @@ toPhyloLevel lvl m p = alterPhyloPeriods
                                           let groups = toPhyloGroups lvl pId (m ! pId) m p 
                                           in  phyloLevels ++ [PhyloLevel (pId, lvl) groups]
                                         ) period) p
+
+
+-- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks 
+toNthLevel :: Level -> (Proximity,[Double]) -> (Clustering,[Double]) -> (Proximity,[Double]) -> Phylo -> Phylo
+toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3) p 
+  | lvl >= lvlMax = p
+  | otherwise     = toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3)
+                  $ pairGroupsToGroups Childs  (lvl + 1) (prox',param3)
+                  $ pairGroupsToGroups Parents (lvl + 1) (prox',param3)
+                  $ setPhyloBranches (lvl + 1)
+                  $ setLevelLinks (lvl, lvl + 1)
+                  $ addPhyloLevel (lvl + 1)
+                    (phyloToClusters lvl (prox,param1) (clus,param2) p) p
+  where
+    --------------------------------------
+    lvl :: Level 
+    lvl = getLastLevel p 
+    --------------------------------------

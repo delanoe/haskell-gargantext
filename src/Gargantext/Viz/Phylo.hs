@@ -134,7 +134,7 @@ data PhyloGroup =
                 deriving (Generic, Show, Eq)
 
 data PhyloBranch =
-     PhyloBranch { _phylo_branchId     :: (Int,Int)
+     PhyloBranch { _phylo_branchId     :: (Level,Int)
                  , _phylo_branchLabel  :: Text
                  , _phylo_branchGroups :: [PhyloGroupId] 
                  }
@@ -186,7 +186,7 @@ type Cluster = [PhyloGroup]
 -- | A List of PhyloGroup in a PhyloGraph
 type PhyloNodes = [PhyloGroup]
 -- | A List of weighted links between some PhyloGroups in a PhyloGraph
-type PhyloEdges = [(((PhyloGroup,PhyloGroup)),Weight)]
+type PhyloEdges = [((PhyloGroup,PhyloGroup),Weight)]
 -- | The association as a Graph between a list of Nodes and a list of Edges
 type PhyloGraph = (PhyloNodes,PhyloEdges)
 
