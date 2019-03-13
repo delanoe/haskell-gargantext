@@ -19,7 +19,6 @@ module Gargantext.Text.Metrics
   where
 
 --import Data.Array.Accelerate ((:.)(..), Z(..))
-import Debug.Trace (trace)
 --import Math.KMeans (kmeans, euclidSq, elements)
 import Data.Map (Map)
 import Data.List.Extra (sortOn)
@@ -57,7 +56,7 @@ scored m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (M.toList fi) scores
   where
     (ti, fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
-    scores   = trace (show is) $ DAA.toList
+    scores   = DAA.toList
              $ DAA.run
              $ DAA.zip (DAA.use is) (DAA.use ss)
 

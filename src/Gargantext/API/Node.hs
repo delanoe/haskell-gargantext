@@ -402,7 +402,8 @@ getMetrics cId maybeListId maybeTabType maybeLimit = do
   let ngramsType = ngramsTypeFromTabType maybeTabType
 
   ngs'    <- mapTermListRoot [lId] ngramsType
-  let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs') [GraphTerm, StopTerm, CandidateTerm]
+  let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs')
+                             [GraphTerm, StopTerm, CandidateTerm]
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams
                             <$> groupNodesByNgrams ngs

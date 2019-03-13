@@ -63,4 +63,3 @@ deriveJSON (unPrefix "metrics_") ''Metrics
 deriveJSON (unPrefix "m_") ''Metric
 
 
-
