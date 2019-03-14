@@ -37,7 +37,7 @@ import qualified Data.Set    as Set
 -- | To apply a Clustering method to a PhyloGraph
 graphToClusters :: (Clustering,[Double]) -> PhyloGraph -> [[PhyloGroup]]
 graphToClusters (clust,param) (nodes,edges) = case clust of 
-  Louvain           -> louvain (nodes,edges)
+  Louvain           -> undefined -- louvain (nodes,edges)
   RelatedComponents -> relatedComp 0 (head nodes) (tail nodes,edges) [] []   
 
 

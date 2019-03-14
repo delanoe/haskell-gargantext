@@ -59,19 +59,20 @@ relatedComp idx curr (nodes,edges) next memo
     --------------------------------------
 
 
+{-
 louvain :: (PhyloNodes,PhyloEdges) -> [Cluster]
 louvain (nodes,edges) = undefined 
+-} 
 
--- louvain :: (PhyloNodes,PhyloEdges) -> [Cluster]
--- louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
---                       $ groupBy (l_community_id)
---                       $ cLouvain 
---                       $ mapKeys (\(x,y) -> (idx x, idx y)) 
---                       $ fromList edges
---   where
---     -------------------------------------- 
---     idx :: PhyloGroup -> Int
---     idx e = case elemIndex e nodes of
---       Nothing -> panic "[ERR][Gargantext.Viz.Phylo.Metrics.Clustering] a node is missing"
---       Just i  -> i
---     --------------------------------------  
+
+louvain :: (PhyloNodes,PhyloEdges) -> IO [[PhyloGroup]]
+louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
+                      <$> groupBy (\a b -> (l_community_id a) == (l_community_id b))
+                      <$> (cLouvain $ mapKeys (\(x,y) -> (idx x, idx y)) $ fromList edges)
+  where
+    -------------------------------------- 
+    idx :: PhyloGroup -> Int
+    idx e = case elemIndex e nodes of
+      Nothing -> panic "[ERR][Gargantext.Viz.Phylo.Metrics.Clustering] a node is missing"
+      Just i  -> i
+    --------------------------------------  
