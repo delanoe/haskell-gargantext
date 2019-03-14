@@ -84,14 +84,17 @@ groupNodesByNgrams syn occs = Map.fromListWith (<>) occs'
         Nothing  -> (t, ns)
         Just  r' -> (r',ns)
 
+type Diagonal = Bool
 
-getCoocByNgrams :: Map Text (Set NodeId) -> Map (Text, Text) Int
-getCoocByNgrams m =
+getCoocByNgrams :: Diagonal -> Map Text (Set NodeId) -> Map (Text, Text) Int
+getCoocByNgrams diag m =
   Map.fromList [((t1,t2)
                 ,maybe 0 Set.size $ Set.intersection
                                  <$> Map.lookup t1 m
                                  <*> Map.lookup t2 m
-                ) | (t1,t2) <- [ (x,y) | x <- Map.keys m, y <- Map.keys m, x <= y]
+                ) | (t1,t2) <- case diag of
+                                 True   -> [ (x,y) | x <- Map.keys m, y <- Map.keys m, x <= y]
+                                 False  -> listToCombi identity (Map.keys m)
                ]
 
 

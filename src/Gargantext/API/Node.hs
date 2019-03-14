@@ -289,7 +289,7 @@ graphAPI nId = do
   lId <- defaultList cId
   ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams
+  myCooc <- Map.filter (>1) <$> getCoocByNgrams False
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
 
@@ -405,7 +405,7 @@ getMetrics cId maybeListId maybeTabType maybeLimit = do
   let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs')
                              [GraphTerm, StopTerm, CandidateTerm]
 
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams
+  myCooc <- Map.filter (>1) <$> getCoocByNgrams True
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId ngramsType (Map.keys ngs)
 
@@ -420,5 +420,4 @@ getMetrics cId maybeListId maybeTabType maybeLimit = do
       Just  l -> take l metrics
 
   pure $ Metrics metricsFiltered
-
 
