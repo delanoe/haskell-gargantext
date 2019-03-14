@@ -68,9 +68,28 @@ import qualified Data.Vector as Vector
 ------------------------------------------------------------------------
 -- | STEP 12 | -- Return a Phylo for upcomming visiualization tasks 
 
--- mostFreqNgramsVerbose :: Int -> [PhyloGroup] -> PhyloNgrams -> Text
--- mostFreqNgramsVerbose thr groups ngrams = unwords $ map (\idx -> ngrams Vector.(!) idx) $ mostFreqNgrams thr groups
 
+-- | To get all the single PhyloPeriodIds covered by a PhyloBranch
+getBranchPeriods :: PhyloBranch -> [PhyloPeriodId]
+getBranchPeriods b = nub $ map (fst . fst) $ getBranchGroupIds b 
+
+
+-- | To get all the single PhyloPeriodIds covered by a PhyloBranch
+getBranchGroupIds :: PhyloBranch -> [PhyloGroupId]
+getBranchGroupIds b =_phylo_branchGroups b 
+
+
+-- | To transform a list of Ngrams Indexes into a Label
+ngramsToLabel :: [Int] -> PhyloNgrams -> Text 
+ngramsToLabel l ngrams = unwords $ ngramsToText l ngrams 
+
+
+-- | To transform a list of Ngrams Indexes into a list of Text 
+ngramsToText :: [Int] -> PhyloNgrams -> [Text]
+ngramsToText l ngrams = map (\idx -> ngrams Vector.! idx) l
+
+
+-- | To get the nth most frequent Ngrams in a list of PhyloGroups
 mostFreqNgrams :: Int -> [PhyloGroup] -> [Int]
 mostFreqNgrams thr groups = map fst 
                           $ take thr 
@@ -80,6 +99,25 @@ mostFreqNgrams thr groups = map fst
                           $ groupBy (==) 
                           $ (sort . concat) 
                           $ map getGroupNgrams groups
+
+
+-- | To get the (nth `div` 2) most cooccuring Ngrams in a PhyloGroup 
+mostOccNgrams :: Int -> PhyloGroup -> [Int]
+mostOccNgrams thr group = (nub . concat ) 
+                        $ map (\((f,s),d) -> [f,s]) 
+                        $ take (thr `div` 2) 
+                        $ reverse $ sortOn snd $ Map.toList $ getGroupCooc group
+
+
+
+filterLoneBranches :: Int -> Int -> Int -> [PhyloPeriod] -> [PhyloBranch]
+filterLoneBranches nbPinf nbPsup nbG periods branches = filter (not . isLone) branches
+  where 
+    isLone :: PhyloBranch -> Boolean
+    isLone b = ((length . getBranchGroups) b <= nbG)
+               && notElem ((head . getBranchPeriods) b) (take nbPinf periods)
+               && notElem ((head . getBranchPeriods) b) (take nbPsup reverse periods)
+
 
 toPhyloView :: Level -> Phylo -> [PhyloBranch]
 toPhyloView lvl p = branchesLbl 
