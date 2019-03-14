@@ -27,6 +27,8 @@ import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId)
 --import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
+import Gargantext.Text.Terms (TermType(..))
+import Gargantext.Core (Lang(..))
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (newDevEnvWith, runCmdDev, DevEnv)
 import System.Environment (getArgs)
@@ -40,7 +42,7 @@ main = do
   -}
 
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmdCorpus = flowCorpus (cs user) (cs name) CsvHalFormat corpusPath
+      cmdCorpus = flowCorpus (cs user) (cs name) (Mono EN) CsvHalFormat corpusPath
 
      -- cmd = {-createUsers >>-} cmdCorpus
 
