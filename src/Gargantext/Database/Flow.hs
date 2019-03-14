@@ -78,9 +78,9 @@ type FlowCmdM env err m =
 
 
 flowCorpus :: FlowCmdM env ServantErr m
-           => Username -> CorpusName -> FileFormat -> FilePath -> m CorpusId
-flowCorpus u cn ff fp = do
-  ids <- flowCorpusMaster ff fp
+           => Username -> CorpusName -> TermType Lang -> FileFormat -> FilePath -> m CorpusId
+flowCorpus u cn la ff fp = do
+  ids <- flowCorpusMaster la ff fp
   flowCorpusUser u cn ids
 
 -- TODO query with complex query
@@ -92,15 +92,15 @@ flowCorpusSearchInDatabase u q = do
   flowCorpusUser u q [ids]
 
 
-flowCorpusMaster :: FlowCmdM env ServantErr m => FileFormat -> FilePath -> m [[NodeId]]
-flowCorpusMaster ff fp = do
+flowCorpusMaster :: FlowCmdM env ServantErr m => TermType Lang -> FileFormat -> FilePath -> m [[NodeId]]
+flowCorpusMaster la ff fp = do
 
   -- Master Flow
   docs <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
   -- ChunkAlong needed for big corpora
   -- TODO add LANG as parameter
   -- TODO uniformize language of corpus
-  ids  <- mapM insertMasterDocs $ splitEvery 10000 docs
+  ids  <- mapM (insertMasterDocs la) $ splitEvery 10000 docs
   pure ids
 
 
@@ -129,8 +129,8 @@ flowCorpusUser userName corpusName ids = do
 
 
 insertMasterDocs :: FlowCmdM env ServantErr m
-                => [HyperdataDocument] -> m [DocId]
-insertMasterDocs hs  =  do
+                => TermType Lang -> [HyperdataDocument] -> m [DocId]
+insertMasterDocs lang hs  =  do
 
   let hyperdataDocuments' = map (\h -> ToDbDocument h) hs
 
@@ -138,7 +138,7 @@ insertMasterDocs hs  =  do
   ids <- insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'
 
   let documentsWithId = mergeData (toInserted ids) (toInsert hs)
-  docsWithNgrams     <- documentIdWithNgrams extractNgramsT documentsWithId
+  docsWithNgrams     <- documentIdWithNgrams (extractNgramsT lang) documentsWithId
 
   let maps            = mapNodeIdNgrams docsWithNgrams
 
@@ -219,15 +219,15 @@ data DocumentIdWithNgrams = DocumentIdWithNgrams
 
 
 extractNgramsT :: HasNodeError err
-               => HyperdataDocument
+               => TermType Lang -> HyperdataDocument
                -> Cmd err (Map Ngrams (Map NgramsType Int))
-extractNgramsT hd = filterNgramsT 255 <$> extractNgramsT' hd
+extractNgramsT lang hd = filterNgramsT 255 <$> extractNgramsT' lang hd
 
 
 extractNgramsT' :: HasNodeError err
-               => HyperdataDocument
+               => TermType Lang -> HyperdataDocument
                -> Cmd err (Map Ngrams (Map NgramsType Int))
-extractNgramsT' doc = do
+extractNgramsT' lang doc = do
   let source    = text2ngrams
                 $ maybe "Nothing" identity
                 $ _hyperdataDocument_source doc
@@ -247,7 +247,7 @@ extractNgramsT' doc = do
   terms' <- map text2ngrams
          <$> map (intercalate " " . _terms_label)
          <$> concat
-         <$> liftIO (extractTerms (Multi EN) leText)
+         <$> liftIO (extractTerms lang leText)
 
   pure $ DM.fromList $  [(source, DM.singleton Sources 1)]
                      <> [(i', DM.singleton Institutes  1) | i' <- institutes ]
