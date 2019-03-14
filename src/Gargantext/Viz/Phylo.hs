@@ -131,7 +131,7 @@ data PhyloGroup =
                 , _phylo_groupLevelParents  :: [Pointer]
                 , _phylo_groupLevelChilds   :: [Pointer]
                 }
-                deriving (Generic, Show, Eq)
+                deriving (Generic, Show, Eq, Ord)
 
 data PhyloBranch =
      PhyloBranch { _phylo_branchId     :: (Level,Int)
