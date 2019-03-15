@@ -59,8 +59,8 @@ alterPhyloPeriods f p = over ( phylo_periods
 
 
 -- | To alter the list of PhyloBranches of a Phylo
-alterPhyloBranches :: ([PhyloBranch] -> [PhyloBranch]) -> Phylo -> Phylo
-alterPhyloBranches f p = over ( phylo_branches ) f p
+-- alterPhyloBranches :: ([PhyloBranch] -> [PhyloBranch]) -> Phylo -> Phylo
+-- alterPhyloBranches f p = over ( phylo_branches ) f p
 
 
 -- | To alter a list of PhyloLevels following a given function
@@ -116,6 +116,18 @@ filterNestedSets h l l'
 -- | To filter some PhyloEdges with a given threshold
 filterPhyloEdges :: Double -> PhyloEdges -> PhyloEdges
 filterPhyloEdges thr edges = filter (\((s,t),w) -> w > thr) edges 
+
+
+-- | To get the foundations of a Phylo
+getFoundations :: Phylo -> Vector Ngrams
+getFoundations = _phylo_foundations
+
+
+-- | To get the Index of a Ngrams in the Foundations of a Phylo
+getIdxInFoundations :: Ngrams -> Phylo -> Int
+getIdxInFoundations n p = case (elemIndex n (getFoundations p)) of
+    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getFoundationIdx] Ngrams not in Foundations"
+    Just idx -> idx
 
 
 -- | To get the PhyloGroups Childs of a PhyloGroup
@@ -193,13 +205,6 @@ getGroupsWithLevel lvl p = filterGroups getGroupLevel lvl (getGroups p)
 -- | To get all the PhyloGroup of a Phylo with a given Period
 getGroupsWithPeriod :: (Date,Date) -> Phylo -> [PhyloGroup]
 getGroupsWithPeriod prd p = filterGroups getGroupPeriod prd (getGroups p)
-
-
--- | To get the index of an element of a Vector
-getIdx :: Eq a => a -> Vector a -> Int
-getIdx x v = case (elemIndex x v) of
-              Nothing -> panic "[ERR][Viz.Phylo.Tools.getIndex] Nothing"
-              Just i  -> i
               
 
 -- | To get the good pair of keys (x,y) or (y,x) in a given Map (a,b) c
@@ -236,8 +241,8 @@ getNeighbours directed g e = case directed of
 
 
 -- | To get the Branches of a Phylo
-getPhyloBranches :: Phylo -> [PhyloBranch] 
-getPhyloBranches = _phylo_branches
+-- getPhyloBranches :: Phylo -> [PhyloBranch] 
+-- getPhyloBranches = _phylo_branches
 
 
 -- | To get the PhylolevelId of a given PhyloLevel
@@ -248,11 +253,6 @@ getPhyloLevelId = _phylo_levelId
 -- | To get all the Phylolevels of a given PhyloPeriod
 getPhyloLevels :: PhyloPeriod -> [PhyloLevel]
 getPhyloLevels = view (phylo_periodLevels)
-
-
--- | To get the Ngrams of a Phylo
-getPhyloNgrams :: Phylo -> PhyloNgrams
-getPhyloNgrams = _phylo_ngrams
 
 
 -- | To get all the PhyloPeriodIds of a Phylo
@@ -266,25 +266,26 @@ getPhyloPeriodId :: PhyloPeriod -> PhyloPeriodId
 getPhyloPeriodId prd = _phylo_periodId prd 
 
 
+-- | To init the foundation of the Phylo as a Vector of Ngrams 
+initFoundations :: [Ngrams] -> Vector Ngrams
+initFoundations l = Vector.fromList $ map toLower l
+
+
 -- | To create a PhyloGroup in a Phylo out of a list of Ngrams and a set of parameters 
 initGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> Phylo -> PhyloGroup
 initGroup ngrams lbl idx lvl from to p = PhyloGroup 
   (((from, to), lvl), idx)
   lbl
-  (sort $ map (\x -> ngramsToIdx x p) ngrams)
+  (sort $ map (\x -> getIdxInFoundations x p) ngrams)
   (Map.empty)
   (Map.empty)
   [] [] [] []
 
 
--- | To init a PhyloNgrams as a Vector of Ngrams 
-initNgrams :: [Ngrams] -> PhyloNgrams
-initNgrams l = Vector.fromList $ map toLower l
+-- | To init the Base of a Phylo from a List of Periods and Foundations
+initPhyloBase :: [(Date, Date)] -> Vector Ngrams -> Phylo
+initPhyloBase pds fds = Phylo ((fst . head) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds)
 
-
--- | To create a Phylo from a list of PhyloPeriods and Ngrams
-initPhylo :: [(Date, Date)] -> PhyloNgrams -> Phylo
-initPhylo l ngrams = Phylo ((fst . head) l, (snd . last) l) ngrams (map (\prd -> initPhyloPeriod prd []) l) []
 
 -- | To create a PhyloLevel
 initPhyloLevel :: PhyloLevelId -> [PhyloGroup] -> PhyloLevel
@@ -321,11 +322,6 @@ listToUnDirectedCombi l = [ (x,y) | (x:rest) <- tails l,  y <- rest ]
 -- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
 listToUnDirectedCombiWith :: forall a b. (a -> b) -> [a] -> [(b,b)]
 listToUnDirectedCombiWith f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
-
-
--- | To transform an Ngrams into its corresponding index in a Phylo 
-ngramsToIdx :: Ngrams -> Phylo -> Int
-ngramsToIdx x p = getIdx x (_phylo_ngrams p)
 
 
 -- | To set the LevelId of a PhyloLevel and of all its PhyloGroups

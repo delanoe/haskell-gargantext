@@ -60,5 +60,5 @@ groupsToGraph (prox,param) groups p = (groups,edges)
 
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
-setPhyloBranches :: Level -> Phylo -> Phylo 
-setPhyloBranches lvl p = alterPhyloBranches (\l -> l ++ (graphToBranches lvl (groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p) p) p) ) p
+-- setPhyloBranches :: Level -> Phylo -> Phylo 
+-- setPhyloBranches lvl p = alterPhyloBranches (\l -> l ++ (graphToBranches lvl (groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p) p) p) ) p
