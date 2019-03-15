@@ -40,16 +40,16 @@ import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo, ngramsTypeFromTabType)
+import Gargantext.API.Metrics
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
-import Gargantext.API.Metrics
 import Gargantext.Core.Types (Offset, Limit, ListType(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
+import Gargantext.Database.Metrics (getMetrics')
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Text.Metrics
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Schema.Node (defaultList)
@@ -59,8 +59,9 @@ import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (CorpusId, ContactId)
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.Viz.Graph.Tools (cooc2graph)
+import Gargantext.Text.Metrics
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
+import Gargantext.Viz.Graph.Tools (cooc2graph)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -394,23 +395,9 @@ type MetricsAPI = Summary "SepGen IncExc metrics"
 
 getMetrics :: NodeId -> GargServer MetricsAPI
 getMetrics cId maybeListId maybeTabType maybeLimit = do
-
-  lId <- case maybeListId of
-    Nothing   -> defaultList cId
-    Just lId' -> pure lId'
-
-  let ngramsType = ngramsTypeFromTabType maybeTabType
-
-  ngs'    <- mapTermListRoot [lId] ngramsType
-  let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs')
-                             [GraphTerm, StopTerm, CandidateTerm]
-
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams True
-                            <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId ngramsType (Map.keys ngs)
+  (ngs', scores) <- getMetrics' cId maybeListId maybeTabType
 
   let
-    scores   = scored myCooc
     metrics  = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
     errorMsg = "API.Node.metrics: key absent"
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
@@ -420,4 +407,8 @@ getMetrics cId maybeListId maybeTabType maybeLimit = do
       Just  l -> take l metrics
 
   pure $ Metrics metricsFiltered
+
+
+
+
 
