@@ -31,7 +31,7 @@ module Gargantext.Viz.Phylo.Example where
 import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.Bool        (Bool, not)
-import Data.List        (concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete, init, groupBy)
+import Data.List        (notElem, concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete, init, groupBy)
 import Data.Map         (Map, elems, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey, mapKeys, intersectionWith, unionWith)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
@@ -76,17 +76,17 @@ getBranchPeriods b = nub $ map (fst . fst) $ getBranchGroupIds b
 
 -- | To get all the single PhyloPeriodIds covered by a PhyloBranch
 getBranchGroupIds :: PhyloBranch -> [PhyloGroupId]
-getBranchGroupIds b =_phylo_branchGroups b 
+getBranchGroupIds =_phylo_branchGroups 
 
 
 -- | To transform a list of Ngrams Indexes into a Label
-ngramsToLabel :: [Int] -> PhyloNgrams -> Text 
-ngramsToLabel l ngrams = unwords $ ngramsToText l ngrams 
+ngramsToLabel :: Vector Ngrams -> [Int] -> Text 
+ngramsToLabel ngrams l = unwords $ ngramsToText ngrams l 
 
 
 -- | To transform a list of Ngrams Indexes into a list of Text 
-ngramsToText :: [Int] -> PhyloNgrams -> [Text]
-ngramsToText l ngrams = map (\idx -> ngrams Vector.! idx) l
+ngramsToText :: Vector Ngrams -> [Int] -> [Text]
+ngramsToText ngrams l = map (\idx -> ngrams Vector.! idx) l
 
 
 -- | To get the nth most frequent Ngrams in a list of PhyloGroups
@@ -109,23 +109,33 @@ mostOccNgrams thr group = (nub . concat )
                         $ reverse $ sortOn snd $ Map.toList $ getGroupCooc group
 
 
+freqToLabel :: Int -> [PhyloGroup] -> Vector Ngrams -> Text
+freqToLabel thr l ngs = ngramsToLabel ngs $ mostFreqNgrams thr l  
 
-filterLoneBranches :: Int -> Int -> Int -> [PhyloPeriod] -> [PhyloBranch]
+
+-- | To filter a list of Branches by avoiding the lone's one (ie: with just a few phyloGroups in the middle of the whole timeline)
+filterLoneBranches :: Int -> Int -> Int -> [PhyloPeriodId] -> [PhyloBranch] -> [PhyloBranch]
 filterLoneBranches nbPinf nbPsup nbG periods branches = filter (not . isLone) branches
-  where 
-    isLone :: PhyloBranch -> Boolean
-    isLone b = ((length . getBranchGroups) b <= nbG)
+  where
+    --------------------------------------
+    isLone :: PhyloBranch -> Bool
+    isLone b = ((length . getBranchGroupIds) b <= nbG)
                && notElem ((head . getBranchPeriods) b) (take nbPinf periods)
-               && notElem ((head . getBranchPeriods) b) (take nbPsup reverse periods)
+               && notElem ((head . getBranchPeriods) b) (take nbPsup $ reverse periods)
+    --------------------------------------
 
+-- alterBranchLabel :: (Int -> [PhyloGroup] -> Vector Ngrams -> Text) -> PhyloBranch -> Phylo -> PhyloBranch
+-- alterBranchLabel f b p = over (phylo_branchLabel) (\lbl -> f 2 (getGroupsFromIds (getBranchGroupIds b) p) (getVector Ngrams p)) b
 
-toPhyloView :: Level -> Phylo -> [PhyloBranch]
-toPhyloView lvl p = branchesLbl 
-  where 
-    branchesLbl = map (\b -> over (phylo_branchLabel) (\lbl -> "toto") b) branches 
-    branches = filter (\b -> (fst . _phylo_branchId) b == lvl) $ getPhyloBranches p 
+-- toPhyloView1 :: Level -> Phylo -> [PhyloBranch]
+-- toPhyloView1 lvl p = bs 
+--   where 
+--     bs = map (\b -> alterBranchLabel freqToLabel b p)
+--        $ filterLoneBranches 1 1 1 (getPhyloPeriods p)
+--        $ filter (\b -> (fst . _phylo_branchId) b == lvl) 
+--        $ getPhyloBranches p 
 
-view1 = toPhyloView 2 phylo3 
+-- view1 = toPhyloView1 2 phylo3 
 
 ------------------------------------------------------------------------
 -- | STEP 11 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
@@ -136,8 +146,7 @@ phylo6 = toNthLevel 6 (WeightedLogJaccard,[0.01,0]) (RelatedComponents, []) (Wei
 
 
 phylo3 :: Phylo
-phylo3 = setPhyloBranches 3
-       $ pairGroupsToGroups Childs  3 (WeightedLogJaccard,[0.01,0])
+phylo3 = pairGroupsToGroups Childs  3 (WeightedLogJaccard,[0.01,0])
        $ pairGroupsToGroups Parents 3 (WeightedLogJaccard,[0.01,0]) 
        $ setLevelLinks (2,3) 
        $ addPhyloLevel 3 
@@ -149,7 +158,8 @@ phylo3 = setPhyloBranches 3
 -- | STEP 10 | -- Cluster the Fis
 
 phyloBranch2 :: Phylo
-phyloBranch2 = setPhyloBranches 2 phylo2_c
+phyloBranch2 = phylo2_c
+-- phyloBranch2 = setPhyloBranches 2 phylo2_c
 
 
 phylo2_c :: Phylo
@@ -177,8 +187,10 @@ phyloCluster = phyloToClusters 1 (WeightedLogJaccard,[0.01,0]) (RelatedComponent
 -- | STEP 9 | -- Find the Branches
 
 
-phyloBranch1 :: Phylo
-phyloBranch1 = setPhyloBranches 1 phylo1_c
+phyloBranch1 = phylo1_c
+
+-- phyloBranch1 :: Phylo
+-- phyloBranch1 = setPhyloBranches 1 phylo1_c
 
 
 ------------------------------------------------------------------------
@@ -214,7 +226,7 @@ phylo1_1_0 = setLevelLinks (1,0) phylo1
 
 
 phylo1 :: Phylo
-phylo1 =  addPhyloLevel (1) phyloFis phylo0_m1_0
+phylo1 =  addPhyloLevel (1) phyloFis phylo
 
 
 ------------------------------------------------------------------------
@@ -226,46 +238,36 @@ phyloFis = filterFisBySupport False 1 (filterFisByNested (docsToFis phyloDocs))
 
 
 ------------------------------------------------------------------------
--- | STEP 4 | -- Link level 0 to level -1 and reverse
+-- | STEP 2 | -- Init a Phylo of level 0
 
 
-phylo0_m1_0 :: Phylo
-phylo0_m1_0 = setLevelLinks ((-1),0) phylo0_0_m1
-
-
-phylo0_0_m1 :: Phylo
-phylo0_0_m1 = setLevelLinks (0,(-1)) phylo0
-
-
-------------------------------------------------------------------------
--- | STEP 3 | -- Build level 0 as a copy of level -1
--- | To do : build a real level 0 !
-
-
--- | To clone the last PhyloLevel of each PhyloPeriod and update it with a new LevelValue 
-clonePhyloLevel :: Level -> Phylo -> Phylo
-clonePhyloLevel lvl p = alterPhyloLevels (\l -> l ++ [setPhyloLevelId lvl $ head l]) p 
-
-
-phylo0 :: Phylo
-phylo0 = clonePhyloLevel 0 phylo
-
-
-------------------------------------------------------------------------
--- | STEP 2 | -- Init a Phylo of level -1 with the Documents 
+-- phylo' :: Phylo
+-- phylo' = initPhylo 5 3 corpus actants groupNgramsWithTrees
 
 
 phylo :: Phylo
-phylo = addPhyloLevel (-1) phyloDocs 
-        $ initPhylo (keys phyloDocs) (initNgrams actants)
-
-
-------------------------------------------------------------------------
--- | STEP 1 | -- Parse all the Documents and group them by Period  
+phylo = addPhyloLevel 0 phyloDocs phyloBase
 
 
 phyloDocs :: Map (Date, Date) [Document]
-phyloDocs = groupDocsByPeriod 5 3 (corpusToDocs corpus) (initNgrams actants) 
+phyloDocs = corpusToDocs groupNgramsWithTrees corpus phyloBase
+
+
+------------------------------------------------------------------------
+-- | STEP 1 | -- Init the Base of the Phylo from Periods and Foundations
+
+
+phyloBase :: Phylo
+phyloBase = initPhyloBase periods foundations
+
+
+periods :: [(Date,Date)] 
+periods = initPeriods 5 3 
+        $ both fst (head corpus,last corpus)
+
+
+foundations :: Vector Ngrams
+foundations = initFoundations actants
 
 
 ------------------------------------------------------------------------

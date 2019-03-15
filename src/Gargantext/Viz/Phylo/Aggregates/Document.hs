@@ -34,38 +34,45 @@ import qualified Data.Map    as Map
 import qualified Data.Vector as Vector   
 
 
--- | To init a set of periods out of a given Grain and Step 
-docsToPeriods :: (Ord date, Enum date) => (doc -> date)
-     -> Grain -> Step -> [doc] -> Map (date, date) [doc]
-docsToPeriods _ _ _ [] = panic "[ERR][Viz.Phylo.Example.docsToPeriods] Empty [Documents] can not have any periods"
-docsToPeriods f g s es = Map.fromList $ zip hs $ map (inPeriode f es) hs
+-- | To init a list of Periods framed by a starting Date and an ending Date
+initPeriods :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
+initPeriods g s (start,end) = map (\l -> (head l, last l))
+                              $ chunkAlong g s [start .. end]
+
+
+-- | To be defined, for the moment it's just the id function
+groupNgramsWithTrees :: Ngrams -> Ngrams 
+groupNgramsWithTrees n = n
+
+
+-- | To group a list of Documents by fixed periods
+groupDocsByPeriod :: (Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
+groupDocsByPeriod _ _   [] = panic "[ERR][Viz.Phylo.Example.docsToPeriods] Empty [Documents] can not have any periods"
+groupDocsByPeriod f pds es = Map.fromList $ zip pds $ map (inPeriode f es) pds
   where
-    --------------------------------------
-    hs = steps g s $ both f (head es, last es)
     --------------------------------------
     inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]
     inPeriode f' h (start,end) =
       fst $ List.partition (\d -> f' d >= start && f' d <= end) h
     --------------------------------------
-    steps :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
-    steps s' o' (start,end) = map (\l -> (head l, last l))
-                          $ chunkAlong s' o' [start .. end]
-    --------------------------------------
 
 
 -- | To parse a list of Documents by filtering on a Vector of Ngrams 
-parseDocs :: PhyloNgrams -> [Document] -> [Document]
-parseDocs l docs = map (\(Document d t) 
-                        -> Document d ( unwords 
+parseDocs :: (Ngrams -> Ngrams) -> Vector Ngrams -> [Document] -> [Document]
+parseDocs f l docs = map (\(Document d t) 
+                         -> Document d ( unwords
+                         -- | To do : change 'f' for the Ngrams Tree Agregation
+                                      $ map f
                                       $ filter (\x -> Vector.elem x l)
                                       $ monoTexts t)) docs
 
 
--- | To group a list of Documents by fixed periods
-groupDocsByPeriod :: Grain -> Step -> [Document] -> PhyloNgrams -> Map (Date, Date) [Document]
-groupDocsByPeriod g s docs ngrams = docsToPeriods date g s $ parseDocs ngrams docs 
-
-
--- | To transform a corpus of texts into a structured list of Documents
-corpusToDocs :: [(Date, Text)] -> [Document]
-corpusToDocs l = map (\(d,t) -> Document d t) l 
+-- | To transform a Corpus of texts into a Map of aggregated Documents grouped by Periods
+corpusToDocs :: (Ngrams -> Ngrams) -> [(Date,Text)] -> Phylo -> Map (Date,Date) [Document]
+corpusToDocs f c p = groupDocsByPeriod date (getPhyloPeriods p) 
+                   $ parseDocs f (getFoundations p) docs
+  where 
+    --------------------------------------
+    docs :: [Document]
+    docs = map (\(d,t) -> Document d t) c
+    --------------------------------------

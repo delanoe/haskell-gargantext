@@ -66,15 +66,14 @@ data Software =
 
 ------------------------------------------------------------------------
 
--- | Phylo datatype descriptor of a phylomemy
--- Duration : time Segment of the whole phylomemy (start,end)
--- Ngrams   : list of all (possible) terms contained in the phylomemy (with their id)
--- Steps    : list of all steps to build the phylomemy
+-- | Phylo datatype of a phylomemy
+-- Duration    : time Segment of the whole Phylo
+-- Foundations : vector of all the Ngrams contained in a Phylo (build from a list of actants)
+-- Periods     : list of all the periods of a Phylo
 data Phylo =
-     Phylo { _phylo_duration :: (Start, End)
-           , _phylo_ngrams   :: PhyloNgrams
-           , _phylo_periods  :: [PhyloPeriod]
-           , _phylo_branches :: [PhyloBranch]
+     Phylo { _phylo_duration    :: (Start, End)
+           , _phylo_foundations :: Vector Ngrams
+           , _phylo_periods     :: [PhyloPeriod]
            }
            deriving (Generic, Show)
 
@@ -157,12 +156,8 @@ type PhyloBranchId = (Level, Index)
 type Weight = Double
 -- | Pointer : A weighted linked with a given PhyloGroup
 type Pointer = (PhyloGroupId, Weight)
-
-
 -- | Ngrams : a contiguous sequence of n terms
 type Ngrams = Text
--- | PhyloNgrams : Vector of all the Ngrams (PhyloGroup of level -1) used within a Phylo
-type PhyloNgrams = Vector Ngrams
 
 
 -- | Clique : Set of ngrams cooccurring in the same Document
@@ -203,6 +198,7 @@ data Clustering  = Louvain | RelatedComponents
 
 
 data PairTo = Childs | Parents 
+
 
 -- | Lenses
 makeLenses ''Phylo

@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.LevelMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sort, concat, nub, words, zip)
+import Data.List                    ((++), sort, concat, nub, words, zip, head, last)
 import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKey, singleton, union)
 import Data.Set                     (Set)
 import Data.Text                    (Text, words)
@@ -27,6 +27,7 @@ import Data.Tuple.Extra
 import Gargantext.Prelude                   hiding (head)
 import Gargantext.Viz.Phylo.Aggregates.Cluster
 import Gargantext.Viz.Phylo.Aggregates.Cooc
+import Gargantext.Viz.Phylo.Aggregates.Document
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.LinkMaker
@@ -78,8 +79,8 @@ instance PhyloLevelMaker Document
     --------------------------------------
     -- | Level -> Map (Date,Date) [Document] -> Phylo -> Phylo 
     addPhyloLevel lvl m p 
-      | lvl < 0 = toPhyloLevel lvl m p
-      | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Documents at level <> -1") 
+      | lvl == 0  = toPhyloLevel lvl m p
+      | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Documents at level <> 0") 
     --------------------------------------
     -- | Level -> (Date,Date) -> [Document] -> Map (Date,Date) [Fis] -> Phylo -> [PhyloGroup]
     toPhyloGroups lvl (d,d') l m p = map (\(idx,ngram) -> ngramsToGroup (d,d') lvl idx ngram [ngram] p) 
@@ -113,7 +114,7 @@ cliqueToGroup prd lvl idx lbl fis m p =
       where
         --------------------------------------
         ngrams :: [Int]
-        ngrams = sort $ map (\x -> ngramsToIdx x p)
+        ngrams = sort $ map (\x -> getIdxInFoundations x p)
                       $ Set.toList
                       $ fst fis
         --------------------------------------
@@ -126,7 +127,7 @@ cliqueToGroup prd lvl idx lbl fis m p =
 -- | To transform a list of Ngrams into a PhyloGroup
 ngramsToGroup ::  PhyloPeriodId -> Level -> Int -> Text -> [Ngrams] -> Phylo -> PhyloGroup
 ngramsToGroup prd lvl idx lbl ngrams p =
-    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> ngramsToIdx x p) ngrams) empty empty [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInFoundations x p) ngrams) empty empty [] [] [] []
 
 
 -- | To traverse a Phylo and add a new PhyloLevel linked to a new list of PhyloGroups
@@ -140,14 +141,23 @@ toPhyloLevel lvl m p = alterPhyloPeriods
                                         ) period) p
 
 
+initPhylo :: Grain -> Step -> [(Date,Text)] -> [Ngrams] -> (Ngrams -> Ngrams) -> Phylo
+initPhylo g s c a f = addPhyloLevel 0 (corpusToDocs f c base) base
+  where
+    -------------------------------------- 
+    base :: Phylo
+    base = initPhyloBase (initPeriods g s $ both fst (head c,last c)) (initFoundations a)
+    --------------------------------------
+
+
 -- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks 
 toNthLevel :: Level -> (Proximity,[Double]) -> (Clustering,[Double]) -> (Proximity,[Double]) -> Phylo -> Phylo
 toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3) p 
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3)
+                  -- $ setPhyloBranches (lvl + 1)                  
                   $ pairGroupsToGroups Childs  (lvl + 1) (prox',param3)
                   $ pairGroupsToGroups Parents (lvl + 1) (prox',param3)
-                  $ setPhyloBranches (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
                     (phyloToClusters lvl (prox,param1) (clus,param2) p) p

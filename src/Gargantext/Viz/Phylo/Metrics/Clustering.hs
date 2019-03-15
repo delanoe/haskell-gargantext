@@ -59,12 +59,6 @@ relatedComp idx curr (nodes,edges) next memo
     --------------------------------------
 
 
-{-
-louvain :: (PhyloNodes,PhyloEdges) -> [Cluster]
-louvain (nodes,edges) = undefined 
--} 
-
-
 louvain :: (PhyloNodes,PhyloEdges) -> IO [[PhyloGroup]]
 louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
                       <$> groupBy (\a b -> (l_community_id a) == (l_community_id b))
