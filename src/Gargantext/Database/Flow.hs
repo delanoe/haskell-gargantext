@@ -76,12 +76,16 @@ type FlowCmdM env err m =
   , HasRepoVar env
   )
 
-
 flowCorpus :: FlowCmdM env ServantErr m
            => Username -> CorpusName -> TermType Lang -> FileFormat -> FilePath -> m CorpusId
-flowCorpus u cn la ff fp = do
-  ids <- flowCorpusMaster la ff fp
+flowCorpus u cn la ff fp = liftIO (parseDocs ff fp) >>= \docs -> flowCorpus' u cn la docs
+
+flowCorpus' :: FlowCmdM env ServantErr m
+           => Username -> CorpusName -> TermType Lang -> [HyperdataDocument] -> m CorpusId
+flowCorpus' u cn la docs = do
+  ids <- flowCorpusMaster la docs
   flowCorpusUser u cn ids
+
 
 -- TODO query with complex query
 flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
@@ -92,13 +96,10 @@ flowCorpusSearchInDatabase u q = do
   flowCorpusUser u q [ids]
 
 
-flowCorpusMaster :: FlowCmdM env ServantErr m => TermType Lang -> FileFormat -> FilePath -> m [[NodeId]]
-flowCorpusMaster la ff fp = do
-
+flowCorpusMaster :: FlowCmdM env ServantErr m => TermType Lang -> [HyperdataDocument] -> m [[NodeId]]
+flowCorpusMaster la hd = do
   -- Master Flow
-  docs <- map addUniqIdsDoc <$> liftIO (parseDocs ff fp)
-  -- ChunkAlong needed for big corpora
-  -- TODO add LANG as parameter
+  let docs = map addUniqIdsDoc hd
   -- TODO uniformize language of corpus
   ids  <- mapM (insertMasterDocs la) $ splitEvery 10000 docs
   pure ids
