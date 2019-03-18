@@ -196,9 +196,34 @@ data Proximity  = WeightedLogJaccard | Hamming | FromPairs
 -- | A List of Clustering methods 
 data Clustering  = Louvain | RelatedComponents
 
-
 data PairTo = Childs | Parents 
 
+-- | Views type
+
+data EdgeType = Directed | UnDirected
+
+data ViewGraph = ViewGraph
+  { _view_graphParam    :: PhyloParam
+  , _view_graphLabel    :: Text
+  , _view_graphEdgeType :: EdgeType
+  , _view_graphBranches :: [(PhyloBranchId,Text)]
+  , _view_graphNodes    :: [ViewNode]
+  , _view_graphEdges    :: [ViewEdge]
+  } 
+
+data ViewEdge = ViewEdge
+  { _view_edgeSource :: PhyloGroupId
+  , _view_edgeTarget :: PhyloGroupId
+  , _view_edgeWeight :: Weight
+  }
+
+data ViewNode = ViewNode
+  { _view_nodeId     :: PhyloGroupId
+  , _view_nodeLabel  :: Text
+  , _view_nodeNgrams :: [Ngrams]
+  , _view_nodeMeta   :: Map Text Double
+  , _view_nodeParent :: PhyloGroupId 
+  }  
 
 -- | Lenses
 makeLenses ''Phylo
