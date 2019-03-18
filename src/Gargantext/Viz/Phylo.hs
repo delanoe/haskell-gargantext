@@ -121,8 +121,9 @@ data PhyloGroup =
      PhyloGroup { _phylo_groupId            :: PhyloGroupId
                 , _phylo_groupLabel         :: Text
                 , _phylo_groupNgrams        :: [Int]
-                , _phylo_groupQuality       :: Map Text Double
+                , _phylo_groupMeta          :: Map Text Double
                 , _phylo_groupCooc          :: Map (Int, Int) Double
+                , _phylo_groupBranchId      :: Maybe PhyloBranchId
                 
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]
@@ -130,14 +131,7 @@ data PhyloGroup =
                 , _phylo_groupLevelParents  :: [Pointer]
                 , _phylo_groupLevelChilds   :: [Pointer]
                 }
-                deriving (Generic, Show, Eq, Ord)
-
-data PhyloBranch =
-     PhyloBranch { _phylo_branchId     :: (Level,Int)
-                 , _phylo_branchLabel  :: Text
-                 , _phylo_branchGroups :: [PhyloGroupId] 
-                 }
-                 deriving (Generic, Show)                
+                deriving (Generic, Show, Eq, Ord)             
 
 
 -- | Level : A level of aggregation (-1 = Txt, 0 = Ngrams, 1 = Fis, [2..] = Cluster)  
@@ -233,14 +227,12 @@ makeLenses ''Software
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
-makeLenses ''PhyloBranch
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
 $(deriveJSON (unPrefix "_phylo_period" ) 'PhyloPeriod  )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
-$(deriveJSON (unPrefix "_phylo_branch" ) ''PhyloBranch )
 -- 
 $(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )

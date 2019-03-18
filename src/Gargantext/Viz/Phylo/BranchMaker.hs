@@ -17,6 +17,8 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.BranchMaker
   where
 
+import Control.Lens     hiding (both, Level)
+
 import Data.List        (last,head,union,concat,null,nub,(++),init,tail,(!!))
 import Data.Map         (Map,elems,adjust,unionWith,intersectionWith)
 import Data.Set         (Set)
@@ -34,9 +36,10 @@ import qualified Data.Set    as Set
 
 
 -- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
-graphToBranches :: Level -> PhyloGraph -> Phylo -> [PhyloBranch]
-graphToBranches lvl (nodes,edges) p = map (\(idx,c) -> PhyloBranch (lvl,idx) "" (map getGroupId c)) 
-                                    $ zip [0..] 
+graphToBranches :: Level -> PhyloGraph -> Phylo -> [(Int,PhyloGroupId)]
+graphToBranches lvl (nodes,edges) p = concat 
+                                    $ map (\(idx,gs) -> map (\g -> (idx,getGroupId g)) gs)
+                                    $ zip [1..]
                                     $ relatedComp 0 (head nodes) (tail nodes,edges) [] []
 
 
@@ -60,5 +63,14 @@ groupsToGraph (prox,param) groups p = (groups,edges)
 
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
--- setPhyloBranches :: Level -> Phylo -> Phylo 
--- setPhyloBranches lvl p = alterPhyloBranches (\l -> l ++ (graphToBranches lvl (groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p) p) p) ) p
+setPhyloBranches :: Level -> Phylo -> Phylo 
+setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst . head) $ filter (\b -> snd b == getGroupId g) bs
+                                                     in over (phylo_groupBranchId) (\x -> Just (lvl,bIdx)) g) lvl p
+  where
+    --------------------------------------
+    bs :: [(Int,PhyloGroupId)]
+    bs = graphToBranches lvl graph p
+    --------------------------------------
+    graph :: PhyloGraph
+    graph = groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p) p
+    --------------------------------------

@@ -69,14 +69,14 @@ import qualified Data.Vector as Vector
 -- | STEP 12 | -- Return a Phylo for upcomming visiualization tasks 
 
 
--- | To get all the single PhyloPeriodIds covered by a PhyloBranch
-getBranchPeriods :: PhyloBranch -> [PhyloPeriodId]
-getBranchPeriods b = nub $ map (fst . fst) $ getBranchGroupIds b 
+-- -- | To get all the single PhyloPeriodIds covered by a PhyloBranch
+-- getBranchPeriods :: PhyloBranch -> [PhyloPeriodId]
+-- getBranchPeriods b = nub $ map (fst . fst) $ getBranchGroupIds b 
 
 
--- | To get all the single PhyloPeriodIds covered by a PhyloBranch
-getBranchGroupIds :: PhyloBranch -> [PhyloGroupId]
-getBranchGroupIds =_phylo_branchGroups 
+-- -- | To get all the single PhyloPeriodIds covered by a PhyloBranch
+-- getBranchGroupIds :: PhyloBranch -> [PhyloGroupId]
+-- getBranchGroupIds =_phylo_branchGroups 
 
 
 -- | To transform a list of Ngrams Indexes into a Label
@@ -114,15 +114,15 @@ freqToLabel thr l ngs = ngramsToLabel ngs $ mostFreqNgrams thr l
 
 
 -- | To filter a list of Branches by avoiding the lone's one (ie: with just a few phyloGroups in the middle of the whole timeline)
-filterLoneBranches :: Int -> Int -> Int -> [PhyloPeriodId] -> [PhyloBranch] -> [PhyloBranch]
-filterLoneBranches nbPinf nbPsup nbG periods branches = filter (not . isLone) branches
-  where
-    --------------------------------------
-    isLone :: PhyloBranch -> Bool
-    isLone b = ((length . getBranchGroupIds) b <= nbG)
-               && notElem ((head . getBranchPeriods) b) (take nbPinf periods)
-               && notElem ((head . getBranchPeriods) b) (take nbPsup $ reverse periods)
-    --------------------------------------
+-- filterLoneBranches :: Int -> Int -> Int -> [PhyloPeriodId] -> [PhyloBranch] -> [PhyloBranch]
+-- filterLoneBranches nbPinf nbPsup nbG periods branches = filter (not . isLone) branches
+--   where
+--     --------------------------------------
+--     isLone :: PhyloBranch -> Bool
+--     isLone b = ((length . getBranchGroupIds) b <= nbG)
+--                && notElem ((head . getBranchPeriods) b) (take nbPinf periods)
+--                && notElem ((head . getBranchPeriods) b) (take nbPsup $ reverse periods)
+--     --------------------------------------
 
 -- alterBranchLabel :: (Int -> [PhyloGroup] -> Vector Ngrams -> Text) -> PhyloBranch -> Phylo -> PhyloBranch
 -- alterBranchLabel f b p = over (phylo_branchLabel) (\lbl -> f 2 (getGroupsFromIds (getBranchGroupIds b) p) (getVector Ngrams p)) b
@@ -146,8 +146,9 @@ phylo6 = toNthLevel 6 (WeightedLogJaccard,[0.01,0]) (RelatedComponents, []) (Wei
 
 
 phylo3 :: Phylo
-phylo3 = pairGroupsToGroups Childs  3 (WeightedLogJaccard,[0.01,0])
-       $ pairGroupsToGroups Parents 3 (WeightedLogJaccard,[0.01,0]) 
+phylo3 = setPhyloBranches 3
+       $ interTempoMatching Childs  3 (WeightedLogJaccard,[0.01,0])
+       $ interTempoMatching Parents 3 (WeightedLogJaccard,[0.01,0]) 
        $ setLevelLinks (2,3) 
        $ addPhyloLevel 3 
           (phyloToClusters 2 (WeightedLogJaccard,[0.01,0]) (RelatedComponents, []) phyloBranch2) 
@@ -158,16 +159,15 @@ phylo3 = pairGroupsToGroups Childs  3 (WeightedLogJaccard,[0.01,0])
 -- | STEP 10 | -- Cluster the Fis
 
 phyloBranch2 :: Phylo
-phyloBranch2 = phylo2_c
--- phyloBranch2 = setPhyloBranches 2 phylo2_c
+phyloBranch2 = setPhyloBranches 2 phylo2_c
 
 
 phylo2_c :: Phylo
-phylo2_c = pairGroupsToGroups Childs 2 (WeightedLogJaccard,[0.01,0]) phylo2_p
+phylo2_c = interTempoMatching Childs 2 (WeightedLogJaccard,[0.01,0]) phylo2_p
 
 
 phylo2_p :: Phylo
-phylo2_p = pairGroupsToGroups Parents 2 (WeightedLogJaccard,[0.01,0]) phylo2_1_2
+phylo2_p = interTempoMatching Parents 2 (WeightedLogJaccard,[0.01,0]) phylo2_1_2
 
 
 phylo2_1_2 :: Phylo
@@ -187,10 +187,8 @@ phyloCluster = phyloToClusters 1 (WeightedLogJaccard,[0.01,0]) (RelatedComponent
 -- | STEP 9 | -- Find the Branches
 
 
-phyloBranch1 = phylo1_c
-
--- phyloBranch1 :: Phylo
--- phyloBranch1 = setPhyloBranches 1 phylo1_c
+phyloBranch1 :: Phylo
+phyloBranch1 = setPhyloBranches 1 phylo1_c
 
 
 ------------------------------------------------------------------------
@@ -198,11 +196,11 @@ phyloBranch1 = phylo1_c
 
 
 phylo1_c :: Phylo
-phylo1_c = pairGroupsToGroups Childs 1 (WeightedLogJaccard,[0.01,0]) phylo1_p
+phylo1_c = interTempoMatching Childs 1 (WeightedLogJaccard,[0.01,0]) phylo1_p
 
 
 phylo1_p :: Phylo
-phylo1_p = pairGroupsToGroups Parents 1 (WeightedLogJaccard,[0.01,0]) phylo1_0_1
+phylo1_p = interTempoMatching Parents 1 (WeightedLogJaccard,[0.01,0]) phylo1_0_1
 
 
 ------------------------------------------------------------------------

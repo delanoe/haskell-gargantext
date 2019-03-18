@@ -93,7 +93,7 @@ instance PhyloLevelMaker Document
 -- | To transform a Cluster into a Phylogroup 
 clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> Cluster -> Map (Date,Date) [Cluster] -> Phylo -> PhyloGroup
 clusterToGroup prd lvl idx lbl groups m p = 
-    PhyloGroup ((prd, lvl), idx) lbl ngrams empty cooc [] [] [] (map (\g -> (getGroupId g, 1)) groups)
+    PhyloGroup ((prd, lvl), idx) lbl ngrams empty cooc Nothing [] [] [] (map (\g -> (getGroupId g, 1)) groups)
       where
         --------------------------------------
         ngrams :: [Int]
@@ -110,7 +110,7 @@ clusterToGroup prd lvl idx lbl groups m p =
 -- | To transform a Clique into a PhyloGroup
 cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> (Clique,Support) -> Map (Date, Date) [Fis] -> Phylo -> PhyloGroup
 cliqueToGroup prd lvl idx lbl fis m p = 
-    PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ snd fis)) cooc [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ snd fis)) cooc Nothing [] [] [] []
       where
         --------------------------------------
         ngrams :: [Int]
@@ -127,7 +127,7 @@ cliqueToGroup prd lvl idx lbl fis m p =
 -- | To transform a list of Ngrams into a PhyloGroup
 ngramsToGroup ::  PhyloPeriodId -> Level -> Int -> Text -> [Ngrams] -> Phylo -> PhyloGroup
 ngramsToGroup prd lvl idx lbl ngrams p =
-    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInFoundations x p) ngrams) empty empty [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInFoundations x p) ngrams) empty empty Nothing [] [] [] []
 
 
 -- | To traverse a Phylo and add a new PhyloLevel linked to a new list of PhyloGroups
@@ -155,9 +155,9 @@ toNthLevel :: Level -> (Proximity,[Double]) -> (Clustering,[Double]) -> (Proximi
 toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3) p 
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3)
-                  -- $ setPhyloBranches (lvl + 1)                  
-                  $ pairGroupsToGroups Childs  (lvl + 1) (prox',param3)
-                  $ pairGroupsToGroups Parents (lvl + 1) (prox',param3)
+                  $ setPhyloBranches (lvl + 1)                  
+                  $ interTempoMatching Childs  (lvl + 1) (prox',param3)
+                  $ interTempoMatching Parents (lvl + 1) (prox',param3)
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
                     (phyloToClusters lvl (prox,param1) (clus,param2) p) p

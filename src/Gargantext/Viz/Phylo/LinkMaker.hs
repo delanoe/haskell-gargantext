@@ -161,8 +161,8 @@ makePair to group ids = case to of
 
 
 -- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
-pairGroupsToGroups :: PairTo -> Level -> (Proximity,[Double]) -> Phylo -> Phylo
-pairGroupsToGroups to lvl (prox,param) p = alterPhyloGroups
+interTempoMatching :: PairTo -> Level -> (Proximity,[Double]) -> Phylo -> Phylo
+interTempoMatching to lvl (prox,param) p = alterPhyloGroups
                                     (\groups -> 
                                       map (\group ->
                                             if (getGroupLevel group) == lvl

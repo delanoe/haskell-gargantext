@@ -37,9 +37,17 @@ import qualified Data.Vector as Vector
 -- | Tools | --
 
 
--- | To add a new PhyloGroupId to a PhyloBranch
-addGroupIdToBranch :: PhyloGroupId -> PhyloBranch -> PhyloBranch
-addGroupIdToBranch id b = over (phylo_branchGroups) (++ [id]) b
+alterGroupWithLevel :: (PhyloGroup -> PhyloGroup) -> Level -> Phylo -> Phylo
+alterGroupWithLevel f lvl p = over ( phylo_periods
+                                   .  traverse
+                                   . phylo_periodLevels
+                                   .  traverse
+                                   . phylo_levelGroups
+                                   .  traverse
+                                   ) (\g -> if getGroupLevel g == lvl
+                                            then f g
+                                            else g ) p  
+
 
 
 -- | To alter each list of PhyloGroups following a given function
@@ -49,18 +57,13 @@ alterPhyloGroups f p = over ( phylo_periods
                             . phylo_periodLevels
                             .  traverse
                             . phylo_levelGroups
-                            ) f p 
+                            ) f p   
 
 
 -- | To alter each PhyloPeriod of a Phylo following a given function
 alterPhyloPeriods :: (PhyloPeriod -> PhyloPeriod) -> Phylo -> Phylo
 alterPhyloPeriods f p = over ( phylo_periods
                              .  traverse) f p
-
-
--- | To alter the list of PhyloBranches of a Phylo
--- alterPhyloBranches :: ([PhyloBranch] -> [PhyloBranch]) -> Phylo -> Phylo
--- alterPhyloBranches f p = over ( phylo_branches ) f p
 
 
 -- | To alter a list of PhyloLevels following a given function
@@ -279,6 +282,7 @@ initGroup ngrams lbl idx lvl from to p = PhyloGroup
   (sort $ map (\x -> getIdxInFoundations x p) ngrams)
   (Map.empty)
   (Map.empty)
+  Nothing
   [] [] [] []
 
 
