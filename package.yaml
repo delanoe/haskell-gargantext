@@ -59,6 +59,7 @@ library:
   - Gargantext.Text.Parsers.Date
   - Gargantext.Text.Parsers.Wikimedia
   - Gargantext.Text.Parsers.WOS
+  - Gargantext.Text.Parsers.GrandDebat
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
   - Gargantext.Text.Terms.Stop

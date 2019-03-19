@@ -68,8 +68,9 @@ instance ToField NodeId where
 instance FromField NodeId where
   fromField field mdata = do
     n <- fromField field mdata
-    if (n :: Int) > 0 then return $ NodeId n
-                      else mzero
+    if (n :: Int) > 0
+       then return $ NodeId n
+       else mzero
 
 instance ToSchema NodeId
 
@@ -106,9 +107,9 @@ instance Arbitrary UTCTime' where
     arbitrary = elements $ timesAfter 100 D (jour 2000 01 01)
 
 ------------------------------------------------------------------------
-data Status  = Status { status_failed    :: Int
-                      , status_succeeded :: Int
-                      , status_remaining :: Int
+data Status  = Status { status_failed    :: !Int
+                      , status_succeeded :: !Int
+                      , status_remaining :: !Int
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "status_") ''Status)
 
@@ -116,8 +117,8 @@ instance Arbitrary Status where
   arbitrary = Status <$> arbitrary <*> arbitrary <*> arbitrary
 
 ------------------------------------------------------------------------
-data StatusV3  = StatusV3 { statusV3_error  :: Maybe Text
-                          , statusV3_action :: Maybe Text
+data StatusV3  = StatusV3 { statusV3_error  :: !(Maybe Text)
+                          , statusV3_action :: !(Maybe Text)
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
 ------------------------------------------------------------------------
@@ -147,60 +148,66 @@ data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication
 $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
 
 instance Hyperdata HyperdataDocumentV3
+
 ------------------------------------------------------------------------
-
-
-data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: Maybe Text
-                                           , _hyperdataDocument_doi                :: Maybe Text
-                                           , _hyperdataDocument_url                :: Maybe Text
-                                           , _hyperdataDocument_uniqId             :: Maybe Text
-                                           , _hyperdataDocument_uniqIdBdd          :: Maybe Text
-                                           , _hyperdataDocument_page               :: Maybe Int
-                                           , _hyperdataDocument_title              :: Maybe Text
-                                           , _hyperdataDocument_authors            :: Maybe Text
-                                           , _hyperdataDocument_institutes         :: Maybe Text
-                                           , _hyperdataDocument_source             :: Maybe Text
-                                           , _hyperdataDocument_abstract           :: Maybe Text
-                                           , _hyperdataDocument_publication_date   :: Maybe Text
-                                           , _hyperdataDocument_publication_year   :: Maybe Int
-                                           , _hyperdataDocument_publication_month  :: Maybe Int
-                                           , _hyperdataDocument_publication_day    :: Maybe Int
-                                           , _hyperdataDocument_publication_hour   :: Maybe Int
-                                           , _hyperdataDocument_publication_minute :: Maybe Int
-                                           , _hyperdataDocument_publication_second :: Maybe Int
-                                           , _hyperdataDocument_language_iso2      :: Maybe Text
+data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: !(Maybe Text)
+                                           , _hyperdataDocument_doi                :: !(Maybe Text)
+                                           , _hyperdataDocument_url                :: !(Maybe Text)
+                                           , _hyperdataDocument_uniqId             :: !(Maybe Text)
+                                           , _hyperdataDocument_uniqIdBdd          :: !(Maybe Text)
+                                           , _hyperdataDocument_page               :: !(Maybe Int)
+                                           , _hyperdataDocument_title              :: !(Maybe Text)
+                                           , _hyperdataDocument_authors            :: !(Maybe Text)
+                                           , _hyperdataDocument_institutes         :: !(Maybe Text)
+                                           , _hyperdataDocument_source             :: !(Maybe Text)
+                                           , _hyperdataDocument_abstract           :: !(Maybe Text)
+                                           , _hyperdataDocument_publication_date   :: !(Maybe Text)
+                                           , _hyperdataDocument_publication_year   :: !(Maybe Int)
+                                           , _hyperdataDocument_publication_month  :: !(Maybe Int)
+                                           , _hyperdataDocument_publication_day    :: !(Maybe Int)
+                                           , _hyperdataDocument_publication_hour   :: !(Maybe Int)
+                                           , _hyperdataDocument_publication_minute :: !(Maybe Int)
+                                           , _hyperdataDocument_publication_second :: !(Maybe Int)
+                                           , _hyperdataDocument_language_iso2      :: !(Maybe Text)
                                            } deriving (Show, Generic)
+
 $(deriveJSON (unPrefix "_hyperdataDocument_") ''HyperdataDocument)
 $(makeLenses ''HyperdataDocument)
+
+class ToHyperdataDocument a where
+  toHyperdataDocument :: a -> HyperdataDocument
+
+instance ToHyperdataDocument HyperdataDocument
+  where
+    toHyperdataDocument = identity
 
 instance Eq HyperdataDocument where
   (==) h1 h2 = (==) (_hyperdataDocument_uniqId h1) (_hyperdataDocument_uniqId h2)
 
 instance Ord HyperdataDocument where
-  compare h1 h2 = compare (_hyperdataDocument_uniqId h1) (_hyperdataDocument_uniqId h2)
+  compare h1 h2 = compare (_hyperdataDocument_publication_date h1) (_hyperdataDocument_publication_date h2)
 
 instance Hyperdata HyperdataDocument
 
 instance ToField HyperdataDocument where
   toField = toJSONField
 
-toHyperdataDocuments :: [(Text, Text)] -> [HyperdataDocument]
-toHyperdataDocuments ts = map (\(t1,t2) -> HyperdataDocument Nothing Nothing Nothing Nothing Nothing Nothing (Just t1)
-                                           Nothing Nothing (Just t2) Nothing Nothing Nothing Nothing Nothing 
-                                           Nothing Nothing Nothing   Nothing
-                                           ) ts
-
-hyperdataDocuments :: [HyperdataDocument]
-hyperdataDocuments = toHyperdataDocuments [ ("AI is big but less than crypto", "Troll System journal")
-                                          , ("Crypto is big but less than AI", "System Troll review" )
-                                          , ("Science is magic"              , "Closed Source review")
-                                          , ("Open science for all"          , "No Time"             )
-                                          , ("Closed science for me"         , "No Space"            )
-                                          ]
-
-
 instance Arbitrary HyperdataDocument where
-    arbitrary = elements hyperdataDocuments
+    arbitrary = elements arbitraryHyperdataDocuments
+
+arbitraryHyperdataDocuments :: [HyperdataDocument]
+arbitraryHyperdataDocuments =
+  map toHyperdataDocument' ([ ("AI is big but less than crypto", "Troll System journal")
+                            , ("Crypto is big but less than AI", "System Troll review" )
+                            , ("Science is magic"              , "Closed Source review")
+                            , ("Open science for all"          , "No Time"             )
+                            , ("Closed science for me"         , "No Space"            )
+                            ] :: [(Text, Text)])
+  where
+    toHyperdataDocument' (t1,t2) =
+      HyperdataDocument Nothing Nothing Nothing Nothing Nothing Nothing (Just t1)
+                      Nothing Nothing (Just t2) Nothing Nothing Nothing Nothing Nothing 
+                      Nothing Nothing Nothing   Nothing
 
 ------------------------------------------------------------------------
 data LanguageNodes = LanguageNodes { languageNodes___unknown__ :: [Int]}
@@ -223,9 +230,9 @@ instance ToSchema EventLevel where
 
 ------------------------------------------------------------------------
 
-data Event = Event { event_level   :: EventLevel
-                   , event_message :: Text
-                   , event_date    :: UTCTime
+data Event = Event { event_level   :: !EventLevel
+                   , event_message :: !Text
+                   , event_date    :: !UTCTime
             } deriving (Show, Generic)
 $(deriveJSON (unPrefix "event_") ''Event)
 
@@ -239,17 +246,22 @@ instance ToSchema Event where
 instance Arbitrary Text where
   arbitrary = elements $ map (\c -> pack [c]) ['a'..'z']
 
-data Resource = Resource { resource_path    :: Maybe Text
-                         , resource_scraper :: Maybe Text
-                         , resource_query   :: Maybe Text
-                         , resource_events  :: [Event]
-                         , resource_status  :: Status
-                         , resource_date    :: UTCTime'
+data Resource = Resource { resource_path    :: !(Maybe Text)
+                         , resource_scraper :: !(Maybe Text)
+                         , resource_query   :: !(Maybe Text)
+                         , resource_events  :: !([Event])
+                         , resource_status  :: !Status
+                         , resource_date    :: !UTCTime'
                          } deriving (Show, Generic)
 $(deriveJSON (unPrefix "resource_") ''Resource)
 
 instance Arbitrary Resource where
-    arbitrary = Resource <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+    arbitrary = Resource <$> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
 
 instance ToSchema Resource where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
@@ -267,11 +279,11 @@ $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 
 instance Hyperdata HyperdataFolder
 ------------------------------------------------------------------------
-data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: Maybe Text
-                                       , hyperdataCorpus_desc         :: Maybe Text
-                                       , hyperdataCorpus_query        :: Maybe Text
-                                       , hyperdataCorpus_authors      :: Maybe Text
-                                       , hyperdataCorpus_resources    :: Maybe [Resource]
+data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: !(Maybe Text)
+                                       , hyperdataCorpus_desc         :: !(Maybe Text)
+                                       , hyperdataCorpus_query        :: !(Maybe Text)
+                                       , hyperdataCorpus_authors      :: !(Maybe Text)
+                                       , hyperdataCorpus_resources    :: !(Maybe [Resource])
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
 
@@ -292,8 +304,8 @@ instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO
 
 ------------------------------------------------------------------------
-data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: Maybe Text
-                                           , hyperdataAnnuaire_desc         :: Maybe Text
+data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: !(Maybe Text)
+                                           , hyperdataAnnuaire_desc         :: !(Maybe Text)
                                            } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
 
@@ -315,7 +327,7 @@ instance Arbitrary HyperdataAny where
     arbitrary = pure $ HyperdataAny mempty -- TODO produce arbitrary objects
 ------------------------------------------------------------------------
 
-data HyperdataList = HyperdataList { hyperdataList_preferences   :: Maybe Text
+data HyperdataList = HyperdataList { hyperdataList_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
 
@@ -325,7 +337,7 @@ instance Arbitrary HyperdataList where
   arbitrary = elements [HyperdataList (Just "from list A")]
 
 ------------------------------------------------------------------------
-data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: Maybe Text
+data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
 
@@ -333,21 +345,21 @@ instance Hyperdata HyperdataScore
 
 ------------------------------------------------------------------------
 
-data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: Maybe Text
+data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 
 instance Hyperdata HyperdataResource
 
 ------------------------------------------------------------------------
-data HyperdataDashboard = HyperdataDashboard { hyperdataDashboard_preferences   :: Maybe Text
+data HyperdataDashboard = HyperdataDashboard { hyperdataDashboard_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
 
 instance Hyperdata HyperdataDashboard
 
 -- TODO add the Graph Structure here
-data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: Maybe Text
+data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
 
@@ -355,7 +367,7 @@ instance Hyperdata HyperdataGraph
 ------------------------------------------------------------------------
 
 -- TODO add the Graph Structure here
-data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: Maybe Text
+data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 
@@ -363,7 +375,7 @@ instance Hyperdata HyperdataPhylo
 
 ------------------------------------------------------------------------
 -- | TODO FEATURE: Notebook saved in the node
-data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: Maybe Text
+data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
 

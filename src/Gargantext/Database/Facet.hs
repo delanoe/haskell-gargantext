@@ -148,7 +148,7 @@ instance Arbitrary FacetDoc where
                          | id'  <- [1..10]
                          , year <- [1990..2000]
                          , t    <- ["title", "another title"]
-                         , hp   <- hyperdataDocuments
+                         , hp   <- arbitraryHyperdataDocuments
                          , fav  <- [True, False]
                          , ngramCount <- [3..100]
                          ]
