@@ -22,7 +22,7 @@ import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (TabType(..), ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools
-import Gargantext.Core.Types (ListType(..))
+import Gargantext.Core.Types (ListType(..), Limit)
 import Gargantext.Database.Flow (FlowCmdM)
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Node (defaultList)
@@ -33,9 +33,9 @@ import Servant (ServantErr)
 import qualified Data.Map as Map
 
 getMetrics' :: FlowCmdM env ServantErr m
-            => CorpusId -> Maybe ListId -> Maybe TabType
+            => CorpusId -> Maybe ListId -> Maybe TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
-getMetrics' cId maybeListId maybeTabType = do
+getMetrics' cId maybeListId maybeTabType maybeLimit = do
 
   lId <- case maybeListId of
     Nothing   -> defaultList cId
@@ -46,10 +46,14 @@ getMetrics' cId maybeListId maybeTabType = do
   ngs'    <- mapTermListRoot [lId] ngramsType
   let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs')
                              [GraphTerm, StopTerm, CandidateTerm]
-
+  
+  let
+    take' Nothing xs  = xs
+    take' (Just n) xs = take n xs
+  
   myCooc <- Map.filter (>1) <$> getCoocByNgrams True
                             <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId ngramsType (Map.keys ngs)
+                            <$> getNodesByNgramsOnlyUser cId ngramsType (take' maybeLimit $ Map.keys ngs)
 
   pure $ (ngs', scored myCooc)
 

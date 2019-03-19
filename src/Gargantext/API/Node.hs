@@ -395,18 +395,14 @@ type MetricsAPI = Summary "SepGen IncExc metrics"
 
 getMetrics :: NodeId -> GargServer MetricsAPI
 getMetrics cId maybeListId maybeTabType maybeLimit = do
-  (ngs', scores) <- getMetrics' cId maybeListId maybeTabType
+  (ngs', scores) <- getMetrics' cId maybeListId maybeTabType maybeLimit
 
   let
     metrics  = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
     errorMsg = "API.Node.metrics: key absent"
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
 
-    metricsFiltered = case maybeLimit of
-      Nothing -> metrics
-      Just  l -> take l metrics
-
-  pure $ Metrics metricsFiltered
+  pure $ Metrics metrics
 
 
 

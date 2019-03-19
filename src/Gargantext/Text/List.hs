@@ -56,7 +56,7 @@ buildNgramsOthersList uCid groupIt nt = do
 buildNgramsTermsList :: UserCorpusId -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList uCid mCid = do
-  candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup EN 2)
+  candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup EN 4 2)
   --printDebug "candidate" (length candidates)
 
   let termList = toTermList (isStopTerm . fst) candidates
@@ -105,8 +105,7 @@ isStopTerm :: Text -> Bool
 isStopTerm x = Text.length x < 3
              || not (all Char.isAlpha (Text.unpack x'))
                 where
-                  x' = ( Text.replace "-" ""
-                       . Text.replace " " ""
-                       . Text.replace "/" ""
-                       ) x
+                  x' = foldl (\t -> Text.replace t "")
+                              x
+                             ["-"," ","/","(",")"]
 
