@@ -55,7 +55,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (.=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, mapped, forOf_)
+import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, mapped, forOf_)
 import Control.Monad (guard)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Monad.Reader
@@ -534,11 +534,11 @@ instance Arbitrary NgramsTablePatch where
 
 type ReParent a = forall m. MonadState NgramsTableMap m => a -> m ()
 
-reRootChildren :: Maybe NgramsTerm -> ReParent NgramsTerm
+reRootChildren :: NgramsTerm -> ReParent NgramsTerm
 reRootChildren root ngram = do
   nre <- use $ at ngram
   forOf_ (_Just . nre_children . folded) nre $ \child -> do
-    at child . _Just . nre_root .= root
+    at child . _Just . nre_root ?= root
     reRootChildren root child
 
 reParent :: Maybe RootParent -> ReParent NgramsTerm
@@ -546,7 +546,7 @@ reParent rp child = do
   at child . _Just %= ( (nre_parent .~ (_rp_parent <$> rp))
                       . (nre_root   .~ (_rp_root   <$> rp))
                       )
-  reRootChildren (rp ^? _Just . rp_root) child
+  reRootChildren (fromMaybe child (rp ^? _Just . rp_root)) child
 
 reParentAddRem :: RootParent -> NgramsTerm -> ReParent AddRem
 reParentAddRem rp child p =
