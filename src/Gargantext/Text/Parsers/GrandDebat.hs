@@ -20,8 +20,10 @@ module Gargantext.Text.Parsers.GrandDebat
   where
 
 import GHC.IO (FilePath)
-import Data.Aeson (ToJSON, FromJSON, decode)
-import Data.Maybe (Maybe(), maybe)
+import Data.Aeson (ToJSON, FromJSON)
+import Data.JsonStream.Parser (eitherDecode)
+import Data.Either (either)
+import Data.Maybe (Maybe())
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.ByteString.Lazy as DBL
@@ -76,13 +78,13 @@ instance ToHyperdataDocument GrandDebatReference
                                    responses') =
       HyperdataDocument (Just "GrandDebat") id'
                          Nothing Nothing Nothing Nothing
-                         title' authorType' authorZipCode' authorZipCode'
+                         title' authorType' authorType' authorZipCode'
                         (toAbstract <$> responses')
                          publishedAt'
                          Nothing Nothing Nothing Nothing Nothing Nothing
                         (Just $ Text.pack $ show FR)
         where
-          toAbstract = (Text.intercalate " . ") . (map toSentence)
+          toAbstract = (Text.intercalate " . ") . ((filter (/= "")) . (map toSentence))
           toSentence (GrandDebatResponse _id _qtitle _qvalue r) = case r of
             Nothing -> ""
             Just r' -> case Text.length r' > 10 of
@@ -95,4 +97,5 @@ class ReadFile a
 
 instance ReadFile [GrandDebatReference]
   where
-    readFile fp = maybe [] identity <$> decode <$> DBL.readFile fp
+    --readFile fp = maybe [] identity <$> decode <$> DBL.readFile fp
+    readFile fp = either (panic . Text.pack) identity <$> eitherDecode <$> DBL.readFile fp

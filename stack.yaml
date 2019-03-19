@@ -35,6 +35,7 @@ extra-deps:
 - probable-0.1.3
 - rake-0.0.1
 - rdf4h-3.1.1
+- json-stream-0.4.2.4  # Text.Parsers (JSON)
 - serialise-0.2.0.0
 - servant-flatten-0.2
 - servant-multipart-0.11.2

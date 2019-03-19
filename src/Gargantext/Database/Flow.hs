@@ -80,6 +80,12 @@ flowCorpus :: FlowCmdM env ServantErr m
            => Username -> CorpusName -> TermType Lang -> FileFormat -> FilePath -> m CorpusId
 flowCorpus u cn la ff fp = liftIO (parseDocs ff fp) >>= \docs -> flowCorpus' u cn la docs
 
+--{-
+flowCorpus'' :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
+           => Username -> CorpusName -> TermType Lang -> [[a]] -> m [CorpusId]
+flowCorpus'' u cn la docs = mapM (\doc -> flowCorpus' u cn la doc) docs
+--}
+
 flowCorpus' :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
            => Username -> CorpusName -> TermType Lang -> [a] -> m CorpusId
 flowCorpus' u cn la docs = do
