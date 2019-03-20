@@ -58,7 +58,7 @@ import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), N
 import Gargantext.Database.Utils (Cmd, CmdM)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
-import Gargantext.Text.List
+--import Gargantext.Text.List
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Text.Terms (extractTerms)
@@ -99,33 +99,29 @@ flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
 flowCorpusSearchInDatabase u q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser u q [ids]
+  flowCorpusUser u q ids
 
 
-flowCorpusMaster :: FlowCmdM env ServantErr m => TermType Lang -> [HyperdataDocument] -> m [[NodeId]]
-flowCorpusMaster la hd = do
-  -- Master Flow
-  let docs = map addUniqIdsDoc hd
-  -- TODO uniformize language of corpus
-  ids  <- mapM (insertMasterDocs la) $ splitEvery 10000 docs
-  pure ids
+-- TODO uniformize language of corpus
+flowCorpusMaster :: FlowCmdM env ServantErr m => TermType Lang -> [HyperdataDocument] -> m [NodeId]
+flowCorpusMaster la hd = (insertMasterDocs la) $ (map addUniqIdsDoc) hd
 
 
-flowCorpusUser :: FlowCmdM env ServantErr m => Username -> CorpusName -> [[NodeId]] -> m CorpusId
+flowCorpusUser :: FlowCmdM env ServantErr m => Username -> CorpusName -> [NodeId] -> m CorpusId
 flowCorpusUser userName corpusName ids = do
   -- User Flow
-  (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName
+  (_userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName
   -- TODO: check if present already, ignore
-  _ <- Doc.add userCorpusId $ concat ids
+  _ <- Doc.add userCorpusId ids
 
   -- User List Flow
-  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
-  ngs         <- buildNgramsLists userCorpusId masterCorpusId
-  userListId  <- flowList userId userCorpusId ngs
-  printDebug "userListId" userListId
+  --(_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
+  --ngs         <- buildNgramsLists userCorpusId masterCorpusId
+  --userListId  <- flowList userId userCorpusId ngs
+  --printDebug "userListId" userListId
 
   -- User Graph Flow
-  _ <- mkGraph     userCorpusId userId
+  --_ <- mkGraph     userCorpusId userId
 
   -- User Dashboard Flow
   -- _ <- mkDashboard userCorpusId userId

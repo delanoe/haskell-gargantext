@@ -26,7 +26,7 @@ import Gargantext.Database.Flow (FlowCmdM, flowCorpus'')
 import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId)
---import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
+import Gargantext.Database.Schema.User (insertUsersDemo)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.API.Node () -- instances
@@ -40,15 +40,16 @@ main :: IO ()
 main = do
   [user, iniPath, name, corpusPath] <- getArgs
 
-  {-let createUsers :: Cmd ServantErr Int64
-      createUsers = insertUsers [gargantuaUser,simpleUser]
-
+  --{-
+  let createUsers :: Cmd ServantErr Int64
+      createUsers = insertUsersDemo
+  {-
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
       cmdCorpus = flowCorpus (cs user) (cs name) (Mono EN) CsvHalFormat corpusPath
-  -}
+  --}
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m [CorpusId]
       cmdCorpus = do
-        docs <- liftIO (splitEvery 1000 <$> take 5000 <$> readFile corpusPath :: IO [[GrandDebatReference ]])
+        docs <- liftIO (splitEvery 3000 <$> readFile corpusPath :: IO [[GrandDebatReference ]])
         ids <- flowCorpus'' (Text.pack user) (Text.pack name) (Mono FR) docs
         pure ids
 
@@ -56,6 +57,7 @@ main = do
 
   env <- newDevEnvWith iniPath
   -- Better if we keep only one call to runCmdDev.
+  _ <- runCmdDev env createUsers
   _ <- runCmdDev env cmdCorpus
   pure ()
 
