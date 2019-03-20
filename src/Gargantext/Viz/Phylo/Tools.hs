@@ -116,9 +116,9 @@ filterNestedSets h l l'
   | otherwise              = filterNestedSets (head l) (tail l) (h : l')
 
 
--- | To filter some PhyloEdges with a given threshold
-filterPhyloEdges :: Double -> PhyloEdges -> PhyloEdges
-filterPhyloEdges thr edges = filter (\((s,t),w) -> w > thr) edges 
+-- | To filter some GroupEdges with a given threshold
+filterGroupEdges :: Double -> GroupEdges -> GroupEdges
+filterGroupEdges thr edges = filter (\((s,t),w) -> w > thr) edges 
 
 
 -- | To get the foundations of a Phylo
@@ -131,6 +131,11 @@ getIdxInFoundations :: Ngrams -> Phylo -> Int
 getIdxInFoundations n p = case (elemIndex n (getFoundations p)) of
     Nothing  -> panic "[ERR][Viz.Phylo.Tools.getFoundationIdx] Ngrams not in Foundations"
     Just idx -> idx
+
+
+-- | To maybe get the PhyloBranchId of a PhyloGroup
+getGroupBranchId :: PhyloGroup -> Maybe PhyloBranchId
+getGroupBranchId = _phylo_groupBranchId 
 
 
 -- | To get the PhyloGroups Childs of a PhyloGroup
@@ -156,6 +161,11 @@ getGroupLevel = snd . fst . getGroupId
 -- | To get the PhyloGroups Level Childs Ids of a PhyloGroup
 getGroupLevelChildsId :: PhyloGroup -> [PhyloGroupId]
 getGroupLevelChildsId g = map fst $ _phylo_groupLevelChilds g
+
+
+-- | To get the PhyloGroups Level Parents Ids of a PhyloGroup
+getGroupLevelParentsId :: PhyloGroup -> [PhyloGroupId]
+getGroupLevelParentsId g = map fst $ _phylo_groupLevelParents g
 
 
 -- | To get the Ngrams of a PhyloGroup
@@ -234,8 +244,8 @@ getLastLevel p = (last . sort)
                       . phylo_periodLevels ) p
 
 
--- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of PhyloEdges 
-getNeighbours :: Bool -> PhyloGroup -> PhyloEdges -> [PhyloGroup]
+-- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of GroupEdges 
+getNeighbours :: Bool -> PhyloGroup -> GroupEdges -> [PhyloGroup]
 getNeighbours directed g e = case directed of 
   True  -> map (\((s,t),w) -> t) 
              $ filter (\((s,t),w) -> s == g) e 

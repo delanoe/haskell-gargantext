@@ -46,14 +46,14 @@ import Gargantext.Prelude
 data PhyloExport =
      PhyloExport { _phyloExport_param :: PhyloParam
                  , _phyloExport_data :: Phylo
-     } deriving (Generic)
+     } deriving (Generic, Show)
 
 -- | .phylo parameters
 data PhyloParam = 
      PhyloParam { _phyloParam_version     :: Text -- Double ?
                 , _phyloParam_software    :: Software
                 , _phyloParam_params      :: Hash
-     } deriving (Generic)
+     } deriving (Generic, Show)
 
 type Hash = Text
 
@@ -62,7 +62,7 @@ type Hash = Text
 data Software =
      Software { _software_name    :: Text
               , _software_version :: Text
-     } deriving (Generic)
+     } deriving (Generic, Show)
 
 ------------------------------------------------------------------------
 
@@ -172,12 +172,12 @@ data Document = Document
 type Cluster = [PhyloGroup]
 
 
--- | A List of PhyloGroup in a PhyloGraph
-type PhyloNodes = [PhyloGroup]
--- | A List of weighted links between some PhyloGroups in a PhyloGraph
-type PhyloEdges = [((PhyloGroup,PhyloGroup),Weight)]
+-- | A List of PhyloGroup in a Graph
+type GroupNodes = [PhyloGroup]
+-- | A List of weighted links between some PhyloGroups in a Graph
+type GroupEdges = [((PhyloGroup,PhyloGroup),Weight)]
 -- | The association as a Graph between a list of Nodes and a list of Edges
-type PhyloGraph = (PhyloNodes,PhyloEdges)
+type GroupGraph = (GroupNodes,GroupEdges)
 
 
 data PhyloError = LevelDoesNotExist
@@ -192,32 +192,103 @@ data Clustering  = Louvain | RelatedComponents
 
 data PairTo = Childs | Parents 
 
--- | Views type
+------------------------------------------------------------------------
+-- | To export a Phylo | --
 
-data EdgeType = Directed | UnDirected
 
-data ViewGraph = ViewGraph
-  { _view_graphParam    :: PhyloParam
-  , _view_graphLabel    :: Text
-  , _view_graphEdgeType :: EdgeType
-  , _view_graphBranches :: [(PhyloBranchId,Text)]
-  , _view_graphNodes    :: [ViewNode]
-  , _view_graphEdges    :: [ViewEdge]
-  } 
+-- | PhyloView | --
 
-data ViewEdge = ViewEdge
-  { _view_edgeSource :: PhyloGroupId
-  , _view_edgeTarget :: PhyloGroupId
-  , _view_edgeWeight :: Weight
+
+data EdgeType = Ascendant | Descendant | Complete deriving (Show)
+
+data PhyloView = PhyloView
+  { _phylo_viewParam       :: PhyloParam
+  , _phylo_viewLabel       :: Text
+  , _phylo_viewDescription :: Text
+  , _phylo_viewEdgeType    :: EdgeType
+  , _phylo_viewMeta        :: Map Text Double
+  , _phylo_viewBranches    :: [PhyloBranch]
+  , _phylo_viewNodes       :: [PhyloNode]
+  , _phylo_viewEdges       :: [PhyloEdge]
+  } deriving (Show)
+
+
+data PhyloBranch = PhyloBranch 
+  { _phylo_branchId    :: PhyloBranchId
+  , _phylo_branchLabel :: Text
+  , _phylo_branchMeta  :: Map Text Double
+  } deriving (Show)  
+
+
+data PhyloEdge = PhyloEdge
+  { _phylo_edgeSource :: PhyloGroupId
+  , _phylo_edgeTarget :: PhyloGroupId
+  , _phylo_edgeWeight :: Weight
+  } deriving (Show)
+
+
+data PhyloNode = PhyloNode
+  { _phylo_nodeId        :: PhyloGroupId
+  , _phylo_nodeLabel     :: Text
+  , _phylo_nodeNgramsIdx :: [Int] 
+  , _phylo_nodeNgrams    :: Maybe [Ngrams]
+  , _phylo_nodeMeta      :: Map Text Double
+  , _phylo_nodeParent    :: Maybe PhyloGroupId 
+  } deriving (Show)
+
+-- | PhyloQuery | --
+
+
+data Filter = LonelyBranchFilter 
+data Metric = BranchAge
+data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics
+
+
+data Sort   = ByBranchAge
+data Order  = Asc | Desc 
+
+
+data QueryParam  = Qp1 Int | Qp2 Text | Qp3 Bool deriving (Eq, Ord)
+data DisplayMode = Flat | Nested 
+
+
+-- | A query filter seen as : prefix && ((filter params)(clause)) 
+data QueryFilter = QueryFilter
+  { _query_filter :: Filter
+  , _query_params :: [QueryParam]
+  , _query_clause :: (QueryParam -> Bool)
   }
 
-data ViewNode = ViewNode
-  { _view_nodeId     :: PhyloGroupId
-  , _view_nodeLabel  :: Text
-  , _view_nodeNgrams :: [Ngrams]
-  , _view_nodeMeta   :: Map Text Double
-  , _view_nodeParent :: PhyloGroupId 
-  }  
+
+-- | A PhyloQuery is the structured representation of a user query to be applied to a Phylo
+data PhyloQuery = PhyloQuery 
+  { _query_lvl    :: Level
+
+  -- Does the PhyloGraph contain ascendant, descendant or both (filiation) edges ?
+  , _query_edgeType :: EdgeType
+
+  -- Does the PhyloGraph contain some levelChilds ? How deep must it go ?
+  , _query_childs      :: Bool
+  , _query_childsDepth :: Level
+
+  -- Ordered lists of filters, taggers and metrics to be applied to the PhyloGraph
+  -- Firstly the metrics, then the filters and the taggers   
+  , _query_metrics :: [Metric]
+  , _query_filters :: [QueryFilter]
+  , _query_taggers :: [Tagger]
+
+  -- An asc or desc sort to apply to the PhyloGraph
+  , _query_sort :: Maybe (Sort,Order)
+
+  -- A display mode to apply to the PhyloGraph, ie: [Node[Node,Edge],Edge] or [[Node,Node],[Edge,Edge]] 
+  , _query_display :: DisplayMode
+  , _query_verbose :: Bool
+  }
+
+
+------------------------------------------------------------------------
+-- | Lenses and Json | --
+
 
 -- | Lenses
 makeLenses ''Phylo
@@ -227,10 +298,12 @@ makeLenses ''Software
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
+makeLenses ''PhyloView
+makeLenses ''PhyloQuery
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
-$(deriveJSON (unPrefix "_phylo_period" ) 'PhyloPeriod  )
+$(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
 -- 

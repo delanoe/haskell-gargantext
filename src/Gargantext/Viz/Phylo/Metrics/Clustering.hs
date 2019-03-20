@@ -38,7 +38,7 @@ import qualified Data.Set    as Set
 -- (nodes,edges) = the initial PhyloGraph minus the current PhyloGroup
 -- next = the next PhyloGroups to be added in the cluster  
 -- memo = the memory of the allready created clusters
-relatedComp :: Int -> PhyloGroup -> PhyloGraph -> [PhyloGroup] -> [[PhyloGroup]] -> [[PhyloGroup]]
+relatedComp :: Int -> PhyloGroup -> GroupGraph -> [PhyloGroup] -> [[PhyloGroup]] -> [[PhyloGroup]]
 relatedComp idx curr (nodes,edges) next memo
   | null nodes' && null next' = memo'
   | (not . null) next'        = relatedComp idx (head next') (nodes',edges) (tail next') memo'
@@ -59,7 +59,7 @@ relatedComp idx curr (nodes,edges) next memo
     --------------------------------------
 
 
-louvain :: (PhyloNodes,PhyloEdges) -> IO [[PhyloGroup]]
+louvain :: (GroupNodes,GroupEdges) -> IO [[PhyloGroup]]
 louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
                       <$> groupBy (\a b -> (l_community_id a) == (l_community_id b))
                       <$> (cLouvain $ mapKeys (\(x,y) -> (idx x, idx y)) $ fromList edges)

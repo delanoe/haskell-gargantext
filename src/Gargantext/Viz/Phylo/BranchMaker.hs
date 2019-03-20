@@ -36,7 +36,7 @@ import qualified Data.Set    as Set
 
 
 -- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
-graphToBranches :: Level -> PhyloGraph -> Phylo -> [(Int,PhyloGroupId)]
+graphToBranches :: Level -> GroupGraph -> Phylo -> [(Int,PhyloGroupId)]
 graphToBranches lvl (nodes,edges) p = concat 
                                     $ map (\(idx,gs) -> map (\g -> (idx,getGroupId g)) gs)
                                     $ zip [1..]
@@ -44,10 +44,10 @@ graphToBranches lvl (nodes,edges) p = concat
 
 
 -- | To transform a list of PhyloGroups into a PhyloGraph by using a given Proximity mesure
-groupsToGraph :: (Proximity,[Double]) -> [PhyloGroup] -> Phylo -> PhyloGraph
+groupsToGraph :: (Proximity,[Double]) -> [PhyloGroup] -> Phylo -> GroupGraph
 groupsToGraph (prox,param) groups p = (groups,edges)
   where 
-    edges :: PhyloEdges
+    edges :: GroupEdges
     edges = case prox of  
       FromPairs          -> (nub . concat) $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
                                                         ++
@@ -71,6 +71,6 @@ setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst . head) $ fi
     bs :: [(Int,PhyloGroupId)]
     bs = graphToBranches lvl graph p
     --------------------------------------
-    graph :: PhyloGraph
+    graph :: GroupGraph
     graph = groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p) p
     --------------------------------------
