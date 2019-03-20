@@ -21,8 +21,8 @@ module Gargantext.Text.Parsers.GrandDebat
 
 import GHC.IO (FilePath)
 import Data.Aeson (ToJSON, FromJSON)
-import Data.JsonStream.Parser (eitherDecode)
-import Data.Either (either)
+import qualified Data.JsonStream.Parser as P
+--import Data.Either (either)
 import Data.Maybe (Maybe())
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -98,4 +98,5 @@ class ReadFile a
 instance ReadFile [GrandDebatReference]
   where
     --readFile fp = maybe [] identity <$> decode <$> DBL.readFile fp
-    readFile fp = either (panic . Text.pack) identity <$> eitherDecode <$> DBL.readFile fp
+    --readFile fp = either (panic . Text.pack) identity <$> P.eitherDecode <$> DBL.readFile fp
+    readFile fp = P.parseLazyByteString (P.arrayOf P.value) <$> DBL.readFile fp
