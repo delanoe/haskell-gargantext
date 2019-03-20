@@ -59,12 +59,12 @@ import Gargantext.Database.Utils (Cmd, CmdM)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
 --import Gargantext.Text.List
-import Gargantext.Text.Parsers (parseDocs, FileFormat)
+--import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Servant (ServantErr)
-import System.FilePath (FilePath)
+--import System.FilePath (FilePath)
 import qualified Data.Map as DM
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
@@ -76,21 +76,21 @@ type FlowCmdM env err m =
   , HasRepoVar env
   )
 
+{-
 flowCorpus :: FlowCmdM env ServantErr m
            => Username -> CorpusName -> TermType Lang -> FileFormat -> FilePath -> m CorpusId
-flowCorpus u cn la ff fp = liftIO (parseDocs ff fp) >>= \docs -> flowCorpus' u cn la docs
+flowCorpus u cn la ff fp = undefined -- liftIO (parseDocs ff fp) >>= \docs -> flowCorpus' u cn la docs
 
---{-
-flowCorpus'' :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
+flowCorpus''' :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
            => Username -> CorpusName -> TermType Lang -> [[a]] -> m [CorpusId]
-flowCorpus'' u cn la docs = mapM (\doc -> flowCorpus' u cn la doc) docs
+flowCorpus''' u cn la docs = mapM (\doc -> flowCorpus' u cn la doc) docs
 --}
 
-flowCorpus' :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
-           => Username -> CorpusName -> TermType Lang -> [a] -> m CorpusId
-flowCorpus' u cn la docs = do
-  ids <- flowCorpusMaster la (map toHyperdataDocument docs)
-  flowCorpusUser u cn ids
+flowCorpus :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
+           => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
+flowCorpus u cn la docs = do
+  ids <- mapM (\doc -> flowCorpusMaster la (map toHyperdataDocument doc)) docs
+  flowCorpusUser u cn $ concat ids
 
 
 -- TODO query with complex query

@@ -22,7 +22,7 @@ module Main where
 import Control.Exception (finally)
 import Servant (ServantErr)
 import Gargantext.Prelude
-import Gargantext.Database.Flow (FlowCmdM, flowCorpus'')
+import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId)
@@ -47,10 +47,10 @@ main = do
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
       cmdCorpus = flowCorpus (cs user) (cs name) (Mono EN) CsvHalFormat corpusPath
   --}
-  let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m [CorpusId]
+  let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
       cmdCorpus = do
         docs <- liftIO (splitEvery 500 <$> readFile corpusPath :: IO [[GrandDebatReference ]])
-        ids <- flowCorpus'' (Text.pack user) (Text.pack name) (Mono FR) docs
+        ids <- flowCorpus (Text.pack user) (Text.pack name) (Mono FR) docs
         pure ids
 
      -- cmd = {-createUsers >>-} cmdCorpus
