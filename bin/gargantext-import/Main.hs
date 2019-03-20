@@ -49,9 +49,12 @@ main = do
   --}
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
       cmdCorpus = do
-        docs <- liftIO (splitEvery 500 <$> readFile corpusPath :: IO [[GrandDebatReference ]])
-        ids <- flowCorpus (Text.pack user) (Text.pack name) (Mono FR) docs
-        pure ids
+        docs <- liftIO ( splitEvery 500
+                       <$> take 10000
+                       <$> readFile corpusPath
+                       :: IO [[GrandDebatReference ]]
+                       )
+        flowCorpus (Text.pack user) (Text.pack name) (Multi FR) docs
 
      -- cmd = {-createUsers >>-} cmdCorpus
 
@@ -62,5 +65,4 @@ main = do
         else pure 1
   _ <- runCmdDev env cmdCorpus
   pure ()
-
 

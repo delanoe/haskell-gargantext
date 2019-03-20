@@ -97,6 +97,7 @@ class ReadFile a
 
 instance ReadFile [GrandDebatReference]
   where
+    -- | read json: 3 version below are working but with increased optimization
     --readFile fp = maybe [] identity <$> decode <$> DBL.readFile fp
     --readFile fp = either (panic . Text.pack) identity <$> P.eitherDecode <$> DBL.readFile fp
     readFile fp = P.parseLazyByteString (P.arrayOf P.value) <$> DBL.readFile fp
