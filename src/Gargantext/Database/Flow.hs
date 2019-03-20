@@ -104,7 +104,7 @@ flowCorpusSearchInDatabase u q = do
 
 -- TODO uniformize language of corpus
 flowCorpusMaster :: FlowCmdM env ServantErr m => TermType Lang -> [HyperdataDocument] -> m [NodeId]
-flowCorpusMaster la hd = (insertMasterDocs la) $ (map addUniqIdsDoc) hd
+flowCorpusMaster la hd = insertMasterDocs la hd
 
 
 flowCorpusUser :: FlowCmdM env ServantErr m => Username -> CorpusName -> [NodeId] -> m CorpusId
@@ -134,8 +134,8 @@ flowCorpusUser userName corpusName ids = do
 insertMasterDocs :: FlowCmdM env ServantErr m
                 => TermType Lang -> [HyperdataDocument] -> m [DocId]
 insertMasterDocs lang hs  =  do
-
-  let hyperdataDocuments' = map (\h -> ToDbDocument h) hs
+  let hs' = map addUniqIdsDoc hs
+  let hyperdataDocuments' = map (\h -> ToDbDocument h) hs'
 
   (masterUserId, _, masterCorpusId) <- getOrMkRootWithCorpus userMaster corpusMasterName
   ids <- insertDocuments masterUserId masterCorpusId NodeDocument hyperdataDocuments'

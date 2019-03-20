@@ -38,7 +38,7 @@ import Control.Monad.IO.Class (liftIO)
 
 main :: IO ()
 main = do
-  [user, iniPath, name, corpusPath] <- getArgs
+  [user, iniPath, name, corpusPath, users] <- getArgs
 
   --{-
   let createUsers :: Cmd ServantErr Int64
@@ -49,7 +49,7 @@ main = do
   --}
   let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m [CorpusId]
       cmdCorpus = do
-        docs <- liftIO (splitEvery 3000 <$> readFile corpusPath :: IO [[GrandDebatReference ]])
+        docs <- liftIO (splitEvery 500 <$> readFile corpusPath :: IO [[GrandDebatReference ]])
         ids <- flowCorpus'' (Text.pack user) (Text.pack name) (Mono FR) docs
         pure ids
 
@@ -57,7 +57,9 @@ main = do
 
   env <- newDevEnvWith iniPath
   -- Better if we keep only one call to runCmdDev.
-  _ <- runCmdDev env createUsers
+  _ <- if users == "0"
+        then runCmdDev env createUsers
+        else pure 1
   _ <- runCmdDev env cmdCorpus
   pure ()
 
