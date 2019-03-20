@@ -19,6 +19,7 @@ Import a corpus binary.
 
 module Main where
 
+import Prelude (read)
 import Control.Exception (finally)
 import Servant (ServantErr)
 import Gargantext.Prelude
@@ -38,31 +39,38 @@ import Control.Monad.IO.Class (liftIO)
 
 main :: IO ()
 main = do
-  [user, iniPath, name, corpusPath, users] <- getArgs
+  [userCreate, user, name, iniPath, limit, corpusPath] <- getArgs
 
   --{-
   let createUsers :: Cmd ServantErr Int64
       createUsers = insertUsersDemo
   {-
-  let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmdCorpus = flowCorpus (cs user) (cs name) (Mono EN) CsvHalFormat corpusPath
+  let csvCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
+      csvCorpus = flowCorpus (cs user) (cs name) (Multi EN) CsvHalFormat corpusPath
   --}
-  let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmdCorpus = do
+  let debatCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
+      debatCorpus = do
         docs <- liftIO ( splitEvery 500
-                       <$> take 10000
+                       <$> take (read limit :: Int)
                        <$> readFile corpusPath
                        :: IO [[GrandDebatReference ]]
                        )
         flowCorpus (Text.pack user) (Text.pack name) (Multi FR) docs
 
-     -- cmd = {-createUsers >>-} cmdCorpus
 
   env <- newDevEnvWith iniPath
   -- Better if we keep only one call to runCmdDev.
-  _ <- if users == "0"
+  _ <- if userCreate == "true"
         then runCmdDev env createUsers
-        else pure 1
-  _ <- runCmdDev env cmdCorpus
+        else pure 0 --(cs "false")
+  
+  _ <- runCmdDev env debatCorpus
+  {-
+  _ <- if corpusType == "csv"
+          then runCmdDev env csvCorpus
+          else if corpusType == "debat"
+            then runCmdDev env debatCorpus
+            else panic "corpusType unknown: try \"csv\" or \"debat\""
+  -}
   pure ()
 

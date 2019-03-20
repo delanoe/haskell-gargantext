@@ -171,8 +171,6 @@ queryNgramsOnlyByNodeUser = [sql|
       GROUP BY nng.node_id, ng.terms
   |]
 
-
-
 ------------------------------------------------------------------------
 -- | TODO filter by language, database, any social field
 getNodesByNgramsMaster :: UserCorpusId -> MasterCorpusId -> Cmd err (Map Text (Set NodeId))
@@ -183,10 +181,10 @@ selectNgramsByNodeMaster :: UserCorpusId -> MasterCorpusId -> Cmd err [(NodeId, 
 selectNgramsByNodeMaster ucId mcId = runPGSQuery
                                queryNgramsByNodeMaster
                                  ( ucId
-                                 , nodeTypeId NodeDocument
+                                 , nodeTypeId   NodeDocument
                                  , ngramsTypeId NgramsTerms
                                  , mcId
-                                 , nodeTypeId NodeDocument
+                                 , nodeTypeId   NodeDocument
                                  , ngramsTypeId NgramsTerms
                                  )
 
