@@ -44,13 +44,13 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- a first grouping option to user and get some
 -- enriched data to better learn and improve that algo
 ngramsGroup :: Lang -> Int -> Int -> Text -> Text
-ngramsGroup l m n = Text.intercalate " "
-                . map (stem l)
-                . take n
-                . List.sort
-                . (List.filter (\t -> Text.length t > m))
-                . Text.splitOn " "
-                . Text.replace "-" " "
+ngramsGroup l _m _n = Text.intercalate " "
+                  . map (stem l)
+                  -- . take n
+                  . List.sort
+                  -- . (List.filter (\t -> Text.length t > m))
+                  . Text.splitOn " "
+                  . Text.replace "-" " "
 
 
 sortTficf :: (Map Text (Double, Set Text))

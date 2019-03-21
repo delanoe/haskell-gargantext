@@ -26,6 +26,7 @@ import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGro
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
+--import Gargantext.Text.Terms (TermType(..))
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -33,10 +34,10 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
-buildNgramsLists :: UserCorpusId -> MasterCorpusId
+buildNgramsLists :: Lang -> Int -> Int -> UserCorpusId -> MasterCorpusId
                  -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsLists uCid mCid = do
-  ngTerms     <- buildNgramsTermsList uCid mCid
+buildNgramsLists l n m uCid mCid = do
+  ngTerms     <- buildNgramsTermsList l n m uCid mCid
   othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
@@ -53,13 +54,14 @@ buildNgramsOthersList uCid groupIt nt = do
                       ]
 
 -- TODO remove hard coded parameters
-buildNgramsTermsList :: UserCorpusId -> MasterCorpusId
+buildNgramsTermsList :: Lang -> Int -> Int -> UserCorpusId -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsTermsList uCid mCid = do
-  candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup EN 4 2)
+buildNgramsTermsList l n m uCid mCid = do
+  candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup l n m)
   --printDebug "candidate" (length candidates)
 
-  let termList = toTermList (isStopTerm . fst) candidates
+  --let termList = toTermList (isStopTerm . fst) candidates
+  let termList = toTermList ((\_ -> False) . fst) candidates
   --printDebug "termlist" (length termList)
 
   let ngs = List.concat $ map toNgramsElement termList
@@ -98,14 +100,14 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
       ys = take b $ drop a ns
       zs = drop b $ drop a ns
 
-      a = 50
-      b = 1000
+      a = 10
+      b = 400
 
 isStopTerm :: Text -> Bool
 isStopTerm x = Text.length x < 3
              || not (all Char.isAlpha (Text.unpack x'))
                 where
-                  x' = foldl (\t -> Text.replace t "")
+                  x' = foldl (\t -> Text.replace t "a")
                               x
                              ["-"," ","/","(",")"]
 

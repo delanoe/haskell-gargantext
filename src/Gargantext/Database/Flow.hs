@@ -64,8 +64,9 @@ import Gargantext.Text.List (buildNgramsLists)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
+import qualified Gargantext.Text.Parsers.GrandDebat as GD
 import Servant (ServantErr)
---import System.FilePath (FilePath)
+import System.FilePath (FilePath)
 import qualified Data.Map as DM
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
@@ -76,6 +77,18 @@ type FlowCmdM env err m =
   , HasNodeError err
   , HasRepoVar env
   )
+
+
+flowCorpusDebat :: FlowCmdM env ServantErr m
+            => Username -> CorpusName -> Int -> FilePath -> m CorpusId
+flowCorpusDebat u n l fp = do
+  docs <- liftIO ( splitEvery 500
+                 <$> take l
+                 <$> GD.readFile fp
+                 :: IO [[GD.GrandDebatReference ]]
+                 )
+  flowCorpus u n (Multi FR) docs
+
 
 {-
 flowCorpus :: FlowCmdM env ServantErr m
@@ -91,7 +104,7 @@ flowCorpus :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
            => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
 flowCorpus u cn la docs = do
   ids <- mapM ((insertMasterDocs la) . (map toHyperdataDocument)) docs
-  flowCorpusUser u cn (concat ids)
+  flowCorpusUser FR u cn (concat ids)
 
 
 -- TODO query with complex query
@@ -100,12 +113,12 @@ flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
 flowCorpusSearchInDatabase u q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser u q ids
+  flowCorpusUser FR u q ids
 
 
 flowCorpusUser :: FlowCmdM env ServantErr m
-               => Username -> CorpusName -> [NodeId] -> m CorpusId
-flowCorpusUser userName corpusName ids = do
+               => Lang -> Username -> CorpusName -> [NodeId] -> m CorpusId
+flowCorpusUser l userName corpusName ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName
   -- TODO: check if present already, ignore
@@ -113,12 +126,12 @@ flowCorpusUser userName corpusName ids = do
 
   -- User List Flow
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
-  ngs         <- buildNgramsLists userCorpusId masterCorpusId
+  ngs         <- buildNgramsLists l 2 3 userCorpusId masterCorpusId
   userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
 
   -- User Graph Flow
-  --_ <- mkGraph     userCorpusId userId
+  _ <- mkGraph     userCorpusId userId
 
   -- User Dashboard Flow
   -- _ <- mkDashboard userCorpusId userId
