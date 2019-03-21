@@ -33,15 +33,15 @@ import Servant (ServantErr)
 import qualified Data.Map as Map
 
 getMetrics' :: FlowCmdM env ServantErr m
-            => CorpusId -> Maybe ListId -> Maybe TabType -> Maybe Limit
+            => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
-getMetrics' cId maybeListId maybeTabType maybeLimit = do
+getMetrics' cId maybeListId tabType maybeLimit = do
 
   lId <- case maybeListId of
     Nothing   -> defaultList cId
     Just lId' -> pure lId'
 
-  let ngramsType = ngramsTypeFromTabType maybeTabType
+  let ngramsType = ngramsTypeFromTabType tabType
 
   ngs'    <- mapTermListRoot [lId] ngramsType
   let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs')

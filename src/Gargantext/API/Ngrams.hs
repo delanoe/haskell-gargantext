@@ -602,10 +602,13 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 
+-- TODO: find a better place for this Gargantext.API.{Common|Prelude|Core} ?
+type QueryParamR = QueryParam' '[Required, Strict]
+
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
-                      :> QueryParam  "ngramsType"  TabType
-                      :> QueryParams "list"        ListId
-                      :> QueryParam  "limit"       Limit
+                      :> QueryParamR "ngramsType"  TabType
+                      :> QueryParamR "list"        ListId
+                      :> QueryParamR "limit"       Limit
                       :> QueryParam  "offset"      Offset
                       :> QueryParam  "listType"    ListType
                       :> QueryParam  "minTermSize" Int
@@ -614,8 +617,8 @@ type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> Get    '[JSON] (Versioned NgramsTable)
 
 type TableNgramsApi = Summary " Table Ngrams API Change"
-                      :> QueryParam "ngramsType"   TabType
-                      :> QueryParam' '[Required, Strict] "list" ListId
+                      :> QueryParamR "ngramsType" TabType
+                      :> QueryParamR "list"       ListId
                       :> ReqBody '[JSON] (Versioned NgramsTablePatch)
                       :> Put     '[JSON] (Versioned NgramsTablePatch)
 
@@ -658,17 +661,15 @@ mkChildrenGroups addOrRem nt patches =
   ]
 -}
 
-ngramsTypeFromTabType :: Maybe TabType -> NgramsType
-ngramsTypeFromTabType maybeTabType =
+ngramsTypeFromTabType :: TabType -> NgramsType
+ngramsTypeFromTabType tabType =
   let lieu = "Garg.API.Ngrams: " :: Text in
-    case maybeTabType of
-          Nothing  -> panic (lieu <> "Indicate the Table")
-          Just tab -> case tab of
-              Sources    -> Ngrams.Sources
-              Authors    -> Ngrams.Authors
-              Institutes -> Ngrams.Institutes
-              Terms      -> Ngrams.NgramsTerms
-              _          -> panic $ lieu <> "No Ngrams for this tab"
+    case tabType of
+      Sources    -> Ngrams.Sources
+      Authors    -> Ngrams.Authors
+      Institutes -> Ngrams.Institutes
+      Terms      -> Ngrams.NgramsTerms
+      _          -> panic $ lieu <> "No Ngrams for this tab"
 
 ------------------------------------------------------------------------
 data Repo s p = Repo
@@ -827,12 +828,12 @@ putListNgrams listId ngramsType nes = do
 -- client.
 tableNgramsPatch :: (HasNgramError err, HasInvalidError err,
                      RepoCmdM env err m)
-                 => CorpusId -> Maybe TabType -> ListId
+                 => CorpusId -> TabType -> ListId
                  -> Versioned NgramsTablePatch
                  -> m (Versioned NgramsTablePatch)
-tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table)
+tableNgramsPatch _corpusId tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
-      let ngramsType        = ngramsTypeFromTabType maybeTabType
+      let ngramsType        = ngramsTypeFromTabType tabType
 
       var <- view repoVar
       r <- liftIO $ readMVar var
@@ -844,7 +845,7 @@ tableNgramsPatch _corpusId maybeTabType listId (Versioned p_version p_table)
       pure (Versioned (r ^. r_version) q_table)
 
   | otherwise         = do
-      let ngramsType        = ngramsTypeFromTabType maybeTabType
+      let ngramsType        = ngramsTypeFromTabType tabType
           (p0, p0_validity) = PM.singleton listId p_table
           (p, p_validity)   = PM.singleton ngramsType p0
 
@@ -893,20 +894,18 @@ type MaxSize = Int
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
 getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-               => CorpusId -> Maybe TabType
-               -> [ListId] -> Maybe Limit -> Maybe Offset
+               => CorpusId -> TabType
+               -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
                -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
-getTableNgrams cId maybeTabType listIds mlimit moffset
+getTableNgrams cId tabType listId limit_ moffset
                mlistType mminSize mmaxSize msearchQuery = do
-  let ngramsType = ngramsTypeFromTabType maybeTabType
+  let ngramsType = ngramsTypeFromTabType tabType
 
   let
-    defaultLimit = 10 -- TODO
-    limit_  = maybe defaultLimit identity mlimit
-    offset_ = maybe 0 identity moffset
+    offset_  = maybe 0 identity moffset
     listType = maybe (const True) (==) mlistType
     minSize  = maybe (const True) (<=) mminSize
     maxSize  = maybe (const True) (>=) mmaxSize
@@ -933,7 +932,6 @@ getTableNgrams cId maybeTabType listIds mlimit moffset
   -- lists <- catMaybes <$> listsWith userMaster
   -- trace (show lists) $
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
-  let listId = fromMaybe (panic "getTableNgrams: expecting a single ListId") (head listIds)
 
   table <- getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
   occurrences <- getOccByNgramsOnly cId ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)

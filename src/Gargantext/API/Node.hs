@@ -41,7 +41,7 @@ import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo, QueryParamR)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.Core.Types (Offset, Limit, ListType(..))
@@ -388,14 +388,14 @@ query s = pure s
 -------------------------------------------------------------------------------
 
 type MetricsAPI = Summary "SepGen IncExc metrics"
-                :> QueryParam "list"       ListId
-                :> QueryParam "ngramsType" TabType
-                :> QueryParam "limit"      Int
+                :> QueryParam  "list"       ListId
+                :> QueryParamR "ngramsType" TabType
+                :> QueryParam  "limit"      Int
                 :> Get '[JSON] Metrics
 
 getMetrics :: NodeId -> GargServer MetricsAPI
-getMetrics cId maybeListId maybeTabType maybeLimit = do
-  (ngs', scores) <- getMetrics' cId maybeListId maybeTabType maybeLimit
+getMetrics cId maybeListId tabType maybeLimit = do
+  (ngs', scores) <- getMetrics' cId maybeListId tabType maybeLimit
 
   let
     metrics  = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
