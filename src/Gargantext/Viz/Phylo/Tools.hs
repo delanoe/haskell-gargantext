@@ -140,7 +140,7 @@ getGroupBranchId = _phylo_groupBranchId
 
 -- | To get the PhyloGroups Childs of a PhyloGroup
 getGroupChilds :: PhyloGroup -> Phylo -> [PhyloGroup]
-getGroupChilds g p = getGroupsFromIds (map fst $ _phylo_groupPeriodChilds g) p
+getGroupChilds g p = getGroupsFromIds (getGroupPeriodChildsId g) p
 
 
 -- | To get the id of a PhyloGroup
@@ -158,14 +158,24 @@ getGroupLevel :: PhyloGroup -> Int
 getGroupLevel = snd . fst . getGroupId
 
 
+-- | To get the level child pointers of a PhyloGroup
+getGroupLevelChilds :: PhyloGroup -> [Pointer]
+getGroupLevelChilds = _phylo_groupLevelChilds
+
+
 -- | To get the PhyloGroups Level Childs Ids of a PhyloGroup
 getGroupLevelChildsId :: PhyloGroup -> [PhyloGroupId]
-getGroupLevelChildsId g = map fst $ _phylo_groupLevelChilds g
+getGroupLevelChildsId g = map fst $ getGroupLevelChilds g
+
+
+-- | To get the level parent pointers of a PhyloGroup
+getGroupLevelParents :: PhyloGroup -> [Pointer]
+getGroupLevelParents = _phylo_groupLevelParents
 
 
 -- | To get the PhyloGroups Level Parents Ids of a PhyloGroup
 getGroupLevelParentsId :: PhyloGroup -> [PhyloGroupId]
-getGroupLevelParentsId g = map fst $ _phylo_groupLevelParents g
+getGroupLevelParentsId g = map fst $ getGroupLevelParents g
 
 
 -- | To get the Ngrams of a PhyloGroup
@@ -180,12 +190,32 @@ getGroupPairs g p = (getGroupChilds g p) ++ (getGroupParents g p)
 
 -- | To get the PhyloGroups Parents of a PhyloGroup
 getGroupParents :: PhyloGroup -> Phylo -> [PhyloGroup]
-getGroupParents g p = getGroupsFromIds (map fst $ _phylo_groupPeriodParents g) p
+getGroupParents g p = getGroupsFromIds (getGroupPeriodParentsId g) p
 
 
 -- | To get the period out of the id of a PhyloGroup
 getGroupPeriod :: PhyloGroup -> (Date,Date)
 getGroupPeriod = fst . fst . getGroupId
+
+
+-- | To get the period child pointers of a PhyloGroup
+getGroupPeriodChilds :: PhyloGroup -> [Pointer]
+getGroupPeriodChilds = _phylo_groupPeriodChilds
+
+
+-- | To get the PhyloGroups Period Parents Ids of a PhyloGroup
+getGroupPeriodChildsId :: PhyloGroup -> [PhyloGroupId]
+getGroupPeriodChildsId g = map fst $ getGroupPeriodChilds g
+
+
+-- | To get the period parent pointers of a PhyloGroup
+getGroupPeriodParents :: PhyloGroup -> [Pointer]
+getGroupPeriodParents = _phylo_groupPeriodParents
+
+
+-- | To get the PhyloGroups Period Parents Ids of a PhyloGroup
+getGroupPeriodParentsId :: PhyloGroup -> [PhyloGroupId]
+getGroupPeriodParentsId g = map fst $ getGroupPeriodParents g
 
 
 -- | To get all the PhyloGroup of a Phylo

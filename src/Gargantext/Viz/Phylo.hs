@@ -199,13 +199,14 @@ data PairTo = Childs | Parents
 -- | PhyloView | --
 
 
-data EdgeType = Ascendant | Descendant | Complete deriving (Show)
+data Filiation = Ascendant | Descendant | Complete deriving (Show)
+data EdgeType  = PeriodEdge | LevelEdge deriving (Show)
 
 data PhyloView = PhyloView
   { _phylo_viewParam       :: PhyloParam
   , _phylo_viewLabel       :: Text
   , _phylo_viewDescription :: Text
-  , _phylo_viewEdgeType    :: EdgeType
+  , _phylo_viewFiliation   :: Filiation
   , _phylo_viewMeta        :: Map Text Double
   , _phylo_viewBranches    :: [PhyloBranch]
   , _phylo_viewNodes       :: [PhyloNode]
@@ -223,12 +224,14 @@ data PhyloBranch = PhyloBranch
 data PhyloEdge = PhyloEdge
   { _phylo_edgeSource :: PhyloGroupId
   , _phylo_edgeTarget :: PhyloGroupId
+  , _phylo_edgeType   :: EdgeType
   , _phylo_edgeWeight :: Weight
   } deriving (Show)
 
 
 data PhyloNode = PhyloNode
   { _phylo_nodeId        :: PhyloGroupId
+  , _phylo_nodeBranchId  :: Maybe PhyloBranchId
   , _phylo_nodeLabel     :: Text
   , _phylo_nodeNgramsIdx :: [Int] 
   , _phylo_nodeNgrams    :: Maybe [Ngrams]
@@ -239,7 +242,7 @@ data PhyloNode = PhyloNode
 -- | PhyloQuery | --
 
 
-data Filter = LonelyBranchFilter 
+data Filter = LonelyBranch 
 data Metric = BranchAge
 data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics
 
@@ -247,16 +250,13 @@ data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics
 data Sort   = ByBranchAge
 data Order  = Asc | Desc 
 
-
-data QueryParam  = Qp1 Int | Qp2 Text | Qp3 Bool deriving (Eq, Ord)
 data DisplayMode = Flat | Nested 
 
 
 -- | A query filter seen as : prefix && ((filter params)(clause)) 
 data QueryFilter = QueryFilter
   { _query_filter :: Filter
-  , _query_params :: [QueryParam]
-  , _query_clause :: (QueryParam -> Bool)
+  , _query_params :: [Double]
   }
 
 
@@ -264,8 +264,8 @@ data QueryFilter = QueryFilter
 data PhyloQuery = PhyloQuery 
   { _query_lvl    :: Level
 
-  -- Does the PhyloGraph contain ascendant, descendant or both (filiation) edges ?
-  , _query_edgeType :: EdgeType
+  -- Does the PhyloGraph contain ascendant, descendant or a complete Filiation ?
+  , _query_filiation :: Filiation
 
   -- Does the PhyloGraph contain some levelChilds ? How deep must it go ?
   , _query_childs      :: Bool
@@ -300,6 +300,10 @@ makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
 makeLenses ''PhyloView
 makeLenses ''PhyloQuery
+makeLenses ''PhyloBranch
+makeLenses ''PhyloNode
+makeLenses ''PhyloEdge
+makeLenses ''QueryFilter
 
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
