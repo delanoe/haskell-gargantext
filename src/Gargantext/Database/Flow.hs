@@ -33,6 +33,7 @@ module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
 --import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 --import Gargantext.Text.Metrics.TFICF (Tficf(..))
 --import Debug.Trace (trace)
+import Control.Lens ((^.))
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.List (concat)
@@ -61,7 +62,7 @@ import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
 import Gargantext.Text.List (buildNgramsLists)
 --import Gargantext.Text.Parsers (parseDocs, FileFormat)
-import Gargantext.Text.Terms (TermType(..))
+import Gargantext.Text.Terms (TermType(..), tt_lang)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import qualified Gargantext.Text.Parsers.GrandDebat as GD
@@ -109,7 +110,7 @@ flowCorpus u cn la docs = do
 
 -- TODO query with complex query
 flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
-          => Username -> Text -> Lang -> m CorpusId
+          => Username -> Lang -> Text -> m CorpusId
 flowCorpusSearchInDatabase u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
