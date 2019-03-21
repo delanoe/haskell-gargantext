@@ -29,10 +29,12 @@ compute graph
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Text.Terms
   where
 
+import Control.Lens
 import Data.Text (Text)
 import Data.Traversable
 
@@ -43,8 +45,12 @@ import Gargantext.Text.Terms.Multi (multiterms)
 import Gargantext.Text.Terms.Mono  (monoTerms)
 
 
-data TermType lang = Mono lang | Multi lang | MonoMulti lang 
+data TermType lang
+  = Mono      { _tt_lang :: lang }
+  | Multi     { _tt_lang :: lang }
+  | MonoMulti { _tt_lang :: lang }
 
+makeLenses ''TermType
 
 --group :: [Text] -> [Text]
 --group = undefined

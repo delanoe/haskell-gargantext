@@ -104,16 +104,16 @@ flowCorpus :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
            => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
 flowCorpus u cn la docs = do
   ids <- mapM ((insertMasterDocs la) . (map toHyperdataDocument)) docs
-  flowCorpusUser FR u cn (concat ids)
+  flowCorpusUser (la ^. tt_lang) u cn (concat ids)
 
 
 -- TODO query with complex query
 flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
-          => Username -> Text -> m CorpusId
-flowCorpusSearchInDatabase u q = do
+          => Username -> Text -> Lang -> m CorpusId
+flowCorpusSearchInDatabase u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser FR u q ids
+  flowCorpusUser la u q ids
 
 
 flowCorpusUser :: FlowCmdM env ServantErr m
