@@ -20,6 +20,11 @@ commentary with @some markup@.
 
 module Gargantext.Database.Utils where
 
+import Debug.Trace (trace)
+import Prelude (String)
+import Control.Monad ((>>))
+import Data.Text (Text)
+import Control.Monad.Error.Class (MonadError(..))
 import Control.Lens (Getter, view)
 import Control.Monad.Reader
 import Control.Monad.Except
@@ -80,8 +85,17 @@ runOpaQuery q = mkCmd $ \c -> runQuery c q
 formatPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err DB.ByteString
 formatPGSQuery q a = mkCmd $ \conn -> PGS.formatQuery conn q a
 
-runPGSQuery :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
-runPGSQuery q a = mkCmd $ \conn -> PGS.query conn q a
+runPGSQuery' :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
+runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
+
+runPGSQuery :: (MonadError err m, MonadReader env m,
+                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnection env)
+                => PGS.Query -> q -> m [r]
+runPGSQuery q a = catchError (mkCmd $ \conn -> PGS.query conn q a)
+                              (\e ->  putStrLn ("Text xxxxxxxxxxxxxxxxxxx" :: String)
+                              --(\e -> putStrLn ((cs $ formatPGSQuery q a):: Text)
+                                   >> throwError e
+                                )
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
 execPGSQuery q a = mkCmd $ \conn -> PGS.execute conn q a
