@@ -28,7 +28,7 @@ import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Types.Node (ListId, CorpusId)
 import Gargantext.Prelude
-import Gargantext.Text.Metrics
+import Gargantext.Text.Metrics (scored, Scored(..))
 import Servant (ServantErr)
 import qualified Data.Map as Map
 
@@ -51,7 +51,7 @@ getMetrics' cId maybeListId tabType maybeLimit = do
     take' Nothing xs  = xs
     take' (Just n) xs = take n xs
   
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams True
+  myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal True)
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId ngramsType (take' maybeLimit $ Map.keys ngs)
 

@@ -84,10 +84,10 @@ groupNodesByNgrams syn occs = Map.fromListWith (<>) occs'
         Nothing  -> (t, ns)
         Just  r' -> (r',ns)
 
-type Diagonal = Bool
+data Diagonal = Diagonal Bool
 
 getCoocByNgrams :: Diagonal -> Map Text (Set NodeId) -> Map (Text, Text) Int
-getCoocByNgrams diag m =
+getCoocByNgrams (Diagonal diag) m =
   Map.fromList [((t1,t2)
                 ,maybe 0 Set.size $ Set.intersection
                                  <$> Map.lookup t1 m

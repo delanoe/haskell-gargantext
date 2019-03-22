@@ -290,7 +290,7 @@ graphAPI nId = do
   lId <- defaultList cId
   ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams False
+  myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
 

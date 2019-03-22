@@ -76,10 +76,10 @@ scored2map m = Map.fromList $ map (\(Scored t i s) -> (t, Vec.fromList [i,s])) $
 map2scored :: Ord t => Map t (Vec.Vector Double) -> [Scored t]
 map2scored = map (\(t, ds) -> Scored t (Vec.head ds) (Vec.last ds)) . Map.toList
 
--- TODO in the textflow we end up needing these indices, it might be better
--- to compute them earlier and pass them around.
+-- TODO in the textflow we end up needing these indices , it might be
+-- better to compute them earlier and pass them around.
 scored' :: Ord t => Map (t,t) Int -> [Scored t]
-scored' m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (Map.toList fi) scores
+scored' m = zipWith (\(_,t) (inc,spe) -> Scored t (inc) (spe)) (Map.toList fi) scores
   where
     (ti, fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
