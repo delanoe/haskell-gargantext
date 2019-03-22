@@ -57,5 +57,3 @@ getMetrics' cId maybeListId tabType maybeLimit = do
 
   pure $ (ngs', scored myCooc)
 
-
-

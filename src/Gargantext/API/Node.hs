@@ -384,7 +384,6 @@ query s = pure s
 --      putStrLn content
 --  pure (pack "Data loaded")
 
-
 -------------------------------------------------------------------------------
 
 type MetricsAPI = Summary "SepGen IncExc metrics"
@@ -403,8 +402,5 @@ getMetrics cId maybeListId tabType maybeLimit = do
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
 
   pure $ Metrics metrics
-
-
-
 
 
