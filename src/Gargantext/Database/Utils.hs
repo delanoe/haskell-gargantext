@@ -20,10 +20,9 @@ commentary with @some markup@.
 
 module Gargantext.Database.Utils where
 
-import Debug.Trace (trace)
 import Prelude (String)
 import Control.Monad ((>>))
-import Data.Text (Text)
+--import Data.Text (Text)
 import Control.Monad.Error.Class (MonadError(..))
 import Control.Lens (Getter, view)
 import Control.Monad.Reader
@@ -91,7 +90,7 @@ runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
 runPGSQuery :: (MonadError err m, MonadReader env m,
                 PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnection env)
                 => PGS.Query -> q -> m [r]
-runPGSQuery q a = catchError (mkCmd $ \conn -> PGS.query conn q a)
+runPGSQuery q a = mkCmd $ \conn -> catchError (PGS.query conn q a)
                               (\e ->  putStrLn ("Text xxxxxxxxxxxxxxxxxxx" :: String)
                               --(\e -> putStrLn ((cs $ formatPGSQuery q a):: Text)
                                    >> throwError e
