@@ -137,37 +137,77 @@ queryNgramsByNodeUser = [sql|
 -- TODO add groups
 getOccByNgramsOnly :: CorpusId -> NgramsType -> [Text]
                    -> Cmd err (Map Text Int)
-getOccByNgramsOnly cId nt ngs = Map.map Set.size
-                             <$> getNodesByNgramsOnlyUser cId nt ngs
+getOccByNgramsOnly cId nt ngs =
+  fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
 
-getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text]
-                         -> Cmd err (Map Text (Set NodeId))
-getNodesByNgramsOnlyUser cId nt ngs =
-  fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
-                    <$> selectNgramsOnlyByNodeUser cId nt ngs
+-- just slower than getOccByNgramsOnly
+getOccByNgramsOnly' :: CorpusId -> NgramsType -> [Text]
+                    -> Cmd err (Map Text Int)
+getOccByNgramsOnly' cId nt ngs =
+  Map.map Set.size <$> getNodesByNgramsOnlyUser cId nt ngs
 
-
-selectNgramsOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
-                           -> Cmd err [(NodeId, Text)]
-selectNgramsOnlyByNodeUser cId nt tms =
-  runPGSQuery queryNgramsOnlyByNodeUser (DPS.Only $ Values fields tms' )
+selectNgramsOccurrencesOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
+                           -> Cmd err [(Text, Int)]
+selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
+  runPGSQuery queryNgramsOccurrencesOnlyByNodeUser
+                ( Values fields (DPS.Only <$> tms)
+                , cId
+                , nodeTypeId NodeDocument
+                , ngramsTypeId nt
+                )
     where
-      fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4", "int4", "int4"]
-      tms'   = map (\t -> (t,cId,nodeTypeId NodeDocument, ngramsTypeId nt)) tms
+      fields = [QualifiedIdentifier Nothing "text"]
 
-queryNgramsOnlyByNodeUser :: DPS.Query
-queryNgramsOnlyByNodeUser = [sql|
+-- same as queryNgramsOnlyByNodeUser but using COUNT on the node ids.
+-- Question: with the grouping is the result exactly the same (since Set NodeId for 
+-- equivalent ngrams intersections are not empty)
+queryNgramsOccurrencesOnlyByNodeUser :: DPS.Query
+queryNgramsOccurrencesOnlyByNodeUser = [sql|
 
-  WITH input_rows(terms,corpus_id,docType,ngramsType) AS (?)
-  SELECT nng.node_id, ng.terms FROM nodes_ngrams nng
+  WITH input_rows(terms) AS (?)
+  SELECT ng.terms, COUNT(nng.node_id) FROM nodes_ngrams nng
     JOIN ngrams ng      ON nng.ngrams_id = ng.id
     JOIN input_rows  ir ON ir.terms      = ng.terms
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
     JOIN nodes  n       ON nn.node2_id   = n.id
-    WHERE nn.node1_id = ir.corpus_id      -- CorpusId
-      AND n.typename  = ir.docType        -- NodeTypeId
-      AND nng.ngrams_type = ir.ngramsType -- NgramsTypeId
-      AND nn.delete = False
+    WHERE nn.node1_id     = ? -- CorpusId
+      AND n.typename      = ? -- NodeTypeId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      AND nn.delete       = False
+      GROUP BY nng.node_id, ng.terms
+  |]
+
+getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text]
+                         -> Cmd err (Map Text (Set NodeId))
+getNodesByNgramsOnlyUser cId nt ngs =
+  fromListWith (<>) <$> map (second Set.singleton)
+                    <$> selectNgramsOnlyByNodeUser cId nt ngs
+
+selectNgramsOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
+                           -> Cmd err [(Text, NodeId)]
+selectNgramsOnlyByNodeUser cId nt tms =
+  runPGSQuery queryNgramsOnlyByNodeUser
+                ( Values fields (DPS.Only <$> tms)
+                , cId
+                , nodeTypeId NodeDocument
+                , ngramsTypeId nt
+                )
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
+queryNgramsOnlyByNodeUser :: DPS.Query
+queryNgramsOnlyByNodeUser = [sql|
+
+  WITH input_rows(terms) AS (?)
+  SELECT ng.terms, nng.node_id FROM nodes_ngrams nng
+    JOIN ngrams ng      ON nng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
+    JOIN nodes  n       ON nn.node2_id   = n.id
+    WHERE nn.node1_id     = ? -- CorpusId
+      AND n.typename      = ? -- NodeTypeId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      AND nn.delete       = False
       GROUP BY nng.node_id, ng.terms
   |]
 
@@ -215,7 +255,7 @@ SELECT nng.node_id, ng.id, ng.terms FROM nodes_ngrams nng
     AND nng.ngrams_type = ? -- NgramsTypeId
   GROUP BY nng.node_id, ng.id, ng.terms)
 
-SELECT m.node_id, m.terms FROM nodesByNgramsMaster m
+SELECTx m.node_id, m.terms FROM nodesByNgramsMaster m
 RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
 
   |]

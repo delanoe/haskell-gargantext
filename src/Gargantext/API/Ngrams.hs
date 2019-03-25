@@ -35,6 +35,7 @@ module Gargantext.API.Ngrams
   where
 
 -- import Debug.Trace (trace)
+import Control.Exception (Exception)
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 -- import Gargantext.Database.Schema.User  (UserId)
 import Data.Functor (($>))
@@ -893,7 +894,7 @@ type MaxSize = Int
 --  TODO: polymorphic for Annuaire or Corpus or ...
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
-getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env, Exception err)
                => CorpusId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
