@@ -20,6 +20,7 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE MonoLocalBinds    #-}
 
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where

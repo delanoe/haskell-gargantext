@@ -20,8 +20,9 @@ commentary with @some markup@.
 
 module Gargantext.Database.Utils where
 
-import Control.Exception
-import Data.Text (Text)
+import Data.ByteString.Char8 (hPutStrLn)
+import System.IO (stderr)
+import Control.Exception 
 import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Lens (Getter, view)
 import Control.Monad.Reader
@@ -55,11 +56,13 @@ type CmdM' env err m =
   ( MonadReader env m
   , MonadError err m
   , MonadIO m
+  , Exception err
   )
 
 type CmdM env err m =
   ( CmdM' env err m
   , HasConnection env
+  , Exception err
   )
 
 type Cmd' env err a = forall m. CmdM' env err m => m a
@@ -72,7 +75,7 @@ mkCmd k = do
   conn <- view connection
   liftIO $ k conn
 
-runCmd :: HasConnection env => env
+runCmd :: (HasConnection env, Exception err) => env
        -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
@@ -83,25 +86,19 @@ runOpaQuery q = mkCmd $ \c -> runQuery c q
 formatPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err DB.ByteString
 formatPGSQuery q a = mkCmd $ \conn -> PGS.formatQuery conn q a
 
-runPGSQuery :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
-runPGSQuery q a = mkCmd $ \conn -> PGS.query conn q a
+-- TODO use runPGSQueryDebug everywhere
+runPGSQuery' :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
+runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
 
-
-data SqlErrorX = SqlErrorX
-  deriving (Eq, Show)
-
-instance Exception SqlErrorX
-
-
-runPGSQuery' :: (MonadError (SqlErrorX) m, MonadReader env m,
-                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnection env)
+runPGSQuery :: (MonadError err m, MonadReader env m,
+                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnection env, Exception err)
                 => PGS.Query -> q -> m [r]
-runPGSQuery' q a = mkCmd $ \conn -> catchError (PGS.query conn q a) (printError conn)
+runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
   where
-    printError c e = do
+    printError c (SomeException e) = do
       q' <- (PGS.formatQuery c q a :: IO DB.ByteString)
-      putStrLn (cs q':: Text)
-      throwError e
+      hPutStrLn stderr q'
+      throw e
 
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64

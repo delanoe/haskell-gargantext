@@ -11,9 +11,9 @@ Node API
 -}
 
 
-{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
-
+{-# LANGUAGE MonoLocalBinds    #-}
 
 module Gargantext.Database.Metrics
   where
