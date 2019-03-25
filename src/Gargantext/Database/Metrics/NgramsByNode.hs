@@ -159,6 +159,8 @@ selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
       fields = [QualifiedIdentifier Nothing "text"]
 
 -- same as queryNgramsOnlyByNodeUser but using COUNT on the node ids.
+-- Question: with the grouping is the result exactly the same (since Set NodeId for 
+-- equivalent ngrams intersections are not empty)
 queryNgramsOccurrencesOnlyByNodeUser :: DPS.Query
 queryNgramsOccurrencesOnlyByNodeUser = [sql|
 
