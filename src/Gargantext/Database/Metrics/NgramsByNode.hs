@@ -150,8 +150,11 @@ selectNgramsOccurrencesOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
                            -> Cmd err [(Text, Int)]
 selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
   runPGSQuery queryNgramsOccurrencesOnlyByNodeUser
-                (cId, nodeTypeId NodeDocument,
-                 ngramsTypeId nt, Values fields (DPS.Only <$> tms))
+                ( Values fields (DPS.Only <$> tms)
+                , cId
+                , nodeTypeId NodeDocument
+                , ngramsTypeId nt
+                )
     where
       fields = [QualifiedIdentifier Nothing "text"]
 
@@ -159,18 +162,15 @@ selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
 queryNgramsOccurrencesOnlyByNodeUser :: DPS.Query
 queryNgramsOccurrencesOnlyByNodeUser = [sql|
 
-  WITH corpus_id AS ?
-  WITH docType AS ?
-  WITH ngramsType AS ?
   WITH input_rows(terms) AS (?)
   SELECT ng.terms, COUNT(nng.node_id) FROM nodes_ngrams nng
     JOIN ngrams ng      ON nng.ngrams_id = ng.id
     JOIN input_rows  ir ON ir.terms      = ng.terms
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
     JOIN nodes  n       ON nn.node2_id   = n.id
-    WHERE nn.node1_id     = corpus_id  -- CorpusId
-      AND n.typename      = docType    -- NodeTypeId
-      AND nng.ngrams_type = ngramsType -- NgramsTypeId
+    WHERE nn.node1_id     = ? -- CorpusId
+      AND n.typename      = ? -- NodeTypeId
+      AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.delete       = False
       GROUP BY nng.node_id, ng.terms
   |]
@@ -185,26 +185,26 @@ selectNgramsOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
                            -> Cmd err [(Text, NodeId)]
 selectNgramsOnlyByNodeUser cId nt tms =
   runPGSQuery queryNgramsOnlyByNodeUser
-                (cId, nodeTypeId NodeDocument,
-                 ngramsTypeId nt, Values fields (DPS.Only <$> tms))
+                ( Values fields (DPS.Only <$> tms)
+                , cId
+                , nodeTypeId NodeDocument
+                , ngramsTypeId nt
+                )
     where
       fields = [QualifiedIdentifier Nothing "text"]
 
 queryNgramsOnlyByNodeUser :: DPS.Query
 queryNgramsOnlyByNodeUser = [sql|
 
-  WITH corpus_id AS ?
-  WITH docType AS ?
-  WITH ngramsType AS ?
   WITH input_rows(terms) AS (?)
   SELECT ng.terms, nng.node_id FROM nodes_ngrams nng
     JOIN ngrams ng      ON nng.ngrams_id = ng.id
     JOIN input_rows  ir ON ir.terms      = ng.terms
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
     JOIN nodes  n       ON nn.node2_id   = n.id
-    WHERE nn.node1_id     = corpus_id  -- CorpusId
-      AND n.typename      = docType    -- NodeTypeId
-      AND nng.ngrams_type = ngramsType -- NgramsTypeId
+    WHERE nn.node1_id     = ? -- CorpusId
+      AND n.typename      = ? -- NodeTypeId
+      AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.delete       = False
       GROUP BY nng.node_id, ng.terms
   |]
