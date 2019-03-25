@@ -18,7 +18,8 @@ module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level)
-import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, union)
+import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, union, sortOn)
+import Data.Maybe           (mapMaybe)
 import Data.Map             (Map, mapKeys, member, elems, adjust)
 import Data.Set             (Set)
 import Data.Text            (Text, toLower)
@@ -37,6 +38,7 @@ import qualified Data.Vector as Vector
 -- | Tools | --
 
 
+-- | To alter a PhyloGroup matching a given Level
 alterGroupWithLevel :: (PhyloGroup -> PhyloGroup) -> Level -> Phylo -> Phylo
 alterGroupWithLevel f lvl p = over ( phylo_periods
                                    .  traverse
@@ -47,7 +49,6 @@ alterGroupWithLevel f lvl p = over ( phylo_periods
                                    ) (\g -> if getGroupLevel g == lvl
                                             then f g
                                             else g ) p  
-
 
 
 -- | To alter each list of PhyloGroups following a given function
@@ -119,6 +120,23 @@ filterNestedSets h l l'
 -- | To filter some GroupEdges with a given threshold
 filterGroupEdges :: Double -> GroupEdges -> GroupEdges
 filterGroupEdges thr edges = filter (\((s,t),w) -> w > thr) edges 
+
+
+-- | To get the PhyloBranchId of a PhyloBranch
+getBranchId :: PhyloBranch -> PhyloBranchId
+getBranchId b = b ^. phylo_branchId
+
+
+-- | To get a list of PhyloBranchIds given a Level in a Phylo
+getBranchIdsWith :: Level -> Phylo -> [PhyloBranchId]
+getBranchIdsWith lvl p = sortOn snd
+                       $ mapMaybe getGroupBranchId
+                       $ getGroupsWithLevel lvl p
+
+
+-- | To get the Meta value of a PhyloBranch 
+getBranchMeta :: Text -> PhyloBranch -> Double 
+getBranchMeta k b = (b ^. phylo_branchMeta) Map.! k
 
 
 -- | To get the foundations of a Phylo
@@ -228,9 +246,14 @@ getGroups = view ( phylo_periods
                  )
 
 
--- | To all PhyloGroups matching a list of PhyloGroupIds in a Phylo
+-- | To get all PhyloGroups matching a list of PhyloGroupIds in a Phylo
 getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
 getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
+
+
+-- | To get the corresponding list of PhyloGroups from a list of PhyloNodes
+getGroupsFromNodes :: [PhyloNode] -> Phylo -> [PhyloGroup]
+getGroupsFromNodes ns p = getGroupsFromIds (map getNodeId ns) p 
 
 
 -- | To get all the PhyloGroup of a Phylo with a given level and period
@@ -274,6 +297,7 @@ getLastLevel p = (last . sort)
                       . phylo_periodLevels ) p
 
 
+
 -- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of GroupEdges 
 getNeighbours :: Bool -> PhyloGroup -> GroupEdges -> [PhyloGroup]
 getNeighbours directed g e = case directed of 
@@ -283,9 +307,52 @@ getNeighbours directed g e = case directed of
              $ filter (\((s,t),w) -> s == g || t == g) e
 
 
--- | To get the Branches of a Phylo
--- getPhyloBranches :: Phylo -> [PhyloBranch] 
--- getPhyloBranches = _phylo_branches
+-- | To get the PhyloBranchId of PhyloNode if it exists
+getNodeBranchId :: PhyloNode -> PhyloBranchId
+getNodeBranchId n = case n ^. phylo_nodeBranchId of
+                     Nothing -> panic "[ERR][Viz.Phylo.Tools.getNodeBranchId] branchId not found"
+                     Just i  -> i 
+
+
+-- | To get the PhyloGroupId of a PhyloNode
+getNodeId :: PhyloNode -> PhyloGroupId
+getNodeId n = n ^. phylo_nodeId
+
+
+-- | To get the Level of a PhyloNode
+getNodeLevel :: PhyloNode -> Level
+getNodeLevel n = (snd . fst) $ getNodeId n
+
+
+-- | To get the Parent Node of a PhyloNode in a PhyloView
+getNodeParent :: PhyloNode -> PhyloView -> PhyloNode
+getNodeParent n v = head 
+                  $ filter (\n' -> getNodeId n' == getNodeParentId n)
+                  $ v ^. phylo_viewNodes
+
+
+-- | To get the Parent Node id of a PhyloNode if it exists
+getNodeParentId :: PhyloNode -> PhyloGroupId
+getNodeParentId n = case n ^. phylo_nodeParent of
+                    Nothing -> panic "[ERR][Viz.Phylo.Tools.getNodeParentId] node parent not found"
+                    Just id -> id
+
+
+-- | To get a list of PhyloNodes grouped by PhyloBranch in a PhyloView
+getNodesByBranches :: PhyloView -> [(PhyloBranchId,[PhyloNode])]
+getNodesByBranches v = zip bIds $ map (\id -> filter (\n -> (getNodeBranchId n) == id) 
+                                            $ getNodesInBranches v ) bIds
+  where
+    -------------------------------------- 
+    bIds :: [PhyloBranchId] 
+    bIds = getViewBranchIds v 
+    --------------------------------------
+
+
+-- | To get a list of PhyloNodes owned by any PhyloBranches in a PhyloView
+getNodesInBranches :: PhyloView -> [PhyloNode]
+getNodesInBranches v = filter (\n -> isJust $ n ^. phylo_nodeBranchId)
+                     $ v ^. phylo_viewNodes
 
 
 -- | To get the PhylolevelId of a given PhyloLevel
@@ -307,6 +374,21 @@ getPhyloPeriods p = map _phylo_periodId
 -- | To get the id of a given PhyloPeriod
 getPhyloPeriodId :: PhyloPeriod -> PhyloPeriodId
 getPhyloPeriodId prd = _phylo_periodId prd 
+
+
+-- | To get the PhyloGroupId of the Source of a PhyloEdge 
+getSourceId :: PhyloEdge -> PhyloGroupId
+getSourceId e = e ^. phylo_edgeSource 
+
+
+-- | To get the PhyloGroupId of the Target of a PhyloEdge
+getTargetId :: PhyloEdge -> PhyloGroupId
+getTargetId e = e ^. phylo_edgeTarget
+
+
+-- | To get all the PhyloBranchIds of a PhyloView
+getViewBranchIds :: PhyloView -> [PhyloBranchId]
+getViewBranchIds v = map getBranchId $ v ^. phylo_viewBranches
 
 
 -- | To init the foundation of the Phylo as a Vector of Ngrams 

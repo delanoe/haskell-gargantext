@@ -237,6 +237,7 @@ data PhyloNode = PhyloNode
   , _phylo_nodeNgrams    :: Maybe [Ngrams]
   , _phylo_nodeMeta      :: Map Text Double
   , _phylo_nodeParent    :: Maybe PhyloGroupId 
+  , _phylo_nodeChilds    :: [PhyloNode]
   } deriving (Show)
 
 -- | PhyloQuery | --

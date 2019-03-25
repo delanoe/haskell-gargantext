@@ -33,7 +33,7 @@ import Control.Lens     hiding (makeLenses, both, Level)
 import Data.Bool        (Bool, not)
 import Data.List        ((\\), notElem, concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete, init, groupBy)
 import Data.Map         (Map, elems, insert, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey, mapKeys, intersectionWith, unionWith)
-import Data.Maybe       (mapMaybe,isJust,fromJust)
+import Data.Maybe       (mapMaybe,isJust,fromJust, isNothing)
 import Data.Semigroup   (Semigroup)
 import Data.Set         (Set)
 import Data.Text        (Text, unwords, toLower, words)
@@ -57,6 +57,12 @@ import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Metrics.Proximity
 import Gargantext.Viz.Phylo.Metrics.Clustering
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.Viz.Phylo.View.Display
+import Gargantext.Viz.Phylo.View.Filters
+import Gargantext.Viz.Phylo.View.Metrics
+import Gargantext.Viz.Phylo.View.Sort
+import Gargantext.Viz.Phylo.View.Taggers
+import Gargantext.Viz.Phylo.View.ViewMaker
 
 
 import qualified Data.Bool   as Bool
@@ -69,249 +75,31 @@ import qualified Data.Vector as Vector
 
 
 ------------------------------------------------------------------------
--- | STEP 12 | -- Return a Phylo for upcomming visiualization tasks 
+-- | STEP 12 | -- Return a Phylo as a View for upcomming visiualization tasks 
 
-
-
--- | To transform a list of Ngrams Indexes into a Label
-ngramsToLabel :: Vector Ngrams -> [Int] -> Text 
-ngramsToLabel ngrams l = unwords $ ngramsToText ngrams l 
-
-
--- | To transform a list of Ngrams Indexes into a list of Text 
-ngramsToText :: Vector Ngrams -> [Int] -> [Text]
-ngramsToText ngrams l = map (\idx -> ngrams Vector.! idx) l
-
-
--- | To get the nth most frequent Ngrams in a list of PhyloGroups
-mostFreqNgrams :: Int -> [PhyloGroup] -> [Int]
-mostFreqNgrams thr groups = map fst 
-                          $ take thr 
-                          $ reverse 
-                          $ sortOn snd 
-                          $ map (\g -> (head g,length g)) 
-                          $ groupBy (==) 
-                          $ (sort . concat) 
-                          $ map getGroupNgrams groups
-
-
--- | To get the (nth `div` 2) most cooccuring Ngrams in a PhyloGroup 
-mostOccNgrams :: Int -> PhyloGroup -> [Int]
-mostOccNgrams thr group = (nub . concat ) 
-                        $ map (\((f,s),d) -> [f,s]) 
-                        $ take (thr `div` 2) 
-                        $ reverse $ sortOn snd $ Map.toList $ getGroupCooc group
-
-
-freqToLabel :: Int -> [PhyloGroup] -> Vector Ngrams -> Text
-freqToLabel thr l ngs = ngramsToLabel ngs $ mostFreqNgrams thr l  
-
---------- To Do tagger, sort et display 
-
-
-getNodeId :: PhyloNode -> PhyloGroupId
-getNodeId n = n ^. phylo_nodeId
-
-getSourceId :: PhyloEdge -> PhyloGroupId
-getSourceId e = e ^. phylo_edgeSource 
-
-getTargetId :: PhyloEdge -> PhyloGroupId
-getTargetId e = e ^. phylo_edgeTarget
-
-getNodeBranchId :: PhyloNode -> PhyloBranchId
-getNodeBranchId n = case n ^. phylo_nodeBranchId of
-                     Nothing -> panic "[ERR][Viz.Phylo.Tools.getNodeBranchId] branchId not found"
-                     Just i  -> i 
-
-
-getBranchId :: PhyloBranch -> PhyloBranchId
-getBranchId b = b ^. phylo_branchId
-
-
-getViewBranchIds :: PhyloView -> [PhyloBranchId]
-getViewBranchIds v = map getBranchId $ v ^. phylo_viewBranches
-
-
-cleanNodesEdges :: PhyloView -> PhyloView -> PhyloView
-cleanNodesEdges v v' = v' & phylo_viewNodes %~ (filter (\n -> not $ elem (getNodeId n) nIds))
-                          & phylo_viewEdges %~ (filter (\e -> (not $ elem (getSourceId e) nIds)
-                                                           && (not $ elem (getTargetId e) nIds)))
-  where
-    --------------------------------------
-    nIds :: [PhyloGroupId]
-    nIds = map getNodeId
-         $ filter (\n -> elem (getNodeBranchId n) bIds)
-         $ getNodesInBranches v
-    --------------------------------------
-    bIds :: [PhyloBranchId]
-    bIds = (getViewBranchIds v) \\ (getViewBranchIds v')
-    --------------------------------------
-
-
-filterLonelyBranch :: Int -> Int -> Int -> [PhyloPeriodId] -> PhyloView -> PhyloView
-filterLonelyBranch nbInf nbSup nbNs prds v = cleanNodesEdges v v'
-  where
-    --------------------------------------
-    v' :: PhyloView
-    v' = v & phylo_viewBranches %~ (filter (\b -> let ns = filter (\n -> (getBranchId b)  == (getNodeBranchId n)) 
-                                                         $ getNodesInBranches v
-                                                      prds' = nub $ map (\n -> (fst . fst) $ getNodeId n) ns
-                                                  in not (isLone ns prds')))
-    --------------------------------------
-    isLone :: [PhyloNode] -> [PhyloPeriodId] -> Bool
-    isLone ns prds' = (length ns <= nbNs)
-                      && notElem (head prds') (take nbInf prds)
-                      && notElem (head prds') (take nbSup $ reverse prds)
-    --------------------------------------
-
-
-getBranchIdsWith :: Level -> Phylo -> [PhyloBranchId]
-getBranchIdsWith lvl p = sortOn snd
-                       $ mapMaybe getGroupBranchId
-                       $ getGroupsWithLevel lvl p
-
-phyloParams :: PhyloParam
-phyloParams = PhyloParam "v0.1" (Software "Gargantext" "v4") ""
-
-getPhyloParams :: Phylo -> PhyloParam 
-getPhyloParams p = phyloParams
-
-initPhyloBranch :: PhyloBranchId -> Text -> PhyloBranch
-initPhyloBranch id lbl = PhyloBranch id lbl empty
-
-groupsToNodes :: Bool -> Bool -> Vector Ngrams -> [PhyloGroup] -> [PhyloNode]
-groupsToNodes isR isV ns gs = map (\g -> let idxs = getGroupNgrams g
-                                         in PhyloNode 
-                                              (getGroupId g)
-                                              (getGroupBranchId g) 
-                                              "" idxs
-                                              (if isV 
-                                                then Just (ngramsToText ns idxs)
-                                                else Nothing)
-                                              empty 
-                                              (if (not isR)
-                                                then Just (head $ getGroupLevelParentsId g)
-                                                else Nothing)
-                                  ) gs
-
-
-initPhyloEdge :: PhyloGroupId -> [Pointer] -> EdgeType -> [PhyloEdge]
-initPhyloEdge id pts et = map (\pt -> PhyloEdge id (fst pt) et (snd pt)) pts
-
-
-groupsToEdges :: Filiation -> EdgeType -> [PhyloGroup] -> [PhyloEdge]
-groupsToEdges fl et gs = case fl of 
-                         Complete -> (groupsToEdges Ascendant et gs) ++ (groupsToEdges Descendant et gs)
-                         _        -> concat 
-                                   $ map (\g -> case fl of
-                                                Ascendant  -> case et of 
-                                                              PeriodEdge -> initPhyloEdge (getGroupId g) (getGroupPeriodParents g) et
-                                                              LevelEdge  -> initPhyloEdge (getGroupId g) (getGroupLevelParents  g) et
-                                                Descendant -> case et of 
-                                                              PeriodEdge -> initPhyloEdge (getGroupId g) (getGroupPeriodChilds  g) et
-                                                              LevelEdge  -> initPhyloEdge (getGroupId g) (getGroupLevelChilds   g) et 
-                                                ) gs  
-
-
-addBranches :: Level -> Phylo -> [PhyloBranch]
-addBranches lvl p = map (\id -> initPhyloBranch id "") $ nub $ getBranchIdsWith lvl p 
-
-
-initPhyloView :: Level -> Text -> Text -> Filiation -> Bool -> Phylo -> PhyloView 
-initPhyloView lvl lbl dsc fl vb p = PhyloView (getPhyloParams p) lbl dsc fl empty
-                                    ([] ++ (addBranches lvl p)) 
-                                    ([] ++ (groupsToNodes True vb (getFoundations p) gs))
-                                    ([] ++ (groupsToEdges fl PeriodEdge gs))
-  where
-    --------------------------------------
-    gs :: [PhyloGroup]
-    gs = getGroupsWithLevel lvl p
-    --------------------------------------
-
-
-addChildNodes :: Bool -> Level -> Level -> Bool -> Filiation -> Phylo -> PhyloView -> PhyloView
-addChildNodes shouldDo lvl lvl' vb fl p v = 
-  if (not shouldDo) || (lvl == lvl') 
-  then v
-  else addChildNodes shouldDo lvl (lvl' - 1) vb fl p 
-     $ v & phylo_viewBranches %~ (++ (addBranches (lvl' - 1) p))
-         & phylo_viewNodes %~ (++ (groupsToNodes False vb (getFoundations p) gs'))
-         & phylo_viewEdges %~ (++ (groupsToEdges fl PeriodEdge gs'))
-         & phylo_viewEdges %~ (++ (groupsToEdges Descendant LevelEdge gs ))
-         & phylo_viewEdges %~ (++ (groupsToEdges Ascendant LevelEdge  gs'))
-    where
-      --------------------------------------
-      gs :: [PhyloGroup]
-      gs = getGroupsWithLevel lvl' p
-      --------------------------------------  
-      gs' :: [PhyloGroup]
-      gs' = getGroupsWithLevel (lvl' - 1) p
-      --------------------------------------                        
-
-
-addBranchMeta :: PhyloBranchId -> Text -> Double -> PhyloView -> PhyloView
-addBranchMeta id lbl val v = over (phylo_viewBranches
-                                  . traverse) 
-                                  (\b -> if getBranchId b == id
-                                         then b & phylo_branchMeta %~ insert lbl val 
-                                         else b) v
-
-getNodesInBranches :: PhyloView -> [PhyloNode]
-getNodesInBranches v = filter (\n -> isJust $ n ^. phylo_nodeBranchId)
-                     $ v ^. phylo_viewNodes
-
-
-branchAge :: PhyloView -> PhyloView
-branchAge v = foldl (\v' b -> let bId = (fst . head) b
-                                  prds = sortOn fst $ map snd b
-                              in addBranchMeta bId "age" ((abs . fromIntegral) 
-                                                          $ ((snd . last) prds) - ((fst . head) prds)) v') v
-            $ groupBy ((==) `on` fst)
-            $ sortOn fst
-            $ map (\n -> (getNodeBranchId n, (fst . fst) $ getNodeId n))
-            $ getNodesInBranches v
-
-
-processMetrics :: [Metric] -> Phylo -> PhyloView -> PhyloView
-processMetrics ms p v = foldl (\v' m -> case m of
-                                        BranchAge -> branchAge v'
-                                        _         -> panic "[ERR][Viz.Phylo.Example.processMetrics] metric not found") v ms
-
-
-processFilters :: [QueryFilter] -> Phylo -> PhyloView -> PhyloView
-processFilters fs p v = foldl (\v' f -> case f ^. query_filter of
-                                        LonelyBranch -> filterLonelyBranch (round $ (f ^. query_params) !! 0) 
-                                                                           (round $ (f ^. query_params) !! 1) 
-                                                                           (round $ (f ^. query_params) !! 2) (getPhyloPeriods p) v'
-                                        _            -> panic "[ERR][Viz.Phylo.Example.processFilters] filter not found") v fs
-
-
-queryToView :: PhyloQuery -> Phylo -> PhyloView
-queryToView q p = processFilters (q ^.query_filters) p
-                $ processMetrics (q ^.query_metrics) p 
-                $ addChildNodes (q ^. query_childs) (q ^. query_lvl) (q ^. query_childsDepth) (q ^. query_verbose) (q ^. query_filiation) p
-                $ initPhyloView (q ^. query_lvl) "Phylo2000" "This is a Phylo" (q ^. query_filiation) (q ^. query_verbose) p
-
-
-defaultQuery :: PhyloQuery
-defaultQuery = PhyloQuery 3 Descendant False 0 [] [] [] Nothing Flat True
-
-
-urlQuery :: Text
-urlQuery = "level=3&childs=false&filter=LonelyBranchFilter(2,2,1):true&metric=BranchAge&tagger=BranchLabelFreq&tagger=GroupLabelCooc"
 
 -- | To do : add a queryParser from an URL and then update the defaultQuery
 urlToQuery :: Text -> PhyloQuery
 urlToQuery url = defaultQuery 
-              & query_lvl .~ 3
-              & query_childs .~ False
               & query_metrics %~ (++ [BranchAge])
               & query_filters %~ (++ [QueryFilter LonelyBranch [2,2,1]])
               & query_taggers %~ (++ [BranchLabelFreq,GroupLabelCooc])
 
 
+defaultQuery :: PhyloQuery
+defaultQuery = PhyloQuery 3 Descendant False 1 [] [] [] (Just (ByBranchAge,Asc)) Flat True
+
+
+urlQuery :: Text
+urlQuery = "level=3&childs=false&filter=LonelyBranchFilter(2,2,1):true&metric=BranchAge&tagger=BranchLabelFreq&tagger=GroupLabelCooc"
+
+
 toPhyloView :: Text -> Phylo -> PhyloView
 toPhyloView url p = queryToView (urlToQuery url) p
+
+
+phyloView :: PhyloView
+phyloView = toPhyloView urlQuery phylo6
 
 
 ------------------------------------------------------------------------
