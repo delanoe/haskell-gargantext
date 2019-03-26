@@ -265,7 +265,7 @@ SELECT nng.node_id, ng.id, ng.terms FROM nodes_ngrams nng
     AND nng.ngrams_type = ? -- NgramsTypeId
   GROUP BY nng.node_id, ng.id, ng.terms)
 
-SELECTx m.node_id, m.terms FROM nodesByNgramsMaster m
+SELECT m.node_id, m.terms FROM nodesByNgramsMaster m
 RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
 
   |]
