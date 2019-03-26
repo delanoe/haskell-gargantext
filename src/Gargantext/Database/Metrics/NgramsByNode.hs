@@ -101,9 +101,8 @@ groupNodesByNgramsWith :: (Text -> Text)
                        -> Map Text (Set NodeId)
                        -> Map Text (Set Text, Set NodeId)
 groupNodesByNgramsWith f m =
-      fromListWith (\a b -> (fst a <> fst b, snd a <> snd b))
-    $ map (\(t,ns) -> (f t, (Set.singleton t, ns)))
-    $ toList m
+      fromListWith (<>) $ map (\(t,ns) -> (f t, (Set.singleton t, ns)))
+                        $ toList m
 
 ------------------------------------------------------------------------
 getNodesByNgramsUser :: CorpusId -> NgramsType
