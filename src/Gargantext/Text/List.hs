@@ -60,8 +60,8 @@ buildNgramsTermsList l n m uCid mCid = do
   candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup l n m)
   --printDebug "candidate" (length candidates)
 
-  --let termList = toTermList (isStopTerm . fst) candidates
-  let termList = toTermList ((\_ -> False) . fst) candidates
+  let termList = toTermList (isStopTerm . fst) candidates
+  --let termList = toTermList ((\_ -> False) . fst) candidates
   --printDebug "termlist" (length termList)
 
   let ngs = List.concat $ map toNgramsElement termList
@@ -104,10 +104,6 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
       b = 400
 
 isStopTerm :: Text -> Bool
-isStopTerm x = Text.length x < 3
-             || not (all Char.isAlpha (Text.unpack x'))
-                where
-                  x' = foldl (\t -> Text.replace t "a")
-                              x
-                             ["-"," ","/","(",")"]
-
+isStopTerm x = Text.length x < 3 || any isStopChar (Text.unpack x)
+  where
+    isStopChar c = not (c `elem` ("- /()" :: [Char]) || Char.isAlpha c)
