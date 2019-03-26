@@ -31,7 +31,7 @@ import Gargantext.Database.Schema.User (insertUsersDemo)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.API.Node () -- instances
-import Gargantext.API.Settings (newDevEnvWith, runCmdDev, DevEnv)
+import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
 import System.Environment (getArgs)
 import Gargantext.Text.Parsers.GrandDebat (readFile, GrandDebatReference(..))
 import qualified Data.Text as Text
@@ -58,19 +58,17 @@ main = do
         flowCorpus (Text.pack user) (Text.pack name) (Multi FR) docs
 
 
-  env <- newDevEnvWith iniPath
-  -- Better if we keep only one call to runCmdDev.
-  _ <- if userCreate == "true"
-        then runCmdDev env createUsers
-        else pure 0 --(cs "false")
-  
-  _ <- runCmdDev env debatCorpus
-  {-
-  _ <- if corpusType == "csv"
-          then runCmdDev env csvCorpus
-          else if corpusType == "debat"
-            then runCmdDev env debatCorpus
-            else panic "corpusType unknown: try \"csv\" or \"debat\""
-  -}
-  pure ()
+  withDevEnv iniPath $ \env -> do
+    _ <- if userCreate == "true"
+          then runCmdDev env createUsers
+          else pure 0 --(cs "false")
 
+    _ <- runCmdDev env debatCorpus
+    {-
+    _ <- if corpusType == "csv"
+            then runCmdDev env csvCorpus
+            else if corpusType == "debat"
+              then runCmdDev env debatCorpus
+              else panic "corpusType unknown: try \"csv\" or \"debat\""
+    -}
+    pure ()

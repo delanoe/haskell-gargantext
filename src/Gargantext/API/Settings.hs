@@ -41,7 +41,6 @@ import Data.Maybe (fromMaybe)
 import Data.Either (either)
 import Data.Text
 import Data.Text.Encoding (encodeUtf8)
-import Data.Time.Units
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
 
@@ -53,14 +52,14 @@ import qualified Jose.Jwk as Jose
 import qualified Jose.Jwa as Jose
 
 import Control.Concurrent
-import Control.Debounce (mkDebounce)
-import Control.Exception (SomeException, finally, handle)
+import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
+import Control.Exception (finally)
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_lock)
+import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
 import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
@@ -171,21 +170,30 @@ makeLenses ''MockEnv
 repoSnapshot :: FilePath
 repoSnapshot = "repo.json"
 
-ignoreExc :: IO () -> IO ()
-ignoreExc = handle $ \(_ :: SomeException) -> return ()
-
+-- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: ToJSON a => a -> IO ()
-repoSaverAction a = ignoreExc $ do
-  -- TODO file locking
+repoSaverAction a = do
   withTempFile "." "tmp-repo.json" $ \fp h -> do
+    -- printDebug "repoSaverAction" fp
     L.hPut h $ encode a
     hClose h
     renameFile fp repoSnapshot
 
 mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
-mkRepoSaver repo_var = do
-  (saveAction, _) <- mkDebounce (10 :: Second) repoSaverAction
-  pure $ readMVar repo_var >>= saveAction
+mkRepoSaver repo_var = mkDebounce settings
+  where
+    settings = defaultDebounceSettings
+                 { debounceFreq   = 1000000 -- 1 second
+                 , debounceAction = withMVar repo_var repoSaverAction
+                   -- ^ Here this not only `readMVar` but `takeMVar`.
+                   -- Namely while repoSaverAction is saving no other change
+                   -- can be made to the MVar.
+                   -- This might be not efficent and thus reconsidered later.
+                   -- However this enables to safely perform a *final* save.
+                   -- See `cleanEnv`.
+                   -- Future work:
+                   -- * Add a new MVar just for saving.
+                 }
 
 readRepoEnv :: IO RepoEnv
 readRepoEnv = do
@@ -257,30 +265,33 @@ instance HasRepoSaver DevEnv where
 instance HasRepo DevEnv where
   repoEnv = dev_env_repo
 
-newDevEnvWith :: FilePath -> IO DevEnv
-newDevEnvWith file = do
-  param <- databaseParameters file
-  conn  <- connect param
-  repo  <- readRepoEnv
-  pure $ DevEnv
-    { _dev_env_conn = conn
-    , _dev_env_repo = repo
-    }
+cleanEnv :: HasRepo env => env -> IO ()
+cleanEnv env = do
+  r <- takeMVar (env ^. repoEnv . renv_var)
+  repoSaverAction r
+  unlockFile (env ^. repoEnv . renv_lock)
 
-withDevEnv :: (DevEnv -> IO a) -> IO a
-withDevEnv k = do
+withDevEnv :: FilePath -> (DevEnv -> IO a) -> IO a
+withDevEnv iniPath k = do
   env <- newDevEnv
-  k env `finally` unlockFile (env ^. repoEnv . renv_lock)
+  k env `finally` cleanEnv env
+
+  where
+    newDevEnv = do
+      param <- databaseParameters iniPath
+      conn  <- connect param
+      repo  <- readRepoEnv
+      pure $ DevEnv
+        { _dev_env_conn = conn
+        , _dev_env_repo = repo
+        }
 
 -- | Run Cmd Sugar for the Repl (GHCI)
 runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
-runCmdRepl f = withDevEnv $ \env -> runCmdDev env f
+runCmdRepl f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
 
 runCmdReplServantErr :: Cmd' DevEnv ServantErr a -> IO a
 runCmdReplServantErr = runCmdRepl
-
-newDevEnv :: IO DevEnv
-newDevEnv = newDevEnvWith "gargantext.ini"
 
 -- Use only for dev
 -- In particular this writes the repo file after running

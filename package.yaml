@@ -81,6 +81,7 @@ library:
   - aeson-pretty
   - async
   - attoparsec
+  - auto-update
   - base >=4.7 && <5
   - base16-bytestring
   - blaze-html
@@ -167,7 +168,6 @@ library:
   - text-metrics
   - time
   - time-locale-compat
-  - time-units
   - timezone-series
   - transformers
   - transformers-base

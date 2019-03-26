@@ -816,7 +816,9 @@ addListNgrams listId ngramsType nes = do
 putListNgrams :: RepoCmdM env err m
               => NodeId -> NgramsType
               -> [NgramsElement] -> m ()
+putListNgrams _ _ [] = pure ()
 putListNgrams listId ngramsType nes = do
+  -- printDebug "putListNgrams" (length nes)
   var <- view repoVar
   liftIO $ modifyMVar_ var $
     pure . (r_state . at ngramsType %~ (Just . (at listId %~ (Just . (m <>) . something)) . something))
