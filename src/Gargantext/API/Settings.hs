@@ -8,14 +8,12 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE MonoLocalBinds      #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
@@ -25,7 +23,6 @@ Portability : POSIX
 module Gargantext.API.Settings
     where
 
-import Control.Exception (Exception)
 import System.Directory
 import System.Log.FastLogger
 import GHC.Enum
@@ -276,7 +273,7 @@ withDevEnv k = do
   k env `finally` unlockFile (env ^. repoEnv . renv_lock)
 
 -- | Run Cmd Sugar for the Repl (GHCI)
-runCmdRepl :: (Show err, Exception err) => Cmd' DevEnv err a -> IO a
+runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
 runCmdRepl f = withDevEnv $ \env -> runCmdDev env f
 
 runCmdReplServantErr :: Cmd' DevEnv ServantErr a -> IO a
@@ -290,13 +287,11 @@ newDevEnv = newDevEnvWith "gargantext.ini"
 -- the command.
 -- This function is constrained to the DevEnv rather than
 -- using HasConnection and HasRepoVar.
-runCmdDev :: (Show err, Exception err) => DevEnv -> Cmd' DevEnv err a -> IO a
+runCmdDev :: Show err => DevEnv -> Cmd' DevEnv err a -> IO a
 runCmdDev env f =
   (either (fail . show) pure =<< runCmd env f)
     `finally`
   runReaderT saveRepo env
-
-instance Exception ()
 
 -- Use only for dev
 runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a

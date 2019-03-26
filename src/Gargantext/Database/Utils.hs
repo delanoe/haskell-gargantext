@@ -56,13 +56,11 @@ type CmdM' env err m =
   ( MonadReader env m
   , MonadError err m
   , MonadIO m
-  , Exception err
   )
 
 type CmdM env err m =
   ( CmdM' env err m
   , HasConnection env
-  , Exception err
   )
 
 type Cmd' env err a = forall m. CmdM' env err m => m a
@@ -75,7 +73,7 @@ mkCmd k = do
   conn <- view connection
   liftIO $ k conn
 
-runCmd :: (HasConnection env, Exception err) => env
+runCmd :: (HasConnection env) => env
        -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
@@ -91,14 +89,14 @@ runPGSQuery' :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
 runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
 
 runPGSQuery :: (MonadError err m, MonadReader env m,
-                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnection env, Exception err)
+                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnection env)
                 => PGS.Query -> q -> m [r]
 runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
   where
     printError c (SomeException e) = do
-      q' <- (PGS.formatQuery c q a :: IO DB.ByteString)
+      q' <- PGS.formatQuery c q a
       hPutStrLn stderr q'
-      throw e
+      throw (SomeException e)
 
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
