@@ -20,6 +20,7 @@ module Gargantext.Database.Metrics.NgramsByNode
   where
 
 import Data.Map.Strict (Map, fromListWith, elems, toList, fromList)
+import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (second, swap)
@@ -135,16 +136,26 @@ queryNgramsByNodeUser = [sql|
   |]
 ------------------------------------------------------------------------
 -- TODO add groups
-getOccByNgramsOnly :: CorpusId -> NgramsType -> [Text]
-                   -> Cmd err (Map Text Int)
-getOccByNgramsOnly cId nt ngs =
+getOccByNgramsOnlyFast :: CorpusId -> NgramsType -> [Text]
+                       -> Cmd err (Map Text Int)
+getOccByNgramsOnlyFast cId nt ngs =
   fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
 
--- just slower than getOccByNgramsOnly
-getOccByNgramsOnly' :: CorpusId -> NgramsType -> [Text]
-                    -> Cmd err (Map Text Int)
-getOccByNgramsOnly' cId nt ngs =
+-- just slower than getOccByNgramsOnlyFast
+getOccByNgramsOnlySlow :: CorpusId -> NgramsType -> [Text]
+                       -> Cmd err (Map Text Int)
+getOccByNgramsOnlySlow cId nt ngs =
   Map.map Set.size <$> getNodesByNgramsOnlyUser cId nt ngs
+
+getOccByNgramsOnlySafe :: CorpusId -> NgramsType -> [Text]
+                       -> Cmd err (Map Text Int)
+getOccByNgramsOnlySafe cId nt ngs = do
+  printDebug "getOccByNgramsOnlySafe" (cId, nt, length ngs)
+  fast <- getOccByNgramsOnlyFast cId nt ngs
+  slow <- getOccByNgramsOnlySlow cId nt ngs
+  when (fast /= slow) $
+    printDebug "getOccByNgramsOnlySafe: difference" (diff slow fast :: PatchMap Text (Replace (Maybe Int)))
+  pure slow
 
 selectNgramsOccurrencesOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
                            -> Cmd err [(Text, Int)]

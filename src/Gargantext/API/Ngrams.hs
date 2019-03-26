@@ -72,7 +72,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 --import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnly)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlySafe)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Utils (fromField', HasConnection)
 --import Gargantext.Database.Lists (listsWith)
@@ -936,7 +936,7 @@ getTableNgrams cId tabType listId limit_ moffset
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
   table <- getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
-  occurrences <- getOccByNgramsOnly cId ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+  occurrences <- getOccByNgramsOnlySafe cId ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
 
   let
     setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
