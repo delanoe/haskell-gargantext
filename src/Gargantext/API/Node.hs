@@ -68,8 +68,8 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Map as Map
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 
-import qualified Gargantext.Text.List.Learn as Learn
-import qualified Data.Vector as Vec
+--import qualified Gargantext.Text.List.Learn as Learn
+--import qualified Data.Vector as Vec
 
 type GargServer api =
   forall env m.
@@ -405,9 +405,8 @@ getMetrics cId maybeListId tabType maybeLimit = do
     errorMsg     = "API.Node.metrics: key absent"
   
   --{-
-  let metrics' = Map.fromListWith (<>) $ map (\(Metric _ s1 s2 lt) -> (lt, [Vec.fromList [s1,s2]])) metrics
-  
-  _ <- liftIO $ Learn.grid metrics'
+  --let metrics' = Map.fromListWith (<>) $ map (\(Metric _ s1 s2 lt) -> (lt, [Vec.fromList [s1,s2]])) metrics
+  --_ <- liftIO $ Learn.grid metrics'
   --}
 
   pure $ Metrics metrics
