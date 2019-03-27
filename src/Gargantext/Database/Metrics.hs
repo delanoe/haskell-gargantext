@@ -59,8 +59,8 @@ getMetrics cId maybeListId tabType maybeLimit = do
 
 getLocalMetrics  :: (FlowCmdM env ServantErr m)
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
-            -> m ( Map Text (ListType, Maybe Text)
-                 , Map Text (Maybe RootTerm)
+          -> m ( Map Text (ListType, Maybe Text)
+               , Map Text (Maybe RootTerm)
                  , Map Text (Vec.Vector Double)
                  )
 getLocalMetrics cId maybeListId tabType maybeLimit = do

@@ -111,6 +111,7 @@ library:
   - http-types
   - hsparql
   - hstatistics
+  - HSvm
   - hxt
   - hlcm
   - ini

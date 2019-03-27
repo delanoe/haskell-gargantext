@@ -21,7 +21,8 @@ extra-deps:
   commit: ba5347e7d8a13ce5275af8470c15b2305fbb23af
 - git: https://github.com/delanoe/hstatistics.git
   commit: 90eef7604bb230644c2246eccd094d7bfefcb135
-
+- git: https://github.com/paulrzcz/HSvm.git
+  commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
 #- opaleye-0.6.7002.0
 - KMP-0.1.0.2
 - accelerate-1.2.0.0
