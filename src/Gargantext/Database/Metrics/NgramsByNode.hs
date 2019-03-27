@@ -59,14 +59,30 @@ sortTficf :: (Map Text (Double, Set Text))
 sortTficf  = List.sortOn (fst . snd) . toList
 
 
-getTficf' :: UserCorpusId -> MasterCorpusId -> (Text -> Text)
+getTficf' :: UserCorpusId -> MasterCorpusId -> NgramsType -> (Text -> Text)
          -> Cmd err (Map Text (Double, Set Text))
-getTficf' u m f = do
-  u' <- getNodesByNgramsUser   u NgramsTerms
+getTficf' u m nt f = do
+  u' <- getNodesByNgramsUser   u nt
   m' <- getNodesByNgramsMaster u m
 
   pure $ toTficfData (countNodesByNgramsWith f u')
                      (countNodesByNgramsWith f m')
+
+--{-
+getTficfWith :: UserCorpusId -> MasterCorpusId
+           -> NgramsType -> Map Text (Maybe Text)
+           -> Cmd err (Map Text (Double, Set Text))
+getTficfWith u m nt mtxt = do
+  u' <- getNodesByNgramsOnlyUser   u nt (Map.keys mtxt)
+  m' <- getNodesByNgramsMaster     u m
+  
+  let f x = case Map.lookup x mtxt of
+        Nothing -> x
+        Just x' -> maybe x identity x'
+  
+  pure $ toTficfData (countNodesByNgramsWith f u')
+                     (countNodesByNgramsWith f m')
+--}
 
 
 type Context = (Double, Map Text (Double, Set Text))
@@ -269,7 +285,3 @@ SELECT m.node_id, m.terms FROM nodesByNgramsMaster m
 RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
 
   |]
-
-
-
-

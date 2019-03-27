@@ -57,7 +57,7 @@ buildNgramsOthersList uCid groupIt nt = do
 buildNgramsTermsList :: Lang -> Int -> Int -> UserCorpusId -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m uCid mCid = do
-  candidates   <- sortTficf <$> getTficf' uCid mCid (ngramsGroup l n m)
+  candidates   <- sortTficf <$> getTficf' uCid mCid NgramsTerms (ngramsGroup l n m)
   --printDebug "candidate" (length candidates)
 
   let termList = toTermList (isStopTerm . fst) candidates

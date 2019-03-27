@@ -11,6 +11,7 @@ Node API
 -}
 
 
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 
@@ -20,31 +21,62 @@ module Gargantext.Database.Metrics
 import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (TabType(..), ngramsTypeFromTabType)
-import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm)
 import Gargantext.Core.Types (ListType(..), Limit)
 import Gargantext.Database.Flow (FlowCmdM)
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser, getTficfWith)
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Types.Node (ListId, CorpusId)
+import Gargantext.Database.Flow (getOrMkRootWithCorpus)
+import Gargantext.Database.Config (userMaster)
 import Gargantext.Prelude
-import Gargantext.Text.Metrics (scored, Scored(..))
+import Gargantext.Text.Metrics (scored, Scored(..), localMetrics, toScored)
 import Servant (ServantErr)
-import qualified Data.Map as Map
+import qualified Data.Map    as Map
+import qualified Data.Vector.Storable as Vec
+
 
 getMetrics' :: FlowCmdM env ServantErr m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
 getMetrics' cId maybeListId tabType maybeLimit = do
+  (ngs, _, myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit 
+  pure (ngs, scored myCooc)
 
-  lId <- case maybeListId of
-    Nothing   -> defaultList cId
-    Just lId' -> pure lId'
 
-  let ngramsType = ngramsTypeFromTabType tabType
+getMetrics :: FlowCmdM env ServantErr m
+            => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
+            -> m (Map Text (ListType, Maybe Text), [Scored Text])
+getMetrics cId maybeListId tabType maybeLimit = do
+  (ngs, ngs', metrics)    <- getLocalMetrics cId maybeListId tabType maybeLimit
+  
+  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
+  
+  metrics' <- getTficfWith cId masterCorpusId (ngramsTypeFromTabType tabType) ngs'
 
-  ngs'    <- mapTermListRoot [lId] ngramsType
-  let ngs = Map.unions $ map (\t -> filterListWithRoot t ngs')
-                             [GraphTerm, StopTerm, CandidateTerm]
+  pure (ngs , toScored [metrics, Map.fromList $ map (\(a,b) -> (a, Vec.fromList [fst b])) $ Map.toList metrics'])
+
+
+getLocalMetrics  :: (FlowCmdM env ServantErr m)
+            => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
+            -> m ( Map Text (ListType, Maybe Text)
+                 , Map Text (Maybe RootTerm)
+                 , Map Text (Vec.Vector Double)
+                 )
+getLocalMetrics cId maybeListId tabType maybeLimit = do
+  (ngs, ngs', myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit 
+  pure (ngs, ngs', localMetrics myCooc)
+
+
+
+getNgramsCooc :: (FlowCmdM env ServantErr m)
+            => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
+            -> m ( Map Text (ListType, Maybe Text)
+                 , Map Text (Maybe RootTerm)
+                 , Map (Text, Text) Int
+                 )
+getNgramsCooc cId maybeListId tabType maybeLimit = do
+  (ngs', ngs) <- getNgrams cId maybeListId tabType
   
   let
     take' Nothing xs  = xs
@@ -52,7 +84,22 @@ getMetrics' cId maybeListId tabType maybeLimit = do
   
   myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal True)
                             <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId ngramsType (take' maybeLimit $ Map.keys ngs)
+                            <$> getNodesByNgramsOnlyUser cId (ngramsTypeFromTabType tabType)
+                                                             (take' maybeLimit $ Map.keys ngs)
+  pure $ (ngs', ngs, myCooc)
 
-  pure $ (ngs', scored myCooc)
+
+
+getNgrams :: (FlowCmdM env ServantErr m)
+            => CorpusId -> Maybe ListId -> TabType
+            -> m (Map Text (ListType, Maybe Text), Map Text (Maybe RootTerm))
+getNgrams cId maybeListId tabType = do
+  lId <- case maybeListId of
+    Nothing   -> defaultList cId
+    Just lId' -> pure lId'
+
+  lists    <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType)
+  let maybeSyn = Map.unions $ map (\t -> filterListWithRoot t lists)
+                             [GraphTerm, StopTerm, CandidateTerm]
+  pure (lists, maybeSyn)
 

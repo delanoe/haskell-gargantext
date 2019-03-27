@@ -42,33 +42,16 @@ type GraphListSize = Int
 type InclusionSize = Int
 
 
-takeScored :: Ord t => GraphListSize -> InclusionSize -> Map (t,t) Int -> [t]
-takeScored listSize incSize = map _scored_terms
-                            . linearTakes listSize incSize _scored_speGen
-                                                           _scored_incExc
-                            . scored
+
+toScored :: Ord t => [Map t (Vec.Vector Double)] -> [Scored t] 
+toScored = map2scored
+         . (reduceTo (Dimension 2))
+         . (Map.filter (\v -> Vec.length v > 1))
+         . (Map.unionsWith (<>))
 
 
 scored :: Ord t => Map (t,t) Int -> [Scored t]
-scored = map2scored . (reduceDim 2) . scored2map
-
-
-data Scored ts = Scored
-  { _scored_terms  :: !ts
-  , _scored_incExc :: !InclusionExclusion
-  , _scored_speGen :: !SpecificityGenericity
-  } deriving (Show)
-
-
-reduceDim :: Ord t => Int -> Map t (Vec.Vector Double)
-                          -> Map t (Vec.Vector Double)
-reduceDim d ss = Map.fromList $ zip txts $ elems $ pcaReduceN ss'' d
-  where
-    ss'' :: Array Int (Vec.Vector Double)
-    ss'' = listArray (1, List.length ss') ss'
-
-    (txts,ss') = List.unzip $ Map.toList ss
-
+scored = map2scored . (reduceTo (Dimension 2)) . scored2map
 
 scored2map :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
 scored2map m = Map.fromList $ map (\(Scored t i s) -> (t, Vec.fromList [i,s])) $ scored' m
@@ -76,6 +59,42 @@ scored2map m = Map.fromList $ map (\(Scored t i s) -> (t, Vec.fromList [i,s])) $
 map2scored :: Ord t => Map t (Vec.Vector Double) -> [Scored t]
 map2scored = map (\(t, ds) -> Scored t (Vec.head ds) (Vec.last ds)) . Map.toList
 
+-- TODO change type with (x,y)
+data Scored ts = Scored
+  { _scored_terms  :: !ts
+  , _scored_incExc :: !InclusionExclusion
+  , _scored_speGen :: !SpecificityGenericity
+  } deriving (Show)
+
+data Dimension = Dimension Int
+
+reduceTo :: Ord t
+         => Dimension
+         -> Map t (Vec.Vector Double)
+         -> Map t (Vec.Vector Double)
+reduceTo (Dimension d) ss = Map.fromList $ zip txts $ elems $ pcaReduceN ss'' d
+  where
+    ss'' :: Array Int (Vec.Vector Double)
+    ss'' = listArray (1, List.length ss') ss'
+
+    (txts,ss') = List.unzip $ Map.toList ss
+
+
+localMetrics :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
+localMetrics m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [inc,spe]))
+                                       (Map.toList fi)
+                                       scores
+  where
+    (ti, fi) = createIndices m
+    (is, ss) = incExcSpeGen $ cooc2mat ti m
+    scores   = DAA.toList
+             $ DAA.run
+             $ DAA.zip (DAA.use is) (DAA.use ss)
+
+
+
+
+-- TODO Code to be remove below
 -- TODO in the textflow we end up needing these indices , it might be
 -- better to compute them earlier and pass them around.
 scored' :: Ord t => Map (t,t) Int -> [Scored t]
@@ -86,6 +105,18 @@ scored' m = zipWith (\(_,t) (inc,spe) -> Scored t (inc) (spe)) (Map.toList fi) s
     scores   = DAA.toList
              $ DAA.run
              $ DAA.zip (DAA.use is) (DAA.use ss)
+
+
+
+
+
+
+takeScored :: Ord t => GraphListSize -> InclusionSize -> Map (t,t) Int -> [t]
+takeScored listSize incSize = map _scored_terms
+                            . linearTakes listSize incSize _scored_speGen
+                                                           _scored_incExc
+                            . scored
+
 
 -- | Filter Scored data
 -- >>> linearTakes 2 3 fst snd $ Prelude.zip ([1..10] :: [Int]) (reverse $ [1..10] :: [Int])
@@ -103,18 +134,4 @@ linearTakes gls incSize speGen incExc = take gls
                       . splitEvery incSize
                       . sortOn speGen
 
-
--- | Filters
-{- splitKmeans k scores
-TODO: benchmark with accelerate-example kmeans version
-splitKmeans x xs = L.concat $ map elements
-                 $ V.take (k-1)
-                 $ kmeans (\i -> VU.fromList ([(_scored_incExc i :: Double)]))
-                          euclidSq x xs
-
--- Kmeans split into (Clusters::Int) main clusters with Inclusion/Exclusion (relevance score)
--- Sample the main cluster ordered by specificity/genericity in (SampleBins::Double) parts
--- each parts is then ordered by Inclusion/Exclusion
--- take n scored terms in each parts where n * SampleBins = MapListSize.
--}
 

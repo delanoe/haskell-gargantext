@@ -47,7 +47,7 @@ import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.Core.Types (Offset, Limit, ListType(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
-import Gargantext.Database.Metrics (getMetrics')
+import qualified Gargantext.Database.Metrics as Metrics
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
@@ -394,12 +394,12 @@ type MetricsAPI = Summary "SepGen IncExc metrics"
 
 getMetrics :: NodeId -> GargServer MetricsAPI
 getMetrics cId maybeListId tabType maybeLimit = do
-  (ngs', scores) <- getMetrics' cId maybeListId tabType maybeLimit
+  (ngs', scores) <- Metrics.getMetrics' cId maybeListId tabType maybeLimit
 
   let
-    metrics  = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
-    errorMsg = "API.Node.metrics: key absent"
+    metrics      = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
+    errorMsg     = "API.Node.metrics: key absent"
 
   pure $ Metrics metrics
 

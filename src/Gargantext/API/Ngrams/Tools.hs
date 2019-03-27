@@ -79,7 +79,7 @@ groupNodesByNgrams syn occs = Map.fromListWith (<>) occs'
   where
     occs' = map toSyn (Map.toList occs)
     toSyn (t,ns) = case Map.lookup t syn of
-      Nothing -> panic $ "Garg.API.Ngrams.Tools: groupNodesByNgrams, unknown key: " <> t
+      Nothing -> panic $ "[Garg.API.Ngrams.Tools.groupNodesByNgrams] unknown key: " <> t
       Just  r -> case r of
         Nothing  -> (t, ns)
         Just  r' -> (r',ns)
