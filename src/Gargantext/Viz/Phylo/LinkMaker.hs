@@ -19,7 +19,7 @@ module Gargantext.Viz.Phylo.LinkMaker
 
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sort, concat, nub, words, zip, sortOn, head, null, tail, splitAt, (!!), elem)
-import Data.Map                     (Map)
+import Data.Map                     (Map,(!))
 import Data.Set                     (Set)
 import Data.Tuple.Extra
 
@@ -85,19 +85,19 @@ setLevelLinks (lvl,lvl') p = alterPhyloGroups (linkGroupsByLevel (lvl,lvl') p) p
 
 
 -- | To apply the corresponding proximity function based on a given Proximity
-getProximity :: (Proximity,[Double]) -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-getProximity (prox,param) g1 g2 = case prox of 
-  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard (param !! 1) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
+getProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+getProximity prox g1 g2 = case (prox ^. proximity_name) of 
+  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard (getSensibility prox) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
   Hamming            -> ((getGroupId g2),hamming (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
   _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
 
 
 -- | To get the next or previous PhyloPeriod based on a given PhyloPeriodId
-getNextPeriods :: PairTo -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId] 
+getNextPeriods :: Filiation -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId] 
 getNextPeriods to id l = case to of 
-    Childs  -> unNested id ((tail . snd) next) 
-    Parents -> unNested id ((reverse . fst) next)
-    _       -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] PairTo type not defined")
+    Descendant -> unNested id ((tail . snd) next) 
+    Ascendant  -> unNested id ((reverse . fst) next)
+    _          -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] Filiation type not defined")
     where 
       --------------------------------------
       next :: ([PhyloPeriodId], [PhyloPeriodId])
@@ -122,11 +122,11 @@ getNextPeriods to id l = case to of
 
 
 -- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )  
-findBestCandidates :: PairTo -> Int -> Int -> (Proximity,[Double]) -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
-findBestCandidates to depth max (prox,param) group p
+findBestCandidates :: Filiation -> Int -> Int -> Proximity -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
+findBestCandidates to depth max prox group p
   | depth > max || null next = [] 
   | (not . null) best = take 2 best
-  | otherwise = findBestCandidates to (depth + 1) max (prox,param) group p   
+  | otherwise = findBestCandidates to (depth + 1) max prox group p   
   where
     --------------------------------------
     next :: [PhyloPeriodId]
@@ -136,23 +136,23 @@ findBestCandidates to depth max (prox,param) group p
     candidates = getGroupsWithFilters (getGroupLevel group) (head next) p
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
-    scores = map (\group' -> getProximity (prox,param) group group') candidates
+    scores = map (\group' -> getProximity prox group group') candidates
     --------------------------------------
     best :: [(PhyloGroupId, Double)]
     best = reverse
          $ sortOn snd 
-         $ filter (\(id,score) -> case prox of 
-            WeightedLogJaccard -> score >= (param !! 0)
-            Hamming            -> score <= (param !! 0)) scores
+         $ filter (\(id,score) -> case (prox ^. proximity_name) of 
+            WeightedLogJaccard -> score >= fromJust (prox ^. proximity_threshold)
+            Hamming            -> score <= fromJust (prox ^. proximity_threshold)) scores
     --------------------------------------
 
 
 -- | To add a new list of Pointers into an existing Childs/Parents list of Pointers 
-makePair :: PairTo -> PhyloGroup -> [(PhyloGroupId, Double)] -> PhyloGroup
+makePair :: Filiation -> PhyloGroup -> [(PhyloGroupId, Double)] -> PhyloGroup
 makePair to group ids = case to of 
-    Childs  -> over (phylo_groupPeriodChilds) addPointers group
-    Parents -> over (phylo_groupPeriodParents) addPointers group
-    _       -> panic ("[ERR][Viz.Phylo.Example.makePair] PairTo type not defined")
+    Descendant  -> over (phylo_groupPeriodChilds) addPointers group
+    Ascendant   -> over (phylo_groupPeriodParents) addPointers group
+    _           -> panic ("[ERR][Viz.Phylo.Example.makePair] Filiation type not defined")
     where
       -------------------------------------- 
       addPointers :: [Pointer] -> [Pointer]
@@ -161,8 +161,8 @@ makePair to group ids = case to of
 
 
 -- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
-interTempoMatching :: PairTo -> Level -> (Proximity,[Double]) -> Phylo -> Phylo
-interTempoMatching to lvl (prox,param) p = alterPhyloGroups
+interTempoMatching :: Filiation -> Level -> Proximity -> Phylo -> Phylo
+interTempoMatching to lvl prox p = alterPhyloGroups
                                     (\groups -> 
                                       map (\group ->
                                             if (getGroupLevel group) == lvl
@@ -170,7 +170,7 @@ interTempoMatching to lvl (prox,param) p = alterPhyloGroups
                                               let
                                                 --------------------------------------
                                                 candidates :: [(PhyloGroupId, Double)] 
-                                                candidates = findBestCandidates to 1 5 (prox,param) group p
+                                                candidates = findBestCandidates to 1 5 prox group p
                                                 --------------------------------------
                                               in 
                                                 makePair to group candidates

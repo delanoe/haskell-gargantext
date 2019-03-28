@@ -43,6 +43,21 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
+data PhyloQuery = PhyloQuery 
+    { _phyloQuery_phyloName  :: Text
+    , _phyloQuery_phyloDescription :: Text
+
+    , _phyloQuery_timeGrain  :: Int
+    , _phyloQuery_timeSteps  :: Int
+    
+    , _phyloQuery_fstCluster :: Clustering
+    , _phyloQuery_timeMatching :: Proximity
+    
+    , _phyloQuery_nthLevel :: Level
+    , _phyloQuery_nthCluster :: Clustering
+    } deriving (Show)
+
+
 data PhyloExport =
      PhyloExport { _phyloExport_param :: PhyloParam
                  , _phyloExport_data :: Phylo
@@ -53,6 +68,7 @@ data PhyloParam =
      PhyloParam { _phyloParam_version     :: Text -- Double ?
                 , _phyloParam_software    :: Software
                 , _phyloParam_params      :: Hash
+                , _phyloParam_query       :: Maybe PhyloQuery
      } deriving (Generic, Show)
 
 type Hash = Text
@@ -185,12 +201,21 @@ data PhyloError = LevelDoesNotExist
           deriving (Show)               
 
 
--- | A List of Proximity mesures or strategies 
-data Proximity  = WeightedLogJaccard | Hamming | FromPairs
--- | A List of Clustering methods 
-data Clustering  = Louvain | RelatedComponents
-
-data PairTo = Childs | Parents 
+-- | A List of Proximity methods names
+data ProximityName  = WeightedLogJaccard | Hamming | Filiation deriving (Show)
+-- | A List of Clustering methods names
+data ClusteringName = Louvain | RelatedComponents | FrequentItemSet deriving (Show)
+-- | A constructor for Proximities
+data Proximity = Proximity
+  { _proximity_name      :: ProximityName
+  , _proximity_params    :: Map Text Double
+  , _proximity_threshold :: Maybe Double } deriving (Show)
+-- | A constructor for Clustering
+data Clustering = Clustering
+  { _clustering_name       :: ClusteringName
+  , _clustering_params     :: Map Text Double
+  , _clustering_paramsBool :: Map Text Bool
+  , _clustering_proximity  :: Maybe Proximity } deriving (Show)
 
 ------------------------------------------------------------------------
 -- | To export a Phylo | --
@@ -261,8 +286,8 @@ data QueryFilter = QueryFilter
   }
 
 
--- | A PhyloQuery is the structured representation of a user query to be applied to a Phylo
-data PhyloQuery = PhyloQuery 
+-- | A PhyloQueryView is the structured representation of a user query to be applied to a Phylo
+data PhyloQueryView = PhyloQueryView 
   { _query_lvl    :: Level
 
   -- Does the PhyloGraph contain ascendant, descendant or a complete Filiation ?
@@ -300,13 +325,16 @@ makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
 makeLenses ''PhyloView
-makeLenses ''PhyloQuery
+makeLenses ''PhyloQueryView
 makeLenses ''PhyloBranch
 makeLenses ''PhyloNode
 makeLenses ''PhyloEdge
+makeLenses ''Proximity
+makeLenses ''Clustering
 makeLenses ''QueryFilter
+makeLenses ''PhyloQuery
 
--- | JSON instances
+-- | JSON instances 
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
@@ -314,6 +342,11 @@ $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
 -- 
 $(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
+$(deriveJSON (unPrefix "_clustering_"  ) ''Clustering  )
+$(deriveJSON (unPrefix "_proximity_"   ) ''Proximity   )
+$(deriveJSON (unPrefix "") ''ProximityName )
+$(deriveJSON (unPrefix "") ''ClusteringName )
+$(deriveJSON (unPrefix "_phyloQuery_"  ) ''PhyloQuery  )
 $(deriveJSON (unPrefix "_phyloExport_" ) ''PhyloExport )
 
 -- | TODO XML instances

@@ -20,7 +20,7 @@ module Gargantext.Viz.Phylo.Tools
 import Control.Lens         hiding (both, Level)
 import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, union, sortOn)
 import Data.Maybe           (mapMaybe)
-import Data.Map             (Map, mapKeys, member, elems, adjust)
+import Data.Map             (Map, mapKeys, member, elems, adjust, (!))
 import Data.Set             (Set)
 import Data.Text            (Text, toLower)
 import Data.Tuple.Extra
@@ -136,7 +136,31 @@ getBranchIdsWith lvl p = sortOn snd
 
 -- | To get the Meta value of a PhyloBranch 
 getBranchMeta :: Text -> PhyloBranch -> Double 
-getBranchMeta k b = (b ^. phylo_branchMeta) Map.! k
+getBranchMeta k b = (b ^. phylo_branchMeta) ! k
+
+
+-- | To get the Name of a Clustering Methods
+getClusterName :: Clustering -> ClusteringName
+getClusterName c = _clustering_name c
+
+
+-- | To get the params of a Clustering Methods
+getClusterParam :: Clustering -> Text -> Double
+getClusterParam c k = if (member k $ _clustering_params c)
+                      then (_clustering_params c) Map.! k
+                      else panic "[ERR][Viz.Phylo.Tools.getClusterParam] the key is not in params"
+
+
+-- | To get the boolean params of a Clustering Methods
+getClusterParamBool :: Clustering -> Text -> Bool
+getClusterParamBool c k = if (member k $ _clustering_paramsBool c)
+                      then (_clustering_paramsBool c) Map.! k
+                      else panic "[ERR][Viz.Phylo.Tools.getClusterParamBool] the key is not in paramsBool"
+
+
+-- | To get the first clustering method to apply to get the level 1 of a Phylo
+getFstCluster :: PhyloQuery -> Clustering
+getFstCluster q = q ^. phyloQuery_fstCluster
 
 
 -- | To get the foundations of a Phylo
@@ -355,6 +379,16 @@ getNodesInBranches v = filter (\n -> isJust $ n ^. phylo_nodeBranchId)
                      $ v ^. phylo_viewNodes
 
 
+-- | To get the cluster methods to apply to the Nths levels of a Phylo
+getNthCluster :: PhyloQuery -> Clustering
+getNthCluster q = q ^. phyloQuery_nthCluster
+
+
+-- | To get the Sup Level of a reconstruction of a Phylo from a PhyloQuery
+getNthLevel :: PhyloQuery -> Level
+getNthLevel q = q ^. phyloQuery_nthLevel
+
+
 -- | To get the PhylolevelId of a given PhyloLevel
 getPhyloLevelId :: PhyloLevel -> PhyloLevelId
 getPhyloLevelId = _phylo_levelId
@@ -376,6 +410,13 @@ getPhyloPeriodId :: PhyloPeriod -> PhyloPeriodId
 getPhyloPeriodId prd = _phylo_periodId prd 
 
 
+-- | To get the sensibility of a Proximity if it exists
+getSensibility :: Proximity -> Double
+getSensibility prox = if (member "sensibility" $ prox ^. proximity_params)
+                      then (prox ^. proximity_params) ! "sensibility"
+                      else panic "[ERR][Viz.Phylo.Tools.getSensibility] sensibility not in params"
+
+
 -- | To get the PhyloGroupId of the Source of a PhyloEdge 
 getSourceId :: PhyloEdge -> PhyloGroupId
 getSourceId e = e ^. phylo_edgeSource 
@@ -384,6 +425,21 @@ getSourceId e = e ^. phylo_edgeSource
 -- | To get the PhyloGroupId of the Target of a PhyloEdge
 getTargetId :: PhyloEdge -> PhyloGroupId
 getTargetId e = e ^. phylo_edgeTarget
+
+
+-- | To get the Grain of the PhyloPeriods from a PhyloQuery
+getTimeGrain :: PhyloQuery -> Int
+getTimeGrain q = q ^. phyloQuery_timeGrain 
+
+
+-- | To get the intertemporal matching strategy to apply to a Phylo from a PhyloQuery
+getTimeMatching :: PhyloQuery -> Proximity
+getTimeMatching q = q ^. phyloQuery_timeMatching
+
+
+-- | To get the Steps of the PhyloPeriods from a PhyloQuery
+getTimeSteps :: PhyloQuery -> Int 
+getTimeSteps q = q ^. phyloQuery_timeSteps
 
 
 -- | To get all the PhyloBranchIds of a PhyloView

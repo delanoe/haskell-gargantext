@@ -17,6 +17,8 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Cluster
   where
 
+import Control.Lens     hiding (makeLenses, both, Level)
+
 import Data.List        (last,head,union,concat,null,nub,(++),init,tail,(!!))
 import Data.Map         (Map,elems,adjust,unionWith,intersectionWith)
 import Data.Set         (Set)
@@ -35,18 +37,18 @@ import qualified Data.Set    as Set
 
 
 -- | To apply a Clustering method to a PhyloGraph
-graphToClusters :: (Clustering,[Double]) -> GroupGraph -> [Cluster]
-graphToClusters (clust,param) (nodes,edges) = case clust of 
+graphToClusters :: Clustering -> GroupGraph -> [Cluster]
+graphToClusters clust (nodes,edges) = case clust ^. clustering_name of 
   Louvain           -> undefined -- louvain (nodes,edges)
   RelatedComponents -> relatedComp 0 (head nodes) (tail nodes,edges) [] []   
 
 
 -- | To transform a Phylo into Clusters of PhyloGroups at a given level
-phyloToClusters :: Level -> (Proximity,[Double]) -> (Clustering,[Double]) -> Phylo -> Map (Date,Date) [Cluster]
-phyloToClusters lvl (prox,param) (clus,param') p = Map.fromList 
-                                                 $ zip (getPhyloPeriods p) 
-                                                       (map (\prd -> let graph = groupsToGraph (prox,param) (getGroupsWithFilters lvl prd p) p
-                                                                     in if null (fst graph) 
-                                                                        then []
-                                                                        else graphToClusters (clus,param') graph) 
-                                                       (getPhyloPeriods p))
+phyloToClusters :: Level -> Proximity -> Clustering -> Phylo -> Map (Date,Date) [Cluster]
+phyloToClusters lvl prox clus p = Map.fromList 
+                                $ zip (getPhyloPeriods p) 
+                                   (map (\prd -> let graph = groupsToGraph prox (getGroupsWithFilters lvl prd p) p
+                                                 in if null (fst graph) 
+                                                    then []
+                                                    else graphToClusters clus graph) 
+                                   (getPhyloPeriods p))

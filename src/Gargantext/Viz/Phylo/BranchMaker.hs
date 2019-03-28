@@ -20,7 +20,7 @@ module Gargantext.Viz.Phylo.BranchMaker
 import Control.Lens     hiding (both, Level)
 
 import Data.List        (last,head,union,concat,null,nub,(++),init,tail,(!!))
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith)
+import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,empty,(!))
 import Data.Set         (Set)
 import Data.Tuple       (fst, snd)
 
@@ -44,19 +44,19 @@ graphToBranches lvl (nodes,edges) p = concat
 
 
 -- | To transform a list of PhyloGroups into a PhyloGraph by using a given Proximity mesure
-groupsToGraph :: (Proximity,[Double]) -> [PhyloGroup] -> Phylo -> GroupGraph
-groupsToGraph (prox,param) groups p = (groups,edges)
+groupsToGraph :: Proximity -> [PhyloGroup] -> Phylo -> GroupGraph
+groupsToGraph prox groups p = (groups,edges)
   where 
     edges :: GroupEdges
-    edges = case prox of  
-      FromPairs          -> (nub . concat) $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
+    edges = case prox ^. proximity_name of  
+      Filiation          -> (nub . concat) $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
                                                         ++
                                                         (map (\g' -> ((g,g'),1)) $ getGroupChilds g p)) groups 
-      WeightedLogJaccard -> filter (\edge -> snd edge >= (param !! 0)) 
+      WeightedLogJaccard -> filter (\edge -> snd edge >= (fromJust (prox ^. proximity_threshold))) 
                           $ map (\(x,y) -> ((x,y), weightedLogJaccard 
-                                (param !! 1) (getGroupCooc x) 
+                                (getSensibility prox) (getGroupCooc x) 
                                 (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups
-      Hamming            -> filter (\edge -> snd edge <= (param !! 0)) 
+      Hamming            -> filter (\edge -> snd edge <= (fromJust (prox ^. proximity_threshold))) 
                           $ map (\(x,y) -> ((x,y), hamming (getGroupCooc x) 
                                 (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups                          
       _                  -> undefined 
@@ -72,5 +72,5 @@ setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst . head) $ fi
     bs = graphToBranches lvl graph p
     --------------------------------------
     graph :: GroupGraph
-    graph = groupsToGraph (FromPairs,[]) (getGroupsWithLevel lvl p) p
+    graph = groupsToGraph (Proximity Filiation empty Nothing) (getGroupsWithLevel lvl p) p
     --------------------------------------

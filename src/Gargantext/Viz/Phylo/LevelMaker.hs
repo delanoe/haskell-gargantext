@@ -23,11 +23,13 @@ import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKe
 import Data.Set                     (Set)
 import Data.Text                    (Text, words)
 import Data.Tuple.Extra
+import Data.Vector                  (Vector)
 
 import Gargantext.Prelude                   hiding (head)
 import Gargantext.Viz.Phylo.Aggregates.Cluster
 import Gargantext.Viz.Phylo.Aggregates.Cooc
 import Gargantext.Viz.Phylo.Aggregates.Document
+import Gargantext.Viz.Phylo.Aggregates.Fis
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.LinkMaker
@@ -37,6 +39,7 @@ import qualified Data.List   as List
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 import qualified Data.Text   as Text
+import qualified Data.Vector as Vector
 
 
 -- | A typeClass for polymorphic PhyloLevel functions
@@ -141,6 +144,7 @@ toPhyloLevel lvl m p = alterPhyloPeriods
                                         ) period) p
 
 
+-- | To init a Phylo
 initPhylo :: Grain -> Step -> [(Date,Text)] -> [Ngrams] -> (Ngrams -> Ngrams) -> Phylo
 initPhylo g s c a f = addPhyloLevel 0 (corpusToDocs f c base) base
   where
@@ -151,18 +155,74 @@ initPhylo g s c a f = addPhyloLevel 0 (corpusToDocs f c base) base
 
 
 -- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks 
-toNthLevel :: Level -> (Proximity,[Double]) -> (Clustering,[Double]) -> (Proximity,[Double]) -> Phylo -> Phylo
-toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3) p 
+toNthLevel :: Level -> Proximity -> Clustering -> Phylo -> Phylo
+toNthLevel lvlMax prox clus p 
   | lvl >= lvlMax = p
-  | otherwise     = toNthLevel lvlMax (prox,param1) (clus,param2) (prox',param3)
+  | otherwise     = toNthLevel lvlMax prox clus
                   $ setPhyloBranches (lvl + 1)                  
-                  $ interTempoMatching Childs  (lvl + 1) (prox',param3)
-                  $ interTempoMatching Parents (lvl + 1) (prox',param3)
+                  $ interTempoMatching Descendant  (lvl + 1) prox
+                  $ interTempoMatching Ascendant (lvl + 1) prox
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
-                    (phyloToClusters lvl (prox,param1) (clus,param2) p) p
+                    (phyloToClusters lvl (fromJust $ clus ^. clustering_proximity) clus p) p
   where
     --------------------------------------
     lvl :: Level 
     lvl = getLastLevel p 
     --------------------------------------
+
+
+-- | To reconstruct the Level 1 of a Phylo based on a Clustering Methods
+toPhylo1 :: Clustering -> Proximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
+toPhylo1 clst proxy d p = case getClusterName clst of 
+                FrequentItemSet -> setPhyloBranches 1
+                                 $ interTempoMatching Descendant 1 proxy
+                                 $ interTempoMatching Ascendant 1 proxy
+                                 $ setLevelLinks (0,1)
+                                 $ setLevelLinks (1,0)
+                                 $ addPhyloLevel 1 phyloFis p
+                  where 
+                    --------------------------------------
+                    phyloFis :: Map (Date, Date) [Fis]
+                    phyloFis = filterFisBySupport (getClusterParamBool clst "emptyFis") (round $ getClusterParam clst "supportInf") (filterFisByNested (docsToFis d))
+                    --------------------------------------
+
+                _               -> panic "[ERR][Viz.Phylo.PhyloMaker.toPhylo1] fst clustering not recognized"
+
+
+-- | To reconstruct the Level 0 of a Phylo
+toPhylo0 :: Map (Date, Date) [Document] -> Phylo -> Phylo 
+toPhylo0 d p = addPhyloLevel 0 d p
+
+
+-- | To reconstruct the Base of a Phylo
+toPhyloBase :: PhyloQuery -> [(Date, Text)] -> [Ngrams] -> Phylo 
+toPhyloBase q c a = initPhyloBase periods foundations
+  where 
+    --------------------------------------
+    periods :: [(Date,Date)] 
+    periods = initPeriods (getTimeGrain q) (getTimeSteps q) 
+            $ both fst (head c,last c)
+    --------------------------------------        
+    foundations :: Vector Ngrams
+    foundations = initFoundations a
+    --------------------------------------
+
+
+-- | To reconstruct a Phylomemy from a PhyloQuery, a Corpus and a list of actants 
+toPhylo :: PhyloQuery -> [(Date, Text)] -> [Ngrams] -> Phylo
+toPhylo q c a = toNthLevel (getNthLevel q) (getTimeMatching q) (getNthCluster q) phylo1
+  where
+    --------------------------------------
+    phylo1 :: Phylo
+    phylo1 = toPhylo1 (getFstCluster q) (getTimeMatching q) phyloDocs phylo0    
+    --------------------------------------
+    phylo0 :: Phylo
+    phylo0 = toPhylo0 phyloDocs phyloBase
+    -------------------------------------- 
+    phyloDocs :: Map (Date, Date) [Document]
+    phyloDocs = corpusToDocs groupNgramsWithTrees c phyloBase
+    -------------------------------------- 
+    phyloBase :: Phylo
+    phyloBase = toPhyloBase q c a
+    -------------------------------------- 

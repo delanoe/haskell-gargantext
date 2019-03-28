@@ -125,7 +125,7 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
 
 
 -- | To transform a PhyloQuery into a PhyloView
-queryToView :: PhyloQuery -> Phylo -> PhyloView
+queryToView :: PhyloQueryView -> Phylo -> PhyloView
 queryToView q p = processDisplay (q ^. query_display)
                 $ processSort (q ^. query_sort) p
                 $ processTaggers (q ^. query_taggers) p
@@ -137,7 +137,7 @@ queryToView q p = processDisplay (q ^. query_display)
 
 -- | dirty params
 phyloParams :: PhyloParam
-phyloParams = PhyloParam "v0.1" (Software "Gargantext" "v4") ""
+phyloParams = PhyloParam "v0.1" (Software "Gargantext" "v4") "" Nothing
 
 
 -- | To do : effectively get the PhyloParams of a Phylo
