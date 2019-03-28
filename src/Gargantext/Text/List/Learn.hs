@@ -17,16 +17,16 @@ CSV parser for Gargantext corpus files.
 module Gargantext.Text.List.Learn
   where
 
+import Data.Map (Map)
 import Data.Maybe (maybe)
 import GHC.IO (FilePath)
-import qualified Data.SVM as SVM
-import Gargantext.Prelude
-import Data.Map (Map)
 import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
+import Gargantext.Prelude
 import Gargantext.Text.Metrics.Count (occurrencesWith)
+import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.IntMap as IntMap
+import qualified Data.SVM as SVM
 import qualified Data.Vector as Vec
 
 ------------------------------------------------------------------------
@@ -63,7 +63,10 @@ load :: FilePath -> IO SVM.Model
 load = SVM.loadModel
 
 ------------------------------------------------------------------------
-
+-- | TODO
+-- shuffle list
+-- split list : train / test
+-- grid parameters on best result on test
 grid :: Map ListType [Vec.Vector Double] -> IO () -- Map (ListType, Maybe ListType) Int)
 grid m = do
   let
@@ -91,11 +94,11 @@ grid m = do
       where
         total = fromIntegral $ foldl (+) 0 $ Map.elems m''
 
-  r <- List.take 10 <$> List.reverse <$> List.sortOn fst <$> mapM (\(x,y) -> grid' x y m)  [(x,y) | x <- [500..600], y <- [500..600]]
+  r <- List.take 10 <$> List.reverse
+                    <$> List.sortOn fst
+                    <$> mapM (\(x,y) -> grid' x y m)  [(x,y) | x <- [500..600], y <- [500..600]]
 
   printDebug "GRID SEARCH" r
   -- save best result
-
-
 
 
