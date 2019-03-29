@@ -155,7 +155,7 @@ initPhylo g s c a f = addPhyloLevel 0 (corpusToDocs f c base) base
 
 
 -- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks 
-toNthLevel :: Level -> Proximity -> Clustering -> Phylo -> Phylo
+toNthLevel :: Level -> QueryProximity -> QueryClustering -> Phylo -> Phylo
 toNthLevel lvlMax prox clus p 
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax prox clus
@@ -164,7 +164,7 @@ toNthLevel lvlMax prox clus p
                   $ interTempoMatching Ascendant (lvl + 1) prox
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
-                    (phyloToClusters lvl (fromJust $ clus ^. clustering_proximity) clus p) p
+                    (phyloToClusters lvl (fromJust $ clus ^. qc_proximity) clus p) p
   where
     --------------------------------------
     lvl :: Level 
@@ -173,7 +173,7 @@ toNthLevel lvlMax prox clus p
 
 
 -- | To reconstruct the Level 1 of a Phylo based on a Clustering Methods
-toPhylo1 :: Clustering -> Proximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
+toPhylo1 :: QueryClustering -> QueryProximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
 toPhylo1 clst proxy d p = case getClusterName clst of 
                 FrequentItemSet -> setPhyloBranches 1
                                  $ interTempoMatching Descendant 1 proxy
@@ -184,7 +184,7 @@ toPhylo1 clst proxy d p = case getClusterName clst of
                   where 
                     --------------------------------------
                     phyloFis :: Map (Date, Date) [Fis]
-                    phyloFis = filterFisBySupport (getClusterParamBool clst "emptyFis") (round $ getClusterParam clst "supportInf") (filterFisByNested (docsToFis d))
+                    phyloFis = filterFisBySupport (getClusterPBool clst "emptyFis") (round $ getClusterPNum clst "supportInf") (filterFisByNested (docsToFis d))
                     --------------------------------------
 
                 _               -> panic "[ERR][Viz.Phylo.PhyloMaker.toPhylo1] fst clustering not recognized"
@@ -201,7 +201,7 @@ toPhyloBase q c a = initPhyloBase periods foundations
   where 
     --------------------------------------
     periods :: [(Date,Date)] 
-    periods = initPeriods (getTimeGrain q) (getTimeSteps q) 
+    periods = initPeriods (getPeriodGrain q) (getPeriodSteps q) 
             $ both fst (head c,last c)
     --------------------------------------        
     foundations :: Vector Ngrams
@@ -211,11 +211,11 @@ toPhyloBase q c a = initPhyloBase periods foundations
 
 -- | To reconstruct a Phylomemy from a PhyloQuery, a Corpus and a list of actants 
 toPhylo :: PhyloQuery -> [(Date, Text)] -> [Ngrams] -> Phylo
-toPhylo q c a = toNthLevel (getNthLevel q) (getTimeMatching q) (getNthCluster q) phylo1
+toPhylo q c a = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
   where
     --------------------------------------
     phylo1 :: Phylo
-    phylo1 = toPhylo1 (getFstCluster q) (getTimeMatching q) phyloDocs phylo0    
+    phylo1 = toPhylo1 (getFstCluster q) (getInterTemporalMatching q) phyloDocs phylo0    
     --------------------------------------
     phylo0 :: Phylo
     phylo0 = toPhylo0 phyloDocs phyloBase

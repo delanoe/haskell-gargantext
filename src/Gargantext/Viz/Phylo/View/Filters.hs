@@ -77,10 +77,14 @@ filterLonelyBranch nbInf nbSup nbNs prds v = cleanNodesEdges v v'
     --------------------------------------
 
 
+
+
+
+
 -- | To process a list of QueryFilter to a PhyloView
 processFilters :: [QueryFilter] -> Phylo -> PhyloView -> PhyloView
-processFilters fs p v = foldl (\v' f -> case f ^. query_filter of
-                                        LonelyBranch -> filterLonelyBranch (round $ (f ^. query_params) !! 0) 
-                                                                           (round $ (f ^. query_params) !! 1) 
-                                                                           (round $ (f ^. query_params) !! 2) (getPhyloPeriods p) v'
+processFilters fs p v = foldl (\v' f -> case f ^. qf_name of
+                                        LonelyBranch -> filterLonelyBranch (round $ getFilterPNum f "nbInf") 
+                                                                           (round $ getFilterPNum f "nbSup") 
+                                                                           (round $ getFilterPNum f "nbNs") (getPhyloPeriods p) v'
                                         _            -> panic "[ERR][Viz.Phylo.View.Filters.processFilters] filter not found") v fs

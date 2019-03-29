@@ -126,13 +126,13 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
 
 -- | To transform a PhyloQuery into a PhyloView
 queryToView :: PhyloQueryView -> Phylo -> PhyloView
-queryToView q p = processDisplay (q ^. query_display)
-                $ processSort (q ^. query_sort) p
-                $ processTaggers (q ^. query_taggers) p
-                $ processFilters (q ^. query_filters) p
-                $ processMetrics (q ^. query_metrics) p 
-                $ addChildNodes  (q ^. query_childs) (q ^. query_lvl) (q ^. query_childsDepth) (q ^. query_verbose) (q ^. query_filiation) p
-                $ initPhyloView  (q ^. query_lvl) "Phylo2000" "This is a Phylo" (q ^. query_filiation) (q ^. query_verbose) p
+queryToView q p = processDisplay (q ^. qv_display)
+                $ processSort (q ^. qv_sort) p
+                $ processTaggers (q ^. qv_taggers) p
+                $ processFilters (q ^. qv_filters) p
+                $ processMetrics (q ^. qv_metrics) p 
+                $ addChildNodes  (q ^. qv_childs) (q ^. qv_lvl) (q ^. qv_childsDepth) (q ^. qv_verbose) (q ^. qv_filiation) p
+                $ initPhyloView  (q ^. qv_lvl) "Phylo2000" "This is a Phylo" (q ^. qv_filiation) (q ^. qv_verbose) p
 
 
 -- | dirty params

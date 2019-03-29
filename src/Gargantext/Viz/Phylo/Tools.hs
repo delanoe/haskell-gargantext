@@ -140,27 +140,41 @@ getBranchMeta k b = (b ^. phylo_branchMeta) ! k
 
 
 -- | To get the Name of a Clustering Methods
-getClusterName :: Clustering -> ClusteringName
-getClusterName c = _clustering_name c
+getClusterName :: QueryClustering -> Clustering
+getClusterName c = _qc_name c
 
 
 -- | To get the params of a Clustering Methods
-getClusterParam :: Clustering -> Text -> Double
-getClusterParam c k = if (member k $ _clustering_params c)
-                      then (_clustering_params c) Map.! k
+getClusterPNum :: QueryClustering -> Text -> Double
+getClusterPNum c k = if (member k $ _qc_pNum c)
+                      then (_qc_pNum c) Map.! k
                       else panic "[ERR][Viz.Phylo.Tools.getClusterParam] the key is not in params"
 
 
 -- | To get the boolean params of a Clustering Methods
-getClusterParamBool :: Clustering -> Text -> Bool
-getClusterParamBool c k = if (member k $ _clustering_paramsBool c)
-                      then (_clustering_paramsBool c) Map.! k
+getClusterPBool :: QueryClustering -> Text -> Bool
+getClusterPBool c k = if (member k $ _qc_pBool c)
+                      then (_qc_pBool c) Map.! k
                       else panic "[ERR][Viz.Phylo.Tools.getClusterParamBool] the key is not in paramsBool"
 
 
+-- | To get a numeric param from a given  QueryFilter
+getFilterPNum :: QueryFilter -> Text -> Double
+getFilterPNum f k = if (member k $ f ^. qf_pNum)
+                    then (f ^. qf_pNum) Map.! k
+                    else panic "[ERR][Viz.Phylo.Tools.getFilterPNum] the key is not in pNum"
+
+
+-- | To get a boolean param from a given  QueryFilter
+getFilterPBool :: QueryFilter -> Text -> Bool
+getFilterPBool f k = if (member k $ f ^. qf_pBool)
+                     then (f ^. qf_pBool) Map.! k
+                     else panic "[ERR][Viz.Phylo.Tools.getFilterPBool] the key is not in pBool"
+
+
 -- | To get the first clustering method to apply to get the level 1 of a Phylo
-getFstCluster :: PhyloQuery -> Clustering
-getFstCluster q = q ^. phyloQuery_fstCluster
+getFstCluster :: PhyloQuery -> QueryClustering
+getFstCluster q = q ^. q_fstCluster
 
 
 -- | To get the foundations of a Phylo
@@ -380,13 +394,13 @@ getNodesInBranches v = filter (\n -> isJust $ n ^. phylo_nodeBranchId)
 
 
 -- | To get the cluster methods to apply to the Nths levels of a Phylo
-getNthCluster :: PhyloQuery -> Clustering
-getNthCluster q = q ^. phyloQuery_nthCluster
+getNthCluster :: PhyloQuery -> QueryClustering
+getNthCluster q = q ^. q_nthCluster
 
 
 -- | To get the Sup Level of a reconstruction of a Phylo from a PhyloQuery
 getNthLevel :: PhyloQuery -> Level
-getNthLevel q = q ^. phyloQuery_nthLevel
+getNthLevel q = q ^. q_nthLevel
 
 
 -- | To get the PhylolevelId of a given PhyloLevel
@@ -411,9 +425,9 @@ getPhyloPeriodId prd = _phylo_periodId prd
 
 
 -- | To get the sensibility of a Proximity if it exists
-getSensibility :: Proximity -> Double
-getSensibility prox = if (member "sensibility" $ prox ^. proximity_params)
-                      then (prox ^. proximity_params) ! "sensibility"
+getSensibility :: QueryProximity -> Double
+getSensibility prox = if (member "sensibility" $ prox ^. qp_pNum)
+                      then (prox ^. qp_pNum) ! "sensibility"
                       else panic "[ERR][Viz.Phylo.Tools.getSensibility] sensibility not in params"
 
 
@@ -428,18 +442,18 @@ getTargetId e = e ^. phylo_edgeTarget
 
 
 -- | To get the Grain of the PhyloPeriods from a PhyloQuery
-getTimeGrain :: PhyloQuery -> Int
-getTimeGrain q = q ^. phyloQuery_timeGrain 
+getPeriodGrain :: PhyloQuery -> Int
+getPeriodGrain q = q ^. q_periodGrain 
 
 
 -- | To get the intertemporal matching strategy to apply to a Phylo from a PhyloQuery
-getTimeMatching :: PhyloQuery -> Proximity
-getTimeMatching q = q ^. phyloQuery_timeMatching
+getInterTemporalMatching :: PhyloQuery -> QueryProximity
+getInterTemporalMatching q = q ^. q_interTemporalMatching
 
 
 -- | To get the Steps of the PhyloPeriods from a PhyloQuery
-getTimeSteps :: PhyloQuery -> Int 
-getTimeSteps q = q ^. phyloQuery_timeSteps
+getPeriodSteps :: PhyloQuery -> Int 
+getPeriodSteps q = q ^. q_periodSteps
 
 
 -- | To get all the PhyloBranchIds of a PhyloView
