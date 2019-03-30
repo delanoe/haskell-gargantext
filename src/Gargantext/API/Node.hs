@@ -75,7 +75,7 @@ import qualified Data.Vector as Vec
 
 type GargServer api =
   forall env m.
-    (CmdM env ServantErr m, HasRepo env)
+    (CmdM env ServantErr m, HasRepo env, HasSettings env)
     => ServerT api m
 
 -------------------------------------------------------------------
@@ -406,11 +406,11 @@ getMetrics cId maybeListId tabType maybeLimit = do
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
   
-  {-
+  --{-
   let metrics' = Map.fromListWith (<>) $ map (\(Metric _ s1 s2 lt) -> (lt, [Vec.fromList [s1,s2]])) metrics
   _ <- liftIO $ Learn.grid metrics'
   en <- ask
-  printDebug "path" $  _fileFolder $ _env_settings en
+  printDebug "path" $  _fileFolder $ view repoSettings en
   --}
   pure $ Metrics metrics
 

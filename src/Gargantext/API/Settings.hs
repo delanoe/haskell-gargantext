@@ -85,6 +85,9 @@ data Settings = Settings
 
 makeLenses ''Settings
 
+class HasSettings env where
+  repoSettings :: Getter env Settings
+
 
 parseJwk :: Text -> Jose.Jwk
 parseJwk secretStr = jwk
@@ -161,6 +164,9 @@ instance HasRepoSaver Env where
 
 instance HasRepo Env where
   repoEnv = env_repo
+
+instance HasSettings Env where
+  repoSettings = env_settings
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
@@ -251,6 +257,7 @@ newEnv port file = do
 data DevEnv = DevEnv
   { _dev_env_conn :: !Connection
   , _dev_env_repo :: !RepoEnv
+  , _dev_env_settings :: !Settings
   }
 
 makeLenses ''DevEnv
@@ -266,6 +273,9 @@ instance HasRepoSaver DevEnv where
 
 instance HasRepo DevEnv where
   repoEnv = dev_env_repo
+
+instance HasSettings DevEnv where
+  repoSettings = dev_env_settings
 
 cleanEnv :: HasRepo env => env -> IO ()
 cleanEnv env = do
@@ -286,6 +296,7 @@ withDevEnv iniPath k = do
       pure $ DevEnv
         { _dev_env_conn = conn
         , _dev_env_repo = repo
+        , _dev_env_settings = devSettings
         }
 
 -- | Run Cmd Sugar for the Repl (GHCI)
