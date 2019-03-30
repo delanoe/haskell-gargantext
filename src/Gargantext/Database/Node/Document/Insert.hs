@@ -81,7 +81,7 @@ import Gargantext.Prelude
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as DT (pack, unpack, concat, take)
-
+import Gargantext.Prelude.Utils (hash)
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
 --import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
@@ -212,13 +212,10 @@ instance ToRow InputData where
 
 addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
 addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
-                  $ set hyperdataDocument_uniqId    (Just hash) doc
+                  $ set hyperdataDocument_uniqId    (Just hashUni) doc
   where
-    hash    = uniqId $ DT.concat $ map ($ doc) hashParametersDoc
-    hashBdd = uniqId $ DT.concat $ map ($ doc) ([(\d -> maybe' (_hyperdataDocument_bdd d))] <> hashParametersDoc)
-
-    uniqId :: Text -> Text
-    uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
+    hashUni = hash $ DT.concat $ map ($ doc) hashParametersDoc
+    hashBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybe' (_hyperdataDocument_bdd d))] <> hashParametersDoc)
 
 
 hashParametersDoc :: [(HyperdataDocument -> Text)]
@@ -232,9 +229,9 @@ hashParametersDoc = [ \d -> maybe' (_hyperdataDocument_title    d)
 -- TODO factorize with above (use the function below for tests)
 addUniqIdsContact :: HyperdataContact -> HyperdataContact
 addUniqIdsContact hc = set (hc_uniqIdBdd) (Just hashBdd)
-                     $ set (hc_uniqId)    (Just hash)    hc
+                     $ set (hc_uniqId   ) (Just hashUni) hc
   where
-    hash    = uniqId $ DT.concat $ map ($ hc) hashParametersContact
+    hashUni = uniqId $ DT.concat $ map ($ hc) hashParametersContact
     hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybe' (view hc_bdd d)] <> hashParametersContact)
 
     uniqId :: Text -> Text

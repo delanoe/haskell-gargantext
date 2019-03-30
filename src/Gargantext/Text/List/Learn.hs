@@ -11,6 +11,8 @@ CSV parser for Gargantext corpus files.
 
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -19,9 +21,9 @@ module Gargantext.Text.List.Learn
 
 import Data.Map (Map)
 import Data.Maybe (maybe)
-import GHC.IO (FilePath)
 import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
 import Gargantext.Prelude
+import Gargantext.Prelude.Utils
 import Gargantext.Text.Metrics.Count (occurrencesWith)
 import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
@@ -56,12 +58,17 @@ predictList :: SVM.Model -> [Vec.Vector Double] -> IO [Maybe ListType]
 predictList m vs = map (fromListTypeId . round) <$> predict m vs
 
 ------------------------------------------------------------------------
-save :: SVM.Model -> FilePath -> IO ()
-save = SVM.saveModel
+data Model = ModelSVM { model :: SVM.Model }
 
-load :: FilePath -> IO SVM.Model
-load = SVM.loadModel
+instance SaveFile Model
+  where
+    saveFile' p (ModelSVM m) = SVM.saveModel m p
 
+instance ReadFile Model
+  where
+    readFile' fp = do
+      m <- SVM.loadModel fp
+      pure $ ModelSVM m
 ------------------------------------------------------------------------
 -- | TODO
 -- shuffle list
@@ -74,11 +81,13 @@ grid m = do
           -> Map ListType [Vec.Vector Double]
           -> IO (Double, (Double,Double))
     grid' x y ls = do
-      model <- trainList x y ls
+      model' <- trainList x y ls
+      fp <- saveFile (ModelSVM model')
+      printDebug "file" fp
       let (res, toGuess) = List.unzip $ List.concat 
                                       $ map (\(k,vs) -> zip (repeat k) vs)
                                       $ Map.toList ls
-      res' <- predictList model toGuess
+      res' <- predictList model' toGuess
       pure (score'' $ score' $ List.zip res res', (x,y))
 
     {-
@@ -94,9 +103,9 @@ grid m = do
       where
         total = fromIntegral $ foldl (+) 0 $ Map.elems m''
 
-  r <- List.take 10 <$> List.reverse
-                    <$> List.sortOn fst
-                    <$> mapM (\(x,y) -> grid' x y m)  [(x,y) | x <- [500..600], y <- [500..600]]
+  r <- List.take 10 . List.reverse
+                    . (List.sortOn fst)
+                   <$> mapM (\(x,y) -> grid' x y m)  [(x,y) | x <- [500..510], y <- [500..510]]
 
   printDebug "GRID SEARCH" r
   -- save best result

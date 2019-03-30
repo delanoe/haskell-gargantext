@@ -80,6 +80,7 @@ data Settings = Settings
     , _jwtSecret       :: Jose.Jwk -- ^ key from the jose-jwt package
     , _sendLoginEmails :: SendEmailType
     , _scrapydUrl      :: BaseUrl
+    , _fileFolder      :: FilePath
     }
 
 makeLenses ''Settings
@@ -107,6 +108,7 @@ devSettings = Settings
     , _jwtSecret = parseJwk "MVg0YAPVSPiYQc/qIs/rV/X32EFR0zOJWfHFgMbszMw="
     , _sendLoginEmails = LogEmailToConsole
     , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
+    , _fileFolder = "data"
     }
 
 

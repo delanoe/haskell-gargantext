@@ -142,6 +142,7 @@ library:
   - protolude
   - pureMD5
   - SHA
+  - random
   - rake
   - regex-compat
   - resourcet

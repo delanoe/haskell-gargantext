@@ -336,6 +336,19 @@ instance Hyperdata HyperdataList
 instance Arbitrary HyperdataList where
   arbitrary = elements [HyperdataList (Just "from list A")]
 
+                      ----
+data HyperdataListModel = HyperdataListModel { _hlm_params  :: !(Int, Int)
+                                             , _hlm_path    :: !Text
+                                             , _hlm_score   :: !(Maybe Double)
+                                   } deriving (Show, Generic)
+
+instance Hyperdata HyperdataListModel
+instance Arbitrary HyperdataListModel where
+  arbitrary = elements [HyperdataListModel (100,100) "models/example.model" Nothing]
+
+$(deriveJSON (unPrefix "_hlm_") ''HyperdataListModel)
+$(makeLenses ''HyperdataListModel)
+
 ------------------------------------------------------------------------
 data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
@@ -418,7 +431,7 @@ data NodeType = NodeUser
               | NodeGraph
               | NodeDashboard  | NodeChart
               -- | Classification
-              | NodeList
+              | NodeList | NodeListModel
               -- | Metrics
               deriving (Show, Read, Eq, Generic, Bounded, Enum)
 

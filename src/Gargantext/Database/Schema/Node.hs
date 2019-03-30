@@ -95,6 +95,10 @@ instance FromField HyperdataList
   where
     fromField = fromField'
 
+instance FromField HyperdataListModel
+  where
+    fromField = fromField'
+
 instance FromField HyperdataGraph
   where
     fromField = fromField'
@@ -128,6 +132,10 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataUser
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataList
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -331,6 +339,9 @@ getDocumentsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
 
+getListsModelWithParentId :: NodeId -> Cmd err [Node HyperdataListModel]
+getListsModelWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeListModel)
+
 getCorporaWithParentId :: NodeId -> Cmd err [Node HyperdataCorpus]
 getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 
@@ -400,7 +411,6 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
   where
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
-                   --------------------------
 
 ------------------------------------------------------------------------
 arbitraryList :: HyperdataList
@@ -411,6 +421,20 @@ nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
   where
     name = maybe "Listes" identity maybeName
     list = maybe arbitraryList identity maybeList
+
+                --------------------
+
+arbitraryListModel :: HyperdataListModel
+arbitraryListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
+
+mkListModelNode :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
+mkListModelNode p u = insertNodesR [nodeListModelW Nothing Nothing p u]
+
+nodeListModelW :: Maybe Name -> Maybe HyperdataListModel -> ParentId -> UserId -> NodeWrite
+nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just pId)
+  where
+    name = maybe "List Model" identity maybeName
+    list = maybe arbitraryListModel identity maybeListModel
 
 ------------------------------------------------------------------------
 arbitraryGraph :: HyperdataGraph
@@ -550,6 +574,7 @@ defaultList cId =
 
 mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkList p u = insertNodesR [nodeListW Nothing Nothing p u]
+
 
 mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
 mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
