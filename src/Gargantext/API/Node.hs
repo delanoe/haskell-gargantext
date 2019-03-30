@@ -32,9 +32,8 @@ module Gargantext.API.Node
   , HyperdataDocumentV3(..)
   ) where
 
-import Control.Lens (prism', set, view)
+import Control.Lens (prism', set)
 import Control.Monad ((>>))
-import Control.Monad.Reader (ask)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Swagger
@@ -70,13 +69,16 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Map as Map
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 
+{--
 import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
+--}
 
-type GargServer api =
-  forall env m.
-    (CmdM env ServantErr m, HasRepo env, HasSettings env)
-    => ServerT api m
+type GargServer api = forall env m.
+    ( CmdM env ServantErr m
+    , HasRepo     env
+    , HasSettings env
+    ) => ServerT api m
 
 -------------------------------------------------------------------
 -- TODO-ACCESS: access by admin only.
@@ -406,11 +408,9 @@ getMetrics cId maybeListId tabType maybeLimit = do
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
   
-  --{-
+  {-
   let metrics' = Map.fromListWith (<>) $ map (\(Metric _ s1 s2 lt) -> (lt, [Vec.fromList [s1,s2]])) metrics
-  _ <- liftIO $ Learn.grid metrics'
-  en <- ask
-  printDebug "path" $  _fileFolder $ view repoSettings en
+  _ <- Learn.grid metrics'
   --}
   pure $ Metrics metrics
 

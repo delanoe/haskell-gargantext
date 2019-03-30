@@ -15,10 +15,14 @@ Portability : POSIX
 module Gargantext.Prelude.Utils
   where
 
---import Gargantext.Config (dataPath)
+import Control.Lens (view)
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Text (Text)
+import Control.Monad.Reader (ask)
 import GHC.IO (FilePath)
 import Gargantext.Prelude
+import Gargantext.API.Settings
 import System.Random (newStdGen)
 import System.Directory (createDirectoryIfMissing)
 import qualified Data.ByteString.Lazy.Char8  as Char
@@ -28,9 +32,6 @@ import qualified Data.Text                   as Text
 type FolderPath = FilePath
 type FileName   = FilePath
 
--- | TODO Env Monad
-dataPath :: Text
-dataPath = "data"
 
 hash :: Text -> Text
 hash = Text.pack
@@ -56,16 +57,22 @@ class ReadFile a where
 -- we want to save
 type Empreinte = Text
 
-saveFile :: SaveFile a => a -> IO FilePath
+saveFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
+         => a -> m FilePath
 saveFile a = do
-  let n = 3
-  (fp,fn) <- (toPath n) . hash . Text.pack . show <$> newStdGen
-  let foldPath = (Text.unpack dataPath) <> "/" <> fp
-  let filePath = foldPath <> "/" <> fn
-  _ <- createDirectoryIfMissing True foldPath
-  _ <- saveFile' filePath a
+  (fp,fn) <- liftIO $ (toPath 3) . hash . Text.pack . show <$> newStdGen
+  
+  dataPath <- _fileFolder . (view repoSettings) <$> ask
+  let foldPath = dataPath <> "/" <> fp
+      filePath = foldPath <> "/" <> fn
+  
+  _ <- liftIO $ createDirectoryIfMissing True foldPath
+  _ <- liftIO $ saveFile' filePath a
+  
   pure filePath
 
-readFile :: ReadFile a => FilePath -> IO a
-readFile fp = readFile' ((Text.unpack dataPath) <> "/" <> fp)
-
+readFile :: (MonadReader env m, MonadIO m, HasSettings env, ReadFile a)
+         => FilePath -> m a
+readFile fp = do
+  dataPath <- _fileFolder . (view repoSettings) <$> ask
+  liftIO $ readFile' $ dataPath <> "/" <> fp

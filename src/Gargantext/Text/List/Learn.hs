@@ -19,6 +19,9 @@ CSV parser for Gargantext corpus files.
 module Gargantext.Text.List.Learn
   where
 
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Gargantext.API.Settings
 import Data.Map (Map)
 import Data.Maybe (maybe)
 import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
@@ -62,7 +65,7 @@ data Model = ModelSVM { model :: SVM.Model }
 
 instance SaveFile Model
   where
-    saveFile' p (ModelSVM m) = SVM.saveModel m p
+    saveFile' fp (ModelSVM m) = SVM.saveModel m fp
 
 instance ReadFile Model
   where
@@ -74,20 +77,21 @@ instance ReadFile Model
 -- shuffle list
 -- split list : train / test
 -- grid parameters on best result on test
-grid :: Map ListType [Vec.Vector Double] -> IO () -- Map (ListType, Maybe ListType) Int)
+grid :: (MonadReader env m, MonadIO m, HasSettings env) => Map ListType [Vec.Vector Double] -> m () -- Map (ListType, Maybe ListType) Int)
 grid m = do
   let
-    grid' :: Double -> Double
+    grid' :: (MonadReader env m, MonadIO m, HasSettings env)
+          => Double -> Double
           -> Map ListType [Vec.Vector Double]
-          -> IO (Double, (Double,Double))
+          -> m (Double, (Double,Double))
     grid' x y ls = do
-      model' <- trainList x y ls
+      model' <- liftIO $ trainList x y ls
       fp <- saveFile (ModelSVM model')
       printDebug "file" fp
       let (res, toGuess) = List.unzip $ List.concat 
                                       $ map (\(k,vs) -> zip (repeat k) vs)
                                       $ Map.toList ls
-      res' <- predictList model' toGuess
+      res' <- liftIO $ predictList model' toGuess
       pure (score'' $ score' $ List.zip res res', (x,y))
 
     {-
