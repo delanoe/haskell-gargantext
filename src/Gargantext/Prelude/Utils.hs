@@ -53,9 +53,6 @@ class SaveFile a where
 class ReadFile a where
   readFile' :: FilePath -> IO a
 
--- | Empreinte is a uniq sequence of Text to identify the Type
--- we want to save
-type Empreinte = Text
 
 saveFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
          => a -> m FilePath
@@ -70,6 +67,7 @@ saveFile a = do
   _ <- liftIO $ saveFile' filePath a
   
   pure filePath
+
 
 readFile :: (MonadReader env m, MonadIO m, HasSettings env, ReadFile a)
          => FilePath -> m a
