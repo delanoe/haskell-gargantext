@@ -25,6 +25,7 @@ import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Utils (Cmd)
+import Gargantext.Text.List.Learn (Model(..))
 import Gargantext.Prelude
 --import Gargantext.Text.Terms (TermType(..))
 import qualified Data.Char as Char
@@ -33,11 +34,23 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 
+
+data NgramsListBuilder = BuilderStepO { stemSize :: Int
+                                      , stemX    :: Int
+                                      , stopSize :: Int
+                                      }
+                       | BuilderStep1 { withModel :: Model }
+                       | BuilderStepN { withModel :: Model }
+
+
+
+data StopSize = StopSize {unStopSize :: Int}
+
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
-buildNgramsLists :: Lang -> Int -> Int -> UserCorpusId -> MasterCorpusId
+buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
                  -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsLists l n m uCid mCid = do
-  ngTerms     <- buildNgramsTermsList l n m uCid mCid
+buildNgramsLists l n m s uCid mCid = do
+  ngTerms     <- buildNgramsTermsList l n m s uCid mCid
   othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
@@ -54,13 +67,13 @@ buildNgramsOthersList uCid groupIt nt = do
                       ]
 
 -- TODO remove hard coded parameters
-buildNgramsTermsList :: Lang -> Int -> Int -> UserCorpusId -> MasterCorpusId
+buildNgramsTermsList :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsTermsList l n m uCid mCid = do
+buildNgramsTermsList l n m s uCid mCid = do
   candidates   <- sortTficf <$> getTficf' uCid mCid NgramsTerms (ngramsGroup l n m)
   --printDebug "candidate" (length candidates)
 
-  let termList = toTermList (isStopTerm . fst) candidates
+  let termList = toTermList ((isStopTerm s) . fst) candidates
   --let termList = toTermList ((\_ -> False) . fst) candidates
   --printDebug "termlist" (length termList)
 
@@ -103,7 +116,7 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
       a = 3
       b = 400
 
-isStopTerm :: Text -> Bool
-isStopTerm x = Text.length x < 3 || any isStopChar (Text.unpack x)
+isStopTerm :: StopSize -> Text -> Bool
+isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
   where
     isStopChar c = not (c `elem` ("- /()" :: [Char]) || Char.isAlpha c)

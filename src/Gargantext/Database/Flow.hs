@@ -60,7 +60,7 @@ import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), N
 import Gargantext.Database.Utils (Cmd, CmdM)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
-import Gargantext.Text.List (buildNgramsLists)
+import Gargantext.Text.List (buildNgramsLists,StopSize(..))
 --import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Text.Terms (TermType(..), tt_lang)
 import Gargantext.Text.Terms (extractTerms)
@@ -127,7 +127,7 @@ flowCorpusUser l userName corpusName ids = do
 
   -- User List Flow
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
-  ngs         <- buildNgramsLists l 2 3 userCorpusId masterCorpusId
+  ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
   userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
 

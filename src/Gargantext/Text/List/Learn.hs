@@ -57,21 +57,25 @@ trainList x y = (train x y) . trainList'
     vecs2maps = map (IntMap.fromList . (zip [1..]) . Vec.toList)
 
 
-predictList :: SVM.Model -> [Vec.Vector Double] -> IO [Maybe ListType]
-predictList m vs = map (fromListTypeId . round) <$> predict m vs
+predictList :: Model -> [Vec.Vector Double] -> IO [Maybe ListType]
+predictList (ModelSVM m _ _) vs = map (fromListTypeId . round) <$> predict m vs
 
 ------------------------------------------------------------------------
-data Model = ModelSVM { model :: SVM.Model }
-
+data Model = ModelSVM { modelSVM :: SVM.Model
+                      , param1 :: Maybe Double
+                      , param2 :: Maybe Double
+                      }
+--{-
 instance SaveFile Model
   where
-    saveFile' fp (ModelSVM m) = SVM.saveModel m fp
+    saveFile' fp (ModelSVM m _ _) = SVM.saveModel m fp
 
 instance ReadFile Model
   where
     readFile' fp = do
       m <- SVM.loadModel fp
-      pure $ ModelSVM m
+      pure $ ModelSVM m Nothing Nothing
+--}
 ------------------------------------------------------------------------
 -- | TODO
 -- shuffle list
@@ -80,43 +84,53 @@ instance ReadFile Model
 
 type Train = Map ListType [Vec.Vector Double]
 type Tests = Map ListType [Vec.Vector Double]
+type Score = Double
+type Param = Double
 
 grid :: (MonadReader env m, MonadIO m, HasSettings env)
-     => (Train, Tests) -> m () -- Map (ListType, Maybe ListType) Int)
-grid (m,_) = do
+     => Param -> Param -> Train -> [Tests] -> m (Maybe Model)
+grid s e tr te = do
   let
     grid' :: (MonadReader env m, MonadIO m, HasSettings env)
           => Double -> Double
-          -> Map ListType [Vec.Vector Double]
-          -> m (Double, (Double,Double))
-    grid' x y ls = do
-      model' <- liftIO $ trainList x y ls
-      --fp <- saveFile (ModelSVM model')
-      --printDebug "file" fp
-      let (res, toGuess) = List.unzip $ List.concat 
-                                      $ map (\(k,vs) -> zip (repeat k) vs)
-                                      $ Map.toList ls
-      res' <- liftIO $ predictList model' toGuess
-      pure (score'' $ score' $ List.zip res res', (x,y))
+          -> Train
+          -> [Tests]
+          -> m (Score, Model)
+    grid' x y tr' te' = do
+      model'' <- liftIO $ trainList x y tr'
+      
+      let
+        model' = ModelSVM model'' (Just x) (Just y)
 
-    {-
-    score :: [(ListType, Maybe ListType)] -> Map (ListType, Maybe ListType) Int
-    score = occurrencesWith identity
-    -}
-    
-    score' :: [(ListType, Maybe ListType)] -> Map (Maybe Bool) Int
-    score' = occurrencesWith (\(a,b) -> (==) <$> Just a <*> b)
+        score' :: [(ListType, Maybe ListType)] -> Map (Maybe Bool) Int
+        score' = occurrencesWith (\(a,b) -> (==) <$> Just a <*> b)
 
-    score'' :: Map (Maybe Bool) Int -> Double
-    score'' m'' = maybe 0 (\t -> (fromIntegral t)/total) (Map.lookup (Just True) m'')
-      where
-        total = fromIntegral $ foldl (+) 0 $ Map.elems m''
+        score'' :: Map (Maybe Bool) Int -> Double
+        score'' m'' = maybe 0 (\t -> (fromIntegral t)/total) (Map.lookup (Just True) m'')
+          where
+            total = fromIntegral $ foldl (+) 0 $ Map.elems m''
 
-  r <- List.take 10 . List.reverse
-                    . (List.sortOn fst)
-                   <$> mapM (\(x,y) -> grid' x y m)  [(x,y) | x <- [500..510], y <- [500..510]]
+        getScore m t = do
+          let (res, toGuess) = List.unzip $ List.concat
+                                        $ map (\(k,vs) -> zip (repeat k) vs)
+                                        $ Map.toList t
+        
+          res' <- liftIO $ predictList m toGuess
+          pure $ score'' $ score' $ List.zip res res' 
+      
+      score <- mapM (getScore model') te'
+      pure (mean score, model')
 
-  printDebug "GRID SEARCH" r
-  -- save best result
+  r <- head . List.reverse
+            . (List.sortOn fst)
+           <$> mapM (\(x,y) -> grid' x y tr te)
+                         [(x,y) | x <- [s..e], y <- [s..e]]
+
+  printDebug "GRID SEARCH" (map fst r)
+  --printDebug "file" fp
+  --fp <- saveFile (ModelSVM model')
+  --save best result
+  pure $ snd <$> r
+
 
 

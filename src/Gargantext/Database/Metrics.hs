@@ -68,7 +68,6 @@ getLocalMetrics cId maybeListId tabType maybeLimit = do
   pure (ngs, ngs', localMetrics myCooc)
 
 
-
 getNgramsCooc :: (FlowCmdM env ServantErr m)
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m ( Map Text (ListType, Maybe Text)

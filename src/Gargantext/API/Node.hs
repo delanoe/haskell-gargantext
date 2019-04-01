@@ -60,7 +60,7 @@ import Gargantext.Database.Types.Node (CorpusId, ContactId)
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.API.Settings
-import Gargantext.Text.Metrics
+import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
 import Gargantext.Viz.Graph.Tools (cooc2graph)
 import Servant
@@ -69,7 +69,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Map as Map
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 
-{--
+{-
 import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
@@ -408,10 +408,8 @@ getMetrics cId maybeListId tabType maybeLimit = do
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
   
-  {-
-  let metrics' = Map.fromListWith (<>) $ map (\(Metric _ s1 s2 lt) -> (lt, [Vec.fromList [s1,s2]])) metrics
-  _ <- Learn.grid metrics'
-  --}
   pure $ Metrics metrics
+
+
 
 
