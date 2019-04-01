@@ -69,7 +69,7 @@ import Data.Typeable (Typeable)
 import Database.PostgreSQL.Simple (FromRow, Query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ
-import Database.PostgreSQL.Simple.ToField (toField)
+import Database.PostgreSQL.Simple.ToField (toField, Action)
 import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
@@ -113,6 +113,26 @@ import Database.PostgreSQL.Simple (formatQuery)
 
 data ToDbData = ToDbDocument HyperdataDocument | ToDbContact HyperdataContact
 
+class InsertDb a
+  where
+    insertDb' :: UserId -> ParentId -> a -> [Action]
+
+
+instance InsertDb HyperdataDocument
+  where
+    insertDb' u p h = [ toField $ nodeTypeId NodeDocument
+                      , toField u
+                      , toField p
+                      , toField $ maybe "No Title" (DT.take 255)  (_hyperdataDocument_title h)
+                      , (toField . toJSON) h
+                      ]
+
+insertDb :: InsertDb a => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
+insertDb u p = runPGSQuery queryInsert . Only . Values fields . map (insertDb' u p)
+      where
+        fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
+
+
 -- TODO-ACCESS: check uId CanInsertDoc pId && checkDocType nodeType
 -- TODO-EVENTS: InsertedNodes
 insertDocuments :: UserId -> ParentId -> NodeType -> [ToDbData] -> Cmd err [ReturnId]
@@ -120,6 +140,50 @@ insertDocuments uId pId nodeType =
     runPGSQuery queryInsert . Only . Values fields . prepare uId pId nodeType
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
+
+
+
+-- ** Insert Types
+data InputData = InputData { inTypenameId :: NodeTypeId
+                           , inUserId     :: UserId
+                           , inParentId   :: ParentId
+                           , inName       :: Text
+                           , inHyper      :: Value
+                           } deriving (Show, Generic, Typeable)
+
+instance ToRow InputData where
+  toRow inputData = [ toField (inTypenameId inputData)
+                    , toField (inUserId     inputData)
+                    , toField (inParentId   inputData)
+                    , toField (inName       inputData)
+                    , toField (inHyper      inputData)
+                    ]
+
+
+
+{-
+insertDocuments' :: CanInsertDb a => UserId -> ParentId -> a -> Cmd err [ReturnId]
+insertDocuments' uId pId as =
+    runPGSQuery queryInsert . Only . (Values $ fields as)
+  where
+    fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
+--}
+
+prepare :: UserId -> ParentId -> NodeType -> [ToDbData] -> [InputData]
+prepare uId pId nodeType = map (\h -> InputData tId uId pId (name h) (toJSON' h))
+  where
+    tId    = nodeTypeId nodeType
+    
+    toJSON' (ToDbDocument hd) = toJSON hd
+    toJSON' (ToDbContact  hc) = toJSON hc
+    
+    name h = DT.take 255 <$> maybe "No Title" identity $ f h
+      where
+        f (ToDbDocument hd) = _hyperdataDocument_title hd
+        f (ToDbContact  _ ) = Just "Contact" -- TODO view FirstName . LastName
+
+
+
 
 -- | Debug SQL function
 --
@@ -161,19 +225,6 @@ queryInsert = [sql|
     JOIN   nodes c USING (hyperdata);         -- columns of unique index
            |]
 
-prepare :: UserId -> ParentId -> NodeType -> [ToDbData] -> [InputData]
-prepare uId pId nodeType = map (\h -> InputData tId uId pId (name h) (toJSON' h))
-  where
-    tId    = nodeTypeId nodeType
-    
-    toJSON' (ToDbDocument hd) = toJSON hd
-    toJSON' (ToDbContact  hc) = toJSON hc
-    
-    name h = DT.take 255 <$> maybe "No Title" identity $ f h
-      where
-        f (ToDbDocument hd) = _hyperdataDocument_title hd
-        f (ToDbContact  _ ) = Just "Contact" -- TODO view FirstName . LastName
-
 ------------------------------------------------------------------------
 -- * Main Types used
 
@@ -190,25 +241,16 @@ data ReturnId = ReturnId { reInserted :: Bool -- ^ if the document is inserted (
 instance FromRow ReturnId where
   fromRow = ReturnId <$> field <*> field <*> field
 
--- ** Insert Types
-
-data InputData = InputData { inTypenameId :: NodeTypeId
-                           , inUserId     :: UserId
-                           , inParentId   :: ParentId
-                           , inName       :: Text
-                           , inHyper      :: Value
-                           } deriving (Show, Generic, Typeable)
-
-instance ToRow InputData where
-  toRow inputData = [ toField (inTypenameId inputData)
-                    , toField (inUserId     inputData)
-                    , toField (inParentId   inputData)
-                    , toField (inName       inputData)
-                    , toField (inHyper      inputData)
-                    ]
-
 ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
+
+class AddUniqId a
+  where
+    addUniqId :: a -> a
+
+instance AddUniqId HyperdataDocument
+  where
+    addUniqId = addUniqIdsDoc
 
 addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
 addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)

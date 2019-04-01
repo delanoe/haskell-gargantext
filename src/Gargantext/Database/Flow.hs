@@ -61,7 +61,7 @@ import Gargantext.Database.Utils (Cmd, CmdM)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Prelude
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
---import Gargantext.Text.Parsers (parseDocs, FileFormat)
+import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Text.Terms (TermType(..), tt_lang)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
@@ -80,8 +80,11 @@ type FlowCmdM env err m =
   )
 
 
+
+------------------------------------------------------------------------
+
 flowCorpusDebat :: FlowCmdM env ServantErr m
-            => Username -> CorpusName -> Int -> FilePath -> m CorpusId
+            => Username -> CorpusName -> Limit -> FilePath -> m CorpusId
 flowCorpusDebat u n l fp = do
   docs <- liftIO ( splitEvery 500
                  <$> take l
@@ -91,22 +94,17 @@ flowCorpusDebat u n l fp = do
   flowCorpus u n (Multi FR) docs
 
 
-{-
-flowCorpus :: FlowCmdM env ServantErr m
-           => Username -> CorpusName -> TermType Lang -> FileFormat -> FilePath -> m CorpusId
-flowCorpus u cn la ff fp = undefined -- liftIO (parseDocs ff fp) >>= \docs -> flowCorpus' u cn la docs
-
-flowCorpus''' :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
-           => Username -> CorpusName -> TermType Lang -> [[a]] -> m [CorpusId]
-flowCorpus''' u cn la docs = mapM (\doc -> flowCorpus' u cn la doc) docs
---}
-
-flowCorpus :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
-           => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
-flowCorpus u cn la docs = do
-  ids <- mapM ((insertMasterDocs la) . (map toHyperdataDocument)) docs
-  flowCorpusUser (la ^. tt_lang) u cn (concat ids)
-
+flowCorpusFile :: FlowCmdM env ServantErr m
+           => Username -> CorpusName
+           -> Limit -- ^ Limit the number of docs (for dev purpose)
+           -> TermType Lang -> FileFormat -> FilePath
+           -> m CorpusId
+flowCorpusFile u n l la ff fp = do
+  docs <- liftIO ( splitEvery 500
+                 <$> take l
+                 <$> parseDocs ff fp
+                 )
+  flowCorpus u n la docs
 
 -- TODO query with complex query
 flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
@@ -115,6 +113,15 @@ flowCorpusSearchInDatabase u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster ""
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
   flowCorpusUser la u q ids
+
+------------------------------------------------------------------------
+
+
+flowCorpus :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
+           => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
+flowCorpus u cn la docs = do
+  ids <- mapM ((insertMasterDocs la) . (map toHyperdataDocument)) docs
+  flowCorpusUser (la ^. tt_lang) u cn (concat ids)
 
 
 flowCorpusUser :: FlowCmdM env ServantErr m
@@ -142,19 +149,16 @@ flowCorpusUser l userName corpusName ids = do
   pure userCorpusId
 
 
-insertMasterDocs :: FlowCmdM env ServantErr m
-                => TermType Lang -> [HyperdataDocument] -> m [DocId]
+insertMasterDocs :: (FlowCmdM env ServantErr m, InsertDb a, AddUniqId a, ToCorpus a, ExtractNgramsT a)
+                => TermType Lang -> [a] -> m [DocId]
 insertMasterDocs lang hs  =  do
   (masterUserId, _, masterCorpusId) <- getOrMkRootWithCorpus userMaster corpusMasterName
 
   -- TODO Type NodeDocumentUnicised
-  let hs' = map addUniqIdsDoc hs
-  ids <- insertDocuments masterUserId masterCorpusId NodeDocument
-                         $ map ToDbDocument hs'
-                         --      ^ TODO Type class to insert Doc
-                         --         ^ TODO Type Class AddUnicity where unicity = addUnicity
+  let hs' = map addUniqId hs
+  ids <- insertDb masterUserId masterCorpusId hs'
 
-  let documentsWithId = mergeData (toInserted ids) (toInsert hs')
+  let documentsWithId = mergeData (toInserted ids) (DM.fromList $ map toCorpus hs')
   docsWithNgrams     <- documentIdWithNgrams (extractNgramsT lang) documentsWithId
 
   let maps            = mapNodeIdNgrams docsWithNgrams
@@ -205,23 +209,31 @@ getOrMkRootWithCorpus username cName = do
 
 
 ------------------------------------------------------------------------
-toInsert :: [HyperdataDocument] -> Map HashId HyperdataDocument
-toInsert = DM.fromList . map (\d -> (maybe err identity (_hyperdataDocument_uniqId d), d))
+
+class ToCorpus a
   where
-    err = "[ERROR] Database.Flow.toInsert"
+    toCorpus :: a -> (HashId,a)
+
+
+instance ToCorpus HyperdataDocument
+  where
+    toCorpus d = maybe err (\h -> (h,d)) (_hyperdataDocument_uniqId d)
+      where
+        err = panic "[ERROR] Database.Flow.toInsert"
+
 
 toInserted :: [ReturnId] -> Map HashId ReturnId
 toInserted = DM.fromList . map    (\r ->  (reUniqId r, r)    )
                          . filter (\r -> reInserted r == True)
 
-data DocumentWithId = DocumentWithId
+data DocumentWithId a = DocumentWithId
   { documentId   :: !NodeId
-  , documentData :: !HyperdataDocument
+  , documentData :: !a
   } deriving (Show)
 
 mergeData :: Map HashId ReturnId
-          -> Map HashId HyperdataDocument
-          -> [DocumentWithId]
+          -> Map HashId a
+          -> [DocumentWithId a]
 mergeData rs = catMaybes . map toDocumentWithId . DM.toList
   where
     toDocumentWithId (hash,hpd) =
@@ -229,21 +241,28 @@ mergeData rs = catMaybes . map toDocumentWithId . DM.toList
                      <*> Just hpd
 
 ------------------------------------------------------------------------
-data DocumentIdWithNgrams = DocumentIdWithNgrams
-  { documentWithId  :: !DocumentWithId
+data DocumentIdWithNgrams a = DocumentIdWithNgrams
+  { documentWithId  :: !(DocumentWithId a)
   , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
 
 -- TODO extractNgrams according to Type of Data
-extractNgramsT :: HasNodeError err
-               => TermType Lang -> HyperdataDocument
-               -> Cmd err (Map Ngrams (Map NgramsType Int))
-extractNgramsT lang hd = filterNgramsT 255 <$> extractNgramsT' lang hd
+
+class ExtractNgramsT h
   where
-    extractNgramsT' :: HasNodeError err
-                   => TermType Lang -> HyperdataDocument
+    extractNgramsT :: TermType Lang -> h -> Cmd err (Map Ngrams (Map NgramsType Int))
+
+instance ExtractNgramsT HyperdataDocument
+  where
+    extractNgramsT = extractNgramsT'
+
+extractNgramsT' :: TermType Lang -> HyperdataDocument
+               -> Cmd err (Map Ngrams (Map NgramsType Int))
+extractNgramsT' lang hd = filterNgramsT 255 <$> extractNgramsT'' lang hd
+  where
+    extractNgramsT'' :: TermType Lang -> HyperdataDocument
                    -> Cmd err (Map Ngrams (Map NgramsType Int))
-    extractNgramsT' lang' doc = do
+    extractNgramsT'' lang' doc = do
       let source    = text2ngrams
                     $ maybe "Nothing" identity
                     $ _hyperdataDocument_source doc
@@ -281,10 +300,10 @@ extractNgramsT lang hd = filterNgramsT 255 <$> extractNgramsT' lang hd
 
 
 documentIdWithNgrams :: HasNodeError err
-                     => (HyperdataDocument
+                     => (a
                      -> Cmd err (Map Ngrams (Map NgramsType Int)))
-                     -> [DocumentWithId]
-                     -> Cmd err [DocumentIdWithNgrams]
+                     -> [DocumentWithId a]
+                     -> Cmd err [DocumentIdWithNgrams a]
 documentIdWithNgrams f = mapM toDocumentIdWithNgrams
   where
     toDocumentIdWithNgrams d = do
@@ -295,11 +314,11 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
 
 -- FLOW LIST
 -- | TODO check optimization
-mapNodeIdNgrams :: [DocumentIdWithNgrams]
+mapNodeIdNgrams :: [DocumentIdWithNgrams a]
                 -> Map Ngrams (Map NgramsType (Map NodeId Int))
 mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
   where
-    f :: DocumentIdWithNgrams
+    f :: DocumentIdWithNgrams a
       -> Map Ngrams (Map NgramsType (Map NodeId Int))
     f d = fmap (fmap (DM.singleton nId)) $ document_ngrams d
       where
@@ -322,60 +341,3 @@ flowList uId cId ngs = do
   listInsert lId ngs
   pure lId
 
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-
-{-
--- | Annuaire
-
-flowAnnuaire :: FlowCmdM env ServantErr m => FilePath -> m ()
-flowAnnuaire filePath = do
-  contacts <- liftIO $ deserialiseImtUsersFromFile filePath
-  ps <- flowInsertAnnuaire "Annuaire" $ map (\h-> ToDbContact h) $ map addUniqIdsContact contacts
-  printDebug "length annuaire" ps
-
-
-flowInsertAnnuaire :: HasNodeError err => CorpusName -> [ToDbData]
-                    -> Cmd err ([ReturnId], UserId, CorpusId, UserId, CorpusId)
-flowInsertAnnuaire name children = do
-
-  (masterUserId, _, masterCorpusId) <- subFlowCorpus userMaster corpusMasterName
-  ids  <- insertDocuments masterUserId masterCorpusId NodeContact children
-
-  (userId, _, userCorpusId) <- subFlowAnnuaire userArbitrary name
-  _ <- add userCorpusId (map reId ids)
-
-  printDebug "AnnuaireID" userCorpusId
-
-  pure (ids, masterUserId, masterCorpusId, userId, userCorpusId)
-
-
-subFlowAnnuaire :: HasNodeError err =>
-  Username -> CorpusName -> Cmd err (UserId, RootId, CorpusId)
-subFlowAnnuaire username _cName = do
-  maybeUserId <- getUser username
-
-  userId <- case maybeUserId of
-        Nothing   -> nodeError NoUserFound
-        -- mk NodeUser gargantua_id "Node Gargantua"
-        Just user -> pure $ userLight_id user
-
-  rootId' <- map _node_id <$> getRoot username
-
-  rootId'' <- case rootId' of
-        []  -> mkRoot username userId
-        n   -> case length n >= 2 of
-            True  -> nodeError ManyNodeUsers
-            False -> pure rootId'
-  rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
-
-  corpusId' <- mkAnnuaire rootId userId
-
-  corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
-
-  printDebug "(username, userId, rootId, corpusId)"
-              (username, userId, rootId, corpusId)
-  pure (userId, rootId, corpusId)
-
--}
