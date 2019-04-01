@@ -175,9 +175,11 @@ data MockEnv = MockEnv
 
 makeLenses ''MockEnv
 
+-- | TODO add this path in Settings
 repoSnapshot :: FilePath
 repoSnapshot = "repo.json"
 
+-- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: ToJSON a => a -> IO ()
 repoSaverAction a = do
