@@ -57,7 +57,7 @@ class ReadFile a where
 saveFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
          => a -> m FilePath
 saveFile a = do
-  dataPath <- _fileFolder . (view settings) <$> ask
+  dataPath <- view (settings . fileFolder) <$> ask
   (fp,fn)  <- liftIO $ (toPath 3) . hash . Text.pack . show <$> newStdGen
   
   let foldPath = dataPath <> "/" <> fp
@@ -72,5 +72,5 @@ saveFile a = do
 readFile :: (MonadReader env m, MonadIO m, HasSettings env, ReadFile a)
          => FilePath -> m a
 readFile fp = do
-  dataPath <- _fileFolder . (view settings) <$> ask
+  dataPath <- view (settings . fileFolder) <$> ask
   liftIO $ readFile' $ dataPath <> "/" <> fp
