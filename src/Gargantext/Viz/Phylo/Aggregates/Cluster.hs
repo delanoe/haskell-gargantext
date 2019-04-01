@@ -37,14 +37,14 @@ import qualified Data.Set    as Set
 
 
 -- | To apply a Clustering method to a PhyloGraph
-graphToClusters :: QueryClustering -> GroupGraph -> [Cluster]
-graphToClusters clust (nodes,edges) = case clust ^. qc_name of 
-  Louvain           -> undefined -- louvain (nodes,edges)
-  RelatedComponents -> relatedComp 0 (head nodes) (tail nodes,edges) [] []   
+graphToClusters :: Cluster -> GroupGraph -> [PhyloCluster]
+graphToClusters clust (nodes,edges) = case clust of 
+  Louvain (LouvainParams _)      -> undefined -- louvain (nodes,edges)
+  RelatedComponents (RCParams _) -> relatedComp 0 (head nodes) (tail nodes,edges) [] []   
 
 
 -- | To transform a Phylo into Clusters of PhyloGroups at a given level
-phyloToClusters :: Level -> QueryProximity -> QueryClustering -> Phylo -> Map (Date,Date) [Cluster]
+phyloToClusters :: Level -> Proximity -> Cluster -> Phylo -> Map (Date,Date) [PhyloCluster]
 phyloToClusters lvl prox clus p = Map.fromList 
                                 $ zip (getPhyloPeriods p) 
                                    (map (\prd -> let graph = groupsToGraph prox (getGroupsWithFilters lvl prd p) p

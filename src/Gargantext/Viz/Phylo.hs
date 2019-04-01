@@ -30,7 +30,7 @@ one 8, e54847.
 module Gargantext.Viz.Phylo where
 
 import Control.Lens (makeLenses)
-import Data.Aeson.TH (deriveJSON)
+import Data.Aeson.TH (deriveJSON,defaultOptions)
 import Data.Maybe   (Maybe)
 import Data.Text    (Text)
 import Data.Set     (Set)
@@ -155,12 +155,7 @@ type Pointer = (PhyloGroupId, Weight)
 type Ngrams = Text
 
 
--- | Clique : Set of ngrams cooccurring in the same Document
-type Clique  = Set Ngrams
--- | Support : Number of Documents where a Clique occurs
-type Support = Int 
--- | Fis : Frequent Items Set (ie: the association between a Clique and a Support) 
-type Fis = (Clique,Support)
+-- | Aggregates | --
 
 
 -- | Document : a piece of Text linked to a Date
@@ -170,7 +165,16 @@ data Document = Document
       } deriving (Show)
 
 
-type Cluster = [PhyloGroup]
+-- | Clique : Set of ngrams cooccurring in the same Document
+type Clique   = Set Ngrams
+-- | Support : Number of Documents where a Clique occurs
+type Support  = Int 
+-- | Fis : Frequent Items Set (ie: the association between a Clique and a Support) 
+type PhyloFis = (Clique,Support)
+
+
+-- | A list of clustered PhyloGroup 
+type PhyloCluster = [PhyloGroup]
 
 
 -- | A List of PhyloGroup in a Graph
@@ -181,66 +185,127 @@ type GroupEdges = [((PhyloGroup,PhyloGroup),Weight)]
 type GroupGraph = (GroupNodes,GroupEdges)
 
 
+---------------
+-- | Error | --
+---------------
+
 data PhyloError = LevelDoesNotExist
                 | LevelUnassigned
           deriving (Show)               
 
+-----------------
+-- | Cluster | --
+-----------------
 
-------------------------------------------------------------------------
--- | To create a Phylo | --
+-- | Cluster constructors
+data Cluster = Fis FisParams 
+             | RelatedComponents RCParams
+             | Louvain LouvainParams
+        deriving (Show)
 
+-- | Parameters for Fis clustering
+data FisParams = FisParams
+  { _fis_filtered     :: Bool
+  , _fis_keepMinorFis :: Bool
+  , _fis_minSupport   :: Support 
+  } deriving (Show)
 
+-- | Parameters for RelatedComponents clustering
+data RCParams = RCParams
+  { _rc_proximity :: Proximity } deriving (Show)
+
+-- | Parameters for Louvain clustering
+data LouvainParams = LouvainParams
+  { _louvain_proximity :: Proximity } deriving (Show)
+
+-------------------
+-- | Proximity | --
+-------------------
+
+-- | Proximity constructors
+data Proximity = WeightedLogJaccard WLJParams
+               | Hamming HammingParams
+               | Filiation
+          deriving (Show)
+
+-- | Parameters for WeightedLogJaccard proximity
+data WLJParams = WLJParams 
+  { _wlj_threshold   :: Double
+  , _wlj_sensibility :: Double
+  } deriving (Show)
+
+-- | Parameters for Hamming proximity
+data HammingParams = HammingParams 
+  { _hamming_threshold :: Double } deriving (Show)
+
+----------------
+-- | Filter | --
+----------------
+
+-- | Filter constructors
+data Filter = LonelyBranch LBParams deriving (Show)
+
+-- | Parameters for LonelyBranch filter
+data LBParams = LBParams
+  { _lb_periodsInf :: Int 
+  , _lb_periodsSup :: Int
+  , _lb_minNodes   :: Int } deriving (Show) 
+
+----------------
+-- | Metric | -- 
+----------------
+
+-- | Metric constructors
+data Metric = BranchAge deriving (Show)
+
+----------------
+-- | Tagger | --
+----------------
+
+-- | Tagger constructors
+data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics deriving (Show)
+
+--------------
+-- | Sort | --
+--------------
+
+-- | Sort constructors
+data Sort  = ByBranchAge deriving (Show)
+data Order = Asc | Desc deriving (Show)
+
+--------------------
 -- | PhyloQuery | --
+--------------------
 
-
--- | A PhyloQuery is the structured representation of a user query to create a Phylo
+-- | A Phyloquery describes a phylomemic reconstruction 
 data PhyloQuery = PhyloQuery 
-    { _q_phyloName        :: Text
-    , _q_phyloDescription :: Text
+    { _q_phyloName :: Text
+    , _q_phyloDesc :: Text
 
-    -- Grain and Steps for seting up the periods 
+    -- Grain and Steps for the PhyloPeriods 
     , _q_periodGrain :: Int
     , _q_periodSteps :: Int
     
-    -- First clustering methods (ie: level 1)
-    , _q_fstCluster :: QueryClustering
+    -- Clustering method for making level 1 of the Phylo
+    , _q_cluster :: Cluster
     
-    -- Inter temporal matching method
-    , _q_interTemporalMatching :: QueryProximity
+    -- Inter-temporal matching method of the Phylo
+    , _q_interTemporalMatching :: Proximity
     
-    -- Level max of reconstruction of the Phylo && clustering methods to level max
+    -- Last level of reconstruction  
     , _q_nthLevel   :: Level
-    , _q_nthCluster :: QueryClustering
+    -- Clustering method used from level 1 to nthLevel
+    , _q_nthCluster :: Cluster
     } deriving (Show)
 
+data Filiation = Ascendant | Descendant | Complete deriving (Show)
+data EdgeType  = PeriodEdge | LevelEdge deriving (Show)
 
-data Filiation  = Ascendant | Descendant | Complete deriving (Show)
-data EdgeType   = PeriodEdge | LevelEdge deriving (Show)
-
--- | Reconstruction treatments
-data Proximity  = WeightedLogJaccard | Hamming | Filiation deriving (Show)
-data Clustering = Louvain | RelatedComponents | FrequentItemSet deriving (Show)
-
--- | A constructor for Proximities
-data QueryProximity = QueryProximity
-  { _qp_name      :: Proximity
-  , _qp_pNum      :: Map Text Double
-  , _qp_threshold :: Maybe Double } deriving (Show)
-
--- | A constructor for Clustering
-data QueryClustering = QueryClustering
-  { _qc_name      :: Clustering
-  , _qc_pNum      :: Map Text Double
-  , _qc_pBool     :: Map Text Bool
-  , _qc_proximity :: Maybe QueryProximity } deriving (Show)
-
-------------------------------------------------------------------------
--- | To export a Phylo | --
-
-
+-------------------
 -- | PhyloView | --
+-------------------
 
-
+-- | A PhyloView is the output type of a Phylo
 data PhyloView = PhyloView
   { _phylo_viewParam       :: PhyloParam
   , _phylo_viewLabel       :: Text
@@ -252,13 +317,12 @@ data PhyloView = PhyloView
   , _phylo_viewEdges       :: [PhyloEdge]
   } deriving (Show)
 
-
+-- | A phyloview is made of PhyloBranches, edges and nodes
 data PhyloBranch = PhyloBranch 
   { _phylo_branchId    :: PhyloBranchId
   , _phylo_branchLabel :: Text
   , _phylo_branchMeta  :: Map Text Double
   } deriving (Show)  
-
 
 data PhyloEdge = PhyloEdge
   { _phylo_edgeSource :: PhyloGroupId
@@ -266,7 +330,6 @@ data PhyloEdge = PhyloEdge
   , _phylo_edgeType   :: EdgeType
   , _phylo_edgeWeight :: Weight
   } deriving (Show)
-
 
 data PhyloNode = PhyloNode
   { _phylo_nodeId        :: PhyloGroupId
@@ -279,28 +342,13 @@ data PhyloNode = PhyloNode
   , _phylo_nodeChilds    :: [PhyloNode]
   } deriving (Show)
 
-
+------------------------
 -- | PhyloQueryView | --
+------------------------
 
-
--- | Post reconstruction treatments
-data Filter = LonelyBranch 
-data Metric = BranchAge
-data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics
-data Sort   = ByBranchAge
-data Order  = Asc | Desc 
 data DisplayMode = Flat | Nested 
 
-
--- | A constructor for filters 
-data QueryFilter = QueryFilter
-  { _qf_name  :: Filter
-  , _qf_pNum  :: Map Text Double
-  , _qf_pBool :: Map Text Bool
-  }
-
-
--- | A PhyloQueryView is the structured representation of a user query to be applied to a Phylo
+-- | A PhyloQueryView describes a Phylo as an output view
 data PhyloQueryView = PhyloQueryView 
   { _qv_lvl    :: Level
 
@@ -314,7 +362,7 @@ data PhyloQueryView = PhyloQueryView
   -- Ordered lists of filters, taggers and metrics to be applied to the PhyloGraph
   -- Firstly the metrics, then the filters and the taggers   
   , _qv_metrics :: [Metric]
-  , _qv_filters :: [QueryFilter]
+  , _qv_filters :: [Filter]
   , _qv_taggers :: [Tagger]
 
   -- An asc or desc sort to apply to the PhyloGraph
@@ -325,30 +373,35 @@ data PhyloQueryView = PhyloQueryView
   , _qv_verbose :: Bool
   }
 
+----------------
+-- | Lenses | --
+----------------
 
-------------------------------------------------------------------------
--- | Lenses and Json | --
-
-
--- | Lenses
-makeLenses ''Phylo
 makeLenses ''PhyloParam
 makeLenses ''PhyloExport
 makeLenses ''Software
+--
+makeLenses ''Phylo
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
-makeLenses ''PhyloView
+-- 
+makeLenses ''Proximity
+makeLenses ''Cluster
+makeLenses ''Filter
+-- 
+makeLenses ''PhyloQuery
 makeLenses ''PhyloQueryView
+--
+makeLenses ''PhyloView
 makeLenses ''PhyloBranch
 makeLenses ''PhyloNode
 makeLenses ''PhyloEdge
-makeLenses ''QueryProximity
-makeLenses ''QueryClustering
-makeLenses ''QueryFilter
-makeLenses ''PhyloQuery
 
--- | JSON instances 
+------------------------
+-- | JSON instances | --
+------------------------ 
+
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
@@ -358,10 +411,18 @@ $(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
 $(deriveJSON (unPrefix "_phyloExport_" ) ''PhyloExport )
 --
-$(deriveJSON (unPrefix "_q_"  ) ''PhyloQuery )
-$(deriveJSON (unPrefix "_qc_" ) ''QueryClustering )
-$(deriveJSON (unPrefix "_qp_" ) ''QueryProximity  )
-$(deriveJSON (unPrefix "") ''Proximity  )
-$(deriveJSON (unPrefix "") ''Clustering )
--- | TODO XML instances
+$(deriveJSON defaultOptions ''Cluster   )
+$(deriveJSON defaultOptions ''Proximity )
+--
+$(deriveJSON (unPrefix "_fis_" )     ''FisParams     )
+$(deriveJSON (unPrefix "_hamming_" ) ''HammingParams )
+$(deriveJSON (unPrefix "_louvain_" ) ''LouvainParams )
+$(deriveJSON (unPrefix "_rc_" )      ''RCParams      )
+$(deriveJSON (unPrefix "_wlj_" )     ''WLJParams     )
+--
+$(deriveJSON (unPrefix "_q_" ) ''PhyloQuery )
+
+----------------------------
+-- | TODO XML instances | --
+----------------------------
 

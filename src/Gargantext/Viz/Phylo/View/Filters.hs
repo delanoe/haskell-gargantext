@@ -61,7 +61,7 @@ cleanNodesEdges v v' = v' & phylo_viewNodes %~ (filter (\n -> not $ elem (getNod
 
 -- | To filter all the lonelyBranches (ie: isolated one in time & with a small number of nodes) of a PhyloView
 filterLonelyBranch :: Int -> Int -> Int -> [PhyloPeriodId] -> PhyloView -> PhyloView
-filterLonelyBranch nbInf nbSup nbNs prds v = cleanNodesEdges v v'
+filterLonelyBranch inf sup min prds v = cleanNodesEdges v v'
   where
     --------------------------------------
     v' :: PhyloView
@@ -71,20 +71,15 @@ filterLonelyBranch nbInf nbSup nbNs prds v = cleanNodesEdges v v'
                                                   in not (isLone ns prds')))
     --------------------------------------
     isLone :: [PhyloNode] -> [PhyloPeriodId] -> Bool
-    isLone ns prds' = (length ns <= nbNs)
-                      && notElem (head prds') (take nbInf prds)
-                      && notElem (head prds') (take nbSup $ reverse prds)
+    isLone ns prds' = (length ns <= min)
+                      && notElem (head prds') (take inf prds)
+                      && notElem (head prds') (take sup $ reverse prds)
     --------------------------------------
 
 
-
-
-
-
 -- | To process a list of QueryFilter to a PhyloView
-processFilters :: [QueryFilter] -> Phylo -> PhyloView -> PhyloView
-processFilters fs p v = foldl (\v' f -> case f ^. qf_name of
-                                        LonelyBranch -> filterLonelyBranch (round $ getFilterPNum f "nbInf") 
-                                                                           (round $ getFilterPNum f "nbSup") 
-                                                                           (round $ getFilterPNum f "nbNs") (getPhyloPeriods p) v'
-                                        _            -> panic "[ERR][Viz.Phylo.View.Filters.processFilters] filter not found") v fs
+processFilters :: [Filter] -> Phylo -> PhyloView -> PhyloView
+processFilters fs p v = foldl (\v' f -> case f of
+                                        LonelyBranch (LBParams inf sup min) -> filterLonelyBranch inf sup min 
+                                                                               (getPhyloPeriods p) v'
+                                        _   -> panic "[ERR][Viz.Phylo.View.Filters.processFilters] filter not found") v fs

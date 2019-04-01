@@ -94,16 +94,10 @@ urlPhyloQuery = "title=Cesar et Cleôpatre&description=An example of Phylomemy (
 phyloQuery :: PhyloQuery
 phyloQuery = PhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
                         5 3
-                        (QueryClustering FrequentItemSet 
-                                    (singleton "supportInf" 1)
-                                    (Map.fromList [("filterFis",True),("emptyFis",False)])
-                                    Nothing)
-                        (QueryProximity  WeightedLogJaccard 
-                                    (singleton "sensibility" 0) (Just 0.01))
+                        defaultFis
+                        defaultWeightedLogJaccard
                         2
-                        (QueryClustering RelatedComponents
-                                    empty empty
-                                    (Just (QueryProximity Filiation empty Nothing)))
+                        defaultRelatedComponents
 
 
 ------------------------------------------------------------------------
@@ -114,7 +108,7 @@ phyloQuery = PhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french w
 urlToQuery :: Text -> PhyloQueryView
 urlToQuery url = defaultQuery 
               & qv_metrics %~ (++ [BranchAge])
-              & qv_filters %~ (++ [QueryFilter LonelyBranch (Map.fromList [("nbInf",2),("nbSup",2),("nbNs",1)]) empty])
+              & qv_filters %~ (++ [defaultLonelyBranch])
               & qv_taggers %~ (++ [BranchLabelFreq,GroupLabelCooc])
 
 
@@ -139,16 +133,16 @@ phyloView = toPhyloView urlQuery phylo6
 
 
 phylo6 :: Phylo
-phylo6 = toNthLevel 6 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) (QueryClustering RelatedComponents empty empty (Just (QueryProximity Filiation empty Nothing)))  phylo3  
+phylo6 = toNthLevel 6 defaultWeightedLogJaccard defaultRelatedComponents phylo3  
 
 
 phylo3 :: Phylo
 phylo3 = setPhyloBranches 3
-       $ interTempoMatching Descendant 3 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01))
-       $ interTempoMatching Ascendant 3 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) 
+       $ interTempoMatching Descendant 3 defaultWeightedLogJaccard
+       $ interTempoMatching Ascendant 3 defaultWeightedLogJaccard
        $ setLevelLinks (2,3) 
        $ addPhyloLevel 3 
-          (phyloToClusters 2 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) (QueryClustering RelatedComponents empty empty (Just (QueryProximity Filiation empty Nothing))) phyloBranch2) 
+          (phyloToClusters 2 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch2) 
           phyloBranch2
 
 
@@ -160,11 +154,11 @@ phyloBranch2 = setPhyloBranches 2 phylo2_c
 
 
 phylo2_c :: Phylo
-phylo2_c = interTempoMatching Descendant 2 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) phylo2_p
+phylo2_c = interTempoMatching Descendant 2 defaultWeightedLogJaccard phylo2_p
 
 
 phylo2_p :: Phylo
-phylo2_p = interTempoMatching Ascendant 2 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) phylo2_1_2
+phylo2_p = interTempoMatching Ascendant 2 defaultWeightedLogJaccard phylo2_1_2
 
 
 phylo2_1_2 :: Phylo
@@ -176,8 +170,8 @@ phylo2 :: Phylo
 phylo2 = addPhyloLevel 2 phyloCluster phyloBranch1
 
 
-phyloCluster :: Map (Date,Date) [Cluster] 
-phyloCluster = phyloToClusters 1 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) (QueryClustering RelatedComponents empty empty (Just (QueryProximity Filiation empty Nothing))) phyloBranch1
+phyloCluster :: Map (Date,Date) [PhyloCluster] 
+phyloCluster = phyloToClusters 1 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch1
 
 
 ------------------------------------------------------------------------
@@ -193,11 +187,11 @@ phyloBranch1 = setPhyloBranches 1 phylo1_c
 
 
 phylo1_c :: Phylo
-phylo1_c = interTempoMatching Descendant 1 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) phylo1_p
+phylo1_c = interTempoMatching Descendant 1 defaultWeightedLogJaccard phylo1_p
 
 
 phylo1_p :: Phylo
-phylo1_p = interTempoMatching Ascendant 1 (QueryProximity WeightedLogJaccard (singleton "sensibility" 0) (Just 0.01)) phylo1_0_1
+phylo1_p = interTempoMatching Ascendant 1 defaultWeightedLogJaccard phylo1_0_1
 
 
 ------------------------------------------------------------------------
@@ -228,7 +222,7 @@ phylo1 =  addPhyloLevel (1) phyloFis phylo
 -- | STEP 5 | -- Create lists of Frequent Items Set and filter them
 
 
-phyloFis :: Map (Date, Date) [Fis]
+phyloFis :: Map (Date, Date) [PhyloFis]
 phyloFis = filterFisBySupport False 1 (filterFisByNested (docsToFis phyloDocs))
 
 

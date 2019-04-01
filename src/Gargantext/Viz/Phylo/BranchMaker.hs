@@ -44,21 +44,20 @@ graphToBranches lvl (nodes,edges) p = concat
 
 
 -- | To transform a list of PhyloGroups into a PhyloGraph by using a given Proximity mesure
-groupsToGraph :: QueryProximity -> [PhyloGroup] -> Phylo -> GroupGraph
+groupsToGraph :: Proximity -> [PhyloGroup] -> Phylo -> GroupGraph
 groupsToGraph prox groups p = (groups,edges)
   where 
     edges :: GroupEdges
-    edges = case prox ^. qp_name of  
+    edges = case prox of  
       Filiation          -> (nub . concat) $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
                                                         ++
                                                         (map (\g' -> ((g,g'),1)) $ getGroupChilds g p)) groups 
-      WeightedLogJaccard -> filter (\edge -> snd edge >= (fromJust (prox ^. qp_threshold))) 
-                          $ map (\(x,y) -> ((x,y), weightedLogJaccard 
-                                (getSensibility prox) (getGroupCooc x) 
-                                (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups
-      Hamming            -> filter (\edge -> snd edge <= (fromJust (prox ^. qp_threshold))) 
-                          $ map (\(x,y) -> ((x,y), hamming (getGroupCooc x) 
-                                (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups                          
+      WeightedLogJaccard (WLJParams thr sens) -> filter (\edge -> snd edge >= thr) 
+                                               $ map (\(x,y) -> ((x,y), weightedLogJaccard sens (getGroupCooc x) (unifySharedKeys (getGroupCooc x) (getGroupCooc y))))
+                                               $ listToDirectedCombi groups
+      Hamming (HammingParams thr) -> filter (\edge -> snd edge <= thr) 
+                                   $ map (\(x,y) -> ((x,y), hamming (getGroupCooc x) (unifySharedKeys (getGroupCooc x) (getGroupCooc y))))
+                                   $ listToDirectedCombi groups                          
       _                  -> undefined 
 
 
@@ -72,5 +71,5 @@ setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst . head) $ fi
     bs = graphToBranches lvl graph p
     --------------------------------------
     graph :: GroupGraph
-    graph = groupsToGraph (QueryProximity Filiation empty Nothing) (getGroupsWithLevel lvl p) p
+    graph = groupsToGraph Filiation (getGroupsWithLevel lvl p) p
     --------------------------------------

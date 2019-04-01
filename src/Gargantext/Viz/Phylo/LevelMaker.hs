@@ -51,7 +51,7 @@ class PhyloLevelMaker aggregate
         toPhyloGroups :: Level -> (Date,Date)  -> [aggregate] -> Map (Date,Date) [aggregate] -> Phylo -> [PhyloGroup]
 
 
-instance PhyloLevelMaker Cluster 
+instance PhyloLevelMaker PhyloCluster 
   where
     --------------------------------------
     -- | Level -> Map (Date,Date) [Cluster] -> Phylo -> Phylo 
@@ -64,7 +64,7 @@ instance PhyloLevelMaker Cluster
     --------------------------------------
 
 
-instance PhyloLevelMaker Fis 
+instance PhyloLevelMaker PhyloFis 
   where
     --------------------------------------
     -- | Level -> Map (Date,Date) [Fis] -> Phylo -> Phylo 
@@ -94,7 +94,7 @@ instance PhyloLevelMaker Document
 
 
 -- | To transform a Cluster into a Phylogroup 
-clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> Cluster -> Map (Date,Date) [Cluster] -> Phylo -> PhyloGroup
+clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster] -> Phylo -> PhyloGroup
 clusterToGroup prd lvl idx lbl groups m p = 
     PhyloGroup ((prd, lvl), idx) lbl ngrams empty cooc Nothing [] [] [] (map (\g -> (getGroupId g, 1)) groups)
       where
@@ -111,7 +111,7 @@ clusterToGroup prd lvl idx lbl groups m p =
 
 
 -- | To transform a Clique into a PhyloGroup
-cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> (Clique,Support) -> Map (Date, Date) [Fis] -> Phylo -> PhyloGroup
+cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> (Clique,Support) -> Map (Date, Date) [PhyloFis] -> Phylo -> PhyloGroup
 cliqueToGroup prd lvl idx lbl fis m p = 
     PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ snd fis)) cooc Nothing [] [] [] []
       where
@@ -155,7 +155,7 @@ initPhylo g s c a f = addPhyloLevel 0 (corpusToDocs f c base) base
 
 
 -- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks 
-toNthLevel :: Level -> QueryProximity -> QueryClustering -> Phylo -> Phylo
+toNthLevel :: Level -> Proximity -> Cluster -> Phylo -> Phylo
 toNthLevel lvlMax prox clus p 
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax prox clus
@@ -164,7 +164,7 @@ toNthLevel lvlMax prox clus p
                   $ interTempoMatching Ascendant (lvl + 1) prox
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
-                    (phyloToClusters lvl (fromJust $ clus ^. qc_proximity) clus p) p
+                    (phyloToClusters lvl (getProximity clus) clus p) p
   where
     --------------------------------------
     lvl :: Level 
@@ -172,22 +172,24 @@ toNthLevel lvlMax prox clus p
     --------------------------------------
 
 
--- | To reconstruct the Level 1 of a Phylo based on a Clustering Methods
-toPhylo1 :: QueryClustering -> QueryProximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
-toPhylo1 clst proxy d p = case getClusterName clst of 
-                FrequentItemSet -> setPhyloBranches 1
-                                 $ interTempoMatching Descendant 1 proxy
-                                 $ interTempoMatching Ascendant 1 proxy
-                                 $ setLevelLinks (0,1)
-                                 $ setLevelLinks (1,0)
-                                 $ addPhyloLevel 1 phyloFis p
-                  where 
-                    --------------------------------------
-                    phyloFis :: Map (Date, Date) [Fis]
-                    phyloFis = filterFisBySupport (getClusterPBool clst "emptyFis") (round $ getClusterPNum clst "supportInf") (filterFisByNested (docsToFis d))
-                    --------------------------------------
+-- | To reconstruct the Level 1 of a Phylo based on a Clustering Method
+toPhylo1 :: Cluster -> Proximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
+toPhylo1 clus prox d p = case clus of 
+  Fis (FisParams f k s) -> setPhyloBranches 1
+                            $ interTempoMatching Descendant 1 prox
+                            $ interTempoMatching Ascendant 1 prox
+                            $ setLevelLinks (0,1)
+                            $ setLevelLinks (1,0)
+                            $ addPhyloLevel 1 phyloFis p
+    where 
+      --------------------------------------
+      phyloFis :: Map (Date, Date) [PhyloFis]
+      phyloFis = if f
+                 then filterFisBySupport k s (filterFisByNested (docsToFis d))
+                 else docsToFis d
+      --------------------------------------
 
-                _               -> panic "[ERR][Viz.Phylo.PhyloMaker.toPhylo1] fst clustering not recognized"
+  _   -> panic "[ERR][Viz.Phylo.PhyloMaker.toPhylo1] fst clustering not recognized"
 
 
 -- | To reconstruct the Level 0 of a Phylo

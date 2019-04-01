@@ -33,7 +33,7 @@ import qualified Data.Set    as Set
 
 
 -- | To transform the Fis into a coocurency Matrix in a Phylo 
-fisToCooc :: Map (Date, Date) [Fis] -> Phylo -> Map (Int, Int) Double
+fisToCooc :: Map (Date, Date) [PhyloFis] -> Phylo -> Map (Int, Int) Double
 fisToCooc m p = map   (/docs)
               $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
               $ concat

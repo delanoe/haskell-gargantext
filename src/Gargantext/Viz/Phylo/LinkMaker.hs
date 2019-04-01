@@ -85,11 +85,11 @@ setLevelLinks (lvl,lvl') p = alterPhyloGroups (linkGroupsByLevel (lvl,lvl') p) p
 
 
 -- | To apply the corresponding proximity function based on a given Proximity
-getProximity :: QueryProximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-getProximity prox g1 g2 = case (prox ^. qp_name) of 
-  WeightedLogJaccard -> ((getGroupId g2),weightedLogJaccard (getSensibility prox) (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
-  Hamming            -> ((getGroupId g2),hamming (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
-  _                  -> panic ("[ERR][Viz.Phylo.Example.getProximity] Proximity function not defined")
+applyProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
+applyProximity prox g1 g2 = case prox of 
+  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2),weightedLogJaccard s (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
+  Hamming (HammingParams _)          -> ((getGroupId g2),hamming (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
+  _                                  -> panic ("[ERR][Viz.Phylo.Example.applyProximity] Proximity function not defined")
 
 
 -- | To get the next or previous PhyloPeriod based on a given PhyloPeriodId
@@ -122,7 +122,7 @@ getNextPeriods to id l = case to of
 
 
 -- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )  
-findBestCandidates :: Filiation -> Int -> Int -> QueryProximity -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
+findBestCandidates :: Filiation -> Int -> Int -> Proximity -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
 findBestCandidates to depth max prox group p
   | depth > max || null next = [] 
   | (not . null) best = take 2 best
@@ -136,14 +136,14 @@ findBestCandidates to depth max prox group p
     candidates = getGroupsWithFilters (getGroupLevel group) (head next) p
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
-    scores = map (\group' -> getProximity prox group group') candidates
+    scores = map (\group' -> applyProximity prox group group') candidates
     --------------------------------------
     best :: [(PhyloGroupId, Double)]
     best = reverse
          $ sortOn snd 
-         $ filter (\(id,score) -> case (prox ^. qp_name) of 
-            WeightedLogJaccard -> score >= fromJust (prox ^. qp_threshold)
-            Hamming            -> score <= fromJust (prox ^. qp_threshold)) scores
+         $ filter (\(id,score) -> case prox of 
+            WeightedLogJaccard (WLJParams thr _) -> score >= thr
+            Hamming (HammingParams thr)          -> score <= thr) scores
     --------------------------------------
 
 
@@ -161,7 +161,7 @@ makePair to group ids = case to of
 
 
 -- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
-interTempoMatching :: Filiation -> Level -> QueryProximity -> Phylo -> Phylo
+interTempoMatching :: Filiation -> Level -> Proximity -> Phylo -> Phylo
 interTempoMatching to lvl prox p = alterPhyloGroups
                                     (\groups -> 
                                       map (\group ->

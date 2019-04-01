@@ -13,13 +13,14 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level)
 import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, union, sortOn)
-import Data.Maybe           (mapMaybe)
+import Data.Maybe           (mapMaybe,fromMaybe)
 import Data.Map             (Map, mapKeys, member, elems, adjust, (!))
 import Data.Set             (Set)
 import Data.Text            (Text, toLower)
@@ -139,42 +140,9 @@ getBranchMeta :: Text -> PhyloBranch -> Double
 getBranchMeta k b = (b ^. phylo_branchMeta) ! k
 
 
--- | To get the Name of a Clustering Methods
-getClusterName :: QueryClustering -> Clustering
-getClusterName c = _qc_name c
-
-
--- | To get the params of a Clustering Methods
-getClusterPNum :: QueryClustering -> Text -> Double
-getClusterPNum c k = if (member k $ _qc_pNum c)
-                      then (_qc_pNum c) Map.! k
-                      else panic "[ERR][Viz.Phylo.Tools.getClusterParam] the key is not in params"
-
-
--- | To get the boolean params of a Clustering Methods
-getClusterPBool :: QueryClustering -> Text -> Bool
-getClusterPBool c k = if (member k $ _qc_pBool c)
-                      then (_qc_pBool c) Map.! k
-                      else panic "[ERR][Viz.Phylo.Tools.getClusterParamBool] the key is not in paramsBool"
-
-
--- | To get a numeric param from a given  QueryFilter
-getFilterPNum :: QueryFilter -> Text -> Double
-getFilterPNum f k = if (member k $ f ^. qf_pNum)
-                    then (f ^. qf_pNum) Map.! k
-                    else panic "[ERR][Viz.Phylo.Tools.getFilterPNum] the key is not in pNum"
-
-
--- | To get a boolean param from a given  QueryFilter
-getFilterPBool :: QueryFilter -> Text -> Bool
-getFilterPBool f k = if (member k $ f ^. qf_pBool)
-                     then (f ^. qf_pBool) Map.! k
-                     else panic "[ERR][Viz.Phylo.Tools.getFilterPBool] the key is not in pBool"
-
-
 -- | To get the first clustering method to apply to get the level 1 of a Phylo
-getFstCluster :: PhyloQuery -> QueryClustering
-getFstCluster q = q ^. q_fstCluster
+getFstCluster :: PhyloQuery -> Cluster
+getFstCluster q = q ^. q_cluster
 
 
 -- | To get the foundations of a Phylo
@@ -394,7 +362,7 @@ getNodesInBranches v = filter (\n -> isJust $ n ^. phylo_nodeBranchId)
 
 
 -- | To get the cluster methods to apply to the Nths levels of a Phylo
-getNthCluster :: PhyloQuery -> QueryClustering
+getNthCluster :: PhyloQuery -> Cluster
 getNthCluster q = q ^. q_nthCluster
 
 
@@ -424,13 +392,6 @@ getPhyloPeriodId :: PhyloPeriod -> PhyloPeriodId
 getPhyloPeriodId prd = _phylo_periodId prd 
 
 
--- | To get the sensibility of a Proximity if it exists
-getSensibility :: QueryProximity -> Double
-getSensibility prox = if (member "sensibility" $ prox ^. qp_pNum)
-                      then (prox ^. qp_pNum) ! "sensibility"
-                      else panic "[ERR][Viz.Phylo.Tools.getSensibility] sensibility not in params"
-
-
 -- | To get the PhyloGroupId of the Source of a PhyloEdge 
 getSourceId :: PhyloEdge -> PhyloGroupId
 getSourceId e = e ^. phylo_edgeSource 
@@ -447,7 +408,7 @@ getPeriodGrain q = q ^. q_periodGrain
 
 
 -- | To get the intertemporal matching strategy to apply to a Phylo from a PhyloQuery
-getInterTemporalMatching :: PhyloQuery -> QueryProximity
+getInterTemporalMatching :: PhyloQuery -> Proximity
 getInterTemporalMatching q = q ^. q_interTemporalMatching
 
 
@@ -533,3 +494,73 @@ unifySharedKeys :: Eq a => Ord a => Map (a,a) b -> Map (a,a) b -> Map (a,a) b
 unifySharedKeys m1 m2 = mapKeys (\(x,y) -> if member (y,x) m2
                                            then (y,x)
                                            else (x,y) ) m1 
+
+
+
+--------------------------------------------------
+-- | PhyloQuery & PhyloQueryView Constructors | --
+
+
+-- | Define a default value for each Proximity / Cluster
+dft :: a -> Maybe a -> a
+dft = fromMaybe
+
+defaultFis :: Cluster
+defaultFis = Fis (initFis Nothing Nothing Nothing)
+
+defaultHamming :: Proximity
+defaultHamming = Hamming (initHamming Nothing)
+
+defaultLonelyBranch = LonelyBranch (initLonelyBranch Nothing Nothing Nothing)
+
+defaultLouvain :: Cluster
+defaultLouvain = Louvain (initLouvain Nothing)
+
+defaultRelatedComponents :: Cluster
+defaultRelatedComponents = RelatedComponents (initRelatedComponents Nothing)
+
+defaultWeightedLogJaccard :: Proximity
+defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing Nothing)
+
+
+-- | To get the Proximity associated to a given Clustering method
+getProximity :: Cluster -> Proximity
+getProximity cluster = case cluster of 
+  Louvain (LouvainParams proxi)      -> proxi
+  RelatedComponents (RCParams proxi) -> proxi
+  _   -> panic "[ERR][Viz.Phylo.Tools.getProximity] this cluster has no associated Proximity"
+
+
+-- | To initialize all the Cluster / Proximity with their default parameters
+initFis :: Maybe Bool -> Maybe Bool -> Maybe Support -> FisParams
+initFis (dft True -> flt) (dft True -> kmf) (dft 1 -> min) = FisParams flt kmf min
+
+initHamming :: Maybe Double -> HammingParams
+initHamming (dft 0.01 -> sens) = HammingParams sens
+
+initLonelyBranch :: Maybe Int -> Maybe Int -> Maybe Int -> LBParams
+initLonelyBranch (dft 2 -> periodsInf) (dft 2 -> periodsSup) (dft 1 -> minNodes) = LBParams periodsInf periodsSup minNodes
+
+initLouvain :: Maybe Proximity -> LouvainParams
+initLouvain (dft defaultWeightedLogJaccard -> proxi) = LouvainParams proxi
+
+initRelatedComponents :: Maybe Proximity -> RCParams
+initRelatedComponents (dft Filiation -> proxi) = RCParams proxi
+
+initWeightedLogJaccard :: Maybe Double -> Maybe Double -> WLJParams
+initWeightedLogJaccard (dft 0 -> thr) (dft 0.01 -> sens) = WLJParams thr sens
+
+
+-- | To initialize a PhyloQuery from given and default parameters
+initPhyloQuery :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQuery
+initPhyloQuery name desc (dft 5 -> grain) (dft 3 -> steps) (dft defaultFis -> cluster)
+  (dft defaultWeightedLogJaccard -> matching) (dft 2 -> nthLevel) (dft defaultRelatedComponents -> nthCluster) =
+    PhyloQuery name desc grain steps cluster matching nthLevel nthCluster
+
+
+-- | To define some obvious boolean getters
+shouldFilterFis :: FisParams -> Bool
+shouldFilterFis = _fis_filtered
+
+shouldKeepMinorFis :: FisParams -> Bool
+shouldKeepMinorFis = _fis_keepMinorFis
