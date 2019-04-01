@@ -77,8 +77,13 @@ instance ReadFile Model
 -- shuffle list
 -- split list : train / test
 -- grid parameters on best result on test
-grid :: (MonadReader env m, MonadIO m, HasSettings env) => Map ListType [Vec.Vector Double] -> m () -- Map (ListType, Maybe ListType) Int)
-grid m = do
+
+type Train = Map ListType [Vec.Vector Double]
+type Tests = Map ListType [Vec.Vector Double]
+
+grid :: (MonadReader env m, MonadIO m, HasSettings env)
+     => (Train, Tests) -> m () -- Map (ListType, Maybe ListType) Int)
+grid (m,_) = do
   let
     grid' :: (MonadReader env m, MonadIO m, HasSettings env)
           => Double -> Double
@@ -86,8 +91,8 @@ grid m = do
           -> m (Double, (Double,Double))
     grid' x y ls = do
       model' <- liftIO $ trainList x y ls
-      fp <- saveFile (ModelSVM model')
-      printDebug "file" fp
+      --fp <- saveFile (ModelSVM model')
+      --printDebug "file" fp
       let (res, toGuess) = List.unzip $ List.concat 
                                       $ map (\(k,vs) -> zip (repeat k) vs)
                                       $ Map.toList ls

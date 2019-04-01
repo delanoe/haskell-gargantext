@@ -86,7 +86,7 @@ data Settings = Settings
 makeLenses ''Settings
 
 class HasSettings env where
-  repoSettings :: Getter env Settings
+  settings :: Getter env Settings
 
 
 parseJwk :: Text -> Jose.Jwk
@@ -166,7 +166,7 @@ instance HasRepo Env where
   repoEnv = env_repo
 
 instance HasSettings Env where
-  repoSettings = env_settings
+  settings = env_settings
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
@@ -275,7 +275,7 @@ instance HasRepo DevEnv where
   repoEnv = dev_env_repo
 
 instance HasSettings DevEnv where
-  repoSettings = dev_env_settings
+  settings = dev_env_settings
 
 cleanEnv :: HasRepo env => env -> IO ()
 cleanEnv env = do
