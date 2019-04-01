@@ -33,7 +33,7 @@ module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
 --import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 --import Gargantext.Text.Metrics.TFICF (Tficf(..))
 --import Debug.Trace (trace)
-import Control.Lens ((^.))
+import Control.Lens ((^.), view, Lens')
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.List (concat)
@@ -80,7 +80,6 @@ type FlowCmdM env err m =
   )
 
 
-
 ------------------------------------------------------------------------
 
 flowCorpusDebat :: FlowCmdM env ServantErr m
@@ -116,7 +115,8 @@ flowCorpusSearchInDatabase u la q = do
 
 ------------------------------------------------------------------------
 
-
+-- TODO-ACCESS: check uId CanInsertDoc pId && checkDocType nodeType
+-- TODO-EVENTS: InsertedNodes
 flowCorpus :: (FlowCmdM env ServantErr m, ToHyperdataDocument a)
            => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
 flowCorpus u cn la docs = do
@@ -149,7 +149,12 @@ flowCorpusUser l userName corpusName ids = do
   pure userCorpusId
 
 
-insertMasterDocs :: (FlowCmdM env ServantErr m, InsertDb a, AddUniqId a, ToCorpus a, ExtractNgramsT a)
+insertMasterDocs :: ( FlowCmdM env ServantErr m
+                    , AddUniqId a -- Maybe use a Setter her
+                    , UniqId a    -- That is a lens
+                    , InsertDb a
+                    , ExtractNgramsT a
+                    )
                 => TermType Lang -> [a] -> m [DocId]
 insertMasterDocs lang hs  =  do
   (masterUserId, _, masterCorpusId) <- getOrMkRootWithCorpus userMaster corpusMasterName
@@ -158,7 +163,7 @@ insertMasterDocs lang hs  =  do
   let hs' = map addUniqId hs
   ids <- insertDb masterUserId masterCorpusId hs'
 
-  let documentsWithId = mergeData (toInserted ids) (DM.fromList $ map toCorpus hs')
+  let documentsWithId = mergeData (toInserted ids) (DM.fromList $ map viewUniqId' hs')
   docsWithNgrams     <- documentIdWithNgrams (extractNgramsT lang) documentsWithId
 
   let maps            = mapNodeIdNgrams docsWithNgrams
@@ -210,14 +215,18 @@ getOrMkRootWithCorpus username cName = do
 
 ------------------------------------------------------------------------
 
-class ToCorpus a
+class UniqId a
   where
-    toCorpus :: a -> (HashId,a)
+    uniqId :: Lens' a (Maybe HashId)
 
 
-instance ToCorpus HyperdataDocument
+instance UniqId HyperdataDocument
   where
-    toCorpus d = maybe err (\h -> (h,d)) (_hyperdataDocument_uniqId d)
+    uniqId = hyperdataDocument_uniqId
+
+
+viewUniqId' :: UniqId a => a -> (HashId, a)
+viewUniqId' d = maybe err (\h -> (h,d)) (view uniqId d)
       where
         err = panic "[ERROR] Database.Flow.toInsert"
 
