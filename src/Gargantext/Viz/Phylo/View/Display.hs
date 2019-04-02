@@ -49,9 +49,9 @@ toNestedView ns ns'
       lvl' = getNodeLevel $ head $ nested
       --------------------------------------
       nested :: [PhyloNode]
-      nested = foldl (\ns' n -> let nId' = getNodeParentId n
-                                in map (\n' -> if getNodeId n' == nId'
-                                               then n' & phylo_nodeChilds %~ (++ [n])
+      nested = foldl (\ns' n -> let nIds' = getNodeParentsId n
+                                in map (\n' -> if elem (getNodeId n') nIds'
+                                               then n' & phylo_nodeLevelChilds %~ (++ [n])
                                                else n') ns') ns' ns
       --------------------------------------  
 

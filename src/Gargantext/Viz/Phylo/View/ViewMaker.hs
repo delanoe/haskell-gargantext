@@ -20,7 +20,7 @@ module Gargantext.Viz.Phylo.View.ViewMaker
 import Control.Lens     hiding (makeLenses, both, Level)
 
 import Data.List        (notElem,last,head,union,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!),sortOn,sort,(\\))
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,fromList,mapKeys,insert,empty)
+import Data.Map         (Map,elems,adjust,unionWith,unionWithKey,intersectionWith,fromList,mapKeys,insert,empty)
 import Data.Maybe       (isNothing)
 import Data.Set         (Set)
 import Data.Text        (Text,unwords)
@@ -77,16 +77,32 @@ groupsToNodes isR isV ns gs = map (\g -> let idxs = getGroupNgrams g
                                                 else Nothing)
                                               empty 
                                               (if (not isR)
-                                                then Just (head $ getGroupLevelParentsId g)
+                                                then Just (getGroupLevelParentsId g)
                                                 else Nothing)
                                               []
                                   ) gs
+
+
+mergeEdges :: [PhyloEdge] -> [PhyloEdge] -> [PhyloEdge]
+mergeEdges lAsc lDes = elems 
+                     $ unionWithKey (\k vAsc vDes -> vDes & phylo_edgeWeight .~ (max (vAsc ^. phylo_edgeWeight) (vDes ^. phylo_edgeWeight))) mAsc mDes
+  where
+    --------------------------------------
+    mAsc :: Map (PhyloGroupId,PhyloGroupId) PhyloEdge
+    mAsc = fromList 
+         $ zip (map (\e -> (e ^. phylo_edgeTarget,e ^. phylo_edgeSource)) lAsc) lAsc
+    --------------------------------------
+    mDes :: Map (PhyloGroupId,PhyloGroupId) PhyloEdge
+    mDes = fromList 
+         $ zip (map (\e -> (e ^. phylo_edgeSource,e ^. phylo_edgeTarget)) lDes) lDes
+    --------------------------------------
 
 
 -- | To transform a list of PhyloGroups into a list of PhyloEdges
 groupsToEdges :: Filiation -> EdgeType -> [PhyloGroup] -> [PhyloEdge]
 groupsToEdges fl et gs = case fl of 
                          Complete -> (groupsToEdges Ascendant et gs) ++ (groupsToEdges Descendant et gs)
+                         Merge    -> mergeEdges (groupsToEdges Ascendant et gs) (groupsToEdges Descendant et gs)
                          _        -> concat 
                                    $ map (\g -> case fl of
                                                 Ascendant  -> case et of 
@@ -131,7 +147,7 @@ toPhyloView q p = processDisplay (q ^. qv_display)
                 $ processTaggers (q ^. qv_taggers) p
                 $ processFilters (q ^. qv_filters) p
                 $ processMetrics (q ^. qv_metrics) p 
-                $ addChildNodes  (q ^. qv_childs) (q ^. qv_lvl) (q ^. qv_childsDepth) (q ^. qv_verbose) (q ^. qv_filiation) p
+                $ addChildNodes  (q ^. qv_levelChilds) (q ^. qv_lvl) (q ^. qv_levelChildsDepth) (q ^. qv_verbose) (q ^. qv_filiation) p
                 $ initPhyloView  (q ^. qv_lvl) (getPhyloTitle p) (getPhyloDescription p) (q ^. qv_filiation) (q ^. qv_verbose) p
 
 

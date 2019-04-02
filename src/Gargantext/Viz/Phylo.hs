@@ -75,10 +75,17 @@ data Software =
 data Phylo =
      Phylo { _phylo_duration    :: (Start, End)
            , _phylo_foundations :: Vector Ngrams
+           -- , _phylo_peaks       :: PhyloPeaks
            , _phylo_periods     :: [PhyloPeriod]
            , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show)
+
+-- data PhyloPeaks = 
+--       PhyloPeaks { _phylo_peaksLabel :: Vector Ngrams
+--                  , _phylo_peaksTrees :: [(Ngrams, TreeNgrams)]
+--                  } 
+--                  deriving (Generic, Show)  
 
 
 -- | Date : a simple Integer
@@ -270,13 +277,13 @@ data HammingParams = HammingParams
 
 
 -- | Filter constructors
-data Filter = LonelyBranch LBParams deriving (Show)
+data Filter = SmallBranch SBParams deriving (Show)
 
--- | Parameters for LonelyBranch filter
-data LBParams = LBParams
-  { _lb_periodsInf :: Int 
-  , _lb_periodsSup :: Int
-  , _lb_minNodes   :: Int } deriving (Show) 
+-- | Parameters for SmallBranch filter
+data SBParams = SBParams
+  { _sb_periodsInf :: Int 
+  , _sb_periodsSup :: Int
+  , _sb_minNodes   :: Int } deriving (Show) 
 
 
 ----------------
@@ -321,8 +328,8 @@ data PhyloQuery = PhyloQuery
     , _q_periodGrain :: Int
     , _q_periodSteps :: Int
     
-    -- Clustering method for making level 1 of the Phylo
-    , _q_cluster :: Cluster
+    -- Clustering method for building the contextual unit of Phylo (ie: level 1) 
+    , _q_contextualUnit :: Cluster
     
     -- Inter-temporal matching method of the Phylo
     , _q_interTemporalMatching :: Proximity
@@ -333,7 +340,8 @@ data PhyloQuery = PhyloQuery
     , _q_nthCluster :: Cluster
     } deriving (Show)
 
-data Filiation = Ascendant | Descendant | Complete deriving (Show)
+-- | To choose the Phylo edge you want to export : --> <-- <--> <=>
+data Filiation = Ascendant | Descendant | Merge | Complete deriving (Show)
 data EdgeType  = PeriodEdge | LevelEdge deriving (Show)
 
 
@@ -348,7 +356,7 @@ data PhyloView = PhyloView
   , _phylo_viewTitle       :: Text
   , _phylo_viewDescription :: Text
   , _phylo_viewFiliation   :: Filiation
-  , _phylo_viewMeta        :: Map Text Double
+  , _phylo_viewMetrics     :: Map Text [Double]
   , _phylo_viewBranches    :: [PhyloBranch]
   , _phylo_viewNodes       :: [PhyloNode]
   , _phylo_viewEdges       :: [PhyloEdge]
@@ -356,9 +364,9 @@ data PhyloView = PhyloView
 
 -- | A phyloview is made of PhyloBranches, edges and nodes
 data PhyloBranch = PhyloBranch 
-  { _phylo_branchId    :: PhyloBranchId
-  , _phylo_branchLabel :: Text
-  , _phylo_branchMeta  :: Map Text Double
+  { _phylo_branchId      :: PhyloBranchId
+  , _phylo_branchLabel   :: Text
+  , _phylo_branchMetrics :: Map Text [Double]
   } deriving (Show)  
 
 data PhyloEdge = PhyloEdge
@@ -374,9 +382,9 @@ data PhyloNode = PhyloNode
   , _phylo_nodeLabel     :: Text
   , _phylo_nodeNgramsIdx :: [Int] 
   , _phylo_nodeNgrams    :: Maybe [Ngrams]
-  , _phylo_nodeMeta      :: Map Text Double
-  , _phylo_nodeParent    :: Maybe PhyloGroupId 
-  , _phylo_nodeChilds    :: [PhyloNode]
+  , _phylo_nodeMetrics      :: Map Text [Double]
+  , _phylo_nodeLevelParents :: Maybe [PhyloGroupId] 
+  , _phylo_nodeLevelChilds  :: [PhyloNode]
   } deriving (Show)
 
 
@@ -391,12 +399,12 @@ data DisplayMode = Flat | Nested
 data PhyloQueryView = PhyloQueryView 
   { _qv_lvl    :: Level
 
-  -- Does the PhyloGraph contain ascendant, descendant or a complete Filiation ?
+  -- Does the PhyloGraph contain ascendant, descendant or a complete Filiation ? Complet redondant et merge (avec le max)
   , _qv_filiation :: Filiation
 
   -- Does the PhyloGraph contain some levelChilds ? How deep must it go ?
-  , _qv_childs      :: Bool
-  , _qv_childsDepth :: Level
+  , _qv_levelChilds      :: Bool
+  , _qv_levelChildsDepth :: Level
 
   -- Ordered lists of filters, taggers and metrics to be applied to the PhyloGraph
   -- Firstly the metrics, then the filters and the taggers   

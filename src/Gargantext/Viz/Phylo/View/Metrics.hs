@@ -38,20 +38,19 @@ import qualified Data.Vector as Vector
 
 
 -- | To add a new meta Metric to a PhyloBranch
-addBranchMeta :: PhyloBranchId -> Text -> Double -> PhyloView -> PhyloView
-addBranchMeta id lbl val v = over (phylo_viewBranches
-                                  . traverse) 
-                                  (\b -> if getBranchId b == id
-                                         then b & phylo_branchMeta %~ insert lbl val 
-                                         else b) v
+addBranchMetrics :: PhyloBranchId -> Text -> Double -> PhyloView -> PhyloView
+addBranchMetrics id lbl val v = over (phylo_viewBranches
+                                     . traverse) 
+                                    (\b -> if getBranchId b == id
+                                           then b & phylo_branchMetrics %~ insert lbl [val] 
+                                           else b) v
 
 
 -- | To get the age (in year) of all the branches of a PhyloView
 branchAge :: PhyloView -> PhyloView
 branchAge v = foldl (\v' b -> let bId = (fst . head) b
                                   prds = sortOn fst $ map snd b
-                              in addBranchMeta bId "age" ((abs . fromIntegral) 
-                                                          $ ((snd . last) prds) - ((fst . head) prds)) v') v
+                              in addBranchMetrics bId "age" ((abs . fromIntegral) $ ((snd . last) prds) - ((fst . head) prds)) v') v
             $ groupBy ((==) `on` fst)
             $ sortOn fst
             $ map (\n -> (getNodeBranchId n, (fst . fst) $ getNodeId n))

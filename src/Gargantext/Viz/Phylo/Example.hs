@@ -96,7 +96,7 @@ queryViewEx = "level=3"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 3 Descendant False 1 [BranchAge] [defaultLonelyBranch] [BranchLabelFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Flat True
+phyloQueryView = PhyloQueryView 3 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchLabelFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Flat True
 
 
 --------------------------------------------------

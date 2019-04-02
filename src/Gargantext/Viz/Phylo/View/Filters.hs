@@ -19,7 +19,7 @@ module Gargantext.Viz.Phylo.View.Filters
 
 import Control.Lens     hiding (makeLenses, both, Level)
 
-import Data.List        (notElem,last,head,union,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!),sortOn,sort,(\\))
+import Data.List        (notElem,last,head,union,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!),sortOn,sort,(\\),intersect)
 import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,fromList,mapKeys)
 import Data.Maybe       (isNothing)
 import Data.Set         (Set)
@@ -40,10 +40,10 @@ import qualified Data.Vector as Vector
 -- | To clean a PhyloView list of Nodes, Edges, etc after having filtered its Branches
 cleanNodesEdges :: PhyloView -> PhyloView -> PhyloView
 cleanNodesEdges v v' = v' & phylo_viewNodes %~ (filter (\n -> not $ elem (getNodeId n) nIds))
-                          & phylo_viewNodes %~ (map (\n -> if isNothing (n ^. phylo_nodeParent)
+                          & phylo_viewNodes %~ (map (\n -> if isNothing (n ^. phylo_nodeLevelParents)
                                                            then n
-                                                           else if elem (getNodeParentId n) nIds
-                                                                then n & phylo_nodeParent .~ Nothing
+                                                           else if (not .null) $ (getNodeParentsId n) `intersect` nIds
+                                                                then n & phylo_nodeLevelParents .~ Nothing
                                                                 else n ))
                           & phylo_viewEdges %~ (filter (\e -> (not $ elem (getSourceId e) nIds)
                                                            && (not $ elem (getTargetId e) nIds)))
@@ -59,9 +59,9 @@ cleanNodesEdges v v' = v' & phylo_viewNodes %~ (filter (\n -> not $ elem (getNod
     --------------------------------------
 
 
--- | To filter all the lonelyBranches (ie: isolated one in time & with a small number of nodes) of a PhyloView
-filterLonelyBranch :: Int -> Int -> Int -> [PhyloPeriodId] -> PhyloView -> PhyloView
-filterLonelyBranch inf sup min prds v = cleanNodesEdges v v'
+-- | To filter all the SmallBranches (ie: isolated one in time & with a small number of nodes) of a PhyloView
+filterSmallBranch :: Int -> Int -> Int -> [PhyloPeriodId] -> PhyloView -> PhyloView
+filterSmallBranch inf sup min prds v = cleanNodesEdges v v'
   where
     --------------------------------------
     v' :: PhyloView
@@ -80,6 +80,6 @@ filterLonelyBranch inf sup min prds v = cleanNodesEdges v v'
 -- | To process a list of QueryFilter to a PhyloView
 processFilters :: [Filter] -> Phylo -> PhyloView -> PhyloView
 processFilters fs p v = foldl (\v' f -> case f of
-                                        LonelyBranch (LBParams inf sup min) -> filterLonelyBranch inf sup min 
+                                        SmallBranch (SBParams inf sup min) -> filterSmallBranch inf sup min 
                                                                                (getPhyloPeriods p) v'
                                         _   -> panic "[ERR][Viz.Phylo.View.Filters.processFilters] filter not found") v fs

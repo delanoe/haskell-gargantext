@@ -438,17 +438,16 @@ getNodeLevel n = (snd . fst) $ getNodeId n
 
 
 -- | To get the Parent Node of a PhyloNode in a PhyloView
-getNodeParent :: PhyloNode -> PhyloView -> PhyloNode
-getNodeParent n v = head 
-                  $ filter (\n' -> getNodeId n' == getNodeParentId n)
+getNodeParent :: PhyloNode -> PhyloView -> [PhyloNode]
+getNodeParent n v = filter (\n' -> elem (getNodeId n') (getNodeParentsId n))
                   $ v ^. phylo_viewNodes
 
 
 -- | To get the Parent Node id of a PhyloNode if it exists
-getNodeParentId :: PhyloNode -> PhyloGroupId
-getNodeParentId n = case n ^. phylo_nodeParent of
-                    Nothing -> panic "[ERR][Viz.Phylo.Tools.getNodeParentId] node parent not found"
-                    Just id -> id
+getNodeParentsId :: PhyloNode -> [PhyloGroupId]
+getNodeParentsId n = case n ^. phylo_nodeLevelParents of
+                    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getNodeParentsId] node parent not found"
+                    Just ids -> ids
 
 
 -- | To get a list of PhyloNodes grouped by PhyloBranch in a PhyloView
@@ -496,8 +495,8 @@ getBranchIdsWith lvl p = sortOn snd
 
 
 -- | To get the Meta value of a PhyloBranch 
-getBranchMeta :: Text -> PhyloBranch -> Double 
-getBranchMeta k b = (b ^. phylo_branchMeta) ! k
+getBranchMeta :: Text -> PhyloBranch -> [Double] 
+getBranchMeta k b = (b ^. phylo_branchMetrics) ! k
 
 
 -- | To get all the PhyloBranchIds of a PhyloView
@@ -509,10 +508,9 @@ getViewBranchIds v = map getBranchId $ v ^. phylo_viewBranches
 -- | PhyloQuery & QueryView | --
 --------------------------------
 
-
 -- | To get the first clustering method to apply to get the level 1 of a Phylo
 getFstCluster :: PhyloQuery -> Cluster
-getFstCluster q = q ^. q_cluster
+getFstCluster q = q ^. q_contextualUnit
 
 
 -- | To get the cluster methods to apply to the Nths levels of a Phylo
@@ -560,8 +558,8 @@ initFis (def True -> flt) (def True -> kmf) (def 1 -> min) = FisParams flt kmf m
 initHamming :: Maybe Double -> HammingParams
 initHamming (def 0.01 -> sens) = HammingParams sens
 
-initLonelyBranch :: Maybe Int -> Maybe Int -> Maybe Int -> LBParams
-initLonelyBranch (def 2 -> periodsInf) (def 2 -> periodsSup) (def 1 -> minNodes) = LBParams periodsInf periodsSup minNodes
+initSmallBranch :: Maybe Int -> Maybe Int -> Maybe Int -> SBParams
+initSmallBranch (def 2 -> periodsInf) (def 2 -> periodsSup) (def 1 -> minNodes) = SBParams periodsInf periodsSup minNodes
 
 initLouvain :: Maybe Proximity -> LouvainParams
 initLouvain (def defaultWeightedLogJaccard -> proxi) = LouvainParams proxi
@@ -610,8 +608,8 @@ defaultRelatedComponents = RelatedComponents (initRelatedComponents Nothing)
 
 -- Filters
 
-defaultLonelyBranch :: Filter
-defaultLonelyBranch = LonelyBranch (initLonelyBranch Nothing Nothing Nothing)
+defaultSmallBranch :: Filter
+defaultSmallBranch = SmallBranch (initSmallBranch Nothing Nothing Nothing)
 
 -- Params 
 
