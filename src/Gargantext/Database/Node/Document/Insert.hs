@@ -99,16 +99,11 @@ import Database.PostgreSQL.Simple (formatQuery)
 ---------------------------------------------------------------------------
 -- * Main Insert functions
 
--- ** Database configuration
--- Administrator of the database has to create a uniq index as following SQL command:
--- `create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
-
 -- | Insert Document main function
 -- UserId : user who is inserting the documents
 -- ParentId : folder ID which is parent of the inserted documents
-
-
-
+-- Administrator of the database has to create a uniq index as following SQL command:
+-- `create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
 insertDb :: InsertDb a => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
 insertDb u p = runPGSQuery queryInsert . Only . Values fields . map (insertDb' u p)
       where

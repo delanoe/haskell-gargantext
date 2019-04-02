@@ -558,8 +558,26 @@ mkRoot uname uId = case uId > 0 of
                False -> nodeError NegativeId
                True  -> mkNodeWithParent NodeUser Nothing uId uname
 
-mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd err [CorpusId]
-mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
+-- |
+-- CorpusDocument is a corpus made from a set of documents
+-- CorpusContact  is a corpus made from a set of contacts (syn of Annuaire)
+data CorpusType = CorpusDocument | CorpusContact
+
+class MkCorpus a
+  where
+    mk :: Maybe Name -> Maybe a -> ParentId -> UserId -> Cmd err [NodeId]
+
+instance MkCorpus HyperdataCorpus
+  where
+    mk n h p u = insertNodesR [nodeCorpusW n h p u]
+
+
+instance MkCorpus HyperdataAnnuaire
+  where
+    mk n h p u = insertNodesR [nodeAnnuaireW n h p u]
+
+
+
 
 getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err ListId
 getOrMkList pId uId =
@@ -581,9 +599,6 @@ mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
-
-mkAnnuaire :: ParentId -> UserId -> Cmd err [NodeId]
-mkAnnuaire p u = insertNodesR [nodeAnnuaireW Nothing Nothing p u]
 
 -- | Default CorpusId Master and ListId Master
 

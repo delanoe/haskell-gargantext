@@ -26,7 +26,7 @@ import Gargantext.Core.Types (ListType(..), Limit)
 import Gargantext.Database.Flow (FlowCmdM)
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser, getTficfWith)
 import Gargantext.Database.Schema.Node (defaultList)
-import Gargantext.Database.Types.Node (ListId, CorpusId)
+import Gargantext.Database.Types.Node (ListId, CorpusId, HyperdataCorpus)
 import Gargantext.Database.Flow (getOrMkRootWithCorpus)
 import Gargantext.Database.Config (userMaster)
 import Gargantext.Prelude
@@ -50,7 +50,7 @@ getMetrics :: FlowCmdM env ServantErr m
 getMetrics cId maybeListId tabType maybeLimit = do
   (ngs, ngs', metrics)    <- getLocalMetrics cId maybeListId tabType maybeLimit
   
-  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
+  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
   
   metrics' <- getTficfWith cId masterCorpusId (ngramsTypeFromTabType tabType) ngs'
 
