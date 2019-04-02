@@ -9,11 +9,12 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Gargantext.Ext.IMT where
 
 import Gargantext.Prelude
-import Data.Text (Text, pack, splitOn)
+import Data.Text (Text, splitOn)
 import Data.Map (Map)
 
 import qualified Data.Set    as S
@@ -30,59 +31,70 @@ data School = School { school_shortName :: Text
 } deriving (Show, Read, Eq)
 
 schools :: [School]
-schools = [ School 
-            (pack "Mines Albi-Carmaux")
-            (pack "Mines Albi-Carmaux - École nationale supérieure des Mines d'Albi‐Carmaux")
-            (pack "469216")
+schools = [ School
+            ("Mines Albi-Carmaux")
+            ("Mines Albi-Carmaux - École nationale supérieure des Mines d'Albi‐Carmaux")
+            ("469216")
           , School
-            (pack "Mines Alès")
-            (pack "EMA - École des Mines d'Alès")
-            (pack "6279")
-          
+            ("Mines Alès")
+            ("EMA - École des Mines d'Alès")
+            ("6279")
           , School
-            (pack "Mines Douai")
-            (pack "Mines Douai EMD - École des Mines de Douai")
-            (pack "224096")
-          
+            ("Mines Douai")
+            ("Mines Douai EMD - École des Mines de Douai")
+            ("224096")
           , School
-            (pack "Mines Nantes")
-            (pack "Mines Nantes - Mines Nantes")
-            (pack "84538")
-          
---          , School
---            (pack "Mines ParisTech")
---            (pack "MINES ParisTech - École nationale supérieure des mines de Paris")
---            (pack "301492")
---          
+            ("Mines Lille")
+            ("Mines Lille - École des Mines de Lille")
+            ("144103")
           , School
-            (pack "Mines Saint-Étienne")
-            (pack "Mines Saint-Étienne MSE - École des Mines de Saint-Étienne")
-            (pack "29212")
-          
+            ("IMT Lille Douai")
+            ("IMT Lille Douai")
+            ("497330")
           , School
-            (pack "Télécom Bretagne")
-            (pack "Télécom Bretagne")
-            (pack "301262")
-          
+            ("Mines Nantes")
+            ("Mines Nantes - Mines Nantes")
+            ("84538")
           , School
-            (pack "Télécom École de Management")
-            (pack "TEM - Télécom Ecole de Management")
-            (pack "301442")
-          
+            ("Télécom Bretagne")
+            ("Télécom Bretagne")
+            ("301262")
           , School
-            (pack "Télécom ParisTech")
-            (pack "Télécom ParisTech")
-            (pack "300362")
-          
+            ("IMT Atlantique")
+            ("IMT Atlantique - IMT Atlantique Bretagne-Pays de la Loire")
+            ("481355")
           , School
-            (pack "Télécom SudParis")
-            (pack "TSP - Télécom SudParis")
-            (pack "352124")
-          
+            ("Mines Saint-Étienne")
+            ("Mines Saint-Étienne MSE - École des Mines de Saint-Étienne")
+            ("29212")
           , School
-            (pack "IMT Atlantique")
-            (pack "IMT Atlantique - IMT Atlantique Bretagne-Pays de la Loire")
-            (pack "481355")
+            ("Télécom École de Management")
+            ("TEM - Télécom Ecole de Management")
+            ("301442")
+          , School
+            ("IMT Business School")
+            ("IMT Business School")
+            ("542824")
+          , School
+            ("Télécom ParisTech")
+            ("Télécom ParisTech")
+            ("300362")
+          , School
+            ("Télécom SudParis")
+            ("TSP - Télécom SudParis")
+            ("352124")
+          , School
+            ("ARMINES")
+            ("ARMINES")
+            ("300362")
+          , School
+            ("Eurecom")
+            ("Eurecom")
+            ("421532")
+          , School
+            ("Mines ParisTech")
+            ("MINES ParisTech - École nationale supérieure des mines de Paris")
+            ("301492")
             ]
 
 mapIdSchool :: Map Text Text
@@ -108,7 +120,7 @@ publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSc
                         $ F.freq
                         $ DL.concat
                         $ DV.toList
-                        $ DV.map (\n -> splitOn (pack ", ") (csvHal_instStructId_i n) )
+                        $ DV.map (\n -> splitOn ( ", ") (csvHal_instStructId_i n) )
                         $ DV.filter (\n -> csvHal_publication_year n == 2017) hal_data'
 
 
