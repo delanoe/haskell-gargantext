@@ -125,21 +125,25 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
 
 
 -- | To transform a PhyloQuery into a PhyloView
-queryToView :: PhyloQueryView -> Phylo -> PhyloView
-queryToView q p = processDisplay (q ^. qv_display)
+toPhyloView :: PhyloQueryView -> Phylo -> PhyloView
+toPhyloView q p = processDisplay (q ^. qv_display)
                 $ processSort (q ^. qv_sort) p
                 $ processTaggers (q ^. qv_taggers) p
                 $ processFilters (q ^. qv_filters) p
                 $ processMetrics (q ^. qv_metrics) p 
                 $ addChildNodes  (q ^. qv_childs) (q ^. qv_lvl) (q ^. qv_childsDepth) (q ^. qv_verbose) (q ^. qv_filiation) p
-                $ initPhyloView  (q ^. qv_lvl) "Phylo2000" "This is a Phylo" (q ^. qv_filiation) (q ^. qv_verbose) p
+                $ initPhyloView  (q ^. qv_lvl) (getPhyloTitle p) (getPhyloDescription p) (q ^. qv_filiation) (q ^. qv_verbose) p
 
 
--- | dirty params
-phyloParams :: PhyloParam
-phyloParams = PhyloParam "v0.1" (Software "Gargantext" "v4") "" Nothing
 
-
--- | To do : effectively get the PhyloParams of a Phylo
+-- | To get the PhyloParam of a Phylo
 getPhyloParams :: Phylo -> PhyloParam 
-getPhyloParams p = phyloParams
+getPhyloParams = _phylo_param
+
+-- | To get the title of a Phylo
+getPhyloTitle :: Phylo -> Text 
+getPhyloTitle p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
+
+-- | To get the desc of a Phylo
+getPhyloDescription :: Phylo -> Text 
+getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p

@@ -74,62 +74,62 @@ import qualified Data.Tuple  as Tuple
 import qualified Data.Vector as Vector
 
 
-------------------------------------------------------------------------
--- | STEP 13 | -- Create a Phylo from a Rest request 
+------------------------------------------------------
+-- | STEP 12 | -- Create a PhyloView from a user Query
+------------------------------------------------------ 
 
 
-phylo' :: Phylo
-phylo' = toPhylo phyloQuery corpus actants
+phyloView :: PhyloView 
+phyloView = toPhyloView (queryParser' queryViewEx) phyloFromQuery
+
+-- | To do : create an other request handler and an other query parser
+queryParser' :: [Char] -> PhyloQueryView
+queryParser' q = phyloQueryView
+
+queryViewEx :: [Char]
+queryViewEx = "level=3"
+              ++ "&childs=false"
+              ++ "&filter=LonelyBranchFilter"
+              ++ "&metric=BranchAge"
+              ++ "&tagger=BranchLabelFreq"
+              ++ "&tagger=GroupLabelCooc"
 
 
-urlPhyloQuery :: [Char]
-urlPhyloQuery = "title=Cesar et Cleôpatre&description=An example of Phylomemy (french without accent)" 
-                ++ "grain=5&step=3"
-                ++ "fstCluster=FrequentItemSet&fstClusterParam=supportInf:1&fstClusterParam=filterFis:True&fstClusterParam=emptyFis:False"
-                ++ "timeMatching=WeightedLogJaccard&timeMatchingParam=sensibility:0&timeMatchingThreshold:0.01"
-                ++ "levelMax=2"
-                ++ "cluster=RelatedComponents&clusterProximity=Filiation"
+phyloQueryView :: PhyloQueryView
+phyloQueryView = PhyloQueryView 3 Descendant False 1 [BranchAge] [defaultLonelyBranch] [BranchLabelFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Flat True
 
+
+--------------------------------------------------
+-- | STEP 11 | -- Create a Phylo from a user Query
+-------------------------------------------------- 
+
+
+phyloFromQuery :: Phylo
+phyloFromQuery = toPhylo (queryParser queryEx) corpus actants
+
+-- | To do : create a request handler and a query parser
+queryParser :: [Char] -> PhyloQuery
+queryParser q = phyloQuery
+
+queryEx :: [Char]
+queryEx = "title=Cesar et Cleôpatre"
+          ++ "&desc=An example of Phylomemy (french without accent)"
+          ++ "grain=5&steps=3" 
+          ++ "cluster=FrequentItemSet"
+          ++ "interTemporalMatching=WeightedLogJaccard"
+          ++ "nthLevel=2"
+          ++ "nthCluster=RelatedComponents"
+          ++ "nthProximity=Filiation"
 
 phyloQuery :: PhyloQuery
 phyloQuery = PhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-                        5 3
-                        defaultFis
-                        defaultWeightedLogJaccard
-                        2
-                        defaultRelatedComponents
+             5 3 defaultFis defaultWeightedLogJaccard 3 defaultRelatedComponents
 
 
-------------------------------------------------------------------------
--- | STEP 12 | -- Return a Phylo as a View for upcomming visiualization tasks 
 
-
--- | To do : add a queryParser from an URL and then update the defaultQuery
-urlToQuery :: Text -> PhyloQueryView
-urlToQuery url = defaultQuery 
-              & qv_metrics %~ (++ [BranchAge])
-              & qv_filters %~ (++ [defaultLonelyBranch])
-              & qv_taggers %~ (++ [BranchLabelFreq,GroupLabelCooc])
-
-
-defaultQuery :: PhyloQueryView
-defaultQuery = PhyloQueryView 3 Descendant False 1 [] [] [] (Just (ByBranchAge,Asc)) Flat True
-
-
-urlQuery :: Text
-urlQuery = "level=3&childs=false&filter=LonelyBranchFilter(2,2,1):true&metric=BranchAge&tagger=BranchLabelFreq&tagger=GroupLabelCooc"
-
-
-toPhyloView :: Text -> Phylo -> PhyloView
-toPhyloView url p = queryToView (urlToQuery url) p
-
-
-phyloView :: PhyloView
-phyloView = toPhyloView urlQuery phylo6
-
-
-------------------------------------------------------------------------
--- | STEP 11 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo   
+----------------------------------------------------------------------------------------------------------------------------
+-- | STEP 10 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo
+----------------------------------------------------------------------------------------------------------------------------   
 
 
 phylo6 :: Phylo
@@ -146,8 +146,10 @@ phylo3 = setPhyloBranches 3
           phyloBranch2
 
 
-------------------------------------------------------------------------
--- | STEP 10 | -- Cluster the Fis
+--------------------------------
+-- | STEP 9 | -- Cluster the Fis
+--------------------------------
+
 
 phyloBranch2 :: Phylo
 phyloBranch2 = setPhyloBranches 2 phylo2_c
@@ -174,16 +176,18 @@ phyloCluster :: Map (Date,Date) [PhyloCluster]
 phyloCluster = phyloToClusters 1 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch1
 
 
-------------------------------------------------------------------------
--- | STEP 9 | -- Find the Branches
+----------------------------------
+-- | STEP 8 | -- Find the Branches
+----------------------------------
 
 
 phyloBranch1 :: Phylo
 phyloBranch1 = setPhyloBranches 1 phylo1_c
 
 
-------------------------------------------------------------------------
--- | STEP 8 | -- Link the PhyloGroups of level 1 through the Periods  
+--------------------------------------------------------------------
+-- | STEP 7 | -- Link the PhyloGroups of level 1 through the Periods
+--------------------------------------------------------------------  
 
 
 phylo1_c :: Phylo
@@ -194,16 +198,9 @@ phylo1_p :: Phylo
 phylo1_p = interTempoMatching Ascendant 1 defaultWeightedLogJaccard phylo1_0_1
 
 
-------------------------------------------------------------------------
--- | STEP 7 | -- Build the coocurency Matrix of the Phylo 
-
-
-phyloCooc :: Map (Int, Int) Double
-phyloCooc = fisToCooc phyloFis phylo1_0_1
-
-
-------------------------------------------------------------------------
--- | STEP 6 | -- Build the level 1 of the Phylo 
+-----------------------------------------------
+-- | STEP 6 | -- Build the level 1 of the Phylo
+----------------------------------------------- 
 
 
 phylo1_0_1 :: Phylo
@@ -218,20 +215,18 @@ phylo1 :: Phylo
 phylo1 =  addPhyloLevel (1) phyloFis phylo
 
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------
 -- | STEP 5 | -- Create lists of Frequent Items Set and filter them
+-------------------------------------------------------------------
 
 
 phyloFis :: Map (Date, Date) [PhyloFis]
 phyloFis = filterFisBySupport False 1 (filterFisByNested (docsToFis phyloDocs))
 
 
-------------------------------------------------------------------------
+----------------------------------------
 -- | STEP 2 | -- Init a Phylo of level 0
-
-
--- phylo' :: Phylo
--- phylo' = initPhylo 5 3 corpus actants groupNgramsWithTrees
+----------------------------------------
 
 
 phylo :: Phylo
@@ -244,10 +239,11 @@ phyloDocs = corpusToDocs groupNgramsWithTrees corpus phyloBase
 
 ------------------------------------------------------------------------
 -- | STEP 1 | -- Init the Base of the Phylo from Periods and Foundations
+------------------------------------------------------------------------
 
 
 phyloBase :: Phylo
-phyloBase = initPhyloBase periods foundations
+phyloBase = initPhyloBase periods foundations defaultPhyloParam
 
 
 periods :: [(Date,Date)] 
@@ -259,8 +255,9 @@ foundations :: Vector Ngrams
 foundations = initFoundations actants
 
 
-------------------------------------------------------------------------
+--------------------------------------------
 -- | STEP 0 | -- Let's start with an example
+--------------------------------------------
 
 
 actants :: [Ngrams]
@@ -271,3 +268,5 @@ actants = [ "Cleopatre"   , "Ptolemee", "Ptolemee-XIII", "Ptolemee-XIV"
 
 corpus :: [(Date, Text)]
 corpus = List.sortOn fst [ (-51,"Cleopatre règne sur l’egypte entre 51 et 30 av. J.-C. avec ses frères-epoux Ptolemee-XIII et Ptolemee-XIV, puis aux côtes du general romain Marc-Antoine. Elle est celèbre pour avoir ete la compagne de Jules Cesar puis d'Antoine, avec lesquels elle a eu plusieurs enfants. Partie prenante dans la guerre civile opposant Antoine à Octave, elle est vaincue à la bataille d'Actium en 31 av. J.-C. Sa defaite va permettre aux Romains de mener à bien la conquête de l’egypte, evenement qui marquera la fin de l'epoque hellenistique."), (-40,"Il existe relativement peu d'informations sur son sejour à Rome, au lendemain de l'assassinat de Cesar, ou sur la periode passee à Alexandrie durant l'absence d'Antoine, entre -40 et -37."), (-48,"L'historiographie antique lui est globalement defavorable car inspiree par son vainqueur, l'empereur Auguste, et par son entourage, dont l'interêt est de la noircir, afin d'en faire l'adversaire malfaisant de Rome et le mauvais genie d'Antoine. On observe par ailleurs que Cesar ne fait aucune mention de sa liaison avec elle dans les Commentaires sur la Guerre civile"), (-69,"Cleopatre est nee au cours de l'hiver -69/-686 probablement à Alexandrie."), (-48,"Pompee a en effet ete le protecteur de Ptolemee XII, le père de Cleopatre et de Ptolemee-XIII dont il se considère comme le tuteur."), (-48,"Ptolemee-XIII et Cleopatre auraient d'ailleurs aide Pompee par l'envoi d'une flotte de soixante navires."), (-48,"Mais le jeune roi Ptolemee-XIII et ses conseillers jugent sa cause perdue et pensent s'attirer les bonnes graces du vainqueur en le faisant assassiner à peine a-t-il pose le pied sur le sol egyptien, près de Peluse, le 30 juillet 48 av. J.-C., sous les yeux de son entourage."), (-48,"Cesar fait enterrer la tête de Pompee dans le bosquet de Nemesis en bordure du mur est de l'enceinte d'Alexandrie. Pour autant la mort de Pompee est une aubaine pour Cesar qui tente par ailleurs de profiter des querelles dynastiques pour annexer l’egypte."), (-48,"Il est difficile de se prononcer clairement sur les raisons qui ont pousse Cesar à s'attarder à Alexandrie. Il y a des raisons politiques, mais aussi des raisons plus sentimentales (Cleopatre ?). Il tente d'abord d'obtenir le remboursement de dettes que Ptolemee XII"), (-46,"Les deux souverains sont convoques par Cesar au palais royal d'Alexandrie. Ptolemee-XIII s'y rend après diverses tergiversations ainsi que Cleopatre."), (-47,"A Rome, Cleopatre epouse alors un autre de ses frères cadets, à Alexandrie, Ptolemee-XIV, sur l'injonction de Jules Cesar"), (-46,"Cesar a-t-il comme objectif de montrer ce qu'il en coûte de se revolter contre Rome en faisant figurer dans son triomphe la sœur de Cleopatre et de Ptolemee-XIV, Arsinoe, qui s'est fait reconnaître reine par les troupes de Ptolemee-XIII ?"), (-44,"Au debut de l'annee -44, Cesar est assassine par Brutus. Profitant de la situation confuse qui s'ensuit, Cleopatre quitte alors Rome à la mi-avril, faisant escale en Grèce. Elle parvient à Alexandrie en juillet -44."), (-44,"La guerre que se livrent les assassins de Cesar, Cassius et Brutus et ses heritiers, Octave et Marc-Antoine, oblige Cleopatre à des contorsions diplomatiques."), (-41,"Nous ignorons depuis quand Cleopatre, agee de 29 ans en -41, et Marc-Antoine, qui a une quarantaine d'annees, se connaissent. Marc-Antoine est l'un des officiers qui ont participe au retablissement de Ptolemee XII.  Il est plus vraisemblable qu'ils se soient frequentes lors du sejour à Rome de Cleopatre."), (-42,"Brutus tient la Grèce tandis que Cassius s'installe en Syrie. Le gouverneur de Cleopatre à Chypre, Serapion, vient en aide à Cassius."), (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]
+
+

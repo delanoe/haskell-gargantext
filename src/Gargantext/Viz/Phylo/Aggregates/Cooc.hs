@@ -50,3 +50,7 @@ fisToCooc m p = map   (/docs)
     cooc :: Map (Int, Int) (Double)
     cooc = Map.fromList $ map (\x -> (x,0)) (listToUnDirectedCombiWith (\x -> getIdxInFoundations x p) fisNgrams)
     --------------------------------------
+
+
+-- phyloCooc :: Map (Int, Int) Double
+-- phyloCooc = fisToCooc phyloFis phylo1_0_1

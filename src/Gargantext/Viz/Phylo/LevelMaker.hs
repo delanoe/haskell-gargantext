@@ -144,16 +144,6 @@ toPhyloLevel lvl m p = alterPhyloPeriods
                                         ) period) p
 
 
--- | To init a Phylo
-initPhylo :: Grain -> Step -> [(Date,Text)] -> [Ngrams] -> (Ngrams -> Ngrams) -> Phylo
-initPhylo g s c a f = addPhyloLevel 0 (corpusToDocs f c base) base
-  where
-    -------------------------------------- 
-    base :: Phylo
-    base = initPhyloBase (initPeriods g s $ both fst (head c,last c)) (initFoundations a)
-    --------------------------------------
-
-
 -- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks 
 toNthLevel :: Level -> Proximity -> Cluster -> Phylo -> Phylo
 toNthLevel lvlMax prox clus p 
@@ -198,8 +188,8 @@ toPhylo0 d p = addPhyloLevel 0 d p
 
 
 -- | To reconstruct the Base of a Phylo
-toPhyloBase :: PhyloQuery -> [(Date, Text)] -> [Ngrams] -> Phylo 
-toPhyloBase q c a = initPhyloBase periods foundations
+toPhyloBase :: PhyloQuery -> PhyloParam -> [(Date, Text)] -> [Ngrams] -> Phylo 
+toPhyloBase q p c a = initPhyloBase periods foundations p
   where 
     --------------------------------------
     periods :: [(Date,Date)] 
@@ -226,5 +216,5 @@ toPhylo q c a = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthC
     phyloDocs = corpusToDocs groupNgramsWithTrees c phyloBase
     -------------------------------------- 
     phyloBase :: Phylo
-    phyloBase = toPhyloBase q c a
+    phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a
     -------------------------------------- 

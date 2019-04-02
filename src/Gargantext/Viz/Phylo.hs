@@ -42,30 +42,31 @@ import Gargantext.Database.Schema.Ngrams (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
-------------------------------------------------------------------------
-data PhyloExport =
-     PhyloExport { _phyloExport_param :: PhyloParam
-                 , _phyloExport_data :: Phylo
-     } deriving (Generic, Show)
 
--- | .phylo parameters
+--------------------
+-- | PhyloParam | --
+--------------------
+
+
+-- | Global parameters of a Phylo
 data PhyloParam = 
-     PhyloParam { _phyloParam_version     :: Text -- Double ?
-                , _phyloParam_software    :: Software
-                , _phyloParam_params      :: Hash
-                , _phyloParam_query       :: Maybe PhyloQuery
+     PhyloParam { _phyloParam_version  :: Text -- Double ?
+                , _phyloParam_software :: Software
+                , _phyloParam_query    :: PhyloQuery
      } deriving (Generic, Show)
 
-type Hash = Text
 
--- | Software
--- TODO move somewhere since it is generic
+-- | Software parameters
 data Software =
      Software { _software_name    :: Text
               , _software_version :: Text
      } deriving (Generic, Show)
 
-------------------------------------------------------------------------
+
+---------------
+-- | Phylo | --
+---------------
+
 
 -- | Phylo datatype of a phylomemy
 -- Duration    : time Segment of the whole Phylo
@@ -75,6 +76,7 @@ data Phylo =
      Phylo { _phylo_duration    :: (Start, End)
            , _phylo_foundations :: Vector Ngrams
            , _phylo_periods     :: [PhyloPeriod]
+           , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show)
 
@@ -88,6 +90,12 @@ type Date = Int
 type Start   = Date
 type End     = Date
 
+
+---------------------
+-- | PhyloPeriod | --
+---------------------
+
+
 -- | PhyloStep : steps of phylomemy on temporal axis
 -- Period: tuple (start date, end date) of the step of the phylomemy
 -- Levels: levels of granularity
@@ -96,6 +104,11 @@ data PhyloPeriod =
                  , _phylo_periodLevels :: [PhyloLevel]
                  } 
                  deriving (Generic, Show)
+
+
+--------------------
+-- | PhyloLevel | --
+--------------------
 
 
 -- | PhyloLevel : levels of phylomemy on level axis
@@ -109,6 +122,11 @@ data PhyloLevel =
                 , _phylo_levelGroups :: [PhyloGroup]
                 }
                 deriving (Generic, Show)
+
+
+--------------------
+-- | PhyloGroup | --
+--------------------
 
 
 -- | PhyloGroup : group of ngrams at each level and step
@@ -155,7 +173,9 @@ type Pointer = (PhyloGroupId, Weight)
 type Ngrams = Text
 
 
+--------------------
 -- | Aggregates | --
+--------------------
 
 
 -- | Document : a piece of Text linked to a Date
@@ -189,13 +209,16 @@ type GroupGraph = (GroupNodes,GroupEdges)
 -- | Error | --
 ---------------
 
+
 data PhyloError = LevelDoesNotExist
                 | LevelUnassigned
           deriving (Show)               
 
+
 -----------------
 -- | Cluster | --
 -----------------
+
 
 -- | Cluster constructors
 data Cluster = Fis FisParams 
@@ -218,9 +241,11 @@ data RCParams = RCParams
 data LouvainParams = LouvainParams
   { _louvain_proximity :: Proximity } deriving (Show)
 
+
 -------------------
 -- | Proximity | --
 -------------------
+
 
 -- | Proximity constructors
 data Proximity = WeightedLogJaccard WLJParams
@@ -238,9 +263,11 @@ data WLJParams = WLJParams
 data HammingParams = HammingParams 
   { _hamming_threshold :: Double } deriving (Show)
 
+
 ----------------
 -- | Filter | --
 ----------------
+
 
 -- | Filter constructors
 data Filter = LonelyBranch LBParams deriving (Show)
@@ -251,36 +278,44 @@ data LBParams = LBParams
   , _lb_periodsSup :: Int
   , _lb_minNodes   :: Int } deriving (Show) 
 
+
 ----------------
 -- | Metric | -- 
 ----------------
 
+
 -- | Metric constructors
 data Metric = BranchAge deriving (Show)
+
 
 ----------------
 -- | Tagger | --
 ----------------
 
+
 -- | Tagger constructors
 data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics deriving (Show)
+
 
 --------------
 -- | Sort | --
 --------------
 
+
 -- | Sort constructors
 data Sort  = ByBranchAge deriving (Show)
 data Order = Asc | Desc deriving (Show)
+
 
 --------------------
 -- | PhyloQuery | --
 --------------------
 
+
 -- | A Phyloquery describes a phylomemic reconstruction 
 data PhyloQuery = PhyloQuery 
-    { _q_phyloName :: Text
-    , _q_phyloDesc :: Text
+    { _q_phyloTitle :: Text
+    , _q_phyloDesc  :: Text
 
     -- Grain and Steps for the PhyloPeriods 
     , _q_periodGrain :: Int
@@ -301,14 +336,16 @@ data PhyloQuery = PhyloQuery
 data Filiation = Ascendant | Descendant | Complete deriving (Show)
 data EdgeType  = PeriodEdge | LevelEdge deriving (Show)
 
+
 -------------------
 -- | PhyloView | --
 -------------------
 
+
 -- | A PhyloView is the output type of a Phylo
 data PhyloView = PhyloView
   { _phylo_viewParam       :: PhyloParam
-  , _phylo_viewLabel       :: Text
+  , _phylo_viewTitle       :: Text
   , _phylo_viewDescription :: Text
   , _phylo_viewFiliation   :: Filiation
   , _phylo_viewMeta        :: Map Text Double
@@ -342,9 +379,11 @@ data PhyloNode = PhyloNode
   , _phylo_nodeChilds    :: [PhyloNode]
   } deriving (Show)
 
+
 ------------------------
 -- | PhyloQueryView | --
 ------------------------
+
 
 data DisplayMode = Flat | Nested 
 
@@ -373,12 +412,13 @@ data PhyloQueryView = PhyloQueryView
   , _qv_verbose :: Bool
   }
 
+
 ----------------
 -- | Lenses | --
 ----------------
 
+
 makeLenses ''PhyloParam
-makeLenses ''PhyloExport
 makeLenses ''Software
 --
 makeLenses ''Phylo
@@ -398,9 +438,11 @@ makeLenses ''PhyloBranch
 makeLenses ''PhyloNode
 makeLenses ''PhyloEdge
 
+
 ------------------------
 -- | JSON instances | --
 ------------------------ 
+
 
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
@@ -409,7 +451,6 @@ $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
 -- 
 $(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
-$(deriveJSON (unPrefix "_phyloExport_" ) ''PhyloExport )
 --
 $(deriveJSON defaultOptions ''Cluster   )
 $(deriveJSON defaultOptions ''Proximity )
@@ -421,6 +462,7 @@ $(deriveJSON (unPrefix "_rc_" )      ''RCParams      )
 $(deriveJSON (unPrefix "_wlj_" )     ''WLJParams     )
 --
 $(deriveJSON (unPrefix "_q_" ) ''PhyloQuery )
+
 
 ----------------------------
 -- | TODO XML instances | --
