@@ -88,13 +88,12 @@ type FlowCorpus a = ( AddUniqId a
 
 ------------------------------------------------------------------------
 
---{-
-flowAnnuaire' :: FlowCmdM env ServantErr m 
+flowAnnuaire :: FlowCmdM env ServantErr m 
              => Username -> CorpusName -> (TermType Lang) -> FilePath -> m AnnuaireId
-flowAnnuaire' u n l filePath = do
+flowAnnuaire u n l filePath = do
   docs <- liftIO $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
-  flowAnnuaire u n (Multi FR) docs
---}
+  flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
+
 
 flowCorpusDebat :: FlowCmdM env ServantErr m
             => Username -> CorpusName
@@ -144,10 +143,6 @@ flow c u cn la docs = do
 flowCorpus :: (FlowCmdM env ServantErr m, FlowCorpus a)
      => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
-
-flowAnnuaire :: (FlowCmdM env ServantErr m, FlowCorpus a)
-     => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
-flowAnnuaire = flow (Nothing :: Maybe HyperdataAnnuaire)
 
 
 flowCorpusUser :: (FlowCmdM env ServantErr m, MkCorpus c)

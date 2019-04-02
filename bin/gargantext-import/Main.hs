@@ -26,7 +26,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
 import Gargantext.Database.Utils (Cmd, )
-import Gargantext.Database.Types.Node (CorpusId)
+import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
 import Gargantext.Database.Schema.User (insertUsersDemo)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Core (Lang(..))
@@ -55,7 +55,7 @@ main = do
                        <$> readFile corpusPath
                        :: IO [[GrandDebatReference ]]
                        )
-        flowCorpus (Text.pack user) (Text.pack name) (Multi FR) docs
+        flowCorpus (Text.pack user) (Text.pack name) (Multi FR) (map (map toHyperdataDocument) docs)
 
 
   withDevEnv iniPath $ \env -> do
