@@ -159,14 +159,14 @@ flowCorpusUser l userName corpusName ctype ids = do
   _ <- Doc.add userCorpusId ids
 
   -- User List Flow
-  {-
-  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster ""
+  --{-
+  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster "" ctype
   ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
   userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
   -- User Graph Flow
-  _ <- mkGraph     userCorpusId userId
-  -}
+  _ <- mkGraph  userCorpusId userId
+  --}
 
   -- User Dashboard Flow
   -- _ <- mkDashboard userCorpusId userId
@@ -238,6 +238,7 @@ getOrMkRootWithCorpus username cName c = do
 
 
 ------------------------------------------------------------------------
+
 
 class UniqId a
   where

@@ -119,4 +119,4 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
 isStopTerm :: StopSize -> Text -> Bool
 isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
   where
-    isStopChar c = not (c `elem` ("- /()" :: [Char]) || Char.isAlpha c)
+    isStopChar c = not (c `elem` ("- /()%" :: [Char]) || Char.isAlpha c)
