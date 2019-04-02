@@ -30,6 +30,8 @@ Thanks @yannEsposito for this.
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE KindSignatures       #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -45,14 +47,16 @@ import           GHC.TypeLits (AppendSymbol, Symbol)
 
 import           Control.Lens
 import           Control.Exception (finally)
+import           Control.Monad.Except (withExceptT, ExceptT)
 import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Reader (runReaderT)
+import           Control.Monad.Reader (ReaderT, runReaderT)
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import           Data.Swagger
 import           Data.Text (Text)
 import qualified Data.Text.IO as T
 --import qualified Data.Set as Set
+import           Data.Validity
 
 import           Network.Wai
 import           Network.Wai.Handler.Warp hiding (defaultSettings)
@@ -70,6 +74,7 @@ import           Text.Blaze.Html (Html)
 
 --import Gargantext.API.Swagger
 import Gargantext.Prelude
+import Gargantext.Core.Types (HasInvalidError(..))
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
@@ -84,8 +89,10 @@ import Gargantext.API.Node ( GargServer
                            , HyperdataCorpus
                            , HyperdataAnnuaire
                            )
+import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
 --import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Utils (HasConnection)
+import Gargantext.Database.Tree (HasTreeError(..), TreeError)
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
@@ -114,6 +121,26 @@ import Network.HTTP.Types hiding (Query)
 
 
 import Gargantext.API.Settings
+
+data GargError
+  = GargNodeError NodeError
+  | GargTreeError TreeError
+  | GargInvalidError Validation
+  deriving (Show)
+
+makePrisms ''GargError
+
+instance HasNodeError GargError where
+  _NodeError = _GargNodeError
+
+instance HasInvalidError GargError where
+  _InvalidError = _GargInvalidError
+
+instance HasTreeError GargError where
+  _TreeError = _GargTreeError
+
+showAsServantErr :: Show a => a -> ServantErr
+showAsServantErr a = err500 { errBody = BL8.pack $ show a }
 
 fireWall :: Applicative f => Request -> FireWall -> f Bool
 fireWall req fw = do
@@ -278,13 +305,16 @@ type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 ---------------------------------------------------------------------
 -- | Server declarations
 
-server :: (HasConnection env, HasRepo env, HasSettings env)
+server :: forall env. (HasConnection env, HasRepo env, HasSettings env)
        => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
-     :<|> hoistServer (Proxy :: Proxy GargAPI) (`runReaderT` env) serverGargAPI
+     :<|> hoistServer (Proxy :: Proxy GargAPI) transform serverGargAPI
      :<|> serverStatic
+  where
+    transform :: forall a. ReaderT env (ExceptT GargError IO) a -> Handler a
+    transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
 
 serverGargAPI :: GargServer GargAPI
 serverGargAPI -- orchestrator

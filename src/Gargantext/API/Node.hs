@@ -44,7 +44,7 @@ import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo, QueryParamR)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
-import Gargantext.Core.Types (Offset, Limit, ListType(..))
+import Gargantext.Core.Types (Offset, Limit, ListType(..), HasInvalidError)
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
 import qualified Gargantext.Database.Metrics as Metrics
@@ -74,11 +74,16 @@ import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 
-type GargServer api = forall env m.
-    ( CmdM env ServantErr m
-    , HasRepo     env
+type GargServer api =
+  forall env err m.
+    ( CmdM env err m
+    , HasNodeError err
+    , HasInvalidError err
+    , HasTreeError err
+    , HasRepo env
     , HasSettings env
-    ) => ServerT api m
+    )
+    => ServerT api m
 
 -------------------------------------------------------------------
 -- TODO-ACCESS: access by admin only.

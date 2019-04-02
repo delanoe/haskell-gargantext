@@ -31,12 +31,11 @@ import Gargantext.Database.Flow (getOrMkRootWithCorpus)
 import Gargantext.Database.Config (userMaster)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (scored, Scored(..), localMetrics, toScored)
-import Servant (ServantErr)
 import qualified Data.Map    as Map
 import qualified Data.Vector.Storable as Vec
 
 
-getMetrics' :: FlowCmdM env ServantErr m
+getMetrics' :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
 getMetrics' cId maybeListId tabType maybeLimit = do
@@ -44,7 +43,7 @@ getMetrics' cId maybeListId tabType maybeLimit = do
   pure (ngs, scored myCooc)
 
 
-getMetrics :: FlowCmdM env ServantErr m
+getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
 getMetrics cId maybeListId tabType maybeLimit = do
@@ -57,7 +56,7 @@ getMetrics cId maybeListId tabType maybeLimit = do
   pure (ngs , toScored [metrics, Map.fromList $ map (\(a,b) -> (a, Vec.fromList [fst b])) $ Map.toList metrics'])
 
 
-getLocalMetrics  :: (FlowCmdM env ServantErr m)
+getLocalMetrics  :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
           -> m ( Map Text (ListType, Maybe Text)
                , Map Text (Maybe RootTerm)
@@ -68,7 +67,7 @@ getLocalMetrics cId maybeListId tabType maybeLimit = do
   pure (ngs, ngs', localMetrics myCooc)
 
 
-getNgramsCooc :: (FlowCmdM env ServantErr m)
+getNgramsCooc :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m ( Map Text (ListType, Maybe Text)
                  , Map Text (Maybe RootTerm)
@@ -89,7 +88,7 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
 
 
 
-getNgrams :: (FlowCmdM env ServantErr m)
+getNgrams :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType
             -> m (Map Text (ListType, Maybe Text), Map Text (Maybe RootTerm))
 getNgrams cId maybeListId tabType = do

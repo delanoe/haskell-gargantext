@@ -37,7 +37,6 @@ module Gargantext.API.Ngrams
 -- import Debug.Trace (trace)
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 -- import Gargantext.Database.Schema.User  (UserId)
-import Data.Functor (($>))
 import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
                          Composable(..), Transformable(..),
                          PairPatch(..), Patched, ConflictResolution,
@@ -55,9 +54,8 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Prism', prism', Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, mapped, forOf_)
-import Control.Monad (guard)
-import Control.Monad.Error.Class (MonadError, throwError)
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, mapped, forOf_)
+import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
@@ -82,7 +80,7 @@ import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
 import Gargantext.Prelude
 -- import Gargantext.Core.Types (ListTypeId, listTypeId)
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, CorpusId, Limit, Offset)
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, CorpusId, Limit, Offset, HasInvalidError, assertValid)
 import Servant hiding (Patch)
 import System.FileLock (FileLock)
 import Test.QuickCheck (elements)
@@ -622,22 +620,6 @@ type TableNgramsApi = Summary " Table Ngrams API Change"
                       :> ReqBody '[JSON] (Versioned NgramsTablePatch)
                       :> Put     '[JSON] (Versioned NgramsTablePatch)
 
-data NgramError = UnsupportedVersion
-  deriving (Show)
-
-class HasNgramError e where
-  _NgramError :: Prism' e NgramError
-
-instance HasNgramError ServantErr where
-  _NgramError = prism' make match
-    where
-      err = err500 { errBody = "NgramError: Unsupported version" }
-      make UnsupportedVersion = err
-      match e = guard (e == err) $> UnsupportedVersion
-
-ngramError :: (MonadError e m, HasNgramError e) => NgramError -> m a
-ngramError nne = throwError $ _NgramError # nne
-
 {-
 -- TODO: Replace.old is ignored which means that if the current list
 -- `GraphTerm` and that the patch is `Replace CandidateTerm StopTerm` then
@@ -670,6 +652,7 @@ ngramsTypeFromTabType tabType =
       Institutes -> Ngrams.Institutes
       Terms      -> Ngrams.NgramsTerms
       _          -> panic $ lieu <> "No Ngrams for this tab"
+      -- ^ TODO: This `panic` would disapear with custom NgramsType.
 
 ------------------------------------------------------------------------
 data Repo s p = Repo
@@ -756,22 +739,6 @@ ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
   = (const ours, ours)
   -- undefined {- TODO think this through -}, listTypeConflictResolution)
 
-class HasInvalidError e where
-  _InvalidError :: Prism' e Validation
-
-instance HasInvalidError ServantErr where
-  _InvalidError = panic "error" {-prism' make match
-    where
-      err = err500 { errBody = "InvalidError" }
-      make _ = err
-      match e = guard (e == err) $> UnsupportedVersion-}
-
--- assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
--- assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
-
-assertValid :: MonadIO m => Validation -> m ()
-assertValid v = when (not $ validationIsValid v) $ fail $ show v
-
 -- Current state:
 --   Insertions are not considered as patches,
 --   they do not extend history,
@@ -828,8 +795,7 @@ putListNgrams listId ngramsType nes = do
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
-tableNgramsPatch :: (HasNgramError err, HasInvalidError err,
-                     RepoCmdM env err m)
+tableNgramsPatch :: (HasInvalidError err, RepoCmdM env err m)
                  => CorpusId -> TabType -> ListId
                  -> Versioned NgramsTablePatch
                  -> m (Versioned NgramsTablePatch)
@@ -863,8 +829,17 @@ tableNgramsPatch _corpusId tabType listId (Versioned p_version p_table)
                 & r_state   %~ act p'
                 & r_history %~ (p' :)
           q'_table = q' ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
+        {-
+        -- Ideally we would like to check these properties. However:
+        -- * They should be checked only to debug the code. The client data
+        --   should be able to trigger these.
+        -- * What kind of error should they throw (we are in IO here)?
+        -- * Should we keep modifyMVar?
+        -- * Should we throw the validation in an Exception, catch it around
+        --   modifyMVar and throw it back as an Error?
         assertValid $ transformable p q
         assertValid $ applicable p' (r ^. r_state)
+        -}
         pure (r', Versioned (r' ^. r_version) q'_table)
 
       saveRepo
