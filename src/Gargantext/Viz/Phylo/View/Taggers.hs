@@ -83,7 +83,7 @@ alterBranchLabel (id,lbl) v = over (phylo_viewBranches
 -- | To set the label of a PhyloBranch as the nth most frequent terms of its PhyloNodes
 branchLabelFreq :: PhyloView -> Int -> Phylo -> PhyloView
 branchLabelFreq v thr p = foldl (\v' (id,lbl) -> alterBranchLabel (id,lbl) v') v
-                        $ map (\(id,ns) -> (id, freqToLabel thr (getFoundations p)
+                        $ map (\(id,ns) -> (id, freqToLabel thr (getPeaksLabels p)
                                               $ getGroupsFromNodes ns p)) 
                         $ getNodesByBranches v
 
@@ -92,7 +92,7 @@ branchLabelFreq v thr p = foldl (\v' (id,lbl) -> alterBranchLabel (id,lbl) v') v
 nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
 nodeLabelCooc v thr p = over (phylo_viewNodes
                              . traverse)
-                             (\n -> let lbl = ngramsToLabel (getFoundations p)
+                             (\n -> let lbl = ngramsToLabel (getPeaksLabels p)
                                             $ mostOccNgrams thr
                                             $ head $ getGroupsFromIds [getNodeId n] p
                                     in n & phylo_nodeLabel .~ lbl) v

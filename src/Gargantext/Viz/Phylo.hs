@@ -75,17 +75,22 @@ data Software =
 data Phylo =
      Phylo { _phylo_duration    :: (Start, End)
            , _phylo_foundations :: Vector Ngrams
-           -- , _phylo_peaks       :: PhyloPeaks
+           , _phylo_foundationsPeaks :: PhyloPeaks
            , _phylo_periods     :: [PhyloPeriod]
            , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show)
 
--- data PhyloPeaks = 
---       PhyloPeaks { _phylo_peaksLabel :: Vector Ngrams
---                  , _phylo_peaksTrees :: [(Ngrams, TreeNgrams)]
---                  } 
---                  deriving (Generic, Show)  
+-- | The PhyloPeaks describe the aggregation of some foundations Ngrams behind a list of Ngrams trees (ie: a forest)
+-- PeaksLabels are the root labels of each Ngrams trees
+data PhyloPeaks = 
+      PhyloPeaks { _phylo_peaksLabels :: Vector Ngrams
+                 , _phylo_peaksForest :: [Tree Ngrams] 
+                 } 
+                 deriving (Generic, Show)  
+
+-- | A Tree of Ngrams where each node is a label
+data Tree a = Empty | Node a [Tree a] deriving (Show)  
 
 
 -- | Date : a simple Integer
@@ -188,9 +193,8 @@ type Ngrams = Text
 -- | Document : a piece of Text linked to a Date
 data Document = Document
       { date :: Date
-      , text :: Text
-      } deriving (Show)
-
+      , text :: [Ngrams]
+      } deriving (Show)    
 
 -- | Clique : Set of ngrams cooccurring in the same Document
 type Clique   = Set Ngrams
@@ -430,6 +434,7 @@ makeLenses ''PhyloParam
 makeLenses ''Software
 --
 makeLenses ''Phylo
+makeLenses ''PhyloPeaks
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
@@ -452,7 +457,9 @@ makeLenses ''PhyloEdge
 ------------------------ 
 
 
-$(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       ) 
+$(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
+$(deriveJSON (unPrefix "_phylo_peaks"  ) ''PhyloPeaks  )
+$(deriveJSON defaultOptions ''Tree  )
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )

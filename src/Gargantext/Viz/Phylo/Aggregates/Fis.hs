@@ -56,4 +56,4 @@ filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head $ map fst 
 -- | To transform a list of Documents into a Frequent Items Set 
 docsToFis :: Map (Date, Date) [Document] -> Map (Date, Date) [PhyloFis]
 docsToFis docs = map (\d -> Map.toList 
-                          $ fisWithSizePolyMap (Segment 1 20) 1 (map (words . text) d)) docs
+                          $ fisWithSizePolyMap (Segment 1 20) 1 (map text d)) docs

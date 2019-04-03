@@ -133,28 +133,30 @@ unifySharedKeys m1 m2 = mapKeys (\(x,y) -> if member (y,x) m2
 ---------------
 
 
+-- | An analyzer ingests a Ngrams and generates a modified version of it
+phyloAnalyzer :: Ngrams -> Ngrams
+phyloAnalyzer n = toLower n
+
 -- | To init the foundation of the Phylo as a Vector of Ngrams 
 initFoundations :: [Ngrams] -> Vector Ngrams
-initFoundations l = Vector.fromList $ map toLower l
+initFoundations l = Vector.fromList $ map phyloAnalyzer l
 
 -- | To init the base of a Phylo from a List of Periods and Foundations
-initPhyloBase :: [(Date, Date)] -> Vector Ngrams -> PhyloParam -> Phylo
-initPhyloBase pds fds prm = Phylo ((fst . head) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds) prm
+initPhyloBase :: [(Date, Date)] -> Vector Ngrams -> PhyloPeaks -> PhyloParam -> Phylo
+initPhyloBase pds fds pks prm = Phylo ((fst . head) pds, (snd . last) pds) fds pks (map (\pd -> initPhyloPeriod pd []) pds) prm
 
 -- | To init the param of a Phylo
 initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQuery -> PhyloParam
 initPhyloParam (def defaultPhyloVersion -> v) (def defaultSoftware -> s) (def defaultQuery -> q) = PhyloParam v s q
 
-
 -- | To get the foundations of a Phylo
 getFoundations :: Phylo -> Vector Ngrams
 getFoundations = _phylo_foundations
 
-
 -- | To get the Index of a Ngrams in the Foundations of a Phylo
 getIdxInFoundations :: Ngrams -> Phylo -> Int
 getIdxInFoundations n p = case (elemIndex n (getFoundations p)) of
-    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getFoundationIdx] Ngrams not in Foundations"
+    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInFoundations] Ngrams not in Foundations"
     Just idx -> idx
 
 
@@ -165,6 +167,54 @@ getLastLevel p = (last . sort)
                $ view ( phylo_periods
                       .  traverse
                       . phylo_periodLevels ) p
+
+
+--------------------
+-- | PhyloPeaks | --
+--------------------
+
+-- | To apply a fonction to each label of a Ngrams Tree
+alterLabels :: (Ngrams -> Ngrams) -> Tree Ngrams -> Tree Ngrams
+alterLabels f (Node lbl ns) = Node (f lbl) (map (\n -> alterLabels f n) ns) 
+
+-- | To transform a forest of trees into a map (node,root)
+forestToMap :: [Tree Ngrams] -> Map Ngrams Ngrams
+forestToMap trees = Map.fromList $ concat $ map (\(Node lbl ns) -> treeToTuples (Node lbl ns) lbl) trees
+
+-- | To get the foundationsPeaks of a Phylo
+getPeaks :: Phylo -> PhyloPeaks
+getPeaks = _phylo_foundationsPeaks 
+
+-- | To get the peaksLabels of a Phylo
+getPeaksLabels :: Phylo -> Vector Ngrams
+getPeaksLabels p = (getPeaks p) ^. phylo_peaksLabels 
+
+-- | To get the Index of a Ngrams in the foundationsPeaks of a Phylo
+getIdxInPeaks :: Ngrams -> Phylo -> Int
+getIdxInPeaks n p = case (elemIndex n (getPeaksLabels p)) of
+    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInPeaks] Ngrams not in foundationsPeaks"
+    Just idx -> idx
+
+-- | To init the PhyloPeaks of a Phylo
+initPeaks :: [Tree Ngrams] -> Vector Ngrams -> PhyloPeaks
+initPeaks trees ns = PhyloPeaks labels trees
+  where
+    --------------------------------------
+    labels :: Vector Ngrams
+    labels = Vector.fromList 
+           $ nub
+           $ Vector.toList 
+           $ map (\n -> if member n mTrees
+                        then mTrees Map.! n
+                        else n ) ns
+    --------------------------------------
+    mTrees :: Map Ngrams Ngrams
+    mTrees = forestToMap trees
+    --------------------------------------
+
+-- | To transform a Ngrams Tree into a list of (node,root)
+treeToTuples :: Tree Ngrams -> Ngrams -> [(Ngrams,Ngrams)]
+treeToTuples (Node lbl ns) root = [(lbl,root)] ++ (concat $ map (\n -> treeToTuples n root) ns)
 
 
 --------------------
@@ -327,7 +377,7 @@ initGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> Phylo -> PhyloGroup
 initGroup ngrams lbl idx lvl from to p = PhyloGroup 
   (((from, to), lvl), idx)
   lbl
-  (sort $ map (\x -> getIdxInFoundations x p) ngrams)
+  (sort $ map (\x -> getIdxInPeaks x p) ngrams)
   (Map.empty)
   (Map.empty)
   Nothing

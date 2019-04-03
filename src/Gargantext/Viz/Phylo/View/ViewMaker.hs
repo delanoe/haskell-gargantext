@@ -56,7 +56,7 @@ initPhyloEdge id pts et = map (\pt -> PhyloEdge id (fst pt) et (snd pt)) pts
 initPhyloView :: Level -> Text -> Text -> Filiation -> Bool -> Phylo -> PhyloView 
 initPhyloView lvl lbl dsc fl vb p = PhyloView (getPhyloParams p) lbl dsc fl empty
                                     ([] ++ (phyloToBranches lvl p)) 
-                                    ([] ++ (groupsToNodes True vb (getFoundations p) gs))
+                                    ([] ++ (groupsToNodes True vb (getPeaksLabels p) gs))
                                     ([] ++ (groupsToEdges fl PeriodEdge gs))
   where
     --------------------------------------
@@ -126,7 +126,7 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
   then v
   else addChildNodes shouldDo (lvl - 1) lvlMin vb fl p 
      $ v & phylo_viewBranches %~ (++ (phyloToBranches (lvl - 1) p))
-         & phylo_viewNodes %~ (++ (groupsToNodes False vb (getFoundations p) gs'))
+         & phylo_viewNodes %~ (++ (groupsToNodes False vb (getPeaksLabels p) gs'))
          & phylo_viewEdges %~ (++ (groupsToEdges fl PeriodEdge gs'))
          & phylo_viewEdges %~ (++ (groupsToEdges Descendant LevelEdge gs ))
          & phylo_viewEdges %~ (++ (groupsToEdges Ascendant LevelEdge  gs'))

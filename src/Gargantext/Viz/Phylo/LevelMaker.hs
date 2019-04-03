@@ -89,7 +89,7 @@ instance PhyloLevelMaker Document
     toPhyloGroups lvl (d,d') l m p = map (\(idx,ngram) -> ngramsToGroup (d,d') lvl idx ngram [ngram] p) 
                                           $ zip [1..] 
                                           $ (nub . concat) 
-                                          $ map (Text.words . text) l
+                                          $ map text l
     --------------------------------------
 
 
@@ -117,7 +117,7 @@ cliqueToGroup prd lvl idx lbl fis m p =
       where
         --------------------------------------
         ngrams :: [Int]
-        ngrams = sort $ map (\x -> getIdxInFoundations x p)
+        ngrams = sort $ map (\x -> getIdxInPeaks x p)
                       $ Set.toList
                       $ fst fis
         --------------------------------------
@@ -130,7 +130,7 @@ cliqueToGroup prd lvl idx lbl fis m p =
 -- | To transform a list of Ngrams into a PhyloGroup
 ngramsToGroup ::  PhyloPeriodId -> Level -> Int -> Text -> [Ngrams] -> Phylo -> PhyloGroup
 ngramsToGroup prd lvl idx lbl ngrams p =
-    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInFoundations x p) ngrams) empty empty Nothing [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInPeaks x p) ngrams) empty empty Nothing [] [] [] []
 
 
 -- | To traverse a Phylo and add a new PhyloLevel linked to a new list of PhyloGroups
@@ -188,9 +188,12 @@ toPhylo0 d p = addPhyloLevel 0 d p
 
 
 -- | To reconstruct the Base of a Phylo
-toPhyloBase :: PhyloQuery -> PhyloParam -> [(Date, Text)] -> [Ngrams] -> Phylo 
-toPhyloBase q p c a = initPhyloBase periods foundations p
-  where 
+toPhyloBase :: PhyloQuery -> PhyloParam -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo 
+toPhyloBase q p c a ts = initPhyloBase periods foundations peaks p
+  where
+    -------------------------------------- 
+    peaks :: PhyloPeaks
+    peaks = initPeaks (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
     --------------------------------------
     periods :: [(Date,Date)] 
     periods = initPeriods (getPeriodGrain q) (getPeriodSteps q) 
@@ -202,8 +205,8 @@ toPhyloBase q p c a = initPhyloBase periods foundations p
 
 
 -- | To reconstruct a Phylomemy from a PhyloQuery, a Corpus and a list of actants 
-toPhylo :: PhyloQuery -> [(Date, Text)] -> [Ngrams] -> Phylo
-toPhylo q c a = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+toPhylo :: PhyloQuery -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
+toPhylo q c a ts = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
   where
     --------------------------------------
     phylo1 :: Phylo
@@ -213,8 +216,8 @@ toPhylo q c a = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthC
     phylo0 = toPhylo0 phyloDocs phyloBase
     -------------------------------------- 
     phyloDocs :: Map (Date, Date) [Document]
-    phyloDocs = corpusToDocs groupNgramsWithTrees c phyloBase
+    phyloDocs = corpusToDocs c phyloBase
     -------------------------------------- 
     phyloBase :: Phylo
-    phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a
+    phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a ts
     -------------------------------------- 
