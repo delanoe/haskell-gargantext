@@ -201,8 +201,11 @@ type Clique   = Set Ngrams
 -- | Support : Number of Documents where a Clique occurs
 type Support  = Int 
 -- | Fis : Frequent Items Set (ie: the association between a Clique and a Support) 
-type PhyloFis = (Clique,Support)
-
+data PhyloFis = PhyloFis 
+  { _phyloFis_clique  :: Clique
+  , _phyloFis_support :: Support
+  , _phyloFis_metrics :: Map (Int,Int) (Map Text [Double]) 
+  } deriving (Show)
 
 -- | A list of clustered PhyloGroup 
 type PhyloCluster = [PhyloGroup]
@@ -239,8 +242,7 @@ data Cluster = Fis FisParams
 
 -- | Parameters for Fis clustering
 data FisParams = FisParams
-  { _fis_filtered     :: Bool
-  , _fis_keepMinorFis :: Bool
+  { _fis_keepMinorFis :: Bool
   , _fis_minSupport   :: Support 
   } deriving (Show)
 
@@ -334,6 +336,8 @@ data PhyloQuery = PhyloQuery
     
     -- Clustering method for building the contextual unit of Phylo (ie: level 1) 
     , _q_contextualUnit :: Cluster
+    , _q_contextualUnitMetrics :: [Metric]
+    , _q_contextualUnitFilters :: [Filter]    
     
     -- Inter-temporal matching method of the Phylo
     , _q_interTemporalMatching :: Proximity
@@ -438,6 +442,7 @@ makeLenses ''PhyloPeaks
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
+makeLenses ''PhyloFis
 -- 
 makeLenses ''Proximity
 makeLenses ''Cluster
@@ -463,10 +468,13 @@ $(deriveJSON defaultOptions ''Tree  )
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
+$(deriveJSON (unPrefix "_phyloFis_"    ) ''PhyloFis    )
 -- 
 $(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
 --
+$(deriveJSON defaultOptions ''Filter    )
+$(deriveJSON defaultOptions ''Metric    )
 $(deriveJSON defaultOptions ''Cluster   )
 $(deriveJSON defaultOptions ''Proximity )
 --
@@ -475,6 +483,7 @@ $(deriveJSON (unPrefix "_hamming_" ) ''HammingParams )
 $(deriveJSON (unPrefix "_louvain_" ) ''LouvainParams )
 $(deriveJSON (unPrefix "_rc_" )      ''RCParams      )
 $(deriveJSON (unPrefix "_wlj_" )     ''WLJParams     )
+$(deriveJSON (unPrefix "_sb_" )      ''SBParams      )
 --
 $(deriveJSON (unPrefix "_q_" ) ''PhyloQuery )
 

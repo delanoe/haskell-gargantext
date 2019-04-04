@@ -123,7 +123,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQuery :: PhyloQuery
 phyloQuery = PhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             5 3 defaultFis defaultWeightedLogJaccard 3 defaultRelatedComponents
+             5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
 
 
 
@@ -221,7 +221,7 @@ phylo1 =  addPhyloLevel (1) phyloFis phylo
 
 
 phyloFis :: Map (Date, Date) [PhyloFis]
-phyloFis = filterFisBySupport False 1 (filterFisByNested (docsToFis phyloDocs))
+phyloFis = filterFisByNested $ filterFisBySupport False 1 (docsToFis phyloDocs)
 
 
 ----------------------------------------

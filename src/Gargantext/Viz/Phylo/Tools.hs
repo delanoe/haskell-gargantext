@@ -451,6 +451,24 @@ setPhyloLevelId lvl' (PhyloLevel (id, lvl) groups)
             groups' = over (traverse . phylo_groupId) (\((period, lvl), idx) -> ((period, lvl'), idx)) groups 
 
 
+------------------
+-- | PhyloFis | --
+------------------
+
+
+-- | To get the clique of a PhyloFis
+getClique :: PhyloFis -> Clique
+getClique = _phyloFis_clique
+
+-- | To get the metrics of a PhyloFis
+getFisMetrics :: PhyloFis -> Map (Int,Int) (Map Text [Double])
+getFisMetrics = _phyloFis_metrics
+
+-- | To get the support of a PhyloFis
+getSupport :: PhyloFis -> Support
+getSupport = _phyloFis_support
+
+
 ----------------------------
 -- | PhyloNodes & Edges | --
 ----------------------------
@@ -558,9 +576,19 @@ getViewBranchIds v = map getBranchId $ v ^. phylo_viewBranches
 -- | PhyloQuery & QueryView | --
 --------------------------------
 
--- | To get the first clustering method to apply to get the level 1 of a Phylo
-getFstCluster :: PhyloQuery -> Cluster
-getFstCluster q = q ^. q_contextualUnit
+-- | To get the first clustering method to apply to get the contextual units of a Phylo
+getContextualUnit :: PhyloQuery -> Cluster
+getContextualUnit q = q ^. q_contextualUnit
+
+
+-- | To get the metrics to apply to contextual units
+getContextualUnitMetrics :: PhyloQuery -> [Metric]
+getContextualUnitMetrics q = q ^. q_contextualUnitMetrics
+
+
+-- | To get the filters to apply to contextual units
+getContextualUnitFilters :: PhyloQuery -> [Filter]
+getContextualUnitFilters q = q ^. q_contextualUnitFilters
 
 
 -- | To get the cluster methods to apply to the Nths levels of a Phylo
@@ -602,8 +630,8 @@ getProximity cluster = case cluster of
 
 
 -- | To initialize all the Cluster / Proximity with their default parameters
-initFis :: Maybe Bool -> Maybe Bool -> Maybe Support -> FisParams
-initFis (def True -> flt) (def True -> kmf) (def 1 -> min) = FisParams flt kmf min
+initFis :: Maybe Bool -> Maybe Support -> FisParams
+initFis (def True -> kmf) (def 1 -> min) = FisParams kmf min
 
 initHamming :: Maybe Double -> HammingParams
 initHamming (def 0.01 -> sens) = HammingParams sens
@@ -622,10 +650,10 @@ initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 
 
 -- | To initialize a PhyloQuery from given and default parameters
-initPhyloQuery :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQuery
-initPhyloQuery name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster)
+initPhyloQuery :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQuery
+initPhyloQuery name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
   (def defaultWeightedLogJaccard -> matching) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQuery name desc grain steps cluster matching nthLevel nthCluster
+    PhyloQuery name desc grain steps cluster metrics filters matching nthLevel nthCluster
 
 
 -- | To initialize a PhyloQueryView default parameters
@@ -635,9 +663,6 @@ initPhyloQueryView (def 2 -> lvl) (def Descendant -> f) (def False -> c) (def 1 
 
 
 -- | To define some obvious boolean getters
-shouldFilterFis :: FisParams -> Bool
-shouldFilterFis = _fis_filtered
-
 shouldKeepMinorFis :: FisParams -> Bool
 shouldKeepMinorFis = _fis_keepMinorFis
 
@@ -648,7 +673,7 @@ shouldKeepMinorFis = _fis_keepMinorFis
 -- Clusters
 
 defaultFis :: Cluster
-defaultFis = Fis (initFis Nothing Nothing Nothing)
+defaultFis = Fis (initFis Nothing Nothing)
 
 defaultLouvain :: Cluster
 defaultLouvain = Louvain (initLouvain Nothing)
@@ -678,7 +703,7 @@ defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing N
 
 defaultQuery :: PhyloQuery
 defaultQuery = initPhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)" 
-                              Nothing Nothing Nothing Nothing Nothing Nothing
+                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
 defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing                              

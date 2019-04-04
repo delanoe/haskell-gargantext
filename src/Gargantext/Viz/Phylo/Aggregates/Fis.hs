@@ -17,8 +17,8 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Fis
   where
 
-import Data.List        (last,head)
-import Data.Map         (Map)
+import Data.List        (last,head,null)
+import Data.Map         (Map, empty)
 import Data.Text        (Text, unwords, toLower, words)
 import Data.Tuple       (fst, snd)
 import Data.Tuple.Extra
@@ -44,16 +44,39 @@ filterFisBySupport keep min m = case keep of
 
 -- | To filter Fis with small Support, to preserve nonempty periods please use : filterFisBySupport true
 filterMinorFis :: Int -> [PhyloFis] -> [PhyloFis]
-filterMinorFis min l = filter (\fis -> snd fis > min) l
+filterMinorFis min l = filter (\fis -> getSupport fis > min) l
 
 
 -- | To filter nested Fis 
 filterFisByNested :: Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head $ map fst l) (map fst l) []
-                               in  filter (\fis -> elem (fst fis) cliqueMax) l)
+filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head $ map getClique l) (map getClique l) []
+                               in  filter (\fis -> elem (getClique fis) cliqueMax) l)
 
 
 -- | To transform a list of Documents into a Frequent Items Set 
 docsToFis :: Map (Date, Date) [Document] -> Map (Date, Date) [PhyloFis]
-docsToFis docs = map (\d -> Map.toList 
-                          $ fisWithSizePolyMap (Segment 1 20) 1 (map text d)) docs
+docsToFis docs = map (\d -> let fs = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text d)
+                            in map (\f -> PhyloFis (fst f) (snd f) empty) fs) docs
+
+
+-- | To process a list of Filters on top of the PhyloFis
+processFilters :: [Filter] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
+processFilters filters phyloFis
+  | null filters = phyloFis
+  | otherwise    = panic "[ERR][Viz.Phylo.LevelMaker.processFilters] please add some filters for the Fis"
+
+
+-- | To process a list of Metrics on top of the PhyloFis
+processMetrics :: [Metric] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
+processMetrics metrics phyloFis
+  | null metrics = phyloFis
+  | otherwise    = panic "[ERR][Viz.Phylo.LevelMaker.processMetrics] please add some metrics for the Fis"
+
+
+-- | To transform some Documents into PhyloFis and apply a List of Metrics and Filters
+toPhyloFis :: Map (Date, Date) [Document] -> Bool -> Support -> [Metric] -> [Filter] -> Map (Date, Date) [PhyloFis]
+toPhyloFis ds k s ms fs = processFilters fs  
+                        $ processMetrics ms
+                        $ filterFisByNested 
+                        $ filterFisBySupport k s
+                        $ docsToFis ds  
