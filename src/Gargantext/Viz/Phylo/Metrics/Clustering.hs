@@ -32,8 +32,8 @@ import Gargantext.Viz.Phylo.Tools
 relatedComp :: Int -> PhyloGroup -> GroupGraph -> [PhyloGroup] -> [[PhyloGroup]] -> [[PhyloGroup]]
 relatedComp idx curr (nodes,edges) next memo
   | null nodes' && null next' = memo'
-  | (not . null) next'        = relatedComp idx (head' "relatedComp1" next') (nodes',edges) (tail next') memo'
-  | otherwise                 = relatedComp (idx + 1) (head' "relatedComp2" nodes') (tail nodes',edges) [] memo'
+  | (not . null) next'        = relatedComp  idx      (head' "relatedComp1" next' ) (nodes'     ,edges) (tail next') memo'
+  | otherwise                 = relatedComp (idx + 1) (head' "relatedComp2" nodes') (tail nodes',edges) []           memo'
   where
     --------------------------------------
     memo' :: [[PhyloGroup]]
@@ -43,7 +43,7 @@ relatedComp idx curr (nodes,edges) next memo
       | otherwise                  = memo ++ [[curr]]
     --------------------------------------
     next' :: [PhyloGroup]
-    next' = filter (\x -> not $ elem x $ concat memo) $ nub $ next ++ (getNeighbours False curr edges)
+    next' = filter (\x -> not $ elem x $ concat memo) $ nub $ next ++ (getNeighbours True curr edges)
     --------------------------------------
     nodes' :: [PhyloGroup]
     nodes' = filter (\x -> not $ elem x next') nodes

@@ -37,6 +37,7 @@ import GHC.Err.Located (undefined)
 import GHC.Real (round)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Maybe (isJust, fromJust, maybe)
+import Data.Text (Text)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
@@ -269,4 +270,5 @@ maximumWith f = L.maximumBy (compare `on` f)
 listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
 listToCombi f l = [ (f x, f y) | (x:rest) <- L.tails l,  y <- rest ]
 
+head' :: Text -> [a] -> a
 head' e xs = maybe (panic e) identity (head xs)
