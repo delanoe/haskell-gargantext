@@ -18,10 +18,10 @@ module Gargantext.Viz.Phylo.View.Filters
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-import Data.List        (notElem,head,null,nub,(\\),intersect)
+import Data.List        (notElem,null,nub,(\\),intersect)
 import Data.Maybe       (isNothing)
 import Data.Tuple       (fst)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 
@@ -61,8 +61,8 @@ filterSmallBranch inf sup min' prds v = cleanNodesEdges v v'
     --------------------------------------
     isLone :: [PhyloNode] -> [PhyloPeriodId] -> Bool
     isLone ns prds' = (length ns <= min')
-                      && notElem (head prds') (take inf prds)
-                      && notElem (head prds') (take sup $ reverse prds)
+                      && notElem (head' "filterSmallBranch1" prds') (take inf prds)
+                      && notElem (head' "filterSmallBranch2" prds') (take sup $ reverse prds)
     --------------------------------------
 
 

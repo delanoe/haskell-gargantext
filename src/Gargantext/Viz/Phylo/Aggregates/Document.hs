@@ -19,12 +19,12 @@ module Gargantext.Viz.Phylo.Aggregates.Document
 
 import Control.Lens         hiding (both, Level)
 
-import Data.List        (last,head,nub,(++))
+import Data.List        (last,nub,(++))
 import Data.Map         (Map,member)
 import Data.Text        (Text)
 import Data.Tuple       (fst, snd)
 import Data.Vector      (Vector)
-import Gargantext.Prelude                       hiding (head)
+import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono               (monoTexts)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
@@ -35,7 +35,7 @@ import qualified Data.Vector as Vector
 
 -- | To init a list of Periods framed by a starting Date and an ending Date
 initPeriods :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
-initPeriods g s (start,end) = map (\l -> (head l, last l))
+initPeriods g s (start,end) = map (\l -> (head' "Doc" l, last l))
                             $ chunkAlong g s [start .. end]
 
 

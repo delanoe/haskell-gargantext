@@ -18,11 +18,11 @@ module Gargantext.Viz.Phylo.View.Taggers
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-import Data.List        (head,concat,nub,groupBy,sortOn,sort)
+import Data.List        (concat,nub,groupBy,sortOn,sort)
 import Data.Text        (Text,unwords)
 import Data.Tuple       (fst, snd)
 import Data.Vector      (Vector)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import qualified Data.Map    as Map
@@ -45,7 +45,7 @@ mostFreqNgrams thr groups = map fst
                           $ take thr
                           $ reverse
                           $ sortOn snd
-                          $ map (\g -> (head g,length g))
+                          $ map (\g -> (head' "mostFreqNgrams" g,length g))
                           $ groupBy (==)
                           $ (sort . concat)
                           $ map getGroupNgrams groups
@@ -87,7 +87,7 @@ nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
                              (\n -> let lbl = ngramsToLabel (getPeaksLabels p)
                                             $ mostOccNgrams thr
-                                            $ head $ getGroupsFromIds [getNodeId n] p
+                                            $ head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
                                     in n & pn_label .~ lbl) v
 
 

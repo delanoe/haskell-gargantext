@@ -17,11 +17,10 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Cluster
   where
 
-
-import Data.List        (head,null,tail)
+import Data.List        (null,tail)
 import Data.Map         (Map)
 import Data.Tuple       (fst)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.BranchMaker
@@ -33,7 +32,7 @@ import qualified Data.Map    as Map
 graphToClusters :: Cluster -> GroupGraph -> [PhyloCluster]
 graphToClusters clust (nodes,edges) = case clust of
   Louvain (LouvainParams _)      -> undefined -- louvain (nodes,edges)
-  RelatedComponents (RCParams _) -> relatedComp 0 (head nodes) (tail nodes,edges) [] []
+  RelatedComponents (RCParams _) -> relatedComp 0 (head' "graphToClusters" nodes) (tail nodes,edges) [] []
   _                              -> panic "[ERR][Viz.Phylo.Aggregates.Cluster.graphToClusters] not implemented"
 
 -- | To transform a Phylo into Clusters of PhyloGroups at a given level

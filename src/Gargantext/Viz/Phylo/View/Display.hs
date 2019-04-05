@@ -18,9 +18,8 @@ module Gargantext.Viz.Phylo.View.Display
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-
-import Data.List        (head,null,(++),sortOn)
-import Gargantext.Prelude             hiding (head)
+import Data.List        (null,(++),sortOn)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 
@@ -33,7 +32,7 @@ toNestedView ns ns'
     where
       --------------------------------------
       lvl' :: Level
-      lvl' = getNodeLevel $ head $ nested
+      lvl' = getNodeLevel $ head' "toNestedView" nested
       --------------------------------------
       nested :: [PhyloNode]
       nested = foldl (\ns'' n -> let nIds' = getNodeParentsId n
@@ -48,7 +47,7 @@ processDisplay :: DisplayMode -> PhyloView -> PhyloView
 processDisplay d v = case d of 
                      Flat   -> v
                      Nested -> let ns  = sortOn getNodeLevel $ v ^. pv_nodes
-                                   lvl = getNodeLevel $ head ns
+                                   lvl = getNodeLevel $ head' "processDisplay" ns
                                in v & pv_nodes .~ toNestedView (filter (\n -> lvl == getNodeLevel n) ns)
                                                                       (filter (\n -> lvl <  getNodeLevel n) ns) 
                      --_      -> panic "[ERR][Viz.Phylo.Example.processDisplay] display not found"

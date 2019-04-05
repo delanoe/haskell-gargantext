@@ -269,3 +269,4 @@ maximumWith f = L.maximumBy (compare `on` f)
 listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
 listToCombi f l = [ (f x, f y) | (x:rest) <- L.tails l,  y <- rest ]
 
+head' e xs = maybe (panic e) identity (head xs)

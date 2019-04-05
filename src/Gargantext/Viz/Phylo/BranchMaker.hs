@@ -18,9 +18,9 @@ module Gargantext.Viz.Phylo.BranchMaker
   where
 
 import Control.Lens     hiding (both, Level)
-import Data.List        (head,concat,nub,(++),tail)
+import Data.List        (concat,nub,(++),tail)
 import Data.Tuple       (fst, snd)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Metrics.Clustering
 import Gargantext.Viz.Phylo.Metrics.Proximity
@@ -32,7 +32,7 @@ graphToBranches :: Level -> GroupGraph -> Phylo -> [(Int,PhyloGroupId)]
 graphToBranches _lvl (nodes,edges) _p = concat
                                     $ map (\(idx,gs) -> map (\g -> (idx,getGroupId g)) gs)
                                     $ zip [1..]
-                                    $ relatedComp 0 (head nodes) (tail nodes,edges) [] []
+                                    $ relatedComp 0 (head' "branchMaker" nodes) (tail nodes,edges) [] []
 
 
 -- | To transform a list of PhyloGroups into a PhyloGraph by using a given Proximity mesure
@@ -55,7 +55,7 @@ groupsToGraph prox groups p = (groups,edges)
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
 setPhyloBranches :: Level -> Phylo -> Phylo
-setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst . head) $ filter (\b -> snd b == getGroupId g) bs
+setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst $ head' "branchMaker" $ filter (\b -> snd b == getGroupId g) bs)
                                                      in over (phylo_groupBranchId) (\_ -> Just (lvl,bIdx)) g) lvl p
   where
     --------------------------------------

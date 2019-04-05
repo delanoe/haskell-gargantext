@@ -20,12 +20,12 @@ module Gargantext.Viz.Phylo.LevelMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sort, concat, nub, zip, head, last)
+import Data.List                    ((++), sort, concat, nub, zip, last)
 import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKey, singleton, union)
 import Data.Text (Text)
 import Data.Tuple.Extra
 import Data.Vector                  (Vector)
-import Gargantext.Prelude           hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Aggregates.Cluster
 import Gargantext.Viz.Phylo.Aggregates.Cooc
@@ -190,7 +190,7 @@ toPhyloBase q p c a ts = initPhyloBase periods foundations peaks p
     --------------------------------------
     periods :: [(Date,Date)]
     periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)
-            $ both fst (head c,last c)
+            $ both fst (head' "LevelMaker" c,last c)
     --------------------------------------
     foundations :: Vector Ngrams
     foundations = initFoundations a

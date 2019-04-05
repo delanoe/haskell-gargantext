@@ -18,9 +18,9 @@ module Gargantext.Viz.Phylo.LinkMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), nub, sortOn, head, null, tail, splitAt, elem)
+import Data.List                    ((++), nub, sortOn, null, tail, splitAt, elem)
 import Data.Tuple.Extra
-import Gargantext.Prelude           hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
@@ -107,8 +107,8 @@ getNextPeriods to' id l = case to' of
       unNested :: PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
       unNested x l'
         | null l'                  = []
-        | nested (fst $ head l') x = unNested x (tail l')
-        | nested (snd $ head l') x = unNested x (tail l')
+        | nested (fst $ head' "getNextPeriods1" l') x = unNested x (tail l')
+        | nested (snd $ head' "getNextPeriods2" l') x = unNested x (tail l')
         | otherwise                = l
       --------------------------------------
       nested :: Date -> PhyloPeriodId -> Bool
@@ -128,7 +128,7 @@ findBestCandidates to' depth max' prox group p
     next = getNextPeriods to' (getGroupPeriod group) (getPhyloPeriods p)
     --------------------------------------
     candidates :: [PhyloGroup]
-    candidates = getGroupsWithFilters (getGroupLevel group) (head next) p
+    candidates = getGroupsWithFilters (getGroupLevel group) (head' "findBestCandidates" next) p
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
     scores = map (\group' -> applyProximity prox group group') candidates

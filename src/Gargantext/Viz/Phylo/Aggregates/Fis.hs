@@ -17,10 +17,10 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Fis
   where
 
-import Data.List        (head,null)
+import Data.List        (null)
 import Data.Map         (Map, empty)
 import Data.Tuple       (fst, snd)
-import Gargantext.Prelude                       hiding (head)
+import Gargantext.Prelude
 import Gargantext.Text.Metrics.FrequentItemSet  (fisWithSizePolyMap, Size(..))
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
@@ -41,7 +41,7 @@ filterMinorFis min' l = filter (\fis -> getSupport fis > min') l
 
 -- | To filter nested Fis 
 filterFisByNested :: Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head $ map getClique l) (map getClique l) []
+filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head' "Fis" $ map getClique l) (map getClique l) []
                                in  filter (\fis -> elem (getClique fis) cliqueMax) l)
 
 

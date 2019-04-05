@@ -18,9 +18,9 @@ module Gargantext.Viz.Phylo.Metrics.Clustering
   where
 
 import Data.Graph.Clustering.Louvain.CplusPlus
-import Data.List        (last,head,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!))
+import Data.List        (last,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!))
 import Data.Map         (fromList,mapKeys)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 
@@ -32,8 +32,8 @@ import Gargantext.Viz.Phylo.Tools
 relatedComp :: Int -> PhyloGroup -> GroupGraph -> [PhyloGroup] -> [[PhyloGroup]] -> [[PhyloGroup]]
 relatedComp idx curr (nodes,edges) next memo
   | null nodes' && null next' = memo'
-  | (not . null) next'        = relatedComp idx (head next') (nodes',edges) (tail next') memo'
-  | otherwise                 = relatedComp (idx + 1) (head nodes') (tail nodes',edges) [] memo'
+  | (not . null) next'        = relatedComp idx (head' "relatedComp1" next') (nodes',edges) (tail next') memo'
+  | otherwise                 = relatedComp (idx + 1) (head' "relatedComp2" nodes') (tail nodes',edges) [] memo'
   where
     --------------------------------------
     memo' :: [[PhyloGroup]]

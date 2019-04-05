@@ -20,14 +20,14 @@ module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level, Empty)
-import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, sortOn)
+import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, concat, sortOn)
 import Data.Maybe           (mapMaybe,fromMaybe)
 import Data.Map             (Map, mapKeys, member, (!))
 import Data.Set             (Set)
 import Data.Text            (Text, toLower)
 import Data.Tuple.Extra
 import Data.Vector          (Vector,elemIndex)
-import Gargantext.Prelude   hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
@@ -54,7 +54,7 @@ doesContains :: Eq a => [a] -> [a] -> Bool
 doesContains l l'
   | null l'               = True
   | length l' > length l  = False
-  | elem (head l') l      = doesContains l (tail l')
+  | elem (head' "doesContains" l') l      = doesContains l (tail l')
   | otherwise             = False
 
 
@@ -62,8 +62,8 @@ doesContains l l'
 doesContainsOrd :: Eq a => Ord a => [a] -> [a] -> Bool
 doesContainsOrd l l'
   | null l'          = False
-  | last l < head l' = False
-  | head l' `elem` l = True
+  | last l < (head' "doesContainsOrd" l') = False
+  | (head' "doesContainsOrd" l') `elem` l = True
   | otherwise        = doesContainsOrd l (tail l')
 
 
@@ -73,8 +73,8 @@ filterNestedSets h l l'
   | null l                 = if doesAnySetContains h l l'
                              then l'
                              else h : l'
-  | doesAnySetContains h l l' = filterNestedSets (head l) (tail l) l'
-  | otherwise              = filterNestedSets (head l) (tail l) (h : l')
+  | doesAnySetContains h l l' = filterNestedSets (head' "filterNestedSets1" l) (tail l) l'
+  | otherwise              = filterNestedSets (head' "filterNestedSets2" l) (tail l) (h : l')
 
 
 
@@ -142,7 +142,7 @@ initFoundations l = Vector.fromList $ map phyloAnalyzer l
 
 -- | To init the base of a Phylo from a List of Periods and Foundations
 initPhyloBase :: [(Date, Date)] -> Vector Ngrams -> PhyloPeaks -> PhyloParam -> Phylo
-initPhyloBase pds fds pks prm = Phylo ((fst . head) pds, (snd . last) pds) fds pks (map (\pd -> initPhyloPeriod pd []) pds) prm
+initPhyloBase pds fds pks prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds pks (map (\pd -> initPhyloPeriod pd []) pds) prm
 
 -- | To init the param of a Phylo
 initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQueryBuild -> PhyloParam
@@ -489,7 +489,7 @@ getNeighbours :: Bool -> PhyloGroup -> GroupEdges -> [PhyloGroup]
 getNeighbours directed g e = case directed of
   True  -> map (\((_s,t),_w) -> t)
              $ filter (\((s,_t),_w) -> s == g) e
-  False -> map (\((s,t),_w) -> head $ delete g $ nub [s,t,g])
+  False -> map (\((s,t),_w) -> (head' "getNeighbours") $ delete g $ nub [s,t,g])
              $ filter (\((s,t),_w) -> s == g || t == g) e
 
 

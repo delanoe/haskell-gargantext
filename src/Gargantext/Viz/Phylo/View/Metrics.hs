@@ -18,11 +18,11 @@ module Gargantext.Viz.Phylo.View.Metrics
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-import Data.List        (last,head,groupBy,sortOn)
+import Data.List        (last,groupBy,sortOn)
 import Data.Map         (insert)
 import Data.Text        (Text)
 import Data.Tuple       (fst, snd)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 
@@ -38,9 +38,9 @@ addBranchMetrics id lbl val v = over (pv_branches
 
 -- | To get the age (in year) of all the branches of a PhyloView
 branchAge :: PhyloView -> PhyloView
-branchAge v = foldl (\v' b -> let bId = (fst . head) b
+branchAge v = foldl (\v' b -> let bId = (fst . (head' "branchAge")) b
                                   prds = sortOn fst $ map snd b
-                              in addBranchMetrics bId "age" ((abs . fromIntegral) $ ((snd . last) prds) - ((fst . head) prds)) v') v
+                              in addBranchMetrics bId "age" ((abs . fromIntegral) $ ((snd . last) prds) - (fst $ head' "branchAge" prds)) v') v
             $ groupBy ((==) `on` fst)
             $ sortOn fst
             $ map (\n -> (getNodeBranchId n, (fst . fst) $ getNodeId n))

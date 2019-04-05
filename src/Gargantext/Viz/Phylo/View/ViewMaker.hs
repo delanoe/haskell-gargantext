@@ -23,7 +23,7 @@ import Data.Text        (Text)
 import Data.Map         (Map, empty, elems, unionWithKey, fromList)
 import Data.Tuple       (fst, snd)
 import Data.Vector      (Vector)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.Display

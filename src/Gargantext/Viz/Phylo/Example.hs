@@ -29,12 +29,12 @@ TODO:
 module Gargantext.Viz.Phylo.Example where
 
 import Data.Text (Text)
-import Data.List        ((++), last, head)
+import Data.List        ((++), last)
 import Data.Map         (Map)
 import Data.Tuple       (fst)
 import Data.Tuple.Extra
 import Data.Vector      (Vector)
-import Gargantext.Prelude          hiding (head)
+import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Aggregates.Cluster
 import Gargantext.Viz.Phylo.Aggregates.Document
@@ -221,7 +221,7 @@ phyloBase = initPhyloBase periods foundations peaks defaultPhyloParam
 
 periods :: [(Date,Date)]
 periods = initPeriods 5 3
-        $ both fst (head corpus,last corpus)
+        $ both fst (head' "Example" corpus,last corpus)
 
 
 peaks :: PhyloPeaks

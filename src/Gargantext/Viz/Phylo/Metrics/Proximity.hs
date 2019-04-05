@@ -19,7 +19,7 @@ module Gargantext.Viz.Phylo.Metrics.Proximity
 
 import Data.List        (null)
 import Data.Map         (Map,elems,unionWith,intersectionWith,intersection,size)
-import Gargantext.Prelude             hiding (head)
+import Gargantext.Prelude
 
 -- | To process the weightedLogJaccard between two PhyloGroup fields
 weightedLogJaccard :: Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double
