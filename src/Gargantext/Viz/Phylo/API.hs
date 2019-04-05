@@ -21,7 +21,7 @@ import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Example
 
-getPhylo :: PhyloId -> PhyloQueryView -> PhyloView
+getPhylo :: PhyloId -> Maybe PhyloQueryView -> PhyloView
 getPhylo _phyloId _phyloQueryView = phyloView
 
 postPhylo :: CorpusId -> Maybe ListId -> PhyloQueryBuild -> Phylo

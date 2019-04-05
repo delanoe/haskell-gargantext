@@ -143,8 +143,11 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "list"      :> TableNgramsApi
              :<|> "listGet"   :> TableNgramsApiGet
              :<|> "pairing"   :> PairingApi
-
+             
+             -- VIZ
              :<|> "chart"     :> ChartApi
+             :<|> "phylo"     :> PhyloAPI
+             
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi
              :<|> "search":> Summary "Node Search"
@@ -188,6 +191,8 @@ nodeAPI p uId id
            :<|> getPairing       id
 
            :<|> getChart id
+           :<|> phyloAPI id
+           
            :<|> favApi   id
            :<|> delDocs  id
            :<|> searchIn id
@@ -309,6 +314,15 @@ graphAPI nId = do
                             <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
 
   liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
+
+
+type PhyloAPI = Summary "Phylo API"
+              :> QueryParam "param" PhyloQueryView
+              :> Get '[JSON] PhyloView
+
+phyloAPI :: NodeId -> GargServer PhyloAPI
+phyloAPI n q = pure $ getPhylo n q
+
 
 
 instance HasNodeError ServantErr where
