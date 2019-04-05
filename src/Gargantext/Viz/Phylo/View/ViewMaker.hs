@@ -76,16 +76,16 @@ groupsToNodes isR isV ns gs = map (\g -> let idxs = getGroupNgrams g
 
 mergeEdges :: [PhyloEdge] -> [PhyloEdge] -> [PhyloEdge]
 mergeEdges lAsc lDes = elems
-                     $ unionWithKey (\_k vAsc vDes -> vDes & phylo_edgeWeight .~ (max (vAsc ^. phylo_edgeWeight) (vDes ^. phylo_edgeWeight))) mAsc mDes
+                     $ unionWithKey (\_k vAsc vDes -> vDes & pe_weight .~ (max (vAsc ^. pe_weight) (vDes ^. pe_weight))) mAsc mDes
   where
     --------------------------------------
     mAsc :: Map (PhyloGroupId,PhyloGroupId) PhyloEdge
     mAsc = fromList
-         $ zip (map (\e -> (e ^. phylo_edgeTarget,e ^. phylo_edgeSource)) lAsc) lAsc
+         $ zip (map (\e -> (e ^. pe_target,e ^. pe_source)) lAsc) lAsc
     --------------------------------------
     mDes :: Map (PhyloGroupId,PhyloGroupId) PhyloEdge
     mDes = fromList
-         $ zip (map (\e -> (e ^. phylo_edgeSource,e ^. phylo_edgeTarget)) lDes) lDes
+         $ zip (map (\e -> (e ^. pe_source,e ^. pe_target)) lDes) lDes
     --------------------------------------
 
 
@@ -117,11 +117,11 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
   if (not shouldDo) || (lvl == lvlMin)
   then v
   else addChildNodes shouldDo (lvl - 1) lvlMin vb fl p
-     $ v & phylo_viewBranches %~ (++ (phyloToBranches (lvl - 1) p))
-         & phylo_viewNodes %~ (++ (groupsToNodes False vb (getPeaksLabels p) gs'))
-         & phylo_viewEdges %~ (++ (groupsToEdges fl PeriodEdge gs'))
-         & phylo_viewEdges %~ (++ (groupsToEdges Descendant LevelEdge gs ))
-         & phylo_viewEdges %~ (++ (groupsToEdges Ascendant LevelEdge  gs'))
+     $ v & pv_branches %~ (++ (phyloToBranches (lvl - 1) p))
+         & pv_nodes %~ (++ (groupsToNodes False vb (getPeaksLabels p) gs'))
+         & pv_edges %~ (++ (groupsToEdges fl PeriodEdge gs'))
+         & pv_edges %~ (++ (groupsToEdges Descendant LevelEdge gs ))
+         & pv_edges %~ (++ (groupsToEdges Ascendant LevelEdge  gs'))
     where
       --------------------------------------
       gs :: [PhyloGroup]
@@ -135,7 +135,7 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
 -- | To transform a PhyloQuery into a PhyloView
 toPhyloView :: PhyloQueryView -> Phylo -> PhyloView
 toPhyloView q p = processDisplay (q ^. qv_display)
-                $ processSort (q ^. qv_sort) p
+                $ processSort    (q ^. qv_sort   ) p
                 $ processTaggers (q ^. qv_taggers) p
                 $ processFilters (q ^. qv_filters) p
                 $ processMetrics (q ^. qv_metrics) p

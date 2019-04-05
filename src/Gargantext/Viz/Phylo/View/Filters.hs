@@ -28,13 +28,13 @@ import Gargantext.Viz.Phylo.Tools
 
 -- | To clean a PhyloView list of Nodes, Edges, etc after having filtered its Branches
 cleanNodesEdges :: PhyloView -> PhyloView -> PhyloView
-cleanNodesEdges v v' = v' & phylo_viewNodes %~ (filter (\n -> not $ elem (getNodeId n) nIds))
-                          & phylo_viewNodes %~ (map (\n -> if isNothing (n ^. phylo_nodeLevelParents)
+cleanNodesEdges v v' = v' & pv_nodes %~ (filter (\n -> not $ elem (getNodeId n) nIds))
+                          & pv_nodes %~ (map (\n -> if isNothing (n ^. pn_parents)
                                                            then n
                                                            else if (not .null) $ (getNodeParentsId n) `intersect` nIds
-                                                                then n & phylo_nodeLevelParents .~ Nothing
+                                                                then n & pn_parents .~ Nothing
                                                                 else n ))
-                          & phylo_viewEdges %~ (filter (\e -> (not $ elem (getSourceId e) nIds)
+                          & pv_edges %~ (filter (\e -> (not $ elem (getSourceId e) nIds)
                                                            && (not $ elem (getTargetId e) nIds)))
   where
     --------------------------------------
@@ -54,9 +54,9 @@ filterSmallBranch inf sup min' prds v = cleanNodesEdges v v'
   where
     --------------------------------------
     v' :: PhyloView
-    v' = v & phylo_viewBranches %~ (filter (\b -> let ns = filter (\n -> (getBranchId b)  == (getNodeBranchId n))
-                                                         $ getNodesInBranches v
-                                                      prds' = nub $ map (\n -> (fst . fst) $ getNodeId n) ns
+    v' = v & pv_branches %~ (filter (\b -> let
+                                              ns = filter (\n -> (getBranchId b)  == (getNodeBranchId n)) $ getNodesInBranches v
+                                              prds' = nub $ map (\n -> (fst . fst) $ getNodeId n) ns
                                                   in not (isLone ns prds')))
     --------------------------------------
     isLone :: [PhyloNode] -> [PhyloPeriodId] -> Bool

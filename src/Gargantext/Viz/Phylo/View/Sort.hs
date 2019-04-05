@@ -27,7 +27,7 @@ import Gargantext.Viz.Phylo.Tools
 
 -- | To sort a PhyloView by Age
 sortBranchByAge :: Order -> PhyloView -> PhyloView
-sortBranchByAge o v = v & phylo_viewBranches %~ f
+sortBranchByAge o v = v & pv_branches %~ f
   where
     --------------------------------------
     f :: [PhyloBranch] -> [PhyloBranch] 

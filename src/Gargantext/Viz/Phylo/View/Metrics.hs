@@ -29,10 +29,10 @@ import Gargantext.Viz.Phylo.Tools
 
 -- | To add a new meta Metric to a PhyloBranch
 addBranchMetrics :: PhyloBranchId -> Text -> Double -> PhyloView -> PhyloView
-addBranchMetrics id lbl val v = over (phylo_viewBranches
+addBranchMetrics id lbl val v = over (pv_branches
                                      . traverse)
                                     (\b -> if getBranchId b == id
-                                           then b & phylo_branchMetrics %~ insert lbl [val]
+                                           then b & pb_metrics %~ insert lbl [val]
                                            else b) v
 
 

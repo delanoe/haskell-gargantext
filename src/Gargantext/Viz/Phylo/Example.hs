@@ -81,7 +81,7 @@ phyloFromQuery :: Phylo
 phyloFromQuery = toPhylo (queryParser queryEx) corpus actants actantsTrees
 
 -- | To do : create a request handler and a query parser
-queryParser :: [Char] -> PhyloQuery
+queryParser :: [Char] -> PhyloQueryBuild
 queryParser _q = phyloQuery
 
 queryEx :: [Char]
@@ -94,8 +94,8 @@ queryEx = "title=Cesar et Cleôpatre"
           ++ "nthCluster=RelatedComponents"
           ++ "nthProximity=Filiation"
 
-phyloQuery :: PhyloQuery
-phyloQuery = PhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
+phyloQuery :: PhyloQueryBuild
+phyloQuery = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
              5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
 
 

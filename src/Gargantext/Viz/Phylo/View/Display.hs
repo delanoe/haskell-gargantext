@@ -38,7 +38,7 @@ toNestedView ns ns'
       nested :: [PhyloNode]
       nested = foldl (\ns'' n -> let nIds' = getNodeParentsId n
                                 in map (\n' -> if elem (getNodeId n') nIds'
-                                               then n' & phylo_nodeLevelChilds %~ (++ [n])
+                                               then n' & pn_childs %~ (++ [n])
                                                else n') ns'') ns' ns
       --------------------------------------  
 
@@ -47,8 +47,8 @@ toNestedView ns ns'
 processDisplay :: DisplayMode -> PhyloView -> PhyloView
 processDisplay d v = case d of 
                      Flat   -> v
-                     Nested -> let ns  = sortOn getNodeLevel $ v ^. phylo_viewNodes
+                     Nested -> let ns  = sortOn getNodeLevel $ v ^. pv_nodes
                                    lvl = getNodeLevel $ head ns
-                               in v & phylo_viewNodes .~ toNestedView (filter (\n -> lvl == getNodeLevel n) ns)
+                               in v & pv_nodes .~ toNestedView (filter (\n -> lvl == getNodeLevel n) ns)
                                                                       (filter (\n -> lvl <  getNodeLevel n) ns) 
                      --_      -> panic "[ERR][Viz.Phylo.Example.processDisplay] display not found"

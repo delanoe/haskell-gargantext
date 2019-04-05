@@ -82,7 +82,6 @@ instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
 
 type ParentId = NodeId
-type GraphId  = NodeId
 type CorpusId = NodeId
 type ListId   = NodeId
 type DocumentId = NodeId
@@ -91,6 +90,8 @@ type RootId   = NodeId
 type MasterCorpusId = CorpusId
 type UserCorpusId   = CorpusId
 
+type GraphId  = NodeId
+type PhyloId  = NodeId
 type AnnuaireId = NodeId
 type ContactId  = NodeId
 

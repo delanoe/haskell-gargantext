@@ -66,10 +66,10 @@ mostOccNgrams thr group = (nub . concat )
 
 -- | To alter the label of a PhyloBranch
 alterBranchLabel :: (PhyloBranchId,Text) -> PhyloView -> PhyloView
-alterBranchLabel (id,lbl) v = over (phylo_viewBranches
+alterBranchLabel (id,lbl) v = over (pv_branches
                                    . traverse)
                                    (\b -> if getBranchId b == id
-                                          then b & phylo_branchLabel .~ lbl
+                                          then b & pb_label .~ lbl
                                           else b) v
 
 
@@ -83,12 +83,12 @@ branchLabelFreq v thr p = foldl (\v' (id,lbl) -> alterBranchLabel (id,lbl) v') v
 
 -- | To set the label of a PhyloNode as the nth most coocurent terms of its PhyloNodes
 nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
-nodeLabelCooc v thr p = over (phylo_viewNodes
+nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
                              (\n -> let lbl = ngramsToLabel (getPeaksLabels p)
                                             $ mostOccNgrams thr
                                             $ head $ getGroupsFromIds [getNodeId n] p
-                                    in n & phylo_nodeLabel .~ lbl) v
+                                    in n & pn_label .~ lbl) v
 
 
 -- | To process a sorted list of Taggers to a PhyloView

@@ -52,7 +52,7 @@ import Gargantext.Prelude
 data PhyloParam =
      PhyloParam { _phyloParam_version  :: Text -- Double ?
                 , _phyloParam_software :: Software
-                , _phyloParam_query    :: PhyloQuery
+                , _phyloParam_query    :: PhyloQueryBuild
      } deriving (Generic, Show, Eq)
 
 
@@ -326,7 +326,7 @@ data Order = Asc | Desc deriving (Show)
 
 
 -- | A Phyloquery describes a phylomemic reconstruction
-data PhyloQuery = PhyloQuery
+data PhyloQueryBuild = PhyloQueryBuild
     { _q_phyloTitle :: Text
     , _q_phyloDesc  :: Text
 
@@ -352,7 +352,6 @@ data PhyloQuery = PhyloQuery
 data Filiation = Ascendant | Descendant | Merge | Complete deriving (Show)
 data EdgeType  = PeriodEdge | LevelEdge deriving (Show)
 
-
 -------------------
 -- | PhyloView | --
 -------------------
@@ -360,39 +359,39 @@ data EdgeType  = PeriodEdge | LevelEdge deriving (Show)
 
 -- | A PhyloView is the output type of a Phylo
 data PhyloView = PhyloView
-  { _phylo_viewParam       :: PhyloParam
-  , _phylo_viewTitle       :: Text
-  , _phylo_viewDescription :: Text
-  , _phylo_viewFiliation   :: Filiation
-  , _phylo_viewMetrics     :: Map Text [Double]
-  , _phylo_viewBranches    :: [PhyloBranch]
-  , _phylo_viewNodes       :: [PhyloNode]
-  , _phylo_viewEdges       :: [PhyloEdge]
+  { _pv_param       :: PhyloParam
+  , _pv_title       :: Text
+  , _pv_description :: Text
+  , _pv_filiation   :: Filiation
+  , _pv_metrics     :: Map Text [Double]
+  , _pv_branches    :: [PhyloBranch]
+  , _pv_nodes       :: [PhyloNode]
+  , _pv_edges       :: [PhyloEdge]
   } deriving (Show)
 
 -- | A phyloview is made of PhyloBranches, edges and nodes
 data PhyloBranch = PhyloBranch
-  { _phylo_branchId      :: PhyloBranchId
-  , _phylo_branchLabel   :: Text
-  , _phylo_branchMetrics :: Map Text [Double]
+  { _pb_id      :: PhyloBranchId
+  , _pb_label   :: Text
+  , _pb_metrics :: Map Text [Double]
   } deriving (Show)
 
 data PhyloEdge = PhyloEdge
-  { _phylo_edgeSource :: PhyloGroupId
-  , _phylo_edgeTarget :: PhyloGroupId
-  , _phylo_edgeType   :: EdgeType
-  , _phylo_edgeWeight :: Weight
+  { _pe_source :: PhyloGroupId
+  , _pe_target :: PhyloGroupId
+  , _pe_type   :: EdgeType
+  , _pe_weight :: Weight
   } deriving (Show)
 
 data PhyloNode = PhyloNode
-  { _phylo_nodeId        :: PhyloGroupId
-  , _phylo_nodeBranchId  :: Maybe PhyloBranchId
-  , _phylo_nodeLabel     :: Text
-  , _phylo_nodeNgramsIdx :: [Int]
-  , _phylo_nodeNgrams    :: Maybe [Ngrams]
-  , _phylo_nodeMetrics      :: Map Text [Double]
-  , _phylo_nodeLevelParents :: Maybe [PhyloGroupId]
-  , _phylo_nodeLevelChilds  :: [PhyloNode]
+  { _pn_id        :: PhyloGroupId
+  , _pn_bid  :: Maybe PhyloBranchId
+  , _pn_label     :: Text
+  , _pn_idx :: [Int]
+  , _pn_ngrams    :: Maybe [Ngrams]
+  , _pn_metrics      :: Map Text [Double]
+  , _pn_parents :: Maybe [PhyloGroupId]
+  , _pn_childs  :: [PhyloNode]
   } deriving (Show)
 
 
@@ -448,7 +447,7 @@ makeLenses ''Proximity
 makeLenses ''Cluster
 makeLenses ''Filter
 --
-makeLenses ''PhyloQuery
+makeLenses ''PhyloQueryBuild
 makeLenses ''PhyloQueryView
 --
 makeLenses ''PhyloView
@@ -485,7 +484,14 @@ $(deriveJSON (unPrefix "_rc_" )      ''RCParams      )
 $(deriveJSON (unPrefix "_wlj_" )     ''WLJParams     )
 $(deriveJSON (unPrefix "_sb_" )      ''SBParams      )
 --
-$(deriveJSON (unPrefix "_q_" ) ''PhyloQuery )
+$(deriveJSON (unPrefix "_q_" )  ''PhyloQueryBuild  )
+$(deriveJSON (unPrefix "_pv_" ) ''PhyloView   )
+$(deriveJSON (unPrefix "_pb_" ) ''PhyloBranch )
+$(deriveJSON (unPrefix "_pe_" ) ''PhyloEdge   )
+$(deriveJSON (unPrefix "_pn_" ) ''PhyloNode   )
+
+$(deriveJSON defaultOptions ''Filiation )
+$(deriveJSON defaultOptions ''EdgeType  )
 
 
 ----------------------------

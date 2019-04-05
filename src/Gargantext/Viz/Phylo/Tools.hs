@@ -145,7 +145,7 @@ initPhyloBase :: [(Date, Date)] -> Vector Ngrams -> PhyloPeaks -> PhyloParam -> 
 initPhyloBase pds fds pks prm = Phylo ((fst . head) pds, (snd . last) pds) fds pks (map (\pd -> initPhyloPeriod pd []) pds) prm
 
 -- | To init the param of a Phylo
-initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQuery -> PhyloParam
+initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQueryBuild -> PhyloParam
 initPhyloParam (def defaultPhyloVersion -> v) (def defaultSoftware -> s) (def defaultQuery -> q) = PhyloParam v s q
 
 -- | To get the foundations of a Phylo
@@ -495,14 +495,14 @@ getNeighbours directed g e = case directed of
 
 -- | To get the PhyloBranchId of PhyloNode if it exists
 getNodeBranchId :: PhyloNode -> PhyloBranchId
-getNodeBranchId n = case n ^. phylo_nodeBranchId of
+getNodeBranchId n = case n ^. pn_bid of
                      Nothing -> panic "[ERR][Viz.Phylo.Tools.getNodeBranchId] branchId not found"
                      Just i  -> i
 
 
 -- | To get the PhyloGroupId of a PhyloNode
 getNodeId :: PhyloNode -> PhyloGroupId
-getNodeId n = n ^. phylo_nodeId
+getNodeId n = n ^. pn_id
 
 
 -- | To get the Level of a PhyloNode
@@ -513,12 +513,12 @@ getNodeLevel n = (snd . fst) $ getNodeId n
 -- | To get the Parent Node of a PhyloNode in a PhyloView
 getNodeParent :: PhyloNode -> PhyloView -> [PhyloNode]
 getNodeParent n v = filter (\n' -> elem (getNodeId n') (getNodeParentsId n))
-                  $ v ^. phylo_viewNodes
+                  $ v ^. pv_nodes
 
 
 -- | To get the Parent Node id of a PhyloNode if it exists
 getNodeParentsId :: PhyloNode -> [PhyloGroupId]
-getNodeParentsId n = case n ^. phylo_nodeLevelParents of
+getNodeParentsId n = case n ^. pn_parents of
                     Nothing  -> panic "[ERR][Viz.Phylo.Tools.getNodeParentsId] node parent not found"
                     Just ids -> ids
 
@@ -536,18 +536,18 @@ getNodesByBranches v = zip bIds $ map (\id -> filter (\n -> (getNodeBranchId n) 
 
 -- | To get a list of PhyloNodes owned by any PhyloBranches in a PhyloView
 getNodesInBranches :: PhyloView -> [PhyloNode]
-getNodesInBranches v = filter (\n -> isJust $ n ^. phylo_nodeBranchId)
-                     $ v ^. phylo_viewNodes
+getNodesInBranches v = filter (\n -> isJust $ n ^. pn_bid)
+                     $ v ^. pv_nodes
 
 
 -- | To get the PhyloGroupId of the Source of a PhyloEdge
 getSourceId :: PhyloEdge -> PhyloGroupId
-getSourceId e = e ^. phylo_edgeSource
+getSourceId e = e ^. pe_source
 
 
 -- | To get the PhyloGroupId of the Target of a PhyloEdge
 getTargetId :: PhyloEdge -> PhyloGroupId
-getTargetId e = e ^. phylo_edgeTarget
+getTargetId e = e ^. pe_target
 
 
 ---------------------
@@ -557,7 +557,7 @@ getTargetId e = e ^. phylo_edgeTarget
 
 -- | To get the PhyloBranchId of a PhyloBranch
 getBranchId :: PhyloBranch -> PhyloBranchId
-getBranchId b = b ^. phylo_branchId
+getBranchId b = b ^. pb_id
 
 
 -- | To get a list of PhyloBranchIds given a Level in a Phylo
@@ -569,12 +569,12 @@ getBranchIdsWith lvl p = sortOn snd
 
 -- | To get the Meta value of a PhyloBranch
 getBranchMeta :: Text -> PhyloBranch -> [Double]
-getBranchMeta k b = (b ^. phylo_branchMetrics) ! k
+getBranchMeta k b = (b ^. pb_metrics) ! k
 
 
 -- | To get all the PhyloBranchIds of a PhyloView
 getViewBranchIds :: PhyloView -> [PhyloBranchId]
-getViewBranchIds v = map getBranchId $ v ^. phylo_viewBranches
+getViewBranchIds v = map getBranchId $ v ^. pv_branches
 
 
 --------------------------------
@@ -582,47 +582,47 @@ getViewBranchIds v = map getBranchId $ v ^. phylo_viewBranches
 --------------------------------
 
 -- | To get the first clustering method to apply to get the contextual units of a Phylo
-getContextualUnit :: PhyloQuery -> Cluster
+getContextualUnit :: PhyloQueryBuild -> Cluster
 getContextualUnit q = q ^. q_contextualUnit
 
 
 -- | To get the metrics to apply to contextual units
-getContextualUnitMetrics :: PhyloQuery -> [Metric]
+getContextualUnitMetrics :: PhyloQueryBuild -> [Metric]
 getContextualUnitMetrics q = q ^. q_contextualUnitMetrics
 
 
 -- | To get the filters to apply to contextual units
-getContextualUnitFilters :: PhyloQuery -> [Filter]
+getContextualUnitFilters :: PhyloQueryBuild -> [Filter]
 getContextualUnitFilters q = q ^. q_contextualUnitFilters
 
 
 -- | To get the cluster methods to apply to the Nths levels of a Phylo
-getNthCluster :: PhyloQuery -> Cluster
+getNthCluster :: PhyloQueryBuild -> Cluster
 getNthCluster q = q ^. q_nthCluster
 
 
 -- | To get the Sup Level of a reconstruction of a Phylo from a PhyloQuery
-getNthLevel :: PhyloQuery -> Level
+getNthLevel :: PhyloQueryBuild -> Level
 getNthLevel q = q ^. q_nthLevel
 
 
 -- | To get the Grain of the PhyloPeriods from a PhyloQuery
-getPeriodGrain :: PhyloQuery -> Int
+getPeriodGrain :: PhyloQueryBuild -> Int
 getPeriodGrain q = q ^. q_periodGrain
 
 
 -- | To get the intertemporal matching strategy to apply to a Phylo from a PhyloQuery
-getInterTemporalMatching :: PhyloQuery -> Proximity
+getInterTemporalMatching :: PhyloQueryBuild -> Proximity
 getInterTemporalMatching q = q ^. q_interTemporalMatching
 
 
 -- | To get the Steps of the PhyloPeriods from a PhyloQuery
-getPeriodSteps :: PhyloQuery -> Int
+getPeriodSteps :: PhyloQueryBuild -> Int
 getPeriodSteps q = q ^. q_periodSteps
 
 
 --------------------------------------------------
--- | PhyloQuery & PhyloQueryView Constructors | --
+-- | PhyloQueryBuild & PhyloQueryView Constructors | --
 --------------------------------------------------
 
 
@@ -655,10 +655,10 @@ initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 
 
 -- | To initialize a PhyloQuery from given and default parameters
-initPhyloQuery :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQuery
+initPhyloQuery :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
 initPhyloQuery name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
   (def defaultWeightedLogJaccard -> matching') (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQuery name desc grain steps cluster metrics filters matching' nthLevel nthCluster
+    PhyloQueryBuild name desc grain steps cluster metrics filters matching' nthLevel nthCluster
 
 
 -- | To initialize a PhyloQueryView default parameters
@@ -706,7 +706,7 @@ defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing N
 
 -- Queries
 
-defaultQuery :: PhyloQuery
+defaultQuery :: PhyloQueryBuild
 defaultQuery = initPhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
                               Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 

@@ -25,7 +25,7 @@ import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKe
 import Data.Text (Text)
 import Data.Tuple.Extra
 import Data.Vector                  (Vector)
-import Gargantext.Prelude                   hiding (head)
+import Gargantext.Prelude           hiding (head)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Aggregates.Cluster
 import Gargantext.Viz.Phylo.Aggregates.Cooc
@@ -145,8 +145,8 @@ toNthLevel lvlMax prox clus p
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax prox clus
                   $ setPhyloBranches (lvl + 1)
-                  $ interTempoMatching Descendant  (lvl + 1) prox
-                  $ interTempoMatching Ascendant (lvl + 1) prox
+                  $ interTempoMatching Descendant (lvl + 1) prox
+                  $ interTempoMatching Ascendant  (lvl + 1) prox
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
                     (phyloToClusters lvl (getProximity clus) clus p) p
@@ -162,7 +162,7 @@ toPhylo1 :: Cluster -> Proximity -> [Metric] -> [Filter] -> Map (Date, Date) [Do
 toPhylo1 clus prox metrics filters d p = case clus of
   Fis (FisParams k s) -> setPhyloBranches 1
                        $ interTempoMatching Descendant 1 prox
-                       $ interTempoMatching Ascendant 1 prox
+                       $ interTempoMatching Ascendant  1 prox
                        $ setLevelLinks (0,1)
                        $ setLevelLinks (1,0)
                        $ addPhyloLevel 1 phyloFis p
@@ -181,7 +181,7 @@ toPhylo0 d p = addPhyloLevel 0 d p
 
 
 -- | To reconstruct the Base of a Phylo
-toPhyloBase :: PhyloQuery -> PhyloParam -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
+toPhyloBase :: PhyloQueryBuild -> PhyloParam -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
 toPhyloBase q p c a ts = initPhyloBase periods foundations peaks p
   where
     --------------------------------------
@@ -197,8 +197,8 @@ toPhyloBase q p c a ts = initPhyloBase periods foundations peaks p
     --------------------------------------
 
 
--- | To reconstruct a Phylomemy from a PhyloQuery, a Corpus and a list of actants
-toPhylo :: PhyloQuery -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
+-- | To reconstruct a Phylomemy from a PhyloQueryBuild, a Corpus and a list of actants
+toPhylo :: PhyloQueryBuild -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
 toPhylo q c a ts = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
   where
     --------------------------------------

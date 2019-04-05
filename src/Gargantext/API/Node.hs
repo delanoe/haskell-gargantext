@@ -63,6 +63,8 @@ import Gargantext.API.Settings
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
 import Gargantext.Viz.Graph.Tools (cooc2graph)
+import Gargantext.Viz.Phylo.API (getPhylo)
+import Gargantext.Viz.Phylo hiding (Tree)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
