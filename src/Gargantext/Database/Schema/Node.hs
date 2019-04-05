@@ -95,11 +95,19 @@ instance FromField HyperdataList
   where
     fromField = fromField'
 
+instance FromField HyperdataListModel
+  where
+    fromField = fromField'
+
 instance FromField HyperdataGraph
   where
     fromField = fromField'
 
 instance FromField HyperdataAnnuaire
+  where
+    fromField = fromField'
+
+instance FromField (NodeId, Text)
   where
     fromField = fromField'
 ------------------------------------------------------------------------
@@ -127,6 +135,10 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataList
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
@@ -144,6 +156,10 @@ instance QueryRunnerColumnDefault PGInt4 (Maybe NodeId)
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGInt4 NodeId
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -323,6 +339,9 @@ getDocumentsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
 
+getListsModelWithParentId :: NodeId -> Cmd err [Node HyperdataListModel]
+getListsModelWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeListModel)
+
 getCorporaWithParentId :: NodeId -> Cmd err [Node HyperdataCorpus]
 getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 
@@ -392,7 +411,6 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
   where
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
-                   --------------------------
 
 ------------------------------------------------------------------------
 arbitraryList :: HyperdataList
@@ -403,6 +421,20 @@ nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
   where
     name = maybe "Listes" identity maybeName
     list = maybe arbitraryList identity maybeList
+
+                --------------------
+
+arbitraryListModel :: HyperdataListModel
+arbitraryListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
+
+mkListModelNode :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
+mkListModelNode p u = insertNodesR [nodeListModelW Nothing Nothing p u]
+
+nodeListModelW :: Maybe Name -> Maybe HyperdataListModel -> ParentId -> UserId -> NodeWrite
+nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just pId)
+  where
+    name = maybe "List Model" identity maybeName
+    list = maybe arbitraryListModel identity maybeListModel
 
 ------------------------------------------------------------------------
 arbitraryGraph :: HyperdataGraph
@@ -526,8 +558,26 @@ mkRoot uname uId = case uId > 0 of
                False -> nodeError NegativeId
                True  -> mkNodeWithParent NodeUser Nothing uId uname
 
-mkCorpus :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Cmd err [CorpusId]
-mkCorpus n h p u = insertNodesR [nodeCorpusW n h p u]
+-- |
+-- CorpusDocument is a corpus made from a set of documents
+-- CorpusContact  is a corpus made from a set of contacts (syn of Annuaire)
+data CorpusType = CorpusDocument | CorpusContact
+
+class MkCorpus a
+  where
+    mk :: Maybe Name -> Maybe a -> ParentId -> UserId -> Cmd err [NodeId]
+
+instance MkCorpus HyperdataCorpus
+  where
+    mk n h p u = insertNodesR [nodeCorpusW n h p u]
+
+
+instance MkCorpus HyperdataAnnuaire
+  where
+    mk n h p u = insertNodesR [nodeAnnuaireW n h p u]
+
+
+
 
 getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err ListId
 getOrMkList pId uId =
@@ -543,14 +593,12 @@ defaultList cId =
 mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkList p u = insertNodesR [nodeListW Nothing Nothing p u]
 
+
 mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
 mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
-
-mkAnnuaire :: ParentId -> UserId -> Cmd err [NodeId]
-mkAnnuaire p u = insertNodesR [nodeAnnuaireW Nothing Nothing p u]
 
 -- | Default CorpusId Master and ListId Master
 

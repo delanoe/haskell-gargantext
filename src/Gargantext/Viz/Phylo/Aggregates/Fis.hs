@@ -17,34 +17,26 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Fis
   where
 
-import Data.List        (last,head,null)
+import Data.List        (head,null)
 import Data.Map         (Map, empty)
-import Data.Text        (Text, unwords, toLower, words)
 import Data.Tuple       (fst, snd)
-import Data.Tuple.Extra
-import Data.Vector      (Vector)
-
 import Gargantext.Prelude                       hiding (head)
 import Gargantext.Text.Metrics.FrequentItemSet  (fisWithSizePolyMap, Size(..))
-import Gargantext.Text.Terms.Mono               (monoTexts)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
-import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.Vector as Vector 
 
 
 -- | To Filter Fis by support 
 filterFisBySupport :: Bool -> Int -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFisBySupport keep min m = case keep of
-  False -> Map.map (\l -> filterMinorFis min l) m
-  True  -> Map.map (\l -> keepFilled (filterMinorFis) min l) m
+filterFisBySupport keep min' m = case keep of
+  False -> Map.map (\l -> filterMinorFis min' l) m
+  True  -> Map.map (\l -> keepFilled (filterMinorFis) min' l) m
 
 
 -- | To filter Fis with small Support, to preserve nonempty periods please use : filterFisBySupport true
 filterMinorFis :: Int -> [PhyloFis] -> [PhyloFis]
-filterMinorFis min l = filter (\fis -> getSupport fis > min) l
+filterMinorFis min' l = filter (\fis -> getSupport fis > min') l
 
 
 -- | To filter nested Fis 

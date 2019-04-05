@@ -21,19 +21,16 @@ import Control.Lens         hiding (both, Level)
 
 import Data.List        (last,head,nub,(++))
 import Data.Map         (Map,member)
-import Data.Text        (Text, unwords, toLower, words)
+import Data.Text        (Text)
 import Data.Tuple       (fst, snd)
-import Data.Tuple.Extra
 import Data.Vector      (Vector)
-
 import Gargantext.Prelude                       hiding (head)
 import Gargantext.Text.Terms.Mono               (monoTexts)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
 import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.Vector as Vector   
+import qualified Data.Vector as Vector
 
 
 -- | To init a list of Periods framed by a starting Date and an ending Date
@@ -60,9 +57,9 @@ reduceByPeaks m ns = (\(f,s) -> f ++ (nub s))
                                       else ((fst mem) ++ [n],snd mem)
                                       ) ([],[]) ns
 
--- | To parse a list of Documents by filtering on a Vector of Ngrams 
+-- | To parse a list of Documents by filtering on a Vector of Ngrams
 parseDocs :: Vector Ngrams -> PhyloPeaks -> [(Date,Text)] -> [Document]
-parseDocs fds peaks c = map (\(d,t) 
+parseDocs fds peaks c = map (\(d,t)
                          -> Document d ( reduceByPeaks mPeaks
                                        $ filter (\x -> Vector.elem x fds)
                                        $ monoTexts t)) c
@@ -75,5 +72,5 @@ parseDocs fds peaks c = map (\(d,t)
 
 -- | To transform a Corpus of texts into a Map of aggregated Documents grouped by Periods
 corpusToDocs :: [(Date,Text)] -> Phylo -> Map (Date,Date) [Document]
-corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p) 
+corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p)
                 $ parseDocs (getFoundations p) (getPeaks p) c

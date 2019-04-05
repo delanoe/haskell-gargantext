@@ -15,7 +15,7 @@ granularity of group of ngrams (terms and multi-terms).
 The main type is Phylo which is synonym of Phylomemy (only difference is
 the number of chars).
 
-References: 
+References:
 Chavalarias, D., Cointet, J.-P., 2013. Phylomemetic patterns
 in science evolution — the rise and fall of scientific fields. PloS
 one 8, e54847.
@@ -36,9 +36,9 @@ import Data.Text    (Text)
 import Data.Set     (Set)
 import Data.Map     (Map)
 import Data.Vector  (Vector)
-import Data.Time.Clock.POSIX  (POSIXTime)
+--import Data.Time.Clock.POSIX  (POSIXTime)
 import GHC.Generics (Generic)
-import Gargantext.Database.Schema.Ngrams (NgramsId)
+--import Gargantext.Database.Schema.Ngrams (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
@@ -49,18 +49,18 @@ import Gargantext.Prelude
 
 
 -- | Global parameters of a Phylo
-data PhyloParam = 
+data PhyloParam =
      PhyloParam { _phyloParam_version  :: Text -- Double ?
                 , _phyloParam_software :: Software
                 , _phyloParam_query    :: PhyloQuery
-     } deriving (Generic, Show)
+     } deriving (Generic, Show, Eq)
 
 
 -- | Software parameters
 data Software =
      Software { _software_name    :: Text
               , _software_version :: Text
-     } deriving (Generic, Show)
+     } deriving (Generic, Show, Eq)
 
 
 ---------------
@@ -79,18 +79,18 @@ data Phylo =
            , _phylo_periods     :: [PhyloPeriod]
            , _phylo_param       :: PhyloParam
            }
-           deriving (Generic, Show)
+           deriving (Generic, Show, Eq)
 
 -- | The PhyloPeaks describe the aggregation of some foundations Ngrams behind a list of Ngrams trees (ie: a forest)
 -- PeaksLabels are the root labels of each Ngrams trees
-data PhyloPeaks = 
+data PhyloPeaks =
       PhyloPeaks { _phylo_peaksLabels :: Vector Ngrams
-                 , _phylo_peaksForest :: [Tree Ngrams] 
-                 } 
-                 deriving (Generic, Show)  
+                 , _phylo_peaksForest :: [Tree Ngrams]
+                 }
+                 deriving (Generic, Show, Eq)
 
 -- | A Tree of Ngrams where each node is a label
-data Tree a = Empty | Node a [Tree a] deriving (Show)  
+data Tree a = Empty | Node a [Tree a] deriving (Show, Eq)
 
 
 -- | Date : a simple Integer
@@ -114,8 +114,8 @@ type End     = Date
 data PhyloPeriod =
      PhyloPeriod { _phylo_periodId     :: PhyloPeriodId
                  , _phylo_periodLevels :: [PhyloLevel]
-                 } 
-                 deriving (Generic, Show)
+                 }
+                 deriving (Generic, Show, Eq)
 
 
 --------------------
@@ -133,7 +133,7 @@ data PhyloLevel =
      PhyloLevel { _phylo_levelId     :: PhyloLevelId
                 , _phylo_levelGroups :: [PhyloGroup]
                 }
-                deriving (Generic, Show)
+                deriving (Generic, Show, Eq)
 
 
 --------------------
@@ -144,7 +144,7 @@ data PhyloLevel =
 -- | PhyloGroup : group of ngrams at each level and step
 -- Label : maybe has a label as text
 -- Ngrams: set of terms that build the group
--- Quality : map of measures (support, etc.) that depict some qualitative aspects of a phylo 
+-- Quality : map of measures (support, etc.) that depict some qualitative aspects of a phylo
 -- Period Parents|Childs: weighted link to Parents|Childs (Temporal Period   axis)
 -- Level  Parents|Childs: weighted link to Parents|Childs (Level Granularity axis)
 -- Pointers are directed link from Self to any PhyloGroup (/= Self ?)
@@ -155,18 +155,18 @@ data PhyloGroup =
                 , _phylo_groupMeta          :: Map Text Double
                 , _phylo_groupCooc          :: Map (Int, Int) Double
                 , _phylo_groupBranchId      :: Maybe PhyloBranchId
-                
+
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]
-                
+
                 , _phylo_groupLevelParents  :: [Pointer]
                 , _phylo_groupLevelChilds   :: [Pointer]
                 }
-                deriving (Generic, Show, Eq, Ord)             
+                deriving (Generic, Show, Eq, Ord)
 
 
--- | Level : A level of aggregation (-1 = Txt, 0 = Ngrams, 1 = Fis, [2..] = Cluster)  
-type Level = Int 
+-- | Level : A level of aggregation (-1 = Txt, 0 = Ngrams, 1 = Fis, [2..] = Cluster)
+type Level = Int
 -- | Index : A generic index of an element (PhyloGroup, PhyloBranch, etc) in a given List
 type Index = Int
 
@@ -194,20 +194,20 @@ type Ngrams = Text
 data Document = Document
       { date :: Date
       , text :: [Ngrams]
-      } deriving (Show)    
+      } deriving (Show)
 
 -- | Clique : Set of ngrams cooccurring in the same Document
 type Clique   = Set Ngrams
 -- | Support : Number of Documents where a Clique occurs
-type Support  = Int 
--- | Fis : Frequent Items Set (ie: the association between a Clique and a Support) 
-data PhyloFis = PhyloFis 
+type Support  = Int
+-- | Fis : Frequent Items Set (ie: the association between a Clique and a Support)
+data PhyloFis = PhyloFis
   { _phyloFis_clique  :: Clique
   , _phyloFis_support :: Support
-  , _phyloFis_metrics :: Map (Int,Int) (Map Text [Double]) 
+  , _phyloFis_metrics :: Map (Int,Int) (Map Text [Double])
   } deriving (Show)
 
--- | A list of clustered PhyloGroup 
+-- | A list of clustered PhyloGroup
 type PhyloCluster = [PhyloGroup]
 
 
@@ -226,7 +226,7 @@ type GroupGraph = (GroupNodes,GroupEdges)
 
 data PhyloError = LevelDoesNotExist
                 | LevelUnassigned
-          deriving (Show)               
+          deriving (Show)
 
 
 -----------------
@@ -235,24 +235,24 @@ data PhyloError = LevelDoesNotExist
 
 
 -- | Cluster constructors
-data Cluster = Fis FisParams 
+data Cluster = Fis FisParams
              | RelatedComponents RCParams
              | Louvain LouvainParams
-        deriving (Show)
+        deriving (Show, Eq)
 
 -- | Parameters for Fis clustering
 data FisParams = FisParams
   { _fis_keepMinorFis :: Bool
-  , _fis_minSupport   :: Support 
-  } deriving (Show)
+  , _fis_minSupport   :: Support
+  } deriving (Show, Eq)
 
 -- | Parameters for RelatedComponents clustering
 data RCParams = RCParams
-  { _rc_proximity :: Proximity } deriving (Show)
+  { _rc_proximity :: Proximity } deriving (Show, Eq)
 
 -- | Parameters for Louvain clustering
 data LouvainParams = LouvainParams
-  { _louvain_proximity :: Proximity } deriving (Show)
+  { _louvain_proximity :: Proximity } deriving (Show, Eq)
 
 
 -------------------
@@ -264,17 +264,17 @@ data LouvainParams = LouvainParams
 data Proximity = WeightedLogJaccard WLJParams
                | Hamming HammingParams
                | Filiation
-          deriving (Show)
+          deriving (Show, Eq)
 
 -- | Parameters for WeightedLogJaccard proximity
-data WLJParams = WLJParams 
+data WLJParams = WLJParams
   { _wlj_threshold   :: Double
   , _wlj_sensibility :: Double
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 -- | Parameters for Hamming proximity
-data HammingParams = HammingParams 
-  { _hamming_threshold :: Double } deriving (Show)
+data HammingParams = HammingParams
+  { _hamming_threshold :: Double } deriving (Show, Eq)
 
 
 ----------------
@@ -283,22 +283,22 @@ data HammingParams = HammingParams
 
 
 -- | Filter constructors
-data Filter = SmallBranch SBParams deriving (Show)
+data Filter = SmallBranch SBParams deriving (Show, Eq)
 
 -- | Parameters for SmallBranch filter
 data SBParams = SBParams
-  { _sb_periodsInf :: Int 
+  { _sb_periodsInf :: Int
   , _sb_periodsSup :: Int
-  , _sb_minNodes   :: Int } deriving (Show) 
+  , _sb_minNodes   :: Int } deriving (Show, Eq)
 
 
 ----------------
--- | Metric | -- 
+-- | Metric | --
 ----------------
 
 
 -- | Metric constructors
-data Metric = BranchAge deriving (Show)
+data Metric = BranchAge deriving (Show, Eq)
 
 
 ----------------
@@ -325,28 +325,28 @@ data Order = Asc | Desc deriving (Show)
 --------------------
 
 
--- | A Phyloquery describes a phylomemic reconstruction 
-data PhyloQuery = PhyloQuery 
+-- | A Phyloquery describes a phylomemic reconstruction
+data PhyloQuery = PhyloQuery
     { _q_phyloTitle :: Text
     , _q_phyloDesc  :: Text
 
-    -- Grain and Steps for the PhyloPeriods 
+    -- Grain and Steps for the PhyloPeriods
     , _q_periodGrain :: Int
     , _q_periodSteps :: Int
-    
-    -- Clustering method for building the contextual unit of Phylo (ie: level 1) 
+
+    -- Clustering method for building the contextual unit of Phylo (ie: level 1)
     , _q_contextualUnit :: Cluster
     , _q_contextualUnitMetrics :: [Metric]
-    , _q_contextualUnitFilters :: [Filter]    
-    
+    , _q_contextualUnitFilters :: [Filter]
+
     -- Inter-temporal matching method of the Phylo
     , _q_interTemporalMatching :: Proximity
-    
-    -- Last level of reconstruction  
+
+    -- Last level of reconstruction
     , _q_nthLevel   :: Level
     -- Clustering method used from level 1 to nthLevel
     , _q_nthCluster :: Cluster
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 -- | To choose the Phylo edge you want to export : --> <-- <--> <=>
 data Filiation = Ascendant | Descendant | Merge | Complete deriving (Show)
@@ -371,11 +371,11 @@ data PhyloView = PhyloView
   } deriving (Show)
 
 -- | A phyloview is made of PhyloBranches, edges and nodes
-data PhyloBranch = PhyloBranch 
+data PhyloBranch = PhyloBranch
   { _phylo_branchId      :: PhyloBranchId
   , _phylo_branchLabel   :: Text
   , _phylo_branchMetrics :: Map Text [Double]
-  } deriving (Show)  
+  } deriving (Show)
 
 data PhyloEdge = PhyloEdge
   { _phylo_edgeSource :: PhyloGroupId
@@ -388,10 +388,10 @@ data PhyloNode = PhyloNode
   { _phylo_nodeId        :: PhyloGroupId
   , _phylo_nodeBranchId  :: Maybe PhyloBranchId
   , _phylo_nodeLabel     :: Text
-  , _phylo_nodeNgramsIdx :: [Int] 
+  , _phylo_nodeNgramsIdx :: [Int]
   , _phylo_nodeNgrams    :: Maybe [Ngrams]
   , _phylo_nodeMetrics      :: Map Text [Double]
-  , _phylo_nodeLevelParents :: Maybe [PhyloGroupId] 
+  , _phylo_nodeLevelParents :: Maybe [PhyloGroupId]
   , _phylo_nodeLevelChilds  :: [PhyloNode]
   } deriving (Show)
 
@@ -401,10 +401,10 @@ data PhyloNode = PhyloNode
 ------------------------
 
 
-data DisplayMode = Flat | Nested 
+data DisplayMode = Flat | Nested
 
 -- | A PhyloQueryView describes a Phylo as an output view
-data PhyloQueryView = PhyloQueryView 
+data PhyloQueryView = PhyloQueryView
   { _qv_lvl    :: Level
 
   -- Does the PhyloGraph contain ascendant, descendant or a complete Filiation ? Complet redondant et merge (avec le max)
@@ -415,7 +415,7 @@ data PhyloQueryView = PhyloQueryView
   , _qv_levelChildsDepth :: Level
 
   -- Ordered lists of filters, taggers and metrics to be applied to the PhyloGraph
-  -- Firstly the metrics, then the filters and the taggers   
+  -- Firstly the metrics, then the filters and the taggers
   , _qv_metrics :: [Metric]
   , _qv_filters :: [Filter]
   , _qv_taggers :: [Tagger]
@@ -423,7 +423,7 @@ data PhyloQueryView = PhyloQueryView
   -- An asc or desc sort to apply to the PhyloGraph
   , _qv_sort :: Maybe (Sort,Order)
 
-  -- A display mode to apply to the PhyloGraph, ie: [Node[Node,Edge],Edge] or [[Node,Node],[Edge,Edge]] 
+  -- A display mode to apply to the PhyloGraph, ie: [Node[Node,Edge],Edge] or [[Node,Node],[Edge,Edge]]
   , _qv_display :: DisplayMode
   , _qv_verbose :: Bool
   }
@@ -443,11 +443,11 @@ makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
 makeLenses ''PhyloFis
--- 
+--
 makeLenses ''Proximity
 makeLenses ''Cluster
 makeLenses ''Filter
--- 
+--
 makeLenses ''PhyloQuery
 makeLenses ''PhyloQueryView
 --
@@ -459,7 +459,7 @@ makeLenses ''PhyloEdge
 
 ------------------------
 -- | JSON instances | --
------------------------- 
+------------------------
 
 
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
@@ -469,7 +469,7 @@ $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
 $(deriveJSON (unPrefix "_phyloFis_"    ) ''PhyloFis    )
--- 
+--
 $(deriveJSON (unPrefix "_software_"    ) ''Software    )
 $(deriveJSON (unPrefix "_phyloParam_"  ) ''PhyloParam  )
 --

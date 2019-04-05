@@ -18,31 +18,21 @@ module Gargantext.Viz.Phylo.View.Metrics
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-
-import Data.List        (notElem,last,head,union,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!),sortOn,sort,(\\))
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,fromList,mapKeys,insert)
-import Data.Maybe       (isNothing)
-import Data.Set         (Set)
-import Data.Text        (Text,unwords)
+import Data.List        (last,head,groupBy,sortOn)
+import Data.Map         (insert)
+import Data.Text        (Text)
 import Data.Tuple       (fst, snd)
-import Data.Vector      (Vector)
-
 import Gargantext.Prelude             hiding (head)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
-import qualified Data.List   as List
-import qualified Data.Map    as Map
-import qualified Data.Set    as Set
-import qualified Data.Vector as Vector
 
 
 -- | To add a new meta Metric to a PhyloBranch
 addBranchMetrics :: PhyloBranchId -> Text -> Double -> PhyloView -> PhyloView
 addBranchMetrics id lbl val v = over (phylo_viewBranches
-                                     . traverse) 
+                                     . traverse)
                                     (\b -> if getBranchId b == id
-                                           then b & phylo_branchMetrics %~ insert lbl [val] 
+                                           then b & phylo_branchMetrics %~ insert lbl [val]
                                            else b) v
 
 
@@ -59,8 +49,9 @@ branchAge v = foldl (\v' b -> let bId = (fst . head) b
 
 -- | To process a list of Metrics to a PhyloView
 processMetrics :: [Metric] -> Phylo -> PhyloView -> PhyloView
-processMetrics ms p v = foldl (\v' m -> case m of
+processMetrics ms _p v = foldl (\v' m -> case m of
                                         BranchAge -> branchAge v'
-                                        _         -> panic "[ERR][Viz.Phylo.Example.processMetrics] metric not found") v ms
+                                       -- _         -> panic "[ERR][Viz.Phylo.Example.processMetrics] metric not found"
+                                        ) v ms
 
 

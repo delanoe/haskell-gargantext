@@ -25,15 +25,15 @@ Ngrams connection to the Database.
 
 module Gargantext.Database.Schema.Ngrams where
 
-import Data.Aeson (FromJSON, FromJSONKey)
 import Control.Lens (makeLenses, view, over)
 import Control.Monad (mzero)
 import Data.Aeson
+import Data.Aeson.Types (toJSONKeyText)
 import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup, fromListWith)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Set (Set)
-import Data.Text (Text, splitOn)
+import Data.Text (Text, splitOn, pack)
 import Database.PostgreSQL.Simple ((:.)(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
@@ -56,8 +56,8 @@ import qualified Data.Set as DS
 import qualified Database.PostgreSQL.Simple as PGS
 
 
-type NgramsTerms = Text
 type NgramsId    = Int
+type NgramsTerms = Text
 type Size        = Int
 
 data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
@@ -105,9 +105,11 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Ord, Enum, Bounded, Generic)
 
 instance FromJSON NgramsType
-instance FromJSONKey NgramsType
+instance FromJSONKey NgramsType where
+   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
 instance ToJSON NgramsType
-instance ToJSONKey NgramsType
+instance ToJSONKey NgramsType where
+   toJSONKey = toJSONKeyText (pack . show)
 
 newtype NgramsTypeId = NgramsTypeId Int
   deriving (Eq, Show, Ord, Num)
@@ -120,6 +122,10 @@ instance FromField NgramsTypeId where
     n <- fromField fld mdata
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
+
+instance QueryRunnerColumnDefault (Nullable PGInt4) NgramsTypeId
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 pgNgramsType :: NgramsType -> Column PGInt4
 pgNgramsType = pgNgramsTypeId . ngramsTypeId
@@ -263,12 +269,12 @@ type NgramsTableParamMaster = NgramsTableParam
 
 
 data NgramsTableData = NgramsTableData { _ntd_id        :: Int
-                                         , _ntd_parent_id :: Maybe Int
-                                         , _ntd_terms     :: Text
-                                         , _ntd_n         :: Int
-                                         , _ntd_listType  :: Maybe ListType
-                                         , _ntd_weight    :: Double
-                                         } deriving (Show)
+                                       , _ntd_parent_id :: Maybe Int
+                                       , _ntd_terms     :: Text
+                                       , _ntd_n         :: Int
+                                       , _ntd_listType  :: Maybe ListType
+                                       , _ntd_weight    :: Double
+                                       } deriving (Show)
 
 
 

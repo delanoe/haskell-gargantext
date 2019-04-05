@@ -98,7 +98,7 @@ dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> runPGS
         FROM nodes AS c
         
         INNER JOIN tree AS s ON c.parent_id = s.id
-        WHERE c.typename IN (2,3,30,31,5,7,9)
+        WHERE c.typename IN (2,3,30,31,7,9)
       )
   SELECT * from tree;
   |] (Only rootId)

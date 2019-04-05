@@ -17,19 +17,9 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Metrics.Proximity
   where
 
-import Data.List        (last,head,union,concat,null)
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,intersection,size)
-import Data.Set         (Set)
-import Data.Tuple       (fst, snd)
-
+import Data.List        (null)
+import Data.Map         (Map,elems,unionWith,intersectionWith,intersection,size)
 import Gargantext.Prelude             hiding (head)
-import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Tools
-
-import qualified Data.List   as List
-import qualified Data.Map    as Map
-import qualified Data.Set    as Set
-
 
 -- | To process the weightedLogJaccard between two PhyloGroup fields
 weightedLogJaccard :: Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double

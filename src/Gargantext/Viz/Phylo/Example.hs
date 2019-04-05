@@ -28,63 +28,36 @@ TODO:
 
 module Gargantext.Viz.Phylo.Example where
 
-import Control.Lens     hiding (makeLenses, both, Level)
-
-import Data.Bool        (Bool, not)
-import Data.List        ((\\), notElem, concat, union, intersect, tails, tail, head, last, null, zip, sort, length, any, (++), (!!), nub, sortOn, reverse, splitAt, take, delete, init, groupBy)
-import Data.Map         (Map, elems, insert, member, adjust, singleton, empty, (!), keys, restrictKeys, mapWithKey, filterWithKey, mapKeys, intersectionWith, unionWith)
-import Data.Maybe       (mapMaybe,isJust,fromJust, isNothing)
-import Data.Semigroup   (Semigroup)
-import Data.Set         (Set)
-import Data.Text        (Text, unwords, toLower, words)
-import Data.Tuple       (fst, snd)
+import Data.Text (Text)
+import Data.List        ((++), last, head)
+import Data.Map         (Map)
+import Data.Tuple       (fst)
 import Data.Tuple.Extra
-import Data.Vector      (Vector, fromList, elemIndex, (!))
-
-import Debug.Trace      (trace)
-
+import Data.Vector      (Vector)
 import Gargantext.Prelude          hiding (head)
-import Gargantext.Text.Terms.Mono  (monoTexts)
-
 import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Aggregates.Cluster 
-import Gargantext.Viz.Phylo.Aggregates.Cooc
-import Gargantext.Viz.Phylo.Aggregates.Document 
-import Gargantext.Viz.Phylo.Aggregates.Fis                   
+import Gargantext.Viz.Phylo.Aggregates.Cluster
+import Gargantext.Viz.Phylo.Aggregates.Document
+import Gargantext.Viz.Phylo.Aggregates.Fis
 import Gargantext.Viz.Phylo.BranchMaker
 import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.LinkMaker
-import Gargantext.Viz.Phylo.Metrics.Proximity
-import Gargantext.Viz.Phylo.Metrics.Clustering
 import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.View.Display
-import Gargantext.Viz.Phylo.View.Filters
-import Gargantext.Viz.Phylo.View.Metrics
-import Gargantext.Viz.Phylo.View.Sort
-import Gargantext.Viz.Phylo.View.Taggers
 import Gargantext.Viz.Phylo.View.ViewMaker
-
-
-import qualified Data.Bool   as Bool
 import qualified Data.List   as List
-import qualified Data.Map    as Map
-import qualified Data.Maybe  as Maybe
-import qualified Data.Set    as Set
-import qualified Data.Tuple  as Tuple
-import qualified Data.Vector as Vector
 
 
 ------------------------------------------------------
 -- | STEP 12 | -- Create a PhyloView from a user Query
------------------------------------------------------- 
+------------------------------------------------------
 
 
-phyloView :: PhyloView 
+phyloView :: PhyloView
 phyloView = toPhyloView (queryParser' queryViewEx) phyloFromQuery
 
 -- | To do : create an other request handler and an other query parser
 queryParser' :: [Char] -> PhyloQueryView
-queryParser' q = phyloQueryView
+queryParser' _q = phyloQueryView
 
 queryViewEx :: [Char]
 queryViewEx = "level=3"
@@ -101,7 +74,7 @@ phyloQueryView = PhyloQueryView 3 Merge False 1 [BranchAge] [defaultSmallBranch]
 
 --------------------------------------------------
 -- | STEP 11 | -- Create a Phylo from a user Query
--------------------------------------------------- 
+--------------------------------------------------
 
 
 phyloFromQuery :: Phylo
@@ -109,12 +82,12 @@ phyloFromQuery = toPhylo (queryParser queryEx) corpus actants actantsTrees
 
 -- | To do : create a request handler and a query parser
 queryParser :: [Char] -> PhyloQuery
-queryParser q = phyloQuery
+queryParser _q = phyloQuery
 
 queryEx :: [Char]
 queryEx = "title=Cesar et Cleôpatre"
           ++ "&desc=An example of Phylomemy (french without accent)"
-          ++ "grain=5&steps=3" 
+          ++ "grain=5&steps=3"
           ++ "cluster=FrequentItemSet"
           ++ "interTemporalMatching=WeightedLogJaccard"
           ++ "nthLevel=2"
@@ -129,20 +102,20 @@ phyloQuery = PhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french w
 
 ----------------------------------------------------------------------------------------------------------------------------
 -- | STEP 10 | -- Incrementaly cluster the PhyloGroups n times, link them through the Periods and build level n of the Phylo
-----------------------------------------------------------------------------------------------------------------------------   
+----------------------------------------------------------------------------------------------------------------------------
 
 
 phylo6 :: Phylo
-phylo6 = toNthLevel 6 defaultWeightedLogJaccard defaultRelatedComponents phylo3  
+phylo6 = toNthLevel 6 defaultWeightedLogJaccard defaultRelatedComponents phylo3
 
 
 phylo3 :: Phylo
 phylo3 = setPhyloBranches 3
        $ interTempoMatching Descendant 3 defaultWeightedLogJaccard
        $ interTempoMatching Ascendant 3 defaultWeightedLogJaccard
-       $ setLevelLinks (2,3) 
-       $ addPhyloLevel 3 
-          (phyloToClusters 2 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch2) 
+       $ setLevelLinks (2,3)
+       $ addPhyloLevel 3
+          (phyloToClusters 2 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch2)
           phyloBranch2
 
 
@@ -172,7 +145,7 @@ phylo2 :: Phylo
 phylo2 = addPhyloLevel 2 phyloCluster phyloBranch1
 
 
-phyloCluster :: Map (Date,Date) [PhyloCluster] 
+phyloCluster :: Map (Date,Date) [PhyloCluster]
 phyloCluster = phyloToClusters 1 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch1
 
 
@@ -187,7 +160,7 @@ phyloBranch1 = setPhyloBranches 1 phylo1_c
 
 --------------------------------------------------------------------
 -- | STEP 7 | -- Link the PhyloGroups of level 1 through the Periods
---------------------------------------------------------------------  
+--------------------------------------------------------------------
 
 
 phylo1_c :: Phylo
@@ -200,7 +173,7 @@ phylo1_p = interTempoMatching Ascendant 1 defaultWeightedLogJaccard phylo1_0_1
 
 -----------------------------------------------
 -- | STEP 6 | -- Build the level 1 of the Phylo
------------------------------------------------ 
+-----------------------------------------------
 
 
 phylo1_0_1 :: Phylo
@@ -246,8 +219,8 @@ phyloBase :: Phylo
 phyloBase = initPhyloBase periods foundations peaks defaultPhyloParam
 
 
-periods :: [(Date,Date)] 
-periods = initPeriods 5 3 
+periods :: [(Date,Date)]
+periods = initPeriods 5 3
         $ both fst (head corpus,last corpus)
 
 

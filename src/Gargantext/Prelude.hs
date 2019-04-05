@@ -16,6 +16,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE     NoImplicitPrelude       #-}
 {-# LANGUAGE     OverloadedStrings       #-}
+{-# LANGUAGE     RankNTypes              #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude
@@ -127,28 +128,39 @@ type Grain = Int
 type Step  = Int
 
 -- | Function to split a range into chunks
--- if   step == grain then linearity
+-- if   step == grain then linearity (splitEvery)
 -- elif step < grain then overlapping
 -- else dotted with holes
-chunkAlong :: Eq a => Grain -> Step -> [a] -> [[a]]
-chunkAlong a b l = case a > 0 && b > 0 of
-    True  -> chunkAlong_ a b l
-    False -> panic "ChunkAlong: Parameters should be > 0 and Grain > Step"
+-- TODO FIX BUG if Steps*Grain /= length l
+-- chunkAlong 10 10 [1..15] == [1..10]
+-- BUG: what about the rest of (divMod 15 10)?
+-- TODO: chunkAlongNoRest or chunkAlongWithRest
+-- default behavior: NoRest
 
-chunkAlong_ :: Eq a => Int -> Int -> [a] -> [[a]]
-chunkAlong_ a b l = filter (/= []) $ only (while dropAlong)
-    where
-        only      = map       (take a)
-        while     = takeWhile (\x -> length x >= a)
-        dropAlong = L.scanl   (\x _y -> drop b x) l ([1..] :: [Integer])
+chunkAlong :: Eq a => Grain -> Step -> [a] -> [[a]]
+chunkAlong a b l = case a >= length l of
+  True  -> [l]
+  False -> chunkAlong' a b l
+
+chunkAlong' :: Eq a => Grain -> Step -> [a] -> [[a]]
+chunkAlong' a b l = case a > 0 && b > 0 of
+  True  -> chunkAlong'' a b l
+  False -> panic "ChunkAlong: Parameters should be > 0 and Grain > Step"
+
+chunkAlong'' :: Eq a => Int -> Int -> [a] -> [[a]]
+chunkAlong'' a b l = filter (/= []) $ only (while dropAlong)
+  where
+    only      = map       (take a)
+    while     = takeWhile (\x -> length x >= a)
+    dropAlong = L.scanl   (\x _y -> drop b x) l ([1..] :: [Integer])
 
 -- | Optimized version (Vector)
-chunkAlong' :: Int -> Int -> V.Vector a -> V.Vector (V.Vector a)
-chunkAlong' a b l = only (while  dropAlong)
-    where
-        only      = V.map       (V.take a)
-        while     = V.takeWhile (\x -> V.length x >= a)
-        dropAlong = V.scanl     (\x _y -> V.drop b x) l (V.fromList [1..])
+chunkAlongV :: Int -> Int -> V.Vector a -> V.Vector (V.Vector a)
+chunkAlongV a b l = only (while  dropAlong)
+  where
+    only      = V.map       (V.take a)
+    while     = V.takeWhile (\x -> V.length x >= a)
+    dropAlong = V.scanl     (\x _y -> V.drop b x) l (V.fromList [1..])
 
 -- | TODO Inverse of chunk ? unchunkAlong ?
 -- unchunkAlong :: Int -> Int -> [[a]] -> [a]
@@ -251,4 +263,9 @@ zipSnd f xs = zip xs (f xs)
 -- | maximumWith
 maximumWith :: (Ord a1, Foldable t) => (a2 -> a1) -> t a2 -> a2
 maximumWith f = L.maximumBy (compare `on` f)
+
+
+-- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
+listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
+listToCombi f l = [ (f x, f y) | (x:rest) <- L.tails l,  y <- rest ]
 

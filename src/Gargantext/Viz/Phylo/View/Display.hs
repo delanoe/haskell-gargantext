@@ -19,23 +19,10 @@ module Gargantext.Viz.Phylo.View.Display
 
 import Control.Lens     hiding (makeLenses, both, Level)
 
-import Data.List        (notElem,last,head,union,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!),sortOn,sort,(\\))
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,fromList,mapKeys,insert)
-import Data.Maybe       (isNothing)
-import Data.Set         (Set)
-import Data.Text        (Text,unwords)
-import Data.Tuple       (fst, snd)
-import Data.Vector      (Vector)
-
+import Data.List        (head,null,(++),sortOn)
 import Gargantext.Prelude             hiding (head)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
-import qualified Data.List   as List
-import qualified Data.Map    as Map
-import qualified Data.Set    as Set
-import qualified Data.Vector as Vector
-
 
 -- | To transform a flat Phyloview into a nested Phyloview 
 toNestedView :: [PhyloNode] -> [PhyloNode] -> [PhyloNode]
@@ -49,10 +36,10 @@ toNestedView ns ns'
       lvl' = getNodeLevel $ head $ nested
       --------------------------------------
       nested :: [PhyloNode]
-      nested = foldl (\ns' n -> let nIds' = getNodeParentsId n
+      nested = foldl (\ns'' n -> let nIds' = getNodeParentsId n
                                 in map (\n' -> if elem (getNodeId n') nIds'
                                                then n' & phylo_nodeLevelChilds %~ (++ [n])
-                                               else n') ns') ns' ns
+                                               else n') ns'') ns' ns
       --------------------------------------  
 
 
@@ -64,4 +51,4 @@ processDisplay d v = case d of
                                    lvl = getNodeLevel $ head ns
                                in v & phylo_viewNodes .~ toNestedView (filter (\n -> lvl == getNodeLevel n) ns)
                                                                       (filter (\n -> lvl <  getNodeLevel n) ns) 
-                     _      -> panic "[ERR][Viz.Phylo.Example.processDisplay] display not found"
+                     --_      -> panic "[ERR][Viz.Phylo.Example.processDisplay] display not found"

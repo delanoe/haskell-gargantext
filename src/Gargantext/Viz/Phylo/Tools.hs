@@ -10,26 +10,25 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Gargantext.Viz.Phylo.Tools
   where
 
-import Control.Lens         hiding (both, Level)
-import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, union, sortOn)
+import Control.Lens         hiding (both, Level, Empty)
+import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, sortOn)
 import Data.Maybe           (mapMaybe,fromMaybe)
-import Data.Map             (Map, mapKeys, member, elems, adjust, (!))
+import Data.Map             (Map, mapKeys, member, (!))
 import Data.Set             (Set)
 import Data.Text            (Text, toLower)
 import Data.Tuple.Extra
 import Data.Vector          (Vector,elemIndex)
 import Gargantext.Prelude   hiding (head)
 import Gargantext.Viz.Phylo
-
-import qualified Data.List   as List
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 import qualified Data.Vector as Vector
@@ -75,7 +74,7 @@ filterNestedSets h l l'
                              then l'
                              else h : l'
   | doesAnySetContains h l l' = filterNestedSets (head l) (tail l) l'
-  | otherwise              = filterNestedSets (head l) (tail l) (h : l')  
+  | otherwise              = filterNestedSets (head l) (tail l) (h : l')
 
 
 
@@ -87,18 +86,18 @@ getKeyPair (x,y) m = case findPair (x,y) m of
                      where
                       --------------------------------------
                       findPair :: (Int,Int) -> Map (Int,Int) a -> Maybe (Int,Int)
-                      findPair (x,y) m
-                        | member (x,y) m = Just (x,y)
-                        | member (y,x) m = Just (y,x)
+                      findPair (x',y') m'
+                        | member (x',y') m' = Just (x',y')
+                        | member (y',x') m' = Just (y',x')
                         | otherwise      = Nothing
-                      --------------------------------------  
+                      --------------------------------------
 
 
 -- | To filter Fis with small Support but by keeping non empty Periods
-keepFilled :: (Int -> [a] -> [a]) -> Int -> [a] -> [a] 
+keepFilled :: (Int -> [a] -> [a]) -> Int -> [a] -> [a]
 keepFilled f thr l = if (null $ f thr l) && (not $ null l)
                      then keepFilled f (thr - 1) l
-                     else f thr l  
+                     else f thr l
 
 
 -- | To get all combinations of a list
@@ -118,14 +117,14 @@ listToUnDirectedCombi l = [ (x,y) | (x:rest) <- tails l,  y <- rest ]
 
 -- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
 listToUnDirectedCombiWith :: forall a b. (a -> b) -> [a] -> [(b,b)]
-listToUnDirectedCombiWith f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ] 
+listToUnDirectedCombiWith f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
 
 
 -- | To unify the keys (x,y) that Map 1 share with Map 2 such as: (x,y) <=> (y,x)
 unifySharedKeys :: Eq a => Ord a => Map (a,a) b -> Map (a,a) b -> Map (a,a) b
 unifySharedKeys m1 m2 = mapKeys (\(x,y) -> if member (y,x) m2
                                            then (y,x)
-                                           else (x,y) ) m1                      
+                                           else (x,y) ) m1
 
 
 ---------------
@@ -137,7 +136,7 @@ unifySharedKeys m1 m2 = mapKeys (\(x,y) -> if member (y,x) m2
 phyloAnalyzer :: Ngrams -> Ngrams
 phyloAnalyzer n = toLower n
 
--- | To init the foundation of the Phylo as a Vector of Ngrams 
+-- | To init the foundation of the Phylo as a Vector of Ngrams
 initFoundations :: [Ngrams] -> Vector Ngrams
 initFoundations l = Vector.fromList $ map phyloAnalyzer l
 
@@ -161,9 +160,9 @@ getIdxInFoundations n p = case (elemIndex n (getFoundations p)) of
 
 
 -- | To get the last computed Level in a Phylo
-getLastLevel :: Phylo -> Level 
-getLastLevel p = (last . sort) 
-               $ map (snd . getPhyloLevelId) 
+getLastLevel :: Phylo -> Level
+getLastLevel p = (last . sort)
+               $ map (snd . getPhyloLevelId)
                $ view ( phylo_periods
                       .  traverse
                       . phylo_periodLevels ) p
@@ -175,19 +174,23 @@ getLastLevel p = (last . sort)
 
 -- | To apply a fonction to each label of a Ngrams Tree
 alterLabels :: (Ngrams -> Ngrams) -> Tree Ngrams -> Tree Ngrams
-alterLabels f (Node lbl ns) = Node (f lbl) (map (\n -> alterLabels f n) ns) 
+alterLabels f (Node lbl ns) = Node (f lbl) (map (\n -> alterLabels f n) ns)
+alterLabels _ Empty         = panic "[ERR][Viz.Phylo.Tools.alterLabels] Empty"
 
 -- | To transform a forest of trees into a map (node,root)
 forestToMap :: [Tree Ngrams] -> Map Ngrams Ngrams
-forestToMap trees = Map.fromList $ concat $ map (\(Node lbl ns) -> treeToTuples (Node lbl ns) lbl) trees
+forestToMap trees = Map.fromList $ concat $ map treeToTuples' trees
+  where
+    treeToTuples' (Node lbl ns) = treeToTuples (Node lbl ns) lbl
+    treeToTuples' Empty         = panic "[ERR][Viz.Phylo.Tools.forestToMap] Empty"
 
 -- | To get the foundationsPeaks of a Phylo
 getPeaks :: Phylo -> PhyloPeaks
-getPeaks = _phylo_foundationsPeaks 
+getPeaks = _phylo_foundationsPeaks
 
 -- | To get the peaksLabels of a Phylo
 getPeaksLabels :: Phylo -> Vector Ngrams
-getPeaksLabels p = (getPeaks p) ^. phylo_peaksLabels 
+getPeaksLabels p = (getPeaks p) ^. phylo_peaksLabels
 
 -- | To get the Index of a Ngrams in the foundationsPeaks of a Phylo
 getIdxInPeaks :: Ngrams -> Phylo -> Int
@@ -201,9 +204,9 @@ initPeaks trees ns = PhyloPeaks labels trees
   where
     --------------------------------------
     labels :: Vector Ngrams
-    labels = Vector.fromList 
+    labels = Vector.fromList
            $ nub
-           $ Vector.toList 
+           $ Vector.toList
            $ map (\n -> if member n mTrees
                         then mTrees Map.! n
                         else n ) ns
@@ -215,7 +218,7 @@ initPeaks trees ns = PhyloPeaks labels trees
 -- | To transform a Ngrams Tree into a list of (node,root)
 treeToTuples :: Tree Ngrams -> Ngrams -> [(Ngrams,Ngrams)]
 treeToTuples (Node lbl ns) root = [(lbl,root)] ++ (concat $ map (\n -> treeToTuples n root) ns)
-
+treeToTuples Empty         _    = panic "[ERR][Viz.Phylo.Tools.treeToTuples] Empty"
 
 --------------------
 -- | PhyloGroup | --
@@ -232,7 +235,7 @@ alterGroupWithLevel f lvl p = over ( phylo_periods
                                    .  traverse
                                    ) (\g -> if getGroupLevel g == lvl
                                             then f g
-                                            else g ) p  
+                                            else g ) p
 
 
 -- | To alter each list of PhyloGroups following a given function
@@ -242,7 +245,7 @@ alterPhyloGroups f p = over ( phylo_periods
                             . phylo_periodLevels
                             .  traverse
                             . phylo_levelGroups
-                            ) f p 
+                            ) f p
 
 
 -- | To filter the PhyloGroup of a Phylo according to a function and a value
@@ -252,7 +255,7 @@ filterGroups f x l = filter (\g -> (f g) == x) l
 
 -- | To maybe get the PhyloBranchId of a PhyloGroup
 getGroupBranchId :: PhyloGroup -> Maybe PhyloBranchId
-getGroupBranchId = _phylo_groupBranchId 
+getGroupBranchId = _phylo_groupBranchId
 
 
 -- | To get the PhyloGroups Childs of a PhyloGroup
@@ -340,7 +343,7 @@ getGroups :: Phylo -> [PhyloGroup]
 getGroups = view ( phylo_periods
                  .  traverse
                  . phylo_periodLevels
-                 .  traverse 
+                 .  traverse
                  . phylo_levelGroups
                  )
 
@@ -352,7 +355,7 @@ getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
 
 -- | To get the corresponding list of PhyloGroups from a list of PhyloNodes
 getGroupsFromNodes :: [PhyloNode] -> Phylo -> [PhyloGroup]
-getGroupsFromNodes ns p = getGroupsFromIds (map getNodeId ns) p 
+getGroupsFromNodes ns p = getGroupsFromIds (map getNodeId ns) p
 
 
 -- | To get all the PhyloGroup of a Phylo with a given level and period
@@ -372,10 +375,10 @@ getGroupsWithPeriod :: (Date,Date) -> Phylo -> [PhyloGroup]
 getGroupsWithPeriod prd p = filterGroups getGroupPeriod prd (getGroups p)
 
 
--- | To create a PhyloGroup in a Phylo out of a list of Ngrams and a set of parameters 
+-- | To create a PhyloGroup in a Phylo out of a list of Ngrams and a set of parameters
 initGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> Phylo -> PhyloGroup
-initGroup ngrams lbl idx lvl from to p = PhyloGroup 
-  (((from, to), lvl), idx)
+initGroup ngrams lbl idx lvl from' to' p = PhyloGroup
+  (((from', to'), lvl), idx)
   lbl
   (sort $ map (\x -> getIdxInPeaks x p) ngrams)
   (Map.empty)
@@ -402,13 +405,13 @@ appendToPhyloPeriods l p = over (phylo_periods) (++ l) p
 
 -- | To get all the PhyloPeriodIds of a Phylo
 getPhyloPeriods :: Phylo -> [PhyloPeriodId]
-getPhyloPeriods p = map _phylo_periodId 
+getPhyloPeriods p = map _phylo_periodId
                   $ view (phylo_periods) p
 
 
 -- | To get the id of a given PhyloPeriod
 getPhyloPeriodId :: PhyloPeriod -> PhyloPeriodId
-getPhyloPeriodId prd = _phylo_periodId prd 
+getPhyloPeriodId prd = _phylo_periodId prd
 
 
 -- | To create a PhyloPeriod
@@ -445,10 +448,12 @@ initPhyloLevel id groups = PhyloLevel id groups
 
 -- | To set the LevelId of a PhyloLevel and of all its PhyloGroups
 setPhyloLevelId :: Int -> PhyloLevel -> PhyloLevel
-setPhyloLevelId lvl' (PhyloLevel (id, lvl) groups)
+setPhyloLevelId lvl' (PhyloLevel (id, _lvl) groups)
     = PhyloLevel (id, lvl') groups'
-        where 
-            groups' = over (traverse . phylo_groupId) (\((period, lvl), idx) -> ((period, lvl'), idx)) groups 
+        where
+            groups' = over (traverse . phylo_groupId)
+                           (\((period, _lvl), idx) -> ((period, lvl'), idx))
+                           groups
 
 
 ------------------
@@ -476,23 +481,23 @@ getSupport = _phyloFis_support
 
 -- | To filter some GroupEdges with a given threshold
 filterGroupEdges :: Double -> GroupEdges -> GroupEdges
-filterGroupEdges thr edges = filter (\((s,t),w) -> w > thr) edges 
+filterGroupEdges thr edges = filter (\((_s,_t),w) -> w > thr) edges
 
 
--- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of GroupEdges 
+-- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of GroupEdges
 getNeighbours :: Bool -> PhyloGroup -> GroupEdges -> [PhyloGroup]
-getNeighbours directed g e = case directed of 
-  True  -> map (\((s,t),w) -> t) 
-             $ filter (\((s,t),w) -> s == g) e 
-  False -> map (\((s,t),w) -> head $ delete g $ nub [s,t,g]) 
-             $ filter (\((s,t),w) -> s == g || t == g) e
+getNeighbours directed g e = case directed of
+  True  -> map (\((_s,t),_w) -> t)
+             $ filter (\((s,_t),_w) -> s == g) e
+  False -> map (\((s,t),_w) -> head $ delete g $ nub [s,t,g])
+             $ filter (\((s,t),_w) -> s == g || t == g) e
 
 
 -- | To get the PhyloBranchId of PhyloNode if it exists
 getNodeBranchId :: PhyloNode -> PhyloBranchId
 getNodeBranchId n = case n ^. phylo_nodeBranchId of
                      Nothing -> panic "[ERR][Viz.Phylo.Tools.getNodeBranchId] branchId not found"
-                     Just i  -> i 
+                     Just i  -> i
 
 
 -- | To get the PhyloGroupId of a PhyloNode
@@ -520,12 +525,12 @@ getNodeParentsId n = case n ^. phylo_nodeLevelParents of
 
 -- | To get a list of PhyloNodes grouped by PhyloBranch in a PhyloView
 getNodesByBranches :: PhyloView -> [(PhyloBranchId,[PhyloNode])]
-getNodesByBranches v = zip bIds $ map (\id -> filter (\n -> (getNodeBranchId n) == id) 
+getNodesByBranches v = zip bIds $ map (\id -> filter (\n -> (getNodeBranchId n) == id)
                                             $ getNodesInBranches v ) bIds
   where
-    -------------------------------------- 
-    bIds :: [PhyloBranchId] 
-    bIds = getViewBranchIds v 
+    --------------------------------------
+    bIds :: [PhyloBranchId]
+    bIds = getViewBranchIds v
     --------------------------------------
 
 
@@ -535,14 +540,14 @@ getNodesInBranches v = filter (\n -> isJust $ n ^. phylo_nodeBranchId)
                      $ v ^. phylo_viewNodes
 
 
--- | To get the PhyloGroupId of the Source of a PhyloEdge 
+-- | To get the PhyloGroupId of the Source of a PhyloEdge
 getSourceId :: PhyloEdge -> PhyloGroupId
-getSourceId e = e ^. phylo_edgeSource 
+getSourceId e = e ^. phylo_edgeSource
 
 
 -- | To get the PhyloGroupId of the Target of a PhyloEdge
 getTargetId :: PhyloEdge -> PhyloGroupId
-getTargetId e = e ^. phylo_edgeTarget                     
+getTargetId e = e ^. phylo_edgeTarget
 
 
 ---------------------
@@ -562,8 +567,8 @@ getBranchIdsWith lvl p = sortOn snd
                        $ getGroupsWithLevel lvl p
 
 
--- | To get the Meta value of a PhyloBranch 
-getBranchMeta :: Text -> PhyloBranch -> [Double] 
+-- | To get the Meta value of a PhyloBranch
+getBranchMeta :: Text -> PhyloBranch -> [Double]
 getBranchMeta k b = (b ^. phylo_branchMetrics) ! k
 
 
@@ -603,7 +608,7 @@ getNthLevel q = q ^. q_nthLevel
 
 -- | To get the Grain of the PhyloPeriods from a PhyloQuery
 getPeriodGrain :: PhyloQuery -> Int
-getPeriodGrain q = q ^. q_periodGrain 
+getPeriodGrain q = q ^. q_periodGrain
 
 
 -- | To get the intertemporal matching strategy to apply to a Phylo from a PhyloQuery
@@ -612,7 +617,7 @@ getInterTemporalMatching q = q ^. q_interTemporalMatching
 
 
 -- | To get the Steps of the PhyloPeriods from a PhyloQuery
-getPeriodSteps :: PhyloQuery -> Int 
+getPeriodSteps :: PhyloQuery -> Int
 getPeriodSteps q = q ^. q_periodSteps
 
 
@@ -623,7 +628,7 @@ getPeriodSteps q = q ^. q_periodSteps
 
 -- | To get the Proximity associated to a given Clustering method
 getProximity :: Cluster -> Proximity
-getProximity cluster = case cluster of 
+getProximity cluster = case cluster of
   Louvain (LouvainParams proxi)      -> proxi
   RelatedComponents (RCParams proxi) -> proxi
   _   -> panic "[ERR][Viz.Phylo.Tools.getProximity] this cluster has no associated Proximity"
@@ -631,7 +636,7 @@ getProximity cluster = case cluster of
 
 -- | To initialize all the Cluster / Proximity with their default parameters
 initFis :: Maybe Bool -> Maybe Support -> FisParams
-initFis (def True -> kmf) (def 1 -> min) = FisParams kmf min
+initFis (def True -> kmf) (def 1 -> min') = FisParams kmf min'
 
 initHamming :: Maybe Double -> HammingParams
 initHamming (def 0.01 -> sens) = HammingParams sens
@@ -652,8 +657,8 @@ initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 -- | To initialize a PhyloQuery from given and default parameters
 initPhyloQuery :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQuery
 initPhyloQuery name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
-  (def defaultWeightedLogJaccard -> matching) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQuery name desc grain steps cluster metrics filters matching nthLevel nthCluster
+  (def defaultWeightedLogJaccard -> matching') (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
+    PhyloQuery name desc grain steps cluster metrics filters matching' nthLevel nthCluster
 
 
 -- | To initialize a PhyloQueryView default parameters
@@ -686,7 +691,7 @@ defaultRelatedComponents = RelatedComponents (initRelatedComponents Nothing)
 defaultSmallBranch :: Filter
 defaultSmallBranch = SmallBranch (initSmallBranch Nothing Nothing Nothing)
 
--- Params 
+-- Params
 
 defaultPhyloParam :: PhyloParam
 defaultPhyloParam = initPhyloParam Nothing Nothing Nothing
@@ -702,22 +707,19 @@ defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing N
 -- Queries
 
 defaultQuery :: PhyloQuery
-defaultQuery = initPhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)" 
+defaultQuery = initPhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
                               Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
-defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing                              
+defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- Software
 
 defaultSoftware :: Software
 defaultSoftware = Software "Gargantext" "v4"
 
--- Version 
+-- Version
 
 defaultPhyloVersion :: Text
 defaultPhyloVersion = "v1"
-
-
-
 

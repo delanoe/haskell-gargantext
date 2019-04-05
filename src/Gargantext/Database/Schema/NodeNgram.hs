@@ -33,7 +33,6 @@ module Gargantext.Database.Schema.NodeNgram where
 
 import Data.ByteString (ByteString)
 import Data.Text (Text)
-import Debug.Trace (trace)
 import Control.Lens.TH (makeLenses)
 import Control.Monad (void)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -41,8 +40,7 @@ import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Database.Utils (mkCmd, Cmd, execPGSQuery)
 import Gargantext.Core.Types.Main (ListTypeId)
-import Gargantext.Database.Types.Node (NodeId, ListId, NodeType(..))
-import Gargantext.Database.Config (nodeTypeId, userMaster)
+import Gargantext.Database.Types.Node (NodeId, ListId)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId)
 import Gargantext.Prelude
@@ -52,13 +50,13 @@ import qualified Database.PostgreSQL.Simple as DPS
 
 -- | TODO : remove id
 data NodeNgramPoly node_id ngrams_id parent_id ngrams_type list_type weight
-   = NodeNgram { _nn_node_id    :: node_id
-               , _nn_ngrams_id  :: ngrams_id
-               , _nn_parent_id  :: parent_id
-               
-               , _nn_ngramsType :: ngrams_type
-               , _nn_listType   :: list_type
-               , _nn_weight     :: weight
+   = NodeNgram { nng_node_id    :: node_id
+               , nng_ngrams_id  :: ngrams_id
+               , nng_parent_id  :: parent_id
+              
+               , nng_ngramsType :: ngrams_type
+               , nng_listType   :: list_type
+               , nng_weight     :: weight
                } deriving (Show)
 
 type NodeNgramWrite =
@@ -106,12 +104,12 @@ makeLenses ''NodeNgramPoly
 nodeNgramTable :: Table NodeNgramWrite NodeNgramRead
 nodeNgramTable  = Table "nodes_ngrams"
   ( pNodeNgram NodeNgram
-    { _nn_node_id    = required "node_id"
-    , _nn_ngrams_id  = required "ngrams_id"
-    , _nn_parent_id  = optional "parent_id"
-    , _nn_ngramsType = required "ngrams_type"
-    , _nn_listType   = required "list_type"
-    , _nn_weight     = required "weight"
+    { nng_node_id    = required "node_id"
+    , nng_ngrams_id  = required "ngrams_id"
+    , nng_parent_id  = optional "parent_id"
+    , nng_ngramsType = required "ngrams_type"
+    , nng_listType   = required "list_type"
+    , nng_weight     = required "weight"
     }
   )
 
@@ -173,13 +171,14 @@ data Action   = Del | Add
 type NgramsParent = Text
 type NgramsChild  = Text
 
+{-
 ngramsGroup :: Action -> ListId -> [(NgramsTypeId, NgramsParent, NgramsChild)] -> Cmd err ()
 ngramsGroup _ _ [] = pure ()
 ngramsGroup a lid input = void $ trace (show input) $ execPGSQuery (ngramsGroupQuery a) (DPS.Only $ Values fields input')
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","text","int4","text","text"]
     input' = map (\(ntpid,p,c) -> (lid, nodeTypeId NodeList, userMaster, ntpid, p,c)) input
-
+-}
 
 ngramsGroupQuery :: Action -> DPS.Query
 ngramsGroupQuery a = case a of
@@ -290,6 +289,8 @@ data NodeNgramsUpdate = NodeNgramsUpdate
 -- TODO wrap these updates in a transaction.
 -- TODO-ACCESS:
 -- * check userId CanUpdateNgrams userListId
+
+{-
 updateNodeNgrams :: NodeNgramsUpdate -> Cmd err ()
 updateNodeNgrams nnu = do
   updateNodeNgrams' userListId $ _nnu_lists_update nnu
@@ -299,3 +300,4 @@ updateNodeNgrams nnu = do
   ngramsGroup Add   userListId $ _nnu_add_children nnu
   where
     userListId = _nnu_user_list_id nnu
+-}

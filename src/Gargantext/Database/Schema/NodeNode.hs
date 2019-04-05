@@ -38,11 +38,11 @@ import Opaleye
 
 
 data NodeNodePoly node1_id node2_id score fav del
-                   = NodeNode { nodeNode_node1_id   :: node1_id
-                              , nodeNode_node2_id   :: node2_id
-                              , nodeNode_score :: score
-                              , nodeNode_favorite :: fav
-                              , nodeNode_delete   :: del
+                   = NodeNode { nn_node1_id   :: node1_id
+                              , nn_node2_id   :: node2_id
+                              , nn_score :: score
+                              , nn_favorite :: fav
+                              , nn_delete   :: del
                               } deriving (Show)
 
 type NodeNodeWrite     = NodeNodePoly (Column (PGInt4))
@@ -70,11 +70,11 @@ $(makeLensesWith abbreviatedFields   ''NodeNodePoly)
 
 nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
 nodeNodeTable  = Table "nodes_nodes" (pNodeNode
-                                NodeNode { nodeNode_node1_id = required "node1_id"
-                                         , nodeNode_node2_id = required "node2_id"
-                                         , nodeNode_score    = optional "score"
-                                         , nodeNode_favorite = optional "favorite"
-                                         , nodeNode_delete   = optional "delete"
+                                NodeNode { nn_node1_id = required "node1_id"
+                                         , nn_node2_id = required "node2_id"
+                                         , nn_score    = optional "score"
+                                         , nn_favorite = optional "favorite"
+                                         , nn_delete   = optional "delete"
                                      }
                                      )
 
