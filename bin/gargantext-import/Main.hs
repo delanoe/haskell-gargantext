@@ -19,34 +19,57 @@ Import a corpus binary.
 
 module Main where
 
+import Prelude (read)
 import Control.Exception (finally)
 import Servant (ServantErr)
 import Gargantext.Prelude
-import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
+import Gargantext.Database.Flow (FlowCmdM, flowCorpusFile)
 import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
 import Gargantext.Database.Utils (Cmd, )
-import Gargantext.Database.Types.Node (CorpusId)
---import Gargantext.Database.Schema.User (insertUsers, gargantuaUser, simpleUser)
+import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
+import Gargantext.Database.Schema.User (insertUsersDemo)
+import Gargantext.Text.Terms (TermType(..))
+import Gargantext.Core (Lang(..))
 import Gargantext.API.Node () -- instances
-import Gargantext.API.Settings (newDevEnvWith, runCmdDev, DevEnv)
+import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
 import System.Environment (getArgs)
+--import Gargantext.Text.Parsers.GrandDebat (readFile, GrandDebatReference(..))
+import qualified Data.Text as Text
+import Control.Monad.IO.Class (liftIO)
 
 main :: IO ()
 main = do
-  [iniPath, name, corpusPath] <- getArgs
+  [userCreate, user, name, iniPath, limit, corpusPath] <- getArgs
 
-  {-let createUsers :: Cmd ServantErr Int64
-      createUsers = insertUsers [gargantuaUser,simpleUser]
-  -}
+  --{-
+  let createUsers :: Cmd ServantErr Int64
+      createUsers = insertUsersDemo
+  
+  let cmd :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
+      cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) (Multi EN) CsvHalFormat corpusPath
+  {-
+  let debatCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
+      debatCorpus = do
+        docs <- liftIO ( splitEvery 500
+                       <$> take (read limit :: Int)
+                       <$> readFile corpusPath
+                       :: IO [[GrandDebatReference ]]
+                       )
+        flowCorpus (Text.pack user) (Text.pack name) (Multi FR) (map (map toHyperdataDocument) docs)
+  --}
 
-  let cmdCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmdCorpus = flowCorpus CsvHalFormat corpusPath (cs name)
 
-     -- cmd = {-createUsers >>-} cmdCorpus
+  withDevEnv iniPath $ \env -> do
+    _ <- if userCreate == "true"
+          then runCmdDev env createUsers
+          else pure 0 --(cs "false")
 
-  env <- newDevEnvWith iniPath
-  -- Better if we keep only one call to runCmdDev.
-  _ <- runCmdDev env cmdCorpus
-  pure ()
-
-
+    _ <- runCmdDev env cmd
+    {-
+    _ <- if corpusType == "csv"
+            then runCmdDev env csvCorpus
+            else if corpusType == "debat"
+              then runCmdDev env debatCorpus
+              else panic "corpusType unknown: try \"csv\" or \"debat\""
+    -}
+    pure ()

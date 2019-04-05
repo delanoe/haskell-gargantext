@@ -54,10 +54,10 @@ data DocumentIdWithNgrams a =
      , document_ngrams :: Map (NgramsT Ngrams) Int
      } deriving (Show)
 
--- | TODO for now, list Type is CandidateList because Graph Terms 
+-- | TODO for now, list Type is CandidateTerm because Graph Terms
 -- have to be detected in next step in the flow
 insertToNodeNgrams :: Map NgramsIndexed (Map NgramsType (Map NodeId Int)) -> Cmd err Int
-insertToNodeNgrams m = insertNodeNgrams [ NodeNgram n (_ngramsId ng) Nothing (ngramsTypeId t) (listTypeId CandidateList) (fromIntegral i)
+insertToNodeNgrams m = insertNodeNgrams [ NodeNgram n (_ngramsId ng) Nothing (ngramsTypeId t) (listTypeId CandidateTerm) (fromIntegral i)
                                         | (ng, t2n2i) <- DM.toList m
                                         , (t,  n2i)   <- DM.toList t2n2i
                                         , (n,  i)     <- DM.toList n2i

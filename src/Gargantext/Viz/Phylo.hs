@@ -36,9 +36,9 @@ import Data.Text    (Text)
 import Data.Set     (Set)
 import Data.Map     (Map)
 import Data.Vector  (Vector)
-import Data.Time.Clock.POSIX  (POSIXTime)
+--import Data.Time.Clock.POSIX  (POSIXTime)
 import GHC.Generics (Generic)
-import Gargantext.Database.Schema.Ngrams (NgramsId)
+--import Gargantext.Database.Schema.Ngrams (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
@@ -75,7 +75,7 @@ data Phylo =
            , _phylo_foundations :: Vector Ngrams
            , _phylo_periods     :: [PhyloPeriod]
            }
-           deriving (Generic, Show)
+           deriving (Generic, Show, Eq)
 
 
 -- | Date : a simple Integer
@@ -94,7 +94,7 @@ data PhyloPeriod =
      PhyloPeriod { _phylo_periodId     :: PhyloPeriodId
                  , _phylo_periodLevels :: [PhyloLevel]
                  } 
-                 deriving (Generic, Show)
+                 deriving (Generic, Show, Eq)
 
 
 -- | PhyloLevel : levels of phylomemy on level axis
@@ -107,7 +107,7 @@ data PhyloLevel =
      PhyloLevel { _phylo_levelId     :: PhyloLevelId
                 , _phylo_levelGroups :: [PhyloGroup]
                 }
-                deriving (Generic, Show)
+                deriving (Generic, Show, Eq)
 
 
 -- | PhyloGroup : group of ngrams at each level and step

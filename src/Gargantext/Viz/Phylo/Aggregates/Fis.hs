@@ -17,43 +17,36 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Fis
   where
 
-import Data.List        (last,head)
+import Data.List        (head)
 import Data.Map         (Map)
-import Data.Text        (Text, unwords, toLower, words)
+import Data.Text        (words)
 import Data.Tuple       (fst, snd)
-import Data.Tuple.Extra
-import Data.Vector      (Vector)
-
 import Gargantext.Prelude                       hiding (head)
 import Gargantext.Text.Metrics.FrequentItemSet  (fisWithSizePolyMap, Size(..))
-import Gargantext.Text.Terms.Mono               (monoTexts)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
-import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.Vector as Vector 
 
 
--- | To Filter Fis by support 
+-- | To Filter Fis by support
 filterFisBySupport :: Bool -> Int -> Map (Date, Date) [Fis] -> Map (Date, Date) [Fis]
-filterFisBySupport empty min m = case empty of
-  True  -> Map.map (\l -> filterMinorFis min l) m
-  False -> Map.map (\l -> keepFilled (filterMinorFis) min l) m
+filterFisBySupport empty min' m = case empty of
+  True  -> Map.map (\l -> filterMinorFis min' l) m
+  False -> Map.map (\l -> keepFilled (filterMinorFis) min' l) m
 
 
 -- | To filter Fis with small Support, to preserve nonempty periods please use : filterFisBySupport False
 filterMinorFis :: Int -> [Fis] -> [Fis]
-filterMinorFis min l = filter (\fis -> snd fis > min) l
+filterMinorFis min' l = filter (\fis -> snd fis > min') l
 
 
--- | To filter nested Fis 
+-- | To filter nested Fis
 filterFisByNested :: Map (Date, Date) [Fis] -> Map (Date, Date) [Fis]
 filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head $ map fst l) (map fst l) []
                                in  filter (\fis -> elem (fst fis) cliqueMax) l)
 
 
--- | To transform a list of Documents into a Frequent Items Set 
+-- | To transform a list of Documents into a Frequent Items Set
 docsToFis :: Map (Date, Date) [Document] -> Map (Date, Date) [Fis]
-docsToFis docs = map (\d -> Map.toList 
+docsToFis docs = map (\d -> Map.toList
                           $ fisWithSizePolyMap (Segment 1 20) 1 (map (words . text) d)) docs

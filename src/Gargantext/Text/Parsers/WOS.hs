@@ -31,10 +31,6 @@ import Data.ByteString.Char8 (pack)
 import Control.Applicative
 
 -------------------------------------------------------------
-
-
-
-
 -- | wosParser parses ISI format from
 -- Web Of Science Database
 wosParser :: Parser [[(ByteString, ByteString)]]

@@ -27,7 +27,7 @@ group :: [TokenTag] -> [TokenTag]
 group [] = []
 group ntags = group2 NP NP
             $ group2 NP VB
-            $ group2 NP IN
+            -- $ group2 NP IN
             -- - $ group2 IN DT
             $ group2 VB NP
             $ group2 JJ NP

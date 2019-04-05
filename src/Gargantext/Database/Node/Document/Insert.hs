@@ -48,7 +48,6 @@ the concatenation of the parameters defined by @hashParameters@.
 
 -}
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveDataTypeable   #-}
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE NoImplicitPrelude    #-}
@@ -62,15 +61,13 @@ module Gargantext.Database.Node.Document.Insert where
 import Control.Lens (set, view)
 import Control.Lens.Prism
 import Control.Lens.Cons
-import Data.Aeson (toJSON, Value)
+import Data.Aeson (toJSON)
 import Data.Maybe (maybe)
 import Data.Text (Text)
-import Data.Typeable (Typeable)
 import Database.PostgreSQL.Simple (FromRow, Query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ
-import Database.PostgreSQL.Simple.ToField (toField)
-import Database.PostgreSQL.Simple.ToRow (ToRow(..))
+import Database.PostgreSQL.Simple.ToField (toField, Action)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Database.Config (nodeTypeId)
@@ -81,7 +78,7 @@ import Gargantext.Prelude
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as DT (pack, unpack, concat, take)
-
+import Gargantext.Prelude.Utils (hash)
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
 --import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
@@ -102,24 +99,39 @@ import Database.PostgreSQL.Simple (formatQuery)
 ---------------------------------------------------------------------------
 -- * Main Insert functions
 
--- ** Database configuration
--- Administrator of the database has to create a uniq index as following SQL command:
--- `create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
-
 -- | Insert Document main function
 -- UserId : user who is inserting the documents
 -- ParentId : folder ID which is parent of the inserted documents
+-- Administrator of the database has to create a uniq index as following SQL command:
+-- `create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
+insertDb :: InsertDb a => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
+insertDb u p = runPGSQuery queryInsert . Only . Values fields . map (insertDb' u p)
+      where
+        fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
 
-
-data ToDbData = ToDbDocument HyperdataDocument | ToDbContact HyperdataContact
-
--- TODO-ACCESS: check uId CanInsertDoc pId && checkDocType nodeType
--- TODO-EVENTS: InsertedNodes
-insertDocuments :: UserId -> ParentId -> NodeType -> [ToDbData] -> Cmd err [ReturnId]
-insertDocuments uId pId nodeType =
-    runPGSQuery queryInsert . Only . Values fields . prepare uId pId nodeType
+class InsertDb a
   where
-    fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
+    insertDb' :: UserId -> ParentId -> a -> [Action]
+
+
+instance InsertDb HyperdataDocument
+  where
+    insertDb' u p h = [ toField $ nodeTypeId NodeDocument
+                      , toField u
+                      , toField p
+                      , toField $ maybe "No Title" (DT.take 255)  (_hyperdataDocument_title h)
+                      , (toField . toJSON) h
+                      ]
+
+instance InsertDb HyperdataContact
+  where
+    insertDb' u p h = [ toField $ nodeTypeId NodeContact
+                      , toField u
+                      , toField p
+                      , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
+                      , (toField . toJSON) h
+                      ]
+
 
 -- | Debug SQL function
 --
@@ -161,19 +173,6 @@ queryInsert = [sql|
     JOIN   nodes c USING (hyperdata);         -- columns of unique index
            |]
 
-prepare :: UserId -> ParentId -> NodeType -> [ToDbData] -> [InputData]
-prepare uId pId nodeType = map (\h -> InputData tId uId pId (name h) (toJSON' h))
-  where
-    tId    = nodeTypeId nodeType
-    
-    toJSON' (ToDbDocument hd) = toJSON hd
-    toJSON' (ToDbContact  hc) = toJSON hc
-    
-    name h = DT.take 255 <$> maybe "No Title" identity $ f h
-      where
-        f (ToDbDocument hd) = _hyperdataDocument_title hd
-        f (ToDbContact  _ ) = Just "Contact" -- TODO view FirstName . LastName
-
 ------------------------------------------------------------------------
 -- * Main Types used
 
@@ -190,67 +189,59 @@ data ReturnId = ReturnId { reInserted :: Bool -- ^ if the document is inserted (
 instance FromRow ReturnId where
   fromRow = ReturnId <$> field <*> field <*> field
 
--- ** Insert Types
-
-data InputData = InputData { inTypenameId :: NodeTypeId
-                           , inUserId     :: UserId
-                           , inParentId   :: ParentId
-                           , inName       :: Text
-                           , inHyper      :: Value
-                           } deriving (Show, Generic, Typeable)
-
-instance ToRow InputData where
-  toRow inputData = [ toField (inTypenameId inputData)
-                    , toField (inUserId     inputData)
-                    , toField (inParentId   inputData)
-                    , toField (inName       inputData)
-                    , toField (inHyper      inputData)
-                    ]
-
 ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
 
-addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
-addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
-                  $ set hyperdataDocument_uniqId    (Just hash) doc
+class AddUniqId a
   where
-    hash    = uniqId $ DT.concat $ map ($ doc) hashParametersDoc
-    hashBdd = uniqId $ DT.concat $ map ($ doc) ([(\d -> maybe' (_hyperdataDocument_bdd d))] <> hashParametersDoc)
+    addUniqId :: a -> a
 
-    uniqId :: Text -> Text
-    uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
+instance AddUniqId HyperdataDocument
+  where
+    addUniqId = addUniqIdsDoc
+      where
+        addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
+        addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
+                          $ set hyperdataDocument_uniqId    (Just hashUni) doc
+          where
+            hashUni = hash $ DT.concat $ map ($ doc) hashParametersDoc
+            hashBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hyperdataDocument_bdd d))] <> hashParametersDoc)
 
+        hashParametersDoc :: [(HyperdataDocument -> Text)]
+        hashParametersDoc = [ \d -> maybeText (_hyperdataDocument_title    d)
+                            , \d -> maybeText (_hyperdataDocument_abstract d)
+                            , \d -> maybeText (_hyperdataDocument_source   d)
+                            , \d -> maybeText (_hyperdataDocument_publication_date   d)
+                            ]
 
-hashParametersDoc :: [(HyperdataDocument -> Text)]
-hashParametersDoc = [ \d -> maybe' (_hyperdataDocument_title    d)
-                    , \d -> maybe' (_hyperdataDocument_abstract d)
-                    , \d -> maybe' (_hyperdataDocument_source   d)
-                    , \d -> maybe' (_hyperdataDocument_publication_date   d)
-                    ]
----------------------------------------------------------------------------
+    ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
 -- TODO factorize with above (use the function below for tests)
+
+instance AddUniqId HyperdataContact
+  where
+    addUniqId = addUniqIdsContact
+
 addUniqIdsContact :: HyperdataContact -> HyperdataContact
 addUniqIdsContact hc = set (hc_uniqIdBdd) (Just hashBdd)
-                     $ set (hc_uniqId)    (Just hash)    hc
+                     $ set (hc_uniqId   ) (Just hashUni) hc
   where
-    hash    = uniqId $ DT.concat $ map ($ hc) hashParametersContact
-    hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybe' (view hc_bdd d)] <> hashParametersContact)
+    hashUni = uniqId $ DT.concat $ map ($ hc) hashParametersContact
+    hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybeText (view hc_bdd d)] <> hashParametersContact)
 
     uniqId :: Text -> Text
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
 
--- | TODO add more hashparameters
-hashParametersContact :: [(HyperdataContact -> Text)]
-hashParametersContact = [ \d -> maybe' $ view (hc_who . _Just . cw_firstName) d
-                        , \d -> maybe' $ view (hc_who . _Just . cw_lastName ) d
-                        , \d -> maybe' $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
-                        ]
+    -- | TODO add more hashparameters
+    hashParametersContact :: [(HyperdataContact -> Text)]
+    hashParametersContact = [ \d -> maybeText $ view (hc_who . _Just . cw_firstName) d
+                            , \d -> maybeText $ view (hc_who . _Just . cw_lastName ) d
+                            , \d -> maybeText $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
+                            ]
 
 
 
-maybe' :: Maybe Text -> Text
-maybe' = maybe (DT.pack "") identity
+maybeText :: Maybe Text -> Text
+maybeText = maybe (DT.pack "") identity
 
 ---------------------------------------------------------------------------
-

@@ -16,6 +16,7 @@ TAGS
 # UI
 gui
 purescript-gargantext
+gargantext-rfc
 
 # Docs and Deps
 doc
@@ -24,3 +25,7 @@ _darcs
 *.pdf
 
 # Runtime
+
+# Repo
+repo.json*
+tmp*repo*json

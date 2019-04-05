@@ -26,9 +26,10 @@ import Data.Aeson (FromJSON, ToJSON, toJSON)
 import Data.Aeson as A
 import Data.Aeson.TH (deriveJSON)
 import Data.Map (fromList, lookup)
+import Data.Either (Either(..))
 import Data.Eq (Eq())
 import Data.Monoid ((<>))
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 import Data.Swagger
 
 import Gargantext.Database.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
@@ -36,8 +37,10 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
 import GHC.Generics (Generic)
+import Servant.API (FromHttpApiData(..))
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import Text.Read (read)
 
 ------------------------------------------------------------------------
 data NodeTree = NodeTree { _nt_name :: Text
@@ -84,21 +87,25 @@ type HashId   = Text
 
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
-data ListType  =  StopList  | CandidateList | GraphList
-  deriving (Generic, Eq, Ord, Show, Enum, Bounded)
+data ListType  =  StopTerm | CandidateTerm | GraphTerm
+  deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
 instance FromJSON ListType
 instance ToSchema ListType
+instance ToParamSchema ListType
 instance Arbitrary ListType where
   arbitrary = elements [minBound..maxBound]
+
+instance FromHttpApiData ListType where
+  parseUrlPiece = Right . read . unpack
 
 type ListTypeId = Int
 
 listTypeId :: ListType -> ListTypeId
-listTypeId StopList      = 0
-listTypeId CandidateList = 1
-listTypeId GraphList       = 2
+listTypeId StopTerm      = 0
+listTypeId CandidateTerm = 1
+listTypeId GraphTerm       = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
 fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]

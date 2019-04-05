@@ -17,21 +17,12 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Metrics.Clustering
   where
 
-import Data.List        (last,head,union,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!))
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith,fromList,mapKeys)
-import Data.Set         (Set)
-import Data.Tuple       (fst, snd)
-
 import Data.Graph.Clustering.Louvain.CplusPlus
-
+import Data.List        (last,head,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!))
+import Data.Map         (fromList,mapKeys)
 import Gargantext.Prelude             hiding (head)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
-import qualified Data.List   as List
-import qualified Data.Map    as Map
-import qualified Data.Set    as Set
-
 
 -- | To apply the related components method to a PhyloGraph
 -- curr = the current PhyloGroup 

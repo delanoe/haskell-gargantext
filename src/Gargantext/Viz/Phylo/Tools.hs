@@ -13,13 +13,14 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level)
-import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub, concat, union)
-import Data.Map             (Map, mapKeys, member, elems, adjust)
+import Data.List            (filter, intersect, (++), sort, null, head, tail, last, tails, delete, nub)
+import Data.Map             (Map, mapKeys, member)
 import Data.Set             (Set)
 import Data.Text            (Text, toLower)
 import Data.Tuple.Extra
@@ -27,7 +28,6 @@ import Data.Vector          (Vector,elemIndex)
 import Gargantext.Prelude   hiding (head)
 import Gargantext.Viz.Phylo
 
-import qualified Data.List   as List
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 import qualified Data.Vector as Vector
@@ -118,7 +118,7 @@ filterNestedSets h l l'
 
 -- | To filter some PhyloEdges with a given threshold
 filterPhyloEdges :: Double -> PhyloEdges -> PhyloEdges
-filterPhyloEdges thr edges = filter (\((s,t),w) -> w > thr) edges 
+filterPhyloEdges thr edges = filter (\((_s,_t),w) -> w > thr) edges 
 
 
 -- | To get the foundations of a Phylo
@@ -218,9 +218,9 @@ getKeyPair (x,y) m = case findPair (x,y) m of
                      where
                       --------------------------------------
                       findPair :: (Int,Int) -> Map (Int,Int) a -> Maybe (Int,Int)
-                      findPair (x,y) m
-                        | member (x,y) m = Just (x,y)
-                        | member (y,x) m = Just (y,x)
+                      findPair (x',y') m'
+                        | member (x',y') m' = Just (x',y')
+                        | member (y',x') m' = Just (y',x')
                         | otherwise      = Nothing
                       --------------------------------------
 
@@ -237,10 +237,10 @@ getLastLevel p = (last . sort)
 -- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of PhyloEdges 
 getNeighbours :: Bool -> PhyloGroup -> PhyloEdges -> [PhyloGroup]
 getNeighbours directed g e = case directed of 
-  True  -> map (\((s,t),w) -> t) 
-             $ filter (\((s,t),w) -> s == g) e 
-  False -> map (\((s,t),w) -> head $ delete g $ nub [s,t,g]) 
-             $ filter (\((s,t),w) -> s == g || t == g) e
+  True  -> map (\((_s,t),_w) -> t) 
+             $ filter (\((s,_t),_w) -> s == g) e 
+  False -> map (\((s,t),_w) -> head $ delete g $ nub [s,t,g]) 
+             $ filter (\((s,t),_w) -> s == g || t == g) e
 
 
 -- | To get the Branches of a Phylo
@@ -276,8 +276,8 @@ initFoundations l = Vector.fromList $ map toLower l
 
 -- | To create a PhyloGroup in a Phylo out of a list of Ngrams and a set of parameters 
 initGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> Phylo -> PhyloGroup
-initGroup ngrams lbl idx lvl from to p = PhyloGroup 
-  (((from, to), lvl), idx)
+initGroup ngrams lbl idx lvl from' to' p = PhyloGroup 
+  (((from', to'), lvl), idx)
   lbl
   (sort $ map (\x -> getIdxInFoundations x p) ngrams)
   (Map.empty)
@@ -294,7 +294,6 @@ initPhyloBase pds fds = Phylo ((fst . head) pds, (snd . last) pds) fds (map (\pd
 -- | To create a PhyloLevel
 initPhyloLevel :: PhyloLevelId -> [PhyloGroup] -> PhyloLevel
 initPhyloLevel id groups = PhyloLevel id groups
-
 
 -- | To create a PhyloPeriod
 initPhyloPeriod :: PhyloPeriodId -> [PhyloLevel] -> PhyloPeriod
@@ -330,10 +329,10 @@ listToUnDirectedCombiWith f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
 
 -- | To set the LevelId of a PhyloLevel and of all its PhyloGroups
 setPhyloLevelId :: Int -> PhyloLevel -> PhyloLevel
-setPhyloLevelId lvl' (PhyloLevel (id, lvl) groups)
-    = PhyloLevel (id, lvl') groups'
+setPhyloLevelId lvl (PhyloLevel (id, _lvl) groups)
+    = PhyloLevel (id, lvl) groups'
         where 
-            groups' = over (traverse . phylo_groupId) (\((period, lvl), idx) -> ((period, lvl'), idx)) groups 
+            groups' = over (traverse . phylo_groupId) (\((period, _lvl), idx) -> ((period, lvl), idx)) groups 
 
 
 -- | To unify the keys (x,y) that Map 1 share with Map 2 such as: (x,y) <=> (y,x)

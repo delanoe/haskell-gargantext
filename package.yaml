@@ -1,5 +1,5 @@
 name: gargantext
-version: '4.0.0.3'
+version: '4.0.0.4'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -59,6 +59,7 @@ library:
   - Gargantext.Text.Parsers.Date
   - Gargantext.Text.Parsers.Wikimedia
   - Gargantext.Text.Parsers.WOS
+  - Gargantext.Text.Parsers.GrandDebat
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
   - Gargantext.Text.Terms.Stop
@@ -75,6 +76,7 @@ library:
   - Gargantext.Viz.Phylo.Tools
   - Gargantext.Viz.Phylo.Example
   dependencies:
+  - array
   - QuickCheck
   - accelerate
   - aeson
@@ -82,6 +84,7 @@ library:
   - aeson-pretty
   - async
   - attoparsec
+  - auto-update
   - base >=4.7 && <5
   - base16-bytestring
   - blaze-html
@@ -102,6 +105,7 @@ library:
   - fullstop
   - fclabels
   - fast-logger
+  - filelock
   - full-text-search
   - http-client
   - http-client-tls
@@ -109,13 +113,15 @@ library:
   - http-api-data
   - http-types
   - hsparql
+  - hstatistics
+  - HSvm
   - hxt
   - hlcm
   - ini
   - insert-ordered-containers
   - jose-jwt
-  - json-state
     #  - kmeans-vector
+  - json-stream
   - KMP
   - lens
   - located-base
@@ -139,6 +145,7 @@ library:
   - protolude
   - pureMD5
   - SHA
+  - random
   - rake
   - regex-compat
   - resourcet
@@ -162,10 +169,10 @@ library:
   - string-conversions
   - swagger2
   - tagsoup
+  - temporary
   - text-metrics
   - time
   - time-locale-compat
-  - time-units
   - timezone-series
   - transformers
   - transformers-base

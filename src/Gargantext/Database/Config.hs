@@ -38,7 +38,6 @@ userMaster = "gargantua"
 userArbitrary :: Text
 userArbitrary = "user1"
 
-
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId n =
   case n of
@@ -52,7 +51,8 @@ nodeTypeId n =
   --NodeSwap   -> 19
 
 ----  Lists
-    NodeList    -> 5
+    NodeList      -> 5
+    NodeListModel -> 10
 
 ----  Scores
 --    NodeOccurrences -> 10

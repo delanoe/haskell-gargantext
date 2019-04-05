@@ -10,7 +10,7 @@ Portability : POSIX
 Node API
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE DeriveGeneric      #-}
@@ -21,7 +21,6 @@ Node API
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 
--------------------------------------------------------------------
 module Gargantext.API.Node
   ( module Gargantext.API.Node
   , HyperdataAny(..)
@@ -32,49 +31,58 @@ module Gargantext.API.Node
   , HyperdataDocument(..)
   , HyperdataDocumentV3(..)
   ) where
--------------------------------------------------------------------
+
 import Control.Lens (prism', set)
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad ((>>))
---import System.IO (putStrLn, readFile)
-
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Text (Text())
 import Data.Swagger
+import Data.Text (Text())
 import Data.Time (UTCTime)
-
 import GHC.Generics (Generic)
-import Servant
-
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepoVar, HasRepoSaver)
-import Gargantext.Prelude
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
-import Gargantext.Database.Node.Children (getChildren)
-import qualified Gargantext.Database.Node.Update as U (update, Update(..))
+import Gargantext.API.Metrics
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo, QueryParamR)
+import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
+import Gargantext.Core.Types (Offset, Limit, ListType(..), HasInvalidError)
+import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
-import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
-import Gargantext.Database.Metrics.Count (getCoocByDocDev)
+import qualified Gargantext.Database.Metrics as Metrics
+import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Node.Children (getChildren)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
-import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
-
--- Graph
-import Gargantext.Text.Flow (cooc2graph)
-import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
--- import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
+import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (CorpusId, ContactId)
--- import Gargantext.Text.Terms (TermType(..))
-
+import Gargantext.Database.Utils -- (Cmd, CmdM)
+import Gargantext.Prelude
+import Gargantext.API.Settings
+import Gargantext.Text.Metrics (Scored(..))
+import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
+import Gargantext.Viz.Graph.Tools (cooc2graph)
+import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.Map as Map
+import qualified Gargantext.Database.Node.Update as U (update, Update(..))
+
+{-
+import qualified Gargantext.Text.List.Learn as Learn
+import qualified Data.Vector as Vec
+--}
 
 type GargServer api =
-  forall env m.
-    (CmdM env ServantErr m, HasRepoVar env, HasRepoSaver env)
+  forall env err m.
+    ( CmdM env err m
+    , HasNodeError err
+    , HasInvalidError err
+    , HasTreeError err
+    , HasRepo env
+    , HasSettings env
+    )
     => ServerT api m
 
 -------------------------------------------------------------------
@@ -143,6 +151,7 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> QueryParam "limit"  Int
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
+            :<|> "metrics" :> MetricsAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -180,9 +189,11 @@ nodeAPI p uId id
            :<|> favApi   id
            :<|> delDocs  id
            :<|> searchIn id
+           :<|> getMetrics id
            -- Annuaire
            -- :<|> upload
            -- :<|> query
+
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
@@ -279,31 +290,29 @@ type GraphAPI   = Get '[JSON] Graph
 
 graphAPI :: NodeId -> GargServer GraphAPI
 graphAPI nId = do
-
   nodeGraph <- getNode nId HyperdataGraph
 
-  let title = "Title"
-  let metadata = GraphMetadata title [maybe 0 identity $ _node_parentId nodeGraph]
+  let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
+
   lId <- defaultList cId
-  myCooc <- getCoocByDocDev cId lId
-  liftIO $ set graph_metadata (Just metadata)
-        <$> cooc2graph myCooc
-        
-        -- <$> maybe defaultGraph identity
-        -- <$> readGraphFromJson "purescript-gargantext/dist/examples/imtNew.json"
-  -- t <- textFlow (Mono EN) (Contexts contextText)
-  -- liftIO $ liftIO $ pure $  maybe t identity maybeGraph
-  -- TODO what do we get about the node? to replace contextText
+  ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
+
+  myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
+                            <$> groupNodesByNgrams ngs
+                            <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
+
+  liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
+
 
 instance HasNodeError ServantErr where
   _NodeError = prism' mk (const Nothing) -- $ panic "HasNodeError ServantErr: not a prism")
     where
-      e = "NodeError: "
+      e = "Gargantext NodeError: "
       mk NoListFound   = err404 { errBody = e <> "No list found"         }
       mk NoRootFound   = err404 { errBody = e <> "No Root found"         }
       mk NoCorpusFound = err404 { errBody = e <> "No Corpus found"       }
@@ -335,23 +344,25 @@ treeAPI = treeDB
 ------------------------------------------------------------------------
 -- | Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
-rename nId (RenameNode name) = U.update (U.Rename nId name)
+rename nId (RenameNode name') = U.update (U.Rename nId name')
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getTable cId ft o l order = case ft of
-                                (Just Docs)  -> runViewDocuments cId False o l order
-                                (Just Trash) -> runViewDocuments cId True  o l order
-                                _     -> panic "not implemented"
+getTable cId ft o l order =
+  case ft of
+    (Just Docs)  -> runViewDocuments cId False o l order
+    (Just Trash) -> runViewDocuments cId True  o l order
+    _     -> panic "not implemented"
 
 getPairing :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getPairing cId ft o l order = case ft of
-                                (Just Docs)  -> runViewAuthorsDoc cId False o l order
-                                (Just Trash) -> runViewAuthorsDoc cId True  o l order
-                                _     -> panic "not implemented"
+getPairing cId ft o l order =
+  case ft of
+    (Just Docs)  -> runViewAuthorsDoc cId False o l order
+    (Just Trash) -> runViewAuthorsDoc cId True  o l order
+    _     -> panic "not implemented"
 
 
 getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
@@ -359,7 +370,7 @@ getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
 getChart _ _ _ = undefined -- TODO
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
-postNode uId pId (PostNode name nt) = mkNodeWithParent nt (Just pId) uId name
+postNode uId pId (PostNode nodeName nt) = mkNodeWithParent nt (Just pId) uId nodeName
 
 putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO
@@ -384,4 +395,26 @@ query s = pure s
 --              <> " at " <> fdFilePath file
 --      putStrLn content
 --  pure (pack "Data loaded")
+
+-------------------------------------------------------------------------------
+
+type MetricsAPI = Summary "SepGen IncExc metrics"
+                :> QueryParam  "list"       ListId
+                :> QueryParamR "ngramsType" TabType
+                :> QueryParam  "limit"      Int
+                :> Get '[JSON] Metrics
+
+getMetrics :: NodeId -> GargServer MetricsAPI
+getMetrics cId maybeListId tabType maybeLimit = do
+  (ngs', scores) <- Metrics.getMetrics' cId maybeListId tabType maybeLimit
+
+  let
+    metrics      = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
+    listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
+    errorMsg     = "API.Node.metrics: key absent"
+  
+  pure $ Metrics metrics
+
+
+
 

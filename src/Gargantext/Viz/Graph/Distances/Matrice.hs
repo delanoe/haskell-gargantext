@@ -284,11 +284,11 @@ incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
 
     -- | Inclusion (i) = Gen(i)+Spec(i)
     inclusionExclusion :: Acc (Matrix Double) -> Acc (Vector Double)
-    inclusionExclusion mat = zipWith (+) (pV mat) (pH mat)
+    inclusionExclusion mat = zipWith (+) (pV mat) (pV mat)
     
     -- | Genericity score = Gen(i)- Spec(i)
     specificityGenericity :: Acc (Matrix Double) -> Acc (Vector Double)
-    specificityGenericity mat = zipWith (-) (pV mat) (pH mat)
+    specificityGenericity mat = zipWith (+) (pH mat) (pH mat)
     
     -- | Gen(i)  : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity  of i
     pV :: Acc (Matrix Double) -> Acc (Vector Double)

@@ -19,9 +19,7 @@ module Gargantext.Viz.Phylo.BranchMaker
 
 import Control.Lens     hiding (both, Level)
 
-import Data.List        (last,head,union,concat,null,nub,(++),init,tail,(!!))
-import Data.Map         (Map,elems,adjust,unionWith,intersectionWith)
-import Data.Set         (Set)
+import Data.List        (head,concat,nub,(++),tail,(!!))
 import Data.Tuple       (fst, snd)
 
 import Gargantext.Prelude             hiding (head)
@@ -30,14 +28,11 @@ import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
 import Gargantext.Viz.Phylo.Metrics.Clustering
 
-import qualified Data.List   as List
-import qualified Data.Map    as Map
-import qualified Data.Set    as Set
 
 
 -- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
 graphToBranches :: Level -> PhyloGraph -> Phylo -> [(Int,PhyloGroupId)]
-graphToBranches lvl (nodes,edges) p = concat 
+graphToBranches _lvl (nodes,edges) _p = concat 
                                     $ map (\(idx,gs) -> map (\g -> (idx,getGroupId g)) gs)
                                     $ zip [1..]
                                     $ relatedComp 0 (head nodes) (tail nodes,edges) [] []
@@ -59,13 +54,13 @@ groupsToGraph (prox,param) groups p = (groups,edges)
       Hamming            -> filter (\edge -> snd edge <= (param !! 0)) 
                           $ map (\(x,y) -> ((x,y), hamming (getGroupCooc x) 
                                 (unifySharedKeys (getGroupCooc x) (getGroupCooc y)))) $ listToDirectedCombi groups                          
-      _                  -> undefined 
+      --_                  -> undefined 
 
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
 setPhyloBranches :: Level -> Phylo -> Phylo 
 setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst . head) $ filter (\b -> snd b == getGroupId g) bs
-                                                     in over (phylo_groupBranchId) (\x -> Just (lvl,bIdx)) g) lvl p
+                                                     in over (phylo_groupBranchId) (\_ -> Just (lvl,bIdx)) g) lvl p
   where
     --------------------------------------
     bs :: [(Int,PhyloGroupId)]

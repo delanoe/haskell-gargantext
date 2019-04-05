@@ -148,7 +148,7 @@ instance Arbitrary FacetDoc where
                          | id'  <- [1..10]
                          , year <- [1990..2000]
                          , t    <- ["title", "another title"]
-                         , hp   <- hyperdataDocuments
+                         , hp   <- arbitraryHyperdataDocuments
                          , fav  <- [True, False]
                          , ngramCount <- [3..100]
                          ]
@@ -215,8 +215,8 @@ viewAuthorsDoc cId _ nt = proc () -> do
   (doc,(_,(_,(_,contact)))) <- queryAuthorsDoc      -< ()
 
   {-nn         <- queryNodeNodeTable -< ()
-  restrict -< nodeNode_node1_id nn .== _node_id doc
-  -- restrict -< nodeNode_delete   nn .== (pgBool t)
+  restrict -< nn_node1_id nn .== _node_id doc
+  -- restrict -< nn_delete   nn .== (pgBool t)
   -}
 
   restrict -< _node_id   contact   .== (toNullable $ pgNodeId cId)
@@ -229,17 +229,17 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
     where
          cond12 :: (NodeNgramRead, NodeRead) -> Column PGBool
          cond12 (nodeNgram, doc) =  _node_id                  doc
-                                .== _nn_node_id nodeNgram
+                                .== nng_node_id nodeNgram
 
          cond23 :: (NgramsRead, (NodeNgramRead, NodeReadNull)) -> Column PGBool
          cond23 (ngrams, (nodeNgram, _)) =  ngrams_id                  ngrams
-                                        .== _nn_ngrams_id nodeNgram
+                                        .== nng_ngrams_id nodeNgram
          
          cond34 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams_id ngrams     .== _nn_ngrams_id       nodeNgram2
+         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams_id ngrams     .== nng_ngrams_id       nodeNgram2
          
          cond45 :: (NodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== _nn_node_id         nodeNgram2
+         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== nng_node_id         nodeNgram2
 
 
 ------------------------------------------------------------------------
@@ -254,11 +254,11 @@ viewDocuments :: CorpusId -> Trash -> NodeTypeId -> Query FacetDocRead
 viewDocuments cId t ntId = proc () -> do
   n  <- queryNodeTable     -< ()
   nn <- queryNodeNodeTable -< ()
-  restrict -< _node_id          n  .== nodeNode_node2_id nn
-  restrict -< nodeNode_node1_id nn .== (pgNodeId cId)
+  restrict -< _node_id          n  .== nn_node2_id nn
+  restrict -< nn_node1_id nn .== (pgNodeId cId)
   restrict -< _node_typename    n  .== (pgInt4 ntId)
-  restrict -< nodeNode_delete   nn .== (pgBool t)
-  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (nodeNode_favorite nn) (pgInt4 1)
+  restrict -< nn_delete   nn .== (pgBool t)
+  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (nn_favorite nn) (pgInt4 1)
 
 
 ------------------------------------------------------------------------

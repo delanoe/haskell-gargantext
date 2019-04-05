@@ -20,9 +20,12 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Term, Terms(..)
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
+                             , HasInvalidError(..), assertValid
                              ) where
 
-import GHC.Generics
+import Control.Lens (Prism', (#))
+import Control.Monad.Error.Class (MonadError, throwError)
+
 import Data.Aeson
 import Data.Semigroup
 import Data.Monoid
@@ -30,11 +33,13 @@ import Data.Set (Set, empty)
 --import qualified Data.Set as S
 
 import Data.Text (Text, unpack)
+import Data.Validity
 
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
+import GHC.Generics
 ------------------------------------------------------------------------
 
 type Term  = Text
@@ -120,3 +125,11 @@ instance Monoid TokenTag where
 
   mconcat = foldl mappend mempty
 
+
+class HasInvalidError e where
+  _InvalidError :: Prism' e Validation
+
+assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
+assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
+-- assertValid :: MonadIO m => Validation -> m ()
+-- assertValid v = when (not $ validationIsValid v) $ fail $ show v

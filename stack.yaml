@@ -12,7 +12,6 @@ packages:
 
 allow-newer: true
 extra-deps:
-- json-state-0.1.0.1
 - time-units-1.0.0
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 4e3d57d80e9dfe6624c8eeaa8595fc8fe64d8723
@@ -20,6 +19,10 @@ extra-deps:
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
 - git: https://github.com/delanoe/servant-static-th.git
   commit: ba5347e7d8a13ce5275af8470c15b2305fbb23af
+- git: https://github.com/delanoe/hstatistics.git
+  commit: 90eef7604bb230644c2246eccd094d7bfefcb135
+- git: https://github.com/paulrzcz/HSvm.git
+  commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
 #- opaleye-0.6.7002.0
 - KMP-0.1.0.2
 - accelerate-1.2.0.0
@@ -28,10 +31,12 @@ extra-deps:
 - full-text-search-0.2.1.4
 - fullstop-0.1.4
 - hgal-2.0.0.2
-- rdf4h-3.1.1
 - located-base-0.1.1.1
+- multiset-0.3.4.1 # stack test
 - probable-0.1.3
 - rake-0.0.1
+- rdf4h-3.1.1
+- json-stream-0.4.2.4  # Text.Parsers (JSON)
 - serialise-0.2.0.0
 - servant-flatten-0.2
 - servant-multipart-0.11.2

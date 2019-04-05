@@ -19,19 +19,16 @@ module Gargantext.Viz.Phylo.Aggregates.Document
 
 import Data.List        (last,head)
 import Data.Map         (Map)
-import Data.Text        (Text, unwords, toLower, words)
-import Data.Tuple       (fst, snd)
-import Data.Tuple.Extra
+import Data.Text        (Text, unwords)
+import Data.Tuple       (fst)
 import Data.Vector      (Vector)
-
 import Gargantext.Prelude                       hiding (head)
 import Gargantext.Text.Terms.Mono               (monoTexts)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
 import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.Vector as Vector   
+import qualified Data.Vector as Vector
 
 
 -- | To init a list of Periods framed by a starting Date and an ending Date
@@ -41,7 +38,7 @@ initPeriods g s (start,end) = map (\l -> (head l, last l))
 
 
 -- | To be defined, for the moment it's just the id function
-groupNgramsWithTrees :: Ngrams -> Ngrams 
+groupNgramsWithTrees :: Ngrams -> Ngrams
 groupNgramsWithTrees n = n
 
 
@@ -57,9 +54,9 @@ groupDocsByPeriod f pds es = Map.fromList $ zip pds $ map (inPeriode f es) pds
     --------------------------------------
 
 
--- | To parse a list of Documents by filtering on a Vector of Ngrams 
+-- | To parse a list of Documents by filtering on a Vector of Ngrams
 parseDocs :: (Ngrams -> Ngrams) -> Vector Ngrams -> [Document] -> [Document]
-parseDocs f l docs = map (\(Document d t) 
+parseDocs f l docs = map (\(Document d t)
                          -> Document d ( unwords
                          -- | To do : change 'f' for the Ngrams Tree Agregation
                                       $ map f
@@ -69,9 +66,9 @@ parseDocs f l docs = map (\(Document d t)
 
 -- | To transform a Corpus of texts into a Map of aggregated Documents grouped by Periods
 corpusToDocs :: (Ngrams -> Ngrams) -> [(Date,Text)] -> Phylo -> Map (Date,Date) [Document]
-corpusToDocs f c p = groupDocsByPeriod date (getPhyloPeriods p) 
+corpusToDocs f c p = groupDocsByPeriod date (getPhyloPeriods p)
                    $ parseDocs f (getFoundations p) docs
-  where 
+  where
     --------------------------------------
     docs :: [Document]
     docs = map (\(d,t) -> Document d t) c

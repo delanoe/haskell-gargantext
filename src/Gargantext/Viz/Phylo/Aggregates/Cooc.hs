@@ -17,27 +17,23 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Cooc
   where
 
-import Data.List        (last,head,union,concat)
+import Data.List        (union,concat)
 import Data.Map         (Map, elems, adjust)
-import Data.Set         (Set)
 import Data.Tuple       (fst, snd)
-
 import Gargantext.Prelude                       hiding (head)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-
-import qualified Data.List   as List
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 
 
 
--- | To transform the Fis into a coocurency Matrix in a Phylo 
+-- | To transform the Fis into a coocurency Matrix in a Phylo
 fisToCooc :: Map (Date, Date) [Fis] -> Phylo -> Map (Int, Int) Double
 fisToCooc m p = map   (/docs)
               $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
               $ concat
-              $ map (\x -> listToUnDirectedCombiWith (\x -> getIdxInFoundations x p) $ (Set.toList . fst) x) 
+              $ map (\x -> listToUnDirectedCombiWith (\y -> getIdxInFoundations y p) $ (Set.toList . fst) x)
               $ (concat . elems) m
   where
     --------------------------------------
