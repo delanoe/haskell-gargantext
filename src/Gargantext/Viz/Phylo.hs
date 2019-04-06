@@ -42,7 +42,6 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 
-
 --------------------
 -- | PhyloParam | --
 --------------------
@@ -238,21 +237,21 @@ data PhyloError = LevelDoesNotExist
 data Cluster = Fis FisParams
              | RelatedComponents RCParams
              | Louvain LouvainParams
-        deriving (Show, Eq)
+        deriving (Generic, Show, Eq)
 
 -- | Parameters for Fis clustering
 data FisParams = FisParams
   { _fis_keepMinorFis :: Bool
   , _fis_minSupport   :: Support
-  } deriving (Show, Eq)
+  } deriving (Generic, Show, Eq)
 
 -- | Parameters for RelatedComponents clustering
 data RCParams = RCParams
-  { _rc_proximity :: Proximity } deriving (Show, Eq)
+  { _rc_proximity :: Proximity } deriving (Generic, Show, Eq)
 
 -- | Parameters for Louvain clustering
 data LouvainParams = LouvainParams
-  { _louvain_proximity :: Proximity } deriving (Show, Eq)
+  { _louvain_proximity :: Proximity } deriving (Generic, Show, Eq)
 
 
 -------------------
@@ -264,17 +263,17 @@ data LouvainParams = LouvainParams
 data Proximity = WeightedLogJaccard WLJParams
                | Hamming HammingParams
                | Filiation
-          deriving (Show, Eq)
+          deriving (Generic, Show, Eq)
 
 -- | Parameters for WeightedLogJaccard proximity
 data WLJParams = WLJParams
   { _wlj_threshold   :: Double
   , _wlj_sensibility :: Double
-  } deriving (Show, Eq)
+  } deriving (Generic, Show, Eq)
 
 -- | Parameters for Hamming proximity
 data HammingParams = HammingParams
-  { _hamming_threshold :: Double } deriving (Show, Eq)
+  { _hamming_threshold :: Double } deriving (Generic, Show, Eq)
 
 
 ----------------
@@ -283,13 +282,13 @@ data HammingParams = HammingParams
 
 
 -- | Filter constructors
-data Filter = SmallBranch SBParams deriving (Show, Eq)
+data Filter = SmallBranch SBParams deriving (Generic, Show, Eq)
 
 -- | Parameters for SmallBranch filter
 data SBParams = SBParams
   { _sb_periodsInf :: Int
   , _sb_periodsSup :: Int
-  , _sb_minNodes   :: Int } deriving (Show, Eq)
+  , _sb_minNodes   :: Int } deriving (Generic, Show, Eq)
 
 
 ----------------
@@ -298,7 +297,7 @@ data SBParams = SBParams
 
 
 -- | Metric constructors
-data Metric = BranchAge deriving (Show, Eq)
+data Metric = BranchAge deriving (Generic, Show, Eq)
 
 
 ----------------
@@ -316,8 +315,8 @@ data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics deriving (Show)
 
 
 -- | Sort constructors
-data Sort  = ByBranchAge deriving (Show)
-data Order = Asc | Desc deriving (Show)
+data Sort  = ByBranchAge deriving (Generic, Show)
+data Order = Asc | Desc  deriving (Generic, Show)
 
 
 --------------------
@@ -346,11 +345,11 @@ data PhyloQueryBuild = PhyloQueryBuild
     , _q_nthLevel   :: Level
     -- Clustering method used from level 1 to nthLevel
     , _q_nthCluster :: Cluster
-    } deriving (Show, Eq)
+    } deriving (Generic, Show, Eq)
 
 -- | To choose the Phylo edge you want to export : --> <-- <--> <=>
-data Filiation = Ascendant | Descendant | Merge | Complete deriving (Show)
-data EdgeType  = PeriodEdge | LevelEdge deriving (Show)
+data Filiation = Ascendant | Descendant | Merge | Complete deriving (Generic, Show)
+data EdgeType  = PeriodEdge | LevelEdge deriving (Generic, Show)
 
 -------------------
 -- | PhyloView | --
@@ -367,21 +366,21 @@ data PhyloView = PhyloView
   , _pv_branches    :: [PhyloBranch]
   , _pv_nodes       :: [PhyloNode]
   , _pv_edges       :: [PhyloEdge]
-  } deriving (Show)
+  } deriving (Generic, Show)
 
 -- | A phyloview is made of PhyloBranches, edges and nodes
 data PhyloBranch = PhyloBranch
   { _pb_id      :: PhyloBranchId
   , _pb_label   :: Text
   , _pb_metrics :: Map Text [Double]
-  } deriving (Show)
+  } deriving (Generic, Show)
 
 data PhyloEdge = PhyloEdge
   { _pe_source :: PhyloGroupId
   , _pe_target :: PhyloGroupId
   , _pe_type   :: EdgeType
   , _pe_weight :: Weight
-  } deriving (Show)
+  } deriving (Generic, Show)
 
 data PhyloNode = PhyloNode
   { _pn_id        :: PhyloGroupId
@@ -392,7 +391,7 @@ data PhyloNode = PhyloNode
   , _pn_metrics      :: Map Text [Double]
   , _pn_parents :: Maybe [PhyloGroupId]
   , _pn_childs  :: [PhyloNode]
-  } deriving (Show)
+  } deriving (Generic, Show)
 
 
 ------------------------

@@ -317,11 +317,11 @@ graphAPI nId = do
 
 
 type PhyloAPI = Summary "Phylo API"
-              :> QueryParam "param" PhyloQueryView
+     --         :> QueryParam "param" PhyloQueryView
               :> Get '[JSON] PhyloView
 
 phyloAPI :: NodeId -> GargServer PhyloAPI
-phyloAPI n q = pure $ getPhylo n q
+phyloAPI n = pure $ getPhylo n
 
 
 

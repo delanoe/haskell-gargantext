@@ -74,7 +74,7 @@ import qualified Data.Map as M
 
 import Data.Map.Strict (insertWith)
 import qualified Data.Vector as V
-import Safe (headMay, lastMay)
+import Safe (headMay, lastMay, initMay, tailMay)
 import Text.Show (Show(), show)
 import Text.Read (Read())
 import Data.String.Conversions (cs)
@@ -270,5 +270,33 @@ maximumWith f = L.maximumBy (compare `on` f)
 listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
 listToCombi f l = [ (f x, f y) | (x:rest) <- L.tails l,  y <- rest ]
 
+------------------------------------------------------------------------
+-- Empty List Sugar Error Handling
+-- TODO add Garg Monad Errors
+
+listSafe1 :: Text -> ([a] -> Maybe a)
+          -> Text -> [a] -> a
+listSafe1 s f e xs = maybe (panic $ h <> e) identity (f xs)
+  where
+    h = "[ERR][Gargantext] Empty list for " <> s <> " in "
+
 head' :: Text -> [a] -> a
-head' e xs = maybe (panic e) identity (head xs)
+head' = listSafe1 "head" headMay
+
+last' :: Text -> [a] -> a
+last' = listSafe1 "last" lastMay
+
+------------------------------------------------------------------------
+
+listSafeN :: Text -> ([a] -> Maybe [a])
+          -> Text -> [a] -> [a]
+listSafeN s f e xs = maybe (panic $ h <> e) identity (f xs)
+  where
+    h = "[ERR][Gargantext] Empty list for " <> s <> " in "
+
+tail' :: Text -> [a] -> [a]
+tail' = listSafeN "tail" tailMay
+
+init' :: Text -> [a] -> [a]
+init' = listSafeN "init" initMay
+

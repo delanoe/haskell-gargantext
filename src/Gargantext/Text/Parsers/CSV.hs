@@ -122,12 +122,11 @@ splitDoc' :: SplitContext -> CsvDoc -> Vector CsvDoc
 splitDoc' contextSize (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] <> nextDocs
     where
       firstDoc = CsvDoc t s py pm pd firstAbstract auth
-      firstAbstract = head' abstracts
+      firstAbstract = head' "splitDoc'1" abstracts
       
-      nextDocs = map (\txt -> CsvDoc (head' $ sentences txt) s py pm pd (unsentences $ tail' $ sentences txt) auth) (tail' abstracts)
+      nextDocs = map (\txt -> CsvDoc (head' "splitDoc'2" $ sentences txt) s py pm pd (unsentences $ tail' $ sentences txt) auth) (tail' abstracts)
       
       abstracts    = (splitBy $ contextSize) abst
-      head' x = maybe ""   identity (head x)
       tail' x = maybe [""] identity (tailMay x)
 
 ---------------------------------------------------------------

@@ -19,13 +19,11 @@ module Gargantext.Viz.Phylo.Aggregates.Cooc
 
 import Data.List        (union,concat)
 import Data.Map         (Map, elems, adjust)
-import Data.Maybe       (maybe)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
-
 
 
 -- | To transform the Fis into a coocurency Matrix in a Phylo
