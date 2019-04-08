@@ -1,6 +1,6 @@
 {-|
-Module      : Gargantext.Viz.Phylo.Tools
-Description : Phylomemy Tools to build/manage it
+Module      : Gargantext.Viz.Phylo.API
+Description : Phylo API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org

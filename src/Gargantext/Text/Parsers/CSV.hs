@@ -31,7 +31,6 @@ import Data.Time.Segment (jour)
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
-import Safe (tailMay)
 
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text
@@ -124,10 +123,14 @@ splitDoc' contextSize (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] 
       firstDoc = CsvDoc t s py pm pd firstAbstract auth
       firstAbstract = head' "splitDoc'1" abstracts
       
-      nextDocs = map (\txt -> CsvDoc (head' "splitDoc'2" $ sentences txt) s py pm pd (unsentences $ tail' $ sentences txt) auth) (tail' abstracts)
+      nextDocs = map (\txt -> CsvDoc
+                                (head' "splitDoc'2" $ sentences txt)
+                                s py pm pd 
+                                (unsentences $ tail' "splitDoc'1" $ sentences txt)
+                                auth
+                      ) (tail' "splitDoc'2" abstracts)
       
       abstracts    = (splitBy $ contextSize) abst
-      tail' x = maybe [""] identity (tailMay x)
 
 ---------------------------------------------------------------
 ---------------------------------------------------------------

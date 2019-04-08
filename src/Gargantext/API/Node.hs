@@ -7,7 +7,19 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+
+-- TODO-ACCESS: CanGetNode
+-- TODO-EVENTS: No events as this is a read only query.
 Node API
+
+-------------------------------------------------------------------
+-- TODO-ACCESS: access by admin only.
+--              At first let's just have an isAdmin check.
+--              Later: check userId CanDeleteNodes Nothing
+-- TODO-EVENTS: DeletedNodes [NodeId]
+--              {"tag": "DeletedNodes", "nodes": [Int*]}
+
+
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -22,17 +34,9 @@ Node API
 {-# LANGUAGE TypeOperators      #-}
 
 module Gargantext.API.Node
-  ( module Gargantext.API.Node
-  , HyperdataAny(..)
-  , HyperdataAnnuaire(..)
-  , HyperdataCorpus(..)
-  , HyperdataResource(..)
-  , HyperdataUser(..)
-  , HyperdataDocument(..)
-  , HyperdataDocumentV3(..)
-  ) where
+  where
 
-import Control.Lens (prism', set)
+import Control.Lens (prism')
 import Control.Monad ((>>))
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
@@ -41,34 +45,29 @@ import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, HasRepo, QueryParamR)
-import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, QueryParamR)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
-import Gargantext.Core.Types (Offset, Limit, ListType(..), HasInvalidError)
+import Gargantext.API.Types
+import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
-import qualified Gargantext.Database.Metrics as Metrics
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
-import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (CorpusId, ContactId)
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.API.Settings
 import Gargantext.Text.Metrics (Scored(..))
-import Gargantext.Viz.Graph hiding (Node)-- (Graph(_graph_metadata),LegendField(..), GraphMetadata(..),readGraphFromJson,defaultGraph)
-import Gargantext.Viz.Graph.Tools (cooc2graph)
-import Gargantext.Viz.Phylo.API (getPhylo)
+
 import Gargantext.Viz.Phylo hiding (Tree)
+import Gargantext.Viz.Phylo.API (getPhylo)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Map as Map
+import qualified Gargantext.Database.Metrics as Metrics
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 
 {-
@@ -76,23 +75,7 @@ import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 
-type GargServer api =
-  forall env err m.
-    ( CmdM env err m
-    , HasNodeError err
-    , HasInvalidError err
-    , HasTreeError err
-    , HasRepo env
-    , HasSettings env
-    )
-    => ServerT api m
 
--------------------------------------------------------------------
--- TODO-ACCESS: access by admin only.
---              At first let's just have an isAdmin check.
---              Later: check userId CanDeleteNodes Nothing
--- TODO-EVENTS: DeletedNodes [NodeId]
---              {"tag": "DeletedNodes", "nodes": [Int*]}
 type NodesAPI  = Delete '[JSON] Int
 
 -- | Delete Nodes
@@ -291,34 +274,12 @@ type ChartApi = Summary " Chart API"
              -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
 ------------------------------------------------------------------------
--- TODO-ACCESS: CanGetNode
--- TODO-EVENTS: No events as this is a read only query.
-type GraphAPI   = Get '[JSON] Graph
-
-graphAPI :: NodeId -> GargServer GraphAPI
-graphAPI nId = do
-  nodeGraph <- getNode nId HyperdataGraph
-
-  let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
-                                     [ LegendField 1 "#FFF" "Cluster"
-                                     , LegendField 2 "#FFF" "Cluster"
-                                     ]
-                         -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-  let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
-
-  lId <- defaultList cId
-  ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
-
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
-                            <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
-
-  liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
 
 
 type PhyloAPI = Summary "Phylo API"
      --         :> QueryParam "param" PhyloQueryView
               :> Get '[JSON] PhyloView
+
 
 phyloAPI :: NodeId -> GargServer PhyloAPI
 phyloAPI n = pure $ getPhylo n

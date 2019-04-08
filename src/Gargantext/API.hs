@@ -79,24 +79,18 @@ import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo)
-import Gargantext.API.Node ( GargServer
-                           , Roots    , roots
-                           , NodeAPI  , nodeAPI
-                           , NodesAPI , nodesAPI
-                           , GraphAPI , graphAPI
-                           , TreeAPI  , treeAPI
-                           , HyperdataAny
-                           , HyperdataCorpus
-                           , HyperdataAnnuaire
-                           )
+import Gargantext.API.Types
+import Gargantext.API.Node
 import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
 --import Gargantext.Database.Node.Contact (HyperdataContact)
+import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils (HasConnection)
 import Gargantext.Database.Tree (HasTreeError(..), TreeError)
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
 import Gargantext.Database.Facet
+import Gargantext.Viz.Graph.API
 
 --import Gargantext.API.Orchestrator
 --import Gargantext.API.Orchestrator.Types
