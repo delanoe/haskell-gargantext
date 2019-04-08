@@ -238,21 +238,21 @@ data PhyloError = LevelDoesNotExist
 data Cluster = Fis FisParams
              | RelatedComponents RCParams
              | Louvain LouvainParams
-        deriving (Generic, Show, Eq)
+        deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Fis clustering
 data FisParams = FisParams
   { _fis_keepMinorFis :: Bool
   , _fis_minSupport   :: Support
-  } deriving (Generic, Show, Eq)
+  } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for RelatedComponents clustering
 data RCParams = RCParams
-  { _rc_proximity :: Proximity } deriving (Generic, Show, Eq)
+  { _rc_proximity :: Proximity } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Louvain clustering
 data LouvainParams = LouvainParams
-  { _louvain_proximity :: Proximity } deriving (Generic, Show, Eq)
+  { _louvain_proximity :: Proximity } deriving (Generic, Show, Eq, Read)
 
 
 -------------------
@@ -264,17 +264,17 @@ data LouvainParams = LouvainParams
 data Proximity = WeightedLogJaccard WLJParams
                | Hamming HammingParams
                | Filiation
-          deriving (Generic, Show, Eq)
+          deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for WeightedLogJaccard proximity
 data WLJParams = WLJParams
   { _wlj_threshold   :: Double
   , _wlj_sensibility :: Double
-  } deriving (Generic, Show, Eq)
+  } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Hamming proximity
 data HammingParams = HammingParams
-  { _hamming_threshold :: Double } deriving (Generic, Show, Eq)
+  { _hamming_threshold :: Double } deriving (Generic, Show, Eq, Read)
 
 
 ----------------
