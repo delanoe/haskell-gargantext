@@ -56,13 +56,10 @@ import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNo
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.Types.Node
-import Gargantext.Database.Types.Node (CorpusId, ContactId)
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
-
-import Gargantext.Viz.Phylo hiding (Tree)
-import Gargantext.Viz.Phylo.API (getPhylo)
+import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -274,16 +271,6 @@ type ChartApi = Summary " Chart API"
              -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
 ------------------------------------------------------------------------
-
-
-type PhyloAPI = Summary "Phylo API"
-     --         :> QueryParam "param" PhyloQueryView
-              :> Get '[JSON] PhyloView
-
-
-phyloAPI :: NodeId -> GargServer PhyloAPI
-phyloAPI n = pure $ getPhylo n
-
 
 
 instance HasNodeError ServantErr where

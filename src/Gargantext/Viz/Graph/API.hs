@@ -43,7 +43,7 @@ import qualified Data.Map as Map
 -- | There is no Delete specific API for Graph since it can be deleted
 -- as simple Node.
 type GraphAPI   =  Get  '[JSON] Graph
-              :<|> Post '[JSON] [NodeId]
+              :<|> Post '[JSON] [GraphId]
               :<|> Put  '[JSON] Int
 
 

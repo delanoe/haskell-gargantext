@@ -29,6 +29,7 @@ one 8, e54847.
 
 module Gargantext.Viz.Phylo where
 
+import Prelude (Bounded)
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON,defaultOptions)
 import Data.Maybe   (Maybe)
@@ -89,7 +90,7 @@ data PhyloPeaks =
                  deriving (Generic, Show, Eq)
 
 -- | A Tree of Ngrams where each node is a label
-data Tree a = Empty | Node a [Tree a] deriving (Show, Eq)
+data Tree a = Empty | Node a [Tree a] deriving (Generic, Show, Eq)
 
 
 -- | Date : a simple Integer
@@ -297,7 +298,7 @@ data SBParams = SBParams
 
 
 -- | Metric constructors
-data Metric = BranchAge deriving (Generic, Show, Eq)
+data Metric = BranchAge deriving (Generic, Show, Eq, Read)
 
 
 ----------------
@@ -306,7 +307,8 @@ data Metric = BranchAge deriving (Generic, Show, Eq)
 
 
 -- | Tagger constructors
-data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics deriving (Show)
+data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics
+  deriving (Generic, Show, Read)
 
 
 --------------
@@ -315,8 +317,8 @@ data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics deriving (Show)
 
 
 -- | Sort constructors
-data Sort  = ByBranchAge deriving (Generic, Show)
-data Order = Asc | Desc  deriving (Generic, Show)
+data Sort  = ByBranchAge deriving (Generic, Show, Read, Enum, Bounded)
+data Order = Asc | Desc  deriving (Generic, Show, Read)
 
 
 --------------------
@@ -348,7 +350,7 @@ data PhyloQueryBuild = PhyloQueryBuild
     } deriving (Generic, Show, Eq)
 
 -- | To choose the Phylo edge you want to export : --> <-- <--> <=>
-data Filiation = Ascendant | Descendant | Merge | Complete deriving (Generic, Show)
+data Filiation = Ascendant | Descendant | Merge | Complete deriving (Generic, Show, Read)
 data EdgeType  = PeriodEdge | LevelEdge deriving (Generic, Show)
 
 -------------------
@@ -400,6 +402,7 @@ data PhyloNode = PhyloNode
 
 
 data DisplayMode = Flat | Nested
+  deriving (Generic, Show, Read)
 
 -- | A PhyloQueryView describes a Phylo as an output view
 data PhyloQueryView = PhyloQueryView
