@@ -107,6 +107,7 @@ library:
   - fast-logger
   - filelock
   - full-text-search
+  - graphviz
   - http-client
   - http-client-tls
   - http-conduit
