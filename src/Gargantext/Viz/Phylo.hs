@@ -393,7 +393,6 @@ data PhyloNode = PhyloNode
   , _pn_childs  :: [PhyloNode]
   } deriving (Generic, Show)
 
-
 ------------------------
 -- | PhyloQueryView | --
 ------------------------
