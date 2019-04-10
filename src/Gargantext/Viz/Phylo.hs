@@ -349,7 +349,7 @@ data PhyloQueryBuild = PhyloQueryBuild
 
 -- | To choose the Phylo edge you want to export : --> <-- <--> <=>
 data Filiation = Ascendant | Descendant | Merge | Complete deriving (Generic, Show)
-data EdgeType  = PeriodEdge | LevelEdge deriving (Generic, Show)
+data EdgeType  = PeriodEdge | LevelEdge deriving (Generic, Show, Eq)
 
 -------------------
 -- | PhyloView | --
