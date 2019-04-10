@@ -20,7 +20,7 @@ module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level, Empty)
-import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, concat, sortOn)
+import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, concat, sortOn, nubBy)
 import Data.Maybe           (mapMaybe,fromMaybe)
 import Data.Map             (Map, mapKeys, member, (!))
 import Data.Set             (Set)
@@ -108,6 +108,11 @@ listToDirectedCombi l = [(x,y) | x <- l, y <- l, x /= y]
 -- | To get all combinations of a list and apply a function to the resulting list of pairs
 listToDirectedCombiWith :: Eq a => forall b. (a -> b) -> [a] -> [(b,b)]
 listToDirectedCombiWith f l = [(f x,f y) | x <- l, y <- l, x /= y]
+
+
+-- | To get the sequential combinations of an order list
+listToSequentialCombi :: Eq a => [a] -> [(a,a)]
+listToSequentialCombi l = nubBy (\x y -> fst x == fst y) $ listToUnDirectedCombi l
 
 
 -- | To get all combinations of a list with no repetition
