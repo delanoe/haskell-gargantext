@@ -43,11 +43,12 @@ toNestedView ns ns'
 
 
 -- | To process a DisplayMode to a PhyloView
-processDisplay :: DisplayMode -> PhyloView -> PhyloView
-processDisplay d v = case d of 
-                     Flat   -> v
-                     Nested -> let ns  = sortOn getNodeLevel $ v ^. pv_nodes
-                                   lvl = getNodeLevel $ head' "processDisplay" ns
-                               in v & pv_nodes .~ toNestedView (filter (\n -> lvl == getNodeLevel n) ns)
-                                                                      (filter (\n -> lvl <  getNodeLevel n) ns) 
-                     --_      -> panic "[ERR][Viz.Phylo.Example.processDisplay] display not found"
+processDisplay :: DisplayMode -> ExportMode -> PhyloView -> PhyloView
+processDisplay d e v = case e of 
+                       Json -> case d of 
+                               Flat   -> v
+                               Nested -> let ns  = sortOn getNodeLevel $ v ^. pv_nodes
+                                             lvl = getNodeLevel $ head' "processDisplay" ns
+                                         in v & pv_nodes .~ toNestedView (filter (\n -> lvl == getNodeLevel n) ns)
+                                                                         (filter (\n -> lvl <  getNodeLevel n) ns)
+                       _    -> v  

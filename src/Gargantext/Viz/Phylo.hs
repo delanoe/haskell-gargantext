@@ -362,6 +362,7 @@ data PhyloView = PhyloView
   , _pv_title       :: Text
   , _pv_description :: Text
   , _pv_filiation   :: Filiation
+  , _pv_level       :: Level
   , _pv_metrics     :: Map Text [Double]
   , _pv_branches    :: [PhyloBranch]
   , _pv_nodes       :: [PhyloNode]
@@ -398,6 +399,7 @@ data PhyloNode = PhyloNode
 ------------------------
 
 
+data ExportMode = Json | Dot | Svg
 data DisplayMode = Flat | Nested
 
 -- | A PhyloQueryView describes a Phylo as an output view
@@ -421,6 +423,7 @@ data PhyloQueryView = PhyloQueryView
   , _qv_sort :: Maybe (Sort,Order)
 
   -- A display mode to apply to the PhyloGraph, ie: [Node[Node,Edge],Edge] or [[Node,Node],[Edge,Edge]]
+  , _qv_export  :: ExportMode
   , _qv_display :: DisplayMode
   , _qv_verbose :: Bool
   }

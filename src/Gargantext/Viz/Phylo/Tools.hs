@@ -586,6 +586,55 @@ getViewBranchIds v = map getBranchId $ v ^. pv_branches
 -- | PhyloQuery & QueryView | --
 --------------------------------
 
+
+-- | To filter PhyloView's Branches by level
+filterBranchesByLevel :: Level -> PhyloView -> [PhyloBranch]
+filterBranchesByLevel lvl pv = filter (\pb -> lvl == (fst $ pb ^. pb_id)) 
+                          $ pv ^. pv_branches
+
+
+-- | To filter PhyloView's Edges by level
+filterEdgesByLevel :: Level -> [PhyloEdge] -> [PhyloEdge]
+filterEdgesByLevel lvl pes = filter (\pe -> (lvl == ((snd . fst) $ pe ^. pe_source))
+                                         && (lvl == ((snd . fst) $ pe ^. pe_target))) pes
+
+
+-- | To filter PhyloView's Edges by type
+filterEdgesByType :: EdgeType -> [PhyloEdge] -> [PhyloEdge]
+filterEdgesByType t pes = filter (\pe -> t == (pe ^. pe_type)) pes
+
+
+-- | To filter PhyloView's Nodes by the oldest Period
+filterNodesByFirstPeriod :: [PhyloNode] -> [PhyloNode]
+filterNodesByFirstPeriod pns = filter (\pn -> fstPrd == ((fst . fst) $ pn ^. pn_id)) pns
+    where 
+        --------------------------------------
+        fstPrd :: (Date,Date)
+        fstPrd = (head' "filterNodesByFirstPeriod")
+               $ sortOn fst 
+               $ map (\pn -> (fst . fst) $ pn ^. pn_id) pns 
+        --------------------------------------
+
+
+-- | To filter PhyloView's Nodes by Branch
+filterNodesByBranch :: PhyloBranchId -> [PhyloNode] -> [PhyloNode]
+filterNodesByBranch bId pns = filter (\pn -> if isJust $ pn ^. pn_bid
+                                             then if bId == (fromJust $ pn ^. pn_bid)
+                                                  then True
+                                                  else False
+                                             else False ) pns           
+
+
+-- | To filter PhyloView's Nodes by level
+filterNodesByLevel :: Level -> [PhyloNode] -> [PhyloNode]
+filterNodesByLevel lvl pns = filter (\pn -> lvl == ((snd . fst) $ pn ^. pn_id)) pns
+
+
+-- | To filter PhyloView's Nodes by Period
+filterNodesByPeriod :: PhyloPeriodId -> [PhyloNode] -> [PhyloNode]
+filterNodesByPeriod prd pns = filter (\pn -> prd == ((fst . fst) $ pn ^. pn_id)) pns
+
+
 -- | To get the first clustering method to apply to get the contextual units of a Phylo
 getContextualUnit :: PhyloQueryBuild -> Cluster
 getContextualUnit q = q ^. q_contextualUnit
@@ -667,9 +716,9 @@ initPhyloQuery name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cl
 
 
 -- | To initialize a PhyloQueryView default parameters
-initPhyloQueryView :: Maybe Level -> Maybe Filiation -> Maybe Bool -> Maybe Level -> Maybe [Metric] -> Maybe [Filter] -> Maybe [Tagger] -> Maybe (Sort, Order) -> Maybe DisplayMode -> Maybe Bool -> PhyloQueryView
-initPhyloQueryView (def 2 -> lvl) (def Descendant -> f) (def False -> c) (def 1 -> d) (def [] -> ms) (def [] -> fs) (def [] -> ts) s (def Flat -> dm) (def True -> v) =
-  PhyloQueryView lvl f c d ms fs ts s dm v
+initPhyloQueryView :: Maybe Level -> Maybe Filiation -> Maybe Bool -> Maybe Level -> Maybe [Metric] -> Maybe [Filter] -> Maybe [Tagger] -> Maybe (Sort, Order) -> Maybe ExportMode -> Maybe DisplayMode -> Maybe Bool -> PhyloQueryView
+initPhyloQueryView (def 2 -> lvl) (def Descendant -> f) (def False -> c) (def 1 -> d) (def [] -> ms) (def [] -> fs) (def [] -> ts) s (def Json -> em) (def Flat -> dm) (def True -> v) =
+  PhyloQueryView lvl f c d ms fs ts s em dm v
 
 
 -- | To define some obvious boolean getters
@@ -716,7 +765,7 @@ defaultQuery = initPhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (fr
                               Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
-defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 -- Software
 

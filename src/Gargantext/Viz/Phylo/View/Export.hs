@@ -53,70 +53,47 @@ viewToSvg v = undefined
 -- | PhyloView to DOT | --
 --------------------------
 
--- From http://haroldcarr.com/posts/2014-02-28-using-graphviz-via-haskell.html
+-- | From http://haroldcarr.com/posts/2014-02-28-using-graphviz-via-haskell.html & https://hackage.haskell.org/package/graphviz
 
+
+-- | To create a custom Graphviz's Attribute
 setAttr :: AttributeName -> T'.Text -> CustomAttribute
 setAttr k v = customAttribute k v
 
+
+-- | To create customs Graphviz's Attributes out of some Metrics
 setAttrFromMetrics :: Map T.Text [Double] -> [CustomAttribute]
 setAttrFromMetrics attrs = map (\(k,v) -> setAttr (fromStrict k) 
                                                 $ (pack . unwords) 
                                                 $ map show v) $ toList attrs
 
-getBranchDotId :: PhyloBranchId -> DotId
-getBranchDotId (lvl,idx) = fromStrict $ T.pack $ (show lvl) ++ (show idx)
 
-getNodeDotId :: PhyloGroupId -> DotId
-getNodeDotId (((d,d'),lvl),idx) = fromStrict $ T.pack $ (show d) ++ (show d') ++ (show lvl) ++ (show idx)
-
-getPeriodDotId :: PhyloPeriodId -> DotId
-getPeriodDotId (d,d') = fromStrict $ T.pack $ (show d) ++ (show d')
-
-getPeriodDotLabel ::PhyloPeriodId -> Label
-getPeriodDotLabel (d,d') = toDotLabel $ T.pack $ (show d) ++ " " ++ (show d')
-
-getBranchesByLevel :: Level -> PhyloView -> [PhyloBranch]
-getBranchesByLevel lvl pv = filter (\pb -> lvl == (fst $ pb ^. pb_id)) 
-                          $ pv ^. pv_branches
-
-filterNodesByPeriod :: PhyloPeriodId -> [PhyloNode] -> [PhyloNode]
-filterNodesByPeriod prd pns = filter (\pn -> prd == ((fst . fst) $ pn ^. pn_id)) pns
-
-filterNodesByLevel :: Level -> [PhyloNode] -> [PhyloNode]
-filterNodesByLevel lvl pns = filter (\pn -> lvl == ((snd . fst) $ pn ^. pn_id)) pns
+-- | To transform a PhyloBranchId into a DotId
+toBranchDotId :: PhyloBranchId -> DotId
+toBranchDotId (lvl,idx) = fromStrict $ T.pack $ (show lvl) ++ (show idx)
 
 
-filterNodesByBranch :: PhyloBranchId -> [PhyloNode] -> [PhyloNode]
-filterNodesByBranch bId pns = filter (\pn -> if isJust $ pn ^. pn_bid
-                                             then if bId == (fromJust $ pn ^. pn_bid)
-                                                  then True
-                                                  else False
-                                             else False ) pns   
+-- | To transform a PhyloGroupId into a DotId
+toNodeDotId :: PhyloGroupId -> DotId
+toNodeDotId (((d,d'),lvl),idx) = fromStrict $ T.pack $ (show d) ++ (show d') ++ (show lvl) ++ (show idx)
 
 
-filterEdgesByType :: EdgeType -> [PhyloEdge] -> [PhyloEdge]
-filterEdgesByType t pes = filter (\pe -> t == (pe ^. pe_type)) pes
-
-filterEdgesByLevel :: Level -> [PhyloEdge] -> [PhyloEdge]
-filterEdgesByLevel lvl pes = filter (\pe -> (lvl == ((snd . fst) $ pe ^. pe_source))
-                                         && (lvl == ((snd . fst) $ pe ^. pe_target))) pes
+-- | To transform a PhyloPeriodId into a DotId
+toPeriodDotId :: PhyloPeriodId -> DotId
+toPeriodDotId (d,d') = fromStrict $ T.pack $ (show d) ++ (show d')
 
 
-filterNodesByFirstPeriod :: [PhyloNode] -> [PhyloNode]
-filterNodesByFirstPeriod pns = filter (\pn -> fstPrd == ((fst . fst) $ pn ^. pn_id)) pns
-    where 
-        --------------------------------------
-        fstPrd :: (Date,Date)
-        fstPrd = (head' "filterNodesByFirstPeriod")
-               $ sortOn fst 
-               $ map (\pn -> (fst . fst) $ pn ^. pn_id) pns 
-        --------------------------------------
+-- | To transform a PhyloPeriodId into a Graphviz's label
+toPeriodDotLabel ::PhyloPeriodId -> Label
+toPeriodDotLabel (d,d') = toDotLabel $ T.pack $ (show d) ++ " " ++ (show d')
 
 
+-- | To get all the Phyloperiods covered by a PhyloView
 getViewPeriods :: PhyloView -> [PhyloPeriodId]
 getViewPeriods pv = sortOn fst $ nub $ map (\pn -> (fst . fst) $ pn ^. pn_id) $ pv ^. pv_nodes
 
 
+-- | To get for each PhyloBranch, their corresponding oldest PhyloNodes
 getFirstNodes :: Level -> PhyloView -> [(PhyloBranchId,PhyloGroupId)]
 getFirstNodes lvl pv = concat
                      $ map (\bId -> map (\pn -> (bId,pn ^. pn_id))
@@ -127,21 +104,28 @@ getFirstNodes lvl pv = concat
     where
         --------------------------------------
         bIds :: [PhyloBranchId]
-        bIds = map getBranchId $ getBranchesByLevel lvl pv
+        bIds = map getBranchId $ filterBranchesByLevel lvl pv
         --------------------------------------
 
 
+-- | To transform a Text into a Graphviz's Label
 toDotLabel :: T.Text -> Label
 toDotLabel lbl = StrLabel $ fromStrict lbl
 
+
+-- | To set a Peak Node
 setPeakDotNode :: PhyloBranch -> Dot DotId
-setPeakDotNode pb = node (getBranchDotId $ pb ^. pb_id) 
+setPeakDotNode pb = node (toBranchDotId $ pb ^. pb_id) 
                       ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ pb ^. pb_label)]
                        <> (setAttrFromMetrics $ pb ^. pb_metrics))
 
+
+-- | To set a Peak Edge
 setPeakDotEdge ::  DotId -> DotId -> Dot DotId
 setPeakDotEdge bId nId = edge bId nId [Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])]
 
+
+-- | To set an HTML table
 setHtmlTable :: PhyloNode -> H.Label
 setHtmlTable pn = H.Table H.HTable
                     { H.tableFontAttrs = Just [H.PointSize 14, H.Align H.HLeft]
@@ -160,66 +144,70 @@ setHtmlTable pn = H.Table H.HTable
         --------------------------------------
 
 
+-- | To set a Node
 setDotNode :: PhyloNode -> Dot DotId
-setDotNode pn = node (getNodeDotId $ pn ^. pn_id)
+setDotNode pn = node (toNodeDotId $ pn ^. pn_id)
                      ([FontName "Arial", Shape Square, toLabel (setHtmlTable pn)])
 
 
+-- | To set an Edge
 setDotEdge :: PhyloEdge -> Dot DotId
-setDotEdge pe = edge (getNodeDotId $ pe ^. pe_source) (getNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Black]]
+setDotEdge pe = edge (toNodeDotId $ pe ^. pe_source) (toNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Black]]
 
+
+-- | To set a Period Edge
 setDotPeriodEdge :: (PhyloPeriodId,PhyloPeriodId) -> Dot DotId
-setDotPeriodEdge (prd,prd') = edge (getPeriodDotId prd) (getPeriodDotId prd') [Width 5, Color [toWColor Black]]
+setDotPeriodEdge (prd,prd') = edge (toPeriodDotId prd) (toPeriodDotId prd') [Width 5, Color [toWColor Black]]
 
 
-viewToDot :: PhyloView -> Level -> DotGraph DotId
-viewToDot pv lvl = digraph ((Str . fromStrict) $ pv ^. pv_title) 
+-- | To transform a given PhyloView into the corresponding GraphViz Graph (ie: Dot format)
+viewToDot :: PhyloView -> DotGraph DotId
+viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title) 
                  
-                 $ do
+             $ do
 
-                    -- set the global graph attributes
+                -- set the global graph attributes
 
-                    graphAttrs ( [Label (toDotLabel $ pv ^. pv_title)]
-                              <> [setAttr "description" $ fromStrict $ pv ^. pv_description]
-                              <> [setAttr "filiation"   $ (pack . show) $ pv ^. pv_filiation]
-                              <> (setAttrFromMetrics $ pv ^. pv_metrics)
-                              <> [FontSize (fromIntegral 30), LabelLoc VTop, Splines SplineEdges, Overlap ScaleOverlaps,
-                                  Ratio AutoRatio, Style [SItem Filled []],Color [toWColor White]])
+                graphAttrs ( [Label (toDotLabel $ pv ^. pv_title)]
+                          <> [setAttr "description" $ fromStrict $ pv ^. pv_description]
+                          <> [setAttr "filiation"   $ (pack . show) $ pv ^. pv_filiation]
+                          <> (setAttrFromMetrics $ pv ^. pv_metrics)
+                          <> [FontSize (fromIntegral 30), LabelLoc VTop, Splines SplineEdges, Overlap ScaleOverlaps,
+                              Ratio AutoRatio, Style [SItem Filled []],Color [toWColor White]])
 
-                    -- set the peaks
+                -- set the peaks
 
-                    subgraph (Str "Peaks") 
+                subgraph (Str "Peaks") $ do 
 
-                    $ do 
+                    graphAttrs [Rank SameRank]
 
-                        graphAttrs [Rank SameRank]
+                    mapM setPeakDotNode $ filterBranchesByLevel (pv ^. pv_level) pv
 
-                        mapM setPeakDotNode $ getBranchesByLevel lvl pv
+                -- set the nodes, period by period
 
-                    -- set the nodes, period by period
+                mapM (\prd ->
+                        subgraph (Str $ fromStrict $ T.pack $ "subGraph " ++ (show $ (fst prd)) ++ (show $ (snd prd))) 
 
-                    mapM (\prd ->
-                            subgraph (Str $ fromStrict $ T.pack $ "subGraph " ++ (show $ (fst prd)) ++ (show $ (snd prd))) 
+                        $ do
+                            
+                            graphAttrs [Rank SameRank]
 
-                            $ do
-                                
-                                graphAttrs [Rank SameRank]
+                            -- set the period label
+                            
+                            node (toPeriodDotId prd) [Shape Square, FontSize 50, Label (toPeriodDotLabel prd)]
 
-                                -- set the period label
-                                
-                                node (getPeriodDotId prd) [Shape Square, FontSize 50, Label (getPeriodDotLabel prd)]
+                            mapM setDotNode $ filterNodesByPeriod prd $ filterNodesByLevel (pv ^. pv_level) (pv ^.pv_nodes)
+                          
+                     ) $ getViewPeriods pv
 
-                                mapM setDotNode $ filterNodesByPeriod prd $ filterNodesByLevel lvl (pv ^.pv_nodes)
-                              
-                         ) $ getViewPeriods pv
+                -- set the edges : from peaks to nodes, from nodes to nodes, from periods to periods 
 
-                    -- set the edges : from peaks to nodes, from nodes to nodes, from periods to periods 
+                mapM (\(bId,nId) -> setPeakDotEdge (toBranchDotId bId) (toNodeDotId nId)) $ getFirstNodes (pv ^. pv_level) pv
 
-                    mapM (\(bId,nId) -> setPeakDotEdge (getBranchDotId bId) (getNodeDotId nId)) $ getFirstNodes lvl pv
+                mapM setDotEdge $ filterEdgesByLevel (pv ^. pv_level) $ filterEdgesByType PeriodEdge (pv ^. pv_edges)
 
-                    mapM setDotEdge $ filterEdgesByLevel lvl $ filterEdgesByType PeriodEdge (pv ^. pv_edges)
+                mapM setDotPeriodEdge $ listToSequentialCombi $ getViewPeriods pv
 
-                    mapM setDotPeriodEdge $ listToSequentialCombi $ getViewPeriods pv
 
 
 
