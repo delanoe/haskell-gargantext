@@ -28,6 +28,7 @@ TODO:
 
 module Gargantext.Viz.Phylo.Example where
 
+import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.Text (Text)
 import Data.List        ((++), last)
 import Data.Map         (Map)
@@ -44,6 +45,7 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.ViewMaker
+import Gargantext.Viz.Phylo.View.Export
 import qualified Data.List   as List
 
 
@@ -51,6 +53,9 @@ import qualified Data.List   as List
 -- | STEP 12 | -- Create a PhyloView from a user Query
 ------------------------------------------------------
 
+
+phyloDot :: DotGraph DotId
+phyloDot = viewToDot phyloView
 
 phyloView :: PhyloView
 phyloView = toPhyloView (queryParser' queryViewEx) phyloFromQuery
@@ -69,7 +74,7 @@ queryViewEx = "level=3"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchLabelFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Flat True
+phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchLabelFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
 
 --------------------------------------------------

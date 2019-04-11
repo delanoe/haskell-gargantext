@@ -46,7 +46,7 @@ initPhyloEdge id pts et = map (\pt -> PhyloEdge id (fst pt) et (snd pt)) pts
 
 -- | To init a PhyloView
 initPhyloView :: Level -> Text -> Text -> Filiation -> Bool -> Phylo -> PhyloView
-initPhyloView lvl lbl dsc fl vb p = PhyloView (getPhyloParams p) lbl dsc fl empty
+initPhyloView lvl lbl dsc fl vb p = PhyloView (getPhyloParams p) lbl dsc fl lvl empty
                                     ([] ++ (phyloToBranches lvl p))
                                     ([] ++ (groupsToNodes True vb (getPeaksLabels p) gs))
                                     ([] ++ (groupsToEdges fl PeriodEdge gs))
@@ -148,7 +148,7 @@ toPhyloView' :: Maybe Level
 toPhyloView' = initPhyloQueryView
 
 toPhyloView :: PhyloQueryView -> Phylo -> PhyloView
-toPhyloView q p = processDisplay (q ^. qv_display)
+toPhyloView q p = processDisplay (q ^. qv_display) (q ^. qv_export)
                 $ processSort    (q ^. qv_sort   ) p
                 $ processTaggers (q ^. qv_taggers) p
                 $ processFilters (q ^. qv_filters) p
