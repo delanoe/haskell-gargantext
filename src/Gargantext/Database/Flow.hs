@@ -164,7 +164,7 @@ flowCorpusUser l userName corpusName ctype ids = do
   --}
 
   -- User Dashboard Flow
-  -- _ <- mkDashboard userCorpusId userId
+  _ <- mkDashboard userCorpusId userId
 
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId

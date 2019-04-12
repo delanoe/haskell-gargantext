@@ -22,16 +22,17 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
-import Control.Lens (set)
+import Data.List (sortOn)
+import Control.Lens (set, view)
 import Control.Monad.IO.Class (liftIO)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node ( getNode)
+import Gargantext.Database.Schema.Node (getNode)
 import Gargantext.Database.Schema.Node (defaultList)
-import Gargantext.Database.Types.Node -- (GraphId, ListId, CorpusId, NodeId)
+import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
@@ -72,7 +73,11 @@ getGraph nId = do
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
 
-  liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
+  graph <- liftIO $ cooc2graph myCooc
+  pure $ set graph_metadata (Just metadata)
+       $ set graph_nodes ( sortOn node_id
+                         $ view graph_nodes graph
+                         ) graph
 
 
 postGraph :: NodeId -> GargServer (Post '[JSON] [NodeId])
