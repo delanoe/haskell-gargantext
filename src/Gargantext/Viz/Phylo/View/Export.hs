@@ -20,16 +20,13 @@ module Gargantext.Viz.Phylo.View.Export
 import Control.Lens  hiding (Level)   
 import Control.Monad
 import Data.GraphViz   hiding (DotGraph)
-import Data.GraphViz.Attributes.Complete hiding (EdgeType)
-import Data.GraphViz.Types 
+import Data.GraphViz.Attributes.Complete hiding (EdgeType) 
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
-import Data.List       ((++),unwords,concat,sortOn,nub,nubBy)
-import Data.Map        (Map,mapWithKey,elems,toList)
-import Data.Maybe      (isJust,isNothing,fromJust)
-import Data.Text       (Text)
-import Data.Text.Lazy  (Text, fromStrict, pack)
-import GHC.TypeLits    (KnownNat)
+import Data.List        ((++),unwords,concat,sortOn,nub)
+import Data.Map         (Map,toList)
+import Data.Maybe       (isNothing,fromJust)
+import Data.Text.Lazy   (fromStrict, pack)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as T'
@@ -40,14 +37,6 @@ import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 
 type DotId = T'.Text
-
---------------------------
--- | PhyloView to SVG | --
---------------------------
-
-
-viewToSvg v = undefined
-
 
 --------------------------
 -- | PhyloView to DOT | --
@@ -63,9 +52,9 @@ setAttr k v = customAttribute k v
 
 -- | To create customs Graphviz's Attributes out of some Metrics
 setAttrFromMetrics :: Map T.Text [Double] -> [CustomAttribute]
-setAttrFromMetrics attrs = map (\(k,v) -> setAttr (fromStrict k) 
-                                                $ (pack . unwords) 
-                                                $ map show v) $ toList attrs
+setAttrFromMetrics a = map (\(k,v) -> setAttr (fromStrict k) 
+                                    $ (pack . unwords) 
+                                    $ map show v) $ toList a
 
 
 -- | To transform a PhyloBranchId into a DotId
@@ -172,7 +161,7 @@ viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title)
                           <> [setAttr "description" $ fromStrict $ pv ^. pv_description]
                           <> [setAttr "filiation"   $ (pack . show) $ pv ^. pv_filiation]
                           <> (setAttrFromMetrics $ pv ^. pv_metrics)
-                          <> [FontSize (fromIntegral 30), LabelLoc VTop, Splines SplineEdges, Overlap ScaleOverlaps,
+                          <> [FontSize 30, LabelLoc VTop, Splines SplineEdges, Overlap ScaleOverlaps,
                               Ratio AutoRatio, Style [SItem Filled []],Color [toWColor White]])
 
                 -- set the peaks
@@ -185,7 +174,7 @@ viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title)
 
                 -- set the nodes, period by period
 
-                mapM (\prd ->
+                _ <- mapM (\prd ->
                         subgraph (Str $ fromStrict $ T.pack $ "subGraph " ++ (show $ (fst prd)) ++ (show $ (snd prd))) 
 
                         $ do
@@ -202,9 +191,9 @@ viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title)
 
                 -- set the edges : from peaks to nodes, from nodes to nodes, from periods to periods 
 
-                mapM (\(bId,nId) -> setPeakDotEdge (toBranchDotId bId) (toNodeDotId nId)) $ getFirstNodes (pv ^. pv_level) pv
+                _ <- mapM (\(bId,nId) -> setPeakDotEdge (toBranchDotId bId) (toNodeDotId nId)) $ getFirstNodes (pv ^. pv_level) pv
 
-                mapM setDotEdge $ filterEdgesByLevel (pv ^. pv_level) $ filterEdgesByType PeriodEdge (pv ^. pv_edges)
+                _ <- mapM setDotEdge $ filterEdgesByLevel (pv ^. pv_level) $ filterEdgesByType PeriodEdge (pv ^. pv_edges)
 
                 mapM setDotPeriodEdge $ listToSequentialCombi $ getViewPeriods pv
 
