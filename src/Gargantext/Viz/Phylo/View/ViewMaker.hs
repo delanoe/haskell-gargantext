@@ -27,7 +27,6 @@ import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.Display
-import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.View.Filters
 import Gargantext.Viz.Phylo.View.Metrics
 import Gargantext.Viz.Phylo.View.Sort
