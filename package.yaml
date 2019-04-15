@@ -258,6 +258,7 @@ executables:
       - containers
       - gargantext
       - vector
+      - parallel
       - cassava
       - ini
       - optparse-generic
