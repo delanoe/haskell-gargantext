@@ -31,7 +31,7 @@ fisToCooc :: Map (Date, Date) [PhyloFis] -> Phylo -> Map (Int, Int) Double
 fisToCooc m p = map   (/docs)
               $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
               $ concat
-              $ map (\x -> listToUnDirectedCombiWith (\y -> getIdxInPeaks y p) $ (Set.toList . getClique) x)
+              $ map (\x -> listToUnDirectedCombiWith (\y -> getIdxInRoots y p) $ (Set.toList . getClique) x)
               $ (concat . elems) m
   where
     --------------------------------------
@@ -42,7 +42,7 @@ fisToCooc m p = map   (/docs)
     docs = fromIntegral $ foldl (\mem x -> mem + (getSupport x)) 0 $ (concat . elems) m
     --------------------------------------
     cooc :: Map (Int, Int) (Double)
-    cooc = Map.fromList $ map (\x -> (x,0)) (listToUnDirectedCombiWith (\y -> getIdxInPeaks y p) fisNgrams)
+    cooc = Map.fromList $ map (\x -> (x,0)) (listToUnDirectedCombiWith (\y -> getIdxInRoots y p) fisNgrams)
     --------------------------------------
 
 

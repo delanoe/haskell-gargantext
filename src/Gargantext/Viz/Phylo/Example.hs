@@ -53,6 +53,8 @@ import qualified Data.List   as List
 -- | STEP 12 | -- Create a PhyloView from a user Query
 ------------------------------------------------------
 
+export :: IO ()
+export = dotToFile "./export_test" "cesar_cleopatre.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
 phyloDot = viewToDot phyloView
@@ -69,12 +71,12 @@ queryViewEx = "level=3"
               ++ "&childs=false"
               ++ "&filter=LonelyBranchFilter"
               ++ "&metric=BranchAge"
-              ++ "&tagger=BranchLabelFreq"
+              ++ "&tagger=BranchPeakFreq"
               ++ "&tagger=GroupLabelCooc"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchLabelFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
+phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
 
 --------------------------------------------------
@@ -87,7 +89,7 @@ phyloFromQuery = toPhylo (queryParser queryEx) corpus actants actantsTrees
 
 -- | To do : create a request handler and a query parser
 queryParser :: [Char] -> PhyloQueryBuild
-queryParser _q = phyloQuery
+queryParser _q = phyloQueryBuild
 
 queryEx :: [Char]
 queryEx = "title=Cesar et Cleôpatre"
@@ -99,8 +101,8 @@ queryEx = "title=Cesar et Cleôpatre"
           ++ "nthCluster=RelatedComponents"
           ++ "nthProximity=Filiation"
 
-phyloQuery :: PhyloQueryBuild
-phyloQuery = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
+phyloQueryBuild :: PhyloQueryBuild
+phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
              5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
 
 
@@ -199,7 +201,7 @@ phylo1 =  addPhyloLevel (1) phyloFis phylo
 
 
 phyloFis :: Map (Date, Date) [PhyloFis]
-phyloFis = filterFisByNested $ filterFisBySupport False 1 (docsToFis phyloDocs)
+phyloFis = filterFisByNested $ filterFisBySupport True 1 (docsToFis phyloDocs)
 
 
 ----------------------------------------
@@ -221,7 +223,7 @@ phyloDocs = corpusToDocs corpus phyloBase
 
 
 phyloBase :: Phylo
-phyloBase = initPhyloBase periods foundations peaks defaultPhyloParam
+phyloBase = initPhyloBase periods foundations roots defaultPhyloParam
 
 
 periods :: [(Date,Date)]
@@ -229,8 +231,8 @@ periods = initPeriods 5 3
         $ both fst (head' "Example" corpus,last corpus)
 
 
-peaks :: PhyloPeaks
-peaks = initPeaks (map (\t -> alterLabels phyloAnalyzer t) actantsTrees) foundations
+roots :: PhyloRoots
+roots = initRoots (map (\t -> alterLabels phyloAnalyzer t) actantsTrees) foundations
 
 
 foundations :: Vector Ngrams
@@ -242,7 +244,8 @@ foundations = initFoundations actants
 --------------------------------------------
 
 actantsTrees :: [Tree Ngrams]
-actantsTrees = [Node "Cite antique" [(Node "Rome" []),(Node "Alexandrie" [])]]
+actantsTrees = []
+-- actantsTrees = [Node "Cite antique" [(Node "Rome" []),(Node "Alexandrie" [])]]
 
 
 actants :: [Ngrams]

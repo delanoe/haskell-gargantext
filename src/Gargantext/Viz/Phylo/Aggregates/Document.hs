@@ -50,27 +50,28 @@ groupDocsByPeriod f pds es = Map.fromList $ zip pds $ map (inPeriode f es) pds
       fst $ List.partition (\d -> f' d >= start && f' d <= end) h
     --------------------------------------
 
-reduceByPeaks :: Map Ngrams Ngrams -> [Ngrams] -> [Ngrams]
-reduceByPeaks m ns = (\(f,s) -> f ++ (nub s))
+-- | Reduce a list of foundations as a list of corresponding roots 
+reduceByRoots :: Map Ngrams Ngrams -> [Ngrams] -> [Ngrams]
+reduceByRoots m ns = (\(f,s) -> f ++ (nub s))
                     $ foldl (\mem n -> if member n m
                                       then (fst mem,(snd mem) ++ [m Map.! n])
                                       else ((fst mem) ++ [n],snd mem)
                                       ) ([],[]) ns
 
 -- | To parse a list of Documents by filtering on a Vector of Ngrams
-parseDocs :: Vector Ngrams -> PhyloPeaks -> [(Date,Text)] -> [Document]
-parseDocs fds peaks c = map (\(d,t)
-                         -> Document d ( reduceByPeaks mPeaks
+parseDocs :: Vector Ngrams -> PhyloRoots -> [(Date,Text)] -> [Document]
+parseDocs fds roots c = map (\(d,t)
+                         -> Document d ( reduceByRoots mRoots
                                        $ filter (\x -> Vector.elem x fds)
                                        $ monoTexts t)) c
   where
     --------------------------------------
-    mPeaks :: Map Ngrams Ngrams
-    mPeaks = forestToMap (peaks ^. phylo_peaksForest)
+    mRoots :: Map Ngrams Ngrams
+    mRoots = forestToMap (roots ^. phylo_rootsForest)
     --------------------------------------
 
 
 -- | To transform a Corpus of texts into a Map of aggregated Documents grouped by Periods
 corpusToDocs :: [(Date,Text)] -> Phylo -> Map (Date,Date) [Document]
 corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p)
-                $ parseDocs (getFoundations p) (getPeaks p) c
+                $ parseDocs (getFoundations p) (getRoots p) c
