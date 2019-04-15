@@ -241,6 +241,29 @@ executables:
       - unordered-containers
       - full-text-search
 
+  gargantext-phylo:
+    main: Main.hs
+    source-dirs: bin/gargantext-phylo
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - aeson
+      - async
+      - base
+      - bytestring
+      - containers
+      - gargantext
+      - vector
+      - cassava
+      - ini
+      - optparse-generic
+      - split
+      - unordered-containers
+
   gargantext-import:
     main: Main.hs
     source-dirs: bin/gargantext-import
