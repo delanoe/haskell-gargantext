@@ -74,17 +74,17 @@ data Software =
 data Phylo =
      Phylo { _phylo_duration    :: (Start, End)
            , _phylo_foundations :: Vector Ngrams
-           , _phylo_foundationsPeaks :: PhyloPeaks
+           , _phylo_foundationsRoots :: PhyloRoots
            , _phylo_periods     :: [PhyloPeriod]
            , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show, Eq)
 
--- | The PhyloPeaks describe the aggregation of some foundations Ngrams behind a list of Ngrams trees (ie: a forest)
+-- | The PhyloRoots describe the aggregation of some foundations Ngrams behind a list of Ngrams trees (ie: a forest)
 -- PeaksLabels are the root labels of each Ngrams trees
-data PhyloPeaks =
-      PhyloPeaks { _phylo_peaksLabels :: Vector Ngrams
-                 , _phylo_peaksForest :: [Tree Ngrams]
+data PhyloRoots =
+      PhyloRoots { _phylo_rootsLabels :: Vector Ngrams
+                 , _phylo_rootsForest :: [Tree Ngrams]
                  }
                  deriving (Generic, Show, Eq)
 
@@ -306,7 +306,7 @@ data Metric = BranchAge deriving (Generic, Show, Eq)
 
 
 -- | Tagger constructors
-data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics deriving (Show)
+data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show)
 
 
 --------------
@@ -363,6 +363,7 @@ data PhyloView = PhyloView
   , _pv_description :: Text
   , _pv_filiation   :: Filiation
   , _pv_level       :: Level
+  , _pv_periods     :: [PhyloPeriodId]
   , _pv_metrics     :: Map Text [Double]
   , _pv_branches    :: [PhyloBranch]
   , _pv_nodes       :: [PhyloNode]
@@ -372,7 +373,7 @@ data PhyloView = PhyloView
 -- | A phyloview is made of PhyloBranches, edges and nodes
 data PhyloBranch = PhyloBranch
   { _pb_id      :: PhyloBranchId
-  , _pb_label   :: Text
+  , _pb_peak    :: Text
   , _pb_metrics :: Map Text [Double]
   } deriving (Generic, Show)
 
@@ -438,7 +439,7 @@ makeLenses ''PhyloParam
 makeLenses ''Software
 --
 makeLenses ''Phylo
-makeLenses ''PhyloPeaks
+makeLenses ''PhyloRoots
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
@@ -463,7 +464,7 @@ makeLenses ''PhyloEdge
 
 
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
-$(deriveJSON (unPrefix "_phylo_peaks"  ) ''PhyloPeaks  )
+$(deriveJSON (unPrefix "_phylo_roots"  ) ''PhyloRoots  )
 $(deriveJSON defaultOptions ''Tree  )
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )

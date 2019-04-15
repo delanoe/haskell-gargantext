@@ -64,19 +64,19 @@ mostOccNgrams thr group = (nub . concat )
                         $ reverse $ sortOn snd $ Map.toList $ getGroupCooc group
 
 
--- | To alter the label of a PhyloBranch
-alterBranchLabel :: (PhyloBranchId,Text) -> PhyloView -> PhyloView
-alterBranchLabel (id,lbl) v = over (pv_branches
+-- | To alter the peak of a PhyloBranch
+alterBranchPeak :: (PhyloBranchId,Text) -> PhyloView -> PhyloView
+alterBranchPeak (id,lbl) v = over (pv_branches
                                    . traverse)
                                    (\b -> if getBranchId b == id
-                                          then b & pb_label .~ lbl
+                                          then b & pb_peak .~ lbl
                                           else b) v
 
 
--- | To set the label of a PhyloBranch as the nth most frequent terms of its PhyloNodes
-branchLabelFreq :: PhyloView -> Int -> Phylo -> PhyloView
-branchLabelFreq v thr p = foldl (\v' (id,lbl) -> alterBranchLabel (id,lbl) v') v
-                        $ map (\(id,ns) -> (id, freqToLabel thr (getPeaksLabels p)
+-- | To set the peak of a PhyloBranch as the nth most frequent terms of its PhyloNodes
+branchPeakFreq :: PhyloView -> Int -> Phylo -> PhyloView
+branchPeakFreq v thr p = foldl (\v' (id,lbl) -> alterBranchPeak (id,lbl) v') v
+                        $ map (\(id,ns) -> (id, freqToLabel thr (getRootsLabels p)
                                               $ getGroupsFromNodes ns p))
                         $ getNodesByBranches v
 
@@ -85,7 +85,7 @@ branchLabelFreq v thr p = foldl (\v' (id,lbl) -> alterBranchLabel (id,lbl) v') v
 nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
 nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
-                             (\n -> let lbl = ngramsToLabel (getPeaksLabels p)
+                             (\n -> let lbl = ngramsToLabel (getRootsLabels p)
                                             $ mostOccNgrams thr
                                             $ head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
                                     in n & pn_label .~ lbl) v
@@ -94,7 +94,7 @@ nodeLabelCooc v thr p = over (pv_nodes
 -- | To process a sorted list of Taggers to a PhyloView
 processTaggers :: [Tagger] -> Phylo -> PhyloView -> PhyloView
 processTaggers ts p v = foldl (\v' t -> case t of
-                                        BranchLabelFreq -> branchLabelFreq v' 2 p
-                                        GroupLabelCooc  -> nodeLabelCooc   v' 2 p
-                                        _               -> panic "[ERR][Viz.Phylo.View.Taggers.processTaggers] tagger not found") v ts
+                                        BranchPeakFreq -> branchPeakFreq v' 2 p
+                                        GroupLabelCooc -> nodeLabelCooc  v' 2 p
+                                        _              -> panic "[ERR][Viz.Phylo.View.Taggers.processTaggers] tagger not found") v ts
 

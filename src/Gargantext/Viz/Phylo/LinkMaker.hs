@@ -90,8 +90,8 @@ applyProximity prox g1 g2 = case prox of
 -- | To get the next or previous PhyloPeriod based on a given PhyloPeriodId
 getNextPeriods :: Filiation -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
 getNextPeriods to' id l = case to' of
-    Descendant -> unNested id ((tail . snd) next)
-    Ascendant  -> unNested id ((reverse . fst) next)
+    Descendant -> (tail . snd) next
+    Ascendant  -> (reverse . fst) next
     _          -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] Filiation type not defined")
     where
       --------------------------------------
@@ -102,17 +102,6 @@ getNextPeriods to' id l = case to' of
       idx = case (List.elemIndex id l) of
         Nothing -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] PhyloPeriodId not defined")
         Just i  -> i
-      --------------------------------------
-      -- | To have an non-overlapping next period
-      unNested :: PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
-      unNested x l'
-        | null l'                  = []
-        | nested (fst $ head' "getNextPeriods1" l') x = unNested x (tail l')
-        | nested (snd $ head' "getNextPeriods2" l') x = unNested x (tail l')
-        | otherwise                = l
-      --------------------------------------
-      nested :: Date -> PhyloPeriodId -> Bool
-      nested d prd = d >= fst prd && d <= snd prd
       --------------------------------------
 
 
