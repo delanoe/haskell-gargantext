@@ -18,7 +18,7 @@ commentary with @some markup@.
 module Gargantext.Text.Terms.WithList where
 
 import qualified Data.Algorithms.KMP as KMP
-import Data.Text (Text, concat, unpack)
+import Data.Text (Text, concat)
 import qualified Data.IntMap.Strict as IntMap
 
 import Gargantext.Text.Context
