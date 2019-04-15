@@ -146,12 +146,12 @@ initFoundations :: [Ngrams] -> Vector Ngrams
 initFoundations l = Vector.fromList $ map phyloAnalyzer l
 
 -- | To init the base of a Phylo from a List of Periods and Foundations
-initPhyloBase :: [(Date, Date)] -> Vector Ngrams -> PhyloPeaks -> PhyloParam -> Phylo
+initPhyloBase :: [(Date, Date)] -> Vector Ngrams -> PhyloRoots -> PhyloParam -> Phylo
 initPhyloBase pds fds pks prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds pks (map (\pd -> initPhyloPeriod pd []) pds) prm
 
 -- | To init the param of a Phylo
 initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQueryBuild -> PhyloParam
-initPhyloParam (def defaultPhyloVersion -> v) (def defaultSoftware -> s) (def defaultQuery -> q) = PhyloParam v s q
+initPhyloParam (def defaultPhyloVersion -> v) (def defaultSoftware -> s) (def defaultQueryBuild -> q) = PhyloParam v s q
 
 -- | To get the foundations of a Phylo
 getFoundations :: Phylo -> Vector Ngrams
@@ -174,7 +174,7 @@ getLastLevel p = (last . sort)
 
 
 --------------------
--- | PhyloPeaks | --
+-- | PhyloRoots | --
 --------------------
 
 -- | To apply a fonction to each label of a Ngrams Tree
@@ -189,23 +189,23 @@ forestToMap trees = Map.fromList $ concat $ map treeToTuples' trees
     treeToTuples' (Node lbl ns) = treeToTuples (Node lbl ns) lbl
     treeToTuples' Empty         = panic "[ERR][Viz.Phylo.Tools.forestToMap] Empty"
 
--- | To get the foundationsPeaks of a Phylo
-getPeaks :: Phylo -> PhyloPeaks
-getPeaks = _phylo_foundationsPeaks
+-- | To get the foundationsRoots of a Phylo
+getRoots :: Phylo -> PhyloRoots
+getRoots = _phylo_foundationsRoots
 
--- | To get the peaksLabels of a Phylo
-getPeaksLabels :: Phylo -> Vector Ngrams
-getPeaksLabels p = (getPeaks p) ^. phylo_peaksLabels
+-- | To get the RootsLabels of a Phylo
+getRootsLabels :: Phylo -> Vector Ngrams
+getRootsLabels p = (getRoots p) ^. phylo_rootsLabels
 
--- | To get the Index of a Ngrams in the foundationsPeaks of a Phylo
-getIdxInPeaks :: Ngrams -> Phylo -> Int
-getIdxInPeaks n p = case (elemIndex n (getPeaksLabels p)) of
-    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInPeaks] Ngrams not in foundationsPeaks"
+-- | To get the Index of a Ngrams in the foundationsRoots of a Phylo
+getIdxInRoots :: Ngrams -> Phylo -> Int
+getIdxInRoots n p = case (elemIndex n (getRootsLabels p)) of
+    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
     Just idx -> idx
 
--- | To init the PhyloPeaks of a Phylo
-initPeaks :: [Tree Ngrams] -> Vector Ngrams -> PhyloPeaks
-initPeaks trees ns = PhyloPeaks labels trees
+-- | To init the PhyloRoots of a Phylo
+initRoots :: [Tree Ngrams] -> Vector Ngrams -> PhyloRoots
+initRoots trees ns = PhyloRoots labels trees
   where
     --------------------------------------
     labels :: Vector Ngrams
@@ -385,7 +385,7 @@ initGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> Phylo -> PhyloGroup
 initGroup ngrams lbl idx lvl from' to' p = PhyloGroup
   (((from', to'), lvl), idx)
   lbl
-  (sort $ map (\x -> getIdxInPeaks x p) ngrams)
+  (sort $ map (\x -> getIdxInRoots x p) ngrams)
   (Map.empty)
   (Map.empty)
   Nothing
@@ -708,9 +708,9 @@ initWeightedLogJaccard :: Maybe Double -> Maybe Double -> WLJParams
 initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 
 
--- | To initialize a PhyloQuery from given and default parameters
-initPhyloQuery :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
-initPhyloQuery name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
+-- | To initialize a PhyloQueryBuild from given and default parameters
+initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
+initPhyloQueryBuild name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
   (def defaultWeightedLogJaccard -> matching') (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
     PhyloQueryBuild name desc grain steps cluster metrics filters matching' nthLevel nthCluster
 
@@ -760,8 +760,8 @@ defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing N
 
 -- Queries
 
-defaultQuery :: PhyloQueryBuild
-defaultQuery = initPhyloQuery "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
+defaultQueryBuild :: PhyloQueryBuild
+defaultQueryBuild = initPhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
                               Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView

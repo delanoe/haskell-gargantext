@@ -112,7 +112,7 @@ cliqueToGroup prd lvl idx lbl fis m p =
       where
         --------------------------------------
         ngrams :: [Int]
-        ngrams = sort $ map (\x -> getIdxInPeaks x p)
+        ngrams = sort $ map (\x -> getIdxInRoots x p)
                       $ Set.toList
                       $ getClique fis
         --------------------------------------
@@ -125,7 +125,7 @@ cliqueToGroup prd lvl idx lbl fis m p =
 -- | To transform a list of Ngrams into a PhyloGroup
 ngramsToGroup ::  PhyloPeriodId -> Level -> Int -> Text -> [Ngrams] -> Phylo -> PhyloGroup
 ngramsToGroup prd lvl idx lbl ngrams p =
-    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInPeaks x p) ngrams) empty empty Nothing [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInRoots x p) ngrams) empty empty Nothing [] [] [] []
 
 
 -- | To traverse a Phylo and add a new PhyloLevel linked to a new list of PhyloGroups
@@ -182,11 +182,11 @@ toPhylo0 d p = addPhyloLevel 0 d p
 
 -- | To reconstruct the Base of a Phylo
 toPhyloBase :: PhyloQueryBuild -> PhyloParam -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
-toPhyloBase q p c a ts = initPhyloBase periods foundations peaks p
+toPhyloBase q p c a ts = initPhyloBase periods foundations roots p
   where
     --------------------------------------
-    peaks :: PhyloPeaks
-    peaks = initPeaks (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
+    roots :: PhyloRoots
+    roots = initRoots (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
     --------------------------------------
     periods :: [(Date,Date)]
     periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)

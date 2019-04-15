@@ -26,17 +26,30 @@ import Data.GraphViz.Types.Monadic
 import Data.List        ((++),unwords,concat,sortOn,nub)
 import Data.Map         (Map,toList)
 import Data.Maybe       (isNothing,fromJust)
-import Data.Text.Lazy   (fromStrict, pack)
+import Data.Text.Lazy   (fromStrict, pack, unpack)
 
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as T'
 import qualified Data.GraphViz.Attributes.HTML as H
 
 import Gargantext.Prelude
-import Gargantext.Viz.Phylo
+import Gargantext.Viz.Phylo hiding (Dot)
 import Gargantext.Viz.Phylo.Tools
 
+
+import Prelude (writeFile)
+import System.FilePath
+
 type DotId = T'.Text
+
+
+---------------------
+-- | Dot to File | --
+---------------------
+
+dotToFile :: FilePath -> FilePath -> DotGraph DotId -> IO ()
+dotToFile filePath fileName dotG = writeFile (combine filePath fileName) $ unpack (printDotGraph dotG)
+
 
 --------------------------
 -- | PhyloView to DOT | --
@@ -105,7 +118,7 @@ toDotLabel lbl = StrLabel $ fromStrict lbl
 -- | To set a Peak Node
 setPeakDotNode :: PhyloBranch -> Dot DotId
 setPeakDotNode pb = node (toBranchDotId $ pb ^. pb_id) 
-                      ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ pb ^. pb_label)]
+                      ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ pb ^. pb_peak)]
                        <> (setAttrFromMetrics $ pb ^. pb_metrics))
 
 
@@ -187,7 +200,7 @@ viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title)
 
                             mapM setDotNode $ filterNodesByPeriod prd $ filterNodesByLevel (pv ^. pv_level) (pv ^.pv_nodes)
                           
-                     ) $ getViewPeriods pv
+                     ) $ (pv ^. pv_periods)
 
                 -- set the edges : from peaks to nodes, from nodes to nodes, from periods to periods 
 
@@ -195,7 +208,7 @@ viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title)
 
                 _ <- mapM setDotEdge $ filterEdgesByLevel (pv ^. pv_level) $ filterEdgesByType PeriodEdge (pv ^. pv_edges)
 
-                mapM setDotPeriodEdge $ listToSequentialCombi $ getViewPeriods pv
+                mapM setDotPeriodEdge $ listToSequentialCombi $ (pv ^. pv_periods)
 
 
 

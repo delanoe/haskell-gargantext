@@ -45,9 +45,11 @@ initPhyloEdge id pts et = map (\pt -> PhyloEdge id (fst pt) et (snd pt)) pts
 
 -- | To init a PhyloView
 initPhyloView :: Level -> Text -> Text -> Filiation -> Bool -> Phylo -> PhyloView
-initPhyloView lvl lbl dsc fl vb p = PhyloView (getPhyloParams p) lbl dsc fl lvl empty
+initPhyloView lvl lbl dsc fl vb p = PhyloView (getPhyloParams p) lbl dsc fl lvl 
+                                    (getPhyloPeriods p)
+                                    empty
                                     ([] ++ (phyloToBranches lvl p))
-                                    ([] ++ (groupsToNodes True vb (getPeaksLabels p) gs))
+                                    ([] ++ (groupsToNodes True vb (getRootsLabels p) gs))
                                     ([] ++ (groupsToEdges fl PeriodEdge gs))
   where
     --------------------------------------
@@ -74,6 +76,7 @@ groupsToNodes isR isV ns gs = map (\g -> let idxs = getGroupNgrams g
                                   ) gs
 
 
+-- | To merge edges by keeping the maximum weight
 mergeEdges :: [PhyloEdge] -> [PhyloEdge] -> [PhyloEdge]
 mergeEdges lAsc lDes = elems
                      $ unionWithKey (\_k vAsc vDes -> vDes & pe_weight .~ (max (vAsc ^. pe_weight) (vDes ^. pe_weight))) mAsc mDes
@@ -81,6 +84,8 @@ mergeEdges lAsc lDes = elems
     --------------------------------------
     mAsc :: Map (PhyloGroupId,PhyloGroupId) PhyloEdge
     mAsc = fromList
+         $ map (\(k,e) -> (k, e & pe_source .~ fst k
+                                & pe_target .~ snd k))
          $ zip (map (\e -> (e ^. pe_target,e ^. pe_source)) lAsc) lAsc
     --------------------------------------
     mDes :: Map (PhyloGroupId,PhyloGroupId) PhyloEdge
@@ -118,7 +123,7 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
   then v
   else addChildNodes shouldDo (lvl - 1) lvlMin vb fl p
      $ v & pv_branches %~ (++ (phyloToBranches (lvl - 1) p))
-         & pv_nodes %~ (++ (groupsToNodes False vb (getPeaksLabels p) gs'))
+         & pv_nodes %~ (++ (groupsToNodes False vb (getRootsLabels p) gs'))
          & pv_edges %~ (++ (groupsToEdges fl PeriodEdge gs'))
          & pv_edges %~ (++ (groupsToEdges Descendant LevelEdge gs ))
          & pv_edges %~ (++ (groupsToEdges Ascendant LevelEdge  gs'))
