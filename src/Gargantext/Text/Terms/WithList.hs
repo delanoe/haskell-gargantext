@@ -18,7 +18,7 @@ commentary with @some markup@.
 module Gargantext.Text.Terms.WithList where
 
 import qualified Data.Algorithms.KMP as KMP
-import Data.Text (Text)
+import Data.Text (Text, concat, unpack)
 import qualified Data.IntMap.Strict as IntMap
 
 import Gargantext.Text.Context
@@ -75,3 +75,12 @@ buildPatterns = sortWith (Down . _pat_length) . concatMap buildPattern
 
 extractTermsWithList :: Patterns -> Text -> Corpus [Text]
 extractTermsWithList pats = map (replaceTerms pats) . monoTextsBySentence
+
+-- | Extract terms
+-- >>> let termList = [(["chat blanc"], [["chat","blanc"]])] :: TermList
+-- extractTermsWithList' (buildPatterns termList) "Le chat blanc"["chat blanc"]
+-- ["chat blanc"]
+extractTermsWithList' :: Patterns -> Text -> [Text]
+extractTermsWithList' pats = map (concat . map concat . replaceTerms pats) . monoTextsBySentence
+
+
