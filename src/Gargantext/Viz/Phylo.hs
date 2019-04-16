@@ -193,7 +193,7 @@ type Ngrams = Text
 data Document = Document
       { date :: Date
       , text :: [Ngrams]
-      } deriving (Show)
+      } deriving (Show,Generic)
 
 -- | Clique : Set of ngrams cooccurring in the same Document
 type Clique   = Set Ngrams
