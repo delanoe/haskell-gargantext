@@ -89,7 +89,7 @@ main = do
   
   let patterns = buildPatterns termList
 
-  let corpusParsed = map ( (\(y,t) -> Document y (filter (\e -> e /= "") t)) . filterTerms patterns) corpus
+  let corpusParsed = map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus
 
   let query = PhyloQueryBuild "cultural_evolution" "Test" 5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
 
@@ -97,15 +97,15 @@ main = do
 
   let foundations = DL.nub $ DL.concat $ map _pat_terms patterns
 
-  let phylo = toPhylo query corpusParsed foundations tree
+  -- let phylo = toPhylo query corpusParsed foundations tree
 
-  let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
+  -- let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
-  let view = toPhyloView queryView phylo
+  -- let view = toPhyloView queryView phylo
 
     -- TODO Phylo here
-  P.writeFile outputPath $ dotToString $ viewToDot view 
-  -- L.writeFile outputPath $ encode corpusParsed
+  -- P.writeFile outputPath $ dotToString $ viewToDot view 
+  L.writeFile outputPath $ encode corpusParsed
 
 
 

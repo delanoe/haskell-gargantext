@@ -307,7 +307,7 @@ data Metric = BranchAge deriving (Generic, Show, Eq, Read)
 
 
 -- | Tagger constructors
-data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show)
+data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show,Generic,Read)
 
 
 --------------
@@ -349,7 +349,7 @@ data PhyloQueryBuild = PhyloQueryBuild
     } deriving (Generic, Show, Eq)
 
 -- | To choose the Phylo edge you want to export : --> <-- <--> <=>
-data Filiation = Ascendant | Descendant | Merge | Complete deriving (Generic, Show)
+data Filiation = Ascendant | Descendant | Merge | Complete deriving (Generic, Show, Read)
 data EdgeType  = PeriodEdge | LevelEdge deriving (Generic, Show, Eq)
 
 -------------------
@@ -402,6 +402,7 @@ data PhyloNode = PhyloNode
 
 
 data ExportMode = Json | Dot | Svg
+  deriving (Generic, Show, Read)
 data DisplayMode = Flat | Nested
   deriving (Generic, Show, Read)
 

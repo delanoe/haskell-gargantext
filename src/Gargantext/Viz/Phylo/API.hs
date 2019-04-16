@@ -66,6 +66,7 @@ type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "taggers"    [Tagger]
               :> QueryParam "sort"       Sort
               :> QueryParam "order"      Order
+              :> QueryParam "export"    ExportMode
               :> QueryParam "display"    DisplayMode
               :> QueryParam "verbose"     Bool
               :> Get '[JSON] PhyloView
@@ -74,11 +75,11 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- Add real text processing
 -- Fix Filter parameters
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo _phyloId _lId l f b l' ms x y z ts s o d b' = do
+getPhylo _phyloId _lId l f b l' ms x y z ts s o e d b' = do
   let
     fs' = maybe (Just []) (\p -> Just [p]) $ SmallBranch <$> (SBParams <$> x <*> y <*> z)
     so  = (,) <$> s <*> o
-    q = initPhyloQueryView l f b l' ms fs' ts so d b'
+    q = initPhyloQueryView l f b l' ms fs' ts so e d b'
   -- | TODO remove phylo for real data here
   pure (toPhyloView  q phylo)
 
@@ -143,7 +144,7 @@ instance ToSchema PhyloGroup
 instance ToSchema PhyloLevel
 instance ToSchema PhyloNode
 instance ToSchema PhyloParam
-instance ToSchema PhyloPeaks
+instance ToSchema PhyloRoots
 instance ToSchema PhyloPeriod
 instance ToSchema PhyloQueryBuild
 instance ToSchema PhyloView
@@ -172,6 +173,12 @@ instance ToParamSchema   DisplayMode
 instance FromHttpApiData DisplayMode
   where
     parseUrlPiece = readTextData
+
+
+instance ToParamSchema   ExportMode
+instance FromHttpApiData ExportMode
+  where
+    parseUrlPiece = readTextData    
 
 
 instance FromHttpApiData Sort
