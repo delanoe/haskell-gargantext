@@ -181,36 +181,86 @@ toPhylo0 d p = addPhyloLevel 0 d p
 
 
 -- | To reconstruct the Base of a Phylo
-toPhyloBase :: PhyloQueryBuild -> PhyloParam -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
-toPhyloBase q p c a ts = initPhyloBase periods foundations roots p
-  where
-    --------------------------------------
-    roots :: PhyloRoots
-    roots = initRoots (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
-    --------------------------------------
-    periods :: [(Date,Date)]
-    periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)
-            $ both fst (head' "LevelMaker" c,last c)
-    --------------------------------------
-    foundations :: Vector Ngrams
-    foundations = initFoundations a
-    --------------------------------------
-
 
 -- | To reconstruct a Phylomemy from a PhyloQueryBuild, a Corpus and a list of actants
-toPhylo :: PhyloQueryBuild -> [(Date, Text)] -> [Ngrams] -> [Tree Ngrams] -> Phylo
-toPhylo q c a ts = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+
+
+
+
+
+class PhyloMaker corpus
+    where
+        toPhylo ::  PhyloQueryBuild -> corpus -> [Ngrams] -> [Tree Ngrams] -> Phylo
+        toPhyloBase :: PhyloQueryBuild -> PhyloParam -> corpus -> [Ngrams] -> [Tree Ngrams] -> Phylo
+        corpusToDocs :: corpus -> Phylo -> Map (Date,Date) [Document]
+
+instance PhyloMaker [(Date, Text)]
   where
     --------------------------------------
-    phylo1 :: Phylo
-    phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) (getContextualUnitMetrics q) (getContextualUnitFilters q) phyloDocs phylo0
+    toPhylo q c a ts = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+      where
+        --------------------------------------
+        phylo1 :: Phylo
+        phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) (getContextualUnitMetrics q) (getContextualUnitFilters q) phyloDocs phylo0
+        --------------------------------------
+        phylo0 :: Phylo
+        phylo0 = toPhylo0 phyloDocs phyloBase
+        --------------------------------------
+        phyloDocs :: Map (Date, Date) [Document]
+        phyloDocs = corpusToDocs c phyloBase
+        --------------------------------------
+        phyloBase :: Phylo
+        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a ts
+        --------------------------------------       
     --------------------------------------
-    phylo0 :: Phylo
-    phylo0 = toPhylo0 phyloDocs phyloBase
+    toPhyloBase q p c a ts = initPhyloBase periods foundations roots p
+      where
+        --------------------------------------
+        roots :: PhyloRoots
+        roots = initRoots (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
+        --------------------------------------
+        periods :: [(Date,Date)]
+        periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)
+                $ both fst (head' "LevelMaker" c,last c)
+        --------------------------------------
+        foundations :: Vector Ngrams
+        foundations = initFoundations a
+        --------------------------------------
     --------------------------------------
-    phyloDocs :: Map (Date, Date) [Document]
-    phyloDocs = corpusToDocs c phyloBase
+    corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p) $ parseDocs (getFoundations p) (getRoots p) c
+
+
+instance PhyloMaker [Document]
+  where
     --------------------------------------
-    phyloBase :: Phylo
-    phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a ts
+    toPhylo q c a ts = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+      where
+        --------------------------------------
+        phylo1 :: Phylo
+        phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) (getContextualUnitMetrics q) (getContextualUnitFilters q) phyloDocs phylo0
+        --------------------------------------
+        phylo0 :: Phylo
+        phylo0 = toPhylo0 phyloDocs phyloBase
+        --------------------------------------
+        phyloDocs :: Map (Date, Date) [Document]
+        phyloDocs = corpusToDocs c phyloBase
+        --------------------------------------
+        phyloBase :: Phylo
+        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a ts
+        --------------------------------------       
     --------------------------------------
+    toPhyloBase q p c a ts = initPhyloBase periods foundations roots p
+      where
+        --------------------------------------
+        roots :: PhyloRoots
+        roots = initRoots (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
+        --------------------------------------
+        periods :: [(Date,Date)]
+        periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)
+                $ both date (head' "LevelMaker" c,last c)
+        --------------------------------------
+        foundations :: Vector Ngrams
+        foundations = initFoundations a
+        --------------------------------------
+    --------------------------------------
+    corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p) c

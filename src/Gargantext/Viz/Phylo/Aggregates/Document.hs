@@ -72,6 +72,5 @@ parseDocs fds roots c = map (\(d,t)
 
 
 -- | To transform a Corpus of texts into a Map of aggregated Documents grouped by Periods
-corpusToDocs :: [(Date,Text)] -> Phylo -> Map (Date,Date) [Document]
-corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p)
-                $ parseDocs (getFoundations p) (getRoots p) c
+
+

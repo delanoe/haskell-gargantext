@@ -48,7 +48,10 @@ type DotId = T'.Text
 ---------------------
 
 dotToFile :: FilePath -> FilePath -> DotGraph DotId -> IO ()
-dotToFile filePath fileName dotG = writeFile (combine filePath fileName) $ unpack (printDotGraph dotG)
+dotToFile filePath fileName dotG = writeFile (combine filePath fileName) $ dotToString dotG
+
+dotToString :: DotGraph DotId  -> [Char]
+dotToString dotG = unpack (printDotGraph dotG)
 
 
 --------------------------
