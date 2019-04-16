@@ -23,7 +23,7 @@ Phylo binaries
 module Main where
 
 import Data.Aeson
-import Data.Text (Text)
+import Data.Text (Text, unwords)
 import GHC.Generics
 import GHC.IO (FilePath)
 import Gargantext.Prelude
@@ -60,7 +60,7 @@ filterTerms :: Patterns -> (a, Text) -> (a, [Text])
 filterTerms patterns (year', doc) = (year',termsInText patterns doc)
   where
     termsInText :: Patterns -> Text -> [Text]
-    termsInText pats txt = extractTermsWithList' pats txt
+    termsInText pats txt = DL.nub $ DL.concat $ map (map unwords) $ extractTermsWithList pats txt
 
 
 -- csvToCorpus :: Int -> FilePath -> IO (DM.Map Int [Text])
@@ -70,6 +70,17 @@ csvToCorpus limit csv = DV.toList
                       . DV.take limit
                       . DV.map (\n -> (csv_publication_year n, (csv_title n) <> " " <> (csv_abstract n)))
                       . snd <$> readCsv csv
+
+type ListPath   = FilePath
+type CorpusPath = FilePath
+type Limit = Int
+
+parse :: Limit -> CorpusPath -> ListPath -> IO [Document]
+parse limit corpus liste = do
+  corpus' <- csvToCorpus limit corpus
+  liste'  <- csvGraphTermList  liste
+  let patterns = buildPatterns liste'
+  pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus'
 
 
 main :: IO ()
@@ -106,6 +117,5 @@ main = do
     -- TODO Phylo here
   -- P.writeFile outputPath $ dotToString $ viewToDot view 
   L.writeFile outputPath $ encode corpusParsed
-
 
 
