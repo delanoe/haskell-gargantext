@@ -166,17 +166,6 @@ type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGInt4       )
 
 -----------------------------------------------------------------------
-
-data FacetChart = FacetChart { facetChart_time  :: UTCTime'
-                             , facetChart_count :: Double
-                        }
-        deriving (Show, Generic)
-$(deriveJSON (unPrefix "facetChart_") ''FacetChart)
-instance ToSchema FacetChart
-
-instance Arbitrary FacetChart where
-    arbitrary = FacetChart <$> arbitrary <*> arbitrary
-
 -----------------------------------------------------------------------
 type Trash   = Bool
 data OrderBy =  DateAsc   | DateDesc

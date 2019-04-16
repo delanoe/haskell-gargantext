@@ -50,7 +50,7 @@ import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.API.Types
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree)
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),FacetChart,runViewAuthorsDoc)
+import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
@@ -60,6 +60,7 @@ import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
+import Gargantext.Viz.Chart
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -124,9 +125,6 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "listGet"   :> TableNgramsApiGet
              :<|> "pairing"   :> PairingApi
              
-             -- VIZ
-             :<|> "chart"     :> ChartApi
-             :<|> "phylo"     :> PhyloAPI
              
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi
@@ -136,7 +134,11 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> QueryParam "limit"  Int
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
-            :<|> "metrics" :> MetricsAPI
+             
+             -- VIZ
+             :<|> "metrics" :> MetricsAPI
+             :<|> "chart"     :> ChartApi
+             :<|> "phylo"     :> PhyloAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -169,14 +171,14 @@ nodeAPI p uId id
            :<|> tableNgramsPatch id
            :<|> getTableNgrams   id
            :<|> getPairing       id
-
-           :<|> getChart id
-           :<|> phyloAPI id
            
            :<|> favApi   id
            :<|> delDocs  id
            :<|> searchIn id
+           
            :<|> getMetrics id
+           :<|> getChart id
+           :<|> phyloAPI id
            -- Annuaire
            -- :<|> upload
            -- :<|> query
@@ -260,7 +262,7 @@ type PairingApi = Summary " Pairing API"
 type ChartApi = Summary " Chart API"
               :> QueryParam "from" UTCTime
               :> QueryParam "to"   UTCTime
-              :> Get '[JSON] [FacetChart]
+              :> Get '[JSON] (ChartMetrics Histo)
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
@@ -327,11 +329,6 @@ getPairing cId ft o l order =
     (Just Docs)  -> runViewAuthorsDoc cId False o l order
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
     _     -> panic "not implemented"
-
-
-getChart :: NodeId -> Maybe UTCTime -> Maybe UTCTime
-                   -> Cmd err [FacetChart]
-getChart _ _ _ = undefined -- TODO
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = mkNodeWithParent nt (Just pId) uId nodeName
