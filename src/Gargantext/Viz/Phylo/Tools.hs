@@ -713,11 +713,8 @@ initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 -- | To initialize a PhyloQueryBuild from given and default parameters
 initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
 initPhyloQueryBuild name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
-  (def defaultWeightedLogJaccard -> matching') (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQueryBuild name' desc' grain steps cluster metrics filters matching' nthLevel nthCluster
-      where
-        name' = maybe "Phylo Title" identity name
-        desc' = maybe "Phylo Desc"  identity desc
+  (def defaultWeightedLogJaccard -> matching) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
+    PhyloQueryBuild name desc grain steps cluster metrics filters matching nthLevel nthCluster
 
 
 

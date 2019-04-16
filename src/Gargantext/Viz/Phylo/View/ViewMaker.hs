@@ -138,19 +138,6 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
 
 
 -- | To transform a PhyloQuery into a PhyloView
-toPhyloView' :: Maybe Level
-                      -> Maybe Filiation
-                      -> Maybe Bool
-                      -> Maybe Level
-                      -> Maybe [Metric]
-                      -> Maybe [Filter]
-                      -> Maybe [Tagger]
-                      -> Maybe (Sort, Order)
-                      -> Maybe DisplayMode
-                      -> Maybe Bool
-                      -> PhyloQueryView
-toPhyloView' = initPhyloQueryView
-
 toPhyloView :: PhyloQueryView -> Phylo -> PhyloView
 toPhyloView q p = processDisplay (q ^. qv_display) (q ^. qv_export)
                 $ processSort    (q ^. qv_sort   ) p
