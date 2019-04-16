@@ -29,6 +29,7 @@ one 8, e54847.
 
 module Gargantext.Viz.Phylo where
 
+import Prelude (Bounded)
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON,defaultOptions)
 import Data.Maybe   (Maybe)
@@ -89,7 +90,7 @@ data PhyloRoots =
                  deriving (Generic, Show, Eq)
 
 -- | A Tree of Ngrams where each node is a label
-data Tree a = Empty | Node a [Tree a] deriving (Show, Eq)
+data Tree a = Empty | Node a [Tree a] deriving (Generic, Show, Eq)
 
 
 -- | Date : a simple Integer
@@ -237,21 +238,21 @@ data PhyloError = LevelDoesNotExist
 data Cluster = Fis FisParams
              | RelatedComponents RCParams
              | Louvain LouvainParams
-        deriving (Generic, Show, Eq)
+        deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Fis clustering
 data FisParams = FisParams
   { _fis_keepMinorFis :: Bool
   , _fis_minSupport   :: Support
-  } deriving (Generic, Show, Eq)
+  } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for RelatedComponents clustering
 data RCParams = RCParams
-  { _rc_proximity :: Proximity } deriving (Generic, Show, Eq)
+  { _rc_proximity :: Proximity } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Louvain clustering
 data LouvainParams = LouvainParams
-  { _louvain_proximity :: Proximity } deriving (Generic, Show, Eq)
+  { _louvain_proximity :: Proximity } deriving (Generic, Show, Eq, Read)
 
 
 -------------------
@@ -263,17 +264,17 @@ data LouvainParams = LouvainParams
 data Proximity = WeightedLogJaccard WLJParams
                | Hamming HammingParams
                | Filiation
-          deriving (Generic, Show, Eq)
+          deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for WeightedLogJaccard proximity
 data WLJParams = WLJParams
   { _wlj_threshold   :: Double
   , _wlj_sensibility :: Double
-  } deriving (Generic, Show, Eq)
+  } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Hamming proximity
 data HammingParams = HammingParams
-  { _hamming_threshold :: Double } deriving (Generic, Show, Eq)
+  { _hamming_threshold :: Double } deriving (Generic, Show, Eq, Read)
 
 
 ----------------
@@ -297,7 +298,7 @@ data SBParams = SBParams
 
 
 -- | Metric constructors
-data Metric = BranchAge deriving (Generic, Show, Eq)
+data Metric = BranchAge deriving (Generic, Show, Eq, Read)
 
 
 ----------------
@@ -306,7 +307,12 @@ data Metric = BranchAge deriving (Generic, Show, Eq)
 
 
 -- | Tagger constructors
+<<<<<<< HEAD
 data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show)
+=======
+data Tagger = BranchLabelFreq | GroupLabelCooc | GroupDynamics
+  deriving (Generic, Show, Read)
+>>>>>>> dev
 
 
 --------------
@@ -315,8 +321,8 @@ data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show)
 
 
 -- | Sort constructors
-data Sort  = ByBranchAge deriving (Generic, Show)
-data Order = Asc | Desc  deriving (Generic, Show)
+data Sort  = ByBranchAge deriving (Generic, Show, Read, Enum, Bounded)
+data Order = Asc | Desc  deriving (Generic, Show, Read)
 
 
 --------------------
@@ -402,6 +408,7 @@ data PhyloNode = PhyloNode
 
 data ExportMode = Json | Dot | Svg
 data DisplayMode = Flat | Nested
+  deriving (Generic, Show, Read)
 
 -- | A PhyloQueryView describes a Phylo as an output view
 data PhyloQueryView = PhyloQueryView

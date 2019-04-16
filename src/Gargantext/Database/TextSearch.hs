@@ -31,7 +31,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Facet
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.NodeNode
+import Gargantext.Database.Schema.NodeNode hiding (joinInCorpus)
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Queries.Join (leftJoin6)
 import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery)
@@ -65,6 +65,7 @@ queryInCorpus :: CorpusId -> Text -> O.Query FacetDocRead
 queryInCorpus cId q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< ( nn_node1_id nn) .== (toNullable $ pgNodeId cId)
+  restrict -< ( nn_delete nn)   .== (toNullable $ pgBool False)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgBool True) (pgInt4 1)

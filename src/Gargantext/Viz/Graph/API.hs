@@ -17,44 +17,46 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings #-}   -- allows to write Text literals
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE TypeOperators      #-}
 
 module Gargantext.Viz.Graph.API
   where
 
+import Data.List (sortOn)
+import Control.Lens (set, view)
 import Control.Monad.IO.Class (liftIO)
-import Control.Lens (set)
---import Servant.Job.Utils (swaggerOptions)
-import Gargantext.Database.Schema.Ngrams
-import Gargantext.API.Types
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
-import Gargantext.Database.Schema.Node ( getNode)
-import Gargantext.Database.Types.Node -- (GraphId, ListId, CorpusId, NodeId)
-import Gargantext.Prelude
 import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Types
 import Gargantext.Core.Types.Main
-import Gargantext.Viz.Graph.Tools -- (cooc2graph)
+import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node (getNode)
 import Gargantext.Database.Schema.Node (defaultList)
+import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
+import Gargantext.Prelude
 import Gargantext.Viz.Graph
+import Gargantext.Viz.Graph.Tools -- (cooc2graph)
 import Servant
 import qualified Data.Map as Map
 
-{-
-getgraph :: GraphId -> GraphView
-getgraph _GraphId = phyloView
---getgraph :: GraphId -> Maybe PhyloQueryView -> PhyloView
---getgraph _GraphId _phyloQueryView = phyloView
+------------------------------------------------------------------------
 
-postgraph :: CorpusId -> Maybe ListId -> GraphQueryBuild -> Phylo
-postgraph = undefined
+-- | There is no Delete specific API for Graph since it can be deleted
+-- as simple Node.
+type GraphAPI   =  Get  '[JSON] Graph
+              :<|> Post '[JSON] [GraphId]
+              :<|> Put  '[JSON] Int
 
-putgraph :: GraphId -> Maybe ListId -> PhyloQueryBuild -> Phylo
-putgraph = undefined
--}
-
-type GraphAPI   = Get '[JSON] Graph
 
 graphAPI :: NodeId -> GargServer GraphAPI
-graphAPI nId = do
+graphAPI n =  getGraph  n
+         :<|> postGraph n
+         :<|> putGraph  n
+
+------------------------------------------------------------------------
+
+getGraph :: NodeId -> GargServer (Get '[JSON] Graph)
+getGraph nId = do
   nodeGraph <- getNode nId HyperdataGraph
 
   let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
@@ -71,7 +73,20 @@ graphAPI nId = do
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
 
-  liftIO $ set graph_metadata (Just metadata) <$> cooc2graph myCooc
+  graph <- liftIO $ cooc2graph myCooc
+  pure $ set graph_metadata (Just metadata)
+       $ set graph_nodes ( sortOn node_id
+                         $ view graph_nodes graph
+                         ) graph
+
+
+postGraph :: NodeId -> GargServer (Post '[JSON] [NodeId])
+postGraph = undefined
+
+putGraph :: NodeId -> GargServer (Put '[JSON] Int)
+putGraph = undefined
+
+
 
 
 -- | Instances

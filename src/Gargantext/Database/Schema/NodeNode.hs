@@ -25,17 +25,23 @@ commentary with @some markup@.
 
 module Gargantext.Database.Schema.NodeNode where
 
+import Control.Lens (view)
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe, catMaybes)
+import Data.Text (Text, splitOn)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Gargantext.Database.Schema.Node 
+import Gargantext.Core.Types
 import Gargantext.Database.Utils
+import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node (CorpusId, DocId)
 import Gargantext.Prelude
 import Opaleye
-
+import Control.Arrow (returnA)
+import qualified Opaleye as O
 
 data NodeNodePoly node1_id node2_id score fav del
                    = NodeNode { nn_node1_id   :: node1_id
@@ -122,6 +128,34 @@ nodesToFavorite inputData = map (\(PGS.Only a) -> a)
                   |]
 
 ------------------------------------------------------------------------
+-- | TODO use UTCTime fast 
+selectDocsDates :: CorpusId -> Cmd err [Text]
+selectDocsDates cId = 
+                map (head' "selectDocsDates" . splitOn "-")
+               <$> catMaybes
+               <$> map (view hyperdataDocument_publication_date)
+               <$> selectDocs cId
+
+
+selectDocs :: CorpusId -> Cmd err [HyperdataDocument]
+selectDocs cId = runOpaQuery (queryDocs cId)
+
+queryDocs :: CorpusId -> O.Query (Column PGJsonb)
+queryDocs cId = proc () -> do
+  (n, nn) <- joinInCorpus -< ()
+  restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
+  restrict -< ( nn_delete nn)    .== (toNullable $ pgBool False)
+  restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  returnA -< view (node_hyperdata) n
+
+
+joinInCorpus :: O.Query (NodeRead, NodeNodeReadNull)
+joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
+  where
+    cond :: (NodeRead, NodeNodeRead) -> Column PGBool
+    cond (n, nn) = nn_node2_id nn .== (view node_id n)
+
+
 ------------------------------------------------------------------------
 -- | Trash management
 nodeToTrash :: CorpusId -> DocId -> Bool -> Cmd err [PGS.Only Int]
@@ -159,5 +193,3 @@ emptyTrash cId = runPGSQuery delQuery (PGS.Only cId)
                     RETURNING n.node2_id
                 |]
 ------------------------------------------------------------------------
-
-

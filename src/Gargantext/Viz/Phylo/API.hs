@@ -12,39 +12,120 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}   -- allows to write Text literals
-{-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
+
+{-# LANGUAGE RankNTypes         #-}
+{-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE OverloadedStrings  #-}   -- allows to write Text literals
+{-# LANGUAGE OverloadedLists    #-}   -- allows to write Map and HashMap as lists
+{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE FlexibleInstances  #-}
 
 module Gargantext.Viz.Phylo.API
   where
 
+--import Control.Monad.Reader (ask)
+import Data.Text (Text)
 import Data.Swagger
-import Servant.Job.Utils (swaggerOptions)
+import Gargantext.API.Types
 import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Example
+import Gargantext.Viz.Phylo.Tools
+import Gargantext.Viz.Phylo.View.ViewMaker
+import Gargantext.Viz.Phylo.LevelMaker
+import Servant
+import Servant.Job.Utils (swaggerOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import Web.HttpApiData (parseUrlPiece, readTextData)
+
+------------------------------------------------------------------------
+type PhyloAPI = Summary "Phylo API"
+              :> GetPhylo
+        --    :<|> PutPhylo
+            :<|> PostPhylo
 
 
-getPhylo :: PhyloId -> PhyloView
-getPhylo _phyloId = phyloView
---getPhylo :: PhyloId -> Maybe PhyloQueryView -> PhyloView
---getPhylo _phyloId _phyloQueryView = phyloView
+phyloAPI :: PhyloId -> GargServer PhyloAPI
+phyloAPI n = getPhylo  n
+        -- :<|> putPhylo  n
+        :<|> postPhylo n
 
-postPhylo :: CorpusId -> Maybe ListId -> PhyloQueryBuild -> Phylo
-postPhylo = undefined
+------------------------------------------------------------------------
+type GetPhylo =  QueryParam "listId"      ListId
+              :> QueryParam "level"       Level
+              :> QueryParam "filiation"   Filiation
+              :> QueryParam "childs"      Bool
+              :> QueryParam "depth"       Level
+              :> QueryParam "metrics"    [Metric]
+              :> QueryParam "periodsInf" Int
+              :> QueryParam "periodsSup" Int
+              :> QueryParam "minNodes"   Int
+              :> QueryParam "taggers"    [Tagger]
+              :> QueryParam "sort"       Sort
+              :> QueryParam "order"      Order
+              :> QueryParam "display"    DisplayMode
+              :> QueryParam "verbose"     Bool
+              :> Get '[JSON] PhyloView
 
-putPhylo :: PhyloId -> Maybe ListId -> PhyloQueryBuild -> Phylo
+-- | TODO
+-- Add real text processing
+-- Fix Filter parameters
+getPhylo :: PhyloId -> GargServer GetPhylo
+getPhylo _phyloId _lId l f b l' ms x y z ts s o d b' = do
+  let
+    fs' = maybe (Just []) (\p -> Just [p]) $ SmallBranch <$> (SBParams <$> x <*> y <*> z)
+    so  = (,) <$> s <*> o
+    q = initPhyloQueryView l f b l' ms fs' ts so d b'
+  -- | TODO remove phylo for real data here
+  pure (toPhyloView  q phylo)
+
+------------------------------------------------------------------------
+{-
+type PutPhylo = (Put '[JSON] Phylo  )
+--putPhylo :: PhyloId -> Maybe ListId -> PhyloQueryBuild -> Phylo
+putPhylo :: PhyloId -> GargServer PutPhylo
 putPhylo = undefined
+-}
+------------------------------------------------------------------------
+type PostPhylo =  QueryParam "listId" ListId
+               :> ReqBody '[JSON] PhyloQueryBuild
+               :> (Post '[JSON] Phylo)
 
-deletePhylo :: PhyloId -> IO ()
-deletePhylo = undefined
+postPhylo :: CorpusId -> GargServer PostPhylo
+postPhylo _n _lId q = do
+  -- TODO get Reader settings
+  -- s <- ask
+  let
+    vrs = Just ("1" :: Text)
+    sft = Just (Software "Gargantext" "4")
+    prm = initPhyloParam vrs sft (Just q)
+  pure (toPhyloBase q prm corpus actants actantsTrees)
+
+
+------------------------------------------------------------------------
+-- | DELETE Phylo == delete a node
+------------------------------------------------------------------------
+
+
 
 
 -- | Instances
+instance Arbitrary PhyloView
+  where
+    arbitrary = elements [phyloView]
+
+-- | TODO add phyloGroup ex
+instance Arbitrary PhyloGroup
+  where
+    arbitrary = elements []
+
+instance Arbitrary Phylo
+  where
+    arbitrary = elements [phylo]
+
 
 instance ToSchema Cluster
 instance ToSchema EdgeType
@@ -54,10 +135,16 @@ instance ToSchema FisParams
 instance ToSchema HammingParams
 instance ToSchema LouvainParams
 instance ToSchema Metric
+instance ToSchema Order
+instance ToSchema Phylo
 instance ToSchema PhyloBranch
 instance ToSchema PhyloEdge
+instance ToSchema PhyloGroup
+instance ToSchema PhyloLevel
 instance ToSchema PhyloNode
 instance ToSchema PhyloParam
+instance ToSchema PhyloPeaks
+instance ToSchema PhyloPeriod
 instance ToSchema PhyloQueryBuild
 instance ToSchema PhyloView
 instance ToSchema RCParams
@@ -65,12 +152,55 @@ instance ToSchema SBParams
 instance ToSchema Software
 instance ToSchema WLJParams
 
+
+instance ToParamSchema Order
+instance FromHttpApiData Order
+  where
+    parseUrlPiece = readTextData
+
+
+instance ToParamSchema Metric
+instance FromHttpApiData [Metric]
+  where
+    parseUrlPiece = readTextData
+instance FromHttpApiData Metric
+  where
+    parseUrlPiece = readTextData
+
+
+instance ToParamSchema   DisplayMode
+instance FromHttpApiData DisplayMode
+  where
+    parseUrlPiece = readTextData
+
+
+instance FromHttpApiData Sort
+  where
+    parseUrlPiece = readTextData
+instance ToParamSchema Sort
+
+instance (ToSchema a) => ToSchema (Tree a)
+  where
+    declareNamedSchema = genericDeclareNamedSchemaUnrestricted
+                       $ swaggerOptions ""
+
 instance ToSchema Proximity
   where
     declareNamedSchema = genericDeclareNamedSchemaUnrestricted
                        $ swaggerOptions ""
 
-instance Arbitrary PhyloView
+
+instance FromHttpApiData [Tagger]
   where
-    arbitrary = elements [phyloView]
+    parseUrlPiece = readTextData
+instance FromHttpApiData Tagger
+  where
+    parseUrlPiece = readTextData
+instance ToParamSchema   Tagger
+
+instance FromHttpApiData Filiation
+  where
+    parseUrlPiece = readTextData
+instance ToParamSchema   Filiation
+
 

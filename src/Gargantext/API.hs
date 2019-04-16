@@ -8,15 +8,8 @@ Stability   : experimental
 Portability : POSIX
 
 Main REST API of Gargantext (both Server and Client sides)
+Thanks @yannEsposito for our discussions at the beginning of this project :).
 
-TODO App type, the main monad in which the bot code is written with.
-
-Provide config, state, logs and IO
- type App m a =  ( MonadState AppState m
-                 , MonadReader Conf m
-                 , MonadLog (WithSeverity Doc) m
-                 , MonadIO m) => m a
-Thanks @yannEsposito for this.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}

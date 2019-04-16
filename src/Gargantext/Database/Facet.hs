@@ -166,17 +166,6 @@ type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGInt4       )
 
 -----------------------------------------------------------------------
-
-data FacetChart = FacetChart { facetChart_time  :: UTCTime'
-                             , facetChart_count :: Double
-                        }
-        deriving (Show, Generic)
-$(deriveJSON (unPrefix "facetChart_") ''FacetChart)
-instance ToSchema FacetChart
-
-instance Arbitrary FacetChart where
-    arbitrary = FacetChart <$> arbitrary <*> arbitrary
-
 -----------------------------------------------------------------------
 type Trash   = Bool
 data OrderBy =  DateAsc   | DateDesc
@@ -254,10 +243,10 @@ viewDocuments :: CorpusId -> Trash -> NodeTypeId -> Query FacetDocRead
 viewDocuments cId t ntId = proc () -> do
   n  <- queryNodeTable     -< ()
   nn <- queryNodeNodeTable -< ()
-  restrict -< _node_id          n  .== nn_node2_id nn
-  restrict -< nn_node1_id nn .== (pgNodeId cId)
-  restrict -< _node_typename    n  .== (pgInt4 ntId)
-  restrict -< nn_delete   nn .== (pgBool t)
+  restrict -< _node_id        n .== nn_node2_id nn
+  restrict -< nn_node1_id    nn .== (pgNodeId cId)
+  restrict -< _node_typename  n .== (pgInt4 ntId)
+  restrict -< nn_delete      nn .== (pgBool t)
   returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (nn_favorite nn) (pgInt4 1)
 
 
