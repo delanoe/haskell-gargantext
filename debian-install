@@ -31,10 +31,9 @@ git clone https://github.com/delanoe/haskell-opaleye
 git clone -b next --single-branch https://github.com/delanoe/hsparql
 cd ..
 
-stack docker pull
-stack --docker setup
-stack --docker build
-stack --docker install
+stack setup
+stack build
+stack install
 
 
 # Database configuration
