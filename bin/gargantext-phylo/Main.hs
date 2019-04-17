@@ -41,6 +41,7 @@ import Gargantext.Viz.Phylo.View.ViewMaker
 import qualified Data.Map    as DM
 import qualified Data.Vector as DV
 import qualified Data.List   as DL
+import qualified Data.Text   as DT
 import qualified Prelude     as P
 import qualified Data.ByteString.Lazy as L
 
@@ -92,30 +93,21 @@ main = do
   let termListPath = "/home/qlobbe/data/epique/corpus/cultural_evolution/termList.csv"
   let outputPath   = "/home/qlobbe/data/epique/output/cultural_evolution.dot"
 
-  corpus <- csvToCorpus 10 corpusPath 
+  let query     = PhyloQueryBuild "cultural_evolution" "Test" 5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
+  let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
-  termList <- csvGraphTermList termListPath
+  corpus <- parse 5000 corpusPath termListPath 
 
-  putStrLn $ show $ length termList
-  
-  let patterns = buildPatterns termList
+  let foundations = DL.nub $ DL.concat $ map text corpus
 
-  let corpusParsed = map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus
+  -- putStrLn $ show $ csvGraphTermList termListPath
 
-  let query = PhyloQueryBuild "cultural_evolution" "Test" 5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
+  let phylo = toPhylo query corpus foundations []
 
-  let tree = []
-
-  let foundations = DL.nub $ DL.concat $ map _pat_terms patterns
-
-  -- let phylo = toPhylo query corpusParsed foundations tree
-
-  -- let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
-
-  -- let view = toPhyloView queryView phylo
+  let view  = toPhyloView queryView phylo
 
     -- TODO Phylo here
-  -- P.writeFile outputPath $ dotToString $ viewToDot view 
-  L.writeFile outputPath $ encode corpusParsed
+  P.writeFile outputPath $ dotToString $ viewToDot view 
+  -- L.writeFile outputPath $ encode corpus
 
 
