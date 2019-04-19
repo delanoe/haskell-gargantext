@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.LinkMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), nub, sortOn, null, tail, splitAt, elem)
+import Data.List                    ((++), nub, sortOn, null, tail, splitAt, elem, concat)
 import Data.Tuple.Extra
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
@@ -26,6 +26,7 @@ import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
 import qualified Data.List  as List
 import qualified Data.Maybe as Maybe
+-- import Debug.Trace (trace)
 
 
 ------------------------------------------------------------------------
@@ -117,7 +118,7 @@ findBestCandidates to' depth max' prox group p
     next = getNextPeriods to' (getGroupPeriod group) (getPhyloPeriods p)
     --------------------------------------
     candidates :: [PhyloGroup]
-    candidates = getGroupsWithFilters (getGroupLevel group) (head' "findBestCandidates" next) p
+    candidates = concat $ map (\prd -> getGroupsWithFilters (getGroupLevel group) prd p) $ (take depth next)
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
     scores = map (\group' -> applyProximity prox group group') candidates
