@@ -131,6 +131,14 @@ mSetFromSet = MSet . Map.fromSet (const ())
 mSetFromList :: Ord a => [a] -> MSet a
 mSetFromList = MSet . Map.fromList . map (\x -> (x, ()))
 
+-- mSetToSet :: Ord a => MSet a -> Set a
+-- mSetToSet (MSet a) = Set.fromList ( Map.keys a)
+mSetToSet :: Ord a => MSet a -> Set a
+mSetToSet = Set.fromList . mSetToList
+
+mSetToList :: MSet a -> [a]
+mSetToList (MSet a) = Map.keys a
+
 instance Foldable MSet where
   foldMap f (MSet m) = Map.foldMapWithKey (\k _ -> f k) m
 

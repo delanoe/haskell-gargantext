@@ -35,6 +35,9 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Utils
 import Gargantext.Core.Types (CorpusId)
 import Gargantext.Prelude
+import Gargantext.API.Ngrams
+import Gargantext.API.Ngrams.NTree
+import Gargantext.Database.Flow
 import Gargantext.Viz.Chart
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -66,7 +69,6 @@ instance Arbitrary Metric
 deriveJSON (unPrefix "metrics_") ''Metrics
 deriveJSON (unPrefix "m_") ''Metric
 
-
 -------------------------------------------------------------
 
 data ChartMetrics a = ChartMetrics { chartMetrics_data :: a }
@@ -88,6 +90,20 @@ instance Arbitrary Histo
                          ]
 deriveJSON (unPrefix "histo_") ''Histo
 
+instance ToSchema (TreeChartMetrics)
+instance Arbitrary (TreeChartMetrics)
+  where
+    arbitrary = TreeChartMetrics <$> arbitrary
+
+
+instance ToSchema MyTree
+instance Arbitrary MyTree
+  where
+    arbitrary = MyTree <$> arbitrary <*> arbitrary <*> arbitrary
+
+
+
+
 
 -- TODO add start / end
 getChart :: CorpusId -> Maybe UTCTime -> Maybe UTCTime -> Cmd err (ChartMetrics Histo)
@@ -95,18 +111,15 @@ getChart cId _start _end = do
   h <- histoData cId
   pure (ChartMetrics h)
 
+getPie :: FlowCmdM env err m => CorpusId -> Maybe UTCTime -> Maybe UTCTime -> TabType -> m (ChartMetrics Histo)
+getPie cId _start _end tt = do
+  p <- pieData cId (ngramsTypeFromTabType tt) GraphTerm
+  pure (ChartMetrics p)
+
+getTree :: FlowCmdM env err m => CorpusId -> Maybe UTCTime -> Maybe UTCTime -> TabType -> ListType -> m (ChartMetrics TreeChartMetrics)
+getTree cId _start _end tt lt = do
+  p <- treeData cId (ngramsTypeFromTabType tt) lt
+  pure (ChartMetrics p)
 
 
-{-
-data FacetChart = FacetChart { facetChart_time  :: UTCTime'
-                             , facetChart_count :: Double
-                        }
-        deriving (Show, Generic)
-$(deriveJSON (unPrefix "facetChart_") ''FacetChart)
-instance ToSchema FacetChart
-
-instance Arbitrary FacetChart where
-    arbitrary = FacetChart <$> arbitrary <*> arbitrary
-
--}
 

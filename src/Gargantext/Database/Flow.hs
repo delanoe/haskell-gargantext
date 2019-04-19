@@ -12,6 +12,10 @@ Portability : POSIX
 --   check userId       CanFillUserCorpus   userCorpusId
 --   check masterUserId CanFillMasterCorpus masterCorpusId
 
+-- TODO-ACCESS: check uId CanInsertDoc pId && checkDocType nodeType
+-- TODO-EVENTS: InsertedNodes
+
+
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
@@ -24,15 +28,6 @@ Portability : POSIX
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
---import Gargantext.Database.Metrics.Count (getNgramsElementsWithParentNodeId)
---import Gargantext.Database.Metrics.TFICF (getTficf)
---import Gargantext.Database.Node.Contact (HyperdataContact(..))
---import Gargantext.Database.Schema.NodeNgram (NodeNgramPoly(..), insertNodeNgrams)
---import Gargantext.Database.Schema.NodeNgramsNgrams (NodeNgramsNgramsPoly(..), insertNodeNgramsNgramsNew)
---import Gargantext.Database.Schema.User (insertUsers, simpleUser, gargantuaUser)
-import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
---import Gargantext.Text.Metrics.TFICF (Tficf(..))
---import Debug.Trace (trace)
 import Control.Lens ((^.), view, Lens', _Just)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
@@ -48,30 +43,31 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main
-import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
-import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
+import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
+import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd, CmdM)
 import Gargantext.Ext.IMT (toSchoolName)
+import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
 import Gargantext.Text.Parsers (parseDocs, FileFormat)
 import Gargantext.Text.Terms (TermType(..), tt_lang)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
-import qualified Gargantext.Text.Parsers.GrandDebat as GD
 import Servant (ServantErr)
 import System.FilePath (FilePath)
 import qualified Data.Map as DM
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
+import qualified Gargantext.Text.Parsers.GrandDebat as GD
 
 type FlowCmdM env err m =
   ( CmdM     env err m
@@ -129,9 +125,6 @@ flowCorpusSearchInDatabase u la q = do
   flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
 
 ------------------------------------------------------------------------
-
--- TODO-ACCESS: check uId CanInsertDoc pId && checkDocType nodeType
--- TODO-EVENTS: InsertedNodes
 
 
 flow :: (FlowCmdM env ServantErr m, FlowCorpus a, MkCorpus c)

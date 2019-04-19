@@ -49,7 +49,7 @@ import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, ta
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.API.Types
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
@@ -138,6 +138,8 @@ type NodeAPI a = Get '[JSON] (Node a)
              -- VIZ
              :<|> "metrics" :> MetricsAPI
              :<|> "chart"     :> ChartApi
+             :<|> "pie"       :> PieApi
+             :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
@@ -178,7 +180,10 @@ nodeAPI p uId id
            
            :<|> getMetrics id
            :<|> getChart id
+           :<|> getPie   id
+           :<|> getTree  id
            :<|> phyloAPI id
+           
            -- Annuaire
            -- :<|> upload
            -- :<|> query
@@ -263,6 +268,21 @@ type ChartApi = Summary " Chart API"
               :> QueryParam "from" UTCTime
               :> QueryParam "to"   UTCTime
               :> Get '[JSON] (ChartMetrics Histo)
+
+type PieApi = Summary " Chart API"
+           :> QueryParam "from" UTCTime
+           :> QueryParam "to"   UTCTime
+           :> QueryParamR "ngramsType" TabType
+           :> Get '[JSON] (ChartMetrics Histo)
+
+type TreeApi = Summary " Tree API"
+           :> QueryParam "from" UTCTime
+           :> QueryParam "to"   UTCTime
+           :> QueryParamR "ngramsType" TabType
+           :> QueryParamR "listType"   ListType
+           :> Get '[JSON] (ChartMetrics TreeChartMetrics)
+
+
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
@@ -370,12 +390,11 @@ getMetrics cId maybeListId tabType maybeLimit = do
   (ngs', scores) <- Metrics.getMetrics' cId maybeListId tabType maybeLimit
 
   let
-    metrics      = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
+    metrics      = map (\(Scored t s1 s2) -> Metric t (log' 5 s1) (log' 2 s2) (listType t ngs')) scores
+    log' n x     = 1 + (if x <= 0 then 0 else (log $ (10^(n::Int)) * x))
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
   
   pure $ Metrics metrics
-
-
 
 

@@ -114,7 +114,7 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
       zs = drop b $ drop a ns
 
       a = 3
-      b = 5000
+      b = 500
 
 isStopTerm :: StopSize -> Text -> Bool
 isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
