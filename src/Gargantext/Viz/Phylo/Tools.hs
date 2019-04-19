@@ -704,8 +704,8 @@ getProximity cluster = case cluster of
 
 
 -- | To initialize all the Cluster / Proximity with their default parameters
-initFis :: Maybe Bool -> Maybe Support -> FisParams
-initFis (def True -> kmf) (def 1 -> min') = FisParams kmf min'
+initFis :: Maybe Bool -> Maybe Support -> Maybe Int -> FisParams
+initFis (def True -> kmf) (def 1 -> min') (def 1 -> thr) = FisParams kmf min' thr
 
 initHamming :: Maybe Double -> HammingParams
 initHamming (def 0.01 -> sens) = HammingParams sens
@@ -748,7 +748,7 @@ shouldKeepMinorFis = _fis_keepMinorFis
 -- Clusters
 
 defaultFis :: Cluster
-defaultFis = Fis (initFis Nothing Nothing)
+defaultFis = Fis (initFis Nothing Nothing Nothing)
 
 defaultLouvain :: Cluster
 defaultLouvain = Louvain (initLouvain Nothing)

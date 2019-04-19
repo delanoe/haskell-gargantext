@@ -244,6 +244,7 @@ data Cluster = Fis FisParams
 data FisParams = FisParams
   { _fis_keepMinorFis :: Bool
   , _fis_minSupport   :: Support
+  , _fis_minSize      :: Int
   } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for RelatedComponents clustering

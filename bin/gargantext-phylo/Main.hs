@@ -93,14 +93,14 @@ main = do
   let termListPath = "/home/qlobbe/data/epique/corpus/cultural_evolution/termList.csv"
   let outputPath   = "/home/qlobbe/data/epique/output/cultural_evolution.dot"
 
-  let query     = PhyloQueryBuild "cultural_evolution" "" 5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0 0) 
-                  2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.1 10)
+  let query     = PhyloQueryBuild "cultural_evolution" "" 5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.00001 10) 
+                  2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.5 10)
   
   let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
   putStrLn $ show "-- Start parsing the corpus"
 
-  corpus <- parse 500 corpusPath termListPath 
+  corpus <- parse 2000 corpusPath termListPath 
 
   let foundations = DL.nub $ DL.concat $ map text corpus
 

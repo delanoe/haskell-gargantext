@@ -160,7 +160,7 @@ toNthLevel lvlMax prox clus p
 -- | To reconstruct the Level 1 of a Phylo based on a Clustering Method
 toPhylo1 :: Cluster -> Proximity -> [Metric] -> [Filter] -> Map (Date, Date) [Document] -> Phylo -> Phylo
 toPhylo1 clus prox metrics filters d p = case clus of
-  Fis (FisParams k s) -> setPhyloBranches 1
+  Fis (FisParams k s t) -> setPhyloBranches 1
                        $ interTempoMatching Descendant 1 prox
                        $ interTempoMatching Ascendant  1 prox
                        $ setLevelLinks (0,1)
@@ -169,7 +169,7 @@ toPhylo1 clus prox metrics filters d p = case clus of
     where
       --------------------------------------
       phyloFis :: Map (Date, Date) [PhyloFis]
-      phyloFis = toPhyloFis d k s metrics filters
+      phyloFis = toPhyloFis d k s t metrics filters
       --------------------------------------
 
   _   -> panic "[ERR][Viz.Phylo.LevelMaker.toPhylo1] fst clustering not recognized"

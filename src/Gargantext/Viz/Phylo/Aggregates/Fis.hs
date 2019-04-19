@@ -20,6 +20,7 @@ module Gargantext.Viz.Phylo.Aggregates.Fis
 import Data.List        (null)
 import Data.Map         (Map, empty)
 import Data.Tuple       (fst, snd)
+import Data.Set         (size)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.FrequentItemSet  (fisWithSizePolyMap, Size(..))
 import Gargantext.Viz.Phylo
@@ -32,6 +33,10 @@ filterFisBySupport :: Bool -> Int -> Map (Date, Date) [PhyloFis] -> Map (Date, D
 filterFisBySupport keep min' m = case keep of
   False -> Map.map (\l -> filterMinorFis min' l) m
   True  -> Map.map (\l -> keepFilled (filterMinorFis) min' l) m
+
+
+filterFisByNgrams :: Int -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
+filterFisByNgrams thr m = Map.map(\lst -> filter (\fis -> (size $ getClique fis) > thr) lst) m
 
 
 -- | To filter Fis with small Support, to preserve nonempty periods please use : filterFisBySupport true
@@ -66,9 +71,10 @@ processMetrics metrics phyloFis
 
 
 -- | To transform some Documents into PhyloFis and apply a List of Metrics and Filters
-toPhyloFis :: Map (Date, Date) [Document] -> Bool -> Support -> [Metric] -> [Filter] -> Map (Date, Date) [PhyloFis]
-toPhyloFis ds k s ms fs = processFilters fs  
-                        $ processMetrics ms
-                        $ filterFisByNested 
-                        $ filterFisBySupport k s
-                        $ docsToFis ds  
+toPhyloFis :: Map (Date, Date) [Document] -> Bool -> Support -> Int -> [Metric] -> [Filter] -> Map (Date, Date) [PhyloFis]
+toPhyloFis ds k s t ms fs = processFilters fs  
+                          $ processMetrics ms
+                          $ filterFisByNgrams t
+                          $ filterFisByNested 
+                          $ filterFisBySupport k s
+                          $ docsToFis ds  
