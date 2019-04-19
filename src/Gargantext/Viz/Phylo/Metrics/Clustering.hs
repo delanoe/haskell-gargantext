@@ -43,7 +43,7 @@ relatedComp idx curr (nodes,edges) next memo
       | otherwise                  = memo ++ [[curr]]
     --------------------------------------
     next' :: [PhyloGroup]
-    next' = filter (\x -> not $ elem x $ concat memo) $ nub $ next ++ (getNeighbours True curr edges)
+    next' = filter (\x -> not $ elem x $ concat memo) $ nub $ next ++ (getNeighbours False curr edges)
     --------------------------------------
     nodes' :: [PhyloGroup]
     nodes' = filter (\x -> not $ elem x next') nodes

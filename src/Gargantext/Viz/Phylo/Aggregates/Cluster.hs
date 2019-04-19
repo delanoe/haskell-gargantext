@@ -36,11 +36,11 @@ graphToClusters clust (nodes,edges) = case clust of
   _                              -> panic "[ERR][Viz.Phylo.Aggregates.Cluster.graphToClusters] not implemented"
 
 -- | To transform a Phylo into Clusters of PhyloGroups at a given level
-phyloToClusters :: Level -> Proximity -> Cluster -> Phylo -> Map (Date,Date) [PhyloCluster]
-phyloToClusters lvl prox clus p = Map.fromList
-                                $ zip (getPhyloPeriods p)
-                                   (map (\prd -> let graph = groupsToGraph prox (getGroupsWithFilters lvl prd p) p
-                                                 in if null (fst graph)
-                                                    then []
-                                                    else graphToClusters clus graph)
-                                   (getPhyloPeriods p))
+phyloToClusters :: Level -> Cluster -> Phylo -> Map (Date,Date) [PhyloCluster]
+phyloToClusters lvl clus p = Map.fromList
+                           $ zip (getPhyloPeriods p)
+                              (map (\prd -> let graph = groupsToGraph (getProximity clus) (getGroupsWithFilters lvl prd p) p
+                                            in if null (fst graph)
+                                              then []
+                                              else graphToClusters clus graph)
+                              (getPhyloPeriods p))

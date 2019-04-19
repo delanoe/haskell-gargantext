@@ -19,24 +19,13 @@ module Gargantext.Viz.Phylo.View.Taggers
 
 import Control.Lens     hiding (makeLenses, both, Level)
 import Data.List        (concat,nub,groupBy,sortOn,sort)
-import Data.Text        (Text,unwords)
+import Data.Text        (Text)
 import Data.Tuple       (fst, snd)
 import Data.Vector      (Vector)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import qualified Data.Map    as Map
-import qualified Data.Vector as Vector
-
-
--- | To transform a list of Ngrams Indexes into a Label
-ngramsToLabel :: Vector Ngrams -> [Int] -> Text
-ngramsToLabel ngrams l = unwords $ ngramsToText ngrams l
-
-
--- | To transform a list of Ngrams Indexes into a list of Text
-ngramsToText :: Vector Ngrams -> [Int] -> [Text]
-ngramsToText ngrams l = map (\idx -> ngrams Vector.! idx) l
 
 
 -- | To get the nth most frequent Ngrams in a list of PhyloGroups
