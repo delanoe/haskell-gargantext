@@ -30,6 +30,7 @@ import Gargantext.Prelude
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract, csv_publication_year)
 import Gargantext.Text.Terms.WithList
+
 import System.Environment
 
 import Gargantext.Viz.Phylo
@@ -64,10 +65,8 @@ filterTerms patterns (year', doc) = (year',termsInText patterns doc)
     termsInText pats txt = DL.nub $ DL.concat $ map (map unwords) $ extractTermsWithList pats txt
 
 
--- csvToCorpus :: Int -> FilePath -> IO (DM.Map Int [Text])
 csvToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
 csvToCorpus limit csv = DV.toList
-                        -- DM.fromListWith (<>)
                       . DV.take limit
                       . DV.map (\n -> (csv_publication_year n, (csv_title n) <> " " <> (csv_abstract n)))
                       . snd <$> readCsv csv
@@ -87,20 +86,31 @@ parse limit corpus liste = do
 main :: IO ()
 main = do
   
-  -- [corpusFile, termListFile, outputFile] <- getArgs
+  
+  -- [corpusPath, termListPath, outputPath] <- getArgs
 
   let corpusPath   = "/home/qlobbe/data/epique/corpus/cultural_evolution/texts/fullCorpus.csv"
   let termListPath = "/home/qlobbe/data/epique/corpus/cultural_evolution/termList.csv"
   let outputPath   = "/home/qlobbe/data/epique/output/cultural_evolution.dot"
 
-  let query     = PhyloQueryBuild "cultural_evolution" "Test" 5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
+  let query     = PhyloQueryBuild "cultural_evolution" "" 5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0 0) 
+                  2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.1 10)
+  
   let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
-  corpus <- parse 5000 corpusPath termListPath 
+  putStrLn $ show "-- Start parsing the corpus"
+
+  corpus <- parse 500 corpusPath termListPath 
 
   let foundations = DL.nub $ DL.concat $ map text corpus
 
-  -- putStrLn $ show $ csvGraphTermList termListPath
+  -- putStrLn $ show (map text corpus)
+
+  -- foundations <- DL.concat <$> DL.concat <$> map snd <$> csvGraphTermList termListPath
+
+  -- putStrLn $ show foundations
+
+  -- a <- map snd <$> csvGraphTermList liste
 
   let phylo = toPhylo query corpus foundations []
 

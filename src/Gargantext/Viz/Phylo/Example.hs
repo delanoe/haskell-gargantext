@@ -54,7 +54,7 @@ import qualified Data.List   as List
 ------------------------------------------------------
 
 export :: IO ()
-export = dotToFile "./export_test" "cesar_cleopatre.dot" phyloDot 
+export = dotToFile "/home/qlobbe/data/epique/output/cesar_cleopatre.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
 phyloDot = viewToDot phyloView
@@ -103,7 +103,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQueryBuild :: PhyloQueryBuild
 phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             5 3 defaultFis [] [] defaultWeightedLogJaccard 3 defaultRelatedComponents
+             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.0001 10) 3 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.05 10)
 
 
 
@@ -113,7 +113,7 @@ phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy
 
 
 phylo6 :: Phylo
-phylo6 = toNthLevel 6 defaultWeightedLogJaccard defaultRelatedComponents phylo3
+phylo6 = toNthLevel 6 defaultWeightedLogJaccard (RelatedComponents (initRelatedComponents (Just defaultWeightedLogJaccard))) phylo3
 
 
 phylo3 :: Phylo
@@ -122,7 +122,7 @@ phylo3 = setPhyloBranches 3
        $ interTempoMatching Ascendant 3 defaultWeightedLogJaccard
        $ setLevelLinks (2,3)
        $ addPhyloLevel 3
-          (phyloToClusters 2 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch2)
+          (phyloToClusters 2 (RelatedComponents (initRelatedComponents (Just defaultWeightedLogJaccard))) phyloBranch2)
           phyloBranch2
 
 
@@ -153,7 +153,7 @@ phylo2 = addPhyloLevel 2 phyloCluster phyloBranch1
 
 
 phyloCluster :: Map (Date,Date) [PhyloCluster]
-phyloCluster = phyloToClusters 1 defaultWeightedLogJaccard defaultRelatedComponents phyloBranch1
+phyloCluster = phyloToClusters 1 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.05 10) phyloBranch1
 
 
 ----------------------------------

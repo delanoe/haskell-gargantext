@@ -149,7 +149,7 @@ toNthLevel lvlMax prox clus p
                   $ interTempoMatching Ascendant  (lvl + 1) prox
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
-                    (phyloToClusters lvl (getProximity clus) clus p) p
+                    (phyloToClusters lvl clus p) p
   where
     --------------------------------------
     lvl :: Level

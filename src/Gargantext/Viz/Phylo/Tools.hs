@@ -24,7 +24,7 @@ import Data.List            (filter, intersect, (++), sort, null, tail, last, ta
 import Data.Maybe           (mapMaybe,fromMaybe)
 import Data.Map             (Map, mapKeys, member, (!))
 import Data.Set             (Set)
-import Data.Text            (Text, toLower)
+import Data.Text            (Text,toLower,unwords)
 import Data.Tuple.Extra
 import Data.Vector          (Vector,elemIndex)
 import Gargantext.Prelude
@@ -125,6 +125,16 @@ listToUnDirectedCombiWith :: forall a b. (a -> b) -> [a] -> [(b,b)]
 listToUnDirectedCombiWith f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
 
 
+-- | To transform a list of Ngrams Indexes into a Label
+ngramsToLabel :: Vector Ngrams -> [Int] -> Text
+ngramsToLabel ngrams l = unwords $ ngramsToText ngrams l
+
+
+-- | To transform a list of Ngrams Indexes into a list of Text
+ngramsToText :: Vector Ngrams -> [Int] -> [Text]
+ngramsToText ngrams l = map (\idx -> ngrams Vector.! idx) l
+
+
 -- | To unify the keys (x,y) that Map 1 share with Map 2 such as: (x,y) <=> (y,x)
 unifySharedKeys :: Eq a => Ord a => Map (a,a) b -> Map (a,a) b -> Map (a,a) b
 unifySharedKeys m1 m2 = mapKeys (\(x,y) -> if member (y,x) m2
@@ -135,7 +145,6 @@ unifySharedKeys m1 m2 = mapKeys (\(x,y) -> if member (y,x) m2
 ---------------
 -- | Phylo | --
 ---------------
-
 
 -- | An analyzer ingests a Ngrams and generates a modified version of it
 phyloAnalyzer :: Ngrams -> Ngrams
@@ -341,6 +350,10 @@ getGroupPeriodParents = _phylo_groupPeriodParents
 -- | To get the PhyloGroups Period Parents Ids of a PhyloGroup
 getGroupPeriodParentsId :: PhyloGroup -> [PhyloGroupId]
 getGroupPeriodParentsId g = map fst $ getGroupPeriodParents g
+
+-- | To get the roots labels of a list of group ngrams
+getGroupText :: PhyloGroup -> Phylo -> [Text] 
+getGroupText g p = ngramsToText (getRootsLabels p) (getGroupNgrams g) 
 
 
 -- | To get all the PhyloGroup of a Phylo
