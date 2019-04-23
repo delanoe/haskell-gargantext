@@ -61,6 +61,7 @@ import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Gargantext.Viz.Chart
+import Gargantext.API.Ngrams.NTree (MyTree)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -280,7 +281,7 @@ type TreeApi = Summary " Tree API"
            :> QueryParam "to"   UTCTime
            :> QueryParamR "ngramsType" TabType
            :> QueryParamR "listType"   ListType
-           :> Get '[JSON] (ChartMetrics TreeChartMetrics)
+           :> Get '[JSON] (ChartMetrics [MyTree])
 
 
 

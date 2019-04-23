@@ -22,10 +22,8 @@ module Gargantext.Viz.Chart
 import Data.Text (Text)
 import Data.List (unzip, sortOn)
 import Data.Map (toList)
-import Data.Aeson.TH (deriveJSON)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
-import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Schema.NodeNode (selectDocsDates)
 import Gargantext.Database.Utils
 import Gargantext.Database.Types.Node (CorpusId)
@@ -85,16 +83,11 @@ pieData cId nt lt = do
   pure (Histo dates (map round count))
 
 
-data TreeChartMetrics = TreeChartMetrics { _tcm_data :: [MyTree]
-                   }
-  deriving (Generic, Show)
-
-deriveJSON (unPrefix "_tcm_") ''TreeChartMetrics
 
 
 treeData :: FlowCmdM env err m
         => CorpusId -> NgramsType -> ListType
-        -> m TreeChartMetrics
+        -> m [MyTree]
 treeData cId nt lt = do
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt
@@ -106,12 +99,12 @@ treeData cId nt lt = do
   cs' <- getNodesByNgramsOnlyUser cId nt terms
   
   m  <- getListNgrams ls nt
-  pure $ TreeChartMetrics $ toTree lt cs' m
+  pure $ toTree lt cs' m
 
 
 treeData' :: FlowCmdM env ServantErr m
         => CorpusId -> NgramsType -> ListType
-        -> m TreeChartMetrics
+        -> m [MyTree]
 treeData' cId nt lt = do
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt
@@ -123,7 +116,7 @@ treeData' cId nt lt = do
   cs' <- getNodesByNgramsOnlyUser cId nt terms
   
   m  <- getListNgrams ls nt
-  pure $ TreeChartMetrics $ toTree lt cs' m
+  pure $ toTree lt cs' m
 
 
 

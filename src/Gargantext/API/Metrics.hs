@@ -90,11 +90,6 @@ instance Arbitrary Histo
                          ]
 deriveJSON (unPrefix "histo_") ''Histo
 
-instance ToSchema (TreeChartMetrics)
-instance Arbitrary (TreeChartMetrics)
-  where
-    arbitrary = TreeChartMetrics <$> arbitrary
-
 
 instance ToSchema MyTree
 instance Arbitrary MyTree
@@ -116,7 +111,7 @@ getPie cId _start _end tt = do
   p <- pieData cId (ngramsTypeFromTabType tt) GraphTerm
   pure (ChartMetrics p)
 
-getTree :: FlowCmdM env err m => CorpusId -> Maybe UTCTime -> Maybe UTCTime -> TabType -> ListType -> m (ChartMetrics TreeChartMetrics)
+getTree :: FlowCmdM env err m => CorpusId -> Maybe UTCTime -> Maybe UTCTime -> TabType -> ListType -> m (ChartMetrics [MyTree])
 getTree cId _start _end tt lt = do
   p <- treeData cId (ngramsTypeFromTabType tt) lt
   pure (ChartMetrics p)
