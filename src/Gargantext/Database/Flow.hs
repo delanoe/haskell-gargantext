@@ -44,7 +44,7 @@ import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Flow.Utils (insertToNodeNgrams)
+import Gargantext.Database.Flow.Utils (insertDocNgrams)
 import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
@@ -183,7 +183,7 @@ insertMasterDocs c lang hs  =  do
 
   terms2id <- insertNgrams $ DM.keys maps
   let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
-  _                <- insertToNodeNgrams indexedNgrams
+  _                <- insertDocNgrams masterCorpusId indexedNgrams
   pure $ map reId ids
 
 

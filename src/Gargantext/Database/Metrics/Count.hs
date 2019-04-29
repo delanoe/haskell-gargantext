@@ -20,6 +20,8 @@ Count Ngrams by Context
 
 module Gargantext.Database.Metrics.Count where
 
+{-
+
 import Control.Arrow (returnA)
 import Control.Lens (view)
 import Data.Map.Strict (Map, fromListWith, elems)
@@ -30,14 +32,14 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement)
 import Gargantext.Core.Types.Main (listTypeId, ListType(..))
 import Gargantext.Database.Access
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Queries.Join (leftJoin4, leftJoin5, leftJoin3)
+import Gargantext.Database.Queries.Join (leftJoin4, leftJoin3)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Ngrams (NgramsId, NgramsType(..), ngramsTypeId, Ngrams(..), NgramsIndexed(..), ngrams, ngramsTerms, fromNgramsTypeId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Node (HasNodeError(..))
 import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Schema.NodeNode
-import Gargantext.Database.Schema.NodeNodeNgrams
+--import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Utils
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
@@ -47,40 +49,6 @@ import Opaleye
 import Safe (headMay)
 import qualified Database.PostgreSQL.Simple as PGS
 
-getCoocByDocDev :: HasNodeError err => CorpusId -> ListId -> Cmd err (Map ([Text], [Text]) Int)
-getCoocByDocDev cId lId = coocOn (\n-> [ view ( ngrams . ngramsTerms) n]) <$> getNgramsByDoc cId lId
-
-getCoocByDoc :: CorpusId -> ListId -> Cmd err (Map (NgramsIndexed, NgramsIndexed) Coocs)
-getCoocByDoc cId lId = coocOn identity <$> getNgramsByDoc cId lId
-
-
-getNgramsByDoc :: CorpusId -> ListId -> Cmd err [[NgramsIndexed]]
-getNgramsByDoc cId lId =
-      elems
-  <$> fromListWith (<>) 
-  <$> map (\(nId, ngId, nt, n) -> (nId, [NgramsIndexed (Ngrams nt n) ngId]))
-  <$> getNgramsByDocDb cId lId
-
-
-getNgramsByDocDb :: CorpusId -> ListId -> Cmd err [(NodeId, NgramsId, Text, Int)]
-getNgramsByDocDb cId lId = runPGSQuery query params
-  where
-    params = (cId, lId, listTypeId GraphTerm, ngramsTypeId NgramsTerms)
-    query  = [sql|
-
-    -- TODO add CTE
-    SELECT n.id, ng.id, ng.terms, ng.n -- , list.parent_id
-    FROM nodes n
-    JOIN nodes_nodes  nn   ON nn.node2_id    = n.id
-    JOIN nodes_ngrams nng  ON nng.node_id    = nn.node2_id
-    JOIN nodes_ngrams list ON list.ngrams_id = nng.ngrams_id
-    JOIN ngrams       ng   ON ng.id          = nng.ngrams_id
-    WHERE nn.node1_id      = ? -- CorpusId
-    AND   list.node_id     = ? -- ListId
-    AND   list.list_type   = ? -- GraphListId
-    AND   list.ngrams_type = ? -- NgramsTypeId
-
-  |]
 
 
 getNgramsByNode :: NodeId -> NgramsType -> Cmd err [[Text]]
@@ -91,33 +59,15 @@ getNgramsByNode nId nt =  elems
 
 -- | TODO add join with nodeNodeNgram (if it exists)
 getNgramsByNodeNodeIndexed :: NodeId -> NgramsType -> Cmd err [(NodeId, Text)]
-getNgramsByNodeNodeIndexed nId nt = runOpaQuery (select' nId)
+getNgramsByNodeNodeIndexed nId nt = runOpaQuery (select' nId nt)
   where
-    select' nId' = proc () -> do
+    select' nId' nt' = proc () -> do
       (ng,(nng,(nn,n))) <- getNgramsByNodeNodeIndexedJoin -< ()
       restrict          -< _node_id n         .== toNullable (pgNodeId nId')
-      restrict          -< nng_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt)
+      restrict          -< nng_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt')
       restrict          -< nn_delete      nn  ./= (toNullable . pgBool) True
       returnA           -< (nng_node_id nng, ngrams_terms ng)
 
-
-{-
-getNgramsByNodeIndexed' :: NodeId -> NgramsType -> Cmd err [(NodeId, Maybe Text)]
-getNgramsByNodeIndexed' nId nt = runOpaQuery (select' nId)
-  where
-    select' nId' = proc () -> do
-      (nnng,(ng,(nng,(_,n)))) <- getNgramsByNodeIndexedJoin5 -< ()
-      restrict          -< _node_id n         .== toNullable (pgNodeId nId')
-      restrict          -< nng_ngramsType nng .== toNullable (pgNgramsTypeId $ ngramsTypeId nt)
-
-      let node_id' = ifThenElse (isNull $ toNullable $ nnng_node1_id nnng)
-                          (nng_node_id nng)
-                          (nnng_node2_id nng)
-      let t1 = ifThenElse (isNull $ toNullable $ nnng_node1_id nnng)
-                          (ngrams_terms ng)
-                          (nnng_terms nng)
-      returnA           -< (n1, t1)
---}
 
 getNgramsByNodeNodeIndexedJoin :: Query ( NgramsRead
                                     , (NodeNgramReadNull
@@ -151,8 +101,8 @@ getNgramsByNodeNodeIndexedJoin = leftJoin4 queryNodeTable
           ) -> Column PGBool
     c3 (ng,(nng',(_,_))) = (ngrams_id ng)   .== nng_ngrams_id nng'
 
-
-getNgramsByNodeNodeIndexedJoin5 :: Query ( NodeNodeNgramsRead
+{-
+getNgramsByNodeNodeIndexedJoin5 :: Query ( NodeNodesNgramsRead
                                     , (NgramsReadNull
                                       , (NodeNgramReadNull
                                         , (NodeNodeReadNull
@@ -252,4 +202,4 @@ countCorpusDocuments r cId = maybe 0 identity
                         (cId', nodeTypeId NodeDocument)
 
 
-
+-}

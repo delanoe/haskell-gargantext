@@ -43,7 +43,6 @@ import Opaleye
 ------------------------------------------------------------------------
 type UserId = Int
 
-
 data UserLight = UserLight { userLight_id   :: Int
                            , userLight_username :: Text
                            , userLight_email    :: Text
@@ -82,6 +81,16 @@ type UserRead  = UserPoly        (Column PGInt4)         (Column PGText)
                                  (Column PGText)         (Column PGText)
                                  (Column PGBool)         (Column PGBool)
                                  (Column PGTimestamptz)
+
+type UserReadNull = UserPoly     (Column (Nullable PGInt4))         (Column (Nullable PGText))
+                                 (Column (Nullable PGTimestamptz))  (Column (Nullable PGBool))
+                                 (Column (Nullable PGText))         (Column (Nullable PGText))
+                                 (Column (Nullable PGText))         (Column (Nullable PGText))
+                                 (Column (Nullable PGBool))         (Column (Nullable PGBool))
+                                 (Column (Nullable PGTimestamptz))
+
+
+
 
 type User = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
 

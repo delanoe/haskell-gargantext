@@ -129,23 +129,6 @@ joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNgramTable queryNgr
          cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nn_node2_id nn
 
 
-{-
-queryGraphCorpusAuthors' :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, NgramsReadNull)))
-queryGraphCorpusAuthors' = leftJoin4 queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34
-    where
-         cond23 :: (NgramsRead, (NodeNgramRead, NodeReadNull)) -> Column PGBool
-         cond23 (ng2, (nng2, _)) = nodeNgram_ngrams_id nng2 .== ngrams_id ng2
-         
-         cond34 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nng, (ng, (_,_))) = ngrams_id ng .== nodeNgram_ngrams_id nng
-         
-         cond45 :: (NodeNodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (nn, (nng, (_,(_,_)))) = nodeNgram_node_id nng .== nodeNode_node2_id nn
-         
-         cond56 :: (NodeSearchRead, (NodeNodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull))))) -> Column PGBool
-         cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nodeNode_node2_id nn
--}
-
 
 
 newtype TSQuery = UnsafeTSQuery [Text]

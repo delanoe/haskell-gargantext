@@ -45,7 +45,7 @@ import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, QueryParamR)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgramsCorpus, QueryParamR)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.API.Types
 import Gargantext.Core.Types (Offset, Limit)
@@ -125,7 +125,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "list"      :> TableNgramsApi
              :<|> "listGet"   :> TableNgramsApiGet
              :<|> "pairing"   :> PairingApi
-             
+             -- :<|> "document"  :> Capture "docId" :> "list" :> TableNgramsApiGet
              
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi
@@ -172,8 +172,9 @@ nodeAPI p uId id
            -- TODO gather it
            :<|> getTable         id
            :<|> tableNgramsPatch id
-           :<|> getTableNgrams   id
+           :<|> getTableNgramsCorpus   id
            :<|> getPairing       id
+           -- :<|> getTableNgramsDoc id
            
            :<|> favApi   id
            :<|> delDocs  id

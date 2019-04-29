@@ -141,16 +141,16 @@ selectNgramsByNodeUser cId nt =
 queryNgramsByNodeUser :: DPS.Query
 queryNgramsByNodeUser = [sql|
 
-  SELECT nng.node_id, ng.terms FROM nodes_ngrams nng
+  SELECT nng.node2_id, ng.terms FROM node_node_ngrams nng
     JOIN ngrams ng      ON nng.ngrams_id = ng.id
-    JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
+    JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id = ?     -- CorpusId
       AND n.typename  = ?     -- NodeTypeId
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.delete = False
-      GROUP BY nng.node_id, ng.terms
-      ORDER BY (nng.node_id, ng.terms) DESC
+      GROUP BY nng.node2_id, ng.terms
+      ORDER BY (nng.node2_id, ng.terms) DESC
       LIMIT ?
       OFFSET ?
   |]
@@ -197,16 +197,16 @@ queryNgramsOccurrencesOnlyByNodeUser :: DPS.Query
 queryNgramsOccurrencesOnlyByNodeUser = [sql|
 
   WITH input_rows(terms) AS (?)
-  SELECT ng.terms, COUNT(nng.node_id) FROM nodes_ngrams nng
+  SELECT ng.terms, COUNT(nng.node2_id) FROM node_node_ngrams nng
     JOIN ngrams ng      ON nng.ngrams_id = ng.id
     JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
+    JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
       AND n.typename      = ? -- NodeTypeId
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.delete       = False
-      GROUP BY nng.node_id, ng.terms
+      GROUP BY nng.node2_id, ng.terms
   |]
 
 getNodesByNgramsOnlyUser :: CorpusId -> NgramsType -> [Text]
@@ -231,16 +231,16 @@ queryNgramsOnlyByNodeUser :: DPS.Query
 queryNgramsOnlyByNodeUser = [sql|
 
   WITH input_rows(terms) AS (?)
-  SELECT ng.terms, nng.node_id FROM nodes_ngrams nng
+  SELECT ng.terms, nng.node2_id FROM node_node_ngrams nng
     JOIN ngrams ng      ON nng.ngrams_id = ng.id
     JOIN input_rows  ir ON ir.terms      = ng.terms
-    JOIN nodes_nodes nn ON nn.node2_id   = nng.node_id
+    JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
       AND n.typename      = ? -- NodeTypeId
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.delete       = False
-      GROUP BY nng.node_id, ng.terms
+      GROUP BY ng.terms, nng.node2_id
   |]
 
 ------------------------------------------------------------------------
@@ -272,6 +272,7 @@ selectNgramsByNodeMaster n ucId mcId p = runPGSQuery
                                  , ngramsTypeId NgramsTerms
                                  )
 
+-- | TODO fix node_node_ngrams relation
 queryNgramsByNodeMaster' :: DPS.Query
 queryNgramsByNodeMaster' = [sql|
 
@@ -279,7 +280,7 @@ WITH nodesByNgramsUser AS (
 
 SELECT n.id, ng.terms FROM nodes n
   JOIN nodes_nodes  nn  ON n.id = nn.node2_id
-  JOIN nodes_ngrams nng ON nn.node2_id   = n.id
+  JOIN node_node_ngrams nng ON nng.node2_id   = n.id
   JOIN ngrams       ng  ON nng.ngrams_id = ng.id
   WHERE nn.node1_id     = ?   -- UserCorpusId
     -- AND n.typename   = ?  -- NodeTypeId
@@ -294,7 +295,7 @@ SELECT n.id, ng.terms FROM nodes n
 nodesByNgramsMaster AS (
 
 SELECT n.id, ng.terms FROM nodes n TABLESAMPLE SYSTEM_ROWS(?)
-  JOIN nodes_ngrams nng  ON n.id  = nng.node_id
+  JOIN node_node_ngrams nng  ON n.id  = nng.node2_id
   JOIN ngrams       ng   ON ng.id = nng.ngrams_id
 
   WHERE n.parent_id  = ?     -- Master Corpus NodeTypeId

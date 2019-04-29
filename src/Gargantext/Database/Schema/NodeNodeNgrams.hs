@@ -9,14 +9,15 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE Arrows #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Schema.NodeNodeNgrams
   where
@@ -24,61 +25,92 @@ module Gargantext.Database.Schema.NodeNodeNgrams
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Gargantext.Database.Utils (Cmd, runOpaQuery)
-
+--import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Gargantext.Database.Utils (Cmd, mkCmd)
+import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)
+import Gargantext.Database.Schema.Node (pgNodeId)
+import Gargantext.Database.Types.Node
 import Opaleye
 
 
-data NodeNodeNgramsPoly node1_id node2_id ngram_id score
-                   = NodeNodeNgrams { nnng_node1_id :: node1_id
-                                    , nnng_node2_id :: node2_id
-                                    , nnng_ngrams_id :: ngram_id
-                                    , nnng_score   :: score
-                                    } deriving (Show)
+
+data NodeNodeNgramsPoly id' n1 n2 ngrams_id ngt w
+   = NodeNodeNgrams { nnng_id         :: id'
+                    , nnng_node1_id   :: n1
+                    , nnng_node2_id   :: n2
+                    , nnng_ngrams_id  :: ngrams_id
+                    , nnng_ngramsType :: ngt
+                    , nnng_weight     :: w
+                    } deriving (Show)
 
 
-type NodeNodeNgramsWrite = NodeNodeNgramsPoly (Column PGInt4          )
-                                            (Column PGInt4          )
-                                            (Column PGInt4          )
-                                            (Maybe (Column PGFloat8))
+type NodeNodeNgramsWrite =
+     NodeNodeNgramsPoly (Maybe (Column PGInt4  ))
+                        (Column PGInt4  )
+                        (Column PGInt4  )
+                        (Column PGInt4  )
+                        (Column PGInt4  )
+                        (Column PGFloat8)
 
-type NodeNodeNgramsRead  = NodeNodeNgramsPoly (Column PGInt4  )
-                                            (Column PGInt4  )
-                                            (Column PGInt4  )
-                                            (Column PGFloat8)
+type NodeNodeNgramsRead  =
+     NodeNodeNgramsPoly (Column PGInt4  )
+                        (Column PGInt4  )
+                        (Column PGInt4  )
+                        (Column PGInt4  )
+                        (Column PGInt4  )
+                        (Column PGFloat8)
 
-type NodeNodeNgramsReadNull  = NodeNodeNgramsPoly (Column (Nullable PGInt4  ))
-                                                (Column (Nullable PGInt4  ))
-                                                (Column (Nullable PGInt4  ))
-                                                (Column (Nullable PGFloat8))
+type NodeNodeNgramsReadNull =
+     NodeNodeNgramsPoly (Column (Nullable PGInt4  ))
+                        (Column (Nullable PGInt4  ))
+                        (Column (Nullable PGInt4  ))
+                        (Column (Nullable PGInt4  ))
+                        (Column (Nullable PGInt4  ))
+                        (Column (Nullable PGFloat8))
 
-type NodeNodeNgrams = NodeNodeNgramsPoly Int
-                                       Int
-                                       Int 
-                                (Maybe Double)
+type NodeNodeNgrams =
+  NodeNodeNgramsPoly (Maybe Int) CorpusId DocId NgramsId NgramsTypeId Double
 
-
+--{-
 $(makeAdaptorAndInstance "pNodeNodeNgrams" ''NodeNodeNgramsPoly)
-$(makeLensesWith abbreviatedFields        ''NodeNodeNgramsPoly)
+-- $(makeLensesWith          abbreviatedFields ''NodeNodeNgramsPoly)
 
 nodeNodeNgramsTable :: Table NodeNodeNgramsWrite NodeNodeNgramsRead
-nodeNodeNgramsTable  = Table "nodes_nodes_ngrams" 
+nodeNodeNgramsTable  = Table "node_node_ngrams"
                           ( pNodeNodeNgrams NodeNodeNgrams
-                               { nnng_node1_id  = required "node1_id"
-                               , nnng_node2_id  = required "node2_id"
-                               , nnng_ngrams_id = required "ngram_id"
-                               , nnng_score     = optional "score"
+                               { nnng_id         = optional "id"
+                               , nnng_node1_id   = required "node1_id"
+                               , nnng_node2_id   = required "node2_id"
+                               , nnng_ngrams_id  = required "ngrams_id"
+                               , nnng_ngramsType = required "ngrams_type"
+                               , nnng_weight     = required "weight"
                                }
                           )
-
 
 queryNodeNodeNgramsTable :: Query NodeNodeNgramsRead
 queryNodeNodeNgramsTable = queryTable nodeNodeNgramsTable
 
--- | not optimized (get all ngrams without filters)
-nodeNodeNgrams :: Cmd err [NodeNodeNgrams]
-nodeNodeNgrams = runOpaQuery queryNodeNodeNgramsTable
 
-instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
+-- | Insert utils
+insertNodeNodeNgrams :: [NodeNodeNgrams] -> Cmd err Int
+insertNodeNodeNgrams = insertNodeNodeNgramsW
+                     . map (\(NodeNodeNgrams id'' n1 n2 ng nt w) ->
+                              NodeNodeNgrams (pgInt4 <$> id'')
+                                             (pgNodeId n1)
+                                             (pgNodeId n2)
+                                             (pgInt4   ng)
+                                             (pgNgramsTypeId nt)
+                                             (pgDouble w)
+                                                  )
+
+insertNodeNodeNgramsW :: [NodeNodeNgramsWrite] -> Cmd err Int
+insertNodeNodeNgramsW nnnw =
+  mkCmd $ \c -> fromIntegral <$> runInsert_ c insertNothing
+    where
+      insertNothing = (Insert { iTable = nodeNodeNgramsTable
+                              , iRows  = nnnw
+                              , iReturning = rCount
+                              , iOnConflict = (Just DoNothing)
+      })
+
+

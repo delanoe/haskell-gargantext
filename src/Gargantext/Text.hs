@@ -18,16 +18,11 @@ Text gathers terms in unit of contexts.
 module Gargantext.Text
   where
 
-
-import Data.Functor
-import Data.Traversable (Traversable)
 import Data.Text (Text, split)
+import Gargantext.Prelude hiding (filter)
+import NLP.FullStop (segment)
 import qualified Data.Text as DT
 
-import NLP.FullStop (segment)
------------------------------------------------------------------
-import Gargantext.Core
-import Gargantext.Prelude hiding (filter)
 -----------------------------------------------------------------
 -- | Why not use data ?
 data Niveau = NiveauTexte      Texte
@@ -92,10 +87,11 @@ instance Collage MultiTerme Mot where
 
 -- | We could use Type Classes but we lose the Sum Type classification
 toMultiTerme :: Niveau -> [MultiTerme]
-toMultiTerme (NiveauTexte (Texte t))           = undefined
+toMultiTerme (NiveauTexte (Texte _t))           = undefined
 toMultiTerme (NiveauPhrase p)      = dec p
 toMultiTerme (NiveauMultiTerme mt) = [mt]
-toMultiTerme (NiveauMot m) = undefined 
+toMultiTerme (NiveauMot _m) = undefined 
+toMultiTerme _ = undefined
 
 -------------------------------------------------------------------
 -- Contexts of text

@@ -46,6 +46,7 @@ import Data.Monoid
 import Data.Foldable
 --import Data.Semigroup
 import Data.Set (Set)
+import qualified Data.Set as S
 -- import qualified Data.List as List
 import Data.Maybe (fromMaybe)
 -- import Data.Tuple.Extra (first)
@@ -69,10 +70,13 @@ import Data.Validity
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
---import Gargantext.Database.Config (userMaster)
+import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlySafe)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
+import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Utils (fromField', HasConnection)
+import Gargantext.Database.Node.Select
+import Gargantext.Database.Ngrams
 --import Gargantext.Database.Lists (listsWith)
 import Gargantext.Database.Schema.Node (HasNodeError)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
@@ -80,7 +84,7 @@ import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
 import Gargantext.Prelude
 -- import Gargantext.Core.Types (ListTypeId, listTypeId)
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, CorpusId, Limit, Offset, HasInvalidError, assertValid)
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, CorpusId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Servant hiding (Patch)
 import System.FileLock (FileLock)
 import Test.QuickCheck (elements)
@@ -628,6 +632,9 @@ type TableNgramsApi = Summary " Table Ngrams API Change"
                       :> ReqBody '[JSON] (Versioned NgramsTablePatch)
                       :> Put     '[JSON] (Versioned NgramsTablePatch)
 
+
+
+
 {-
 -- TODO: Replace.old is ignored which means that if the current list
 -- `GraphTerm` and that the patch is `Replace CandidateTerm StopTerm` then
@@ -866,7 +873,7 @@ mergeNgramsElement _neOld neNew = neNew
 getNgramsTableMap :: RepoCmdM env err m
                   => NodeId -> NgramsType -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
-  v <- view repoVar
+  v    <- view repoVar
   repo <- liftIO $ readMVar v
   pure $ Versioned (repo ^. r_version)
                    (repo ^. r_state . at ngramsType . _Just . at nodeId . _Just)
@@ -878,27 +885,59 @@ type MaxSize = Int
 --  TODO: polymorphic for Annuaire or Corpus or ...
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
-getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-               => CorpusId -> TabType
+
+
+
+
+getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+               => NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
                -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
-getTableNgrams cId tabType listId limit_ moffset
-               mlistType mminSize mmaxSize msearchQuery = do
-  let ngramsType = ngramsTypeFromTabType tabType
+getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize mt =
+  getTableNgrams nId tabType listId limit_ offset listType minSize maxSize searchQuery
+    where
+      searchQuery = maybe (const True) isInfixOf mt
 
+-- | Text search is deactivated for now for ngrams by doc only
+getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+               => CorpusId -> DocId -> TabType
+               -> ListId -> Limit -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe Text -- full text search
+               -> m (Versioned NgramsTable)
+getTableNgramsDoc cId dId tabType listId limit_ offset listType minSize maxSize _mt = do
+  ns <- selectNodesWithUsername NodeCorpus userMaster
+  let ngramsType = ngramsTypeFromTabType tabType
+  ngs <- selectNgramsByDoc (ns <> [cId]) dId ngramsType
+  let searchQuery = flip S.member (S.fromList ngs)
+  getTableNgrams cId tabType listId limit_ offset listType minSize maxSize searchQuery
+
+
+getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+               => NodeId -> TabType
+               -> ListId -> Limit -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> (NgramsTerm -> Bool)
+               -> m (Versioned NgramsTable)
+getTableNgrams nId tabType listId limit_ offset
+               listType minSize maxSize searchQuery = do
+  
   let
-    offset_  = maybe 0 identity moffset
-    listType = maybe (const True) (==) mlistType
-    minSize  = maybe (const True) (<=) mminSize
-    maxSize  = maybe (const True) (>=) mmaxSize
-    searchQuery = maybe (const True) isInfixOf msearchQuery
-    selected_node n = minSize     s
-                   && maxSize     s
-                   && searchQuery (n ^. ne_ngrams)
-                   && listType    (n ^. ne_list)
+    ngramsType = ngramsTypeFromTabType tabType
+    offset'  = maybe 0 identity offset
+    listType' = maybe (const True) (==) listType
+    minSize'  = maybe (const True) (<=) minSize
+    maxSize'  = maybe (const True) (>=) maxSize
+    
+    selected_node n = minSize'     s
+                   && maxSize'     s
+                   && searchQuery  (n ^. ne_ngrams)
+                   && listType'    (n ^. ne_list)
       where
         s = n ^. ne_size
 
@@ -909,7 +948,7 @@ getTableNgrams cId tabType listId limit_ moffset
         rootOf ne = maybe ne (\r -> ngramsElementFromRepo (r, fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. at r)))
                              (ne ^. ne_root)
         list = ngramsElementFromRepo <$> Map.toList tableMap
-        selected_nodes = list & take limit_ . drop offset_ . filter selected_node
+        selected_nodes = list & take limit_ . drop offset' . filter selected_node
         roots = rootOf <$> selected_nodes
         rootsSet = Set.fromList (_ne_ngrams <$> roots)
         inners = list & filter (selected_inner rootsSet)
@@ -919,12 +958,11 @@ getTableNgrams cId tabType listId limit_ moffset
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
   table <- getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
-  occurrences <- getOccByNgramsOnlySafe cId ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+  occurrences <- getOccByNgramsOnlySafe nId ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
 
   let
     setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
   pure $ table & v_data . _NgramsTable . each %~ setOcc
-
 
 
