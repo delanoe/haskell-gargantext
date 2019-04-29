@@ -910,7 +910,7 @@ getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
 getTableNgramsDoc cId dId tabType listId limit_ offset listType minSize maxSize _mt = do
-  ns <- selectNodesWithUsername NodeCorpus userMaster
+  ns <- selectNodesWithUsername NodeList userMaster
   let ngramsType = ngramsTypeFromTabType tabType
   ngs <- selectNgramsByDoc (ns <> [cId]) dId ngramsType
   let searchQuery = flip S.member (S.fromList ngs)
@@ -958,7 +958,9 @@ getTableNgrams nId tabType listId limit_ offset
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
   table <- getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
-  occurrences <- getOccByNgramsOnlySafe nId ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+  
+  lIds <- selectNodesWithUsername NodeList userMaster
+  occurrences <- getOccByNgramsOnlySafe nId (lIds <> [listId]) ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
 
   let
     setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences

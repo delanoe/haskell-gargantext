@@ -183,7 +183,9 @@ insertMasterDocs c lang hs  =  do
 
   terms2id <- insertNgrams $ DM.keys maps
   let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
-  _                <- insertDocNgrams masterCorpusId indexedNgrams
+  
+  lId <- getOrMkList masterCorpusId masterUserId
+  _   <- insertDocNgrams lId indexedNgrams
   pure $ map reId ids
 
 

@@ -24,9 +24,11 @@ import Data.List (unzip, sortOn)
 import Data.Map (toList)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
+import Gargantext.Database.Config
 import Gargantext.Database.Schema.NodeNode (selectDocsDates)
 import Gargantext.Database.Utils
 import Gargantext.Database.Types.Node (CorpusId)
+import Gargantext.Database.Node.Select
 import Gargantext.Text.Metrics.Count (occurrencesWith)
 import Gargantext.Core.Types.Main
 
@@ -68,6 +70,7 @@ pieData :: FlowCmdM env err m
         => CorpusId -> NgramsType -> ListType
         -> m Histo
 pieData cId nt lt = do
+  ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt
   let
@@ -78,7 +81,7 @@ pieData cId nt lt = do
         Just x' -> maybe x identity x'
 
   (_total,mapTerms) <- countNodesByNgramsWith (group dico)
-                    <$> getNodesByNgramsOnlyUser cId nt terms
+                    <$> getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
   let (dates, count) = unzip $ map (\(t,(d,_)) -> (t, d)) $ Map.toList mapTerms
   pure (Histo dates (map round count))
 
@@ -89,6 +92,7 @@ treeData :: FlowCmdM env err m
         => CorpusId -> NgramsType -> ListType
         -> m [MyTree]
 treeData cId nt lt = do
+  ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt
   
@@ -96,7 +100,7 @@ treeData cId nt lt = do
     dico = filterListWithRoot lt ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ Map.toList dico
   
-  cs' <- getNodesByNgramsOnlyUser cId nt terms
+  cs' <- getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
   
   m  <- getListNgrams ls nt
   pure $ toTree lt cs' m
@@ -106,6 +110,7 @@ treeData' :: FlowCmdM env ServantErr m
         => CorpusId -> NgramsType -> ListType
         -> m [MyTree]
 treeData' cId nt lt = do
+  ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt
   
@@ -113,10 +118,9 @@ treeData' cId nt lt = do
     dico = filterListWithRoot lt ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ Map.toList dico
   
-  cs' <- getNodesByNgramsOnlyUser cId nt terms
+  cs' <- getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
   
   m  <- getListNgrams ls nt
   pure $ toTree lt cs' m
-
 
 

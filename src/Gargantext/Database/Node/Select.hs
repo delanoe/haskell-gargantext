@@ -9,9 +9,10 @@ Portability : POSIX
 -}
 
 
-{-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE Arrows            #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Node.Select where
 
@@ -24,20 +25,17 @@ import Gargantext.Database.Schema.User
 import Gargantext.Core.Types.Individu (Username)
 import Control.Arrow (returnA)
 
---{-
 selectNodesWithUsername :: NodeType -> Username -> Cmd err [NodeId]
 selectNodesWithUsername nt u = runOpaQuery (q u)
   where
-    
+    q u' = proc () -> do
+      (n,usrs) <- join -< ()
+      restrict -< user_username usrs .== (toNullable $ pgStrictText u')
+      restrict -< _node_typename n .== (pgInt4 $ nodeTypeId nt)
+      returnA  -< _node_id n
+
     join :: Query (NodeRead, UserReadNull)
     join = leftJoin queryNodeTable queryUserTable on1
       where
         on1 (n,us) = _node_userId n .== user_id us
-    
-    q u' = proc () -> do
-    (n,usrs) <- join -< ()
-    restrict -< user_username usrs .== (toNullable $ pgStrictText u')
-    restrict -< _node_typename n .== (pgInt4 $ nodeTypeId nt)
-    returnA  -< _node_id n
-
 

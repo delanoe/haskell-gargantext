@@ -28,8 +28,10 @@ import Control.Monad.IO.Class (liftIO)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
 import Gargantext.Core.Types.Main
+import Gargantext.Database.Config
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Node.Select
 import Gargantext.Database.Schema.Node (getNode)
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
@@ -65,13 +67,14 @@ getGraph nId = do
                                      ]
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
-
+  
+  lIds <- selectNodesWithUsername NodeList userMaster
   lId <- defaultList cId
   ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
                             <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId NgramsTerms (Map.keys ngs)
+                            <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) NgramsTerms (Map.keys ngs)
 
   graph <- liftIO $ cooc2graph myCooc
   pure $ set graph_metadata (Just metadata)

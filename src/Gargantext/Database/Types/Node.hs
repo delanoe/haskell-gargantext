@@ -65,6 +65,7 @@ newtype NodeId = NodeId Int
 instance ToField NodeId where
   toField (NodeId n) = toField n
 
+
 instance FromField NodeId where
   fromField field mdata = do
     n <- fromField field mdata
