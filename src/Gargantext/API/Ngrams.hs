@@ -927,13 +927,14 @@ getTableNgrams nId tabType listId limit_ offset
 type QueryParamR = QueryParam' '[Required, Strict]
 
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
+                      :> QueryParamR "docId"       DocId
                       :> QueryParamR "ngramsType"  TabType
                       :> QueryParamR "list"        ListId
                       :> QueryParamR "limit"       Limit
                       :> QueryParam  "offset"      Offset
                       :> QueryParam  "listType"    ListType
-                      :> QueryParam  "minTermSize" Int
-                      :> QueryParam  "maxTermSize" Int
+                      :> QueryParam  "minTermSize" MinSize
+                      :> QueryParam  "maxTermSize" MaxSize
                       :> QueryParam  "search"      Text
                       :> Get    '[JSON] (Versioned NgramsTable)
 
@@ -982,25 +983,14 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize _mt 
 --{-
 -- TODO Doc Table Ngrams API
 type ApiNgramsTableDoc = TableNgramsApiGet
---                  :<|> TableNgramsApiPut
---                  :<|> TableNgramsApiPost
+                    :<|> TableNgramsApiPut
+                    :<|> TableNgramsApiPost
 
 apiNgramsTableDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-               => DocId -> TabType
-               -> ListId -> Limit -> Maybe Offset
-               -> Maybe ListType
-               -> Maybe MinSize -> Maybe MaxSize
-               -> Maybe Text -- full text search
-               -> m (Versioned NgramsTable)
-{- TODO
---apiDocNgramsTable :: ApiDocNgramsTable
---apiDocNgramsTable :: ApiDocNgramsTable
--}
-apiDocNgramsTable = getTableNgramsDoc
+                  => ServerT ApiNgramsTableDoc m
+apiNgramsTableDoc = getTableNgramsDoc
                  :<|> tableNgramsPut
                  :<|> tableNgramsPost
-                        -- > add new ngrams to the repo (TODO NP)
                         -- > add new ngrams in database (TODO AD)
                         -- > index all the corpus accordingly (TODO AD)
--- apiNgramsTableDoc = getTableNgramsDoc
 
