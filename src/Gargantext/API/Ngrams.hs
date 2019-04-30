@@ -988,7 +988,10 @@ apiNgramsTableDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
 --apiDocNgramsTable :: ApiDocNgramsTable
 --apiDocNgramsTable = getTableNgramsDoc
                  :<|> tableNgramsPut
-                 :<|> tableNgramsPost
+                 :<|> tableNgramsPost 
+                        -- > add new ngrams to the repo (TODO NP)
+                        -- > add new ngrams in database (TODO AD)
+                        -- > index all the corpus accordingly (TODO AD)
 --}
 apiNgramsTableDoc = getTableNgramsDoc
 
