@@ -612,29 +612,6 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 
--- TODO: find a better place for this Gargantext.API.{Common|Prelude|Core} ?
-type QueryParamR = QueryParam' '[Required, Strict]
-
-type TableNgramsApiGet = Summary " Table Ngrams API Get"
-                      :> QueryParamR "ngramsType"  TabType
-                      :> QueryParamR "list"        ListId
-                      :> QueryParamR "limit"       Limit
-                      :> QueryParam  "offset"      Offset
-                      :> QueryParam  "listType"    ListType
-                      :> QueryParam  "minTermSize" Int
-                      :> QueryParam  "maxTermSize" Int
-                      :> QueryParam  "search"      Text
-                      :> Get    '[JSON] (Versioned NgramsTable)
-
-type TableNgramsApi = Summary " Table Ngrams API Change"
-                      :> QueryParamR "ngramsType" TabType
-                      :> QueryParamR "list"       ListId
-                      :> ReqBody '[JSON] (Versioned NgramsTablePatch)
-                      :> Put     '[JSON] (Versioned NgramsTablePatch)
-
-
-
-
 {-
 -- TODO: Replace.old is ignored which means that if the current list
 -- `GraphTerm` and that the patch is `Replace CandidateTerm StopTerm` then
@@ -810,11 +787,11 @@ putListNgrams listId ngramsType nes = do
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
-tableNgramsPatch :: (HasInvalidError err, RepoCmdM env err m)
+tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
                  => CorpusId -> TabType -> ListId
                  -> Versioned NgramsTablePatch
                  -> m (Versioned NgramsTablePatch)
-tableNgramsPatch _corpusId tabType listId (Versioned p_version p_table)
+tableNgramsPut _corpusId tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
       let ngramsType        = ngramsTypeFromTabType tabType
 
@@ -889,34 +866,6 @@ type MaxSize = Int
 
 
 
-getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-               => NodeId -> TabType
-               -> ListId -> Limit -> Maybe Offset
-               -> Maybe ListType
-               -> Maybe MinSize -> Maybe MaxSize
-               -> Maybe Text -- full text search
-               -> m (Versioned NgramsTable)
-getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize mt =
-  getTableNgrams nId tabType listId limit_ offset listType minSize maxSize searchQuery
-    where
-      searchQuery = maybe (const True) isInfixOf mt
-
--- | Text search is deactivated for now for ngrams by doc only
-getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-               => CorpusId -> DocId -> TabType
-               -> ListId -> Limit -> Maybe Offset
-               -> Maybe ListType
-               -> Maybe MinSize -> Maybe MaxSize
-               -> Maybe Text -- full text search
-               -> m (Versioned NgramsTable)
-getTableNgramsDoc cId dId tabType listId limit_ offset listType minSize maxSize _mt = do
-  ns <- selectNodesWithUsername NodeList userMaster
-  let ngramsType = ngramsTypeFromTabType tabType
-  ngs <- selectNgramsByDoc (ns <> [cId]) dId ngramsType
-  let searchQuery = flip S.member (S.fromList ngs)
-  getTableNgrams cId tabType listId limit_ offset listType minSize maxSize searchQuery
-
-
 getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                => NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
@@ -967,4 +916,79 @@ getTableNgrams nId tabType listId limit_ offset
 
   pure $ table & v_data . _NgramsTable . each %~ setOcc
 
+
+-- APIs
+
+-- TODO: find a better place for the code above, All APIs stay here
+type QueryParamR = QueryParam' '[Required, Strict]
+
+type TableNgramsApiGet = Summary " Table Ngrams API Get"
+                      :> QueryParamR "ngramsType"  TabType
+                      :> QueryParamR "list"        ListId
+                      :> QueryParamR "limit"       Limit
+                      :> QueryParam  "offset"      Offset
+                      :> QueryParam  "listType"    ListType
+                      :> QueryParam  "minTermSize" Int
+                      :> QueryParam  "maxTermSize" Int
+                      :> QueryParam  "search"      Text
+                      :> Get    '[JSON] (Versioned NgramsTable)
+
+type TableNgramsApiPut = Summary " Table Ngrams API Change"
+                       :> QueryParamR "ngramsType" TabType
+                       :> QueryParamR "list"       ListId
+                       :> ReqBody '[JSON] (Versioned NgramsTablePatch)
+                       :> Put     '[JSON] (Versioned NgramsTablePatch)
+
+
+getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+               => NodeId -> TabType
+               -> ListId -> Limit -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe Text -- full text search
+               -> m (Versioned NgramsTable)
+getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize mt =
+  getTableNgrams nId tabType listId limit_ offset listType minSize maxSize searchQuery
+    where
+      searchQuery = maybe (const True) isInfixOf mt
+
+-- | Text search is deactivated for now for ngrams by doc only
+getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+               => DocId -> TabType
+               -> ListId -> Limit -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe Text -- full text search
+               -> m (Versioned NgramsTable)
+getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize _mt = do
+  ns <- selectNodesWithUsername NodeList userMaster
+  let ngramsType = ngramsTypeFromTabType tabType
+  ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
+  let searchQuery = flip S.member (S.fromList ngs)
+  getTableNgrams dId tabType listId limit_ offset listType minSize maxSize searchQuery
+
+
+
+
+--{-
+-- TODO Doc Table Ngrams API
+type ApiNgramsTableDoc = TableNgramsApiGet
+--                  :<|> TableNgramsApiPut
+--                  :<|> TableNgramsApiPost
+
+apiNgramsTableDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+               => DocId -> TabType
+               -> ListId -> Limit -> Maybe Offset
+               -> Maybe ListType
+               -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe Text -- full text search
+               -> m (Versioned NgramsTable)
+{- TODO
+--apiDocNgramsTable :: ApiDocNgramsTable
+--apiDocNgramsTable :: ApiDocNgramsTable
+--apiDocNgramsTable = getTableNgramsDoc
+                 :<|> tableNgramsPut
+                 :<|> tableNgramsPost
+--}
+apiNgramsTableDoc = getTableNgramsDoc
 

@@ -66,23 +66,23 @@ import           Servant.Swagger.UI
 import           Text.Blaze.Html (Html)
 
 --import Gargantext.API.Swagger
-import Gargantext.Prelude
-import Gargantext.Core.Types (HasInvalidError(..))
-import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
-import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
-import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo)
-import Gargantext.API.Types
-import Gargantext.API.Node
-import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
 --import Gargantext.Database.Node.Contact (HyperdataContact)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils (HasConnection)
-import Gargantext.Database.Tree (HasTreeError(..), TreeError)
-import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
+import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
 import Gargantext.API.Count  ( CountAPI, count, Query)
+import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
+import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, ApiNgramsTableDoc, apiNgramsTableDoc)
+import Gargantext.API.Node
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
+import Gargantext.API.Types
+import Gargantext.Core.Types (HasInvalidError(..))
 import Gargantext.Database.Facet
+import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
+import Gargantext.Database.Tree (HasTreeError(..), TreeError)
+import Gargantext.Database.Types.Node
+import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
+import Gargantext.Database.Utils (HasConnection)
+import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 
 --import Gargantext.API.Orchestrator
@@ -248,6 +248,10 @@ type GargAPI' =
            :<|> "annuaire":> Summary "Annuaire endpoint"
                           :> Capture "id" AnnuaireId      :> NodeAPI HyperdataAnnuaire
 
+           -- Document endpoint
+           :<|> "document":> Summary "Document endpoint"
+                          :> Capture "id" DocId    :> "ngrams" :> ApiNgramsTableDoc
+                          
            -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
                         :> ReqBody '[JSON] [NodeId] :> NodesAPI
@@ -310,6 +314,7 @@ serverGargAPI -- orchestrator
      :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      fakeUserId
      :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   fakeUserId
      :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire) fakeUserId
+     :<|> apiNgramsTableDoc
      :<|> nodesAPI
      :<|> count -- TODO: undefined
      :<|> search
