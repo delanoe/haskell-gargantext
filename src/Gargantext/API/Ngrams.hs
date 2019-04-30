@@ -772,6 +772,8 @@ addListNgrams listId ngramsType nes = do
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
 
+-- If the given list of ngrams elements contains ngrams already in
+-- the repo, they will overwrite the old ones.
 putListNgrams :: RepoCmdM env err m
               => NodeId -> NgramsType
               -> [NgramsElement] -> m ()
@@ -784,6 +786,8 @@ putListNgrams listId ngramsType nes = do
   saveRepo
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
+
+tableNgramsPost tabType listId = putListNgrams listId tabType
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
@@ -939,6 +943,11 @@ type TableNgramsApiPut = Summary " Table Ngrams API Change"
                        :> ReqBody '[JSON] (Versioned NgramsTablePatch)
                        :> Put     '[JSON] (Versioned NgramsTablePatch)
 
+type TableNgramsApiPost = Summary " Table Ngrams API Adds new ngrams"
+                       :> QueryParamR "ngramsType" TabType
+                       :> QueryParamR "list"       ListId
+                       :> ReqBody '[JSON] [NgramsElement]
+                       :> Post    '[JSON] ()
 
 getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                => NodeId -> TabType
@@ -986,12 +995,12 @@ apiNgramsTableDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
 {- TODO
 --apiDocNgramsTable :: ApiDocNgramsTable
 --apiDocNgramsTable :: ApiDocNgramsTable
---apiDocNgramsTable = getTableNgramsDoc
+-}
+apiDocNgramsTable = getTableNgramsDoc
                  :<|> tableNgramsPut
-                 :<|> tableNgramsPost 
+                 :<|> tableNgramsPost
                         -- > add new ngrams to the repo (TODO NP)
                         -- > add new ngrams in database (TODO AD)
                         -- > index all the corpus accordingly (TODO AD)
---}
-apiNgramsTableDoc = getTableNgramsDoc
+-- apiNgramsTableDoc = getTableNgramsDoc
 
