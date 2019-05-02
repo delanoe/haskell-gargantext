@@ -55,6 +55,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text.Parsers.WOS (wosParser)
+import Gargantext.Text.Parsers.RIS (risParser)
 import Gargantext.Text.Parsers.Date (parseDate)
 import Gargantext.Text.Parsers.CSV (parseHal)
 import Gargantext.Text.Terms.Stop (detectLang)
@@ -71,7 +72,7 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS | CsvHalFormat -- | CsvGargV3
+data FileFormat = WOS | RIS | CsvHalFormat -- | CsvGargV3
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -87,7 +88,7 @@ data FileFormat = WOS | CsvHalFormat -- | CsvGargV3
 -- | Parse file into documents
 -- TODO manage errors here
 parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
-parseDocs WOS    path = join $ mapM (toDoc WOS) <$> snd <$> parse WOS path
+parseDocs ff    path = join $ mapM (toDoc ff) <$> snd <$> parse ff path
 parseDocs CsvHalFormat p = parseHal p
 
 type Year  = Int
@@ -106,7 +107,8 @@ parseDate' l (Just txt) = do
 
 
 toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
-toDoc WOS d = do
+-- TODO use language for RIS
+toDoc ff d = do
       let abstract = lookup "abstract" d
       let lang = maybe EN identity (join $ detectLang <$> (fmap (DT.take 50) abstract))
       
@@ -114,7 +116,7 @@ toDoc WOS d = do
       
       (utcTime, (pub_year, pub_month, pub_day)) <- parseDate' lang  dateToParse
 
-      pure $ HyperdataDocument (Just $ DT.pack $ show WOS)
+      pure $ HyperdataDocument (Just $ DT.pack $ show ff)
                                (lookup "doi" d)
                                (lookup "URL" d)
                                 Nothing
@@ -152,7 +154,7 @@ parse format path = do
 -- TODO  withParser :: FileFormat -> Parser [Document]
 withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
 withParser WOS = wosParser
---withParser DOC = docParser
+withParser RIS = risParser
 --withParser ODT = odtParser
 --withParser XML = xmlParser
 withParser _   = panic "[ERROR] Parser not implemented yet"
