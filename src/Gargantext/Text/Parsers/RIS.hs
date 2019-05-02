@@ -17,7 +17,7 @@ citation programs to exchange data.[More](https://en.wikipedia.org/wiki/RIS_(fil
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS (risParser, field, notice) where
+module Gargantext.Text.Parsers.RIS (risParser) where
 
 import Control.Applicative
 import Data.Attoparsec.ByteString (Parser, try, string, takeTill, take, manyTill, many1, endOfInput)
@@ -34,46 +34,35 @@ data Lines = OneLine | MultiLine
 
 risParser :: Parser [[(ByteString, ByteString)]]
 risParser = do
-    --_  <- manyTill anyChar (string $ pack "START")
-    ns <- many1 notice  -- <*  (string $ pack "\nXXX")
-    pure ns
+    n  <- notice "TY  -"
+    ns <- many1 (notice "\nTY  -")
+    pure $ [n] <> ns
 
-notice :: Parser [(ByteString, ByteString)]
-notice = start *> many field <* end
+notice :: Parser ByteString -> Parser [(ByteString, ByteString)]
+notice s = start *> many field <* end
     where
       start :: Parser ByteString
-      start = "\nTY" *> takeTill isEndOfLine
+      start = s *> takeTill isEndOfLine
 
       end :: Parser ByteString
-      end =  "\nER\n" *> takeTill isEndOfLine
-      --end = manyTill anyChar (string $ pack "\nER\n")
-
-
-fields :: Parser [(ByteString, ByteString)]
-fields = many field
+      end =  "\nER  -" *> takeTill isEndOfLine
 
 field :: Parser (ByteString, ByteString)
 field = do
-    --name  <- "\n" *> take 2 <* takeTill isEndOfLine -- "  -"
     name  <- "\n" *> take 2 <* "  - "
-    txt   <- takeTill isEndOfLine -- "  -"
-    --name  <- take 2
-    --txt   <- takeTill isEndOfLine
-    {-
+    txt   <- takeTill isEndOfLine
     txts  <- try lines
     let txts' = case DL.length txts > 0 of
             True  -> txts
             False -> []
     pure (translate name, concat ([txt] <> txts'))
-    --}
-    pure (translate name, txt)
 
 
 lines :: Parser [ByteString]
 lines = many line
     where
         line :: Parser ByteString
-        line = "\n  " *> takeTill isEndOfLine
+        line = "\n\n" *> takeTill isEndOfLine
 
 translate :: ByteString -> ByteString
 translate champs
