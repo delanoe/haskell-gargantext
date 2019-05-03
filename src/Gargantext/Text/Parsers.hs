@@ -22,42 +22,38 @@ please follow the types.
 {-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseDocs)
+module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseDocs, risPress2csv)
     where
 
-import System.FilePath (FilePath(), takeExtension)
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
-
-import Control.Monad (join)
-import qualified Data.Time as DT
-import Data.Either.Extra (partitionEithers)
-import Data.Time (UTCTime(..))
-import Data.List (concat)
-import qualified Data.Map        as DM
-import qualified Data.ByteString as DB
-import Data.Ord()
-import Data.String()
-import Data.Either(Either(..))
-import Data.Attoparsec.ByteString (parseOnly, Parser)
-
-import Data.Text (Text)
-import qualified Data.Text as DT
-
--- Activate Async for to parse in parallel
 import Control.Concurrent.Async as CCA (mapConcurrently)
-
-import Data.Text.Encoding (decodeUtf8)
-import Data.String (String())
+import Control.Monad (join)
+import Data.Attoparsec.ByteString (parseOnly, Parser)
+import Data.Either(Either(..))
+import Data.Either.Extra (partitionEithers)
+import Data.List (concat)
 import Data.List (lookup)
+import Data.Ord()
+import Data.String (String())
+import Data.String()
+import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8)
+import Data.Time (UTCTime(..))
+import Data.Tuple.Extra (both, second)
+import System.FilePath (FilePath(), takeExtension)
+import qualified Data.ByteString as DB
+import qualified Data.Map        as DM
+import qualified Data.Text as DT
+import qualified Data.Time as DT
 
 ------------------------------------------------------------------------
 import Gargantext.Core (Lang(..))
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text.Parsers.WOS (wosParser)
-import Gargantext.Text.Parsers.RIS (risParser)
+import Gargantext.Text.Parsers.RIS (risParser, presseParser)
 import Gargantext.Text.Parsers.Date (parseDate)
-import Gargantext.Text.Parsers.CSV (parseHal)
+import Gargantext.Text.Parsers.CSV (parseHal, writeDocs2Csv)
 import Gargantext.Text.Terms.Stop (detectLang)
 ------------------------------------------------------------------------
 
@@ -72,7 +68,7 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS | RIS | CsvHalFormat -- | CsvGargV3
+data FileFormat = WOS | RIS | CsvHalFormat | RisPresse -- | CsvGargV3
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -88,8 +84,9 @@ data FileFormat = WOS | RIS | CsvHalFormat -- | CsvGargV3
 -- | Parse file into documents
 -- TODO manage errors here
 parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
-parseDocs ff    path = join $ mapM (toDoc ff) <$> snd <$> parse ff path
 parseDocs CsvHalFormat p = parseHal p
+parseDocs RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith presseParser <$>  parse' RIS p
+parseDocs ff    path = join $ mapM (toDoc ff) <$> snd <$> parse ff path
 
 type Year  = Int
 type Month = Int
@@ -138,15 +135,23 @@ toDoc ff d = do
 toDoc _ _ = undefined
 
 parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
-parse format path = do
+parse ff fp = enrichWith identity <$> parse' ff fp
+
+enrichWith ::
+  ([(DB.ByteString, DB.ByteString)] -> [(DB.ByteString, DB.ByteString)])
+  ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])
+enrichWith f = second (map both' . map f . concat)
+  where
+    both'   = map (both decodeUtf8)
+
+parse' :: FileFormat -> FilePath
+       -> IO ([ParseError], [[[(DB.ByteString, DB.ByteString)]]])
+parse' format path = do
     files <- case takeExtension path of
               ".zip" -> openZip              path
               _      -> pure <$> DB.readFile path
-    (as, bs) <- partitionEithers <$> mapConcurrently (runParser format) files
-    pure (as, map toText $ concat bs)
-      where
-        -- TODO : decode with bayesian inference on encodings
-        toText = map (\(a,b) -> (decodeUtf8 a, decodeUtf8 b))
+    partitionEithers <$> mapConcurrently (runParser format) files
+
 
 
 -- | withParser:
@@ -174,4 +179,9 @@ clean txt = DT.map clean' txt
   where
     clean' '’' = '\''
     clean' c  = c
+
+
+
+risPress2csv f = parseDocs RisPresse (f <> ".ris") >>= \hs -> writeDocs2Csv (f <> ".csv") hs
+
 

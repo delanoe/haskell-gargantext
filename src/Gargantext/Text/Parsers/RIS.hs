@@ -10,27 +10,29 @@ Portability : POSIX
 
 RIS is a standardized tag format developed by Research Information
 Systems, Incorporated (the format name refers to the company) to enable
-citation programs to exchange data.[More](https://en.wikipedia.org/wiki/RIS_(file_format))
+citation programs to exchange data.
+
+[More](https://en.wikipedia.org/wiki/RIS_(file_format))
 
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS (risParser) where
+module Gargantext.Text.Parsers.RIS (risParser, risDate, toDate, presseParser) where
 
+import Data.Either (either)
+import Data.List (lookup)
+import Data.Tuple.Extra (first)
 import Control.Applicative
-import Data.Attoparsec.ByteString (Parser, try, string, takeTill, take, manyTill, many1, endOfInput)
+import Data.Attoparsec.ByteString (Parser, try, string, takeTill, take, manyTill, many1, endOfInput, parseOnly)
 import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
-import Data.ByteString (ByteString, concat)
+import Data.ByteString (ByteString, concat, length)
 import Data.ByteString.Char8 (pack)
 import Data.Monoid ((<>))
 import Gargantext.Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
 import qualified Data.List as DL
-
 -------------------------------------------------------------
-
-data Lines = OneLine | MultiLine
 
 risParser :: Parser [[(ByteString, ByteString)]]
 risParser = do
@@ -57,7 +59,6 @@ field = do
             False -> []
     pure (translate name, concat ([txt] <> txts'))
 
-
 lines :: Parser [ByteString]
 lines = many line
     where
@@ -72,7 +73,38 @@ translate champs
             | champs == "LA" = "language"
             | champs == "DI" = "doi"
             | champs == "UR" = "url"
-            | champs == "DA" = "publication_date"
             | champs == "N2" = "abstract"
             | otherwise  = champs
 -------------------------------------------------------------
+
+presseParser :: [(ByteString, ByteString)] -> [(ByteString, ByteString)]
+presseParser = (toDate "DA" (\x -> either (const []) identity $ parseOnly risDate x))
+             . (toDate "LA" presseLang)
+
+risDate :: Parser [(ByteString, ByteString)]
+risDate = do
+  day <- take 2 <* "/"
+  mon <- take 2 <* "/"
+  yea <- take 4
+  pure $ map (first (\x -> "publication_" <> x))
+       [ ("day",day)
+       , ("month", mon)
+       , ("year", yea)
+       , ("date", yea <> "-" <> mon <> "-" <> day <> "T0:0:0")
+       ]
+
+toDate :: ByteString -> (ByteString -> [(ByteString, ByteString)])
+       -> [(ByteString, ByteString)] -> [(ByteString, ByteString)]
+toDate k f m = m <> ( maybe [] f (lookup k m) )
+
+presseLang :: ByteString -> [(ByteString, ByteString)]
+presseLang "Français" = [("language", "FR")]
+presseLang "English"  = [("langauge", "EN")]
+presseLang _ = undefined
+
+{-
+fixTitle :: [(ByteString, ByteString)] -> [(ByteString, ByteString)]
+fixTitle ns = ns <> [ti, ab]
+  where
+    ti = case 
+-}

@@ -25,14 +25,14 @@ import Control.Applicative
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.Text (Text, pack, length, intercalate)
+import Data.Text (Text, pack, length, intercalate, unpack)
 import qualified Data.ByteString.Lazy as BL
 import Data.Time.Segment (jour)
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Types.Node -- (HyperdataDocument(..))
 import Gargantext.Text
 import Gargantext.Text.Context
 import Gargantext.Prelude hiding (length)
@@ -83,6 +83,10 @@ doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
                     Nothing
                     Nothing
                     Nothing
+
+
+
+
 ---------------------------------------------------------------
 -- | Types Conversions
 toDocs :: Vector CsvDoc -> [Doc]
@@ -174,6 +178,19 @@ instance ToNamedRecord CsvDoc where
                 , "authors"           .= aut
                ]
 
+hyperdataDocument2csvDoc :: HyperdataDocument -> CsvDoc
+hyperdataDocument2csvDoc h = CsvDoc (m $ _hyperdataDocument_title h)
+                                    (m $ _hyperdataDocument_source h)
+                                    (mI $ _hyperdataDocument_publication_year h)
+                                    (mI $ _hyperdataDocument_publication_month h)
+                                    (mI $ _hyperdataDocument_publication_day   h)
+                                    (m $ _hyperdataDocument_abstract h)
+                                    (m $ _hyperdataDocument_authors h)
+
+  where
+    m = maybe "" identity
+    mI = maybe 0 identity
+
 
 csvDecodeOptions :: DecodeOptions
 csvDecodeOptions = (defaultDecodeOptions
@@ -212,7 +229,9 @@ writeCsv :: FilePath -> (Header, Vector CsvDoc) -> IO ()
 writeCsv fp (h, vs) = BL.writeFile fp $
                       encodeByNameWith csvEncodeOptions h (V.toList vs)
 
-
+writeDocs2Csv :: FilePath -> [HyperdataDocument] -> IO ()
+writeDocs2Csv fp hs = BL.writeFile fp $
+                    encodeByNameWith csvEncodeOptions headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
 ------------------------------------------------------------------------
 -- Hal Format
 data CsvHal = CsvHal
