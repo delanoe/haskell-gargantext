@@ -51,7 +51,8 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text.Parsers.WOS (wosParser)
-import Gargantext.Text.Parsers.RIS (risParser, presseParser)
+import Gargantext.Text.Parsers.RIS (risParser)
+import Gargantext.Text.Parsers.RIS.Presse (presseEnrich)
 import Gargantext.Text.Parsers.Date (parseDate)
 import Gargantext.Text.Parsers.CSV (parseHal, writeDocs2Csv)
 import Gargantext.Text.Terms.Stop (detectLang)
@@ -85,7 +86,7 @@ data FileFormat = WOS | RIS | CsvHalFormat | RisPresse -- | CsvGargV3
 -- TODO manage errors here
 parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
 parseDocs CsvHalFormat p = parseHal p
-parseDocs RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith presseParser <$>  parse' RIS p
+parseDocs RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith presseEnrich <$>  parse' RIS p
 parseDocs ff    path = join $ mapM (toDoc ff) <$> snd <$> parse ff path
 
 type Year  = Int
@@ -132,7 +133,6 @@ toDoc ff d = do
                                Nothing
                                Nothing
                                (Just $ (DT.pack . show) lang)
-toDoc _ _ = undefined
 
 parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
 parse ff fp = enrichWith identity <$> parse' ff fp
@@ -183,5 +183,4 @@ clean txt = DT.map clean' txt
 
 
 risPress2csv f = parseDocs RisPresse (f <> ".ris") >>= \hs -> writeDocs2Csv (f <> ".csv") hs
-
 

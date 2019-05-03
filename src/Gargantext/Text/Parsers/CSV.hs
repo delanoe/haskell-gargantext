@@ -25,7 +25,7 @@ import Control.Applicative
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
-import Data.Text (Text, pack, length, intercalate, unpack)
+import Data.Text (Text, pack, length, intercalate)
 import qualified Data.ByteString.Lazy as BL
 import Data.Time.Segment (jour)
 

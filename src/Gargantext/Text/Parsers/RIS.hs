@@ -19,7 +19,7 @@ citation programs to exchange data.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS (risParser, risDate, toDate, presseParser) where
+module Gargantext.Text.Parsers.RIS (risParser, withField) where
 
 import Data.Either (either)
 import Data.List (lookup)
@@ -57,7 +57,7 @@ field = do
     let txts' = case DL.length txts > 0 of
             True  -> txts
             False -> []
-    pure (translate name, concat ([txt] <> txts'))
+    pure (name, concat ([txt] <> txts'))
 
 lines :: Parser [ByteString]
 lines = many line
@@ -65,46 +65,8 @@ lines = many line
         line :: Parser ByteString
         line = "\n\n" *> takeTill isEndOfLine
 
-translate :: ByteString -> ByteString
-translate champs
-            | champs == "AU" = "authors"
-            | champs == "TI" = "title"
-            | champs == "JF" = "source"
-            | champs == "LA" = "language"
-            | champs == "DI" = "doi"
-            | champs == "UR" = "url"
-            | champs == "N2" = "abstract"
-            | otherwise  = champs
 -------------------------------------------------------------
-
-presseParser :: [(ByteString, ByteString)] -> [(ByteString, ByteString)]
-presseParser = (toDate "DA" (\x -> either (const []) identity $ parseOnly risDate x))
-             . (toDate "LA" presseLang)
-
-risDate :: Parser [(ByteString, ByteString)]
-risDate = do
-  day <- take 2 <* "/"
-  mon <- take 2 <* "/"
-  yea <- take 4
-  pure $ map (first (\x -> "publication_" <> x))
-       [ ("day",day)
-       , ("month", mon)
-       , ("year", yea)
-       , ("date", yea <> "-" <> mon <> "-" <> day <> "T0:0:0")
-       ]
-
-toDate :: ByteString -> (ByteString -> [(ByteString, ByteString)])
+withField :: ByteString -> (ByteString -> [(ByteString, ByteString)])
        -> [(ByteString, ByteString)] -> [(ByteString, ByteString)]
-toDate k f m = m <> ( maybe [] f (lookup k m) )
+withField k f m = m <> ( maybe [] f (lookup k m) )
 
-presseLang :: ByteString -> [(ByteString, ByteString)]
-presseLang "Français" = [("language", "FR")]
-presseLang "English"  = [("langauge", "EN")]
-presseLang _ = undefined
-
-{-
-fixTitle :: [(ByteString, ByteString)] -> [(ByteString, ByteString)]
-fixTitle ns = ns <> [ti, ab]
-  where
-    ti = case 
--}
