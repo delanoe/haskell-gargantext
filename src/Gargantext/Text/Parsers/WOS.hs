@@ -29,6 +29,7 @@ import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
 import Data.ByteString (ByteString, concat)
 import Data.ByteString.Char8 (pack)
 import Control.Applicative
+import Gargantext.Text.Parsers.RIS (fieldWith, lines)
 
 -------------------------------------------------------------
 -- | wosParser parses ISI format from
@@ -42,34 +43,17 @@ wosParser = do
     pure ns
 
 notice :: Parser [(ByteString, ByteString)]
-notice = start *> fields <* end
+notice = start *> many (fieldWith field) <* end
     where
+      field :: Parser ByteString
+      field = "\n" *> take 2 <* " "
+
       start :: Parser ByteString
       start = "\nPT " *> takeTill isEndOfLine
 
       end :: Parser [Char]
       end = manyTill anyChar (string $ pack "\nER\n")
 
-
-fields :: Parser [(ByteString, ByteString)]
-fields = many field
-    where
-        field :: Parser (ByteString, ByteString)
-        field = do
-            name  <- "\n" *> take 2 <* " "
-            txt   <- takeTill isEndOfLine
-            txts  <- try lines
-            let txts' = case DL.length txts > 0 of
-                    True  -> txts
-                    False -> []
-            pure (translate name, concat ([txt] <> txts'))
-
-
-lines :: Parser [ByteString]
-lines = many line
-    where
-        line :: Parser ByteString
-        line = "\n  " *> takeTill isEndOfLine
 
 translate :: ByteString -> ByteString
 translate champs

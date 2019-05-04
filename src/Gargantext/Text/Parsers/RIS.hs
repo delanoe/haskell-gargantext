@@ -19,7 +19,7 @@ citation programs to exchange data.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS (risParser, withField) where
+module Gargantext.Text.Parsers.RIS (risParser, withField, fieldWith, lines) where
 
 import Data.Either (either)
 import Data.List (lookup)
@@ -41,23 +41,28 @@ risParser = do
     pure $ [n] <> ns
 
 notice :: Parser ByteString -> Parser [(ByteString, ByteString)]
-notice s = start *> many field <* end
+notice s = start *> many (fieldWith field)  <* end
     where
+      field :: Parser ByteString
+      field = "\n" *> take 2 <* "  - "
+
       start :: Parser ByteString
       start = s *> takeTill isEndOfLine
 
       end :: Parser ByteString
       end =  "\nER  -" *> takeTill isEndOfLine
 
-field :: Parser (ByteString, ByteString)
-field = do
-    name  <- "\n" *> take 2 <* "  - "
+
+fieldWith :: Parser ByteString -> Parser (ByteString, ByteString)
+fieldWith n = do
+    name  <- n
     txt   <- takeTill isEndOfLine
     txts  <- try lines
     let txts' = case DL.length txts > 0 of
             True  -> txts
             False -> []
     pure (name, concat ([txt] <> txts'))
+
 
 lines :: Parser [ByteString]
 lines = many line
