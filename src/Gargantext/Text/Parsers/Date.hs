@@ -66,10 +66,10 @@ import qualified Text.ParserCombinators.Parsec (parse)
 parseDate :: Lang -> Text -> IO UTCTime
 parseDate lang s = parseDate' "%Y-%m-%dT%T" "0-0-0T0:0:0" lang s
 
-type DateFormat = Text
-type DateNull   = Text
+type DateFormat  = Text
+type DateDefault = Text
 
-parseDate' :: DateFormat -> DateNull -> Lang -> Text -> IO UTCTime
+parseDate' :: DateFormat -> DateDefault -> Lang -> Text -> IO UTCTime
 parseDate' format def lang s = do
   dateStr' <- parseDateRaw lang s
   let dateStr = unpack $ maybe def identity

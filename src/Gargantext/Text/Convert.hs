@@ -23,6 +23,7 @@ import Gargantext.Prelude
 import Gargantext.Text.Parsers.CSV (writeDocs2Csv)
 import Gargantext.Text.Parsers (parseDocs, FileFormat(..))
 
+
 risPress2csv :: FilePath -> IO ()
 risPress2csv f = parseDocs RisPresse    (f <> ".ris")
                >>= \hs -> writeDocs2Csv (f <> ".csv") hs

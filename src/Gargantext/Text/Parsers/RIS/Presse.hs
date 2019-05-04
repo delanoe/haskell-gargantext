@@ -54,7 +54,7 @@ parseDate = do
 presseLang :: ByteString -> [(ByteString, ByteString)]
 presseLang "Français" = [("language", "FR")]
 presseLang "English"  = [("language", "EN")]
-presseLang _ = undefined
+presseLang x = [("language", x)]
 
 
 presseFields :: ByteString -> ByteString

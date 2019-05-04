@@ -22,12 +22,13 @@ please follow the types.
 {-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseDocs, risPress2csv)
+module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseDocs)
     where
 
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Control.Concurrent.Async as CCA (mapConcurrently)
 import Control.Monad (join)
+import qualified Data.ByteString.Char8 as DBC
 import Data.Attoparsec.ByteString (parseOnly, Parser)
 import Data.Either(Either(..))
 import Data.Either.Extra (partitionEithers)
@@ -149,7 +150,7 @@ parse' :: FileFormat -> FilePath
 parse' format path = do
     files <- case takeExtension path of
               ".zip" -> openZip              path
-              _      -> pure <$> DB.readFile path
+              _      -> pure <$> clean <$> DB.readFile path
     partitionEithers <$> mapConcurrently (runParser format) files
 
 
@@ -174,13 +175,11 @@ openZip fp = do
     bs      <- mapConcurrently (\s -> withArchive fp (getEntry s)) entries
     pure bs
 
-clean :: Text -> Text
-clean txt = DT.map clean' txt
+clean :: DB.ByteString -> DB.ByteString
+clean txt = DBC.map clean' txt
   where
     clean' '’' = '\''
+    clean' '\r' = ' '
     clean' c  = c
 
-
-
-risPress2csv f = parseDocs RisPresse (f <> ".ris") >>= \hs -> writeDocs2Csv (f <> ".csv") hs
 

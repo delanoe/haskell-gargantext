@@ -63,7 +63,7 @@ lines :: Parser [ByteString]
 lines = many line
     where
         line :: Parser ByteString
-        line = "\n\n" *> takeTill isEndOfLine
+        line = "\n " *> takeTill isEndOfLine
 
 -------------------------------------------------------------
 withField :: ByteString -> (ByteString -> [(ByteString, ByteString)])
