@@ -19,23 +19,20 @@ citation programs to exchange data.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS (risParser, withField, fieldWith, lines) where
+module Gargantext.Text.Parsers.RIS (parser, withField, fieldWith, lines) where
 
-import Data.Either (either)
 import Data.List (lookup)
-import Data.Tuple.Extra (first)
 import Control.Applicative
-import Data.Attoparsec.ByteString (Parser, try, string, takeTill, take, manyTill, many1, endOfInput, parseOnly)
-import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
-import Data.ByteString (ByteString, concat, length)
-import Data.ByteString.Char8 (pack)
+import Data.Attoparsec.ByteString (Parser, try, takeTill, take, many1)
+import Data.Attoparsec.ByteString.Char8 (isEndOfLine)
+import Data.ByteString (ByteString, concat)
 import Data.Monoid ((<>))
-import Gargantext.Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
+import Gargantext.Prelude hiding (takeWhile, take)
 import qualified Data.List as DL
 -------------------------------------------------------------
 
-risParser :: Parser [[(ByteString, ByteString)]]
-risParser = do
+parser :: Parser [[(ByteString, ByteString)]]
+parser = do
     n  <- notice "TY  -"
     ns <- many1 (notice "\nTY  -")
     pure $ [n] <> ns

@@ -14,28 +14,21 @@ commentary with @some markup@.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.WOS (wosParser) where
+module Gargantext.Text.Parsers.WOS (parser, keys) where
 
--- TOFIX : Should import Gargantext.Prelude here
-import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
-
-import qualified Data.List as DL
-
-import Data.Monoid ((<>))
-import Data.Attoparsec.ByteString (Parser, try, string
-                                  , takeTill, take
-                                  , manyTill, many1)
-import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
-import Data.ByteString (ByteString, concat)
-import Data.ByteString.Char8 (pack)
 import Control.Applicative
-import Gargantext.Text.Parsers.RIS (fieldWith, lines)
+import Data.Attoparsec.ByteString (Parser, string, takeTill, take, manyTill, many1)
+import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (pack)
+import Gargantext.Text.Parsers.RIS (fieldWith)
+import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
 
 -------------------------------------------------------------
 -- | wosParser parses ISI format from
 -- Web Of Science Database
-wosParser :: Parser [[(ByteString, ByteString)]]
-wosParser = do
+parser :: Parser [[(ByteString, ByteString)]]
+parser = do
     -- TODO Warning if version /= 1.0
     -- FIXME anyChar (string ..) /= exact string "\nVR 1.0" ?
     _  <- manyTill anyChar (string $ pack "\nVR 1.0")
@@ -55,8 +48,8 @@ notice = start *> many (fieldWith field) <* end
       end = manyTill anyChar (string $ pack "\nER\n")
 
 
-translate :: ByteString -> ByteString
-translate champs
+keys :: ByteString -> ByteString
+keys champs
             | champs == "AF" = "authors"
             | champs == "TI" = "title"
             | champs == "SO" = "source"
@@ -64,5 +57,3 @@ translate champs
             | champs == "PD" = "publication_date"
             | champs == "AB" = "abstract"
             | otherwise  = champs
--------------------------------------------------------------
-

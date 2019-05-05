@@ -40,22 +40,20 @@ import Data.String()
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time (UTCTime(..))
-import Data.Tuple.Extra (both, second)
+import Data.Tuple.Extra (both, first, second)
 import System.FilePath (FilePath(), takeExtension)
 import qualified Data.ByteString as DB
 import qualified Data.Map        as DM
 import qualified Data.Text as DT
 import qualified Data.Time as DT
-
-------------------------------------------------------------------------
 import Gargantext.Core (Lang(..))
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Gargantext.Text.Parsers.WOS (wosParser)
-import Gargantext.Text.Parsers.RIS (risParser)
+import qualified Gargantext.Text.Parsers.WOS as WOS
+import qualified Gargantext.Text.Parsers.RIS as RIS
 import Gargantext.Text.Parsers.RIS.Presse (presseEnrich)
 import Gargantext.Text.Parsers.Date (parseDate)
-import Gargantext.Text.Parsers.CSV (parseHal, writeDocs2Csv)
+import Gargantext.Text.Parsers.CSV (parseHal)
 import Gargantext.Text.Terms.Stop (detectLang)
 ------------------------------------------------------------------------
 
@@ -70,7 +68,8 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS | RIS | CsvHalFormat | RisPresse -- | CsvGargV3
+data FileFormat = WOS | RIS | RisPresse
+                | CsvGargV3 | CsvHalFormat
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -87,8 +86,9 @@ data FileFormat = WOS | RIS | CsvHalFormat | RisPresse -- | CsvGargV3
 -- TODO manage errors here
 parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
 parseDocs CsvHalFormat p = parseHal p
-parseDocs RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith presseEnrich <$>  parse' RIS p
-parseDocs ff    path = join $ mapM (toDoc ff) <$> snd <$> parse ff path
+parseDocs RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith presseEnrich           <$> parse' RIS p
+parseDocs WOS       p = join $ mapM (toDoc WOS) <$> snd <$> enrichWith (map (first WOS.keys)) <$> parse' WOS p
+parseDocs ff        p = join $ mapM (toDoc ff)  <$> snd <$> parse ff p
 
 type Year  = Int
 type Month = Int
@@ -159,8 +159,8 @@ parse' format path = do
 -- According to the format of the text, choose the right parser.
 -- TODO  withParser :: FileFormat -> Parser [Document]
 withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
-withParser WOS = wosParser
-withParser RIS = risParser
+withParser WOS = WOS.parser
+withParser RIS = RIS.parser
 --withParser ODT = odtParser
 --withParser XML = xmlParser
 withParser _   = panic "[ERROR] Parser not implemented yet"
