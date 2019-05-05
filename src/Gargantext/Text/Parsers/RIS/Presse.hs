@@ -7,7 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Presse RIS format parser en enricher.
+Presse RIS format parser for Europresse Database.
 
 -}
 
@@ -16,41 +16,60 @@ Presse RIS format parser en enricher.
 
 module Gargantext.Text.Parsers.RIS.Presse (presseEnrich) where
 
+import Data.List (lookup)
 import Data.Either (either)
-import Data.Tuple.Extra (first)
+import Data.Tuple.Extra (first, both, uncurry)
 import Data.Attoparsec.ByteString (parseOnly)
-import Data.ByteString (ByteString)
-import Gargantext.Prelude hiding (takeWhile, take)
-import Gargantext.Text.Parsers.RIS (withField)
+import Data.ByteString (ByteString, length)
+import Gargantext.Prelude hiding (takeWhile, take, length)
+import Gargantext.Text.Parsers.RIS (onField)
+import Gargantext.Core (Lang(..))
 import qualified Gargantext.Text.Parsers.Date.Attoparsec as Date
--------------------------------------------------------------
--------------------------------------------------------------
+
+
+
 presseEnrich :: [(ByteString, ByteString)] -> [(ByteString, ByteString)]
-presseEnrich = (withField "DA" presseDate)
-             . (withField "LA" presseLang)
-             . (map (first presseFields))
+presseEnrich = (onField "DA" parseDate)
+             . (onField "LA" parseLang)
+             . fixFields
+             
 
-presseDate :: ByteString -> [(ByteString, ByteString)]
-presseDate str = either (const []) identity $ parseOnly (Date.parserWith "/")  str
+parseDate :: ByteString -> [(ByteString, ByteString)]
+parseDate str = either (const []) identity $ parseOnly (Date.parserWith "/")  str
 
-presseLang :: ByteString -> [(ByteString, ByteString)]
-presseLang "Français" = [("language", "FR")]
-presseLang "English"  = [("language", "EN")]
-presseLang x = [("language", x)]
+parseLang :: ByteString -> [(ByteString, ByteString)]
+parseLang "Français" = [(langField, cs $ show FR)]
+parseLang "English"  = [(langField, cs $ show EN)]
+parseLang x = [(langField, x)]
 
-presseFields :: ByteString -> ByteString
-presseFields champs
-            | champs == "AU" = "authors"
-            | champs == "TI" = "title"
-            | champs == "JF" = "source"
-            | champs == "DI" = "doi"
-            | champs == "UR" = "url"
-            | champs == "N2" = "abstract"
-            | otherwise  = champs
+langField :: ByteString
+langField = "language"
 
-{-
-fixTitle :: [(ByteString, ByteString)] -> [(ByteString, ByteString)]
-fixTitle ns = ns <> [ti, ab]
+
+fixFields :: [(ByteString, ByteString)] -> [(ByteString, ByteString)]
+fixFields ns = map (first fixFields'') ns
   where
-    ti = case 
--}
+    -- | Title is sometimes longer than abstract
+    fixFields'' = case uncurry (>) <$> look'' of
+      Just True -> fixFields' "abstract" "title"
+      _         -> fixFields' "title"    "abstract"
+
+    look'' :: Maybe (Int, Int)
+    look'' = both length <$> look
+
+    look :: Maybe (ByteString,ByteString)
+    look = (,) <$> lookup "TI" ns <*> lookup "N2" ns
+
+
+    fixFields' :: ByteString -> ByteString
+                 -> ByteString -> ByteString
+    fixFields' title abstract champs
+                | champs == "AU" = "authors"
+                | champs == "TI" = title
+                | champs == "JF" = "source"
+                | champs == "DI" = "doi"
+                | champs == "UR" = "url"
+                | champs == "N2" = abstract
+                | otherwise  = champs
+
+

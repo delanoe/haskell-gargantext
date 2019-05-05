@@ -19,7 +19,7 @@ citation programs to exchange data.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS (parser, withField, fieldWith, lines) where
+module Gargantext.Text.Parsers.RIS (parser, onField, fieldWith, lines) where
 
 import Data.List (lookup)
 import Control.Applicative
@@ -68,7 +68,8 @@ lines = many line
         line = "\n " *> takeTill isEndOfLine
 
 -------------------------------------------------------------
-withField :: ByteString -> (ByteString -> [(ByteString, ByteString)])
+-- Field for First elem of a Tuple, Key for corresponding Map
+onField :: ByteString -> (ByteString -> [(ByteString, ByteString)])
        -> [(ByteString, ByteString)] -> [(ByteString, ByteString)]
-withField k f m = m <> ( maybe [] f (lookup k m) )
+onField k f m = m <> ( maybe [] f (lookup k m) )
 
