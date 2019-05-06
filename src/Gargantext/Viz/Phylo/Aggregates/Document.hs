@@ -17,17 +17,14 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Document
   where
 
-import Control.Lens         hiding (both, Level)
-
-import Data.List        (last,nub,(++))
-import Data.Map         (Map,member)
+import Data.List        (last)
+import Data.Map         (Map)
 import Data.Text        (Text)
-import Data.Tuple       (fst, snd)
+import Data.Tuple       (fst)
 import Data.Vector      (Vector)
 import Gargantext.Prelude
-import Gargantext.Text.Terms.Mono               (monoTexts)
+import Gargantext.Text.Terms.Mono (monoTexts)
 import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Tools
 import qualified Data.List   as List
 import qualified Data.Map    as Map
 import qualified Data.Vector as Vector
@@ -50,27 +47,11 @@ groupDocsByPeriod f pds es = Map.fromList $ zip pds $ map (inPeriode f es) pds
       fst $ List.partition (\d -> f' d >= start && f' d <= end) h
     --------------------------------------
 
--- | Reduce a list of foundations as a list of corresponding roots 
-reduceByRoots :: Map Ngrams Ngrams -> [Ngrams] -> [Ngrams]
-reduceByRoots m ns = (\(f,s) -> f ++ (nub s))
-                    $ foldl (\mem n -> if member n m
-                                      then (fst mem,(snd mem) ++ [m Map.! n])
-                                      else ((fst mem) ++ [n],snd mem)
-                                      ) ([],[]) ns
 
 -- | To parse a list of Documents by filtering on a Vector of Ngrams
-parseDocs :: Vector Ngrams -> PhyloRoots -> [(Date,Text)] -> [Document]
-parseDocs fds roots c = map (\(d,t)
-                         -> Document d ( reduceByRoots mRoots
-                                       $ filter (\x -> Vector.elem x fds)
-                                       $ monoTexts t)) c
-  where
-    --------------------------------------
-    mRoots :: Map Ngrams Ngrams
-    mRoots = forestToMap (roots ^. phylo_rootsForest)
-    --------------------------------------
-
-
--- | To transform a Corpus of texts into a Map of aggregated Documents grouped by Periods
+parseDocs :: Vector Ngrams -> [(Date,Text)] -> [Document]
+parseDocs roots c = map (\(d,t)
+                -> Document d ( filter (\x -> Vector.elem x roots)
+                              $ monoTexts t)) c
 
 

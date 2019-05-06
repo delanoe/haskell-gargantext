@@ -103,7 +103,7 @@ postPhylo _n _lId q = do
     vrs = Just ("1" :: Text)
     sft = Just (Software "Gargantext" "4")
     prm = initPhyloParam vrs sft (Just q)
-  pure (toPhyloBase q prm corpus actants actantsTrees)
+  pure (toPhyloBase q prm corpus actants termList)
 
 
 ------------------------------------------------------------------------
@@ -144,7 +144,7 @@ instance ToSchema PhyloGroup
 instance ToSchema PhyloLevel
 instance ToSchema PhyloNode
 instance ToSchema PhyloParam
-instance ToSchema PhyloRoots
+instance ToSchema PhyloFoundations
 instance ToSchema PhyloPeriod
 instance ToSchema PhyloQueryBuild
 instance ToSchema PhyloView
@@ -186,10 +186,6 @@ instance FromHttpApiData Sort
     parseUrlPiece = readTextData
 instance ToParamSchema Sort
 
-instance (ToSchema a) => ToSchema (Tree a)
-  where
-    declareNamedSchema = genericDeclareNamedSchemaUnrestricted
-                       $ swaggerOptions ""
 
 instance ToSchema Proximity
   where

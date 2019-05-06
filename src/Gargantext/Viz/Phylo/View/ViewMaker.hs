@@ -49,7 +49,7 @@ initPhyloView lvl lbl dsc fl vb p = PhyloView (getPhyloParams p) lbl dsc fl lvl
                                     (getPhyloPeriods p)
                                     empty
                                     ([] ++ (phyloToBranches lvl p))
-                                    ([] ++ (groupsToNodes True vb (getRootsLabels p) gs))
+                                    ([] ++ (groupsToNodes True vb (getFoundationsRoots p) gs))
                                     ([] ++ (groupsToEdges fl PeriodEdge gs))
   where
     --------------------------------------
@@ -123,7 +123,7 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
   then v
   else addChildNodes shouldDo (lvl - 1) lvlMin vb fl p
      $ v & pv_branches %~ (++ (phyloToBranches (lvl - 1) p))
-         & pv_nodes %~ (++ (groupsToNodes False vb (getRootsLabels p) gs'))
+         & pv_nodes %~ (++ (groupsToNodes False vb (getFoundationsRoots p) gs'))
          & pv_edges %~ (++ (groupsToEdges fl PeriodEdge gs'))
          & pv_edges %~ (++ (groupsToEdges Descendant LevelEdge gs ))
          & pv_edges %~ (++ (groupsToEdges Ascendant LevelEdge  gs'))

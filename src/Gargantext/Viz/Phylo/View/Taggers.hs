@@ -65,7 +65,7 @@ alterBranchPeak (id,lbl) v = over (pv_branches
 -- | To set the peak of a PhyloBranch as the nth most frequent terms of its PhyloNodes
 branchPeakFreq :: PhyloView -> Int -> Phylo -> PhyloView
 branchPeakFreq v thr p = foldl (\v' (id,lbl) -> alterBranchPeak (id,lbl) v') v
-                        $ map (\(id,ns) -> (id, freqToLabel thr (getRootsLabels p)
+                        $ map (\(id,ns) -> (id, freqToLabel thr (getFoundationsRoots p)
                                               $ getGroupsFromNodes ns p))
                         $ getNodesByBranches v
 
@@ -74,7 +74,7 @@ branchPeakFreq v thr p = foldl (\v' (id,lbl) -> alterBranchPeak (id,lbl) v') v
 nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
 nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
-                             (\n -> let lbl = ngramsToLabel (getRootsLabels p)
+                             (\n -> let lbl = ngramsToLabel (getFoundationsRoots p)
                                             $ mostOccNgrams thr
                                             $ head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
                                     in n & pn_label .~ lbl) v

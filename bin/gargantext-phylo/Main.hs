@@ -30,6 +30,7 @@ import Gargantext.Prelude
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract, csv_publication_year)
 import Gargantext.Text.Terms.WithList
+import Gargantext.Text.Context (TermList)
 
 import System.Environment
 
@@ -46,17 +47,33 @@ import qualified Data.Text   as DT
 import qualified Prelude     as P
 import qualified Data.ByteString.Lazy as L
 
-------------------------------------------------------------------------
--- Format to produce the Phylo
-data TextsByYear =
-  TextsByYear { year    :: Int
-              , texts   :: [[Text]]
-              } deriving (Show, Generic)
 
-instance ToJSON TextsByYear
+--------------
+-- | Conf | --
+--------------
 
-instance ToJSON Document
-------------------------------------------------------------------------
+type ListPath   = FilePath
+type CorpusPath = FilePath
+type Limit = Int
+
+data Conf = 
+     Conf { corpusPath :: CorpusPath 
+          , listPath   :: ListPath
+          , outputPath :: FilePath
+          , limit      :: Limit
+     } deriving (Show,Generic)
+
+instance FromJSON Conf
+instance ToJSON Conf
+
+-- | Get the conf from a Json file
+getJson :: FilePath -> IO L.ByteString
+getJson path = L.readFile path
+
+---------------
+-- | Parse | --
+---------------
+
 
 filterTerms :: Patterns -> (a, Text) -> (a, [Text])
 filterTerms patterns (year', doc) = (year',termsInText patterns doc)
@@ -71,53 +88,49 @@ csvToCorpus limit csv = DV.toList
                       . DV.map (\n -> (csv_publication_year n, (csv_title n) <> " " <> (csv_abstract n)))
                       . snd <$> readCsv csv
 
-type ListPath   = FilePath
-type CorpusPath = FilePath
-type Limit = Int
-
-parse :: Limit -> CorpusPath -> ListPath -> IO [Document]
-parse limit corpus liste = do
+parse :: Limit -> CorpusPath -> TermList -> IO [Document]
+parse limit corpus lst = do
   corpus' <- csvToCorpus limit corpus
-  liste'  <- csvGraphTermList  liste
-  let patterns = buildPatterns liste'
+  let patterns = buildPatterns lst
   pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus'
 
 
+--------------
+-- | Main | --
+--------------
+
+
 main :: IO ()
-main = do
-  
-  
-  -- [corpusPath, termListPath, outputPath] <- getArgs
+main = do 
 
-  let corpusPath   = "/home/qlobbe/data/epique/corpus/cultural_evolution/texts/fullCorpus.csv"
-  let termListPath = "/home/qlobbe/data/epique/corpus/cultural_evolution/termList.csv"
-  let outputPath   = "/home/qlobbe/data/epique/output/cultural_evolution.dot"
+  putStrLn $ show "--| Read the conf |--"
 
-  let query     = PhyloQueryBuild "cultural_evolution" "" 5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.00001 10) 
-                  2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.5 10)
-  
-  let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
+  [jsonPath] <- getArgs
 
-  putStrLn $ show "-- Start parsing the corpus"
+  confJson <- (eitherDecode <$> getJson jsonPath) :: IO (P.Either P.String Conf)
 
-  corpus <- parse 2000 corpusPath termListPath 
+  case confJson of
+    P.Left err -> putStrLn err
+    P.Right conf -> do  
 
-  let foundations = DL.nub $ DL.concat $ map text corpus
+      putStrLn $ show "--| Parse the corpus |--"
 
-  -- putStrLn $ show (map text corpus)
+      termList <- csvGraphTermList (listPath conf)
 
-  -- foundations <- DL.concat <$> DL.concat <$> map snd <$> csvGraphTermList termListPath
+      corpus <- parse (limit conf) (corpusPath conf) termList
 
-  -- putStrLn $ show foundations
+      let roots = DL.nub $ DL.concat $ map text corpus
 
-  -- a <- map snd <$> csvGraphTermList liste
+      putStrLn $ show "--| Build the phylo |--" 
+      
+      let query = PhyloQueryBuild "cultural_evolution" "" 5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.00001 10) 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.5 10)
 
-  let phylo = toPhylo query corpus foundations []
+      let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
 
-  let view  = toPhyloView queryView phylo
+      let phylo = toPhylo query corpus roots termList
 
-    -- TODO Phylo here
-  P.writeFile outputPath $ dotToString $ viewToDot view 
-  -- L.writeFile outputPath $ encode corpus
+      let view  = toPhyloView queryView phylo
 
+      putStrLn $ show "--| Export the phylo as a dot graph |--" 
 
+      P.writeFile (outputPath conf) $ dotToString $ viewToDot view       
