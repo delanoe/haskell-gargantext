@@ -772,6 +772,8 @@ addListNgrams listId ngramsType nes = do
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
 
+-- If the given list of ngrams elements contains ngrams already in
+-- the repo, they will overwrite the old ones.
 putListNgrams :: RepoCmdM env err m
               => NodeId -> NgramsType
               -> [NgramsElement] -> m ()
@@ -784,6 +786,8 @@ putListNgrams listId ngramsType nes = do
   saveRepo
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
+
+tableNgramsPost tabType listId = putListNgrams listId tabType
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
@@ -923,13 +927,14 @@ getTableNgrams nId tabType listId limit_ offset
 type QueryParamR = QueryParam' '[Required, Strict]
 
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
+                      :> QueryParamR "docId"       DocId
                       :> QueryParamR "ngramsType"  TabType
                       :> QueryParamR "list"        ListId
                       :> QueryParamR "limit"       Limit
                       :> QueryParam  "offset"      Offset
                       :> QueryParam  "listType"    ListType
-                      :> QueryParam  "minTermSize" Int
-                      :> QueryParam  "maxTermSize" Int
+                      :> QueryParam  "minTermSize" MinSize
+                      :> QueryParam  "maxTermSize" MaxSize
                       :> QueryParam  "search"      Text
                       :> Get    '[JSON] (Versioned NgramsTable)
 
@@ -939,6 +944,11 @@ type TableNgramsApiPut = Summary " Table Ngrams API Change"
                        :> ReqBody '[JSON] (Versioned NgramsTablePatch)
                        :> Put     '[JSON] (Versioned NgramsTablePatch)
 
+type TableNgramsApiPost = Summary " Table Ngrams API Adds new ngrams"
+                       :> QueryParamR "ngramsType" TabType
+                       :> QueryParamR "list"       ListId
+                       :> ReqBody '[JSON] [NgramsElement]
+                       :> Post    '[JSON] ()
 
 getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                => NodeId -> TabType
@@ -973,25 +983,14 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize _mt 
 --{-
 -- TODO Doc Table Ngrams API
 type ApiNgramsTableDoc = TableNgramsApiGet
---                  :<|> TableNgramsApiPut
---                  :<|> TableNgramsApiPost
+                    :<|> TableNgramsApiPut
+                    :<|> TableNgramsApiPost
 
 apiNgramsTableDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-               => DocId -> TabType
-               -> ListId -> Limit -> Maybe Offset
-               -> Maybe ListType
-               -> Maybe MinSize -> Maybe MaxSize
-               -> Maybe Text -- full text search
-               -> m (Versioned NgramsTable)
-{- TODO
---apiDocNgramsTable :: ApiDocNgramsTable
---apiDocNgramsTable :: ApiDocNgramsTable
---apiDocNgramsTable = getTableNgramsDoc
+                  => ServerT ApiNgramsTableDoc m
+apiNgramsTableDoc = getTableNgramsDoc
                  :<|> tableNgramsPut
-                 :<|> tableNgramsPost 
-                        -- > add new ngrams to the repo (TODO NP)
+                 :<|> tableNgramsPost
                         -- > add new ngrams in database (TODO AD)
                         -- > index all the corpus accordingly (TODO AD)
---}
-apiNgramsTableDoc = getTableNgramsDoc
 
