@@ -24,7 +24,6 @@ import Data.List                    ((++), sort, concat, nub, zip, last)
 import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKey, singleton, union)
 import Data.Text (Text)
 import Data.Tuple.Extra
-import Data.Vector                  (Vector)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Aggregates.Cluster
@@ -34,6 +33,7 @@ import Gargantext.Viz.Phylo.Aggregates.Fis
 import Gargantext.Viz.Phylo.BranchMaker
 import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.Text.Context (TermList)
 import qualified Data.Set    as Set
 
 
@@ -190,14 +190,14 @@ toPhylo0 d p = addPhyloLevel 0 d p
 
 class PhyloMaker corpus
     where
-        toPhylo ::  PhyloQueryBuild -> corpus -> [Ngrams] -> [Tree Ngrams] -> Phylo
-        toPhyloBase :: PhyloQueryBuild -> PhyloParam -> corpus -> [Ngrams] -> [Tree Ngrams] -> Phylo
+        toPhylo ::  PhyloQueryBuild -> corpus -> [Ngrams] -> TermList -> Phylo
+        toPhyloBase :: PhyloQueryBuild -> PhyloParam -> corpus -> [Ngrams] -> TermList -> Phylo
         corpusToDocs :: corpus -> Phylo -> Map (Date,Date) [Document]
 
 instance PhyloMaker [(Date, Text)]
   where
     --------------------------------------
-    toPhylo q c a ts = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+    toPhylo q c roots termList = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
       where
         --------------------------------------
         phylo1 :: Phylo
@@ -210,30 +210,27 @@ instance PhyloMaker [(Date, Text)]
         phyloDocs = corpusToDocs c phyloBase
         --------------------------------------
         phyloBase :: Phylo
-        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a ts
+        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
         --------------------------------------       
     --------------------------------------
-    toPhyloBase q p c a ts = initPhyloBase periods foundations roots p
+    toPhyloBase q p c roots termList = initPhyloBase periods foundations p
       where
         --------------------------------------
-        roots :: PhyloRoots
-        roots = initRoots (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
+        foundations :: PhyloFoundations
+        foundations = PhyloFoundations (initFoundationsRoots roots) termList
         --------------------------------------
         periods :: [(Date,Date)]
         periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)
                 $ both fst (head' "LevelMaker" c,last c)
         --------------------------------------
-        foundations :: Vector Ngrams
-        foundations = initFoundations a
-        --------------------------------------
     --------------------------------------
-    corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p) $ parseDocs (getFoundations p) (getRoots p) c
+    corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p) $ parseDocs (getFoundationsRoots p) c
 
 
 instance PhyloMaker [Document]
   where
     --------------------------------------
-    toPhylo q c a ts = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+    toPhylo q c roots termList = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
       where
         --------------------------------------
         phylo1 :: Phylo
@@ -246,21 +243,18 @@ instance PhyloMaker [Document]
         phyloDocs = corpusToDocs c phyloBase
         --------------------------------------
         phyloBase :: Phylo
-        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c a ts
+        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
         --------------------------------------       
     --------------------------------------
-    toPhyloBase q p c a ts = initPhyloBase periods foundations roots p
+    toPhyloBase q p c roots termList = initPhyloBase periods foundations p
       where
         --------------------------------------
-        roots :: PhyloRoots
-        roots = initRoots (map (\t -> alterLabels phyloAnalyzer t) ts) foundations
+        foundations :: PhyloFoundations
+        foundations = PhyloFoundations (initFoundationsRoots roots) termList
         --------------------------------------
         periods :: [(Date,Date)]
         periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)
                 $ both date (head' "LevelMaker" c,last c)
-        --------------------------------------
-        foundations :: Vector Ngrams
-        foundations = initFoundations a
         --------------------------------------
     --------------------------------------
     corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p) c

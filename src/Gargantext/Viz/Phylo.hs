@@ -41,6 +41,7 @@ import Data.Vector  (Vector)
 import GHC.Generics (Generic)
 --import Gargantext.Database.Schema.Ngrams (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Text.Context (TermList)
 import Gargantext.Prelude
 
 --------------------
@@ -74,23 +75,18 @@ data Software =
 -- Periods     : list of all the periods of a Phylo
 data Phylo =
      Phylo { _phylo_duration    :: (Start, End)
-           , _phylo_foundations :: Vector Ngrams
-           , _phylo_foundationsRoots :: PhyloRoots
+           , _phylo_foundations :: PhyloFoundations
            , _phylo_periods     :: [PhyloPeriod]
            , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show, Eq)
 
--- | The PhyloRoots describe the aggregation of some foundations Ngrams behind a list of Ngrams trees (ie: a forest)
--- PeaksLabels are the root labels of each Ngrams trees
-data PhyloRoots =
-      PhyloRoots { _phylo_rootsLabels :: Vector Ngrams
-                 , _phylo_rootsForest :: [Tree Ngrams]
-                 }
-                 deriving (Generic, Show, Eq)
 
--- | A Tree of Ngrams where each node is a label
-data Tree a = Empty | Node a [Tree a] deriving (Generic, Show, Eq)
+-- | The foundations of a phylomemy created from a given TermList 
+data PhyloFoundations =
+  PhyloFoundations { _phylo_foundationsRoots :: Vector Ngrams
+                   , _phylo_foundationsTermsList :: TermList
+  } deriving (Generic, Show, Eq)
 
 
 -- | Date : a simple Integer
@@ -443,7 +439,7 @@ makeLenses ''PhyloParam
 makeLenses ''Software
 --
 makeLenses ''Phylo
-makeLenses ''PhyloRoots
+makeLenses ''PhyloFoundations
 makeLenses ''PhyloGroup
 makeLenses ''PhyloLevel
 makeLenses ''PhyloPeriod
@@ -468,8 +464,7 @@ makeLenses ''PhyloEdge
 
 
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
-$(deriveJSON (unPrefix "_phylo_roots"  ) ''PhyloRoots  )
-$(deriveJSON defaultOptions ''Tree  )
+$(deriveJSON (unPrefix "_phylo_foundations"  ) ''PhyloFoundations  )
 $(deriveJSON (unPrefix "_phylo_period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_group"  ) ''PhyloGroup  )
