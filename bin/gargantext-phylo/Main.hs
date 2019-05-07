@@ -29,6 +29,7 @@ import GHC.IO (FilePath)
 import Gargantext.Prelude
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Text.Parsers (FileFormat(..),parseDocs)
 import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Context (TermList)
 
@@ -52,23 +53,31 @@ import qualified Data.ByteString.Lazy as L
 -- | Conf | --
 --------------
 
+
 type ListPath   = FilePath
 type CorpusPath = FilePath
+data CorpusType = Wos | Csv deriving (Show,Generic) 
 type Limit = Int
 
 data Conf = 
-     Conf { corpusPath :: CorpusPath 
+     Conf { corpusPath :: CorpusPath
+          , corpusType :: CorpusType
           , listPath   :: ListPath
           , outputPath :: FilePath
+          , phyloName  :: Text
           , limit      :: Limit
      } deriving (Show,Generic)
 
 instance FromJSON Conf
 instance ToJSON Conf
 
+instance FromJSON CorpusType
+instance ToJSON CorpusType
+
 -- | Get the conf from a Json file
 getJson :: FilePath -> IO L.ByteString
 getJson path = L.readFile path
+
 
 ---------------
 -- | Parse | --
@@ -82,11 +91,22 @@ filterTerms patterns (year', doc) = (year',termsInText patterns doc)
     termsInText pats txt = DL.nub $ DL.concat $ map (map unwords) $ extractTermsWithList pats txt
 
 
-csvToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
+csvToCorpus :: Int -> CorpusPath -> IO ([(Int,Text)])
 csvToCorpus limit csv = DV.toList
                       . DV.take limit
                       . DV.map (\n -> (csv_publication_year n, (csv_title n) <> " " <> (csv_abstract n)))
                       . snd <$> readCsv csv
+
+
+wosToCorpus :: Int -> CorpusPath -> IO ([(Int,Text)])
+wosToCorpus limit path = undefined
+
+
+fileToCorpus :: CorpusType -> Int -> CorpusPath -> IO ([(Int,Text)])
+fileToCorpus format limit path = case format of 
+  Wos -> wosToCorpus limit path
+  Csv -> csvToCorpus limit path
+
 
 parse :: Limit -> CorpusPath -> TermList -> IO [Document]
 parse limit corpus lst = do
@@ -123,7 +143,7 @@ main = do
 
       putStrLn $ show "--| Build the phylo |--" 
       
-      let query = PhyloQueryBuild "cultural_evolution" "" 5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.00001 10) 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.5 10)
+      let query = PhyloQueryBuild (phyloName conf) "" 5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.00001 10) 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.5 10)
 
       let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
 
@@ -133,4 +153,6 @@ main = do
 
       putStrLn $ show "--| Export the phylo as a dot graph |--" 
 
-      P.writeFile (outputPath conf) $ dotToString $ viewToDot view       
+      let outputFile = (outputPath conf) P.++ (DT.unpack $ phyloName conf) P.++ ".dot"
+
+      P.writeFile outputFile $ dotToString $ viewToDot view       

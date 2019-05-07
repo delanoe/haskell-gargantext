@@ -71,7 +71,7 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS | CsvHalFormat -- | CsvGargV3
+data FileFormat = WOS | CsvHalFormat-- | CsvGargV3
   deriving (Show)
 
 -- Implemented (ISI Format)
