@@ -172,7 +172,6 @@ data OrderBy =  DateAsc   | DateDesc
              | TitleAsc   | TitleDesc
              | ScoreDesc  | ScoreAsc
              deriving (Generic, Enum, Bounded, Read, Show)
-             -- | NgramCoun
 
 instance FromHttpApiData OrderBy
   where

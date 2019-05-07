@@ -106,7 +106,7 @@ flowCorpusDebat u n l fp = do
 
 flowCorpusFile :: FlowCmdM env ServantErr m
            => Username -> CorpusName
-           -> Limit -- ^ Limit the number of docs (for dev purpose)
+           -> Limit -- Limit the number of docs (for dev purpose)
            -> TermType Lang -> FileFormat -> FilePath
            -> m CorpusId
 flowCorpusFile u n l la ff fp = do

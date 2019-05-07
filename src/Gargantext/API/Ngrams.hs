@@ -236,10 +236,12 @@ ngramsElementFromRepo
                 , _ne_children = c
                 , _ne_ngrams = ngrams
                 , _ne_occurrences = panic "API.Ngrams._ne_occurrences"
-                -- ^ Here we could use 0 if we want to avoid any `panic`.
+                {-
+                -- Here we could use 0 if we want to avoid any `panic`.
                 -- It will not happen using getTableNgrams if
                 -- getOccByNgramsOnly provides a count of occurrences for
                 -- all the ngrams given.
+                -}
                 }
 
 ------------------------------------------------------------------------
@@ -644,14 +646,14 @@ ngramsTypeFromTabType tabType =
       Institutes -> Ngrams.Institutes
       Terms      -> Ngrams.NgramsTerms
       _          -> panic $ lieu <> "No Ngrams for this tab"
-      -- ^ TODO: This `panic` would disapear with custom NgramsType.
+      -- TODO: This `panic` would disapear with custom NgramsType.
 
 ------------------------------------------------------------------------
 data Repo s p = Repo
   { _r_version :: Version
   , _r_state   :: s
   , _r_history :: [p]
-    -- ^ first patch in the list is the most recent
+    -- first patch in the list is the most recent
   }
   deriving (Generic)
 

@@ -297,7 +297,7 @@ type TreeApi = Summary " Tree API"
 
 
 instance HasNodeError ServantErr where
-  _NodeError = prism' mk (const Nothing) -- $ panic "HasNodeError ServantErr: not a prism")
+  _NodeError = prism' mk (const Nothing) -- panic "HasNodeError ServantErr: not a prism")
     where
       e = "Gargantext NodeError: "
       mk NoListFound   = err404 { errBody = e <> "No list found"         }
@@ -315,7 +315,7 @@ instance HasNodeError ServantErr where
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
-  _TreeError = prism' mk (const Nothing) -- $ panic "HasTreeError ServantErr: not a prism")
+  _TreeError = prism' mk (const Nothing) -- panic "HasTreeError ServantErr: not a prism")
     where
       e = "TreeError: "
       mk NoRoot       = err404 { errBody = e <> "Root node not found"           }

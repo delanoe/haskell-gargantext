@@ -79,8 +79,8 @@ getPhylo _phyloId _lId l f b l' ms x y z ts s o d b' = do
     fs' = maybe (Just []) (\p -> Just [p]) $ SmallBranch <$> (SBParams <$> x <*> y <*> z)
     so  = (,) <$> s <*> o
     q = initPhyloQueryView l f b l' ms fs' ts so d b'
-  -- | TODO remove phylo for real data here
   pure (toPhyloView  q phylo)
+  -- TODO remove phylo for real data here
 
 ------------------------------------------------------------------------
 {-
