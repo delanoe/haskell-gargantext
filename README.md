@@ -14,10 +14,10 @@ Institute of Paris Île-de-France (ISC-PIF) and its partners.
 ## Installation
 
 ### Docker
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/docker-install | sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/docker-install | sh
 
 ### Debian
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/debian-install | sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/debian-install | sh
 
 
 ## Use Cases
