@@ -84,7 +84,7 @@ import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
 import Gargantext.Prelude
 -- import Gargantext.Core.Types (ListTypeId, listTypeId)
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, CorpusId, DocId, Limit, Offset, HasInvalidError, assertValid)
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Servant hiding (Patch)
 import System.FileLock (FileLock)
 import Test.QuickCheck (elements)
@@ -787,15 +787,16 @@ putListNgrams listId ngramsType nes = do
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
 
-tableNgramsPost tabType listId = putListNgrams listId tabType
+tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> [NgramsElement] -> m ()
+tableNgramsPost tabType listId = putListNgrams listId (ngramsTypeFromTabType tabType)
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
-                 => CorpusId -> TabType -> ListId
+                 => TabType -> ListId
                  -> Versioned NgramsTablePatch
                  -> m (Versioned NgramsTablePatch)
-tableNgramsPut _corpusId tabType listId (Versioned p_version p_table)
+tableNgramsPut tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
       let ngramsType        = ngramsTypeFromTabType tabType
 
@@ -927,7 +928,6 @@ getTableNgrams nId tabType listId limit_ offset
 type QueryParamR = QueryParam' '[Required, Strict]
 
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
-                      :> QueryParamR "docId"       DocId
                       :> QueryParamR "ngramsType"  TabType
                       :> QueryParamR "list"        ListId
                       :> QueryParamR "limit"       Limit
@@ -986,11 +986,15 @@ type ApiNgramsTableDoc = TableNgramsApiGet
                     :<|> TableNgramsApiPut
                     :<|> TableNgramsApiPost
 
-apiNgramsTableDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-                  => ServerT ApiNgramsTableDoc m
-apiNgramsTableDoc = getTableNgramsDoc
-                 :<|> tableNgramsPut
-                 :<|> tableNgramsPost
+apiNgramsTableDoc :: ( RepoCmdM env err m
+                     , HasNodeError err
+                     , HasInvalidError err
+                     , HasConnection env
+                     )
+                  => DocId -> ServerT ApiNgramsTableDoc m
+apiNgramsTableDoc dId =  getTableNgramsDoc dId
+                    :<|> tableNgramsPut
+                    :<|> tableNgramsPost
                         -- > add new ngrams in database (TODO AD)
                         -- > index all the corpus accordingly (TODO AD)
 

@@ -171,7 +171,7 @@ nodeAPI p uId id
            -- TODO gather it
            :<|> getTable         id
            :<|> getTableNgramsCorpus   id
-           :<|> tableNgramsPut id
+           :<|> tableNgramsPut
            :<|> getPairing       id
            -- :<|> getTableNgramsDoc id
            
