@@ -2,8 +2,6 @@
 
 
 
-
-
 if git --version;
 then 
   echo "git installed, ok"
@@ -12,7 +10,7 @@ else
 fi
 
 sudo apt update
-sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-9.6
+sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-9.6 nginx
 
 #echo "Which user?"
 #read USER
