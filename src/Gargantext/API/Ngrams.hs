@@ -43,11 +43,12 @@ import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
                          ConflictResolutionReplace, ours)
 import qualified Data.Map.Strict.Patch as PM
 import Data.Monoid
+import Data.Ord (Down(..))
 import Data.Foldable
 --import Data.Semigroup
 import Data.Set (Set)
 import qualified Data.Set as S
--- import qualified Data.List as List
+import qualified Data.List as List
 import Data.Maybe (fromMaybe)
 -- import Data.Tuple.Extra (first)
 import qualified Data.Map.Strict as Map
@@ -878,10 +879,11 @@ getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe OrderBy
                -> (NgramsTerm -> Bool)
                -> m (Versioned NgramsTable)
 getTableNgrams nId tabType listId limit_ offset
-               listType minSize maxSize searchQuery = do
+               listType minSize maxSize orderBy searchQuery = do
 
   lIds <- selectNodesWithUsername NodeList userMaster
   let
@@ -900,16 +902,26 @@ getTableNgrams nId tabType listId limit_ offset
 
     selected_inner roots n = maybe False (`Set.member` roots) (n ^. ne_root)
 
+    sortOnOrder Nothing = identity
+    sortOnOrder (Just TermAsc)   = List.sortOn $ view ne_ngrams
+    sortOnOrder (Just TermDesc)  = List.sortOn $ Down . view ne_ngrams
+    sortOnOrder (Just ScoreAsc)  = List.sortOn $ view ne_occurrences
+    sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view ne_occurrences
+
     selectAndPaginate tableMap (NgramsTable list) = NgramsTable $ roots <> inners
       where
         rootOf ne = maybe ne (\r -> ngramsElementFromRepo (r, fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. v_data . at r)))
                              (ne ^. ne_root)
-        selected_nodes = list & take limit_ . drop offset' . filter selected_node
+        selected_nodes = list & take limit_
+                              . drop offset'
+                              . filter selected_node
+                              . sortOnOrder orderBy
         roots = rootOf <$> selected_nodes
         rootsSet = Set.fromList (_ne_ngrams <$> roots)
         inners = list & filter (selected_inner rootsSet)
 
-    setOccurrences table = do
+    setScores False table = pure table
+    setScores True  table = do
       occurrences <- getOccByNgramsOnlySafe nId (lIds <> [listId]) ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
 
       let
@@ -922,14 +934,41 @@ getTableNgrams nId tabType listId limit_ offset
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
   tableMap <- getNgramsTableMap listId ngramsType
-  let table = tableMap & v_data %~ (NgramsTable . fmap ngramsElementFromRepo . Map.toList)
-  setOccurrences $ table & v_data %~ selectAndPaginate tableMap
+  let nSco = needsScores orderBy
+  table <- tableMap & v_data %~ (NgramsTable . fmap ngramsElementFromRepo . Map.toList)
+                    & setScores nSco
+  setScores (not nSco) $ table & v_data %~ selectAndPaginate tableMap
 
 
 -- APIs
 
 -- TODO: find a better place for the code above, All APIs stay here
 type QueryParamR = QueryParam' '[Required, Strict]
+
+
+data OrderBy = TermAsc | TermDesc | ScoreAsc | ScoreDesc
+             deriving (Generic, Enum, Bounded, Read, Show)
+
+instance FromHttpApiData OrderBy
+  where
+    parseUrlPiece "TermAsc"   = pure TermAsc
+    parseUrlPiece "TermDesc"  = pure TermDesc
+    parseUrlPiece "ScoreAsc"  = pure ScoreAsc
+    parseUrlPiece "ScoreDesc" = pure ScoreDesc
+    parseUrlPiece _           = Left "Unexpected value of OrderBy"
+
+instance ToParamSchema OrderBy
+instance FromJSON  OrderBy
+instance ToJSON    OrderBy
+instance ToSchema  OrderBy
+instance Arbitrary OrderBy
+  where
+    arbitrary = elements [minBound..maxBound]
+
+needsScores :: Maybe OrderBy -> Bool
+needsScores (Just ScoreAsc)  = True
+needsScores (Just ScoreDesc) = True
+needsScores _ = False
 
 type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> QueryParamR "ngramsType"  TabType
@@ -939,6 +978,7 @@ type TableNgramsApiGet = Summary " Table Ngrams API Get"
                       :> QueryParam  "listType"    ListType
                       :> QueryParam  "minTermSize" MinSize
                       :> QueryParam  "maxTermSize" MaxSize
+                      :> QueryParam  "orderBy"     OrderBy
                       :> QueryParam  "search"      Text
                       :> Get    '[JSON] (Versioned NgramsTable)
 
@@ -959,10 +999,11 @@ getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe OrderBy
                -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
-getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize mt =
-  getTableNgrams nId tabType listId limit_ offset listType minSize maxSize searchQuery
+getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
+  getTableNgrams nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
     where
       searchQuery = maybe (const True) isInfixOf mt
 
@@ -972,14 +1013,15 @@ getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
+               -> Maybe OrderBy
                -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
-getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize _mt = do
+getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orderBy _mt = do
   ns <- selectNodesWithUsername NodeList userMaster
   let ngramsType = ngramsTypeFromTabType tabType
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
   let searchQuery = flip S.member (S.fromList ngs)
-  getTableNgrams dId tabType listId limit_ offset listType minSize maxSize searchQuery
+  getTableNgrams dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
 
 
 
