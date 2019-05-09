@@ -63,6 +63,7 @@ import Control.Lens.Prism
 import Control.Lens.Cons
 import Data.Aeson (toJSON)
 import Data.Maybe (maybe)
+import Data.Time.Segment (jour)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple (FromRow, Query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
@@ -120,6 +121,7 @@ instance InsertDb HyperdataDocument
                       , toField u
                       , toField p
                       , toField $ maybe "No Title" (DT.take 255)  (_hyperdataDocument_title h)
+                      , toField $ _hyperdataDocument_publication_date h -- TODO USE UTCTime
                       , (toField . toJSON) h
                       ]
 
@@ -129,6 +131,7 @@ instance InsertDb HyperdataContact
                       , toField u
                       , toField p
                       , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
+                      , toField $ jour 2010 1 1 -- TODO put default date
                       , (toField . toJSON) h
                       ]
 
@@ -147,14 +150,14 @@ insertDocuments_Debug uId pId hs = formatPGSQuery queryInsert (Only $ Values fie
 
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
-inputSqlTypes = map DT.pack ["int4","int4","int4","text","jsonb"]
+inputSqlTypes = map DT.pack ["int4","int4","int4","text","date","jsonb"]
 
 -- | SQL query to insert documents inside the database
 queryInsert :: Query
 queryInsert = [sql|
-    WITH input_rows(typename,user_id,parent_id,name,hyperdata) AS (?)
+    WITH input_rows(typename,user_id,parent_id,name,date,hyperdata) AS (?)
     , ins AS (
-       INSERT INTO nodes (typename,user_id,parent_id,name,hyperdata)
+       INSERT INTO nodes (typename,user_id,parent_id,name,date,hyperdata)
        SELECT * FROM input_rows
        ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO NOTHING -- on unique index
        -- ON CONFLICT (typename, parent_id, (hyperdata ->> 'uniqId')) DO NOTHING -- on unique index
