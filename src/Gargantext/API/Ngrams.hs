@@ -55,7 +55,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, mapped, forOf_)
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -882,14 +882,15 @@ getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
                -> m (Versioned NgramsTable)
 getTableNgrams nId tabType listId limit_ offset
                listType minSize maxSize searchQuery = do
-  
+
+  lIds <- selectNodesWithUsername NodeList userMaster
   let
     ngramsType = ngramsTypeFromTabType tabType
     offset'  = maybe 0 identity offset
     listType' = maybe (const True) (==) listType
     minSize'  = maybe (const True) (<=) minSize
     maxSize'  = maybe (const True) (>=) maxSize
-    
+
     selected_node n = minSize'     s
                    && maxSize'     s
                    && searchQuery  (n ^. ne_ngrams)
@@ -899,29 +900,30 @@ getTableNgrams nId tabType listId limit_ offset
 
     selected_inner roots n = maybe False (`Set.member` roots) (n ^. ne_root)
 
-    finalize tableMap = NgramsTable $ roots <> inners
+    selectAndPaginate tableMap (NgramsTable list) = NgramsTable $ roots <> inners
       where
-        rootOf ne = maybe ne (\r -> ngramsElementFromRepo (r, fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. at r)))
+        rootOf ne = maybe ne (\r -> ngramsElementFromRepo (r, fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. v_data . at r)))
                              (ne ^. ne_root)
-        list = ngramsElementFromRepo <$> Map.toList tableMap
         selected_nodes = list & take limit_ . drop offset' . filter selected_node
         roots = rootOf <$> selected_nodes
         rootsSet = Set.fromList (_ne_ngrams <$> roots)
         inners = list & filter (selected_inner rootsSet)
 
+    setOccurrences table = do
+      occurrences <- getOccByNgramsOnlySafe nId (lIds <> [listId]) ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+
+      let
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+
+      pure $ table & v_data . _NgramsTable . each %~ setOcc
+
   -- lists <- catMaybes <$> listsWith userMaster
   -- trace (show lists) $
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
-  table <- getNgramsTableMap listId ngramsType & mapped . v_data %~ finalize
-  
-  lIds <- selectNodesWithUsername NodeList userMaster
-  occurrences <- getOccByNgramsOnlySafe nId (lIds <> [listId]) ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
-
-  let
-    setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
-
-  pure $ table & v_data . _NgramsTable . each %~ setOcc
+  tableMap <- getNgramsTableMap listId ngramsType
+  let table = tableMap & v_data %~ (NgramsTable . fmap ngramsElementFromRepo . Map.toList)
+  setOccurrences $ table & v_data %~ selectAndPaginate tableMap
 
 
 -- APIs
