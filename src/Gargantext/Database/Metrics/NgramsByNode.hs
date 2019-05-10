@@ -162,17 +162,21 @@ getOccByNgramsOnlyFast cId nt ngs =
   fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
 
 -- just slower than getOccByNgramsOnlyFast
-getOccByNgramsOnlySlow :: CorpusId -> [ListId] -> NgramsType -> [Text]
+getOccByNgramsOnlySlow :: NodeType -> CorpusId -> [ListId] -> NgramsType -> [Text]
                        -> Cmd err (Map Text Int)
-getOccByNgramsOnlySlow cId ls nt ngs =
-  Map.map Set.size <$> getNodesByNgramsOnlyUser cId ls nt ngs
+getOccByNgramsOnlySlow t cId ls nt ngs =
+  Map.map Set.size <$> getScore' t cId ls nt ngs
+    where
+      getScore' NodeCorpus   = getNodesByNgramsOnlyUser
+      getScore' NodeDocument = getNgramsByDocOnlyUser
+      getScore' _            = getNodesByNgramsOnlyUser
 
 getOccByNgramsOnlySafe :: CorpusId -> [ListId] -> NgramsType -> [Text]
                        -> Cmd err (Map Text Int)
 getOccByNgramsOnlySafe cId ls nt ngs = do
   printDebug "getOccByNgramsOnlySafe" (cId, nt, length ngs)
   fast <- getOccByNgramsOnlyFast cId nt ngs
-  slow <- getOccByNgramsOnlySlow cId ls nt ngs
+  slow <- getOccByNgramsOnlySlow NodeCorpus cId ls nt ngs
   when (fast /= slow) $
     printDebug "getOccByNgramsOnlySafe: difference" (diff slow fast :: PatchMap Text (Replace (Maybe Int)))
   pure slow
@@ -209,7 +213,7 @@ queryNgramsOccurrencesOnlyByNodeUser = [sql|
       GROUP BY nng.node2_id, ng.terms
   |]
 
-getNodesByNgramsOnlyUser :: CorpusId -> [ListId] -> NgramsType -> [Text]
+getNodesByNgramsOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
                          -> Cmd err (Map Text (Set NodeId))
 getNodesByNgramsOnlyUser cId ls nt ngs = Map.unionsWith (<>)
                                     . map (fromListWith (<>) . map (second Set.singleton))
@@ -248,6 +252,39 @@ queryNgramsOnlyByNodeUser = [sql|
 
 
 
+getNgramsByDocOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
+                         -> Cmd err (Map Text (Set NodeId))
+getNgramsByDocOnlyUser cId ls nt ngs = Map.unionsWith (<>)
+                                    . map (fromListWith (<>) . map (second Set.singleton))
+                                   <$> mapM (selectNgramsOnlyByDocUser cId ls nt) (splitEvery 1000 ngs)
+
+
+
+selectNgramsOnlyByDocUser :: DocId -> [ListId] -> NgramsType -> [Text]
+                           -> Cmd err [(Text, NodeId)]
+selectNgramsOnlyByDocUser dId ls nt tms =
+  runPGSQuery queryNgramsOnlyByDocUser
+                ( Values fields (DPS.Only <$> tms)
+                , Values [QualifiedIdentifier Nothing "int4"] (DPS.Only <$> (map (\(NodeId n) -> n) ls))
+                , dId
+                , ngramsTypeId nt
+                )
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
+queryNgramsOnlyByDocUser :: DPS.Query
+queryNgramsOnlyByDocUser = [sql|
+
+  WITH input_rows(terms) AS (?),
+       input_list(id)    AS (?)
+  SELECT ng.terms, nng.node2_id FROM node_node_ngrams nng
+    JOIN ngrams ng      ON nng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN input_list  il ON il.id         = nng.node1_id
+    WHERE nng.node2_id     = ? -- DocId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      GROUP BY ng.terms, nng.node2_id
+  |]
 
 
 ------------------------------------------------------------------------

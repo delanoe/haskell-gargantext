@@ -28,6 +28,7 @@ Portability : POSIX
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 
+--import Debug.Trace (trace)
 import Control.Lens ((^.), view, Lens', _Just)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
@@ -126,7 +127,6 @@ flowCorpusSearchInDatabase u la q = do
 
 ------------------------------------------------------------------------
 
-
 flow :: (FlowCmdM env ServantErr m, FlowCorpus a, MkCorpus c)
      => Maybe c -> Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
 flow c u cn la docs = do
@@ -177,10 +177,7 @@ insertMasterDocs c lang hs  =  do
   ids <- insertDb masterUserId masterCorpusId hs'
   let documentsWithId = mergeData (toInserted ids) (DM.fromList $ map viewUniqId' hs')
   
-  docsWithNgrams     <- documentIdWithNgrams (extractNgramsT lang) documentsWithId
-
-  let maps            = mapNodeIdNgrams docsWithNgrams
-
+  maps <- mapNodeIdNgrams <$> documentIdWithNgrams (extractNgramsT lang) documentsWithId
   terms2id <- insertNgrams $ DM.keys maps
   let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
   

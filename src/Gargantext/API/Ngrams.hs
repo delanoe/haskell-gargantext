@@ -72,7 +72,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlySafe)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlySlow)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Utils (fromField', HasConnection)
@@ -236,7 +236,7 @@ ngramsElementFromRepo
                 , _ne_parent = p
                 , _ne_children = c
                 , _ne_ngrams = ngrams
-                , _ne_occurrences = panic "API.Ngrams._ne_occurrences"
+                , _ne_occurrences = 0 -- panic "API.Ngrams._ne_occurrences"
                 {-
                 -- Here we could use 0 if we want to avoid any `panic`.
                 -- It will not happen using getTableNgrams if
@@ -875,14 +875,14 @@ type MaxSize = Int
 
 
 getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
-               => NodeId -> TabType
+               => NodeType -> NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
                -> Maybe OrderBy
                -> (NgramsTerm -> Bool)
                -> m (Versioned NgramsTable)
-getTableNgrams nId tabType listId limit_ offset
+getTableNgrams nType nId tabType listId limit_ offset
                listType minSize maxSize orderBy searchQuery = do
 
   lIds <- selectNodesWithUsername NodeList userMaster
@@ -902,12 +902,14 @@ getTableNgrams nId tabType listId limit_ offset
 
     selected_inner roots n = maybe False (`Set.member` roots) (n ^. ne_root)
 
+    ---------------------------------------
     sortOnOrder Nothing = identity
     sortOnOrder (Just TermAsc)   = List.sortOn $ view ne_ngrams
     sortOnOrder (Just TermDesc)  = List.sortOn $ Down . view ne_ngrams
     sortOnOrder (Just ScoreAsc)  = List.sortOn $ view ne_occurrences
     sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view ne_occurrences
 
+    ---------------------------------------
     selectAndPaginate tableMap (NgramsTable list) = NgramsTable $ roots <> inners
       where
         rootOf ne = maybe ne (\r -> ngramsElementFromRepo (r, fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. v_data . at r)))
@@ -920,14 +922,20 @@ getTableNgrams nId tabType listId limit_ offset
         rootsSet = Set.fromList (_ne_ngrams <$> roots)
         inners = list & filter (selected_inner rootsSet)
 
+    ---------------------------------------
     setScores False table = pure table
     setScores True  table = do
-      occurrences <- getOccByNgramsOnlySafe nId (lIds <> [listId]) ngramsType (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+      let ngrams_terms = (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+      occurrences <- getOccByNgramsOnlySlow nType nId
+                                            (lIds <> [listId])
+                                            ngramsType
+                                            ngrams_terms
 
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
       pure $ table & v_data . _NgramsTable . each %~ setOcc
+    ---------------------------------------
 
   -- lists <- catMaybes <$> listsWith userMaster
   -- trace (show lists) $
@@ -1003,7 +1011,7 @@ getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env
                -> Maybe Text -- full text search
                -> m (Versioned NgramsTable)
 getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
-  getTableNgrams nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
+  getTableNgrams NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
     where
       searchQuery = maybe (const True) isInfixOf mt
 
@@ -1021,7 +1029,10 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   let ngramsType = ngramsTypeFromTabType tabType
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
   let searchQuery = flip S.member (S.fromList ngs)
-  getTableNgrams dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
+  getTableNgrams NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
+
+
+
 
 
 
