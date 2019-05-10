@@ -41,9 +41,11 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.View.ViewMaker
 
+
 import Gargantext.Database.Types.Node
 
 import Data.Maybe
+
 
 import qualified Data.Map    as DM
 import qualified Data.Vector as DV

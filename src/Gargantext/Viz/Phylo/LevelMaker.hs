@@ -36,7 +36,6 @@ import Gargantext.Viz.Phylo.Tools
 import Gargantext.Text.Context (TermList)
 
 import qualified Data.Vector.Storable as VS
-
 import qualified Data.Set    as Set
 import qualified Data.Vector as Vector
 
