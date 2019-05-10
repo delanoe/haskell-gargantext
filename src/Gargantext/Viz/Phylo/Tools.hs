@@ -266,6 +266,10 @@ getGroupLevelParents = _phylo_groupLevelParents
 getGroupLevelParentsId :: PhyloGroup -> [PhyloGroupId]
 getGroupLevelParentsId g = map fst $ getGroupLevelParents g
 
+-- | To get the Meta value of a PhyloGroup
+getGroupMeta :: Text -> PhyloGroup -> Double
+getGroupMeta k g = (g ^. phylo_groupMeta) ! k
+
 
 -- | To get the Ngrams of a PhyloGroup
 getGroupNgrams :: PhyloGroup -> [Int]
@@ -305,6 +309,20 @@ getGroupPeriodParents = _phylo_groupPeriodParents
 -- | To get the PhyloGroups Period Parents Ids of a PhyloGroup
 getGroupPeriodParentsId :: PhyloGroup -> [PhyloGroupId]
 getGroupPeriodParentsId g = map fst $ getGroupPeriodParents g
+
+
+-- | To get the pointers of a given Phylogroup
+getGroupPointers :: EdgeType -> Filiation -> PhyloGroup -> [Pointer]
+getGroupPointers t f g = case t of
+                          PeriodEdge -> case f of 
+                                          Ascendant  -> getGroupPeriodParents g
+                                          Descendant -> getGroupPeriodChilds g
+                                          _          -> panic "[ERR][Viz.Phylo.Tools.getGroupPointers] wrong filiation"
+                          LevelEdge  -> case f of 
+                                          Ascendant  -> getGroupLevelParents g
+                                          Descendant -> getGroupLevelChilds g
+                                          _          -> panic "[ERR][Viz.Phylo.Tools.getGroupPointers] wrong filiation"
+
 
 -- | To get the roots labels of a list of group ngrams
 getGroupText :: PhyloGroup -> Phylo -> [Text] 
@@ -532,6 +550,13 @@ getTargetId e = e ^. pe_target
 getBranchId :: PhyloBranch -> PhyloBranchId
 getBranchId b = b ^. pb_id
 
+-- | To get a list of PhyloBranchIds
+getBranchIds :: Phylo -> [PhyloBranchId]
+getBranchIds p = sortOn snd
+               $ nub 
+               $ mapMaybe getGroupBranchId
+               $ getGroups p
+
 
 -- | To get a list of PhyloBranchIds given a Level in a Phylo
 getBranchIdsWith :: Level -> Phylo -> [PhyloBranchId]
@@ -548,6 +573,20 @@ getBranchMeta k b = (b ^. pb_metrics) ! k
 -- | To get all the PhyloBranchIds of a PhyloView
 getViewBranchIds :: PhyloView -> [PhyloBranchId]
 getViewBranchIds v = map getBranchId $ v ^. pv_branches
+
+
+-- | To get a list of PhyloGroup sharing the same PhyloBranchId
+getGroupsByBranches :: Phylo -> [(PhyloBranchId,[PhyloGroup])]
+getGroupsByBranches p = zip (getBranchIds p) 
+                      $ map (\id -> filter (\g -> (fromJust $ getGroupBranchId g) == id)
+                                    $ getGroupsInBranches p) 
+                      $ getBranchIds p 
+
+
+-- | To get the sublist of all the PhyloGroups linked to a branch
+getGroupsInBranches :: Phylo -> [PhyloGroup]
+getGroupsInBranches p = filter (\g -> isJust $ g ^. phylo_groupBranchId)
+                      $ getGroups p
 
 
 --------------------------------

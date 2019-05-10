@@ -34,7 +34,14 @@ import Gargantext.Viz.Phylo.BranchMaker
 import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Text.Context (TermList)
+
+import qualified Data.Vector.Storable as VS
+
 import qualified Data.Set    as Set
+import qualified Data.Vector as Vector
+
+import Debug.Trace (trace)
+import Numeric.Statistics (percentile)
 
 
 -- | A typeClass for polymorphic PhyloLevel functions
@@ -144,8 +151,11 @@ toNthLevel :: Level -> Proximity -> Cluster -> Phylo -> Phylo
 toNthLevel lvlMax prox clus p
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax prox clus
+                  $ traceBranches (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
+                  $ traceTempoMatching Descendant (lvl + 1)
                   $ interTempoMatching Descendant (lvl + 1) prox
+                  $ traceTempoMatching Ascendant  (lvl + 1)
                   $ interTempoMatching Ascendant  (lvl + 1) prox
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
@@ -160,9 +170,12 @@ toNthLevel lvlMax prox clus p
 -- | To reconstruct the Level 1 of a Phylo based on a Clustering Method
 toPhylo1 :: Cluster -> Proximity -> [Metric] -> [Filter] -> Map (Date, Date) [Document] -> Phylo -> Phylo
 toPhylo1 clus prox metrics filters d p = case clus of
-  Fis (FisParams k s t) -> setPhyloBranches 1
+  Fis (FisParams k s t) -> traceBranches 1 
+                       $ setPhyloBranches 1
+                       $ traceTempoMatching Descendant 1
                        $ interTempoMatching Descendant 1 prox
-                       $ interTempoMatching Ascendant  1 prox
+                       $ traceTempoMatching Ascendant 1
+                       $ interTempoMatching Ascendant 1 prox
                        $ setLevelLinks (0,1)
                        $ setLevelLinks (1,0)
                        $ addPhyloLevel 1 phyloFis p
@@ -178,14 +191,6 @@ toPhylo1 clus prox metrics filters d p = case clus of
 -- | To reconstruct the Level 0 of a Phylo
 toPhylo0 :: Map (Date, Date) [Document] -> Phylo -> Phylo
 toPhylo0 d p = addPhyloLevel 0 d p
-
-
--- | To reconstruct the Base of a Phylo
-
--- | To reconstruct a Phylomemy from a PhyloQueryBuild, a Corpus and a list of actants
-
-
-
 
 
 class PhyloMaker corpus
@@ -210,7 +215,7 @@ instance PhyloMaker [(Date, Text)]
         phyloDocs = corpusToDocs c phyloBase
         --------------------------------------
         phyloBase :: Phylo
-        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
+        phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
         --------------------------------------       
     --------------------------------------
     toPhyloBase q p c roots termList = initPhyloBase periods foundations p
@@ -243,7 +248,7 @@ instance PhyloMaker [Document]
         phyloDocs = corpusToDocs c phyloBase
         --------------------------------------
         phyloBase :: Phylo
-        phyloBase = toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
+        phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
         --------------------------------------       
     --------------------------------------
     toPhyloBase q p c roots termList = initPhyloBase periods foundations p
@@ -258,3 +263,53 @@ instance PhyloMaker [Document]
         --------------------------------------
     --------------------------------------
     corpusToDocs c p = groupDocsByPeriod date (getPhyloPeriods p) c
+
+
+-----------------
+-- | Tracers | --
+-----------------
+
+
+tracePhyloBase :: Phylo -> Phylo
+tracePhyloBase p = trace ( "----\nPhyloBase : \n" 
+                        <> show (length $ _phylo_periods p) <> " periods from " 
+                                 <> show (getPhyloPeriodId $ (head' "PhyloMaker") $ _phylo_periods p)
+                                 <> " to " 
+                                 <> show (getPhyloPeriodId $ last $ _phylo_periods p)
+                                 <> "\n"
+                        <> show ( Vector.length $ getFoundationsRoots p) <> " foundations roots \n") p
+                          
+
+
+traceTempoMatching :: Filiation -> Level -> Phylo -> Phylo
+traceTempoMatching fil lvl p = trace ( "----\n" <> show (fil) <> " filtered temporal Matching in Phylo" <> show (lvl) <> " :\n"
+                                    <> "count : " <> show (length pts) <> " pointers\n"
+                                    <> "similarity : " <> show (percentile 25 (VS.fromList sim)) <> " (25%) "
+                                                       <> show (percentile 50 (VS.fromList sim)) <> " (50%) "
+                                                       <> show (percentile 75 (VS.fromList sim)) <> " (75%) "
+                                                       <> show (percentile 90 (VS.fromList sim)) <> " (90%)\n") p
+  where 
+    --------------------------------------
+    sim :: [Double]
+    sim = sort $ map snd pts 
+    --------------------------------------
+    pts :: [Pointer]
+    pts = concat $ map (\g -> getGroupPointers PeriodEdge fil g) $ getGroupsWithLevel lvl p
+    --------------------------------------
+
+
+traceBranches :: Level -> Phylo -> Phylo
+traceBranches lvl p = trace ( "----\n" <> "Branches in Phylo" <> show lvl <> " :\n"
+                           <> "count : " <> show (length $ getBranchIds p) <> " branches\n"
+                           <> "count : " <> show (length $ getGroupsWithLevel lvl p)    <> " groups\n"
+                           <> "groups by branch : " <> show (percentile 25 (VS.fromList brs)) <> " (25%) "
+                                                    <> show (percentile 50 (VS.fromList brs)) <> " (50%) "
+                                                    <> show (percentile 75 (VS.fromList brs)) <> " (75%) "
+                                                    <> show (percentile 90 (VS.fromList brs)) <> " (90%)\n") p
+  where
+    --------------------------------------
+    brs :: [Double]
+    brs = sort $ map (\(_,gs) -> fromIntegral $ length gs)
+        $ filter (\(id,_) -> (fst id) == lvl)
+        $ getGroupsByBranches p
+    --------------------------------------

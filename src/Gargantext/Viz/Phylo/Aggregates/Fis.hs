@@ -17,15 +17,22 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Fis
   where
 
-import Data.List        (null)
-import Data.Map         (Map, empty)
+import Data.List        (null,concat,sort)
+import Data.Map         (Map, empty,elems)
 import Data.Tuple       (fst, snd)
 import Data.Set         (size)
+import Data.Vector.Storable  (Vector)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.FrequentItemSet  (fisWithSizePolyMap, Size(..))
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import qualified Data.Map    as Map
+import qualified Data.Set    as Set
+import qualified Data.Vector.Storable as Vector
+
+import Numeric.Statistics (percentile)
+
+import Debug.Trace (trace)
 
 
 -- | To Filter Fis by support 
@@ -74,7 +81,33 @@ processMetrics metrics phyloFis
 toPhyloFis :: Map (Date, Date) [Document] -> Bool -> Support -> Int -> [Metric] -> [Filter] -> Map (Date, Date) [PhyloFis]
 toPhyloFis ds k s t ms fs = processFilters fs  
                           $ processMetrics ms
+                          $ traceFis "----\nFiltered Fis by clique size :\n"
                           $ filterFisByNgrams t
+                          $ traceFis "----\nFiltered Fis by nested :\n"
                           $ filterFisByNested 
+                          $ traceFis "----\nFiltered Fis by support :\n"
                           $ filterFisBySupport k s
+                          $ traceFis "----\nUnfiltered Fis :\n"
                           $ docsToFis ds  
+
+
+-----------------
+-- | Tracers | --
+-----------------
+
+traceFis :: [Char] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis] 
+traceFis lbl m = trace (lbl <> "count : " <> show (sum $ map length $ elems m) <> " Fis\n"
+                            <> "support : " <> show (percentile 25 supps) <> " (25%) "
+                                            <> show (percentile 50 supps) <> " (50%) "
+                                            <> show (percentile 75 supps) <> " (75%) "
+                                            <> show (percentile 90 supps) <> " (90%)\n"
+                            <> "clique size : " <> show (percentile 25 ngrms) <> " (25%) "
+                                                <> show (percentile 50 ngrms) <> " (50%) "
+                                                <> show (percentile 75 ngrms) <> " (75%) "
+                                                <> show (percentile 90 ngrms) <> " (90%)\n"                                             
+                            ) m
+  where 
+    supps :: Vector Double
+    supps = Vector.fromList $ sort $ map (fromIntegral . _phyloFis_support) $ concat $ elems m
+    ngrms :: Vector Double
+    ngrms = Vector.fromList $ sort $ map (\f -> fromIntegral $ Set.size $ _phyloFis_clique f) $ concat $ elems m

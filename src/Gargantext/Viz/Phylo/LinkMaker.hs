@@ -18,15 +18,20 @@ module Gargantext.Viz.Phylo.LinkMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), nub, sortOn, null, tail, splitAt, elem, concat)
+import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete)
 import Data.Tuple.Extra
+import Data.Map                     (Map,(!))
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
 import qualified Data.List  as List
 import qualified Data.Maybe as Maybe
--- import Debug.Trace (trace)
+import qualified Data.Map as Map
+
+import qualified Data.Vector.Storable as VS
+import Debug.Trace (trace)
+import Numeric.Statistics (percentile)
 
 
 ------------------------------------------------------------------------
@@ -106,60 +111,84 @@ getNextPeriods to' id l = case to' of
       --------------------------------------
 
 
--- | To find the best set (max = 2) of Childs/Parents candidates based on a given Proximity mesure until a maximum depth (max = Period + 5 units )
-findBestCandidates :: Filiation -> Int -> Int -> Proximity -> PhyloGroup -> Phylo -> [(PhyloGroupId, Double)]
-findBestCandidates to' depth max' prox group p
-  | depth > max' || null next = []
-  | (not . null) best = take 2 best
-  | otherwise = findBestCandidates to' (depth + 1) max' prox group p
+-- | To find the best candidates regarding a given proximity
+findBestCandidates' :: Filiation -> Int -> Int -> Proximity -> [PhyloPeriodId] -> [PhyloGroup] -> PhyloGroup -> ([Pointer],[Double])
+findBestCandidates' fil depth limit prox prds gs g 
+  | depth > limit || null next = ([],[])
+  | (not . null) bestScores    = (take 2 bestScores, map snd scores)
+  | otherwise                  = findBestCandidates' fil (depth + 1) limit prox prds gs g
   where
     --------------------------------------
     next :: [PhyloPeriodId]
-    next = getNextPeriods to' (getGroupPeriod group) (getPhyloPeriods p)
+    next = take depth prds
     --------------------------------------
     candidates :: [PhyloGroup]
-    candidates = concat $ map (\prd -> getGroupsWithFilters (getGroupLevel group) prd p) $ (take depth next)
+    candidates = filter (\g' -> elem (getGroupPeriod g') next) gs 
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
-    scores = map (\group' -> applyProximity prox group group') candidates
-    --------------------------------------
-    best :: [(PhyloGroupId, Double)]
-    best = reverse
-         $ sortOn snd
-         $ filter (\(_id,score) -> case prox of
-            WeightedLogJaccard (WLJParams thr _) -> score >= thr
-            Hamming (HammingParams thr)          -> score <= thr
-            Filiation                            -> panic "[ERR][Viz.Phylo.LinkMaker.findBestCandidates] Filiation"
-            ) scores
-    --------------------------------------
+    scores = map (\g' -> applyProximity prox g g') candidates
+    --------------------------------------       
+    bestScores :: [(PhyloGroupId, Double)]
+    bestScores = reverse
+               $ sortOn snd
+               $ filter (\(_id,score) -> case prox of
+                  WeightedLogJaccard (WLJParams thr _) -> score >= thr
+                  Hamming (HammingParams thr)          -> score <= thr
+                  Filiation                            -> panic "[ERR][Viz.Phylo.LinkMaker.findBestCandidates] Filiation"
+                  ) scores
+    --------------------------------------               
 
 
--- | To add a new list of Pointers into an existing Childs/Parents list of Pointers
-makePair :: Filiation -> PhyloGroup -> [(PhyloGroupId, Double)] -> PhyloGroup
-makePair to' group ids = case to' of
-    Descendant  -> over (phylo_groupPeriodChilds) addPointers group
-    Ascendant   -> over (phylo_groupPeriodParents) addPointers group
-    _           -> panic ("[ERR][Viz.Phylo.Example.makePair] Filiation type not defined")
-    where
-      --------------------------------------
-      addPointers :: [Pointer] -> [Pointer]
-      addPointers l = nub $ (l ++ ids)
-      --------------------------------------
+-- | To add some Pointer to a PhyloGroup
+addPointers' :: Filiation -> [Pointer] -> PhyloGroup -> PhyloGroup
+addPointers' fil pts g = g & case fil of 
+   Descendant -> phylo_groupPeriodChilds  %~ (++ pts)
+   Ascendant  -> phylo_groupPeriodParents %~ (++ pts)
+   _          -> panic ("[ERR][Viz.Phylo.LinkMaker.addPointers] Wrong type of filiation")
 
 
--- | To pair all the Phylogroups of given PhyloLevel to their best Parents or Childs
+
+-- | To update a list of pkyloGroups with some Pointers
+updateGroups :: Filiation -> Level -> Map PhyloGroupId [Pointer] -> Phylo -> Phylo 
+updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if (getGroupLevel g) == lvl
+                                                               then addPointers' fil (m ! (getGroupId g)) g
+                                                                else g ) gs) p
+
+
+
+-- | To apply the intertemporal matching to Phylo at a given level
 interTempoMatching :: Filiation -> Level -> Proximity -> Phylo -> Phylo
-interTempoMatching to' lvl prox p = alterPhyloGroups
-                                    (\groups ->
-                                      map (\group ->
-                                            if (getGroupLevel group) == lvl
-                                            then
-                                              let
-                                                --------------------------------------
-                                                candidates :: [(PhyloGroupId, Double)]
-                                                candidates = findBestCandidates to' 1 5 prox group p
-                                                --------------------------------------
-                                              in
-                                                makePair to' group candidates
-                                            else
-                                              group ) groups) p
+interTempoMatching fil lvl prox p = traceMatching fil lvl scores
+                                  $ updateGroups fil lvl pointers p
+  where
+    --------------------------------------
+    pointers :: Map PhyloGroupId [Pointer]
+    pointers = Map.fromList $ map (\(id,x) -> (id,fst x)) candidates
+    --------------------------------------
+    scores :: [Double]
+    scores = sort $ concat $ map (snd . snd) candidates 
+    -------------------------------------- 
+    candidates :: [(PhyloGroupId,([Pointer],[Double]))]
+    candidates = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (delete g gs) g)) gs
+    --------------------------------------
+    gs :: [PhyloGroup]
+    gs = getGroupsWithLevel lvl p
+    --------------------------------------
+    prds :: [PhyloPeriodId]
+    prds = getPhyloPeriods p
+    --------------------------------------
+
+
+----------------
+-- | Tracer | --
+----------------
+
+
+traceMatching :: Filiation -> Level -> [Double] -> Phylo -> Phylo
+traceMatching fil lvl lst p = trace ( "----\n" <> show (fil) <> " unfiltered temporal Matching in Phylo" <> show (lvl) <> " :\n"
+                                      <> "count : " <> show (length lst) <> " potential pointers\n"
+                                      <> "similarity : " <> show (percentile 25 (VS.fromList lst)) <> " (25%) "
+                                                         <> show (percentile 50 (VS.fromList lst)) <> " (50%) "
+                                                         <> show (percentile 75 (VS.fromList lst)) <> " (75%) "
+                                                         <> show (percentile 90 (VS.fromList lst)) <> " (90%)\n") p
+
