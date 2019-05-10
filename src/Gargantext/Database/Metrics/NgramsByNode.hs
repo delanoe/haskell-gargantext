@@ -126,34 +126,35 @@ getNodesByNgramsUser :: CorpusId -> NgramsType
 getNodesByNgramsUser cId nt =
   fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
                     <$> selectNgramsByNodeUser cId nt
+    where
 
-selectNgramsByNodeUser :: CorpusId -> NgramsType
-                       -> Cmd err [(NodeId, Text)]
-selectNgramsByNodeUser cId nt =
-  runPGSQuery queryNgramsByNodeUser
-              ( cId
-              , nodeTypeId NodeDocument
-              , ngramsTypeId nt
-              , 1000 :: Int -- limit
-              , 0    :: Int -- offset
-              )
+      selectNgramsByNodeUser :: CorpusId -> NgramsType
+                             -> Cmd err [(NodeId, Text)]
+      selectNgramsByNodeUser cId' nt' =
+        runPGSQuery queryNgramsByNodeUser
+                    ( cId'
+                    , nodeTypeId NodeDocument
+                    , ngramsTypeId nt'
+           --         , 100 :: Int -- limit
+           --         , 0   :: Int -- offset
+                    )
 
-queryNgramsByNodeUser :: DPS.Query
-queryNgramsByNodeUser = [sql|
+      queryNgramsByNodeUser :: DPS.Query
+      queryNgramsByNodeUser = [sql|
 
-  SELECT nng.node2_id, ng.terms FROM node_node_ngrams nng
-    JOIN ngrams ng      ON nng.ngrams_id = ng.id
-    JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
-    JOIN nodes  n       ON nn.node2_id   = n.id
-    WHERE nn.node1_id = ?     -- CorpusId
-      AND n.typename  = ?     -- NodeTypeId
-      AND nng.ngrams_type = ? -- NgramsTypeId
-      AND nn.delete = False
-      GROUP BY nng.node2_id, ng.terms
-      ORDER BY (nng.node2_id, ng.terms) DESC
-      LIMIT ?
-      OFFSET ?
-  |]
+        SELECT nng.node2_id, ng.terms FROM node_node_ngrams nng
+          JOIN ngrams ng      ON nng.ngrams_id = ng.id
+          JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
+          JOIN nodes  n       ON nn.node2_id   = n.id
+          WHERE nn.node1_id = ?     -- CorpusId
+            AND n.typename  = ?     -- NodeTypeId
+            AND nng.ngrams_type = ? -- NgramsTypeId
+            AND nn.delete = False
+            GROUP BY nng.node2_id, ng.terms
+            ORDER BY (nng.node2_id, ng.terms) DESC
+          --   LIMIT ?
+          --  OFFSET ?
+        |]
 ------------------------------------------------------------------------
 -- TODO add groups
 getOccByNgramsOnlyFast :: CorpusId -> NgramsType -> [Text]

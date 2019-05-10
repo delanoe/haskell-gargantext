@@ -39,7 +39,7 @@ import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
 import GHC.Show (Show)
 import Gargantext.API.Ngrams (HasRepoVar)
-import Gargantext.API.Ngrams (NgramsElement, putListNgrams, RepoCmdM)
+import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
@@ -65,7 +65,8 @@ import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Servant (ServantErr)
 import System.FilePath (FilePath)
-import qualified Data.Map as DM
+--import qualified Data.List as List
+import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Text.Parsers.GrandDebat as GD
@@ -175,11 +176,11 @@ insertMasterDocs c lang hs  =  do
   -- TODO Type NodeDocumentUnicised
   let hs' = map addUniqId hs
   ids <- insertDb masterUserId masterCorpusId hs'
-  let documentsWithId = mergeData (toInserted ids) (DM.fromList $ map viewUniqId' hs')
+  let documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' hs')
   
   maps <- mapNodeIdNgrams <$> documentIdWithNgrams (extractNgramsT lang) documentsWithId
-  terms2id <- insertNgrams $ DM.keys maps
-  let indexedNgrams = DM.mapKeys (indexNgrams terms2id) maps
+  terms2id <- insertNgrams $ Map.keys maps
+  let indexedNgrams = Map.mapKeys (indexNgrams terms2id) maps
   
   lId <- getOrMkList masterCorpusId masterUserId
   _   <- insertDocNgrams lId indexedNgrams
@@ -247,7 +248,7 @@ viewUniqId' d = maybe err (\h -> (h,d)) (view uniqId d)
 
 
 toInserted :: [ReturnId] -> Map HashId ReturnId
-toInserted = DM.fromList . map    (\r ->  (reUniqId r, r)    )
+toInserted = Map.fromList . map    (\r ->  (reUniqId r, r)    )
                          . filter (\r -> reInserted r == True)
 
 data DocumentWithId a = DocumentWithId
@@ -258,7 +259,7 @@ data DocumentWithId a = DocumentWithId
 mergeData :: Map HashId ReturnId
           -> Map HashId a
           -> [DocumentWithId a]
-mergeData rs = catMaybes . map toDocumentWithId . DM.toList
+mergeData rs = catMaybes . map toDocumentWithId . Map.toList
   where
     toDocumentWithId (hash,hpd) =
       DocumentWithId <$> fmap reId (lookup hash rs)
@@ -288,7 +289,7 @@ instance ExtractNgramsT HyperdataContact
                      $ maybe ["Nothing"] (\a -> [a])
                      $ view (hc_who . _Just . cw_lastName) hc'
         
-          pure $ DM.fromList $ [(a', DM.singleton Authors     1) | a' <- authors    ]
+          pure $ Map.fromList $ [(a', Map.singleton Authors     1) | a' <- authors    ]
 
 
 
@@ -325,15 +326,15 @@ extractNgramsT' lang hd = filterNgramsT 255 <$> extractNgramsT'' lang hd
              <$> concat
              <$> liftIO (extractTerms lang' leText)
 
-      pure $ DM.fromList $  [(source, DM.singleton Sources 1)]
-                         <> [(i', DM.singleton Institutes  1) | i' <- institutes ]
-                         <> [(a', DM.singleton Authors     1) | a' <- authors    ]
-                         <> [(t', DM.singleton NgramsTerms 1) | t' <- terms'     ]
+      pure $ Map.fromList $  [(source, Map.singleton Sources 1)]
+                         <> [(i', Map.singleton Institutes  1) | i' <- institutes ]
+                         <> [(a', Map.singleton Authors     1) | a' <- authors    ]
+                         <> [(t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
 
 
 filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
                      -> Map Ngrams (Map NgramsType Int)
-filterNgramsT s ms = DM.fromList $ map (\a -> filter' s a) $ DM.toList ms
+filterNgramsT s ms = Map.fromList $ map (\a -> filter' s a) $ Map.toList ms
   where
     filter' s' (ng@(Ngrams t n),y) = case (Text.length t) < s' of
           True  -> (ng,y)
@@ -357,11 +358,11 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
 -- | TODO check optimization
 mapNodeIdNgrams :: [DocumentIdWithNgrams a]
                 -> Map Ngrams (Map NgramsType (Map NodeId Int))
-mapNodeIdNgrams = DM.unionsWith (DM.unionWith (DM.unionWith (+))) . fmap f
+mapNodeIdNgrams = Map.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap f
   where
     f :: DocumentIdWithNgrams a
       -> Map Ngrams (Map NgramsType (Map NodeId Int))
-    f d = fmap (fmap (DM.singleton nId)) $ document_ngrams d
+    f d = fmap (fmap (Map.singleton nId)) $ document_ngrams d
       where
         nId = documentId $ documentWithId d
 
@@ -380,5 +381,6 @@ flowList uId cId ngs = do
   lId <- getOrMkList cId uId
   printDebug "listId flowList" lId
   listInsert lId ngs
+  --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
   pure lId
 
