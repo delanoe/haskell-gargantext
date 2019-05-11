@@ -259,14 +259,17 @@ filterWith :: (PGOrd date, PGOrd title, PGOrd score) =>
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
-orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3) => Maybe OrderBy -> Order (Facet id (Column b1) (Column b2) hyperdata (Column b3) score)
-orderWith order = case order of
-  (Just DateAsc)   -> asc  facetDoc_created
+orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3)
+          => Maybe OrderBy
+          -> Order (Facet id (Column b1) (Column b2) hyperdata (Column b3) score)
+orderWith (Just DateAsc)   = asc  facetDoc_created
+orderWith (Just DateDesc)  = desc facetDoc_created
   
-  (Just TitleAsc)  -> asc  facetDoc_title
-  (Just TitleDesc) -> desc facetDoc_title
+orderWith (Just TitleAsc)  = asc  facetDoc_title
+orderWith (Just TitleDesc) = desc facetDoc_title
   
-  (Just ScoreAsc)  -> asc  facetDoc_favorite
-  (Just ScoreDesc) -> desc facetDoc_favorite
-  _                -> desc facetDoc_created
+orderWith (Just ScoreAsc)  = asc  facetDoc_favorite
+orderWith (Just ScoreDesc) = desc facetDoc_favorite
+  
+orderWith _                = asc facetDoc_created
 
