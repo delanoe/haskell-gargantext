@@ -270,14 +270,13 @@ instance PhyloMaker [Document]
 
 
 tracePhyloBase :: Phylo -> Phylo
-tracePhyloBase p = trace ( "----\nPhyloBase : \n" 
+tracePhyloBase p = trace ( "\n-----------------\n--| PhyloBase |--\n-----------------\n\n" 
                         <> show (length $ _phylo_periods p) <> " periods from " 
                                  <> show (getPhyloPeriodId $ (head' "PhyloMaker") $ _phylo_periods p)
                                  <> " to " 
                                  <> show (getPhyloPeriodId $ last $ _phylo_periods p)
                                  <> "\n"
                         <> show ( Vector.length $ getFoundationsRoots p) <> " foundations roots \n") p
-                          
 
 
 traceTempoMatching :: Filiation -> Level -> Phylo -> Phylo
@@ -299,7 +298,7 @@ traceTempoMatching fil lvl p = trace ( "----\n" <> show (fil) <> " filtered temp
 
 traceBranches :: Level -> Phylo -> Phylo
 traceBranches lvl p = trace ( "----\n" <> "Branches in Phylo" <> show lvl <> " :\n"
-                           <> "count : " <> show (length $ getBranchIds p) <> " branches\n"
+                           <> "count : " <> show (length $ filter (\(lvl',_) -> lvl' == lvl ) $ getBranchIds p) <> " branches\n"
                            <> "count : " <> show (length $ getGroupsWithLevel lvl p)    <> " groups\n"
                            <> "groups by branch : " <> show (percentile 25 (VS.fromList brs)) <> " (25%) "
                                                     <> show (percentile 50 (VS.fromList brs)) <> " (50%) "

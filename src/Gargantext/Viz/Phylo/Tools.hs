@@ -471,12 +471,12 @@ getSupport = _phyloFis_support
 
 
 -- | To filter some GroupEdges with a given threshold
-filterGroupEdges :: Double -> GroupEdges -> GroupEdges
+filterGroupEdges :: Double -> [GroupEdge] -> [GroupEdge]
 filterGroupEdges thr edges = filter (\((_s,_t),w) -> w > thr) edges
 
 
 -- | To get the neighbours (directed/undirected) of a PhyloGroup from a list of GroupEdges
-getNeighbours :: Bool -> PhyloGroup -> GroupEdges -> [PhyloGroup]
+getNeighbours :: Bool -> PhyloGroup -> [GroupEdge] -> [PhyloGroup]
 getNeighbours directed g e = case directed of
   True  -> map (\((_s,t),_w) -> t)
              $ filter (\((s,_t),_w) -> s == g) e
@@ -686,6 +686,13 @@ getPeriodSteps q = q ^. q_periodSteps
 -- | PhyloQueryBuild & PhyloQueryView Constructors | --
 --------------------------------------------------
 
+-- | To get the threshold of a Proximity
+getThreshold :: Proximity -> Double
+getThreshold prox = case prox of 
+  WeightedLogJaccard (WLJParams thr _) -> thr
+  Hamming (HammingParams thr)          -> thr
+  Filiation                            -> panic "[ERR][Viz.Phylo.Tools.getThreshold] Filiation"
+
 
 -- | To get the Proximity associated to a given Clustering method
 getProximity :: Cluster -> Proximity
@@ -702,8 +709,11 @@ initFis (def True -> kmf) (def 1 -> min') (def 1 -> thr) = FisParams kmf min' th
 initHamming :: Maybe Double -> HammingParams
 initHamming (def 0.01 -> sens) = HammingParams sens
 
+initSmallBranch' :: Maybe Int -> Maybe Int -> Maybe Int -> SBParams
+initSmallBranch' (def 2 -> periodsInf) (def 2 -> periodsSup) (def 1 -> minNodes) = SBParams periodsInf periodsSup minNodes
+
 initSmallBranch :: Maybe Int -> Maybe Int -> Maybe Int -> SBParams
-initSmallBranch (def 2 -> periodsInf) (def 2 -> periodsSup) (def 1 -> minNodes) = SBParams periodsInf periodsSup minNodes
+initSmallBranch (def 0 -> periodsInf) (def 0 -> periodsSup) (def 1 -> minNodes) = SBParams periodsInf periodsSup minNodes
 
 initLouvain :: Maybe Proximity -> LouvainParams
 initLouvain (def defaultWeightedLogJaccard -> proxi) = LouvainParams proxi

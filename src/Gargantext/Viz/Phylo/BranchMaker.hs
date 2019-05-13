@@ -20,11 +20,9 @@ module Gargantext.Viz.Phylo.BranchMaker
 import Control.Lens     hiding (both, Level)
 import Data.List        (concat,nub,(++),tail)
 import Data.Tuple       (fst, snd)
-import Data.Map         (Map,fromList,toList)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Metrics.Clustering
-import Gargantext.Viz.Phylo.Metrics.Proximity
 import Gargantext.Viz.Phylo.Tools
 -- import Debug.Trace (trace)
 
@@ -37,26 +35,16 @@ graphToBranches _lvl (nodes,edges) _p = concat
                                     $ relatedComp 0 (head' "branchMaker" nodes) (tail nodes,edges) [] []
 
 
-mirror :: Ord a => Map (a,a) b -> Map (a,a) b
-mirror m = fromList $ concat $ map (\((k,k'),v) -> [((k,k'),v),((k',k),v)]) $ toList m 
 
-
--- | To transform a list of PhyloGroups into a PhyloGraph by using a given Proximity mesure
-groupsToGraph :: Proximity -> [PhyloGroup] -> Phylo -> GroupGraph
-groupsToGraph prox groups p = (groups,edges)
-  where
-    edges :: GroupEdges
-    edges = case prox of
-      Filiation          -> (nub . concat) $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
-                                                        ++
-                                                        (map (\g' -> ((g,g'),1)) $ getGroupChilds g p)) groups
-      WeightedLogJaccard (WLJParams thr sens) -> filter (\(_,v) -> v >= thr)
-                                               $ map (\(x,y) -> ((x,y), weightedLogJaccard sens (mirror $ getGroupCooc x) (mirror $ getGroupCooc y)))
-                                               $ listToDirectedCombi groups
-      Hamming (HammingParams thr) -> filter (\edge -> snd edge <= thr)
-                                   $ map (\(x,y) -> ((x,y), hamming (getGroupCooc x) (unifySharedKeys (getGroupCooc x) (getGroupCooc y))))
-                                   $ listToDirectedCombi groups
-      --_                  -> undefined
+-- | To build a graph using the parents and childs pointers
+makeGraph :: [PhyloGroup] -> Phylo -> GroupGraph
+makeGraph gs p = (gs,edges)
+  where 
+    edges :: [GroupEdge]
+    edges = (nub . concat) 
+          $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
+                       ++
+                       (map (\g' -> ((g,g'),1)) $ getGroupChilds g p)) gs
 
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
@@ -69,5 +57,5 @@ setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst $ head' "bra
     bs = graphToBranches lvl graph p
     --------------------------------------
     graph :: GroupGraph
-    graph = groupsToGraph Filiation (getGroupsWithLevel lvl p) p
+    graph = makeGraph (getGroupsWithLevel lvl p) p
     --------------------------------------

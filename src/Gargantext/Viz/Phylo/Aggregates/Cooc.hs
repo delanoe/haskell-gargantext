@@ -26,9 +26,9 @@ import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 
 
--- | To transform the Fis into a coocurency Matrix in a Phylo
-fisToCooc :: Map (Date, Date) [PhyloFis] -> Phylo -> Map (Int, Int) Double
-fisToCooc m p = map   (/docs)
+-- | To transform the Fis into a coocurency Matrix in a Phylo but as a triangle  
+fisToCooc' :: Map (Date, Date) [PhyloFis] -> Phylo -> Map (Int, Int) Double
+fisToCooc' m p = map   (/docs)
               $ foldl (\mem x -> adjust (+1) (getKeyPair x mem) mem) cooc
               $ concat
               $ map (\x -> listToUnDirectedCombiWith (\y -> getIdxInRoots y p) $ (Set.toList . getClique) x)
@@ -43,6 +43,26 @@ fisToCooc m p = map   (/docs)
     --------------------------------------
     cooc :: Map (Int, Int) (Double)
     cooc = Map.fromList $ map (\x -> (x,0)) (listToUnDirectedCombiWith (\y -> getIdxInRoots y p) fisNgrams)
+    --------------------------------------
+
+
+-- | To transform the Fis into a full coocurency Matrix in a Phylo
+fisToCooc :: Map (Date, Date) [PhyloFis] -> Phylo -> Map (Int, Int) Double
+fisToCooc m p = map (/docs)
+              $ foldl (\mem x -> adjust (+1) x mem) cooc
+              $ concat
+              $ map (\x -> listToDirectedCombiWith (\y -> getIdxInRoots y p) $ (Set.toList . getClique) x)
+              $ (concat . elems) m
+  where
+    --------------------------------------
+    fisNgrams :: [Ngrams]
+    fisNgrams = foldl (\mem x -> union mem $ (Set.toList . getClique) x) [] $ (concat . elems) m
+    --------------------------------------
+    docs :: Double
+    docs = fromIntegral $ foldl (\mem x -> mem + (getSupport x)) 0 $ (concat . elems) m
+    --------------------------------------
+    cooc :: Map (Int, Int) (Double)
+    cooc = Map.fromList $ map (\x -> (x,0)) (listToDirectedCombiWith (\y -> getIdxInRoots y p) fisNgrams)
     --------------------------------------
 
 

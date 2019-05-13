@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.LinkMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete)
+import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete, intersect)
 import Data.Tuple.Extra
 import Data.Map                     (Map,(!))
 import Gargantext.Prelude
@@ -68,17 +68,16 @@ linkGroupToGroups (lvl,lvl') current targets
     --------------------------------------
 
 
--- | To set the LevelLinks between two lists of PhyloGroups
-linkGroupsByLevel :: (Level,Level) -> Phylo -> [PhyloGroup] -> [PhyloGroup]
-linkGroupsByLevel (lvl,lvl') p groups  = map (\group ->
-                                              if getGroupLevel group == lvl
-                                              then linkGroupToGroups (lvl,lvl') group (getGroupsWithFilters lvl' (getGroupPeriod group) p)
-                                              else group) groups
-
-
 -- | To set the LevelLink of all the PhyloGroups of a Phylo
 setLevelLinks :: (Level,Level) -> Phylo -> Phylo
-setLevelLinks (lvl,lvl') p = alterPhyloGroups (linkGroupsByLevel (lvl,lvl') p) p
+setLevelLinks (lvl,lvl') p = alterPhyloGroups (\gs -> map (\g -> if getGroupLevel g == lvl
+                                                                  then linkGroupToGroups (lvl,lvl') g (filter (\g' -> getGroupPeriod g' == getGroupPeriod g) gs')
+                                                                  else g) gs) p
+  where
+    --------------------------------------
+    gs' :: [PhyloGroup]
+    gs' = getGroupsWithLevel lvl' p
+    --------------------------------------
 
 
 ------------------------------------------------------------------------
@@ -88,8 +87,10 @@ setLevelLinks (lvl,lvl') p = alterPhyloGroups (linkGroupsByLevel (lvl,lvl') p) p
 -- | To apply the corresponding proximity function based on a given Proximity
 applyProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
 applyProximity prox g1 g2 = case prox of
-  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2),weightedLogJaccard s (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
-  Hamming (HammingParams _)          -> ((getGroupId g2),hamming (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
+  -- WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2),weightedLogJaccard s (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
+  -- Hamming (HammingParams _)          -> ((getGroupId g2),hamming (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))  
+  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2), weightedLogJaccard s (getGroupCooc g1) (getGroupCooc g2))
+  Hamming (HammingParams _)          -> ((getGroupId g2), hamming (getGroupCooc g1) (getGroupCooc g2))
   _                                  -> panic ("[ERR][Viz.Phylo.Example.applyProximity] Proximity function not defined")
 
 
@@ -152,13 +153,20 @@ addPointers' fil pts g = g & case fil of
 updateGroups :: Filiation -> Level -> Map PhyloGroupId [Pointer] -> Phylo -> Phylo 
 updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if (getGroupLevel g) == lvl
                                                                then addPointers' fil (m ! (getGroupId g)) g
-                                                                else g ) gs) p
+                                                               else g ) gs) p
+
+
+
+-- | Optimisation : to keep only the groups that have at least one ngrams in commons with the target
+filterCandidates :: PhyloGroup -> [PhyloGroup] -> [PhyloGroup]
+filterCandidates g gs = filter (\g' -> (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g'))
+                      $ delete g gs  
 
 
 
 -- | To apply the intertemporal matching to Phylo at a given level
 interTempoMatching :: Filiation -> Level -> Proximity -> Phylo -> Phylo
-interTempoMatching fil lvl prox p = traceMatching fil lvl scores
+interTempoMatching fil lvl prox p = traceMatching fil lvl (getThreshold prox) scores
                                   $ updateGroups fil lvl pointers p
   where
     --------------------------------------
@@ -167,9 +175,9 @@ interTempoMatching fil lvl prox p = traceMatching fil lvl scores
     --------------------------------------
     scores :: [Double]
     scores = sort $ concat $ map (snd . snd) candidates 
-    -------------------------------------- 
+    --------------------------------------     
     candidates :: [(PhyloGroupId,([Pointer],[Double]))]
-    candidates = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (delete g gs) g)) gs
+    candidates = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (filterCandidates g gs) g)) gs
     --------------------------------------
     gs :: [PhyloGroup]
     gs = getGroupsWithLevel lvl p
@@ -184,9 +192,9 @@ interTempoMatching fil lvl prox p = traceMatching fil lvl scores
 ----------------
 
 
-traceMatching :: Filiation -> Level -> [Double] -> Phylo -> Phylo
-traceMatching fil lvl lst p = trace ( "----\n" <> show (fil) <> " unfiltered temporal Matching in Phylo" <> show (lvl) <> " :\n"
-                                      <> "count : " <> show (length lst) <> " potential pointers\n"
+traceMatching :: Filiation -> Level -> Double -> [Double] -> Phylo -> Phylo
+traceMatching fil lvl thr lst p = trace ( "----\n" <> show (fil) <> " unfiltered temporal Matching in Phylo" <> show (lvl) <> " :\n"
+                                      <> "count : " <> show (length lst) <> " potential pointers (" <> show (length $ filter (>= thr) lst) <> " >= " <> show (thr) <> ")\n"
                                       <> "similarity : " <> show (percentile 25 (VS.fromList lst)) <> " (25%) "
                                                          <> show (percentile 50 (VS.fromList lst)) <> " (50%) "
                                                          <> show (percentile 75 (VS.fromList lst)) <> " (75%) "

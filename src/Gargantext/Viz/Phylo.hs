@@ -207,12 +207,12 @@ data PhyloFis = PhyloFis
 type PhyloCluster = [PhyloGroup]
 
 
--- | A List of PhyloGroup in a Graph
-type GroupNodes = [PhyloGroup]
--- | A List of weighted links between some PhyloGroups in a Graph
-type GroupEdges = [((PhyloGroup,PhyloGroup),Weight)]
+-- | A PhyloGroup in a Graph
+type GroupNode  = PhyloGroup
+-- | A weighted links between two PhyloGroups in a Graph
+type GroupEdge  = ((PhyloGroup,PhyloGroup),Weight)
 -- | The association as a Graph between a list of Nodes and a list of Edges
-type GroupGraph = (GroupNodes,GroupEdges)
+type GroupGraph = ([GroupNode],[GroupEdge])
 
 
 ---------------

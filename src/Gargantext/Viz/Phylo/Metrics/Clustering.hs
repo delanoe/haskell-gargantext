@@ -50,7 +50,7 @@ relatedComp idx curr (nodes,edges) next memo
     --------------------------------------
 
 
-louvain :: (GroupNodes,GroupEdges) -> IO [[PhyloGroup]]
+louvain :: ([GroupNode],[GroupEdge]) -> IO [[PhyloGroup]]
 louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
                       <$> groupBy (\a b -> (l_community_id a) == (l_community_id b))
                       <$> (cLouvain $ mapKeys (\(x,y) -> (idx x, idx y)) $ fromList edges)

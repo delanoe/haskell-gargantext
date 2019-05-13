@@ -78,6 +78,10 @@ data Conf =
           , timeSens    :: Double
           , clusterTh   :: Double
           , clusterSens :: Double
+          , phyloLevel  :: Int
+          , viewLevel   :: Int
+          , fisSupport  :: Int
+          , fisClique   :: Int 
      } deriving (Show,Generic)
 
 instance FromJSON Conf
@@ -148,17 +152,13 @@ parse format limit path l = do
 main :: IO ()
 main = do 
 
-  putStrLn $ show ("--| Read the conf |--")
-
   [jsonPath] <- getArgs
 
   confJson <- (eitherDecode <$> getJson jsonPath) :: IO (P.Either P.String Conf)
 
   case confJson of
     P.Left err -> putStrLn err
-    P.Right conf -> do  
-
-      putStrLn $ show ("--| Parse the corpus |--")
+    P.Right conf -> do
 
       termList <- csvGraphTermList (listPath conf)
 
@@ -166,21 +166,19 @@ main = do
 
       let roots = DL.nub $ DL.concat $ map text corpus
 
-      putStrLn $ ("-- | parsed docs : " <> show (length corpus) <> " |--") 
-
-      putStrLn $ show ("--| Build the phylo |--")
+      putStrLn $ (show (length corpus) <> " parsed docs")
       
       let query = PhyloQueryBuild (phyloName conf) "" (timeGrain conf) (timeStep conf) 
-                  defaultFis [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) 2 
+                  (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (phyloLevel conf)
                   (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams (clusterTh conf) (clusterSens conf))
 
-      let queryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
+      let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
 
       let phylo = toPhylo query corpus roots termList
 
       let view  = toPhyloView queryView phylo
 
-      putStrLn $ show ("--| Export the phylo as a dot graph |--") 
+      putStrLn $ ("phylo completed until level " <> show (phyloLevel conf) <> ", export at level " <> show (viewLevel conf)) 
 
       let outputFile = (outputPath conf) <> (DT.unpack $ phyloName conf)
                                          <> "_" <> show (limit conf) <> "_"
@@ -190,4 +188,4 @@ main = do
                                          <> "_" <> show (clusterSens conf) 
                                          <> ".dot"
 
-      P.writeFile outputFile $ dotToString $ viewToDot view       
+      P.writeFile outputFile $ dotToString $ viewToDot view      
