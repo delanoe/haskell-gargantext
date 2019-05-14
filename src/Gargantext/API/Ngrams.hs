@@ -56,7 +56,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_)
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~))
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -220,10 +220,10 @@ ngramsElementToRepo
     , _nre_children = c
     }
 
-ngramsElementFromRepo :: (NgramsTerm, NgramsRepoElement) -> NgramsElement
+ngramsElementFromRepo :: NgramsTerm -> NgramsRepoElement -> NgramsElement
 ngramsElementFromRepo
-  (ngrams,
-   NgramsRepoElement
+  ngrams
+  (NgramsRepoElement
       { _nre_size = s
       , _nre_list = l
       , _nre_parent = p
@@ -236,7 +236,7 @@ ngramsElementFromRepo
                 , _ne_parent = p
                 , _ne_children = c
                 , _ne_ngrams = ngrams
-                , _ne_occurrences = 0 -- panic "API.Ngrams._ne_occurrences"
+                , _ne_occurrences = panic $ "API.Ngrams._ne_occurrences"
                 {-
                 -- Here we could use 0 if we want to avoid any `panic`.
                 -- It will not happen using getTableNgrams if
@@ -874,7 +874,8 @@ type MaxSize = Int
 
 
 
-getTableNgrams :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+getTableNgrams :: forall env err m.
+                  (RepoCmdM env err m, HasNodeError err, HasConnection env)
                => NodeType -> NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -910,9 +911,11 @@ getTableNgrams nType nId tabType listId limit_ offset
     sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view ne_occurrences
 
     ---------------------------------------
-    selectAndPaginate tableMap (NgramsTable list) = NgramsTable $ roots <> inners
+    selectAndPaginate :: Map NgramsTerm NgramsElement -> [NgramsElement]
+    selectAndPaginate tableMap = roots <> inners
       where
-        rootOf ne = maybe ne (\r -> ngramsElementFromRepo (r, fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. v_data . at r)))
+        list = tableMap ^.. each
+        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. at r))
                              (ne ^. ne_root)
         selected_nodes = list & take limit_
                               . drop offset'
@@ -923,9 +926,10 @@ getTableNgrams nType nId tabType listId limit_ offset
         inners = list & filter (selected_inner rootsSet)
 
     ---------------------------------------
+    setScores :: forall t. Each t t NgramsElement NgramsElement => Bool -> t -> m t
     setScores False table = pure table
     setScores True  table = do
-      let ngrams_terms = (table ^.. v_data . _NgramsTable . each . ne_ngrams)
+      let ngrams_terms = (table ^.. each . ne_ngrams)
       occurrences <- getOccByNgramsOnlySlow nType nId
                                             (lIds <> [listId])
                                             ngramsType
@@ -934,19 +938,20 @@ getTableNgrams nType nId tabType listId limit_ offset
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
-      pure $ table & v_data . _NgramsTable . each %~ setOcc
+      pure $ table & each %~ setOcc
     ---------------------------------------
 
   -- lists <- catMaybes <$> listsWith userMaster
   -- trace (show lists) $
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
-  tableMap <- getNgramsTableMap listId ngramsType
   let nSco = needsScores orderBy
-  table <- tableMap & v_data %~ (NgramsTable . fmap ngramsElementFromRepo . Map.toList)
-                    & setScores nSco
-  setScores (not nSco) $ table & v_data %~ selectAndPaginate tableMap
-
+  tableMap1 <- getNgramsTableMap listId ngramsType
+  tableMap2 <- tableMap1 & v_data %%~ setScores nSco
+                                    . Map.mapWithKey ngramsElementFromRepo
+  tableMap2 & v_data %%~ fmap NgramsTable
+                       . setScores (not nSco)
+                       . selectAndPaginate
 
 -- APIs
 
