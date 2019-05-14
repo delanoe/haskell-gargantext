@@ -17,7 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Cluster
   where
 
-import Data.List        (null,tail,concat)
+import Data.List        (null,tail,concat,sort,intersect)
 import Data.Map         (Map)
 import Data.Tuple       (fst)
 import Gargantext.Prelude
@@ -25,11 +25,19 @@ import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
 import Gargantext.Viz.Phylo.Metrics.Clustering
+import Gargantext.Viz.Phylo.Aggregates.Cooc
 import qualified Data.Map    as Map
 
 import qualified Data.Vector.Storable as VS
 import Debug.Trace (trace)
 import Numeric.Statistics (percentile)
+
+
+-- | Optimisation to filter only relevant candidates
+getCandidates :: [PhyloGroup] -> [(PhyloGroup,PhyloGroup)]
+getCandidates gs = filter (\(g,g') -> (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g'))
+                 $ filter (\(g,g') -> g /= g')
+                 $ listToDirectedCombi gs
 
 
 -- | To transform a Graph into Clusters
@@ -41,12 +49,12 @@ graphToClusters clust (nodes,edges) = case clust of
 
 
 -- | To transform a list of PhyloGroups into a Graph of Proximity
-groupsToGraph :: Proximity -> [PhyloGroup] -> ([GroupNode],[GroupEdge])
-groupsToGraph prox gs = case prox of 
-      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard sens (getGroupCooc x) (getGroupCooc y)))                                               
-                                                      $ listToDirectedCombi gs)
-      Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getGroupCooc x) (getGroupCooc y)))                                   
-                                                      $ listToDirectedCombi gs)
+groupsToGraph :: Proximity -> [PhyloGroup] -> Map (Int, Int) Double -> ([GroupNode],[GroupEdge])
+groupsToGraph prox gs cooc = case prox of 
+      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard sens (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc)))
+                                                                         $ getCandidates gs)
+      Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc)))
+                                                                         $ getCandidates gs)
       _                                     -> undefined 
 
 
@@ -73,7 +81,7 @@ phyloToClusters lvl clus p = Map.fromList
     --------------------------------------
     graphs  :: [([GroupNode],[GroupEdge])]
     graphs  = traceGraph lvl (getThreshold prox) 
-            $ map (\prd -> groupsToGraph prox (getGroupsWithFilters lvl prd p)) periods 
+            $ map (\prd -> groupsToGraph prox (getGroupsWithFilters lvl prd p) (getCooc [prd] p)) periods 
     --------------------------------------
     prox :: Proximity
     prox = getProximity clus
@@ -96,7 +104,7 @@ traceGraph lvl thr g = trace ( "----\nUnfiltered clustering in Phylo" <> show (l
                                                          <> show (percentile 75 (VS.fromList lst)) <> " (75%) "
                                                          <> show (percentile 90 (VS.fromList lst)) <> " (90%)\n") g
   where 
-    lst = map snd $ concat $ map snd g 
+    lst = sort $ map snd $ concat $ map snd g 
 
 
 traceGraphFiltered :: Level -> [([GroupNode],[GroupEdge])] -> [([GroupNode],[GroupEdge])]
@@ -107,5 +115,5 @@ traceGraphFiltered lvl g = trace ( "----\nClustering in Phylo" <> show (lvl) <> 
                                                          <> show (percentile 75 (VS.fromList lst)) <> " (75%) "
                                                          <> show (percentile 90 (VS.fromList lst)) <> " (90%)\n") g
   where 
-    lst = map snd $ concat $ map snd g 
+    lst = sort $ map snd $ concat $ map snd g 
 

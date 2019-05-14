@@ -237,11 +237,6 @@ getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId = _phylo_groupId
 
 
--- | To get the Cooc Matrix of a PhyloGroup
-getGroupCooc :: PhyloGroup -> Map (Int,Int) Double
-getGroupCooc = _phylo_groupCooc
-
-
 -- | To get the level out of the id of a PhyloGroup
 getGroupLevel :: PhyloGroup -> Int
 getGroupLevel = snd . fst . getGroupId
@@ -372,7 +367,6 @@ initGroup ngrams lbl idx lvl from' to' p = PhyloGroup
   (((from', to'), lvl), idx)
   lbl
   (sort $ map (\x -> getIdxInRoots x p) ngrams)
-  (Map.empty)
   (Map.empty)
   Nothing
   [] [] [] []
@@ -709,11 +703,14 @@ initFis (def True -> kmf) (def 1 -> min') (def 1 -> thr) = FisParams kmf min' th
 initHamming :: Maybe Double -> HammingParams
 initHamming (def 0.01 -> sens) = HammingParams sens
 
-initSmallBranch' :: Maybe Int -> Maybe Int -> Maybe Int -> SBParams
-initSmallBranch' (def 2 -> periodsInf) (def 2 -> periodsSup) (def 1 -> minNodes) = SBParams periodsInf periodsSup minNodes
+initLonelyBranch :: Maybe Int -> Maybe Int -> Maybe Int -> LBParams
+initLonelyBranch (def 2 -> periodsInf) (def 2 -> periodsSup) (def 1 -> minNodes) = LBParams periodsInf periodsSup minNodes
 
-initSmallBranch :: Maybe Int -> Maybe Int -> Maybe Int -> SBParams
-initSmallBranch (def 0 -> periodsInf) (def 0 -> periodsSup) (def 1 -> minNodes) = SBParams periodsInf periodsSup minNodes
+initSizeBranch :: Maybe Int -> SBParams
+initSizeBranch (def 1 -> minSize) = SBParams minSize
+
+initLonelyBranch' :: Maybe Int -> Maybe Int -> Maybe Int -> LBParams
+initLonelyBranch' (def 0 -> periodsInf) (def 0 -> periodsSup) (def 1 -> minNodes) = LBParams periodsInf periodsSup minNodes
 
 initLouvain :: Maybe Proximity -> LouvainParams
 initLouvain (def defaultWeightedLogJaccard -> proxi) = LouvainParams proxi
@@ -760,8 +757,11 @@ defaultRelatedComponents = RelatedComponents (initRelatedComponents Nothing)
 
 -- Filters
 
-defaultSmallBranch :: Filter
-defaultSmallBranch = SmallBranch (initSmallBranch Nothing Nothing Nothing)
+defaultLonelyBranch :: Filter
+defaultLonelyBranch = LonelyBranch (initLonelyBranch Nothing Nothing Nothing)
+
+defaultSizeBranch :: Filter
+defaultSizeBranch = SizeBranch (initSizeBranch Nothing)
 
 -- Params
 

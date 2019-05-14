@@ -77,7 +77,7 @@ queryViewEx = "level=3"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
+phyloQueryView = PhyloQueryView 4 Merge False 1 [BranchAge] [defaultSizeBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
 
 --------------------------------------------------
@@ -104,7 +104,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQueryBuild :: PhyloQueryBuild
 phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.1 10) 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.1 10)
+             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.1 10) 5 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.1 10)
 
 
 

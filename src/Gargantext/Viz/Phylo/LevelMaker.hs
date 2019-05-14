@@ -21,13 +21,12 @@ module Gargantext.Viz.Phylo.LevelMaker
 
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sort, concat, nub, zip, last)
-import Data.Map                     (Map, (!), empty, restrictKeys, filterWithKey, singleton, union)
+import Data.Map                     (Map, (!), empty, singleton)
 import Data.Text (Text)
 import Data.Tuple.Extra
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Aggregates.Cluster
-import Gargantext.Viz.Phylo.Aggregates.Cooc
 import Gargantext.Viz.Phylo.Aggregates.Document
 import Gargantext.Viz.Phylo.Aggregates.Fis
 import Gargantext.Viz.Phylo.BranchMaker
@@ -61,7 +60,7 @@ instance PhyloLevelMaker PhyloCluster
       | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Clusters at level < 2")
     --------------------------------------
     -- | Level -> (Date,Date) -> [Cluster] -> Map (Date,Date) [Cluster] -> Phylo -> [PhyloGroup]
-    toPhyloGroups lvl (d,d') l m p = map (\(idx,cluster) -> clusterToGroup (d,d') lvl idx "" cluster m p) $ zip [1..] l
+    toPhyloGroups lvl (d,d') l m _ = map (\(idx,cluster) -> clusterToGroup (d,d') lvl idx "" cluster m) $ zip [1..] l
     --------------------------------------
 
 
@@ -74,7 +73,7 @@ instance PhyloLevelMaker PhyloFis
       | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Fis at level <> 1")
     --------------------------------------
     -- | Level -> (Date,Date) -> [Fis] -> Map (Date,Date) [Fis] -> Phylo -> [PhyloGroup]
-    toPhyloGroups lvl (d,d') l m p = map (\(idx,fis) -> cliqueToGroup (d,d') lvl idx "" fis m p) $ zip [1..] l
+    toPhyloGroups lvl (d,d') l _ p = map (\(idx,fis) -> cliqueToGroup (d,d') lvl idx "" fis p) $ zip [1..] l
     --------------------------------------
 
 
@@ -95,26 +94,20 @@ instance PhyloLevelMaker Document
 
 
 -- | To transform a Cluster into a Phylogroup
-clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster] -> Phylo -> PhyloGroup
-clusterToGroup prd lvl idx lbl groups _m p =
-    PhyloGroup ((prd, lvl), idx) lbl ngrams empty cooc Nothing [] [] [] (map (\g -> (getGroupId g, 1)) groups)
+clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster]-> PhyloGroup
+clusterToGroup prd lvl idx lbl groups _m =
+    PhyloGroup ((prd, lvl), idx) lbl ngrams empty Nothing [] [] [] (map (\g -> (getGroupId g, 1)) groups)
       where
         --------------------------------------
         ngrams :: [Int]
         ngrams = (sort . nub . concat) $ map getGroupNgrams groups
         --------------------------------------
-        cooc :: Map (Int, Int) Double
-        cooc = filterWithKey (\k _ -> elem (fst k) ngrams && elem (snd k) ngrams)
-              $ foldl union empty
-              $ map getGroupCooc
-              $ getGroupsWithFilters 1 prd p
-        --------------------------------------
 
 
 -- | To transform a Clique into a PhyloGroup
-cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Map (Date, Date) [PhyloFis] -> Phylo -> PhyloGroup
-cliqueToGroup prd lvl idx lbl fis m p =
-    PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ getSupport fis)) cooc Nothing [] [] [] []
+cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Phylo -> PhyloGroup
+cliqueToGroup prd lvl idx lbl fis p =
+    PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ getSupport fis)) Nothing [] [] [] []
       where
         --------------------------------------
         ngrams :: [Int]
@@ -122,16 +115,12 @@ cliqueToGroup prd lvl idx lbl fis m p =
                       $ Set.toList
                       $ getClique fis
         --------------------------------------
-        cooc :: Map (Int, Int) Double
-        cooc =  filterWithKey (\k _ -> elem (fst k) ngrams && elem (snd k) ngrams)
-                                     $ fisToCooc (restrictKeys m $ Set.fromList [prd]) p
-        --------------------------------------
 
 
 -- | To transform a list of Ngrams into a PhyloGroup
 ngramsToGroup ::  PhyloPeriodId -> Level -> Int -> Text -> [Ngrams] -> Phylo -> PhyloGroup
 ngramsToGroup prd lvl idx lbl ngrams p =
-    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInRoots x p) ngrams) empty empty Nothing [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInRoots x p) ngrams) empty Nothing [] [] [] []
 
 
 -- | To traverse a Phylo and add a new PhyloLevel linked to a new list of PhyloGroups

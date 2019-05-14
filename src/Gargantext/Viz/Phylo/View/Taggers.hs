@@ -22,9 +22,11 @@ import Data.List        (concat,nub,groupBy,sortOn,sort)
 import Data.Text        (Text)
 import Data.Tuple       (fst, snd)
 import Data.Vector      (Vector)
+import Data.Map         (Map)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.Viz.Phylo.Aggregates.Cooc
 import qualified Data.Map    as Map
 
 
@@ -46,11 +48,14 @@ freqToLabel thr ngs l = ngramsToLabel ngs $ mostFreqNgrams thr l
 
 
 -- | To get the (nth `div` 2) most cooccuring Ngrams in a PhyloGroup
-mostOccNgrams :: Int -> PhyloGroup -> [Int]
-mostOccNgrams thr group = (nub . concat )
-                        $ map (\((f,s),_d) -> [f,s])
-                        $ take (thr `div` 2)
-                        $ reverse $ sortOn snd $ Map.toList $ getGroupCooc group
+mostOccNgrams :: Int -> Phylo -> PhyloGroup -> [Int]
+mostOccNgrams thr p g = (nub . concat )
+                          $ map (\((f,s),_d) -> [f,s])
+                          $ take (thr `div` 2)
+                          $ reverse $ sortOn snd $ Map.toList cooc
+  where
+    cooc :: Map (Int, Int) Double
+    cooc = getSubCooc (getGroupNgrams g) $ getCooc [getGroupPeriod g] p
 
 
 -- | To alter the peak of a PhyloBranch
@@ -75,7 +80,7 @@ nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
 nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
                              (\n -> let lbl = ngramsToLabel (getFoundationsRoots p)
-                                            $ mostOccNgrams thr
+                                            $ mostOccNgrams thr p
                                             $ head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
                                     in n & pn_label .~ lbl) v
 

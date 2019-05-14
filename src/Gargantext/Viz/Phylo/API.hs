@@ -77,7 +77,7 @@ type GetPhylo =  QueryParam "listId"      ListId
 getPhylo :: PhyloId -> GargServer GetPhylo
 getPhylo _phyloId _lId l f b l' ms x y z ts s o e d b' = do
   let
-    fs' = maybe (Just []) (\p -> Just [p]) $ SmallBranch <$> (SBParams <$> x <*> y <*> z)
+    fs' = maybe (Just []) (\p -> Just [p]) $ LonelyBranch <$> (LBParams <$> x <*> y <*> z)
     so  = (,) <$> s <*> o
     q = initPhyloQueryView l f b l' ms fs' ts so e d b'
   -- | TODO remove phylo for real data here
@@ -149,6 +149,7 @@ instance ToSchema PhyloPeriod
 instance ToSchema PhyloQueryBuild
 instance ToSchema PhyloView
 instance ToSchema RCParams
+instance ToSchema LBParams
 instance ToSchema SBParams
 instance ToSchema Software
 instance ToSchema WLJParams

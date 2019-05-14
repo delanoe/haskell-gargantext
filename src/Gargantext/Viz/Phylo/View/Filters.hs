@@ -48,9 +48,9 @@ cleanNodesEdges v v' = v' & pv_nodes %~ (filter (\n -> not $ elem (getNodeId n) 
     --------------------------------------
 
 
--- | To filter all the SmallBranches (ie: isolated one in time & with a small number of nodes) of a PhyloView
-filterSmallBranch :: Int -> Int -> Int -> [PhyloPeriodId] -> PhyloView -> PhyloView
-filterSmallBranch inf sup min' prds v = cleanNodesEdges v v'
+-- | To filter all the LonelyBranches (ie: isolated one in time & with a small number of nodes) of a PhyloView
+filterLonelyBranch :: Int -> Int -> Int -> [PhyloPeriodId] -> PhyloView -> PhyloView
+filterLonelyBranch inf sup min' prds v = cleanNodesEdges v v'
   where
     --------------------------------------
     v' :: PhyloView
@@ -61,15 +61,24 @@ filterSmallBranch inf sup min' prds v = cleanNodesEdges v v'
     --------------------------------------
     isLone :: [PhyloNode] -> [PhyloPeriodId] -> Bool
     isLone ns prds' = (length ns <= min')
-                      && notElem (head' "filterSmallBranch1" prds') (take inf prds)
-                      && notElem (head' "filterSmallBranch2" prds') (take sup $ reverse prds)
+                      && notElem (head' "filterLonelyBranch1" prds') (take inf prds)
+                      && notElem (head' "filterLonelyBranch2" prds') (take sup $ reverse prds)
+    --------------------------------------
+
+-- | To filter all the branches with a minimal size in a PhyloView
+filterSizeBranch :: Int -> PhyloView -> PhyloView
+filterSizeBranch min' v = cleanNodesEdges v v'
+  where
+    --------------------------------------
+    v' :: PhyloView
+    v' = v & pv_branches %~ (filter (\b -> (length $ filter (\n -> (getBranchId b)  == (getNodeBranchId n)) $ getNodesInBranches v) > min'))
     --------------------------------------
 
 
 -- | To process a list of QueryFilter to a PhyloView
 processFilters :: [Filter] -> Phylo -> PhyloView -> PhyloView
 processFilters fs p v = foldl (\v' f -> case f of
-                                        SmallBranch (SBParams inf sup min') -> filterSmallBranch inf sup min'
-                                                                               (getPhyloPeriods p) v'
+                                        LonelyBranch (LBParams inf sup min') -> filterLonelyBranch inf sup min' (getPhyloPeriods p) v'
+                                        SizeBranch (SBParams min')            -> filterSizeBranch min' v'
                                       -- _   -> panic "[ERR][Viz.Phylo.View.Filters.processFilters] filter not found"
                                        ) v fs

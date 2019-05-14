@@ -149,7 +149,6 @@ data PhyloGroup =
                 , _phylo_groupLabel         :: Text
                 , _phylo_groupNgrams        :: [Int]
                 , _phylo_groupMeta          :: Map Text Double
-                , _phylo_groupCooc          :: Map (Int, Int) Double
                 , _phylo_groupBranchId      :: Maybe PhyloBranchId
 
                 , _phylo_groupPeriodParents :: [Pointer]
@@ -280,13 +279,19 @@ data HammingParams = HammingParams
 
 
 -- | Filter constructors
-data Filter = SmallBranch SBParams deriving (Generic, Show, Eq)
+data Filter = LonelyBranch LBParams
+            | SizeBranch SBParams
+            deriving (Generic, Show, Eq)
 
--- | Parameters for SmallBranch filter
+-- | Parameters for LonelyBranch filter
+data LBParams = LBParams
+  { _lb_periodsInf :: Int
+  , _lb_periodsSup :: Int
+  , _lb_minNodes   :: Int } deriving (Generic, Show, Eq)
+
+-- | Parameters for SizeBranch filter
 data SBParams = SBParams
-  { _sb_periodsInf :: Int
-  , _sb_periodsSup :: Int
-  , _sb_minNodes   :: Int } deriving (Generic, Show, Eq)
+  { _sb_minSize :: Int } deriving (Generic, Show, Eq)
 
 
 ----------------
@@ -483,6 +488,8 @@ $(deriveJSON (unPrefix "_hamming_" ) ''HammingParams )
 $(deriveJSON (unPrefix "_louvain_" ) ''LouvainParams )
 $(deriveJSON (unPrefix "_rc_" )      ''RCParams      )
 $(deriveJSON (unPrefix "_wlj_" )     ''WLJParams     )
+--
+$(deriveJSON (unPrefix "_lb_" )      ''LBParams      )
 $(deriveJSON (unPrefix "_sb_" )      ''SBParams      )
 --
 $(deriveJSON (unPrefix "_q_" )  ''PhyloQueryBuild  )

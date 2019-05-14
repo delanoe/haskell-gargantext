@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.View.ViewMaker
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-import Data.List        (concat,nub,(++))
+import Data.List        (concat,nub,(++),sort)
 import Data.Text        (Text)
 import Data.Map         (Map, empty, elems, unionWithKey, fromList)
 import Data.Tuple       (fst, snd)
@@ -32,6 +32,9 @@ import Gargantext.Viz.Phylo.View.Metrics
 import Gargantext.Viz.Phylo.View.Sort
 import Gargantext.Viz.Phylo.View.Taggers
 
+import qualified Data.Vector.Storable as VS
+import Debug.Trace (trace)
+import Numeric.Statistics (percentile)
 
 -- | To init a PhyloBranch
 initPhyloBranch :: PhyloBranchId -> Text -> PhyloBranch
@@ -139,7 +142,8 @@ addChildNodes shouldDo lvl lvlMin vb fl p v =
 
 -- | To transform a PhyloQuery into a PhyloView
 toPhyloView :: PhyloQueryView -> Phylo -> PhyloView
-toPhyloView q p = processDisplay (q ^. qv_display) (q ^. qv_export)
+toPhyloView q p = traceView
+                $ processDisplay (q ^. qv_display) (q ^. qv_export)
                 $ processSort    (q ^. qv_sort   ) p
                 $ processTaggers (q ^. qv_taggers) p
                 $ processFilters (q ^. qv_filters) p
@@ -160,3 +164,20 @@ getPhyloTitle p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
 -- | To get the desc of a Phylo
 getPhyloDescription :: Phylo -> Text
 getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
+
+
+-----------------
+-- | Taggers | --
+-----------------
+
+
+traceView :: PhyloView -> PhyloView
+traceView pv = trace ("------------\n--| View |--\n------------\n\n"
+  <> "view level : " <> show (pv ^. pv_level) <> "\n"
+  <> show (length $ pv ^. pv_branches) <> " exported branches with " <> show (length $ pv ^. pv_nodes) <> " groups\n"
+  <> "groups by branches : " <> show (percentile 25 (VS.fromList lst)) <> " (25%) "
+                             <> show (percentile 50 (VS.fromList lst)) <> " (50%) "
+                             <> show (percentile 75 (VS.fromList lst)) <> " (75%) "
+                             <> show (percentile 90 (VS.fromList lst)) <> " (90%)\n") pv
+  where 
+    lst = sort $ map (fromIntegral . length . snd) $ getNodesByBranches pv

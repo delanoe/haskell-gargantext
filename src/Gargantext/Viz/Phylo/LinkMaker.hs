@@ -25,6 +25,7 @@ import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
+import Gargantext.Viz.Phylo.Aggregates.Cooc
 import qualified Data.List  as List
 import qualified Data.Maybe as Maybe
 import qualified Data.Map as Map
@@ -71,7 +72,8 @@ linkGroupToGroups (lvl,lvl') current targets
 -- | To set the LevelLink of all the PhyloGroups of a Phylo
 setLevelLinks :: (Level,Level) -> Phylo -> Phylo
 setLevelLinks (lvl,lvl') p = alterPhyloGroups (\gs -> map (\g -> if getGroupLevel g == lvl
-                                                                  then linkGroupToGroups (lvl,lvl') g (filter (\g' -> getGroupPeriod g' == getGroupPeriod g) gs')
+                                                                  then linkGroupToGroups (lvl,lvl') g (filterCandidates g 
+                                                                                                       $ filter (\g' -> getGroupPeriod g' == getGroupPeriod g) gs')
                                                                   else g) gs) p
   where
     --------------------------------------
@@ -85,12 +87,10 @@ setLevelLinks (lvl,lvl') p = alterPhyloGroups (\gs -> map (\g -> if getGroupLeve
 
 
 -- | To apply the corresponding proximity function based on a given Proximity
-applyProximity :: Proximity -> PhyloGroup -> PhyloGroup -> (PhyloGroupId, Double)
-applyProximity prox g1 g2 = case prox of
-  -- WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2),weightedLogJaccard s (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))
-  -- Hamming (HammingParams _)          -> ((getGroupId g2),hamming (getGroupCooc g1) (unifySharedKeys (getGroupCooc g2) (getGroupCooc g1)))  
-  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2), weightedLogJaccard s (getGroupCooc g1) (getGroupCooc g2))
-  Hamming (HammingParams _)          -> ((getGroupId g2), hamming (getGroupCooc g1) (getGroupCooc g2))
+applyProximity :: Proximity -> PhyloGroup -> PhyloGroup -> Map (Int, Int) Double -> (PhyloGroupId, Double)
+applyProximity prox g1 g2 cooc = case prox of
+  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2), weightedLogJaccard s (getSubCooc (getGroupNgrams g1) cooc) (getSubCooc (getGroupNgrams g2) cooc))
+  Hamming (HammingParams _)          -> ((getGroupId g2), hamming (getSubCooc (getGroupNgrams g1) cooc) (getSubCooc (getGroupNgrams g2) cooc))
   _                                  -> panic ("[ERR][Viz.Phylo.Example.applyProximity] Proximity function not defined")
 
 
@@ -113,21 +113,24 @@ getNextPeriods to' id l = case to' of
 
 
 -- | To find the best candidates regarding a given proximity
-findBestCandidates' :: Filiation -> Int -> Int -> Proximity -> [PhyloPeriodId] -> [PhyloGroup] -> PhyloGroup -> ([Pointer],[Double])
-findBestCandidates' fil depth limit prox prds gs g 
+findBestCandidates' :: Filiation -> Int -> Int -> Proximity -> [PhyloPeriodId] -> [PhyloGroup] -> PhyloGroup -> Phylo -> ([Pointer],[Double])
+findBestCandidates' fil depth limit prox prds gs g p
   | depth > limit || null next = ([],[])
   | (not . null) bestScores    = (take 2 bestScores, map snd scores)
-  | otherwise                  = findBestCandidates' fil (depth + 1) limit prox prds gs g
+  | otherwise                  = findBestCandidates' fil (depth + 1) limit prox prds gs g p
   where
     --------------------------------------
     next :: [PhyloPeriodId]
     next = take depth prds
     --------------------------------------
+    cooc :: Map (Int, Int) Double
+    cooc = getCooc next p
+    --------------------------------------
     candidates :: [PhyloGroup]
     candidates = filter (\g' -> elem (getGroupPeriod g') next) gs 
     --------------------------------------
     scores :: [(PhyloGroupId, Double)]
-    scores = map (\g' -> applyProximity prox g g') candidates
+    scores = map (\g' -> applyProximity prox g g' cooc) candidates
     --------------------------------------       
     bestScores :: [(PhyloGroupId, Double)]
     bestScores = reverse
@@ -177,7 +180,7 @@ interTempoMatching fil lvl prox p = traceMatching fil lvl (getThreshold prox) sc
     scores = sort $ concat $ map (snd . snd) candidates 
     --------------------------------------     
     candidates :: [(PhyloGroupId,([Pointer],[Double]))]
-    candidates = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (filterCandidates g gs) g)) gs
+    candidates = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (filterCandidates g gs) g p)) gs
     --------------------------------------
     gs :: [PhyloGroup]
     gs = getGroupsWithLevel lvl p

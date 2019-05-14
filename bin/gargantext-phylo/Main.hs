@@ -81,7 +81,8 @@ data Conf =
           , phyloLevel  :: Int
           , viewLevel   :: Int
           , fisSupport  :: Int
-          , fisClique   :: Int 
+          , fisClique   :: Int
+          , minSizeBranch :: Int 
      } deriving (Show,Generic)
 
 instance FromJSON Conf
@@ -172,7 +173,7 @@ main = do
                   (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (phyloLevel conf)
                   (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams (clusterTh conf) (clusterSens conf))
 
-      let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [defaultSmallBranch] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
+      let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [SizeBranch $ SBParams (minSizeBranch conf)] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
 
       let phylo = toPhylo query corpus roots termList
 
