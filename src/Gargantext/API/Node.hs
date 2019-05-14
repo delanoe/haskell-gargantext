@@ -186,7 +186,6 @@ nodeAPI p uId id
            :<|> phyloAPI id
            
            -- Annuaire
-           -- :<|> upload
            -- :<|> query
 
 ------------------------------------------------------------------------
@@ -361,25 +360,7 @@ query :: Monad m => Text -> m Text
 query s = pure s
 
 
--- | Upload files
--- TODO Is it possible to adapt the function according to iValue input ?
---upload :: MultipartData -> Handler Text
---upload multipartData = do
---  liftIO $ do
---    putStrLn "Inputs:"
---    forM_ (inputs multipartData) $ \input ->
---      putStrLn $ "  " <> show (iName input)
---            <> " -> " <> show (iValue input)
---
---    forM_ (files multipartData) $ \file -> do
---      content <- readFile (fdFilePath file)
---      putStrLn $ "Content of " <> show (fdFileName file)
---              <> " at " <> fdFilePath file
---      putStrLn content
---  pure (pack "Data loaded")
-
--------------------------------------------------------------------------------
-
+-------------------------------------------------------------
 type MetricsAPI = Summary "SepGen IncExc metrics"
                 :> QueryParam  "list"       ListId
                 :> QueryParamR "ngramsType" TabType
