@@ -56,7 +56,7 @@ import           Network.Wai.Handler.Warp hiding (defaultSettings)
 
 import           Servant
 import           Servant.HTML.Blaze (HTML)
-import           Servant.Mock (mock)
+--import           Servant.Mock (mock)
 --import           Servant.Job.Server (WithCallbacks)
 import           Servant.Static.TH.Internal.Server (fileTreeToServer)
 import           Servant.Static.TH.Internal.FileTree (fileTypeToFileTree, FileType(FileTypeFile))
@@ -145,7 +145,7 @@ fireWall req fw = do
        then pure True
        else pure False
 
-
+{-
 -- makeMockApp :: Env -> IO (Warp.Settings, Application)
 makeMockApp :: MockEnv -> IO Application
 makeMockApp env = do
@@ -178,7 +178,7 @@ makeMockApp env = do
     
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
     pure $ logStdoutDev $ checkOriginAndHost $ corsMiddleware $ serverApp
-
+-}
 
 
 makeDevMiddleware :: IO Middleware
@@ -340,16 +340,16 @@ swaggerFront :: Server SwaggerFrontAPI
 swaggerFront = schemaUiServer swaggerDoc
            :<|> frontEndServer
 
-gargMock :: Server GargAPI
-gargMock = mock apiGarg Proxy
+--gargMock :: Server GargAPI
+--gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
 makeApp :: (HasConnection env, HasRepo env, HasSettings env)
         => env -> IO Application
 makeApp = fmap (serve api) . server
 
-appMock :: Application
-appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
+--appMock :: Application
+--appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
 
 ---------------------------------------------------------------------
 api :: Proxy API
@@ -414,9 +414,10 @@ startGargantext port file = do
   mid <- makeDevMiddleware
   run port (mid app) `finally` stopGargantext env
 
+{-
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
   portRouteInfo port
   application <- makeMockApp . MockEnv $ FireWall False
   run port application
-
+-}

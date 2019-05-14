@@ -11,14 +11,16 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE RankNTypes         #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeOperators         #-}
 
 module Gargantext.API.Upload
   where
@@ -28,27 +30,42 @@ import Gargantext.Prelude
 import Data.Text (Text)
 import Servant
 import Servant.Multipart
+--import Servant.Mock (HasMock(mock))
+import Servant.Swagger (HasSwagger(toSwagger))
 import qualified Data.ByteString.Lazy as LBS
 import Control.Monad
 import Control.Monad.IO.Class
 import Gargantext.API.Types
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Data.Swagger
+--import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+--import Data.Swagger
+--import Gargantext.API.Ngrams (TODO)
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
 --type API = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] Integer
 
-instance Generic Mem
+-- instance Generic Mem
 
-instance ToSchema Mem
-instance Arbitrary Mem
+--instance ToSchema Mem
+--instance Arbitrary Mem
 
-instance ToSchema (MultipartData Mem)
-instance Arbitrary ( MultipartData Mem)
+--instance ToSchema (MultipartData Mem)
+--instance Arbitrary ( MultipartData Mem)
 
-instance ToSchema (MultipartForm Mem (MultipartData Mem))
-instance Arbitrary (MultipartForm Mem (MultipartData Mem))
+instance HasSwagger (MultipartForm tag a :> sub) where
+  -- TODO
+  toSwagger _ = undefined -- toSwagger (Proxy :: Proxy (TODO :> Post '[JSON] ()))
+--declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
+--instance Arbitrary (MultipartForm Mem (MultipartData Mem))
+
+{-
+instance (FromMultipart tag a, MultipartBackend tag, Servant.Multipart.LookupContext context (MultipartOptions tag))
+      => HasMock (MultipartForm tag a :> sub) context where
+  mock _ _ = undefined
+
+instance HasMock (MultipartForm Mem (MultipartData Mem) :> sub) context where
+  mock _ _ = undefined
+-}
 
 type ApiUpload = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] Integer
 -- MultipartData consists in textual inputs,

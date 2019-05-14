@@ -27,7 +27,7 @@ import Options.Generic
 import Data.Text (unpack)
 
 import Gargantext.Prelude
-import Gargantext.API (startGargantext, startGargantextMock)
+import Gargantext.API (startGargantext) -- , startGargantextMock)
 
 --------------------------------------------------------
 -- Graph Tests
@@ -73,7 +73,9 @@ main = do
               myIniFile' = case myIniFile of
                   Nothing -> panic "[ERROR] gargantext.ini needed"
                   Just i  -> i
-        _ -> startGargantextMock myPort'
+        Dev -> panic "[ERROR] Dev mode unsupported"
+        Mock -> panic "[ERROR] Mock mode unsupported"
+        -- _ -> startGargantextMock myPort'
 
   putStrLn $ "Starting with " <> show myMode <> " mode."
   start
