@@ -19,7 +19,6 @@ module Gargantext.Text.Parsers.CSV where
 
 import GHC.Real (round)
 import GHC.IO (FilePath)
-
 import Control.Applicative
 
 import Data.Char (ord)
@@ -232,6 +231,10 @@ writeCsv fp (h, vs) = BL.writeFile fp $
 writeDocs2Csv :: FilePath -> [HyperdataDocument] -> IO ()
 writeDocs2Csv fp hs = BL.writeFile fp $
                     encodeByNameWith csvEncodeOptions headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
+
+hyperdataDocument2csv :: [HyperdataDocument] -> BL.ByteString
+hyperdataDocument2csv hs = encodeByNameWith csvEncodeOptions headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
+
 ------------------------------------------------------------------------
 -- Hal Format
 data CsvHal = CsvHal
