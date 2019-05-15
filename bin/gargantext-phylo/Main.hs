@@ -167,7 +167,7 @@ main = do
 
       let roots = DL.nub $ DL.concat $ map text corpus
 
-      putStrLn $ (show (length corpus) <> " parsed docs")
+      putStrLn $ ("\n" <> show (length corpus) <> " parsed docs")
       
       let query = PhyloQueryBuild (phyloName conf) "" (timeGrain conf) (timeStep conf) 
                   (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (phyloLevel conf)

@@ -20,7 +20,7 @@ module Gargantext.Viz.Phylo.LinkMaker
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete, intersect)
 import Data.Tuple.Extra
-import Data.Map                     (Map,(!))
+import Data.Map                     (Map,(!),fromListWith)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
@@ -152,7 +152,7 @@ addPointers' fil pts g = g & case fil of
 
 
 
--- | To update a list of pkyloGroups with some Pointers
+-- | To update a list of phyloGroups with some Pointers
 updateGroups :: Filiation -> Level -> Map PhyloGroupId [Pointer] -> Phylo -> Phylo 
 updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if (getGroupLevel g) == lvl
                                                                then addPointers' fil (m ! (getGroupId g)) g
@@ -189,6 +189,33 @@ interTempoMatching fil lvl prox p = traceMatching fil lvl (getThreshold prox) sc
     prds = getPhyloPeriods p
     --------------------------------------
 
+
+------------------------------------------------------------------------
+-- | Make links from Period to Period after level 1
+
+toLevelUp :: [Pointer] -> Phylo -> [Pointer]
+toLevelUp lst p = Map.toList 
+                $ map (\ws -> maximum ws)
+                $ fromListWith (++) [(id, [w]) | (id, w) <- pointers]
+  where
+    --------------------------------------
+    pointers :: [Pointer]
+    pointers = map (\(id,v) -> (getGroupLevelParentId $ getGroupFromId id p, v)) lst
+    --------------------------------------
+
+
+transposePeriodLinks :: Level -> Phylo -> Phylo
+transposePeriodLinks lvl p = alterGroupWithLevel
+  (\g ->
+    --------------------------------------
+    let childs  = getGroupsFromIds (map fst $ getGroupLevelChilds g) p
+        ascLink = toLevelUp (concat $ map getGroupPeriodParents childs) p 
+        desLink = toLevelUp (concat $ map getGroupPeriodChilds  childs) p
+    --------------------------------------
+    in g & phylo_groupPeriodParents  %~ (++ ascLink)
+         & phylo_groupPeriodChilds   %~ (++ desLink)
+    --------------------------------------
+  ) lvl p 
 
 ----------------
 -- | Tracer | --

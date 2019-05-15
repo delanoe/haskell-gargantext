@@ -261,6 +261,11 @@ getGroupLevelParents = _phylo_groupLevelParents
 getGroupLevelParentsId :: PhyloGroup -> [PhyloGroupId]
 getGroupLevelParentsId g = map fst $ getGroupLevelParents g
 
+
+-- | To get the PhyloGroups Level Parents Ids of a PhyloGroup
+getGroupLevelParentId :: PhyloGroup -> PhyloGroupId
+getGroupLevelParentId g = (head' "getGroupLevelParentId") $ getGroupLevelParentsId g
+
 -- | To get the Meta value of a PhyloGroup
 getGroupMeta :: Text -> PhyloGroup -> Double
 getGroupMeta k g = (g ^. phylo_groupMeta) ! k
@@ -337,6 +342,10 @@ getGroups = view ( phylo_periods
 -- | To get all PhyloGroups matching a list of PhyloGroupIds in a Phylo
 getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
 getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
+
+-- | To get a PhyloGroup matching a PhyloGroupId in a Phylo
+getGroupFromId :: PhyloGroupId -> Phylo -> PhyloGroup
+getGroupFromId id p = (head' "getGroupFromId") $ getGroupsFromIds [id] p
 
 
 -- | To get the corresponding list of PhyloGroups from a list of PhyloNodes

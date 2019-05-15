@@ -141,10 +141,11 @@ toNthLevel lvlMax prox clus p
   | otherwise     = toNthLevel lvlMax prox clus
                   $ traceBranches (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
-                  $ traceTempoMatching Descendant (lvl + 1)
-                  $ interTempoMatching Descendant (lvl + 1) prox
-                  $ traceTempoMatching Ascendant  (lvl + 1)
-                  $ interTempoMatching Ascendant  (lvl + 1) prox
+                  -- $ traceTempoMatching Descendant (lvl + 1)
+                  -- $ interTempoMatching Descendant (lvl + 1) prox
+                  -- $ traceTempoMatching Ascendant  (lvl + 1)
+                  -- $ interTempoMatching Ascendant  (lvl + 1) prox
+                  $ transposePeriodLinks (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
                     (phyloToClusters lvl clus p) p
@@ -259,7 +260,7 @@ instance PhyloMaker [Document]
 
 
 tracePhyloBase :: Phylo -> Phylo
-tracePhyloBase p = trace ( "\n-----------------\n--| PhyloBase |--\n-----------------\n\n" 
+tracePhyloBase p = trace ( "\n-------------\n--| Phylo |--\n-------------\n\n" 
                         <> show (length $ _phylo_periods p) <> " periods from " 
                                  <> show (getPhyloPeriodId $ (head' "PhyloMaker") $ _phylo_periods p)
                                  <> " to " 

@@ -21,7 +21,6 @@ import Data.List        (null,concat,sort)
 import Data.Map         (Map, empty,elems)
 import Data.Tuple       (fst, snd)
 import Data.Set         (size)
-import Data.Vector.Storable  (Vector)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.FrequentItemSet  (fisWithSizePolyMap, Size(..))
 import Gargantext.Viz.Phylo
@@ -35,20 +34,21 @@ import Numeric.Statistics (percentile)
 import Debug.Trace (trace)
 
 
--- | To Filter Fis by support 
-filterFisBySupport :: Bool -> Int -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFisBySupport keep min' m = case keep of
-  False -> Map.map (\l -> filterMinorFis min' l) m
-  True  -> Map.map (\l -> keepFilled (filterMinorFis) min' l) m
+-- | To apply a filter with the possibility of keeping some periods non empty (keep : True|False)
+filterFis :: Bool -> Int -> (Int -> [PhyloFis] -> [PhyloFis]) -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
+filterFis keep thr f m = case keep of
+  False -> Map.map (\l -> f thr l) m
+  True  -> Map.map (\l -> keepFilled (f) thr l) m
 
 
-filterFisByNgrams :: Int -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFisByNgrams thr m = Map.map(\lst -> filter (\fis -> (size $ getClique fis) > thr) lst) m
+-- | To filter Fis with small Support
+filterFisBySupport :: Int -> [PhyloFis] -> [PhyloFis]
+filterFisBySupport thr l = filter (\fis -> getSupport fis > thr) l
 
 
--- | To filter Fis with small Support, to preserve nonempty periods please use : filterFisBySupport true
-filterMinorFis :: Int -> [PhyloFis] -> [PhyloFis]
-filterMinorFis min' l = filter (\fis -> getSupport fis > min') l
+-- | To filter Fis with small Clique size
+filterFisByClique :: Int -> [PhyloFis] -> [PhyloFis]
+filterFisByClique thr l = filter (\fis -> (size $ getClique fis) > thr) l
 
 
 -- | To filter nested Fis 
@@ -82,11 +82,11 @@ toPhyloFis :: Map (Date, Date) [Document] -> Bool -> Support -> Int -> [Metric] 
 toPhyloFis ds k s t ms fs = processFilters fs  
                           $ processMetrics ms
                           $ traceFis "----\nFiltered Fis by clique size :\n"
-                          $ filterFisByNgrams t
+                          $ filterFis k t (filterFisByClique)
                           $ traceFis "----\nFiltered Fis by nested :\n"
                           $ filterFisByNested 
                           $ traceFis "----\nFiltered Fis by support :\n"
-                          $ filterFisBySupport k s
+                          $ filterFis k s (filterFisBySupport)
                           $ traceFis "----\nUnfiltered Fis :\n"
                           $ docsToFis ds  
 
@@ -95,19 +95,41 @@ toPhyloFis ds k s t ms fs = processFilters fs
 -- | Tracers | --
 -----------------
 
+
+
 traceFis :: [Char] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis] 
 traceFis lbl m = trace (lbl <> "count : " <> show (sum $ map length $ elems m) <> " Fis\n"
-                            <> "support : " <> show (percentile 25 supps) <> " (25%) "
-                                            <> show (percentile 50 supps) <> " (50%) "
-                                            <> show (percentile 75 supps) <> " (75%) "
-                                            <> show (percentile 90 supps) <> " (90%)\n"
-                            <> "clique size : " <> show (percentile 25 ngrms) <> " (25%) "
-                                                <> show (percentile 50 ngrms) <> " (50%) "
-                                                <> show (percentile 75 ngrms) <> " (75%) "
-                                                <> show (percentile 90 ngrms) <> " (90%)\n"                                             
+                            <> "support : " <> show (percentile 25 (Vector.fromList supps)) <> " (25%) "
+                                            <> show (percentile 50 (Vector.fromList supps)) <> " (50%) "
+                                            <> show (percentile 75 (Vector.fromList supps)) <> " (75%) "
+                                            <> show (percentile 90 (Vector.fromList supps)) <> " (90%) "
+                                            <> show (percentile 100 (Vector.fromList supps)) <> " (100%)\n"
+                            <> "          " <> show (countSup 1 supps) <> " (>1) "
+                                            <> show (countSup 2 supps) <> " (>2) "
+                                            <> show (countSup 3 supps) <> " (>3) "
+                                            <> show (countSup 4 supps) <> " (>4) "
+                                            <> show (countSup 5 supps) <> " (>5) "
+                                            <> show (countSup 6 supps) <> " (>6)\n"                                                                                                                                          
+                            <> "clique size : " <> show (percentile 25 (Vector.fromList ngrms)) <> " (25%) "
+                                                <> show (percentile 50 (Vector.fromList ngrms)) <> " (50%) "
+                                                <> show (percentile 75 (Vector.fromList ngrms)) <> " (75%) "
+                                                <> show (percentile 90 (Vector.fromList ngrms)) <> " (90%) "
+                                                <> show (percentile 100 (Vector.fromList ngrms)) <> " (100%)\n"
+                            <> "              " <> show (countSup 1 ngrms) <> " (>1) "
+                                                <> show (countSup 2 ngrms) <> " (>2) "
+                                                <> show (countSup 3 ngrms) <> " (>3) "
+                                                <> show (countSup 4 ngrms) <> " (>4) "
+                                                <> show (countSup 5 ngrms) <> " (>5) "
+                                                <> show (countSup 6 ngrms) <> " (>6)\n"                                                                                             
                             ) m
-  where 
-    supps :: Vector Double
-    supps = Vector.fromList $ sort $ map (fromIntegral . _phyloFis_support) $ concat $ elems m
-    ngrms :: Vector Double
-    ngrms = Vector.fromList $ sort $ map (\f -> fromIntegral $ Set.size $ _phyloFis_clique f) $ concat $ elems m
+  where
+    --------------------------------------
+    countSup :: Double -> [Double] -> Int
+    countSup s l = length $ filter (>s) l 
+    --------------------------------------
+    supps :: [Double]
+    supps = sort $ map (fromIntegral . _phyloFis_support) $ concat $ elems m
+    --------------------------------------
+    ngrms :: [Double]
+    ngrms = sort $ map (\f -> fromIntegral $ Set.size $ _phyloFis_clique f) $ concat $ elems m
+    --------------------------------------
