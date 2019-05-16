@@ -59,7 +59,7 @@ import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
-import Gargantext.Text.Parsers (parseDocs, FileFormat)
+import Gargantext.Text.Parsers (parseFile, FileFormat)
 import Gargantext.Text.Terms (TermType(..), tt_lang)
 import Gargantext.Text.Terms (extractTerms)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
@@ -114,7 +114,7 @@ flowCorpusFile :: FlowCmdM env ServantErr m
 flowCorpusFile u n l la ff fp = do
   docs <- liftIO ( splitEvery 500
                  <$> take l
-                 <$> parseDocs ff fp
+                 <$> parseFile ff fp
                  )
   flowCorpus u n la (map (map toHyperdataDocument) docs)
 

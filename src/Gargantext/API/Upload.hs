@@ -25,17 +25,20 @@ Portability : POSIX
 module Gargantext.API.Upload
   where
 
-
+import qualified Data.Text as Text
+import GHC.Generics (Generic)
 import Gargantext.Prelude
 import Data.Text (Text)
+import Data.Aeson
 import Servant
 import Servant.Multipart
 --import Servant.Mock (HasMock(mock))
 import Servant.Swagger (HasSwagger(toSwagger))
-import qualified Data.ByteString.Lazy as LBS
+-- import qualified Data.ByteString.Lazy as LBS
 import Control.Monad
 import Control.Monad.IO.Class
 import Gargantext.API.Types
+--import Servant.CSV.Cassava (CSV'(..))
 --import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 --import Data.Swagger
 --import Gargantext.API.Ngrams (TODO)
@@ -67,22 +70,36 @@ instance HasMock (MultipartForm Mem (MultipartData Mem) :> sub) context where
   mock _ _ = undefined
 -}
 
-type ApiUpload = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] Integer
+data Upload = Upload { up :: [Text] }
+  deriving (Generic)
+
+instance ToJSON Upload
+
+type ApiUpload = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] Text
 -- MultipartData consists in textual inputs,
 -- accessible through its "inputs" field, as well
 -- as files, accessible through its "files" field.
 upload :: GargServer ApiUpload
 upload multipartData = do
-  liftIO $ do
-    putStrLn ("Inputs:" :: Text)
-    forM_ (inputs multipartData) $ \input ->
-      putStrLn $ ("  " :: Text) <> (iName input)
-            <> (" -> " :: Text) <> (iValue input)
 
-    forM_ (files multipartData) $ \file -> do
-      let content = fdPayload file
-      putStrLn $ ("Content of " :: Text) <> (fdFileName file)
-      LBS.putStr content
-  return 0
+--{-
+  is <- liftIO $ do
+    putStrLn ("Inputs:" :: Text)
+    forM (inputs multipartData) $ \input -> do
+      putStrLn $ ("iName  " :: Text) <> (iName input)
+            <> ("iValue " :: Text) <> (iValue input)
+      pure $ iName input
+
+--{-
+  _ <- forM (files multipartData) $ \file -> do
+    let content = fdPayload file
+    putStrLn $ ("XXX " :: Text) <> (fdFileName file)
+    putStrLn $ ("YYY " :: Text) <>  cs content
+    --pure $ cs content
+  -- is <- inputs multipartData
+--}
+
+  pure $ Text.concat $ map cs is
 -------------------------------------------------------------------------------
+
 
