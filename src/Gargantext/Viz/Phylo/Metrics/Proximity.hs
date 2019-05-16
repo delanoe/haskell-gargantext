@@ -20,15 +20,15 @@ module Gargantext.Viz.Phylo.Metrics.Proximity
 import Data.List        (null)
 import Data.Map         (Map,elems,unionWith,intersectionWith,intersection,size)
 import Gargantext.Prelude
--- import Debug.Trace (trace)
+import Debug.Trace (trace)
 
 -- | To process the weightedLogJaccard between two PhyloGroup fields
 weightedLogJaccard :: Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double
 weightedLogJaccard s f1 f2
   | null wUnion      = 0
   | wUnion == wInter = 1 
-  | s == 0           = (fromIntegral $ length wInter)/(fromIntegral $ length wUnion)
-  | s > 0            = (sumInvLog wInter)/(sumInvLog wUnion)
+  | s == 0           = trace ("==0") $ (fromIntegral $ length wInter)/(fromIntegral $ length wUnion)
+  | s > 0            = trace (">0") $ (sumInvLog wInter)/(sumInvLog wUnion)
   | otherwise        = (sumLog wInter)/(sumLog wUnion)
   where 
     --------------------------------------
