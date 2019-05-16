@@ -71,7 +71,7 @@ import           Text.Blaze.Html (Html)
 import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
-import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, ApiNgramsTableDoc, apiNgramsTableDoc)
+import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
 import Gargantext.API.Types
@@ -251,7 +251,7 @@ type GargAPI' =
 
            -- Document endpoint
            :<|> "document":> Summary "Document endpoint"
-                          :> Capture "id" DocId    :> "ngrams" :> ApiNgramsTableDoc
+                          :> Capture "id" DocId    :> "ngrams" :> TableNgramsApi
                           
            -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
