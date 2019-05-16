@@ -101,6 +101,11 @@ keepFilled f thr l = if (null $ f thr l) && (not $ null l)
 
 
 -- | To get all combinations of a list
+listToFullCombi :: Eq a => [a] -> [(a,a)]
+listToFullCombi l = [(x,y) | x <- l, y <- l]
+
+
+-- | To get all combinations of a list
 listToDirectedCombi :: Eq a => [a] -> [(a,a)]
 listToDirectedCombi l = [(x,y) | x <- l, y <- l, x /= y]
 

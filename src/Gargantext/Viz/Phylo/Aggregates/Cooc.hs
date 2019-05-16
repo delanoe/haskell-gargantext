@@ -52,7 +52,7 @@ toCooc :: [([Int],Double)] -> Map (Int, Int) Double
 toCooc l = map (/docs)
          $ foldl (\mem x -> adjust (+1) x mem) cooc
          $ concat
-         $ map (\x -> listToDirectedCombi $ fst x) l
+         $ map (\x -> listToFullCombi $ fst x) l
   where
     --------------------------------------
     idx :: [Int]
@@ -62,7 +62,7 @@ toCooc l = map (/docs)
     docs = sum $ map snd l
     --------------------------------------
     cooc :: Map (Int, Int) (Double)
-    cooc = Map.fromList $ map (\x -> (x,0)) $ listToDirectedCombi idx
+    cooc = Map.fromList $ map (\x -> (x,0)) $ listToFullCombi idx
     --------------------------------------    
 
 
