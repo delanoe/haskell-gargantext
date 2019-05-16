@@ -22,7 +22,7 @@ please follow the types.
 {-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseDocs)
+module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseFile)
     where
 
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
@@ -84,11 +84,11 @@ data FileFormat = WOS | RIS | RisPresse
 
 -- | Parse file into documents
 -- TODO manage errors here
-parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
-parseDocs CsvHalFormat p = parseHal p
-parseDocs RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith presseEnrich           <$> parse' RIS p
-parseDocs WOS       p = join $ mapM (toDoc WOS) <$> snd <$> enrichWith (map (first WOS.keys)) <$> parse' WOS p
-parseDocs ff        p = join $ mapM (toDoc ff)  <$> snd <$> parse ff p
+parseFile :: FileFormat -> FilePath -> IO [HyperdataDocument]
+parseFile CsvHalFormat p = parseHal p
+parseFile RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith presseEnrich           <$> parse' RIS p
+parseFile WOS       p = join $ mapM (toDoc WOS) <$> snd <$> enrichWith (map (first WOS.keys)) <$> parse' WOS p
+parseFile ff        p = join $ mapM (toDoc ff)  <$> snd <$> parse ff p
 
 type Year  = Int
 type Month = Int
@@ -181,5 +181,4 @@ clean txt = DBC.map clean' txt
     clean' '’' = '\''
     clean' '\r' = ' '
     clean' c  = c
-
 

@@ -229,8 +229,7 @@ writeCsv fp (h, vs) = BL.writeFile fp $
                       encodeByNameWith csvEncodeOptions h (V.toList vs)
 
 writeDocs2Csv :: FilePath -> [HyperdataDocument] -> IO ()
-writeDocs2Csv fp hs = BL.writeFile fp $
-                    encodeByNameWith csvEncodeOptions headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
+writeDocs2Csv fp hs = BL.writeFile fp $ hyperdataDocument2csv hs
 
 hyperdataDocument2csv :: [HyperdataDocument] -> BL.ByteString
 hyperdataDocument2csv hs = encodeByNameWith csvEncodeOptions headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
@@ -345,5 +344,4 @@ csvHal2doc (CsvHal title source
 parseHal :: FilePath -> IO [HyperdataDocument]
 parseHal fp = map csvHal2doc <$> V.toList <$> snd <$> readHal fp
 ------------------------------------------------------------------------
-
 

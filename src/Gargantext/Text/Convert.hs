@@ -15,16 +15,18 @@ Format Converter.
 {-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Convert (risPress2csv)
+module Gargantext.Text.Convert (risPress2csvWrite)
     where
 
 import System.FilePath (FilePath()) -- , takeExtension)
 import Gargantext.Prelude
 import Gargantext.Text.Parsers.CSV (writeDocs2Csv)
-import Gargantext.Text.Parsers (parseDocs, FileFormat(..))
+import Gargantext.Text.Parsers (parseFile, FileFormat(..))
 
 
-risPress2csv :: FilePath -> IO ()
-risPress2csv f = parseDocs RisPresse    (f <> ".ris")
+risPress2csvWrite :: FilePath -> IO ()
+risPress2csvWrite f = parseFile RisPresse    (f <> ".ris")
                >>= \hs -> writeDocs2Csv (f <> ".csv") hs
+
+
 
