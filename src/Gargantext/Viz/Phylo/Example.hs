@@ -240,6 +240,9 @@ foundationsRoots = initFoundationsRoots actants
 -- | STEP 0 | -- Let's start with an example
 --------------------------------------------
 
+
+-- this is a comment 
+
 termList :: TermList
 termList = []
 
