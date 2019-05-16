@@ -101,7 +101,7 @@ mapIdSchool :: Map Text Text
 mapIdSchool = M.fromList $ Gargantext.Prelude.map (\(School n _ i) -> (i,n)) schools
 
 hal_data :: IO (DV.Vector CsvHal)
-hal_data = snd <$> CSV.readHal "doc/corpus_imt/Gargantext_Corpus.csv"
+hal_data = snd <$> CSV.readCsvHal "doc/corpus_imt/Gargantext_Corpus.csv"
 
 names :: S.Set Text
 names = S.fromList $ Gargantext.Prelude.map (\s -> school_id s) schools

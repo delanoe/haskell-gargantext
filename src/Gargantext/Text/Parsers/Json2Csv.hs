@@ -28,7 +28,7 @@ import Data.Text (Text, unpack)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 import System.IO (FilePath)
-import Gargantext.Text.Parsers.CSV (CsvDoc(..), writeCsv, headerCsvGargV3)
+import Gargantext.Text.Parsers.CSV (CsvDoc(..), writeFile, headerCsvGargV3)
 import Data.Vector (fromList)
 
 data Patent = Patent { _patent_title :: Text
@@ -48,7 +48,7 @@ type FilePathOut = FilePath
 json2csv :: FilePathIn -> FilePathOut -> IO ()
 json2csv fin fout = do
   patents <- maybe (panic "json2csv error") identity <$> readPatents fin
-  writeCsv fout (headerCsvGargV3, fromList $ map patent2csvDoc patents)
+  writeFile fout (headerCsvGargV3, fromList $ map patent2csvDoc patents)
 
 patent2csvDoc :: Patent -> CsvDoc
 patent2csvDoc (Patent title abstract year _) =

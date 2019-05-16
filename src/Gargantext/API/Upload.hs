@@ -38,7 +38,7 @@ import Servant.Swagger (HasSwagger(toSwagger))
 import Control.Monad
 import Control.Monad.IO.Class
 import Gargantext.API.Types
-import Servant.CSV.Cassava (CSV'(..))
+--import Servant.CSV.Cassava (CSV'(..))
 --import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 --import Data.Swagger
 --import Gargantext.API.Ngrams (TODO)
@@ -101,4 +101,5 @@ upload multipartData = do
 
   pure $ Text.concat $ map cs is
 -------------------------------------------------------------------------------
+
 

@@ -18,12 +18,12 @@ DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.Date (parseDate, parseDateRaw) where
+module Gargantext.Text.Parsers.Date (parse, parseRaw, split) where
 
 import Data.HashMap.Strict as HM hiding (map)
 import Data.Text (Text, unpack, splitOn, pack)
-import Data.Time (parseTimeOrError, defaultTimeLocale)
-import Data.Time.Clock (UTCTime, getCurrentTime)
+import Data.Time (parseTimeOrError, defaultTimeLocale, toGregorian)
+import Data.Time.Clock (UTCTime(..), getCurrentTime)
 import Data.Time.LocalTime (utc)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
 import Duckling.Api (analyze)
@@ -38,21 +38,41 @@ import qualified Data.HashSet as HashSet
 import qualified Duckling.Core as DC
 
 ------------------------------------------------------------------------
+-- | Parse date to Ints
+-- TODO add hours, minutes and seconds
+split :: Lang -> Maybe Text -> IO (Maybe UTCTime, (Maybe Year, Maybe Month, Maybe Day))
+split _ Nothing    = pure (Nothing, (Nothing, Nothing, Nothing))
+split l (Just txt) = do
+  utcTime <- parse l txt
+  let (y, m, d) = split' utcTime
+  pure (Just utcTime, (Just y, Just m,Just d))
+
+split' :: UTCTime -> (Year, Month, Day)
+split' utcTime = (fromIntegral y, m, d)
+  where
+    (UTCTime day _) = utcTime
+    (y,m,d)         = toGregorian day
+
+type Year  = Int
+type Month = Int
+type Day   = Int
+------------------------------------------------------------------------
+
 -- | Date Parser
 -- Parses dates mentions in full text given the language.
 -- >>> parseDate FR (pack "10 avril 1979 à 19H")
 -- 1979-04-10 19:00:00 UTC
 -- >>> parseDate EN (pack "April 10 1979")
 -- 1979-04-10 00:00:00 UTC
-parseDate :: Lang -> Text -> IO UTCTime
-parseDate lang s = parseDate' "%Y-%m-%dT%T" "0-0-0T0:0:0" lang s
+parse :: Lang -> Text -> IO UTCTime
+parse lang s = parseDate' "%Y-%m-%dT%T" "0-0-0T0:0:0" lang s
 
 type DateFormat  = Text
 type DateDefault = Text
 
 parseDate' :: DateFormat -> DateDefault -> Lang -> Text -> IO UTCTime
 parseDate' format def lang s = do
-  dateStr' <- parseDateRaw lang s
+  dateStr' <- parseRaw lang s
   let dateStr = unpack $ maybe def identity
                        $ head $ splitOn "." dateStr'
   pure $ parseTimeOrError True defaultTimeLocale (unpack format) dateStr
@@ -70,19 +90,19 @@ parserLang EN = DC.EN
 -- IO can be avoided here:
 -- currentContext :: Lang -> IO Context
 -- currentContext lang = localContext lang <$> utcToDucklingTime <$> getCurrentTime
--- parseDateRaw :: Context -> Text -> SomeErrorHandling Text
+-- parseRaw :: Context -> Text -> SomeErrorHandling Text
 
 -- TODO error handling
-parseDateRaw :: Lang -> Text -> IO (Text)
-parseDateRaw lang text = do
+parseRaw :: Lang -> Text -> IO (Text)
+parseRaw lang text = do
     maybeJson <- map jsonValue <$> parseDateWithDuckling lang text
     case headMay maybeJson of
       Just (Json.Object object) -> case HM.lookup "value" object of
                                      Just (Json.String date) -> pure date
-                                     Just _                  -> panic "ParseDateRaw ERROR: should be a json String"
-                                     Nothing                 -> panic $ "ParseDateRaw ERROR: no date found" <> (pack . show) lang <> " " <> text
+                                     Just _                  -> panic "ParseRaw ERROR: should be a json String"
+                                     Nothing                 -> panic $ "ParseRaw ERROR: no date found" <> (pack . show) lang <> " " <> text
 
-      _                         -> panic $ "ParseDateRaw ERROR: type error" <> (pack . show) lang <> " " <> text
+      _                         -> panic $ "ParseRaw ERROR: type error" <> (pack . show) lang <> " " <> text
 
 
 -- | Current Time in DucklingTime format
