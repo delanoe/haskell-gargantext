@@ -121,6 +121,6 @@ traceGraphFiltered lvl g = trace ( "----\nClustering in Phylo" <> show (lvl) <> 
 
 
 traceSim :: PhyloGroup -> PhyloGroup -> Map (Int, Int) Double -> Map (Int, Int) Double -> Phylo -> Double -> Double
-traceSim g g' c c' p sim = trace (show (getGroupText g p) <> " [vs] " <>  show (getGroupText g' p) <> " = " <> show (sim) <> "\n"
+traceSim g g' _ _ p sim = trace (show (getGroupText g p) <> " [vs] " <>  show (getGroupText g' p) <> " = " <> show (sim) <> "\n"
                                  -- <> show (c) <> " [vs] " <> show (c') <>  " = " <> show (sim)
                                  ) sim
