@@ -69,6 +69,7 @@ data QueryBool = QueryBool Text
 
 queries :: [QueryBool]
 queries =  [QueryBool (pack "(X OR X') AND (Y OR Y') NOT (Z OR Z')")]
+--queries =  [QueryBool (pack "(X + X') * (Y + Y') - (Z + Z')")]
 
 instance Arbitrary QueryBool where
     arbitrary = elements queries

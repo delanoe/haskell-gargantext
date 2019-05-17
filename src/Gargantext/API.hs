@@ -76,6 +76,7 @@ import Gargantext.API.Node
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
 import Gargantext.API.Types
 import Gargantext.API.Upload
+import qualified Gargantext.API.Corpus.New as New
 import Gargantext.Core.Types (HasInvalidError(..))
 import Gargantext.Database.Facet
 import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
@@ -262,7 +263,7 @@ type GargAPI' =
            :<|> "count" :> Summary "Count endpoint"
                         :> ReqBody '[JSON] Query :> CountAPI
            
-           -- Corpus endpoint
+           -- Corpus endpoint --> TODO rename s/search/filter/g
            :<|> "search":> Summary "Search endpoint"
                         :> ReqBody '[JSON] SearchQuery 
                         :> QueryParam "offset" Int
@@ -280,6 +281,8 @@ type GargAPI' =
                        :> Capture "id" NodeId        :> TreeAPI
 
            :<|> "upload" :> ApiUpload
+           
+           :<|> "new"  :> New.Api
 
 
        --    :<|> "scraper" :> WithCallbacks ScraperAPI
@@ -324,6 +327,7 @@ serverGargAPI -- orchestrator
      :<|> graphAPI -- TODO: mock
      :<|> treeAPI
      :<|> upload
+     :<|> New.api
   --   :<|> orchestrator
   where
     fakeUserId = 1 -- TODO
