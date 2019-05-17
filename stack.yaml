@@ -3,15 +3,9 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
-- 'deps/servant-job'
-- 'deps/clustering-louvain'
-- 'deps/patches-map'
-- 'deps/haskell-opaleye'
-- 'deps/hsparql'
 
 allow-newer: true
 extra-deps:
-- time-units-1.0.0
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
 - git: https://gitlab.iscpif.fr/gargantext/hlcm.git
@@ -28,7 +22,16 @@ extra-deps:
   commit: dcaa0f5dd53f20648f4f5a615d29163582a4219c
 - git: https://gitlab.iscpif.fr/gargantext/patches-class
   commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
-    #- opaleye-0.6.7002.0
+- git: https://github.com/np/servant-job.git
+  commit: ac4227441bbca30c44235582b5ec31340c569021
+- git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
+  commit: 1c636112b151110408e7c5a28cec39e46657358e
+- git: https://github.com/np/patches-map
+  commit: 8c6f38c4844ead53e664cf9c82ba461715dbe445
+- git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
+  commit: 53385de076be09f728a1b58c035a18e9ff9bcfd6
+- git: https://github.com/delanoe/hsparql.git
+  commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - KMP-0.1.0.2
 - accelerate-1.2.0.0
 - aeson-lens-0.5.0.0
@@ -45,4 +48,5 @@ extra-deps:
 - servant-flatten-0.2
 - servant-multipart-0.11.2
 - stemmer-0.5.2
+- time-units-1.0.0
 - validity-0.9.0.0 # patches-{map,class}
