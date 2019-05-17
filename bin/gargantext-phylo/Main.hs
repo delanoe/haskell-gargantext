@@ -28,8 +28,9 @@ import GHC.Generics
 import GHC.IO (FilePath)
 import Gargantext.Prelude
 import Gargantext.Text.List.CSV (csvGraphTermList)
-import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Text.Parsers (FileFormat(..),parseDocs)
+import Gargantext.Text.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import qualified Gargantext.Text.Parsers.CSV as CSV
+import Gargantext.Text.Parsers (FileFormat(..),parseFile)
 import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Context (TermList)
 
@@ -116,7 +117,7 @@ csvToCorpus :: Limit -> CorpusPath -> IO ([(Int,Text)])
 csvToCorpus limit csv = DV.toList
                       . DV.take limit
                       . DV.map (\n -> (csv_publication_year n, (csv_title n) <> " " <> (csv_abstract n)))
-                      . snd <$> readCsv csv
+                      . snd <$> CSV.readFile csv
 
 
 -- | To transform a Wos nfile into a readable corpus
@@ -127,7 +128,7 @@ wosToCorpus limit path = DL.take limit
                          . filter (\d -> (isJust $_hyperdataDocument_publication_year d)
                                       && (isJust $_hyperdataDocument_title d)
                                       && (isJust $_hyperdataDocument_abstract d))
-                         <$> parseDocs WOS path
+                         <$> parseFile WOS path
 
 
 -- | To use the correct parser given a CorpusType
