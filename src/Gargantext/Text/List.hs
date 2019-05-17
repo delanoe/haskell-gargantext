@@ -55,28 +55,26 @@ buildNgramsLists l n m s uCid mCid = do
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
 
-buildNgramsOthersList :: UserCorpusId -> (Text -> Text) -> NgramsType 
+buildNgramsOthersList :: UserCorpusId -> (Text -> Text) -> NgramsType
                       -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsOthersList uCid groupIt nt = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
-  pure $ Map.fromList [(nt, [ mkNgramsElement t CandidateTerm Nothing (mSetFromList [])
-                            | (t,_ns) <- Map.toList ngs
+  let
+    all' = Map.toList ngs
+  pure $ (toElements GraphTerm $ take 10 all') <> (toElements CandidateTerm $ drop 10 all')
+    where
+      toElements nType x = Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
+                            | (t,_ns) <- x
                             ]
                         )
                       ]
 
--- TODO remove hard coded parameters
 buildNgramsTermsList :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
   candidates   <- sortTficf <$> getTficf' uCid mCid NgramsTerms (ngramsGroup l n m)
-  --printDebug "candidate" (length candidates)
-
   let termList = toTermList ((isStopTerm s) . fst) candidates
-  --let termList = toTermList ((\_ -> False) . fst) candidates
-  --printDebug "termlist" (length termList)
-
   let ngs = List.concat $ map toNgramsElement termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
@@ -114,7 +112,7 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
       zs = drop b $ drop a ns
 
       a = 3
-      b = 5000
+      b = 500
 
 isStopTerm :: StopSize -> Text -> Bool
 isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)

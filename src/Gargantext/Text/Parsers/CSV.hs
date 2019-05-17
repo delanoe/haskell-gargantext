@@ -17,25 +17,23 @@ CSV parser for Gargantext corpus files.
 
 module Gargantext.Text.Parsers.CSV where
 
-import GHC.Real (round)
-import GHC.IO (FilePath)
-
 import Control.Applicative
-
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
 import Data.Text (Text, pack, length, intercalate)
-import qualified Data.ByteString.Lazy as BL
 import Data.Time.Segment (jour)
-
 import Data.Vector (Vector)
-import qualified Data.Vector as V
-
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import GHC.IO (FilePath)
+import GHC.Real (round)
+import GHC.Word (Word8)
+import Gargantext.Database.Types.Node -- (HyperdataDocument(..))
+import Gargantext.Prelude hiding (length)
 import Gargantext.Text
 import Gargantext.Text.Context
-import Gargantext.Prelude hiding (length)
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString as  BS
+import qualified Data.Vector as V
 
 ---------------------------------------------------------------
 headerCsvGargV3 :: Header
@@ -48,7 +46,7 @@ headerCsvGargV3 = header [ "title"
          , "authors"
          ]
 ---------------------------------------------------------------
-data Doc = Doc
+data CsvGargV3 = CsvGargV3
     { d_docId  :: !Int
     , d_title  :: !Text
     , d_source :: !Text
@@ -61,9 +59,8 @@ data Doc = Doc
     deriving (Show)
 ---------------------------------------------------------------
 -- | Doc 2 HyperdataDocument
-doc2hyperdataDocument :: Doc -> HyperdataDocument
---doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
-doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
+toDoc :: CsvGargV3 -> HyperdataDocument
+toDoc (CsvGargV3 did dt _ dpy dpm dpd dab dau) =
   HyperdataDocument (Just "CSV")
                     (Just . pack . show $ did)
                     Nothing
@@ -83,22 +80,23 @@ doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
                     Nothing
                     Nothing
                     Nothing
+
 ---------------------------------------------------------------
 -- | Types Conversions
-toDocs :: Vector CsvDoc -> [Doc]
+toDocs :: Vector CsvDoc -> [CsvGargV3]
 toDocs v = V.toList
          $ V.zipWith (\nId (CsvDoc t s py pm pd abst auth)
-                       -> Doc nId t s py pm pd abst auth )
+                       -> CsvGargV3 nId t s py pm pd abst auth )
                        (V.enumFromN 1 (V.length v'')) v''
           where
             v'' = V.foldl (\v' sep -> V.concatMap (splitDoc (docsSize v') sep) v') v seps
             seps= (V.fromList [Paragraphs 1, Sentences 3, Chars 3])
 
 ---------------------------------------------------------------
-fromDocs :: Vector Doc -> Vector CsvDoc
+fromDocs :: Vector CsvGargV3 -> Vector CsvDoc
 fromDocs docs = V.map fromDocs' docs
   where
-    fromDocs' (Doc _ t s py pm pd abst auth) = (CsvDoc t s py pm pd abst auth)
+    fromDocs' (CsvGargV3 _ t s py pm pd abst auth) = (CsvDoc t s py pm pd abst auth)
 
 ---------------------------------------------------------------
 -- | Split a document in its context
@@ -174,44 +172,88 @@ instance ToNamedRecord CsvDoc where
                 , "authors"           .= aut
                ]
 
+hyperdataDocument2csvDoc :: HyperdataDocument -> CsvDoc
+hyperdataDocument2csvDoc h = CsvDoc (m $ _hyperdataDocument_title h)
+                                    (m $ _hyperdataDocument_source h)
+                                    (mI $ _hyperdataDocument_publication_year h)
+                                    (mI $ _hyperdataDocument_publication_month h)
+                                    (mI $ _hyperdataDocument_publication_day   h)
+                                    (m $ _hyperdataDocument_abstract h)
+                                    (m $ _hyperdataDocument_authors h)
+
+  where
+    m = maybe "" identity
+    mI = maybe 0 identity
+
 
 csvDecodeOptions :: DecodeOptions
-csvDecodeOptions = (defaultDecodeOptions
-                      {decDelimiter = fromIntegral $ ord '\t'}
-                    )
+csvDecodeOptions = defaultDecodeOptions {decDelimiter = delimiter}
 
 csvEncodeOptions :: EncodeOptions
-csvEncodeOptions = ( defaultEncodeOptions 
-                      {encDelimiter = fromIntegral $ ord '\t'}
-                    )
+csvEncodeOptions = defaultEncodeOptions {encDelimiter = delimiter}
 
+delimiter :: Word8
+delimiter = fromIntegral $ ord '\t'
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 readCsvOn :: [CsvDoc -> Text] -> FilePath -> IO [Text]
-readCsvOn fields fp = V.toList <$> V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
-                      <$> snd
-                      <$> readCsv fp
+readCsvOn fields fp = V.toList
+                   <$> V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
+                   <$> snd
+                   <$> readFile fp
 
 ------------------------------------------------------------------------
-readCsv :: FilePath -> IO (Header, Vector CsvDoc)
-readCsv fp = do
-    csvData <- BL.readFile fp
-    case decodeByNameWith csvDecodeOptions csvData of
-      Left e        -> panic (pack e)
-      Right csvDocs -> pure csvDocs
 
+readFileLazy :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Header, Vector a)
+readFileLazy f = fmap (readByteStringLazy f) . BL.readFile
 
-readHal :: FilePath -> IO (Header, Vector CsvHal)
-readHal fp = do
-    csvData <- BL.readFile fp
-    case decodeByNameWith csvDecodeOptions csvData of
+readFileStrict :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Header, Vector a)
+readFileStrict f = fmap (readByteStringStrict f) . BS.readFile
+
+readByteStringLazy :: (FromNamedRecord a) => proxy a -> BL.ByteString -> (Header, Vector a)
+readByteStringLazy _f bs = case decodeByNameWith csvDecodeOptions bs of
       Left e        -> panic (pack e)
-      Right csvDocs -> pure csvDocs
+      Right csvDocs -> csvDocs
+
+readByteStringStrict :: (FromNamedRecord a) => proxy a -> BS.ByteString -> (Header, Vector a)
+readByteStringStrict ff = (readByteStringLazy ff) . BL.fromStrict
+
 ------------------------------------------------------------------------
-writeCsv :: FilePath -> (Header, Vector CsvDoc) -> IO ()
-writeCsv fp (h, vs) = BL.writeFile fp $
+-- | TODO use readFileLazy
+readFile :: FilePath -> IO (Header, Vector CsvDoc)
+readFile = fmap readCsvLazyBS . BL.readFile
+
+
+-- | TODO use readByteStringLazy
+readCsvLazyBS :: BL.ByteString -> (Header, Vector CsvDoc)
+readCsvLazyBS bs = case decodeByNameWith csvDecodeOptions bs of
+      Left e        -> panic (pack e)
+      Right csvDocs -> csvDocs
+
+------------------------------------------------------------------------
+-- | TODO use readFileLazy
+readCsvHal :: FilePath -> IO (Header, Vector CsvHal)
+readCsvHal = fmap readCsvHalLazyBS . BL.readFile
+
+-- | TODO use readByteStringLazy
+readCsvHalLazyBS :: BL.ByteString -> (Header, Vector CsvHal)
+readCsvHalLazyBS bs = case decodeByNameWith csvDecodeOptions bs of
+      Left e        -> panic (pack e)
+      Right csvDocs -> csvDocs
+
+readCsvHalBSStrict :: BS.ByteString -> (Header, Vector CsvHal)
+readCsvHalBSStrict = readCsvHalLazyBS . BL.fromStrict
+
+------------------------------------------------------------------------
+writeFile :: FilePath -> (Header, Vector CsvDoc) -> IO ()
+writeFile fp (h, vs) = BL.writeFile fp $
                       encodeByNameWith csvEncodeOptions h (V.toList vs)
 
+writeDocs2Csv :: FilePath -> [HyperdataDocument] -> IO ()
+writeDocs2Csv fp hs = BL.writeFile fp $ hyperdataDocument2csv hs
+
+hyperdataDocument2csv :: [HyperdataDocument] -> BL.ByteString
+hyperdataDocument2csv hs = encodeByNameWith csvEncodeOptions headerCsvGargV3 (map hyperdataDocument2csvDoc hs)
 
 ------------------------------------------------------------------------
 -- Hal Format
@@ -321,7 +363,6 @@ csvHal2doc (CsvHal title source
 
 ------------------------------------------------------------------------
 parseHal :: FilePath -> IO [HyperdataDocument]
-parseHal fp = map csvHal2doc <$> V.toList <$> snd <$> readHal fp
+parseHal fp = map csvHal2doc <$> V.toList <$> snd <$> readCsvHal fp
 ------------------------------------------------------------------------
-
 

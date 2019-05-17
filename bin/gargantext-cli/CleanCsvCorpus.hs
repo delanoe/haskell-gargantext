@@ -24,14 +24,13 @@ import qualified Data.Vector as V
 
 import Gargantext.Prelude
 import Gargantext.Text.Search
-import Gargantext.Text.Parsers.CSV
-
+import qualified Gargantext.Text.Parsers.CSV as CSV
 ------------------------------------------------------------------------
 
 type Query = [S.Term]
 
-filterDocs :: [DocId] -> Vector Doc -> Vector Doc
-filterDocs docIds = V.filter (\doc -> S.member (d_docId doc) $ S.fromList docIds )
+filterDocs :: [DocId] -> Vector CSV.CsvGargV3 -> Vector CSV.CsvGargV3
+filterDocs docIds = V.filter (\doc -> S.member (CSV.d_docId doc) $ S.fromList docIds )
 
 
 main :: IO ()
@@ -41,17 +40,17 @@ main = do
   --let q = ["water", "scarcity", "morocco", "shortage","flood"]
   let q = ["gratuit", "gratuité", "culture", "culturel"]
 
-  (h,csvDocs) <- readCsv rPath
+  (h,csvDocs) <- CSV.readFile rPath
 
   putStrLn $ "Number of documents before:" <> show (V.length csvDocs)
-  putStrLn $ "Mean size of docs:" <> show ( docsSize csvDocs)
+  putStrLn $ "Mean size of docs:" <> show ( CSV.docsSize csvDocs)
 
-  let docs   = toDocs csvDocs
+  let docs   = CSV.toDocs csvDocs
   let engine = insertDocs docs initialDocSearchEngine
   let docIds = S.query engine (map pack q)
-  let docs'  = fromDocs $ filterDocs docIds (V.fromList docs)
+  let docs'  = CSV.fromDocs $ filterDocs docIds (V.fromList docs)
 
   putStrLn $ "Number of documents after:" <> show (V.length docs')
-  putStrLn $ "Mean size of docs:" <> show (docsSize docs')
+  putStrLn $ "Mean size of docs:" <> show (CSV.docsSize docs')
 
-  writeCsv wPath (h, docs')
+  CSV.writeFile wPath (h, docs')

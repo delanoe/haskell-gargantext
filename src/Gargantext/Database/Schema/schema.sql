@@ -50,35 +50,25 @@ CREATE TABLE public.ngrams (
 ALTER TABLE public.ngrams OWNER TO gargantua;
 
 --------------------------------------------------------------
---------------------------------------------------------------
 -- TODO: delete delete this table
-CREATE TABLE public.nodes_ngrams (
-    id SERIAL,
-    node_id integer NOT NULL,
-    ngrams_id integer NOT NULL,
-    parent_id integer REFERENCES public.nodes_ngrams(id) ON DELETE SET NULL,
-    ngrams_type integer,
-    list_type integer,
-    weight double precision,
-    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
-    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
-    PRIMARY KEY (id)
-    -- PRIMARY KEY (node_id,ngrams_id)
-);
-ALTER TABLE public.nodes_ngrams OWNER TO gargantua;
+--CREATE TABLE public.nodes_ngrams (
+--    id SERIAL,
+--    node_id integer NOT NULL,
+--    ngrams_id integer NOT NULL,
+--    parent_id integer REFERENCES public.nodes_ngrams(id) ON DELETE SET NULL,
+--    ngrams_type integer,
+--    list_type integer,
+--    weight double precision,
+--    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+--    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
+--    PRIMARY KEY (id)
+--);
+--ALTER TABLE public.nodes_ngrams OWNER TO gargantua;
 --------------------------------------------------------------
-
-CREATE TABLE public.nodes_ngrams_repo (
-    version integer NOT NULL,
-    patches jsonb DEFAULT '{}'::jsonb NOT NULL,
-    PRIMARY KEY (version)
-);
-ALTER TABLE public.nodes_ngrams_repo OWNER TO gargantua;
 
 --------------------------------------------------------------
 --
 --
--- TODO: delete delete this table
 --CREATE TABLE public.nodes_ngrams_ngrams (
 --    node_id   integer NOT NULL REFERENCES public.nodes(id)  ON DELETE CASCADE,
 --    ngram1_id integer NOT NULL REFERENCES public.ngrams(id) ON DELETE CASCADE,
@@ -89,16 +79,38 @@ ALTER TABLE public.nodes_ngrams_repo OWNER TO gargantua;
 --
 --ALTER TABLE public.nodes_ngrams_ngrams OWNER TO gargantua;
 
----------------------------------------------------------
+---------------------------------------------------------------
 CREATE TABLE public.nodes_nodes (
     node1_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     node2_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     score real,
     favorite boolean,
     delete boolean,
-    PRIMARY KEY (node1_id, node2_id)
+    PRIMARY KEY (node1_id,node2_id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
+
+---------------------------------------------------------------
+-- TODO should reference "id" of nodes_nodes (instead of node1_id, node2_id)
+CREATE TABLE public.node_node_ngrams (
+id SERIAL,
+node1_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
+node2_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
+ngrams_id  INTEGER NOT NULL REFERENCES public.ngrams (id) ON DELETE CASCADE,
+ngrams_type INTEGER,
+weight double precision,
+PRIMARY KEY (id)
+);
+ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
+--------------------------------------------------------------
+
+--CREATE TABLE public.nodes_ngrams_repo (
+--    version integer NOT NULL,
+--    patches jsonb DEFAULT '{}'::jsonb NOT NULL,
+--    PRIMARY KEY (version)
+--);
+--ALTER TABLE public.nodes_ngrams_repo OWNER TO gargantua;
+
 ---------------------------------------------------------
 
 -- If needed for rights management at row level
@@ -111,7 +123,6 @@ CREATE TABLE public.rights (
   PRIMARY KEY (user_id, node_id)
 );
 ALTER TABLE public.rights OWNER TO gargantua;
-
 
 
 ------------------------------------------------------------
@@ -130,14 +141,10 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdat
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 
-CREATE INDEX        ON public.nodes_ngrams USING btree (ngrams_id);
-CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id);
-CREATE UNIQUE INDEX ON public.nodes_ngrams USING btree (node_id,ngrams_id,ngrams_type);
-
 CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, delete);
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
 
---CREATE INDEX        ON public.nodes_nodes_ngrams USING btree (node1_id,nod2_id);
+CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, ngrams_id, ngrams_type);
 
 -- TRIGGERS
 -- TODO user haskell-postgresql-simple to create this function

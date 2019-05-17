@@ -58,7 +58,6 @@ mapTermListRoot nodeIds ngramsType = do
                       | (t, nre) <- Map.toList ngrams
                       ]
 
-
 filterListWithRoot :: ListType -> Map Text (ListType, Maybe Text)
                       -> Map Text (Maybe RootTerm)
 filterListWithRoot lt m = Map.fromList
@@ -70,7 +69,6 @@ filterListWithRoot lt m = Map.fromList
       Just  r -> case Map.lookup r m of
         Nothing -> panic $ "Garg.API.Ngrams.Tools: filterWithRoot, unknown key: " <> r
         Just  (l',_) -> l' == lt
-
 
 groupNodesByNgrams :: Map Text (Maybe RootTerm)
                    -> Map Text (Set NodeId)
@@ -96,5 +94,4 @@ getCoocByNgrams (Diagonal diag) m =
                                  True   -> [ (x,y) | x <- Map.keys m, y <- Map.keys m, x <= y]
                                  False  -> listToCombi identity (Map.keys m)
                ]
-
 

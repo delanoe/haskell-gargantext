@@ -14,27 +14,21 @@ commentary with @some markup@.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.WOS (wosParser) where
+module Gargantext.Text.Parsers.WOS (parser, keys) where
 
--- TOFIX : Should import Gargantext.Prelude here
-import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
-
-import qualified Data.List as DL
-
-import Data.Monoid ((<>))
-import Data.Attoparsec.ByteString (Parser, try, string
-                                  , takeTill, take
-                                  , manyTill, many1)
-import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
-import Data.ByteString (ByteString, concat)
-import Data.ByteString.Char8 (pack)
 import Control.Applicative
+import Data.Attoparsec.ByteString (Parser, string, takeTill, take, manyTill, many1)
+import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (pack)
+import Gargantext.Text.Parsers.RIS (fieldWith)
+import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
 
 -------------------------------------------------------------
 -- | wosParser parses ISI format from
 -- Web Of Science Database
-wosParser :: Parser [[(ByteString, ByteString)]]
-wosParser = do
+parser :: Parser [[(ByteString, ByteString)]]
+parser = do
     -- TODO Warning if version /= 1.0
     -- FIXME anyChar (string ..) /= exact string "\nVR 1.0" ?
     _  <- manyTill anyChar (string $ pack "\nVR 1.0")
@@ -42,8 +36,11 @@ wosParser = do
     pure ns
 
 notice :: Parser [(ByteString, ByteString)]
-notice = start *> fields <* end
+notice = start *> many (fieldWith field) <* end
     where
+      field :: Parser ByteString
+      field = "\n" *> take 2 <* " "
+
       start :: Parser ByteString
       start = "\nPT " *> takeTill isEndOfLine
 
@@ -51,28 +48,8 @@ notice = start *> fields <* end
       end = manyTill anyChar (string $ pack "\nER\n")
 
 
-fields :: Parser [(ByteString, ByteString)]
-fields = many field
-    where
-        field :: Parser (ByteString, ByteString)
-        field = do
-            name  <- "\n" *> take 2 <* " "
-            txt   <- takeTill isEndOfLine
-            txts  <- try lines
-            let txts' = case DL.length txts > 0 of
-                    True  -> txts
-                    False -> []
-            pure (translate name, concat ([txt] <> txts'))
-
-
-lines :: Parser [ByteString]
-lines = many line
-    where
-        line :: Parser ByteString
-        line = "\n  " *> takeTill isEndOfLine
-
-translate :: ByteString -> ByteString
-translate champs
+keys :: ByteString -> ByteString
+keys champs
             | champs == "AF" = "authors"
             | champs == "TI" = "title"
             | champs == "SO" = "source"
@@ -80,5 +57,3 @@ translate champs
             | champs == "PD" = "publication_date"
             | champs == "AB" = "abstract"
             | otherwise  = champs
--------------------------------------------------------------
-

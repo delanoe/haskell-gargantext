@@ -45,11 +45,11 @@ import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, TableNgramsApiGet, tableNgramsPatch, getTableNgrams, QueryParamR)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.API.Types
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
@@ -61,6 +61,7 @@ import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Gargantext.Viz.Chart
+import Gargantext.API.Ngrams.NTree (MyTree)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -121,10 +122,8 @@ type NodeAPI a = Get '[JSON] (Node a)
 
              -- TODO gather it
              :<|> "table"     :> TableApi
-             :<|> "list"      :> TableNgramsApi
-             :<|> "listGet"   :> TableNgramsApiGet
+             :<|> "ngrams"    :> TableNgramsApi
              :<|> "pairing"   :> PairingApi
-             
              
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi
@@ -138,6 +137,8 @@ type NodeAPI a = Get '[JSON] (Node a)
              -- VIZ
              :<|> "metrics" :> MetricsAPI
              :<|> "chart"     :> ChartApi
+             :<|> "pie"       :> PieApi
+             :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
@@ -168,9 +169,9 @@ nodeAPI p uId id
 
            -- TODO gather it
            :<|> getTable         id
-           :<|> tableNgramsPatch id
-           :<|> getTableNgrams   id
+           :<|> apiNgramsTableCorpus id
            :<|> getPairing       id
+           -- :<|> getTableNgramsDoc id
            
            :<|> favApi   id
            :<|> delDocs  id
@@ -178,9 +179,11 @@ nodeAPI p uId id
            
            :<|> getMetrics id
            :<|> getChart id
+           :<|> getPie   id
+           :<|> getTree  id
            :<|> phyloAPI id
+           
            -- Annuaire
-           -- :<|> upload
            -- :<|> query
 
 ------------------------------------------------------------------------
@@ -264,6 +267,21 @@ type ChartApi = Summary " Chart API"
               :> QueryParam "to"   UTCTime
               :> Get '[JSON] (ChartMetrics Histo)
 
+type PieApi = Summary " Chart API"
+           :> QueryParam "from" UTCTime
+           :> QueryParam "to"   UTCTime
+           :> QueryParamR "ngramsType" TabType
+           :> Get '[JSON] (ChartMetrics Histo)
+
+type TreeApi = Summary " Tree API"
+           :> QueryParam "from" UTCTime
+           :> QueryParam "to"   UTCTime
+           :> QueryParamR "ngramsType" TabType
+           :> QueryParamR "listType"   ListType
+           :> Get '[JSON] (ChartMetrics [MyTree])
+
+
+
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
@@ -276,7 +294,7 @@ type ChartApi = Summary " Chart API"
 
 
 instance HasNodeError ServantErr where
-  _NodeError = prism' mk (const Nothing) -- $ panic "HasNodeError ServantErr: not a prism")
+  _NodeError = prism' mk (const Nothing) -- panic "HasNodeError ServantErr: not a prism")
     where
       e = "Gargantext NodeError: "
       mk NoListFound   = err404 { errBody = e <> "No list found"         }
@@ -294,7 +312,7 @@ instance HasNodeError ServantErr where
 
 -- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
-  _TreeError = prism' mk (const Nothing) -- $ panic "HasTreeError ServantErr: not a prism")
+  _TreeError = prism' mk (const Nothing) -- panic "HasTreeError ServantErr: not a prism")
     where
       e = "TreeError: "
       mk NoRoot       = err404 { errBody = e <> "Root node not found"           }
@@ -340,25 +358,7 @@ query :: Monad m => Text -> m Text
 query s = pure s
 
 
--- | Upload files
--- TODO Is it possible to adapt the function according to iValue input ?
---upload :: MultipartData -> Handler Text
---upload multipartData = do
---  liftIO $ do
---    putStrLn "Inputs:"
---    forM_ (inputs multipartData) $ \input ->
---      putStrLn $ "  " <> show (iName input)
---            <> " -> " <> show (iValue input)
---
---    forM_ (files multipartData) $ \file -> do
---      content <- readFile (fdFilePath file)
---      putStrLn $ "Content of " <> show (fdFileName file)
---              <> " at " <> fdFilePath file
---      putStrLn content
---  pure (pack "Data loaded")
-
--------------------------------------------------------------------------------
-
+-------------------------------------------------------------
 type MetricsAPI = Summary "SepGen IncExc metrics"
                 :> QueryParam  "list"       ListId
                 :> QueryParamR "ngramsType" TabType
@@ -370,12 +370,11 @@ getMetrics cId maybeListId tabType maybeLimit = do
   (ngs', scores) <- Metrics.getMetrics' cId maybeListId tabType maybeLimit
 
   let
-    metrics      = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs')) scores
+    metrics      = map (\(Scored t s1 s2) -> Metric t (log' 5 s1) (log' 2 s2) (listType t ngs')) scores
+    log' n x     = 1 + (if x <= 0 then 0 else (log $ (10^(n::Int)) * x))
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
   
   pure $ Metrics metrics
-
-
 
 

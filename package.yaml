@@ -1,5 +1,5 @@
 name: gargantext
-version: '4.0.0.4'
+version: '4.0.0.5'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -40,7 +40,6 @@ library:
   - Gargantext.Database
   - Gargantext.Database.Flow
   - Gargantext.Database.Schema.Node
-  - Gargantext.Database.Cooc
   - Gargantext.Database.Tree
   - Gargantext.Database.Types.Node
   - Gargantext.Database.Utils
@@ -102,6 +101,7 @@ library:
   - conduit-extra
   - containers
   - contravariant
+  - crawlerPubMed
   - data-time-segment
   - directory
   - duckling
@@ -169,6 +169,7 @@ library:
   - servant-swagger
   - servant-swagger-ui
   - servant-static-th
+  - servant-cassava
   - serialise
   - split
   - stemmer

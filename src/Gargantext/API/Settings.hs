@@ -71,13 +71,13 @@ data SendEmailType = SendEmailViaAws
 
 
 data Settings = Settings
-    { _allowedOrigin   :: ByteString -- ^ allowed origin for CORS
-    , _allowedHost     :: ByteString   -- ^ allowed host for CORS
+    { _allowedOrigin   :: ByteString   -- allowed origin for CORS
+    , _allowedHost     :: ByteString   -- allowed host for CORS
     , _appPort         :: PortNumber
-    , _logLevelLimit   :: LogLevel -- ^ log level from the monad-logger package
+    , _logLevelLimit   :: LogLevel -- log level from the monad-logger package
 --    , _dbServer        :: Text
 --    ^ this is not used yet
-    , _jwtSecret       :: Jose.Jwk -- ^ key from the jose-jwt package
+    , _jwtSecret       :: Jose.Jwk -- key from the jose-jwt package
     , _sendLoginEmails :: SendEmailType
     , _scrapydUrl      :: BaseUrl
     , _fileFolder      :: FilePath
@@ -195,22 +195,22 @@ mkRepoSaver repo_var = mkDebounce settings
     settings = defaultDebounceSettings
                  { debounceFreq   = 1000000 -- 1 second
                  , debounceAction = withMVar repo_var repoSaverAction
-                   -- ^ Here this not only `readMVar` but `takeMVar`.
+                   -- Here this not only `readMVar` but `takeMVar`.
                    -- Namely while repoSaverAction is saving no other change
                    -- can be made to the MVar.
                    -- This might be not efficent and thus reconsidered later.
                    -- However this enables to safely perform a *final* save.
                    -- See `cleanEnv`.
                    -- Future work:
-                   -- * Add a new MVar just for saving.
+                   -- Add a new MVar just for saving.
                  }
 
 readRepoEnv :: IO RepoEnv
 readRepoEnv = do
-  -- | Does file exist ? :: Bool
+  -- Does file exist ? :: Bool
   repoFile <- doesFileExist repoSnapshot
 
-  -- | Is file not empty ? :: Bool
+  -- Is file not empty ? :: Bool
   repoExists <- if repoFile
              then (>0) <$> getFileSize repoSnapshot
              else pure False

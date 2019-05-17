@@ -22,40 +22,36 @@ please follow the types.
 {-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers (parse, FileFormat(..), clean, parseDocs)
+module Gargantext.Text.Parsers (FileFormat(..), clean, parseFile)
     where
 
-import System.FilePath (FilePath(), takeExtension)
+--import Data.ByteString (ByteString)
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
-
-import Control.Monad (join)
-import qualified Data.Time as DT
-import Data.Either.Extra (partitionEithers)
-import Data.Time (UTCTime(..))
-import Data.List (concat)
-import qualified Data.Map        as DM
-import qualified Data.ByteString as DB
-import Data.Ord()
-import Data.String()
-import Data.Either(Either(..))
-import Data.Attoparsec.ByteString (parseOnly, Parser)
-
-import Data.Text (Text)
-import qualified Data.Text as DT
-
--- Activate Async for to parse in parallel
 import Control.Concurrent.Async as CCA (mapConcurrently)
-
-import Data.Text.Encoding (decodeUtf8)
-import Data.String (String())
+import Control.Monad (join)
+import qualified Data.ByteString.Char8 as DBC
+import Data.Attoparsec.ByteString (parseOnly, Parser)
+import Data.Either(Either(..))
+import Data.Either.Extra (partitionEithers)
+import Data.List (concat)
 import Data.List (lookup)
-
-------------------------------------------------------------------------
+import Data.Ord()
+import Data.String (String())
+import Data.String()
+import Data.Text (Text)
+import Data.Text.Encoding (decodeUtf8)
+import Data.Tuple.Extra (both, first, second)
+import System.FilePath (FilePath(), takeExtension)
+import qualified Data.ByteString as DB
+import qualified Data.Map        as DM
+import qualified Data.Text as DT
 import Gargantext.Core (Lang(..))
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Gargantext.Text.Parsers.WOS (wosParser)
-import Gargantext.Text.Parsers.Date (parseDate)
+import qualified Gargantext.Text.Parsers.WOS as WOS
+import qualified Gargantext.Text.Parsers.RIS as RIS
+import Gargantext.Text.Parsers.RIS.Presse (presseEnrich)
+import qualified Gargantext.Text.Parsers.Date as Date
 import Gargantext.Text.Parsers.CSV (parseHal)
 import Gargantext.Text.Terms.Stop (detectLang)
 ------------------------------------------------------------------------
@@ -71,7 +67,8 @@ type ParseError = String
 
 -- | According to the format of Input file,
 -- different parser are available.
-data FileFormat = WOS | CsvHalFormat-- | CsvGargV3
+data FileFormat = WOS | RIS | RisPresse
+                | CsvGargV3 | CsvHalFormat
   deriving (Show)
 
 -- Implemented (ISI Format)
@@ -79,42 +76,33 @@ data FileFormat = WOS | CsvHalFormat-- | CsvGargV3
 --                | ODT        -- Not Implemented / import Pandoc
 --                | PDF        -- Not Implemented / pdftotext and import Pandoc ?
 --                | XML        -- Not Implemented / see :
---                             -- > http://chrisdone.com/posts/fast-haskell-c-parsing-xml
 
--- TODO: to debug maybe add the filepath in error message
 
+{-
+parseFormat :: FileFormat -> ByteString -> [HyperdataDocument]
+parseFormat = undefined
+-}
 
 -- | Parse file into documents
 -- TODO manage errors here
-parseDocs :: FileFormat -> FilePath -> IO [HyperdataDocument]
-parseDocs WOS    path = join $ mapM (toDoc WOS) <$> snd <$> parse WOS path
-parseDocs CsvHalFormat p = parseHal p
-
-type Year  = Int
-type Month = Int
-type Day   = Int
-
--- | Parse date to Ints
--- TODO add hours, minutes and seconds
-parseDate' :: Lang -> Maybe Text -> IO (Maybe UTCTime, (Maybe Year, Maybe Month, Maybe Day))
-parseDate' _ Nothing    = pure (Nothing, (Nothing, Nothing, Nothing))
-parseDate' l (Just txt) = do
-  utcTime <- parseDate l txt
-  let (UTCTime day _) = utcTime
-  let (y,m,d) = DT.toGregorian day
-  pure (Just utcTime, (Just (fromIntegral y), Just m,Just d))
-
+-- TODO: to debug maybe add the filepath in error message
+parseFile :: FileFormat -> FilePath -> IO [HyperdataDocument]
+parseFile CsvHalFormat p = parseHal p
+parseFile RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
+parseFile WOS       p = join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
+parseFile ff        p = join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff p
 
 toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
-toDoc WOS d = do
+-- TODO use language for RIS
+toDoc ff d = do
       let abstract = lookup "abstract" d
       let lang = maybe EN identity (join $ detectLang <$> (fmap (DT.take 50) abstract))
       
       let dateToParse = DT.replace "-" " " <$> lookup "PY" d <> Just " " <> lookup "publication_date" d
       
-      (utcTime, (pub_year, pub_month, pub_day)) <- parseDate' lang  dateToParse
+      (utcTime, (pub_year, pub_month, pub_day)) <- Date.split lang  dateToParse
 
-      pure $ HyperdataDocument (Just $ DT.pack $ show WOS)
+      pure $ HyperdataDocument (Just $ DT.pack $ show ff)
                                (lookup "doi" d)
                                (lookup "URL" d)
                                 Nothing
@@ -133,26 +121,35 @@ toDoc WOS d = do
                                Nothing
                                Nothing
                                (Just $ (DT.pack . show) lang)
-toDoc _ _ = undefined
 
-parse :: FileFormat -> FilePath -> IO ([ParseError], [[(Text, Text)]])
-parse format path = do
+enrichWith :: FileFormat
+           ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])
+enrichWith RisPresse = enrichWith' presseEnrich
+enrichWith WOS       = enrichWith' (map (first WOS.keys))
+enrichWith _         = enrichWith' identity
+
+
+enrichWith' ::       ([(DB.ByteString, DB.ByteString)] -> [(DB.ByteString, DB.ByteString)])
+           ->  (a, [[[(DB.ByteString, DB.ByteString)]]]) -> (a, [[(Text, Text)]])
+enrichWith' f = second (map both' . map f . concat)
+  where
+    both'   = map (both decodeUtf8)
+
+readFileWith :: FileFormat -> FilePath
+       -> IO ([ParseError], [[[(DB.ByteString, DB.ByteString)]]])
+readFileWith format path = do
     files <- case takeExtension path of
               ".zip" -> openZip              path
-              _      -> pure <$> DB.readFile path
-    (as, bs) <- partitionEithers <$> mapConcurrently (runParser format) files
-    pure (as, map toText $ concat bs)
-      where
-        -- TODO : decode with bayesian inference on encodings
-        toText = map (\(a,b) -> (decodeUtf8 a, decodeUtf8 b))
+              _      -> pure <$> clean <$> DB.readFile path
+    partitionEithers <$> mapConcurrently (runParser format) files
 
 
 -- | withParser:
 -- According to the format of the text, choose the right parser.
 -- TODO  withParser :: FileFormat -> Parser [Document]
 withParser :: FileFormat -> Parser [[(DB.ByteString, DB.ByteString)]]
-withParser WOS = wosParser
---withParser DOC = docParser
+withParser WOS = WOS.parser
+withParser RIS = RIS.parser
 --withParser ODT = odtParser
 --withParser XML = xmlParser
 withParser _   = panic "[ERROR] Parser not implemented yet"
@@ -167,9 +164,9 @@ openZip fp = do
     bs      <- mapConcurrently (\s -> withArchive fp (getEntry s)) entries
     pure bs
 
-clean :: Text -> Text
-clean txt = DT.map clean' txt
+clean :: DB.ByteString -> DB.ByteString
+clean txt = DBC.map clean' txt
   where
     clean' '’' = '\''
+    clean' '\r' = ' '
     clean' c  = c
-

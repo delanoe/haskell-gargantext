@@ -35,7 +35,7 @@ import Gargantext.Text.Parsers.CSV
 type DocId = Int
 
 type DocSearchEngine = SearchEngine
-                         Doc
+                         CsvGargV3
                          DocId
                          DocField
                          NoFeatures
@@ -48,7 +48,7 @@ initialDocSearchEngine :: DocSearchEngine
 initialDocSearchEngine =
     initSearchEngine docSearchConfig defaultSearchRankParameters
 
-docSearchConfig :: SearchConfig Doc DocId DocField NoFeatures
+docSearchConfig :: SearchConfig CsvGargV3 DocId DocField NoFeatures
 docSearchConfig =
     SearchConfig {
       documentKey           = d_docId,
@@ -57,7 +57,7 @@ docSearchConfig =
       documentFeatureValue  = const noFeatures
   }
   where
-    extractTerms :: Doc -> DocField -> [Text]
+    extractTerms :: CsvGargV3 -> DocField -> [Text]
     extractTerms doc TitleField       = monoTexts (d_title doc)
     extractTerms doc AbstractField    = monoTexts (d_abstract doc)
 

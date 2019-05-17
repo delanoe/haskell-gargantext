@@ -276,6 +276,8 @@ selectNode id = proc () -> do
     restrict -< _node_id row .== id
     returnA -< row
 
+
+
 runGetNodes :: Query NodeRead -> Cmd err [NodeAny]
 runGetNodes = runOpaQuery
 
@@ -305,7 +307,6 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
                      else (pgBool True)
       returnA  -< row ) -< ()
     returnA -< node
-
 
 deleteNode :: NodeId -> Cmd err Int
 deleteNode n = mkCmd $ \conn ->
@@ -592,7 +593,6 @@ defaultList cId =
 
 mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkList p u = insertNodesR [nodeListW Nothing Nothing p u]
-
 
 mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
 mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]

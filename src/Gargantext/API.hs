@@ -56,7 +56,7 @@ import           Network.Wai.Handler.Warp hiding (defaultSettings)
 
 import           Servant
 import           Servant.HTML.Blaze (HTML)
-import           Servant.Mock (mock)
+--import           Servant.Mock (mock)
 --import           Servant.Job.Server (WithCallbacks)
 import           Servant.Static.TH.Internal.Server (fileTreeToServer)
 import           Servant.Static.TH.Internal.FileTree (fileTypeToFileTree, FileType(FileTypeFile))
@@ -66,23 +66,24 @@ import           Servant.Swagger.UI
 import           Text.Blaze.Html (Html)
 
 --import Gargantext.API.Swagger
-import Gargantext.Prelude
-import Gargantext.Core.Types (HasInvalidError(..))
-import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 
-import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
-import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo)
-import Gargantext.API.Types
-import Gargantext.API.Node
-import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
 --import Gargantext.Database.Node.Contact (HyperdataContact)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils (HasConnection)
-import Gargantext.Database.Tree (HasTreeError(..), TreeError)
-import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
+import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
 import Gargantext.API.Count  ( CountAPI, count, Query)
+import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
+import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
+import Gargantext.API.Node
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
+import Gargantext.API.Types
+import Gargantext.API.Upload
+import Gargantext.Core.Types (HasInvalidError(..))
 import Gargantext.Database.Facet
+import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
+import Gargantext.Database.Tree (HasTreeError(..), TreeError)
+import Gargantext.Database.Types.Node
+import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
+import Gargantext.Database.Utils (HasConnection)
+import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 
 --import Gargantext.API.Orchestrator
@@ -144,7 +145,7 @@ fireWall req fw = do
        then pure True
        else pure False
 
-
+{-
 -- makeMockApp :: Env -> IO (Warp.Settings, Application)
 makeMockApp :: MockEnv -> IO Application
 makeMockApp env = do
@@ -177,7 +178,7 @@ makeMockApp env = do
     
     --pure (warpS, logWare $ checkOriginAndHost $ corsMiddleware $ serverApp)
     pure $ logStdoutDev $ checkOriginAndHost $ corsMiddleware $ serverApp
-
+-}
 
 
 makeDevMiddleware :: IO Middleware
@@ -248,6 +249,10 @@ type GargAPI' =
            :<|> "annuaire":> Summary "Annuaire endpoint"
                           :> Capture "id" AnnuaireId      :> NodeAPI HyperdataAnnuaire
 
+           -- Document endpoint
+           :<|> "document":> Summary "Document endpoint"
+                          :> Capture "id" DocId    :> "ngrams" :> TableNgramsApi
+                          
            -- Corpus endpoint
            :<|> "nodes" :> Summary "Nodes endpoint"
                         :> ReqBody '[JSON] [NodeId] :> NodesAPI
@@ -273,6 +278,8 @@ type GargAPI' =
            -- Tree endpoint
            :<|> "tree" :> Summary "Tree endpoint"
                        :> Capture "id" NodeId        :> TreeAPI
+
+           :<|> "upload" :> ApiUpload
 
 
        --    :<|> "scraper" :> WithCallbacks ScraperAPI
@@ -310,11 +317,13 @@ serverGargAPI -- orchestrator
      :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      fakeUserId
      :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   fakeUserId
      :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire) fakeUserId
+     :<|> apiNgramsTableDoc
      :<|> nodesAPI
      :<|> count -- TODO: undefined
      :<|> search
      :<|> graphAPI -- TODO: mock
      :<|> treeAPI
+     :<|> upload
   --   :<|> orchestrator
   where
     fakeUserId = 1 -- TODO
@@ -331,16 +340,16 @@ swaggerFront :: Server SwaggerFrontAPI
 swaggerFront = schemaUiServer swaggerDoc
            :<|> frontEndServer
 
-gargMock :: Server GargAPI
-gargMock = mock apiGarg Proxy
+--gargMock :: Server GargAPI
+--gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
 makeApp :: (HasConnection env, HasRepo env, HasSettings env)
         => env -> IO Application
 makeApp = fmap (serve api) . server
 
-appMock :: Application
-appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
+--appMock :: Application
+--appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
 
 ---------------------------------------------------------------------
 api :: Proxy API
@@ -405,9 +414,10 @@ startGargantext port file = do
   mid <- makeDevMiddleware
   run port (mid app) `finally` stopGargantext env
 
+{-
 startGargantextMock :: PortNumber -> IO ()
 startGargantextMock port = do
   portRouteInfo port
   application <- makeMockApp . MockEnv $ FireWall False
   run port application
-
+-}

@@ -65,6 +65,7 @@ newtype NodeId = NodeId Int
 instance ToField NodeId where
   toField (NodeId n) = toField n
 
+
 instance FromField NodeId where
   fromField field mdata = do
     n <- fromField field mdata
@@ -424,17 +425,20 @@ type NodeGraph    = Node HyperdataGraph
 type NodePhylo    = Node HyperdataPhylo
 type NodeNotebook = Node HyperdataNotebook
 ------------------------------------------------------------------------
-data NodeType = NodeUser 
+data NodeType = NodeUser
               | NodeFolder
               | NodeCorpus     | NodeCorpusV3 | NodeDocument
               | NodeAnnuaire   | NodeContact
-              -- | NodeOccurrences
               | NodeGraph
               | NodeDashboard  | NodeChart
-              -- | Classification
-              | NodeList | NodeListModel
+              | NodeList       | NodeListModel deriving (Show, Read, Eq, Generic, Bounded, Enum)
+
+
+{-
               -- | Metrics
-              deriving (Show, Read, Eq, Generic, Bounded, Enum)
+              -- | NodeOccurrences
+              -- | Classification
+-}
 
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]

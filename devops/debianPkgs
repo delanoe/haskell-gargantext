@@ -1,0 +1,13 @@
+#!/bin/bash
+
+
+if git --version;
+then 
+  echo "git installed, ok"
+else
+  sudo apt update && sudo apt install git
+fi
+
+sudo apt update
+sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-9.6 nginx libpq-dev
+

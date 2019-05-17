@@ -23,6 +23,7 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE TypeFamilies              #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet
   where
@@ -171,18 +172,20 @@ type Trash   = Bool
 data OrderBy =  DateAsc   | DateDesc
              | TitleAsc   | TitleDesc
              | ScoreDesc  | ScoreAsc
+             | SourceAsc  | SourceDesc
              deriving (Generic, Enum, Bounded, Read, Show)
-             -- | NgramCoun
 
 instance FromHttpApiData OrderBy
   where
-    parseUrlPiece "DateAsc"  = pure DateAsc
-    parseUrlPiece "DateDesc" = pure DateDesc
-    parseUrlPiece "TitleAsc" = pure TitleAsc
-    parseUrlPiece "TitleDesc" = pure TitleDesc
+    parseUrlPiece "DateAsc"    = pure DateAsc
+    parseUrlPiece "DateDesc"   = pure DateDesc
+    parseUrlPiece "TitleAsc"   = pure TitleAsc
+    parseUrlPiece "TitleDesc"  = pure TitleDesc
     parseUrlPiece "ScoreAsc"   = pure ScoreAsc
     parseUrlPiece "ScoreDesc"  = pure ScoreDesc
-    parseUrlPiece _           = Left "Unexpected value of OrderBy"
+    parseUrlPiece "SourceAsc"  = pure SourceAsc
+    parseUrlPiece "SourceDesc" = pure SourceDesc
+    parseUrlPiece _            = Left "Unexpected value of OrderBy"
 
 instance ToParamSchema OrderBy
 instance FromJSON  OrderBy
@@ -251,7 +254,7 @@ viewDocuments cId t ntId = proc () -> do
 
 
 ------------------------------------------------------------------------
-filterWith :: (PGOrd date, PGOrd title, PGOrd score) =>
+filterWith :: (PGOrd date, PGOrd title, PGOrd score, hyperdata ~ Column SqlJsonb) =>
      Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
@@ -260,14 +263,24 @@ filterWith :: (PGOrd date, PGOrd title, PGOrd score) =>
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
-orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3) => Maybe OrderBy -> Order (Facet id (Column b1) (Column b2) hyperdata (Column b3) score)
-orderWith order = case order of
-  (Just DateAsc)   -> asc  facetDoc_created
-  
-  (Just TitleAsc)  -> asc  facetDoc_title
-  (Just TitleDesc) -> desc facetDoc_title
-  
-  (Just ScoreAsc)  -> asc  facetDoc_favorite
-  (Just ScoreDesc) -> desc facetDoc_favorite
-  _                -> desc facetDoc_created
+orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3)
+          => Maybe OrderBy
+          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) score)
+orderWith (Just DateAsc)   = asc  facetDoc_created
+orderWith (Just DateDesc)  = desc facetDoc_created
 
+orderWith (Just TitleAsc)  = asc  facetDoc_title
+orderWith (Just TitleDesc) = desc facetDoc_title
+
+orderWith (Just ScoreAsc)  = asc  facetDoc_favorite
+orderWith (Just ScoreDesc) = desc facetDoc_favorite
+
+orderWith (Just SourceAsc)  = asc  facetDoc_source
+orderWith (Just SourceDesc) = desc facetDoc_source
+
+orderWith _                = asc facetDoc_created
+
+facetDoc_source :: PGIsJson a
+                => Facet id created title (Column a) favorite ngramCount
+                -> Column (Nullable PGText)
+facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> pgString "source"

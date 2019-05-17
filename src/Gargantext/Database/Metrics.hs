@@ -22,9 +22,10 @@ import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (TabType(..), ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm)
-import Gargantext.Core.Types (ListType(..), Limit)
+import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
 import Gargantext.Database.Flow (FlowCmdM)
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser, getTficfWith)
+import Gargantext.Database.Node.Select
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Types.Node (ListId, CorpusId, HyperdataCorpus)
 import Gargantext.Database.Flow (getOrMkRootWithCorpus)
@@ -51,7 +52,10 @@ getMetrics cId maybeListId tabType maybeLimit = do
   
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
   
-  metrics' <- getTficfWith cId masterCorpusId (ngramsTypeFromTabType tabType) ngs'
+  lId  <- defaultList cId
+  lIds <- selectNodesWithUsername NodeList userMaster
+  
+  metrics' <- getTficfWith cId masterCorpusId (lIds <> [lId]) (ngramsTypeFromTabType tabType) ngs'
 
   pure (ngs , toScored [metrics, Map.fromList $ map (\(a,b) -> (a, Vec.fromList [fst b])) $ Map.toList metrics'])
 
@@ -79,10 +83,13 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
   let
     take' Nothing xs  = xs
     take' (Just n) xs = take n xs
-  
+
+  lId  <- defaultList cId
+  lIds <- selectNodesWithUsername NodeList userMaster
+
   myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal True)
                             <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId (ngramsTypeFromTabType tabType)
+                            <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) (ngramsTypeFromTabType tabType)
                                                              (take' maybeLimit $ Map.keys ngs)
   pure $ (ngs', ngs, myCooc)
 
