@@ -57,7 +57,7 @@ import Gargantext.Core.Types
 import Gargantext.Text.Terms
 import Gargantext.Text.Context
 import Gargantext.Text.Terms.WithList
-import Gargantext.Text.Parsers.CSV (readCsv, csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Text.Parsers.CSV (readFile, csv_title, csv_abstract, csv_publication_year)
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Terms (terms)
 import Gargantext.Text.Metrics.Count (coocOnContexts, Coocs)
@@ -105,7 +105,7 @@ main = do
                              . DV.toList
                              . DV.map (\n -> (csv_publication_year n, [(csv_title n) <> " " <> (csv_abstract n)]))
                              . snd
-                           <$> readCsv corpusFile
+                           <$> readFile corpusFile
 
   -- termListMap :: [Text]
   termList <- csvGraphTermList termListFile

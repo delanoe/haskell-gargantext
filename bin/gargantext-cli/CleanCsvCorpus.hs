@@ -29,7 +29,7 @@ import qualified Gargantext.Text.Parsers.CSV as CSV
 
 type Query = [S.Term]
 
-filterDocs :: [DocId] -> Vector CSV.Doc -> Vector CSV.Doc
+filterDocs :: [DocId] -> Vector CSV.CsvGargV3 -> Vector CSV.CsvGargV3
 filterDocs docIds = V.filter (\doc -> S.member (CSV.d_docId doc) $ S.fromList docIds )
 
 

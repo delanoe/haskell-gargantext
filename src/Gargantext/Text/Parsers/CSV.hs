@@ -46,7 +46,7 @@ headerCsvGargV3 = header [ "title"
          , "authors"
          ]
 ---------------------------------------------------------------
-data Doc = Doc
+data CsvGargV3 = CsvGargV3
     { d_docId  :: !Int
     , d_title  :: !Text
     , d_source :: !Text
@@ -59,9 +59,8 @@ data Doc = Doc
     deriving (Show)
 ---------------------------------------------------------------
 -- | Doc 2 HyperdataDocument
-doc2hyperdataDocument :: Doc -> HyperdataDocument
---doc2hyperdataDocument (Doc did dt ds dpy dpm dpd dab dau) =
-doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
+toDoc :: CsvGargV3 -> HyperdataDocument
+toDoc (CsvGargV3 did dt _ dpy dpm dpd dab dau) =
   HyperdataDocument (Just "CSV")
                     (Just . pack . show $ did)
                     Nothing
@@ -82,25 +81,22 @@ doc2hyperdataDocument (Doc did dt _ dpy dpm dpd dab dau) =
                     Nothing
                     Nothing
 
-
-
-
 ---------------------------------------------------------------
 -- | Types Conversions
-toDocs :: Vector CsvDoc -> [Doc]
+toDocs :: Vector CsvDoc -> [CsvGargV3]
 toDocs v = V.toList
          $ V.zipWith (\nId (CsvDoc t s py pm pd abst auth)
-                       -> Doc nId t s py pm pd abst auth )
+                       -> CsvGargV3 nId t s py pm pd abst auth )
                        (V.enumFromN 1 (V.length v'')) v''
           where
             v'' = V.foldl (\v' sep -> V.concatMap (splitDoc (docsSize v') sep) v') v seps
             seps= (V.fromList [Paragraphs 1, Sentences 3, Chars 3])
 
 ---------------------------------------------------------------
-fromDocs :: Vector Doc -> Vector CsvDoc
+fromDocs :: Vector CsvGargV3 -> Vector CsvDoc
 fromDocs docs = V.map fromDocs' docs
   where
-    fromDocs' (Doc _ t s py pm pd abst auth) = (CsvDoc t s py pm pd abst auth)
+    fromDocs' (CsvGargV3 _ t s py pm pd abst auth) = (CsvDoc t s py pm pd abst auth)
 
 ---------------------------------------------------------------
 -- | Split a document in its context
@@ -201,31 +197,32 @@ delimiter = fromIntegral $ ord '\t'
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 readCsvOn :: [CsvDoc -> Text] -> FilePath -> IO [Text]
-readCsvOn fields fp = V.toList <$> V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
-                      <$> snd
-                      <$> readFile fp
+readCsvOn fields fp = V.toList
+                   <$> V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
+                   <$> snd
+                   <$> readFile fp
 
 ------------------------------------------------------------------------
 
-readFileLazy :: (FromNamedRecord a) => a -> FilePath -> IO (Header, Vector a)
+readFileLazy :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Header, Vector a)
 readFileLazy f = fmap (readByteStringLazy f) . BL.readFile
 
-readFileStrict :: (FromNamedRecord a) => a -> FilePath -> IO (Header, Vector a)
+readFileStrict :: (FromNamedRecord a) => proxy a -> FilePath -> IO (Header, Vector a)
 readFileStrict f = fmap (readByteStringStrict f) . BS.readFile
 
-
-readByteStringLazy :: (FromNamedRecord a) => a -> BL.ByteString -> (Header, Vector a)
-readByteStringLazy f bs = case decodeByNameWith csvDecodeOptions bs of
+readByteStringLazy :: (FromNamedRecord a) => proxy a -> BL.ByteString -> (Header, Vector a)
+readByteStringLazy _f bs = case decodeByNameWith csvDecodeOptions bs of
       Left e        -> panic (pack e)
       Right csvDocs -> csvDocs
 
-readByteStringStrict :: (FromNamedRecord a) => a -> BS.ByteString -> (Header, Vector a)
+readByteStringStrict :: (FromNamedRecord a) => proxy a -> BS.ByteString -> (Header, Vector a)
 readByteStringStrict ff = (readByteStringLazy ff) . BL.fromStrict
 
 ------------------------------------------------------------------------
 -- | TODO use readFileLazy
 readFile :: FilePath -> IO (Header, Vector CsvDoc)
 readFile = fmap readCsvLazyBS . BL.readFile
+
 
 -- | TODO use readByteStringLazy
 readCsvLazyBS :: BL.ByteString -> (Header, Vector CsvDoc)

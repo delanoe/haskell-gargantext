@@ -96,6 +96,7 @@ library:
   - conduit-extra
   - containers
   - contravariant
+  - crawlerPubMed
   - data-time-segment
   - directory
   - duckling
