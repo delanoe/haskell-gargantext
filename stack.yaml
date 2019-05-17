@@ -6,7 +6,6 @@ packages:
 - 'deps/servant-job'
 - 'deps/clustering-louvain'
 - 'deps/patches-map'
-- 'deps/patches-class'
 - 'deps/haskell-opaleye'
 - 'deps/hsparql'
 
@@ -27,7 +26,9 @@ extra-deps:
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed
   commit: dcaa0f5dd53f20648f4f5a615d29163582a4219c
-#- opaleye-0.6.7002.0
+- git: https://gitlab.iscpif.fr/gargantext/patches-class
+  commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
+    #- opaleye-0.6.7002.0
 - KMP-0.1.0.2
 - accelerate-1.2.0.0
 - aeson-lens-0.5.0.0
