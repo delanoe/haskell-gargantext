@@ -119,12 +119,21 @@ flowCorpusFile u n l la ff fp = do
   flowCorpus u n la (map (map toHyperdataDocument) docs)
 
 -- TODO query with complex query
-flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
+flowCorpusSearchInDatabase :: FlowCmdM env err m
           => Username -> Lang -> Text -> m CorpusId
 flowCorpusSearchInDatabase u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
   flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
+
+
+flowCorpusSearchInDatabase' :: FlowCmdM env ServantErr m
+          => Username -> Lang -> Text -> m CorpusId
+flowCorpusSearchInDatabase' u la q = do
+  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
+  ids <-  map fst <$> searchInDatabase cId (stemIt q)
+  flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
+
 
 ------------------------------------------------------------------------
 
@@ -139,7 +148,7 @@ flowCorpus :: (FlowCmdM env ServantErr m, FlowCorpus a)
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
 
-flowCorpusUser :: (FlowCmdM env ServantErr m, MkCorpus c)
+flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
                => Lang -> Username -> CorpusName -> Maybe c -> [NodeId] -> m CorpusId
 flowCorpusUser l userName corpusName ctype ids = do
   -- User Flow
