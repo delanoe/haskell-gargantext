@@ -89,7 +89,8 @@ setLevelLinks (lvl,lvl') p = alterPhyloGroups (\gs -> map (\g -> if getGroupLeve
 -- | To apply the corresponding proximity function based on a given Proximity
 applyProximity :: Proximity -> PhyloGroup -> PhyloGroup -> Map (Int, Int) Double -> (PhyloGroupId, Double)
 applyProximity prox g1 g2 cooc = case prox of
-  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2), weightedLogJaccard s (getSubCooc (getGroupNgrams g1) cooc) (getSubCooc (getGroupNgrams g2) cooc))
+  -- WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2), weightedLogJaccard s (getSubCooc (getGroupNgrams g1) cooc) (getSubCooc (getGroupNgrams g2) cooc))
+  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2), weightedLogJaccard' s (getGroupNgrams g1) (getGroupNgrams g2) cooc)
   Hamming (HammingParams _)          -> ((getGroupId g2), hamming (getSubCooc (getGroupNgrams g1) cooc) (getSubCooc (getGroupNgrams g2) cooc))
   _                                  -> panic ("[ERR][Viz.Phylo.Example.applyProximity] Proximity function not defined")
 
@@ -163,7 +164,52 @@ updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if (getGroupLevel
 -- | Optimisation : to keep only the groups that have at least one ngrams in commons with the target
 filterCandidates :: PhyloGroup -> [PhyloGroup] -> [PhyloGroup]
 filterCandidates g gs = filter (\g' -> (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g'))
-                      $ delete g gs  
+                      $ delete g gs
+
+
+-- | a init avec la [[head groups]] et la tail groups
+toBranches :: [[PhyloGroup]] -> [PhyloGroup] -> [[PhyloGroup]]
+toBranches mem gs
+  | null gs = mem
+  | otherwise = toBranches mem' $ tail gs
+  where
+    --------------------------------------
+    mem' :: [[PhyloGroup]]
+    mem' = if (null withHead)
+           then mem ++ [[head' "toBranches" gs]]
+           else (filter (\gs' -> not $ elem gs' withHead) mem)
+                ++
+                [(concat withHead) ++ [head' "toBranches" gs]]
+    --------------------------------------
+    withHead :: [[PhyloGroup]]
+    withHead = filter (\gs' -> (not . null)
+                             $ intersect (concat $ map getGroupNgrams gs')
+                                         (getGroupNgrams $ (head' "toBranches" gs))
+                      ) mem
+    --------------------------------------
+
+
+-- | a init avec la [[head groups]] et la tail groups
+toBranches' :: [[[Int]]] -> [[Int]] -> [[[Int]]]
+toBranches' mem gs
+  | null gs = mem
+  | otherwise = toBranches' mem' $ tail gs
+  where
+    --------------------------------------
+    mem' :: [[[Int]]]
+    mem' = if (null withHead)
+           then mem ++ [[head' "toBranches" gs]]
+           else (filter (\gs' -> not $ elem gs' withHead) mem)
+                ++
+                [(concat withHead) ++ [head' "toBranches" gs]]
+    --------------------------------------
+    withHead :: [[[Int]]]
+    withHead = filter (\gs' -> (not . null)
+                             $ intersect (concat gs')
+                                         (head' "toBranches" gs)
+                      ) mem
+    --------------------------------------
+
 
 
 
@@ -179,11 +225,17 @@ interTempoMatching fil lvl prox p = traceMatching fil lvl (getThreshold prox) sc
     scores :: [Double]
     scores = sort $ concat $ map (snd . snd) candidates 
     --------------------------------------     
+    -- candidates' :: [(PhyloGroupId,([Pointer],[Double]))]
+    -- candidates' = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (filterCandidates g gs) g p)) gs
+    --------------------------------------
     candidates :: [(PhyloGroupId,([Pointer],[Double]))]
-    candidates = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (filterCandidates g gs) g p)) gs
+    candidates = concat $ map (\b -> map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (filterCandidates g gs) g p)) b) bs
     --------------------------------------
     gs :: [PhyloGroup]
     gs = getGroupsWithLevel lvl p
+    --------------------------------------
+    bs :: [[PhyloGroup]]
+    bs = tracePreBranches $ toBranches [[head' "interTempoMatching" gs]] $ tail gs
     --------------------------------------
     prds :: [PhyloPeriodId]
     prds = getPhyloPeriods p
@@ -229,4 +281,8 @@ traceMatching fil lvl thr lst p = trace ( "----\n" <> show (fil) <> " unfiltered
                                                          <> show (percentile 50 (VS.fromList lst)) <> " (50%) "
                                                          <> show (percentile 75 (VS.fromList lst)) <> " (75%) "
                                                          <> show (percentile 90 (VS.fromList lst)) <> " (90%)\n") p
+
+tracePreBranches :: [[PhyloGroup]] -> [[PhyloGroup]]
+tracePreBranches bs = trace (show (length bs) <> " pre-branches" <> "\n"
+                             <> "with sizes : " <> show (map length bs) <> "\n") bs
 

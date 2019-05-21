@@ -49,10 +49,12 @@ graphToClusters clust (nodes,edges) = case clust of
 
 
 -- | To transform a list of PhyloGroups into a Graph of Proximity
-groupsToGraph :: Proximity -> [PhyloGroup] -> Map (Int, Int) Double -> Phylo -> ([GroupNode],[GroupEdge])
-groupsToGraph prox gs cooc p = case prox of 
-      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), traceSim x y (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc) p  
-                                                                         $ weightedLogJaccard sens (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc)))
+groupsToGraph :: Proximity -> [PhyloGroup] -> Map (Int, Int) Double -> ([GroupNode],[GroupEdge])
+groupsToGraph prox gs cooc = case prox of 
+      -- WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), traceSim x y (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc) p  
+      --                                                                    $ weightedLogJaccard sens (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc)))
+      --                                                                    $ getCandidates gs)
+      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard' sens (getGroupNgrams x) (getGroupNgrams y) cooc))
                                                                          $ getCandidates gs)
       Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc)))
                                                                          $ getCandidates gs)
@@ -82,7 +84,7 @@ phyloToClusters lvl clus p = Map.fromList
     --------------------------------------
     graphs  :: [([GroupNode],[GroupEdge])]
     graphs  = traceGraph lvl (getThreshold prox) 
-            $ map (\prd -> groupsToGraph prox (getGroupsWithFilters lvl prd p) (getCooc [prd] p) p) periods 
+            $ map (\prd -> groupsToGraph prox (getGroupsWithFilters lvl prd p) (getCooc [prd] p)) periods 
     --------------------------------------
     prox :: Proximity
     prox = getProximity clus
@@ -100,7 +102,6 @@ phyloToClusters lvl clus p = Map.fromList
 traceGraph :: Level -> Double -> [([GroupNode],[GroupEdge])] -> [([GroupNode],[GroupEdge])]
 traceGraph lvl thr g = trace ( "----\nUnfiltered clustering in Phylo" <> show (lvl) <> " :\n"
                                       <> "count : " <> show (length lst) <> " potential edges (" <> show (length $ filter (>= thr) lst) <> " >= " <> show (thr) <> ")\n"
-                                      <> show (lst) <> "\n"
                                       <> "similarity : " <> show (percentile 25 (VS.fromList lst)) <> " (25%) "
                                                          <> show (percentile 50 (VS.fromList lst)) <> " (50%) "
                                                          <> show (percentile 75 (VS.fromList lst)) <> " (75%) "
@@ -120,7 +121,5 @@ traceGraphFiltered lvl g = trace ( "----\nClustering in Phylo" <> show (lvl) <> 
     lst = sort $ map snd $ concat $ map snd g 
 
 
-traceSim :: PhyloGroup -> PhyloGroup -> Map (Int, Int) Double -> Map (Int, Int) Double -> Phylo -> Double -> Double
-traceSim g g' _ _ p sim = trace (show (getGroupText g p) <> " [vs] " <>  show (getGroupText g' p) <> " = " <> show (sim) <> "\n"
-                                 -- <> show (c) <> " [vs] " <> show (c') <>  " = " <> show (sim)
-                                 ) sim
+-- traceSim :: PhyloGroup -> PhyloGroup  -> Phylo -> Double -> Double
+-- traceSim g g' p sim = trace (show (getGroupText g p) <> " [vs] " <>  show (getGroupText g' p) <> " = " <> show (sim) <> "\n") sim

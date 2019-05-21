@@ -115,7 +115,9 @@ filterTerms patterns (y,d) = (y,termsInText patterns d)
 -- | To transform a Csv nfile into a readable corpus
 csvToCorpus :: Limit -> CorpusPath -> IO ([(Int,Text)])
 csvToCorpus limit csv = DV.toList
+                      -- . DV.reverse
                       . DV.take limit
+                      -- . DV.reverse
                       . DV.map (\n -> (csv_publication_year n, (csv_title n) <> " " <> (csv_abstract n)))
                       . snd <$> CSV.readFile csv
 
