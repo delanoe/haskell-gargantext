@@ -25,18 +25,18 @@ example = map terminal
         $ chunkAlong 3 1
         $ words "New York and New York is a big apple"
 
-data Terminal = Debut | Terminal Text | Fin
+data Terminal = Terminal Text | Fin
   deriving (Ord, Eq, Show)
 
-isDebutFin :: Terminal -> Bool
-isDebutFin x = case x of
-        Debut -> True
+isFin :: Terminal -> Bool
+isFin x = case x of
         Fin   -> True
         _     -> False
 
 terminal :: [Text] -> [Terminal]
---terminal xs = [Debut] <> (map Terminal xs) <> [Fin]
 terminal xs = (map Terminal xs) <> [Fin]
+
+
 
 data Arbre k e = Noeud { _noeud_count  :: Double
                        , _noeud_entropy :: e
@@ -69,7 +69,7 @@ entropyArbre :: Arbre Terminal () -> Arbre Terminal Double
 entropyArbre (Feuille c)       = Feuille c
 entropyArbre (Noeud c _e fils) = (Noeud c e (map entropyArbre fils))
   where
-    e = sum $ map (\(k, f) -> case isDebutFin k of
+    e = sum $ map (\(k, f) -> case isFin k of
                            True ->   (_noeud_count f) / c * log c
                            False  -> - c' * log c'
                               where
@@ -79,7 +79,7 @@ entropyArbre (Noeud c _e fils) = (Noeud c e (map entropyArbre fils))
 
 normalizeArbre :: Arbre Terminal Double -> Arbre Terminal Double
 normalizeArbre (Feuille c)   = Feuille c
-normalizeArbre (Noeud c e f) = Noeud c e (Map.map (\n -> normalizeLevel n $ Map.elems f) f)
+normalizeArbre (Noeud c e f) = Noeud c e (Map.map (\a -> normalizeLevel a $ Map.elems f) f)
 
 normalizeLevel :: Arbre Terminal Double -> [Arbre Terminal Double] -> Arbre Terminal Double
 normalizeLevel (Feuille c) _ = Feuille c
@@ -91,6 +91,7 @@ normalizeLevel (Noeud c e f) ns = Noeud c ( (e-m) / v) f
 
 buildArbre :: [[Terminal]] -> Arbre Terminal Double
 buildArbre = normalizeArbre . entropyArbre . insertArbres
+
 
 
 
