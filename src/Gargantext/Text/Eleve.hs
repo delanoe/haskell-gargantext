@@ -28,16 +28,11 @@ example = map token
         $ chunkAlong 3 1
         $ T.words "New York and New York is a big apple"
 
-data Token = NonTerminal Text | Fin
+data Token = NonTerminal Text | Terminal
   deriving (Ord, Eq, Show)
 
-isFin :: Token -> Bool
-isFin x = case x of
-  Fin   -> True
-  _     -> False
-
 token :: [Text] -> [Token]
-token xs = (NonTerminal <$> xs) <> [Fin]
+token xs = (NonTerminal <$> xs) <> [Terminal]
 
 data Trie k e
   = Node { _node_count    :: Int
@@ -87,10 +82,11 @@ normalizeEntropy (Node c e children) =
 
 normalizeLevel :: Double -> Double -> Trie k Double -> Trie k Double
 -- normalizeLevel _ _ (Leaf c)            = Leaf c
-normalizeLevel m v (Node c e children) = Node c ((e - m) / v) children
+-- normalizeLevel m v (Node c e children) = Node c ((e - m) / v) children
+normalizeLevel m v n = n { _node_entropy = (_node_entropy n - m) / v }
 
 buildTrie :: [[Token]] -> Trie Token Double
-buildTrie = normalizeEntropy . entropyTrie isFin . insertTries
+buildTrie = normalizeEntropy . entropyTrie (== Terminal) . insertTries
 
 subForest :: Trie k e -> [Trie k e]
 -- subForest (Leaf _)            = []
@@ -102,11 +98,17 @@ levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
 entropyLevels :: Trie k e -> [[e]]
 entropyLevels = fmap (fmap _node_entropy) . levels
 
-normalizeEntropy' :: [[Double]] -> Trie k Double -> Trie k Double
-normalizeEntropy' [] _ = panic "normalizeEntropy' empty levels"
--- normalizeEntropy' _          (Leaf c)            = Leaf c
-normalizeEntropy' (es : ess) (Node c e children) =
-    Node c e (normalizeLevel m v . normalizeEntropy' ess <$> children)
+normalizeEntropy' :: Trie k Double -> Trie k Double
+normalizeEntropy' t = go (entropyLevels t) t
   where
-    m  = mean es
-    v  = variance es
+    go :: [[Double]] -> Trie k Double -> Trie k Double
+    go [] _ = panic "normalizeEntropy' empty levels"
+    -- go _          (Leaf c)            = Leaf c
+    go (es : ess) (Node c e children) =
+        Node c e (normalizeLevel m v . go ess <$> children)
+      where
+        m  = mean es
+        v  = variance es
+
+buildTrie' :: [[Token]] -> Trie Token Double
+buildTrie' = normalizeEntropy' . entropyTrie (== Terminal) . insertTries
