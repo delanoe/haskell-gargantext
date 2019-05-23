@@ -10,89 +10,103 @@ module Gargantext.Text.Eleve where
 
 
 import Data.Ord (Ord)
-import qualified Data.List as List
+import qualified Data.List as L
 import Data.Monoid
-import Data.Text hiding (map)
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Map (Map)
+import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 import Gargantext.Prelude
 
--- prop (Noeud c _e f) = c == Map.size f
--- TODO remove Feuille
+-- prop (Node c _e f) = c == Map.size f
+-- TODO remove Leaf
+--   NP: I think Leaf is an optimisation (less data, a tiny bit more code and time)
 
-example :: [[Terminal]]
-example = map terminal
+example :: [[Token]]
+example = map token
         $ chunkAlong 3 1
-        $ words "New York and New York is a big apple"
+        $ T.words "New York and New York is a big apple"
 
-data Terminal = Terminal Text | Fin
+data Token = NonTerminal Text | Fin
   deriving (Ord, Eq, Show)
 
-isFin :: Terminal -> Bool
+isFin :: Token -> Bool
 isFin x = case x of
-        Fin   -> True
-        _     -> False
+  Fin   -> True
+  _     -> False
 
-terminal :: [Text] -> [Terminal]
-terminal xs = (map Terminal xs) <> [Fin]
+token :: [Text] -> [Token]
+token xs = (NonTerminal <$> xs) <> [Fin]
 
+data Trie k e
+  = Node { _node_count    :: Int
+         , _node_entropy  :: e
+         , _node_children :: Map k (Trie k e)
+         }
+-- | Leaf { _node_count    :: Int }
+  deriving (Show)
 
+-- emptyTrie :: Trie k e
+-- emptyTrie = Leaf 0
+emptyTrie :: (Ord k, Monoid e) => Trie k e
+emptyTrie = Node 0 mempty mempty
 
-data Arbre k e = Noeud { _noeud_count  :: Double
-                       , _noeud_entropy :: e
-                       , _noeud_fils    :: Map k (Arbre k e)
-                       }
-           | Feuille { _noeud_count :: Double }
-           deriving (Show)
+mkTrie :: Monoid e => Int -> Map k (Trie k e) -> Trie k e
+mkTrie c children
+{-| Map.null children = Leaf c
+  | otherwise -}        = Node c mempty children
 
-arbreVide :: Arbre k e
-arbreVide = Feuille 0
-
-mkArbre :: Monoid e => Double -> Map Terminal (Arbre Terminal e) -> Arbre Terminal e
-mkArbre c fils
-  | Map.null fils = Feuille c
-  | otherwise     = Noeud c mempty fils
-
-
-insertArbre :: [Terminal] -> Arbre Terminal () -> Arbre Terminal ()
-insertArbre [] n = n
-insertArbre (x:xs) (Feuille c)    = mkArbre (c+1) (Map.singleton x $ insertArbre xs arbreVide)
-insertArbre (x:xs) (Noeud c _e f) = mkArbre (c+1) (case Map.lookup x f of
-                                                      Nothing    -> Map.insert x (insertArbre xs arbreVide) f
-                                                      Just arbre -> Map.insert x (insertArbre xs arbre    ) f
-                                                      )
-
-insertArbres :: [[Terminal]] -> Arbre Terminal ()
-insertArbres = List.foldr insertArbre arbreVide
-
-entropyArbre :: Arbre Terminal () -> Arbre Terminal Double
-entropyArbre (Feuille c)       = Feuille c
-entropyArbre (Noeud c _e fils) = (Noeud c e (map entropyArbre fils))
+insertTrie :: Ord k => [k] -> Trie k () -> Trie k ()
+insertTrie []     n                    = n
+-- insertTrie (x:xs) (Leaf c)             = mkTrie (c+1) (Map.singleton x $ insertTrie xs emptyTrie)
+insertTrie (x:xs) (Node c _e children) = mkTrie (c+1) $ Map.alter f x children
   where
-    e = sum $ map (\(k, f) -> case isFin k of
-                           True ->   (_noeud_count f) / c * log c
-                           False  -> - c' * log c'
-                              where
-                                c' = (_noeud_count f) / c
-                          )
-            $ Map.toList fils
+    f = Just . insertTrie xs . fromMaybe emptyTrie
 
-normalizeArbre :: Arbre Terminal Double -> Arbre Terminal Double
-normalizeArbre (Feuille c)   = Feuille c
-normalizeArbre (Noeud c e f) = Noeud c e (Map.map (\a -> normalizeLevel a $ Map.elems f) f)
+insertTries :: Ord k => [[k]] -> Trie k ()
+insertTries = L.foldr insertTrie emptyTrie
 
-normalizeLevel :: Arbre Terminal Double -> [Arbre Terminal Double] -> Arbre Terminal Double
-normalizeLevel (Feuille c) _ = Feuille c
-normalizeLevel (Noeud c e f) ns = Noeud c ( (e-m) / v) f
+entropyTrie :: (k -> Bool) -> Trie k () -> Trie k Double
+-- entropyTrie _    (Leaf c)             = Leaf c
+entropyTrie pred (Node c _e children) = Node c e (entropyTrie pred <$> children)
   where
-    es = map _noeud_entropy ns
+    e = sum $ f <$> Map.toList children
+    f (k, child) = if pred k then cfc * log (fromIntegral c) else - cfc * log cfc
+      where
+        cfc = fromIntegral (_node_count child) / fromIntegral c
+
+normalizeEntropy :: Trie k Double -> Trie k Double
+-- normalizeEntropy (Leaf c)            = Leaf c
+normalizeEntropy (Node c e children) =
+    Node c e $ normalizeLevel m v . normalizeEntropy <$> children
+  where
+    es = _node_entropy <$> Map.elems children
     m  = mean es
     v  = variance es
 
-buildArbre :: [[Terminal]] -> Arbre Terminal Double
-buildArbre = normalizeArbre . entropyArbre . insertArbres
+normalizeLevel :: Double -> Double -> Trie k Double -> Trie k Double
+-- normalizeLevel _ _ (Leaf c)            = Leaf c
+normalizeLevel m v (Node c e children) = Node c ((e - m) / v) children
 
+buildTrie :: [[Token]] -> Trie Token Double
+buildTrie = normalizeEntropy . entropyTrie isFin . insertTries
 
+subForest :: Trie k e -> [Trie k e]
+-- subForest (Leaf _)            = []
+subForest (Node _ _ children) = Map.elems children
 
+levels :: Trie k e -> [[Trie k e]]
+levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
 
+entropyLevels :: Trie k e -> [[e]]
+entropyLevels = fmap (fmap _node_entropy) . levels
 
+normalizeEntropy' :: [[Double]] -> Trie k Double -> Trie k Double
+normalizeEntropy' [] _ = panic "normalizeEntropy' empty levels"
+-- normalizeEntropy' _          (Leaf c)            = Leaf c
+normalizeEntropy' (es : ess) (Node c e children) =
+    Node c e (normalizeLevel m v . normalizeEntropy' ess <$> children)
+  where
+    m  = mean es
+    v  = variance es
