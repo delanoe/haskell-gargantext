@@ -1,0 +1,8 @@
+if [ "$#" -lt 3 ]; then
+  echo "Usage: $0 <name> <path> <limit>"
+  exit 1
+fi
+name="$1"
+path="$2"
+limit="$3"
+stack --docker exec gargantext-import -- true "user1" "$name" gargantext.ini "$limit" "$path"
