@@ -95,6 +95,7 @@ data TODO = TODO
   deriving (Generic)
 
 instance ToSchema TODO where
+instance ToParamSchema TODO where
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart

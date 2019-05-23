@@ -19,29 +19,33 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeOperators         #-}
 
 module Gargantext.API.Upload
   where
 
+import Control.Lens ((.~), (?~))
 import qualified Data.Text as Text
 import GHC.Generics (Generic)
 import Gargantext.Prelude
 import Data.Text (Text)
 import Data.Aeson
+import Data.Monoid
 import Servant
 import Servant.Multipart
 --import Servant.Mock (HasMock(mock))
 import Servant.Swagger (HasSwagger(toSwagger))
+import Servant.Swagger.Internal
 -- import qualified Data.ByteString.Lazy as LBS
 import Control.Monad
 import Control.Monad.IO.Class
 import Gargantext.API.Types
 --import Servant.CSV.Cassava (CSV'(..))
 --import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
---import Data.Swagger
---import Gargantext.API.Ngrams (TODO)
+import Data.Swagger
+import Gargantext.API.Ngrams (TODO)
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
@@ -52,12 +56,23 @@ import Gargantext.API.Types
 --instance ToSchema Mem
 --instance Arbitrary Mem
 
---instance ToSchema (MultipartData Mem)
+instance ToParamSchema (MultipartData Mem) where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+
 --instance Arbitrary ( MultipartData Mem)
 
-instance HasSwagger (MultipartForm tag a :> sub) where
+instance (ToParamSchema a, HasSwagger sub) =>
+         HasSwagger (MultipartForm tag a :> sub) where
   -- TODO
-  toSwagger _ = undefined -- toSwagger (Proxy :: Proxy (TODO :> Post '[JSON] ()))
+  toSwagger _ = toSwagger (Proxy :: Proxy sub)
+    & addParam param
+    where
+      param = mempty
+        & required ?~ True
+        & schema   .~ ParamOther sch
+      sch = mempty
+        & in_         .~ ParamFormData
+        & paramSchema .~ toParamSchema (Proxy :: Proxy a)
 --declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 --instance Arbitrary (MultipartForm Mem (MultipartData Mem))
 
