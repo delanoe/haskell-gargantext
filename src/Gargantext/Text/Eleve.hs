@@ -62,10 +62,16 @@ test n example = do
                $ toTree (NonTerminal "") nt'
 
   pure $ map unToken $ split info_entropy nt' ex
+                          -- NP: here we use the entropy to split
+                          -- instead we should use either:
+                          --   info_norm_entropy or info_norm_entropy'
+                          -- However they should first be fixed.
 
 
-example'  =  T.words "New York and New York"
-example'' =  map (T.pack . pure) ("abcdefabcdegabcde" :: P.String)
+example0 =  T.words "New York is New York and New York"
+example1 =  T.words "to be or not to be"
+example2 =  T.words "to be or not to be or"
+example3 =  map (T.pack . pure) ("abcdefabcdegabcde" :: P.String)
 
 
 data Token = NonTerminal Text
@@ -188,16 +194,25 @@ split :: (Num e, Ord e, Show e) => Lens' i e -> Trie Token i -> [Token] -> [[Tok
 split inE t0 = go t0 []
   where
     ne d t = fromMaybe d (nodeEntropy t ^? _Just . inE)
+    consRev [] xss = xss
+    consRev xs xss = reverse xs : xss
+
     go _ pref [] = [reverse pref]
     go t pref (x:xs) = case nodeChild x t of
-      Nothing -> reverse pref : go t0 [x] xs
-      Just a  -> case nodeChild x t0 of
+      Nothing -> consRev pref $ go t0 [x] xs
+      Just xt -> case nodeChild x t0 of
         Nothing  -> panic "TODO"
         Just xt0 ->
           let et = ne (panic "t") t
               ext0 = ne (panic "xt0") xt0
-              ea = ne (-42) a
-          in trace (show (et, ext0, ea)) $
-          case et + ext0 > ea of
-            True  -> go a (x:pref) xs
-            False -> reverse pref : go xt0 [x] xs
+              ext = ne 0 xt
+          in
+          -- trace (show ((reverse pref, et, ext0), (reverse (x : pref), ext))) $
+          case et {-+ ext0-} < ext of
+            -- NP: here we must take ext0 in account howover currently it
+            -- makes it worse.
+            -- For instance it currently works well to 2-grams but not more.
+            -- PASS: test 4 example1
+            -- FAIL: test 4 example2
+            True  -> go xt (x:pref) xs
+            False -> consRev pref $ go xt0 [x] xs
