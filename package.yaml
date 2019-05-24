@@ -151,6 +151,7 @@ library:
   - protolude
   - pureMD5
   - SHA
+  - simple-reflect
   - random
   - rake
   - regex-compat
