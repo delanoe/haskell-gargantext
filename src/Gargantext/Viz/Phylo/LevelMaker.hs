@@ -32,6 +32,7 @@ import Gargantext.Viz.Phylo.Aggregates.Fis
 import Gargantext.Viz.Phylo.BranchMaker
 import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.Viz.Phylo.Aggregates.Cooc
 import Gargantext.Text.Context (TermList)
 
 import qualified Data.Vector.Storable as VS
@@ -60,7 +61,7 @@ instance PhyloLevelMaker PhyloCluster
       | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Clusters at level < 2")
     --------------------------------------
     -- | Level -> (Date,Date) -> [Cluster] -> Map (Date,Date) [Cluster] -> Phylo -> [PhyloGroup]
-    toPhyloGroups lvl (d,d') l m _ = map (\(idx,cluster) -> clusterToGroup (d,d') lvl idx "" cluster m) $ zip [1..] l
+    toPhyloGroups lvl (d,d') l m p = map (\(idx,cluster) -> clusterToGroup (d,d') lvl idx "" cluster m p) $ zip [1..] l
     --------------------------------------
 
 
@@ -94,9 +95,12 @@ instance PhyloLevelMaker Document
 
 
 -- | To transform a Cluster into a Phylogroup
-clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster]-> PhyloGroup
-clusterToGroup prd lvl idx lbl groups _m =
-    PhyloGroup ((prd, lvl), idx) lbl ngrams empty Nothing [] [] [] (map (\g -> (getGroupId g, 1)) groups)
+clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster]-> Phylo-> PhyloGroup
+clusterToGroup prd lvl idx lbl groups _m p =
+    PhyloGroup ((prd, lvl), idx) lbl ngrams empty 
+      Nothing
+      (getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p))
+      [] [] [] (map (\g -> (getGroupId g, 1)) groups)
       where
         --------------------------------------
         ngrams :: [Int]
@@ -107,7 +111,9 @@ clusterToGroup prd lvl idx lbl groups _m =
 -- | To transform a Clique into a PhyloGroup
 cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Phylo -> PhyloGroup
 cliqueToGroup prd lvl idx lbl fis p =
-    PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ getSupport fis)) Nothing [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ getSupport fis)) Nothing
+    (getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p))
+    [] [] [] []
       where
         --------------------------------------
         ngrams :: [Int]
@@ -120,7 +126,9 @@ cliqueToGroup prd lvl idx lbl fis p =
 -- | To transform a list of Ngrams into a PhyloGroup
 ngramsToGroup ::  PhyloPeriodId -> Level -> Int -> Text -> [Ngrams] -> Phylo -> PhyloGroup
 ngramsToGroup prd lvl idx lbl ngrams p =
-    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInRoots x p) ngrams) empty Nothing [] [] [] []
+    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInRoots x p) ngrams) empty Nothing
+               (getMiniCooc (listToFullCombi $ sort $ map (\x -> getIdxInRoots x p) ngrams) (periodsToYears [prd]) (getPhyloCooc p))
+               [] [] [] []
 
 
 -- | To traverse a Phylo and add a new PhyloLevel linked to a new list of PhyloGroups
@@ -141,10 +149,6 @@ toNthLevel lvlMax prox clus p
   | otherwise     = toNthLevel lvlMax prox clus
                   $ traceBranches (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
-                  -- $ traceTempoMatching Descendant (lvl + 1)
-                  -- $ interTempoMatching Descendant (lvl + 1) prox
-                  -- $ traceTempoMatching Ascendant  (lvl + 1)
-                  -- $ interTempoMatching Ascendant  (lvl + 1) prox
                   $ transposePeriodLinks (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
@@ -207,8 +211,14 @@ instance PhyloMaker [(Date, Text)]
         phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
         --------------------------------------       
     --------------------------------------
-    toPhyloBase q p c roots termList = initPhyloBase periods foundations p
+    toPhyloBase q p c roots termList = initPhyloBase periods foundations nbDocs cooc p
       where
+        --------------------------------------
+        cooc :: Map Date (Map (Int,Int) Double)
+        cooc = docsToCooc (parseDocs (foundations ^. phylo_foundationsRoots) c) (foundations ^. phylo_foundationsRoots)        
+        --------------------------------------
+        nbDocs :: Map Date Double
+        nbDocs = countDocs c
         --------------------------------------
         foundations :: PhyloFoundations
         foundations = PhyloFoundations (initFoundationsRoots roots) termList
@@ -240,8 +250,14 @@ instance PhyloMaker [Document]
         phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
         --------------------------------------       
     --------------------------------------
-    toPhyloBase q p c roots termList = initPhyloBase periods foundations p
+    toPhyloBase q p c roots termList = initPhyloBase periods foundations nbDocs cooc p
       where
+        --------------------------------------
+        cooc :: Map Date (Map (Int,Int) Double)
+        cooc = docsToCooc c (foundations ^. phylo_foundationsRoots)
+        --------------------------------------
+        nbDocs :: Map Date Double
+        nbDocs = countDocs $ map (\doc -> (date doc, text doc)) c        
         --------------------------------------
         foundations :: PhyloFoundations
         foundations = PhyloFoundations (initFoundationsRoots roots) termList

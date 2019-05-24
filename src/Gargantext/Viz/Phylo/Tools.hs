@@ -20,9 +20,9 @@ module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level, Empty)
-import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, sortOn, nubBy)
+import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, sortOn, nubBy, concat)
 import Data.Maybe           (mapMaybe,fromMaybe)
-import Data.Map             (Map, mapKeys, member, (!))
+import Data.Map             (Map, mapKeys, member, (!), restrictKeys, elems, empty, filterWithKey, unionWith)
 import Data.Set             (Set)
 import Data.Text            (Text,toLower,unwords)
 import Data.Tuple.Extra
@@ -160,8 +160,8 @@ initFoundationsRoots :: [Ngrams] -> Vector Ngrams
 initFoundationsRoots l = Vector.fromList $ map phyloAnalyzer l
 
 -- | To init the base of a Phylo from a List of Periods and Foundations
-initPhyloBase :: [(Date, Date)] -> PhyloFoundations -> PhyloParam -> Phylo
-initPhyloBase pds fds prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds) prm
+initPhyloBase :: [(Date, Date)] -> PhyloFoundations -> Map Date Double  -> Map Date (Map (Int,Int) Double) -> PhyloParam -> Phylo
+initPhyloBase pds fds nbDocs cooc prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds) nbDocs cooc prm
 
 -- | To init the param of a Phylo
 initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQueryBuild -> PhyloParam
@@ -174,6 +174,11 @@ getLastLevel p = (last . sort)
                $ view ( phylo_periods
                       .  traverse
                       . phylo_periodLevels ) p
+
+-- | To get all the coocurency matrix of a phylo
+getPhyloCooc :: Phylo -> Map Date (Map (Int,Int) Double)
+getPhyloCooc p = p ^. phylo_cooc
+
 
 
 --------------------
@@ -193,6 +198,11 @@ getIdxInRoots :: Ngrams -> Phylo -> Int
 getIdxInRoots n p = case (elemIndex n (getFoundationsRoots p)) of
     Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
     Just idx -> idx
+
+getIdxInVector :: Ngrams -> Vector Ngrams -> Int
+getIdxInVector n ns = case (elemIndex n ns) of
+  Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
+  Just idx -> idx 
 
 --------------------
 -- | PhyloGroup | --
@@ -240,6 +250,10 @@ getGroupChilds g p = getGroupsFromIds (getGroupPeriodChildsId g) p
 -- | To get the id of a PhyloGroup
 getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId = _phylo_groupId
+
+
+getGroupCooc :: PhyloGroup -> Map (Int,Int) Double
+getGroupCooc = _phylo_groupCooc
 
 
 -- | To get the level out of the id of a PhyloGroup
@@ -380,10 +394,29 @@ initGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> Phylo -> PhyloGroup
 initGroup ngrams lbl idx lvl from' to' p = PhyloGroup
   (((from', to'), lvl), idx)
   lbl
-  (sort $ map (\x -> getIdxInRoots x p) ngrams)
+  idxs
   (Map.empty)
   Nothing
+  (getMiniCooc (listToFullCombi idxs) (periodsToYears [(from', to')]) (getPhyloCooc p))
   [] [] [] []
+  where 
+    idxs = sort $ map (\x -> getIdxInRoots x p) ngrams
+
+
+-- | To sum two coocurency Matrix
+sumCooc :: Map (Int, Int) Double ->  Map (Int, Int) Double ->  Map (Int, Int) Double
+sumCooc m m' = unionWith (+) m m'
+
+-- | To build the mini cooc matrix of each group
+getMiniCooc :: [(Int,Int)] -> Set Date -> Map Date (Map (Int,Int) Double) -> Map (Int,Int) Double
+getMiniCooc pairs years cooc = filterWithKey (\(n,n') _ -> elem (n,n') pairs) cooc'
+  where 
+    --------------------------------------
+    cooc' :: Map (Int,Int) Double
+    cooc' = foldl (\m m' -> sumCooc m m') empty 
+          $ elems 
+          $ restrictKeys cooc years
+    --------------------------------------
 
 
 ---------------------
@@ -416,6 +449,11 @@ getPhyloPeriodId prd = _phylo_periodId prd
 -- | To create a PhyloPeriod
 initPhyloPeriod :: PhyloPeriodId -> [PhyloLevel] -> PhyloPeriod
 initPhyloPeriod id l = PhyloPeriod id l
+
+
+-- | To transform a list of periods into a set of Dates
+periodsToYears :: [(Date,Date)] -> Set Date
+periodsToYears periods = (Set.fromList . sort . concat) [[d,d'] | (d,d') <- periods]
 
 
 --------------------

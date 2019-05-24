@@ -40,6 +40,7 @@ import Gargantext.Text.Context (TermList)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Aggregates.Cluster
 import Gargantext.Viz.Phylo.Aggregates.Document
+import Gargantext.Viz.Phylo.Aggregates.Cooc
 import Gargantext.Viz.Phylo.Aggregates.Fis
 import Gargantext.Viz.Phylo.BranchMaker
 import Gargantext.Viz.Phylo.LevelMaker
@@ -104,7 +105,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQueryBuild :: PhyloQueryBuild
 phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.3 10) 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.5 0) 
+             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.1 20) 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.3 0) 
 
 
 
@@ -154,7 +155,7 @@ phylo2 = addPhyloLevel 2 phyloCluster phyloBranch1
 
 
 phyloCluster :: Map (Date,Date) [PhyloCluster]
-phyloCluster = phyloToClusters 1 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.05 10) phyloBranch1
+phyloCluster = phyloToClusters 3 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.05 10) phyloBranch1
 
 
 ----------------------------------
@@ -226,7 +227,13 @@ phyloDocs = corpusToDocs corpus phyloBase
 
 
 phyloBase :: Phylo
-phyloBase = initPhyloBase periods (PhyloFoundations foundationsRoots termList) defaultPhyloParam
+phyloBase = initPhyloBase periods (PhyloFoundations foundationsRoots termList) nbDocs cooc defaultPhyloParam
+
+cooc :: Map Date (Map (Int,Int) Double)
+cooc = docsToCooc (parseDocs foundationsRoots corpus) foundationsRoots
+
+nbDocs :: Map Date Double
+nbDocs = countDocs corpus
 
 periods :: [(Date,Date)]
 periods = initPeriods 5 3

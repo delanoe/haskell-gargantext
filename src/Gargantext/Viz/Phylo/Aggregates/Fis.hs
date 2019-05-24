@@ -43,12 +43,12 @@ filterFis keep thr f m = case keep of
 
 -- | To filter Fis with small Support
 filterFisBySupport :: Int -> [PhyloFis] -> [PhyloFis]
-filterFisBySupport thr l = filter (\fis -> getSupport fis > thr) l
+filterFisBySupport thr l = filter (\fis -> getSupport fis >= thr) l
 
 
 -- | To filter Fis with small Clique size
 filterFisByClique :: Int -> [PhyloFis] -> [PhyloFis]
-filterFisByClique thr l = filter (\fis -> (size $ getClique fis) > thr) l
+filterFisByClique thr l = filter (\fis -> (size $ getClique fis) >= thr) l
 
 
 -- | To filter nested Fis 

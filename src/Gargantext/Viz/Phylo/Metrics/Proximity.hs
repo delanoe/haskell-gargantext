@@ -17,65 +17,40 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Metrics.Proximity
   where
 
-import Data.List        (null,intersect,union)
-import Data.Map         (Map,elems,unionWith,intersectionWith,intersection,size)
+import Data.List        (null)
+import Data.Map         (Map,elems,unionWith,intersectionWith,intersection,size,keys)
 import Gargantext.Prelude
-import Gargantext.Viz.Phylo.Aggregates.Cooc
 -- import Debug.Trace (trace)
 
--- | To process the weightedLogJaccard between two PhyloGroup fields
-weightedLogJaccard :: Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double
-weightedLogJaccard s f1 f2
-  | null wUnion      = 0
-  | wUnion == wInter = 1 
-  | s == 0           = (fromIntegral $ length wInter)/(fromIntegral $ length wUnion)
-  | s > 0            = (sumInvLog wInter)/(sumInvLog wUnion)
-  | otherwise        = (sumLog wInter)/(sumLog wUnion)
-  where 
-    --------------------------------------
-    wInter :: [Double]
-    wInter = elems $ intersectionWith (+) f1 f2
-    --------------------------------------
-    wUnion :: [Double]
-    wUnion = elems $ unionWith (+) f1 f2  
-    --------------------------------------
-    sumInvLog :: [Double] -> Double
-    sumInvLog l = foldl (\mem x -> mem + (1 / log (s + x))) 0 l
-    --------------------------------------
-    sumLog :: [Double] -> Double
-    sumLog l = foldl (\mem x -> mem + log (s + x)) 0 l  
-    --------------------------------------  
+sumInvLog :: Double -> [Double] -> Double
+sumInvLog s l = foldl (\mem x -> mem + (1 / log (s + x))) 0 l
+
+sumLog :: Double -> [Double] -> Double
+sumLog s l = foldl (\mem x -> mem + log (s + x)) 0 l  
 
 
--- | To process the weightedLogJaccard between two PhyloGroup fields
-weightedLogJaccard' :: Double -> [Int] -> [Int] -> Map (Int, Int) Double -> Double
-weightedLogJaccard' s idx idx' cooc
-  | null idxUnion        = 0
-  | idxUnion == idxInter = 1 
-  | s == 0               = (fromIntegral $ length idxInter)/(fromIntegral $ length idxUnion)
-  | s > 0                = (sumInvLog wInter)/(sumInvLog wUnion)
-  | otherwise            = (sumLog wInter)/(sumLog wUnion)
+-- | To process WeighedLogJaccard distance between to coocurency matrix
+weightedLogJaccard :: Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double -> Double
+weightedLogJaccard sens cooc cooc' nbDocs
+  | null union'      = 0
+  | union' == inter' = 1
+  | sens == 0        = (fromIntegral $ length $ keys inter') / (fromIntegral $ length $ keys union')
+  | sens > 0         = (sumInvLog sens $ elems wInter) / (sumInvLog sens $ elems wUnion)
+  | otherwise        = (sumLog sens $ elems wInter) / (sumLog sens $ elems wUnion)
   where
     --------------------------------------
-    wInter :: [Double]
-    wInter = elems $ getSubCooc idxInter cooc
+    wInter :: Map (Int,Int) Double
+    wInter = map (/nbDocs) inter'
     --------------------------------------
-    wUnion :: [Double]
-    wUnion = elems $ getSubCooc idxUnion cooc    
+    wUnion :: Map (Int,Int) Double
+    wUnion = map (/nbDocs) union'
     --------------------------------------
-    idxInter :: [Int]
-    idxInter = intersect idx idx'
+    inter' :: Map (Int, Int) Double
+    inter' = intersectionWith (+) cooc cooc'
+    --------------------------------------      
+    union' :: Map (Int, Int) Double
+    union' = unionWith (+) cooc cooc'
     --------------------------------------
-    idxUnion :: [Int]
-    idxUnion = union idx idx'
-    --------------------------------------
-    sumInvLog :: [Double] -> Double
-    sumInvLog l = foldl (\mem x -> mem + (1 / log (s + x))) 0 l
-    --------------------------------------
-    sumLog :: [Double] -> Double
-    sumLog l = foldl (\mem x -> mem + log (s + x)) 0 l  
-    --------------------------------------     
-        
 
 
 -- | To process the Hamming distance between two PhyloGroup fields 

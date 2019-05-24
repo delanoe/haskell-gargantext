@@ -25,7 +25,7 @@ import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
 import Gargantext.Viz.Phylo.Metrics.Clustering
-import Gargantext.Viz.Phylo.Aggregates.Cooc
+import Gargantext.Viz.Phylo.LinkMaker
 import qualified Data.Map    as Map
 
 import qualified Data.Vector.Storable as VS
@@ -49,15 +49,11 @@ graphToClusters clust (nodes,edges) = case clust of
 
 
 -- | To transform a list of PhyloGroups into a Graph of Proximity
-groupsToGraph :: Proximity -> [PhyloGroup] -> Map (Int, Int) Double -> ([GroupNode],[GroupEdge])
-groupsToGraph prox gs cooc = case prox of 
-      -- WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), traceSim x y (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc) p  
-      --                                                                    $ weightedLogJaccard sens (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc)))
-      --                                                                    $ getCandidates gs)
-      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard' sens (getGroupNgrams x) (getGroupNgrams y) cooc))
-                                                                         $ getCandidates gs)
-      Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getSubCooc (getGroupNgrams x) cooc) (getSubCooc (getGroupNgrams y) cooc)))
-                                                                         $ getCandidates gs)
+groupsToGraph :: Double -> Proximity -> [PhyloGroup] -> ([GroupNode],[GroupEdge])
+groupsToGraph nbDocs prox gs = case prox of 
+      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard sens (getGroupCooc x) (getGroupCooc y) nbDocs))
+                                                  $ getCandidates gs)
+      Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getGroupCooc x) (getGroupCooc y))) $ getCandidates gs)
       _                                     -> undefined 
 
 
@@ -84,7 +80,7 @@ phyloToClusters lvl clus p = Map.fromList
     --------------------------------------
     graphs  :: [([GroupNode],[GroupEdge])]
     graphs  = traceGraph lvl (getThreshold prox) 
-            $ map (\prd -> groupsToGraph prox (getGroupsWithFilters lvl prd p) (getCooc [prd] p)) periods 
+            $ map (\prd -> groupsToGraph (periodsToNbDocs [prd] p) prox (getGroupsWithFilters lvl prd p)) periods 
     --------------------------------------
     prox :: Proximity
     prox = getProximity clus
