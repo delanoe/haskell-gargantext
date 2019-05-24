@@ -1,16 +1,21 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TemplateHaskell   #-}
 {-
 
 Implementation of EleVe Python version of papers:
 
 
+NP:
+  * The node count is correct and we should not regress on this front.
 -}
 module Gargantext.Text.Eleve where
 
 import Debug.Trace (trace)
-import Debug.SimpleReflect
+-- import Debug.SimpleReflect
 
+import Control.Lens (Lens, Lens', ASetter, Getting, (^.), (^?), (&), (.~), (%~), view, makeLenses, _Just)
 import Control.Monad (foldM)
 import Data.Ord (Ord)
 import qualified Data.List as L
@@ -18,9 +23,9 @@ import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Map (Map)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
-import Gargantext.Prelude
+import Gargantext.Prelude hiding (cs)
 import qualified Data.Tree as Tree
 import Data.Tree (Tree)
 import qualified Prelude as P (putStrLn, logBase, String)
@@ -29,17 +34,34 @@ import qualified Prelude as P (putStrLn, logBase, String)
 -- TODO maybe add Leaf
 --   NP: I think Leaf is an optimisation (less data, a tiny bit more code and time)
 
---test = split t ts
+data I e = I
+  { _info_entropy       :: e
+  , _info_norm_entropy  :: e
+  , _info_norm_entropy' :: e
+  }
+
+instance Show e => Show (I e) where
+  show (I e n n') = show (e, n, n')
+
+makeLenses ''I
+
+type ModEntropy i o e = (e -> e) -> i -> o
+
+setNormEntropy :: ModEntropy e (I e) e
+setNormEntropy f e = I e (f e) e -- (panic "setNormEntropy")
+
 test n example = do
   let
-    ex = toToken n example
-    t  = buildTrie $ chunkAlong n 1 ex
+    ex  = toToken n example
+    t   = buildTrie $ chunkAlong n 1 ex
+    nt  = normalizeEntropy  identity setNormEntropy (t :: Trie Token Double)
+    nt' = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
 
   P.putStrLn $ Tree.drawTree
                $ fmap show
-               $ toTree (NonTerminal "") t
+               $ toTree (NonTerminal "") nt'
 
-  pure $ map unToken $ split t t [] ex
+  pure $ map unToken $ split info_entropy nt' ex
 
 
 example'  =  T.words "New York and New York"
@@ -68,31 +90,32 @@ data Trie k e
  | Leaf { _node_count    :: Int }
   deriving (Show)
 
-toTree :: k -> Trie k e -> Tree (k,Int,e)
-toTree k (Node c e cs) = Tree.Node (k, c, e) (map (uncurry toTree) $ Map.toList cs)
+toTree :: k -> Trie k e -> Tree (k,Int,Maybe e)
+toTree k (Leaf c)      = Tree.Node (k, c, Nothing) []
+toTree k (Node c e cs) = Tree.Node (k, c, Just e)  (map (uncurry toTree) $ Map.toList cs)
 
--- emptyTrie :: Trie k e
-emptyTrie :: (Ord k, Monoid e) => Int -> Trie k e
---emptyTrie n = Node n mempty mempty
-emptyTrie   = Leaf
+-- emptyTrie :: (Ord k, Monoid e) => Trie k e
+-- emptyTrie = Node 0 mempty mempty
+emptyTrie :: Trie k e
+emptyTrie   = Leaf 0
 
 mkTrie :: Monoid e => Int -> Map k (Trie k e) -> Trie k e
 mkTrie c children
-{-| Map.null children = Leaf c
-  | otherwise -}        = Node c mempty children
+  | Map.null children = Leaf c
+  | otherwise         = Node c mempty children
 
 insertTrie :: Ord k => [k] -> Trie k () -> Trie k ()
 insertTrie []     n                    = n { _node_count = _node_count n +1}
--- insertTrie (x:xs) (Leaf c)             = mkTrie (c+1) (Map.singleton x $ insertTrie xs emptyTrie)
+insertTrie (x:xs) (Leaf c)             = mkTrie (c+1) $ Map.singleton x $ insertTrie xs emptyTrie
 insertTrie (x:xs) (Node c _e children) = mkTrie (c+1) $ Map.alter f x children
   where
-    f = Just . insertTrie xs . fromMaybe (emptyTrie 0)
+    f = Just . insertTrie xs . fromMaybe emptyTrie
 
 insertTries :: Ord k => [[k]] -> Trie k ()
-insertTries = L.foldr insertTrie (emptyTrie 1)
+insertTries = L.foldr insertTrie emptyTrie
 
 entropyTrie :: (Num e, Floating e) => (k -> Bool) -> Trie k () -> Trie k e
--- entropyTrie _    (Leaf c)             = Leaf c
+entropyTrie _    (Leaf c)             = Leaf c
 entropyTrie pred (Node c _e children) = Node c e (map (entropyTrie pred) children)
   where
     e = sum $ map f $ Map.toList children
@@ -101,63 +124,80 @@ entropyTrie pred (Node c _e children) = Node c e (map (entropyTrie pred) childre
       where
         cfc = fromIntegral (_node_count child) / fromIntegral c
 
-normalizeEntropy :: (Fractional e, Floating e, Show e) => Trie k e -> Trie k e
--- normalizeEntropy (Leaf c)            = Leaf c
-normalizeEntropy (Node c e children) =
-    trace (show $ L.length es) $ Node c e $ map (normalizeLevel m v . normalizeEntropy) children
+normalizeEntropy :: (Fractional e, Floating e, Show e)
+                 => Getting e i e -> ModEntropy i o e -> Trie k i -> Trie k o
+normalizeEntropy inE modE = go $ modE identity
   where
-    es = map _node_entropy $ Map.elems children
-    m  = mean      es
-    v  = deviation es
+    go _ (Leaf c) = Leaf c
+    go f (Node c i children) | not (Map.null children) =
+        -- trace (show $ L.length es) $
+        Node c (f i) $ go (modE $ normalizeLevel m v) <$> children
+      where
+        es = [ i' ^. inE | Node _ i' _ <- Map.elems children ]
+        m  = mean      es
+        v  = deviation es
 
-normalizeLevel :: (Fractional e, Floating e, Show e) => e -> e -> Trie k e -> Trie k e
--- normalizeLevel _ _ (Leaf c)            = Leaf c
---normalizeLevel m v n = n { _node_entropy = (_node_entropy n - m) }
-normalizeLevel m v n = trace (show (_node_entropy n,m,v)) $ n { _node_entropy = (_node_entropy n - m) / v}
+normalizeLevel :: (Fractional e, Floating e, Show e)
+               => e -> e -> e -> e
+normalizeLevel m v e = (e - m) / v
 
 buildTrie :: (Floating e, Show e) => [[Token]] -> Trie Token e
-buildTrie = normalizeEntropy . entropyTrie (== Terminal) . insertTries
+buildTrie = entropyTrie (== Terminal) . insertTries
 
 subForest :: Trie k e -> [Trie k e]
--- subForest (Leaf _)            = []
+subForest (Leaf _)            = []
 subForest (Node _ _ children) = Map.elems children
+
+nodeEntropy :: Trie k e -> Maybe e
+nodeEntropy (Node _ e _) = Just e
+nodeEntropy (Leaf _)     = Nothing
+
+nodeChildren :: Trie k e -> Map k (Trie k e)
+nodeChildren (Node _ _ cs) = cs
+nodeChildren (Leaf _)      = Map.empty
+
+nodeChild :: Ord k => k -> Trie k e -> Maybe (Trie k e)
+nodeChild k (Node _ _ cs) = Map.lookup k cs
+nodeChild _ (Leaf _)      = Nothing
 
 levels :: Trie k e -> [[Trie k e]]
 levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
 
-entropyLevels :: Trie k e -> [[e]]
-entropyLevels = fmap (fmap _node_entropy) . levels
+entropyLevels :: Getting e i e -> Trie k i -> [[e]]
+entropyLevels inE = fmap (fmap (view inE) . catMaybes . fmap nodeEntropy) . levels
 
-normalizeEntropy' :: (Floating e, Show e) => Trie k e -> Trie k e
-normalizeEntropy' t = go (entropyLevels t) t
+--fwd :: Getting a s a -> ASetter s t u3 a -> s -> t
+--fwd inE outE s = s & outE .~ (s ^. inE)
+
+normalizeEntropy' :: (Fractional e, Floating e, Show e)
+                  => Getting e i e -> ModEntropy i o e -> Trie k i -> Trie k o
+normalizeEntropy' inE modE t = go (modE identity) (entropyLevels inE t) t
   where
-    go :: (Floating e, Show e) => [[e]] -> Trie k e -> Trie k e
-    go [] _ = panic "normalizeEntropy' empty levels"
-    -- go _          (Leaf c)            = Leaf c
-    go (es : ess) (Node c e children) =
-        Node c e (normalizeLevel m v . go ess <$> children)
+    go _ []         _                   = panic "normalizeEntropy' empty levels"
+    go _ _          (Leaf c)            = Leaf c
+    go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
+    go f (es : ess) (Node c i children) =
+        Node c (f i) $ go (modE $ normalizeLevel m v) ess <$> children
       where
         m  = mean      es
         v  = deviation es
 
-buildTrie' :: (Floating e, Show e) => [[Token]] -> Trie Token e
-buildTrie' = normalizeEntropy' . entropyTrie (== Terminal) . insertTries
-
 ------------------------------------------------------------------------
 
-autonomie :: Trie Token e -> Token -> e
-autonomie trie t = case (Map.lookup t (_node_children trie)) of
-  Nothing -> panic $ "Gargantext.Text.Ngrams: autonomie" <> (cs $ show t)
-  Just  a -> _node_entropy a
-
-------------------------------------------------------------------------
-
-split :: (Num e, Ord e) => Trie Token e -> Trie Token e -> [Token] -> [Token] -> [[Token]]
-split _ _ pref [] = [reverse pref]
-split t0 t pref (x:xs) = case Map.lookup x $ _node_children t of
-  Nothing -> reverse pref : split t0 t0 [x] xs
-  Just a  -> case Map.lookup x $ _node_children t0 of
-    Nothing  -> panic "TODO" -- reverse pref : split t0 t0 [] xs
-    Just xt0 -> case _node_entropy t + _node_entropy xt0 > _node_entropy a of
-      True  -> split t0 a (x:pref) xs
-      False -> reverse pref : split t0 xt0 [x] xs
+split :: (Num e, Ord e, Show e) => Lens' i e -> Trie Token i -> [Token] -> [[Token]]
+split inE t0 = go t0 []
+  where
+    ne d t = fromMaybe d (nodeEntropy t ^? _Just . inE)
+    go _ pref [] = [reverse pref]
+    go t pref (x:xs) = case nodeChild x t of
+      Nothing -> reverse pref : go t0 [x] xs
+      Just a  -> case nodeChild x t0 of
+        Nothing  -> panic "TODO"
+        Just xt0 ->
+          let et = ne (panic "t") t
+              ext0 = ne (panic "xt0") xt0
+              ea = ne (-42) a
+          in trace (show (et, ext0, ea)) $
+          case et + ext0 > ea of
+            True  -> go a (x:pref) xs
+            False -> reverse pref : go xt0 [x] xs
