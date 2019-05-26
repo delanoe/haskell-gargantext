@@ -37,6 +37,7 @@ module Gargantext.Text.Terms
 import Control.Lens
 import Data.Text (Text)
 import Data.Traversable
+import GHC.Base (String)
 
 import Gargantext.Prelude
 import Gargantext.Core
@@ -44,6 +45,11 @@ import Gargantext.Core.Types
 import Gargantext.Text.Terms.Multi (multiterms)
 import Gargantext.Text.Terms.Mono  (monoTerms)
 
+import qualified Data.List as List
+import qualified Data.Text as Text
+import Gargantext.Text (sentences)
+import Gargantext.Text.Terms.Mono.Token.En (tokenize)
+import Gargantext.Text.Eleve (testEleve)
 
 data TermType lang
   = Mono      { _tt_lang :: lang }
@@ -74,4 +80,24 @@ terms (Multi     lang) txt = multiterms lang txt
 terms (MonoMulti lang) txt = terms (Multi lang) txt
 -- terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt
 ------------------------------------------------------------------------
+
+isPunctuation :: Text -> Bool
+isPunctuation x = List.elem x $  (Text.pack . pure)
+                             <$> ("!?(),;." :: String)
+
+-- | Unsupervised ngrams extraction
+-- language agnostic extraction
+-- TODO: remove IO
+-- TODO: BlockText 
+extractTermsUnsupervised :: Int -> Text -> IO [[Text]]
+extractTermsUnsupervised n = 
+               fmap List.nub
+             . fmap (List.filter (\l -> List.length l > 1))
+             . testEleve n
+             . map (map Text.toLower)
+             . map (List.filter (not . isPunctuation))
+             . map tokenize
+             . sentences
+
+
 

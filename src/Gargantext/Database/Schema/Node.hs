@@ -578,8 +578,6 @@ instance MkCorpus HyperdataAnnuaire
     mk n h p u = insertNodesR [nodeAnnuaireW n h p u]
 
 
-
-
 getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err ListId
 getOrMkList pId uId =
   maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
