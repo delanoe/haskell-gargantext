@@ -23,7 +23,7 @@ module Gargantext.Viz.Graph.API
   where
 
 import Data.List (sortOn)
-import Control.Lens (set, view)
+import Control.Lens (set, over)
 import Control.Monad.IO.Class (liftIO)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
@@ -69,8 +69,8 @@ getGraph nId = do
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
   
   lIds <- selectNodesWithUsername NodeList userMaster
-  lId <- defaultList cId
-  ngs    <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
+  lId  <- defaultList cId
+  ngs  <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
                             <$> groupNodesByNgrams ngs
@@ -78,9 +78,7 @@ getGraph nId = do
 
   graph <- liftIO $ cooc2graph myCooc
   pure $ set graph_metadata (Just metadata)
-       $ set graph_nodes ( sortOn node_id
-                         $ view graph_nodes graph
-                         ) graph
+       $ over graph_nodes (sortOn node_id) graph
 
 
 postGraph :: NodeId -> GargServer (Post '[JSON] [NodeId])
