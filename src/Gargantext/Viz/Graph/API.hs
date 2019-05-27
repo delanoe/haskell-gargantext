@@ -22,8 +22,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
-import Data.List (sortOn)
-import Control.Lens (set, over)
+import Control.Lens (set)
 import Control.Monad.IO.Class (liftIO)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
@@ -77,8 +76,7 @@ getGraph nId = do
                             <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) NgramsTerms (Map.keys ngs)
 
   graph <- liftIO $ cooc2graph myCooc
-  pure $ set graph_metadata (Just metadata)
-       $ over graph_nodes (sortOn node_id) graph
+  pure $ set graph_metadata (Just metadata) graph
 
 
 postGraph :: NodeId -> GargServer (Post '[JSON] [NodeId])
