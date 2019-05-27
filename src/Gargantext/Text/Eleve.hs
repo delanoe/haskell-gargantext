@@ -1,8 +1,12 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-
+{-|
+Module      : Gargantext.Text.Eleve
+Description : Unsupervized Word segmentation
+Copyright   : (c) CNRS, 2019-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
 # Implementation of Unsupervized Word Segmentation
 
 References:
@@ -15,10 +19,10 @@ References:
   , pages 383–387. [PDF](https://www.aclweb.org/anthology/P12-2075)
 
 Notes for current implementation:
-- The node count is correct; TODO add tests to keep track of it
+- The node count is correct; TODO AD add tests to keep track of it
 - NP fix normalization
 - NP extract longer ngrams (see paper above, viterbi algo can be used)
-- TODO TEST: prop (Node c _e f) = c == Map.size f
+- TODO AD TEST: prop (Node c _e f) = c == Map.size f
 
 - AD: Real ngrams extraction test
   from Gargantext.Text.Terms import extractTermsUnsupervised
@@ -29,6 +33,11 @@ Notes for current implementation:
 
 
 -}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TemplateHaskell   #-}
+
 module Gargantext.Text.Eleve where
 
 import Debug.Trace (trace)
@@ -50,6 +59,7 @@ import Data.Tree (Tree)
 import qualified Prelude as P (putStrLn, logBase, String)
 
 ------------------------------------------------------------------------
+-- | Example and tests for development
 data I e = I
   { _info_entropy       :: e
   , _info_norm_entropy  :: e
@@ -185,10 +195,6 @@ nodeChildren :: Trie k e -> Map k (Trie k e)
 nodeChildren (Node _ _ cs) = cs
 nodeChildren (Leaf _)      = Map.empty
 
-nodeChild :: Ord k => k -> Trie k e -> Maybe (Trie k e)
-nodeChild k (Node _ _ cs) = Map.lookup k cs
-nodeChild _ (Leaf _)      = Nothing
-
 levels :: Trie k e -> [[Trie k e]]
 levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
   where
@@ -242,5 +248,10 @@ split inE t0 = go t0 []
             -- FAIL: test 4 example2
             True  -> go xt (x:pref) xs
             False -> consRev pref $ go xt0 [x] xs
+
+    nodeChild :: Ord k => k -> Trie k e -> Maybe (Trie k e)
+    nodeChild k (Node _ _ cs) = Map.lookup k cs
+    nodeChild _ (Leaf _)      = Nothing
+
 
     ne d t = fromMaybe d (nodeEntropy t ^? _Just . inE)
