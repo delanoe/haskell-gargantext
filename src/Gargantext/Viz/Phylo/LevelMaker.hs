@@ -171,11 +171,14 @@ toPhylo1 clus prox metrics filters d p = case clus of
                        $ interTempoMatching Ascendant 1 prox
                        $ setLevelLinks (0,1)
                        $ setLevelLinks (1,0)
-                       $ addPhyloLevel 1 phyloFis p
+                       $ addPhyloLevel 1 phyloFis phylo'
     where
       --------------------------------------
       phyloFis :: Map (Date, Date) [PhyloFis]
-      phyloFis = toPhyloFis d k s t metrics filters
+      phyloFis = toPhyloFis' (getPhyloFis phylo') k s t metrics filters
+      --------------------------------------
+      phylo' :: Phylo
+      phylo' = docsToFis' d p
       --------------------------------------
 
   _   -> panic "[ERR][Viz.Phylo.LevelMaker.toPhylo1] fst clustering not recognized"
@@ -188,14 +191,14 @@ toPhylo0 d p = addPhyloLevel 0 d p
 
 class PhyloMaker corpus
     where
-        toPhylo ::  PhyloQueryBuild -> corpus -> [Ngrams] -> TermList -> Phylo
-        toPhyloBase :: PhyloQueryBuild -> PhyloParam -> corpus -> [Ngrams] -> TermList -> Phylo
+        toPhylo ::  PhyloQueryBuild -> corpus -> [Ngrams] -> TermList -> Map (Date,Date) [PhyloFis] -> Phylo
+        toPhyloBase :: PhyloQueryBuild -> PhyloParam -> corpus -> [Ngrams] -> TermList -> Map (Date,Date) [PhyloFis] -> Phylo
         corpusToDocs :: corpus -> Phylo -> Map (Date,Date) [Document]
 
 instance PhyloMaker [(Date, Text)]
   where
     --------------------------------------
-    toPhylo q c roots termList = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+    toPhylo q c roots termList fis = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
       where
         --------------------------------------
         phylo1 :: Phylo
@@ -208,10 +211,10 @@ instance PhyloMaker [(Date, Text)]
         phyloDocs = corpusToDocs c phyloBase
         --------------------------------------
         phyloBase :: Phylo
-        phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
+        phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList fis
         --------------------------------------       
     --------------------------------------
-    toPhyloBase q p c roots termList = initPhyloBase periods foundations nbDocs cooc p
+    toPhyloBase q p c roots termList fis = initPhyloBase periods foundations nbDocs cooc fis p
       where
         --------------------------------------
         cooc :: Map Date (Map (Int,Int) Double)
@@ -234,7 +237,7 @@ instance PhyloMaker [(Date, Text)]
 instance PhyloMaker [Document]
   where
     --------------------------------------
-    toPhylo q c roots termList = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
+    toPhylo q c roots termList fis = toNthLevel (getNthLevel q) (getInterTemporalMatching q) (getNthCluster q) phylo1
       where
         --------------------------------------
         phylo1 :: Phylo
@@ -247,10 +250,10 @@ instance PhyloMaker [Document]
         phyloDocs = corpusToDocs c phyloBase
         --------------------------------------
         phyloBase :: Phylo
-        phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList
+        phyloBase = tracePhyloBase $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c roots termList fis
         --------------------------------------       
     --------------------------------------
-    toPhyloBase q p c roots termList = initPhyloBase periods foundations nbDocs cooc p
+    toPhyloBase q p c roots termList fis = initPhyloBase periods foundations nbDocs cooc fis p
       where
         --------------------------------------
         cooc :: Map Date (Map (Int,Int) Double)

@@ -31,7 +31,7 @@ module Gargantext.Viz.Phylo.Example where
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.Text (Text)
 import Data.List        ((++), last)
-import Data.Map         (Map)
+import Data.Map         (Map,empty)
 import Data.Tuple       (fst)
 import Data.Tuple.Extra
 import Data.Vector      (Vector)
@@ -87,7 +87,7 @@ phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [] [BranchPeakFreq,G
 
 
 phyloFromQuery :: Phylo
-phyloFromQuery = toPhylo (queryParser queryEx) corpus actants termList
+phyloFromQuery = toPhylo (queryParser queryEx) corpus actants termList empty
 
 -- | To do : create a request handler and a query parser
 queryParser :: [Char] -> PhyloQueryBuild
@@ -227,7 +227,7 @@ phyloDocs = corpusToDocs corpus phyloBase
 
 
 phyloBase :: Phylo
-phyloBase = initPhyloBase periods (PhyloFoundations foundationsRoots termList) nbDocs cooc defaultPhyloParam
+phyloBase = initPhyloBase periods (PhyloFoundations foundationsRoots termList) nbDocs cooc empty defaultPhyloParam
 
 cooc :: Map Date (Map (Int,Int) Double)
 cooc = docsToCooc (parseDocs foundationsRoots corpus) foundationsRoots

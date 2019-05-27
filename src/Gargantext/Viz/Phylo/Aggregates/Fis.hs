@@ -17,14 +17,16 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Fis
   where
 
+import Control.Lens     hiding (makeLenses, both, Level)
 import Data.List        (null,concat,sort)
-import Data.Map         (Map, empty,elems)
+import Data.Map         (Map,elems,mapWithKey)
 import Data.Tuple       (fst, snd)
 import Data.Set         (size)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.FrequentItemSet  (fisWithSizePolyMap, Size(..))
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
+
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 import qualified Data.Vector.Storable as Vector
@@ -59,8 +61,15 @@ filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head' "Fis" $ m
 
 -- | To transform a list of Documents into a Frequent Items Set 
 docsToFis :: Map (Date, Date) [Document] -> Map (Date, Date) [PhyloFis]
-docsToFis docs = map (\d -> let fs = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text d)
-                            in map (\f -> PhyloFis (fst f) (snd f) empty) fs) docs
+docsToFis m = mapWithKey (\k docs -> let fs = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
+                                     in map (\f -> PhyloFis (fst f) (snd f) k) fs) m
+
+
+docsToFis' :: Map (Date,Date) [Document] -> Phylo -> Phylo
+docsToFis' m p = if (null $ getPhyloFis p)
+                 then p & phylo_fis .~ mapWithKey (\k docs -> let fis = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
+                                                              in map (\f -> PhyloFis (fst f) (snd f) k) fis) m
+                 else p
 
 
 -- | To process a list of Filters on top of the PhyloFis
@@ -88,7 +97,20 @@ toPhyloFis ds k s t ms fs = processFilters fs
                           $ traceFis "----\nFiltered Fis by support :\n"
                           $ filterFis k s (filterFisBySupport)
                           $ traceFis "----\nUnfiltered Fis :\n"
-                          $ docsToFis ds  
+                          $ docsToFis ds
+
+
+toPhyloFis' :: Map (Date, Date) [PhyloFis] -> Bool -> Support -> Int -> [Metric] -> [Filter] -> Map (Date, Date) [PhyloFis]
+toPhyloFis' fis k s t ms fs = processFilters fs  
+                            $ processMetrics ms
+                            $ traceFis "----\nFiltered Fis by clique size :\n"
+                            $ filterFis k t (filterFisByClique)
+                            $ traceFis "----\nFiltered Fis by nested :\n"
+                            $ filterFisByNested 
+                            $ traceFis "----\nFiltered Fis by support :\n"
+                            $ filterFis k s (filterFisBySupport)
+                            $ traceFis "----\nUnfiltered Fis :\n" fis                            
+
 
 
 -----------------

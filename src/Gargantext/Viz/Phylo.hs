@@ -79,6 +79,7 @@ data Phylo =
            , _phylo_periods     :: [PhyloPeriod]
            , _phylo_docsByYears :: Map Date Double
            , _phylo_cooc        :: Map Date (Map (Int,Int) Double)
+           , _phylo_fis         :: Map (Date,Date) [PhyloFis]
            , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show, Eq)
@@ -202,8 +203,8 @@ type Support  = Int
 data PhyloFis = PhyloFis
   { _phyloFis_clique  :: Clique
   , _phyloFis_support :: Support
-  , _phyloFis_metrics :: Map (Int,Int) (Map Text [Double])
-  } deriving (Show)
+  , _phyloFis_period  :: (Date,Date)
+  } deriving (Generic,Show,Eq)
 
 -- | A list of clustered PhyloGroup
 type PhyloCluster = [PhyloGroup]

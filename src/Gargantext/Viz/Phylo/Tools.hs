@@ -160,8 +160,8 @@ initFoundationsRoots :: [Ngrams] -> Vector Ngrams
 initFoundationsRoots l = Vector.fromList $ map phyloAnalyzer l
 
 -- | To init the base of a Phylo from a List of Periods and Foundations
-initPhyloBase :: [(Date, Date)] -> PhyloFoundations -> Map Date Double  -> Map Date (Map (Int,Int) Double) -> PhyloParam -> Phylo
-initPhyloBase pds fds nbDocs cooc prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds) nbDocs cooc prm
+initPhyloBase :: [(Date, Date)] -> PhyloFoundations -> Map Date Double  -> Map Date (Map (Int,Int) Double) -> Map (Date,Date) [PhyloFis] -> PhyloParam -> Phylo
+initPhyloBase pds fds nbDocs cooc fis prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds) nbDocs cooc fis prm
 
 -- | To init the param of a Phylo
 initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQueryBuild -> PhyloParam
@@ -179,6 +179,22 @@ getLastLevel p = (last . sort)
 getPhyloCooc :: Phylo -> Map Date (Map (Int,Int) Double)
 getPhyloCooc p = p ^. phylo_cooc
 
+
+-- | To get the PhyloParam of a Phylo
+getPhyloParams :: Phylo -> PhyloParam
+getPhyloParams = _phylo_param
+
+-- | To get the title of a Phylo
+getPhyloTitle :: Phylo -> Text
+getPhyloTitle p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
+
+-- | To get the desc of a Phylo
+getPhyloDescription :: Phylo -> Text
+getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
+
+
+getPhyloFis :: Phylo -> Map (Date,Date) [PhyloFis]
+getPhyloFis = _phylo_fis
 
 
 --------------------
@@ -502,13 +518,13 @@ setPhyloLevelId lvl' (PhyloLevel (id, _lvl) groups)
 getClique :: PhyloFis -> Clique
 getClique = _phyloFis_clique
 
--- | To get the metrics of a PhyloFis
-getFisMetrics :: PhyloFis -> Map (Int,Int) (Map Text [Double])
-getFisMetrics = _phyloFis_metrics
-
 -- | To get the support of a PhyloFis
 getSupport :: PhyloFis -> Support
 getSupport = _phyloFis_support
+
+-- | To get the period of a PhyloFis
+getFisPeriod :: PhyloFis -> (Date,Date)
+getFisPeriod = _phyloFis_period
 
 
 ----------------------------
