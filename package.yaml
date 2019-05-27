@@ -260,6 +260,7 @@ executables:
       - base
       - bytestring
       - containers
+      - directory
       - gargantext
       - vector
       - parallel
