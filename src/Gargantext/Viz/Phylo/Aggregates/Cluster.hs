@@ -80,7 +80,8 @@ phyloToClusters lvl clus p = Map.fromList
     --------------------------------------
     graphs  :: [([GroupNode],[GroupEdge])]
     graphs  = traceGraph lvl (getThreshold prox) 
-            $ map (\prd -> groupsToGraph (periodsToNbDocs [prd] p) prox (getGroupsWithFilters lvl prd p)) periods 
+            $ map (\prd -> groupsToGraph (periodsToNbDocs [prd] p) prox (getGroupsWithFilters lvl prd p))
+            $ trace (show(map (\prd -> (prd,length $ getGroupsWithFilters lvl prd p)) periods)) periods 
     --------------------------------------
     prox :: Proximity
     prox = getProximity clus

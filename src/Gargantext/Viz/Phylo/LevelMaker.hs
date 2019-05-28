@@ -21,7 +21,7 @@ module Gargantext.Viz.Phylo.LevelMaker
 
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sort, concat, nub, zip, last)
-import Data.Map                     (Map, (!), empty, singleton)
+import Data.Map                     (Map, (!), empty, singleton,mapWithKey)
 import Data.Text (Text)
 import Data.Tuple.Extra
 import Gargantext.Prelude
@@ -151,9 +151,12 @@ toNthLevel lvlMax prox clus p
                   $ setPhyloBranches (lvl + 1)
                   $ transposePeriodLinks (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
+                  $ trace (show (mapWithKey (\k v -> (k,length v)) clusters))
                   $ addPhyloLevel (lvl + 1)
-                    (phyloToClusters lvl clus p) p
+                    (clusters) p
   where
+    --------------------------------------
+    clusters = phyloToClusters lvl clus p
     --------------------------------------
     lvl :: Level
     lvl = getLastLevel p

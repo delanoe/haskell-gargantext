@@ -240,7 +240,7 @@ toLevelUp lst p = Map.toList
   where
     --------------------------------------
     pointers :: [Pointer]
-    pointers = map (\(id,v) -> (getGroupLevelParentId $ getGroupFromId id p, v)) lst
+    pointers = trace(show(map (\(id,_) -> length $ getGroupLevelParentId $ getGroupFromId id p) lst)) $ map (\(id,v) -> (getGroupLevelParentId $ getGroupFromId id p, v)) lst
     --------------------------------------
 
 
@@ -250,7 +250,7 @@ transposePeriodLinks lvl p = alterGroupWithLevel
   (\g ->
     --------------------------------------
     let childs  = getGroupsFromIds (map fst $ getGroupLevelChilds g) p
-        ascLink = toLevelUp (concat $ map getGroupPeriodParents childs) p 
+        ascLink = trace (show(length childs)) $ toLevelUp (concat $ map getGroupPeriodParents childs) p 
         desLink = toLevelUp (concat $ map getGroupPeriodChilds  childs) p
     --------------------------------------
     in g & phylo_groupPeriodParents  %~ (++ ascLink)
