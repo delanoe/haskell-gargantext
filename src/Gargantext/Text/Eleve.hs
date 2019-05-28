@@ -40,11 +40,11 @@ Notes for current implementation:
 
 module Gargantext.Text.Eleve where
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
-import Control.Lens (Lens, Lens', ASetter, Getting, (^.), (^?), (&), (.~), (%~), view, makeLenses, _Just)
-import Control.Monad (foldM)
+import Control.Lens (Lens', Getting, (^.), (^?), (%~), view, makeLenses, _Just)
+import Control.Monad (foldM, mapM_, forM_)
 import Data.Ord (Ord)
 import qualified Data.List as L
 import Data.Monoid
@@ -56,7 +56,7 @@ import qualified Data.Map as Map
 import Gargantext.Prelude hiding (cs)
 import qualified Data.Tree as Tree
 import Data.Tree (Tree)
-import qualified Prelude as P (putStrLn, logBase, String)
+import qualified Prelude as P (putStrLn, logBase)
 
 ------------------------------------------------------------------------
 -- | Example and tests for development
@@ -76,32 +76,6 @@ type ModEntropy i o e = (e -> e) -> i -> o
 setNormEntropy :: ModEntropy e (I e) e
 setNormEntropy f e = I e (f e) e -- (panic "setNormEntropy")
 
-testEleve n example = do
-  let
-    ex  = toToken n <$> example
-    t   = buildTrie $ L.concat $ chunkAlong n 1 <$> ex
-    nt  = normalizeEntropy  identity setNormEntropy (t :: Trie Token Double)
-    nt' = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
-  {-
-  P.putStrLn $ Tree.drawTree
-               $ fmap show
-               $ toTree (NonTerminal "") nt'
-  --}
-  pure $ map unToken $ split info_entropy nt' $ L.concat ex
-                          -- NP: here we use the entropy to split
-                          -- instead we should use either:
-                          --   info_norm_entropy or info_norm_entropy'
-                          -- However they should first be fixed.
-
--- | TODO real data is a list of tokenized sentences
-example0 =  [T.words "New York is New York and New York"]
-example1 =  [T.words "to be or not to be"]
-example2 =  [T.words "to be or not to be or"]
-example3 =  example0 <> example0 -- > TEST: Should not have York New in the trie
-example4 =  map (T.pack . pure) ("abcdefabcdegabcde" :: P.String)
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
 data Token = NonTerminal Text
            | Terminal
   deriving (Ord, Eq, Show)
@@ -125,6 +99,7 @@ data Trie k e
  | Leaf { _node_count    :: Int }
   deriving (Show)
 
+makeLenses ''Trie
 
 insertTries :: Ord k => [[k]] -> Trie k ()
 insertTries = L.foldr insertTrie emptyTrie
@@ -171,13 +146,16 @@ normalizeEntropy :: (Fractional e, Floating e, Show e)
 normalizeEntropy inE modE = go $ modE identity
   where
     go _ (Leaf c) = Leaf c
-    go f (Node c i children) | not (Map.null children) =
-        -- trace (show $ L.length es) $
-        Node c (f i) $ go (modE $ normalizeLevel m v) <$> children
-      where
-        es = [ i' ^. inE | Node _ i' _ <- Map.elems children ]
-        m  = mean      es
-        v  = deviation es
+    go f (Node c i children)
+      | Map.null children =
+          panic "normalizeEntropy: impossible"
+      | otherwise         =
+          -- trace (show $ L.length es) $
+          Node c (f i) $ go (modE $ normalizeLevel m v) <$> children
+        where
+          es = [ i' ^. inE | Node _ i' _ <- Map.elems children ]
+          m  = mean      es
+          v  = deviation es
 ------------------------------------------------------------------------
 
 normalizeLevel :: (Fractional e, Floating e, Show e)
@@ -194,6 +172,13 @@ nodeEntropy (Leaf _)     = Nothing
 nodeChildren :: Trie k e -> Map k (Trie k e)
 nodeChildren (Node _ _ cs) = cs
 nodeChildren (Leaf _)      = Map.empty
+
+nodeChild :: Ord k => k -> Trie k e -> Maybe (Trie k e)
+nodeChild k (Node _ _ cs) = Map.lookup k cs
+nodeChild _ (Leaf _)      = Nothing
+
+findTrie :: Ord k => [k] -> Trie k e -> Maybe (Trie k e)
+findTrie ks t = foldM (flip nodeChild) t ks
 
 levels :: Trie k e -> [[Trie k e]]
 levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
@@ -229,29 +214,88 @@ split inE t0 = go t0 []
     consRev [] xss = xss
     consRev xs xss = reverse xs : xss
 
-    go _ pref [] = [reverse pref]
+    go _ pref []           = [reverse pref]
+    go _ pref (Terminal:_) = [reverse pref]
     go t pref (x:xs) = case nodeChild x t of
       Nothing -> consRev pref $ go t0 [x] xs
       Just xt -> case nodeChild x t0 of
-        Nothing  -> panic "TODO"
+        Nothing  -> panic $ "TODO"
         Just xt0 ->
           let et   = ne (panic "t")   t
+          --  ^ entropy of the current prefix
               ext0 = ne (panic "xt0") xt0
+          --  ^ entropy of [x]
               ext  = ne 0 xt
+          --  ^ entropy of the current prefix plus x
           in
           -- trace (show ((reverse pref, et, ext0), (reverse (x : pref), ext))) $
-          case et {-+ ext0-} < ext of
-            -- NP: here we must take ext0 in account however currently it
-            -- makes it worse.
-            -- For instance it currently works well to 2-grams but not more.
-            -- PASS: test 4 example1
-            -- FAIL: test 4 example2
-            True  -> go xt (x:pref) xs
-            False -> consRev pref $ go xt0 [x] xs
-
-    nodeChild :: Ord k => k -> Trie k e -> Maybe (Trie k e)
-    nodeChild k (Node _ _ cs) = Map.lookup k cs
-    nodeChild _ (Leaf _)      = Nothing
-
+          if ext + ext0 > et
+            then go xt (x:pref) xs
+            else consRev pref $ go xt0 [x] xs
 
     ne d t = fromMaybe d (nodeEntropy t ^? _Just . inE)
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+mainEleve :: Int -> [[Text]] -> [[[Text]]]
+mainEleve n input = map unToken . split identity (t :: Trie Token Double) <$> inp
+  where
+    inp = toToken (n - 1) <$> input
+    t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
+                          -- NP: here we use the entropy to split
+                          -- instead we should use either:
+                          --   info_norm_entropy or info_norm_entropy'
+                          -- However they should first be fixed.
+
+testEleve :: Bool -> Int -> [Text] -> IO Bool
+testEleve debug n output = do
+  let
+    out = T.words <$> output
+    expected = fmap (T.splitOn "-") <$> out
+    input = (T.splitOn "-" =<<) <$> out
+    inp = toToken (n - 1) <$> input
+    t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
+    nt  = normalizeEntropy  identity setNormEntropy (t :: Trie Token Double)
+    nt' = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
+    pss = [ (ps, findTrie ps t ^? _Just . node_entropy) -- . info_entropy)
+          | ps <- L.nub $ [ c
+                          | m <- [1..n]
+                          , cs <- chunkAlong m 1 <$> inp
+                          , c <- cs
+                          ]
+          ]
+    res = map unToken . split identity t <$> inp
+  when debug $ do
+    P.putStrLn (show input)
+    mapM_ (P.putStrLn . show) pss
+    P.putStrLn $ Tree.drawTree
+              $ fmap show
+              $ toTree (NonTerminal "") nt'
+    P.putStrLn $ show res
+  pure $ expected == res
+
+-- | TODO real data is a list of tokenized sentences
+example0, example1, example2, example3, example4, example5 :: [Text]
+example0 =  ["New-York is New-York and New-York"]
+example1 =  ["to-be or not to-be"]
+example2 =  ["to-be-or not to-be-or NOT to-be and"]
+example3 =  example0 <> example0
+       -- > TEST: Should not have York New in the trie
+example4 =  ["a-b-c-d e a-b-c-d f"]
+example5 =  ["a-b-c-d-e f a-b-c-d-e g a-b-c-d-e"]
+
+runTests :: IO ()
+runTests =
+  forM_
+    [("example0", 2, example0)
+    ,("example1", 2, example1)
+    ,("example2", 3, example2)
+    ,("example3", 2, example3)
+    ,("example4", 4, example4)
+    ,("example5", 5, example5)
+    ]
+    (\(name, n, ex) -> do
+      b <- testEleve False n ex
+      P.putStrLn $ name <> " " <> show n <> " " <> if b then "PASS" else "FAIL"
+    )
