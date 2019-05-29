@@ -113,6 +113,7 @@ library:
   - filelock
   - full-text-search
   - graphviz
+  - haskell-igraph
   - http-client
   - http-client-tls
   - http-conduit
