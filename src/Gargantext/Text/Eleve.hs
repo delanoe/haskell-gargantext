@@ -10,8 +10,9 @@ Portability : POSIX
 # Implementation of Unsupervized Word Segmentation
 
 References:
-- EleVe Python implementation and discussions with Korantin August and Bruno Gaume
-  [git repo](https://github.com/kodexlab/eleve.git)
+
+- Python implementation (Korantin August, Emmanuel Navarro):
+  [EleVe](https://github.com/kodexlab/eleve.git)
 
 - Unsupervized Word Segmentation:the case for Mandarin Chinese Pierre
   Magistry, Benoît Sagot, Alpage, INRIA & Univ. Paris 7, Proceedings of
@@ -19,9 +20,8 @@ References:
   , pages 383–387. [PDF](https://www.aclweb.org/anthology/P12-2075)
 
 Notes for current implementation:
-- The node count is correct; TODO AD add tests to keep track of it
-- NP fix normalization
-- NP extract longer ngrams (see paper above, viterbi algo can be used)
+- TODO fix normalization
+- TODO extract longer ngrams (see paper above, viterbi algo can be used)
 - TODO AD TEST: prop (Node c _e f) = c == Map.size f
 
 - AD: Real ngrams extraction test
@@ -30,7 +30,6 @@ Notes for current implementation:
   extractTermsUnsupervised 3 $ DT.intercalate " "
                         $ catMaybes
                         $ Gargantext.map _hyperdataDocument_abstract docs
-
 
 -}
 {-# LANGUAGE NoImplicitPrelude #-}
