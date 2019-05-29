@@ -18,8 +18,8 @@ module Gargantext.Viz.Phylo.Aggregates.Fis
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-import Data.List        (null,concat,sort)
-import Data.Map         (Map,elems,mapWithKey)
+import Data.List        (null,concat,sort,(++))
+import Data.Map         (Map,elems,mapWithKey,unionWith,fromList,keys)
 import Data.Tuple       (fst, snd)
 import Data.Set         (size)
 import Gargantext.Prelude
@@ -59,58 +59,23 @@ filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head' "Fis" $ m
                                in  filter (\fis -> elem (getClique fis) cliqueMax) l)
 
 
--- | To transform a list of Documents into a Frequent Items Set 
-docsToFis :: Map (Date, Date) [Document] -> Map (Date, Date) [PhyloFis]
-docsToFis m = mapWithKey (\k docs -> let fs = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
-                                     in map (\f -> PhyloFis (fst f) (snd f) k) fs) m
-
-
 docsToFis' :: Map (Date,Date) [Document] -> Phylo -> Phylo
 docsToFis' m p = if (null $ getPhyloFis p)
-                 then p & phylo_fis .~ mapWithKey (\k docs -> let fis = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
+                 then trace("----\nRebuild the Fis from scratch\n") 
+                    $ p & phylo_fis .~ mapWithKey (\k docs -> let fis = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
                                                               in map (\f -> PhyloFis (fst f) (snd f) k) fis) m
-                 else p
+                 else trace("----\nUse Fis from an existing file\n") 
+                    $ p & phylo_fis %~ (unionWith (++) (fromList $ map (\k -> (k,[])) $ keys m))
 
 
--- | To process a list of Filters on top of the PhyloFis
-processFilters :: [Filter] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-processFilters filters phyloFis
-  | null filters = phyloFis
-  | otherwise    = panic "[ERR][Viz.Phylo.LevelMaker.processFilters] please add some filters for the Fis"
-
-
--- | To process a list of Metrics on top of the PhyloFis
-processMetrics :: [Metric] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-processMetrics metrics phyloFis
-  | null metrics = phyloFis
-  | otherwise    = panic "[ERR][Viz.Phylo.LevelMaker.processMetrics] please add some metrics for the Fis"
-
-
--- | To transform some Documents into PhyloFis and apply a List of Metrics and Filters
-toPhyloFis :: Map (Date, Date) [Document] -> Bool -> Support -> Int -> [Metric] -> [Filter] -> Map (Date, Date) [PhyloFis]
-toPhyloFis ds k s t ms fs = processFilters fs  
-                          $ processMetrics ms
-                          $ traceFis "----\nFiltered Fis by clique size :\n"
-                          $ filterFis k t (filterFisByClique)
-                          $ traceFis "----\nFiltered Fis by nested :\n"
-                          $ filterFisByNested 
-                          $ traceFis "----\nFiltered Fis by support :\n"
-                          $ filterFis k s (filterFisBySupport)
-                          $ traceFis "----\nUnfiltered Fis :\n"
-                          $ docsToFis ds
-
-
-toPhyloFis' :: Map (Date, Date) [PhyloFis] -> Bool -> Support -> Int -> [Metric] -> [Filter] -> Map (Date, Date) [PhyloFis]
-toPhyloFis' fis k s t ms fs = processFilters fs  
-                            $ processMetrics ms
-                            $ traceFis "----\nFiltered Fis by clique size :\n"
-                            $ filterFis k t (filterFisByClique)
-                            $ traceFis "----\nFiltered Fis by nested :\n"
-                            $ filterFisByNested 
-                            $ traceFis "----\nFiltered Fis by support :\n"
-                            $ filterFis k s (filterFisBySupport)
-                            $ traceFis "----\nUnfiltered Fis :\n" fis                            
-
+toPhyloFis' :: Map (Date, Date) [PhyloFis] -> Bool -> Support -> Int -> Map (Date, Date) [PhyloFis]
+toPhyloFis' fis k s t = traceFis "----\nFiltered Fis by clique size :\n"
+                      $ filterFis k t (filterFisByClique)
+                      $ traceFis "----\nFiltered Fis by nested :\n"
+                      $ filterFisByNested 
+                      $ traceFis "----\nFiltered Fis by support :\n"
+                      $ filterFis k s (filterFisBySupport)
+                      $ traceFis "----\nUnfiltered Fis :\n" fis                            
 
 
 -----------------

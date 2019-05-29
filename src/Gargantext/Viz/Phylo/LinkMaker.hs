@@ -20,7 +20,7 @@ module Gargantext.Viz.Phylo.LinkMaker
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete, intersect, nub, groupBy)
 import Data.Tuple.Extra
-import Data.Map                     (Map,(!),fromListWith,elems,restrictKeys,unionWith)
+import Data.Map                     (Map,(!),fromListWith,elems,restrictKeys,unionWith,member)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
@@ -40,10 +40,9 @@ import Numeric.Statistics (percentile)
 
 -- | To choose a LevelLink strategy based an a given Level
 shouldLink :: (Level,Level) -> PhyloGroup -> PhyloGroup -> Bool
-shouldLink (lvl,_lvl) g g'
-  | lvl <= 1  = doesContainsOrd (getGroupNgrams g) (getGroupNgrams g')
-  | lvl >  1  = elem (getGroupId g) (getGroupLevelChildsId g')
-  | otherwise = panic ("[ERR][Viz.Phylo.LinkMaker.shouldLink] Level not defined")
+shouldLink (lvl,lvl') g g'
+  | (lvl <= 1) && (lvl' <= 1) = doesContainsOrd (getGroupNgrams g) (getGroupNgrams g')
+  | otherwise                 = elem (getGroupId g) (getGroupLevelChildsId g')
 
 
 -- | To set the LevelLinks between a given PhyloGroup and a list of childs/parents PhyloGroups
@@ -70,15 +69,12 @@ linkGroupToGroups (lvl,lvl') current targets
 
 -- | To set the LevelLink of all the PhyloGroups of a Phylo
 setLevelLinks :: (Level,Level) -> Phylo -> Phylo
-setLevelLinks (lvl,lvl') p = alterPhyloGroups (\gs -> map (\g -> if getGroupLevel g == lvl
-                                                                  then linkGroupToGroups (lvl,lvl') g (filterCandidates g 
-                                                                                                       $ filter (\g' -> getGroupPeriod g' == getGroupPeriod g) gs')
-                                                                  else g) gs) p
-  where
-    --------------------------------------
-    gs' :: [PhyloGroup]
-    gs' = getGroupsWithLevel lvl' p
-    --------------------------------------
+setLevelLinks (lvl,lvl') p = alterPhyloGroups (\groups -> 
+                                                map (\group -> if getGroupLevel group == lvl
+                                                                then linkGroupToGroups (lvl,lvl') group
+                                                                   $ filterCandidates group
+                                                                   $ getGroupsWithFilters lvl' (getGroupPeriod group) p
+                                                                else group) groups) p
 
 
 -------------------------------
@@ -154,6 +150,32 @@ findBestCandidates filiation depth limit proximity periods candidates g1 phylo
     --------------------------------------
     nextPeriods :: [(Date,Date)]
     nextPeriods = take depth periods
+    --------------------------------------    
+
+
+findBestCandidates' :: Proximity -> [PhyloGroup] -> PhyloGroup -> Phylo -> [Pointer]
+findBestCandidates' proximity candidates g1 phylo = pointers
+  where  
+    --------------------------------------
+    pointers :: [(PhyloGroupId, Double)]
+    pointers = reverse $ sortOn snd $ filter (\(_,score) -> case proximity of
+                  WeightedLogJaccard (WLJParams thr _)   -> score >= thr
+                  Hamming (HammingParams thr)            -> score <= thr
+                  _                                      -> panic "[ERR][Viz.Phylo.LinkMaker.findBestCandidates'] Unknown proximity"
+                  ) similarities
+    --------------------------------------
+    similarities :: [(PhyloGroupId, Double)]
+    similarities = concat $ map (\(g2,g3) -> let nbDocs = periodsToNbDocs [(getGroupPeriod g1),(getGroupPeriod g2),(getGroupPeriod g3)] phylo
+                                                 cooc2  = getGroupCooc g2
+                                                 cooc3  = getGroupCooc g3
+                                                 score  = processProximity proximity cooc1 (unionWith (+) cooc2 cooc3) nbDocs 
+                                             in  nub $ [(getGroupId g2,score),(getGroupId g3,score)]) pairsOfCandidates
+    --------------------------------------
+    pairsOfCandidates :: [(PhyloGroup,PhyloGroup)]
+    pairsOfCandidates = listToFullCombi candidates
+    --------------------------------------
+    cooc1 :: Map (Int,Int) Double
+    cooc1 = getGroupCooc g1
     --------------------------------------             
 
 
@@ -168,7 +190,7 @@ addPointers' fil pts g = g & case fil of
 
 -- | To update a list of phyloGroups with some Pointers
 updateGroups :: Filiation -> Level -> Map PhyloGroupId [Pointer] -> Phylo -> Phylo 
-updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if (getGroupLevel g) == lvl
+updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if ((getGroupLevel g) == lvl) && (member (getGroupId g) m)
                                                                then addPointers' fil (m ! (getGroupId g)) g
                                                                else g ) gs) p
 
@@ -220,7 +242,7 @@ interTempoMatching fil lvl prox p = traceMatching fil lvl (getThreshold prox) de
     pointers = concat 
                  $ map (\branche -> 
                     map (\g -> ( getGroupId g
-                               , findBestCandidates fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) (getPhyloPeriods p)) (filterCandidates g branche) g p )
+                               , findBestCandidates fil 1 (getPhyloMatchingFrame p) prox (getNextPeriods fil (getGroupPeriod g) (getPhyloPeriods p)) (filterCandidates g branche) g p )
                          ) branche ) branches
     --------------------------------------
     branches :: [[PhyloGroup]]
@@ -240,7 +262,7 @@ toLevelUp lst p = Map.toList
   where
     --------------------------------------
     pointers :: [Pointer]
-    pointers = trace(show(map (\(id,_) -> length $ getGroupLevelParentId $ getGroupFromId id p) lst)) $ map (\(id,v) -> (getGroupLevelParentId $ getGroupFromId id p, v)) lst
+    pointers = map (\(id,v) -> (getGroupLevelParentId $ getGroupFromId id p, v)) lst
     --------------------------------------
 
 
@@ -250,7 +272,7 @@ transposePeriodLinks lvl p = alterGroupWithLevel
   (\g ->
     --------------------------------------
     let childs  = getGroupsFromIds (map fst $ getGroupLevelChilds g) p
-        ascLink = trace (show(length childs)) $ toLevelUp (concat $ map getGroupPeriodParents childs) p 
+        ascLink = toLevelUp (concat $ map getGroupPeriodParents childs) p 
         desLink = toLevelUp (concat $ map getGroupPeriodChilds  childs) p
     --------------------------------------
     in g & phylo_groupPeriodParents  %~ (++ ascLink)

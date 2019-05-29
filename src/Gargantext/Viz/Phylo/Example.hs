@@ -105,7 +105,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQueryBuild :: PhyloQueryBuild
 phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.1 20) 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.3 0) 
+             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.1 20) 5 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.3 0) 
 
 
 
@@ -205,8 +205,11 @@ phylo1 =  addPhyloLevel (1) phyloFis phylo
 phyloFis :: Map (Date, Date) [PhyloFis]
 phyloFis = filterFis True 1 (filterFisByClique) 
          $ filterFisByNested 
-         $ filterFis True 1 (filterFisBySupport) (docsToFis phyloDocs)
+         $ filterFis True 1 (filterFisBySupport) (getPhyloFis phylo')
 
+
+phylo' :: Phylo 
+phylo' = docsToFis' phyloDocs phylo
 
 ----------------------------------------
 -- | STEP 2 | -- Init a Phylo of level 0

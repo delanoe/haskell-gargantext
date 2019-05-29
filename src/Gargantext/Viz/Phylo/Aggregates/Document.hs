@@ -28,6 +28,8 @@ import qualified Data.List   as List
 import qualified Data.Map    as Map
 import qualified Data.Vector as Vector
 
+import Debug.Trace (trace)
+
 
 -- | To init a list of Periods framed by a starting Date and an ending Date
 initPeriods :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
@@ -38,7 +40,7 @@ initPeriods g s (start,end) = map (\l -> (head' "Doc" l, last' "Doc" l))
 -- | To group a list of Documents by fixed periods
 groupDocsByPeriod :: (Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
 groupDocsByPeriod _ _   [] = panic "[ERR][Viz.Phylo.Example.docsToPeriods] Empty [Documents] can not have any periods"
-groupDocsByPeriod f pds es = Map.fromList $ zip pds $ map (inPeriode f es) pds
+groupDocsByPeriod f pds es = trace ("----\nGroup docs by periods\n") $ Map.fromList $ zip pds $ map (inPeriode f es) pds
   where
     --------------------------------------
     inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]

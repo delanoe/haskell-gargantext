@@ -347,6 +347,7 @@ data PhyloQueryBuild = PhyloQueryBuild
 
     -- Inter-temporal matching method of the Phylo
     , _q_interTemporalMatching :: Proximity
+    , _q_interTemporalMatchingFrame :: Int
 
     -- Last level of reconstruction
     , _q_nthLevel   :: Level

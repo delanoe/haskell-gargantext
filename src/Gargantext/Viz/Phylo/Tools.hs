@@ -192,6 +192,8 @@ getPhyloTitle p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
 getPhyloDescription :: Phylo -> Text
 getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
 
+getPhyloMatchingFrame :: Phylo -> Int
+getPhyloMatchingFrame p = _q_interTemporalMatchingFrame $ _phyloParam_query $ getPhyloParams p
 
 getPhyloFis :: Phylo -> Map (Date,Date) [PhyloFis]
 getPhyloFis = _phylo_fis
@@ -791,10 +793,10 @@ initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 
 
 -- | To initialize a PhyloQueryBuild from given and default parameters
-initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
+initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Int -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
 initPhyloQueryBuild name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
-  (def defaultWeightedLogJaccard -> matching') (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQueryBuild name desc grain steps cluster metrics filters matching' nthLevel nthCluster
+  (def defaultWeightedLogJaccard -> matching') (def 5 -> frame) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
+    PhyloQueryBuild name desc grain steps cluster metrics filters matching' frame nthLevel nthCluster
 
 
 
@@ -848,7 +850,7 @@ defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing N
 
 defaultQueryBuild :: PhyloQueryBuild
 defaultQueryBuild = initPhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
 defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing

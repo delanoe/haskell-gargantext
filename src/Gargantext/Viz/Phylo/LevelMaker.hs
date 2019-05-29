@@ -21,7 +21,7 @@ module Gargantext.Viz.Phylo.LevelMaker
 
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sort, concat, nub, zip, last)
-import Data.Map                     (Map, (!), empty, singleton,mapWithKey)
+import Data.Map                     (Map, (!), empty, singleton)
 import Data.Text (Text)
 import Data.Tuple.Extra
 import Gargantext.Prelude
@@ -100,8 +100,11 @@ clusterToGroup prd lvl idx lbl groups _m p =
     PhyloGroup ((prd, lvl), idx) lbl ngrams empty 
       Nothing
       (getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p))
-      [] [] [] (map (\g -> (getGroupId g, 1)) groups)
+      [] [] [] childs
       where
+        --------------------------------------
+        childs :: [Pointer]
+        childs = map (\g -> (getGroupId g, 1)) groups
         --------------------------------------
         ngrams :: [Int]
         ngrams = (sort . nub . concat) $ map getGroupNgrams groups
@@ -151,11 +154,11 @@ toNthLevel lvlMax prox clus p
                   $ setPhyloBranches (lvl + 1)
                   $ transposePeriodLinks (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
-                  $ trace (show (mapWithKey (\k v -> (k,length v)) clusters))
                   $ addPhyloLevel (lvl + 1)
                     (clusters) p
   where
     --------------------------------------
+    clusters :: Map (Date,Date) [PhyloCluster]
     clusters = phyloToClusters lvl clus p
     --------------------------------------
     lvl :: Level
@@ -164,9 +167,11 @@ toNthLevel lvlMax prox clus p
 
 
 -- | To reconstruct the Level 1 of a Phylo based on a Clustering Method
-toPhylo1 :: Cluster -> Proximity -> [Metric] -> [Filter] -> Map (Date, Date) [Document] -> Phylo -> Phylo
-toPhylo1 clus prox metrics filters d p = case clus of
-  Fis (FisParams k s t) -> traceBranches 1 
+toPhylo1 :: Cluster -> Proximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
+toPhylo1 clus prox d p = case clus of
+  Fis (FisParams k s t) -> traceReBranches 1 
+                       $ linkPhyloBranches 1 prox
+                       $ traceBranches 1 
                        $ setPhyloBranches 1
                        $ traceTempoMatching Descendant 1
                        $ interTempoMatching Descendant 1 prox
@@ -178,7 +183,7 @@ toPhylo1 clus prox metrics filters d p = case clus of
     where
       --------------------------------------
       phyloFis :: Map (Date, Date) [PhyloFis]
-      phyloFis = toPhyloFis' (getPhyloFis phylo') k s t metrics filters
+      phyloFis = toPhyloFis' (getPhyloFis phylo') k s t
       --------------------------------------
       phylo' :: Phylo
       phylo' = docsToFis' d p
@@ -205,7 +210,7 @@ instance PhyloMaker [(Date, Text)]
       where
         --------------------------------------
         phylo1 :: Phylo
-        phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) (getContextualUnitMetrics q) (getContextualUnitFilters q) phyloDocs phylo0
+        phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) phyloDocs phylo0
         --------------------------------------
         phylo0 :: Phylo
         phylo0 = toPhylo0 phyloDocs phyloBase
@@ -244,7 +249,7 @@ instance PhyloMaker [Document]
       where
         --------------------------------------
         phylo1 :: Phylo
-        phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) (getContextualUnitMetrics q) (getContextualUnitFilters q) phyloDocs phylo0
+        phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) phyloDocs phylo0
         --------------------------------------
         phylo0 :: Phylo
         phylo0 = toPhylo0 phyloDocs phyloBase
@@ -281,6 +286,16 @@ instance PhyloMaker [Document]
 -----------------
 
 
+tracePhylo0 :: Phylo -> Phylo 
+tracePhylo0 p = trace ("\n---------------\n--| Phylo 0 |--\n---------------\n\n") p
+
+tracePhylo1 :: Phylo -> Phylo 
+tracePhylo1 p = trace ("\n---------------\n--| Phylo 1 |--\n---------------\n\n") p
+
+tracePhyloN :: Level -> Phylo -> Phylo
+tracePhyloN lvl p = trace ("\n---------------\n--| Phylo " <> show (lvl) <> " |--\n---------------\n\n") p
+
+
 tracePhyloBase :: Phylo -> Phylo
 tracePhyloBase p = trace ( "\n-------------\n--| Phylo |--\n-------------\n\n" 
                         <> show (length $ _phylo_periods p) <> " periods from " 
@@ -305,6 +320,23 @@ traceTempoMatching fil lvl p = trace ( "----\n" <> show (fil) <> " filtered temp
     --------------------------------------
     pts :: [Pointer]
     pts = concat $ map (\g -> getGroupPointers PeriodEdge fil g) $ getGroupsWithLevel lvl p
+    --------------------------------------
+
+
+traceReBranches :: Level -> Phylo -> Phylo
+traceReBranches lvl p = trace ( "----\n" <> "Branches in Phylo" <> show lvl <> " after relinking :\n"
+                           <> "count : " <> show (length $ filter (\(lvl',_) -> lvl' == lvl ) $ getBranchIds p) <> " branches\n"
+                           <> "count : " <> show (length $ getGroupsWithLevel lvl p)    <> " groups\n"
+                           <> "groups by branch : " <> show (percentile 25 (VS.fromList brs)) <> " (25%) "
+                                                    <> show (percentile 50 (VS.fromList brs)) <> " (50%) "
+                                                    <> show (percentile 75 (VS.fromList brs)) <> " (75%) "
+                                                    <> show (percentile 90 (VS.fromList brs)) <> " (90%)\n") p
+  where
+    --------------------------------------
+    brs :: [Double]
+    brs = sort $ map (\(_,gs) -> fromIntegral $ length gs)
+        $ filter (\(id,_) -> (fst id) == lvl)
+        $ getGroupsByBranches p
     --------------------------------------
 
 
