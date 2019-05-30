@@ -79,8 +79,12 @@ graphTest= mkGraphUfromEdges [(0,1),(0,2),(0,4),(0,5),(1,0),(1,3),(1,8),(2,0),(2
 --{-
 --runTest_prox :: [Bool
 
+
+runTest_prox_is_ok :: Bool
 runTest_prox_is_ok = List.null (List.filter (not . List.null) $ map runTest_prox' [0..3])
 
+
+runTest_prox' :: Node -> [((Node, (Node, Node)), Bool)]
 runTest_prox' l = List.filter (\t -> snd t == False)
                [ ((l,(x,y)), abs ((look (y,x) test) - (look (y,x) temoin)) < 0.0001)
                | y <- nodes graphTest
@@ -90,10 +94,9 @@ runTest_prox' l = List.filter (\t -> snd t == False)
     look :: (Node,Node) -> Map Node (Map Node Double) -> Double
     look (x,y) m = look' x $ look' y m
       where
-        look' x m = maybe (panic "nokey") identity $ Map.lookup x m
+        look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
     test   = Map.map Map.fromList $ Map.fromList   $ test_proxs_y l
     temoin = Map.map Map.fromList $ Map.fromList   $ test_prox l
-
 
 
 test_proxs_y :: Length -> [(Node, [(Node, Double)])]
