@@ -1,5 +1,4 @@
-{-|
-Module      : Gargantext.Viz.Graph.Proxemy
+{-| Module      : Gargantext.Viz.Graph.Proxemy
 Description : Proxemy
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -30,6 +29,21 @@ type Graph_Undirected = Graph 'U () ()
 type Length = Int
 type FalseReflexive = Bool
 type NeighborsFilter = Graph_Undirected -> Node -> [Node]
+type We = Bool
+
+
+similarity_CONF_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> We -> Double
+similarity_CONF_x_y g (x,y) l r _w = prox_x_y / (prox_x_y + lim_SC)
+  where
+    prox_x_y :: Double
+    prox_x_y = maybe 0 identity $ Map.lookup y xline
+
+    xline :: Map Node Double
+    xline    = prox_markov g [x] l r filterNeighbors
+
+    lim_SC :: Double
+    lim_SC   = (degree g y + 1 ) / (2 * (ecount g) + (vcount g))
+
 
 -- | TODO do as a Map instead of [Node] ?
 prox_markov :: Graph_Undirected -> [Node] -> Length -> FalseReflexive -> NeighborsFilter -> Map Node Double
@@ -69,16 +83,26 @@ mkGraphUfromEdges es = mkGraph (List.replicate n ()) $ zip es $ repeat ()
 mkGraphDfromEdges :: [(Int, Int)] -> Graph 'D () ()
 mkGraphDfromEdges = undefined
 
+filterNeighbors :: Graph_Undirected -> Node -> [Node]
+filterNeighbors g n = List.nub $ neighbors g n
+
+degree :: Graph_Undirected -> Node -> Double
+degree g n = fromIntegral $ List.length (filterNeighbors g n)
+
+vcount :: Graph_Undirected -> Double
+vcount = fromIntegral . List.length . List.nub . nodes
+
+-- | TODO tests, optim and use IGraph library, fix IO ?
+ecount :: Graph_Undirected -> Double
+ecount = fromIntegral . List.length . List.nub . edges
+
 ------------------------------------------------------------------------
 -- | Behavior tests
 
 graphTest :: Graph 'U () ()
 graphTest= mkGraphUfromEdges [(0,1),(0,2),(0,4),(0,5),(1,0),(1,3),(1,8),(2,0),(2,3),(2,4),(2,5),(2,6),(2,16),(3,1),(3,2),(3,4),(3,5),(3,6),(3,18),(4,0),(4,2),(4,3),(4,6),(5,0),(5,2),(5,3),(5,8),(6,2),(6,3),(6,4),(7,8),(7,9),(7,10),(7,13),(8,1),(8,5),(8,7),(8,9),(8,10),(8,11),(8,12),(8,13),(9,7),(9,8),(9,12),(9,13),(10,7),(10,8),(10,11),(10,17),(11,8),(11,10),(11,12),(12,8),(12,9),(12,11),(13,7),(13,8),(13,9),(13,20),(14,16),(14,17),(14,18),(14,20),(15,16),(15,17),(15,18),(15,20),(16,2),(16,14),(16,15),(16,18),(16,20),(17,10),(17,14),(17,15),(17,18),(17,20),(18,3),(18,14),(18,15),(18,16),(18,17),(18,19),(18,20),(19,18),(19,20),(20,13),(20,14),(20,15),(20,16),(20,17),(20,18),(20,19)]
 
-
---{-
---runTest_prox :: [Bool
-
+--runTest_conf = [(x, 
 
 runTest_prox_is_ok :: Bool
 runTest_prox_is_ok = List.null (List.filter (not . List.null) $ map runTest_prox' [0..3])
@@ -95,8 +119,9 @@ runTest_prox' l = List.filter (\t -> snd t == False)
     look (x,y) m = look' x $ look' y m
       where
         look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
-    test   = Map.map Map.fromList $ Map.fromList   $ test_proxs_y l
-    temoin = Map.map Map.fromList $ Map.fromList   $ test_prox l
+    test   = toMap $ test_proxs_y l
+    temoin = toMap $ test_prox    l
+    toMap  = Map.map Map.fromList . Map.fromList 
 
 
 test_proxs_y :: Length -> [(Node, [(Node, Double)])]
@@ -105,7 +130,7 @@ test_proxs_y l = map (\n -> test_proxs_x l n) (nodes graphTest)
 test_proxs_x :: Length -> Node -> (Node, [(Node, Double)])
 test_proxs_x l a = (a, map (\x -> (x, maybe 0 identity $ Map.lookup x (m a))) (nodes graphTest))
   where
-    m x' = prox_markov graphTest [x'] l True (\g n -> List.nub $ neighbors g n)
+    m x' = prox_markov graphTest [x'] l True filterNeighbors
 
 
 --prox : longueur balade = 0
