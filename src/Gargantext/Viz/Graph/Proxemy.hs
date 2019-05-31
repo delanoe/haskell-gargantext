@@ -15,6 +15,7 @@ Références:
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Viz.Graph.Proxemy
   where

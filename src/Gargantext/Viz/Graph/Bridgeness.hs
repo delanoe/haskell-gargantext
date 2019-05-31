@@ -10,6 +10,7 @@ Portability : POSIX
 Let be a graph with partitions (from Louvain algo), Bridgeness uniformly
 filters inter-communities links.
 
+TODO rewrite Bridgeness with "equivalence structurale" metrics
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
