@@ -34,17 +34,39 @@ type We = Bool
 
 
 similarity_CONF_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> We -> Double
-similarity_CONF_x_y g (x,y) l r _w = prox_x_y / (prox_x_y + lim_SC)
+similarity_CONF_x_y g (x,y) l r we = similarity
   where
+    similarity :: Double
+    similarity | denominator == 0 = 0
+               | otherwise        = prox_x_y / denominator
+       where
+         denominator = prox_x_y + lim_SC
+
     prox_x_y :: Double
     prox_x_y = maybe 0 identity $ Map.lookup y xline
 
     xline :: Map Node Double
-    xline    = prox_markov g [x] l r filterNeighbors
+    xline    = prox_markov g [x] l r filterNeighbors'
+      where
+        filterNeighbors' = if we then filterNeighbors
+                                 else rm_edge_neighbors y
+    pair_is_edge :: Bool
+    pair_is_edge = if we then False
+                         else List.elem y (filterNeighbors g x)
 
     lim_SC :: Double
-    lim_SC   = (degree g y + 1 ) / (2 * (ecount g) + (vcount g))
+    lim_SC
+          | count == 0 = 0
+          | otherwise = if pair_is_edge
+                             then (degree g y + 1-1)  / count
+                             else (degree g y + 1  ) / count
+            where
+              count = if pair_is_edge
+                         then (2 * (ecount g) + (vcount g) - 2)
+                         else (2 * (ecount g) + (vcount g))
 
+rm_edge_neighbors :: Node -> Graph_Undirected -> Node -> [Node]
+rm_edge_neighbors b g a = List.filter (\x -> (x /= a) || (x /= b)) $ filterNeighbors g a
 
 -- | TODO do as a Map instead of [Node] ?
 prox_markov :: Graph_Undirected -> [Node] -> Length -> FalseReflexive -> NeighborsFilter -> Map Node Double

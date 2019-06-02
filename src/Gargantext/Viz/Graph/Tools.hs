@@ -78,16 +78,9 @@ data2graph labels coocs distance partitions = Graph nodes edges Nothing
                    , edge_id     = cs (show i) }
             | (i, ((s,t), w)) <- zip ([0..]::[Integer]) (Map.toList distance) ]
 
-
-
 ------------------------------------------------------------------------
 
 data Layout = KamadaKawai | ACP | ForceAtlas
-
-setCoord'' :: Layout -> (Int, Node) -> Node
-setCoord'' ForceAtlas = setCoord' (\i-> (sin $ fromIntegral i, cos $ fromIntegral i))
-setCoord'' ACP = undefined
-setCoord'' KamadaKawai = undefined
 
 
 setCoord' :: (Int -> (Double, Double)) -> (Int, Node) -> Node
