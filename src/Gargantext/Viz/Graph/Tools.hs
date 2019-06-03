@@ -15,7 +15,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
@@ -26,9 +26,13 @@ import Gargantext.Viz.Graph
 --import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
+import Gargantext.Viz.Graph.Proxemy (mkGraphUfromEdges)
 import GHC.Float (sin, cos)
+import qualified IGraph as Igraph
+import qualified IGraph.Algorithms.Layout as Layout
 import qualified Data.Vector.Storable as Vec
 import qualified Data.Map  as Map
+import qualified Data.List as List
 
 cooc2graph :: (Map (Text, Text) Int) -> IO Graph
 cooc2graph myCooc = do
@@ -44,7 +48,7 @@ cooc2graph myCooc = do
 
   let distanceMap' = distanceMap -- bridgeness 300 partitions distanceMap
 
-  pure $ data2graph (Map.toList ti) myCooc4 distanceMap' partitions
+  data2graph (Map.toList ti) myCooc4 distanceMap' partitions
 
 
 ----------------------------------------------------------
@@ -53,12 +57,12 @@ cooc2graph myCooc = do
 data2graph :: [(Text, Int)] -> Map (Int, Int) Int
                             -> Map (Int, Int) Double
                             -> [LouvainNode]
-              -> Graph
-data2graph labels coocs distance partitions = Graph nodes edges Nothing
-  where
-    community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
+              -> IO Graph
+data2graph labels coocs distance partitions = do
+    
+    let community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
 
-    nodes = map (setCoord ForceAtlas labels distance)
+    nodes <- mapM (setCoord ForceAtlas labels distance)
           [ (n, Node { node_size = maybe 0 identity (Map.lookup (n,n) coocs)
                    , node_type = Terms -- or Unknown
                    , node_id    = cs (show n)
@@ -72,11 +76,13 @@ data2graph labels coocs distance partitions = Graph nodes edges Nothing
             | (l, n) <- labels
             ]
 
-    edges = trace (show distance) [ Edge { edge_source = cs (show s)
+    let edges = [ Edge { edge_source = cs (show s)
                    , edge_target = cs (show t)
                    , edge_weight = w
                    , edge_id     = cs (show i) }
             | (i, ((s,t), w)) <- zip ([0..]::[Integer]) (Map.toList distance) ]
+
+    pure $ Graph nodes edges Nothing
 
 ------------------------------------------------------------------------
 
@@ -90,19 +96,22 @@ setCoord' f (i,n) = n { node_x_coord = x, node_y_coord = y }
 
 
 -- | ACP
-setCoord :: Ord a => Layout -> [(a, Int)] -> Map (Int, Int) Double -> (Int, Node) -> Node
-setCoord l labels m (n,node) = node { node_x_coord = x, node_y_coord = y }
-  where
-    (x,y) = getCoord l labels m n
+setCoord :: Ord a => Layout -> [(a, Int)] -> Map (Int, Int) Double -> (Int, Node) -> IO Node
+setCoord l labels m (n,node) = getCoord l labels m n
+                           >>= \(x,y) -> pure $ node { node_x_coord = x
+                                                     , node_y_coord = y
+                                                     }
 
 
 getCoord :: Ord a => Layout
-                  -> [(a, Int)] -> Map (Int, Int) Double -> Int -> (Double, Double)
-getCoord KamadaKawai _ _ _ = undefined
-getCoord ForceAtlas _ _ n = (sin d, cos d)
+                  -> [(a, Int)] -> Map (Int, Int) Double -> Int -> IO (Double, Double)
+getCoord KamadaKawai _ m n = layout m n
+
+getCoord ForceAtlas _ _ n = pure (sin d, cos d)
   where
     d = fromIntegral n
-getCoord ACP labels m n = to2d $ maybe (panic "Graph.Tools no coordinate") identity
+
+getCoord ACP labels m n = pure $ to2d $ maybe (panic "Graph.Tools no coordinate") identity
              $ Map.lookup n
              $ pcaReduceTo (Dimension 2)
              $ mapArray labels m
@@ -124,7 +133,13 @@ getCoord ACP labels m n = to2d $ maybe (panic "Graph.Tools no coordinate") ident
 ------------------------------------------------------------------------
 
 -- | KamadaKawai Layout
-layout :: Map (Int, Int) Double -> IO (Map Int (Double, Double))
-layout = undefined
-
+-- TODO TEST: check labels, nodeId and coordinates
+layout :: Map (Int, Int) Double -> Int -> IO (Double, Double)
+layout m n = maybe (panic "") identity <$> Map.lookup n <$> coord
+  where
+    coord :: IO (Map Int (Double,Double))
+    coord = Map.fromList <$> List.zip (Igraph.nodes g) <$> (Layout.getLayout g p)
+    --p = Layout.defaultLGL
+    p = Layout.defaultKamadaKawai
+    g = mkGraphUfromEdges $ map fst $ List.filter (\e -> snd e > 0) $ Map.toList m
 
