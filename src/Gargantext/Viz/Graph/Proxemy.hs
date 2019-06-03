@@ -33,8 +33,8 @@ type NeighborsFilter = Graph_Undirected -> Node -> [Node]
 type We = Bool
 
 
-similarity_CONF_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> We -> Double
-similarity_CONF_x_y g (x,y) l r we = similarity
+similarity_conf_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> We -> Double
+similarity_conf_x_y g (x,y) l r we = similarity
   where
     similarity :: Double
     similarity | denominator == 0 = 0
@@ -48,12 +48,12 @@ similarity_CONF_x_y g (x,y) l r we = similarity
     xline :: Map Node Double
     xline    = prox_markov g [x] l r filterNeighbors'
       where
-        filterNeighbors' = if not we then filterNeighbors
-                                     else rm_edge_neighbors y
-                                     -- (\g n -> List.filter (/= y) $ filterNeighbors g n)
+        filterNeighbors' | we == True = filterNeighbors
+                         | otherwise  = rm_edge_neighbors (x,y)
+
     pair_is_edge :: Bool
-    pair_is_edge = if we then False
-                         else List.elem y (filterNeighbors g x)
+    pair_is_edge | we == True = False
+                 | otherwise  = List.elem y (filterNeighbors g x)
 
     lim_SC :: Double
     lim_SC
@@ -63,12 +63,17 @@ similarity_CONF_x_y g (x,y) l r we = similarity
                              else (degree g y + 1  ) / denominator
             where
               denominator = if pair_is_edge
-                         then (2 * (ecount g) + (vcount g) - 2)
-                         else (2 * (ecount g) + (vcount g)    )
+                              then (2 * (ecount g) + (vcount g) - 2)
+                              else (2 * (ecount g) + (vcount g)    )
 
-rm_edge_neighbors :: Node -> Graph_Undirected -> Node -> [Node]
-rm_edge_neighbors b g a = List.filter (/= b)
-                        $ filterNeighbors g a
+
+rm_edge_neighbors :: (Node, Node) -> Graph_Undirected -> Node -> [Node]
+rm_edge_neighbors (x,y) g n | (n == x && List.elem y all_neighbors) = List.filter (/= y) all_neighbors
+                            | (n == y && List.elem x all_neighbors) = List.filter (/= x) all_neighbors
+                            | otherwise                             = all_neighbors
+                              where
+                                all_neighbors = filterNeighbors g n
+
 
 -- | TODO do as a Map instead of [Node] ?
 prox_markov :: Graph_Undirected -> [Node] -> Length -> FalseReflexive -> NeighborsFilter -> Map Node Double
@@ -91,8 +96,8 @@ spreading g ms r nf = Map.fromListWith (+) $ List.concat $ map pvalue (Map.keys 
     -- pvalue' n = [pvalue n]  <> map pvalue (neighborhood n)
     pvalue n = [(n, pvalue' n)] <> map (\n''->(n'', pvalue' n)) (nf g n)
       where
-        pvalue' n'      = (value n') / (fromIntegral $ List.length neighborhood)
-        value   n'       = maybe 0 identity $ Map.lookup n' ms
+        pvalue' n'    = (value n') / (fromIntegral $ List.length neighborhood)
+        value   n'    = maybe 0 identity $ Map.lookup n' ms
         neighborhood  = (nf g n) <> (if r then [n] else [])
 
 
@@ -132,6 +137,22 @@ graphTest= mkGraphUfromEdges [(0,1),(0,2),(0,4),(0,5),(1,0),(1,3),(1,8),(2,0),(2
 runTest_prox_is_ok :: Bool
 runTest_prox_is_ok = List.null (List.filter (not . List.null) $ map runTest_prox' [0..3])
 
+runTest_conf_is_ok :: Bool
+runTest_conf_is_ok = List.null $ List.filter (\t -> snd t == False)
+               [ (((x,y)), abs ((look (y,x) test) - (look (y,x) temoin)) < 0.0001)
+               | y <- nodes graphTest
+               , x <- nodes graphTest
+               ]
+
+  where
+    test = Map.map Map.fromList $ Map.fromList [(n, [ (y, similarity_conf_x_y graphTest (n,y) 3 True False) | y <- nodes graphTest]) | n <- nodes graphTest]
+    temoin = test_confluence_temoin
+
+    look :: (Node,Node) -> Map Node (Map Node Double) -> Double
+    look (x,y) m = look' x $ look' y m
+      where
+        look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
+
 
 runTest_prox' :: Node -> [((Node, (Node, Node)), Bool)]
 runTest_prox' l = List.filter (\t -> snd t == False)
@@ -146,7 +167,7 @@ runTest_prox' l = List.filter (\t -> snd t == False)
         look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
     test   = toMap $ test_proxs_y l
     temoin = toMap $ test_prox    l
-    toMap  = Map.map Map.fromList . Map.fromList 
+    toMap  = Map.map Map.fromList . Map.fromList
 
 
 test_proxs_y :: Length -> [(Node, [(Node, Double)])]
@@ -260,8 +281,8 @@ test_prox _ = undefined
 
 
 -- | confluence longueur balade 3
-test_confluence_temoin :: [(Node, [(Node, Double)])]
-test_confluence_temoin =  [(0,[(0,0.7448),(1,0.4844),(2,0.6471),(3,0.6759),(4,0.6297),(5,0.6219),(6,0.7040),(7,0.1870),(8,0.4092),(9,0.1870),(10,0.1870),(11,0.2233),(12,0.2233),(13,0.1870),(14,0.0987),(15,0.0987),(16,0.3325),(17,0.0000),(18,0.2827),(19,0.0000),(20,0.0641)])
+test_confluence_temoin :: Map Node (Map Node Double)
+test_confluence_temoin = Map.map Map.fromList $ Map.fromList [(0,[(0,0.7448),(1,0.4844),(2,0.6471),(3,0.6759),(4,0.6297),(5,0.6219),(6,0.7040),(7,0.1870),(8,0.4092),(9,0.1870),(10,0.1870),(11,0.2233),(12,0.2233),(13,0.1870),(14,0.0987),(15,0.0987),(16,0.3325),(17,0.0000),(18,0.2827),(19,0.0000),(20,0.0641)])
    , (1,[(0,0.4844),(1,0.7225),(2,0.6158),(3,0.4509),(4,0.6326),(5,0.6521),(6,0.6008),(7,0.4259),(8,0.2441),(9,0.4362),(10,0.3925),(11,0.4587),(12,0.4587),(13,0.3804),(14,0.0931),(15,0.0931),(16,0.2426),(17,0.1611),(18,0.2100),(19,0.1461),(20,0.1259)])
    , (2,[(0,0.6471),(1,0.6158),(2,0.7070),(3,0.6569),(4,0.7060),(5,0.5915),(6,0.6918),(7,0.0680),(8,0.3091),(9,0.0680),(10,0.0680),(11,0.0836),(12,0.0836),(13,0.1239),(14,0.3219),(15,0.3219),(16,0.0630),(17,0.2568),(18,0.3901),(19,0.2458),(20,0.2674)])
    , (3,[(0,0.6759),(1,0.4509),(2,0.6569),(3,0.6740),(4,0.6865),(5,0.5777),(6,0.6659),(7,0.1411),(8,0.3093),(9,0.1411),(10,0.1888),(11,0.1704),(12,0.1704),(13,0.1774),(14,0.3144),(15,0.3144),(16,0.4317),(17,0.2472),(18,0.0602),(19,0.3320),(20,0.2975)])
