@@ -132,51 +132,54 @@ ecount = fromIntegral . List.length . List.nub . edges
 graphTest :: Graph 'U () ()
 graphTest= mkGraphUfromEdges [(0,1),(0,2),(0,4),(0,5),(1,0),(1,3),(1,8),(2,0),(2,3),(2,4),(2,5),(2,6),(2,16),(3,1),(3,2),(3,4),(3,5),(3,6),(3,18),(4,0),(4,2),(4,3),(4,6),(5,0),(5,2),(5,3),(5,8),(6,2),(6,3),(6,4),(7,8),(7,9),(7,10),(7,13),(8,1),(8,5),(8,7),(8,9),(8,10),(8,11),(8,12),(8,13),(9,7),(9,8),(9,12),(9,13),(10,7),(10,8),(10,11),(10,17),(11,8),(11,10),(11,12),(12,8),(12,9),(12,11),(13,7),(13,8),(13,9),(13,20),(14,16),(14,17),(14,18),(14,20),(15,16),(15,17),(15,18),(15,20),(16,2),(16,14),(16,15),(16,18),(16,20),(17,10),(17,14),(17,15),(17,18),(17,20),(18,3),(18,14),(18,15),(18,16),(18,17),(18,19),(18,20),(19,18),(19,20),(20,13),(20,14),(20,15),(20,16),(20,17),(20,18),(20,19)]
 
---runTest_conf = [(x, 
-
-runTest_prox_is_ok :: Bool
-runTest_prox_is_ok = List.null (List.filter (not . List.null) $ map runTest_prox' [0..3])
-
-runTest_conf_is_ok :: Bool
-runTest_conf_is_ok = List.null $ List.filter (\t -> snd t == False)
-               [ (((x,y)), abs ((look (y,x) test) - (look (y,x) temoin)) < 0.0001)
-               | y <- nodes graphTest
-               , x <- nodes graphTest
-               ]
-
+-- | Tests
+-- >>> runTests
+-- (True,True)
+runTests :: (Bool, Bool)
+runTests = (runTest_conf_is_ok, runTest_prox_is_ok)
   where
-    test = Map.map Map.fromList $ Map.fromList [(n, [ (y, similarity_conf_x_y graphTest (n,y) 3 True False) | y <- nodes graphTest]) | n <- nodes graphTest]
-    temoin = test_confluence_temoin
+    runTest_conf_is_ok :: Bool
+    runTest_conf_is_ok = List.null $ List.filter (\t -> snd t == False)
+                   [ (((x,y)), abs ((look (y,x) test) - (look (y,x) temoin)) < 0.0001)
+                   | y <- nodes graphTest
+                   , x <- nodes graphTest
+                   ]
 
-    look :: (Node,Node) -> Map Node (Map Node Double) -> Double
-    look (x,y) m = look' x $ look' y m
       where
-        look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
+        test = toMap [(n, [ (y, similarity_conf_x_y graphTest (n,y) 3 True False) | y <- nodes graphTest])
+                     | n <- nodes graphTest
+                     ]
+        temoin = test_confluence_temoin
+
+    runTest_prox_is_ok :: Bool
+    runTest_prox_is_ok = List.null (List.filter (not . List.null) $ map runTest_prox' [0..3])
 
 
-runTest_prox' :: Node -> [((Node, (Node, Node)), Bool)]
-runTest_prox' l = List.filter (\t -> snd t == False)
-               [ ((l,(x,y)), abs ((look (y,x) test) - (look (y,x) temoin)) < 0.0001)
-               | y <- nodes graphTest
-               , x <- nodes graphTest
-               ]
-  where
-    look :: (Node,Node) -> Map Node (Map Node Double) -> Double
-    look (x,y) m = look' x $ look' y m
+    runTest_prox' :: Node -> [((Node, (Node, Node)), Bool)]
+    runTest_prox' l = List.filter (\t -> snd t == False)
+                   [ ((l,(x,y)), abs ((look (y,x) test) - (look (y,x) temoin)) < 0.0001)
+                   | y <- nodes graphTest
+                   , x <- nodes graphTest
+                   ]
       where
-        look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
-    test   = toMap $ test_proxs_y l
-    temoin = toMap $ test_prox    l
+        test   = toMap $ test_proxs_y l
+        temoin = toMap $ test_prox    l
+
+        test_proxs_y :: Length -> [(Node, [(Node, Double)])]
+        test_proxs_y l' = map (\n -> test_proxs_x l' n) (nodes graphTest)
+
+        test_proxs_x :: Length -> Node -> (Node, [(Node, Double)])
+        test_proxs_x l' a = (a, map (\x -> (x, maybe 0 identity $ Map.lookup x (m a))) (nodes graphTest))
+          where
+            m x' = prox_markov graphTest [x'] l' True filterNeighbors
+
     toMap  = Map.map Map.fromList . Map.fromList
 
+    look :: (Node,Node) -> Map Node (Map Node Double) -> Double
+    look (x,y) m = look' x $ look' y m
+      where
+        look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
 
-test_proxs_y :: Length -> [(Node, [(Node, Double)])]
-test_proxs_y l = map (\n -> test_proxs_x l n) (nodes graphTest)
-
-test_proxs_x :: Length -> Node -> (Node, [(Node, Double)])
-test_proxs_x l a = (a, map (\x -> (x, maybe 0 identity $ Map.lookup x (m a))) (nodes graphTest))
-  where
-    m x' = prox_markov graphTest [x'] l True filterNeighbors
 
 
 --prox : longueur balade = 0
