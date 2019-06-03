@@ -48,25 +48,27 @@ similarity_CONF_x_y g (x,y) l r we = similarity
     xline :: Map Node Double
     xline    = prox_markov g [x] l r filterNeighbors'
       where
-        filterNeighbors' = if we then filterNeighbors
-                                 else rm_edge_neighbors y
+        filterNeighbors' = if not we then filterNeighbors
+                                     else rm_edge_neighbors y
+                                     -- (\g n -> List.filter (/= y) $ filterNeighbors g n)
     pair_is_edge :: Bool
     pair_is_edge = if we then False
                          else List.elem y (filterNeighbors g x)
 
     lim_SC :: Double
     lim_SC
-          | count == 0 = 0
-          | otherwise = if pair_is_edge
-                             then (degree g y + 1-1)  / count
-                             else (degree g y + 1  ) / count
+          | denominator == 0 = 0
+          | otherwise  = if pair_is_edge
+                             then (degree g y + 1-1)  / denominator
+                             else (degree g y + 1  ) / denominator
             where
-              count = if pair_is_edge
+              denominator = if pair_is_edge
                          then (2 * (ecount g) + (vcount g) - 2)
-                         else (2 * (ecount g) + (vcount g))
+                         else (2 * (ecount g) + (vcount g)    )
 
 rm_edge_neighbors :: Node -> Graph_Undirected -> Node -> [Node]
-rm_edge_neighbors b g a = List.filter (\x -> (x /= a) || (x /= b)) $ filterNeighbors g a
+rm_edge_neighbors b g a = List.filter (/= b)
+                        $ filterNeighbors g a
 
 -- | TODO do as a Map instead of [Node] ?
 prox_markov :: Graph_Undirected -> [Node] -> Length -> FalseReflexive -> NeighborsFilter -> Map Node Double
