@@ -33,6 +33,7 @@ import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Prelude
+import Gargantext.Prelude.Utils (hash)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
@@ -40,6 +41,7 @@ import Gargantext.Database.Flow (FlowCmdM)
 
 data Query = Query { query_query      :: Text
                    , query_corpus_id  :: Int
+                   , query_files_id  :: [Text]
                    }
                    deriving (Eq, Show, Generic)
 
@@ -47,9 +49,10 @@ deriveJSON (unPrefix "query_") ''Query
 
 
 instance Arbitrary Query where
-    arbitrary = elements [ Query q n
+    arbitrary = elements [ Query q n fs
                          | q <- ["a","b"]
                          , n <- [0..10]
+                         , fs <- map (map hash) [["a","b"], ["c","d"]]
                          ]
 
 instance ToSchema Query
@@ -61,6 +64,6 @@ type Api = Summary "New Corpus endpoint"
 
 
 api :: FlowCmdM env err m => Query -> m CorpusId
-api (Query q _) = do
+api (Query q _ _) = do
   cId <- flowCorpusSearchInDatabase "user1" EN q
   pure cId
