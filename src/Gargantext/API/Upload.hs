@@ -27,11 +27,8 @@ module Gargantext.API.Upload
   where
 
 import Control.Lens ((.~), (?~))
-import qualified Data.Text as Text
-import GHC.Generics (Generic)
 import Gargantext.Prelude
 import Data.Text (Text)
-import Data.Aeson
 import Data.Monoid
 import Servant
 import Servant.Multipart
@@ -86,14 +83,9 @@ instance HasMock (MultipartForm Mem (MultipartData Mem) :> sub) context where
   mock _ _ = undefined
 -}
 
-data Upload = Upload { up :: [Text] }
-  deriving (Generic)
-
-instance ToJSON Upload
-
 type Hash = Text
 
-type ApiUpload = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] Hash
+type ApiUpload = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] [Hash]
 -- MultipartData consists in textual inputs,
 -- accessible through its "inputs" field, as well
 -- as files, accessible through its "files" field.
@@ -117,7 +109,7 @@ upload multipartData = do
   -- is <- inputs multipartData
 --}
 
-  pure $ hash $ Text.concat $ map cs is
+  pure $ map (hash . cs) is
 -------------------------------------------------------------------------------
 
 

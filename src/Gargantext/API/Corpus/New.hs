@@ -55,7 +55,11 @@ instance Arbitrary Query where
                          , fs <- map (map hash) [["a","b"], ["c","d"]]
                          ]
 
-instance ToSchema Query
+instance ToSchema Query where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 6 fieldLabel}
+
 
 
 type Api = Summary "New Corpus endpoint"
