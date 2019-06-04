@@ -46,6 +46,7 @@ import Gargantext.API.Types
 --import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Data.Swagger
 import Gargantext.API.Ngrams (TODO)
+import Gargantext.Prelude.Utils (hash)
 
 -- | Upload files
 -- TODO Is it possible to adapt the function according to iValue input ?
@@ -90,7 +91,9 @@ data Upload = Upload { up :: [Text] }
 
 instance ToJSON Upload
 
-type ApiUpload = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] Text
+type Hash = Text
+
+type ApiUpload = MultipartForm Mem (MultipartData Mem) :> Post '[JSON] Hash
 -- MultipartData consists in textual inputs,
 -- accessible through its "inputs" field, as well
 -- as files, accessible through its "files" field.
@@ -114,7 +117,7 @@ upload multipartData = do
   -- is <- inputs multipartData
 --}
 
-  pure $ Text.concat $ map cs is
+  pure $ hash $ Text.concat $ map cs is
 -------------------------------------------------------------------------------
 
 
