@@ -40,28 +40,30 @@ import Control.Lens (prism')
 import Control.Monad ((>>))
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
+import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.API.Types
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
+import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
 import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
-import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Gargantext.Viz.Chart
-import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -164,7 +166,7 @@ nodeAPI p uId id
            :<|> rename      id
            :<|> postNode    uId id
            :<|> putNode     id
-           :<|> deleteNode  id
+           :<|> deleteNodeApi  id
            :<|> getChildren id p
 
            -- TODO gather it
@@ -182,9 +184,16 @@ nodeAPI p uId id
            :<|> getPie   id
            :<|> getTree  id
            :<|> phyloAPI id
+  where
+    deleteNodeApi id' = do
+      node <- getNode' id'
+      if _node_typename node == nodeTypeId NodeUser
+         then panic "not allowed"  -- TODO add proper Right Management Type
+         else deleteNode id'
            
            -- Annuaire
            -- :<|> query
+
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }

@@ -366,6 +366,11 @@ getNode nId _ = do
     fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
+getNode' :: NodeId -> Cmd err (Node Value)
+getNode' nId = fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+
+
 getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
 getNodesWithType = runOpaQuery . selectNodesWithType
 
