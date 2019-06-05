@@ -349,6 +349,9 @@ data PhyloQueryBuild = PhyloQueryBuild
     , _q_interTemporalMatching :: Proximity
     , _q_interTemporalMatchingFrame :: Int
 
+    , _q_reBranchThr :: Double
+    , _q_reBranchNth :: Int
+
     -- Last level of reconstruction
     , _q_nthLevel   :: Level
     -- Clustering method used from level 1 to nthLevel

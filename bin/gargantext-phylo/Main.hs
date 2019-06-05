@@ -80,6 +80,8 @@ data Conf =
           , timeFrame   :: Int
           , timeTh      :: Double
           , timeSens    :: Double
+          , reBranchThr :: Double
+          , reBranchNth :: Int
           , clusterTh   :: Double
           , clusterSens :: Double
           , phyloLevel  :: Int
@@ -208,7 +210,8 @@ main = do
       let mFis  = DM.fromListWith (++) $ DL.sortOn (fst . fst) $ map (\f -> (getFisPeriod f,[f])) fis    
       
       let query = PhyloQueryBuild (phyloName conf) "" (timeGrain conf) (timeStep conf) 
-                  (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (timeFrame conf) (phyloLevel conf)
+                  (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (timeFrame conf) 
+                  (reBranchThr conf) (reBranchNth conf) (phyloLevel conf)
                   (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams (clusterTh conf) (clusterSens conf))
 
       let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [SizeBranch $ SBParams (minSizeBranch conf)] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           

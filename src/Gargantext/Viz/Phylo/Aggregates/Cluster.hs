@@ -51,7 +51,7 @@ graphToClusters clust (nodes,edges) = case clust of
 -- | To transform a list of PhyloGroups into a Graph of Proximity
 groupsToGraph :: Double -> Proximity -> [PhyloGroup] -> ([GroupNode],[GroupEdge])
 groupsToGraph nbDocs prox gs = case prox of 
-      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard sens (getGroupCooc x) (getGroupCooc y) nbDocs))
+      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard sens nbDocs (getGroupCooc x) (getGroupCooc y) (getGroupNgrams x) (getGroupNgrams y)))
                                                   $ getCandidates gs)
       Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getGroupCooc x) (getGroupCooc y))) $ getCandidates gs)
       _                                     -> undefined 

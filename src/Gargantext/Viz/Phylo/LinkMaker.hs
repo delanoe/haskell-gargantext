@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.LinkMaker
   where
 
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete, intersect, nub, groupBy)
+import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete, intersect, nub, groupBy, union)
 import Data.Tuple.Extra
 import Data.Map                     (Map,(!),fromListWith,elems,restrictKeys,unionWith,member)
 import Gargantext.Prelude
@@ -108,9 +108,9 @@ periodsToNbDocs prds phylo = sum $ elems
 
 
 -- | To process a given Proximity
-processProximity :: Proximity -> Map (Int, Int) Double -> Map (Int, Int) Double -> Double -> Double
-processProximity proximity cooc cooc' nbDocs = case proximity of 
-  WeightedLogJaccard (WLJParams _ sens) -> weightedLogJaccard sens cooc cooc' nbDocs
+processProximity :: Proximity -> Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> [Int] -> [Int] -> Double
+processProximity proximity nbDocs cooc cooc' ngrams ngrams' = case proximity of 
+  WeightedLogJaccard (WLJParams _ sens) -> weightedLogJaccard sens nbDocs cooc cooc' ngrams ngrams'
   Hamming (HammingParams _)             -> hamming cooc cooc'
   _                                     -> panic "[ERR][Viz.Phylo.LinkMaker.processProximity] Unknown proximity"
 
@@ -136,17 +136,20 @@ findBestCandidates filiation depth limit proximity periods candidates g1 phylo
                   ) similarities
     --------------------------------------
     similarities :: [(PhyloGroupId, Double)]
-    similarities = concat $ map (\(g2,g3) -> let nbDocs = periodsToNbDocs [(getGroupPeriod g1),(getGroupPeriod g2),(getGroupPeriod g3)] phylo
-                                                 cooc2  = getGroupCooc g2
-                                                 cooc3  = getGroupCooc g3
-                                                 score  = processProximity proximity cooc1 (unionWith (+) cooc2 cooc3) nbDocs 
+    similarities = concat $ map (\(g2,g3) -> let nbDocs  = periodsToNbDocs [(getGroupPeriod g1),(getGroupPeriod g2),(getGroupPeriod g3)] phylo
+                                                 cooc'   = unionWith (+) (getGroupCooc g2) (getGroupCooc g3)
+                                                 ngrams' = union (getGroupNgrams g2) (getGroupNgrams g3)
+                                                 score   = processProximity proximity nbDocs cooc cooc' ngrams ngrams'
                                              in  nub $ [(getGroupId g2,score),(getGroupId g3,score)]) pairsOfCandidates
     --------------------------------------
     pairsOfCandidates :: [(PhyloGroup,PhyloGroup)]
     pairsOfCandidates = listToFullCombi $ filter (\g -> elem (getGroupPeriod g) nextPeriods) candidates
     --------------------------------------
-    cooc1 :: Map (Int,Int) Double
-    cooc1 = getGroupCooc g1
+    cooc :: Map (Int,Int) Double
+    cooc = getGroupCooc g1
+    --------------------------------------
+    ngrams :: [Int]
+    ngrams = getGroupNgrams g1
     --------------------------------------
     nextPeriods :: [(Date,Date)]
     nextPeriods = take depth periods
@@ -159,23 +162,27 @@ findBestCandidates' proximity candidates g1 phylo = pointers
     --------------------------------------
     pointers :: [(PhyloGroupId, Double)]
     pointers = reverse $ sortOn snd $ filter (\(_,score) -> case proximity of
-                  WeightedLogJaccard (WLJParams thr _)   -> score >= thr
+                  WeightedLogJaccard (WLJParams thr _)   -> score >= (thr - 0.1)
                   Hamming (HammingParams thr)            -> score <= thr
                   _                                      -> panic "[ERR][Viz.Phylo.LinkMaker.findBestCandidates'] Unknown proximity"
                   ) similarities
     --------------------------------------
     similarities :: [(PhyloGroupId, Double)]
-    similarities = concat $ map (\(g2,g3) -> let nbDocs = periodsToNbDocs [(getGroupPeriod g1),(getGroupPeriod g2),(getGroupPeriod g3)] phylo
-                                                 cooc2  = getGroupCooc g2
-                                                 cooc3  = getGroupCooc g3
-                                                 score  = processProximity proximity cooc1 (unionWith (+) cooc2 cooc3) nbDocs 
+    similarities = concat $ map (\(g2,g3) -> let nbDocs  = periodsToNbDocs [(getGroupPeriod g1),(getGroupPeriod g2),(getGroupPeriod g3)] phylo
+                                                 cooc'   = unionWith (+) (getGroupCooc g2) (getGroupCooc g3)
+                                                 ngrams' = union (getGroupNgrams g2) (getGroupNgrams g3)
+                                                 score   = processProximity proximity nbDocs cooc cooc' ngrams ngrams'
                                              in  nub $ [(getGroupId g2,score),(getGroupId g3,score)]) pairsOfCandidates
     --------------------------------------
     pairsOfCandidates :: [(PhyloGroup,PhyloGroup)]
     pairsOfCandidates = listToFullCombi candidates
     --------------------------------------
-    cooc1 :: Map (Int,Int) Double
-    cooc1 = getGroupCooc g1
+    --------------------------------------
+    cooc :: Map (Int,Int) Double
+    cooc = getGroupCooc g1
+    --------------------------------------
+    ngrams :: [Int]
+    ngrams = getGroupNgrams g1
     --------------------------------------             
 
 

@@ -26,8 +26,9 @@ import Data.Map         (Map)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.Aggregates.Cooc
+import Gargantext.Viz.Phylo.BranchMaker
 import qualified Data.Map    as Map
+-- import Debug.Trace (trace)
 
 
 -- | To get the nth most frequent Ngrams in a list of PhyloGroups
@@ -48,14 +49,15 @@ freqToLabel thr ngs l = ngramsToLabel ngs $ mostFreqNgrams thr l
 
 
 -- | To get the (nth `div` 2) most cooccuring Ngrams in a PhyloGroup
-mostOccNgrams :: Int -> Phylo -> PhyloGroup -> [Int]
-mostOccNgrams thr p g = (nub . concat )
-                          $ map (\((f,s),_d) -> [f,s])
-                          $ take (thr `div` 2)
-                          $ reverse $ sortOn snd $ Map.toList cooc
+mostOccNgrams :: Int -> PhyloGroup -> [Int]
+mostOccNgrams nth g = (nub . concat)
+                    $ map (\((f,s),_d) -> [f,s])
+                    $ take nth
+                    $ reverse $ sortOn snd
+                    $ Map.toList cooc
   where
     cooc :: Map (Int, Int) Double
-    cooc = getSubCooc (getGroupNgrams g) $ getCooc [getGroupPeriod g] p
+    cooc = getGroupCooc g
 
 
 -- | To alter the peak of a PhyloBranch
@@ -74,13 +76,18 @@ branchPeakFreq v thr p = foldl (\v' (id,lbl) -> alterBranchPeak (id,lbl) v') v
                                               $ getGroupsFromNodes ns p))
                         $ getNodesByBranches v
 
+branchPeakCooc :: PhyloView -> Int -> Phylo -> PhyloView
+branchPeakCooc v nth p = foldl (\v' (id,lbl) -> alterBranchPeak (id,lbl) v') v
+                       $ map (\(id,ns) -> (id, ngramsToLabel (getFoundationsRoots p) (getGroupsPeaks (getGroupsFromNodes ns p) nth p) ) ) 
+                       $ getNodesByBranches v
+
 
 -- | To set the label of a PhyloNode as the nth most coocurent terms of its PhyloNodes
 nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
 nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
                              (\n -> let lbl = ngramsToLabel (getFoundationsRoots p)
-                                            $ mostOccNgrams thr p
+                                            $ mostOccNgrams thr
                                             $ head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
                                     in n & pn_label .~ lbl) v
 
@@ -89,6 +96,7 @@ nodeLabelCooc v thr p = over (pv_nodes
 processTaggers :: [Tagger] -> Phylo -> PhyloView -> PhyloView
 processTaggers ts p v = foldl (\v' t -> case t of
                                         BranchPeakFreq -> branchPeakFreq v' 2 p
+                                        -- BranchPeakFreq -> branchPeakCooc v' 3 p
                                         GroupLabelCooc -> nodeLabelCooc  v' 2 p
                                         _              -> panic "[ERR][Viz.Phylo.View.Taggers.processTaggers] tagger not found") v ts
 

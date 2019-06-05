@@ -157,7 +157,9 @@ setDotNode pn = node (toNodeDotId $ pn ^. pn_id)
 
 -- | To set an Edge
 setDotEdge :: PhyloEdge -> Dot DotId
-setDotEdge pe = edge (toNodeDotId $ pe ^. pe_source) (toNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Black]]
+setDotEdge pe 
+  | pe ^. pe_weight == 100 = edge (toNodeDotId $ pe ^. pe_source) (toNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Red]]
+  | otherwise = edge (toNodeDotId $ pe ^. pe_source) (toNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Black]]
 
 
 -- | To set a Period Edge

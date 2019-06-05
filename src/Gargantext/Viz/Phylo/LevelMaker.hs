@@ -128,8 +128,7 @@ cliqueToGroup prd lvl idx lbl fis p =
 
 -- | To transform a list of Ngrams into a PhyloGroup
 ngramsToGroup ::  PhyloPeriodId -> Level -> Int -> Text -> [Ngrams] -> Phylo -> PhyloGroup
-ngramsToGroup prd lvl idx lbl ngrams p =
-    PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInRoots x p) ngrams) empty Nothing
+ngramsToGroup prd lvl idx lbl ngrams p = PhyloGroup ((prd, lvl), idx) lbl (sort $ map (\x -> getIdxInRoots x p) ngrams) empty Nothing
                (getMiniCooc (listToFullCombi $ sort $ map (\x -> getIdxInRoots x p) ngrams) (periodsToYears [prd]) (getPhyloCooc p))
                [] [] [] []
 
@@ -141,7 +140,7 @@ toPhyloLevel lvl m p = alterPhyloPeriods
                                     in  over (phylo_periodLevels)
                                         (\phyloLevels ->
                                           let groups = toPhyloGroups lvl pId (m ! pId) m p
-                                          in  phyloLevels ++ [PhyloLevel (pId, lvl) groups]
+                                          in phyloLevels ++ [PhyloLevel (pId, lvl) groups]
                                         ) period) p
 
 

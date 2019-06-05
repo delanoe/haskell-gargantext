@@ -17,7 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Cooc
   where
 
-import Data.List                    (union,concat,nub,sort)
+import Data.List                    (union,concat,nub,sort, sortOn)
 import Data.Map                     (Map,elems,adjust,filterWithKey,fromListWith,fromList,restrictKeys)
 import Data.Set                     (Set)
 import Data.Vector                  (Vector)
@@ -27,6 +27,7 @@ import Gargantext.Viz.Phylo.Tools
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 
+-- import Debug.Trace (trace)
 
 -- | To transform the Fis into a full coocurency Matrix in a Phylo
 fisToCooc :: Map (Date, Date) [PhyloFis] -> Phylo -> Map (Int, Int) Double
@@ -120,6 +121,13 @@ unionOfCooc :: PhyloGroup -> PhyloGroup -> Phylo -> Map (Int,Int) Double
 unionOfCooc g g' p = sumCooc (groupToCooc g p) (groupToCooc g' p)  
 
 
+-- | To get the nth most occurent elems in a coocurency matrix
+getNthMostOcc :: Int -> Map (Int,Int) Double -> [Int]
+getNthMostOcc nth cooc = (nub . concat)
+                       $ map (\((idx,idx'),_) -> [idx,idx'])
+                       $ take nth
+                       $ reverse 
+                       $ sortOn snd $ Map.toList cooc
 
 
 -- phyloCooc :: Map (Int, Int) Double

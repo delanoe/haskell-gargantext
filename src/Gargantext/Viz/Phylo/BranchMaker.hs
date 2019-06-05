@@ -47,19 +47,12 @@ getGroupsNgrams :: [PhyloGroup] -> [Int]
 getGroupsNgrams gs = (sort . nub . concat) $ map getGroupNgrams gs
 
 
-getNthMostOcc :: Int -> Map (Int,Int) Double -> [Int]
-getNthMostOcc nth cooc = (nub . concat)
-                       $ map (\((idx,idx'),_) -> [idx,idx'])
-                       $ take (nth `div` 2)
-                       $ reverse 
-                       $ sortOn snd $ Map.toList cooc
-
-
 -- | Get the Nth most coocurent Ngrams in a list of Groups
 getGroupsPeaks :: [PhyloGroup] -> Int -> Phylo -> [Int]
 getGroupsPeaks gs nth p = getNthMostOcc nth 
                         $ getSubCooc (getGroupsNgrams gs) 
                         $ getCooc (getGroupsPeriods gs) p
+
 
 areDistant :: (Date,Date) -> (Date,Date) -> Int -> Bool
 areDistant prd prd' thr = (((fst prd') - (snd prd)) > thr) || (((fst prd) - (snd prd')) > thr)
@@ -107,7 +100,7 @@ makeBranchLinks p prox (id,gs) bs pts
     pts' = concat $ map (\(_id,gs') -> findBestPointer p prox gs gs') candidates
     --------------------------------------
     candidates :: [(PhyloBranchId,[PhyloGroup])]
-    candidates = findSimBranches (getPhyloMatchingFrame p) 0.9 4 p (id,gs) bs 
+    candidates = findSimBranches (getPhyloMatchingFrame p) (getPhyloReBranchThr p) (getPhyloReBranchNth p) p (id,gs) bs
 
  
 
