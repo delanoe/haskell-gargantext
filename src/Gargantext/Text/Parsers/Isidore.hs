@@ -43,16 +43,16 @@ selectQueryRaw' uri q = getWith opts uri
                     & header "User-Agent" .~ ["gargantext-hsparql-client"]
                     & param  "query"      .~ [Data.Text.pack q]
 
-isidoreGet :: Lang -> Text -> IO (Maybe [HyperdataDocument])
-isidoreGet l q = do
-  bindingValues <- isidoreGet' q
+isidoreGet :: Lang -> Int -> Text -> IO (Maybe [HyperdataDocument])
+isidoreGet la li q = do
+  bindingValues <- isidoreGet' li q
   case bindingValues of
     Nothing -> pure Nothing
-    Just dv -> pure $ Just $ map (bind2doc l) dv
+    Just dv -> pure $ Just $ map (bind2doc la) dv
 
-isidoreGet' :: Text -> IO (Maybe [[BindingValue]])
-isidoreGet' q = do
-  let s = createSelectQuery $ isidoreSelect q
+isidoreGet' :: Int -> Text -> IO (Maybe [[BindingValue]])
+isidoreGet' l q = do
+  let s = createSelectQuery $ isidoreSelect l q
   putStrLn s
   r <- selectQueryRaw' route s
   putStrLn $ show $ r ^. responseStatus
@@ -60,11 +60,11 @@ isidoreGet' q = do
  -- res <- selectQuery route $ simpleSelect q
  -- pure res
 
-isidoreSelect :: Text -> Query SelectQuery
-isidoreSelect q = do
+isidoreSelect :: Int -> Text -> Query SelectQuery
+isidoreSelect lim q = do
   -- See Predefined Namespace Prefixes:
   -- https://isidore.science/sparql?nsdecl
-  isidore <- prefix "isidore" (iriRef "http://www.rechercheisidore.fr/class/")
+  isidore <- prefix "isidore" (iriRef "http://isidore.science/class/")
   rdf     <- prefix "rdf"     (iriRef "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
   dcterms <- prefix "dcterms" (iriRef "http://purl.org/dc/terms/")
   dc      <- prefix "dc"      (iriRef "http://purl.org/dc/elements/1.1/")
@@ -83,7 +83,7 @@ isidoreSelect q = do
   --langFr   <- var
   --agg       <- var
 
-  triple_ link (rdf     .:. "type")     (isidore .:. "BibliographicalResource")
+  triple_ link (rdf     .:. "type")     (isidore .:. "Document")
   triple_ link (dcterms .:. "title")    title
   triple_ link (dcterms .:. "date")     date
   triple_ link (dcterms .:. "creator")  authors
@@ -105,7 +105,7 @@ isidoreSelect q = do
   --filterExpr $ (.==.) lang (str ("http://lexvo.org/id/iso639-3/fra" :: Text))
   
   orderNextDesc date
-  limit_ 10
+  limit_ lim
   distinct_
   selectVars [link, date, langDoc, authors, source, publisher, title, abstract]
 
