@@ -209,8 +209,9 @@ class IsTrie trie where
                    => Getting e i e -> ModEntropy i o e
                    -> trie k i -> trie k o
 
-  nodeAutonomy :: (Ord k, Entropy e) => Getting e i e -> trie k i -> [k] -> e
-  nodeAutonomy inE t ks = nodeEntropy inE $ findTrie ks t
+-- UNUSED
+--nodeAutonomy :: (Ord k, Entropy e) => Getting e i e -> trie k i -> [k] -> e
+--nodeAutonomy inE t ks = nodeEntropy inE $ findTrie ks t
 
 instance IsTrie Trie where
   buildTrie = entropyTrie isTerminal . insertTries
@@ -275,7 +276,10 @@ instance IsTrie Tries where
   nodeEntropy inE (Tries fwd bwd) =
     mean $ noNaNs [nodeEntropy inE fwd, nodeEntropy inE bwd]
 
-  findTrie ks (Tries fwd bwd) = Tries (findTrie ks fwd) (findTrie (reverse ks) bwd)
+  findTrie ks (Tries fwd bwd) = Tries (findTrie ks fwd) (findTrie ks bwd)
+  --                                                              ^^
+  -- TODO: here this is tempting to reverse but this is not always what we
+  -- want. See also nodeAutonomy.
 
   nodeChild k (Tries fwd bwd) = Tries (nodeChild k fwd) (nodeChild k bwd)
 
@@ -389,7 +393,7 @@ testEleve debug n output checks = do
       check sim  "entropy"     entropy     (nodeEntropy info_entropy t')
       check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy t')
       check sim  "fwd_entropy" fwd_entropy (nodeEntropy info_entropy (_fwd t'))
-      check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (findTrie ns (_bwd nt)))
+      check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (_bwd t'))
 
     printTrie =
       P.putStrLn . Tree.drawTree
