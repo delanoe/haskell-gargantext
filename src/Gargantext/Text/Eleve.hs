@@ -45,14 +45,14 @@ import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
 import Control.Lens (Lens', Getting, (^.), (^?), view, makeLenses, _Just)
-import Control.Monad (foldM, mapM_, forM_)
+import Control.Monad (forM_)
 import Data.Ord (Ord)
 import qualified Data.List as L
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Map (Map)
-import Data.Maybe (fromMaybe, catMaybes)
+import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 import Gargantext.Prelude hiding (cs)
 import qualified Data.Tree as Tree
@@ -161,12 +161,16 @@ updateIfDefined :: P.RealFloat e => e -> e -> e
 updateIfDefined e0 e | P.isNaN e = e0
                      | otherwise = e
 
-entropyTrie :: Floating e => (k -> Bool) -> Trie k () -> Trie k e
+subst :: Entropy e => (e, e) -> e -> e
+subst (src, dst) x | sim src x = dst
+                   | otherwise = x
+
+entropyTrie :: Entropy e => (k -> Bool) -> Trie k () -> Trie k e
 entropyTrie _    (Leaf c)             = Leaf c
 entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) children)
   where
     e = sum $ map f $ Map.toList children
-    f (k, child) = if pred k then   chc * P.logBase 2 (fromIntegral c)
+    f (k, child) = if pred k then chc * P.logBase 2 (fromIntegral c)
                              else - chc * P.logBase 2 chc
       where
         chc = fromIntegral (_node_count child) / fromIntegral c
@@ -178,7 +182,7 @@ normalizeLevel = checkDiff (go . noNaNs)
   where
     -- checkDiff f es e = let e' = f es e in if e == e' then e' else trace ("normalizeLevel: diff " <> show e <> " " <> show e') e'
     checkDiff = identity
-    go []  = panic "normalizeLevel: impossible"
+--  go []  = panic "normalizeLevel: impossible"
                         -- trace "normalizeLevel"
 --    go [_] = identity
     go es  = \e -> (e - m) / v
@@ -201,7 +205,7 @@ nodeChildren (Leaf _)      = Map.empty
 -}
 
 class IsTrie trie where
-  buildTrie :: Floating e => [[Token]] -> trie Token e
+  buildTrie :: Entropy e => [[Token]] -> trie Token e
   nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
   nodeChild :: Ord k => k -> trie k e -> trie k e
   findTrie :: Ord k => [k] -> trie k e -> trie k e
@@ -229,9 +233,12 @@ instance IsTrie Trie where
     where
       go _ []         _                   = panic "normalizeEntropy' empty levels"
       go _ _          (Leaf c)            = Leaf c
-      go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
-      go f (es : ess) (Node c i children) =
-          Node c (f i) $ go (modE $ normalizeLevel es) ess <$> children
+--      go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
+      go f (es : ess) (Node c i children)
+    --  | any (sim (i ^. inE)) es
+        = Node c (f i) $ go (modE $ normalizeLevel es) ess <$> children
+    --  | otherwise
+    --  = panic "NOT an elem"
 
 
   {-
@@ -361,11 +368,19 @@ testEleve debug n output checks = do
     res = map (map printToken) . split info_autonomy nt <$> inp
   when debug $ do
     P.putStrLn (show input)
-    -- mapM_ (P.putStrLn . show) pss
+    -- forM_ pss (P.putStrLn . show)
     P.putStrLn ""
---    printTrie nt
+    P.putStrLn "Levels:"
+    forM_ (entropyLevels identity (_fwd t)) $ \level ->
+      P.putStrLn $ "  " <> show level
+    P.putStrLn ""
+    P.putStrLn "Forward:"
     printTrie (_fwd nt)
+    P.putStrLn ""
+    P.putStrLn "Backward:"
     printTrie (_bwd nt)
+    P.putStrLn ""
+    P.putStrLn "Splitting:"
     P.putStrLn $ show res
   forM_ checks checker
   pure $ expected == res
@@ -375,7 +390,7 @@ testEleve debug n output checks = do
     expected = fmap (T.splitOn "-") <$> out
     input = (T.splitOn "-" =<<) <$> out
     inp = toToken <$> input
-    t = buildTrie $ L.concat $ chunkAlongEleve (n + 2) <$> inp
+    t = buildTrie $ L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> inp
     -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
     nt = normalizeEntropy identity set_autonomy t
@@ -417,51 +432,31 @@ example6 =  ["le-petit chat"
 
 checks0, checks2 :: [(Text, Int, Double, Double, Double, Double, Double)]
 
-checks0 = {-
-  [("<start> New", 1, nan, nan, nan, nan, 0.0)
-  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
+checks0 =
+  [("<start>", 1, nan, nan, nan, nan, 0.0)
+  ,("New", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 1.584962500721156, 0.0)
+  ,("York", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 0.0, 1.584962500721156)
+  ,("is", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
+  ,("and", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
+  ,("<stop>", 0, nan, nan, nan, 0.0, nan)
+
+  ,("<start> New", 1, nan, nan, nan, nan, 0.0)
+  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, 1.584962500721156)
   ,("York is", 1, 0.0, nan, nan, nan, 0.0)
   ,("is New", 1, 0.0, nan, nan, nan, 0.0)
-  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
   ,("York and", 1, 0.0, nan, nan, nan, 0.0)
   ,("and New", 1, 0.0, nan, nan, nan, 0.0)
-  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
   ,("York <stop>", 1, nan, nan, nan, nan, nan)
-  ]-}
 
-  [("<start>", 1, nan, nan, nan, nan, 0.0)
-  , ("New", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 1.584962500721156, 0.0)
-  , ("York", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 0.0, 1.584962500721156)
-  , ("is", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
-  , ("New", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 1.584962500721156, 0.0)
-  , ("York", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 0.0, 1.584962500721156)
-  , ("and", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
-  , ("New", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 1.584962500721156, 0.0)
-  , ("York", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 0.0, 1.584962500721156)
-  , ("<stop>", 0, nan, nan, nan, 0.0, nan)]
-  <>
-
-  [("<start> New", 1, nan, nan, nan, nan, 0.0)
-  , ("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, 1.584962500721156)
-  , ("York is", 1, 0.0, nan, nan, nan, 0.0)
-  , ("is New", 1, 0.0, nan, nan, nan, 0.0)
-  , ("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, 1.584962500721156)
-  , ("York and", 1, 0.0, nan, nan, nan, 0.0)
-  , ("and New", 1, 0.0, nan, nan, nan, 0.0)
-  , ("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, 1.584962500721156)
-  , ("York <stop>", 1, nan, nan, nan, nan, nan)]
-  <>
-  [("<start> New York", 1, nan, nan, nan, nan, 0.0)
-  , ("New York is", 1, 0.0, nan, nan, nan, 0.0)
-  , ("York is New", 1, 0.0, nan, nan, nan, 0.0)
-  , ("is New York", 1, 0.0, nan, nan, nan, 0.0)
-  , ("New York and", 1, 0.0, nan, nan, nan, 0.0)
-  , ("York and New", 1, 0.0, nan, nan, nan, 0.0)
-  , ("and New York", 1, 0.0, nan, nan, nan, 0.0)
-  , ("New York <stop>", 1, nan, nan, nan, nan, nan)
-  , ("York <stop>", 1, nan, nan, nan, nan, nan)
-  , ("<stop>", 0, nan, nan, nan, 0.0, nan)
-  , ("", 9, 2.113283334294875, nan, nan, 2.113283334294875, 2.113283334294875)]
+  ,("<start> New York", 1, nan, nan, nan, nan, 0.0)
+  ,("New York is", 1, 0.0, nan, nan, nan, 0.0)
+  ,("York is New", 1, 0.0, nan, nan, nan, 0.0)
+  ,("is New York", 1, 0.0, nan, nan, nan, 0.0)
+  ,("New York and", 1, 0.0, nan, nan, nan, 0.0)
+  ,("York and New", 1, 0.0, nan, nan, nan, 0.0)
+  ,("and New York", 1, 0.0, nan, nan, nan, 0.0)
+  ,("New York <stop>", 1, nan, nan, nan, nan, nan)
+  ]
 
 
 
