@@ -37,6 +37,7 @@ Notes for current implementation:
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Gargantext.Text.Eleve where
 
@@ -68,8 +69,8 @@ type Entropy e =
 ------------------------------------------------------------------------
 -- | Example and tests for development
 data I e = I
-  { _info_entropy       :: e
-  , _info_norm_entropy  :: e
+  { _info_entropy  :: e
+  , _info_autonomy :: e
   }
 
 instance Show e => Show (I e) where
@@ -321,24 +322,14 @@ mainEleve n input = map unToken . split identity (t :: Trie Token Double) <$> in
   where
     inp = toToken (n - 1) <$> input
     t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
-                          -- NP: here we use the entropy to split
-                          -- instead we should use either:
-                          --   info_norm_entropy or info_norm_entropy'
-                          -- However they should first be fixed.
 -}
 
-testEleve :: Bool -> Int -> [Text] -> IO Bool
-testEleve debug n output = do
+sim :: Entropy e => e -> e -> Bool
+sim x y = x == y || (P.isNaN x && P.isNaN y)
+
+testEleve :: e ~ Double => Bool -> Int -> [Text] -> [(Text, Int, e, e, e, e, e)] -> IO Bool
+testEleve debug n output checks = do
   let
-    out = T.words <$> output
-    expected = fmap (T.splitOn "-") <$> out
-    input = (T.splitOn "-" =<<) <$> out
-    inp = toToken (n - 1) <$> input
-    t = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
-    -- nt = normalizeEntropy  identity setNormEntropy (fwd :: Trie Token Double)
-    -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
-    nt = normalizeEntropy identity setNormEntropy
-                          (t :: Trie Token Double)
     {-
     pss = [ (ps, findTrie ps fwd ^? _Just . node_entropy) -- . info_entropy)
           | ps <- L.nub $ [ c
@@ -350,20 +341,42 @@ testEleve debug n output = do
     -}
   --res = map unToken . split identity fwd <$> inp
   --res = map unToken . split info_norm_entropy' nt' <$> inp
-    res = map unToken . split info_norm_entropy nt <$> inp
+    res = map unToken . split info_autonomy nt <$> inp
   when debug $ do
     P.putStrLn (show input)
     -- mapM_ (P.putStrLn . show) pss
     P.putStrLn ""
-    printTrie nt
-{-
+--    printTrie nt
     printTrie (_fwd nt)
     printTrie (_bwd nt)
-    -}
     P.putStrLn $ show res
+  forM_ checks checker
   pure $ expected == res
 
   where
+    out = T.words <$> output
+    expected = fmap (T.splitOn "-") <$> out
+    input = (T.splitOn "-" =<<) <$> out
+    inp = toToken (n - 1) <$> input
+    t = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
+    -- nt = normalizeEntropy  identity setNormEntropy (fwd :: Trie Token Double)
+    -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
+    nt = normalizeEntropy identity setNormEntropy t
+
+    check f msg x y =
+      if f x y
+        then P.putStrLn $ "    PASS " <> msg <> " " <> show x <> " ~= " <> show y
+        else P.putStrLn $ "    FAIL " <> msg <> " " <> show x <> " /= " <> show y
+
+    checker (ngram, count, entropy, _ev, autonomy, bwd_entropy, fwd_entropy) = do
+      let t' = findTrie (NonTerminal <$> T.words ngram) nt
+      P.putStrLn $ "  " <> T.unpack ngram <> ":"
+      check (==) "count"       count       (_node_count (_fwd t'))
+      check sim  "entropy"     entropy     (nodeEntropy info_entropy t')
+      check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy t')
+      check sim  "fwd_entropy" fwd_entropy (nodeEntropy info_entropy (_fwd t'))
+      check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (_bwd t'))
+
     printTrie =
       P.putStrLn . Tree.drawTree
                  . fmap show
@@ -384,17 +397,44 @@ example6 =  ["le-petit chat"
             ,"le gros rat"
             ]
 
+checks0, checks2 :: [(Text, Int, Double, Double, Double, Double, Double)]
+
+checks0 =
+  [("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
+  ,("York is", 1, 0.0, nan, nan, nan, 0.0)
+  ,("is New", 1, 0.0, nan, nan, nan, 0.0)
+  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
+  ,("York and", 1, 0.0, nan, nan, nan, 0.0)
+  ,("and New", 1, 0.0, nan, nan, nan, 0.0)
+  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
+  ]
+
+checks2 =
+  [("to be", 3, 1.2516291673878228, 1.2516291673878228, 1.5535694744293167, nan, 0.9182958340544896)
+  ,("be or", 2, 0.5, nan, nan, nan, 1.0)
+  ,("or not", 1, 0.0, nan, nan, nan, 0.0)
+  ,("not to", 1, 0.0, nan, nan, nan, 0.0)
+  ,("to be", 3, 1.2516291673878228, 1.2516291673878228, 1.5535694744293167, nan, 0.9182958340544896)
+  ,("be or", 2, 0.5, nan, nan, nan, 1.0)
+  ,("or NOT", 1, 0.0, nan, nan, nan, 0.0)
+  ,("NOT to", 1, 0.0, nan, nan, nan, 0.0)
+  ,("to be", 3, 1.2516291673878228, 1.2516291673878228, 1.5535694744293167, nan, 0.9182958340544896)
+  ,("be and", 1, 0.0, nan, nan, nan, 0.0)
+  ]
+
+
 runTests :: IO ()
 runTests =
   forM_
-    [("example0", 2, example0)
-    ,("example1", 2, example1)
-    ,("example2", 3, example2)
-    ,("example3", 2, example3)
-    ,("example4", 4, example4)
-    ,("example5", 5, example5)
+    [("example0", 2, example0, checks0)
+    ,("example1", 2, example1, [])
+    ,("example2", 3, example2, checks2)
+    ,("example3", 2, example3, [])
+    ,("example4", 4, example4, [])
+    ,("example5", 5, example5, [])
     ]
-    (\(name, n, ex) -> do
-      b <- testEleve False n ex
-      P.putStrLn $ name <> " " <> show n <> " " <> if b then "PASS" else "FAIL"
+    (\(name, n, ex, checks) -> do
+      P.putStrLn $ name <> " " <> show n
+      b <- testEleve False n ex checks
+      P.putStrLn $ "  splitting: " <> if b then "PASS" else "FAIL"
     )
