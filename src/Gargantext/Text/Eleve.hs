@@ -358,7 +358,7 @@ testEleve debug n output checks = do
     expected = fmap (T.splitOn "-") <$> out
     input = (T.splitOn "-" =<<) <$> out
     inp = toToken (n - 1) <$> input
-    t = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
+    t = buildTrie $ L.concat $ chunkAlong (n + 1) 1 <$> inp
     -- nt = normalizeEntropy  identity setNormEntropy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
     nt = normalizeEntropy identity setNormEntropy t
