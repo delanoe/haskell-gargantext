@@ -380,10 +380,10 @@ testEleve debug n output checks = do
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
     nt = normalizeEntropy identity set_autonomy t
 
-    check f msg x y =
-      if f x y
-        then P.putStrLn $ "    PASS " <> msg <> " " <> show x <> " ~= " <> show y
-        else P.putStrLn $ "    FAIL " <> msg <> " " <> show x <> " /= " <> show y
+    check f msg ref my =
+      if f ref my
+        then P.putStrLn $ "    PASS " <> msg <> " " <> show ref
+        else P.putStrLn $ "    FAIL " <> msg <> " ref=" <> show ref <> " my=" <> show my
 
     checker (ngram, count, entropy, _ev, autonomy, bwd_entropy, fwd_entropy) = do
       let ns = parseToken <$> T.words ngram
