@@ -80,8 +80,8 @@ makeLenses ''I
 
 type ModEntropy i o e = (e -> e) -> i -> o
 
-setNormEntropy :: ModEntropy e (I e) e
-setNormEntropy f e = I e (f e)
+set_autonomy :: ModEntropy e (I e) e
+set_autonomy f e = I e (f e)
 
 data StartStop = Start | Stop
   deriving (Ord, Eq, Show)
@@ -94,14 +94,20 @@ isTerminal :: Token -> Bool
 isTerminal (Terminal    _) = True
 isTerminal (NonTerminal _) = False
 
-toToken :: Int -> [Text] -> [Token]
-toToken n xs = Terminal Start : (NonTerminal <$> xs) <> [Terminal Stop]
+parseToken :: Text -> Token
+parseToken "<start>" = Terminal Start
+parseToken "<stop>"  = Terminal Stop
+parseToken t         = NonTerminal t
 
-unToken :: [Token] -> [Text]
-unToken = map f
+toToken :: [Text] -> [Token]
+toToken xs = Terminal Start : (NonTerminal <$> xs) <> [Terminal Stop]
+
+printToken :: Token -> Text
+printToken = f
   where
-    f (NonTerminal x) = x
-    f (Terminal _)    = ""
+    f (NonTerminal x)  = x
+    f (Terminal Start) = "<start>"
+    f (Terminal Stop)  = "<stop>"
 
 ------------------------------------------------------------------------
 
@@ -318,14 +324,17 @@ split inE t0 ts =
 mainEleve :: Int -> [[Text]] -> [[[Text]]]
 mainEleve _ _ = []
 {-
-mainEleve n input = map unToken . split identity (t :: Trie Token Double) <$> inp
+mainEleve n input = map (map printToken) . split identity (t :: Trie Token Double) <$> inp
   where
-    inp = toToken (n - 1) <$> input
+    inp = toToken <$> input
     t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
 -}
 
 sim :: Entropy e => e -> e -> Bool
 sim x y = x == y || (P.isNaN x && P.isNaN y)
+
+chunkAlongEleve :: Int -> [a] -> [[a]]
+chunkAlongEleve n xs = L.take n <$> L.tails xs
 
 testEleve :: e ~ Double => Bool -> Int -> [Text] -> [(Text, Int, e, e, e, e, e)] -> IO Bool
 testEleve debug n output checks = do
@@ -339,9 +348,9 @@ testEleve debug n output checks = do
                           ]
           ]
     -}
-  --res = map unToken . split identity fwd <$> inp
-  --res = map unToken . split info_norm_entropy' nt' <$> inp
-    res = map unToken . split info_autonomy nt <$> inp
+  --res = map (map printToken) . split identity fwd <$> inp
+  --res = map (map printToken) . split info_norm_entropy' nt' <$> inp
+    res = map (map printToken) . split info_autonomy nt <$> inp
   when debug $ do
     P.putStrLn (show input)
     -- mapM_ (P.putStrLn . show) pss
@@ -357,11 +366,11 @@ testEleve debug n output checks = do
     out = T.words <$> output
     expected = fmap (T.splitOn "-") <$> out
     input = (T.splitOn "-" =<<) <$> out
-    inp = toToken (n - 1) <$> input
-    t = buildTrie $ L.concat $ chunkAlong (n + 1) 1 <$> inp
-    -- nt = normalizeEntropy  identity setNormEntropy (fwd :: Trie Token Double)
+    inp = toToken <$> input
+    t = buildTrie $ L.concat $ chunkAlongEleve (n + 2) <$> inp
+    -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
-    nt = normalizeEntropy identity setNormEntropy t
+    nt = normalizeEntropy identity set_autonomy t
 
     check f msg x y =
       if f x y
@@ -369,7 +378,7 @@ testEleve debug n output checks = do
         else P.putStrLn $ "    FAIL " <> msg <> " " <> show x <> " /= " <> show y
 
     checker (ngram, count, entropy, _ev, autonomy, bwd_entropy, fwd_entropy) = do
-      let ns = NonTerminal <$> T.words ngram
+      let ns = parseToken <$> T.words ngram
           t' = findTrie ns nt
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
       check (==) "count"       count       (_node_count (_fwd t'))
@@ -400,7 +409,17 @@ example6 =  ["le-petit chat"
 
 checks0, checks2 :: [(Text, Int, Double, Double, Double, Double, Double)]
 
-checks0 = [("\ue02b New", 1, nan, nan, nan, nan, 0.0), ("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156), ("York is", 1, 0.0, nan, nan, nan, 0.0), ("is New", 1, 0.0, nan, nan, nan, 0.0), ("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156), ("York and", 1, 0.0, nan, nan, nan, 0.0), ("and New", 1, 0.0, nan, nan, nan, 0.0), ("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156), ("York \ue02d", 1, nan, nan, nan, nan, nan)]
+checks0 =
+  [("<start> New", 1, nan, nan, nan, nan, 0.0)
+  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
+  ,("York is", 1, 0.0, nan, nan, nan, 0.0)
+  ,("is New", 1, 0.0, nan, nan, nan, 0.0)
+  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
+  ,("York and", 1, 0.0, nan, nan, nan, 0.0)
+  ,("and New", 1, 0.0, nan, nan, nan, 0.0)
+  ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, nan, 1.584962500721156)
+  ,("York <stop>", 1, nan, nan, nan, nan, nan)
+  ]
 
 checks2 =
   [("to be",  3, 1.2516291673878228, 1.2516291673878228, 1.5535694744293167, nan, 0.9182958340544896)
