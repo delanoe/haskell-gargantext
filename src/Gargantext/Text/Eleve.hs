@@ -154,6 +154,9 @@ toTree k (Node c e cs) = Tree.Node (k, c, Just e)  (map (uncurry toTree) $ Map.t
 nan :: Floating e => e
 nan = 0 / 0
 
+noNaNs :: P.RealFloat e => [e] -> [e]
+noNaNs = filter (not . P.isNaN)
+
 updateIfDefined :: P.RealFloat e => e -> e -> e
 updateIfDefined e0 e | P.isNaN e = e0
                      | otherwise = e
@@ -170,7 +173,7 @@ entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) childre
 ------------------------------------------------------------------------
 
 normalizeLevel :: Entropy e => [e] -> e -> e
-normalizeLevel = checkDiff (go . filter (not . P.isNaN))
+normalizeLevel = checkDiff (go . noNaNs)
 
   where
     -- checkDiff f es e = let e' = f es e in if e == e' then e' else trace ("normalizeLevel: diff " <> show e <> " " <> show e') e'
@@ -199,7 +202,7 @@ nodeChildren (Leaf _)      = Map.empty
 
 class IsTrie trie where
   buildTrie :: Floating e => [[Token]] -> trie Token e
-  nodeEntropy :: Floating e => Getting e i e -> trie k i -> e
+  nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
   nodeChild :: Ord k => k -> trie k e -> trie k e
   findTrie :: Ord k => [k] -> trie k e -> trie k e
   normalizeEntropy :: Entropy e
@@ -255,7 +258,7 @@ levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
     subForest (Node _ _ children) = Map.elems children
 
 entropyLevels :: Entropy e => Getting e i e -> Trie k i -> [[e]]
-entropyLevels inE = fmap (filter (not . P.isNaN) . map (nodeEntropy inE)) . levels
+entropyLevels inE = fmap (noNaNs . map (nodeEntropy inE)) . levels
 
 ------------------------------------------------------------------------
 
@@ -269,7 +272,8 @@ instance IsTrie Tries where
                         , _bwd = buildTrie (reverse <$> tts)
                         }
 
-  nodeEntropy inE (Tries fwd bwd) = mean [nodeEntropy inE fwd, nodeEntropy inE bwd]
+  nodeEntropy inE (Tries fwd bwd) =
+    mean $ noNaNs [nodeEntropy inE fwd, nodeEntropy inE bwd]
 
   findTrie ks (Tries fwd bwd) = Tries (findTrie ks fwd) (findTrie (reverse ks) bwd)
 
