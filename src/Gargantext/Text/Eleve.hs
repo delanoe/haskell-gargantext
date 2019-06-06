@@ -32,6 +32,7 @@ Notes for current implementation:
                         $ Gargantext.map _hyperdataDocument_abstract docs
 
 -}
+{-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
@@ -39,10 +40,10 @@ Notes for current implementation:
 
 module Gargantext.Text.Eleve where
 
--- import Debug.Trace (trace)
+import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
-import Control.Lens (Lens', Getting, (^.), (^?), (%~), view, makeLenses, _Just)
+import Control.Lens (Lens', Getting, (^.), (^?), view, makeLenses, _Just)
 import Control.Monad (foldM, mapM_, forM_)
 import Data.Ord (Ord)
 import qualified Data.List as L
@@ -55,38 +56,51 @@ import qualified Data.Map as Map
 import Gargantext.Prelude hiding (cs)
 import qualified Data.Tree as Tree
 import Data.Tree (Tree)
-import qualified Prelude as P (putStrLn, logBase)
+import qualified Prelude as P (putStrLn, logBase, isNaN, RealFloat)
 
+type Entropy e =
+  ( Fractional e
+  , Floating e
+  , P.RealFloat e
+  , Show e
+  -- ^ TODO: only used for debugging
+  )
 ------------------------------------------------------------------------
 -- | Example and tests for development
 data I e = I
   { _info_entropy       :: e
   , _info_norm_entropy  :: e
-  , _info_norm_entropy' :: e
   }
 
 instance Show e => Show (I e) where
-  show (I e n n') = show (e, n, n')
+  show (I e n) = show (e, n)
 
 makeLenses ''I
 
 type ModEntropy i o e = (e -> e) -> i -> o
 
 setNormEntropy :: ModEntropy e (I e) e
-setNormEntropy f e = I e (f e) e -- (panic "setNormEntropy")
+setNormEntropy f e = I e (f e)
 
-data Token = NonTerminal Text
-           | Terminal
+data StartStop = Start | Stop
   deriving (Ord, Eq, Show)
 
+data Token = NonTerminal Text
+           | Terminal StartStop
+  deriving (Ord, Eq, Show)
+
+isTerminal :: Token -> Bool
+isTerminal (Terminal    _) = True
+isTerminal (NonTerminal _) = False
+
 toToken :: Int -> [Text] -> [Token]
-toToken n xs = (NonTerminal <$> xs) <> L.take n (repeat Terminal)
+toToken n xs = Terminal Start : (NonTerminal <$> xs) <> L.take n (repeat $ Terminal Stop)
 
 unToken :: [Token] -> [Text]
 unToken = map f
   where
     f (NonTerminal x) = x
-    f Terminal        = ""
+    f (Terminal _)    = ""
 
 ------------------------------------------------------------------------
 
@@ -130,54 +144,101 @@ toTree k (Node c e cs) = Tree.Node (k, c, Just e)  (map (uncurry toTree) $ Map.t
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 
-entropyTrie :: (Num e, Floating e) => (k -> Bool) -> Trie k () -> Trie k e
+nan :: Floating e => e
+nan = 0 / 0
+
+updateIfDefined :: P.RealFloat e => e -> e -> e
+updateIfDefined e0 e | P.isNaN e = e0
+                     | otherwise = e
+
+entropyTrie :: Floating e => (k -> Bool) -> Trie k () -> Trie k e
 entropyTrie _    (Leaf c)             = Leaf c
-entropyTrie pred (Node c _e children) = Node c e (map (entropyTrie pred) children)
+entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) children)
   where
     e = sum $ map f $ Map.toList children
     f (k, child) = if pred k then   chc * P.logBase 2 (fromIntegral c)
                              else - chc * P.logBase 2 chc
       where
         chc = fromIntegral (_node_count child) / fromIntegral c
-
-normalizeEntropy :: (Fractional e, Floating e, Show e)
-                 => Getting e i e -> ModEntropy i o e -> Trie k i -> Trie k o
-normalizeEntropy inE modE = go $ modE identity
-  where
-    go _ (Leaf c) = Leaf c
-    go f (Node c i children)
-      | Map.null children =
-          panic "normalizeEntropy: impossible"
-      | otherwise         =
-          -- trace (show $ L.length es) $
-          Node c (f i) $ go (modE $ normalizeLevel m v) <$> children
-        where
-          es = [ i' ^. inE | Node _ i' _ <- Map.elems children ]
-          m  = mean      es
-          v  = deviation es
 ------------------------------------------------------------------------
 
-normalizeLevel :: (Fractional e, Floating e, Show e)
-               => e -> e -> e -> e
-normalizeLevel m v e = (e - m) / v
+normalizeLevel :: Entropy e => [e] -> e -> e
+normalizeLevel = checkDiff (go . filter (not . P.isNaN))
 
-buildTrie :: (Floating e, Show e) => [[Token]] -> Trie Token e
-buildTrie = entropyTrie (== Terminal) . insertTries
+  where
+    -- checkDiff f es e = let e' = f es e in if e == e' then e' else trace ("normalizeLevel: diff " <> show e <> " " <> show e') e'
+    checkDiff = identity
+    go []  = panic "normalizeLevel: impossible"
+                        -- trace "normalizeLevel"
+--    go [_] = identity
+    go es  = \e -> (e - m) / v
+{-
+                              in if P.isNaN e'
+                                  then trace ("normalizeLevel " <> show (e,m,v,es))
+                                      e
+                                  else e'
+-}
+      where
+        m  = mean      es
+        v  = deviation es
 
-nodeEntropy :: Trie k e -> Maybe e
-nodeEntropy (Node _ e _) = Just e
-nodeEntropy (Leaf _)     = Nothing
+{- Unused
 
 nodeChildren :: Trie k e -> Map k (Trie k e)
 nodeChildren (Node _ _ cs) = cs
 nodeChildren (Leaf _)      = Map.empty
 
-nodeChild :: Ord k => k -> Trie k e -> Maybe (Trie k e)
-nodeChild k (Node _ _ cs) = Map.lookup k cs
-nodeChild _ (Leaf _)      = Nothing
+-}
 
-findTrie :: Ord k => [k] -> Trie k e -> Maybe (Trie k e)
-findTrie ks t = foldM (flip nodeChild) t ks
+class IsTrie trie where
+  buildTrie :: Floating e => [[Token]] -> trie Token e
+  nodeEntropy :: Floating e => Getting e i e -> trie k i -> e
+  nodeChild :: Ord k => k -> trie k e -> trie k e
+  findTrie :: Ord k => [k] -> trie k e -> trie k e
+  normalizeEntropy :: Entropy e
+                   => Getting e i e -> ModEntropy i o e
+                   -> trie k i -> trie k o
+
+  nodeAutonomy :: (Ord k, Entropy e) => Getting e i e -> trie k i -> [k] -> e
+  nodeAutonomy inE t ks = nodeEntropy inE $ findTrie ks t
+
+instance IsTrie Trie where
+  buildTrie = entropyTrie isTerminal . insertTries
+
+  nodeEntropy inE (Node _ e _) = e ^. inE
+  nodeEntropy _   (Leaf _)     = -- trace "nodeEntropy of Leaf" $
+                                 nan
+
+  nodeChild k (Node _ _ cs) = fromMaybe emptyTrie (Map.lookup k cs)
+  nodeChild _ (Leaf _)      = emptyTrie
+
+  findTrie ks t = L.foldl (flip nodeChild) t ks
+
+  normalizeEntropy inE modE t = go (modE identity) (entropyLevels inE t) t
+    where
+      go _ []         _                   = panic "normalizeEntropy' empty levels"
+      go _ _          (Leaf c)            = Leaf c
+      go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
+      go f (es : ess) (Node c i children) =
+          Node c (f i) $ go (modE $ normalizeLevel es) ess <$> children
+
+
+  {-
+  This is only normalizing a node with respect to its brothers (unlike all the
+  nodes of the same level).
+
+  normalizeEntropy inE modE = go $ modE identity
+    where
+      go _ (Leaf c) = Leaf c
+      go f (Node c i children)
+        | Map.null children =
+            panic "normalizeEntropy: impossible"
+        | otherwise         =
+            Node c (f i) $ go (modE $ normalizeLevel es) <$> children
+          where
+            es = [ i' ^. inE | Node _ i' _ <- Map.elems children ]
+  -}
+------------------------------------------------------------------------
 
 levels :: Trie k e -> [[Trie k e]]
 levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
@@ -186,58 +247,76 @@ levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
     subForest (Leaf _)            = []
     subForest (Node _ _ children) = Map.elems children
 
-entropyLevels :: Getting e i e -> Trie k i -> [[e]]
-entropyLevels inE = fmap (fmap (view inE) . catMaybes . fmap nodeEntropy) . levels
-
---fwd :: Getting a s a -> ASetter s t u3 a -> s -> t
---fwd inE outE s = s & outE .~ (s ^. inE)
-
-normalizeEntropy' :: (Fractional e, Floating e, Show e)
-                  => Getting e i e -> ModEntropy i o e -> Trie k i -> Trie k o
-normalizeEntropy' inE modE t = go (modE identity) (entropyLevels inE t) t
-  where
-    go _ []         _                   = panic "normalizeEntropy' empty levels"
-    go _ _          (Leaf c)            = Leaf c
-    go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
-    go f (es : ess) (Node c i children) =
-        Node c (f i) $ go (modE $ normalizeLevel m v) ess <$> children
-      where
-        m  = mean      es
-        v  = deviation es
+entropyLevels :: Entropy e => Getting e i e -> Trie k i -> [[e]]
+entropyLevels inE = fmap (filter (not . P.isNaN) . map (nodeEntropy inE)) . levels
 
 ------------------------------------------------------------------------
+
+data Tries k e = Tries
+  { _fwd :: Trie k e
+  , _bwd :: Trie k e
+  }
+
+instance IsTrie Tries where
+  buildTrie tts = Tries { _fwd = buildTrie tts
+                        , _bwd = buildTrie (reverse <$> tts)
+                        }
+
+  nodeEntropy inE (Tries fwd bwd) = mean [nodeEntropy inE fwd, nodeEntropy inE bwd]
+
+  findTrie ks (Tries fwd bwd) = Tries (findTrie ks fwd) (findTrie (reverse ks) bwd)
+
+  nodeChild k (Tries fwd bwd) = Tries (nodeChild k fwd) (nodeChild k bwd)
+
+  normalizeEntropy inE modE = onTries (normalizeEntropy inE modE)
+
+onTries :: (Trie k i -> Trie k o) -> Tries k i -> Tries k o
+onTries f (Tries fwd bwd) = Tries (f fwd) (f bwd)
+
 ------------------------------------------------------------------------
-split :: (Num e, Ord e, Show e) => Lens' i e -> Trie Token i -> [Token] -> [[Token]]
-split inE t0 = go t0 []
+split :: (IsTrie trie, Entropy e) => Lens' i e -> trie Token i -> [Token] -> [[Token]]
+split _   _  [] = []
+split inE t0 (Terminal Start:xs0) = split inE (nodeChild (Terminal Start) t0) xs0
+split inE t0 (x0:xs0) = go (nodeChild x0 t0) [x0] xs0
   where
     consRev [] xss = xss
     consRev xs xss = reverse xs : xss
 
-    go _ pref []           = [reverse pref]
-    go _ pref (Terminal:_) = [reverse pref]
-    go t pref (x:xs) = case nodeChild x t of
-      Nothing -> consRev pref $ go t0 [x] xs
-      Just xt -> case nodeChild x t0 of
-        Nothing  -> panic $ "TODO"
-        Just xt0 ->
-          let et   = ne (panic "t")   t
-          --  ^ entropy of the current prefix
-              ext0 = ne (panic "xt0") xt0
-          --  ^ entropy of [x]
-              ext  = ne 0 xt
-          --  ^ entropy of the current prefix plus x
-          in
-          -- trace (show ((reverse pref, et, ext0), (reverse (x : pref), ext))) $
-          if ext + ext0 > et
-            then go xt (x:pref) xs
-            else consRev pref $ go xt0 [x] xs
+    go _ pref []                  = [reverse pref]
+    go _ pref (Terminal Stop:_)   = [reverse pref]
+    go t pref (Terminal Start:xs) = go t pref xs
+    go t pref (x:xs) =
+        -- trace (show (if acc then "ACC" else "CUT", (reverse (x : pref), ext), if acc then ">" else "<=", ((reverse pref, et), "+", ([x], ext0)))) $
+        if acc
+          then go xt (x:pref) xs
+          else consRev pref $ go xt0 [x] xs
+      where
+        xt   = nodeChild x t
+        xt0  = nodeChild x t0
+        et   = ne 0 t
+    --  ^ entropy of the current prefix
+        ext0 = ne 0 xt0
+    --  ^ entropy of [x]
+        ext  = ne 0 xt
+    --  ^ entropy of the current prefix plus x
+        acc  = ext > et + ext0
+        -- aut(["in","this","paper"]) > aut(["in","this"]) + aut(["paper"])
 
-    ne d t = fromMaybe d (nodeEntropy t ^? _Just . inE)
+    ne d t = if P.isNaN e then d else e
+      where e = nodeEntropy inE t
+
+{-
+split :: Entropy e => Lens' i e -> Tries Token i -> [Token] -> [[Token]]
+split inE t0 ts =
+  maximumWith (sum . map $ nodeAutonomy inE t0) (all the splits of ts)
+-}
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 
 mainEleve :: Int -> [[Text]] -> [[[Text]]]
+mainEleve _ _ = []
+{-
 mainEleve n input = map unToken . split identity (t :: Trie Token Double) <$> inp
   where
     inp = toToken (n - 1) <$> input
@@ -246,6 +325,7 @@ mainEleve n input = map unToken . split identity (t :: Trie Token Double) <$> in
                           -- instead we should use either:
                           --   info_norm_entropy or info_norm_entropy'
                           -- However they should first be fixed.
+-}
 
 testEleve :: Bool -> Int -> [Text] -> IO Bool
 testEleve debug n output = do
@@ -254,28 +334,43 @@ testEleve debug n output = do
     expected = fmap (T.splitOn "-") <$> out
     input = (T.splitOn "-" =<<) <$> out
     inp = toToken (n - 1) <$> input
-    t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
-    nt  = normalizeEntropy  identity setNormEntropy (t :: Trie Token Double)
-    nt' = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
-    pss = [ (ps, findTrie ps t ^? _Just . node_entropy) -- . info_entropy)
+    t = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
+    -- nt = normalizeEntropy  identity setNormEntropy (fwd :: Trie Token Double)
+    -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
+    nt = normalizeEntropy identity setNormEntropy
+                          (t :: Trie Token Double)
+    {-
+    pss = [ (ps, findTrie ps fwd ^? _Just . node_entropy) -- . info_entropy)
           | ps <- L.nub $ [ c
                           | m <- [1..n]
                           , cs <- chunkAlong m 1 <$> inp
                           , c <- cs
                           ]
           ]
-    res = map unToken . split identity t <$> inp
+    -}
+  --res = map unToken . split identity fwd <$> inp
+  --res = map unToken . split info_norm_entropy' nt' <$> inp
+    res = map unToken . split info_norm_entropy nt <$> inp
   when debug $ do
     P.putStrLn (show input)
-    mapM_ (P.putStrLn . show) pss
-    P.putStrLn $ Tree.drawTree
-              $ fmap show
-              $ toTree (NonTerminal "") nt'
+    -- mapM_ (P.putStrLn . show) pss
+    P.putStrLn ""
+    printTrie nt
+{-
+    printTrie (_fwd nt)
+    printTrie (_bwd nt)
+    -}
     P.putStrLn $ show res
   pure $ expected == res
 
+  where
+    printTrie =
+      P.putStrLn . Tree.drawTree
+                 . fmap show
+                 . toTree (NonTerminal "")
+
 -- | TODO real data is a list of tokenized sentences
-example0, example1, example2, example3, example4, example5 :: [Text]
+example0, example1, example2, example3, example4, example5, example6 :: [Text]
 example0 =  ["New-York is New-York and New-York"]
 example1 =  ["to-be or not to-be"]
 example2 =  ["to-be-or not to-be-or NOT to-be and"]
@@ -283,6 +378,11 @@ example3 =  example0 <> example0
        -- > TEST: Should not have York New in the trie
 example4 =  ["a-b-c-d e a-b-c-d f"]
 example5 =  ["a-b-c-d-e f a-b-c-d-e g a-b-c-d-e"]
+example6 =  ["le-petit chat"
+            ,"le-petit chien"
+            ,"le-petit rat"
+            ,"le gros rat"
+            ]
 
 runTests :: IO ()
 runTests =
