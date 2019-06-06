@@ -95,7 +95,7 @@ isTerminal (Terminal    _) = True
 isTerminal (NonTerminal _) = False
 
 toToken :: Int -> [Text] -> [Token]
-toToken n xs = Terminal Start : (NonTerminal <$> xs) <> L.take n (repeat $ Terminal Stop)
+toToken n xs = Terminal Start : (NonTerminal <$> xs) <> [Terminal Stop]
 
 unToken :: [Token] -> [Text]
 unToken = map f
@@ -369,13 +369,14 @@ testEleve debug n output checks = do
         else P.putStrLn $ "    FAIL " <> msg <> " " <> show x <> " /= " <> show y
 
     checker (ngram, count, entropy, _ev, autonomy, bwd_entropy, fwd_entropy) = do
-      let t' = findTrie (NonTerminal <$> T.words ngram) nt
+      let ns = NonTerminal <$> T.words ngram
+          t' = findTrie ns nt
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
       check (==) "count"       count       (_node_count (_fwd t'))
       check sim  "entropy"     entropy     (nodeEntropy info_entropy t')
       check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy t')
       check sim  "fwd_entropy" fwd_entropy (nodeEntropy info_entropy (_fwd t'))
-      check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (_bwd t'))
+      check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (findTrie ns (_bwd nt)))
 
     printTrie =
       P.putStrLn . Tree.drawTree
