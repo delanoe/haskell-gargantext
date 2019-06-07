@@ -44,7 +44,7 @@ module Gargantext.Text.Eleve where
 import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
-import Control.Lens (Lens', Getting, (^.), (^?), view, makeLenses, _Just)
+import Control.Lens (Lens', Getting, (^.), (^?), view, makeLenses, _Just, under, reversed)
 import Control.Monad (forM_)
 import Data.Ord (Ord)
 import qualified Data.List as L
@@ -283,6 +283,8 @@ instance IsTrie Tries where
                              }
 
   nodeEntropy inE (Tries fwd bwd) =
+    -- VETODO reverse the query for bwd here
+    -- mean $ noNaNs [nodeEntropy inE fwd, nodeEntropy inE bwd . under reversed]
     mean $ noNaNs [nodeEntropy inE fwd, nodeEntropy inE bwd]
 
   findTrie ks (Tries fwd bwd) = Tries (findTrie ks fwd) (findTrie ks bwd)
@@ -410,12 +412,12 @@ testEleve debug n output checks = do
           t' = findTrie ns nt
           nsb = parseToken <$> (reverse $ T.words ngram)
           tb' = findTrie nsb nt
+          -- TODO put this Variation Entropy at VETODO mark above
+          ev = (mean [(nodeEntropy info_entropy (_fwd t')), (nodeEntropy info_entropy (_bwd tb'))])
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
       check (==) "count"       count       (_node_count (_fwd t'))
-      check sim  "entropy"     entropy     (mean [(nodeEntropy info_entropy (_fwd t')), (nodeEntropy info_entropy (_bwd tb'))])
-
-      -- (nodeEntropy info_entropy t')
+      check sim  "entropy"     entropy     ev
       check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy t')
       check sim  "fwd_entropy" fwd_entropy (nodeEntropy info_entropy (_fwd t'))
       check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (_bwd t'))
