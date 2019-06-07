@@ -15,7 +15,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
--- import Debug.Trace (trace)
+import Debug.Trace (trace)
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
@@ -26,7 +26,7 @@ import Gargantext.Viz.Graph
 --import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
-import Gargantext.Viz.Graph.Proxemy (mkGraphUfromEdges)
+import Gargantext.Viz.Graph.Proxemy (mkGraphUfromEdges, confluence)
 import GHC.Float (sin, cos)
 import qualified IGraph as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
@@ -46,7 +46,8 @@ cooc2graph myCooc = do
     True  -> cLouvain distanceMap
     False -> panic "Text.Flow: DistanceMap is empty"
 
-  let distanceMap' = distanceMap -- bridgeness 300 partitions distanceMap
+  let distanceMap' = confluence (Map.keys distanceMap) 3 True False
+      -- bridgeness 300 partitions distanceMap
 
   data2graph (Map.toList ti) myCooc4 distanceMap' partitions
 
@@ -78,7 +79,8 @@ data2graph labels coocs distance partitions = do
 
     let edges = [ Edge { edge_source = cs (show s)
                    , edge_target = cs (show t)
-                   , edge_weight = w
+                   , edge_weight = 1
+                   , edge_confluence = w
                    , edge_id     = cs (show i) }
             | (i, ((s,t), w)) <- zip ([0..]::[Integer]) (Map.toList distance) ]
 

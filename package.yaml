@@ -47,6 +47,7 @@ library:
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
+  - Gargantext.Text.Crawlers
   - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
   - Gargantext.Text.Metrics
@@ -102,6 +103,7 @@ library:
   - containers
   - contravariant
   - crawlerPubMed
+  - crawlerHAL
   - data-time-segment
   - directory
   - duckling

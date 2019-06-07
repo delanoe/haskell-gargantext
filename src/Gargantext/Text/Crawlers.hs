@@ -15,7 +15,19 @@ Portability : POSIX
 module Gargantext.Text.Crawlers
     where
 
+{-
+import Data.Text (Text)
 --import Gargantext.Prelude
---import qualified PUBMED as PubMed
+import qualified PUBMED as PubMed
+
+data Crawler = PubMed | HAL | Isidore
+
+type Query = Text
 
 
+
+--{-
+crawl :: Crawler -> Query -> IO [PubMed.Doc]
+crawl Pubmed = PubMed.crawler
+--}
+-}

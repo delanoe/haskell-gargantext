@@ -295,6 +295,6 @@ runTests =
     ,("example5", 5, example5)
     ]
     (\(name, n, ex) -> do
-      b <- testEleve False n ex
+      b <- testEleve True n ex
       P.putStrLn $ name <> " " <> show n <> " " <> if b then "PASS" else "FAIL"
     )
