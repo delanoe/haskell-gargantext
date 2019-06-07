@@ -45,7 +45,7 @@ import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
 import Data.Functor.Reverse
-import Control.Lens (Lens', Getting, (^.), (^?), view, makeLenses, _Just, under, reversed)
+import Control.Lens (Lens', Getting, (^.), (^?), view, makeLenses, _Just, under, reversed, at, (.~))
 import Control.Monad (forM_)
 import Data.Ord (Ord)
 import qualified Data.List as L
@@ -163,6 +163,9 @@ updateIfDefined :: P.RealFloat e => e -> e -> e
 updateIfDefined e0 e | P.isNaN e = e0
                      | otherwise = e
 
+sim :: Entropy e => e -> e -> Bool
+sim x y = x == y || (P.isNaN x && P.isNaN y)
+
 subst :: Entropy e => (e, e) -> e -> e
 subst (src, dst) x | sim src x = dst
                    | otherwise = x
@@ -277,6 +280,8 @@ data Tries k e = Tries
   , _bwd :: Trie k e
   }
 
+makeLenses ''Tries
+
 instance IsTrie Tries where
   buildTrie to n tts = Tries { _fwd = buildTrie to n tts
                              , _bwd = buildTrie to n (map reverse $ tts)
@@ -351,9 +356,6 @@ mainEleve n input = map (map printToken) . split identity (t :: Trie Token Doubl
     t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
 -}
 
-sim :: Entropy e => e -> e -> Bool
-sim x y = x == y || (P.isNaN x && P.isNaN y)
-
 chunkAlongEleve :: Int -> [a] -> [[a]]
 chunkAlongEleve n xs = L.take n <$> L.tails xs
 
@@ -400,6 +402,8 @@ testEleve debug n output checks = do
     input    = (T.splitOn "-" =<<) <$> out
     inp      = toToken <$> input
     t        = buildTrie toToken' n input
+             & bwd . node_children . at (Terminal Start) . _Just . node_entropy .~ nan
+             -- NP: this is a hack to set the bwd entropy of Start at NaN.
     -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
     nt = normalizeEntropy identity set_autonomy t
@@ -453,7 +457,8 @@ checks0 =
   ,("York", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 0.0, 1.584962500721156)
   ,("is", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
   ,("and", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
-  ,("<stop>", 0, nan, nan, nan, 0.0, nan)
+--,("<stop>", 0, nan, nan, nan, 0.0, nan) Since it is not in the trie it no,
+-- need to count it.
 
 --{-
   ,("<start> New", 1, nan, nan, nan, nan, 0.0)
