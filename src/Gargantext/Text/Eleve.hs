@@ -170,7 +170,7 @@ entropyTrie _    (Leaf c)             = Leaf c
 entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) children)
   where
     e = sum $ map f $ Map.toList children
-    f (k, child) = if pred k then chc * P.logBase 2 (fromIntegral c)
+    f (k, child) = if pred k then   chc * P.logBase 2 (fromIntegral c)
                              else - chc * P.logBase 2 chc
       where
         chc = fromIntegral (_node_count child) / fromIntegral c
@@ -204,11 +204,13 @@ nodeChildren (Leaf _)      = Map.empty
 
 -}
 
+data Ward = ForWard | BackWard
+
 class IsTrie trie where
-  buildTrie :: Entropy e => [[Token]] -> trie Token e
+  buildTrie   :: Entropy e => (Int -> [[Text]] -> [[Token]]) -> Int -> [[Text]] -> trie Token e
   nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
-  nodeChild :: Ord k => k -> trie k e -> trie k e
-  findTrie :: Ord k => [k] -> trie k e -> trie k e
+  nodeChild   :: Ord k =>  k  -> trie k e -> trie k e
+  findTrie    :: Ord k => [k] -> trie k e -> trie k e
   normalizeEntropy :: Entropy e
                    => Getting e i e -> ModEntropy i o e
                    -> trie k i -> trie k o
@@ -218,7 +220,7 @@ class IsTrie trie where
 --nodeAutonomy inE t ks = nodeEntropy inE $ findTrie ks t
 
 instance IsTrie Trie where
-  buildTrie = entropyTrie isTerminal . insertTries
+  buildTrie to n ts = entropyTrie isTerminal $ insertTries $ to n ts
 
   nodeEntropy inE (Node _ e _) = e ^. inE
   nodeEntropy _   (Leaf _)     = -- trace "nodeEntropy of Leaf" $
@@ -275,10 +277,15 @@ data Tries k e = Tries
   , _bwd :: Trie k e
   }
 
+
+
+toToken' :: Int -> [[Text]] -> [[Token]]
+toToken' n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> toToken <$> input
+
 instance IsTrie Tries where
-  buildTrie tts = Tries { _fwd = buildTrie tts
-                        , _bwd = buildTrie (reverse <$> tts)
-                        }
+  buildTrie to n tts = Tries { _fwd = buildTrie to n tts
+                             , _bwd = buildTrie to n (map reverse $ tts)
+                             }
 
   nodeEntropy inE (Tries fwd bwd) =
     mean $ noNaNs [nodeEntropy inE fwd, nodeEntropy inE bwd]
@@ -390,7 +397,7 @@ testEleve debug n output checks = do
     expected = fmap (T.splitOn "-") <$> out
     input = (T.splitOn "-" =<<) <$> out
     inp = toToken <$> input
-    t = buildTrie $ L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> inp
+    t = buildTrie toToken' n input
     -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
     nt = normalizeEntropy identity set_autonomy t
@@ -440,6 +447,7 @@ checks0 =
   ,("and", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
   ,("<stop>", 0, nan, nan, nan, 0.0, nan)
 
+{-
   ,("<start> New", 1, nan, nan, nan, nan, 0.0)
   ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, 1.584962500721156)
   ,("York is", 1, 0.0, nan, nan, nan, 0.0)
@@ -456,6 +464,7 @@ checks0 =
   ,("York and New", 1, 0.0, nan, nan, nan, 0.0)
   ,("and New York", 1, 0.0, nan, nan, nan, 0.0)
   ,("New York <stop>", 1, nan, nan, nan, nan, nan)
+-}
   ]
 
 
