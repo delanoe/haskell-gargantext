@@ -44,6 +44,7 @@ module Gargantext.Text.Eleve where
 import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
+import Data.Functor.Reverse
 import Control.Lens (Lens', Getting, (^.), (^?), view, makeLenses, _Just, under, reversed)
 import Control.Monad (forM_)
 import Data.Ord (Ord)
@@ -223,8 +224,7 @@ instance IsTrie Trie where
   buildTrie to n ts = entropyTrie isTerminal $ insertTries $ to n ts
 
   nodeEntropy inE (Node _ e _) = e ^. inE
-  nodeEntropy _   (Leaf _)     = -- trace "nodeEntropy of Leaf" $
-                                 nan
+  nodeEntropy _   (Leaf _)     = nan
 
   nodeChild k (Node _ _ cs) = fromMaybe emptyTrie (Map.lookup k cs)
   nodeChild _ (Leaf _)      = emptyTrie
@@ -291,6 +291,8 @@ instance IsTrie Tries where
   --                                                              ^^
   -- TODO: here this is tempting to reverse but this is not always what we
   -- want. See also nodeAutonomy.
+  -- AD: I also tried to reverse here and I confirm getting unexpected results (whereas VETODO is ok)
+  -- since recursivity of the function makes the reverse multiple times (I guess)
 
   nodeChild k (Tries fwd bwd) = Tries (nodeChild k fwd) (nodeChild k bwd)
 
@@ -412,7 +414,7 @@ testEleve debug n output checks = do
           t' = findTrie ns nt
           nsb = parseToken <$> (reverse $ T.words ngram)
           tb' = findTrie nsb nt
-          -- TODO put this Variation Entropy at VETODO mark above
+          -- TODO put this Variation Entropy at VETODO mark above maybe in nodeEntropy ?
           ev = (mean [(nodeEntropy info_entropy (_fwd t')), (nodeEntropy info_entropy (_bwd tb'))])
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
