@@ -291,7 +291,7 @@ instance IsTrie Tries where
   --                                                              ^^
   -- TODO: here this is tempting to reverse but this is not always what we
   -- want. See also nodeAutonomy.
-  -- AD: I also tried to reverse here and I confirm getting unexpected results (whereas VETODO is ok)
+  -- AD: I also tried to reverse here and I confirm getting unexpected results (whereas VETODO FIX below is ok)
   -- since recursivity of the function makes the reverse multiple times (I guess)
 
   nodeChild k (Tries fwd bwd) = Tries (nodeChild k fwd) (nodeChild k bwd)
@@ -395,11 +395,11 @@ testEleve debug n output checks = do
   pure $ expected == res
 
   where
-    out = T.words <$> output
+    out      = T.words <$> output
     expected = fmap (T.splitOn "-") <$> out
-    input = (T.splitOn "-" =<<) <$> out
-    inp = toToken <$> input
-    t = buildTrie toToken' n input
+    input    = (T.splitOn "-" =<<) <$> out
+    inp      = toToken <$> input
+    t        = buildTrie toToken' n input
     -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
     nt = normalizeEntropy identity set_autonomy t
@@ -411,8 +411,9 @@ testEleve debug n output checks = do
 
     checker (ngram, count, entropy, _ev, autonomy, bwd_entropy, fwd_entropy) = do
       let ns  = parseToken <$> T.words ngram
-          t' = findTrie ns nt
           nsb = parseToken <$> (reverse $ T.words ngram)
+          
+          t'  = findTrie ns  nt
           tb' = findTrie nsb nt
           -- TODO put this Variation Entropy at VETODO mark above maybe in nodeEntropy ?
           ev = (mean [(nodeEntropy info_entropy (_fwd t')), (nodeEntropy info_entropy (_bwd tb'))])
@@ -454,7 +455,7 @@ checks0 =
   ,("and", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, 0.0)
   ,("<stop>", 0, nan, nan, nan, 0.0, nan)
 
-{-
+--{-
   ,("<start> New", 1, nan, nan, nan, nan, 0.0)
   ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, 1.584962500721156)
   ,("York is", 1, 0.0, nan, nan, nan, 0.0)
