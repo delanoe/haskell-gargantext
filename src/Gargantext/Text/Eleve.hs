@@ -99,6 +99,7 @@ parseToken "<start>" = Terminal Start
 parseToken "<stop>"  = Terminal Stop
 parseToken t         = NonTerminal t
 
+
 toToken :: [Text] -> [Token]
 toToken xs = Terminal Start : (NonTerminal <$> xs) <> [Terminal Stop]
 
@@ -204,7 +205,6 @@ nodeChildren (Leaf _)      = Map.empty
 
 -}
 
-data Ward = ForWard | BackWard
 
 class IsTrie trie where
   buildTrie   :: Entropy e => (Int -> [[Text]] -> [[Token]]) -> Int -> [[Text]] -> trie Token e
@@ -276,11 +276,6 @@ data Tries k e = Tries
   { _fwd :: Trie k e
   , _bwd :: Trie k e
   }
-
-
-
-toToken' :: Int -> [[Text]] -> [[Token]]
-toToken' n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> toToken <$> input
 
 instance IsTrie Tries where
   buildTrie to n tts = Tries { _fwd = buildTrie to n tts
@@ -358,6 +353,9 @@ sim x y = x == y || (P.isNaN x && P.isNaN y)
 chunkAlongEleve :: Int -> [a] -> [[a]]
 chunkAlongEleve n xs = L.take n <$> L.tails xs
 
+toToken' :: Int -> [[Text]] -> [[Token]]
+toToken' n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> toToken <$> input
+
 testEleve :: e ~ Double => Bool -> Int -> [Text] -> [(Text, Int, e, e, e, e, e)] -> IO Bool
 testEleve debug n output checks = do
   let
@@ -408,11 +406,16 @@ testEleve debug n output checks = do
         else P.putStrLn $ "    FAIL " <> msg <> " ref=" <> show ref <> " my=" <> show my
 
     checker (ngram, count, entropy, _ev, autonomy, bwd_entropy, fwd_entropy) = do
-      let ns = parseToken <$> T.words ngram
+      let ns  = parseToken <$> T.words ngram
           t' = findTrie ns nt
+          nsb = parseToken <$> (reverse $ T.words ngram)
+          tb' = findTrie nsb nt
+
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
       check (==) "count"       count       (_node_count (_fwd t'))
-      check sim  "entropy"     entropy     (nodeEntropy info_entropy t')
+      check sim  "entropy"     entropy     (mean [(nodeEntropy info_entropy (_fwd t')), (nodeEntropy info_entropy (_bwd tb'))])
+
+      -- (nodeEntropy info_entropy t')
       check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy t')
       check sim  "fwd_entropy" fwd_entropy (nodeEntropy info_entropy (_fwd t'))
       check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (_bwd t'))
@@ -464,7 +467,7 @@ checks0 =
   ,("York and New", 1, 0.0, nan, nan, nan, 0.0)
   ,("and New York", 1, 0.0, nan, nan, nan, 0.0)
   ,("New York <stop>", 1, nan, nan, nan, nan, nan)
--}
+--}
   ]
 
 
