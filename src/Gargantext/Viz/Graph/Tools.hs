@@ -15,7 +15,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
-import Debug.Trace (trace)
+--import Debug.Trace (trace)
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
