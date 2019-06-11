@@ -448,10 +448,13 @@ testEleve debug n output checks = do
       P.putStrLn $ "  " <> show level
     P.putStrLn ""
     P.putStrLn "Forward:"
-    printTrie (_fwd nt)
+    printTrie (_fwd t)
     P.putStrLn ""
     P.putStrLn "Backward:"
-    printTrie (_bwd nt)
+    printTrie (_bwd t)
+    P.putStrLn ""
+    P.putStrLn "Normalized:"
+    printTrie nt
     P.putStrLn ""
     P.putStrLn "Splitting:"
     P.putStrLn $ show res
@@ -463,22 +466,17 @@ testEleve debug n output checks = do
     expected = fmap (T.splitOn "-") <$> out
     input    = (T.splitOn "-" =<<) <$> out
     inp      = toToken <$> input
-    
+
     t :: Tries Token Double
     t        = buildTrie toToken' n input
              & bwd . node_children . at (Terminal Start) . _Just . node_entropy .~ nan
-             -- NP: this is a hack to set the bwd entropy of Start at NaN.
-    
+             -- TODO NP: this is a hack to set the bwd entropy of Start at NaN.
+
     t'' :: Trie Token Double
     t'' = set_entropy_vars identity (\e _i -> e) t
-    
-    -- keeping nt for fwd and bwd checks
-    -- it has no sense to calculate entropy_var on fwd and bwd each
-    nt :: Tries Token (I Double)
-    nt = normalizeEntropy identity set_autonomy t
 
-    nt' :: Trie Token (I Double)
-    nt' = normalizeEntropy identity set_autonomy t''
+    nt :: Trie Token (I Double)
+    nt = normalizeEntropy identity set_autonomy t''
 
     -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
@@ -491,7 +489,7 @@ testEleve debug n output checks = do
     checker (ngram, count, entropy, _ev, autonomy, bwd_entropy, fwd_entropy) = do
       let ns  = parseToken <$> T.words ngram
           nsb = parseToken <$> (reverse $ T.words ngram)
-          t'  = findTrie ns  nt
+          t'  = findTrie ns t
           tvar  = findTrie ns  t''
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
@@ -504,11 +502,12 @@ testEleve debug n output checks = do
         PASS count 1
         FAIL entropy ref=NaN my=0.0
       -}
-      
-      check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy nt')
-      check sim  "fwd_entropy" fwd_entropy (nodeEntropy info_entropy (_fwd t'))
-      check sim  "bwd_entropy" bwd_entropy (nodeEntropy info_entropy (_bwd t'))
 
+      check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy nt)
+      check sim  "fwd_entropy" fwd_entropy (nodeEntropy identity (_fwd t'))
+      check sim  "bwd_entropy" bwd_entropy (nodeEntropy identity (_bwd t'))
+
+    printTrie :: Show e => Trie Token e -> IO ()
     printTrie =
       P.putStrLn . Tree.drawTree
                  . fmap show
