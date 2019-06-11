@@ -41,7 +41,7 @@ Notes for current implementation:
 
 module Gargantext.Text.Eleve where
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
 import Data.Functor.Reverse
@@ -234,9 +234,6 @@ class IsTrie trie where
   nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
   nodeChild   :: Ord k =>  k  -> trie k e -> trie k e
   findTrie    :: Ord k => [k] -> trie k e -> trie k e
-  normalizeEntropy :: Entropy e
-                   => Getting e i e -> ModEntropy i o e
-                   -> trie k i -> trie k o
 
 -- UNUSED
 --nodeAutonomy :: (Ord k, Entropy e) => Getting e i e -> trie k i -> [k] -> e
@@ -253,17 +250,20 @@ instance IsTrie Trie where
 
   findTrie ks t = L.foldl (flip nodeChild) t ks
 
-  normalizeEntropy inE modE t = trace (show level) $ go (modE identity) level t
-    where
-      level = (entropyLevels inE t)
-      go _ []         _                   = panic "normalizeEntropy' empty levels"
-      go _ _          (Leaf c)            = Leaf c
+normalizeEntropy :: Entropy e
+                 => Getting e i e -> ModEntropy i o e
+                 -> Trie k i -> Trie k o
+normalizeEntropy inE modE t = go (modE identity) level t
+  where
+    level = (entropyLevels inE t)
+    go _ []         _                   = panic "normalizeEntropy' empty levels"
+    go _ _          (Leaf c)            = Leaf c
 --      go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
-      go f (es : ess) (Node c i children)
-    --  | any (sim (i ^. inE)) es
-        = Node c (f i) $ go (modE $ normalizeLevel es) ess <$> children
-    --  | otherwise
-    --  = panic "NOT an elem"
+    go f (es : ess) (Node c i children)
+  --  | any (sim (i ^. inE)) es
+      = Node c (f i) $ go (modE $ normalizeLevel es) ess <$> children
+  --  | otherwise
+  --  = panic "NOT an elem"
 
 
   {-
@@ -322,11 +322,6 @@ instance IsTrie Tries where
   -- since recursivity of the function makes the reverse multiple times (I guess)
 
   nodeChild k (Tries fwd bwd) = Tries (nodeChild k fwd) (nodeChild k bwd)
-
-  normalizeEntropy inE modE = onTries (normalizeEntropy inE modE)
-
-onTries :: (Trie k i -> Trie k o) -> Tries k i -> Tries k o
-onTries f (Tries fwd bwd) = Tries (f fwd) (f bwd)
 
 ------------------------------------------------------------------------
 split :: (IsTrie trie, Entropy e) => Lens' i e -> trie Token i -> [Token] -> [[Token]]
@@ -440,15 +435,15 @@ testEleve debug n output checks = do
     P.putStrLn (show input)
     -- forM_ pss (P.putStrLn . show)
     P.putStrLn ""
-    P.putStrLn "Levels:"
-    forM_ (entropyLevels identity (_fwd t)) $ \level ->
-      P.putStrLn $ "  " <> show level
-    P.putStrLn ""
     P.putStrLn "Forward:"
     printTrie (_fwd t)
     P.putStrLn ""
     P.putStrLn "Backward:"
     printTrie (_bwd t)
+    P.putStrLn ""
+    P.putStrLn "Levels:"
+    forM_ (entropyLevels identity t'') $ \level ->
+      P.putStrLn $ "  " <> show level
     P.putStrLn ""
     P.putStrLn "Normalized:"
     printTrie nt
