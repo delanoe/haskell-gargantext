@@ -532,7 +532,7 @@ checks0 =
 --,("<stop>", 0, nan, nan, nan, 0.0, nan) Since it is not in the trie it no,
 -- need to count it.
 
-{-
+--{-
   ,("<start> New", 1, nan, nan, nan, nan, 0.0)
   ,("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, 1.584962500721156)
   ,("York is", 1, 0.0, nan, nan, nan, 0.0)
