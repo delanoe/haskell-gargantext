@@ -200,22 +200,11 @@ entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) childre
       where
         chc = fromIntegral (_node_count child) / fromIntegral c
 ------------------------------------------------------------------------
-normalizeLevel :: Entropy e => [e] -> e -> e
-normalizeLevel = checkDiff (go . noNaNs)
+normalizeLevel :: Entropy e => e -> [e] -> e -> e
+normalizeLevel prev = go . noNaNs
 
   where
-    -- checkDiff f es e = let e' = f es e in if e == e' then e' else trace ("normalizeLevel: diff " <> show e <> " " <> show e') e'
-    checkDiff = identity
---  go []  = panic "normalizeLevel: impossible"
-                        -- trace "normalizeLevel"
---    go [_] = identity
-    go es  = \e -> (e - m) / v
-{-
-                              in if P.isNaN e'
-                                  then trace ("normalizeLevel " <> show (e,m,v,es))
-                                      e
-                                  else e'
--}
+    go es  = \e -> ((e - prev) - m) / v
       where
         m  = mean      es
         v  = deviation es
@@ -261,7 +250,7 @@ normalizeEntropy inE modE t = go (modE identity) level t
 --      go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
     go f (es : ess) (Node c i children)
   --  | any (sim (i ^. inE)) es
-      = Node c (f i) $ go (modE $ normalizeLevel es) ess <$> children
+      = Node c (f i) $ go (modE $ normalizeLevel (i ^. inE) es) ess <$> children
   --  | otherwise
   --  = panic "NOT an elem"
 
