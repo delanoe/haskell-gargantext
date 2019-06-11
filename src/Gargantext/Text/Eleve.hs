@@ -223,6 +223,9 @@ class IsTrie trie where
   nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
   nodeChild   :: Ord k =>  k  -> trie k e -> trie k e
   findTrie    :: Ord k => [k] -> trie k e -> trie k e
+  normalizeEntropy :: Entropy e
+                   => Getting e i e -> ModEntropy i o e
+                   -> trie k i -> trie k o
 
 -- UNUSED
 --nodeAutonomy :: (Ord k, Entropy e) => Getting e i e -> trie k i -> [k] -> e
@@ -239,20 +242,12 @@ instance IsTrie Trie where
 
   findTrie ks t = L.foldl (flip nodeChild) t ks
 
-normalizeEntropy :: Entropy e
-                 => Getting e i e -> ModEntropy i o e
-                 -> Trie k i -> Trie k o
-normalizeEntropy inE modE t = go (modE identity) level t
-  where
-    level = (entropyLevels inE t)
-    go _ []         _                   = panic "normalizeEntropy' empty levels"
-    go _ _          (Leaf c)            = Leaf c
---      go _ ([] : _)   _                   = panic "normalizeEntropy': empty level"
-    go f (es : ess) (Node c i children)
-  --  | any (sim (i ^. inE)) es
-      = Node c (f i) $ go (modE $ normalizeLevel (i ^. inE) es) ess <$> children
-  --  | otherwise
-  --  = panic "NOT an elem"
+  normalizeEntropy inE modE t = go (modE identity) (entropyLevels inE t) t
+    where
+      go _ []         _                   = panic "normalizeEntropy' empty levels"
+      go _ _          (Leaf c)            = Leaf c
+      go f (es : ess) (Node c i children)
+        = Node c (f i) $ go (modE $ normalizeLevel (i ^. inE) es) ess <$> children
 
 
   {-
@@ -311,6 +306,11 @@ instance IsTrie Tries where
   -- since recursivity of the function makes the reverse multiple times (I guess)
 
   nodeChild k (Tries fwd bwd) = Tries (nodeChild k fwd) (nodeChild k bwd)
+
+  normalizeEntropy inE modE = onTries (normalizeEntropy inE modE)
+
+onTries :: (Trie k i -> Trie k o) -> Tries k i -> Tries k o
+onTries f (Tries fwd bwd) = Tries (f fwd) (f bwd)
 
 ------------------------------------------------------------------------
 split :: (IsTrie trie, Entropy e) => Lens' i e -> trie Token i -> [Token] -> [[Token]]
@@ -425,17 +425,17 @@ testEleve debug n output checks = do
     -- forM_ pss (P.putStrLn . show)
     P.putStrLn ""
     P.putStrLn "Forward:"
-    printTrie (_fwd t)
+    printTrie (_fwd nt)
     P.putStrLn ""
     P.putStrLn "Backward:"
-    printTrie (_bwd t)
+    printTrie (_bwd nt)
     P.putStrLn ""
     P.putStrLn "Levels:"
     forM_ (entropyLevels identity t'') $ \level ->
       P.putStrLn $ "  " <> show level
     P.putStrLn ""
-    P.putStrLn "Normalized:"
-    printTrie nt
+    P.putStrLn "Entropy Var:"
+    printTrie t''
     P.putStrLn ""
     P.putStrLn "Splitting:"
     P.putStrLn $ show res
@@ -453,11 +453,11 @@ testEleve debug n output checks = do
              & bwd . node_children . at (Terminal Start) . _Just . node_entropy .~ nan
              -- TODO NP: this is a hack to set the bwd entropy of Start at NaN.
 
-    t'' :: Trie Token Double
-    t'' = set_entropy_vars identity (\e _i -> e) t
+    nt :: Tries Token (I Double)
+    nt = normalizeEntropy identity set_autonomy t
 
-    nt :: Trie Token (I Double)
-    nt = normalizeEntropy identity set_autonomy t''
+    t'' :: Trie Token Double
+    t'' = set_entropy_vars info_autonomy (\e _i -> e) nt
 
     -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
     -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
