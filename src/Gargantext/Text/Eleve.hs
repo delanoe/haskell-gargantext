@@ -97,9 +97,6 @@ data Token = NonTerminal Text
            | Terminal StartStop
   deriving (Ord, Eq, Show)
 
-rootTrie :: Token
-rootTrie = NonTerminal ""
-
 isTerminal :: Token -> Bool
 isTerminal (Terminal    _) = True
 isTerminal (NonTerminal _) = False
@@ -390,13 +387,13 @@ toToken' n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n 
 ---------------------------------------------
 set_entropy_vars :: Entropy e  => Getting e i e -> (e -> i -> o) -> Tries Token i -> Trie Token o
 set_entropy_vars inE modE tries@(Tries fwd _bwd) =
-  mapTree (\k -> modE $ entropy_var'' inE tries k) [rootTrie] fwd
+  mapTree (\k -> modE $ entropy_var'' inE tries k) [] fwd
 
 mapTree :: ([Token] -> t -> e) -> [Token] -> Trie Token t -> Trie Token e
 mapTree f k t = go f k t
   where
     go _ _ (Leaf c)            = Leaf c
-    go f k (Node c i children) = Node c (f k i) (Map.mapWithKey (\k'-> go f (filter (/= rootTrie) $ k <> [k'])) children)
+    go f k (Node c i children) = Node c (f k i) (Map.mapWithKey (\k'-> go f (k <> [k'])) children)
 
 entropy_var'' :: Entropy e => Getting e i e -> Tries Token i -> [Token] -> e
 entropy_var'' inE tries ng = mean $ noNaNs [fwd, bwd]
@@ -511,7 +508,7 @@ testEleve debug n output checks = do
     printTrie =
       P.putStrLn . Tree.drawTree
                  . fmap show
-                 . toTree rootTrie
+                 . toTree (NonTerminal "")
 
 -- | TODO real data is a list of tokenized sentences
 example0, example1, example2, example3, example4, example5, example6 :: [Text]
