@@ -106,24 +106,6 @@ parseToken "<start>" = Terminal Start
 parseToken "<stop>"  = Terminal Stop
 parseToken t         = NonTerminal t
 
--- |
--- >>> reverseTokens [Terminal Start, NonTerminal "new", NonTerminal "york", Terminal Stop]
--- [Terminal Start,NonTerminal "york",NonTerminal "new",Terminal Stop]
-reverseTokens :: [Token] -> [Token]
-reverseTokens xs = case lastMay xs of
-  Nothing -> []
-  Just (Terminal Stop) -> reverseTokens' xs <> [Terminal Stop]
-  _                    -> reverseTokens' xs
-
-reverseTokens' :: [Token] -> [Token]
-reverseTokens' [] = []
-reverseTokens' [Terminal Stop] = []
-reverseTokens' [x] = [x]
-reverseTokens' (x:xs) = case x of
-              Terminal Start -> [Terminal Start] <> reverseTokens' xs
-              _              -> reverseTokens' xs <> [x]
-
-
 toToken :: [Text] -> [Token]
 toToken xs = Terminal Start : (NonTerminal <$> xs) <> [Terminal Stop]
 
@@ -213,10 +195,11 @@ nodeChildren (Leaf _)      = Map.empty
 
 
 class IsTrie trie where
-  buildTrie   :: Entropy e => (Int -> [[Text]] -> [[Token]]) -> Int -> [[Text]] -> trie Token e
+  buildTrie   :: Entropy e => [[Token]] -> trie Token e
   nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
   nodeChild   :: Ord k =>  k  -> trie k e -> trie k e
   findTrie    :: Ord k => [k] -> trie k e -> trie k e
+  printTrie   :: (Show i, Entropy e) => Getting e i e -> trie Token i -> IO ()
   normalizeEntropy :: Entropy e
                    => Getting e i e -> ModEntropy i o e
                    -> trie k i -> trie k o
@@ -226,7 +209,7 @@ class IsTrie trie where
 --nodeAutonomy inE t ks = nodeEntropy inE $ findTrie ks t
 
 instance IsTrie Trie where
-  buildTrie to n ts = entropyTrie isTerminal $ insertTries $ to n ts
+  buildTrie ts = entropyTrie isTerminal $ insertTries ts
 
   nodeEntropy inE (Node _ e _) = e ^. inE
   nodeEntropy _   (Leaf _)     = nan
@@ -236,10 +219,18 @@ instance IsTrie Trie where
 
   findTrie ks t = L.foldl (flip nodeChild) t ks
 
+  printTrie inE t = do
+    P.putStrLn . Tree.drawTree
+                . fmap show
+                $ toTree (NonTerminal "") t
+    P.putStrLn "  Levels:"
+    forM_ (normalizationLevels inE t) $ \level ->
+      P.putStrLn $ "    " <> show level
+
   normalizeEntropy inE modE t = go (modE identity) (normalizationLevels inE t) t
     where
-      go _ []                _                   = panic "normalizeEntropy' empty levels"
       go _ _                 (Leaf c)            = Leaf c
+      go _ []                _                   = panic "normalizeEntropy' empty levels"
       go f ((m, v, _) : ess) (Node c i children)
         = Node c (f i) $ go (modE $ normalizeLevel (i ^. inE) m v) ess <$> children
 
@@ -269,7 +260,7 @@ levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
     subForest (Node _ _ children) = Map.elems children
 
 entropyLevels :: Entropy e => Getting e i e -> Trie k i -> [[e]]
-entropyLevels inE = fmap (noNaNs . map (nodeEntropy inE)) . levels
+entropyLevels inE = fmap (noNaNs . map (nodeEntropy inE)) . L.tail . levels
 
 normalizationLevels :: Entropy e => Getting e i e -> Trie k i -> [(e, e, Int)]
 normalizationLevels inE = fmap f . entropyLevels inE
@@ -288,9 +279,9 @@ makeLenses ''Tries
 
 
 instance IsTrie Tries where
-  buildTrie to n tts = Tries { _fwd = buildTrie to n tts
-                             , _bwd = buildTrie to n (map reverse $ tts)
-                             }
+  buildTrie tts = Tries { _fwd = buildTrie tts
+                        , _bwd = buildTrie (reverse <$> tts)
+                        }
 
   nodeEntropy inE (Tries fwd bwd) =
     -- VETODO reverse the query for bwd here
@@ -307,6 +298,13 @@ instance IsTrie Tries where
   nodeChild k (Tries fwd bwd) = Tries (nodeChild k fwd) (nodeChild k bwd)
 
   normalizeEntropy inE modE = onTries (normalizeEntropy inE modE)
+
+  printTrie inE (Tries fwd bwd) = do
+    P.putStrLn "Forward:"
+    printTrie inE fwd
+    P.putStrLn ""
+    P.putStrLn "Backward:"
+    printTrie inE bwd
 
 onTries :: (Trie k i -> Trie k o) -> Tries k i -> Tries k o
 onTries f (Tries fwd bwd) = Tries (f fwd) (f bwd)
@@ -382,14 +380,14 @@ entropy_var'' :: Entropy e => Getting e i e -> Tries Token i -> [Token] -> e
 entropy_var'' inE tries ng = mean $ noNaNs [fwd, bwd]
   where
     fwd = (nodeEntropy inE (_fwd $ findTrie                ng  tries))
-    bwd = (nodeEntropy inE (_bwd $ findTrie (reverseTokens ng) tries))
+    bwd = (nodeEntropy inE (_bwd $ findTrie (reverse ng) tries))
 
 ---------------------------------------------
 -- | TODO remove function below after following bug fixed
 -- | TODO entropy_var' /= entropy_var on "<start> token.."
 entropy_var' :: Entropy e => Tries Token (I e) -> [Token] -> e
 entropy_var' tries ng = (mean $ noNaNs [ (nodeEntropy info_entropy (_fwd $ findTrie ng tries))
-                             , (nodeEntropy info_entropy (_bwd $ findTrie (reverseTokens ng) tries))
+                             , (nodeEntropy info_entropy (_bwd $ findTrie (reverse ng) tries))
                              ]
                         )
 
@@ -423,18 +421,10 @@ testEleve debug n output checks = do
     P.putStrLn (show input)
     -- forM_ pss (P.putStrLn . show)
     P.putStrLn ""
-    P.putStrLn "Forward:"
-    printTrie (_fwd nt)
-    P.putStrLn ""
-    P.putStrLn "Backward:"
-    printTrie (_bwd nt)
-    P.putStrLn ""
-    P.putStrLn "Levels:"
-    forM_ (normalizationLevels identity t'') $ \level ->
-      P.putStrLn $ "  " <> show level
+    printTrie info_entropy nt
     P.putStrLn ""
     P.putStrLn "Entropy Var:"
-    printTrie t''
+    printTrie identity t''
     P.putStrLn ""
     P.putStrLn "Splitting:"
     P.putStrLn $ show res
@@ -448,7 +438,7 @@ testEleve debug n output checks = do
     inp      = toToken <$> input
 
     t :: Tries Token Double
-    t        = buildTrie toToken' n input
+    t        = buildTrie (toToken' n input)
              & bwd . node_children . at (Terminal Start) . _Just . node_entropy .~ nan
              -- TODO NP: this is a hack to set the bwd entropy of Start at NaN.
 
@@ -487,12 +477,6 @@ testEleve debug n output checks = do
       check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy nt')
       check sim  "fwd_entropy" fwd_entropy (nodeEntropy identity (_fwd t'))
       check sim  "bwd_entropy" bwd_entropy (nodeEntropy identity (_bwd t'))
-
-    printTrie :: Show e => Trie Token e -> IO ()
-    printTrie =
-      P.putStrLn . Tree.drawTree
-                 . fmap show
-                 . toTree (NonTerminal "")
 
 -- | TODO real data is a list of tokenized sentences
 example0, example1, example2, example3, example4, example5, example6 :: [Text]
