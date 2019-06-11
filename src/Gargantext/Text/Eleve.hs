@@ -488,6 +488,7 @@ testEleve debug n output checks = do
           nsb = parseToken <$> (reverse $ T.words ngram)
           t'  = findTrie ns t
           tvar  = findTrie ns  t''
+          nt' = findTrie ns nt
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
       check (==) "count"       count       (_node_count tvar)
@@ -500,7 +501,7 @@ testEleve debug n output checks = do
         FAIL entropy ref=NaN my=0.0
       -}
 
-      check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy nt)
+      check sim  "autonomy"    autonomy    (nodeEntropy info_autonomy nt')
       check sim  "fwd_entropy" fwd_entropy (nodeEntropy identity (_fwd t'))
       check sim  "bwd_entropy" bwd_entropy (nodeEntropy identity (_bwd t'))
 
