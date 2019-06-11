@@ -200,14 +200,8 @@ entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) childre
       where
         chc = fromIntegral (_node_count child) / fromIntegral c
 ------------------------------------------------------------------------
-normalizeLevel :: Entropy e => e -> [e] -> e -> e
-normalizeLevel prev = go . noNaNs
-
-  where
-    go es  = \e -> ((e - prev) - m) / v
-      where
-        m  = mean      es
-        v  = deviation es
+normalizeLevel :: Entropy e => e -> e -> e -> e -> e
+normalizeLevel prev m v e = ((e - prev) - m) / v
 
 {- Unused
 
@@ -242,12 +236,12 @@ instance IsTrie Trie where
 
   findTrie ks t = L.foldl (flip nodeChild) t ks
 
-  normalizeEntropy inE modE t = go (modE identity) (entropyLevels inE t) t
+  normalizeEntropy inE modE t = go (modE identity) (normalizationLevels inE t) t
     where
-      go _ []         _                   = panic "normalizeEntropy' empty levels"
-      go _ _          (Leaf c)            = Leaf c
-      go f (es : ess) (Node c i children)
-        = Node c (f i) $ go (modE $ normalizeLevel (i ^. inE) es) ess <$> children
+      go _ []                _                   = panic "normalizeEntropy' empty levels"
+      go _ _                 (Leaf c)            = Leaf c
+      go f ((m, v, _) : ess) (Node c i children)
+        = Node c (f i) $ go (modE $ normalizeLevel (i ^. inE) m v) ess <$> children
 
 
   {-
@@ -276,6 +270,11 @@ levels = L.takeWhile (not . L.null) . L.iterate (L.concatMap subForest) . pure
 
 entropyLevels :: Entropy e => Getting e i e -> Trie k i -> [[e]]
 entropyLevels inE = fmap (noNaNs . map (nodeEntropy inE)) . levels
+
+normalizationLevels :: Entropy e => Getting e i e -> Trie k i -> [(e, e, Int)]
+normalizationLevels inE = fmap f . entropyLevels inE
+  where
+    f es = (mean es, deviation es, length es)
 
 ------------------------------------------------------------------------
 
@@ -431,7 +430,7 @@ testEleve debug n output checks = do
     printTrie (_bwd nt)
     P.putStrLn ""
     P.putStrLn "Levels:"
-    forM_ (entropyLevels identity t'') $ \level ->
+    forM_ (normalizationLevels identity t'') $ \level ->
       P.putStrLn $ "  " <> show level
     P.putStrLn ""
     P.putStrLn "Entropy Var:"
