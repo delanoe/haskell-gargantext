@@ -174,7 +174,10 @@ entropyTrie :: Entropy e => (k -> Bool) -> Trie k () -> Trie k e
 entropyTrie _    (Leaf c)             = Leaf c
 entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) children)
   where
-    e = sum $ map f $ Map.toList children
+    children' = Map.toList children
+    sum_count = sum $ _node_count . snd <$> children'
+    e | sum_count == 0 = nan
+      | otherwise      = sum $ f <$> children'
     f (k, child) = if pred k then   chc * P.logBase 2 (fromIntegral c)
                              else - chc * P.logBase 2 chc
       where
