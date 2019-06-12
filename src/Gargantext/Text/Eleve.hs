@@ -362,7 +362,7 @@ data Order = Backward | Forward
 
 toToken' :: Order -> Int -> [[Text]] -> [[Token]]
 toToken' o n input = L.concat
-                   $ ( filter (/= [Terminal Stop])
+                   $ ( filter (/= [Terminal (term o)])
                      . chunkAlongEleve (n + 2)
                      . (order o)
                      )
@@ -371,6 +371,8 @@ toToken' o n input = L.concat
   where
     order Forward  = identity
     order Backward = reverse
+    term  Forward  = Stop
+    term  Backward = Start
 
 
 ---------------------------------------------
