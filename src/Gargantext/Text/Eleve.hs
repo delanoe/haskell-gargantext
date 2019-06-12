@@ -440,17 +440,17 @@ testEleve debug n output checks = do
           nt' = findTrieR ns nt
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
-      check (==) "count"        count        (_node_count                   (_fwd t'))
-      
-      check sim  "entropy"      entropy      (nodeEntropyBwdOpt info_entropy     nt' )
+      check (==) "count"        count        (_node_count                  (_fwd nt'))
+
+      check sim  "entropy"      entropy      (nodeEntropy info_entropy           nt' )
       check sim  "ev"           ev           (nodeEntropy info_entropy_var       nt' )
       check sim  "autonomy"     autonomy     (nodeEntropy info_autonomy          nt' )
-      
+
       check sim  "fwd_entropy"  fwd_entropy  (nodeEntropy info_entropy     (_fwd nt'))
       check sim  "fwd_ev"       fwd_ev       (nodeEntropy info_entropy_var (_fwd nt'))
       check sim  "fwd_autonomy" fwd_autonomy (nodeEntropy info_autonomy    (_fwd nt'))
-      
-      check sim  "bwd_entropy"  bwd_entropy  (nodeEntropy identity         (_bwd  t'))
+
+      check sim  "bwd_entropy"  bwd_entropy  (nodeEntropy info_entropy     (_bwd nt'))
       check sim  "bwd_ev"       bwd_ev       (nodeEntropy info_entropy_var (_bwd nt'))
       check sim  "bwd_autonomy" bwd_autonomy (nodeEntropy info_autonomy    (_bwd nt'))
 
