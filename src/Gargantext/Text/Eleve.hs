@@ -437,10 +437,7 @@ testEleve debug n output checks = do
 
     checker (ngram, count, entropy, ev, autonomy, fwd_entropy, fwd_ev, fwd_autonomy, bwd_entropy, bwd_ev, bwd_autonomy) = do
       let ns  = parseToken <$> T.words ngram
-          t'  = findTrie ns t
-          -- tvar  = findTrie ns  t''
-          -- my_entropy_var = nodeEntropy identity tvar
-          nt' = findTrie ns nt
+          nt' = findTrieR ns nt
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
       check (==) "count"        count        (_node_count                   (_fwd t'))
