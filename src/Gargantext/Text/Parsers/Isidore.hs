@@ -80,14 +80,13 @@ isidoreSelect lim q = do
   source   <- var
   langDoc  <- var
   publisher <- var
-  --langFr   <- var
   --agg       <- var
 
   triple_ link (rdf     .:. "type")     (isidore .:. "Document")
   triple_ link (dcterms .:. "title")    title
   triple_ link (dcterms .:. "date")     date
   triple_ link (dcterms .:. "creator")  authors
-  triple_ link (dcterms .:. "language") langDoc
+  --triple_ link (dcterms .:. "language") langDoc
   triple_ link (dc      .:. "description") abstract
   --triple_ link (ore .:. "isAggregatedBy") agg
   --triple_ agg (dcterms .:. "title") title
@@ -96,14 +95,15 @@ isidoreSelect lim q = do
   optional_ $ triple_ link (dcterms .:. "publisher")   publisher
 
   -- TODO FIX BUG with (.||.) operator
-  --filterExpr $ (.||.) (contains title q) (contains title q)
+  --filterExpr_ $ (.||.) (contains title q) (contains abstract q)
   filterExpr_ (containsWith title q) -- (contains abstract q)
+  --filterExpr_ (containsWith authors q) -- (contains abstract q)
   --filterExpr (containsWith abstract q) -- (contains abstract q)
 
   -- TODO FIX filter with lang
-  --filterExpr $ langMatches title (str ("fra" :: Text))
-  --filterExpr $ (.==.) lang (str ("http://lexvo.org/id/iso639-3/fra" :: Text))
-  
+  --filterExpr_ $ langMatches title (str ("fra" :: Text))
+  --filterExpr_ $ (.==.) langDoc (str ("http://lexvo.org/id/iso639-3/fra" :: Text))
+
   orderNextDesc date
   limit_ lim
   distinct_
