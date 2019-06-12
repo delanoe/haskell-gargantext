@@ -363,22 +363,9 @@ data Order = Backward | Forward
 toToken' :: Order -> Int -> [[Text]] -> [[Token]]
 toToken' o n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2) . (order o) ) <$> toToken <$> input
   where
-    order Forward = identity
+    order Forward  = identity
     order Backward = reverse
 
-
----------------------------------------------
-{-
-set_entropy_vars :: Entropy e  => Getting e i e -> (e -> i -> o) -> Tries Token i -> Trie Token o
-set_entropy_vars inE modE tries@(Tries fwd _bwd) =
-  mapTree (\k -> modE $ nodeEntropy inE (findTrieR k tries)) [] fwd
-
-mapTree :: ([Token] -> t -> e) -> [Token] -> Trie Token t -> Trie Token e
-mapTree f k t = go f k t
-  where
-    go _ _ (Leaf c)            = Leaf c
-    go f k (Node c i children) = Node c (f k i) (Map.mapWithKey (\k'-> go f (k <> [k'])) children)
--}
 
 ---------------------------------------------
 
@@ -396,8 +383,6 @@ testEleve debug n output checks = do
                           ]
           ]
     -}
-  --res = map (map printToken) . split identity fwd <$> inp
-  --res = map (map printToken) . split info_norm_entropy' nt' <$> inp
     res = map (map printToken) . split info_autonomy nt <$> inp
   when debug $ do
     P.putStrLn (show input)
