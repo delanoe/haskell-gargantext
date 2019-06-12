@@ -361,7 +361,13 @@ chunkAlongEleve n xs = L.take n <$> L.tails xs
 data Order = Backward | Forward
 
 toToken' :: Order -> Int -> [[Text]] -> [[Token]]
-toToken' o n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2) . (order o) ) <$> toToken <$> input
+toToken' o n input = L.concat
+                   $ ( filter (/= [Terminal Stop])
+                     . chunkAlongEleve (n + 2)
+                     . (order o)
+                     )
+                  <$> toToken
+                  <$> input
   where
     order Forward  = identity
     order Backward = reverse
@@ -467,31 +473,29 @@ example6 =  ["le-petit chat"
 checks0, checks2 :: Checks Double
 
 checks0 =
+-- [(token, count, entropy, ev, autonomy, fwd_entropy, fwd_ev, fwd_autonomy, bwd_entropy, bwd_ev, bwd_autonomy)]
   [ ("<start>", 1, nan, nan, nan, 0.0, -2.113283334294875, -0.5000000000000002, nan, nan, nan)
   , ("New", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 0.0, -2.113283334294875, -0.5000000000000002, 1.584962500721156, -0.5283208335737188, 2.0)
   , ("York", 3, 0.792481250360578, -1.3208020839342969, 0.7499999999999999, 1.584962500721156, -0.5283208335737188, 2.0, 0.0, -2.113283334294875, -0.5000000000000002)
-  , ("is", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002)
-  , ("and", 1, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002)
---, ("<stop>", 0.0, nan, nan, nan, nan, nan, nan, 0.0, -2.113283334294875, -0.5000000000000002)
--- Since it is not in the trie it no, need to count it.
+  , ("is", 1, 0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002)
+  , ("and", 1, 0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002, 0.0, -2.113283334294875, -0.5000000000000002)
+  , ("<stop>", 0, nan, nan, nan, nan, nan, nan, 0.0, -2.113283334294875, -0.5000000000000002)
   , ("<start> New", 1, nan, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("New York", 3, 1.584962500721156, 1.584962500721156, 1.4142135623730951, 1.584962500721156, 1.584962500721156, 1.4142135623730951, nan, nan, nan)
-  , ("York is", 1, 0.0, nan, nan, 0.0, -1.584962500721156, -0.7071067811865474, nan, nan, nan)
-  , ("is New", 1, 0.0, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("York and", 1, 0.0, nan, nan, 0.0, -1.584962500721156, -0.7071067811865474, nan, nan, nan)
-  , ("and New", 1, 0.0, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("York <stop>", 1, nan, nan, nan, nan, nan, nan, nan, nan, nan)
+  , ("New York", 3, 1.584962500721156, 1.584962500721156, 1.414213562373095, 1.584962500721156, 1.584962500721156, 1.4142135623730947, 1.584962500721156, 1.584962500721156, 1.4142135623730951)
+  , ("York is", 1, 0, nan, nan, 0.0, -1.584962500721156, -0.7071067811865476, 0.0, nan, nan)
+  , ("is New", 1, 0, nan, nan, 0.0, nan, nan, 0.0, -1.584962500721156, -0.7071067811865474)
+  , ("York and", 1, 0, nan, nan, 0.0, -1.584962500721156, -0.7071067811865476, 0.0, nan, nan)
+  , ("and New", 1, 0, nan, nan, 0.0, nan, nan, 0.0, -1.584962500721156, -0.7071067811865474)
+  , ("York <stop>", 1, nan, nan, nan, nan, nan, nan, 0.0, nan, nan)
   , ("<start> New York", 1, nan, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("New York is", 1, 0.0, nan, nan, 0.0, -1.584962500721156, nan, nan, nan, nan)
-  , ("York is New", 1, 0.0, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("is New York", 1, 0.0, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("New York and", 1, 0.0, nan, nan, 0.0, -1.584962500721156, nan, nan, nan, nan)
-  , ("York and New", 1, 0.0, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("and New York", 1, 0.0, nan, nan, 0.0, nan, nan, nan, nan, nan)
-  , ("New York <stop>", 1, nan, nan, nan, nan, nan, nan, nan, nan, nan)
+  , ("New York is", 1, 0, nan, nan, 0.0, -1.584962500721156, nan, 0.0, nan, nan)
+  , ("York is New", 1, 0, nan, nan, 0.0, nan, nan, 0.0, nan, nan)
+  , ("is New York", 1, 0, nan, nan, 0.0, nan, nan, 0.0, -1.584962500721156, nan)
+  , ("New York and", 1, 0, nan, nan, 0.0, -1.584962500721156, nan, 0.0, nan, nan)
+  , ("York and New", 1, 0, nan, nan, 0.0, nan, nan, 0.0, nan, nan)
+  , ("and New York", 1, 0, nan, nan, 0.0, nan, nan, 0.0, -1.584962500721156, nan)
+  , ("New York <stop>", 1, nan, nan, nan, nan, nan, nan, 0.0, nan, nan)
   ]
-
-
 
 checks2 = []
 {-
