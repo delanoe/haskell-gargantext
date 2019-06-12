@@ -20,7 +20,6 @@ References:
   , pages 383–387. [PDF](https://www.aclweb.org/anthology/P12-2075)
 
 Notes for current implementation:
-- TODO fix normalization
 - TODO extract longer ngrams (see paper above, viterbi algo can be used)
 - TODO AD TEST: prop (Node c _e f) = c == Map.size f
 
@@ -451,16 +450,19 @@ testEleve debug n output checks = do
           nt' = findTrie ns nt
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
-      check (==) "count"        count        (_node_count (_fwd t'))
-      check sim  "entropy"      entropy      (nodeEntropyBwdOpt info_entropy nt')
-      check sim  "ev"           ev           (nodeEntropy info_entropy_var nt')
-      check sim  "autonomy"     autonomy     (nodeEntropy info_autonomy nt')
-      check sim  "fwd_entropy"  fwd_entropy  (nodeEntropy info_entropy (_fwd nt'))
+      check (==) "count"        count        (_node_count                   (_fwd t'))
+      
+      check sim  "entropy"      entropy      (nodeEntropyBwdOpt info_entropy     nt' )
+      check sim  "ev"           ev           (nodeEntropy info_entropy_var       nt' )
+      check sim  "autonomy"     autonomy     (nodeEntropy info_autonomy          nt' )
+      
+      check sim  "fwd_entropy"  fwd_entropy  (nodeEntropy info_entropy     (_fwd nt'))
       check sim  "fwd_ev"       fwd_ev       (nodeEntropy info_entropy_var (_fwd nt'))
-      check sim  "fwd_autonomy" fwd_autonomy (nodeEntropy info_autonomy (_fwd nt'))
-      check sim  "bwd_entropy"  bwd_entropy  (nodeEntropy identity (_bwd t'))
+      check sim  "fwd_autonomy" fwd_autonomy (nodeEntropy info_autonomy    (_fwd nt'))
+      
+      check sim  "bwd_entropy"  bwd_entropy  (nodeEntropy identity         (_bwd  t'))
       check sim  "bwd_ev"       bwd_ev       (nodeEntropy info_entropy_var (_bwd nt'))
-      check sim  "bwd_autonomy" bwd_autonomy (nodeEntropy info_autonomy (_bwd nt'))
+      check sim  "bwd_autonomy" bwd_autonomy (nodeEntropy info_autonomy    (_bwd nt'))
 
 -- | TODO real data is a list of tokenized sentences
 example0, example1, example2, example3, example4, example5, example6 :: [Text]
