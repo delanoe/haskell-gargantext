@@ -362,6 +362,9 @@ chunkAlongEleve n xs = L.take n <$> L.tails xs
 toToken' :: Int -> [[Text]] -> [[Token]]
 toToken' n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> toToken <$> input
 
+toTokenR' :: Int -> [[Text]] -> [[Token]]
+toTokenR' n input = L.concat $ (filter (/= [Terminal Start]) . chunkAlongEleve (n + 2) . reverse) <$> toToken <$> input
+
 ---------------------------------------------
 {-
 set_entropy_vars :: Entropy e  => Getting e i e -> (e -> i -> o) -> Tries Token i -> Trie Token o
@@ -415,7 +418,10 @@ testEleve debug n output checks = do
     inp      = toToken <$> input
 
     t :: Tries Token Double
-    t = buildTrie (toToken' n input)
+    t = -- buildTrie (toToken' n input)
+                  Tries { _fwd = buildTrie (toToken' n input)
+                        , _bwd = buildTrie (toTokenR' n input)
+                        }
 
     evt :: Tries Token (I Double)
     evt = evTrie identity set_entropy_var t
