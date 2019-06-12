@@ -20,7 +20,9 @@ References:
   , pages 383–387. [PDF](https://www.aclweb.org/anthology/P12-2075)
 
 Notes for current implementation:
+- TODO fix normalization
 - TODO extract longer ngrams (see paper above, viterbi algo can be used)
+- TODO AD TEST: prop (Node c _e f) = c == Map.size f
 
 - AD: Real ngrams extraction test
   from Gargantext.Text.Terms import extractTermsUnsupervised
@@ -39,7 +41,7 @@ Notes for current implementation:
 
 module Gargantext.Text.Eleve where
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 -- import Debug.SimpleReflect
 
 import Control.Lens hiding (levels, children)
@@ -63,9 +65,9 @@ nan = 0 / 0
 noNaNs :: P.RealFloat e => [e] -> [e]
 noNaNs = filter (not . P.isNaN)
 
-updateIfNaN :: P.RealFloat e => e -> e -> e
-updateIfNaN e0 e | P.isNaN e = e0
-                 | otherwise = e
+updateIfDefined :: P.RealFloat e => e -> e -> e
+updateIfDefined e0 e | P.isNaN e = e0
+                     | otherwise = e
 
 sim :: Entropy e => e -> e -> Bool
 sim x y = x == y || (P.isNaN x && P.isNaN y)
@@ -73,9 +75,6 @@ sim x y = x == y || (P.isNaN x && P.isNaN y)
 subst :: Entropy e => (e, e) -> e -> e
 subst (src, dst) x | sim src x = dst
                    | otherwise = x
-
-
-
 ------------------------------------------------------------------------
 
 type Entropy e =
@@ -88,9 +87,9 @@ type Entropy e =
 ------------------------------------------------------------------------
 -- | Example and tests for development
 data I e = I
-  { _info_entropy     :: e
+  { _info_entropy    :: e
   , _info_entropy_var :: e
-  , _info_autonomy    :: e
+  , _info_autonomy   :: e
   }
 
 instance Show e => Show (I e) where
@@ -117,21 +116,13 @@ isTerminal :: Token -> Bool
 isTerminal (Terminal    _) = True
 isTerminal (NonTerminal _) = False
 
-chunkAlongEleve :: Int -> [a] -> [[a]]
-chunkAlongEleve n xs = L.take n <$> L.tails xs
-
-toToken' :: Int -> [Text] -> [[Token]]
-toToken' n input = (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2))
-                 $ toToken input
-
-toToken :: [Text] -> [Token]
-toToken xs = Terminal Start : (NonTerminal <$> xs) <> [Terminal Stop]
-
-
 parseToken :: Text -> Token
 parseToken "<start>" = Terminal Start
 parseToken "<stop>"  = Terminal Stop
 parseToken t         = NonTerminal t
+
+toToken :: [Text] -> [Token]
+toToken xs = Terminal Start : (NonTerminal <$> xs) <> [Terminal Stop]
 
 printToken :: Token -> Text
 printToken = f
@@ -192,20 +183,20 @@ entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) childre
       where
         chc = fromIntegral (_node_count child) / fromIntegral c
 ------------------------------------------------------------------------
--- | TODO if stdv == 0 then not defined (NaN)
 normalizeLevel :: Entropy e => e -> e -> e -> e
 normalizeLevel m v e = (e - m) / v
---normalizeLevel m v e = if v == 0 then nan else (e - m) / v
 
 {- Unused
+
 nodeChildren :: Trie k e -> Map k (Trie k e)
 nodeChildren (Node _ _ cs) = cs
 nodeChildren (Leaf _)      = Map.empty
+
 -}
 
 
 class IsTrie trie where
-  buildTrie   :: Entropy e => Int -> [Text] -> trie Token e
+  buildTrie   :: Entropy e => [[Token]] -> trie Token e
   nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
   nodeChild   :: Ord k =>  k  -> trie k e -> trie k e
   findTrie    :: Ord k => [k] -> trie k e -> trie k e
@@ -221,7 +212,7 @@ class IsTrie trie where
 --nodeAutonomy inE t ks = nodeEntropy inE $ findTrie ks t
 
 instance IsTrie Trie where
-  buildTrie n ts = trace (show ts) $ entropyTrie isTerminal $ insertTries $ toToken' n ts
+  buildTrie ts = entropyTrie isTerminal $ insertTries ts
 
   nodeEntropy inE (Node _ e _) = e ^. inE
   nodeEntropy _   (Leaf _)     = nan
@@ -290,9 +281,9 @@ nodeEntropyBwdOpt inE (Tries f b) =
   mean $ nodeEntropy inE f : noNaNs [nodeEntropy inE b]
 
 instance IsTrie Tries where
-  buildTrie n tts = Tries { _fwd = buildTrie n tts
-                          , _bwd = buildTrie n (reverse tts)
-                          }
+  buildTrie tts = Tries { _fwd = buildTrie tts
+                        , _bwd = buildTrie (reverse <$> tts)
+                        }
 
   nodeEntropy inE (Tries f b) = mean [nodeEntropy inE f, nodeEntropy inE b]
 
@@ -365,6 +356,25 @@ mainEleve n input = map (map printToken) . split identity (t :: Trie Token Doubl
     t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
 -}
 
+chunkAlongEleve :: Int -> [a] -> [[a]]
+chunkAlongEleve n xs = L.take n <$> L.tails xs
+
+toToken' :: Int -> [[Text]] -> [[Token]]
+toToken' n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> toToken <$> input
+
+---------------------------------------------
+{-
+set_entropy_vars :: Entropy e  => Getting e i e -> (e -> i -> o) -> Tries Token i -> Trie Token o
+set_entropy_vars inE modE tries@(Tries fwd _bwd) =
+  mapTree (\k -> modE $ nodeEntropy inE (findTrieR k tries)) [] fwd
+
+mapTree :: ([Token] -> t -> e) -> [Token] -> Trie Token t -> Trie Token e
+mapTree f k t = go f k t
+  where
+    go _ _ (Leaf c)            = Leaf c
+    go f k (Node c i children) = Node c (f k i) (Map.mapWithKey (\k'-> go f (k <> [k'])) children)
+-}
+
 ---------------------------------------------
 
 type Checks e = [(Text, Int, e, e, e, e, e, e, e, e, e)]
@@ -405,7 +415,7 @@ testEleve debug n output checks = do
     inp      = toToken <$> input
 
     t :: Tries Token Double
-    t = buildTrie n (L.concat input)
+    t = buildTrie (toToken' n input)
 
     evt :: Tries Token (I Double)
     evt = evTrie identity set_entropy_var t
@@ -432,19 +442,16 @@ testEleve debug n output checks = do
           nt' = findTrie ns nt
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
-      check (==) "count"        count        (_node_count                  (_fwd  t'))
-      
-      check sim  "entropy"      entropy      (nodeEntropyBwdOpt info_entropy     nt')
-      check sim  "ev"           ev           (nodeEntropy info_entropy_var       nt')
-      check sim  "autonomy"     autonomy     (nodeEntropy info_autonomy          nt')
-      
-      check sim  "fwd_entropy"  fwd_entropy  (nodeEntropy info_entropy     (_fwd nt'))
+      check (==) "count"        count        (_node_count (_fwd t'))
+      check sim  "entropy"      entropy      (nodeEntropyBwdOpt info_entropy nt')
+      check sim  "ev"           ev           (nodeEntropy info_entropy_var nt')
+      check sim  "autonomy"     autonomy     (nodeEntropy info_autonomy nt')
+      check sim  "fwd_entropy"  fwd_entropy  (nodeEntropy info_entropy (_fwd nt'))
       check sim  "fwd_ev"       fwd_ev       (nodeEntropy info_entropy_var (_fwd nt'))
-      check sim  "fwd_autonomy" fwd_autonomy (nodeEntropy info_autonomy    (_fwd nt'))
-      
-      check sim  "bwd_entropy"  bwd_entropy  (nodeEntropy info_entropy     (_bwd nt'))
+      check sim  "fwd_autonomy" fwd_autonomy (nodeEntropy info_autonomy (_fwd nt'))
+      check sim  "bwd_entropy"  bwd_entropy  (nodeEntropy identity (_bwd t'))
       check sim  "bwd_ev"       bwd_ev       (nodeEntropy info_entropy_var (_bwd nt'))
-      check sim  "bwd_autonomy" bwd_autonomy (nodeEntropy info_autonomy    (_bwd nt'))
+      check sim  "bwd_autonomy" bwd_autonomy (nodeEntropy info_autonomy (_bwd nt'))
 
 -- | TODO real data is a list of tokenized sentences
 example0, example1, example2, example3, example4, example5, example6 :: [Text]
