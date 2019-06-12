@@ -359,11 +359,14 @@ mainEleve n input = map (map printToken) . split identity (t :: Trie Token Doubl
 chunkAlongEleve :: Int -> [a] -> [[a]]
 chunkAlongEleve n xs = L.take n <$> L.tails xs
 
-toToken' :: Int -> [[Text]] -> [[Token]]
-toToken' n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2)) <$> toToken <$> input
+data Order = Backward | Forward
 
-toTokenR' :: Int -> [[Text]] -> [[Token]]
-toTokenR' n input = L.concat $ (filter (/= [Terminal Start]) . chunkAlongEleve (n + 2) . reverse) <$> toToken <$> input
+toToken' :: Order -> Int -> [[Text]] -> [[Token]]
+toToken' o n input = L.concat $ (filter (/= [Terminal Stop]) . chunkAlongEleve (n + 2) . (order o) ) <$> toToken <$> input
+  where
+    order Forward = identity
+    order Backward = reverse
+
 
 ---------------------------------------------
 {-
@@ -419,8 +422,8 @@ testEleve debug n output checks = do
 
     t :: Tries Token Double
     t = -- buildTrie (toToken' n input)
-                  Tries { _fwd = buildTrie (toToken' n input)
-                        , _bwd = buildTrie (toTokenR' n input)
+                  Tries { _fwd = buildTrie (toToken' Forward  n input)
+                        , _bwd = buildTrie (toToken' Backward n input)
                         }
 
     evt :: Tries Token (I Double)
