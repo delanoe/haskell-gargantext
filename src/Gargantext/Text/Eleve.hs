@@ -307,35 +307,37 @@ onTries h (Tries f b) = Tries (h f) (h b)
 
 ------------------------------------------------------------------------
 split :: (IsTrie trie, Entropy e) => Lens' i e -> trie Token i -> [Token] -> [[Token]]
-split _   _  [] = []
-split inE t0 (Terminal Start:xs0) = split inE (nodeChild (Terminal Start) t0) xs0
-split inE t0 (x0:xs0) = go (nodeChild x0 t0) [x0] xs0
+split _   _ [] = []
+split inE t (Terminal Start:xs) = split inE t xs
+split inE t (x0:xs0) = go [x0] xs0
   where
-    consRev [] xss = xss
-    consRev xs xss = reverse xs : xss
+    mayCons [] xss = xss
+    mayCons xs xss = xs : xss
 
-    go _ pref []                  = [reverse pref]
-    go _ pref (Terminal Stop:_)   = [reverse pref]
-    go t pref (Terminal Start:xs) = go t pref xs
-    go t pref (x:xs) =
-        -- trace (show (if acc then "ACC" else "CUT", (reverse (x : pref), ext), if acc then ">" else "<=", ((reverse pref, et), "+", ([x], ext0)))) $
+    go pref []                  = [pref]
+    go pref (Terminal Stop:_)   = [pref]
+    go _    (Terminal Start:_)  = panic "split impossible"
+    go pref (x:xs) =
+        -- trace (show (if acc then "ACC" else "CUT", (prefx, epxt), if acc then ">" else "<=", ((pref, ept), "+", ([x], ext)))) $
         if acc
-          then go xt (x:pref) xs
-          else consRev pref $ go xt0 [x] xs
+          then go prefx xs
+          else mayCons pref $ go [x] xs
       where
-        xt   = nodeChild x t
-        xt0  = nodeChild x t0
-        et   = ne 0 t
+        prefx = pref <> [x]
+        pt   = findTrieR pref t
+        pxt  = findTrieR prefx t
+        xt   = findTrieR [x] t
+        ept  = ne pt
     --  ^ entropy of the current prefix
-        ext0 = ne 0 xt0
+        ext = ne xt
     --  ^ entropy of [x]
-        ext  = ne 0 xt
+        epxt  = ne pxt
     --  ^ entropy of the current prefix plus x
-        acc  = ext > et + ext0
+        acc  = P.isNaN ept || P.isNaN ext || not (P.isNaN epxt) -- && (epxt > ept + ext)
+
         -- aut(["in","this","paper"]) > aut(["in","this"]) + aut(["paper"])
 
-    ne d t = if P.isNaN e then d else e
-      where e = nodeEntropy inE t
+    ne = nodeEntropy inE
 
 {-
 split :: Entropy e => Lens' i e -> Tries Token i -> [Token] -> [[Token]]
@@ -363,7 +365,7 @@ data Order = Backward | Forward
 toToken' :: Order -> Int -> [[Text]] -> [[Token]]
 toToken' o n input = L.concat
                    $ ( filter (/= [Terminal (term o)])
-                     . chunkAlongEleve (n + 2)
+                     . chunkAlongEleve (n + 1)
                      . (order o)
                      )
                   <$> toToken
@@ -517,6 +519,7 @@ runTests =
     ,("example3", 2, example3, [])
     ,("example4", 4, example4, [])
     ,("example5", 5, example5, [])
+    ,("example6", 2, example6, [])
     ]
     (\(name, n, ex, checks) -> do
       P.putStrLn $ name <> " " <> show n
