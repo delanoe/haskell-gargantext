@@ -115,6 +115,9 @@ isTerminal :: Token -> Bool
 isTerminal (Terminal    _) = True
 isTerminal (NonTerminal _) = False
 
+nonTerminals :: [Token] -> [Text]
+nonTerminals ts = [nt | NonTerminal nt <- ts]
+
 parseToken :: Text -> Token
 parseToken "<start>" = Terminal Start
 parseToken "<stop>"  = Terminal Stop
@@ -310,14 +313,16 @@ onTries :: (Trie k i -> Trie k o) -> Tries k i -> Tries k o
 onTries h (Tries f b) = Tries (h f) (h b)
 
 ------------------------------------------------------------------------
+mayCons :: [a] -> [[a]] -> [[a]]
+mayCons [] xss = xss
+mayCons xs xss = xs : xss
+
+{-
 split :: (IsTrie trie, Entropy e) => Lens' i e -> trie Token i -> [Token] -> [[Token]]
 split _   _ [] = []
 split inE t (Terminal Start:xs) = split inE t xs
 split inE t (x0:xs0) = go [x0] xs0
   where
-    mayCons [] xss = xss
-    mayCons xs xss = xs : xss
-
     go pref []                  = [pref]
     go pref (Terminal Stop:_)   = [pref]
     go _    (Terminal Start:_)  = panic "split impossible"
@@ -337,11 +342,21 @@ split inE t (x0:xs0) = go [x0] xs0
     --  ^ entropy of [x]
         epxt = ne pxt
     --  ^ entropy of the current prefix plus x
-        acc  = P.isNaN ept || P.isNaN ext || not (P.isNaN epxt) -- && (epxt > ept + ext)
+        acc  = P.isNaN ept || P.isNaN ext || not (P.isNaN epxt) -- && (epxt > mean [ept, ext])
 
         -- aut(["in","this","paper"]) > aut(["in","this"]) + aut(["paper"])
 
     ne = nodeEntropy inE
+-}
+
+split :: Entropy e => Int -> Lens' i e -> Tries Token i -> [Token] -> [[Text]]
+split _ _   _ []  = []
+split _ _   _ [t] = pure <$> nonTerminals [t]
+split n inE t ts  = nonTerminals pref `mayCons` split n inE t (drop (length pref) ts)
+  where
+    pref = maximumWith (\ks -> nodeEntropy inE $ findTrie ks t)
+                       (L.tail . L.inits . take n $ ts)
+
 
 {-
 split :: Entropy e => Lens' i e -> Tries Token i -> [Token] -> [[Token]]
@@ -352,7 +367,7 @@ split inE t0 ts =
 ------------------------------------------------------------------------
 
 mainEleve :: Int -> [[Text]] -> [[[Text]]]
-mainEleve n input = map (map printToken) . split info_autonomy (t :: Tries Token (I Double)) <$> inp
+mainEleve n input = split n info_autonomy (t :: Tries Token (I Double)) <$> inp
   where
     inp = toToken <$> input
     t   = normalizeEntropy info_entropy_var set_autonomy
@@ -368,7 +383,7 @@ type Checks e = [(Text, Int, e, e, e, e, e, e, e, e, e)]
 testEleve :: e ~ Double => Bool -> Int -> [Text] -> Checks e -> IO Bool
 testEleve debug n output checks = do
   let
-    res = map (map printToken) . split info_autonomy nt <$> inp
+    res = split n info_autonomy nt <$> inp
   when debug $ do
     P.putStrLn $ show input
     P.putStrLn ""
