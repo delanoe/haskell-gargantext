@@ -98,8 +98,8 @@ makeLenses ''I
 
 type ModEntropy i o e = (e -> e) -> i -> o
 
-set_autonomy :: Entropy e => ModEntropy e (I e) e
-set_autonomy f e = I e nan (f e)
+set_autonomy :: Entropy e => ModEntropy (I e) (I e) e
+set_autonomy fe i = i & info_autonomy .~ fe (i ^. info_entropy_var)
 
 set_entropy_var :: Entropy e => Setter e (I e) e e
 set_entropy_var f e = (\ev -> I e ev nan) <$> f e
@@ -141,9 +141,6 @@ data Trie k e
 
 makeLenses ''Trie
 
-insertTries :: Ord k => [[k]] -> Trie k ()
-insertTries = L.foldr insertTrie emptyTrie
-
 insertTrie :: Ord k => [k] -> Trie k () -> Trie k ()
 insertTrie []     n                    = n { _node_count = _node_count n +1}
 insertTrie (x:xs) (Leaf c)             = mkTrie (c+1) $ Map.singleton x $ insertTrie xs emptyTrie
@@ -169,19 +166,6 @@ toTree k (Node c e cs) = Tree.Node (k, c, Just e)  (map (uncurry toTree) $ Map.t
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-entropyTrie :: Entropy e => (k -> Bool) -> Trie k () -> Trie k e
-entropyTrie _    (Leaf c)             = Leaf c
-entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) children)
-  where
-    children' = Map.toList children
-    sum_count = sum $ _node_count . snd <$> children'
-    e | sum_count == 0 = nan
-      | otherwise      = sum $ f <$> children'
-    f (k, child) = if pred k then   chc * P.logBase 2 (fromIntegral c)
-                             else - chc * P.logBase 2 chc
-      where
-        chc = fromIntegral (_node_count child) / fromIntegral c
-------------------------------------------------------------------------
 normalizeLevel :: Entropy e => e -> e -> e -> e
 normalizeLevel m v e = (e - m) / v
 
@@ -193,25 +177,50 @@ nodeChildren (Leaf _)      = Map.empty
 
 -}
 
+chunkAlongEleve :: Int -> [a] -> [[a]]
+chunkAlongEleve n xs = L.take n <$> L.tails xs
+
+data Direction = Backward | Forward
+
+buildTrie :: Direction -> Int -> [[Token]] -> Trie Token ()
+buildTrie d n sentences
+  = L.foldr insertTrie emptyTrie
+  . L.concat
+  $ ( filter (/= [Terminal (term d)])
+    . chunkAlongEleve (n + 1)
+    . order d
+    )
+ <$> sentences
+  where
+    order Forward  = identity
+    order Backward = reverse
+    term  Forward  = Stop
+    term  Backward = Start
 
 class IsTrie trie where
-  buildTrie   :: Entropy e => [[Token]] -> trie Token e
+  entropyTrie :: Entropy e => (k -> Bool) -> trie k () -> trie k e
   nodeEntropy :: Entropy e => Getting e i e -> trie k i -> e
   nodeChild   :: Ord k =>  k  -> trie k e -> trie k e
   findTrie    :: Ord k => [k] -> trie k e -> trie k e
-  findTrieR   :: Ord k => [k] -> trie k e -> trie k e
   printTrie   :: (Show i, Entropy e) => Getting e i e -> trie Token i -> IO ()
   evTrie      :: Entropy e => Getting e i e -> Setter i o e e -> trie k i -> trie k o
   normalizeEntropy :: Entropy e
                    => Getting e i e -> ModEntropy i o e
                    -> trie k i -> trie k o
 
--- UNUSED
---nodeAutonomy :: (Ord k, Entropy e) => Getting e i e -> trie k i -> [k] -> e
---nodeAutonomy inE t ks = nodeEntropy inE $ findTrie ks t
-
 instance IsTrie Trie where
-  buildTrie ts = entropyTrie isTerminal $ insertTries ts
+
+  entropyTrie _    (Leaf c)             = Leaf c
+  entropyTrie pred (Node c () children) = Node c e (map (entropyTrie pred) children)
+    where
+      children' = Map.toList children
+      sum_count = sum $ _node_count . snd <$> children'
+      e | sum_count == 0 = nan
+        | otherwise      = sum $ f <$> children'
+      f (k, child) = if pred k then   chc * P.logBase 2 (fromIntegral c)
+                              else - chc * P.logBase 2 chc
+        where
+          chc = fromIntegral (_node_count child) / fromIntegral c
 
   nodeEntropy inE (Node _ e _) = e ^. inE
   nodeEntropy _   (Leaf _)     = nan
@@ -220,7 +229,6 @@ instance IsTrie Trie where
   nodeChild _ (Leaf _)      = emptyTrie
 
   findTrie ks t = L.foldl (flip nodeChild) t ks
-  findTrieR = findTrie
 
   printTrie inE t = do
     P.putStrLn . Tree.drawTree
@@ -271,25 +279,21 @@ data Tries k e = Tries
 
 makeLenses ''Tries
 
-nodeEntropySafe :: Entropy e => Getting e i e -> Tries k i -> e
-nodeEntropySafe inE (Tries f b) =
-  mean $ noNaNs [nodeEntropy inE f, nodeEntropy inE b]
-
-nodeEntropyBwdOpt :: Entropy e => Getting e i e -> Tries k i -> e
-nodeEntropyBwdOpt inE (Tries f b) =
-  mean $ nodeEntropy inE f : noNaNs [nodeEntropy inE b]
+buildTries :: Int -> [[Token]] -> Tries Token ()
+buildTries n sentences = Tries
+  { _fwd = buildTrie Forward  n sentences
+  , _bwd = buildTrie Backward n sentences
+  }
 
 instance IsTrie Tries where
-  buildTrie tts = Tries { _fwd = buildTrie tts
-                        , _bwd = buildTrie (reverse <$> tts)
-                        }
 
   nodeEntropy inE (Tries f b) = mean [nodeEntropy inE f, nodeEntropy inE b]
 
-  findTrie  ks = onTries (findTrie ks)
-  findTrieR ks (Tries f b) = Tries (findTrieR ks f) (findTrieR (reverse ks) b)
+  findTrie ks (Tries f b) = Tries (findTrie ks f) (findTrie (reverse ks) b)
 
   nodeChild = onTries . nodeChild
+
+  entropyTrie = onTries . entropyTrie
 
   evTrie inE setEV = onTries $ evTrie inE setEV
 
@@ -324,14 +328,14 @@ split inE t (x0:xs0) = go [x0] xs0
           else mayCons pref $ go [x] xs
       where
         prefx = pref <> [x]
-        pt   = findTrieR pref t
-        pxt  = findTrieR prefx t
-        xt   = findTrieR [x] t
+        pt   = findTrie pref t
+        pxt  = findTrie prefx t
+        xt   = findTrie [x] t
         ept  = ne pt
     --  ^ entropy of the current prefix
-        ext = ne xt
+        ext  = ne xt
     --  ^ entropy of [x]
-        epxt  = ne pxt
+        epxt = ne pxt
     --  ^ entropy of the current prefix plus x
         acc  = P.isNaN ept || P.isNaN ext || not (P.isNaN epxt) -- && (epxt > ept + ext)
 
@@ -346,35 +350,15 @@ split inE t0 ts =
 -}
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
 
 mainEleve :: Int -> [[Text]] -> [[[Text]]]
-mainEleve _ _ = []
-{-
-mainEleve n input = map (map printToken) . split identity (t :: Trie Token Double) <$> inp
+mainEleve n input = map (map printToken) . split info_autonomy (t :: Tries Token (I Double)) <$> inp
   where
     inp = toToken <$> input
-    t   = buildTrie $ L.concat $ chunkAlong n 1 <$> inp
--}
-
-chunkAlongEleve :: Int -> [a] -> [[a]]
-chunkAlongEleve n xs = L.take n <$> L.tails xs
-
-data Order = Backward | Forward
-
-toToken' :: Order -> Int -> [[Text]] -> [[Token]]
-toToken' o n input = L.concat
-                   $ ( filter (/= [Terminal (term o)])
-                     . chunkAlongEleve (n + 1)
-                     . (order o)
-                     )
-                  <$> toToken
-                  <$> input
-  where
-    order Forward  = identity
-    order Backward = reverse
-    term  Forward  = Stop
-    term  Backward = Start
+    t   = normalizeEntropy info_entropy_var set_autonomy
+        . evTrie identity set_entropy_var
+        . entropyTrie isTerminal
+        $ buildTries n inp
 
 
 ---------------------------------------------
@@ -384,24 +368,11 @@ type Checks e = [(Text, Int, e, e, e, e, e, e, e, e, e)]
 testEleve :: e ~ Double => Bool -> Int -> [Text] -> Checks e -> IO Bool
 testEleve debug n output checks = do
   let
-    {-
-    pss = [ (ps, findTrie ps fwd ^? _Just . node_entropy) -- . info_entropy)
-          | ps <- L.nub $ [ c
-                          | m <- [1..n]
-                          , cs <- chunkAlong m 1 <$> inp
-                          , c <- cs
-                          ]
-          ]
-    -}
     res = map (map printToken) . split info_autonomy nt <$> inp
   when debug $ do
-    P.putStrLn (show input)
-    -- forM_ pss (P.putStrLn . show)
+    P.putStrLn $ show input
     P.putStrLn ""
     printTrie info_entropy nt
-    -- P.putStrLn ""
-    -- P.putStrLn "Entropy Var:"
-    -- printTrie identity t''
     P.putStrLn ""
     P.putStrLn "Splitting:"
     P.putStrLn $ show res
@@ -414,23 +385,11 @@ testEleve debug n output checks = do
     input    = (T.splitOn "-" =<<) <$> out
     inp      = toToken <$> input
 
-    t :: Tries Token Double
-    t = -- buildTrie (toToken' n input)
-                  Tries { _fwd = buildTrie (toToken' Forward  n input)
-                        , _bwd = buildTrie (toToken' Backward n input)
-                        }
-
-    evt :: Tries Token (I Double)
-    evt = evTrie identity set_entropy_var t
-
     nt :: Tries Token (I Double)
-    nt = normalizeEntropy info_entropy_var (\fe i -> i & info_autonomy .~ fe (i ^. info_entropy_var)) evt
-
-    -- t'' :: Trie Token Double
-    -- t'' = set_entropy_vars info_autonomy (\e _i -> e) nt
-
-    -- nt = normalizeEntropy  identity set_autonomy (fwd :: Trie Token Double)
-    -- nt = normalizeEntropy' info_entropy (\f -> info_norm_entropy' %~ f) nt
+    nt = normalizeEntropy info_entropy_var set_autonomy
+       . evTrie identity set_entropy_var
+       . entropyTrie isTerminal
+       $ buildTries n inp
 
     check f msg ref my =
       if f ref my
@@ -439,7 +398,7 @@ testEleve debug n output checks = do
 
     checker (ngram, count, entropy, ev, autonomy, fwd_entropy, fwd_ev, fwd_autonomy, bwd_entropy, bwd_ev, bwd_autonomy) = do
       let ns  = parseToken <$> T.words ngram
-          nt' = findTrieR ns nt
+          nt' = findTrie ns nt
 
       P.putStrLn $ "  " <> T.unpack ngram <> ":"
       check (==) "count"        count        (_node_count                  (_fwd nt'))
@@ -513,7 +472,8 @@ checks2 = []
 runTests :: IO ()
 runTests =
   forM_
-    [("example0", 2, example0, checks0)
+    [("example0", 3, example0, checks0)
+    ,("example0", 2, example0, [])
     ,("example1", 2, example1, [])
     ,("example2", 3, example2, checks2)
     ,("example3", 2, example3, [])
