@@ -96,9 +96,10 @@ isidoreSelect lim q = do
 
   -- TODO FIX BUG with (.||.) operator
   --filterExpr_ $ (.||.) (contains title q) (contains abstract q)
-  filterExpr_ (containsWith title q) -- (contains abstract q)
   --filterExpr_ (containsWith authors q) -- (contains abstract q)
-  --filterExpr (containsWith abstract q) -- (contains abstract q)
+  --filterExpr_ (containsWith title q) -- (contains abstract q)
+  --filterExpr_ $ (.||.) (containsWith title q) (contains abstract q)
+  filterExpr_ (containsWith title q)
 
   -- TODO FIX filter with lang
   --filterExpr_ $ langMatches title (str ("fra" :: Text))
