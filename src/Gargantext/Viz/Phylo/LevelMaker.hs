@@ -19,6 +19,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.LevelMaker
   where
 
+import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sort, concat, nub, zip, last)
 import Data.Map                     (Map, (!), empty, singleton)
@@ -61,7 +62,10 @@ instance PhyloLevelMaker PhyloCluster
       | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Clusters at level < 2")
     --------------------------------------
     -- | Level -> (Date,Date) -> [Cluster] -> Map (Date,Date) [Cluster] -> Phylo -> [PhyloGroup]
-    toPhyloGroups lvl (d,d') l m p = map (\(idx,cluster) -> clusterToGroup (d,d') lvl idx "" cluster m p) $ zip [1..] l
+    toPhyloGroups lvl (d,d') l m p = 
+      let clusters  = map (\(idx,cluster) -> clusterToGroup (d,d') lvl idx "" cluster m p) $ zip [1..] l
+          clusters' = clusters `using` parList rdeepseq
+      in  clusters'
     --------------------------------------
 
 
@@ -74,7 +78,10 @@ instance PhyloLevelMaker PhyloFis
       | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Fis at level <> 1")
     --------------------------------------
     -- | Level -> (Date,Date) -> [Fis] -> Map (Date,Date) [Fis] -> Phylo -> [PhyloGroup]
-    toPhyloGroups lvl (d,d') l _ p = map (\(idx,fis) -> cliqueToGroup (d,d') lvl idx "" fis p) $ zip [1..] l
+    toPhyloGroups lvl (d,d') l _ p =
+      let groups  = map (\(idx,fis) -> cliqueToGroup (d,d') lvl idx "" fis p) $ zip [1..] l
+          groups' = groups `using` parList rdeepseq
+      in  groups' 
     --------------------------------------
 
 
@@ -87,8 +94,7 @@ instance PhyloLevelMaker Document
       | otherwise = panic ("[ERR][Viz.Phylo.Example.addPhyloLevel] No process declared for adding Documents at level <> 0")
     --------------------------------------
     -- | Level -> (Date,Date) -> [Document] -> Map (Date,Date) [Fis] -> Phylo -> [PhyloGroup]
-    toPhyloGroups lvl (d,d') l _m p = map (\(idx,ngram) -> ngramsToGroup (d,d') lvl idx ngram [ngram] p)
-                                          $ zip [1..]
+    toPhyloGroups lvl (d,d') l _m p = map (\ngram -> ngramsToGroup (d,d') lvl (getIdxInRoots ngram p) ngram [ngram] p)
                                           $ (nub . concat)
                                           $ map text l
     --------------------------------------
@@ -100,11 +106,13 @@ clusterToGroup prd lvl idx lbl groups _m p =
     PhyloGroup ((prd, lvl), idx) lbl ngrams empty 
       Nothing
       (getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p))
-      [] [] [] childs
+      ascLink desLink [] childs
       where
         --------------------------------------
         childs :: [Pointer]
         childs = map (\g -> (getGroupId g, 1)) groups
+        ascLink = concat $ map getGroupPeriodParents groups 
+        desLink = concat $ map getGroupPeriodChilds  groups        
         --------------------------------------
         ngrams :: [Int]
         ngrams = (sort . nub . concat) $ map getGroupNgrams groups
@@ -116,13 +124,16 @@ cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Phylo -> P
 cliqueToGroup prd lvl idx lbl fis p =
     PhyloGroup ((prd, lvl), idx) lbl ngrams (singleton "support" (fromIntegral $ getSupport fis)) Nothing
     (getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p))
-    [] [] [] []
+    [] [] [] childs
       where
         --------------------------------------
         ngrams :: [Int]
         ngrams = sort $ map (\x -> getIdxInRoots x p)
                       $ Set.toList
                       $ getClique fis
+        --------------------------------------
+        childs :: [Pointer]
+        childs = map (\n -> (((prd, lvl - 1), n),1)) ngrams
         --------------------------------------
 
 
@@ -152,6 +163,7 @@ toNthLevel lvlMax prox clus p
                   $ traceBranches (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
                   $ transposePeriodLinks (lvl + 1)
+                  $ tracePhyloN (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
                     (clusters) p
@@ -169,15 +181,15 @@ toNthLevel lvlMax prox clus p
 toPhylo1 :: Cluster -> Proximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
 toPhylo1 clus prox d p = case clus of
   Fis (FisParams k s t) -> traceReBranches 1 
-                       $ linkPhyloBranches 1 prox
+                       -- $ linkPhyloBranches 1 prox
                        $ traceBranches 1 
                        $ setPhyloBranches 1
                        $ traceTempoMatching Descendant 1
                        $ interTempoMatching Descendant 1 prox
                        $ traceTempoMatching Ascendant 1
                        $ interTempoMatching Ascendant 1 prox
+                       $ tracePhylo1
                        $ setLevelLinks (0,1)
-                       $ setLevelLinks (1,0)
                        $ addPhyloLevel 1 phyloFis phylo'
     where
       --------------------------------------
@@ -212,7 +224,7 @@ instance PhyloMaker [(Date, Text)]
         phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) phyloDocs phylo0
         --------------------------------------
         phylo0 :: Phylo
-        phylo0 = toPhylo0 phyloDocs phyloBase
+        phylo0 = tracePhylo0 $ toPhylo0 phyloDocs phyloBase
         --------------------------------------
         phyloDocs :: Map (Date, Date) [Document]
         phyloDocs = corpusToDocs c phyloBase
@@ -251,7 +263,7 @@ instance PhyloMaker [Document]
         phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) phyloDocs phylo0
         --------------------------------------
         phylo0 :: Phylo
-        phylo0 = toPhylo0 phyloDocs phyloBase
+        phylo0 = tracePhylo0 $ toPhylo0 phyloDocs phyloBase
         --------------------------------------
         phyloDocs :: Map (Date, Date) [Document]
         phyloDocs = corpusToDocs c phyloBase
@@ -286,13 +298,16 @@ instance PhyloMaker [Document]
 
 
 tracePhylo0 :: Phylo -> Phylo 
-tracePhylo0 p = trace ("\n---------------\n--| Phylo 0 |--\n---------------\n\n") p
+tracePhylo0 p = trace ("\n---------------\n--| Phylo 0 |--\n---------------\n\n"
+                      <> show (length $ getGroupsWithLevel 0 p) <> " groups created \n") p
 
 tracePhylo1 :: Phylo -> Phylo 
-tracePhylo1 p = trace ("\n---------------\n--| Phylo 1 |--\n---------------\n\n") p
+tracePhylo1 p = trace ("\n---------------\n--| Phylo 1 |--\n---------------\n\n"
+                      <> show (length $ getGroupsWithLevel 1 p) <> " groups created \n") p
 
 tracePhyloN :: Level -> Phylo -> Phylo
-tracePhyloN lvl p = trace ("\n---------------\n--| Phylo " <> show (lvl) <> " |--\n---------------\n\n") p
+tracePhyloN lvl p = trace ("\n---------------\n--| Phylo " <> show (lvl) <> " |--\n---------------\n\n"
+                      <> show (length $ getGroupsWithLevel lvl p) <> " groups created \n") p
 
 
 tracePhyloBase :: Phylo -> Phylo

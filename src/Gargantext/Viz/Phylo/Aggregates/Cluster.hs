@@ -13,11 +13,13 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.Viz.Phylo.Aggregates.Cluster
   where
 
-import Data.List        (null,tail,concat,sort,intersect)
+import Control.Parallel.Strategies
+import Data.List        (null,concat,sort,intersect,(++))
 import Data.Map         (Map)
 import Data.Tuple       (fst)
 import Gargantext.Prelude
@@ -44,17 +46,19 @@ getCandidates gs = filter (\(g,g') -> (not . null) $ intersect (getGroupNgrams g
 graphToClusters :: Cluster -> GroupGraph -> [PhyloCluster]
 graphToClusters clust (nodes,edges) = case clust of
       Louvain (LouvainParams _)      -> undefined
-      RelatedComponents (RCParams _) -> relatedComp 0 (head' "graphToClusters" nodes) (tail nodes,edges) [] []
+      RelatedComponents (RCParams _) -> relatedComp $ ((map (\((g,g'),_) -> [g,g']) edges) ++ (map (\g -> [g]) nodes))
       _                              -> panic "[ERR][Viz.Phylo.Aggregates.Cluster.graphToClusters] not implemented"
 
 
 -- | To transform a list of PhyloGroups into a Graph of Proximity
 groupsToGraph :: Double -> Proximity -> [PhyloGroup] -> ([GroupNode],[GroupEdge])
 groupsToGraph nbDocs prox gs = case prox of 
-      WeightedLogJaccard (WLJParams _ sens) -> (gs, map (\(x,y) -> ((x,y), weightedLogJaccard sens nbDocs (getGroupCooc x) (getGroupCooc y) (getGroupNgrams x) (getGroupNgrams y)))
-                                                  $ getCandidates gs)
+      WeightedLogJaccard (WLJParams _ sens) -> (gs, let candidates  = map (\(x,y) -> ((x,y), weightedLogJaccard sens nbDocs (getGroupCooc x) (getGroupCooc y) (getGroupNgrams x) (getGroupNgrams y)))
+                                                                    $ getCandidates gs
+                                                        candidates' = candidates `using` parList rdeepseq
+                                                    in  candidates' )
       Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getGroupCooc x) (getGroupCooc y))) $ getCandidates gs)
-      _                                     -> undefined 
+      _                                     -> undefined     
 
 
 -- | To filter a Graph of Proximity using a given threshold
@@ -78,9 +82,11 @@ phyloToClusters lvl clus p = Map.fromList
     graphs' = traceGraphFiltered lvl
             $ map (\g -> filterGraph prox g) graphs
     --------------------------------------
-    graphs  :: [([GroupNode],[GroupEdge])]
-    graphs  = traceGraph lvl (getThreshold prox) 
-            $ map (\prd -> groupsToGraph (periodsToNbDocs [prd] p) prox (getGroupsWithFilters lvl prd p)) periods 
+    graphs :: [([GroupNode],[GroupEdge])]
+    graphs = traceGraph lvl (getThreshold prox)
+           $ let gs  = map (\prd -> groupsToGraph (periodsToNbDocs [prd] p) prox (getGroupsWithFilters lvl prd p)) periods
+                 gs' = gs `using` parList rdeepseq
+             in  gs'
     --------------------------------------
     prox :: Proximity
     prox = getProximity clus
@@ -115,7 +121,3 @@ traceGraphFiltered lvl g = trace ( "----\nClustering in Phylo" <> show (lvl) <> 
                                                          <> show (percentile 90 (VS.fromList lst)) <> " (90%)\n") g
   where 
     lst = sort $ map snd $ concat $ map snd g 
-
-
--- traceSim :: PhyloGroup -> PhyloGroup  -> Phylo -> Double -> Double
--- traceSim g g' p sim = trace (show (getGroupText g p) <> " [vs] " <>  show (getGroupText g' p) <> " = " <> show (sim) <> "\n") sim

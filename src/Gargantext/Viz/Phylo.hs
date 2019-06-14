@@ -22,7 +22,7 @@ one 8, e54847.
 
 -}
 
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -43,6 +43,8 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Prelude
+
+import Control.DeepSeq
 
 --------------------
 -- | PhyloParam | --
@@ -161,7 +163,9 @@ data PhyloGroup =
                 , _phylo_groupLevelParents  :: [Pointer]
                 , _phylo_groupLevelChilds   :: [Pointer]
                 }
-                deriving (Generic, Show, Eq, Ord)
+                deriving (Generic, NFData, Show, Eq, Ord)
+
+-- instance NFData PhyloGroup
 
 
 -- | Level : A level of aggregation (-1 = Txt, 0 = Ngrams, 1 = Fis, [2..] = Cluster)

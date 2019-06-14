@@ -110,6 +110,13 @@ listToDirectedCombi :: Eq a => [a] -> [(a,a)]
 listToDirectedCombi l = [(x,y) | x <- l, y <- l, x /= y]
 
 
+listToEqualCombi :: Eq a => [a] -> [(a,a)]
+listToEqualCombi l = [(x,y) | x <- l, y <- l, x == y]
+
+listToPairs :: Eq a => [a] -> [(a,a)]
+listToPairs l = (listToEqualCombi l) ++ (listToUnDirectedCombi l)
+
+
 -- | To get all combinations of a list and apply a function to the resulting list of pairs
 listToDirectedCombiWith :: Eq a => forall b. (a -> b) -> [a] -> [(b,b)]
 listToDirectedCombiWith f l = [(f x,f y) | x <- l, y <- l, x /= y]
@@ -195,6 +202,9 @@ getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
 getPhyloMatchingFrame :: Phylo -> Int
 getPhyloMatchingFrame p = _q_interTemporalMatchingFrame $ _phyloParam_query $ getPhyloParams p
 
+getPhyloProximity :: Phylo -> Proximity
+getPhyloProximity p = _q_interTemporalMatching $ _phyloParam_query $ getPhyloParams p
+
 getPhyloReBranchThr :: Phylo -> Double
 getPhyloReBranchThr p = _q_reBranchThr $ _phyloParam_query $ getPhyloParams p
 
@@ -243,7 +253,7 @@ alterGroupWithLevel f lvl p = over ( phylo_periods
                                    .  traverse
                                    ) (\g -> if getGroupLevel g == lvl
                                             then f g
-                                            else g ) p
+                                            else g ) p                          
 
 
 -- | To alter each list of PhyloGroups following a given function

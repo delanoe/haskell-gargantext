@@ -17,6 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.BranchMaker
   where
 
+import Control.Parallel.Strategies
 import Control.Lens     hiding (both, Level)
 import Data.List        (concat,nub,(++),tail,sortOn,take,reverse,sort,null,intersect,union)
 import Data.Map         (Map)
@@ -82,13 +83,14 @@ findSimBranches frame thr nth p (id,gs) bs
     pks = getGroupsPeaks gs nth p
     --------------------------------------
 
+
 findBestPointer :: Phylo -> Proximity -> [PhyloGroup] -> [PhyloGroup] -> [(PhyloGroupId,Pointer)]
-findBestPointer p prox gs gs' = take 1
-                              $ reverse 
-                              $ sortOn (snd . snd) 
-                              $ concat
-                              $ map (\g -> let pts = findBestCandidates' prox gs' g p
-                                           in map (\pt -> (getGroupId g,pt)) pts) gs
+findBestPointer p prox gs gs' =
+  let candidates  = map (\g -> let pts = findBestCandidates' prox gs' g p
+                               in map (\pt -> (getGroupId g,pt)) pts) gs
+      candidates' = candidates `using` parList rdeepseq
+  in take 1 $ reverse $ sortOn (snd . snd) $ concat candidates' 
+
 
 makeBranchLinks :: Phylo -> Proximity -> (PhyloBranchId,[PhyloGroup]) -> [(PhyloBranchId,[PhyloGroup])] -> [(PhyloGroupId,Pointer)] -> [(PhyloGroupId,Pointer)]
 makeBranchLinks p prox (id,gs) bs pts
@@ -126,34 +128,22 @@ linkPhyloBranches lvl prox p = setPhyloBranches lvl
 
 
 -- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
-graphToBranches :: Level -> GroupGraph -> Phylo -> [(Int,PhyloGroupId)]
-graphToBranches _lvl (nodes,edges) _p = concat
-                                    $ map (\(idx,gs) -> map (\g -> (idx,getGroupId g)) gs)
-                                    $ zip [1..]
-                                    $ relatedComp 0 (head' "branchMaker" nodes) (tail nodes,edges) [] []
-
-
-
--- | To build a graph using the parents and childs pointers
-makeGraph :: [PhyloGroup] -> Phylo -> GroupGraph
-makeGraph gs p = (gs,edges)
-  where 
-    edges :: [GroupEdge]
-    edges = (nub . concat) 
-          $ map (\g -> (map (\g' -> ((g',g),1)) $ getGroupParents g p)
-                       ++
-                       (map (\g' -> ((g,g'),1)) $ getGroupChilds g p)) gs
+graphToBranches :: [PhyloGroup] -> Phylo -> [(Int,PhyloGroupId)]
+graphToBranches groups p = concat
+                         $ map (\(idx,gs) -> map (\g -> (idx,getGroupId g)) gs)
+                         $ zip [1..]
+                         $ relatedComp
+                         $ map (\g -> nub $ [g] ++ (getGroupParents g p) ++ (getGroupChilds g p)) groups
 
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
 setPhyloBranches :: Level -> Phylo -> Phylo
-setPhyloBranches lvl p = alterGroupWithLevel (\g -> let bIdx = (fst $ head' "branchMaker" $ filter (\b -> snd b == getGroupId g) bs)
-                                                     in over (phylo_groupBranchId) (\_ -> Just (lvl,bIdx)) g) lvl p
-  where
+setPhyloBranches lvl p = alterGroupWithLevel (\g -> 
+  let bIdx = (fst $ head' "branchMaker" 
+                  $ filter (\b -> snd b == getGroupId g) branches)
+  in  over (phylo_groupBranchId) (\_ -> Just (lvl,bIdx)) g) lvl p
+  where 
     --------------------------------------
-    bs :: [(Int,PhyloGroupId)]
-    bs = graphToBranches lvl graph p
-    --------------------------------------
-    graph :: GroupGraph
-    graph = makeGraph (getGroupsWithLevel lvl p) p
+    branches :: [(Int,PhyloGroupId)]
+    branches = graphToBranches (getGroupsWithLevel lvl p) p
     --------------------------------------

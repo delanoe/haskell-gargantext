@@ -18,36 +18,20 @@ module Gargantext.Viz.Phylo.Metrics.Clustering
   where
 
 import Data.Graph.Clustering.Louvain.CplusPlus
-import Data.List        (last,concat,null,nub,(++),init,tail,elemIndex,groupBy,(!!))
+import Data.List        (concat,null,nub,(++),elemIndex,groupBy,(!!), (\\), union, intersect)
 import Data.Map         (fromList,mapKeys)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Tools
 
--- | To apply the related components method to a PhyloGraph
--- curr = the current PhyloGroup 
--- (nodes,edges) = the initial PhyloGraph minus the current PhyloGroup
--- next = the next PhyloGroups to be added in the cluster  
--- memo = the memory of the allready created clusters
-relatedComp :: Int -> PhyloGroup -> GroupGraph -> [PhyloGroup] -> [[PhyloGroup]] -> [[PhyloGroup]]
-relatedComp idx curr (nodes,edges) next memo
-  | null nodes' && null next' = memo'
-  | (not . null) next'        = relatedComp  idx      (head' "relatedComp1" next' ) (nodes'     ,edges) (tail next') memo'
-  | otherwise                 = relatedComp (idx + 1) (head' "relatedComp2" nodes') (tail nodes',edges) []           memo'
-  where
-    --------------------------------------
-    memo' :: [[PhyloGroup]]
-    memo' 
-      | null memo                  = [[curr]]
-      | idx == ((length memo) - 1) = (init memo) ++ [(last memo) ++ [curr]]
-      | otherwise                  = memo ++ [[curr]]
-    --------------------------------------
-    next' :: [PhyloGroup]
-    next' = filter (\x -> not $ elem x $ concat memo) $ nub $ next ++ (getNeighbours False curr edges)
-    --------------------------------------
-    nodes' :: [PhyloGroup]
-    nodes' = filter (\x -> not $ elem x next') nodes
-    --------------------------------------
+relatedComp :: [[PhyloGroup]] -> [[PhyloGroup]]
+relatedComp graphs = foldl' (\mem groups -> 
+  if (null mem)
+  then mem ++ [groups]
+  else 
+    let related = filter (\groups' -> (not . null) $ intersect groups groups') mem
+    in if (null related)
+       then mem ++ [groups]
+       else (mem \\ related) ++ [union groups (nub $ concat related)] ) [] graphs
 
 
 louvain :: ([GroupNode],[GroupEdge]) -> IO [[PhyloGroup]]

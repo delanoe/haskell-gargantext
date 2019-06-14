@@ -103,6 +103,7 @@ library:
   - contravariant
   - crawlerPubMed
   - data-time-segment
+  - deepseq
   - directory
   - duckling
   - exceptions
@@ -138,6 +139,7 @@ library:
   - natural-transformation
   - opaleye
   - pandoc
+  - parallel
   - parsec
   - patches-class
   - patches-map
