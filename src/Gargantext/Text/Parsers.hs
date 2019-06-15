@@ -22,7 +22,7 @@ please follow the types.
 {-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers (FileFormat(..), clean, parseFile)
+module Gargantext.Text.Parsers (FileFormat(..), clean, parseFile, cleanText)
     where
 
 --import Data.ByteString (ByteString)
@@ -164,9 +164,14 @@ openZip fp = do
     bs      <- mapConcurrently (\s -> withArchive fp (getEntry s)) entries
     pure bs
 
+cleanText :: Text -> Text
+cleanText = cs . clean . cs
+
 clean :: DB.ByteString -> DB.ByteString
 clean txt = DBC.map clean' txt
   where
     clean' '’' = '\''
     clean' '\r' = ' '
+    clean' '\t' = ' '
+    clean' ';' = '.'
     clean' c  = c
