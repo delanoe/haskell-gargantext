@@ -75,7 +75,6 @@ import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgra
 import Gargantext.API.Node
 import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
 import Gargantext.API.Types
-import Gargantext.API.Upload
 import qualified Gargantext.API.Corpus.New as New
 import Gargantext.Core.Types (HasInvalidError(..))
 import Gargantext.Database.Facet
@@ -280,8 +279,6 @@ type GargAPI' =
            :<|> "tree" :> Summary "Tree endpoint"
                        :> Capture "id" NodeId        :> TreeAPI
 
-           :<|> "upload" :> ApiUpload
-           
            :<|> "new"  :> New.Api
 
 
@@ -326,7 +323,6 @@ serverGargAPI -- orchestrator
      :<|> search
      :<|> graphAPI -- TODO: mock
      :<|> treeAPI
-     :<|> upload
      :<|> New.api
   --   :<|> orchestrator
   where

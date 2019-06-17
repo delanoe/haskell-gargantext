@@ -24,29 +24,32 @@ Node API
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE RankNTypes         #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeOperators        #-}
 
 module Gargantext.API.Node
   where
 
-import Control.Lens (prism')
-import Control.Monad ((>>))
+import Control.Lens (prism', (.~), (?~))
+import Control.Monad ((>>), forM)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Maybe
+import Data.Monoid (mempty)
 import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
 import Gargantext.API.Types
@@ -61,10 +64,14 @@ import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
+import Gargantext.Prelude.Utils (hash)
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
+import Servant.Multipart
+import Servant.Swagger (HasSwagger(toSwagger))
+import Servant.Swagger.Internal
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Map as Map
@@ -135,13 +142,14 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> QueryParam "limit"  Int
                         :> QueryParam "order"  OrderBy
                         :> SearchAPI
-             
+
              -- VIZ
              :<|> "metrics" :> MetricsAPI
              :<|> "chart"     :> ChartApi
              :<|> "pie"       :> PieApi
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
+             :<|> "upload"    :> UploadAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -184,6 +192,7 @@ nodeAPI p uId id
            :<|> getPie   id
            :<|> getTree  id
            :<|> phyloAPI id
+           :<|> postUpload id
   where
     deleteNodeApi id' = do
       node <- getNode' id'
@@ -383,7 +392,47 @@ getMetrics cId maybeListId tabType maybeLimit = do
     log' n x     = 1 + (if x <= 0 then 0 else (log $ (10^(n::Int)) * x))
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
-  
+
   pure $ Metrics metrics
 
 
+-------------------------------------------------------------
+type Hash = Text
+
+instance ToParamSchema (MultipartData Mem) where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+
+instance (ToParamSchema a, HasSwagger sub) =>
+         HasSwagger (MultipartForm tag a :> sub) where
+  -- TODO
+  toSwagger _ = toSwagger (Proxy :: Proxy sub)
+    & addParam param
+    where
+      param = mempty
+        & required ?~ True
+        & schema   .~ ParamOther sch
+      sch = mempty
+        & in_         .~ ParamFormData
+        & paramSchema .~ toParamSchema (Proxy :: Proxy a)
+
+type UploadAPI = Summary "Upload file(s) to a corpus"
+                :> MultipartForm Mem (MultipartData Mem)
+                :> Post '[JSON] [Hash]
+
+postUpload :: NodeId -> GargServer UploadAPI
+postUpload _ multipartData = do
+  is <- liftIO $ do
+    putStrLn ("Inputs:" :: Text)
+    forM (inputs multipartData) $ \input -> do
+      putStrLn $ ("iName  " :: Text) <> (iName input)
+            <> ("iValue " :: Text) <> (iValue input)
+      pure $ iName input
+
+  _ <- forM (files multipartData) $ \file -> do
+    let content = fdPayload file
+    putStrLn $ ("XXX " :: Text) <> (fdFileName file)
+    putStrLn $ ("YYY " :: Text) <>  cs content
+    --pure $ cs content
+  -- is <- inputs multipartData
+
+  pure $ map (hash . cs) is

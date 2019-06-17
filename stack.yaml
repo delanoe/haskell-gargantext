@@ -4,6 +4,10 @@ extra-package-dbs: []
 packages:
 - .
 
+docker:
+  enable: true
+  repo: 'cgenie/stack-build:lts-12.26'
+
 allow-newer: true
 extra-deps:
 - git: https://github.com/delanoe/data-time-segment.git
