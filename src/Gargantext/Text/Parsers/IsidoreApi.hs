@@ -37,8 +37,14 @@ get la l q a = do
   let
     printErr (DecodeFailure e _) = panic e
     printErr e                   = panic (cs $ show e)
-  iDocs <- either printErr (_docs) <$> Isidore.get l q a
-  hDocs <- mapM (\d -> isidoreToDoc la d) iDocs
+    
+    toIsidoreDocs :: Reply -> [IsidoreDoc]
+    toIsidoreDocs (ReplyOnly r) = [r]
+    toIsidoreDocs (Replies  rs) = rs
+
+  iDocs <- either printErr _content <$> Isidore.get l q a
+  
+  hDocs <- mapM (\d -> isidoreToDoc la d) (toIsidoreDocs iDocs)
   pure hDocs
 
 isidore2csvFile :: FilePath -> Lang -> Maybe Isidore.Limit
@@ -61,8 +67,8 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
 
     langText :: LangText -> Text
     langText (LangText _l t1) = t1
-    langText (OnlyText t2  ) = t2
-    langText (ArrayText ts) = Text.intercalate " " $ map langText ts
+    langText (OnlyText t2   ) = t2
+    langText (ArrayText ts  ) = Text.intercalate " " $ map langText ts
     
   (utcTime, (pub_year, pub_month, pub_day)) <- Date.split l (maybe (Just "2019") (Just) d)
     

@@ -33,7 +33,7 @@ extra-deps:
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
-  commit: 069118b29198ee1044a685d8c08dcfb242d601e3
+  commit: e39454101b53916e3082085ebfe922df695fc775
 - KMP-0.1.0.2
 - accelerate-1.2.0.0
 - aeson-lens-0.5.0.0
