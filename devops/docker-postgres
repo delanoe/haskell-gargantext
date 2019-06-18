@@ -1,9 +1,9 @@
 set -eu
 docker stop dbgarg || :
 docker rm --volumes dbgarg || :
-docker run --name dbgarg -e POSTGRES_USER=gargantua -e POSTGRES_DB=gargandbV5 -e POSTGRES_PASSWORD=C8kdcUrAQy66U -d postgres
-sleep 3
 export PGPASSWORD="$(grep DB_PASS gargantext.ini | \awk '{print $3}')"
+docker run --name dbgarg -e POSTGRES_USER=gargantua -e POSTGRES_DB=gargandbV5 -e POSTGRES_PASSWORD=${PGPASSWORD} -d postgres
+sleep 3
 docker run -e PGPASSWORD -i --rm --link dbgarg:postgres postgres psql -h postgres  -U gargantua -d gargandbV5 < src/Gargantext/Database/Schema/schema.sql
 #docker run -e PGPASSWORD -i --rm --link dbgarg:postgres postgres psql -h postgres  -U gargantua  -d gargandbV5 < gargantext.dump
 #docker run -e PGPASSWORD -i --rm --link dbgarg:postgres postgres dropdb -h postgres  -U gargantua gargandbV5

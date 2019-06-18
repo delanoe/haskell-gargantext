@@ -33,3 +33,21 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devo
 
 stack --docker exec gargantext-cli -- CorpusFromGarg.csv ListFromGarg.csv Ouput.json
 
+```sql
+INSERT INTO auth_user (password, is_superuser, username, first_name, last_name, email, is_staff, is_active)
+  VALUES ('1resu', true, 'user1', 'user', '1', 'a@localhost', true, true);
+
+-- nodetype NodeUser has id 1
+-- inserted user_id = 3
+INSERT INTO nodes (typename, user_id, name)
+  VALUES (1, 3, 'user1');
+  
+-- same for master user -- 'gargantua'
+INSERT INTO auth_user (password, is_superuser, username, first_name, last_name, email, is_staff, is_active)
+  VALUES ('autnagrag, true, 'gargantua, 'gargantua, '1', 'g@localhost', true, true);
+
+-- nodetype NodeUser has id 1
+-- inserted user_id = 5
+INSERT INTO nodes (typename, user_id, name)
+  VALUES (1, 5, 'gargantua);
+```
