@@ -154,6 +154,8 @@ library:
   - pureMD5
   - SHA
   - simple-reflect
+  - cereal     # (IGraph)
+  - singletons # (IGraph)
   - random
   - rake
   - regex-compat

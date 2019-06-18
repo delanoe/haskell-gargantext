@@ -134,7 +134,6 @@ flowCorpusSearchInDatabase' u la q = do
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
   flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
 
-
 ------------------------------------------------------------------------
 
 flow :: (FlowCmdM env ServantErr m, FlowCorpus a, MkCorpus c)
