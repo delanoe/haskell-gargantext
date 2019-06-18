@@ -110,6 +110,7 @@ library:
   - filepath
   - fullstop
   - fclabels
+  - fgl
   - fast-logger
   - filelock
   - full-text-search

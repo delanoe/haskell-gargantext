@@ -19,17 +19,18 @@ Références:
 module Gargantext.Viz.Graph.Proxemy
   where
 
+--import Debug.SimpleReflect
 import Gargantext.Prelude
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.List as List
-import Gargantext.Viz.Graph.IGraph
+--import Gargantext.Viz.Graph.IGraph
+import Gargantext.Viz.Graph.FGL
 
 type Length = Int
 type FalseReflexive = Bool
 type NeighborsFilter = Graph_Undirected -> Node -> [Node]
 type We = Bool
-
 
 similarity_conf_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> We -> Double
 similarity_conf_x_y g (x,y) l r we = similarity
@@ -102,15 +103,6 @@ spreading g ms r nf = Map.fromListWith (+) $ List.concat $ map pvalue (Map.keys 
 ------------------------------------------------------------------------
 -- | Graph Tools
 
-mkGraphUfromEdges :: [(Int, Int)] -> Graph_Undirected
-mkGraphUfromEdges es = mkGraph (List.replicate n ()) $ zip es $ repeat ()
-  where
-    (a,b) = List.unzip es
-    n = List.length (List.nub $ a <> b)
-
-mkGraphDfromEdges :: [(Int, Int)] -> Graph_Directed
-mkGraphDfromEdges = undefined
-
 filterNeighbors :: Graph_Undirected -> Node -> [Node]
 filterNeighbors g n = List.nub $ neighbors g n
 
@@ -128,7 +120,13 @@ ecount = fromIntegral . List.length . List.nub . edges
 -- | Behavior tests
 
 graphTest :: Graph_Undirected
-graphTest= mkGraphUfromEdges [(0,1),(0,2),(0,4),(0,5),(1,0),(1,3),(1,8),(2,0),(2,3),(2,4),(2,5),(2,6),(2,16),(3,1),(3,2),(3,4),(3,5),(3,6),(3,18),(4,0),(4,2),(4,3),(4,6),(5,0),(5,2),(5,3),(5,8),(6,2),(6,3),(6,4),(7,8),(7,9),(7,10),(7,13),(8,1),(8,5),(8,7),(8,9),(8,10),(8,11),(8,12),(8,13),(9,7),(9,8),(9,12),(9,13),(10,7),(10,8),(10,11),(10,17),(11,8),(11,10),(11,12),(12,8),(12,9),(12,11),(13,7),(13,8),(13,9),(13,20),(14,16),(14,17),(14,18),(14,20),(15,16),(15,17),(15,18),(15,20),(16,2),(16,14),(16,15),(16,18),(16,20),(17,10),(17,14),(17,15),(17,18),(17,20),(18,3),(18,14),(18,15),(18,16),(18,17),(18,19),(18,20),(19,18),(19,20),(20,13),(20,14),(20,15),(20,16),(20,17),(20,18),(20,19)]
+graphTest= mkGraphUfromEdges graphTest_data
+
+graphTest_data :: [(Int,Int)]
+graphTest_data = [(0,1),(0,2),(0,4),(0,5),(1,3),(1,8),(2,3),(2,4),(2,5),(2,6),(2,16),(3,4),(3,5),(3,6),(3,18),(4,6),(5,8),(7,8),(7,9),(7,10),(7,13),(8,9),(8,10),(8,11),(8,12),(8,13),(9,12),(9,13),(10,11),(10,17),(11,12),(13,20),(14,16),(14,17),(14,18),(14,20),(15,16),(15,17),(15,18),(15,20),(16,18),(16,20),(17,18),(17,20),(18,19),(18,20),(19,20)]
+
+graphTest_data' :: [(Int,Int)]
+graphTest_data' = [(0,1),(0,2),(0,4),(0,5),(1,0),(1,3),(1,8),(2,0),(2,3),(2,4),(2,5),(2,6),(2,16),(3,1),(3,2),(3,4),(3,5),(3,6),(3,18),(4,0),(4,2),(4,3),(4,6),(5,0),(5,2),(5,3),(5,8),(6,2),(6,3),(6,4),(7,8),(7,9),(7,10),(7,13),(8,1),(8,5),(8,7),(8,9),(8,10),(8,11),(8,12),(8,13),(9,7),(9,8),(9,12),(9,13),(10,7),(10,8),(10,11),(10,17),(11,8),(11,10),(11,12),(12,8),(12,9),(12,11),(13,7),(13,8),(13,9),(13,20),(14,16),(14,17),(14,18),(14,20),(15,16),(15,17),(15,18),(15,20),(16,2),(16,14),(16,15),(16,18),(16,20),(17,10),(17,14),(17,15),(17,18),(17,20),(18,3),(18,14),(18,15),(18,16),(18,17),(18,19),(18,20),(19,18),(19,20),(20,13),(20,14),(20,15),(20,16),(20,17),(20,18),(20,19)]
 
 -- | Tests
 -- >>> runTest_Confluence_Proxemy
@@ -177,8 +175,6 @@ runTest_Confluence_Proxemy = (runTest_conf_is_ok, runTest_prox_is_ok)
     look (x,y) m = look' x $ look' y m
       where
         look' x' m' = maybe (panic "nokey") identity $ Map.lookup x' m'
-
-
 
 --prox : longueur balade = 0
 test_prox :: Node -> [(Node, [(Node, Double)])]

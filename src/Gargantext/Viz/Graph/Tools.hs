@@ -26,7 +26,7 @@ import Gargantext.Viz.Graph
 --import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
-import Gargantext.Viz.Graph.Proxemy (mkGraphUfromEdges)
+import Gargantext.Viz.Graph.IGraph (mkGraphUfromEdges)
 import GHC.Float (sin, cos)
 import qualified IGraph as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
