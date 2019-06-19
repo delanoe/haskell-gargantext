@@ -32,6 +32,13 @@ type FalseReflexive = Bool
 type NeighborsFilter = Graph_Undirected -> Node -> [Node]
 type We = Bool
 
+confluence :: [(Node,Node)] -> Length -> FalseReflexive -> We -> Map (Node,Node) Double
+confluence ns l fr we = similarity_conf (mkGraphUfromEdges ns) l fr we
+
+similarity_conf :: Graph_Undirected -> Length -> FalseReflexive -> We -> Map (Node,Node) Double
+similarity_conf g l fr we = Map.fromList [ ((x,y), similarity_conf_x_y g (x,y) l fr we)
+                                         | x <- nodes g, y <- nodes g, x < y]
+
 similarity_conf_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> We -> Double
 similarity_conf_x_y g (x,y) l r we = similarity
   where

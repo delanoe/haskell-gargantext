@@ -15,7 +15,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
--- import Debug.Trace (trace)
+--import Debug.Trace (trace)
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
@@ -23,10 +23,11 @@ import Data.Text (Text)
 import Gargantext.Prelude
 import Gargantext.Core.Statistics
 import Gargantext.Viz.Graph
---import Gargantext.Viz.Graph.Bridgeness (bridgeness)
+import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
 import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
 import Gargantext.Viz.Graph.IGraph (mkGraphUfromEdges)
+import Gargantext.Viz.Graph.Proxemy (confluence)
 import GHC.Float (sin, cos)
 import qualified IGraph as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
@@ -40,29 +41,30 @@ cooc2graph myCooc = do
       myCooc4 = toIndex ti myCooc
       matCooc = map2mat (0) (Map.size ti) myCooc4
       distanceMat = measureConditional matCooc
-      distanceMap = Map.map (\_ -> 1) $ Map.filter (>0) $ mat2map distanceMat
+      distanceMap = Map.filter (>0.01) $ mat2map distanceMat
 
   partitions <- case Map.size distanceMap > 0 of
     True  -> cLouvain distanceMap
     False -> panic "Text.Flow: DistanceMap is empty"
 
-  let distanceMap' = distanceMap -- bridgeness 300 partitions distanceMap
+  let bridgeness' = bridgeness 300 partitions distanceMap
+  let confluence' = confluence (Map.keys bridgeness') 3 True False
 
-  data2graph (Map.toList ti) myCooc4 distanceMap' partitions
+  data2graph (Map.toList ti) myCooc4 bridgeness' confluence' partitions
 
 
 ----------------------------------------------------------
 -- | From data to Graph
--- FIXME: distance should not be a map since we just "toList" it (same as cLouvain)
 data2graph :: [(Text, Int)] -> Map (Int, Int) Int
+                            -> Map (Int, Int) Double
                             -> Map (Int, Int) Double
                             -> [LouvainNode]
               -> IO Graph
-data2graph labels coocs distance partitions = do
+data2graph labels coocs bridge conf partitions = do
     
     let community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
 
-    nodes <- mapM (setCoord ForceAtlas labels distance)
+    nodes <- mapM (setCoord ForceAtlas labels bridge)
           [ (n, Node { node_size = maybe 0 identity (Map.lookup (n,n) coocs)
                    , node_type = Terms -- or Unknown
                    , node_id    = cs (show n)
@@ -78,9 +80,10 @@ data2graph labels coocs distance partitions = do
 
     let edges = [ Edge { edge_source = cs (show s)
                    , edge_target = cs (show t)
-                   , edge_weight = w
+                   , edge_weight = d
+                   , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
                    , edge_id     = cs (show i) }
-            | (i, ((s,t), w)) <- zip ([0..]::[Integer]) (Map.toList distance) ]
+            | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge) ]
 
     pure $ Graph nodes edges Nothing
 

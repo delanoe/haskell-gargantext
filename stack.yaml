@@ -22,8 +22,10 @@ extra-deps:
   commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
 - git: https://github.com/robstewart57/rdf4h.git
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
-- git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
   commit: dcaa0f5dd53f20648f4f5a615d29163582a4219c
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
+  commit: bf57642f6b66f554fdc0a38ac391cd8200dffcb3
 - git: https://gitlab.iscpif.fr/gargantext/patches-class
   commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
 - git: https://github.com/np/servant-job.git
