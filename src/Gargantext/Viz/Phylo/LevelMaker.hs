@@ -162,6 +162,7 @@ toNthLevel lvlMax prox clus p
   | otherwise     = toNthLevel lvlMax prox clus
                   $ traceBranches (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
+                  $ traceTranspose (lvl + 1)
                   $ transposePeriodLinks (lvl + 1)
                   $ tracePhyloN (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
@@ -181,7 +182,7 @@ toNthLevel lvlMax prox clus p
 toPhylo1 :: Cluster -> Proximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
 toPhylo1 clus prox d p = case clus of
   Fis (FisParams k s t) -> traceReBranches 1 
-                       -- $ linkPhyloBranches 1 prox
+                       -- $ reLinkPhyloBranches 1 
                        $ traceBranches 1 
                        $ setPhyloBranches 1
                        $ traceTempoMatching Descendant 1
@@ -308,6 +309,12 @@ tracePhylo1 p = trace ("\n---------------\n--| Phylo 1 |--\n---------------\n\n"
 tracePhyloN :: Level -> Phylo -> Phylo
 tracePhyloN lvl p = trace ("\n---------------\n--| Phylo " <> show (lvl) <> " |--\n---------------\n\n"
                       <> show (length $ getGroupsWithLevel lvl p) <> " groups created \n") p
+
+
+traceTranspose :: Level -> Phylo -> Phylo
+traceTranspose lvl p = trace ("----\nTranspose "
+                      <> show (length $ getGroupsWithLevel lvl p) <> " groups in Phylo "
+                      <> show (lvl) <> "\n") p
 
 
 tracePhyloBase :: Phylo -> Phylo

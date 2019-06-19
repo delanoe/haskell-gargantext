@@ -352,6 +352,7 @@ data PhyloQueryBuild = PhyloQueryBuild
     -- Inter-temporal matching method of the Phylo
     , _q_interTemporalMatching :: Proximity
     , _q_interTemporalMatchingFrame :: Int
+    , _q_interTemporalMatchingFrameTh :: Double
 
     , _q_reBranchThr :: Double
     , _q_reBranchNth :: Int

@@ -105,7 +105,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQueryBuild :: PhyloQueryBuild
 phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.6 20) 5 0.5 4 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.4 0) 
+             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.6 20) 5 0.8 0.5 4 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.4 0) 
 
 
 

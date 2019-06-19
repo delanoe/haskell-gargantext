@@ -78,6 +78,7 @@ data Conf =
           , timeGrain   :: Int
           , timeStep    :: Int
           , timeFrame   :: Int
+          , timeFrameTh :: Double          
           , timeTh      :: Double
           , timeSens    :: Double
           , reBranchThr :: Double
@@ -210,7 +211,7 @@ main = do
       let mFis  = DM.fromListWith (++) $ DL.sortOn (fst . fst) $ map (\f -> (getFisPeriod f,[f])) fis    
       
       let query = PhyloQueryBuild (phyloName conf) "" (timeGrain conf) (timeStep conf) 
-                  (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (timeFrame conf) 
+                  (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (timeFrame conf) (timeFrameTh conf) 
                   (reBranchThr conf) (reBranchNth conf) (phyloLevel conf)
                   (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams (clusterTh conf) (clusterSens conf))
 

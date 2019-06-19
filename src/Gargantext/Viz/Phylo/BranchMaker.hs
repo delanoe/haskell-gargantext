@@ -19,8 +19,8 @@ module Gargantext.Viz.Phylo.BranchMaker
 
 import Control.Parallel.Strategies
 import Control.Lens     hiding (both, Level)
-import Data.List        (concat,nub,(++),tail,sortOn,take,reverse,sort,null,intersect,union)
-import Data.Map         (Map)
+import Data.List        (concat,nub,(++),tail,sortOn,take,reverse,sort,null,intersect,union,delete)
+import Data.Map         (Map,(!), fromListWith, elems)
 import Data.Tuple       (fst, snd)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
@@ -48,13 +48,6 @@ getGroupsNgrams :: [PhyloGroup] -> [Int]
 getGroupsNgrams gs = (sort . nub . concat) $ map getGroupNgrams gs
 
 
--- | Get the Nth most coocurent Ngrams in a list of Groups
-getGroupsPeaks :: [PhyloGroup] -> Int -> Phylo -> [Int]
-getGroupsPeaks gs nth p = getNthMostOcc nth 
-                        $ getSubCooc (getGroupsNgrams gs) 
-                        $ getCooc (getGroupsPeriods gs) p
-
-
 areDistant :: (Date,Date) -> (Date,Date) -> Int -> Bool
 areDistant prd prd' thr = (((fst prd') - (snd prd)) > thr) || (((fst prd) - (snd prd')) > thr)
 
@@ -65,61 +58,67 @@ areTwinPeaks thr ns ns' = ( ((fromIntegral . length) $ intersect ns ns')
                           / ((fromIntegral . length) $ union ns ns')) >= thr 
 
 
-findSimBranches :: Int -> Double -> Int -> Phylo -> (PhyloBranchId,[PhyloGroup]) -> [(PhyloBranchId,[PhyloGroup])] -> [(PhyloBranchId,[PhyloGroup])]
-findSimBranches frame thr nth p (id,gs) bs 
-  = filter (\(_  ,gs') -> areTwinPeaks thr pks (getGroupsPeaks gs' nth p))
-  $ filter (\(_  ,gs') -> (not . null) $ intersect ns (getGroupsNgrams gs'))
-  $ filter (\(_  ,gs') -> areDistant prd (getFramedPeriod gs') frame)
-  $ filter (\(id',_  ) -> id /= id') bs
+-- | Get the framing period of a branch ([[PhyloGroup]])
+getBranchPeriod :: [PhyloGroup] -> (Date,Date) 
+getBranchPeriod gs =
+  let dates = sort $ foldl (\mem g -> mem ++ [fst $ getGroupPeriod g, snd $ getGroupPeriod g]) [] gs
+  in  (head' "getBranchPeriod" dates, last' "getBranchPeriod" dates)
+
+
+-- | Get the Nth most coocurent Ngrams in a list of Groups
+getGroupsPeaks :: [PhyloGroup] -> Int -> Phylo -> [Int]
+getGroupsPeaks gs nth p = getNthMostOcc nth 
+                        $ getSubCooc (getGroupsNgrams gs) 
+                        $ getCooc (getGroupsPeriods gs) p
+
+
+-- | Reduce a list of branches ([[Phylogroup]]) into possible candidates for rebranching
+filterSimBranches :: [PhyloGroup] -> Phylo -> [[PhyloGroup]] -> [[PhyloGroup]]
+filterSimBranches gs p branches = filter (\gs' -> (areTwinPeaks (getPhyloReBranchThr p)
+                                                                (getGroupsPeaks gs  (getPhyloReBranchNth p) p)
+                                                                (getGroupsPeaks gs' (getPhyloReBranchNth p)  p))
+                                               && ((not . null) $ intersect (map getGroupNgrams gs') (map getGroupNgrams gs))
+                                               && (areDistant (getBranchPeriod gs) (getBranchPeriod gs') (getPhyloMatchingFrame p))
+                                         ) branches 
+
+
+-- | Try to connect a focused branch to other candidate branches by finding the best pointers 
+reBranch :: Phylo -> [PhyloGroup] -> [[PhyloGroup]] -> [(PhyloGroupId,Pointer)]
+reBranch p branch candidates =
+  let newLinks  = map (\branch' ->
+        let pointers = map (\g -> 
+              -- define pairs of candidates groups
+              let pairs = listToPairs
+                        $ filter (\g' -> (not . null) $ intersect (getGroupNgrams g') (getGroupNgrams g)) branch'
+              -- process the matching between the pairs and the current group
+              in  foldl' (\mem (g2,g3) -> let s = 0.1 + matchWithPairs g (g2,g3) p
+                                          in if (g2 == g3)
+                                             then mem ++ [(getGroupId g,(getGroupId g2,s))]
+                                             else mem ++ [(getGroupId g,(getGroupId g2,s)),(getGroupId g,(getGroupId g3,s))]) [] pairs
+              ) branch
+            pointers' = pointers `using` parList rdeepseq
+        --  keep the best pointer between the focused branch and the current candidates 
+        in head' "reBranch" $ reverse $ sortOn (snd . snd) 
+         $ filter (\(_,(_,s)) -> filterProximity s $ getPhyloProximity p) $ concat pointers'
+        ) candidates
+      newLinks' = newLinks `using` parList rdeepseq
+  in  newLinks'
+
+
+reLinkPhyloBranches :: Level -> Phylo -> Phylo
+reLinkPhyloBranches lvl p = 
+  let pointers = Map.fromList $ map (\(_id,(_id',_s)) -> (_id,[(_id',100)])) $ fst
+               $ foldl' (\(pts,branches') gs -> (pts ++ (reBranch p gs (filterSimBranches gs p branches')), delete gs branches')) 
+                        ([],branches) branches
+  in setPhyloBranches lvl $ updateGroups Descendant lvl pointers p
   where 
-    --------------------------------------
-    prd :: (Date,Date)
-    prd = getFramedPeriod gs
-    --------------------------------------
-    ns :: [Int]
-    ns = getGroupsNgrams gs
-    --------------------------------------
-    pks :: [Int]
-    pks = getGroupsPeaks gs nth p
-    --------------------------------------
-
-
-findBestPointer :: Phylo -> Proximity -> [PhyloGroup] -> [PhyloGroup] -> [(PhyloGroupId,Pointer)]
-findBestPointer p prox gs gs' =
-  let candidates  = map (\g -> let pts = findBestCandidates' prox gs' g p
-                               in map (\pt -> (getGroupId g,pt)) pts) gs
-      candidates' = candidates `using` parList rdeepseq
-  in take 1 $ reverse $ sortOn (snd . snd) $ concat candidates' 
-
-
-makeBranchLinks :: Phylo -> Proximity -> (PhyloBranchId,[PhyloGroup]) -> [(PhyloBranchId,[PhyloGroup])] -> [(PhyloGroupId,Pointer)] -> [(PhyloGroupId,Pointer)]
-makeBranchLinks p prox (id,gs) bs pts
-  | null bs   = pts
-  | otherwise = makeBranchLinks p prox (head' "makeLink" bs) (tail bs) (pts ++ pts')
-  where
-    --------------------------------------
-    pts' :: [(PhyloGroupId,Pointer)]
-    pts' = concat $ map (\(_id,gs') -> findBestPointer p prox gs gs') candidates
-    --------------------------------------
-    candidates :: [(PhyloBranchId,[PhyloGroup])]
-    candidates = findSimBranches (getPhyloMatchingFrame p) (getPhyloReBranchThr p) (getPhyloReBranchNth p) p (id,gs) bs
-
- 
-
-linkPhyloBranches :: Level -> Proximity -> Phylo -> Phylo
-linkPhyloBranches lvl prox p = setPhyloBranches lvl
-                             $ updateGroups Descendant lvl pointers p
-  where
-    --------------------------------------
-    pointers :: Map PhyloGroupId [Pointer]
-    pointers = Map.fromList $ map (\(_id,(_id',_w)) -> (_id,[(_id',100)]))
-                            $ makeBranchLinks p prox (head' "makeLink" branches) (tail branches) []
-    --------------------------------------
-    branches :: [(PhyloBranchId,[PhyloGroup])]
-    branches = sortOn (\(_id,gs) -> fst $ getFramedPeriod gs) $ getGroupsByBranches p
-    -------------------------------------- 
-
-
+    branches :: [[PhyloGroup]]
+    branches = elems 
+             $ fromListWith (++) 
+             $ foldl' (\mem g -> case getGroupBranchId g of
+                                 Nothing -> mem
+                                 Just i  -> mem ++ [(i,[g])] )
+               [] $ getGroupsWithLevel lvl p
 
 
 ------------------
@@ -128,22 +127,25 @@ linkPhyloBranches lvl prox p = setPhyloBranches lvl
 
 
 -- | To transform a PhyloGraph into a list of PhyloBranches by using the relatedComp clustering
-graphToBranches :: [PhyloGroup] -> Phylo -> [(Int,PhyloGroupId)]
-graphToBranches groups p = concat
-                         $ map (\(idx,gs) -> map (\g -> (idx,getGroupId g)) gs)
+graphToBranches :: [PhyloGroup] -> Map PhyloGroupId Int
+graphToBranches groups  = Map.fromList
+                         $ concat
+                         $ map (\(idx,gIds) -> map (\id -> (id,idx)) gIds)
                          $ zip [1..]
                          $ relatedComp
-                         $ map (\g -> nub $ [g] ++ (getGroupParents g p) ++ (getGroupChilds g p)) groups
+                         $ map (\g -> [getGroupId g] ++ (getGroupPeriodParentsId g) ++ (getGroupPeriodChildsId g)) groups
 
 
 -- | To set all the PhyloBranches for a given Level in a Phylo
 setPhyloBranches :: Level -> Phylo -> Phylo
 setPhyloBranches lvl p = alterGroupWithLevel (\g -> 
-  let bIdx = (fst $ head' "branchMaker" 
-                  $ filter (\b -> snd b == getGroupId g) branches)
+  let bIdx = branches ! (getGroupId g)
   in  over (phylo_groupBranchId) (\_ -> Just (lvl,bIdx)) g) lvl p
   where 
     --------------------------------------
-    branches :: [(Int,PhyloGroupId)]
-    branches = graphToBranches (getGroupsWithLevel lvl p) p
+    branches :: Map PhyloGroupId Int
+    branches = graphToBranches (getGroupsWithLevel lvl p)
     --------------------------------------
+
+
+-- trace' bs = trace bs

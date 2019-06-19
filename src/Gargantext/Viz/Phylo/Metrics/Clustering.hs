@@ -22,8 +22,11 @@ import Data.List        (concat,null,nub,(++),elemIndex,groupBy,(!!), (\\), unio
 import Data.Map         (fromList,mapKeys)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
+-- import Gargantext.Viz.Phylo.Tools
 
-relatedComp :: [[PhyloGroup]] -> [[PhyloGroup]]
+-- import Debug.Trace (trace)
+
+relatedComp :: Eq a => [[a]] -> [[a]]
 relatedComp graphs = foldl' (\mem groups -> 
   if (null mem)
   then mem ++ [groups]

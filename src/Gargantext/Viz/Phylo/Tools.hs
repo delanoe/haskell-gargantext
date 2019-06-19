@@ -202,6 +202,9 @@ getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
 getPhyloMatchingFrame :: Phylo -> Int
 getPhyloMatchingFrame p = _q_interTemporalMatchingFrame $ _phyloParam_query $ getPhyloParams p
 
+getPhyloMatchingFrameTh :: Phylo -> Double
+getPhyloMatchingFrameTh p = _q_interTemporalMatchingFrameTh $ _phyloParam_query $ getPhyloParams p
+
 getPhyloProximity :: Phylo -> Proximity
 getPhyloProximity p = _q_interTemporalMatching $ _phyloParam_query $ getPhyloParams p
 
@@ -392,13 +395,19 @@ getGroups = view ( phylo_periods
                  )
 
 
--- | To get all PhyloGroups matching a list of PhyloGroupIds in a Phylo
-getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
-getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
+-- | To get all PhyloGroups matching a list of PhyloGoupIds in a Phylo
+-- getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
+-- getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
 
--- | To get a PhyloGroup matching a PhyloGroupId in a Phylo
 getGroupFromId :: PhyloGroupId -> Phylo -> PhyloGroup
-getGroupFromId id p = (head' "getGroupFromId") $ getGroupsFromIds [id] p
+getGroupFromId id p = 
+  let groups = Map.fromList $ map (\g -> (getGroupId g, g)) $ getGroups p
+  in  groups ! id 
+
+getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
+getGroupsFromIds ids p =
+  let groups = Map.fromList $ map (\g -> (getGroupId g, g)) $ getGroups p
+  in  elems $ restrictKeys groups (Set.fromList ids)
 
 
 -- | To get the corresponding list of PhyloGroups from a list of PhyloNodes
@@ -810,10 +819,10 @@ initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 
 
 -- | To initialize a PhyloQueryBuild from given and default parameters
-initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Int -> Maybe Double -> Maybe Int -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
+initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Int -> Maybe Double -> Maybe Double -> Maybe Int -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
 initPhyloQueryBuild name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
-  (def defaultWeightedLogJaccard -> matching') (def 5 -> frame) (def 0.5 -> reBranchThr) (def 4 -> reBranchNth) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQueryBuild name desc grain steps cluster metrics filters matching' frame reBranchThr reBranchNth nthLevel nthCluster
+  (def defaultWeightedLogJaccard -> matching') (def 5 -> frame) (def 0.8 -> frameThr) (def 0.5 -> reBranchThr) (def 4 -> reBranchNth) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
+    PhyloQueryBuild name desc grain steps cluster metrics filters matching' frame frameThr reBranchThr reBranchNth nthLevel nthCluster
 
 
 -- | To initialize a PhyloQueryView default parameters
@@ -866,7 +875,7 @@ defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing N
 
 defaultQueryBuild :: PhyloQueryBuild
 defaultQueryBuild = initPhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
 defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
