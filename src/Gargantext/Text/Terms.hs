@@ -49,7 +49,7 @@ import qualified Data.List as List
 import qualified Data.Text as Text
 import Gargantext.Text (sentences)
 import Gargantext.Text.Terms.Mono.Token.En (tokenize)
-import Gargantext.Text.Eleve (mainEleve)
+import Gargantext.Text.Terms.Eleve (mainEleve)
 
 data TermType lang
   = Mono      { _tt_lang :: lang }
@@ -88,7 +88,7 @@ isPunctuation x = List.elem x $  (Text.pack . pure)
 -- | Unsupervised ngrams extraction
 -- language agnostic extraction
 -- TODO: remove IO
--- TODO: BlockText 
+-- TODO: newtype BlockText
 extractTermsUnsupervised :: Int -> Text -> [[Text]]
 extractTermsUnsupervised n = 
                List.nub

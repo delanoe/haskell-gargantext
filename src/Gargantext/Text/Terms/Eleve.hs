@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Eleve
+Module      : Gargantext.Text.Terms.Eleve
 Description : Unsupervized Word segmentation
 Copyright   : (c) CNRS, 2019-Present
 License     : AGPL + CECILL v3
@@ -38,7 +38,7 @@ Notes for current implementation:
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module Gargantext.Text.Eleve where
+module Gargantext.Text.Terms.Eleve where
 
 -- import Debug.Trace (trace)
 -- import Debug.SimpleReflect

@@ -35,11 +35,13 @@ import qualified Data.Vector.Storable as Vec
 import qualified Data.Map  as Map
 import qualified Data.List as List
 
-cooc2graph :: (Map (Text, Text) Int) -> IO Graph
-cooc2graph myCooc = do
+type Threshold = Int
+
+cooc2graph :: Threshold -> (Map (Text, Text) Int) -> IO Graph
+cooc2graph threshold myCooc = do
   let (ti, _) = createIndices myCooc
-      myCooc4 = toIndex ti myCooc
-      matCooc = map2mat (0) (Map.size ti) myCooc4
+      myCooc' = toIndex ti myCooc
+      matCooc = map2mat (0) (Map.size ti) $ Map.filter (>threshold) myCooc'
       distanceMat = measureConditional matCooc
       distanceMap = Map.filter (>0.01) $ mat2map distanceMat
 
@@ -50,7 +52,7 @@ cooc2graph myCooc = do
   let bridgeness' = bridgeness 300 partitions distanceMap
   let confluence' = confluence (Map.keys bridgeness') 3 True False
 
-  data2graph (Map.toList ti) myCooc4 bridgeness' confluence' partitions
+  data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
 
 
 ----------------------------------------------------------

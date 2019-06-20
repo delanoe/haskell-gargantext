@@ -75,7 +75,7 @@ getGraph nId = do
                             <$> groupNodesByNgrams ngs
                             <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) NgramsTerms (Map.keys ngs)
 
-  graph <- liftIO $ cooc2graph myCooc
+  graph <- liftIO $ cooc2graph 3 myCooc
   pure $ set graph_metadata (Just metadata) graph
 
 

@@ -186,6 +186,7 @@ insertMasterDocs c lang hs  =  do
   ids <- insertDb masterUserId masterCorpusId hs'
   let documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' hs')
   
+  -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
   maps <- mapNodeIdNgrams <$> documentIdWithNgrams (extractNgramsT lang) documentsWithId
   terms2id <- insertNgrams $ Map.keys maps
   let indexedNgrams = Map.mapKeys (indexNgrams terms2id) maps
