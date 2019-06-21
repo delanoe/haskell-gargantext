@@ -29,6 +29,7 @@ compute graph
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Text.Terms
