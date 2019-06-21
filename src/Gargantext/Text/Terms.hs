@@ -72,10 +72,17 @@ makeLenses ''TermType
 -- | Sugar to extract terms from text (hiddeng mapM from end user).
 --extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
 extractTerms :: TermType Lang -> [Text] -> IO [[Terms]]
-extractTerms (Unsupervised l n m) xs = mapM (terms (Unsupervised l n m')) xs
+
+extractTerms (Unsupervised l n m) xs = mapM (terms (Unsupervised l n (Just m'))) xs
   where
-    m' = maybe (Just $ newTries n (Text.intercalate " " xs)) Just m
+    m' = case m of
+      Just m''-> m''
+      Nothing -> newTries n (Text.intercalate " " xs)
+
 extractTerms termTypeLang xs = mapM (terms termTypeLang) xs
+
+
+
 ------------------------------------------------------------------------
 -- | Terms from Text
 -- Mono : mono terms
