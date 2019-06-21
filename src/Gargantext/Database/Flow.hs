@@ -302,7 +302,6 @@ instance ExtractNgramsT HyperdataContact
 
 
 
-
 instance ExtractNgramsT HyperdataDocument
   where
     extractNgramsT = extractNgramsT'
@@ -360,7 +359,6 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
     toDocumentIdWithNgrams d = do
       e <- f $ documentData d
       pure $ DocumentIdWithNgrams d e
-
 
 
 -- FLOW LIST

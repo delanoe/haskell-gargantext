@@ -367,16 +367,19 @@ split inE t0 ts =
 ------------------------------------------------------------------------
 
 mainEleve :: Int -> [[Text]] -> [[[Text]]]
-mainEleve n input = split n info_autonomy (t :: Tries Token (I Double)) <$> inp
+mainEleve n i = mainEleveWith m n i
   where
-    inp = toToken <$> input
-    t   = normalizeEntropy info_entropy_var set_autonomy
-        . evTrie identity set_entropy_var
-        . entropyTrie isTerminal
-        $ buildTries n inp
+    m = buildTries n (fmap toToken i)
 
+mainEleveWith :: Tries Token () -> Int -> [[Text]] -> [[[Text]]]
+mainEleveWith m n i = fmap (split n info_autonomy t) (fmap toToken i)
+  where
+    t :: Tries Token (I Double)
+    t = normalizeEntropy info_entropy_var set_autonomy
+      $ evTrie identity set_entropy_var
+      $ entropyTrie isTerminal m
 
----------------------------------------------
+------------------------------------------------------------------------
 
 type Checks e = [(Text, Int, e, e, e, e, e, e, e, e, e)]
 
@@ -484,8 +487,8 @@ checks2 = []
   ]
 -}
 
-runTests :: IO ()
-runTests =
+runTestsEleve :: IO ()
+runTestsEleve =
   forM_
     [("example0", 3, example0, checks0)
     ,("example0", 2, example0, [])

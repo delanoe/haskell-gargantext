@@ -47,6 +47,7 @@ monoTerms l txt = map (monoText2term l) $ monoTexts txt
 monoTexts :: Text -> [Text]
 monoTexts = L.concat . monoTextsBySentence
 
+-- | TODO use text2term only
 monoText2term :: Lang -> Text -> Terms
 monoText2term lang txt = Terms [txt] (S.singleton $ stem lang txt)
 
@@ -54,6 +55,3 @@ monoTextsBySentence :: Text -> [[Text]]
 monoTextsBySentence = map T.words
                     . T.split isSep
                     . T.toLower
-
-
-
