@@ -59,7 +59,8 @@ data TermType lang
   | Multi     { _tt_lang :: lang }
   | MonoMulti { _tt_lang :: lang }
   | Unsupervised { _tt_lang  :: lang
-                 , _tt_size  :: Int
+                 , _tt_windoSize  :: Int
+                 , _tt_ngramsSize :: Int
                  , _tt_model :: Maybe (Tries Token ())
   }
 makeLenses ''TermType
@@ -74,7 +75,7 @@ makeLenses ''TermType
 --extractTerms :: Traversable t => TermType Lang -> t Text -> IO (t [Terms])
 extractTerms :: TermType Lang -> [Text] -> IO [[Terms]]
 
-extractTerms (Unsupervised l n m) xs = mapM (terms (Unsupervised l n (Just m'))) xs
+extractTerms (Unsupervised l n s m) xs = mapM (terms (Unsupervised l n s (Just m'))) xs
   where
     m' = case m of
       Just m''-> m''
@@ -94,7 +95,7 @@ terms :: TermType Lang -> Text -> IO [Terms]
 terms (Mono      lang) txt = pure $ monoTerms lang txt
 terms (Multi     lang) txt = multiterms lang txt
 terms (MonoMulti lang) txt = terms (Multi lang) txt
-terms (Unsupervised lang n m) txt = termsUnsupervised m' n lang txt
+terms (Unsupervised lang n s m) txt = termsUnsupervised (Unsupervised lang n s (Just m')) txt
   where
     m' = maybe (newTries n txt) identity m
 -- terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt
@@ -112,15 +113,20 @@ isPunctuation x = List.elem x $  (Text.pack . pure)
 -- language agnostic extraction
 -- TODO: remove IO
 -- TODO: newtype BlockText
-termsUnsupervised :: Tries Token () -> Int -> Lang -> Text -> IO [Terms]
-termsUnsupervised m n l = 
+
+type WindowSize = Int
+type MinNgramSize = Int
+
+termsUnsupervised :: TermType Lang -> Text -> IO [Terms]
+termsUnsupervised (Unsupervised l n s m) =
                pure
              . map (text2term l)
              . List.nub
-             . (List.filter (\l' -> List.length l' > 1))
+             . (List.filter (\l' -> List.length l' > s))
              . List.concat
-             . mainEleveWith m n
+             . mainEleveWith (maybe (panic "no model") identity m) n
              . uniText
+termsUnsupervised _ = undefined
 
 newTries :: Int -> Text -> Tries Token ()
 newTries n t = buildTries n (fmap toToken $ uniText t)

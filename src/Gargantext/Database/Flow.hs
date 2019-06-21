@@ -190,7 +190,7 @@ insertMasterDocs c lang hs  =  do
   let documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' hs')
   
   let 
-    fixLang (Unsupervised l n m) = Unsupervised l n m'
+    fixLang (Unsupervised l n s m) = Unsupervised l n s m'
       where
         m' = case m of
           Nothing -> Just $ buildTries n (fmap toToken $ uniText $ Text.intercalate " " $ List.concat $ map hasText documentsWithId)

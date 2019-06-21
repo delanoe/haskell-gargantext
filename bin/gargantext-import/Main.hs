@@ -46,7 +46,7 @@ main = do
       createUsers = insertUsersDemo
   
   let cmd :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-      cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) (Unsupervised EN 5 Nothing) CsvHalFormat corpusPath
+      cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) (Unsupervised EN 5 1 Nothing) CsvHalFormat corpusPath
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
       debatCorpus = do
