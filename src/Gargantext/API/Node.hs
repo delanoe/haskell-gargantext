@@ -398,6 +398,8 @@ getMetrics cId maybeListId tabType maybeLimit = do
 
 -------------------------------------------------------------
 type Hash = Text
+data FileType = CSV | PresseRIS
+  deriving (Eq, Show)
 
 instance ToParamSchema (MultipartData Mem) where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
@@ -417,10 +419,15 @@ instance (ToParamSchema a, HasSwagger sub) =>
 
 type UploadAPI = Summary "Upload file(s) to a corpus"
                 :> MultipartForm Mem (MultipartData Mem)
+                :> QueryParam "fileType"  FileType
                 :> Post '[JSON] [Hash]
 
-postUpload :: NodeId -> GargServer UploadAPI
-postUpload _ multipartData = do
+--postUpload :: NodeId -> Maybe FileType ->  GargServer UploadAPI
+--postUpload :: NodeId -> GargServer UploadAPI
+postUpload :: NodeId -> Maybe FileType -> MultipartData Mem -> Cmd err [Hash]
+postUpload _ Nothing _ = panic "fileType is a required parameter"
+postUpload _ (Just fileType) multipartData = do
+  putStrLn $ "File Type: " <> (show fileType)
   is <- liftIO $ do
     putStrLn ("Inputs:" :: Text)
     forM (inputs multipartData) $ \input -> do
