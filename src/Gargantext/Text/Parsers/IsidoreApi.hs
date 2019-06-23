@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings   #-}

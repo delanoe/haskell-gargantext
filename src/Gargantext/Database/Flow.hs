@@ -29,8 +29,8 @@ Portability : POSIX
 
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
-
---import Debug.Trace (trace)
+import Prelude (String)
+import Debug.Trace (trace)
 import Control.Lens ((^.), view, Lens', _Just)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
@@ -63,6 +63,7 @@ import Gargantext.Prelude
 import Gargantext.Text.Terms.Eleve (buildTries, toToken)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
 import Gargantext.Text.Parsers (parseFile, FileFormat)
+import qualified Gargantext.Text.Parsers.IsidoreApi as Isidore
 import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Servant (ServantErr)
@@ -89,6 +90,30 @@ type FlowCorpus a = ( AddUniqId a
 
 ------------------------------------------------------------------------
 
+data ApiQuery = ApiIsidoreQuery Text | ApiIsidoreAuth Text
+-- | APIs
+-- TODO instances
+getDataApi :: Lang
+           -> Maybe Limit
+           -> ApiQuery
+           -> IO [HyperdataDocument]
+getDataApi lang limit (ApiIsidoreQuery q) = Isidore.get lang limit (Just q) Nothing
+getDataApi lang limit (ApiIsidoreAuth  q) = Isidore.get lang limit Nothing  (Just q)
+
+
+flowCorpusApi :: ( FlowCmdM env ServantErr m)
+           => Username -> CorpusName
+           -> TermType Lang
+           -> Maybe Limit
+           -> ApiQuery
+           -> m CorpusId
+flowCorpusApi u n tt l q = do
+  docs <- liftIO $ splitEvery 500 <$> getDataApi (_tt_lang tt) l q
+  flowCorpus u n tt docs
+
+------------------------------------------------------------------------
+
+
 flowAnnuaire :: FlowCmdM env ServantErr m 
              => Username -> CorpusName -> (TermType Lang) -> FilePath -> m AnnuaireId
 flowAnnuaire u n l filePath = do
@@ -107,7 +132,6 @@ flowCorpusDebat u n l fp = do
                  :: IO [[GD.GrandDebatReference ]]
                  )
   flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)
-
 
 flowCorpusFile :: FlowCmdM env ServantErr m
            => Username -> CorpusName
@@ -193,7 +217,7 @@ insertMasterDocs c lang hs  =  do
     fixLang (Unsupervised l n s m) = Unsupervised l n s m'
       where
         m' = case m of
-          Nothing -> Just $ buildTries n (fmap toToken $ uniText $ Text.intercalate " " $ List.concat $ map hasText documentsWithId)
+          Nothing -> trace ("buildTries here" :: String) $ Just $ buildTries n (fmap toToken $ uniText $ Text.intercalate " " $ List.concat $ map hasText documentsWithId)
           m'' -> m''
     fixLang l = l
 
