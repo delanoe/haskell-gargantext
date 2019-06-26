@@ -9,6 +9,6 @@ else
 fi
 
 sudo apt update
-sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql nginx libpq-dev
+sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql nginx libpq-dev libigraph0-dev
 sudo apt install postgresql-server-dev-9.6 
 
