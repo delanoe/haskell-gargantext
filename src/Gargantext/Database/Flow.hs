@@ -217,8 +217,14 @@ insertMasterDocs c lang hs  =  do
     fixLang (Unsupervised l n s m) = Unsupervised l n s m'
       where
         m' = case m of
-          Nothing -> trace ("buildTries here" :: String) $ Just $ buildTries n (fmap toToken $ uniText $ Text.intercalate " " $ List.concat $ map hasText documentsWithId)
-          m'' -> m''
+          Nothing -> trace ("buildTries here" :: String)
+                  $ Just
+                  $ buildTries n ( fmap toToken $ uniText
+                                                $ Text.intercalate " . "
+                                                $ List.concat
+                                                $ map hasText documentsWithId
+                                 )
+          just_m -> just_m
     fixLang l = l
 
     lang' = fixLang lang

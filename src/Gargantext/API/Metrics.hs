@@ -33,14 +33,18 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Utils
-import Gargantext.Core.Types (CorpusId)
+import Gargantext.Core.Types (CorpusId, ListId, Limit)
 import Gargantext.Prelude
 import Gargantext.API.Ngrams
+import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.API.Ngrams.NTree
 import Gargantext.Database.Flow
 import Gargantext.Viz.Chart
+import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.Map as Map
+import qualified Gargantext.Database.Metrics as Metrics
 
 data Metrics = Metrics
   { metrics_data :: [Metric]}
@@ -97,6 +101,30 @@ instance Arbitrary MyTree
     arbitrary = MyTree <$> arbitrary <*> arbitrary <*> arbitrary
 
 
+-------------------------------------------------------------
+-- | Scatter metrics API
+type ScatterAPI = Summary "SepGen IncExc metrics"
+                :> QueryParam  "list"       ListId
+                :> QueryParamR "ngramsType" TabType
+                :> QueryParam  "limit"      Int
+                :> Get '[JSON] Metrics
+
+getScatter :: FlowCmdM env err m => 
+  CorpusId
+  -> Maybe ListId
+  -> TabType
+  -> Maybe Limit
+  -> m Metrics
+getScatter cId maybeListId tabType maybeLimit = do
+  (ngs', scores) <- Metrics.getMetrics cId maybeListId tabType maybeLimit
+
+  let
+    metrics      = map (\(Scored t s1 s2) -> Metric t (log' 5 s1) (log' 2 s2) (listType t ngs')) scores
+    log' n x     = 1 + (if x <= 0 then 0 else (log $ (10^(n::Int)) * x))
+    listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
+    errorMsg     = "API.Node.metrics: key absent"
+
+  pure $ Metrics metrics
 
 
 

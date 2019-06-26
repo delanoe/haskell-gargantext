@@ -24,26 +24,27 @@ import Gargantext.API.Ngrams (TabType(..), ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm)
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
 import Gargantext.Database.Flow (FlowCmdM)
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser, getTficfWith)
+import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
 import Gargantext.Database.Node.Select
 import Gargantext.Database.Schema.Node (defaultList)
-import Gargantext.Database.Types.Node (ListId, CorpusId, HyperdataCorpus)
-import Gargantext.Database.Flow (getOrMkRootWithCorpus)
+import Gargantext.Database.Types.Node (ListId, CorpusId{-, HyperdataCorpus-})
+--import Gargantext.Database.Flow (getOrMkRootWithCorpus)
 import Gargantext.Database.Config (userMaster)
 import Gargantext.Prelude
-import Gargantext.Text.Metrics (scored, Scored(..), localMetrics, toScored)
+import Gargantext.Text.Metrics (scored, Scored(..), localMetrics{-, toScored-})
 import qualified Data.Map    as Map
 import qualified Data.Vector.Storable as Vec
 
 
-getMetrics' :: FlowCmdM env err m
+getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
-getMetrics' cId maybeListId tabType maybeLimit = do
+getMetrics cId maybeListId tabType maybeLimit = do
   (ngs, _, myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit 
   pure (ngs, scored myCooc)
 
 
+{- | TODO remove unused function
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
@@ -58,7 +59,7 @@ getMetrics cId maybeListId tabType maybeLimit = do
   metrics' <- getTficfWith cId masterCorpusId (lIds <> [lId]) (ngramsTypeFromTabType tabType) ngs'
 
   pure (ngs , toScored [metrics, Map.fromList $ map (\(a,b) -> (a, Vec.fromList [fst b])) $ Map.toList metrics'])
-
+-}
 
 getLocalMetrics  :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit

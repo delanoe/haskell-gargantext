@@ -39,7 +39,7 @@ import qualified Gargantext.Database.Metrics as Metrics
 {-
 trainModel :: FlowCmdM env ServantErr m
              => Username -> m Score
-trainMode u = do
+trainModel u = do
   rootId <- _node_id <$> getRoot u
   (id:ids)   <- getCorporaWithParentId rootId
   (s,_model) <- case length ids >0 of
@@ -48,11 +48,11 @@ trainMode u = do
   --}
 
 
-getMetrics :: FlowCmdM env err m
+getMetrics' :: FlowCmdM env err m
              => CorpusId -> Maybe ListId -> TabType -> Maybe Int
              -> m (Map.Map ListType [Vec.Vector Double])
-getMetrics cId maybeListId tabType maybeLimit = do
-  (ngs', scores) <- Metrics.getMetrics' cId maybeListId tabType maybeLimit
+getMetrics' cId maybeListId tabType maybeLimit = do
+  (ngs', scores) <- Metrics.getMetrics cId maybeListId tabType maybeLimit
 
   let
     metrics      = map (\(Scored t s1 s2) -> (listType t ngs', [Vec.fromList [s1,s2]])) scores

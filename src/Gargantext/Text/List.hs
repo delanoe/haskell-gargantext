@@ -43,7 +43,6 @@ data NgramsListBuilder = BuilderStepO { stemSize :: Int
                        | BuilderStepN { withModel :: Model }
 
 
-
 data StopSize = StopSize {unStopSize :: Int}
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
@@ -111,8 +110,8 @@ toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
       ys = take b $ drop a ns
       zs = drop b $ drop a ns
 
-      a = 3
-      b = 500
+      a = 300
+      b = 350
 
 isStopTerm :: StopSize -> Text -> Bool
 isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)

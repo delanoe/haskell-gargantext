@@ -65,7 +65,6 @@ import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (hash)
-import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
@@ -74,8 +73,6 @@ import Servant.Swagger (HasSwagger(toSwagger))
 import Servant.Swagger.Internal
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Data.Map as Map
-import qualified Gargantext.Database.Metrics as Metrics
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 
 {-
@@ -144,7 +141,7 @@ type NodeAPI a = Get '[JSON] (Node a)
                         :> SearchAPI
 
              -- VIZ
-             :<|> "metrics" :> MetricsAPI
+             :<|> "metrics" :> ScatterAPI
              :<|> "chart"     :> ChartApi
              :<|> "pie"       :> PieApi
              :<|> "tree"      :> TreeApi
@@ -187,7 +184,7 @@ nodeAPI p uId id
            :<|> delDocs  id
            :<|> searchIn id
            
-           :<|> getMetrics id
+           :<|> getScatter id
            :<|> getChart id
            :<|> getPie   id
            :<|> getTree  id
@@ -374,27 +371,6 @@ putNode = undefined -- TODO
 
 query :: Monad m => Text -> m Text
 query s = pure s
-
-
--------------------------------------------------------------
-type MetricsAPI = Summary "SepGen IncExc metrics"
-                :> QueryParam  "list"       ListId
-                :> QueryParamR "ngramsType" TabType
-                :> QueryParam  "limit"      Int
-                :> Get '[JSON] Metrics
-
-getMetrics :: NodeId -> GargServer MetricsAPI
-getMetrics cId maybeListId tabType maybeLimit = do
-  (ngs', scores) <- Metrics.getMetrics' cId maybeListId tabType maybeLimit
-
-  let
-    metrics      = map (\(Scored t s1 s2) -> Metric t (log' 5 s1) (log' 2 s2) (listType t ngs')) scores
-    log' n x     = 1 + (if x <= 0 then 0 else (log $ (10^(n::Int)) * x))
-    listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
-    errorMsg     = "API.Node.metrics: key absent"
-
-  pure $ Metrics metrics
-
 
 -------------------------------------------------------------
 type Hash = Text
