@@ -95,6 +95,7 @@ data TODO = TODO
   deriving (Generic)
 
 instance ToSchema TODO where
+instance ToParamSchema TODO where
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -200,12 +201,12 @@ mkNgramsElement ngrams list rp children =
     -- TODO review
     size = 1 + count " " ngrams
 
-newNgramsElement :: NgramsTerm -> NgramsElement
-newNgramsElement ngrams = mkNgramsElement ngrams GraphTerm Nothing mempty
+newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
+newNgramsElement mayList ngrams = mkNgramsElement ngrams (fromMaybe GraphTerm mayList) Nothing mempty
 
 instance ToSchema NgramsElement
 instance Arbitrary NgramsElement where
-  arbitrary = elements [newNgramsElement "sport"]
+  arbitrary = elements [newNgramsElement Nothing "sport"]
 
 ngramsElementToRepo :: NgramsElement -> NgramsRepoElement
 ngramsElementToRepo
@@ -793,9 +794,9 @@ putListNgrams listId ngramsType nes = do
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
 
-tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> [NgramsTerm] -> m ()
-tableNgramsPost tabType listId =
-  putListNgrams listId (ngramsTypeFromTabType tabType) . fmap newNgramsElement
+tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> Maybe ListType -> [NgramsTerm] -> m ()
+tableNgramsPost tabType listId mayList =
+  putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
@@ -1008,6 +1009,7 @@ type TableNgramsApiPut = Summary " Table Ngrams API Change"
 type TableNgramsApiPost = Summary " Table Ngrams API Adds new ngrams"
                        :> QueryParamR "ngramsType" TabType
                        :> QueryParamR "list"       ListId
+                       :> QueryParam  "listType"   ListType
                        :> ReqBody '[JSON] [NgramsTerm]
                        :> Post    '[JSON] ()
 

@@ -20,15 +20,17 @@ Portability : POSIX
 
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE InstanceSigs      #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE ConstrainedClassMethods #-}
 
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
-
---import Debug.Trace (trace)
+import Prelude (String)
+import Debug.Trace (trace)
 import Control.Lens ((^.), view, Lens', _Just)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
@@ -58,14 +60,15 @@ import Gargantext.Database.Utils (Cmd, CmdM)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
+import Gargantext.Text.Terms.Eleve (buildTries, toToken)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
 import Gargantext.Text.Parsers (parseFile, FileFormat)
-import Gargantext.Text.Terms (TermType(..), tt_lang)
-import Gargantext.Text.Terms (extractTerms)
+import qualified Gargantext.Text.Parsers.IsidoreApi as Isidore
+import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Servant (ServantErr)
 import System.FilePath (FilePath)
---import qualified Data.List as List
+import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
@@ -82,9 +85,34 @@ type FlowCorpus a = ( AddUniqId a
                     , UniqId a
                     , InsertDb a
                     , ExtractNgramsT a
+                    , HasText a
                     )
 
 ------------------------------------------------------------------------
+
+data ApiQuery = ApiIsidoreQuery Text | ApiIsidoreAuth Text
+-- | APIs
+-- TODO instances
+getDataApi :: Lang
+           -> Maybe Limit
+           -> ApiQuery
+           -> IO [HyperdataDocument]
+getDataApi lang limit (ApiIsidoreQuery q) = Isidore.get lang limit (Just q) Nothing
+getDataApi lang limit (ApiIsidoreAuth  q) = Isidore.get lang limit Nothing  (Just q)
+
+
+flowCorpusApi :: ( FlowCmdM env ServantErr m)
+           => Username -> CorpusName
+           -> TermType Lang
+           -> Maybe Limit
+           -> ApiQuery
+           -> m CorpusId
+flowCorpusApi u n tt l q = do
+  docs <- liftIO $ splitEvery 500 <$> getDataApi (_tt_lang tt) l q
+  flowCorpus u n tt docs
+
+------------------------------------------------------------------------
+
 
 flowAnnuaire :: FlowCmdM env ServantErr m 
              => Username -> CorpusName -> (TermType Lang) -> FilePath -> m AnnuaireId
@@ -105,7 +133,6 @@ flowCorpusDebat u n l fp = do
                  )
   flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)
 
-
 flowCorpusFile :: FlowCmdM env ServantErr m
            => Username -> CorpusName
            -> Limit -- Limit the number of docs (for dev purpose)
@@ -119,9 +146,17 @@ flowCorpusFile u n l la ff fp = do
   flowCorpus u n la (map (map toHyperdataDocument) docs)
 
 -- TODO query with complex query
-flowCorpusSearchInDatabase :: FlowCmdM env ServantErr m
+flowCorpusSearchInDatabase :: FlowCmdM env err m
           => Username -> Lang -> Text -> m CorpusId
 flowCorpusSearchInDatabase u la q = do
+  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
+  ids <-  map fst <$> searchInDatabase cId (stemIt q)
+  flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
+
+
+flowCorpusSearchInDatabase' :: FlowCmdM env ServantErr m
+          => Username -> Lang -> Text -> m CorpusId
+flowCorpusSearchInDatabase' u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
   flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
@@ -139,7 +174,7 @@ flowCorpus :: (FlowCmdM env ServantErr m, FlowCorpus a)
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
 
-flowCorpusUser :: (FlowCmdM env ServantErr m, MkCorpus c)
+flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
                => Lang -> Username -> CorpusName -> Maybe c -> [NodeId] -> m CorpusId
 flowCorpusUser l userName corpusName ctype ids = do
   -- User Flow
@@ -178,7 +213,17 @@ insertMasterDocs c lang hs  =  do
   ids <- insertDb masterUserId masterCorpusId hs'
   let documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' hs')
   
-  maps <- mapNodeIdNgrams <$> documentIdWithNgrams (extractNgramsT lang) documentsWithId
+  let 
+    fixLang (Unsupervised l n s m) = Unsupervised l n s m'
+      where
+        m' = case m of
+          Nothing -> trace ("buildTries here" :: String) $ Just $ buildTries n (fmap toToken $ uniText $ Text.intercalate " " $ List.concat $ map hasText documentsWithId)
+          m'' -> m''
+    fixLang l = l
+
+    lang' = fixLang lang
+  -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
+  maps <- mapNodeIdNgrams <$> documentIdWithNgrams (extractNgramsT lang') documentsWithId
   terms2id <- insertNgrams $ Map.keys maps
   let indexedNgrams = Map.mapKeys (indexNgrams terms2id) maps
   
@@ -256,6 +301,10 @@ data DocumentWithId a = DocumentWithId
   , documentData :: !a
   } deriving (Show)
 
+instance HasText a => HasText (DocumentWithId a)
+  where
+    hasText (DocumentWithId _ a) = hasText a
+
 mergeData :: Map HashId ReturnId
           -> Map HashId a
           -> [DocumentWithId a]
@@ -271,12 +320,18 @@ data DocumentIdWithNgrams a = DocumentIdWithNgrams
   , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
 
--- TODO extractNgrams according to Type of Data
 
 class ExtractNgramsT h
   where
-    extractNgramsT :: TermType Lang -> h -> Cmd err (Map Ngrams (Map NgramsType Int))
+    extractNgramsT :: HasText h => TermType Lang -> h -> Cmd err (Map Ngrams (Map NgramsType Int))
 
+class HasText h
+  where
+    hasText :: h -> [Text]
+
+instance HasText HyperdataContact
+  where
+    hasText = undefined
 
 instance ExtractNgramsT HyperdataContact
   where
@@ -291,46 +346,42 @@ instance ExtractNgramsT HyperdataContact
         
           pure $ Map.fromList $ [(a', Map.singleton Authors     1) | a' <- authors    ]
 
-
-
+instance HasText HyperdataDocument
+  where
+    hasText h = catMaybes [ _hyperdataDocument_title    h
+                          , _hyperdataDocument_abstract h
+                          ]
 
 instance ExtractNgramsT HyperdataDocument
   where
-    extractNgramsT = extractNgramsT'
-
-extractNgramsT' :: TermType Lang -> HyperdataDocument
-               -> Cmd err (Map Ngrams (Map NgramsType Int))
-extractNgramsT' lang hd = filterNgramsT 255 <$> extractNgramsT'' lang hd
-  where
-    extractNgramsT'' :: TermType Lang -> HyperdataDocument
-                   -> Cmd err (Map Ngrams (Map NgramsType Int))
-    extractNgramsT'' lang' doc = do
-      let source    = text2ngrams
-                    $ maybe "Nothing" identity
-                    $ _hyperdataDocument_source doc
-
-          institutes = map text2ngrams
-                     $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))
-                     $ _hyperdataDocument_institutes doc
-
-          authors    = map text2ngrams
-                     $ maybe ["Nothing"] (splitOn ", ")
-                     $ _hyperdataDocument_authors doc
-
-          leText = catMaybes [ _hyperdataDocument_title    doc
-                             , _hyperdataDocument_abstract doc
-                             ]
-
-      terms' <- map text2ngrams
-             <$> map (intercalate " " . _terms_label)
-             <$> concat
-             <$> liftIO (extractTerms lang' leText)
-
-      pure $ Map.fromList $  [(source, Map.singleton Sources 1)]
-                         <> [(i', Map.singleton Institutes  1) | i' <- institutes ]
-                         <> [(a', Map.singleton Authors     1) | a' <- authors    ]
-                         <> [(t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
-
+    extractNgramsT :: TermType Lang -> HyperdataDocument -> Cmd err (Map Ngrams (Map NgramsType Int))
+    extractNgramsT lang hd = filterNgramsT 255 <$> extractNgramsT' lang hd
+      where
+        extractNgramsT' :: TermType Lang -> HyperdataDocument
+                       -> Cmd err (Map Ngrams (Map NgramsType Int))
+        extractNgramsT' lang' doc = do
+          let source    = text2ngrams
+                        $ maybe "Nothing" identity
+                        $ _hyperdataDocument_source doc
+    
+              institutes = map text2ngrams
+                         $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))
+                         $ _hyperdataDocument_institutes doc
+    
+              authors    = map text2ngrams
+                         $ maybe ["Nothing"] (splitOn ", ")
+                         $ _hyperdataDocument_authors doc
+    
+          terms' <- map text2ngrams
+                 <$> map (intercalate " " . _terms_label)
+                 <$> concat
+                 <$> liftIO (extractTerms lang' $ hasText doc)
+    
+          pure $ Map.fromList $  [(source, Map.singleton Sources 1)]
+                             <> [(i', Map.singleton Institutes  1) | i' <- institutes ]
+                             <> [(a', Map.singleton Authors     1) | a' <- authors    ]
+                             <> [(t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
+    
 
 filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
                      -> Map Ngrams (Map NgramsType Int)
@@ -349,9 +400,8 @@ documentIdWithNgrams :: HasNodeError err
 documentIdWithNgrams f = mapM toDocumentIdWithNgrams
   where
     toDocumentIdWithNgrams d = do
-      e <- f $ documentData d
-      pure $ DocumentIdWithNgrams d e
-
+      e <- f $ documentData         d
+      pure   $ DocumentIdWithNgrams d e
 
 
 -- FLOW LIST

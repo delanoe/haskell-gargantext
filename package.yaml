@@ -1,5 +1,5 @@
 name: gargantext
-version: '4.0.0.5'
+version: '4.0.0.6'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -47,6 +47,7 @@ library:
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
+  - Gargantext.Text.Crawlers
   - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
   - Gargantext.Text.Metrics
@@ -102,6 +103,8 @@ library:
   - containers
   - contravariant
   - crawlerPubMed
+  - crawlerIsidore
+  - crawlerHAL
   - data-time-segment
   - deepseq
   - directory
@@ -110,10 +113,12 @@ library:
   - filepath
   - fullstop
   - fclabels
+  - fgl
   - fast-logger
   - filelock
   - full-text-search
   - graphviz
+  - haskell-igraph
   - http-client
   - http-client-tls
   - http-conduit
@@ -153,6 +158,9 @@ library:
   - protolude
   - pureMD5
   - SHA
+  - simple-reflect
+  - cereal     # (IGraph)
+  - singletons # (IGraph)
   - random
   - rake
   - regex-compat

@@ -31,7 +31,7 @@ import Gargantext.Text.Metrics.Count (occurrencesWith)
 import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
 import qualified Data.Map    as Map
-import qualified Data.SVM as SVM
+import qualified Data.SVM    as SVM
 import qualified Data.Vector as Vec
 
 ------------------------------------------------------------------------

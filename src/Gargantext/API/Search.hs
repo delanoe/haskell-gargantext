@@ -72,7 +72,8 @@ instance Arbitrary SearchInQuery where
 
 -----------------------------------------------------------------------
 
-data SearchResults = SearchResults { srs_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]}
+data SearchResults = SearchResults' { srs_resultsP :: [FacetDoc]}
+                   | SearchResults  { srs_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]}
   deriving (Generic)
 $(deriveJSON (unPrefix "srs_") ''SearchResults)
 
@@ -96,6 +97,7 @@ search (SearchQuery q pId) o l order =
 
 searchIn :: NodeId -> SearchInQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err SearchResults
 searchIn nId (SearchInQuery q ) o l order =
-  SearchResults <$> searchInCorpusWithContacts nId q o l order
+  SearchResults' <$> searchInCorpus nId q o l order
+  --SearchResults <$> searchInCorpusWithContacts nId q o l order
 
 

@@ -29,29 +29,26 @@ import GHC.Real (round)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.Distances.Matrice
 import Gargantext.Viz.Graph.Index
+import Gargantext.Core.Statistics (pcaReduceTo, Dimension(..))
 import qualified Data.Array.Accelerate as DAA
 import qualified Data.Array.Accelerate.Interpreter as DAA
 import qualified Data.List as List
 import qualified Data.Map  as Map
 
-import Numeric.Statistics.PCA (pcaReduceN)
 import qualified Data.Vector.Storable as Vec
-import Data.Array.IArray (Array, listArray, elems)
 
 type GraphListSize = Int
 type InclusionSize = Int
 
-
-
 toScored :: Ord t => [Map t (Vec.Vector Double)] -> [Scored t] 
 toScored = map2scored
-         . (reduceTo (Dimension 2))
+         . (pcaReduceTo (Dimension 2))
          . (Map.filter (\v -> Vec.length v > 1))
          . (Map.unionsWith (<>))
 
 
 scored :: Ord t => Map (t,t) Int -> [Scored t]
-scored = map2scored . (reduceTo (Dimension 2)) . scored2map
+scored = map2scored . (pcaReduceTo (Dimension 2)) . scored2map
 
 scored2map :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
 scored2map m = Map.fromList $ map (\(Scored t i s) -> (t, Vec.fromList [i,s])) $ scored' m
@@ -66,20 +63,6 @@ data Scored ts = Scored
   , _scored_speGen :: !SpecificityGenericity
   } deriving (Show)
 
-data Dimension = Dimension Int
-
-reduceTo :: Ord t
-         => Dimension
-         -> Map t (Vec.Vector Double)
-         -> Map t (Vec.Vector Double)
-reduceTo (Dimension d) ss = Map.fromList $ zip txts $ elems $ pcaReduceN ss'' d
-  where
-    ss'' :: Array Int (Vec.Vector Double)
-    ss'' = listArray (1, List.length ss') ss'
-
-    (txts,ss') = List.unzip $ Map.toList ss
-
-
 localMetrics :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
 localMetrics m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [inc,spe]))
                                        (Map.toList fi)
@@ -90,8 +73,6 @@ localMetrics m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [i
     scores   = DAA.toList
              $ DAA.run
              $ DAA.zip (DAA.use is) (DAA.use ss)
-
-
 
 
 -- TODO Code to be remove below
@@ -105,10 +86,6 @@ scored' m = zipWith (\(_,t) (inc,spe) -> Scored t (inc) (spe)) (Map.toList fi) s
     scores   = DAA.toList
              $ DAA.run
              $ DAA.zip (DAA.use is) (DAA.use ss)
-
-
-
-
 
 
 takeScored :: Ord t => GraphListSize -> InclusionSize -> Map (t,t) Int -> [t]
@@ -133,5 +110,4 @@ linearTakes gls incSize speGen incExc = take gls
                       . map (sortOn incExc)
                       . splitEvery incSize
                       . sortOn speGen
-
 

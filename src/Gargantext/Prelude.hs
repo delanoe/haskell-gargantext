@@ -98,18 +98,20 @@ eavg [] = 0
 
 -- Simple Average
 mean :: Fractional a => [a] -> a
-mean xs = if L.null xs then 0.0
-                       else sum xs / fromIntegral (length xs)
+mean xs = sum xs / fromIntegral (length xs)
 
 
 sumMaybe :: Num a => [Maybe a] -> Maybe a
 sumMaybe = fmap sum . M.sequence
 
 variance :: Floating a => [a] -> a
-variance xs = mean $ map (\x -> (x - m) ** 2) xs where
+variance xs = sum ys  / (fromIntegral (length xs) - 1)
+  where
     m = mean xs
+    ys = map (\x -> (x - m) ** 2) xs
 
-deviation :: [Double] -> Double
+
+deviation :: Floating a => [a] -> a
 deviation = sqrt . variance
 
 movingAverage :: (Eq b, Fractional b) => Int -> [b] -> [b]
@@ -242,8 +244,8 @@ scaleMinMax xs = map (\x -> (x - mi / (ma - mi + 1) )) xs'
 scaleNormalize :: [Double] -> [Double]
 scaleNormalize xs = map (\x -> (x - v / (m + 1))) xs'
     where
-        v = variance xs'
-        m = mean     xs'
+        v   = variance  xs'
+        m   = mean      xs'
         xs' = map abs xs
 
 normalize :: [Double] -> [Double]
