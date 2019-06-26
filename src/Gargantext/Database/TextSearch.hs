@@ -32,7 +32,7 @@ import Gargantext.Database.Facet
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNode hiding (joinInCorpus)
-import Gargantext.Database.Schema.NodeNgram
+import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Queries.Join (leftJoin6)
 import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
@@ -101,31 +101,31 @@ searchInCorpusWithContacts' cId q o l order = runOpaQuery $ queryInCorpusWithCon
 
 queryInCorpusWithContacts :: CorpusId -> Text -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> O.Query FacetPairedRead
 queryInCorpusWithContacts cId q _ _ _ = proc () -> do
-  (docs, (corpusDoc, (docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
+  (docs, (corpusDoc, (_docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
   restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
   restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
   restrict -< (nn_node1_id corpusDoc) .== (toNullable $ pgNodeId cId)
-  restrict -< (nng_listType docNgrams)      .== (toNullable $ pgNgramsType Authors)
+  -- restrict -< (nng_listType docNgrams)      .== (toNullable $ pgNgramsType Authors)
   restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
   returnA  -< FacetPaired (_ns_id docs) (_ns_date docs) (_ns_hyperdata docs) (pgInt4 0) (Pair (_node_id contacts) (ngrams_terms ngrams'))
 
-joinInCorpusWithContacts :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))))
-joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
+joinInCorpusWithContacts :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))))
+joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNodeNgramsTable queryNgramsTable queryNodeNodeNgramsTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
     where
-         cond12 :: (NodeNgramRead, NodeRead) -> Column PGBool
-         cond12 (ng3, n2) = _node_id n2 .== nng_node_id ng3
+         cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column PGBool
+         cond12 (ng3, n2) = _node_id n2 .== nnng_node1_id ng3
 ---------
-         cond23 :: (NgramsRead, (NodeNgramRead, NodeReadNull)) -> Column PGBool
-         cond23 (ng2, (nng2, _)) = nng_ngrams_id nng2 .== ngrams_id ng2
+         cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
+         cond23 (ng2, (nnng2, _)) = nnng_ngrams_id nnng2 .== ngrams_id ng2
          
-         cond34 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nng, (ng, (_,_))) = ngrams_id ng .== nng_ngrams_id nng
+         cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column PGBool
+         cond34 (nng, (ng, (_,_))) = ngrams_id ng .== nnng_ngrams_id nng
          
-         cond45 :: (NodeNodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (nn, (nng, (_,(_,_)))) = nng_node_id nng .== nn_node2_id nn
+         cond45 :: (NodeNodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column PGBool
+         cond45 (nn, (nng, (_,(_,_)))) = nnng_node1_id nng .== nn_node2_id nn
          
-         cond56 :: (NodeSearchRead, (NodeNodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull))))) -> Column PGBool
+         cond56 :: (NodeSearchRead, (NodeNodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))) -> Column PGBool
          cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nn_node2_id nn
 
 
