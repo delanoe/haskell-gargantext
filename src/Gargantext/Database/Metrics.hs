@@ -31,16 +31,16 @@ import Gargantext.Database.Types.Node (ListId, CorpusId{-, HyperdataCorpus-})
 --import Gargantext.Database.Flow (getOrMkRootWithCorpus)
 import Gargantext.Database.Config (userMaster)
 import Gargantext.Prelude
-import Gargantext.Text.Metrics (scored, Scored(..), localMetrics{-, toScored-})
+import Gargantext.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import qualified Data.Map    as Map
-import qualified Data.Vector.Storable as Vec
+--import qualified Data.Vector.Storable as Vec
 
 
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
 getMetrics cId maybeListId tabType maybeLimit = do
-  (ngs, _, myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit 
+  (ngs, _, myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit
   pure (ngs, scored myCooc)
 
 
@@ -59,7 +59,6 @@ getMetrics cId maybeListId tabType maybeLimit = do
   metrics' <- getTficfWith cId masterCorpusId (lIds <> [lId]) (ngramsTypeFromTabType tabType) ngs'
 
   pure (ngs , toScored [metrics, Map.fromList $ map (\(a,b) -> (a, Vec.fromList [fst b])) $ Map.toList metrics'])
--}
 
 getLocalMetrics  :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
@@ -70,6 +69,7 @@ getLocalMetrics  :: (FlowCmdM env err m)
 getLocalMetrics cId maybeListId tabType maybeLimit = do
   (ngs, ngs', myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit 
   pure (ngs, ngs', localMetrics myCooc)
+-}
 
 
 getNgramsCooc :: (FlowCmdM env err m)

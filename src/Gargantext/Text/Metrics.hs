@@ -22,7 +22,7 @@ module Gargantext.Text.Metrics
 --import Math.KMeans (kmeans, euclidSq, elements)
 
 --import GHC.Float (exp)
-
+import Data.Tuple.Extra (both)
 import Data.Map (Map)
 import Data.List.Extra (sortOn)
 import GHC.Real (round)
@@ -40,21 +40,22 @@ import qualified Data.Vector.Storable as Vec
 type GraphListSize = Int
 type InclusionSize = Int
 
-toScored :: Ord t => [Map t (Vec.Vector Double)] -> [Scored t] 
-toScored = map2scored
+{-
+toScored' :: Ord t => [Map t (Vec.Vector Double)] -> [Scored t] 
+toScored' = map2scored
          . (pcaReduceTo (Dimension 2))
          . (Map.filter (\v -> Vec.length v > 1))
          . (Map.unionsWith (<>))
-
+-}
 
 scored :: Ord t => Map (t,t) Int -> [Scored t]
 scored = map2scored . (pcaReduceTo (Dimension 2)) . scored2map
+  where
+    scored2map :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
+    scored2map m = Map.fromList $ map (\(Scored t i s) -> (t, Vec.fromList [i,s])) $ scored' m
 
-scored2map :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
-scored2map m = Map.fromList $ map (\(Scored t i s) -> (t, Vec.fromList [i,s])) $ scored' m
-
-map2scored :: Ord t => Map t (Vec.Vector Double) -> [Scored t]
-map2scored = map (\(t, ds) -> Scored t (Vec.head ds) (Vec.last ds)) . Map.toList
+    map2scored :: Ord t => Map t (Vec.Vector Double) -> [Scored t]
+    map2scored = map (\(t, ds) -> Scored t (Vec.head ds) (Vec.last ds)) . Map.toList
 
 -- TODO change type with (x,y)
 data Scored ts = Scored
@@ -63,8 +64,8 @@ data Scored ts = Scored
   , _scored_speGen :: !SpecificityGenericity
   } deriving (Show)
 
-localMetrics :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
-localMetrics m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [inc,spe]))
+localMetrics' :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
+localMetrics' m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [inc,spe]))
                                        (Map.toList fi)
                                        scores
   where
@@ -88,8 +89,8 @@ scored' m = zipWith (\(_,t) (inc,spe) -> Scored t (inc) (spe)) (Map.toList fi) s
              $ DAA.zip (DAA.use is) (DAA.use ss)
 
 
-takeScored :: Ord t => GraphListSize -> InclusionSize -> Map (t,t) Int -> [t]
-takeScored listSize incSize = map _scored_terms
+takeScored :: Ord t => GraphListSize -> InclusionSize -> Map (t,t) Int -> ([t],[t])
+takeScored listSize incSize = both (map _scored_terms)
                             . linearTakes listSize incSize _scored_speGen
                                                            _scored_incExc
                             . scored
@@ -100,8 +101,8 @@ takeScored listSize incSize = map _scored_terms
 -- [(3,8),(6,5)]
 linearTakes :: (Ord b1, Ord b2)
             => GraphListSize -> InclusionSize
-            -> (a -> b2) -> (a -> b1) -> [a] -> [a]
-linearTakes gls incSize speGen incExc = take gls
+            -> (a -> b2) -> (a -> b1) -> [a] -> ([a],[a])
+linearTakes gls incSize speGen incExc = (List.splitAt gls)
                       . List.concat
                       . map (take $ round
                                   $ (fromIntegral gls     :: Double)
