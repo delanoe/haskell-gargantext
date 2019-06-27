@@ -51,7 +51,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
-import Gargantext.API.Search ( SearchAPI, searchIn, SearchInQuery)
+import Gargantext.API.Search (SearchDocsAPI, searchDocs)
 import Gargantext.API.Types
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
@@ -130,15 +130,10 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "table"     :> TableApi
              :<|> "ngrams"    :> TableNgramsApi
              :<|> "pairing"   :> PairingApi
-             
+
              :<|> "favorites" :> FavApi
              :<|> "documents" :> DocsApi
-             :<|> "search":> Summary "Node Search"
-                        :> ReqBody '[JSON] SearchInQuery
-                        :> QueryParam "offset" Int
-                        :> QueryParam "limit"  Int
-                        :> QueryParam "order"  OrderBy
-                        :> SearchAPI
+             :<|> "search"    :> SearchDocsAPI
 
              -- VIZ
              :<|> "metrics" :> ScatterAPI
@@ -182,8 +177,7 @@ nodeAPI p uId id
            
            :<|> favApi   id
            :<|> delDocs  id
-           :<|> searchIn id
-           
+           :<|> searchDocs id
            :<|> getScatter id
            :<|> getChart id
            :<|> getPie   id

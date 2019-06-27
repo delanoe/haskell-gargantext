@@ -73,11 +73,10 @@ import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
-import Gargantext.API.Search ( SearchAPI, search, SearchQuery)
+import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Types
 import qualified Gargantext.API.Corpus.New as New
 import Gargantext.Core.Types (HasInvalidError(..))
-import Gargantext.Database.Facet
 import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
 import Gargantext.Database.Tree (HasTreeError(..), TreeError)
 import Gargantext.Database.Types.Node
@@ -263,12 +262,7 @@ type GargAPI' =
                         :> ReqBody '[JSON] Query :> CountAPI
            
            -- Corpus endpoint --> TODO rename s/search/filter/g
-           :<|> "search":> Summary "Search endpoint"
-                        :> ReqBody '[JSON] SearchQuery 
-                        :> QueryParam "offset" Int
-                        :> QueryParam "limit"  Int
-                        :> QueryParam "order"  OrderBy
-                        :> SearchAPI
+           :<|> "search":> Capture "corpus" NodeId :> SearchPairsAPI
 
            -- TODO move to NodeAPI?
            :<|> "graph" :> Summary "Graph endpoint"
@@ -320,7 +314,7 @@ serverGargAPI -- orchestrator
      :<|> apiNgramsTableDoc
      :<|> nodesAPI
      :<|> count -- TODO: undefined
-     :<|> search
+     :<|> searchPairs -- TODO: move elsewhere
      :<|> graphAPI -- TODO: mock
      :<|> treeAPI
      :<|> New.api
