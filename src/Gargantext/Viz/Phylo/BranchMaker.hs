@@ -19,13 +19,14 @@ module Gargantext.Viz.Phylo.BranchMaker
 
 import Control.Parallel.Strategies
 import Control.Lens     hiding (both, Level)
-import Data.List        (concat,nub,(++),tail,sortOn,take,reverse,sort,null,intersect,union,delete)
+import Data.List        (concat,nub,(++),sortOn,reverse,sort,null,intersect,union,delete)
 import Data.Map         (Map,(!), fromListWith, elems)
 import Data.Tuple       (fst, snd)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Metrics.Clustering
-import Gargantext.Viz.Phylo.Aggregates.Cooc
+import Gargantext.Viz.Phylo.Cluster
+import Gargantext.Viz.Phylo.Aggregates
+import Gargantext.Viz.Phylo.Metrics
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.LinkMaker
 

@@ -29,19 +29,16 @@ TODO:
 module Gargantext.Viz.Phylo.Example where
 
 import Data.GraphViz.Types.Generalised (DotGraph)
-import Data.Text (Text)
-import Data.List        ((++), last)
+import Data.Text (Text, toLower)
+import Data.List        ((++))
 import Data.Map         (Map,empty)
 import Data.Tuple       (fst)
-import Data.Tuple.Extra
 import Data.Vector      (Vector)
 import Gargantext.Prelude
 import Gargantext.Text.Context (TermList)
 import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Aggregates.Cluster
-import Gargantext.Viz.Phylo.Aggregates.Document
-import Gargantext.Viz.Phylo.Aggregates.Cooc
-import Gargantext.Viz.Phylo.Aggregates.Fis
+import Gargantext.Viz.Phylo.Cluster
+import Gargantext.Viz.Phylo.Aggregates
 import Gargantext.Viz.Phylo.BranchMaker
 import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.LinkMaker
@@ -78,7 +75,7 @@ queryViewEx = "level=3"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
+phyloQueryView = PhyloQueryView 2 Merge False 2 [BranchAge] [] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
 
 
 --------------------------------------------------
@@ -87,7 +84,7 @@ phyloQueryView = PhyloQueryView 2 Merge False 1 [BranchAge] [] [BranchPeakFreq,G
 
 
 phyloFromQuery :: Phylo
-phyloFromQuery = toPhylo (queryParser queryEx) corpus actants termList empty
+phyloFromQuery = toPhylo phyloQueryBuild docs termList empty
 
 -- | To do : create a request handler and a query parser
 queryParser :: [Char] -> PhyloQueryBuild
@@ -105,7 +102,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQueryBuild :: PhyloQueryBuild
 phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             5 3 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.6 20) 5 0.8 0.5 4 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.4 0) 
+             3 1 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.6 20) 5 0.8 0.5 4 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.4 0) 
 
 
 
@@ -155,7 +152,7 @@ phylo2 = addPhyloLevel 2 phyloCluster phyloBranch1
 
 
 phyloCluster :: Map (Date,Date) [PhyloCluster]
-phyloCluster = phyloToClusters 3 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.05 10) phyloBranch1
+phyloCluster = phyloToClusters 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.05 10) phyloBranch1
 
 
 ----------------------------------
@@ -186,30 +183,27 @@ phylo1_p = interTempoMatching Ascendant 1 defaultWeightedLogJaccard phylo1_0_1
 
 
 phylo1_0_1 :: Phylo
-phylo1_0_1 = setLevelLinks (0,1) phylo1_1_0
+phylo1_0_1 = setLevelLinks (0,1) phylo1
 
 
-phylo1_1_0 :: Phylo
-phylo1_1_0 = setLevelLinks (1,0) phylo1
+-- phylo1_1_0 :: Phylo
+-- phylo1_1_0 = setLevelLinks (1,0) phylo1
 
 
 phylo1 :: Phylo
-phylo1 =  addPhyloLevel (1) phyloFis phylo
+phylo1 =  addPhyloLevel (1) phyloFis phylo'
 
 
 -------------------------------------------------------------------
 -- | STEP 5 | -- Create lists of Frequent Items Set and filter them
 -------------------------------------------------------------------
 
-
 phyloFis :: Map (Date, Date) [PhyloFis]
-phyloFis = filterFis True 1 (filterFisByClique) 
-         $ filterFisByNested 
-         $ filterFis True 1 (filterFisBySupport) (getPhyloFis phylo')
+phyloFis = refineFis (getPhyloFis phylo') True 1 1
 
 
 phylo' :: Phylo 
-phylo' = docsToFis' phyloDocs phylo
+phylo' = docsToFis phyloDocs phylo
 
 ----------------------------------------
 -- | STEP 2 | -- Init a Phylo of level 0
@@ -221,7 +215,7 @@ phylo = addPhyloLevel 0 phyloDocs phyloBase
 
 
 phyloDocs :: Map (Date, Date) [Document]
-phyloDocs = corpusToDocs corpus phyloBase
+phyloDocs = groupDocsByPeriod date (getPhyloPeriods phyloBase) docs
 
 
 ------------------------------------------------------------------------
@@ -229,32 +223,25 @@ phyloDocs = corpusToDocs corpus phyloBase
 ------------------------------------------------------------------------
 
 
-phyloBase :: Phylo
-phyloBase = initPhyloBase periods (PhyloFoundations foundationsRoots termList) nbDocs cooc empty defaultPhyloParam
+phyloBase :: Phylo 
+phyloBase = toPhyloBase phyloQueryBuild phyloParam docs termList empty
 
-cooc :: Map Date (Map (Int,Int) Double)
-cooc = docsToCooc (parseDocs foundationsRoots corpus) foundationsRoots
+phyloParam :: PhyloParam
+phyloParam = (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just phyloQueryBuild))
 
-nbDocs :: Map Date Double
-nbDocs = countDocs corpus
-
-periods :: [(Date,Date)]
-periods = initPeriods 5 3
-        $ both fst (head' "Example" corpus,last corpus)
+docs :: [Document]
+docs = parseDocs foundationsRoots corpus
 
 foundationsRoots :: Vector Ngrams
-foundationsRoots = initFoundationsRoots actants
+foundationsRoots = initFoundationsRoots (termListToNgrams termList)
 
 
 --------------------------------------------
 -- | STEP 0 | -- Let's start with an example
 --------------------------------------------
 
-
--- this is a comment 
-
 termList :: TermList
-termList = []
+termList = map (\a -> ([toLower a],[])) actants
 
 actants :: [Ngrams]
 actants = [ "Cleopatre"   , "Ptolemee", "Ptolemee-XIII", "Ptolemee-XIV"

@@ -18,17 +18,17 @@ module Gargantext.Viz.Phylo.View.Taggers
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-import Data.List        (concat,nub,groupBy,sortOn,sort)
+import Data.List        (concat,nub,groupBy,sortOn,sort, (!!), take)
 import Data.Text        (Text)
 import Data.Tuple       (fst, snd)
 import Data.Vector      (Vector)
-import Data.Map         (Map)
+import Data.Map         (Map, (!))
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.BranchMaker
 import qualified Data.Map    as Map
--- import Debug.Trace (trace)
+import Debug.Trace (trace)
 
 
 -- | To get the nth most frequent Ngrams in a list of PhyloGroups
@@ -82,14 +82,20 @@ branchPeakCooc v nth p = foldl (\v' (id,lbl) -> alterBranchPeak (id,lbl) v') v
                        $ getNodesByBranches v
 
 
+getNthMostMeta :: Int -> Text -> PhyloGroup -> [Int]
+getNthMostMeta nth meta g = map (\(idx,_) -> (getGroupNgrams g !! idx))
+                          $ take nth
+                          $ sortOn snd $ zip [0..]
+                          $ (g ^. phylo_groupNgramsMeta) ! meta 
+
+
 -- | To set the label of a PhyloNode as the nth most coocurent terms of its PhyloNodes
 nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
 nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
-                             (\n -> let lbl = ngramsToLabel (getFoundationsRoots p)
-                                            $ mostOccNgrams thr
-                                            $ head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
-                                    in n & pn_label .~ lbl) v
+                             (\n -> let g = head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
+                                        lbl' = ngramsToLabel (getFoundationsRoots p) $ getNthMostMeta thr "coverage" g
+                                    in trace (show (lbl')) $ n & pn_label .~ lbl') v
 
 
 -- | To process a sorted list of Taggers to a PhyloView

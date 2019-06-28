@@ -19,13 +19,13 @@ module Gargantext.Viz.Phylo.LinkMaker
 
 import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, delete, intersect, nub, groupBy, union, inits, scanl, find)
+import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, delete, intersect, groupBy, union, inits, scanl, find)
 import Data.Tuple.Extra
 import Data.Map                     (Map,(!),fromListWith,elems,restrictKeys,unionWith,member)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.Metrics.Proximity
+import Gargantext.Viz.Phylo.Metrics
 import qualified Data.List  as List
 import qualified Data.Maybe as Maybe
 import qualified Data.Map as Map
