@@ -878,13 +878,27 @@ defaultWeightedLogJaccard :: Proximity
 defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing Nothing)
 
 -- Queries
+type Title = Text
+type Desc  = Text
 
 defaultQueryBuild :: PhyloQueryBuild
-defaultQueryBuild = initPhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defaultQueryBuild = defaultQueryBuild'
+  "Cesar et Cleôpatre"
+  "An example of Phylomemy (french without accent)"
+
+defaultQueryBuild' :: Title -> Desc -> PhyloQueryBuild
+defaultQueryBuild' t d = initPhyloQueryBuild t d
+                              Nothing Nothing Nothing
+                              Nothing Nothing Nothing
+                              Nothing Nothing Nothing
+                              Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
-defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defaultQueryView = initPhyloQueryView
+    Nothing Nothing Nothing
+    Nothing Nothing Nothing
+    Nothing Nothing Nothing
+    Nothing Nothing
 
 -- Software
 

@@ -49,6 +49,20 @@ getListNgrams nodeIds ngramsType = do
 
   pure ngrams
 
+getTermsWith :: RepoCmdM env err m
+          => [ListId]
+          -> NgramsType -> ListType
+          -> m (Map Text [Text])
+getTermsWith ls ngt lt = Map.fromListWith (<>)
+                      <$> map toTree
+                      <$> Map.toList
+                      <$> Map.filter (\f -> (fst f) == lt)
+                      <$> mapTermListRoot ls ngt
+  where
+    toTree (t, (_lt, maybeRoot)) = case maybeRoot of
+      Nothing -> (t, [])
+      Just  r -> (r, [t])
+
 mapTermListRoot :: RepoCmdM env err m
                => [ListId] -> NgramsType
                -> m (Map Text (ListType, (Maybe Text)))

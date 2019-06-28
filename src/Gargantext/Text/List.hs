@@ -99,10 +99,10 @@ buildNgramsTermsList' uCid groupIt stop gls is = do
     (maps, candidates') = takeScored gls is
                         $ getCoocByNgrams' snd (Diagonal True)
                         $ Map.fromList candidates
-    
-    
+
+
     toList' t = (fst t, (fromIntegral $ Set.size $ snd $ snd t, fst $ snd t))
-  
+
     (s,c,m) = (stops
        , List.filter (\(k,_) -> List.elem k candidates') candidates
        , List.filter (\(k,_) -> List.elem k maps) candidates
@@ -116,7 +116,7 @@ buildNgramsTermsList' uCid groupIt stop gls is = do
 
   pure $ Map.fromList [(NgramsTerms, ngs')]
 
-  
+
 buildNgramsTermsList :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
