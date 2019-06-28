@@ -153,19 +153,6 @@ toPhyloView q p = traceView
 
 
 
--- | To get the PhyloParam of a Phylo
-getPhyloParams :: Phylo -> PhyloParam
-getPhyloParams = _phylo_param
-
--- | To get the title of a Phylo
-getPhyloTitle :: Phylo -> Text
-getPhyloTitle p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
-
--- | To get the desc of a Phylo
-getPhyloDescription :: Phylo -> Text
-getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
-
-
 -----------------
 -- | Taggers | --
 -----------------

@@ -26,6 +26,7 @@ module Gargantext.Viz.Phylo.API
 
 --import Control.Monad.Reader (ask)
 import Data.Text (Text)
+import Data.Map  (empty)
 import Data.Swagger
 import Gargantext.API.Types
 import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
@@ -104,7 +105,7 @@ postPhylo _n _lId q = do
     vrs = Just ("1" :: Text)
     sft = Just (Software "Gargantext" "4")
     prm = initPhyloParam vrs sft (Just q)
-  pure (toPhyloBase q prm corpus actants termList)
+  pure (toPhyloBase q prm corpus actants termList empty)
 
 
 ------------------------------------------------------------------------
@@ -139,6 +140,7 @@ instance ToSchema LouvainParams
 instance ToSchema Metric
 instance ToSchema Order
 instance ToSchema Phylo
+instance ToSchema PhyloFis
 instance ToSchema PhyloBranch
 instance ToSchema PhyloEdge
 instance ToSchema PhyloGroup

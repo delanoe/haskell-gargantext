@@ -22,8 +22,11 @@ Phylo binaries
 
 module Main where
 
+import System.Directory (doesFileExist) 
+
 import Data.Aeson
 import Data.Text (Text, unwords)
+import Data.List ((++))
 import GHC.Generics
 import GHC.IO (FilePath)
 import Gargantext.Prelude
@@ -42,11 +45,8 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.View.ViewMaker
 
-
 import Gargantext.Database.Types.Node
-
 import Data.Maybe
-
 
 import qualified Data.Map    as DM
 import qualified Data.Vector as DV
@@ -62,6 +62,7 @@ import qualified Data.ByteString.Lazy as L
 
 
 type ListPath   = FilePath
+type FisPath    = FilePath
 type CorpusPath = FilePath
 data CorpusType = Wos | Csv deriving (Show,Generic) 
 type Limit = Int
@@ -70,13 +71,18 @@ data Conf =
      Conf { corpusPath  :: CorpusPath
           , corpusType  :: CorpusType
           , listPath    :: ListPath
+          , fisPath     :: FilePath
           , outputPath  :: FilePath
           , phyloName   :: Text
           , limit       :: Limit
           , timeGrain   :: Int
           , timeStep    :: Int
+          , timeFrame   :: Int
+          , timeFrameTh :: Double          
           , timeTh      :: Double
           , timeSens    :: Double
+          , reBranchThr :: Double
+          , reBranchNth :: Int
           , clusterTh   :: Double
           , clusterSens :: Double
           , phyloLevel  :: Int
@@ -91,6 +97,11 @@ instance ToJSON Conf
 
 instance FromJSON CorpusType
 instance ToJSON CorpusType
+
+
+decoder :: P.Either a b -> b
+decoder (P.Left _) = P.error "Error"
+decoder (P.Right x) = x
 
 -- | Get the conf from a Json file
 getJson :: FilePath -> IO L.ByteString
@@ -115,7 +126,9 @@ filterTerms patterns (y,d) = (y,termsInText patterns d)
 -- | To transform a Csv nfile into a readable corpus
 csvToCorpus :: Limit -> CorpusPath -> IO ([(Int,Text)])
 csvToCorpus limit csv = DV.toList
+                      -- . DV.reverse
                       . DV.take limit
+                      -- . DV.reverse
                       . DV.map (\n -> (csv_publication_year n, (csv_title n) <> " " <> (csv_abstract n)))
                       . snd <$> CSV.readFile csv
 
@@ -146,6 +159,25 @@ parse format limit path l = do
   pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus
 
 
+-- | To parse an existing Fis file
+parseFis :: FisPath -> Text -> Int -> Int -> Int -> Int -> IO [PhyloFis]
+parseFis path name grain step support clique = do
+  fisExists <- doesFileExist (path <> (DT.unpack name) <> "_" <> show(grain) <> "_" <> show(step) <> "_" <> show(support) <> "_" <> show(clique) <> ".json")
+  if fisExists 
+    then do 
+      fisJson <- (eitherDecode <$> getJson (path <> (DT.unpack name) <> "_" <> show(grain) <> "_" <> show(step) <> "_" <> show(support) <> "_" <> show(clique) <> ".json")) :: IO (P.Either P.String [PhyloFis])
+      case fisJson of 
+        P.Left err -> do 
+                       putStrLn err
+                       pure []
+        P.Right fis -> pure fis
+    else pure []
+
+writeFis :: FisPath -> Text -> Int -> Int -> Int -> Int -> DM.Map (Date,Date) [PhyloFis] -> IO ()
+writeFis path name grain step support clique fis = do 
+  let fisPath = path <> (DT.unpack name) <> "_" <> show(grain) <> "_" <> show(step) <> "_" <> show(support) <> "_" <> show(clique) <> ".json"
+  L.writeFile fisPath $ encode (DL.concat $ DM.elems fis)
+
 --------------
 -- | Main | --
 --------------
@@ -166,17 +198,28 @@ main = do
 
       corpus <- parse (corpusType conf) (limit conf) (corpusPath conf) termList
 
+      putStrLn $ ("\n" <> show (length corpus) <> " parsed docs")
+
       let roots = DL.nub $ DL.concat $ map text corpus
 
-      putStrLn $ ("\n" <> show (length corpus) <> " parsed docs")
+      putStrLn $ ("\n" <> show (length roots) <> " parsed foundation roots")      
+
+      fis <- parseFis (fisPath conf) (phyloName conf) (timeGrain conf) (timeStep conf) (fisSupport conf) (fisClique conf)
+
+      putStrLn $ ("\n" <> show (length fis) <> " parsed fis")
+
+      let mFis  = DM.fromListWith (++) $ DL.sortOn (fst . fst) $ map (\f -> (getFisPeriod f,[f])) fis    
       
       let query = PhyloQueryBuild (phyloName conf) "" (timeGrain conf) (timeStep conf) 
-                  (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (phyloLevel conf)
+                  (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (timeFrame conf) (timeFrameTh conf) 
+                  (reBranchThr conf) (reBranchNth conf) (phyloLevel conf)
                   (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams (clusterTh conf) (clusterSens conf))
 
       let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [SizeBranch $ SBParams (minSizeBranch conf)] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
 
-      let phylo = toPhylo query corpus roots termList
+      let phylo = toPhylo query corpus roots termList mFis
+
+      writeFis (fisPath conf) (phyloName conf) (timeGrain conf) (timeStep conf) (fisSupport conf) (fisClique conf) (getPhyloFis phylo)
 
       let view  = toPhyloView queryView phylo
 

@@ -71,7 +71,7 @@ filterSizeBranch min' v = cleanNodesEdges v v'
   where
     --------------------------------------
     v' :: PhyloView
-    v' = v & pv_branches %~ (filter (\b -> (length $ filter (\n -> (getBranchId b)  == (getNodeBranchId n)) $ getNodesInBranches v) > min'))
+    v' = v & pv_branches %~ (filter (\b -> (length $ filter (\n -> (getBranchId b)  == (getNodeBranchId n)) $ getNodesInBranches v) >= min'))
     --------------------------------------
 
 

@@ -17,15 +17,15 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.LinkMaker
   where
 
+import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, sort, delete, intersect)
+import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, delete, intersect, nub, groupBy, union, inits, scanl, find)
 import Data.Tuple.Extra
-import Data.Map                     (Map,(!),fromListWith)
+import Data.Map                     (Map,(!),fromListWith,elems,restrictKeys,unionWith,member)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.Metrics.Proximity
-import Gargantext.Viz.Phylo.Aggregates.Cooc
 import qualified Data.List  as List
 import qualified Data.Maybe as Maybe
 import qualified Data.Map as Map
@@ -34,71 +34,40 @@ import qualified Data.Vector.Storable as VS
 import Debug.Trace (trace)
 import Numeric.Statistics (percentile)
 
-
-------------------------------------------------------------------------
--- | Make links from Level to Level
-
-
--- | To choose a LevelLink strategy based an a given Level
-shouldLink :: (Level,Level) -> PhyloGroup -> PhyloGroup -> Bool
-shouldLink (lvl,_lvl) g g'
-  | lvl <= 1  = doesContainsOrd (getGroupNgrams g) (getGroupNgrams g')
-  | lvl >  1  = elem (getGroupId g) (getGroupLevelChildsId g')
-  | otherwise = panic ("[ERR][Viz.Phylo.LinkMaker.shouldLink] Level not defined")
+-----------------------------
+-- | From Level to level | --
+-----------------------------
 
 
 -- | To set the LevelLinks between a given PhyloGroup and a list of childs/parents PhyloGroups
-linkGroupToGroups :: (Level,Level) -> PhyloGroup -> [PhyloGroup] -> PhyloGroup
-linkGroupToGroups (lvl,lvl') current targets
-  | lvl < lvl' = setLevelParents current
-  | lvl > lvl' = setLevelChilds current
-  | otherwise = current
+linkGroupToGroups :: PhyloGroup -> [PhyloGroup] -> PhyloGroup
+linkGroupToGroups current targets = over (phylo_groupLevelParents) addPointers current
   where
-    --------------------------------------
-    setLevelChilds :: PhyloGroup -> PhyloGroup
-    setLevelChilds =  over (phylo_groupLevelChilds) addPointers
-    --------------------------------------
-    setLevelParents :: PhyloGroup -> PhyloGroup
-    setLevelParents =  over (phylo_groupLevelParents) addPointers
     --------------------------------------
     addPointers :: [Pointer] -> [Pointer]
     addPointers lp = lp ++ Maybe.mapMaybe (\target ->
-                                            if shouldLink (lvl,lvl') current target
+                                            if (elem (getGroupId current) (getGroupLevelChildsId target))
                                             then Just ((getGroupId target),1)
                                             else Nothing) targets
     --------------------------------------
 
 
--- | To set the LevelLink of all the PhyloGroups of a Phylo
 setLevelLinks :: (Level,Level) -> Phylo -> Phylo
-setLevelLinks (lvl,lvl') p = alterPhyloGroups (\gs -> map (\g -> if getGroupLevel g == lvl
-                                                                  then linkGroupToGroups (lvl,lvl') g (filterCandidates g 
-                                                                                                       $ filter (\g' -> getGroupPeriod g' == getGroupPeriod g) gs')
-                                                                  else g) gs) p
-  where
-    --------------------------------------
-    gs' :: [PhyloGroup]
-    gs' = getGroupsWithLevel lvl' p
-    --------------------------------------
+setLevelLinks (lvl,lvl') p = alterGroupWithLevel (\group -> linkGroupToGroups group
+                                                           $ filter (\g' -> (not . null) $ intersect (getGroupNgrams group) (getGroupNgrams g'))
+                                                           $ getGroupsWithFilters lvl' (getGroupPeriod group) p) lvl p
 
 
-------------------------------------------------------------------------
--- | Make links from Period to Period
-
-
--- | To apply the corresponding proximity function based on a given Proximity
-applyProximity :: Proximity -> PhyloGroup -> PhyloGroup -> Map (Int, Int) Double -> (PhyloGroupId, Double)
-applyProximity prox g1 g2 cooc = case prox of
-  WeightedLogJaccard (WLJParams _ s) -> ((getGroupId g2), weightedLogJaccard s (getSubCooc (getGroupNgrams g1) cooc) (getSubCooc (getGroupNgrams g2) cooc))
-  Hamming (HammingParams _)          -> ((getGroupId g2), hamming (getSubCooc (getGroupNgrams g1) cooc) (getSubCooc (getGroupNgrams g2) cooc))
-  _                                  -> panic ("[ERR][Viz.Phylo.Example.applyProximity] Proximity function not defined")
+-------------------------------
+-- | From Period to Period | --
+-------------------------------
 
 
 -- | To get the next or previous PhyloPeriod based on a given PhyloPeriodId
-getNextPeriods :: Filiation -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
-getNextPeriods to' id l = case to' of
-    Descendant -> (tail . snd) next
-    Ascendant  -> (reverse . fst) next
+getNextPeriods :: Filiation -> Int -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
+getNextPeriods to' limit id l = case to' of
+    Descendant -> take limit $ (tail . snd) next
+    Ascendant  -> take limit $ (reverse . fst) next
     _          -> panic ("[ERR][Viz.Phylo.Example.getNextPeriods] Filiation type not defined")
     where
       --------------------------------------
@@ -112,35 +81,76 @@ getNextPeriods to' id l = case to' of
       --------------------------------------
 
 
--- | To find the best candidates regarding a given proximity
-findBestCandidates' :: Filiation -> Int -> Int -> Proximity -> [PhyloPeriodId] -> [PhyloGroup] -> PhyloGroup -> Phylo -> ([Pointer],[Double])
-findBestCandidates' fil depth limit prox prds gs g p
-  | depth > limit || null next = ([],[])
-  | (not . null) bestScores    = (take 2 bestScores, map snd scores)
-  | otherwise                  = findBestCandidates' fil (depth + 1) limit prox prds gs g p
+-- | To get the number of docs produced during a list of periods
+periodsToNbDocs :: [PhyloPeriodId] -> Phylo -> Double
+periodsToNbDocs prds phylo = sum $ elems 
+                           $ restrictKeys (phylo ^. phylo_docsByYears)
+                           $ periodsToYears prds 
+
+
+-- | To process a given Proximity
+processProximity :: Proximity -> Double -> Map (Int, Int) Double -> Map (Int, Int) Double -> [Int] -> [Int] -> Double
+processProximity proximity nbDocs cooc cooc' ngrams ngrams' = case proximity of 
+  WeightedLogJaccard (WLJParams _ sens) -> weightedLogJaccard sens nbDocs cooc cooc' ngrams ngrams'
+  Hamming (HammingParams _)             -> hamming cooc cooc'
+  _                                     -> panic "[ERR][Viz.Phylo.LinkMaker.processProximity] Unknown proximity"
+
+
+filterProximity :: Double -> Proximity -> Bool
+filterProximity score prox =  case prox of
+  WeightedLogJaccard (WLJParams thr _)   -> score >= thr
+  Hamming (HammingParams thr)            -> score <= thr
+  _                                      -> panic "[ERR][Viz.Phylo.LinkMaker.filterProximity] Unknown proximity"
+
+
+makePairs :: [(Date,Date)] -> PhyloGroup -> Phylo -> [(PhyloGroup,PhyloGroup)]
+makePairs prds g p = filter (\pair -> ((last' "makePairs" prds) == (getGroupPeriod $ fst pair))
+                                    || ((last' "makePairs" prds) == (getGroupPeriod $ snd pair)))
+                    $ listToPairs
+                    $ filter (\g' -> (elem (getGroupPeriod g') prds)
+                                 && ((not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g'))
+                                 && (((last' "makePairs" prds) == (getGroupPeriod g))
+                                     ||((matchWithPairs g (g,g') p) >= (getPhyloMatchingFrameTh p))))
+                    $ getGroupsWithLevel (getGroupLevel g) p 
+
+matchWithPairs :: PhyloGroup -> (PhyloGroup,PhyloGroup) -> Phylo -> Double
+matchWithPairs g1 (g2,g3) p = 
+  let nbDocs = periodsToNbDocs [(getGroupPeriod g1),(getGroupPeriod g2),(getGroupPeriod g3)] p
+      cooc   = if (g2 == g3)
+                then getGroupCooc g2
+                else unionWith (+) (getGroupCooc g2) (getGroupCooc g3)
+      ngrams = if (g2 == g3)
+                then getGroupNgrams g2
+                else union (getGroupNgrams g2) (getGroupNgrams g3)
+  in processProximity (getPhyloProximity p) nbDocs (getGroupCooc g1) cooc (getGroupNgrams g1) ngrams  
+
+
+phyloGroupMatching :: [PhyloPeriodId] -> PhyloGroup -> Phylo -> [Pointer]
+phyloGroupMatching periods g p = case pointers of
+  Nothing  -> []
+  Just pts -> head' "phyloGroupMatching"  
+            -- | Keep only the best set of pointers grouped by proximity
+            $ groupBy (\pt pt' -> snd pt == snd pt') 
+            $ reverse $ sortOn snd pts
+            -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
   where
     --------------------------------------
-    next :: [PhyloPeriodId]
-    next = take depth prds
-    --------------------------------------
-    cooc :: Map (Int, Int) Double
-    cooc = getCooc next p
-    --------------------------------------
-    candidates :: [PhyloGroup]
-    candidates = filter (\g' -> elem (getGroupPeriod g') next) gs 
-    --------------------------------------
-    scores :: [(PhyloGroupId, Double)]
-    scores = map (\g' -> applyProximity prox g g' cooc) candidates
-    --------------------------------------       
-    bestScores :: [(PhyloGroupId, Double)]
-    bestScores = reverse
-               $ sortOn snd
-               $ filter (\(_id,score) -> case prox of
-                  WeightedLogJaccard (WLJParams thr _) -> score >= thr
-                  Hamming (HammingParams thr)          -> score <= thr
-                  Filiation                            -> panic "[ERR][Viz.Phylo.LinkMaker.findBestCandidates] Filiation"
-                  ) scores
-    --------------------------------------               
+    pointers :: Maybe [Pointer]
+    pointers = find (not . null)
+             -- | For each time frame, process the Proximity on relevant pairs of targeted groups
+             $ scanl (\acc frame -> 
+                 let pairs = makePairs frame g p
+                 in  acc ++ ( filter (\(_,proxi) -> filterProximity proxi (getPhyloProximity p))
+                            $ concat 
+                            $ map (\(t,t') ->  
+                                let proxi = matchWithPairs g (t,t') p
+                                in 
+                                  if (t == t')
+                                    then [(getGroupId t,proxi)]
+                                    else [(getGroupId t,proxi),(getGroupId t',proxi)] ) pairs ) ) []
+             -- | [[1900],[1900,1901],[1900,1901,1902],...] | length max => + 5 years
+             $ inits periods
+    --------------------------------------           
 
 
 -- | To add some Pointer to a PhyloGroup
@@ -154,73 +164,98 @@ addPointers' fil pts g = g & case fil of
 
 -- | To update a list of phyloGroups with some Pointers
 updateGroups :: Filiation -> Level -> Map PhyloGroupId [Pointer] -> Phylo -> Phylo 
-updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if (getGroupLevel g) == lvl
+updateGroups fil lvl m p = alterPhyloGroups (\gs -> map (\g -> if ((getGroupLevel g) == lvl) && (member (getGroupId g) m)
                                                                then addPointers' fil (m ! (getGroupId g)) g
                                                                else g ) gs) p
 
 
 
 -- | Optimisation : to keep only the groups that have at least one ngrams in commons with the target
-filterCandidates :: PhyloGroup -> [PhyloGroup] -> [PhyloGroup]
-filterCandidates g gs = filter (\g' -> (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g'))
-                      $ delete g gs  
+initCandidates :: PhyloGroup -> [PhyloPeriodId] -> [PhyloGroup] -> [PhyloGroup]
+initCandidates g prds gs = filter (\g' -> elem (getGroupPeriod g') prds)
+                           $ filter (\g' -> (not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g'))
+                           $ delete g gs
 
 
-
--- | To apply the intertemporal matching to Phylo at a given level
-interTempoMatching :: Filiation -> Level -> Proximity -> Phylo -> Phylo
-interTempoMatching fil lvl prox p = traceMatching fil lvl (getThreshold prox) scores
-                                  $ updateGroups fil lvl pointers p
+-- | a init avec la [[head groups]] et la tail groups
+toBranches :: [[PhyloGroup]] -> [PhyloGroup] -> [[PhyloGroup]]
+toBranches mem gs
+  | null gs = mem
+  | otherwise = toBranches mem' $ tail gs
   where
     --------------------------------------
-    pointers :: Map PhyloGroupId [Pointer]
-    pointers = Map.fromList $ map (\(id,x) -> (id,fst x)) candidates
+    mem' :: [[PhyloGroup]]
+    mem' = if (null withHead)
+           then mem ++ [[head' "toBranches" gs]]
+           else (filter (\gs' -> not $ elem gs' withHead) mem)
+                ++
+                [(concat withHead) ++ [head' "toBranches" gs]]
     --------------------------------------
-    scores :: [Double]
-    scores = sort $ concat $ map (snd . snd) candidates 
-    --------------------------------------     
-    candidates :: [(PhyloGroupId,([Pointer],[Double]))]
-    candidates = map (\g -> ( getGroupId g, findBestCandidates' fil 1 5 prox (getNextPeriods fil (getGroupPeriod g) prds) (filterCandidates g gs) g p)) gs
+    withHead :: [[PhyloGroup]]
+    withHead = filter (\gs' -> (not . null)
+                             $ intersect (concat $ map getGroupNgrams gs')
+                                         (getGroupNgrams $ (head' "toBranches" gs))
+                      ) mem
     --------------------------------------
-    gs :: [PhyloGroup]
-    gs = getGroupsWithLevel lvl p
+
+
+-- | To process an intertemporal matching task to a Phylo at a given level
+-- | 1) split all groups (of the level) in branches (ie:related components sharing at least one ngram)
+-- | 2) for each branch, for each group find the best candidates (by Filiation and Proximity) and create the corresponding pointers
+-- | 3) update all the groups with the new pointers if they exist
+interTempoMatching :: Filiation -> Level -> Proximity -> Phylo -> Phylo
+interTempoMatching fil lvl _ p = updateGroups fil lvl (Map.fromList pointers) p
+  where
     --------------------------------------
-    prds :: [PhyloPeriodId]
-    prds = getPhyloPeriods p
+    pointers :: [(PhyloGroupId,[Pointer])]
+    pointers = 
+      let  pts  = map (\g -> let periods = getNextPeriods fil (getPhyloMatchingFrame p) (getGroupPeriod g) (getPhyloPeriods p)
+                             in  (getGroupId g, phyloGroupMatching periods g p)) groups
+           pts' = pts `using` parList rdeepseq
+       in  pts'
+    --------------------------------------
+    groups :: [PhyloGroup]
+    groups = getGroupsWithLevel lvl p
     --------------------------------------
 
 
 ------------------------------------------------------------------------
 -- | Make links from Period to Period after level 1
 
-toLevelUp :: [Pointer] -> Phylo -> [Pointer]
-toLevelUp lst p = Map.toList 
-                $ map (\ws -> maximum ws)
-                $ fromListWith (++) [(id, [w]) | (id, w) <- pointers]
+-- | Transpose the parent/child pointers from one level to another
+transposePeriodLinks :: Level -> Phylo -> Phylo
+transposePeriodLinks lvl p = alterPhyloGroups
+  (\gs -> if ((not . null) gs) && (elem lvl $ map getGroupLevel gs)  
+              then 
+                let groups  = map (\g -> g & phylo_groupPeriodParents .~ (trackPointers (reduceGroups g lvlGroups) 
+                                                                                      $ g ^. phylo_groupPeriodParents)
+                                           & phylo_groupPeriodChilds  .~ (trackPointers (reduceGroups g lvlGroups)
+                                                                                      $ g ^. phylo_groupPeriodChilds )) gs
+                    groups' = groups `using` parList rdeepseq
+                    in groups'
+              else gs
+  ) p
   where
     --------------------------------------
-    pointers :: [Pointer]
-    pointers = map (\(id,v) -> (getGroupLevelParentId $ getGroupFromId id p, v)) lst
+    -- | find an other way to find the group from the id
+    trackPointers :: Map PhyloGroupId PhyloGroup -> [Pointer] -> [Pointer]
+    trackPointers m pts = Map.toList
+                        $ fromListWith (\w w' -> max w w')
+                        $ map (\(id,_w) -> (getGroupLevelParentId $ m ! id,_w)) pts
+    --------------------------------------                  
+    reduceGroups :: PhyloGroup -> [PhyloGroup] -> Map PhyloGroupId PhyloGroup
+    reduceGroups g gs = Map.fromList
+                     $ map (\g' -> (getGroupId g',g')) 
+                     $ filter (\g' -> ((not . null) $ intersect (getGroupNgrams g) (getGroupNgrams g'))) gs 
+    --------------------------------------
+    lvlGroups :: [PhyloGroup]
+    lvlGroups = getGroupsWithLevel (lvl - 1) p
     --------------------------------------
 
-
-transposePeriodLinks :: Level -> Phylo -> Phylo
-transposePeriodLinks lvl p = alterGroupWithLevel
-  (\g ->
-    --------------------------------------
-    let childs  = getGroupsFromIds (map fst $ getGroupLevelChilds g) p
-        ascLink = toLevelUp (concat $ map getGroupPeriodParents childs) p 
-        desLink = toLevelUp (concat $ map getGroupPeriodChilds  childs) p
-    --------------------------------------
-    in g & phylo_groupPeriodParents  %~ (++ ascLink)
-         & phylo_groupPeriodChilds   %~ (++ desLink)
-    --------------------------------------
-  ) lvl p 
 
 ----------------
 -- | Tracer | --
 ----------------
-
 
 traceMatching :: Filiation -> Level -> Double -> [Double] -> Phylo -> Phylo
 traceMatching fil lvl thr lst p = trace ( "----\n" <> show (fil) <> " unfiltered temporal Matching in Phylo" <> show (lvl) <> " :\n"
@@ -229,4 +264,9 @@ traceMatching fil lvl thr lst p = trace ( "----\n" <> show (fil) <> " unfiltered
                                                          <> show (percentile 50 (VS.fromList lst)) <> " (50%) "
                                                          <> show (percentile 75 (VS.fromList lst)) <> " (75%) "
                                                          <> show (percentile 90 (VS.fromList lst)) <> " (90%)\n") p
+
+
+tracePreBranches :: [[PhyloGroup]] -> [[PhyloGroup]]
+tracePreBranches bs = trace (show (length bs) <> " pre-branches" <> "\n"
+                             <> "with sizes : " <> show (map length bs) <> "\n") bs
 

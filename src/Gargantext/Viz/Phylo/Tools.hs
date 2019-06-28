@@ -20,9 +20,9 @@ module Gargantext.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level, Empty)
-import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, sortOn, nubBy)
+import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, sortOn, nubBy, concat)
 import Data.Maybe           (mapMaybe,fromMaybe)
-import Data.Map             (Map, mapKeys, member, (!))
+import Data.Map             (Map, mapKeys, member, (!), restrictKeys, elems, empty, filterWithKey, unionWith)
 import Data.Set             (Set)
 import Data.Text            (Text,toLower,unwords)
 import Data.Tuple.Extra
@@ -110,6 +110,13 @@ listToDirectedCombi :: Eq a => [a] -> [(a,a)]
 listToDirectedCombi l = [(x,y) | x <- l, y <- l, x /= y]
 
 
+listToEqualCombi :: Eq a => [a] -> [(a,a)]
+listToEqualCombi l = [(x,y) | x <- l, y <- l, x == y]
+
+listToPairs :: Eq a => [a] -> [(a,a)]
+listToPairs l = (listToEqualCombi l) ++ (listToUnDirectedCombi l)
+
+
 -- | To get all combinations of a list and apply a function to the resulting list of pairs
 listToDirectedCombiWith :: Eq a => forall b. (a -> b) -> [a] -> [(b,b)]
 listToDirectedCombiWith f l = [(f x,f y) | x <- l, y <- l, x /= y]
@@ -160,8 +167,8 @@ initFoundationsRoots :: [Ngrams] -> Vector Ngrams
 initFoundationsRoots l = Vector.fromList $ map phyloAnalyzer l
 
 -- | To init the base of a Phylo from a List of Periods and Foundations
-initPhyloBase :: [(Date, Date)] -> PhyloFoundations -> PhyloParam -> Phylo
-initPhyloBase pds fds prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds) prm
+initPhyloBase :: [(Date, Date)] -> PhyloFoundations -> Map Date Double  -> Map Date (Map (Int,Int) Double) -> Map (Date,Date) [PhyloFis] -> PhyloParam -> Phylo
+initPhyloBase pds fds nbDocs cooc fis prm = Phylo ((fst . (head' "initPhyloBase")) pds, (snd . last) pds) fds (map (\pd -> initPhyloPeriod pd []) pds) nbDocs cooc fis prm
 
 -- | To init the param of a Phylo
 initPhyloParam :: Maybe Text -> Maybe Software -> Maybe PhyloQueryBuild -> PhyloParam
@@ -174,6 +181,41 @@ getLastLevel p = (last . sort)
                $ view ( phylo_periods
                       .  traverse
                       . phylo_periodLevels ) p
+
+-- | To get all the coocurency matrix of a phylo
+getPhyloCooc :: Phylo -> Map Date (Map (Int,Int) Double)
+getPhyloCooc p = p ^. phylo_cooc
+
+
+-- | To get the PhyloParam of a Phylo
+getPhyloParams :: Phylo -> PhyloParam
+getPhyloParams = _phylo_param
+
+-- | To get the title of a Phylo
+getPhyloTitle :: Phylo -> Text
+getPhyloTitle p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
+
+-- | To get the desc of a Phylo
+getPhyloDescription :: Phylo -> Text
+getPhyloDescription p = _q_phyloTitle $ _phyloParam_query $ getPhyloParams p
+
+getPhyloMatchingFrame :: Phylo -> Int
+getPhyloMatchingFrame p = _q_interTemporalMatchingFrame $ _phyloParam_query $ getPhyloParams p
+
+getPhyloMatchingFrameTh :: Phylo -> Double
+getPhyloMatchingFrameTh p = _q_interTemporalMatchingFrameTh $ _phyloParam_query $ getPhyloParams p
+
+getPhyloProximity :: Phylo -> Proximity
+getPhyloProximity p = _q_interTemporalMatching $ _phyloParam_query $ getPhyloParams p
+
+getPhyloReBranchThr :: Phylo -> Double
+getPhyloReBranchThr p = _q_reBranchThr $ _phyloParam_query $ getPhyloParams p
+
+getPhyloReBranchNth :: Phylo -> Int
+getPhyloReBranchNth p = _q_reBranchNth $ _phyloParam_query $ getPhyloParams p
+
+getPhyloFis :: Phylo -> Map (Date,Date) [PhyloFis]
+getPhyloFis = _phylo_fis
 
 
 --------------------
@@ -194,6 +236,11 @@ getIdxInRoots n p = case (elemIndex n (getFoundationsRoots p)) of
     Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
     Just idx -> idx
 
+getIdxInVector :: Ngrams -> Vector Ngrams -> Int
+getIdxInVector n ns = case (elemIndex n ns) of
+  Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
+  Just idx -> idx 
+
 --------------------
 -- | PhyloGroup | --
 --------------------
@@ -209,7 +256,7 @@ alterGroupWithLevel f lvl p = over ( phylo_periods
                                    .  traverse
                                    ) (\g -> if getGroupLevel g == lvl
                                             then f g
-                                            else g ) p
+                                            else g ) p                          
 
 
 -- | To alter each list of PhyloGroups following a given function
@@ -240,6 +287,10 @@ getGroupChilds g p = getGroupsFromIds (getGroupPeriodChildsId g) p
 -- | To get the id of a PhyloGroup
 getGroupId :: PhyloGroup -> PhyloGroupId
 getGroupId = _phylo_groupId
+
+
+getGroupCooc :: PhyloGroup -> Map (Int,Int) Double
+getGroupCooc = _phylo_groupCooc
 
 
 -- | To get the level out of the id of a PhyloGroup
@@ -344,13 +395,19 @@ getGroups = view ( phylo_periods
                  )
 
 
--- | To get all PhyloGroups matching a list of PhyloGroupIds in a Phylo
-getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
-getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
+-- | To get all PhyloGroups matching a list of PhyloGoupIds in a Phylo
+-- getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
+-- getGroupsFromIds ids p = filter (\g -> elem (getGroupId g) ids) $ getGroups p
 
--- | To get a PhyloGroup matching a PhyloGroupId in a Phylo
 getGroupFromId :: PhyloGroupId -> Phylo -> PhyloGroup
-getGroupFromId id p = (head' "getGroupFromId") $ getGroupsFromIds [id] p
+getGroupFromId id p = 
+  let groups = Map.fromList $ map (\g -> (getGroupId g, g)) $ getGroups p
+  in  groups ! id 
+
+getGroupsFromIds :: [PhyloGroupId] -> Phylo -> [PhyloGroup]
+getGroupsFromIds ids p =
+  let groups = Map.fromList $ map (\g -> (getGroupId g, g)) $ getGroups p
+  in  elems $ restrictKeys groups (Set.fromList ids)
 
 
 -- | To get the corresponding list of PhyloGroups from a list of PhyloNodes
@@ -380,10 +437,29 @@ initGroup :: [Ngrams] -> Text -> Int -> Int -> Int -> Int -> Phylo -> PhyloGroup
 initGroup ngrams lbl idx lvl from' to' p = PhyloGroup
   (((from', to'), lvl), idx)
   lbl
-  (sort $ map (\x -> getIdxInRoots x p) ngrams)
+  idxs
   (Map.empty)
   Nothing
+  (getMiniCooc (listToFullCombi idxs) (periodsToYears [(from', to')]) (getPhyloCooc p))
   [] [] [] []
+  where 
+    idxs = sort $ map (\x -> getIdxInRoots x p) ngrams
+
+
+-- | To sum two coocurency Matrix
+sumCooc :: Map (Int, Int) Double ->  Map (Int, Int) Double ->  Map (Int, Int) Double
+sumCooc m m' = unionWith (+) m m'
+
+-- | To build the mini cooc matrix of each group
+getMiniCooc :: [(Int,Int)] -> Set Date -> Map Date (Map (Int,Int) Double) -> Map (Int,Int) Double
+getMiniCooc pairs years cooc = filterWithKey (\(n,n') _ -> elem (n,n') pairs) cooc'
+  where 
+    --------------------------------------
+    cooc' :: Map (Int,Int) Double
+    cooc' = foldl (\m m' -> sumCooc m m') empty 
+          $ elems 
+          $ restrictKeys cooc years
+    --------------------------------------
 
 
 ---------------------
@@ -416,6 +492,12 @@ getPhyloPeriodId prd = _phylo_periodId prd
 -- | To create a PhyloPeriod
 initPhyloPeriod :: PhyloPeriodId -> [PhyloLevel] -> PhyloPeriod
 initPhyloPeriod id l = PhyloPeriod id l
+
+
+-- | To transform a list of periods into a set of Dates
+periodsToYears :: [(Date,Date)] -> Set Date
+periodsToYears periods = (Set.fromList . sort . concat)
+                       $ map (\(d,d') -> [d..d']) periods
 
 
 --------------------
@@ -464,13 +546,13 @@ setPhyloLevelId lvl' (PhyloLevel (id, _lvl) groups)
 getClique :: PhyloFis -> Clique
 getClique = _phyloFis_clique
 
--- | To get the metrics of a PhyloFis
-getFisMetrics :: PhyloFis -> Map (Int,Int) (Map Text [Double])
-getFisMetrics = _phyloFis_metrics
-
 -- | To get the support of a PhyloFis
 getSupport :: PhyloFis -> Support
 getSupport = _phyloFis_support
+
+-- | To get the period of a PhyloFis
+getFisPeriod :: PhyloFis -> (Date,Date)
+getFisPeriod = _phyloFis_period
 
 
 ----------------------------
@@ -737,11 +819,10 @@ initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
 
 
 -- | To initialize a PhyloQueryBuild from given and default parameters
-initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
+initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Int -> Maybe Double -> Maybe Double -> Maybe Int -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
 initPhyloQueryBuild name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
-  (def defaultWeightedLogJaccard -> matching') (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQueryBuild name desc grain steps cluster metrics filters matching' nthLevel nthCluster
-
+  (def defaultWeightedLogJaccard -> matching') (def 5 -> frame) (def 0.8 -> frameThr) (def 0.5 -> reBranchThr) (def 4 -> reBranchNth) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
+    PhyloQueryBuild name desc grain steps cluster metrics filters matching' frame frameThr reBranchThr reBranchNth nthLevel nthCluster
 
 
 -- | To initialize a PhyloQueryView default parameters
@@ -794,7 +875,7 @@ defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing N
 
 defaultQueryBuild :: PhyloQueryBuild
 defaultQueryBuild = initPhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
 defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing

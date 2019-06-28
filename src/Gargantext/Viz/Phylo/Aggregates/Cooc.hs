@@ -17,14 +17,17 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates.Cooc
   where
 
-import Data.List        (union,concat,nub)
-import Data.Map         (Map,elems,adjust,filterWithKey)
+import Data.List                    (union,concat,nub,sort, sortOn)
+import Data.Map                     (Map,elems,adjust,filterWithKey,fromListWith,fromList,restrictKeys)
+import Data.Set                     (Set)
+import Data.Vector                  (Vector)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import qualified Data.Map    as Map
 import qualified Data.Set    as Set
 
+-- import Debug.Trace (trace)
 
 -- | To transform the Fis into a full coocurency Matrix in a Phylo
 fisToCooc :: Map (Date, Date) [PhyloFis] -> Phylo -> Map (Int, Int) Double
@@ -81,6 +84,50 @@ getCooc prds p = toCooc $ map (\g -> (getGroupNgrams g,getGroupMeta "support" g)
     gs :: [PhyloGroup]
     gs = filter (\g -> elem (getGroupPeriod g) prds ) $ getGroupsWithLevel 1 p
     -------------------------------------- 
+
+
+
+
+
+-- | To transform a list of index into a cooc matrix 
+listToCooc :: [Int] -> Map (Int,Int) Double
+listToCooc lst = fromList $ map (\combi -> (combi,1)) $ listToFullCombi lst
+
+
+-- | To transform a list of ngrams into a list of indexes
+ngramsToIdx :: [Ngrams] -> Vector Ngrams -> [Int]
+ngramsToIdx ns v = sort $ map (\n -> getIdxInVector n v) ns
+
+
+-- | To build the cooc matrix by years out of the corpus
+docsToCooc :: [Document] -> Vector Ngrams -> Map Date (Map (Int,Int) Double)
+docsToCooc docs fdt = fromListWith sumCooc 
+                    $ map (\(d,l) -> (d, listToCooc l))
+                    $ map (\doc -> (date doc, ngramsToIdx (text doc) fdt)) docs  
+
+
+-- | To sum all the docs produced during a list of years 
+sumDocsByYears :: Set Date -> Map Date Double -> Double
+sumDocsByYears years m = sum $ elems $ restrictKeys m years    
+
+
+-- | To get the cooc matrix of a group
+groupToCooc :: PhyloGroup -> Phylo -> Map (Int,Int) Double
+groupToCooc g p = getMiniCooc (listToFullCombi $ getGroupNgrams g) (periodsToYears [getGroupPeriod g]) (getPhyloCooc p)
+
+
+-- | To get the union of the cooc matrix of two groups
+unionOfCooc :: PhyloGroup -> PhyloGroup -> Phylo -> Map (Int,Int) Double
+unionOfCooc g g' p = sumCooc (groupToCooc g p) (groupToCooc g' p)  
+
+
+-- | To get the nth most occurent elems in a coocurency matrix
+getNthMostOcc :: Int -> Map (Int,Int) Double -> [Int]
+getNthMostOcc nth cooc = (nub . concat)
+                       $ map (\((idx,idx'),_) -> [idx,idx'])
+                       $ take nth
+                       $ reverse 
+                       $ sortOn snd $ Map.toList cooc
 
 
 -- phyloCooc :: Map (Int, Int) Double

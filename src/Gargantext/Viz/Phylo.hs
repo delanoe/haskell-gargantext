@@ -22,7 +22,7 @@ one 8, e54847.
 
 -}
 
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -43,6 +43,8 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Prelude
+
+import Control.DeepSeq
 
 --------------------
 -- | PhyloParam | --
@@ -77,6 +79,9 @@ data Phylo =
      Phylo { _phylo_duration    :: (Start, End)
            , _phylo_foundations :: PhyloFoundations
            , _phylo_periods     :: [PhyloPeriod]
+           , _phylo_docsByYears :: Map Date Double
+           , _phylo_cooc        :: Map Date (Map (Int,Int) Double)
+           , _phylo_fis         :: Map (Date,Date) [PhyloFis]
            , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show, Eq)
@@ -150,6 +155,7 @@ data PhyloGroup =
                 , _phylo_groupNgrams        :: [Int]
                 , _phylo_groupMeta          :: Map Text Double
                 , _phylo_groupBranchId      :: Maybe PhyloBranchId
+                , _phylo_groupCooc          :: Map (Int,Int) Double
 
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]
@@ -157,7 +163,9 @@ data PhyloGroup =
                 , _phylo_groupLevelParents  :: [Pointer]
                 , _phylo_groupLevelChilds   :: [Pointer]
                 }
-                deriving (Generic, Show, Eq, Ord)
+                deriving (Generic, NFData, Show, Eq, Ord)
+
+-- instance NFData PhyloGroup
 
 
 -- | Level : A level of aggregation (-1 = Txt, 0 = Ngrams, 1 = Fis, [2..] = Cluster)
@@ -199,8 +207,8 @@ type Support  = Int
 data PhyloFis = PhyloFis
   { _phyloFis_clique  :: Clique
   , _phyloFis_support :: Support
-  , _phyloFis_metrics :: Map (Int,Int) (Map Text [Double])
-  } deriving (Show)
+  , _phyloFis_period  :: (Date,Date)
+  } deriving (Generic,Show,Eq)
 
 -- | A list of clustered PhyloGroup
 type PhyloCluster = [PhyloGroup]
@@ -343,6 +351,11 @@ data PhyloQueryBuild = PhyloQueryBuild
 
     -- Inter-temporal matching method of the Phylo
     , _q_interTemporalMatching :: Proximity
+    , _q_interTemporalMatchingFrame :: Int
+    , _q_interTemporalMatchingFrameTh :: Double
+
+    , _q_reBranchThr :: Double
+    , _q_reBranchNth :: Int
 
     -- Last level of reconstruction
     , _q_nthLevel   :: Level
