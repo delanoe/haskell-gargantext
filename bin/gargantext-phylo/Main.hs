@@ -17,7 +17,7 @@ Phylo binaries
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE Strict             #-}
 
 module Main where
@@ -25,7 +25,7 @@ module Main where
 import System.Directory (doesFileExist) 
 
 import Data.Aeson
-import Data.Text (Text, unwords)
+import Data.Text (Text, unwords, unlines)
 import Data.List ((++))
 import GHC.Generics
 import GHC.IO (FilePath)
@@ -198,17 +198,13 @@ main = do
 
       corpus <- parse (corpusType conf) (limit conf) (corpusPath conf) termList
 
-      putStrLn $ ("\n" <> show (length corpus) <> " parsed docs")
-
-      let roots = DL.nub $ DL.concat $ map text corpus
-
-      putStrLn $ ("\n" <> show (length roots) <> " parsed foundation roots")      
+      putStrLn $ ("\n" <> show (length corpus) <> " parsed docs") 
 
       fis <- parseFis (fisPath conf) (phyloName conf) (timeGrain conf) (timeStep conf) (fisSupport conf) (fisClique conf)
 
       putStrLn $ ("\n" <> show (length fis) <> " parsed fis")
 
-      let mFis  = DM.fromListWith (++) $ DL.sortOn (fst . fst) $ map (\f -> (getFisPeriod f,[f])) fis    
+      let fis'  = DM.fromListWith (++) $ DL.sortOn (fst . fst) $ map (\f -> (getFisPeriod f,[f])) fis    
       
       let query = PhyloQueryBuild (phyloName conf) "" (timeGrain conf) (timeStep conf) 
                   (Fis $ FisParams True (fisSupport conf) (fisClique conf)) [] [] (WeightedLogJaccard $ WLJParams (timeTh conf) (timeSens conf)) (timeFrame conf) (timeFrameTh conf) 
@@ -217,7 +213,7 @@ main = do
 
       let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [SizeBranch $ SBParams (minSizeBranch conf)] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
 
-      let phylo = toPhylo query corpus roots termList mFis
+      let phylo = toPhylo query corpus termList fis'
 
       writeFis (fisPath conf) (phyloName conf) (timeGrain conf) (timeStep conf) (fisSupport conf) (fisClique conf) (getPhyloFis phylo)
 

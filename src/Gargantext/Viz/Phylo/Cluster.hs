@@ -15,24 +15,58 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Gargantext.Viz.Phylo.Aggregates.Cluster
+module Gargantext.Viz.Phylo.Cluster
   where
 
 import Control.Parallel.Strategies
-import Data.List        (null,concat,sort,intersect,(++))
-import Data.Map         (Map)
+import Data.Graph.Clustering.Louvain.CplusPlus
+import Data.List        (null,concat,sort,intersect,(++), elemIndex, groupBy, nub, union, (\\), (!!))
+import Data.Map         (Map, fromList, mapKeys)
 import Data.Tuple       (fst)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.Metrics.Proximity
-import Gargantext.Viz.Phylo.Metrics.Clustering
+import Gargantext.Viz.Phylo.Metrics
 import Gargantext.Viz.Phylo.LinkMaker
 import qualified Data.Map    as Map
 
 import qualified Data.Vector.Storable as VS
 import Debug.Trace (trace)
 import Numeric.Statistics (percentile)
+
+
+--------------
+-- | Algo | --
+--------------
+
+
+relatedComp :: Eq a => [[a]] -> [[a]]
+relatedComp graphs = foldl' (\mem groups -> 
+  if (null mem)
+  then mem ++ [groups]
+  else 
+    let related = filter (\groups' -> (not . null) $ intersect groups groups') mem
+    in if (null related)
+       then mem ++ [groups]
+       else (mem \\ related) ++ [union groups (nub $ concat related)] ) [] graphs
+
+
+louvain :: ([GroupNode],[GroupEdge]) -> IO [[PhyloGroup]]
+louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
+                      <$> groupBy (\a b -> (l_community_id a) == (l_community_id b))
+                      <$> (cLouvain $ mapKeys (\(x,y) -> (idx x, idx y)) $ fromList edges)
+  where
+    -------------------------------------- 
+    idx :: PhyloGroup -> Int
+    idx e = case elemIndex e nodes of
+      Nothing -> panic "[ERR][Gargantext.Viz.Phylo.Metrics.Clustering] a node is missing"
+      Just i  -> i
+    --------------------------------------  
+
+
+-----------------------
+-- | Cluster Maker | --
+-----------------------
 
 
 -- | Optimisation to filter only relevant candidates

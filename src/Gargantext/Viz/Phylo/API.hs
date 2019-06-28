@@ -32,6 +32,7 @@ import Gargantext.API.Types
 import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
+import Gargantext.Viz.Phylo.Aggregates
 import Gargantext.Viz.Phylo.Example
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.ViewMaker
@@ -105,7 +106,7 @@ postPhylo _n _lId q = do
     vrs = Just ("1" :: Text)
     sft = Just (Software "Gargantext" "4")
     prm = initPhyloParam vrs sft (Just q)
-  pure (toPhyloBase q prm corpus actants termList empty)
+  pure (toPhyloBase q prm (parseDocs (initFoundationsRoots actants) corpus) termList empty)
 
 
 ------------------------------------------------------------------------

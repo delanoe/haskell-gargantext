@@ -153,6 +153,7 @@ data PhyloGroup =
      PhyloGroup { _phylo_groupId            :: PhyloGroupId
                 , _phylo_groupLabel         :: Text
                 , _phylo_groupNgrams        :: [Int]
+                , _phylo_groupNgramsMeta    :: Map Text [Double]
                 , _phylo_groupMeta          :: Map Text Double
                 , _phylo_groupBranchId      :: Maybe PhyloBranchId
                 , _phylo_groupCooc          :: Map (Int,Int) Double

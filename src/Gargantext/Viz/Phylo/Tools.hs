@@ -139,12 +139,17 @@ listToUnDirectedCombiWith f l = [ (f x, f y) | (x:rest) <- tails l,  y <- rest ]
 
 -- | To transform a list of Ngrams Indexes into a Label
 ngramsToLabel :: Vector Ngrams -> [Int] -> Text
-ngramsToLabel ngrams l = unwords $ ngramsToText ngrams l
+ngramsToLabel ngrams l = unwords $ tail' "ngramsToLabel" $ concat $ map (\n -> ["|",n]) $ ngramsToText ngrams l
 
 
 -- | To transform a list of Ngrams Indexes into a list of Text
 ngramsToText :: Vector Ngrams -> [Int] -> [Text]
 ngramsToText ngrams l = map (\idx -> ngrams Vector.! idx) l
+
+
+-- | To transform a list of ngrams into a list of indexes
+ngramsToIdx :: [Ngrams] -> Vector Ngrams -> [Int]
+ngramsToIdx ns v = sort $ map (\n -> getIdxInVector n v) ns
 
 
 -- | To unify the keys (x,y) that Map 1 share with Map 2 such as: (x,y) <=> (y,x)
@@ -438,6 +443,7 @@ initGroup ngrams lbl idx lvl from' to' p = PhyloGroup
   (((from', to'), lvl), idx)
   lbl
   idxs
+  (Map.empty)
   (Map.empty)
   Nothing
   (getMiniCooc (listToFullCombi idxs) (periodsToYears [(from', to')]) (getPhyloCooc p))
