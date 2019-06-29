@@ -149,6 +149,19 @@ queryDocs cId = proc () -> do
   returnA -< view (node_hyperdata) n
 
 
+selectDocNodes :: CorpusId -> Cmd err [NodeDocument]
+selectDocNodes cId = runOpaQuery (queryDocNodes cId)
+
+queryDocNodes :: CorpusId -> O.Query NodeRead
+queryDocNodes cId = proc () -> do
+  (n, nn) <- joinInCorpus -< ()
+  restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
+  restrict -< ( nn_delete nn)    .== (toNullable $ pgBool False)
+  restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  returnA -<  n
+
+
+
 joinInCorpus :: O.Query (NodeRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
   where
