@@ -57,6 +57,7 @@ nodeTypeId n =
 ----  Scores
 --    NodeOccurrences -> 10
     NodeGraph       -> 9
+    NodePhylo       -> 90
     NodeDashboard   -> 7
     NodeChart       -> 51
 

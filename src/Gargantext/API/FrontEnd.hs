@@ -18,7 +18,7 @@ Loads all static file for the front-end.
 ---------------------------------------------------------------------
 module Gargantext.API.FrontEnd where
 
-import           Servant.Static.TH (createApiAndServerDecs)
+import Servant.Static.TH (createApiAndServerDecs)
 
 ---------------------------------------------------------------------
 $(createApiAndServerDecs "FrontEndAPI" "frontEndServer" "purescript-gargantext/dist")

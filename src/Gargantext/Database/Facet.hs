@@ -68,6 +68,7 @@ import qualified Opaleye.Internal.Unpackspec()
 type Favorite = Bool
 type Title    = Text
 
+-- TODO remove Title
 type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument Favorite Int
 type FacetSources = FacetDoc
 type FacetAuthors = FacetDoc

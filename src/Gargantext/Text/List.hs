@@ -16,16 +16,20 @@ Portability : POSIX
 module Gargantext.Text.List
   where
 
+import Data.Either (partitionEithers, Either(..))
+import Debug.Trace (trace)
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
+import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
+import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, NodeId)
 import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Text.List.Learn (Model(..))
+import Gargantext.Text.Metrics (takeScored)
 import Gargantext.Prelude
 --import Gargantext.Text.Terms (TermType(..))
 import qualified Data.Char as Char
@@ -41,7 +45,13 @@ data NgramsListBuilder = BuilderStepO { stemSize :: Int
                                       }
                        | BuilderStep1 { withModel :: Model }
                        | BuilderStepN { withModel :: Model }
-
+                       | Tficf { nlb_lang :: Lang
+                               , nlb_group1 :: Int
+                               , nlb_group2 :: Int
+                               , nlb_stopSize :: StopSize
+                               , nlb_userCorpusId :: UserCorpusId
+                               , nlb_masterCorpusId :: MasterCorpusId
+                               }
 
 
 data StopSize = StopSize {unStopSize :: Int}
@@ -51,6 +61,7 @@ buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorp
                  -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsLists l n m s uCid mCid = do
   ngTerms     <- buildNgramsTermsList l n m s uCid mCid
+  --ngTerms     <- buildNgramsTermsList' uCid (ngramsGroup l n m) (isStopTerm s . fst) 550 300
   othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
@@ -70,11 +81,54 @@ buildNgramsOthersList uCid groupIt nt = do
                         )
                       ]
 
+--{-
+buildNgramsTermsList' :: UserCorpusId
+                      -> (Text -> Text)
+                      -> ((Text, (Set Text, Set NodeId)) -> Bool) -> Int -> Int
+                      -> Cmd err (Map NgramsType [NgramsElement])
+--}
+buildNgramsTermsList' uCid groupIt stop gls is = do
+  ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid NgramsTerms
+  
+  let
+    (stops, candidates) = partitionEithers
+                          $ map (\t -> if stop t then Left t else Right t)
+                          $ Map.toList
+                          $ Map.filter ((\s' -> Set.size s' > 1) . snd) ngs
+
+    (maps, candidates') = takeScored gls is
+                        $ getCoocByNgrams' snd (Diagonal True)
+                        $ Map.fromList candidates
+
+
+    toList' t = (fst t, (fromIntegral $ Set.size $ snd $ snd t, fst $ snd t))
+
+    (s,c,m) = (stops
+       , List.filter (\(k,_) -> List.elem k candidates') candidates
+       , List.filter (\(k,_) -> List.elem k maps) candidates
+       )
+
+  let ngs' = List.concat
+          $ map toNgramsElement
+          $ map (\t -> (StopTerm, toList' t)) s
+         <> map (\t -> (CandidateTerm, toList' t)) c
+         <> map (\t -> (GraphTerm, toList' t)) m
+
+  pure $ Map.fromList [(NgramsTerms, ngs')]
+
+
 buildNgramsTermsList :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
   candidates   <- sortTficf <$> getTficf' uCid mCid NgramsTerms (ngramsGroup l n m)
-  let termList = toTermList ((isStopTerm s) . fst) candidates
+  let
+    candidatesSize = 2000
+    a = 500
+    b = 500
+    candidatesHead = List.take candidatesSize candidates
+    candidatesTail = List.drop candidatesSize candidates
+    termList = (toTermList a b ((isStopTerm s) . fst) candidatesHead)
+             <> (map (toList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
   let ngs = List.concat $ map toNgramsElement termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
@@ -95,24 +149,26 @@ toNgramsElement (listType, (_stem, (_score, setNgrams))) =
                                                    (mSetFromList [])
                             ) children
 
--- TODO remove hard coded parameters
-toTermList :: (a -> Bool) -> [a] -> [(ListType, a)]
-toTermList stop ns =  map (toTermList' stop CandidateTerm) xs
-                   <> map (toTermList' stop GraphTerm)     ys
-                   <> map (toTermList' stop CandidateTerm) zs
+
+toList :: (b -> Bool) -> ListType -> b -> (ListType, b)
+toList stop l n = case stop n of
+    True  -> (StopTerm, n)
+    False -> (l, n)
+
+
+toTermList :: Int -> Int -> (a -> Bool) -> [a] -> [(ListType, a)]
+toTermList _ _ _ [] = []
+toTermList a b stop ns =  trace ("computing toTermList") $
+                      map (toList stop CandidateTerm) xs
+                   <> map (toList stop GraphTerm)     ys
+                   <> toTermList a b stop zs
     where
-      toTermList' stop' l n = case stop' n of
-          True  -> (StopTerm, n)
-          False -> (l, n)
-
-      -- TODO use % of size of list
-      -- TODO user ML
       xs = take a ns
-      ys = take b $ drop a ns
-      zs = drop b $ drop a ns
+      ta = drop a ns
+      
+      ys = take b ta
+      zs = drop b ta
 
-      a = 3
-      b = 500
 
 isStopTerm :: StopSize -> Text -> Bool
 isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)

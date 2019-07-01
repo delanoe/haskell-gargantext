@@ -259,14 +259,14 @@ toPhyloBase q p c termList fis = initPhyloBase periods foundations nbDocs cooc f
     cooc = docsToCooc c (foundations ^. phylo_foundationsRoots)
     --------------------------------------
     nbDocs :: Map Date Double
-    nbDocs = countDocs $ map (\doc -> (date doc, text doc)) c        
+    nbDocs = countDocs $ map (\doc -> (date doc, text doc)) c
     --------------------------------------
     foundations :: PhyloFoundations
     foundations = PhyloFoundations (initFoundationsRoots (termListToNgrams termList)) termList
     --------------------------------------
     periods :: [(Date,Date)]
     periods = initPeriods (getPeriodGrain q) (getPeriodSteps q)
-            $ both date (head' "LevelMaker" c,last c)
+            $ both date (head' "toPhyloBase" c, last' "toPhyloBase" c)
     --------------------------------------
 
 

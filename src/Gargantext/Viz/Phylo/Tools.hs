@@ -238,18 +238,17 @@ getFoundationsRoots p = (getFoundations p) ^. phylo_foundationsRoots
 -- | To get the Index of a Ngrams in the foundationsRoots of a Phylo
 getIdxInRoots :: Ngrams -> Phylo -> Int
 getIdxInRoots n p = case (elemIndex n (getFoundationsRoots p)) of
-    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
+    Nothing  -> panic $ "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots: " <> cs n
     Just idx -> idx
 
 getIdxInVector :: Ngrams -> Vector Ngrams -> Int
 getIdxInVector n ns = case (elemIndex n ns) of
-  Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
-  Just idx -> idx 
+  Nothing  -> panic $ "[ERR][Viz.Phylo.Tools.getIdxInVector] Ngrams not in foundationsRoots: " <> cs n
+  Just idx -> idx
 
 --------------------
 -- | PhyloGroup | --
 --------------------
-
 
 -- | To alter a PhyloGroup matching a given Level
 alterGroupWithLevel :: (PhyloGroup -> PhyloGroup) -> Level -> Phylo -> Phylo
@@ -261,8 +260,7 @@ alterGroupWithLevel f lvl p = over ( phylo_periods
                                    .  traverse
                                    ) (\g -> if getGroupLevel g == lvl
                                             then f g
-                                            else g ) p        
-                                                               
+                                            else g ) p
 
 
 -- | To alter each list of PhyloGroups following a given function
@@ -830,17 +828,26 @@ initLouvain :: Maybe Proximity -> LouvainParams
 initLouvain (def defaultWeightedLogJaccard -> proxi) = LouvainParams proxi
 
 initRelatedComponents :: Maybe Proximity -> RCParams
-initRelatedComponents (def Filiation -> proxi) = RCParams proxi
+initRelatedComponents (def defaultWeightedLogJaccard -> proxi) = RCParams proxi
 
+-- | TODO user param in main function
 initWeightedLogJaccard :: Maybe Double -> Maybe Double -> WLJParams
-initWeightedLogJaccard (def 0 -> thr) (def 0.01 -> sens) = WLJParams thr sens
+initWeightedLogJaccard (def 0.3 -> thr) (def 20.0 -> sens) = WLJParams thr sens
 
 
 -- | To initialize a PhyloQueryBuild from given and default parameters
-initPhyloQueryBuild :: Text -> Text -> Maybe Int -> Maybe Int -> Maybe Cluster -> Maybe [Metric] -> Maybe [Filter] -> Maybe Proximity -> Maybe Int -> Maybe Double -> Maybe Double -> Maybe Int -> Maybe Level -> Maybe Cluster -> PhyloQueryBuild
-initPhyloQueryBuild name desc (def 5 -> grain) (def 3 -> steps) (def defaultFis -> cluster) (def [] -> metrics) (def [] -> filters)
-  (def defaultWeightedLogJaccard -> matching') (def 5 -> frame) (def 0.8 -> frameThr) (def 0.5 -> reBranchThr) (def 4 -> reBranchNth) (def 2 -> nthLevel) (def defaultRelatedComponents -> nthCluster) =
-    PhyloQueryBuild name desc grain steps cluster metrics filters matching' frame frameThr reBranchThr reBranchNth nthLevel nthCluster
+initPhyloQueryBuild :: Text          -> Text            -> Maybe Int
+                    -> Maybe Int     -> Maybe Cluster   -> Maybe [Metric]
+                    -> Maybe [Filter]-> Maybe Proximity -> Maybe Int
+                    -> Maybe Double  -> Maybe Double    -> Maybe Int
+                    -> Maybe Level   -> Maybe Cluster   -> PhyloQueryBuild
+initPhyloQueryBuild name desc (def 5 -> grain)
+                    (def 3 -> steps)      (def defaultFis -> cluster) (def [] -> metrics)
+                    (def [] -> filters)   (def defaultWeightedLogJaccard -> matching') (def 5 -> frame)
+                    (def 0.8 -> frameThr) (def 0.5 -> reBranchThr) (def 4 -> reBranchNth)
+                    (def 2 -> nthLevel)   (def defaultRelatedComponents -> nthCluster) =
+    PhyloQueryBuild name  desc    grain
+                    steps cluster metrics filters matching' frame frameThr reBranchThr reBranchNth nthLevel nthCluster
 
 
 -- | To initialize a PhyloQueryView default parameters
@@ -890,13 +897,27 @@ defaultWeightedLogJaccard :: Proximity
 defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing Nothing)
 
 -- Queries
+type Title = Text
+type Desc  = Text
 
 defaultQueryBuild :: PhyloQueryBuild
-defaultQueryBuild = initPhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-                              Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defaultQueryBuild = defaultQueryBuild'
+  "Cesar et Cleôpatre"
+  "An example of Phylomemy (french without accent)"
+
+defaultQueryBuild' :: Title -> Desc -> PhyloQueryBuild
+defaultQueryBuild' t d = initPhyloQueryBuild t d
+                              Nothing Nothing Nothing
+                              Nothing Nothing Nothing
+                              Nothing Nothing Nothing
+                              Nothing Nothing Nothing
 
 defaultQueryView :: PhyloQueryView
-defaultQueryView = initPhyloQueryView Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+defaultQueryView = initPhyloQueryView
+    Nothing Nothing Nothing
+    Nothing Nothing Nothing
+    Nothing Nothing Nothing
+    Nothing Nothing
 
 -- Software
 

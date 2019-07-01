@@ -103,6 +103,10 @@ instance FromField HyperdataGraph
   where
     fromField = fromField'
 
+instance FromField HyperdataPhylo
+  where
+    fromField = fromField'
+
 instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
@@ -140,6 +144,10 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -453,6 +461,17 @@ nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
     graph = maybe arbitraryGraph identity maybeGraph
 
 ------------------------------------------------------------------------
+arbitraryPhylo :: HyperdataPhylo
+arbitraryPhylo = HyperdataPhylo (Just "Preferences")
+
+nodePhyloW :: Maybe Name -> Maybe HyperdataPhylo -> ParentId -> UserId -> NodeWrite
+nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
+  where
+    name = maybe "Phylo" identity maybeName
+    graph = maybe arbitraryPhylo identity maybePhylo
+
+
+------------------------------------------------------------------------
 
 arbitraryDashboard :: HyperdataDashboard
 arbitraryDashboard = HyperdataDashboard (Just "Preferences")
@@ -602,6 +621,9 @@ mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
+
+mkPhylo :: ParentId -> UserId -> Cmd err [NodeId]
+mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 
 -- | Default CorpusId Master and ListId Master
 

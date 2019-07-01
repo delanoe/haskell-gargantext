@@ -33,54 +33,50 @@ import Servant
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 -- import Control.Applicative ((<*>))
+import Gargantext.API.Types (GargServer)
 import Gargantext.Prelude
 import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Core.Types.Main (Offset, Limit)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.TextSearch
 import Gargantext.Database.Facet
-import Gargantext.Database.Utils (Cmd)
 
 -----------------------------------------------------------------------
--- | SearchIn [NodesId] if empty then global search
--- TODO [Int]
-data SearchQuery = SearchQuery { sq_query :: [Text]
-                               , sq_corpus_id :: NodeId
-                               } deriving (Generic)
+data SearchQuery = SearchQuery
+  { sq_query :: [Text]
+  } deriving (Generic)
+
 $(deriveJSON (unPrefix "sq_") ''SearchQuery)
+
 instance ToSchema SearchQuery where
   declareNamedSchema =
     genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 3 fieldLabel}
+      defaultSchemaOptions {fieldLabelModifier = drop 3}
 
 instance Arbitrary SearchQuery where
-  arbitrary = elements [SearchQuery ["electrodes"] 472764]
-
---
-
-data SearchInQuery = SearchInQuery { siq_query :: [Text]
-                               } deriving (Generic)
-$(deriveJSON (unPrefix "siq_") ''SearchInQuery)
-instance ToSchema SearchInQuery where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
-
-instance Arbitrary SearchInQuery where
-  arbitrary = SearchInQuery <$> arbitrary
-
+  arbitrary = elements [SearchQuery ["electrodes"]]
 
 -----------------------------------------------------------------------
 
-data SearchResults = SearchResults' { srs_resultsP :: [FacetDoc]}
-                   | SearchResults  { srs_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]}
+data SearchDocResults = SearchDocResults { sdr_results :: [FacetDoc]}
   deriving (Generic)
-$(deriveJSON (unPrefix "srs_") ''SearchResults)
+$(deriveJSON (unPrefix "sdr_") ''SearchDocResults)
 
-instance Arbitrary SearchResults where
-  arbitrary = SearchResults <$> arbitrary
+instance Arbitrary SearchDocResults where
+  arbitrary = SearchDocResults <$> arbitrary
 
-instance ToSchema SearchResults where
+instance ToSchema SearchDocResults where
+  declareNamedSchema =
+    genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = drop 4}
+
+data SearchPairedResults = SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]] }
+  deriving (Generic)
+$(deriveJSON (unPrefix "spr_") ''SearchPairedResults)
+
+instance Arbitrary SearchPairedResults where
+  arbitrary = SearchPairedResults <$> arbitrary
+
+instance ToSchema SearchPairedResults where
   declareNamedSchema =
     genericDeclareNamedSchema
       defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
@@ -88,16 +84,25 @@ instance ToSchema SearchResults where
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanSearch? or is it part of CanGetNode
 -- TODO-EVENTS: No event, this is a read-only query.
-type SearchAPI = Post '[JSON] SearchResults
+type SearchAPI results
+  = Summary "Search endpoint"
+ :> ReqBody '[JSON] SearchQuery
+ :> QueryParam "offset" Int
+ :> QueryParam "limit"  Int
+ :> QueryParam "order"  OrderBy
+ :> Post '[JSON] results
+
+type SearchDocsAPI  = SearchAPI SearchDocResults
+type SearchPairsAPI = SearchAPI SearchPairedResults
 -----------------------------------------------------------------------
 
-search :: SearchQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err SearchResults
-search (SearchQuery q pId) o l order =
-  SearchResults <$> searchInCorpusWithContacts pId q o l order
+searchPairs :: NodeId -> GargServer SearchPairsAPI
+searchPairs pId (SearchQuery q) o l order =
+  SearchPairedResults <$> searchInCorpusWithContacts pId q o l order
 
-searchIn :: NodeId -> SearchInQuery -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err SearchResults
-searchIn nId (SearchInQuery q ) o l order =
-  SearchResults' <$> searchInCorpus nId q o l order
+searchDocs :: NodeId -> GargServer SearchDocsAPI
+searchDocs nId (SearchQuery q) o l order =
+  SearchDocResults <$> searchInCorpus nId q o l order
   --SearchResults <$> searchInCorpusWithContacts nId q o l order
 
 

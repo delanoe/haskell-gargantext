@@ -17,7 +17,6 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.Cluster
   where
-
 import Control.Parallel.Strategies
 import Data.Graph.Clustering.Louvain.CplusPlus
 import Data.List        (null,concat,sort,intersect,(++), elemIndex, groupBy, nub, union, (\\), (!!))
@@ -92,7 +91,7 @@ groupsToGraph nbDocs prox gs = case prox of
                                                         candidates' = candidates `using` parList rdeepseq
                                                     in  candidates' )
       Hamming (HammingParams _)             -> (gs, map (\(x,y) -> ((x,y), hamming (getGroupCooc x) (getGroupCooc y))) $ getCandidates gs)
-      _                                     -> undefined     
+      _                                     -> undefined
 
 
 -- | To filter a Graph of Proximity using a given threshold
@@ -118,7 +117,7 @@ phyloToClusters lvl clus p = Map.fromList
     --------------------------------------
     graphs :: [([GroupNode],[GroupEdge])]
     graphs = traceGraph lvl (getThreshold prox)
-           $ let gs  = map (\prd -> groupsToGraph (periodsToNbDocs [prd] p) prox (getGroupsWithFilters lvl prd p)) periods
+           $ let gs  = (trace $ "PROX: " <> show prox) $ map (\prd -> groupsToGraph (periodsToNbDocs [prd] p) prox (getGroupsWithFilters lvl prd p)) periods
                  gs' = gs `using` parList rdeepseq
              in  gs'
     --------------------------------------

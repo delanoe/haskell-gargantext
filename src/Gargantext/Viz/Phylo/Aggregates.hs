@@ -43,16 +43,14 @@ import qualified Data.Vector as Vector
 -- | Foundations | --
 ---------------------
 
-
 -- | Extract all the labels of a termList
 termListToNgrams :: TermList -> [Ngrams]
-termListToNgrams l = map (\(lbl,_) -> unwords lbl) l
+termListToNgrams = map (\(lbl,_) -> unwords lbl)
 
 
 -------------------
 -- | Documents | --
 -------------------
-
 
 -- | To group a list of Documents by fixed periods
 groupDocsByPeriod :: (Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
@@ -84,7 +82,7 @@ countDocs corpus = fromListWith (+) $ map (\(d,_) -> (d,1)) corpus
 
 -- | To init a list of Periods framed by a starting Date and an ending Date
 initPeriods :: (Eq date, Enum date) => Grain -> Step -> (date, date) -> [(date, date)]
-initPeriods g s (start,end) = map (\l -> (head' "Doc" l, last' "Doc" l))
+initPeriods g s (start,end) = map (\l -> (head' "initPeriods" l, last' "initPeriods" l))
                             $ chunkAlong g s [start .. end]
 
 

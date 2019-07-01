@@ -49,6 +49,20 @@ getListNgrams nodeIds ngramsType = do
 
   pure ngrams
 
+getTermsWith :: (RepoCmdM env err m, Ord a)
+          => (Text -> a ) -> [ListId]
+          -> NgramsType -> ListType
+          -> m (Map a [a])
+getTermsWith f ls ngt lt = Map.fromListWith (<>)
+                      <$> map (toTreeWith f)
+                      <$> Map.toList
+                      <$> Map.filter (\f' -> (fst f') == lt)
+                      <$> mapTermListRoot ls ngt
+  where
+    toTreeWith f'' (t, (_lt, maybeRoot)) = case maybeRoot of
+      Nothing -> (f'' t, [])
+      Just  r -> (f'' r, map f'' [t])
+
 mapTermListRoot :: RepoCmdM env err m
                => [ListId] -> NgramsType
                -> m (Map Text (ListType, (Maybe Text)))
@@ -85,13 +99,19 @@ groupNodesByNgrams syn occs = Map.fromListWith (<>) occs'
 data Diagonal = Diagonal Bool
 
 getCoocByNgrams :: Diagonal -> Map Text (Set NodeId) -> Map (Text, Text) Int
-getCoocByNgrams (Diagonal diag) m =
+getCoocByNgrams = getCoocByNgrams' identity
+
+
+getCoocByNgrams' :: (Ord a, Ord c) => (b -> Set c) -> Diagonal -> Map a b -> Map (a, a) Int
+getCoocByNgrams' f (Diagonal diag) m =
   Map.fromList [((t1,t2)
                 ,maybe 0 Set.size $ Set.intersection
-                                 <$> Map.lookup t1 m
-                                 <*> Map.lookup t2 m
+                                 <$> (fmap f $ Map.lookup t1 m)
+                                 <*> (fmap f $ Map.lookup t2 m)
                 ) | (t1,t2) <- case diag of
                                  True   -> [ (x,y) | x <- Map.keys m, y <- Map.keys m, x <= y]
                                  False  -> listToCombi identity (Map.keys m)
                ]
+
+
 

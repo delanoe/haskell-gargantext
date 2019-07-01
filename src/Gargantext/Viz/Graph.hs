@@ -25,6 +25,7 @@ import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import GHC.IO (FilePath)
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Types.Node (NodeId)
 import Gargantext.Prelude
 import Test.QuickCheck (elements)
@@ -91,6 +92,7 @@ makeLenses ''LegendField
 data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the graph
                                    , _gm_corpusId :: [NodeId]  -- we can map with different corpus
                                    , _gm_legend :: [LegendField] -- legend of the Graph
+                                   , _gm_listId :: ListId
                                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)

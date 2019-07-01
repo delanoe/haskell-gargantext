@@ -60,15 +60,17 @@ getGraph :: NodeId -> GargServer (Get '[JSON] Graph)
 getGraph nId = do
   nodeGraph <- getNode nId HyperdataGraph
 
+  let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
+  lId  <- defaultList cId
+  
   let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
+                                lId
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-  let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
   
   lIds <- selectNodesWithUsername NodeList userMaster
-  lId  <- defaultList cId
   ngs  <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)

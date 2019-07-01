@@ -83,8 +83,6 @@ extractTerms (Unsupervised l n s m) xs = mapM (terms (Unsupervised l n s (Just m
 
 extractTerms termTypeLang xs = mapM (terms termTypeLang) xs
 
-
-
 ------------------------------------------------------------------------
 -- | Terms from Text
 -- Mono : mono terms
@@ -132,8 +130,10 @@ newTries :: Int -> Text -> Tries Token ()
 newTries n t = buildTries n (fmap toToken $ uniText t)
 
 uniText :: Text -> [[Text]]
-uniText = map (List.filter (not . isPunctuation))
+uniText = 
+ --  map (map (Text.toLower))
+         map (List.filter (not . isPunctuation))
         . map tokenize
         . sentences   -- | TODO get sentences according to lang
-
+        . Text.toLower
 
