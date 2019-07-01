@@ -7,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-
 -}
 
 {-# LANGUAGE FlexibleContexts  #-}
@@ -19,8 +18,10 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Main
   where
 
---import Debug.Trace (trace)
+import Debug.Trace (trace)
 import qualified Data.Text as Text
+import Data.Map (Map)
+import Data.Text (Text)
 import Data.Maybe
 import Servant
 import GHC.IO (FilePath)
@@ -34,9 +35,10 @@ import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Core.Types
+import Gargantext.Text.Terms.WithList
 import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Schema.Node (defaultList)
-import Gargantext.Database.Schema.NodeNode (selectDocNodes)
+import Gargantext.Database.Schema.NodeNode (selectDocs)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Node.Select (selectNodesWithUsername)
@@ -66,39 +68,36 @@ flowPhylo cId l m fp = do
   --printDebug "mapTermListRoot" x
   
   -- TODO optimize unwords
-  let terms = Set.fromList
-            $ List.concat
-            $ map (\(a,b) -> [a] <> b) termList
+
+  docs' <- catMaybes <$> map (\h -> (,) <$> _hyperdataDocument_publication_year h
+                          <*> _hyperdataDocument_abstract h
+                          ) <$> selectDocs cId
   
-      getDate n = maybe (panic "flowPhylo") identity
-                $ _hyperdataDocument_publication_year
-                $ _node_hyperdata n
-  
-  --printDebug "terms" terms
+  let patterns = buildPatterns termList
+  let docs = map ( (\(y,t) -> Document y t) . filterTerms patterns) docs'
+  --printDebug "docs" docs
+  --printDebug "docs" termList
 
-  -- TODO optimize this Database function below
-  docs' <- map (\n -> (_node_id n, getDate n)) <$> selectDocNodes cId
-  --printDebug "docs'" docs'
+  liftIO $ flowPhylo' (List.sortOn date docs) termList l m fp
 
-  nidTerms' <- getNodesByNgramsOnlyUser cId (listMaster <> [list])
-                                        NgramsTerms
-                                        (map Text.unwords $ Set.toList terms)
 
-  let nidTerms = Map.fromList
-               $ List.concat
-               $ map (\(t, ns) -> List.zip (Set.toList ns) (List.repeat t))
-               $ Map.toList
-               $ nidTerms'
 
-  let docs = List.sortOn date
-           $ List.filter (\d -> text d /= [])
-           $ map (\(n,d) -> Document d (maybe [] (\x -> [x])
-           $ Map.lookup n nidTerms)) docs'
-  
-  printDebug "docs" docs
-  printDebug "docs" termList
 
-  liftIO $ flowPhylo' docs termList l m fp
+parse :: TermList -> [(Date, Text)] -> IO [Document]
+parse l c = do
+  let patterns = buildPatterns l
+  pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) c
+
+
+-- | To filter the Ngrams of a document based on the termList
+filterTerms :: Patterns -> (Date, Text) -> (Date, [Text])
+filterTerms patterns (y,d) = (y,termsInText patterns d)
+  where
+    --------------------------------------
+    termsInText :: Patterns -> Text -> [Text]
+    termsInText pats txt = List.nub $ List.concat $ map (map Text.unwords) $ extractTermsWithList pats txt
+    --------------------------------------
+
 
 -- TODO SortedList Document
 flowPhylo' :: [Document] -> TermList      -- ^Build
@@ -119,7 +118,7 @@ defaultQuery = defaultQueryBuild'
   "Default Description"
 
 buildPhylo :: [Document] -> TermList -> Phylo
-buildPhylo = buildPhylo' defaultQuery
+buildPhylo = trace (show defaultQuery) $ buildPhylo' defaultQuery
 
 buildPhylo' :: PhyloQueryBuild -> [Document] -> TermList -> Phylo
 buildPhylo' q corpus termList = toPhylo q corpus termList Map.empty

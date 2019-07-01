@@ -25,6 +25,7 @@ module Gargantext.Viz.Phylo.API
 
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
+import qualified Data.ByteString.Lazy.Char8 as DBL (pack)
 import Data.Text (Text)
 import Data.Map  (empty)
 import Data.Swagger
@@ -75,7 +76,7 @@ instance Show a => MimeRender PlainText a where
    mimeRender _ val = cs ("" <> show val)
 
 instance Show a => MimeRender SVG a where
-   mimeRender _ val = cs ("" <> show val)
+   mimeRender _ val = DBL.pack $ show val
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId
