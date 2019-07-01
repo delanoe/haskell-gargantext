@@ -26,6 +26,7 @@ import Data.Vector      (Vector)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.Viz.Phylo.Metrics
 import Gargantext.Viz.Phylo.View.Display
 import Gargantext.Viz.Phylo.View.Filters
 import Gargantext.Viz.Phylo.View.Metrics
@@ -71,7 +72,7 @@ groupsToNodes isR isV ns gs = map (\g -> let idxs = getGroupNgrams g
                                               (if isV
                                                 then Just (ngramsToText ns idxs)
                                                 else Nothing)
-                                              empty
+                                              (g ^. phylo_groupNgramsMeta)
                                               (if (not isR)
                                                 then Just (getGroupLevelParentsId g)
                                                 else Nothing)
@@ -146,6 +147,7 @@ toPhyloView q p = traceView
                 $ processDisplay (q ^. qv_display) (q ^. qv_export)
                 $ processSort    (q ^. qv_sort   ) p
                 $ processTaggers (q ^. qv_taggers) p
+                $ processDynamics
                 $ processFilters (q ^. qv_filters) p
                 $ processMetrics (q ^. qv_metrics) p
                 $ addChildNodes  (q ^. qv_levelChilds) (q ^. qv_lvl) (q ^. qv_levelChildsDepth) (q ^. qv_verbose) (q ^. qv_filiation) p

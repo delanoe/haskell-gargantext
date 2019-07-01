@@ -28,7 +28,7 @@ import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.BranchMaker
 import qualified Data.Map    as Map
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 
 
 -- | To get the nth most frequent Ngrams in a list of PhyloGroups
@@ -88,14 +88,13 @@ getNthMostMeta nth meta g = map (\(idx,_) -> (getGroupNgrams g !! idx))
                           $ sortOn snd $ zip [0..]
                           $ (g ^. phylo_groupNgramsMeta) ! meta 
 
-
 -- | To set the label of a PhyloNode as the nth most coocurent terms of its PhyloNodes
 nodeLabelCooc :: PhyloView -> Int -> Phylo -> PhyloView
 nodeLabelCooc v thr p = over (pv_nodes
                              . traverse)
                              (\n -> let g = head' "nodeLabelCooc" $ getGroupsFromIds [getNodeId n] p
-                                        lbl' = ngramsToLabel (getFoundationsRoots p) $ getNthMostMeta thr "coverage" g
-                                    in trace (show (lbl')) $ n & pn_label .~ lbl') v
+                                        lbl = ngramsToLabel (getFoundationsRoots p) $ getNthMostMeta thr "coverage" g
+                                    in n & pn_label .~ lbl) v
 
 
 -- | To process a sorted list of Taggers to a PhyloView

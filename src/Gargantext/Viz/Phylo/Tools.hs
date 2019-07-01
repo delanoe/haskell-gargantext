@@ -261,7 +261,8 @@ alterGroupWithLevel f lvl p = over ( phylo_periods
                                    .  traverse
                                    ) (\g -> if getGroupLevel g == lvl
                                             then f g
-                                            else g ) p                          
+                                            else g ) p        
+                                                               
 
 
 -- | To alter each list of PhyloGroups following a given function
@@ -566,6 +567,13 @@ getFisPeriod = _phyloFis_period
 ----------------------------
 
 
+-- | To alter a PhyloNode
+alterPhyloNode :: (PhyloNode -> PhyloNode) -> PhyloView -> PhyloView
+alterPhyloNode f v = over ( pv_nodes
+                          .  traverse
+                          ) (\pn ->  f pn ) v
+
+
 -- | To filter some GroupEdges with a given threshold
 filterGroupEdges :: Double -> [GroupEdge] -> [GroupEdge]
 filterGroupEdges thr edges = filter (\((_s,_t),w) -> w > thr) edges
@@ -590,6 +598,10 @@ getNodeBranchId n = case n ^. pn_bid of
 -- | To get the PhyloGroupId of a PhyloNode
 getNodeId :: PhyloNode -> PhyloGroupId
 getNodeId n = n ^. pn_id
+
+
+getNodePeriod :: PhyloNode -> (Date,Date)
+getNodePeriod n = fst $ fst $ getNodeId n
 
 
 -- | To get the Level of a PhyloNode
