@@ -76,7 +76,7 @@ instance Show a => MimeRender PlainText a where
    mimeRender _ val = cs ("" <> show val)
 
 instance Show a => MimeRender SVG a where
-   mimeRender _ val = DBL.pack $ show val
+   mimeRender _ val = DBL.pack $ ("SVG" <> show val)
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId
