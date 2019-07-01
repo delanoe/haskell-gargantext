@@ -23,8 +23,8 @@ import Data.GraphViz   hiding (DotGraph)
 import Data.GraphViz.Attributes.Complete hiding (EdgeType) 
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
-import Data.List        ((++),unwords,concat,sortOn,nub)
-import Data.Map         (Map,toList)
+import Data.List        ((++),unwords,concat,sortOn,nub,sort,group)
+import Data.Map         (Map,toList,(!))
 import Data.Maybe       (isNothing,fromJust)
 import Data.Text.Lazy   (fromStrict, pack, unpack)
 
@@ -35,6 +35,8 @@ import qualified Data.GraphViz.Attributes.HTML as H
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo hiding (Dot)
 import Gargantext.Viz.Phylo.Tools
+
+-- import Debug.Trace (trace)
 
 
 import Prelude (writeFile)
@@ -130,6 +132,20 @@ setPeakDotEdge ::  DotId -> DotId -> Dot DotId
 setPeakDotEdge bId nId = edge bId nId [Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])]
 
 
+colorFromDynamics :: Double -> H.Attribute
+colorFromDynamics d 
+  | d == 0    = H.BGColor (toColor LightPink)
+  | d == 1    = H.BGColor (toColor PaleGreen)
+  | d == 2    = H.BGColor (toColor SkyBlue)
+  | otherwise = H.Color (toColor Black)
+
+
+getGroupDynamic :: [Double] -> H.Attribute
+getGroupDynamic dy = colorFromDynamics $ head' "getGroupDynamic" (head' "getGroupDynamic" $ reverse $ sortOn length $ group $ sort dy)
+
+  
+
+
 -- | To set an HTML table
 setHtmlTable :: PhyloNode -> H.Label
 setHtmlTable pn = H.Table H.HTable
@@ -137,14 +153,18 @@ setHtmlTable pn = H.Table H.HTable
                     , H.tableAttrs = [H.Border 0, H.CellBorder 0, H.BGColor (toColor White)]
                     , H.tableRows = [header] <> (if isNothing $ pn ^. pn_ngrams
                                                  then []
-                                                 else map ngramsToRow $ splitEvery 4 $ fromJust $ pn ^. pn_ngrams) }
+                                                 else map ngramsToRow $ splitEvery 4 $ zip (fromJust $ pn ^. pn_ngrams) dynamics) }
     where
         --------------------------------------
-        ngramsToRow :: [Ngrams] -> H.Row
-        ngramsToRow ns = H.Cells $ map (\n -> H.LabelCell [H.BAlign H.HLeft] $ H.Text [H.Str $ fromStrict n]) ns
+        ngramsToRow :: [(Ngrams,Double)] -> H.Row
+        ngramsToRow ns = H.Cells $ map (\(n,d) -> H.LabelCell [H.BAlign H.HLeft,colorFromDynamics d] 
+                                                $ H.Text [H.Str $ fromStrict n]) ns
+        --------------------------------------
+        dynamics :: [Double]
+        dynamics =  (pn ^. pn_metrics) ! "dynamics"
         --------------------------------------
         header :: H.Row
-        header = H.Cells [H.LabelCell [H.Color (toColor Black), H.BGColor (toColor Chartreuse2)] 
+        header = H.Cells [H.LabelCell [getGroupDynamic dynamics] 
                                       $ H.Text [H.Str $ (fromStrict . T.toUpper) $ pn ^. pn_label]]
         --------------------------------------
 
