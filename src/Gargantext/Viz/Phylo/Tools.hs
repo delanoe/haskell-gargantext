@@ -238,18 +238,17 @@ getFoundationsRoots p = (getFoundations p) ^. phylo_foundationsRoots
 -- | To get the Index of a Ngrams in the foundationsRoots of a Phylo
 getIdxInRoots :: Ngrams -> Phylo -> Int
 getIdxInRoots n p = case (elemIndex n (getFoundationsRoots p)) of
-    Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
+    Nothing  -> panic $ "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots: " <> cs n
     Just idx -> idx
 
 getIdxInVector :: Ngrams -> Vector Ngrams -> Int
 getIdxInVector n ns = case (elemIndex n ns) of
-  Nothing  -> panic "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots"
-  Just idx -> idx 
+  Nothing  -> panic $ "[ERR][Viz.Phylo.Tools.getIdxInVector] Ngrams not in foundationsRoots: " <> cs n
+  Just idx -> idx
 
 --------------------
 -- | PhyloGroup | --
 --------------------
-
 
 -- | To alter a PhyloGroup matching a given Level
 alterGroupWithLevel :: (PhyloGroup -> PhyloGroup) -> Level -> Phylo -> Phylo
@@ -261,7 +260,7 @@ alterGroupWithLevel f lvl p = over ( phylo_periods
                                    .  traverse
                                    ) (\g -> if getGroupLevel g == lvl
                                             then f g
-                                            else g ) p                          
+                                            else g ) p
 
 
 -- | To alter each list of PhyloGroups following a given function

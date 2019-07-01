@@ -44,8 +44,9 @@ import Gargantext.Database.Flow
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 -- TODO : git mv ViewMaker Maker
 import Gargantext.Viz.Phylo.View.ViewMaker
-import Gargantext.Viz.Phylo hiding (Svg)
+import Gargantext.Viz.Phylo hiding (Svg, Dot)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString as DB
 
 type MinSizeBranch = Int
 
@@ -54,26 +55,24 @@ flowPhylo :: FlowCmdM env ServantErr m
           -> Level -> MinSizeBranch
           -> FilePath
           -> m FilePath
-
 flowPhylo cId l m fp = do
 
   list       <- defaultList cId
   listMaster <- selectNodesWithUsername NodeList userMaster
-  termList <- Map.toList <$> getTermsWith (Text.words) [list] NgramsTerms GraphTerm
+  termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms GraphTerm
   --printDebug "termList" termList
   
   --x <- mapTermListRoot [list] NgramsTerms
   --printDebug "mapTermListRoot" x
   
   -- TODO optimize unwords
-  let terms = Set.map Text.unwords
-            $ Set.fromList
+  let terms = Set.fromList
             $ List.concat
             $ map (\(a,b) -> [a] <> b) termList
   
       getDate n = maybe (panic "flowPhylo") identity
-             $ _hyperdataDocument_publication_year
-             $ _node_hyperdata n
+                $ _hyperdataDocument_publication_year
+                $ _node_hyperdata n
   
   --printDebug "terms" terms
 
@@ -81,21 +80,27 @@ flowPhylo cId l m fp = do
   docs' <- map (\n -> (_node_id n, getDate n)) <$> selectDocNodes cId
   --printDebug "docs'" docs'
 
-  nidTerms' <- getNodesByNgramsOnlyUser cId (listMaster <> [list]) NgramsTerms (Set.toList terms)
+  nidTerms' <- getNodesByNgramsOnlyUser cId (listMaster <> [list])
+                                        NgramsTerms
+                                        (map Text.unwords $ Set.toList terms)
 
-  let nidTerms = Map.fromListWith (<>)
-          $ List.concat
-          $ map (\(t, ns) -> List.zip (Set.toList ns) (List.repeat $ Text.words t))
-          $ Map.toList
-          $ nidTerms'
+  let nidTerms = Map.fromList
+               $ List.concat
+               $ map (\(t, ns) -> List.zip (Set.toList ns) (List.repeat t))
+               $ Map.toList
+               $ nidTerms'
 
-  let docs = map (\(n,d) -> Document d (maybe [] identity $ Map.lookup n nidTerms)) docs'
+  let docs = List.sortOn date
+           $ List.filter (\d -> text d /= [])
+           $ map (\(n,d) -> Document d (maybe [] (\x -> [x])
+           $ Map.lookup n nidTerms)) docs'
+  
   printDebug "docs" docs
   printDebug "docs" termList
 
   liftIO $ flowPhylo' docs termList l m fp
 
-
+-- TODO SortedList Document
 flowPhylo' :: [Document] -> TermList      -- ^Build
           -> Level      -> MinSizeBranch -- ^View
           -> FilePath
@@ -120,9 +125,10 @@ buildPhylo' :: PhyloQueryBuild -> [Document] -> TermList -> Phylo
 buildPhylo' q corpus termList = toPhylo q corpus termList Map.empty
 
 queryView :: Level -> MinSizeBranch -> PhyloQueryView
-queryView level minSizeBranch = PhyloQueryView level Merge False 1
+queryView level _minSizeBranch = PhyloQueryView level Merge False 2
            [BranchAge]
-           [SizeBranch $ SBParams minSizeBranch]
+           []
+           -- [SizeBranch $ SBParams minSizeBranch]
            [BranchPeakFreq,GroupLabelCooc]
            (Just (ByBranchAge,Asc))
            Json Flat True
@@ -132,4 +138,7 @@ viewPhylo l b phylo = toPhyloView (queryView l b) phylo
 
 writePhylo :: FilePath -> PhyloView -> IO FilePath
 writePhylo fp phview = runGraphviz (viewToDot phview) Svg fp
+
+viewPhylo2Svg :: PhyloView -> IO DB.ByteString
+viewPhylo2Svg p = graphvizWithHandle Dot (viewToDot p) Svg DB.hGetContents
 

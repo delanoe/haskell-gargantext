@@ -28,7 +28,6 @@ TODO:
 
 module Gargantext.Viz.Phylo.Example where
 
-import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.Text (Text, toLower)
 import Data.List        ((++))
 import Data.Map         (Map,empty)
@@ -44,7 +43,8 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.ViewMaker
-import Gargantext.Viz.Phylo.View.Export
+import Gargantext.Viz.Phylo.Main (writePhylo)
+import GHC.IO (FilePath)
 import qualified Data.List   as List
 
 
@@ -52,11 +52,9 @@ import qualified Data.List   as List
 -- | STEP 12 | -- Create a PhyloView from a user Query
 ------------------------------------------------------
 
-export :: IO ()
-export = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre.dot" phyloDot 
 
-phyloDot :: DotGraph DotId
-phyloDot = viewToDot phyloView
+phyloExport :: FilePath -> IO FilePath
+phyloExport fp = writePhylo fp phyloView
 
 phyloView :: PhyloView
 phyloView = toPhyloView (queryParser' queryViewEx) phyloFromQuery

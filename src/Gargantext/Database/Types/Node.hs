@@ -379,6 +379,7 @@ data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: !(Maybe T
 $(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
 
 instance Hyperdata HyperdataGraph
+
 ------------------------------------------------------------------------
 
 -- TODO add the Graph Structure here
@@ -429,7 +430,7 @@ data NodeType = NodeUser
               | NodeFolder
               | NodeCorpus     | NodeCorpusV3 | NodeDocument
               | NodeAnnuaire   | NodeContact
-              | NodeGraph
+              | NodeGraph      | NodePhylo
               | NodeDashboard  | NodeChart
               | NodeList       | NodeListModel deriving (Show, Read, Eq, Generic, Bounded, Enum)
 

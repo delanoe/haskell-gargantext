@@ -9,9 +9,7 @@ Portability : POSIX
 
 -}
 
-
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-
 
 {-# LANGUAGE RankNTypes         #-}
 {-# LANGUAGE DataKinds          #-}
@@ -20,11 +18,13 @@ Portability : POSIX
 {-# LANGUAGE OverloadedLists    #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.API
   where
 
 --import Control.Monad.Reader (ask)
+import qualified Data.ByteString as DB
 import Data.Text (Text)
 import Data.Map  (empty)
 import Data.Swagger
@@ -32,16 +32,19 @@ import Gargantext.API.Types
 import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
+import Gargantext.Viz.Phylo.Main
 import Gargantext.Viz.Phylo.Aggregates
 import Gargantext.Viz.Phylo.Example
 import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.View.ViewMaker
+--import Gargantext.Viz.Phylo.View.ViewMaker
 import Gargantext.Viz.Phylo.LevelMaker
 import Servant
 import Servant.Job.Utils (swaggerOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Web.HttpApiData (parseUrlPiece, readTextData)
+import Control.Monad.IO.Class (liftIO)
+import Network.HTTP.Media ((//), (/:))
 
 ------------------------------------------------------------------------
 type PhyloAPI = Summary "Phylo API"
@@ -51,9 +54,28 @@ type PhyloAPI = Summary "Phylo API"
 
 
 phyloAPI :: PhyloId -> GargServer PhyloAPI
-phyloAPI n = getPhylo  n
+phyloAPI n = getPhylo'  n
         -- :<|> putPhylo  n
         :<|> postPhylo n
+
+newtype SVG = SVG DB.ByteString
+
+instance ToSchema SVG
+  where
+    declareNamedSchema = undefined
+    --genericDeclareNamedSchemaUnrestricted (swaggerOptions "")
+
+instance Show SVG where
+  show (SVG a) = show a
+
+instance Accept SVG where
+   contentType _ = "SVG" // "image/svg+xml" /: ("charset", "utf-8")
+
+instance Show a => MimeRender PlainText a where
+   mimeRender _ val = cs ("" <> show val)
+
+instance Show a => MimeRender SVG a where
+   mimeRender _ val = cs ("" <> show val)
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId
@@ -71,11 +93,12 @@ type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "export"    ExportMode
               :> QueryParam "display"    DisplayMode
               :> QueryParam "verbose"     Bool
-              :> Get '[JSON] PhyloView
+              :> Get '[SVG] SVG
 
 -- | TODO
 -- Add real text processing
 -- Fix Filter parameters
+{-
 getPhylo :: PhyloId -> GargServer GetPhylo
 getPhylo _phyloId _lId l f b l' ms x y z ts s o e d b' = do
   let
@@ -85,7 +108,12 @@ getPhylo _phyloId _lId l f b l' ms x y z ts s o e d b' = do
   -- | TODO remove phylo for real data here
   pure (toPhyloView  q phylo)
   -- TODO remove phylo for real data here
+-}
 
+getPhylo' :: PhyloId -> GargServer GetPhylo
+getPhylo' _phyloId _lId _l _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
+  p <- liftIO $ viewPhylo2Svg phyloView
+  pure (SVG p)
 ------------------------------------------------------------------------
 {-
 type PutPhylo = (Put '[JSON] Phylo  )

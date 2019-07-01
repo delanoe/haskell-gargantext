@@ -56,12 +56,12 @@ getTermsWith :: (RepoCmdM env err m, Ord a)
 getTermsWith f ls ngt lt = Map.fromListWith (<>)
                       <$> map (toTreeWith f)
                       <$> Map.toList
-                      <$> Map.filter (\f -> (fst f) == lt)
+                      <$> Map.filter (\f' -> (fst f') == lt)
                       <$> mapTermListRoot ls ngt
   where
-    toTreeWith f (t, (_lt, maybeRoot)) = case maybeRoot of
-      Nothing -> (f t, [])
-      Just  r -> (f r, map f [t])
+    toTreeWith f'' (t, (_lt, maybeRoot)) = case maybeRoot of
+      Nothing -> (f'' t, [])
+      Just  r -> (f'' r, map f'' [t])
 
 mapTermListRoot :: RepoCmdM env err m
                => [ListId] -> NgramsType
