@@ -23,9 +23,10 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.API
   where
 
+import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
-import qualified Data.ByteString.Lazy.Char8 as DBL (pack)
+import qualified Data.ByteString.Lazy as DBL
 import Data.Text (Text)
 import Data.Map  (empty)
 import Data.Swagger
@@ -63,7 +64,10 @@ newtype SVG = SVG DB.ByteString
 
 instance ToSchema SVG
   where
-    declareNamedSchema = undefined
+    declareNamedSchema = undefined {-genericDeclareNamedSchema
+      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 3 fieldLabel}
+    -}
+    -- undefined
     --genericDeclareNamedSchemaUnrestricted (swaggerOptions "")
 
 instance Show SVG where
@@ -75,8 +79,9 @@ instance Accept SVG where
 instance Show a => MimeRender PlainText a where
    mimeRender _ val = cs ("" <> show val)
 
-instance Show a => MimeRender SVG a where
-   mimeRender _ val = DBL.pack $ ("SVG" <> show val)
+instance MimeRender SVG SVG where
+   mimeRender _ (SVG s) = DBL.fromStrict s
+
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId
