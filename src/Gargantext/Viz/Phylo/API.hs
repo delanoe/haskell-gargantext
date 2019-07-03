@@ -38,6 +38,7 @@ import Gargantext.Viz.Phylo.Main
 import Gargantext.Viz.Phylo.Aggregates
 import Gargantext.Viz.Phylo.Example
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.API.Ngrams (TODO(..))
 --import Gargantext.Viz.Phylo.View.ViewMaker
 import Gargantext.Viz.Phylo.LevelMaker
 import Servant
@@ -64,11 +65,7 @@ newtype SVG = SVG DB.ByteString
 
 instance ToSchema SVG
   where
-    declareNamedSchema = undefined {-genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 3 fieldLabel}
-    -}
-    -- undefined
-    --genericDeclareNamedSchemaUnrestricted (swaggerOptions "")
+    declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 instance Show SVG where
   show (SVG a) = show a
@@ -81,7 +78,6 @@ instance Show a => MimeRender PlainText a where
 
 instance MimeRender SVG SVG where
    mimeRender _ (SVG s) = DBL.fromStrict s
-
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId
