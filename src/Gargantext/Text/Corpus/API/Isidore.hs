@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.IsidoreApi
+Module      : Gargantext.Text.Corpus.API.Isidore
 Description : To query French Humanities publication database from its API
 Copyright   : (c) CNRS, 2019-Present
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ Portability : POSIX
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings   #-}
 
-module Gargantext.Text.Parsers.IsidoreApi where
+module Gargantext.Text.Corpus.API.Isidore where
 
 import System.FilePath (FilePath())
 import Data.Text (Text)
@@ -23,10 +23,10 @@ import Gargantext.Prelude
 import Isidore.Client
 import Servant.Client
 import qualified Data.Text as Text
-import qualified Gargantext.Text.Parsers.Date as Date
+import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import qualified Isidore as Isidore
-import Gargantext.Text.Parsers.CSV (writeDocs2Csv)
-import Gargantext.Text.Parsers (cleanText)
+import Gargantext.Text.Corpus.Parsers.CSV (writeDocs2Csv)
+import Gargantext.Text.Corpus.Parsers (cleanText)
 
 -- | TODO work with the ServantErr
 get :: Lang -> Maybe Isidore.Limit

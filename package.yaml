@@ -47,19 +47,14 @@ library:
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
-  - Gargantext.Text.Crawlers
+  - Gargantext.Text.Corpus.Parsers
+  - Gargantext.Text.Corpus.Parsers.CSV
   - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
   - Gargantext.Text.Metrics
   - Gargantext.Text.Metrics.TFICF
   - Gargantext.Text.Metrics.CharByChar
   - Gargantext.Text.Metrics.Count
-  - Gargantext.Text.Parsers
-  - Gargantext.Text.Parsers.CSV
-  - Gargantext.Text.Parsers.Date
-  - Gargantext.Text.Parsers.Wikimedia
-  - Gargantext.Text.Parsers.WOS
-  - Gargantext.Text.Parsers.GrandDebat
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
   - Gargantext.Text.Terms.Stop

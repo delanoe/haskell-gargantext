@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.CSV
+Module      : Gargantext.Text.Corpus.Parsers.CSV
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -15,7 +15,7 @@ CSV parser for Gargantext corpus files.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
 
-module Gargantext.Text.Parsers.CSV where
+module Gargantext.Text.Corpus.Parsers.CSV where
 
 import Control.Applicative
 import Data.Char (ord)

@@ -318,6 +318,7 @@ serverGargAPI -- orchestrator
      :<|> graphAPI -- TODO: mock
      :<|> treeAPI
      :<|> New.api
+     :<|> New.info fakeUserId
   --   :<|> orchestrator
   where
     fakeUserId = 1 -- TODO

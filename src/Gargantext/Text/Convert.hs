@@ -20,8 +20,8 @@ module Gargantext.Text.Convert (risPress2csvWrite)
 
 import System.FilePath (FilePath()) -- , takeExtension)
 import Gargantext.Prelude
-import Gargantext.Text.Parsers.CSV (writeDocs2Csv)
-import Gargantext.Text.Parsers (parseFile, FileFormat(..))
+import Gargantext.Text.Corpus.Parsers.CSV (writeDocs2Csv)
+import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat(..))
 
 
 risPress2csvWrite :: FilePath -> IO ()

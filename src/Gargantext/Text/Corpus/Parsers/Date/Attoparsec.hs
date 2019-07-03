@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.Date.Attoparsec
+Module      : Gargantext.Text.Corpus.Parsers.Date.Attoparsec
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.Date.Attoparsec
+module Gargantext.Text.Corpus.Parsers.Date.Attoparsec
   where
 
 import Control.Applicative ((<*))

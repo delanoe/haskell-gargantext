@@ -31,9 +31,9 @@ import GHC.Generics
 import GHC.IO (FilePath)
 import Gargantext.Prelude
 import Gargantext.Text.List.CSV (csvGraphTermList)
-import Gargantext.Text.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
-import qualified Gargantext.Text.Parsers.CSV as CSV
-import Gargantext.Text.Parsers (FileFormat(..),parseFile)
+import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import qualified Gargantext.Text.Corpus.Parsers.CSV as CSV
+import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Context (TermList)
 

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers
+Module      : Gargantext.Text.Corpus.Parsers
 Description : All parsers of Gargantext in one file.
 Copyright   : (c) CNRS, 2017
 License     : AGPL + CECILL v3
@@ -22,7 +22,7 @@ please follow the types.
 {-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers (FileFormat(..), clean, parseFile, cleanText)
+module Gargantext.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cleanText)
     where
 
 --import Data.ByteString (ByteString)
@@ -48,11 +48,11 @@ import qualified Data.Text as DT
 import Gargantext.Core (Lang(..))
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import qualified Gargantext.Text.Parsers.WOS as WOS
-import qualified Gargantext.Text.Parsers.RIS as RIS
-import Gargantext.Text.Parsers.RIS.Presse (presseEnrich)
-import qualified Gargantext.Text.Parsers.Date as Date
-import Gargantext.Text.Parsers.CSV (parseHal)
+import qualified Gargantext.Text.Corpus.Parsers.WOS as WOS
+import qualified Gargantext.Text.Corpus.Parsers.RIS as RIS
+import Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
+import qualified Gargantext.Text.Corpus.Parsers.Date as Date
+import Gargantext.Text.Corpus.Parsers.CSV (parseHal)
 import Gargantext.Text.Terms.Stop (detectLang)
 ------------------------------------------------------------------------
 

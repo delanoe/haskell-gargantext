@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.WOS
+Module      : Gargantext.Text.Corpus.Parsers.Wikimedia
 Description : Parser for Wikimedia dump
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -7,7 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-@Gargantext.Text.Parsers.Wikimedia@:
+@Gargantext.Text.Corpus.Parsers.Wikimedia@:
 This module provide a parser for wikipedia dump.
 This include an xml parser for wikipedia's xml
 and an wikimedia to plaintext converter for the wikipedia text field
@@ -16,7 +16,7 @@ and an wikimedia to plaintext converter for the wikipedia text field
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Text.Parsers.Wikimedia
+module Gargantext.Text.Corpus.Parsers.Wikimedia
   where
 
 import Control.Monad.Catch

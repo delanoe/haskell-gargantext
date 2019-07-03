@@ -30,7 +30,7 @@ import Data.Text (Text)
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono (monoTexts)
 import Gargantext.Text.Terms.Mono.Stem as ST
-import Gargantext.Text.Parsers.CSV
+import Gargantext.Text.Corpus.Parsers.CSV
 
 type DocId = Int
 

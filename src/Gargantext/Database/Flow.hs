@@ -62,8 +62,8 @@ import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Eleve (buildTries, toToken)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
-import Gargantext.Text.Parsers (parseFile, FileFormat)
-import qualified Gargantext.Text.Parsers.IsidoreApi as Isidore
+import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
+import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Servant (ServantErr)
@@ -72,7 +72,7 @@ import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
-import qualified Gargantext.Text.Parsers.GrandDebat as GD
+import qualified Gargantext.Text.Corpus.Parsers.GrandDebat as GD
 
 type FlowCmdM env err m =
   ( CmdM     env err m
