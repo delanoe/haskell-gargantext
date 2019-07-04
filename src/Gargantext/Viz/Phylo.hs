@@ -318,7 +318,8 @@ data Metric = BranchAge deriving (Generic, Show, Eq, Read)
 
 
 -- | Tagger constructors
-data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show,Generic,Read)
+data Tagger = BranchPeakFreq | BranchPeakCooc | BranchPeakInc
+            | GroupLabelCooc | GroupLabelInc  | GroupLabelIncDyn deriving (Show,Generic,Read)
 
 
 --------------
@@ -408,6 +409,7 @@ data PhyloNode = PhyloNode
   , _pn_idx :: [Int]
   , _pn_ngrams    :: Maybe [Ngrams]
   , _pn_metrics      :: Map Text [Double]
+  , _pn_cooc :: Map (Int,Int) Double
   , _pn_parents :: Maybe [PhyloGroupId]
   , _pn_childs  :: [PhyloNode]
   } deriving (Generic, Show)

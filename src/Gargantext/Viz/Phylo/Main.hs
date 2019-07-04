@@ -20,7 +20,6 @@ module Gargantext.Viz.Phylo.Main
 
 import Debug.Trace (trace)
 import qualified Data.Text as Text
-import Data.Map (Map)
 import Data.Text (Text)
 import Data.Maybe
 import Servant
@@ -30,18 +29,17 @@ import Gargantext.Prelude
 import Gargantext.Text.Context (TermList)
 import qualified Data.Map  as Map
 import qualified Data.List as List
-import qualified Data.Set  as Set
 import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Core.Types
 import Gargantext.Text.Terms.WithList
-import Gargantext.Database.Config (userMaster)
+-- import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (selectDocs)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
-import Gargantext.Database.Node.Select (selectNodesWithUsername)
+-- import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+-- import Gargantext.Database.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Flow
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 -- TODO : git mv ViewMaker Maker
@@ -60,7 +58,7 @@ flowPhylo :: FlowCmdM env ServantErr m
 flowPhylo cId l m fp = do
 
   list       <- defaultList cId
-  listMaster <- selectNodesWithUsername NodeList userMaster
+  -- listMaster <- selectNodesWithUsername NodeList userMaster
   termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms GraphTerm
   --printDebug "termList" termList
   

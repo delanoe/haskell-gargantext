@@ -28,6 +28,8 @@ TODO:
 
 module Gargantext.Viz.Phylo.Example where
 
+import Data.GraphViz.Types.Generalised (DotGraph)
+
 import Data.Text (Text, toLower)
 import Data.List        ((++))
 import Data.Map         (Map,empty)
@@ -43,14 +45,21 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.ViewMaker
+import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.Main (writePhylo)
 import GHC.IO (FilePath)
 import qualified Data.List   as List
 
-
 ------------------------------------------------------
 -- | STEP 12 | -- Create a PhyloView from a user Query
 ------------------------------------------------------
+
+
+export :: IO ()
+export = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre.dot" phyloDot 
+
+phyloDot :: DotGraph DotId
+phyloDot = viewToDot phyloView
 
 
 phyloExport :: FilePath -> IO FilePath
@@ -73,7 +82,7 @@ queryViewEx = "level=3"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 2 Merge False 2 [BranchAge] [] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True
+phyloQueryView = PhyloQueryView 2 Merge False 2 [BranchAge] [] [BranchPeakInc,GroupLabelIncDyn] (Just (ByBranchAge,Asc)) Json Flat True
 
 
 --------------------------------------------------
@@ -100,7 +109,7 @@ queryEx = "title=Cesar et Cleôpatre"
 
 phyloQueryBuild :: PhyloQueryBuild
 phyloQueryBuild = PhyloQueryBuild "Cesar et Cleôpatre" "An example of Phylomemy (french without accent)"
-             3 1 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.6 20) 5 0.8 0.5 4 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.4 0) 
+             3 1 defaultFis [] [] (WeightedLogJaccard $ WLJParams 0.5 20) 5 0.8 0.5 4 2 (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams 0.3 0) 
 
 
 

@@ -26,7 +26,7 @@ import System.Directory (doesFileExist)
 
 import Data.Aeson
 import Data.Text (Text, unwords, unlines)
-import Data.List ((++))
+import Data.List ((++),concat)
 import GHC.Generics
 import GHC.IO (FilePath)
 import Gargantext.Prelude
@@ -36,6 +36,8 @@ import qualified Gargantext.Text.Parsers.CSV as CSV
 import Gargantext.Text.Parsers (FileFormat(..),parseFile)
 import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Context (TermList)
+
+import Control.Monad (mapM)
 
 import System.Environment
 
@@ -47,6 +49,8 @@ import Gargantext.Viz.Phylo.View.ViewMaker
 
 import Gargantext.Database.Types.Node
 import Data.Maybe
+
+import Control.Concurrent.Async as CCA (mapConcurrently)
 
 import qualified Data.Map    as DM
 import qualified Data.Vector as DV
@@ -141,7 +145,8 @@ wosToCorpus limit path = DL.take limit
                          . filter (\d -> (isJust $_hyperdataDocument_publication_year d)
                                       && (isJust $_hyperdataDocument_title d)
                                       && (isJust $_hyperdataDocument_abstract d))
-                         <$> parseFile WOS path
+                         . concat
+                         <$> mapConcurrently (\idx -> parseFile WOS (path <> show(idx) <> ".txt")) [1..20]
 
 
 -- | To use the correct parser given a CorpusType
@@ -211,7 +216,7 @@ main = do
                   (reBranchThr conf) (reBranchNth conf) (phyloLevel conf)
                   (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams (clusterTh conf) (clusterSens conf))
 
-      let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [SizeBranch $ SBParams (minSizeBranch conf)] [BranchPeakFreq,GroupLabelCooc] (Just (ByBranchAge,Asc)) Json Flat True           
+      let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [SizeBranch $ SBParams (minSizeBranch conf)] [GroupLabelIncDyn,BranchPeakInc] (Just (ByBranchAge,Asc)) Json Flat True           
 
       let phylo = toPhylo query corpus termList fis'
 

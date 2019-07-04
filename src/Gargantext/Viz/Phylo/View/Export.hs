@@ -23,7 +23,7 @@ import Data.GraphViz   hiding (DotGraph)
 import Data.GraphViz.Attributes.Complete hiding (EdgeType) 
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
-import Data.List        ((++),unwords,concat,sortOn,nub,sort,group)
+import Data.List        ((++),unwords,concat,sortOn,nub)
 import Data.Map         (Map,toList,(!))
 import Data.Maybe       (isNothing,fromJust)
 import Data.Text.Lazy   (fromStrict, pack, unpack)
@@ -134,16 +134,18 @@ setPeakDotEdge bId nId = edge bId nId [Width 3, Color [toWColor Black], ArrowHea
 
 colorFromDynamics :: Double -> H.Attribute
 colorFromDynamics d 
-  | d == 0    = H.BGColor (toColor LightPink)
-  | d == 1    = H.BGColor (toColor PaleGreen)
-  | d == 2    = H.BGColor (toColor SkyBlue)
+  | d == 0    = H.BGColor (toColor PaleGreen) 
+  | d == 1    = H.BGColor (toColor SkyBlue)
+  | d == 2    = H.BGColor (toColor LightPink) 
   | otherwise = H.Color (toColor Black)
 
 
 getGroupDynamic :: [Double] -> H.Attribute
-getGroupDynamic dy = colorFromDynamics $ head' "getGroupDynamic" (head' "getGroupDynamic" $ reverse $ sortOn length $ group $ sort dy)
-
-  
+getGroupDynamic dy
+  | elem 0 dy = colorFromDynamics 0
+  | elem 1 dy = colorFromDynamics 1
+  | elem 2 dy = colorFromDynamics 2
+  | otherwise = colorFromDynamics 3
 
 
 -- | To set an HTML table
@@ -151,21 +153,33 @@ setHtmlTable :: PhyloNode -> H.Label
 setHtmlTable pn = H.Table H.HTable
                     { H.tableFontAttrs = Just [H.PointSize 14, H.Align H.HLeft]
                     , H.tableAttrs = [H.Border 0, H.CellBorder 0, H.BGColor (toColor White)]
-                    , H.tableRows = [header] <> (if isNothing $ pn ^. pn_ngrams
-                                                 then []
-                                                 else map ngramsToRow $ splitEvery 4 $ zip (fromJust $ pn ^. pn_ngrams) dynamics) }
+                    , H.tableRows = [header]
+                                  <> [H.Cells [H.LabelCell [H.Height 10] $ H.Text [H.Str $ fromStrict ""]]]
+                                  <> (if isNothing $ pn ^. pn_ngrams
+                                      then []
+                                      else map ngramsToRow $ splitEvery 4 
+                                         $ reverse $ sortOn (snd . snd)
+                                         $ zip (fromJust $ pn ^. pn_ngrams) $ zip dynamics inclusion) }
     where
         --------------------------------------
-        ngramsToRow :: [(Ngrams,Double)] -> H.Row
-        ngramsToRow ns = H.Cells $ map (\(n,d) -> H.LabelCell [H.BAlign H.HLeft,colorFromDynamics d] 
+        ngramsToRow :: [(Ngrams,(Double,Double))] -> H.Row
+        ngramsToRow ns = H.Cells $ map (\(n,(d,_)) -> H.LabelCell [H.Align H.HLeft,colorFromDynamics d] 
                                                 $ H.Text [H.Str $ fromStrict n]) ns
+        --------------------------------------
+        inclusion :: [Double]
+        inclusion =  (pn ^. pn_metrics) ! "inclusion"
         --------------------------------------
         dynamics :: [Double]
         dynamics =  (pn ^. pn_metrics) ! "dynamics"
         --------------------------------------
         header :: H.Row
         header = H.Cells [H.LabelCell [getGroupDynamic dynamics] 
-                                      $ H.Text [H.Str $ (fromStrict . T.toUpper) $ pn ^. pn_label]]
+                                      $ H.Text [H.Str $ (((fromStrict . T.toUpper) $ pn ^. pn_label)
+                                                      <> (fromStrict " ( ")
+                                                      <> (pack $ show (fst $ getNodePeriod pn))
+                                                      <> (fromStrict " , ")
+                                                      <> (pack $ show (snd $ getNodePeriod pn))
+                                                      <> (fromStrict " ) "))]] 
         --------------------------------------
 
 

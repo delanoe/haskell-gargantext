@@ -24,7 +24,7 @@ import Gargantext.Viz.Phylo.Tools
 import Control.Lens hiding (Level)
 
 import Data.List ((\\), sortOn, concat, nub, take, union, intersect, null, (++), sort)
-import Data.Map  (Map, (!), foldlWithKey, toList, size, insert, unionWith, intersection, intersectionWith, filterWithKey, elems, fromList, findWithDefault, fromListWith)
+import Data.Map  (Map, (!), toList, size, insert, unionWith, intersection, intersectionWith, filterWithKey, elems, fromList, findWithDefault, fromListWith)
 import Data.Text (Text)
 
 -- import Debug.Trace (trace)
@@ -37,27 +37,25 @@ import Data.Text (Text)
 -- | Return the conditional probability of i knowing j 
 conditional :: Ord a => Map (a,a) Double -> a -> a -> Double
 conditional m i j = (findWithDefault 0 (i,j) m) 
-                  / foldlWithKey (\s (x,_) v -> if x == j 
-                                                 then s + v
-                                                 else s ) 0 m
+                  / (m ! (j,j))
 
 
 -- | Return the genericity score of a given ngram
 genericity :: Map (Int, Int) Double -> [Int] -> Int -> Double 
 genericity m l i = ( (sum $ map (\j -> conditional m i j) l) 
-                   - (sum $ map (\j -> conditional m j i) l)) / 2
+                   - (sum $ map (\j -> conditional m j i) l)) / (fromIntegral $ (length l) + 1)
 
 
 -- | Return the specificity score of a given ngram
 specificity :: Map (Int, Int) Double -> [Int] -> Int -> Double 
 specificity m l i = ( (sum $ map (\j -> conditional m j i) l)
-                    - (sum $ map (\j -> conditional m i j) l)) / 2
+                    - (sum $ map (\j -> conditional m i j) l)) / (fromIntegral $ (length l) + 1)
 
 
--- | Return the coverage score of a given ngram
-coverage :: Map (Int, Int) Double -> [Int] -> Int -> Double 
-coverage m l i = ( (sum $ map (\j -> conditional m j i) l)
-                 + (sum $ map (\j -> conditional m i j) l)) / 2
+-- | Return the inclusion score of a given ngram
+inclusion :: Map (Int, Int) Double -> [Int] -> Int -> Double 
+inclusion m l i = ( (sum $ map (\j -> conditional m j i) l)
+                  + (sum $ map (\j -> conditional m i j) l)) / (fromIntegral $ (length l) + 1)
 
 
 -- | Process some metrics on top of ngrams
@@ -65,7 +63,7 @@ getNgramsMeta :: Map (Int, Int) Double -> [Int] -> Map Text [Double]
 getNgramsMeta m ngrams = fromList 
     [ ("genericity" , map (\n -> genericity  m (ngrams \\ [n]) n) ngrams ),
       ("specificity", map (\n -> specificity m (ngrams \\ [n]) n) ngrams ),
-      ("coverage"   , map (\n -> coverage    m (ngrams \\ [n]) n) ngrams )]
+      ("inclusion"  , map (\n -> inclusion   m (ngrams \\ [n]) n) ngrams )]
 
 
 -- | To get the nth most occurent elems in a coocurency matrix
@@ -96,14 +94,14 @@ findDynamics n pv pn m =
         bid = fromJust $ (pn ^. pn_bid)
         end = last' "dynamics" (sort $ map snd $ elems m)
     in  if (((snd prd) == (snd $ m ! n)) && (snd prd /= end))
-            -- | decrease
-            then 0
-        else if ((fst prd) == (fst $ m ! n))
             -- | emergence
-            then 1
-        else if (not $ sharedWithParents (fst prd) bid n pv)
-            -- | recombination
             then 2
+        else if ((fst prd) == (fst $ m ! n))
+            -- | recombination
+            then 0
+        else if (not $ sharedWithParents (fst prd) bid n pv)
+            -- | decrease
+            then 1
         else 3
 
 
