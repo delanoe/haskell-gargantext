@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.WOS
+Module      : Gargantext.Text.Corpus.Parsers.WOS
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,14 +14,14 @@ commentary with @some markup@.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.WOS (parser, keys) where
+module Gargantext.Text.Corpus.Parsers.WOS (parser, keys) where
 
 import Control.Applicative
 import Data.Attoparsec.ByteString (Parser, string, takeTill, take, manyTill, many1)
 import Data.Attoparsec.ByteString.Char8 (anyChar, isEndOfLine)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (pack)
-import Gargantext.Text.Parsers.RIS (fieldWith)
+import Gargantext.Text.Corpus.Parsers.RIS (fieldWith)
 import Prelude hiding (takeWhile, take, concat, readFile, lines, concat)
 
 -------------------------------------------------------------

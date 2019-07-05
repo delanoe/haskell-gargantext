@@ -23,9 +23,10 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.API
   where
 
+import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
-import qualified Data.ByteString.Lazy.Char8 as DBL (pack)
+import qualified Data.ByteString.Lazy as DBL
 import Data.Text (Text)
 import Data.Map  (empty)
 import Data.Swagger
@@ -37,6 +38,7 @@ import Gargantext.Viz.Phylo.Main
 import Gargantext.Viz.Phylo.Aggregates
 import Gargantext.Viz.Phylo.Example
 import Gargantext.Viz.Phylo.Tools
+import Gargantext.API.Ngrams (TODO(..))
 --import Gargantext.Viz.Phylo.View.ViewMaker
 import Gargantext.Viz.Phylo.LevelMaker
 import Servant
@@ -63,8 +65,7 @@ newtype SVG = SVG DB.ByteString
 
 instance ToSchema SVG
   where
-    declareNamedSchema = undefined
-    --genericDeclareNamedSchemaUnrestricted (swaggerOptions "")
+    declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 instance Show SVG where
   show (SVG a) = show a
@@ -75,8 +76,8 @@ instance Accept SVG where
 instance Show a => MimeRender PlainText a where
    mimeRender _ val = cs ("" <> show val)
 
-instance Show a => MimeRender SVG a where
-   mimeRender _ val = DBL.pack $ show val
+instance MimeRender SVG SVG where
+   mimeRender _ (SVG s) = DBL.fromStrict s
 
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId

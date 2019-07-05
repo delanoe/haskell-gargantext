@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.Date
+Module      : Gargantext.Text.Corpus.Parsers.Date
 Description : Some utils to parse dates
 Copyright   : (c) CNRS 2017-present
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.Date.Parsec
+module Gargantext.Text.Corpus.Parsers.Date.Parsec
   where
 
 import Control.Monad ((=<<))

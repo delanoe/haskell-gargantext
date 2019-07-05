@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.RIS.Presse
+Module      : Gargantext.Text.Corpus.Parsers.RIS.Presse
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ Presse RIS format parser for Europresse Database.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS.Presse (presseEnrich) where
+module Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich) where
 
 import Data.List (lookup)
 import Data.Either (either)
@@ -22,9 +22,9 @@ import Data.Tuple.Extra (first, both, uncurry)
 import Data.Attoparsec.ByteString (parseOnly)
 import Data.ByteString (ByteString, length)
 import Gargantext.Prelude hiding (takeWhile, take, length)
-import Gargantext.Text.Parsers.RIS (onField)
+import Gargantext.Text.Corpus.Parsers.RIS (onField)
 import Gargantext.Core (Lang(..))
-import qualified Gargantext.Text.Parsers.Date.Attoparsec as Date
+import qualified Gargantext.Text.Corpus.Parsers.Date.Attoparsec as Date
 
 
 

@@ -29,6 +29,7 @@ module Gargantext.Prelude
   , module Data.Maybe
   , round
   , sortWith
+  , module Prelude
   )
   where
 
@@ -63,6 +64,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , panic
                  )
 
+import Prelude (Enum, Bounded, minBound, maxBound)
 -- TODO import functions optimized in Utils.Count
 -- import Protolude hiding (head, last, all, any, sum, product, length)
 -- import Gargantext.Utils.Count

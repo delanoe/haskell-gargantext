@@ -24,7 +24,7 @@ import Control.Exception (finally)
 import Servant (ServantErr)
 import Gargantext.Prelude
 import Gargantext.Database.Flow (FlowCmdM, flowCorpusFile)
-import Gargantext.Text.Parsers (FileFormat(CsvHalFormat))
+import Gargantext.Text.Corpus.Parsers (FileFormat(CsvHalFormat))
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
 import Gargantext.Database.Schema.User (insertUsersDemo)
@@ -33,7 +33,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
 import System.Environment (getArgs)
---import Gargantext.Text.Parsers.GrandDebat (readFile, GrandDebatReference(..))
+--import Gargantext.Text.Corpus.Parsers.GrandDebat (readFile, GrandDebatReference(..))
 import qualified Data.Text as Text
 import Control.Monad.IO.Class (liftIO)
 

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.GrandDebat
+Module      : Gargantext.Text.Corpus.Parsers.GrandDebat
 Description : Grand Debat Types
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -16,7 +16,7 @@ TODO: create a separate Lib.
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Gargantext.Text.Parsers.GrandDebat
+module Gargantext.Text.Corpus.Parsers.GrandDebat
   where
 
 import GHC.IO (FilePath)

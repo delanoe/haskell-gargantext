@@ -23,7 +23,7 @@ import qualified Data.Vector as DV
 import qualified Data.Map    as M
 
 import Gargantext.Text.Metrics.Freq as F
-import Gargantext.Text.Parsers.CSV as CSV
+import Gargantext.Text.Corpus.Parsers.CSV as CSV
 
 data School = School { school_shortName :: Text
                      , school_longName  :: Text

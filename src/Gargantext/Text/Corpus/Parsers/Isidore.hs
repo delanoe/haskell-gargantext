@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.Isidore
+Module      : Gargantext.Text.Corpus.Parsers.Isidore
 Description : To query French Humanities publication database
 Copyright   : (c) CNRS, 2019-Present
 License     : AGPL + CECILL v3
@@ -19,7 +19,7 @@ TODO:
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings   #-}
 
-module Gargantext.Text.Parsers.Isidore where
+module Gargantext.Text.Corpus.Parsers.Isidore where
 
 import Control.Lens hiding (contains)
 import Data.ByteString.Lazy (ByteString)

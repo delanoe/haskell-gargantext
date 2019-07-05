@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.Date
+Module      : Gargantext.Text.Corpus.Parsers.Date
 Description : Some utils to parse dates
 Copyright   : (c) CNRS 2017-present
 License     : AGPL + CECILL v3
@@ -10,7 +10,7 @@ Portability : POSIX
 According to the language of the text, parseDateRaw returns date as Text:
 
 TODO : Add some tests
-import Gargantext.Text.Parsers.Date as DGP
+import Gargantext.Text.Corpus.Parsers.Date as DGP
 DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 -}
 
@@ -18,7 +18,7 @@ DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.Date (parse, parseRaw, split) where
+module Gargantext.Text.Corpus.Parsers.Date (parse, parseRaw, split) where
 
 import Data.HashMap.Strict as HM hiding (map)
 import Data.Text (Text, unpack, splitOn, pack)

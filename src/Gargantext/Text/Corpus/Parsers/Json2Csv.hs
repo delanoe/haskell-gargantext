@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.Json2Csv
+Module      : Gargantext.Text.Corpus.Parsers.Json2Csv
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -17,7 +17,7 @@ Json parser to export towoard CSV GargV3 format.
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Gargantext.Text.Parsers.Json2Csv (json2csv, readPatents)
+module Gargantext.Text.Corpus.Parsers.Json2Csv (json2csv, readPatents)
   where
 
 import Prelude (read)
@@ -28,7 +28,7 @@ import Data.Text (Text, unpack)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
 import System.IO (FilePath)
-import Gargantext.Text.Parsers.CSV (CsvDoc(..), writeFile, headerCsvGargV3)
+import Gargantext.Text.Corpus.Parsers.CSV (CsvDoc(..), writeFile, headerCsvGargV3)
 import Data.Vector (fromList)
 
 data Patent = Patent { _patent_title :: Text

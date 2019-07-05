@@ -38,6 +38,8 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Gargantext.Database.Flow (FlowCmdM)
+import qualified Gargantext.Text.Corpus.API as API
+import Gargantext.Database.Types.Node (UserId)
 
 data Query = Query { query_query      :: Text
                    , query_corpus_id  :: Int
@@ -45,7 +47,7 @@ data Query = Query { query_query      :: Text
                    }
                    deriving (Eq, Show, Generic)
 
-deriveJSON (unPrefix "query_") ''Query
+deriveJSON (unPrefix "query_") 'Query
 
 
 instance Arbitrary Query where
@@ -65,9 +67,26 @@ instance ToSchema Query where
 type Api = Summary "New Corpus endpoint"
          :> ReqBody '[JSON] Query
          :> Post '[JSON] CorpusId
+        :<|> Get '[JSON] ApiInfo
 
 
 api :: FlowCmdM env err m => Query -> m CorpusId
 api (Query q _ _) = do
   cId <- flowCorpusSearchInDatabase "user1" EN q
   pure cId
+
+
+------------------------------------------------
+data ApiInfo = ApiInfo { api_info :: [API.ExternalAPIs]}
+  deriving (Generic)
+instance Arbitrary ApiInfo where
+  arbitrary = ApiInfo <$> arbitrary
+
+deriveJSON (unPrefix "") 'ApiInfo
+
+instance ToSchema ApiInfo
+
+info :: FlowCmdM env err m => UserId -> m ApiInfo
+info _u = pure $ ApiInfo API.externalAPIs
+
+

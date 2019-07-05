@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Text.Parsers.RIS
+Module      : Gargantext.Text.Corpus.Parsers.RIS
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -19,7 +19,7 @@ citation programs to exchange data.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Parsers.RIS (parser, onField, fieldWith, lines) where
+module Gargantext.Text.Corpus.Parsers.RIS (parser, onField, fieldWith, lines) where
 
 import Data.List (lookup)
 import Control.Applicative

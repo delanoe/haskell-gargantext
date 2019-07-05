@@ -18,35 +18,32 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Main
   where
 
-import Debug.Trace (trace)
-import qualified Data.Text as Text
-import Data.Text (Text)
-import Data.Maybe
-import Servant
-import GHC.IO (FilePath)
+
+import Control.Monad.IO.Class (liftIO)
 import Data.GraphViz
-import Gargantext.Prelude
-import Gargantext.Text.Context (TermList)
-import qualified Data.Map  as Map
-import qualified Data.List as List
-import Gargantext.Viz.Phylo.View.Export
-import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.LevelMaker
+import Data.Maybe
+import Data.Text (Text)
+import Debug.Trace (trace)
+import GHC.IO (FilePath)
+import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.Core.Types
-import Gargantext.Text.Terms.WithList
--- import Gargantext.Database.Config (userMaster)
+import Gargantext.Database.Flow
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (selectDocs)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
--- import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
--- import Gargantext.Database.Node.Select (selectNodesWithUsername)
-import Gargantext.Database.Flow
-import Gargantext.API.Ngrams.Tools (getTermsWith)
--- TODO : git mv ViewMaker Maker
-import Gargantext.Viz.Phylo.View.ViewMaker
+import Gargantext.Prelude
+import Gargantext.Text.Context (TermList)
+import Gargantext.Text.Terms.WithList
 import Gargantext.Viz.Phylo hiding (Svg, Dot)
-import Control.Monad.IO.Class (liftIO)
+import Gargantext.Viz.Phylo.LevelMaker
+import Gargantext.Viz.Phylo.Tools
+import Gargantext.Viz.Phylo.View.Export
+import Gargantext.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
+import Servant
 import qualified Data.ByteString as DB
+import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Text as Text
 
 type MinSizeBranch = Int
 
