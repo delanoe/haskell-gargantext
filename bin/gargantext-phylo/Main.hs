@@ -216,7 +216,7 @@ main = do
                   (reBranchThr conf) (reBranchNth conf) (phyloLevel conf)
                   (RelatedComponents $ RCParams $ WeightedLogJaccard $ WLJParams (clusterTh conf) (clusterSens conf))
 
-      let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge] [SizeBranch $ SBParams (minSizeBranch conf)] [GroupLabelIncDyn,BranchPeakInc] (Just (ByBranchAge,Asc)) Json Flat True           
+      let queryView = PhyloQueryView (viewLevel conf) Merge False 1 [BranchAge,BranchBirth] [SizeBranch $ SBParams (minSizeBranch conf)] [GroupLabelIncDyn,BranchPeakInc] (Just (ByBranchBirth,Asc)) Json Flat True           
 
       let phylo = toPhylo query corpus termList fis'
 

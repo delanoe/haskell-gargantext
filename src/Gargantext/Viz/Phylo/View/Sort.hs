@@ -36,10 +36,22 @@ sortBranchByAge o v = v & pv_branches %~ f
            Desc -> reverse $ sortOn (getBranchMeta "age") xs
     --------------------------------------
 
+-- | To sort a PhyloView by Birth date of a branch
+sortBranchByBirth :: Order -> PhyloView -> PhyloView
+sortBranchByBirth o v = v & pv_branches %~ f
+  where
+    --------------------------------------
+    f :: [PhyloBranch] -> [PhyloBranch] 
+    f xs = case o of 
+           Asc  -> sortOn (getBranchMeta "birth") xs
+           Desc -> reverse $ sortOn (getBranchMeta "birth") xs
+    --------------------------------------    
+
 -- | To process a Sort to a PhyloView
 processSort :: Maybe (Sort,Order) -> Phylo -> PhyloView -> PhyloView 
 processSort s _p v = case s of
                     Nothing -> v
                     Just s'  -> case fst s' of
-                               ByBranchAge -> sortBranchByAge (snd s') v
+                               ByBranchAge   -> sortBranchByAge   (snd s') v
+                               ByBranchBirth -> sortBranchByBirth (snd s') v
                                --_           -> panic "[ERR][Viz.Phylo.View.Sort.processSort] sort not found"

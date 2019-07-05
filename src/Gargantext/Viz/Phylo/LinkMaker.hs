@@ -227,10 +227,9 @@ transposePeriodLinks :: Level -> Phylo -> Phylo
 transposePeriodLinks lvl p = alterPhyloGroups
   (\gs -> if ((not . null) gs) && (elem lvl $ map getGroupLevel gs)  
               then 
-                let groups  = map (\g -> g & phylo_groupPeriodParents .~ (trackPointers (reduceGroups g lvlGroups) 
-                                                                                      $ g ^. phylo_groupPeriodParents)
-                                           & phylo_groupPeriodChilds  .~ (trackPointers (reduceGroups g lvlGroups)
-                                                                                      $ g ^. phylo_groupPeriodChilds )) gs
+                let groups  = map (\g -> let m = reduceGroups g lvlGroups
+                                         in  g & phylo_groupPeriodParents .~ (trackPointers m $ g ^. phylo_groupPeriodParents)
+                                               & phylo_groupPeriodChilds  .~ (trackPointers m $ g ^. phylo_groupPeriodChilds )) gs
                     groups' = groups `using` parList rdeepseq
                     in groups'
               else gs

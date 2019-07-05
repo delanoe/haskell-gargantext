@@ -30,6 +30,7 @@ module Gargantext.Viz.Phylo.Example where
 
 import Data.GraphViz.Types.Generalised (DotGraph)
 
+import Control.Lens hiding (both, Level)
 import Data.Text (Text, toLower)
 import Data.List        ((++))
 import Data.Map         (Map,empty)
@@ -82,7 +83,7 @@ queryViewEx = "level=3"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 2 Merge False 2 [BranchAge] [] [BranchPeakInc,GroupLabelIncDyn] (Just (ByBranchAge,Asc)) Json Flat True
+phyloQueryView = PhyloQueryView 2 Merge False 2 [BranchAge,BranchBirth] [] [BranchPeakInc,GroupLabelIncDyn] (Just (ByBranchBirth,Asc)) Json Flat True
 
 
 --------------------------------------------------
@@ -205,12 +206,11 @@ phylo1 =  addPhyloLevel (1) phyloFis phylo'
 -- | STEP 5 | -- Create lists of Frequent Items Set and filter them
 -------------------------------------------------------------------
 
-phyloFis :: Map (Date, Date) [PhyloFis]
-phyloFis = refineFis (getPhyloFis phylo') True 1 1
-
-
 phylo' :: Phylo 
-phylo' = docsToFis phyloDocs phylo
+phylo' = phylo & phylo_fis .~ phyloFis
+
+phyloFis :: Map (Date, Date) [PhyloFis]
+phyloFis = refineFis (docsToFis phyloDocs phylo) True 1 1
 
 ----------------------------------------
 -- | STEP 2 | -- Init a Phylo of level 0

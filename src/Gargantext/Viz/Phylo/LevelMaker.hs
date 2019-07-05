@@ -21,7 +21,7 @@ module Gargantext.Viz.Phylo.LevelMaker
 
 import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sort, concat, nub, zip, last)
+import Data.List                    ((++), sort, concat, nub, zip, last, null)
 import Data.Map                     (Map, (!), empty, singleton)
 import Data.Text (Text)
 import Data.Tuple.Extra
@@ -187,11 +187,12 @@ toPhylo q c termList fis = toNthLevel (getNthLevel q) (getInterTemporalMatching 
   where
     --------------------------------------
     phylo1 :: Phylo
-    phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) phyloDocs phylo0
+    phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) phyloDocs phyloBase
+    -- phylo1 = toPhylo1 (getContextualUnit q) (getInterTemporalMatching q) phyloDocs phylo
     --------------------------------------
-    phylo0 :: Phylo
-    phylo0 = tracePhyloN 0 
-           $ addPhyloLevel 0 phyloDocs phyloBase
+    -- phylo0 :: Phylo
+    -- phylo0 = tracePhyloN 0 
+    --        $ addPhyloLevel 0 phyloDocs phyloBase
     --------------------------------------
     phyloDocs :: Map (Date, Date) [Document]
     phyloDocs = groupDocsByPeriod date (getPhyloPeriods phyloBase) c
@@ -236,15 +237,14 @@ toPhylo1 clus prox d p = case clus of
                        $ traceTempoMatching Ascendant 1
                        $ interTempoMatching Ascendant 1 prox
                        $ tracePhyloN 1
-                       $ setLevelLinks (0,1)
-                       $ addPhyloLevel 1 phyloFis phylo'
+                       -- $ setLevelLinks (0,1)
+                       $ addPhyloLevel 1 (getPhyloFis phyloFis) phyloFis
     where
       --------------------------------------
-      phyloFis :: Map (Date, Date) [PhyloFis]
-      phyloFis = refineFis (getPhyloFis phylo') k s t
-      --------------------------------------
-      phylo' :: Phylo
-      phylo' = docsToFis d p
+      phyloFis :: Phylo
+      phyloFis = if (null $ getPhyloFis p)
+                 then p & phylo_fis .~ refineFis (docsToFis d p) k s t
+                 else p & phylo_fis .~ docsToFis d p
       --------------------------------------
 
   _   -> panic "[ERR][Viz.Phylo.LevelMaker.toPhylo1] fst clustering not recognized"

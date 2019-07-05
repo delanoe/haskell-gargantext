@@ -17,8 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Aggregates
   where
 
-
-import Control.Lens hiding (makeLenses, both, Level)
+import Control.Parallel.Strategies
 
 import Gargantext.Prelude hiding  (elem)
 import Gargantext.Text.Context    (TermList)
@@ -29,11 +28,14 @@ import Gargantext.Viz.Phylo.Tools
 
 import Debug.Trace (trace)
  
-import Data.List    (partition, concat, nub, elem, sort, (++), null)
-import Data.Map     (Map, fromList, fromListWith, adjust, filterWithKey, toList, elems, keys, unionWith, mapWithKey)
+import Data.List    (partition, concat, nub, elem, sort, (++), null, union)
+import Data.Map     (Map, fromList, fromListWith, adjust, filterWithKey, elems, keys, unionWith, mapWithKey)
 import Data.Set     (size)
 import Data.Text    (Text, unwords)
 import Data.Vector  (Vector)
+
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import qualified Data.Vector as Vector
 
@@ -53,9 +55,13 @@ termListToNgrams = map (\(lbl,_) -> unwords lbl)
 -------------------
 
 -- | To group a list of Documents by fixed periods
-groupDocsByPeriod :: (Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
+groupDocsByPeriod :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
 groupDocsByPeriod _ _   [] = panic "[ERR][Viz.Phylo.Example.docsToPeriods] Empty [Documents] can not have any periods"
-groupDocsByPeriod f pds es = trace ("----\nGroup docs by periods\n") $ fromList $ zip pds $ map (inPeriode f es) pds
+groupDocsByPeriod f pds es = 
+  let periods  = map (inPeriode f es) pds
+      periods' = periods `using` parList rdeepseq
+
+  in  trace ("----\nGroup docs by periods\n") $ fromList $ zip pds periods'
   where
     --------------------------------------
     inPeriode :: Ord b => (t -> b) -> [t] -> (b, b) -> [t]
@@ -161,28 +167,45 @@ filterFisByClique :: Int -> [PhyloFis] -> [PhyloFis]
 filterFisByClique thr l = filter (\fis -> (size $ getClique fis) >= thr) l
 
 
--- | To filter nested Fis 
+-- | To find if l' is nested in l
+isNested :: Eq a => [a] -> [a] -> Bool
+isNested l l'
+  | null l'               = True
+  | length l' > length l  = False
+  | (union  l l') == l    = True
+  | otherwise             = False 
+
+
+-- | To filter nested Fis
 filterFisByNested :: Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFisByNested = map (\l -> let cliqueMax = filterNestedSets (head' "Fis" $ map getClique l) (map getClique l) []
-                               in  filter (\fis -> elem (getClique fis) cliqueMax) l)
+filterFisByNested m = 
+  let fis  = map (\l -> 
+                foldl (\mem f -> if (any (\f' -> isNested (Set.toList $ getClique f') (Set.toList $ getClique f)) mem)
+                                 then mem
+                                 else 
+                                    let fMax = filter (\f' -> not $ isNested (Set.toList $ getClique f) (Set.toList $ getClique f')) mem
+                                    in  fMax ++ [f] ) [] l)
+           $ elems m 
+      fis' = fis `using` parList rdeepseq
+  in  fromList $ zip (keys m) fis' 
 
 
 -- | Choose if we use a set of Fis from a file or if we have to create them
-docsToFis :: Map (Date,Date) [Document] -> Phylo -> Phylo
+docsToFis :: Map (Date,Date) [Document] -> Phylo -> Map (Date, Date) [PhyloFis]
 docsToFis m p = if (null $ getPhyloFis p)
                  then trace("----\nRebuild the Fis from scratch\n") 
-                    $ p & phylo_fis .~ mapWithKey (\k docs -> let fis = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
+                    $ mapWithKey (\k docs -> let fis = Map.toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
                                                               in map (\f -> PhyloFis (fst f) (snd f) k) fis) m
                  else trace("----\nUse Fis from an existing file\n") 
-                    $ p & phylo_fis %~ (unionWith (++) (fromList $ map (\k -> (k,[])) $ keys m))
+                    $ unionWith (++) (fromList $ map (\k -> (k,[])) $ keys m) (getPhyloFis p)
 
 
 -- | Process some filters on top of a set of Fis
 refineFis :: Map (Date, Date) [PhyloFis] -> Bool -> Support -> Int -> Map (Date, Date) [PhyloFis]
-refineFis fis k s t = traceFis "----\nFiltered Fis by clique size :\n"
-                      $ filterFis k t (filterFisByClique)
-                      $ traceFis "----\nFiltered Fis by nested :\n"
+refineFis fis k s t = traceFis "----\nFiltered Fis by nested :\n"
                       $ filterFisByNested 
+                      $ traceFis "----\nFiltered Fis by clique size :\n"                      
+                      $ filterFis k t (filterFisByClique)
                       $ traceFis "----\nFiltered Fis by support :\n"
                       $ filterFis k s (filterFisBySupport)
                       $ traceFis "----\nUnfiltered Fis :\n" fis
