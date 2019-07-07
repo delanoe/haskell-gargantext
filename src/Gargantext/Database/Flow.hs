@@ -110,7 +110,6 @@ flowCorpusApi u n tt l q = do
 
 ------------------------------------------------------------------------
 
-
 flowAnnuaire :: FlowCmdM env ServantErr m 
              => Username -> CorpusName -> (TermType Lang) -> FilePath -> m AnnuaireId
 flowAnnuaire u n l filePath = do
@@ -151,24 +150,32 @@ flowCorpusSearchInDatabase u la q = do
   flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
 
 
-flowCorpusSearchInDatabase' :: FlowCmdM env ServantErr m
+flowCorpusSearchInDatabaseApi :: FlowCmdM env ServantErr m
           => Username -> Lang -> Text -> m CorpusId
-flowCorpusSearchInDatabase' u la q = do
+flowCorpusSearchInDatabaseApi u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
   flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
 
 ------------------------------------------------------------------------
+-- | TODO improve the needed type to create/update a corpus
+data UserInfo = Username Text
+              | UserId   NodeId
+data CorpusInfo = CorpusName Lang Text
+                | CorpusId   Lang NodeId
 
-flow :: (FlowCmdM env ServantErr m, FlowCorpus a, MkCorpus c)
+
+flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
      => Maybe c -> Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
 flow c u cn la docs = do
   ids <- mapM (insertMasterDocs c la ) docs
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
 
-flowCorpus :: (FlowCmdM env ServantErr m, FlowCorpus a)
+flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
      => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
+
+------------------------------------------------------------------------
 
 
 flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
@@ -198,7 +205,7 @@ flowCorpusUser l userName corpusName ctype ids = do
   pure userCorpusId
 
 
-insertMasterDocs :: ( FlowCmdM env ServantErr m
+insertMasterDocs :: ( FlowCmdM env err m
                     , FlowCorpus a
                     , MkCorpus   c
                     )

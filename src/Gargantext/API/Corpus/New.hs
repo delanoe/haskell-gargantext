@@ -24,19 +24,21 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
+import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import Gargantext.Database.Flow (FlowCmdM)
+import Gargantext.Core (Lang(..))
+import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import qualified Gargantext.Text.Corpus.API as API
 import Gargantext.Database.Types.Node (UserId)
 
@@ -67,12 +69,15 @@ type Api = Summary "New Corpus endpoint"
         :<|> Get '[JSON] ApiInfo
 
 -- | TODO manage several apis
-api :: FlowCmdM env err m => Query -> m CorpusId
+api :: (FlowCmdM env err m) => Query -> m CorpusId
 api (Query q _ as) = do
   cId <- case head as of
     Nothing      -> flowCorpusSearchInDatabase "user1" EN q
     Just API.All -> flowCorpusSearchInDatabase "user1" EN q
-    Just _   -> undefined
+    Just a   -> do
+      docs <- liftIO $ API.get a q Nothing
+      cId' <- flowCorpus "user1" q (Multi EN) [docs]
+      pure cId'
 
   pure cId
 

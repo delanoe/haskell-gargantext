@@ -15,7 +15,7 @@ Portability : POSIX
 
 module Gargantext.Core.Flow where
 
-import Control.Lens ((^.), view, Lens', _Just)
+import Control.Lens (Lens')
 import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.Text.Terms (TermType)
@@ -25,7 +25,7 @@ import Gargantext.Core.Types.Main (HashId)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..))
 import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
 import Gargantext.Database.Node.Document.Insert (AddUniqId, InsertDb)
-import Gargantext.Database.Utils (Cmd, CmdM)
+import Gargantext.Database.Utils (Cmd)
 
 type FlowCorpus a = ( AddUniqId      a
                     , UniqId         a

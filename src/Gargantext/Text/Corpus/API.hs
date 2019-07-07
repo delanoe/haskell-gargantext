@@ -18,18 +18,19 @@ module Gargantext.Text.Corpus.API
 
 import GHC.Generics (Generic)
 import Data.Aeson
+import Data.Maybe
 import Data.Text (Text)
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Flow (FlowCorpus)
-import Gargantext.Database.Types.Node (HyperdataDocument)
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 import Data.Swagger
+import qualified Data.Text as Text
 
 import qualified PUBMED as PubMed
-import qualified PUBMED.Parser as Doc (PubMed)
-import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
+import qualified PUBMED.Parser as Doc
+--import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 
 data ExternalAPIs = All
                   | PubMed
@@ -53,10 +54,41 @@ instance ToSchema ExternalAPIs
 type Query = Text
 type Limit = PubMed.Limit
 
-get :: FlowCorpus a => ExternalAPIs -> Query -> Maybe Limit -> IO [a]
+get :: ExternalAPIs -> Query -> Maybe Limit -> IO [HyperdataDocument]
 get PubMed q l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN)) <$> PubMed.crawler q l
 get _ _ _ = undefined
 
-toDoc :: FlowCorpus a => Lang -> Doc.PubMed -> a
-toDoc = undefined
+toDoc :: Lang -> Doc.PubMed -> HyperdataDocument
+toDoc l (Doc.PubMed (Doc.PubMedArticle t j as aus)
+                    (Doc.PubMedDate a y m d)
+          ) = HyperdataDocument (Just "PubMed")
+                                 Nothing
+                                 Nothing
+                                 Nothing
+                                 Nothing
+                                 Nothing
+                                 t
+                                 (authors aus)
+                                 Nothing
+                                 j
+                                 (abstract as)
+                                 (Just $ Text.pack $ show a)
+                                 (Just $ fromIntegral y)
+                                 (Just m)
+                                 (Just d)
+                                 Nothing
+                                 Nothing
+                                 Nothing
+                                 (Just $ (Text.pack . show) l)
+      where
+        authors :: Maybe [Doc.Author] -> Maybe Text
+        authors aus' = case aus' of
+            Nothing -> Nothing
+            Just au -> Just $ (Text.intercalate ", ") $ catMaybes $ map Doc.foreName au
+
+        abstract :: Maybe [Text] -> Maybe Text
+        abstract as' = fmap (Text.intercalate ", ") as'
+
+
+
 
