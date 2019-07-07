@@ -18,20 +18,23 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE InstanceSigs      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
+
+{-# LANGUAGE ConstraintKinds         #-}
+{-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE ConstraintKinds         #-}
+{-# LANGUAGE DeriveGeneric           #-}
+{-# LANGUAGE FlexibleContexts        #-}
+{-# LANGUAGE InstanceSigs            #-}
+{-# LANGUAGE NoImplicitPrelude       #-}
+{-# LANGUAGE OverloadedStrings       #-}
 
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 import Prelude (String)
 import Debug.Trace (trace)
-import Control.Lens ((^.), view, Lens', _Just)
+import Control.Lens ((^.), view, _Just)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.List (concat)
@@ -45,6 +48,7 @@ import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Core.Flow
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertDocNgrams)
@@ -80,13 +84,6 @@ type FlowCmdM env err m =
   , HasNodeError err
   , HasRepoVar env
   )
-
-type FlowCorpus a = ( AddUniqId a
-                    , UniqId a
-                    , InsertDb a
-                    , ExtractNgramsT a
-                    , HasText a
-                    )
 
 ------------------------------------------------------------------------
 
@@ -280,19 +277,6 @@ getOrMkRootWithCorpus username cName c = do
 ------------------------------------------------------------------------
 
 
-class UniqId a
-  where
-    uniqId :: Lens' a (Maybe HashId)
-
-
-instance UniqId HyperdataDocument
-  where
-    uniqId = hyperdataDocument_uniqId
-
-instance UniqId HyperdataContact
-  where
-    uniqId = hc_uniqId
-
 viewUniqId' :: UniqId a => a -> (HashId, a)
 viewUniqId' d = maybe err (\h -> (h,d)) (view uniqId d)
       where
@@ -327,14 +311,6 @@ data DocumentIdWithNgrams a = DocumentIdWithNgrams
   , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
 
-
-class ExtractNgramsT h
-  where
-    extractNgramsT :: HasText h => TermType Lang -> h -> Cmd err (Map Ngrams (Map NgramsType Int))
-
-class HasText h
-  where
-    hasText :: h -> [Text]
 
 instance HasText HyperdataContact
   where

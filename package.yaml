@@ -48,6 +48,7 @@ library:
   - Gargantext.Text
   - Gargantext.Text.Context
   - Gargantext.Text.Corpus.Parsers
+  - Gargantext.Text.Corpus.API
   - Gargantext.Text.Corpus.Parsers.CSV
   - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
