@@ -104,7 +104,7 @@ getPhylo :: PhyloId -> GargServer GetPhylo
 getPhylo phId _lId l msb  = do
   phNode     <- getNodePhylo phId
   let
-    level = maybe 1 identity l
+    level = maybe 2 identity l
     branc = maybe 2 identity msb
     maybePhylo = hyperdataPhylo_data $ _node_hyperdata phNode
 

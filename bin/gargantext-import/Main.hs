@@ -24,7 +24,7 @@ import Control.Exception (finally)
 import Servant (ServantErr)
 import Gargantext.Prelude
 import Gargantext.Database.Flow (FlowCmdM, flowCorpusFile)
-import Gargantext.Text.Corpus.Parsers (FileFormat(CsvHalFormat))
+import Gargantext.Text.Corpus.Parsers (FileFormat(..))
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
 import Gargantext.Database.Schema.User (insertUsersDemo)
@@ -46,10 +46,10 @@ main = do
       createUsers = insertUsersDemo
   
   let
-    --tt = (Unsupervised EN 5 1 Nothing)
-    tt = (Mono EN)
+    --tt = (Unsupervised EN 6 0 Nothing)
+    tt = (Multi EN)
     cmd :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
-    cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) tt  CsvHalFormat corpusPath
+    cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) tt  CsvGargV3 corpusPath
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv ServantErr m => m CorpusId
       debatCorpus = do

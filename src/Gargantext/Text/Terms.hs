@@ -120,7 +120,7 @@ termsUnsupervised (Unsupervised l n s m) =
                pure
              . map (text2term l)
              . List.nub
-             . (List.filter (\l' -> List.length l' > s))
+             . (List.filter (\l' -> List.length l' >= s))
              . List.concat
              . mainEleveWith (maybe (panic "no model") identity m) n
              . uniText
