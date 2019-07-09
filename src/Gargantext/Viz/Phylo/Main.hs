@@ -18,7 +18,6 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.Main
   where
 
-import Control.Monad.IO.Class (liftIO)
 import Data.GraphViz
 import Data.Maybe
 import Data.Text (Text)
@@ -38,7 +37,6 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
-import Servant
 import qualified Data.ByteString as DB
 import qualified Data.List as List
 import qualified Data.Map  as Map
@@ -64,7 +62,7 @@ flowPhylo cId = do
     patterns = buildPatterns termList
     -- | To filter the Ngrams of a document based on the termList
     filterTerms :: Patterns -> (Date, Text) -> (Date, [Text])
-    filterTerms patterns (y,d) = (y,termsInText patterns d)
+    filterTerms patterns' (y,d) = (y,termsInText patterns' d)
       where
         --------------------------------------
         termsInText :: Patterns -> Text -> [Text]

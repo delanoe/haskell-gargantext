@@ -80,7 +80,7 @@ instance MimeRender SVG SVG where
 type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "level"       Level
               :> QueryParam "minSizeBranch" MinSizeBranch
-              :> QueryParam "filiation"   Filiation
+   {-           :> QueryParam "filiation"   Filiation
               :> QueryParam "childs"      Bool
               :> QueryParam "depth"       Level
               :> QueryParam "metrics"    [Metric]
@@ -93,15 +93,16 @@ type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "export"    ExportMode
               :> QueryParam "display"    DisplayMode
               :> QueryParam "verbose"     Bool
+    -}
               :> Get '[SVG] SVG
 
 -- | TODO
 -- Add real text processing
 -- Fix Filter parameters
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo phId _lId l msb _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
+--getPhylo phId _lId l msb _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
+getPhylo phId _lId l msb  = do
   phNode     <- getNodePhylo phId
-
   let
     level = maybe 1 identity l
     branc = maybe 2 identity msb
@@ -111,19 +112,19 @@ getPhylo phId _lId l msb _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
   pure (SVG p)
 ------------------------------------------------------------------------
 type PostPhylo =  QueryParam "listId" ListId
-               :> ReqBody '[JSON] PhyloQueryBuild
+               -- :> ReqBody '[JSON] PhyloQueryBuild
                :> (Post '[JSON] NodeId)
 
 postPhylo :: CorpusId -> UserId -> GargServer PostPhylo
-postPhylo n userId _lId _q = do
+postPhylo n userId _lId = do
   -- TODO get Reader settings
   -- s <- ask
   let
     -- _vrs = Just ("1" :: Text)
     -- _sft = Just (Software "Gargantext" "4")
     -- _prm = initPhyloParam vrs sft (Just q)
-  ph <- flowPhylo n
-  pId <- insertNodes [nodePhyloW (Just "Phylo") (Just $ HyperdataPhylo Nothing (Just ph)) n userId]
+  phy  <- flowPhylo n
+  pId <- insertNodes [nodePhyloW (Just "Phylo") (Just $ HyperdataPhylo Nothing (Just phy)) n userId]
   pure $ NodeId (fromIntegral pId)
 
 ------------------------------------------------------------------------
