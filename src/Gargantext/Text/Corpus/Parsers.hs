@@ -52,7 +52,7 @@ import qualified Gargantext.Text.Corpus.Parsers.WOS as WOS
 import qualified Gargantext.Text.Corpus.Parsers.RIS as RIS
 import Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
-import Gargantext.Text.Corpus.Parsers.CSV (parseHal)
+import Gargantext.Text.Corpus.Parsers.CSV (parseHal, parseCsv)
 import Gargantext.Text.Terms.Stop (detectLang)
 ------------------------------------------------------------------------
 
@@ -88,6 +88,7 @@ parseFormat = undefined
 -- TODO: to debug maybe add the filepath in error message
 parseFile :: FileFormat -> FilePath -> IO [HyperdataDocument]
 parseFile CsvHalFormat p = parseHal p
+parseFile CsvGargV3 p = parseCsv p
 parseFile RisPresse p = join $ mapM (toDoc RIS) <$> snd <$> enrichWith RisPresse <$> readFileWith RIS p
 parseFile WOS       p = join $ mapM (toDoc WOS) <$> snd <$> enrichWith WOS       <$> readFileWith WOS p
 parseFile ff        p = join $ mapM (toDoc ff)  <$> snd <$> enrichWith ff        <$> readFileWith ff p
