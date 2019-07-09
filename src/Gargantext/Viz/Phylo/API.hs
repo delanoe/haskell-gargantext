@@ -27,20 +27,16 @@ import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
-import Data.Text (Text)
-import Data.Map  (empty)
 import Data.Swagger
 import Gargantext.API.Types
 import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
+import Gargantext.Database.Schema.Node (insertNodes, nodePhyloW, getNodePhylo)
+import Gargantext.Database.Types.Node -- (NodePhylo(..))
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Main
-import Gargantext.Viz.Phylo.Aggregates
 import Gargantext.Viz.Phylo.Example
-import Gargantext.Viz.Phylo.Tools
 import Gargantext.API.Ngrams (TODO(..))
---import Gargantext.Viz.Phylo.View.ViewMaker
-import Gargantext.Viz.Phylo.LevelMaker
 import Servant
 import Servant.Job.Utils (swaggerOptions)
 import Test.QuickCheck (elements)
@@ -56,10 +52,11 @@ type PhyloAPI = Summary "Phylo API"
             :<|> PostPhylo
 
 
-phyloAPI :: PhyloId -> GargServer PhyloAPI
-phyloAPI n = getPhylo'  n
+phyloAPI :: PhyloId -> UserId -> GargServer PhyloAPI
+phyloAPI n u = getPhylo  n
+        :<|> postPhylo n u
         -- :<|> putPhylo  n
-        :<|> postPhylo n
+        -- :<|> deletePhylo  n
 
 newtype SVG = SVG DB.ByteString
 
@@ -82,6 +79,7 @@ instance MimeRender SVG SVG where
 ------------------------------------------------------------------------
 type GetPhylo =  QueryParam "listId"      ListId
               :> QueryParam "level"       Level
+              :> QueryParam "minSizeBranch" MinSizeBranch
               :> QueryParam "filiation"   Filiation
               :> QueryParam "childs"      Bool
               :> QueryParam "depth"       Level
@@ -100,22 +98,37 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- | TODO
 -- Add real text processing
 -- Fix Filter parameters
-{-
 getPhylo :: PhyloId -> GargServer GetPhylo
-getPhylo _phyloId _lId l f b l' ms x y z ts s o e d b' = do
-  let
-    fs' = maybe (Just []) (\p -> Just [p]) $ LonelyBranch <$> (LBParams <$> x <*> y <*> z)
-    so  = (,) <$> s <*> o
-    q = initPhyloQueryView l f b l' ms fs' ts so e d b'
-  -- | TODO remove phylo for real data here
-  pure (toPhyloView  q phylo)
-  -- TODO remove phylo for real data here
--}
+getPhylo phId _lId l msb _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
+  phNode     <- getNodePhylo phId
 
-getPhylo' :: PhyloId -> GargServer GetPhylo
-getPhylo' _phyloId _lId _l _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
-  p <- liftIO $ viewPhylo2Svg phyloView
+  let
+    level = maybe 1 identity l
+    branc = maybe 2 identity msb
+    maybePhylo = hyperdataPhylo_data $ _node_hyperdata phNode
+
+  p <- liftIO $ viewPhylo2Svg $ viewPhylo level branc  $ maybe phyloFromQuery identity maybePhylo
   pure (SVG p)
+------------------------------------------------------------------------
+type PostPhylo =  QueryParam "listId" ListId
+               :> ReqBody '[JSON] PhyloQueryBuild
+               :> (Post '[JSON] NodeId)
+
+postPhylo :: CorpusId -> UserId -> GargServer PostPhylo
+postPhylo n userId _lId _q = do
+  -- TODO get Reader settings
+  -- s <- ask
+  let
+    -- _vrs = Just ("1" :: Text)
+    -- _sft = Just (Software "Gargantext" "4")
+    -- _prm = initPhyloParam vrs sft (Just q)
+  ph <- flowPhylo n
+  pId <- insertNodes [nodePhyloW (Just "Phylo") (Just $ HyperdataPhylo Nothing (Just ph)) n userId]
+  pure $ NodeId (fromIntegral pId)
+
+------------------------------------------------------------------------
+-- | DELETE Phylo == delete a node
+------------------------------------------------------------------------
 ------------------------------------------------------------------------
 {-
 type PutPhylo = (Put '[JSON] Phylo  )
@@ -123,27 +136,6 @@ type PutPhylo = (Put '[JSON] Phylo  )
 putPhylo :: PhyloId -> GargServer PutPhylo
 putPhylo = undefined
 -}
-------------------------------------------------------------------------
-type PostPhylo =  QueryParam "listId" ListId
-               :> ReqBody '[JSON] PhyloQueryBuild
-               :> (Post '[JSON] Phylo)
-
-postPhylo :: CorpusId -> GargServer PostPhylo
-postPhylo _n _lId q = do
-  -- TODO get Reader settings
-  -- s <- ask
-  let
-    vrs = Just ("1" :: Text)
-    sft = Just (Software "Gargantext" "4")
-    prm = initPhyloParam vrs sft (Just q)
-  pure (toPhyloBase q prm (parseDocs (initFoundationsRoots actants) corpus) termList empty)
-
-
-------------------------------------------------------------------------
--- | DELETE Phylo == delete a node
-------------------------------------------------------------------------
-
-
 
 
 -- | Instances
@@ -159,7 +151,6 @@ instance Arbitrary PhyloGroup
 instance Arbitrary Phylo
   where
     arbitrary = elements [phylo]
-
 
 instance ToSchema Cluster
 instance ToSchema EdgeType

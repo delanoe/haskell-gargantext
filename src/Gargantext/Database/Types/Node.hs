@@ -57,6 +57,7 @@ import           Test.QuickCheck (elements)
 
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
+import           Gargantext.Viz.Phylo (Phylo)
 --import Gargantext.Database.Utils
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
@@ -384,6 +385,7 @@ instance Hyperdata HyperdataGraph
 
 -- TODO add the Graph Structure here
 data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: !(Maybe Text)
+                                     , hyperdataPhylo_data          :: !(Maybe Phylo)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
 

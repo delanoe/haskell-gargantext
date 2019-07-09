@@ -43,6 +43,7 @@ import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
+
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
@@ -374,6 +375,13 @@ getNode nId _ = do
     fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
+getNodePhylo :: NodeId -> Cmd err (NodePhylo)
+getNodePhylo nId = do
+    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+
+
+
 getNode' :: NodeId -> Cmd err (Node Value)
 getNode' nId = fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
@@ -462,7 +470,7 @@ nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
 
 ------------------------------------------------------------------------
 arbitraryPhylo :: HyperdataPhylo
-arbitraryPhylo = HyperdataPhylo (Just "Preferences")
+arbitraryPhylo = HyperdataPhylo Nothing Nothing
 
 nodePhyloW :: Maybe Name -> Maybe HyperdataPhylo -> ParentId -> UserId -> NodeWrite
 nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)

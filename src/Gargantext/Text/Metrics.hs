@@ -108,7 +108,7 @@ linearTakes gls incSize speGen incExc = (List.splitAt gls)
                                   $ (fromIntegral gls     :: Double)
                                   / (fromIntegral incSize :: Double)
                              )
-                      . map (sortOn incExc)
+                      . map (sortOn speGen)
                       . splitEvery incSize
-                      . sortOn speGen
+                      . sortOn incExc
 

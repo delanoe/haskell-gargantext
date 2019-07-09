@@ -183,7 +183,7 @@ nodeAPI p uId id
            :<|> getChart id
            :<|> getPie   id
            :<|> getTree  id
-           :<|> phyloAPI id
+           :<|> phyloAPI id uId
            :<|> postUpload id
   where
     deleteNodeApi id' = do

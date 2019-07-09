@@ -321,7 +321,7 @@ serverGargAPI -- orchestrator
      :<|> New.info fakeUserId
   --   :<|> orchestrator
   where
-    fakeUserId = 1 -- TODO
+    fakeUserId = 2 -- TODO, byDefault user1 (if users automatically generated with inserUsersDemo)
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
