@@ -73,6 +73,7 @@ groupsToNodes isR isV ns gs = map (\g -> let idxs = getGroupNgrams g
                                                 then Just (ngramsToText ns idxs)
                                                 else Nothing)
                                               (g ^. phylo_groupNgramsMeta)
+                                              (g ^. phylo_groupCooc)
                                               (if (not isR)
                                                 then Just (getGroupLevelParentsId g)
                                                 else Nothing)

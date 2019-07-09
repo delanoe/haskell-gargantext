@@ -198,7 +198,7 @@ type Ngrams = Text
 data Document = Document
       { date :: Date
       , text :: [Ngrams]
-      } deriving (Show,Generic)
+      } deriving (Show,Generic,NFData)
 
 -- | Clique : Set of ngrams cooccurring in the same Document
 type Clique   = Set Ngrams
@@ -209,7 +209,7 @@ data PhyloFis = PhyloFis
   { _phyloFis_clique  :: Clique
   , _phyloFis_support :: Support
   , _phyloFis_period  :: (Date,Date)
-  } deriving (Generic,Show,Eq)
+  } deriving (Generic,NFData,Show,Eq)
 
 -- | A list of clustered PhyloGroup
 type PhyloCluster = [PhyloGroup]
@@ -309,7 +309,7 @@ data SBParams = SBParams
 
 
 -- | Metric constructors
-data Metric = BranchAge deriving (Generic, Show, Eq, Read)
+data Metric = BranchAge | BranchBirth deriving (Generic, Show, Eq, Read)
 
 
 ----------------
@@ -318,7 +318,8 @@ data Metric = BranchAge deriving (Generic, Show, Eq, Read)
 
 
 -- | Tagger constructors
-data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show,Generic,Read)
+data Tagger = BranchPeakFreq | BranchPeakCooc | BranchPeakInc
+            | GroupLabelCooc | GroupLabelInc  | GroupLabelIncDyn deriving (Show,Generic,Read)
 
 
 --------------
@@ -327,7 +328,7 @@ data Tagger = BranchPeakFreq | GroupLabelCooc | GroupDynamics deriving (Show,Gen
 
 
 -- | Sort constructors
-data Sort  = ByBranchAge deriving (Generic, Show, Read, Enum, Bounded)
+data Sort  = ByBranchAge | ByBranchBirth deriving (Generic, Show, Read, Enum, Bounded)
 data Order = Asc | Desc  deriving (Generic, Show, Read)
 
 
@@ -408,6 +409,7 @@ data PhyloNode = PhyloNode
   , _pn_idx :: [Int]
   , _pn_ngrams    :: Maybe [Ngrams]
   , _pn_metrics      :: Map Text [Double]
+  , _pn_cooc :: Map (Int,Int) Double
   , _pn_parents :: Maybe [PhyloGroupId]
   , _pn_childs  :: [PhyloNode]
   } deriving (Generic, Show)
