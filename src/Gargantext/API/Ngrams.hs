@@ -72,7 +72,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlySlow)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Utils (fromField', HasConnection)
@@ -888,10 +888,10 @@ getTableNgrams :: forall env err m.
                -> Maybe OrderBy
                -> (NgramsTerm -> Bool)
                -> m (Versioned NgramsTable)
-getTableNgrams nType nId tabType listId limit_ offset
+getTableNgrams _nType nId tabType listId limit_ offset
                listType minSize maxSize orderBy searchQuery = do
 
-  lIds <- selectNodesWithUsername NodeList userMaster
+  _lIds <- selectNodesWithUsername NodeList userMaster
   let
     ngramsType = ngramsTypeFromTabType tabType
     offset'  = maybe 0 identity offset
@@ -935,11 +935,15 @@ getTableNgrams nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = (table ^.. each . ne_ngrams)
+      occurrences <- getOccByNgramsOnlyFast nId
+                                            ngramsType
+                                            ngrams_terms
+      {-
       occurrences <- getOccByNgramsOnlySlow nType nId
                                             (lIds <> [listId])
                                             ngramsType
                                             ngrams_terms
-
+    -}
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
