@@ -70,7 +70,6 @@ import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
-import Servant (ServantErr)
 import System.FilePath (FilePath)
 import qualified Data.List as List
 import qualified Data.Map  as Map
@@ -98,7 +97,7 @@ getDataApi lang limit (ApiIsidoreQuery q) = Isidore.get lang limit (Just q) Noth
 getDataApi lang limit (ApiIsidoreAuth  q) = Isidore.get lang limit Nothing  (Just q)
 
 
-flowCorpusApi :: ( FlowCmdM env ServantErr m)
+flowCorpusApi :: ( FlowCmdM env err m)
            => Username -> CorpusName
            -> TermType Lang
            -> Maybe Limit
@@ -110,14 +109,14 @@ flowCorpusApi u n tt l q = do
 
 ------------------------------------------------------------------------
 
-flowAnnuaire :: FlowCmdM env ServantErr m 
+flowAnnuaire :: FlowCmdM env err m
              => Username -> CorpusName -> (TermType Lang) -> FilePath -> m AnnuaireId
 flowAnnuaire u n l filePath = do
   docs <- liftIO $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
 
-flowCorpusDebat :: FlowCmdM env ServantErr m
+flowCorpusDebat :: FlowCmdM env err m
             => Username -> CorpusName
             -> Limit -> FilePath
             -> m CorpusId
@@ -129,7 +128,7 @@ flowCorpusDebat u n l fp = do
                  )
   flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)
 
-flowCorpusFile :: FlowCmdM env ServantErr m
+flowCorpusFile :: FlowCmdM env err m
            => Username -> CorpusName
            -> Limit -- Limit the number of docs (for dev purpose)
            -> TermType Lang -> FileFormat -> FilePath
@@ -150,7 +149,7 @@ flowCorpusSearchInDatabase u la q = do
   flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
 
 
-flowCorpusSearchInDatabaseApi :: FlowCmdM env ServantErr m
+flowCorpusSearchInDatabaseApi :: FlowCmdM env err m
           => Username -> Lang -> Text -> m CorpusId
 flowCorpusSearchInDatabaseApi u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
