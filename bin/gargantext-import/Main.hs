@@ -48,8 +48,9 @@ main = do
   let
     --tt = (Unsupervised EN 6 0 Nothing)
     tt = (Multi EN)
+    format = WOS -- CsvGargV3
     cmd :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) tt  CsvGargV3 corpusPath
+    cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) tt  format corpusPath
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
       debatCorpus = do

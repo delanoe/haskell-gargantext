@@ -60,8 +60,8 @@ data StopSize = StopSize {unStopSize :: Int}
 buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
                  -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsLists l n m s uCid mCid = do
-  ngTerms     <- buildNgramsTermsList l n m s uCid mCid
-  --ngTerms     <- buildNgramsTermsList' uCid (ngramsGroup l n m) (isStopTerm s . fst) 500 50
+  --ngTerms     <- buildNgramsTermsList l n m s uCid mCid
+  ngTerms     <- buildNgramsTermsList' uCid (ngramsGroup l n m) (isStopTerm s . fst) 500 50
   othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 

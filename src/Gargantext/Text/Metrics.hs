@@ -102,13 +102,26 @@ takeScored listSize incSize = both (map _scored_terms)
 linearTakes :: (Ord b1, Ord b2)
             => GraphListSize -> InclusionSize
             -> (a -> b2) -> (a -> b1) -> [a] -> ([a],[a])
-linearTakes gls incSize speGen incExc = (List.splitAt gls)
+linearTakes mls incSize speGen incExc = (List.splitAt mls)
                       . List.concat
                       . map (take $ round
-                                  $ (fromIntegral gls     :: Double)
+                                  $ (fromIntegral mls     :: Double)
                                   / (fromIntegral incSize :: Double)
                              )
                       . map (sortOn speGen)
                       . splitEvery incSize
+                      . take 5000
+                      . takePercent (0.70)
                       . sortOn incExc
+
+takePercent :: Double -> [a] -> [a]
+takePercent l xs = List.take l' xs
+  where
+    l' = round $ l * (fromIntegral $ List.length xs)
+
+splitTake :: (Int, a -> Bool) -> (Int, a -> Bool) -> [a] -> ([a], [a])
+splitTake (a, af) (b, bf) xs = (mpa <> mpb, ca <> cb)
+  where
+    (mpa, ca) = List.splitAt a $ List.filter af xs
+    (mpb, cb) = List.splitAt b $ List.filter bf xs
 

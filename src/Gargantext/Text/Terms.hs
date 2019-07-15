@@ -129,11 +129,10 @@ termsUnsupervised _ = undefined
 newTries :: Int -> Text -> Tries Token ()
 newTries n t = buildTries n (fmap toToken $ uniText t)
 
+-- | TODO removing long terms > 24
 uniText :: Text -> [[Text]]
-uniText = 
- --  map (map (Text.toLower))
-         map (List.filter (not . isPunctuation))
+uniText = map (List.filter (not . isPunctuation))
         . map tokenize
-        . sentences   -- | TODO get sentences according to lang
+        . sentences       -- | TODO get sentences according to lang
         . Text.toLower
 
