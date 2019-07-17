@@ -80,8 +80,8 @@ data Phylo =
            , _phylo_foundations :: PhyloFoundations
            , _phylo_periods     :: [PhyloPeriod]
            , _phylo_docsByYears :: Map Date Double
-           , _phylo_cooc        :: Map Date (Map (Int,Int) Double)
-           , _phylo_fis         :: Map (Date,Date) [PhyloFis]
+           , _phylo_cooc        :: !(Map Date (Map (Int,Int) Double))
+           , _phylo_fis         :: !(Map (Date,Date) [PhyloFis])
            , _phylo_param       :: PhyloParam
            }
            deriving (Generic, Show, Eq)
@@ -156,7 +156,7 @@ data PhyloGroup =
                 , _phylo_groupNgramsMeta    :: Map Text [Double]
                 , _phylo_groupMeta          :: Map Text Double
                 , _phylo_groupBranchId      :: Maybe PhyloBranchId
-                , _phylo_groupCooc          :: Map (Int,Int) Double
+                , _phylo_groupCooc          :: !(Map (Int,Int) Double)
 
                 , _phylo_groupPeriodParents :: [Pointer]
                 , _phylo_groupPeriodChilds  :: [Pointer]

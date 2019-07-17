@@ -22,9 +22,10 @@ module Gargantext.Viz.Phylo.LevelMaker
 import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
 import Data.List                    ((++), sort, concat, nub, zip, last, null)
-import Data.Map                     (Map, (!), empty, singleton)
+import Data.Map                     (Map, (!), empty, singleton, size)
 import Data.Text (Text)
 import Data.Tuple.Extra
+import Data.Vector (Vector)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Metrics
@@ -83,7 +84,7 @@ instance PhyloLevelMaker PhyloFis
     --------------------------------------
     -- | Level -> (Date,Date) -> [Fis] -> Map (Date,Date) [Fis] -> Phylo -> [PhyloGroup]
     toPhyloGroups lvl (d,d') l _ p =
-      let groups  = map (\(idx,fis) -> cliqueToGroup (d,d') lvl idx "" fis p) $ zip [1..] l
+      let groups  = map (\(idx,fis) -> cliqueToGroup (d,d') lvl idx "" fis (getPhyloCooc p) (getFoundationsRoots p)) $ zip [1..] l
           groups' = groups `using` parList rdeepseq
       in  groups' 
     --------------------------------------
@@ -111,7 +112,7 @@ addPhyloLevel' lvl m p = alterPhyloPeriods
                                     in  over (phylo_periodLevels)
                                         (\phyloLevels ->
                                             let groups = toPhyloGroups lvl pId (m ! pId) m p
-                                            in phyloLevels ++ [PhyloLevel (pId, lvl) groups]
+                                            in trace (show (length groups) <> " groups for " <> show (pId) ) $ phyloLevels ++ [PhyloLevel (pId, lvl) groups]
                                         ) period) p
 
 
@@ -121,8 +122,8 @@ addPhyloLevel' lvl m p = alterPhyloPeriods
 
 
 -- | To transform a Clique into a PhyloGroup
-cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Phylo -> PhyloGroup
-cliqueToGroup prd lvl idx lbl fis p = PhyloGroup ((prd, lvl), idx) lbl ngrams 
+cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Map Date (Map (Int,Int) Double) -> Vector Ngrams -> PhyloGroup
+cliqueToGroup prd lvl idx lbl fis cooc' root = PhyloGroup ((prd, lvl), idx) lbl ngrams 
     (getNgramsMeta cooc ngrams)
     -- empty
     (singleton "support" (fromIntegral $ getSupport fis)) 
@@ -132,10 +133,10 @@ cliqueToGroup prd lvl idx lbl fis p = PhyloGroup ((prd, lvl), idx) lbl ngrams
       where
         --------------------------------------
         cooc :: Map (Int, Int) Double
-        cooc = getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p)
+        cooc = getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) cooc'
         --------------------------------------
         ngrams :: [Int]
-        ngrams = sort $ map (\x -> getIdxInRoots x p)
+        ngrams = sort $ map (\x -> getIdxInRoots' x root)
                       $ Set.toList
                       $ getClique fis
         --------------------------------------
@@ -210,7 +211,11 @@ toNthLevel lvlMax prox clus p
   | otherwise     = toNthLevel lvlMax prox clus
                   $ traceBranches (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
-                  $ transposePeriodLinks (lvl + 1)
+                  -- $ transposePeriodLinks (lvl + 1)
+                  $ traceTranspose (lvl + 1) Descendant
+                  $ transposeLinks (lvl + 1) Descendant
+                  $ traceTranspose (lvl + 1) Ascendant
+                  $ transposeLinks (lvl + 1) Ascendant
                   $ tracePhyloN (lvl + 1)
                   $ setLevelLinks (lvl, lvl + 1)
                   $ addPhyloLevel (lvl + 1)
@@ -238,7 +243,8 @@ toPhylo1 clus prox d p = case clus of
                        $ interTempoMatching Ascendant 1 prox
                        $ tracePhyloN 1
                        -- $ setLevelLinks (0,1)
-                       $ addPhyloLevel 1 (getPhyloFis phyloFis) phyloFis
+                       $ addPhyloLevel 1 (getPhyloFis phyloFis)
+                       $ trace (show (size $ getPhyloFis phyloFis) <> " Fis created") $ phyloFis
     where
       --------------------------------------
       phyloFis :: Phylo
@@ -278,6 +284,9 @@ toPhyloBase q p c termList fis = initPhyloBase periods foundations nbDocs cooc f
 tracePhyloN :: Level -> Phylo -> Phylo
 tracePhyloN lvl p = trace ("\n---------------\n--| Phylo " <> show (lvl) <> " |--\n---------------\n\n"
                       <> show (length $ getGroupsWithLevel lvl p) <> " groups created \n") p
+
+traceTranspose :: Level -> Filiation -> Phylo -> Phylo
+traceTranspose lvl fil p = trace ("----\n Transpose " <> show (fil) <> " links for " <> show (length $ getGroupsWithLevel lvl p) <> " groups\n") p
 
 
 tracePhyloBase :: Phylo -> Phylo
