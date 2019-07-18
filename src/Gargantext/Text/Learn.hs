@@ -16,7 +16,7 @@ Main type here is String.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Terms.Learn -- (detectLang, detectLangs, stopList)
+module Gargantext.Text.Learn -- (detectLang, detectLangs, stopList)
   where
 
 --import Data.Char (toLower)

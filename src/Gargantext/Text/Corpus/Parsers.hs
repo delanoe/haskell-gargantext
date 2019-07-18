@@ -53,7 +53,7 @@ import qualified Gargantext.Text.Corpus.Parsers.RIS as RIS
 import Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import Gargantext.Text.Corpus.Parsers.CSV (parseHal, parseCsv)
-import Gargantext.Text.Terms.Learn (detectLangDefault)
+import Gargantext.Text.Learn (detectLangDefault)
 ------------------------------------------------------------------------
 
 type ParseError = String
