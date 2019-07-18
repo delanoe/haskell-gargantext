@@ -53,7 +53,7 @@ import qualified Gargantext.Text.Corpus.Parsers.RIS as RIS
 import Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import Gargantext.Text.Corpus.Parsers.CSV (parseHal, parseCsv)
-import Gargantext.Text.Terms.Stop (detectLang)
+import Gargantext.Text.Terms.Learn (detectLangDefault)
 ------------------------------------------------------------------------
 
 type ParseError = String
@@ -97,11 +97,11 @@ toDoc :: FileFormat -> [(Text, Text)] -> IO HyperdataDocument
 -- TODO use language for RIS
 toDoc ff d = do
       let abstract = lookup "abstract" d
-      let lang = maybe EN identity (join $ detectLang <$> (fmap (DT.take 50) abstract))
+      let lang = maybe EN identity (join $ detectLangDefault <$> (fmap (DT.take 50) abstract))
       
       let dateToParse = DT.replace "-" " " <$> lookup "PY" d <> Just " " <> lookup "publication_date" d
       
-      (utcTime, (pub_year, pub_month, pub_day)) <- Date.split lang  dateToParse
+      (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit lang  dateToParse
 
       pure $ HyperdataDocument (Just $ DT.pack $ show ff)
                                (lookup "doi" d)
