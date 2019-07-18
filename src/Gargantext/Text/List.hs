@@ -59,7 +59,7 @@ data StopSize = StopSize {unStopSize :: Int}
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
 buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
                  -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsLists l n m s uCid mCid = do
+buildNgramsLists l n m s uCid _mCid = do
   --ngTerms     <- buildNgramsTermsList l n m s uCid mCid
   ngTerms     <- buildNgramsTermsList' uCid (ngramsGroup l n m) (isStopTerm s . fst) 500 50
   othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
