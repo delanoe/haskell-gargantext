@@ -7,6 +7,9 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+TODO:
+- generalize to byteString
+
 Stop words and (how to learn it).
 
 Main type here is String.
@@ -30,7 +33,7 @@ import Data.String (String)
 
 import Data.Text (Text)
 import Data.Text (pack, unpack, toLower)
-import Data.Tuple.Extra (both)
+import Data.Tuple.Extra (both, second)
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..), allLangs)
@@ -61,6 +64,30 @@ type CatProb a = Map     a Double
 type Events a = Map a EventBook
 
 ------------------------------------------------------------------------
+detectStopDefault :: Text -> Maybe Bool
+detectStopDefault = undefined
+
+detectBool :: [(Bool, Text)] -> Text -> Maybe Bool
+detectBool events = detectDefault False events
+
+detectDefault :: Ord a => a -> [(a, Text)] -> Text -> Maybe a
+detectDefault = detectDefaultWith identity
+
+detectDefaultWith :: Ord a => (b -> Text) -> a -> [(a, b)] -> b -> Maybe a
+detectDefaultWith f d events = detectDefaultWithPriors f ps
+  where
+    ps = priorEventsWith f d events
+
+detectDefaultWithPriors :: Ord b => (a -> Text) -> Events b -> a -> Maybe b
+detectDefaultWithPriors f priors = detectCat 99 priors . f
+
+priorEventsWith :: Ord a => (t -> Text) -> a -> [(a, t)] -> Events a
+priorEventsWith f d e = toEvents d [0..2] 10 es
+  where
+    es = map (\(a,b) -> CatWord a (unpack $ toLower $ f b)) e
+
+
+------------------------------------------------------------------------
 detectLangDefault :: Text -> Maybe Lang
 detectLangDefault = detectCat 99 eventLang
   where
@@ -76,15 +103,6 @@ detectLangDefault = detectCat 99 eventLang
     --textSample DE = DE.textSample
     --textSample SP = SP.textSample
     --textSample CH = CH.textSample
-
-detectStopDefault :: Text -> Maybe Bool
-detectStopDefault = undefined
-
-detectDefault :: [(Bool, Text)] -> Text -> Maybe Bool
-detectDefault events = detectCat 99 (priorEvents events)
-  where
-    priorEvents events' = toEvents True [0..2] 10 (map (\(a,b) -> CatWord a (unpack $ toLower b)) events')
-
 ------------------------------------------------------------------------
 detectCat :: Ord a => Int -> Events a -> Text -> Maybe a
 detectCat n es = head . map fst . (detectCat' n es) . unpack
