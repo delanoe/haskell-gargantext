@@ -18,7 +18,7 @@ DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Corpus.Parsers.Date (parse, parseRaw, dateSplit) where
+module Gargantext.Text.Corpus.Parsers.Date (parse, parseRaw, dateSplit, Year, Month, Day) where
 
 import Data.HashMap.Strict as HM hiding (map)
 import Data.Text (Text, unpack, splitOn, pack)
