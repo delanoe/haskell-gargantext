@@ -33,7 +33,7 @@ import Data.String (String)
 
 import Data.Text (Text)
 import Data.Text (pack, unpack, toLower)
-import Data.Tuple.Extra (both, second)
+import Data.Tuple.Extra (both)
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..), allLangs)

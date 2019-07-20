@@ -12,6 +12,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Database.Learn where
 
@@ -39,7 +40,6 @@ text (FacetDoc nId _ _ h _ _)  = (nId, title <> "" <> Text.take 100 abstr)
 data FavTrash = IsFav | IsTrash
   deriving (Eq)
 
---{-
 moreLike :: HasNodeError err => FavTrash -> CorpusId -> Cmd err [(NodeId, Maybe Bool)]
 moreLike ft cId = do
   let b = if (==) ft IsFav then True else False
@@ -64,4 +64,5 @@ learnAndApply ft cId = do
   ids <- map fst <$> moreLike ft cId
   learnModify ft cId ids
 
---}
+
+

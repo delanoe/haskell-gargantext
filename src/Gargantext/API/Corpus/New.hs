@@ -24,6 +24,7 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
+import Data.Either
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
@@ -76,7 +77,7 @@ api (Query q _ as) = do
     Just API.All -> flowCorpusSearchInDatabase "user1" EN q
     Just a   -> do
       docs <- liftIO $ API.get a q Nothing
-      cId' <- flowCorpus "user1" q (Multi EN) [docs]
+      cId' <- flowCorpus "user1" (Left q) (Multi EN) [docs]
       pure cId'
 
   pure cId
