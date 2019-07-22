@@ -19,6 +19,7 @@ Import a corpus binary.
 
 module Main where
 
+import Data.Either
 import Prelude (read)
 import Control.Exception (finally)
 import Gargantext.Prelude
@@ -34,6 +35,7 @@ import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
 import System.Environment (getArgs)
 --import Gargantext.Text.Corpus.Parsers.GrandDebat (readFile, GrandDebatReference(..))
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Control.Monad.IO.Class (liftIO)
 
@@ -50,7 +52,7 @@ main = do
     tt = (Multi EN)
     format = WOS -- CsvGargV3
     cmd :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    cmd = flowCorpusFile (cs user) (cs name) (read limit :: Int) tt  format corpusPath
+    cmd = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
       debatCorpus = do

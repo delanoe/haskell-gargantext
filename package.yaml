@@ -58,7 +58,6 @@ library:
   - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
-  - Gargantext.Text.Terms.Stop
   - Gargantext.Text.Terms.Mono
   - Gargantext.Text.Terms.Multi.Lang.En
   - Gargantext.Text.Terms.Multi.Lang.Fr
