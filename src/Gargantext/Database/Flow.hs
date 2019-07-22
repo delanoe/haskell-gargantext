@@ -71,6 +71,7 @@ import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
+import Gargantext.Prelude.Utils hiding (hash)
 import System.FilePath (FilePath)
 import qualified Data.List as List
 import qualified Data.Map  as Map
@@ -124,7 +125,7 @@ flowCorpusDebat :: FlowCmdM env err m
 flowCorpusDebat u n l fp = do
   docs <- liftIO ( splitEvery 500
                  <$> take l
-                 <$> GD.readFile fp
+                 <$> readFile' fp
                  :: IO [[GD.GrandDebatReference ]]
                  )
   flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)

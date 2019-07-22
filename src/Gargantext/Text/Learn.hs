@@ -18,24 +18,30 @@ Main type here is String.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Gargantext.Text.Learn -- (detectLang, detectLangs, stopList)
   where
 
---import Data.Char (toLower)
+import Codec.Serialise
 import qualified Data.List as DL
 
 import Data.Maybe (maybe)
 import Data.Map.Strict (Map, toList)
 import qualified Data.Map.Strict as DM
 
+import GHC.Generics
 import Data.String (String)
 
 import Data.Text (Text)
 import Data.Text (pack, unpack, toLower)
 import Data.Tuple.Extra (both)
+import qualified Data.ByteString.Lazy as BSL
 
 import Gargantext.Prelude
+import Gargantext.Prelude.Utils
 import Gargantext.Core (Lang(..), allLangs)
 import Gargantext.Text.Terms.Mono (words)
 import Gargantext.Text.Metrics.Count (occurrencesWith)
@@ -172,7 +178,16 @@ toEvents e ns n = foldl' (opEvent (+)) (emptyEvent e ns n) . map (toEvent ns n)
 data EventBook = EventBook { events_freq :: Map String     Freq
                            , events_n    :: Map StringSize TotalFreq
                            }
-                             deriving (Show)
+                             deriving (Show, Generic)
+
+instance Serialise EventBook
+
+instance (Serialise a, Ord a) => SaveFile (Events a) where
+  saveFile' f d = BSL.writeFile f (serialise d)
+
+instance (Serialise a, Ord a) => ReadFile (Events a) where
+  readFile' filepath = deserialise <$> BSL.readFile filepath
+
 
 emptyEventBook :: [Int] -> Int -> EventBook
 emptyEventBook ns n = wordToBook ns n " "
