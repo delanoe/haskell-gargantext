@@ -38,9 +38,7 @@ data FavOrTrash = IsFav | IsTrash
   deriving (Eq)
 
 
-
 --moreLike :: FlowCmdM env error m => FavOrTrash -> CorpusId -> m (Events Bool, [FacetDoc])
-
 
 moreLike :: FlowCmdM DevEnv GargError m => FavOrTrash -> CorpusId -> m [FacetDoc]
 moreLike ft cId = do

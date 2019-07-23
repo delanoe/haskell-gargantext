@@ -215,7 +215,7 @@ instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
 ------------------------------------------------------------------------
-type CatApi =  Summary " To Categorize NodeNodes"
+type CatApi =  Summary " To Categorize NodeNodes: 0 for delete, 1/null neutral, 2 favorite"
             :> ReqBody '[JSON] NodesToCategory
             :> Put     '[JSON] [Int]
 
