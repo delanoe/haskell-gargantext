@@ -43,33 +43,29 @@ import Opaleye
 import Control.Arrow (returnA)
 import qualified Opaleye as O
 
-data NodeNodePoly node1_id node2_id score fav del
+data NodeNodePoly node1_id node2_id score cat
                    = NodeNode { nn_node1_id   :: node1_id
                               , nn_node2_id   :: node2_id
-                              , nn_score :: score
-                              , nn_favorite :: fav
-                              , nn_delete   :: del
+                              , nn_score      :: score
+                              , nn_category   :: cat
                               } deriving (Show)
 
 type NodeNodeWrite     = NodeNodePoly (Column (PGInt4))
                                       (Column (PGInt4))
                                       (Maybe  (Column (PGFloat8)))
-                                      (Maybe  (Column (PGBool)))
-                                      (Maybe  (Column (PGBool)))
+                                      (Maybe  (Column (PGInt4)))
 
 type NodeNodeRead      = NodeNodePoly (Column (PGInt4))
                                       (Column (PGInt4))
                                       (Column (PGFloat8))
-                                      (Column (PGBool))
-                                      (Column (PGBool))
+                                      (Column (PGInt4))
                                       
 type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4))
                                       (Column (Nullable PGInt4))
                                       (Column (Nullable PGFloat8))
-                                      (Column (Nullable PGBool))
-                                      (Column (Nullable PGBool))
+                                      (Column (Nullable PGInt4))
 
-type NodeNode = NodeNodePoly Int Int (Maybe Double) (Maybe Bool) (Maybe Bool)
+type NodeNode = NodeNodePoly Int Int (Maybe Double) (Maybe Int)
 
 $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)
 $(makeLensesWith abbreviatedFields   ''NodeNodePoly)
@@ -79,8 +75,7 @@ nodeNodeTable  = Table "nodes_nodes" (pNodeNode
                                 NodeNode { nn_node1_id = required "node1_id"
                                          , nn_node2_id = required "node2_id"
                                          , nn_score    = optional "score"
-                                         , nn_favorite = optional "favorite"
-                                         , nn_delete   = optional "delete"
+                                         , nn_category = optional "category"
                                      }
                                      )
 
@@ -98,30 +93,30 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) Int where
 instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGBool (Maybe Bool) where
+instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
 ------------------------------------------------------------------------
 -- | Favorite management
-nodeToFavorite :: CorpusId -> DocId -> Bool -> Cmd err [Int]
-nodeToFavorite cId dId b = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (b,cId,dId)
+nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
+nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
   where
     favQuery :: PGS.Query
-    favQuery = [sql|UPDATE nodes_nodes SET favorite = ?
+    favQuery = [sql|UPDATE nodes_nodes SET category = ?
                WHERE node1_id = ? AND node2_id = ?
                RETURNING node2_id;
                |]
 
-nodesToFavorite :: [(CorpusId,DocId,Bool)] -> Cmd err [Int]
-nodesToFavorite inputData = map (\(PGS.Only a) -> a)
-                            <$> runPGSQuery trashQuery (PGS.Only $ Values fields inputData)
+nodeNodesCategory :: [(CorpusId,DocId,Int)] -> Cmd err [Int]
+nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
+                            <$> runPGSQuery catQuery (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
-    trashQuery :: PGS.Query
-    trashQuery = [sql| UPDATE nodes_nodes as old SET
-                 favorite = new.favorite
-                 from (?) as new(node1_id,node2_id,favorite)
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","category"]
+    catQuery :: PGS.Query
+    catQuery = [sql| UPDATE nodes_nodes as old SET
+                 category = new.category
+                 from (?) as new(node1_id,node2_id,category)
                  WHERE old.node1_id = new.node1_id
                  AND   old.node2_id = new.node2_id
                  RETURNING new.node2_id
@@ -144,7 +139,7 @@ queryDocs :: CorpusId -> O.Query (Column PGJsonb)
 queryDocs cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_delete nn)    .== (toNullable $ pgBool False)
+  restrict -< ( nn_category nn)  .>= (toNullable $ pgInt4 1)
   restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -< view (node_hyperdata) n
 
@@ -156,7 +151,7 @@ queryDocNodes :: CorpusId -> O.Query NodeRead
 queryDocNodes cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_delete nn)    .== (toNullable $ pgBool False)
+  restrict -< ( nn_category nn)  .>= (toNullable $ pgInt4 1)
   restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -<  n
 

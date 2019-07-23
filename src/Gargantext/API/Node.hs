@@ -59,7 +59,7 @@ import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
-import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
+import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
@@ -132,8 +132,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "ngrams"    :> TableNgramsApi
              :<|> "pairing"   :> PairingApi
 
-             :<|> "favorites" :> FavApi
-             :<|> "documents" :> DocsApi
+             :<|> "category"  :> CatApi
              :<|> "search"    :> SearchDocsAPI
 
              -- VIZ
@@ -176,9 +175,10 @@ nodeAPI p uId id
            :<|> getPairing       id
            -- :<|> getTableNgramsDoc id
            
-           :<|> favApi   id
-           :<|> delDocs  id
+           :<|> catApi   id
+           
            :<|> searchDocs id
+           
            :<|> getScatter id
            :<|> getChart id
            :<|> getPie   id
@@ -194,8 +194,6 @@ nodeAPI p uId id
            
            -- Annuaire
            -- :<|> query
-
-
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
@@ -217,43 +215,25 @@ instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
 ------------------------------------------------------------------------
-type DocsApi = Summary "Docs : Move to trash"
-             :> ReqBody '[JSON] Documents
-             :> Delete  '[JSON] [Int]
-
-data Documents = Documents { documents :: [NodeId]}
-  deriving (Generic)
-
-instance FromJSON  Documents
-instance ToJSON    Documents
-instance ToSchema  Documents
-
-delDocs :: CorpusId -> Documents -> Cmd err [Int]
-delDocs cId ds = nodesToTrash $ map (\n -> (cId, n, True)) $ documents ds
-
-------------------------------------------------------------------------
-type FavApi =  Summary " Favorites label"
-            :> ReqBody '[JSON] Favorites
+type CatApi =  Summary " To Categorize NodeNodes"
+            :> ReqBody '[JSON] NodesToCategory
             :> Put     '[JSON] [Int]
-          :<|> Summary " Favorites unlabel"
-            :> ReqBody '[JSON] Favorites
-            :> Delete  '[JSON] [Int]
 
-data Favorites = Favorites { favorites :: [NodeId]}
+data NodesToCategory = NodesToCategory { ntc_nodesId :: [NodeId]
+                                       , ntc_category :: Int
+                                       }
   deriving (Generic)
 
-instance FromJSON  Favorites
-instance ToJSON    Favorites
-instance ToSchema  Favorites
+instance FromJSON  NodesToCategory
+instance ToJSON    NodesToCategory
+instance ToSchema  NodesToCategory
 
-putFav :: CorpusId -> Favorites -> Cmd err [Int]
-putFav cId fs = nodesToFavorite $ map (\n -> (cId, n, True)) $ favorites fs
+catApi :: CorpusId -> GargServer CatApi
+catApi = putCat
+  where
+    putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
+    putCat cId cs' = nodeNodesCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
 
-delFav :: CorpusId -> Favorites -> Cmd err [Int]
-delFav cId fs = nodesToFavorite $ map (\n -> (cId, n, False)) $ favorites fs
-
-favApi :: CorpusId -> GargServer FavApi
-favApi cId = putFav cId :<|> delFav cId
 
 ------------------------------------------------------------------------
 type TableApi = Summary " Table API"

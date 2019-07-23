@@ -43,7 +43,7 @@ getChildren pId _ maybeNodeType maybeOffset maybeLimit = runOpaQuery
 selectChildren :: ParentId -> Maybe NodeType -> Query NodeRead
 selectChildren parentId maybeNodeType = proc () -> do
     row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
-    (NodeNode n1id n2id _ _ _) <- queryNodeNodeTable -< ()
+    (NodeNode n1id n2id _ _) <- queryNodeNodeTable -< ()
     
     let nodeType = maybe 0 nodeTypeId maybeNodeType
     restrict -< typeName  .== pgInt4 nodeType

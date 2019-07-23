@@ -65,10 +65,10 @@ queryInCorpus :: CorpusId -> Text -> O.Query FacetDocRead
 queryInCorpus cId q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< ( nn_node1_id nn) .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_delete nn)   .== (toNullable $ pgBool False)
+  restrict -< ( nn_category nn) .>= (toNullable $ pgInt4     1)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgBool True) (pgInt4 1)
+  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgInt4 1) (pgInt4 1)
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
