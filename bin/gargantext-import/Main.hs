@@ -50,7 +50,7 @@ main = do
   let
     --tt = (Unsupervised EN 6 0 Nothing)
     tt = (Multi EN)
-    format = WOS -- CsvGargV3
+    format = CsvHalFormat --WOS -- CsvGargV3
     cmd :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
     cmd = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
   {-

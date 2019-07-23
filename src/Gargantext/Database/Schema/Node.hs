@@ -434,6 +434,17 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
 
+
+------------------------------------------------------------------------
+arbitraryTexts :: HyperdataTexts
+arbitraryTexts = HyperdataTexts (Just "Preferences")
+
+nodeTextsW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
+nodeTextsW maybeName maybeList pId = node NodeList name list (Just pId)
+  where
+    name = maybe "Texts" identity maybeName
+    list = maybe arbitraryList identity maybeList
+
 ------------------------------------------------------------------------
 arbitraryList :: HyperdataList
 arbitraryList = HyperdataList (Just "Preferences")
@@ -441,7 +452,7 @@ arbitraryList = HyperdataList (Just "Preferences")
 nodeListW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
 nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
   where
-    name = maybe "Listes" identity maybeName
+    name = maybe "Lists" identity maybeName
     list = maybe arbitraryList identity maybeList
 
                 --------------------
@@ -620,6 +631,9 @@ getOrMkList pId uId =
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
 defaultList cId =
   maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
+
+mkTexts :: ParentId -> UserId -> Cmd err [NodeId]
+mkTexts p u = insertNodesR [nodeTextsW Nothing Nothing p u]
 
 mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkList p u = insertNodesR [nodeListW Nothing Nothing p u]

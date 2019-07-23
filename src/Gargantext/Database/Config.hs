@@ -46,6 +46,7 @@ nodeTypeId n =
     NodeCorpusV3  -> 3
     NodeCorpus    -> 30
     NodeAnnuaire  -> 31
+    NodeTexts     -> 40
     NodeDocument  -> 4
     NodeContact   -> 41
   --NodeSwap   -> 19

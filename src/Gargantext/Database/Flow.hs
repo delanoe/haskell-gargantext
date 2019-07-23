@@ -194,6 +194,7 @@ flowCorpusUser l userName corpusName ctype ids = do
   userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
   -- User Graph Flow
+  _ <- mkTexts  userCorpusId userId
   --_ <- mkGraph  userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
   --}

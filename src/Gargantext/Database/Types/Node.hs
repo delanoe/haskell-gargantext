@@ -307,6 +307,12 @@ instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO
 
 ------------------------------------------------------------------------
+data HyperdataTexts = HyperdataTexts { hyperdataTexts_desc    :: Maybe Text
+                                       } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hyperdataTexts_") ''HyperdataTexts)
+
+instance Hyperdata HyperdataTexts
+------------------------------------------------------------------------
 data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: !(Maybe Text)
                                            , hyperdataAnnuaire_desc         :: !(Maybe Text)
                                            } deriving (Show, Generic)
@@ -414,6 +420,7 @@ type NodeUser     = Node HyperdataUser
 type NodeFolder   = Node HyperdataFolder
 
 type NodeCorpus   = Node HyperdataCorpus
+type NodeTexts    = Node HyperdataTexts
 type NodeCorpusV3 = Node HyperdataCorpus
 type NodeDocument = Node HyperdataDocument
 
@@ -430,7 +437,7 @@ type NodeNotebook = Node HyperdataNotebook
 ------------------------------------------------------------------------
 data NodeType = NodeUser
               | NodeFolder
-              | NodeCorpus     | NodeCorpusV3 | NodeDocument
+              | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
               | NodeDashboard  | NodeChart

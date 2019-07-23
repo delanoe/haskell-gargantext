@@ -89,22 +89,18 @@ text (FacetDoc _ _ _ h _ _)  = title <> "" <> Text.take 100 abstr
 
 ---------------------------------------------------------------------------
 
-
 apply :: (FlowCmdM DevEnv GargError m) => FavOrTrash -> CorpusId -> [NodeId] -> m [Int]
 apply favTrash cId ns = case favTrash of
       IsFav   -> nodesToFavorite $ map (\n -> (cId, n, True)) ns
       IsTrash -> delDocs cId (Documents ns)
-
 
 moreLikeAndApply :: FlowCmdM DevEnv GargError m => FavOrTrash -> CorpusId -> m [Int]
 moreLikeAndApply ft cId = do
   priors <- getPriors ft cId
   moreLikeWithAndApply priors ft cId
 
-
 moreLikeWithAndApply :: FlowCmdM DevEnv GargError m => Events Bool -> FavOrTrash -> CorpusId -> m [Int]
 moreLikeWithAndApply priors ft cId = do
   ids <- map facetDoc_id <$> moreLikeWith priors ft cId
   apply ft cId ids
-
 
