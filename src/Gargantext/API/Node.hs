@@ -59,7 +59,7 @@ import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
-import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
+import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash, emptyTrash)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
@@ -177,7 +177,7 @@ nodeAPI p uId id
            -- :<|> getTableNgramsDoc id
            
            :<|> favApi   id
-           :<|> delDocs  id
+           :<|> docsApi  id
            :<|> searchDocs id
            :<|> getScatter id
            :<|> getChart id
@@ -217,19 +217,34 @@ instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
 ------------------------------------------------------------------------
-type DocsApi = Summary "Docs : Move to trash"
+type DocsApi = Summary "Docs : Move to corpus"
+             :> ReqBody '[JSON] Documents
+             :> Put     '[JSON] [Int]
+           :<|> Summary "Docs : Move to trash"
              :> ReqBody '[JSON] Documents
              :> Delete  '[JSON] [Int]
+           :<|> Summary "Docs : Remove all docs"
+             :> ReqBody '[JSON] []
+             :> Delete  '[JSON] [Int]
 
-data Documents = Documents { documents :: [NodeId]}
+data Documents = Documents {documents :: [NodeId]}
   deriving (Generic)
 
 instance FromJSON  Documents
 instance ToJSON    Documents
 instance ToSchema  Documents
 
+putDocs :: CorpusId -> Documents -> Cmd err [Int]
+putDocs cId ds = nodesToTrash $ map (\n -> (cId, n, False)) $ documents ds
+
 delDocs :: CorpusId -> Documents -> Cmd err [Int]
 delDocs cId ds = nodesToTrash $ map (\n -> (cId, n, True)) $ documents ds
+
+delAllDocs :: CorpusId -> Cmd err [Int]
+delAllDocs cId = emptyTrash cId
+
+docsApi :: CorpusId -> GargServer DocsApi
+docsApi cId = putDocs cId :<|> delDocs cId :<|> delAllDocs cId
 
 ------------------------------------------------------------------------
 type FavApi =  Summary " Favorites label"
