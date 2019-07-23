@@ -112,7 +112,7 @@ nodeNodesCategory :: [(CorpusId,DocId,Int)] -> Cmd err [Int]
 nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catQuery (PGS.Only $ Values fields inputData)
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","category"]
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
     catQuery :: PGS.Query
     catQuery = [sql| UPDATE nodes_nodes as old SET
                  category = new.category

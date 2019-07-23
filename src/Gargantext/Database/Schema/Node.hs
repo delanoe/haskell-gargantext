@@ -440,7 +440,7 @@ arbitraryTexts :: HyperdataTexts
 arbitraryTexts = HyperdataTexts (Just "Preferences")
 
 nodeTextsW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
-nodeTextsW maybeName maybeList pId = node NodeList name list (Just pId)
+nodeTextsW maybeName maybeList pId = node NodeTexts name list (Just pId)
   where
     name = maybe "Texts" identity maybeName
     list = maybe arbitraryList identity maybeList
