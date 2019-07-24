@@ -298,10 +298,6 @@ getNodesByNgramsMaster ucId mcId = Map.unionsWith (<>)
                                 <$> mapM (selectNgramsByNodeMaster 1000 ucId mcId) [0,500..10000]
 
 
-
-type Limit = Int
-type Offset = Int
-
 selectNgramsByNodeMaster :: Int -> UserCorpusId -> MasterCorpusId -> Int -> Cmd err [(NodeId, Text)]
 selectNgramsByNodeMaster n ucId mcId p = runPGSQuery
                                queryNgramsByNodeMaster'

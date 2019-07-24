@@ -35,7 +35,6 @@ import Gargantext.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import qualified Data.Map    as Map
 --import qualified Data.Vector.Storable as Vec
 
-
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
@@ -72,6 +71,7 @@ getNgrams :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType
             -> m (Map Text (ListType, Maybe Text), Map Text (Maybe RootTerm))
 getNgrams cId maybeListId tabType = do
+
   lId <- case maybeListId of
     Nothing   -> defaultList cId
     Just lId' -> pure lId'

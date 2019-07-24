@@ -63,6 +63,7 @@ import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
+import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (hash)
 import Gargantext.Viz.Chart
@@ -329,6 +330,8 @@ getTable cId ft o l order =
   case ft of
     (Just Docs)  -> runViewDocuments cId False o l order
     (Just Trash) -> runViewDocuments cId True  o l order
+    (Just MoreFav)   -> moreLike cId o l order IsFav
+    (Just MoreTrash) -> moreLike cId o l order IsTrash
     _     -> panic "not implemented"
 
 getPairing :: ContactId -> Maybe TabType

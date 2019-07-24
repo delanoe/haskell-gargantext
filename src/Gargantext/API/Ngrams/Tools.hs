@@ -33,7 +33,6 @@ import qualified Data.Set as Set
 
 type RootTerm = Text
 
-
 getListNgrams :: RepoCmdM env err m
                => [ListId] -> NgramsType
                -> m (Map Text NgramsRepoElement)
@@ -68,7 +67,7 @@ mapTermListRoot :: RepoCmdM env err m
                -> m (Map Text (ListType, (Maybe Text)))
 mapTermListRoot nodeIds ngramsType = do
   ngrams <- getListNgrams nodeIds ngramsType
-  pure $ Map.fromList [(t, (_nre_list nre, _nre_root nre))
+  pure $ Map.fromList [ (t, (_nre_list nre, _nre_root nre))
                       | (t, nre) <- Map.toList ngrams
                       ]
 
@@ -104,14 +103,12 @@ getCoocByNgrams = getCoocByNgrams' identity
 
 getCoocByNgrams' :: (Ord a, Ord c) => (b -> Set c) -> Diagonal -> Map a b -> Map (a, a) Int
 getCoocByNgrams' f (Diagonal diag) m =
-  Map.fromList [((t1,t2)
-                ,maybe 0 Set.size $ Set.intersection
-                                 <$> (fmap f $ Map.lookup t1 m)
-                                 <*> (fmap f $ Map.lookup t2 m)
+  Map.fromList [( (t1,t2)
+                , maybe 0 Set.size $ Set.intersection
+                                  <$> (fmap f $ Map.lookup t1 m)
+                                  <*> (fmap f $ Map.lookup t2 m)
                 ) | (t1,t2) <- case diag of
                                  True   -> [ (x,y) | x <- Map.keys m, y <- Map.keys m, x <= y]
                                  False  -> listToCombi identity (Map.keys m)
                ]
-
-
 

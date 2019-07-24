@@ -99,18 +99,22 @@ instance ToParamSchema TODO where
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
-data TabType   = Docs     | Terms  | Sources | Authors | Institutes | Trash
+data TabType   = Docs   | Trash   | MoreFav | MoreTrash
+               | Terms  | Sources | Authors | Institutes
                | Contacts
   deriving (Generic, Enum, Bounded)
 
 instance FromHttpApiData TabType
   where
     parseUrlPiece "Docs"       = pure Docs
+    parseUrlPiece "Trash"      = pure Trash
+    parseUrlPiece "MoreFav"    = pure MoreFav
+    parseUrlPiece "MoreTrash"  = pure MoreTrash
+    
     parseUrlPiece "Terms"      = pure Terms
     parseUrlPiece "Sources"    = pure Sources
     parseUrlPiece "Institutes" = pure Institutes
     parseUrlPiece "Authors"    = pure Authors
-    parseUrlPiece "Trash"      = pure Trash
     
     parseUrlPiece "Contacts"   = pure Contacts
     

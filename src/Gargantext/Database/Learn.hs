@@ -27,27 +27,22 @@ import Gargantext.Prelude
 import Gargantext.Text.Learn
 import qualified Data.List as List
 import qualified Data.Text as Text
-import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
---import Gargantext.Database.Utils (Cmd)
---import Gargantext.Database.Schema.Node (HasNodeError)
-import Gargantext.API
-import Gargantext.API.Settings
-import Gargantext.Database.Flow (FlowCmdM)
+--import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
+import Gargantext.Database.Utils (Cmd)
+import Gargantext.Core.Types (Offset, Limit)
 
 data FavOrTrash = IsFav | IsTrash
   deriving (Eq)
 
 
---moreLike :: FlowCmdM env error m => FavOrTrash -> CorpusId -> m (Events Bool, [FacetDoc])
-
-moreLike :: FlowCmdM DevEnv GargError m => FavOrTrash -> CorpusId -> m [FacetDoc]
-moreLike ft cId = do
+moreLike :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
+         -> FavOrTrash -> Cmd err [FacetDoc]
+moreLike cId o l order ft = do
   priors <- getPriors ft cId
-  moreLikeWith priors ft cId
-
+  moreLikeWith cId o l order ft priors
 
 ---------------------------------------------------------------------------
-getPriors :: FlowCmdM DevEnv GargError m => FavOrTrash -> CorpusId -> m (Events Bool)
+getPriors :: FavOrTrash -> CorpusId -> Cmd err (Events Bool)
 getPriors ft cId = do
   docs_trash <- runViewDocuments cId True Nothing Nothing Nothing
   
@@ -61,11 +56,12 @@ getPriors ft cId = do
   pure priors
 
 
-moreLikeWith :: FlowCmdM DevEnv GargError m => Events Bool -> FavOrTrash -> CorpusId -> m [FacetDoc]
-moreLikeWith priors ft cId = do
+moreLikeWith :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
+             -> FavOrTrash -> Events Bool  -> Cmd err [FacetDoc]
+moreLikeWith cId o l order ft priors = do
   
   docs_test  <- filter (\(FacetDoc _ _ _ _ f _) -> f == 0)
-              <$> runViewDocuments cId False Nothing Nothing Nothing
+              <$> runViewDocuments cId False o l order
 
   let results = map fst
        $ filter ((==) (Just $ not $ fav2bool ft) . snd)
@@ -86,7 +82,8 @@ text (FacetDoc _ _ _ h _ _)  = title <> "" <> Text.take 100 abstr
 
 ---------------------------------------------------------------------------
 
-apply :: (FlowCmdM DevEnv GargError m) => FavOrTrash -> CorpusId -> [NodeId] -> m [Int]
+{-
+apply :: (FlowCmdM env e m) => FavOrTrash -> CorpusId -> [NodeId] -> m [Int]
 apply favTrash cId ns = case favTrash of
       IsFav   -> nodeNodesCategory $ map (\n -> (cId, n, 2)) ns
       IsTrash -> nodeNodesCategory $ map (\n -> (cId, n, 0)) ns
@@ -98,6 +95,6 @@ moreLikeAndApply ft cId = do
 
 moreLikeWithAndApply :: FlowCmdM DevEnv GargError m => Events Bool -> FavOrTrash -> CorpusId -> m [Int]
 moreLikeWithAndApply priors ft cId = do
-  ids <- map facetDoc_id <$> moreLikeWith priors ft cId
+  ids <- map facetDoc_id <$> moreLikeWith cId ft priors
   apply ft cId ids
-
+-}
