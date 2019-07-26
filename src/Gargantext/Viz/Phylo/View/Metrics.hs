@@ -36,6 +36,12 @@ addBranchMetrics id lbl val v = over (pv_branches
                                            else b) v
 
 
+branchGroups :: PhyloView -> PhyloView
+branchGroups v = foldl (\v' (bId,nb) -> addBranchMetrics bId "nbGroups" nb v') v
+               $ map (\(bId,ns) -> (bId,fromIntegral $ length ns)) 
+               $ getNodesByBranches v
+
+
 -- | To get the age (in year) of all the branches of a PhyloView
 branchAge :: PhyloView -> PhyloView
 branchAge v = foldl (\v' b -> let bId = (fst . (head' "branchAge")) b
@@ -63,6 +69,7 @@ processMetrics :: [Metric] -> Phylo -> PhyloView -> PhyloView
 processMetrics ms _p v = foldl (\v' m -> case m of
                                         BranchAge -> branchAge v'
                                         BranchBirth -> branchBirth v'
+                                        BranchGroups -> branchGroups v'
                                        -- _         -> panic "[ERR][Viz.Phylo.Example.processMetrics] metric not found"
                                         ) v ms
 

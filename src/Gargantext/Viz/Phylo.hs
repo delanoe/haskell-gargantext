@@ -309,7 +309,7 @@ data SBParams = SBParams
 
 
 -- | Metric constructors
-data Metric = BranchAge | BranchBirth deriving (Generic, Show, Eq, Read)
+data Metric = BranchAge | BranchBirth | BranchGroups deriving (Generic, Show, Eq, Read)
 
 
 ----------------

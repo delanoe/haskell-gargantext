@@ -124,7 +124,8 @@ toDotLabel lbl = StrLabel $ fromStrict lbl
 setPeakDotNode :: PhyloBranch -> Dot DotId
 setPeakDotNode pb = node (toBranchDotId $ pb ^. pb_id) 
                       ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ pb ^. pb_peak)]
-                       <> (setAttrFromMetrics $ pb ^. pb_metrics))
+                       <> (setAttrFromMetrics $ pb ^. pb_metrics)
+                       <> [setAttr "nodeType" "peak"])
 
 
 -- | To set a Peak Edge
@@ -186,7 +187,8 @@ setHtmlTable pn = H.Table H.HTable
 -- | To set a Node
 setDotNode :: PhyloNode -> Dot DotId
 setDotNode pn = node (toNodeDotId $ pn ^. pn_id)
-                     ([FontName "Arial", Shape Square, toLabel (setHtmlTable pn)])
+                     ([FontName "Arial", Shape Square, toLabel (setHtmlTable pn)]
+                      <> [setAttr "nodeType" "group"])
 
 
 -- | To set an Edge
@@ -235,7 +237,10 @@ viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title)
 
                             -- set the period label
                             
-                            node (toPeriodDotId prd) [Shape Square, FontSize 50, Label (toPeriodDotLabel prd)]
+                            node (toPeriodDotId prd) ([Shape Square, FontSize 50, Label (toPeriodDotLabel prd)] 
+                                                   <> [setAttr "nodeType" "period", 
+                                                       setAttr "from" (fromStrict $ T.pack $ (show $ fst prd)),
+                                                       setAttr "to"   (fromStrict $ T.pack $ (show $ snd prd))])
 
                             mapM setDotNode $ filterNodesByPeriod prd $ filterNodesByLevel (pv ^. pv_level) (pv ^.pv_nodes)
                           
