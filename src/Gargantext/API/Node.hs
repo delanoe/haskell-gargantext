@@ -7,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-
 -- TODO-ACCESS: CanGetNode
 -- TODO-EVENTS: No events as this is a read only query.
 Node API
@@ -18,7 +17,6 @@ Node API
 --              Later: check userId CanDeleteNodes Nothing
 -- TODO-EVENTS: DeletedNodes [NodeId]
 --              {"tag": "DeletedNodes", "nodes": [Int*]}
-
 
 -}
 
@@ -51,20 +49,18 @@ import GHC.Generics (Generic)
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
-import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchQuery(..))
+import Gargantext.API.Search (SearchDocsAPI, searchDocs)
+import Gargantext.API.Table
 import Gargantext.API.Types
-import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
+import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
-import Gargantext.Database.TextSearch
 import Gargantext.Database.Utils -- (Cmd, CmdM)
-import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (hash)
 import Gargantext.Viz.Chart
@@ -236,16 +232,7 @@ catApi = putCat
     putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
     putCat cId cs' = nodeNodesCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
 
-
 ------------------------------------------------------------------------
-type TableApi = Summary " Table API"
-              :> ReqBody '[JSON] SearchQuery
-              :> QueryParam "view"   TabType
-              :> QueryParam "offset" Int
-              :> QueryParam "limit"  Int
-              :> QueryParam "order"  OrderBy
-              :> Post '[JSON] [FacetDoc]
-
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
 type PairingApi = Summary " Pairing API"
               :> QueryParam "view"   TabType
@@ -323,36 +310,6 @@ treeAPI = treeDB
 -- | Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
-
-tableApi :: NodeId -> SearchQuery
-         -> Maybe TabType
-         -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Cmd err [FacetDoc]
-tableApi cId (SearchQuery []) ft o l order = getTable cId ft o l order
-tableApi cId (SearchQuery q)  ft o l order = case ft of
-      Just Docs  -> searchInCorpus cId q o l order
-      Just Trash -> panic "TODO search in Trash" -- TODO searchInCorpus cId q o l order
-      _          -> panic "not implemented: search in Fav/Trash/*"
-
-getTable :: NodeId -> Maybe TabType
-         -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Cmd err [FacetDoc]
-getTable cId ft o l order =
-  case ft of
-    (Just Docs)  -> runViewDocuments cId False o l order
-    (Just Trash) -> runViewDocuments cId True  o l order
-    (Just MoreFav)   -> moreLike cId o l order IsFav
-    (Just MoreTrash) -> moreLike cId o l order IsTrash
-    _     -> panic "not implemented"
-
-getPairing :: ContactId -> Maybe TabType
-         -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Cmd err [FacetDoc]
-getPairing cId ft o l order =
-  case ft of
-    (Just Docs)  -> runViewAuthorsDoc cId False o l order
-    (Just Trash) -> runViewAuthorsDoc cId True  o l order
-    _     -> panic "not implemented"
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = mkNodeWithParent nt (Just pId) uId nodeName
