@@ -84,7 +84,9 @@ instance Arbitrary TableQuery where
 tableApi :: NodeId -> TableQuery -> Cmd err [FacetDoc]
 tableApi cId (TableQuery o l order ft Nothing) = getTable cId ft o l order
 tableApi cId (TableQuery o l order ft (Just q)) = case ft of
-      Just Docs  -> searchInCorpus cId [q] o l order
+      Just Docs  -> if q == ""
+                       then getTable cId ft o l order
+                       else searchInCorpus cId [q] o l order
       Just Trash -> panic "TODO search in Trash" -- TODO searchInCorpus cId q o l order
       _     -> panic "not implemented: search in Fav/Trash/*"
 
