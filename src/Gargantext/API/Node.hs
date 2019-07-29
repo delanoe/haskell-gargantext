@@ -51,7 +51,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
-import Gargantext.API.Search (SearchDocsAPI, searchDocs)
+import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchQuery(..))
 import Gargantext.API.Types
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
@@ -62,6 +62,7 @@ import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode'
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
+import Gargantext.Database.TextSearch
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Prelude
@@ -163,28 +164,28 @@ type ChildrenApi a = Summary " Summary children"
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
 nodeAPI :: JSONB a => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
 nodeAPI p uId id
-             =  getNode     id p
-           :<|> rename      id
-           :<|> postNode    uId id
-           :<|> putNode     id
-           :<|> deleteNodeApi  id
-           :<|> getChildren id p
+             =  getNode       id p
+           :<|> rename        id
+           :<|> postNode  uId id
+           :<|> putNode       id
+           :<|> deleteNodeApi id
+           :<|> getChildren   id p
 
            -- TODO gather it
-           :<|> getTable         id
+           :<|> tableApi             id
            :<|> apiNgramsTableCorpus id
-           :<|> getPairing       id
+           :<|> getPairing           id
            -- :<|> getTableNgramsDoc id
            
-           :<|> catApi   id
+           :<|> catApi     id
            
            :<|> searchDocs id
            
            :<|> getScatter id
-           :<|> getChart id
-           :<|> getPie   id
-           :<|> getTree  id
-           :<|> phyloAPI id uId
+           :<|> getChart   id
+           :<|> getPie     id
+           :<|> getTree    id
+           :<|> phyloAPI   id uId
            :<|> postUpload id
   where
     deleteNodeApi id' = do
@@ -238,15 +239,17 @@ catApi = putCat
 
 ------------------------------------------------------------------------
 type TableApi = Summary " Table API"
+              :> ReqBody '[JSON] SearchQuery
               :> QueryParam "view"   TabType
               :> QueryParam "offset" Int
               :> QueryParam "limit"  Int
               :> QueryParam "order"  OrderBy
-              :> Get '[JSON] [FacetDoc]
+              :> Post '[JSON] [FacetDoc]
 
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
 type PairingApi = Summary " Pairing API"
-              :> QueryParam "view"   TabType -- TODO change TabType -> DocType (CorpusId for pairing)
+              :> QueryParam "view"   TabType
+              -- TODO change TabType -> DocType (CorpusId for pairing)
               :> QueryParam "offset" Int
               :> QueryParam "limit"  Int
               :> QueryParam "order"  OrderBy
@@ -270,8 +273,6 @@ type TreeApi = Summary " Tree API"
            :> QueryParamR "ngramsType" TabType
            :> QueryParamR "listType"   ListType
            :> Get '[JSON] (ChartMetrics [MyTree])
-
-
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
@@ -322,6 +323,16 @@ treeAPI = treeDB
 -- | Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
+
+tableApi :: NodeId -> SearchQuery
+         -> Maybe TabType
+         -> Maybe Offset  -> Maybe Limit
+         -> Maybe OrderBy -> Cmd err [FacetDoc]
+tableApi cId (SearchQuery []) ft o l order = getTable cId ft o l order
+tableApi cId (SearchQuery q)  ft o l order = case ft of
+      Just Docs  -> searchInCorpus cId q o l order
+      Just Trash -> panic "TODO search in Trash" -- TODO searchInCorpus cId q o l order
+      _          -> panic "not implemented: search in Fav/Trash/*"
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit

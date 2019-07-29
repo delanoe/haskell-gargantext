@@ -56,7 +56,6 @@ instance Arbitrary SearchQuery where
   arbitrary = elements [SearchQuery ["electrodes"]]
 
 -----------------------------------------------------------------------
-
 data SearchDocResults = SearchDocResults { sdr_results :: [FacetDoc]}
   deriving (Generic)
 $(deriveJSON (unPrefix "sdr_") ''SearchDocResults)

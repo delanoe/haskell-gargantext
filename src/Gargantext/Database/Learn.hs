@@ -1,7 +1,7 @@
 {-|
 Module      : Gargantext.Database.Learn
 Description : Learn Small Data Analytics with big data connection (DB)
-Copyright   : (c) CNRS, 2017-Present
+opyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
@@ -44,10 +44,12 @@ moreLike cId o l order ft = do
 ---------------------------------------------------------------------------
 getPriors :: FavOrTrash -> CorpusId -> Cmd err (Events Bool)
 getPriors ft cId = do
-  docs_trash <- runViewDocuments cId True Nothing Nothing Nothing
   
   docs_fav   <- filter (\(FacetDoc _ _ _ _ f _) -> f == 2)
               <$> runViewDocuments cId False Nothing Nothing Nothing
+  
+  docs_trash <- List.take (List.length docs_fav)
+            <$> runViewDocuments cId True Nothing Nothing Nothing
   
 
   let priors = priorEventsWith text (fav2bool ft) (  List.zip (repeat False) docs_fav
@@ -59,15 +61,15 @@ getPriors ft cId = do
 moreLikeWith :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
              -> FavOrTrash -> Events Bool  -> Cmd err [FacetDoc]
 moreLikeWith cId o l order ft priors = do
-  
-  docs_test  <- filter (\(FacetDoc _ _ _ _ f _) -> f == 0)
-              <$> runViewDocuments cId False o l order
+
+  docs_test  <- filter (\(FacetDoc _ _ _ _ f _) -> f == 1)
+            <$> runViewDocuments cId False o Nothing order
 
   let results = map fst
        $ filter ((==) (Just $ not $ fav2bool ft) . snd)
        $ map (\f -> (f, detectDefaultWithPriors text priors f)) docs_test
 
-  pure results
+  pure $ List.take (maybe 10 identity l) results
 
 ---------------------------------------------------------------------------
 fav2bool :: FavOrTrash -> Bool
