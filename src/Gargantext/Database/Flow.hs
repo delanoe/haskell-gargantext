@@ -186,7 +186,8 @@ flowCorpusUser l userName corpusName ctype ids = do
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName ctype
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
-  _ <- mkTexts  userCorpusId userId
+  tId <- mkTexts  userCorpusId userId
+  printDebug "Node Text Id" tId
 
   -- User List Flow
   --{-
