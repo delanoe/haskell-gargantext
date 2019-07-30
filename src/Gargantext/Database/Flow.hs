@@ -186,6 +186,7 @@ flowCorpusUser l userName corpusName ctype ids = do
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName ctype
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
+  _ <- mkTexts  userCorpusId userId
 
   -- User List Flow
   --{-
@@ -194,7 +195,6 @@ flowCorpusUser l userName corpusName ctype ids = do
   userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
   -- User Graph Flow
-  _ <- mkTexts  userCorpusId userId
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph  userCorpusId userId
   _ <- mkPhylo  userCorpusId userId
