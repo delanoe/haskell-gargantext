@@ -63,11 +63,11 @@ type TableApi = Summary " Table API"
 
 --{-
 data TableQuery = TableQuery
-  { tq_offset  :: Maybe Int
-  , tq_limit   :: Maybe Int
-  , tq_orderBy :: Maybe OrderBy
-  , tq_tabType :: Maybe TabType
-  , tq_mQuery  :: Maybe Text
+  { tq_offset  :: Int
+  , tq_limit   :: Int
+  , tq_orderBy :: OrderBy
+  , tq_view    :: TabType
+  , tq_query  :: Text
   } deriving (Generic)
 
 $(deriveJSON (unPrefix "tq_") ''TableQuery)
@@ -78,17 +78,15 @@ instance ToSchema TableQuery where
       defaultSchemaOptions {fieldLabelModifier = drop 3}
 
 instance Arbitrary TableQuery where
-  arbitrary = elements [TableQuery (Just 0) (Just 10) Nothing (Just Docs) (Just "electrodes")]
+  arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]
 
 
 tableApi :: NodeId -> TableQuery -> Cmd err [FacetDoc]
-tableApi cId (TableQuery o l order ft Nothing) = getTable cId ft o l order
-tableApi cId (TableQuery o l order ft (Just q)) = case ft of
-      Just Docs  -> if q == ""
-                       then getTable cId ft o l order
-                       else searchInCorpus cId [q] o l order
-      Just Trash -> panic "TODO search in Trash" -- TODO searchInCorpus cId q o l order
-      _     -> panic "not implemented: search in Fav/Trash/*"
+tableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
+tableApi cId (TableQuery o l order ft q) = case ft of
+      Docs  -> searchInCorpus cId [q] (Just o) (Just l) (Just order)
+      Trash -> panic "TODO search in Trash" -- TODO searchInCorpus cId q o l order
+      x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
@@ -99,7 +97,7 @@ getTable cId ft o l order =
     (Just Trash) -> runViewDocuments cId True  o l order
     (Just MoreFav)   -> moreLike cId o l order IsFav
     (Just MoreTrash) -> moreLike cId o l order IsTrash
-    _     -> panic "not implemented"
+    x     -> panic $ "not implemented in getTable: " <> (cs $ show x)
 
 getPairing :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
@@ -108,6 +106,6 @@ getPairing cId ft o l order =
   case ft of
     (Just Docs)  -> runViewAuthorsDoc cId False o l order
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
-    _     -> panic "not implemented"
+    _     -> panic $ "not implemented: get Pairing" <> (cs $ show ft)
 
 

@@ -102,7 +102,7 @@ instance ToParamSchema TODO where
 data TabType   = Docs   | Trash   | MoreFav | MoreTrash
                | Terms  | Sources | Authors | Institutes
                | Contacts
-  deriving (Generic, Enum, Bounded)
+  deriving (Generic, Enum, Bounded, Show)
 
 instance FromHttpApiData TabType
   where
