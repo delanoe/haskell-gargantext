@@ -9,10 +9,8 @@ Portability : POSIX
 
 TODO:
 - generalize to byteString
-
-Stop words and (how to learn it).
-
-Main type here is String.
+- Stop words and (how to learn it).
+- Main type here is String check if Chars on Text would be optimized
 
 -}
 
@@ -68,6 +66,19 @@ data CatWord a = CatWord a Word
 type CatProb a = Map     a Double
 
 type Events a = Map a EventBook
+------------------------------------------------------------------------
+data EventBook = EventBook { events_freq :: Map String     Freq
+                           , events_n    :: Map StringSize TotalFreq
+                           }
+                             deriving (Show, Generic)
+
+instance Serialise EventBook
+
+instance (Serialise a, Ord a) => SaveFile (Events a) where
+  saveFile' f d = BSL.writeFile f (serialise d)
+
+instance (Serialise a, Ord a) => ReadFile (Events a) where
+  readFile' filepath = deserialise <$> BSL.readFile filepath
 
 ------------------------------------------------------------------------
 detectStopDefault :: Text -> Maybe Bool
@@ -174,20 +185,6 @@ toEvents e ns n = foldl' (opEvent (+)) (emptyEvent e ns n) . map (toEvent ns n)
     opEvent f = DM.unionWith (op f)
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
-data EventBook = EventBook { events_freq :: Map String     Freq
-                           , events_n    :: Map StringSize TotalFreq
-                           }
-                             deriving (Show, Generic)
-
-instance Serialise EventBook
-
-instance (Serialise a, Ord a) => SaveFile (Events a) where
-  saveFile' f d = BSL.writeFile f (serialise d)
-
-instance (Serialise a, Ord a) => ReadFile (Events a) where
-  readFile' filepath = deserialise <$> BSL.readFile filepath
-
 
 emptyEventBook :: [Int] -> Int -> EventBook
 emptyEventBook ns n = wordToBook ns n " "

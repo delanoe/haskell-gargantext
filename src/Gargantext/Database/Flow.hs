@@ -18,7 +18,7 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans        #-}
+{-# OPTIONS_GHC -fno-warn-orphans    #-}
 
 {-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE RankNTypes              #-}
@@ -195,12 +195,11 @@ flowCorpusUser l userName corpusName ctype ids = do
   printDebug "userListId" userListId
   -- User Graph Flow
   _ <- mkTexts  userCorpusId userId
-  --_ <- mkGraph  userCorpusId userId
-  --_ <- mkPhylo  userCorpusId userId
+  _ <- mkDashboard userCorpusId userId
+  _ <- mkGraph  userCorpusId userId
+  _ <- mkPhylo  userCorpusId userId
   --}
 
-  -- User Dashboard Flow
-  --_ <- mkDashboard userCorpusId userId
 
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
