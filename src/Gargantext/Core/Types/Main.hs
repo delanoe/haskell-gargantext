@@ -114,34 +114,11 @@ fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..max
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
 
 -- | Community Manager Use Case
-type Annuaire  = NodeCorpus
-
 -- | Favorites Node enable Swap Node with some synonyms for clarity
-type NodeSwap  = Node HyperdataResource
 
 -- | Then a Node can be a List which has some synonyms
-type List = Node HyperdataList
-type StopList   = List
-type MainList   = List
-type MapList    = List
-type GroupList  = List
 
 -- | Then a Node can be a Score which has some synonyms
-type Score = Node HyperdataScore
-type Occurrences   = Score
-type Cooccurrences = Score
-type Specclusion   = Score
-type Genclusion    = Score
-type Cvalue        = Score
-type Tficf         = Score
----- TODO All these Tfidf* will be replaced with TFICF
-type TfidfCorpus   = Tficf
-type TfidfGlobal   = Tficf
-type TirankLocal   = Tficf
-type TirankGlobal  = Tficf
---
--- Temporary types to be removed
-type ErrorMessage = Text
 
 -- Queries
 type Limit    = Int

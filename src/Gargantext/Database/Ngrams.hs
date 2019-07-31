@@ -22,12 +22,12 @@ import Gargantext.Core.Types
 import Gargantext.Database.Utils (runOpaQuery, Cmd)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNodeNgrams
-import Gargantext.Database.Schema.Node 
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Opaleye
 import Control.Arrow (returnA)
 
-selectNgramsByDoc :: [CorpusId] -> DocumentId -> NgramsType -> Cmd err [Text]
+selectNgramsByDoc :: [CorpusId] -> DocId -> NgramsType -> Cmd err [Text]
 selectNgramsByDoc cIds dId nt = runOpaQuery (query cIds dId nt)
   where
     
@@ -44,6 +44,6 @@ selectNgramsByDoc cIds dId nt = runOpaQuery (query cIds dId nt)
       returnA -< ngrams_terms ng
 
 
-postNgrams :: CorpusId -> DocumentId -> [Text] -> Cmd err Int
+postNgrams :: CorpusId -> DocId -> [Text] -> Cmd err Int
 postNgrams = undefined
 

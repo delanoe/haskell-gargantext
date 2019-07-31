@@ -61,6 +61,7 @@ nodeTypeId n =
     NodePhylo       -> 90
     NodeDashboard   -> 7
     NodeChart       -> 51
+    NodeNoteBook    -> 88
 
 --  Cooccurrences -> 9
 --

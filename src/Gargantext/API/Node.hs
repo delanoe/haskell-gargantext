@@ -95,7 +95,7 @@ nodesAPI ids = deleteNodes ids
 -- TODO-EVENTS:
 --   PutNode ?
 -- TODO needs design discussion.
-type Roots =  Get    '[JSON] [NodeAny]
+type Roots =  Get    '[JSON] [Node HyperdataAny]
          :<|> Put    '[JSON] Int -- TODO
 
 -- | TODO: access by admin only

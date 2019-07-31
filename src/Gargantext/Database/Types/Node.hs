@@ -19,6 +19,7 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
 module Gargantext.Database.Types.Node
@@ -76,7 +77,6 @@ instance FromField NodeId where
 
 instance ToSchema NodeId
 
--- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
 type NodeTypeId   = Int
 type NodeName     = Text
 type TSVector     = Text
@@ -117,7 +117,7 @@ type ParentId = NodeId
 type CorpusId = NodeId
 type ListId   = NodeId
 type DocumentId = NodeId
-type DocId      = DocumentId -- todo: remove this
+type DocId      = NodeId
 type RootId   = NodeId
 type MasterCorpusId = CorpusId
 type UserCorpusId   = CorpusId
@@ -337,6 +337,13 @@ instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO
 
 ------------------------------------------------------------------------
+
+data HyperdataList = HyperdataList {hd_list         :: !(Maybe Text)
+                                           } deriving (Show, Generic)
+$(deriveJSON (unPrefix "hd_") ''HyperdataList)
+
+instance Hyperdata HyperdataList
+
 ------------------------------------------------------------------------
 data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: !(Maybe Text)
                                            , hyperdataAnnuaire_desc         :: !(Maybe Text)
@@ -361,14 +368,10 @@ instance Arbitrary HyperdataAny where
     arbitrary = pure $ HyperdataAny mempty -- TODO produce arbitrary objects
 ------------------------------------------------------------------------
 
-data HyperdataList = HyperdataList { hyperdataList_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataList_") ''HyperdataList)
-
-instance Hyperdata HyperdataList
-
-instance Arbitrary HyperdataList where
-  arbitrary = elements [HyperdataList (Just "from list A")]
+{-
+instance Arbitrary HyperdataList' where
+  arbitrary = elements [HyperdataList' (Just "from list A")]
+-}
 
                       ----
 data HyperdataListModel = HyperdataListModel { _hlm_params  :: !(Int, Int)
@@ -432,15 +435,8 @@ instance Hyperdata HyperdataNotebook
 
 
 
--- | Then a Node can be either a Folder or a Corpus or a Document
-type NodeUser     = Node HyperdataUser
-type NodeFolder   = Node HyperdataFolder
-
-type NodeCorpus   = Node HyperdataCorpus
-
-
 data HyperData = HyperdataTexts { hd_texts :: Maybe Text }
-               | HyperdataList' { hd_lists :: Maybe Text}
+               | HyperdataList'  { hd_lists :: Maybe Text}
   deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "hd_") ''HyperData)
@@ -448,29 +444,16 @@ $(deriveJSON (unPrefix "hd_") ''HyperData)
 instance Hyperdata HyperData
 
 
-type NodeTexts    = Node HyperData
-
-type NodeCorpusV3 = Node HyperdataCorpus
-type NodeDocument = Node HyperdataDocument
-
-type NodeAnnuaire = Node HyperdataAnnuaire
-
--- | Any others nodes
-type NodeAny      = Node HyperdataAny
-
----- | Then a Node can be either a Graph or a Phylo or a Notebook
-type NodeList     = Node HyperdataList
-type NodeGraph    = Node HyperdataGraph
-type NodePhylo    = Node HyperdataPhylo
-type NodeNotebook = Node HyperdataNotebook
 ------------------------------------------------------------------------
+-- | Then a Node can be either a Folder or a Corpus or a Document
 data NodeType = NodeUser
               | NodeFolder
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
-              | NodeDashboard  | NodeChart
-              | NodeList       | NodeListModel deriving (Show, Read, Eq, Generic, Bounded, Enum)
+              | NodeDashboard  | NodeChart    | NodeNoteBook
+              | NodeList       | NodeListModel
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 
 {-

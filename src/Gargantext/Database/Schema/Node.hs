@@ -40,7 +40,7 @@ import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter (limit', offset')
-import Gargantext.Database.Types.Node (NodeType, defaultCorpus, Hyperdata)
+import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
 
@@ -92,7 +92,7 @@ instance FromField HyperdataUser
   where
     fromField = fromField'
 
-instance FromField HyperdataList
+instance FromField HyperData
   where
     fromField = fromField'
 
@@ -112,6 +112,10 @@ instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
 
+instance FromField HyperdataList
+  where
+    fromField = fromField'
+
 instance FromField (NodeId, Text)
   where
     fromField = fromField'
@@ -119,6 +123,15 @@ instance FromField (NodeId, Text)
 instance QueryRunnerColumnDefault PGJsonb HyperdataAny
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataList
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperData
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument
   where
@@ -133,10 +146,6 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataUser
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataList
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -283,7 +292,7 @@ selectNode id = proc () -> do
 
 
 
-runGetNodes :: Query NodeRead -> Cmd err [NodeAny]
+runGetNodes :: Query NodeRead -> Cmd err [Node HyperdataAny]
 runGetNodes = runOpaQuery
 
 ------------------------------------------------------------------------
@@ -330,7 +339,7 @@ getNodesWith parentId _ nodeType maybeOffset maybeLimit =
 
 -- TODO: Why is the second parameter ignored?
 -- TODO: Why not use getNodesWith?
-getNodesWithParentId :: NodeId -> Maybe Text -> Cmd err [NodeAny]
+getNodesWithParentId :: NodeId -> Maybe Text -> Cmd err [Node HyperdataAny]
 getNodesWithParentId n _ = runOpaQuery $ selectNodesWithParentID n
 
 ------------------------------------------------------------------------
@@ -340,9 +349,6 @@ getDocumentsV3WithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocume
 -- TODO: merge with getDocumentsWithParentId by having a class IsHyperdataDocument
 getDocumentsWithParentId :: NodeId -> Cmd err [Node HyperdataDocument]
 getDocumentsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)
-
-getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
-getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
 
 getListsModelWithParentId :: NodeId -> Cmd err [Node HyperdataListModel]
 getListsModelWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeListModel)
@@ -370,7 +376,7 @@ getNode nId _ = do
     fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
-getNodePhylo :: NodeId -> Cmd err (NodePhylo)
+getNodePhylo :: NodeId -> Cmd err (Node HyperdataPhylo)
 getNodePhylo nId = do
     fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
@@ -384,7 +390,6 @@ getNode' nId = fromMaybe (error $ "Node does node exist: " <> show nId) . headMa
 getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
 getNodesWithType = runOpaQuery . selectNodesWithType
 
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 defaultUser :: HyperdataUser
 defaultUser = HyperdataUser (Just $ (pack . show) EN)
@@ -437,7 +442,7 @@ class HasDefault a where
 instance HasDefault NodeType where
   hasDefaultData nt = case nt of
       NodeTexts -> HyperdataTexts (Just "Preferences")
-      NodeList  -> HyperdataList'  (Just "Preferences")
+      NodeList  -> HyperdataList' (Just "Preferences")
       _         -> undefined
       --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
 
@@ -445,7 +450,6 @@ instance HasDefault NodeType where
       NodeTexts -> "Texts"
       NodeList  -> "Lists"
       _         -> undefined
-
 
 ------------------------------------------------------------------------
 nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
@@ -455,8 +459,6 @@ nodeDefault nt parent = node nt name hyper (Just parent)
     hyper = (hasDefaultData nt)
 
 ------------------------------------------------------------------------
-arbitraryList :: HyperdataList
-arbitraryList = HyperdataList (Just "Preferences")
 
 arbitraryListModel :: HyperdataListModel
 arbitraryListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
@@ -618,7 +620,7 @@ getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err ListId
 getOrMkList pId uId =
   maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
     where
-      mkList' pId uId = maybe (nodeError MkNode) pure . headMay =<< mkList pId uId
+      mkList' pId uId = maybe (nodeError MkNode) pure . headMay =<< mkNode NodeList pId uId
 
 -- | TODO remove defaultList
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
@@ -627,16 +629,6 @@ defaultList cId =
 
 mkNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
 mkNode nt p u = insertNodesR [nodeDefault nt p u]
-
-
-mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
-mkList p u = insertNodesR [nodeListW Nothing Nothing p u]
-  where
-    nodeListW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
-    nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
-      where
-        name = maybe "Lists" identity maybeName
-        list = maybe arbitraryList identity maybeList
 
 
 mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
@@ -660,3 +652,9 @@ mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 
 pgNodeId :: NodeId -> Column PGInt4
 pgNodeId = pgInt4 . id2int
+
+
+getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
+getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
+
+

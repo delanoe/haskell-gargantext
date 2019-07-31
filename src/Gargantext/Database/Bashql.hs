@@ -98,7 +98,7 @@ mv :: NodeId -> ParentId -> Cmd err [Int]
 mv n p = U.update $ U.Move n p
 
 -- | TODO get Children or Node
-get :: PWD -> Cmd err [NodeAny]
+get :: PWD -> Cmd err [Node HyperdataAny]
 get []  = pure []
 get pwd = runOpaQuery $ selectNodesWithParentID (last pwd)
 
@@ -107,10 +107,10 @@ home :: Cmd err PWD
 home = map _node_id <$> getNodesWithParentId 0 Nothing
 
 -- | ls == get Children
-ls :: PWD -> Cmd err [NodeAny]
+ls :: PWD -> Cmd err [Node HyperdataAny]
 ls = get
 
-tree :: PWD -> Cmd err [NodeAny]
+tree :: PWD -> Cmd err [Node HyperdataAny]
 tree p = do
   ns       <- get p
   children <- mapM (\n -> get [_node_id n]) ns
