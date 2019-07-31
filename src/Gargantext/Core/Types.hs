@@ -21,6 +21,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
                              , HasInvalidError(..), assertValid
+                             , Name
                              ) where
 
 import Control.Lens (Prism', (#))
@@ -42,6 +43,7 @@ import Gargantext.Prelude
 import GHC.Generics
 ------------------------------------------------------------------------
 
+type Name = Text
 type Term  = Text
 type Stems = Set Text
 type Label = [Text]

@@ -21,9 +21,9 @@ import qualified Data.Text as DT
 import Database.PostgreSQL.Simple
 
 import Gargantext.Prelude
+import Gargantext.Core.Types (Name)
 import Gargantext.Database.Utils
 import Gargantext.Database.Types.Node (NodeId, ParentId)
-import Gargantext.Database.Schema.Node (Name)
 
 -- import Data.ByteString
 --rename :: NodeId -> Text -> IO ByteString

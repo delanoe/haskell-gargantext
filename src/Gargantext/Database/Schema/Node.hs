@@ -174,10 +174,6 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
 
 
 ------------------------------------------------------------------------
--- WIP
--- TODO Classe HasDefault where
--- default NodeType = Hyperdata
-------------------------------------------------------------------------
 $(makeAdaptorAndInstance "pNode" ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
 
@@ -292,7 +288,6 @@ runGetNodes = runOpaQuery
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
 -- | order by publication date
 -- Favorites (Bool), node_ngrams
 selectNodesWith :: ParentId     -> Maybe NodeType
@@ -381,7 +376,6 @@ getNodePhylo nId = do
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
-
 getNode' :: NodeId -> Cmd err (Node Value)
 getNode' nId = fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
@@ -436,26 +430,33 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
 
 
 ------------------------------------------------------------------------
-arbitraryTexts :: HyperdataTexts
-arbitraryTexts = HyperdataTexts (Just "Preferences")
+class HasDefault a where
+  hasDefaultData :: a -> HyperData
+  hasDefaultName :: a -> Text
 
-nodeTextsW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
-nodeTextsW maybeName maybeList pId = node NodeTexts name list (Just pId)
+instance HasDefault NodeType where
+  hasDefaultData nt = case nt of
+      NodeTexts -> HyperdataTexts (Just "Preferences")
+      NodeList  -> HyperdataList'  (Just "Preferences")
+      _         -> undefined
+      --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
+
+  hasDefaultName nt = case nt of
+      NodeTexts -> "Texts"
+      NodeList  -> "Lists"
+      _         -> undefined
+
+
+------------------------------------------------------------------------
+nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
+nodeDefault nt parent = node nt name hyper (Just parent)
   where
-    name = maybe "Texts" identity maybeName
-    list = maybe arbitraryList identity maybeList
+    name  = (hasDefaultName nt)
+    hyper = (hasDefaultData nt)
 
 ------------------------------------------------------------------------
 arbitraryList :: HyperdataList
 arbitraryList = HyperdataList (Just "Preferences")
-
-nodeListW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
-nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
-  where
-    name = maybe "Lists" identity maybeName
-    list = maybe arbitraryList identity maybeList
-
-                --------------------
 
 arbitraryListModel :: HyperdataListModel
 arbitraryListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
@@ -494,12 +495,6 @@ nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
 
 arbitraryDashboard :: HyperdataDashboard
 arbitraryDashboard = HyperdataDashboard (Just "Preferences")
-
-nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite
-nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
-  where
-    name = maybe "Dashboard" identity maybeName
-    dashboard = maybe arbitraryDashboard identity maybeDashboard
 
 ------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
@@ -548,8 +543,8 @@ data Node' = Node' { _n_type :: NodeType
                    , _n_children :: [Node']
                    } deriving (Show)
 
-mkNode :: [NodeWrite] -> Cmd err Int64
-mkNode ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
+mkNodes :: [NodeWrite] -> Cmd err Int64
+mkNodes ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
 
 mkNodeR :: [NodeWrite] -> Cmd err [NodeId]
 mkNodeR ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable ns (_node_id)
@@ -583,8 +578,6 @@ childWith uId pId (Node' NodeDocument txt v []) = node2table uId (Just pId) (Nod
 childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Node' NodeContact txt v [])
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
-
-type Name = Text
 
 -- | TODO mk all others nodes
 mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
@@ -632,17 +625,33 @@ defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
 defaultList cId =
   maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
 
-mkTexts :: ParentId -> UserId -> Cmd err [NodeId]
-mkTexts p u = insertNodesR [nodeTextsW Nothing Nothing p u]
+mkNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
+mkNode nt p u = insertNodesR [nodeDefault nt p u]
+
 
 mkList :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkList p u = insertNodesR [nodeListW Nothing Nothing p u]
+  where
+    nodeListW :: Maybe Name -> Maybe HyperdataList -> ParentId -> UserId -> NodeWrite
+    nodeListW maybeName maybeList pId = node NodeList name list (Just pId)
+      where
+        name = maybe "Lists" identity maybeName
+        list = maybe arbitraryList identity maybeList
+
 
 mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
 mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
+  where
+    nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite
+    nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
+      where
+        name = maybe "Board" identity maybeName
+        dashboard = maybe arbitraryDashboard identity maybeDashboard
+
+
 
 mkPhylo :: ParentId -> UserId -> Cmd err [NodeId]
 mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]

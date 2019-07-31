@@ -76,6 +76,36 @@ instance FromField NodeId where
 
 instance ToSchema NodeId
 
+-- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
+type NodeTypeId   = Int
+type NodeName     = Text
+type TSVector     = Text
+
+------------------------------------------------------------------------
+data NodePoly id        typename userId 
+              parentId  name     date 
+              hyperdata  = Node { _node_id        :: id
+                                , _node_typename  :: typename
+                                
+                                , _node_userId    :: userId
+                                , _node_parentId  :: parentId
+                                
+                                , _node_name      :: name
+                                , _node_date      :: date
+                                
+                                , _node_hyperdata :: hyperdata
+                                } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_node_") ''NodePoly)
+$(makeLenses ''NodePoly)
+
+-- | NodePoly indicates that Node has a Polymorphism Type
+type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+
+
+
+------------------------------------------------------------------------
+
+
 instance FromHttpApiData NodeId where
   parseUrlPiece n = pure $ NodeId $ (read . cs) n
 
@@ -127,7 +157,6 @@ $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
 ------------------------------------------------------------------------
 
 -- Only Hyperdata types should be member of this type class.
-class Hyperdata a
 
 ------------------------------------------------------------------------
 data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication_day    :: !(Maybe Int)
@@ -150,6 +179,7 @@ data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication
                                                } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
 
+class Hyperdata a
 instance Hyperdata HyperdataDocumentV3
 
 ------------------------------------------------------------------------
@@ -307,11 +337,6 @@ instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO
 
 ------------------------------------------------------------------------
-data HyperdataTexts = HyperdataTexts { hyperdataTexts_desc    :: Maybe Text
-                                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataTexts_") ''HyperdataTexts)
-
-instance Hyperdata HyperdataTexts
 ------------------------------------------------------------------------
 data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: !(Maybe Text)
                                            , hyperdataAnnuaire_desc         :: !(Maybe Text)
@@ -406,21 +431,25 @@ $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
 instance Hyperdata HyperdataNotebook
 
 
--- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
-
--- type Node json   = NodePoly NodeId NodeTypeId UserId ParentId NodeName UTCTime json
-type NodeTypeId   = Int
-type NodeName     = Text
-type TSVector     = Text
-
 
 -- | Then a Node can be either a Folder or a Corpus or a Document
 type NodeUser     = Node HyperdataUser
 type NodeFolder   = Node HyperdataFolder
 
 type NodeCorpus   = Node HyperdataCorpus
-type NodeTexts    = Node HyperdataTexts
+
+
+data HyperData = HyperdataTexts { hd_texts :: Maybe Text }
+               | HyperdataList' { hd_lists :: Maybe Text}
+  deriving (Show, Generic)
+
+$(deriveJSON (unPrefix "hd_") ''HyperData)
+
+instance Hyperdata HyperData
+
+
+type NodeTexts    = Node HyperData
+
 type NodeCorpusV3 = Node HyperdataCorpus
 type NodeDocument = Node HyperdataDocument
 
@@ -462,23 +491,6 @@ instance FromHttpApiData NodeType
 
 instance ToParamSchema NodeType
 instance ToSchema      NodeType
-
-------------------------------------------------------------------------
-data NodePoly id        typename userId 
-              parentId  name     date 
-              hyperdata  = Node { _node_id        :: id
-                                , _node_typename  :: typename
-                                
-                                , _node_userId    :: userId
-                                , _node_parentId  :: parentId
-                                
-                                , _node_name      :: name
-                                , _node_date      :: date
-                                
-                                , _node_hyperdata :: hyperdata
-                                } deriving (Show, Generic)
-$(deriveJSON (unPrefix "_node_") ''NodePoly)
-$(makeLenses ''NodePoly)
 
 
 data NodePolySearch id        typename userId 
