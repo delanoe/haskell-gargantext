@@ -22,6 +22,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeFamilies           #-}
 
 module Gargantext.Database.Schema.Node where
 
@@ -435,6 +436,28 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
 
 
 ------------------------------------------------------------------------
+
+{-
+class IsNodeDb a where
+  data Node'' a :: *
+  data Hyper  a :: *
+
+instance IsNodeDb NodeType where
+  data 
+
+instance HasHyperdata NodeType where
+  data Hyper NodeType = HyperList   HyperdataList
+                      | HyperCorpus HyperdataCorpus
+
+  hasHyperdata nt = case nt of
+    NodeList   -> HyperList $ HyperdataList (Just "list")
+
+  unHyper h = case h of
+    HyperList h' -> h'
+
+--}
+
+
 class HasDefault a where
   hasDefaultData :: a -> HyperData
   hasDefaultName :: a -> Text
@@ -452,6 +475,7 @@ instance HasDefault NodeType where
       _         -> undefined
 
 ------------------------------------------------------------------------
+
 nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
 nodeDefault nt parent = node nt name hyper (Just parent)
   where
@@ -499,6 +523,7 @@ arbitraryDashboard :: HyperdataDashboard
 arbitraryDashboard = HyperdataDashboard (Just "Preferences")
 
 ------------------------------------------------------------------------
+
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
 node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgInt4 userId) (pgNodeId <$> parentId) (pgStrictText name) Nothing (pgJSONB $ cs $ encode hyperData)
   where

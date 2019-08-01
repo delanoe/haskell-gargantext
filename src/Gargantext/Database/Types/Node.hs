@@ -434,7 +434,7 @@ $(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
 instance Hyperdata HyperdataNotebook
 
 
-
+-- | TODO CLEAN
 data HyperData = HyperdataTexts { hd_texts :: Maybe Text }
                | HyperdataList'  { hd_lists :: Maybe Text}
   deriving (Show, Generic)

@@ -123,7 +123,7 @@ fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..max
 -- Queries
 type Limit    = Int
 type Offset   = Int
-
+type IsTrash  = Bool
 
 ------------------------------------------------------------------------
 -- All the Database is structred like a hierarchical Tree

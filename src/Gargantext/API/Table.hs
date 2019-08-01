@@ -84,8 +84,8 @@ instance Arbitrary TableQuery where
 tableApi :: NodeId -> TableQuery -> Cmd err [FacetDoc]
 tableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
 tableApi cId (TableQuery o l order ft q) = case ft of
-      Docs  -> searchInCorpus cId [q] (Just o) (Just l) (Just order)
-      Trash -> panic "TODO search in Trash" -- TODO searchInCorpus cId q o l order
+      Docs  -> searchInCorpus cId False [q] (Just o) (Just l) (Just order)
+      Trash -> searchInCorpus cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
 
 getTable :: NodeId -> Maybe TabType

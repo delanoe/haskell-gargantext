@@ -101,7 +101,7 @@ searchPairs pId (SearchQuery q) o l order =
 
 searchDocs :: NodeId -> GargServer SearchDocsAPI
 searchDocs nId (SearchQuery q) o l order =
-  SearchDocResults <$> searchInCorpus nId q o l order
+  SearchDocResults <$> searchInCorpus nId False q o l order
   --SearchResults <$> searchInCorpusWithContacts nId q o l order
 
 

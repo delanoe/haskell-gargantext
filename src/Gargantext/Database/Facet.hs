@@ -169,7 +169,6 @@ type FacetDocRead = Facet (Column PGInt4       )
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
-type Trash   = Bool
 data OrderBy =  DateAsc   | DateDesc
              | TitleAsc   | TitleDesc
              | ScoreDesc  | ScoreAsc
@@ -197,13 +196,13 @@ instance Arbitrary OrderBy
     arbitrary = elements [minBound..maxBound]
 
 
-runViewAuthorsDoc :: ContactId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+runViewAuthorsDoc :: ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
     ntId = NodeDocument
 
 -- TODO add delete ?
-viewAuthorsDoc :: ContactId -> Trash -> NodeType -> Query FacetDocRead
+viewAuthorsDoc :: ContactId -> IsTrash -> NodeType -> Query FacetDocRead
 viewAuthorsDoc cId _ nt = proc () -> do
   (doc,(_,(_,(_,contact)))) <- queryAuthorsDoc      -< ()
 
@@ -237,13 +236,13 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
 
 ------------------------------------------------------------------------
 
-runViewDocuments :: CorpusId -> Trash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+runViewDocuments :: CorpusId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order =
     runOpaQuery $ filterWith o l order $ viewDocuments cId t ntId
   where
     ntId = nodeTypeId NodeDocument
 
-viewDocuments :: CorpusId -> Trash -> NodeTypeId -> Query FacetDocRead
+viewDocuments :: CorpusId -> IsTrash -> NodeTypeId -> Query FacetDocRead
 viewDocuments cId t ntId = proc () -> do
   n  <- queryNodeTable     -< ()
   nn <- queryNodeNodeTable -< ()
