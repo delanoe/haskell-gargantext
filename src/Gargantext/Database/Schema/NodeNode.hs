@@ -90,6 +90,12 @@ nodesNodes = runOpaQuery queryNodeNodeTable
 instance QueryRunnerColumnDefault (Nullable PGInt4) Int where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+instance QueryRunnerColumnDefault (Nullable PGFloat8) Int where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault (Nullable PGFloat8) Double where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 

@@ -70,7 +70,7 @@ queryInCorpus cId t q = proc () -> do
                  else ( nn_category nn) .>= (toNullable $ pgInt4     1)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgInt4 1) (pgInt4 1)
+  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (nn_category nn) (nn_score nn)
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond

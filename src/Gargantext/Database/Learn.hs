@@ -45,7 +45,7 @@ moreLike cId o l order ft = do
 getPriors :: FavOrTrash -> CorpusId -> Cmd err (Events Bool)
 getPriors ft cId = do
   
-  docs_fav   <- filter (\(FacetDoc _ _ _ _ f _) -> f == 2)
+  docs_fav   <- filter (\(FacetDoc _ _ _ _ f _) -> f == Just 2)
               <$> runViewDocuments cId False Nothing Nothing Nothing
   
   docs_trash <- List.take (List.length docs_fav)
@@ -62,7 +62,7 @@ moreLikeWith :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
              -> FavOrTrash -> Events Bool  -> Cmd err [FacetDoc]
 moreLikeWith cId o l order ft priors = do
 
-  docs_test  <- filter (\(FacetDoc _ _ _ _ f _) -> f == 1)
+  docs_test  <- filter (\(FacetDoc _ _ _ _ f _) -> f == Just 1)
             <$> runViewDocuments cId False o Nothing order
 
   let results = map fst

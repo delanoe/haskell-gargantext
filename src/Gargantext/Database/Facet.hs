@@ -69,7 +69,7 @@ type Favorite = Int
 type Title    = Text
 
 -- TODO remove Title
-type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument Favorite Int
+type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Favorite) (Maybe Double)
 type FacetSources = FacetDoc
 type FacetAuthors = FacetDoc
 type FacetTerms   = FacetDoc
@@ -146,7 +146,7 @@ instance ToSchema FacetDoc
 
 -- | Mock and Quickcheck instances
 instance Arbitrary FacetDoc where
-    arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp cat ngramCount
+    arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp (Just cat) (Just ngramCount)
                          | id'  <- [1..10]
                          , year <- [1990..2000]
                          , t    <- ["title", "another title"]
@@ -164,8 +164,8 @@ type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGTimestamptz)
                           (Column PGText       )
                           (Column PGJsonb      )
-                          (Column PGInt4       ) -- Category
-                          (Column PGInt4       ) -- Score
+                          (Column (Nullable PGInt4)) -- Category
+                          (Column (Nullable PGFloat8)) -- Score
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
@@ -214,7 +214,7 @@ viewAuthorsDoc cId _ nt = proc () -> do
   restrict -< _node_id   contact   .== (toNullable $ pgNodeId cId)
   restrict -< _node_typename doc   .== (pgInt4 $ nodeTypeId nt)
 
-  returnA  -< FacetDoc (_node_id doc) (_node_date doc) (_node_name doc) (_node_hyperdata doc) (pgInt4 1) (pgInt4 1)
+  returnA  -< FacetDoc (_node_id doc) (_node_date doc) (_node_name doc) (_node_hyperdata doc) (toNullable $ pgInt4 1) (toNullable $ pgDouble 1)
 
 queryAuthorsDoc :: Query (NodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull))))
 queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeTable cond12 cond23 cond34 cond45
@@ -251,7 +251,7 @@ viewDocuments cId t ntId = proc () -> do
   restrict -< _node_typename  n .== (pgInt4 ntId)
   restrict -< if t then nn_category  nn .== (pgInt4 0)
                    else nn_category  nn .>= (pgInt4 1)
-  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (nn_category nn) (pgInt4 1)
+  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (toNullable $ nn_category nn) (toNullable $ nn_score nn)
 
 
 ------------------------------------------------------------------------
