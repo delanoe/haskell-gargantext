@@ -57,7 +57,7 @@ import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..)
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
-import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, mkPhylo, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
+import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, {-mkPhylo,-} mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
@@ -177,8 +177,6 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
 ------------------------------------------------------------------------
-
-
 flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
                => Lang -> Username -> Either CorpusName [CorpusId] -> Maybe c -> [NodeId] -> m CorpusId
 flowCorpusUser l userName corpusName ctype ids = do
@@ -199,7 +197,7 @@ flowCorpusUser l userName corpusName ctype ids = do
   -- User Graph Flow
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph  userCorpusId userId
-  _ <- mkPhylo  userCorpusId userId
+  --_ <- mkPhylo  userCorpusId userId
   --}
 
 

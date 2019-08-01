@@ -89,6 +89,3 @@ toDoc l (Doc.PubMed (Doc.PubMedArticle t j as aus)
         abstract :: Maybe [Text] -> Maybe Text
         abstract as' = fmap (Text.intercalate ", ") as'
 
-
-
-

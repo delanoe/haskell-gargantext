@@ -76,7 +76,7 @@ api (Query q _ as) = do
     Nothing      -> flowCorpusSearchInDatabase "user1" EN q
     Just API.All -> flowCorpusSearchInDatabase "user1" EN q
     Just a   -> do
-      docs <- liftIO $ API.get a q Nothing
+      docs <- liftIO $ API.get a q (Just 1000)
       cId' <- flowCorpus "user1" (Left q) (Multi EN) [docs]
       pure cId'
 
@@ -94,6 +94,5 @@ instance ToSchema ApiInfo
 
 info :: FlowCmdM env err m => UserId -> m ApiInfo
 info _u = pure $ ApiInfo API.externalAPIs
-
 
 
