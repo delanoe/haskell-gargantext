@@ -68,6 +68,7 @@ library:
   - Gargantext.Viz.Graph.Distances.Matrice
   - Gargantext.Viz.Graph.Index
   - Gargantext.Viz.Phylo
+  - Gargantext.Viz.AdaptativePhylo
   - Gargantext.Viz.Phylo.Tools
   - Gargantext.Viz.Phylo.Example
   - Gargantext.Viz.Phylo.LevelMaker
@@ -275,6 +276,31 @@ executables:
       - optparse-generic
       - split
       - unordered-containers
+
+  gargantext-adaptative-phylo:
+    main: Main.hs
+    source-dirs: bin/gargantext-adaptative-phylo
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - aeson
+      - async
+      - base
+      - bytestring
+      - containers
+      - directory
+      - gargantext
+      - vector
+      - parallel
+      - cassava
+      - ini
+      - optparse-generic
+      - split
+      - unordered-containers      
 
   gargantext-import:
     main: Main.hs

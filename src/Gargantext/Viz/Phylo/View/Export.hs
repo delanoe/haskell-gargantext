@@ -125,7 +125,9 @@ setPeakDotNode :: PhyloBranch -> Dot DotId
 setPeakDotNode pb = node (toBranchDotId $ pb ^. pb_id) 
                       ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ pb ^. pb_peak)]
                        <> (setAttrFromMetrics $ pb ^. pb_metrics)
-                       <> [setAttr "nodeType" "peak"])
+                       <> [ setAttr "nodeType" "peak"
+                          , setAttr "branchId" ((pack $ show (fst $ getBranchId pb)) <> (pack $ show (snd $ getBranchId pb)))
+                          ])
 
 
 -- | To set a Peak Edge
@@ -188,14 +190,18 @@ setHtmlTable pn = H.Table H.HTable
 setDotNode :: PhyloNode -> Dot DotId
 setDotNode pn = node (toNodeDotId $ pn ^. pn_id)
                      ([FontName "Arial", Shape Square, toLabel (setHtmlTable pn)]
-                      <> [setAttr "nodeType" "group"])
+                      <> [ setAttr "nodeType" "group"
+                         , setAttr "from" (pack $ show (fst $ getNodePeriod pn))
+                         , setAttr "to"   (pack $ show (fst $ getNodePeriod pn))
+                         , setAttr "branchId" ((pack $ show (fst $ getNodeBranchId pn)) <> (pack $ show (snd $ getNodeBranchId pn))) 
+                         ])
 
 
 -- | To set an Edge
 setDotEdge :: PhyloEdge -> Dot DotId
 setDotEdge pe 
   | pe ^. pe_weight == 100 = edge (toNodeDotId $ pe ^. pe_source) (toNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Red]]
-  | otherwise = edge (toNodeDotId $ pe ^. pe_source) (toNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Black]]
+  | otherwise = edge (toNodeDotId $ pe ^. pe_source) (toNodeDotId $ pe ^. pe_target)  [Width 2, Color [toWColor Black], Constraint True]
 
 
 -- | To set a Period Edge
@@ -215,8 +221,9 @@ viewToDot pv = digraph ((Str . fromStrict) $ pv ^. pv_title)
                           <> [setAttr "description" $ fromStrict $ pv ^. pv_description]
                           <> [setAttr "filiation"   $ (pack . show) $ pv ^. pv_filiation]
                           <> (setAttrFromMetrics $ pv ^. pv_metrics)
-                          <> [FontSize 30, LabelLoc VTop, Splines SplineEdges, Overlap ScaleOverlaps,
-                              Ratio AutoRatio, Style [SItem Filled []],Color [toWColor White]])
+                          <> [FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
+                             , Ratio FillRatio
+                             , Style [SItem Filled []],Color [toWColor White]])
 
                 -- set the peaks
 
