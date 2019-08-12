@@ -20,6 +20,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloExample where
 
 import Data.List (sortOn)
+import Data.Map (Map)
 import Data.Text (Text, toLower)
 
 import Gargantext.Prelude
@@ -27,6 +28,7 @@ import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Terms.Mono (monoTexts)
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
+import Gargantext.Viz.Phylo.PhyloMaker
 
 import Control.Lens
 
@@ -38,7 +40,19 @@ import qualified Data.Vector as Vector
 --------------------------------------------
 
 
--- Next is to build the config and the phyloLevel 0
+-- cooc et phyloBase
+
+
+nbDocsByYear :: Map Date Double
+nbDocsByYear = nbDocsByTime docs 1
+
+
+config :: Config
+config = 
+    defaultConfig { phyloName  = "Cesar et Cleopatre"
+                  , branchSize = 0
+                  , fisSupport = 0
+                  , fisSize    = 0 }
 
 
 docs :: [Document]

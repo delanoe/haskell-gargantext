@@ -19,6 +19,7 @@ module Gargantext.Viz.Phylo.PhyloTools where
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Text (Text)
 import Data.Vector (Vector)
+import Data.List (sort)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
@@ -26,23 +27,6 @@ import Gargantext.Viz.AdaptativePhylo
 import GHC.IO (FilePath)
 
 import qualified Data.Vector as Vector
-
-
-----------------
--- | Config | --
-----------------
-
--- | Define a default value
-def :: a -> Maybe a -> a
-def = fromMaybe
-
-
--- | To init a configuration
-initConfig :: Maybe FilePath -> Maybe FilePath -> Maybe FilePath -> Maybe CorpusParser -> Maybe Int -> Maybe Text
-           -> Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int -> Maybe Int -> Maybe Bool -> Config
-initConfig (def "" -> corpus) (def "" -> mapList) (def "" -> output) (def Csv -> parser) (def 10000 -> limit) (def "A phylomemy" -> name)
-           (def 2 -> level) (def 3 -> period) (def 1 -> step) (def 3 -> support) (def 4 -> clique) (def 3 -> minBranchSize) (def True -> safe) =
-           Config corpus mapList output parser limit name level period step support clique minBranchSize safe 
 
 
 ---------------------
@@ -53,3 +37,15 @@ initConfig (def "" -> corpus) (def "" -> mapList) (def "" -> output) (def Csv ->
 -- | Is this Ngrams a Foundations Root ?
 isRoots :: Ngrams -> Vector Ngrams -> Bool
 isRoots n ns = Vector.elem n ns
+
+
+--------------
+-- | Time | --
+--------------
+
+
+-- | Get a regular & ascendante timeScale from a given list of dates
+toTimeScale :: [Date] -> Int -> [Date]
+toTimeScale dates step = 
+    let dates' = sort dates
+    in [head' "toTimeScale" dates', ((head' "toTimeScale" dates') + step) .. last' "toTimeScale" dates']

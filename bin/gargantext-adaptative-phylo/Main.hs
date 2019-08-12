@@ -23,14 +23,16 @@ module Main where
 
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
-import Data.Maybe ()
-import Data.List  (concat, nub)
+import Data.Maybe (isJust, fromJust)
+import Data.List  (concat, nub, isSuffixOf, take)
 import Data.String (String)
 import Data.Text  (Text, unwords)
 
 import Gargantext.Prelude
+import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
 import Gargantext.Viz.AdaptativePhylo
@@ -38,6 +40,8 @@ import Gargantext.Viz.AdaptativePhylo
 import GHC.IO (FilePath) 
 import Prelude (Either(..))
 import System.Environment
+import System.Directory (listDirectory)
+import Control.Concurrent.Async (mapConcurrently)
 
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.Vector as Vector
@@ -64,9 +68,27 @@ printIOComment cmt =
     putStrLn ( "\n" <> cmt <> "\n" )
 
 
+-- | To get all the files in a directory or just a file
+getFilesFromPath :: FilePath -> IO([FilePath])
+getFilesFromPath path = do 
+  if (isSuffixOf "/" path) 
+    then (listDirectory path) 
+    else return [path]
+
+
+--------------
+-- | Json | --
+--------------
+
+
 -- | To read and decode a Json file
 readJson :: FilePath -> IO ByteString
 readJson path = Lazy.readFile path
+
+
+----------------
+-- | Parser | --
+----------------
 
 -- | To filter the Ngrams of a document based on the termList
 filterTerms :: Patterns -> (a, Text) -> (a, [Text])
@@ -78,7 +100,25 @@ filterTerms patterns (y,d) = (y,termsInText patterns d)
     --------------------------------------
 
 
--- | To transform a Csv nfile into a readable corpus
+-- | To transform a Wos file (or [file]) into a readable corpus
+wosToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
+wosToCorpus limit path = do 
+      files <- getFilesFromPath path
+      take limit
+        <$> map (\d -> let date' = fromJust $ _hyperdataDocument_publication_year d
+                           title = fromJust $ _hyperdataDocument_title d
+                           abstr = if (isJust $ _hyperdataDocument_abstract d)
+                                   then fromJust $ _hyperdataDocument_abstract d
+                                   else ""
+                        in (date', title <> " " <> abstr)) 
+        <$> concat 
+        <$> mapConcurrently (\file -> 
+              filter (\d -> (isJust $ _hyperdataDocument_publication_year d)
+                         && (isJust $ _hyperdataDocument_title d))
+                <$> parseFile WOS (path <> file) ) files
+
+
+-- | To transform a Csv file into a readable corpus
 csvToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
 csvToCorpus limit path = Vector.toList
     <$> Vector.take limit
@@ -89,8 +129,7 @@ csvToCorpus limit path = Vector.toList
 -- | To use the correct parser given a CorpusType
 fileToCorpus :: CorpusParser -> Int -> FilePath -> IO ([(Int,Text)])
 fileToCorpus parser limit path = case parser of 
-  -- To do Wos from legacy Main.hs
-  Wos -> undefined
+  Wos -> wosToCorpus limit path
   Csv -> csvToCorpus limit path
 
 

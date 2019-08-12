@@ -14,3 +14,23 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.PhyloMaker where
+
+
+import Data.Map (Map, fromListWith, keys, unionWith, fromList)
+
+import Gargantext.Prelude
+import Gargantext.Viz.AdaptativePhylo
+import Gargantext.Viz.Phylo.PhyloTools
+
+
+--------------------
+-- | to Phylo 0 | --
+--------------------
+
+nbDocsByTime :: [Document] -> Int -> Map Date Double
+nbDocsByTime docs step = 
+    let docs' = fromListWith (+) $ map (\d -> (date d,1)) docs
+        time  = fromList $ map (\t -> (t,0)) $ toTimeScale (keys docs') step
+    in unionWith (+) time docs'
+
+
