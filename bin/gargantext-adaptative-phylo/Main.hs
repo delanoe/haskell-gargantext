@@ -36,6 +36,7 @@ import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
 import Gargantext.Viz.AdaptativePhylo
+import Gargantext.Viz.Phylo.PhyloMaker (toPhylo)
 
 import GHC.IO (FilePath) 
 import Prelude (Either(..))
@@ -164,4 +165,7 @@ main = do
             corpus  <- fileToDocs (corpusParser config) (corpusLimit config) (corpusPath config) mapList
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 
-    
+            printIOMsg "Reconstruct the Phylo"
+            let phylo = toPhylo corpus mapList config
+
+            printIOMsg "End of reconstruction"

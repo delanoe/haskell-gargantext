@@ -19,7 +19,7 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloExample where
 
-import Data.List (sortOn)
+import Data.List (sortOn, nub, sort)
 import Data.Map (Map)
 import Data.Text (Text, toLower)
 
@@ -35,16 +35,38 @@ import Control.Lens
 import qualified Data.Vector as Vector
 
 
+---------------------------------------------
+-- | STEP 2 | -- Build the frequent items set
+---------------------------------------------
+
+
+phyloFis :: Map (Date,Date) [PhyloFis]
+phyloFis = toPhyloFis docsByPeriods (fisSupport config) (fisSize config) 
+
+
+docsByPeriods :: Map (Date,Date) [Document]
+docsByPeriods = groupDocsByPeriod date periods docs
+
+
 --------------------------------------------
 -- | STEP 1 | -- Init the Base of the Phylo
 --------------------------------------------
 
 
--- cooc et phyloBase
+phyloBase :: Phylo
+phyloBase = toPhyloBase docs mapList config
+
+
+phyloCooc :: Map Date Cooc
+phyloCooc = docsToCoocByYear docs (foundations ^. foundations_roots) config
+
+
+periods :: [(Date,Date)]
+periods = toPeriods (sort $ nub $ map date docs) (timePeriod config) (timeStep config)
 
 
 nbDocsByYear :: Map Date Double
-nbDocsByYear = nbDocsByTime docs 1
+nbDocsByYear = nbDocsByTime docs (timeUnit config)
 
 
 config :: Config

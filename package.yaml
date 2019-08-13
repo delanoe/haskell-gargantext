@@ -69,6 +69,7 @@ library:
   - Gargantext.Viz.Graph.Index
   - Gargantext.Viz.Phylo
   - Gargantext.Viz.AdaptativePhylo
+  - Gargantext.Viz.Phylo.PhyloMaker
   - Gargantext.Viz.Phylo.Tools
   - Gargantext.Viz.Phylo.Example
   - Gargantext.Viz.Phylo.LevelMaker
