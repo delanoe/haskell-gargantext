@@ -19,7 +19,7 @@ module Gargantext.Viz.Phylo.PhyloTools where
 import Data.Vector (Vector, elemIndex)
 import Data.List (sort, concat, null, union, (++), tails, sortOn)
 import Data.Set (size)
-import Data.Map (Map, elems, fromList, unionWith)
+import Data.Map (Map, elems, fromList, unionWith, keys)
 import Data.String (String)
 
 import Gargantext.Prelude
@@ -150,8 +150,13 @@ sumCooc cooc cooc' = unionWith (+) cooc cooc'
 
 getPeriodIds :: Phylo -> [(Date,Date)]
 getPeriodIds phylo = sortOn fst
-                   $ map (\prd -> prd ^. phylo_periodId)
+                   $ keys
                    $ phylo ^. phylo_periods
+
 
 getConfig :: Phylo -> Config
 getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
+
+
+getRoots :: Phylo -> Vector Ngrams
+getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots

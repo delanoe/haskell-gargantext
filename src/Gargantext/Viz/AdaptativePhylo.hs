@@ -172,7 +172,7 @@ data Phylo =
            , _phylo_timeCooc    :: !(Map Date Cooc)
            , _phylo_timeDocs    :: !(Map Date Double)
            , _phylo_param       :: PhyloParam
-           , _phylo_periods     :: [PhyloPeriod]
+           , _phylo_periods     :: Map PhyloPeriodId PhyloPeriod
            }
            deriving (Generic, Show, Eq)
 
@@ -184,10 +184,9 @@ type PhyloPeriodId = (Date,Date)
 --  id: tuple (start date, end date) of the temporal step of the phylomemy
 --  levels: levels of granularity
 data PhyloPeriod =
-     PhyloPeriod { _phylo_periodId     :: PhyloPeriodId
-                 , _phylo_periodLevels :: [PhyloLevel]
-                 }
-                 deriving (Generic, Show, Eq)   
+     PhyloPeriod { _phylo_periodPeriod :: (Date,Date)
+                 , _phylo_periodLevels :: Map PhyloLevelId PhyloLevel
+                 } deriving (Generic, Show, Eq)   
 
 
 -- | Level : a level of clustering
@@ -202,25 +201,40 @@ type PhyloLevelId  = (PhyloPeriodId,Level)
 -- Level 1: First level of clustering (the Fis)
 -- Level [2..N]: Nth level of synchronic clustering (cluster of Fis)
 data PhyloLevel =
-     PhyloLevel { _phylo_levelId     :: PhyloLevelId
-                , _phylo_levelGroups :: [PhyloGroup]
-                }
+     PhyloLevel { _phylo_levelPeriod :: (Date,Date)
+                , _phylo_levelLevel  :: Level 
+                , _phylo_levelGroups :: Map PhyloGroupId PhyloGroup
+                } 
                 deriving (Generic, Show, Eq)   
 
 
---------------------
--- | PhyloGroup | --
--------------------- 
+type PhyloGroupId  = (PhyloLevelId, Int)
 
-
-type Index = Int
-type PhyloGroupId  = (PhyloLevelId, Index)
+-- | BranchId : (a level, a sequence of branch index)
+-- the sequence is a path of heritage from the most to the less specific branch
+type PhyloBranchId = (Level, [Int])
 
 -- | PhyloGroup : group of ngrams at each level and period
 data PhyloGroup = 
-      PhyloGroup { _phylo_groupId :: PhyloGroupId
+      PhyloGroup { _phylo_groupPeriod   :: (Date,Date)
+                 , _phylo_groupLevel    :: Level
+                 , _phylo_groupIndex    :: Int
+                 , _phylo_groupSupport  :: Support
+                 , _phylo_groupNgrams   :: [Int]
+                 , _phylo_groupBranchId :: PhyloBranchId
+                 , _phylo_groupLevelParents  :: [Pointer]
+                 , _phylo_groupLevelChilds   :: [Pointer]
+                 , _phylo_groupPeriodParents :: [Pointer]
+                 , _phylo_groupPeriodChilds  :: [Pointer]
+                 , _phylo_groupBreakPointer  :: Maybe Pointer
                  }
                  deriving (Generic, Show, Eq)
+
+-- | Weight : A generic mesure that can be associated with an Id
+type Weight = Double
+
+-- | Pointer : A weighted pointer to a given PhyloGroup
+type Pointer = (PhyloGroupId, Weight)                 
 
 
 ---------------------------

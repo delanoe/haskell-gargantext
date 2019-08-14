@@ -35,6 +35,14 @@ import Control.Lens
 import qualified Data.Vector as Vector
 
 
+-----------------------------------------------
+-- | STEP 3 | -- Build the Level 1 of the Phylo
+-----------------------------------------------
+
+phylo1 :: Phylo
+phylo1 = appendGroups fisToGroup 1 phyloFis phyloBase
+
+
 ---------------------------------------------
 -- | STEP 2 | -- Build the frequent items set
 ---------------------------------------------

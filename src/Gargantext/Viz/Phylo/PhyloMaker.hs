@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloMaker where
 
 import Data.List (concat, nub, partition, sort, (++))
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, mapWithKey, toList, elems)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!))
 import Data.Set (size)
 import Data.Vector (Vector)
 
@@ -29,7 +29,7 @@ import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Control.DeepSeq (NFData)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Debug.Trace (trace)
-import Control.Lens
+import Control.Lens hiding (Level)
 
 import qualified Data.Vector as Vector
 import qualified Data.Set as Set
@@ -41,11 +41,11 @@ import qualified Data.Set as Set
 
 
 toPhylo :: [Document] -> TermList -> Config -> Phylo
-toPhylo docs lst conf = phyloBase
+toPhylo docs lst conf = phylo1
     where
         --------------------------------------
-        _phylo1 :: Phylo
-        _phylo1 = toPhylo1 docs phyloBase
+        phylo1 :: Phylo
+        phylo1 = toPhylo1 docs phyloBase
         --------------------------------------
         phyloBase :: Phylo 
         phyloBase = toPhyloBase docs lst conf
@@ -58,15 +58,43 @@ toPhylo docs lst conf = phyloBase
 --------------------
 
 
+appendGroups :: (a -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
+appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ concat $ elems m) <> " groups to Level " <> show (lvl) <> "\n")
+    $ over ( phylo_periods
+           .  traverse
+           . phylo_periodLevels
+           .  traverse)
+           (\phyloLvl -> if lvl == (phyloLvl ^. phylo_levelLevel)
+                         then
+                            let pId = phyloLvl ^. phylo_levelPeriod
+                                phyloFis = m ! pId
+                            in  phyloLvl 
+                              & phylo_levelGroups .~ (fromList $ foldl (\groups obj ->
+                                    groups ++ [(((pId,lvl),length groups),f obj pId lvl (length groups) (getRoots phylo))] ) [] phyloFis)
+                         else 
+                            phyloLvl )
+           phylo  
+
+
+fisToGroup :: PhyloFis -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> PhyloGroup
+fisToGroup fis pId lvl idx fdt = 
+    PhyloGroup pId lvl idx
+               (fis ^. phyloFis_support)
+               (ngramsToIdx (Set.toList $ fis ^. phyloFis_clique) fdt)
+               (1,[])
+               [] [] [] []
+               Nothing
+
+
 toPhylo1 :: [Document] -> Phylo -> Phylo
-toPhylo1 docs phyloBase = undefined
+toPhylo1 docs phyloBase = appendGroups fisToGroup 1 phyloFis phyloBase
     where
         --------------------------------------
-        _mFis :: Map (Date,Date) [PhyloFis]
-        _mFis =  toPhyloFis _docs' (fisSupport $ getConfig phyloBase) (fisSize $ getConfig phyloBase)
+        phyloFis :: Map (Date,Date) [PhyloFis]
+        phyloFis =  toPhyloFis docs' (fisSupport $ getConfig phyloBase) (fisSize $ getConfig phyloBase)
         --------------------------------------
-        _docs' :: Map (Date,Date) [Document]
-        _docs' =  groupDocsByPeriod date (getPeriodIds phyloBase) docs
+        docs' :: Map (Date,Date) [Document]
+        docs' =  groupDocsByPeriod date (getPeriodIds phyloBase) docs
         --------------------------------------
 
 
@@ -108,19 +136,22 @@ filterFisByNested m =
 
 -- | To transform a time map of docs innto a time map of Fis with some filters
 toPhyloFis :: Map (Date, Date) [Document] -> Int -> Int -> Map (Date,Date) [PhyloFis]
-toPhyloFis mDocs support clique = traceFis "Filtered Fis"
-                                $ filterFisByNested 
-                                $ traceFis "Filtered by clique size"
-                                $ filterFis True clique (filterFisByClique)
-                                $ traceFis "Filtered by support"
-                                $ filterFis True support (filterFisBySupport)
-                                $ traceFis "Unfiltered Fis" mFis
+toPhyloFis phyloDocs support clique = traceFis "Filtered Fis"
+                $ filterFisByNested 
+                $ traceFis "Filtered by clique size"
+                $ filterFis True clique (filterFisByClique)
+                $ traceFis "Filtered by support"
+                $ filterFis True support (filterFisBySupport)
+                $ traceFis "Unfiltered Fis" phyloFis
     where
-        --------------------------------------
-        -- | create the fis from the docs for each period
-        mFis :: Map (Date,Date) [PhyloFis]
-        mFis = mapWithKey (\prd docs -> let fis = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
-                                        in  map (\f -> PhyloFis (fst f) (snd f) prd) fis ) mDocs
+        -------------------------------------- 
+        phyloFis :: Map (Date,Date) [PhyloFis]
+        phyloFis = 
+            let fis  = map (\(prd,docs) -> let lst = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
+                                           in (prd, map (\f -> PhyloFis (fst f) (snd f) prd) lst))
+                     $ toList phyloDocs
+                fis' = fis `using` parList rdeepseq
+            in fromList fis'
         -------------------------------------- 
 
 
@@ -173,6 +204,11 @@ nbDocsByTime docs step =
       $ unionWith (+) time docs'
 
 
+initPhyloLevels :: Int -> PhyloPeriodId -> Map PhyloLevelId PhyloLevel
+initPhyloLevels lvlMax pId = 
+    fromList $ map (\lvl -> ((pId,lvl),PhyloLevel pId lvl empty)) [1..lvlMax]
+
+
 -- | To init the basic elements of a Phylo
 toPhyloBase :: [Document] -> TermList -> Config -> Phylo
 toPhyloBase docs lst conf = 
@@ -184,4 +220,4 @@ toPhyloBase docs lst conf =
                (docsToCoocByYear docs (foundations ^. foundations_roots) conf)
                (nbDocsByTime docs $ timeUnit conf)
                params
-               (map (\prd -> PhyloPeriod prd []) periods)
+               (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels (phyloLevel conf) prd))) periods)
