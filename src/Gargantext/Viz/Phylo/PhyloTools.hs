@@ -18,17 +18,19 @@ module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
 import Data.List (sort, concat, null, union, (++), tails, sortOn)
-import Data.Set (size)
-import Data.Map (Map, elems, fromList, unionWith, keys)
+import Data.Set (Set, size)
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!))
 import Data.String (String)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 
 import Debug.Trace (trace)
-import Control.Lens
+import Control.Lens hiding (Level)
 
 import qualified Data.Vector as Vector
+import qualified Data.List as List
+import qualified Data.Set as Set
 
 --------------
 -- | Misc | --
@@ -36,7 +38,13 @@ import qualified Data.Vector as Vector
 
 
 countSup :: Double -> [Double] -> Int
-countSup s l = length $ filter (>s) l 
+countSup s l = length $ filter (>s) l
+
+
+elemIndex' :: Eq a => a -> [a] -> Int
+elemIndex' e l = case (List.elemIndex e l) of
+    Nothing -> panic ("[ERR][Viz.Phylo.PhyloTools] element not in list")
+    Just i  -> i
 
 
 ---------------------
@@ -56,6 +64,11 @@ ngramsToIdx ns fdt = map (\n -> fromJust $ elemIndex n fdt) ns
 --------------
 -- | Time | --
 --------------
+
+-- | To transform a list of periods into a set of Dates
+periodsToYears :: [(Date,Date)] -> Set Date
+periodsToYears periods = (Set.fromList . sort . concat)
+                       $ map (\(d,d') -> [d..d']) periods
 
 
 findBounds :: [Date] -> (Date,Date)
@@ -134,7 +147,7 @@ listToCombi' l = [(x,y) | (x:rest) <- tails l,  y <- rest]
 listToEqual' :: Eq a => [a] -> [(a,a)]
 listToEqual' l = [(x,y) | x <- l, y <- l, x == y]
 
-listToKeys :: [Int] -> [(Int,Int)]
+listToKeys :: Eq a =>  [a] -> [(a,a)]
 listToKeys lst = (listToCombi' lst) ++ (listToEqual' lst)
 
 listToMatrix :: [Int] -> Map (Int,Int) Double
@@ -143,10 +156,27 @@ listToMatrix lst = fromList $ map (\k -> (k,1)) $ listToKeys $ sort lst
 sumCooc :: Cooc -> Cooc -> Cooc
 sumCooc cooc cooc' = unionWith (+) cooc cooc'
 
+---------------
+-- | Phylo | --
+---------------
+
+getGroupId :: PhyloGroup -> PhyloGroupId 
+getGroupId group = ((group ^. phylo_groupPeriod, group ^. phylo_groupLevel), group ^. phylo_groupIndex)
 
 ---------------
 -- | Phylo | --
 ---------------
+
+addPointers :: PhyloGroup -> Filiation -> PointerType -> [Pointer] -> PhyloGroup
+addPointers group fil pty pointers = 
+    case pty of 
+        TemporalPointer -> case fil of 
+                                ToChilds  -> group & phylo_groupPeriodChilds  %~ (++ pointers)
+                                ToParents -> group & phylo_groupPeriodParents %~ (++ pointers)
+        LevelPointer    -> case fil of 
+                                ToChilds  -> group & phylo_groupLevelChilds %~ (++ pointers)
+                                ToParents -> group & phylo_groupLevelParents %~ (++ pointers)
+
 
 getPeriodIds :: Phylo -> [(Date,Date)]
 getPeriodIds phylo = sortOn fst
@@ -160,3 +190,30 @@ getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
 
 getRoots :: Phylo -> Vector Ngrams
 getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
+
+
+getGroupsFromLevel :: Level -> Phylo -> [PhyloGroup]
+getGroupsFromLevel lvl phylo = 
+    elems $ view ( phylo_periods
+                 .  traverse
+                 . phylo_periodLevels
+                 .  traverse
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
+                 . phylo_levelGroups ) phylo
+
+
+updatePhyloGroups :: Level -> Map PhyloGroupId PhyloGroup -> Phylo -> Phylo
+updatePhyloGroups lvl m phylo = 
+    over ( phylo_periods
+         .  traverse
+         . phylo_periodLevels
+         .  traverse
+         .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
+         . phylo_levelGroups
+         .  traverse 
+         ) (\group -> 
+                let id = getGroupId group
+                in 
+                    if member id m 
+                    then m ! id
+                    else group ) phylo

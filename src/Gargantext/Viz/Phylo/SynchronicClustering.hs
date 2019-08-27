@@ -14,3 +14,16 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.SynchronicClustering where
+
+import Gargantext.Prelude
+import Gargantext.Viz.AdaptativePhylo
+import Gargantext.Viz.Phylo.PhyloTools
+
+
+--------------------
+-- | Clustering | --
+--------------------
+
+
+relatedComponents :: [PhyloGroup] -> [[PhyloGroup]]
+relatedComponents groups = undefined 

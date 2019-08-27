@@ -61,6 +61,7 @@ data Config =
             , phyloName    :: Text
             , phyloLevel   :: Int
             , timeUnit     :: Int
+            , timeMatching :: Int
             , timePeriod   :: Int
             , timeStep     :: Int
             , fisSupport   :: Int
@@ -78,6 +79,7 @@ defaultConfig =
             , phyloName    = pack "Default Phylo"
             , phyloLevel   = 2
             , timeUnit     = 1
+            , timeMatching = 5
             , timePeriod   = 3
             , timeStep     = 1
             , fisSupport   = 2
@@ -234,7 +236,10 @@ data PhyloGroup =
 type Weight = Double
 
 -- | Pointer : A weighted pointer to a given PhyloGroup
-type Pointer = (PhyloGroupId, Weight)                 
+type Pointer = (PhyloGroupId, Weight)
+
+data Filiation = ToParents | ToChilds deriving (Generic, Show)    
+data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
 
 
 ---------------------------
