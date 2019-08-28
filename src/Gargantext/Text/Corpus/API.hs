@@ -12,6 +12,7 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE InstanceSigs      #-}
 
 module Gargantext.Text.Corpus.API
     where
@@ -19,26 +20,52 @@ module Gargantext.Text.Corpus.API
 import GHC.Generics (Generic)
 import Data.Aeson
 import Data.Maybe
-import Data.Text (Text)
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 import Data.Swagger
-import qualified Data.Text as Text
 
-import qualified PUBMED as PubMed
-import qualified PUBMED.Parser as Doc
---import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 
+import qualified Gargantext.Text.Corpus.API.Pubmed  as PUBMED
+import qualified Gargantext.Text.Corpus.API.Isidore as ISIDORE
+import qualified Gargantext.Text.Corpus.API.Hal     as HAL
+import qualified Gargantext.Text.Corpus.API.Istex   as ISTEX
+
+-- | Main Types
 data ExternalAPIs = All
                   | PubMed
-                  | HAL
-                  -- | IsTex
-                  | IsidoreQuery | IsidoreAuth
+
+                  | Hal_EN
+                  | Hal_FR
+
+                  | IsTex_EN
+                  | IsTex_FR
+
+                  | Isidore_EN
+                  | Isidore_FR
+                  -- | IsidoreAuth
   deriving (Show, Eq, Enum, Bounded, Generic)
 
+
+-- | Get External API metadata main function
+get :: ExternalAPIs -> Query -> Maybe Limit -> IO [HyperdataDocument]
+get All        _ _ = undefined
+
+get PubMed     q l = PUBMED.get q l
+
+get Hal_EN     q l = HAL.get EN q l
+get Hal_FR     q l = HAL.get FR q l
+
+get IsTex_EN   q l = ISTEX.get EN q l
+get IsTex_FR   q l = ISTEX.get FR q l
+
+get Isidore_EN q l = ISIDORE.get EN (fromIntegral <$> l) (Just q) Nothing
+get Isidore_FR q l = ISIDORE.get FR (fromIntegral <$> l) (Just q) Nothing
+
+
+-- | Main Instances
 instance FromJSON ExternalAPIs
 instance ToJSON ExternalAPIs
 
@@ -51,41 +78,7 @@ instance Arbitrary ExternalAPIs
 
 instance ToSchema ExternalAPIs
 
-type Query = Text
-type Limit = PubMed.Limit
-
-get :: ExternalAPIs -> Query -> Maybe Limit -> IO [HyperdataDocument]
-get PubMed q l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN)) <$> PubMed.getMetadataWith q l
-get _ _ _ = undefined
-
-toDoc :: Lang -> Doc.PubMed -> HyperdataDocument
-toDoc l (Doc.PubMed (Doc.PubMedArticle t j as aus)
-                    (Doc.PubMedDate a y m d)
-          ) = HyperdataDocument (Just "PubMed")
-                                 Nothing
-                                 Nothing
-                                 Nothing
-                                 Nothing
-                                 Nothing
-                                 t
-                                 (authors aus)
-                                 Nothing
-                                 j
-                                 (abstract as)
-                                 (Just $ Text.pack $ show a)
-                                 (Just $ fromIntegral y)
-                                 (Just m)
-                                 (Just d)
-                                 Nothing
-                                 Nothing
-                                 Nothing
-                                 (Just $ (Text.pack . show) l)
-      where
-        authors :: Maybe [Doc.Author] -> Maybe Text
-        authors aus' = case aus' of
-            Nothing -> Nothing
-            Just au -> Just $ (Text.intercalate ", ") $ catMaybes $ map Doc.foreName au
-
-        abstract :: Maybe [Text] -> Maybe Text
-        abstract as' = fmap (Text.intercalate ", ") as'
+-- | Some Sugar for the documentation
+type Query = PUBMED.Query
+type Limit = PUBMED.Limit
 

@@ -100,6 +100,7 @@ library:
   - crawlerPubMed
   - crawlerIsidore
   - crawlerHAL
+  - crawlerISTEX
   - data-time-segment
   - deepseq
   - directory
@@ -204,6 +205,7 @@ library:
   - zip
   - zlib
 #  - utc
+#  API external connections
 
 executables:
   gargantext-server:
