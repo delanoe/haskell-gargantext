@@ -55,7 +55,7 @@ type Query = Text
 type Limit = PubMed.Limit
 
 get :: ExternalAPIs -> Query -> Maybe Limit -> IO [HyperdataDocument]
-get PubMed q l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN)) <$> PubMed.crawler q l
+get PubMed q l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN)) <$> PubMed.getMetadataWith q l
 get _ _ _ = undefined
 
 toDoc :: Lang -> Doc.PubMed -> HyperdataDocument

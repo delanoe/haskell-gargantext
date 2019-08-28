@@ -46,7 +46,7 @@ import qualified Data.ByteString.Lazy as L
 
 import Servant
 import Servant.Client (BaseUrl, parseBaseUrl)
-import Servant.Job.Async (newJobEnv, defaultSettings)
+--import Servant.Job.Async (newJobEnv, defaultSettings)
 import Web.HttpApiData (parseUrlPiece)
 import qualified Jose.Jwk as Jose
 import qualified Jose.Jwa as Jose
@@ -60,7 +60,7 @@ import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
-import Gargantext.API.Orchestrator.Types
+--import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
 
@@ -147,7 +147,7 @@ data Env = Env
   , _env_repo     :: !RepoEnv
   , _env_manager  :: !Manager
   , _env_self_url :: !BaseUrl
-  , _env_scrapers :: !ScrapersEnv
+  --, _env_scrapers :: !ScrapersEnv
   }
   deriving (Generic)
 
@@ -243,7 +243,7 @@ newEnv port file = do
   param    <- databaseParameters file
   conn     <- connect param
   repo     <- readRepoEnv
-  scrapers_env <- newJobEnv defaultSettings manager
+  --scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
 
   pure $ Env
@@ -252,7 +252,7 @@ newEnv port file = do
     , _env_conn       = conn
     , _env_repo       = repo
     , _env_manager    = manager
-    , _env_scrapers   = scrapers_env
+    --, _env_scrapers   = scrapers_env
     , _env_self_url   = self_url
     }
 
@@ -305,7 +305,7 @@ withDevEnv iniPath k = do
 runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
 runCmdRepl f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
 
-runCmdReplServantErr :: Cmd' DevEnv ServantErr a -> IO a
+runCmdReplServantErr :: Cmd' DevEnv ServerError a -> IO a
 runCmdReplServantErr = runCmdRepl
 
 -- Use only for dev
@@ -324,5 +324,5 @@ runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
 runCmdDevNoErr = runCmdDev
 
 -- Use only for dev
-runCmdDevServantErr :: DevEnv -> Cmd' DevEnv ServantErr a -> IO a
+runCmdDevServantErr :: DevEnv -> Cmd' DevEnv ServerError a -> IO a
 runCmdDevServantErr = runCmdDev

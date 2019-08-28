@@ -30,7 +30,7 @@ library:
   - Gargantext.API.FrontEnd
   - Gargantext.API.Ngrams
   - Gargantext.API.Node
-  - Gargantext.API.Orchestrator
+    #  - Gargantext.API.Orchestrator
   - Gargantext.API.Search
   - Gargantext.API.Settings
   - Gargantext.Core
@@ -168,7 +168,7 @@ library:
   - servant-auth
   - servant-blaze
   - servant-client
-  - servant-job
+    #  - servant-job
   - servant-mock
   - servant-multipart
   - servant-server

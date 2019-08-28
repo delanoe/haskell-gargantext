@@ -56,7 +56,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~))
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~))
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -441,11 +441,11 @@ instance (Eq a, Arbitrary a) => Arbitrary (Replace a) where
     -- If they happen to be equal then the patch is Keep.
 
 instance ToSchema a => ToSchema (Replace a) where
-  declareNamedSchema (_ :: proxy (Replace a)) = do
+  declareNamedSchema (_ :: Proxy (Replace a)) = do
     -- TODO Keep constructor is not supported here.
     aSchema <- declareSchemaRef (Proxy :: Proxy a)
     return $ NamedSchema (Just "Replace") $ mempty
-      & type_ .~ SwaggerObject
+      & type_ ?~ SwaggerObject
       & properties .~
           InsOrdHashMap.fromList
           [ ("old", aSchema)

@@ -126,7 +126,7 @@ instance HasInvalidError GargError where
 instance HasTreeError GargError where
   _TreeError = _GargTreeError
 
-showAsServantErr :: Show a => a -> ServantErr
+showAsServantErr :: Show a => a -> ServerError
 showAsServantErr a = err500 { errBody = BL8.pack $ show a }
 
 fireWall :: Applicative f => Request -> FireWall -> f Bool

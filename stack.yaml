@@ -1,4 +1,4 @@
-resolver: lts-12.26
+resolver: lts-14.1
 flags: {}
 extra-package-dbs: []
 packages:
@@ -22,14 +22,21 @@ extra-deps:
   commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
 - git: https://github.com/robstewart57/rdf4h.git
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
+    #
+    # External API connectin to get data
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
-  commit: ac4f8ecfb2e579041a350e4718bc6d4e7a832d92
+  commit: 01a6bf1e79cd5aef8628b240bbd47cb2a0864d5e
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
+  commit: daeae80365250c4bd539f0a65e271f9aa37f731f
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
-  commit: bf57642f6b66f554fdc0a38ac391cd8200dffcb3
+  commit: ef9e638c97788df251f50b71fcdd9551b87f12c5
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
+  commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
+    #
 - git: https://gitlab.iscpif.fr/gargantext/patches-class
   commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
-- git: https://github.com/np/servant-job.git
-  commit: ac4227441bbca30c44235582b5ec31340c569021
+  #- git: https://github.com/np/servant-job.git
+  # commit: ac4227441bbca30c44235582b5ec31340c569021
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
   commit: 1c636112b151110408e7c5a28cec39e46657358e
 - git: https://github.com/np/patches-map
@@ -38,10 +45,8 @@ extra-deps:
   commit: 53385de076be09f728a1b58c035a18e9ff9bcfd6
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
-- git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
-  commit: e39454101b53916e3082085ebfe922df695fc775
 - KMP-0.1.0.2
-- accelerate-1.2.0.0
+- accelerate-1.2.0.1
 - aeson-lens-0.5.0.0
 - deepseq-th-0.1.0.4
 - duckling-0.1.3.0
@@ -56,8 +61,9 @@ extra-deps:
 - json-stream-0.4.2.4  # Text.Parsers (JSON)
 - serialise-0.2.0.0
 - servant-flatten-0.2
-- servant-multipart-0.11.2
+  #- servant-multipart-0.11.2
 - stemmer-0.5.2
 - time-units-1.0.0
 - validity-0.9.0.0 # patches-{map,class}
-- directory-1.3.1.5  
+- directory-1.3.1.5
+- process-1.6.5.1@sha256:77a9afeb676357f67fe5cf1ad79aca0745fb6f7fb96b786d510af08f622643f6,2468

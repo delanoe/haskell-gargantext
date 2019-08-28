@@ -29,6 +29,7 @@ import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
 import Data.Swagger
 import Gargantext.API.Types
+import Gargantext.API.Utils (swaggerOptions)
 import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
 import Gargantext.Database.Schema.Node (insertNodes, nodePhyloW, getNodePhylo)
 import Gargantext.Database.Types.Node -- (NodePhylo(..))
@@ -38,7 +39,6 @@ import Gargantext.Viz.Phylo.Main
 import Gargantext.Viz.Phylo.Example
 import Gargantext.API.Ngrams (TODO(..))
 import Servant
-import Servant.Job.Utils (swaggerOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Web.HttpApiData (parseUrlPiece, readTextData)
