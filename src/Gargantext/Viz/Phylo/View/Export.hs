@@ -137,9 +137,9 @@ setPeakDotEdge bId nId = edge bId nId [Width 3, Color [toWColor Black], ArrowHea
 
 colorFromDynamics :: Double -> H.Attribute
 colorFromDynamics d 
-  | d == 0    = H.BGColor (toColor PaleGreen) 
-  | d == 1    = H.BGColor (toColor SkyBlue)
-  | d == 2    = H.BGColor (toColor LightPink) 
+  | d == 0    = H.BGColor (toColor LightCoral)
+  | d == 1    = H.BGColor (toColor Khaki)
+  | d == 2    = H.BGColor (toColor SkyBlue)
   | otherwise = H.Color (toColor Black)
 
 

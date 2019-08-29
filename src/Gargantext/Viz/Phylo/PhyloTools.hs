@@ -19,7 +19,7 @@ module Gargantext.Viz.Phylo.PhyloTools where
 import Data.Vector (Vector, elemIndex)
 import Data.List (sort, concat, null, union, (++), tails, sortOn)
 import Data.Set (Set, size)
-import Data.Map (Map, elems, fromList, unionWith, keys, member, (!))
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), toList)
 import Data.String (String)
 
 import Gargantext.Prelude
@@ -156,9 +156,9 @@ listToMatrix lst = fromList $ map (\k -> (k,1)) $ listToKeys $ sort lst
 sumCooc :: Cooc -> Cooc -> Cooc
 sumCooc cooc cooc' = unionWith (+) cooc cooc'
 
----------------
--- | Phylo | --
----------------
+--------------------
+-- | PhyloGroup | --
+--------------------
 
 getGroupId :: PhyloGroup -> PhyloGroupId 
 getGroupId group = ((group ^. phylo_groupPeriod, group ^. phylo_groupLevel), group ^. phylo_groupIndex)
@@ -217,3 +217,16 @@ updatePhyloGroups lvl m phylo =
                     if member id m 
                     then m ! id
                     else group ) phylo
+
+
+------------------
+-- | Pointers | --
+------------------
+
+pointersToLinks :: PhyloGroupId -> [Pointer] -> [Link]
+pointersToLinks id pointers = map (\p -> ((id,fst p),snd p)) pointers
+
+mergeLinks :: [Link] -> [Link] -> [Link]
+mergeLinks toChilds toParents = 
+    let toChilds' = fromList $ map (\((from,to),w) -> ((to,from),w)) toChilds
+    in  toList $ unionWith max (fromList toParents) toChilds' 

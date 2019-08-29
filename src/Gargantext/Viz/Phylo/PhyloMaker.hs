@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloMaker where
 
 import Data.List (concat, nub, partition, sort, (++))
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!))
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), filterWithKey, restrictKeys)
 import Data.Set (size)
 import Data.Vector (Vector)
 
@@ -58,7 +58,7 @@ toPhylo docs lst conf = phylo1
 --------------------
 
 
-appendGroups :: (a -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
+appendGroups :: (a -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
 appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ concat $ elems m) <> " groups to Level " <> show (lvl) <> "\n")
     $ over ( phylo_periods
            .  traverse
@@ -70,20 +70,25 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
                                 phyloFis = m ! pId
                             in  phyloLvl 
                               & phylo_levelGroups .~ (fromList $ foldl (\groups obj ->
-                                    groups ++ [(((pId,lvl),length groups),f obj pId lvl (length groups) (getRoots phylo))] ) [] phyloFis)
+                                    groups ++ [ (((pId,lvl),length groups)
+                                              , f obj pId lvl (length groups) (getRoots phylo) 
+                                                  (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [pId]))
+                                              ] ) [] phyloFis)
                          else 
                             phyloLvl )
            phylo  
 
 
-fisToGroup :: PhyloFis -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> PhyloGroup
-fisToGroup fis pId lvl idx fdt = 
-    PhyloGroup pId lvl idx
-               (fis ^. phyloFis_support)
-               (ngramsToIdx (Set.toList $ fis ^. phyloFis_clique) fdt)
-               (1,[])
-               [] [] [] []
-               Nothing
+fisToGroup :: PhyloFis -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
+fisToGroup fis pId lvl idx fdt coocs =
+    let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloFis_clique) fdt
+    in  PhyloGroup pId lvl idx
+                   (fis ^. phyloFis_support)
+                   ngrams
+                   (ngramsToCooc ngrams coocs)
+                   (1,[])
+                   [] [] [] []
+                   Nothing
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo
@@ -158,6 +163,14 @@ toPhyloFis phyloDocs support clique = traceFis "Filtered Fis"
 --------------------
 -- | Coocurency | --
 --------------------
+
+
+-- | To build the local cooc matrix of each phylogroup
+ngramsToCooc :: [Int] -> [Cooc] -> Cooc
+ngramsToCooc ngrams coocs =
+    let cooc  = foldl (\acc cooc' -> sumCooc acc cooc') empty coocs
+        pairs = listToKeys ngrams
+    in  filterWithKey (\k _ -> elem k pairs) cooc
 
 
 -- | To transform the docs into a time map of coocurency matrix 

@@ -52,45 +52,53 @@ import Control.Lens (makeLenses)
 
 data CorpusParser = Wos | Csv deriving (Show,Generic,Eq) 
 
+data Proximity = WeightedLogJaccard {_sensibility :: Double} 
+               | Hamming 
+               deriving (Show,Generic,Eq) 
+
 data Config = 
-     Config { corpusPath   :: FilePath
-            , listPath     :: FilePath
-            , outputPath   :: FilePath
-            , corpusParser :: CorpusParser
-            , corpusLimit  :: Int
-            , phyloName    :: Text
-            , phyloLevel   :: Int
-            , timeUnit     :: Int
-            , timeMatching :: Int
-            , timePeriod   :: Int
-            , timeStep     :: Int
-            , fisSupport   :: Int
-            , fisSize      :: Int
-            , branchSize   :: Int  
+     Config { corpusPath     :: FilePath
+            , listPath       :: FilePath
+            , outputPath     :: FilePath
+            , corpusParser   :: CorpusParser
+            , corpusLimit    :: Int
+            , phyloName      :: Text
+            , phyloLevel     :: Int
+            , phyloProximity :: Proximity
+            , timeUnit       :: Int
+            , maxTimeMatch   :: Int
+            , timePeriod     :: Int
+            , timeStep       :: Int
+            , fisSupport     :: Int
+            , fisSize        :: Int
+            , branchSize     :: Int  
             } deriving (Show,Generic,Eq)
 
 defaultConfig :: Config
 defaultConfig = 
-     Config { corpusPath   = ""
-            , listPath     = ""
-            , outputPath   = ""
-            , corpusParser = Csv
-            , corpusLimit  = 1000
-            , phyloName    = pack "Default Phylo"
-            , phyloLevel   = 2
-            , timeUnit     = 1
-            , timeMatching = 5
-            , timePeriod   = 3
-            , timeStep     = 1
-            , fisSupport   = 2
-            , fisSize      = 4
-            , branchSize   = 3  
+     Config { corpusPath     = ""
+            , listPath       = ""
+            , outputPath     = ""
+            , corpusParser   = Csv
+            , corpusLimit    = 1000
+            , phyloName      = pack "Default Phylo"
+            , phyloLevel     = 2
+            , phyloProximity = WeightedLogJaccard 10
+            , timeUnit       = 1
+            , maxTimeMatch   = 5
+            , timePeriod     = 3
+            , timeStep       = 1
+            , fisSupport     = 2
+            , fisSize        = 4
+            , branchSize     = 3  
             }
 
 instance FromJSON Config
 instance ToJSON Config
 instance FromJSON CorpusParser
 instance ToJSON CorpusParser
+instance FromJSON Proximity
+instance ToJSON Proximity
 
 
 -- | Software parameters
@@ -223,6 +231,7 @@ data PhyloGroup =
                  , _phylo_groupIndex    :: Int
                  , _phylo_groupSupport  :: Support
                  , _phylo_groupNgrams   :: [Int]
+                 , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
                  , _phylo_groupLevelParents  :: [Pointer]
                  , _phylo_groupLevelChilds   :: [Pointer]
@@ -237,6 +246,8 @@ type Weight = Double
 
 -- | Pointer : A weighted pointer to a given PhyloGroup
 type Pointer = (PhyloGroupId, Weight)
+
+type Link = ((PhyloGroupId, PhyloGroupId), Weight)
 
 data Filiation = ToParents | ToChilds deriving (Generic, Show)    
 data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
