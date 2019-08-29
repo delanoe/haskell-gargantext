@@ -19,11 +19,19 @@ import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 
+import Data.List (foldl', (++), null, intersect, (\\), union, nub, concat)
 
 --------------------
 -- | Clustering | --
 --------------------
 
 
-relatedComponents :: [PhyloGroup] -> [[PhyloGroup]]
-relatedComponents groups = undefined 
+relatedComponents :: Eq a => [[a]] -> [[a]]
+relatedComponents graphs = foldl' (\mem groups -> 
+  if (null mem)
+  then mem ++ [groups]
+  else 
+    let related = filter (\groups' -> (not . null) $ intersect groups groups') mem
+    in if (null related)
+       then mem ++ [groups]
+       else (mem \\ related) ++ [union groups (nub $ concat related)] ) [] graphs 

@@ -128,16 +128,16 @@ csvToCorpus limit path = Vector.toList
 
 
 -- | To use the correct parser given a CorpusType
-fileToCorpus :: CorpusParser -> Int -> FilePath -> IO ([(Int,Text)])
-fileToCorpus parser limit path = case parser of 
-  Wos -> wosToCorpus limit path
-  Csv -> csvToCorpus limit path
+fileToCorpus :: CorpusParser -> FilePath -> IO ([(Int,Text)])
+fileToCorpus parser path = case parser of 
+  Wos limit -> wosToCorpus limit path
+  Csv limit -> csvToCorpus limit path
 
 
 -- | To parse a file into a list of Document
-fileToDocs :: CorpusParser -> Int -> FilePath -> TermList -> IO [Document]
-fileToDocs parser limit path lst = do
-  corpus <- fileToCorpus parser limit path
+fileToDocs :: CorpusParser -> FilePath -> TermList -> IO [Document]
+fileToDocs parser path lst = do
+  corpus <- fileToCorpus parser path
   let patterns = buildPatterns lst
   pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus
 
@@ -162,7 +162,7 @@ main = do
 
             printIOMsg "Parse the corpus"
             mapList <- csvGraphTermList (listPath config)
-            corpus  <- fileToDocs (corpusParser config) (corpusLimit config) (corpusPath config) mapList
+            corpus  <- fileToDocs (corpusParser config) (corpusPath config) mapList
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 
             printIOMsg "Reconstruct the Phylo"

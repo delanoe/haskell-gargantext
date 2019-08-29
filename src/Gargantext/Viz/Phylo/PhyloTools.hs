@@ -91,6 +91,18 @@ toTimeScale dates step =
     in  [start, (start + step) .. end]
 
 
+getTimeStep :: TimeUnit -> Int
+getTimeStep time = case time of 
+    Year _ s _ -> s
+
+getTimePeriod :: TimeUnit -> Int
+getTimePeriod time = case time of 
+    Year p _ _ -> p  
+
+getTimeFrame :: TimeUnit -> Int
+getTimeFrame time = case time of 
+    Year _ _ f -> f
+
 -------------
 -- | Fis | --
 -------------
@@ -134,6 +146,22 @@ traceFis :: [Char] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
 traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map length $ elems mFis) <> "\n"
                          <> "Support : " <> (traceSupport mFis) <> "\n"
                          <> "Clique : "  <> (traceClique mFis)  <> "\n" ) mFis
+
+
+-------------------------
+-- | Contextual unit | --
+-------------------------
+
+
+getFisSupport :: ContextualUnit -> Int
+getFisSupport unit = case unit of 
+    Fis s _ -> s
+    _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a support")
+
+getFisSize :: ContextualUnit -> Int
+getFisSize unit = case unit of 
+    Fis _ s -> s
+    _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a clique size")  
 
 
 --------------
@@ -223,6 +251,7 @@ updatePhyloGroups lvl m phylo =
 -- | Pointers | --
 ------------------
 
+
 pointersToLinks :: PhyloGroupId -> [Pointer] -> [Link]
 pointersToLinks id pointers = map (\p -> ((id,fst p),snd p)) pointers
 
@@ -230,3 +259,23 @@ mergeLinks :: [Link] -> [Link] -> [Link]
 mergeLinks toChilds toParents = 
     let toChilds' = fromList $ map (\((from,to),w) -> ((to,from),w)) toChilds
     in  toList $ unionWith max (fromList toParents) toChilds' 
+
+
+-------------------
+-- | Proximity | --
+-------------------
+
+getSensibility :: Proximity -> Double
+getSensibility proxi = case proxi of 
+    WeightedLogJaccard s _ _ -> s
+    Hamming -> undefined
+
+getThresholdInit :: Proximity -> Double
+getThresholdInit proxi = case proxi of 
+    WeightedLogJaccard _ t _ -> t
+    Hamming -> undefined  
+
+getThresholdStep :: Proximity -> Double
+getThresholdStep proxi = case proxi of 
+    WeightedLogJaccard _ _ s -> s
+    Hamming -> undefined  

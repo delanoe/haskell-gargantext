@@ -49,7 +49,7 @@ phylo1 = appendGroups fisToGroup 1 phyloFis phyloBase
 
 
 phyloFis :: Map (Date,Date) [PhyloFis]
-phyloFis = toPhyloFis docsByPeriods (fisSupport config) (fisSize config) 
+phyloFis = toPhyloFis docsByPeriods (getFisSupport $ contextualUnit config) (getFisSize $ contextualUnit config) 
 
 
 docsByPeriods :: Map (Date,Date) [Document]
@@ -66,23 +66,22 @@ phyloBase = toPhyloBase docs mapList config
 
 
 phyloCooc :: Map Date Cooc
-phyloCooc = docsToCoocByYear docs (foundations ^. foundations_roots) config
+phyloCooc = docsToTimeScaleCooc docs (foundations ^. foundations_roots) config
 
 
 periods :: [(Date,Date)]
-periods = toPeriods (sort $ nub $ map date docs) (timePeriod config) (timeStep config)
+periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit config) (getTimeStep $ timeUnit config)
 
 
 nbDocsByYear :: Map Date Double
-nbDocsByYear = nbDocsByTime docs (timeUnit config)
+nbDocsByYear = docsToTimeScaleNb docs
 
 
 config :: Config
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , branchSize = 0
-                  , fisSupport = 0
-                  , fisSize    = 0 }
+                  , contextualUnit = Fis 0 0 }
 
 
 docs :: [Document]

@@ -50,46 +50,63 @@ import Control.Lens (makeLenses)
 ----------------  
 
 
-data CorpusParser = Wos | Csv deriving (Show,Generic,Eq) 
+data CorpusParser = 
+      Wos {_wos_limit :: Int}
+    | Csv {_csv_limit :: Int}
+    deriving (Show,Generic,Eq) 
 
-data Proximity = WeightedLogJaccard {_sensibility :: Double} 
-               | Hamming 
-               deriving (Show,Generic,Eq) 
+
+data Proximity = 
+      WeightedLogJaccard 
+      { _wlj_sensibility   :: Double 
+      , _wlj_thresholdInit :: Double
+      , _wlj_thresholdStep :: Double }
+    | Hamming 
+    deriving (Show,Generic,Eq) 
+
+
+data TimeUnit = 
+      Year 
+      { _year_period :: Int
+      , _year_step   :: Int
+      , _year_matchingFrame :: Int }
+      deriving (Show,Generic,Eq) 
+
+
+data ContextualUnit = 
+      Fis 
+      { _fis_support :: Int
+      , _fis_size    :: Int }
+      deriving (Show,Generic,Eq)       
+
 
 data Config = 
      Config { corpusPath     :: FilePath
             , listPath       :: FilePath
             , outputPath     :: FilePath
             , corpusParser   :: CorpusParser
-            , corpusLimit    :: Int
             , phyloName      :: Text
             , phyloLevel     :: Int
+            , phyloQuality   :: Double
             , phyloProximity :: Proximity
-            , timeUnit       :: Int
-            , maxTimeMatch   :: Int
-            , timePeriod     :: Int
-            , timeStep       :: Int
-            , fisSupport     :: Int
-            , fisSize        :: Int
+            , timeUnit       :: TimeUnit
+            , contextualUnit :: ContextualUnit
             , branchSize     :: Int  
             } deriving (Show,Generic,Eq)
+
 
 defaultConfig :: Config
 defaultConfig = 
      Config { corpusPath     = ""
             , listPath       = ""
             , outputPath     = ""
-            , corpusParser   = Csv
-            , corpusLimit    = 1000
+            , corpusParser   = Csv 1000
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 10
-            , timeUnit       = 1
-            , maxTimeMatch   = 5
-            , timePeriod     = 3
-            , timeStep       = 1
-            , fisSupport     = 2
-            , fisSize        = 4
+            , phyloQuality   = 0.5
+            , phyloProximity = WeightedLogJaccard 10 0 0.05
+            , timeUnit       = Year 3 1 5
+            , contextualUnit = Fis 2 4
             , branchSize     = 3  
             }
 
@@ -99,6 +116,10 @@ instance FromJSON CorpusParser
 instance ToJSON CorpusParser
 instance FromJSON Proximity
 instance ToJSON Proximity
+instance FromJSON TimeUnit
+instance ToJSON TimeUnit
+instance FromJSON ContextualUnit
+instance ToJSON ContextualUnit
 
 
 -- | Software parameters
@@ -237,7 +258,7 @@ data PhyloGroup =
                  , _phylo_groupLevelChilds   :: [Pointer]
                  , _phylo_groupPeriodParents :: [Pointer]
                  , _phylo_groupPeriodChilds  :: [Pointer]
-                 , _phylo_groupBreakPointer  :: Maybe Pointer
+                 , _phylo_groupGhostPointers :: [Pointer]
                  }
                  deriving (Generic, Show, Eq)
 
@@ -276,6 +297,9 @@ data PhyloFis = PhyloFis
 ----------------
 
 makeLenses ''Config
+makeLenses ''Proximity
+makeLenses ''ContextualUnit
+makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
 makeLenses ''PhyloFis
 makeLenses ''Phylo

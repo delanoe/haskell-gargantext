@@ -87,8 +87,7 @@ fisToGroup fis pId lvl idx fdt coocs =
                    ngrams
                    (ngramsToCooc ngrams coocs)
                    (1,[])
-                   [] [] [] []
-                   Nothing
+                   [] [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo
@@ -96,7 +95,7 @@ toPhylo1 docs phyloBase = appendGroups fisToGroup 1 phyloFis phyloBase
     where
         --------------------------------------
         phyloFis :: Map (Date,Date) [PhyloFis]
-        phyloFis =  toPhyloFis docs' (fisSupport $ getConfig phyloBase) (fisSize $ getConfig phyloBase)
+        phyloFis =  toPhyloFis docs' (getFisSupport $ contextualUnit $ getConfig phyloBase) (getFisSize $ contextualUnit $ getConfig phyloBase)
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
         docs' =  groupDocsByPeriod date (getPeriodIds phyloBase) docs
@@ -174,14 +173,14 @@ ngramsToCooc ngrams coocs =
 
 
 -- | To transform the docs into a time map of coocurency matrix 
-docsToCoocByYear :: [Document] -> Vector Ngrams -> Config -> Map Date Cooc
-docsToCoocByYear docs fdt conf = 
+docsToTimeScaleCooc :: [Document] -> Vector Ngrams -> Config -> Map Date Cooc
+docsToTimeScaleCooc docs fdt conf = 
     let mCooc  = fromListWith sumCooc
                $ map (\(_d,l) -> (_d, listToMatrix l))
                $ map (\doc -> (date doc, sort $ ngramsToIdx (text doc) fdt)) docs
         mCooc' = fromList
                $ map (\t -> (t,empty))
-               $ toTimeScale (map date docs) (timeUnit conf)
+               $ toTimeScale (map date docs) 1
     in   trace ("\n" <> "-- | Build the coocurency matrix for " <> show (length $ keys mCooc') <> " unit of time" <> "\n")
        $ unionWith sumCooc mCooc mCooc'
 
@@ -208,11 +207,11 @@ groupDocsByPeriod f pds es =
     --------------------------------------   
 
 
--- | To count the number of docs by unit of time (like a year)
-nbDocsByTime :: [Document] -> Int -> Map Date Double
-nbDocsByTime docs step = 
+-- | To count the number of docs by unit of time
+docsToTimeScaleNb :: [Document] -> Map Date Double
+docsToTimeScaleNb docs = 
     let docs' = fromListWith (+) $ map (\d -> (date d,1)) docs
-        time  = fromList $ map (\t -> (t,0)) $ toTimeScale (keys docs') step
+        time  = fromList $ map (\t -> (t,0)) $ toTimeScale (keys docs') 1
     in  trace ("\n" <> "-- | Group " <> show(length docs) <> " docs by " <> show(length time) <> " unit of time" <> "\n") 
       $ unionWith (+) time docs'
 
@@ -227,10 +226,10 @@ toPhyloBase :: [Document] -> TermList -> Config -> Phylo
 toPhyloBase docs lst conf = 
     let foundations  = PhyloFoundations (Vector.fromList $ nub $ concat $ map text docs) lst
         params = defaultPhyloParam { _phyloParam_config = conf }
-        periods = toPeriods (sort $ nub $ map date docs) (timePeriod conf) (timeStep conf)
+        periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit conf) (getTimeStep $ timeUnit conf)
     in trace ("\n" <> "-- | Create PhyloBase out of " <> show(length docs) <> " docs \n") 
        $ Phylo foundations
-               (docsToCoocByYear docs (foundations ^. foundations_roots) conf)
-               (nbDocsByTime docs $ timeUnit conf)
+               (docsToTimeScaleCooc docs (foundations ^. foundations_roots) conf)
+               (docsToTimeScaleNb docs)
                params
                (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels (phyloLevel conf) prd))) periods)
