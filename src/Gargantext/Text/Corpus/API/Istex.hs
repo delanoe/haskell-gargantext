@@ -15,17 +15,50 @@ Portability : POSIX
 module Gargantext.Text.Corpus.API.Istex
     where
 
+import Data.Either (either)
 import Data.Maybe
-import Data.Text (Text)
+import Data.List (concat)
+import Data.Maybe (catMaybes)
+import Data.Text (Text, pack)
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
+import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import qualified Data.Text as Text
-
 
 import qualified ISTEX        as ISTEX
 import qualified ISTEX.Client as ISTEX
 
-
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
-get la q ml = undefined
+get la q ml = do
+  docs <- ISTEX.getMetadataWith q (fromIntegral <$> ml)
+  either (panic . pack . show) (toDoc' la) docs
+
+toDoc' :: Lang -> ISTEX.Documents -> IO [HyperdataDocument]
+toDoc' la docs' = do
+  --printDebug "ISTEX" (ISTEX._documents_total docs')
+  mapM (toDoc la) (ISTEX._documents_hits docs')
+
+-- | TODO remove dateSplit here
+-- TODO current year as default
+toDoc :: Lang -> ISTEX.Document -> IO HyperdataDocument
+toDoc la (ISTEX.Document i t a ab d s) = do
+  (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just "2019") (Just . pack . show) d)
+  pure $ HyperdataDocument (Just "Istex")
+                   (Just i)
+                   Nothing
+                   Nothing
+                   Nothing
+                   Nothing
+                   t
+                   (Just $ foldl (\x y -> x <> ", " <> y) "" (map ISTEX._author_name a))
+                   (Just $ foldl (\x y -> x <> ", " <> y) "" (concat $ (map ISTEX._author_affiliations) a))
+                   (Just $ foldl (\x y -> x <> ", " <> y) "" (catMaybes $ map ISTEX._source_title s))
+                   ab
+                   (fmap (pack . show) utctime)
+                   pub_year
+                   pub_month
+                   pub_day
+                   Nothing
+                   Nothing
+                   Nothing
+                  (Just $ (pack . show) la)

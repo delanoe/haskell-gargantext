@@ -27,7 +27,6 @@ import Test.QuickCheck.Arbitrary
 import Test.QuickCheck (elements)
 import Data.Swagger
 
-
 import qualified Gargantext.Text.Corpus.API.Pubmed  as PUBMED
 import qualified Gargantext.Text.Corpus.API.Isidore as ISIDORE
 import qualified Gargantext.Text.Corpus.API.Hal     as HAL
@@ -37,8 +36,8 @@ import qualified Gargantext.Text.Corpus.API.Istex   as ISTEX
 data ExternalAPIs = All
                   | PubMed
 
-                  | Hal_EN
-                  | Hal_FR
+                  | HAL_EN
+                  | HAL_FR
 
                   | IsTex_EN
                   | IsTex_FR
@@ -55,8 +54,8 @@ get All        _ _ = undefined
 
 get PubMed     q l = PUBMED.get q l
 
-get Hal_EN     q l = HAL.get EN q l
-get Hal_FR     q l = HAL.get FR q l
+get HAL_EN     q l = HAL.get EN q l
+get HAL_FR     q l = HAL.get FR q l
 
 get IsTex_EN   q l = ISTEX.get EN q l
 get IsTex_FR   q l = ISTEX.get FR q l

@@ -71,7 +71,7 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
     
   (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit l (maybe (Just "2019") (Just) d)
     
-  pure $ HyperdataDocument (Just "IsidoreApi")
+  pure $ HyperdataDocument (Just "Isidore")
                  Nothing
                  u
                  Nothing
@@ -90,13 +90,5 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
                  Nothing
                  Nothing
                  (Just $ (Text.pack . show) l)
-
-
-
-
-
-
-
-
 
 
