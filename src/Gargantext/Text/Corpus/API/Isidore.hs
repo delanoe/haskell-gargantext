@@ -80,7 +80,7 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
                  (Just $ cleanText $ langText t)
                  (creator2text <$> as)
                  Nothing
-                 (_sourceName <$> s)
+                 (Just $ maybe "Nothing" identity $ _sourceName <$> s)
                  (cleanText <$> langText    <$> a)
                  (fmap (Text.pack . show) utcTime)
                  (pub_year)

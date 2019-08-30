@@ -43,7 +43,7 @@ toDoc' la (HAL.Corpus i t ab d s aus affs) = do
                    (Just $ intercalate " " t)
                    (Just $ foldl (\x y -> x <> ", " <> y) "" aus)
                    (Just $ foldl (\x y -> x <> ", " <> y) "" affs)
-                   s
+                   (Just $ maybe "Nothing" identity s)
                    (Just $ intercalate " " ab)
                    (fmap (pack . show) utctime)
                    pub_year
