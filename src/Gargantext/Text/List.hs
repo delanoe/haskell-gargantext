@@ -73,7 +73,8 @@ buildNgramsOthersList uCid groupIt nt = do
 
   let
     all' = Map.toList ngs
-  pure $ (toElements GraphTerm $ take 10 all') <> (toElements CandidateTerm $ drop 10 all')
+  pure $ (toElements GraphTerm all') <> (toElements CandidateTerm all')
+  --pure $ (toElements GraphTerm $ take 10 all') <> (toElements CandidateTerm $ drop 10 all')
     where
       toElements nType x = Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
                             | (t,_ns) <- x

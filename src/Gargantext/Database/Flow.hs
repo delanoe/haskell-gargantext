@@ -244,7 +244,6 @@ insertMasterDocs c lang hs  =  do
   pure $ map reId ids
 
 
-
 type CorpusName = Text
 
 getOrMkRootWithCorpus :: (HasNodeError err, MkCorpus a)
@@ -283,8 +282,6 @@ getOrMkRootWithCorpus username cName c = do
 
 
 ------------------------------------------------------------------------
-
-
 viewUniqId' :: UniqId a => a -> (HashId, a)
 viewUniqId' d = maybe err (\h -> (h,d)) (view uniqId d)
       where
