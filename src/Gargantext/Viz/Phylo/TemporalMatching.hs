@@ -15,8 +15,8 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.TemporalMatching where
 
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, find, groupBy, scanl, any, nub, union)
-import Data.Map  (Map, fromList, toList, fromListWith, filterWithKey, elems, restrictKeys, unionWith, intersectionWith, member, (!))
+import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, find, groupBy, scanl, nub, union)
+import Data.Map  (Map, fromList, fromListWith, filterWithKey, elems, restrictKeys, unionWith, intersectionWith)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
@@ -26,7 +26,6 @@ import Gargantext.Viz.Phylo.SynchronicClustering
 import Control.Lens hiding (Level)
 
 import qualified Data.Set as Set
-
 
 -------------------
 -- | Proximity | --
@@ -79,6 +78,13 @@ pickProximity proximity docs cooc cooc' ngrams ngrams' = case proximity of
     Hamming -> undefined
 
 
+filterProximity :: Proximity -> Double -> Double -> Bool
+filterProximity proximity thr local = 
+    case proximity of
+        WeightedLogJaccard _ _ _ -> local >= thr
+        Hamming -> undefined
+
+
 -- | To process the proximity between a current group and a pair of targets group
 toProximity :: Map Date Double -> Proximity -> PhyloGroup -> PhyloGroup -> PhyloGroup -> Double
 toProximity docs proximity group target target' = 
@@ -98,8 +104,8 @@ toProximity docs proximity group target target' =
 
 
 -- | Find pairs of valuable candidates to be matched
-makePairs :: [PhyloGroup] -> [PhyloPeriodId] -> Map Date Double -> PhyloGroup -> [(PhyloGroup,PhyloGroup)]
-makePairs candidates periods docs group = case null periods of
+makePairs :: [PhyloGroup] -> [PhyloPeriodId] -> [(PhyloGroup,PhyloGroup)]
+makePairs candidates periods = case null periods of
     True  -> []
           -- | at least on of the pair candidates should be from the last added period
     False -> filter (\(cdt,cdt') -> (inLastPeriod cdt periods)
@@ -110,8 +116,8 @@ makePairs candidates periods docs group = case null periods of
         inLastPeriod g prds = (g ^. phylo_groupPeriod) == (last' "makePairs" prds)
 
 
-phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> PhyloGroup -> PhyloGroup
-phyloGroupMatching candidates fil proxi docs group = case pointers of
+phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> Double-> PhyloGroup -> PhyloGroup
+phyloGroupMatching candidates fil proxi docs thr group = case pointers of
     Nothing  -> addPointers group fil TemporalPointer []
     Just pts -> addPointers group fil TemporalPointer
               $ head' "phyloGroupMatching"
@@ -125,8 +131,9 @@ phyloGroupMatching candidates fil proxi docs group = case pointers of
                  -- | for each time frame, process the proximity on relevant pairs of targeted groups
                  $ scanl (\acc groups ->
                             let periods = nub $ map (\g' -> g' ^. phylo_groupPeriod) $ concat groups
-                                pairs = makePairs (concat groups) periods docs group
-                            in  acc ++ ( concat
+                                pairs = makePairs (concat groups) periods
+                            in  acc ++ ( filter (\(_,proximity) -> filterProximity proxi thr proximity)
+                                       $ concat
                                        $ map (\(c,c') ->
                                                 -- | process the proximity between the current group and a pair of candidates 
                                                 let proximity = toProximity (filterDocs docs periods) proxi group c c'
@@ -141,51 +148,16 @@ phyloGroupMatching candidates fil proxi docs group = case pointers of
         filterDocs d pds = restrictKeys d $ periodsToYears pds
 
 
-
-------------------
--- | Pointers | --
-------------------
-
-
--- ghostHunter :: [[PhyloGroup]] -> [[PhyloGroup]]
--- ghostHunter branches = 
---     map (\branch -> 
---         -- | il manque une référence au group source de chaque pointer
---         let pointers = elems $ fromList
---                      $ map (\pt -> (groupIds ! (fst pt),pt))
---                      $ filter (\pt -> member (fst pt) groupIds) $ concat $ map (\g -> g ^. phylo_groupGhostPointers) branch
-
---         in undefined
---         ) branches
---     where
---         groupIds :: Map PhyloGroupId Int 
---         groupIds = fromList $ map (\g -> (getGroupId g, last' "ghostHunter" $ snd $ g ^. phylo_groupBranchId)) $ concat branches
---         --------------------------------------
---         selectBest :: [Pointers] -> [Pointers]
---         se
-
-
-
-filterPointers :: Double -> [PhyloGroup] -> [PhyloGroup]
-filterPointers thr groups =
-    map (\group -> 
-            let ghosts = filter (\(_,w) -> w < thr) $ group ^. phylo_groupPeriodParents
-            in  group & phylo_groupPeriodParents %~ (filter (\(_,w) -> w >= thr))
-                      & phylo_groupPeriodChilds  %~ (filter (\(_,w) -> w >= thr))
-                      & phylo_groupGhostPointers %~ (++ ghosts) 
-        ) groups
-
-
 -----------------------------
--- | Adaptative Matching | --
+-- | Matching Processing | --
 -----------------------------
 
 
 getNextPeriods :: Filiation -> Int -> PhyloPeriodId -> [PhyloPeriodId] -> [PhyloPeriodId]
-getNextPeriods fil max pId pIds = 
+getNextPeriods fil max' pId pIds = 
     case fil of 
-        ToChilds  -> take max $ (tail . snd) $ splitAt (elemIndex' pId pIds) pIds
-        ToParents -> take max $ (reverse . fst) $ splitAt (elemIndex' pId pIds) pIds
+        ToChilds  -> take max' $ (tail . snd) $ splitAt (elemIndex' pId pIds) pIds
+        ToParents -> take max' $ (reverse . fst) $ splitAt (elemIndex' pId pIds) pIds
 
 
 getCandidates :: Filiation -> PhyloGroup -> [PhyloPeriodId] -> [PhyloGroup] -> [[PhyloGroup]]
@@ -202,12 +174,25 @@ getCandidates fil g pIds targets =
                  $ map (\g' -> (g' ^. phylo_groupPeriod,[g'])) targets
 
 
-shouldBreak :: Double -> [(Double,[PhyloGroup])] -> Bool
-shouldBreak thr branches = any (\(quality,_) -> quality < thr) branches
+processMatching :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
+processMatching max' periods proximity thr docs groups =
+    map (\group -> 
+            let childs  = getCandidates ToChilds  group
+                                        (getNextPeriods ToChilds  max' (group ^. phylo_groupPeriod) periods) groups
+                parents = getCandidates ToParents group
+                                        (getNextPeriods ToParents max' (group ^. phylo_groupPeriod) periods) groups
+            in phyloGroupMatching parents ToParents proximity docs thr
+             $ phyloGroupMatching childs  ToChilds  proximity docs thr group
+        ) groups
 
 
-toBranchQuality :: [[PhyloGroup]] -> [(Double,[PhyloGroup])]
-toBranchQuality branches = undefined
+-----------------------------
+-- | Adaptative Matching | --
+-----------------------------
+
+
+toPhyloQuality :: [[PhyloGroup]] -> Double
+toPhyloQuality _ = undefined
 
 
 groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
@@ -225,64 +210,42 @@ groupsToBranches groups =
            ) graph
 
 
-
--- findGhostLinks :: [Link] -> [[Link]] -> Map PhyloGroupId 
-
-adaptativeMatching :: Proximity -> Double -> Double -> [PhyloGroup] -> [PhyloGroup]
-adaptativeMatching proximity thr thrQua groups =
-    -- | check if we should break some of the new branches or not
-    case shouldBreak thrQua branches' of
-        True  -> concat $ map (\(s,b) -> 
-                                    if s >= thrQua
-                                    -- | we keep the branch as it is
-                                    then b
-                                    -- | we break the branch using an increased temporal matching threshold
-                                    else let nextGroups = undefined
-                                         in  adaptativeMatching proximity (thr + (getThresholdStep proximity)) thrQua nextGroups
-                              ) branches'
-        -- | the quality of all the new branches is sufficient
-        False -> concat branches
+recursiveMatching :: Proximity -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> Double -> [PhyloGroup] -> [PhyloGroup]
+recursiveMatching proximity thr max' periods docs quality groups   =
+    case quality < quality' of
+                -- | success : we localy improve the quality of the branch, let's go deeper
+        True  -> concat 
+               $ map (\branch ->
+                        recursiveMatching proximity (thr + (getThresholdStep proximity)) max' periods docs quality' branch
+                     ) branches
+                -- | failure : last step was the local maximum, let's validate it
+        False -> groups
     where
-        -- | 3) process a quality score for each new branch
-        branches' :: [(Double,[PhyloGroup])]
-        branches' = toBranchQuality branches
+        -- | 3) process a quality score on the local set of branches
+        quality' :: Double
+        quality' = toPhyloQuality branches
         -- | 2) group the new groups into branches 
         branches :: [[PhyloGroup]]
         branches = groupsToBranches $ fromList $ map (\group -> (getGroupId group, group)) groups'
-        -- | 1) filter the pointers of each groups regarding the current state of the quality threshold
+        -- | 1) process a temporal matching for each group
         groups' :: [PhyloGroup]
-        groups' = filterPointers thr groups
+        groups' = processMatching max' periods proximity thr docs groups
 
 
 temporalMatching :: Phylo -> Phylo
 temporalMatching phylo = updatePhyloGroups 1 branches phylo
     where
-        -- | 4) find the ghost links and postprocess the branches
-        branches' :: Map PhyloGroupId PhyloGroup
-        branches' = undefined
-        -- | 3) run the adaptative matching to find the best repartition among branches
+        -- | 2) run the recursive matching to find the best repartition among branches
         branches :: Map PhyloGroupId PhyloGroup
         branches = fromList 
                  $ map (\g -> (getGroupId g, g))
-                 $ adaptativeMatching proximity (getThresholdInit proximity) (phyloQuality $ getConfig phylo) groups'
-        -- | 2) for each group process an initial temporal Matching
+                 $ recursiveMatching (phyloProximity $ getConfig phylo) 
+                                     (getThresholdInit $ phyloProximity $ getConfig phylo) 
+                                     (getTimeFrame $ timeUnit $ getConfig phylo)
+                                     (getPeriodIds phylo)
+                                     (phylo ^. phylo_timeDocs) (toPhyloQuality [groups']) groups'
+        -- | 1) for each group process an initial temporal Matching
         groups' :: [PhyloGroup]
-        groups' = 
-            let maxTime = getTimeFrame $ timeUnit $ getConfig phylo
-                periods = getPeriodIds phylo
-                docs    = phylo ^. phylo_timeDocs
-                --------------------------------------
-            in map (\group ->
-                        let childs  = getCandidates ToChilds  group
-                                                    (getNextPeriods ToChilds  maxTime (group ^. phylo_groupPeriod) periods) groups
-                            parents = getCandidates ToParents group
-                                                    (getNextPeriods ToParents maxTime (group ^. phylo_groupPeriod) periods) groups
-                        in phyloGroupMatching parents ToParents proximity docs
-                         $ phyloGroupMatching childs  ToChilds  proximity docs group
-                   ) groups
-        -- | 1) start with all the groups from a given level
-        groups :: [PhyloGroup]
-        groups = getGroupsFromLevel 1 phylo
-        --------------------------------------
-        proximity :: Proximity 
-        proximity = phyloProximity $ getConfig phylo
+        groups' = processMatching (getTimeFrame $ timeUnit $ getConfig phylo) (getPeriodIds phylo) 
+                                  (phyloProximity $ getConfig phylo) (getThresholdInit $ phyloProximity $ getConfig phylo)
+                                  (phylo ^. phylo_timeDocs) (getGroupsFromLevel 1 phylo)

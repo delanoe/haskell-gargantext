@@ -66,7 +66,7 @@ phyloBase = toPhyloBase docs mapList config
 
 
 phyloCooc :: Map Date Cooc
-phyloCooc = docsToTimeScaleCooc docs (foundations ^. foundations_roots) config
+phyloCooc = docsToTimeScaleCooc docs (foundations ^. foundations_roots)
 
 
 periods :: [(Date,Date)]

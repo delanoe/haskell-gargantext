@@ -16,8 +16,8 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.SynchronicClustering where
 
 import Gargantext.Prelude
-import Gargantext.Viz.AdaptativePhylo
-import Gargantext.Viz.Phylo.PhyloTools
+-- import Gargantext.Viz.AdaptativePhylo
+-- import Gargantext.Viz.Phylo.PhyloTools
 
 import Data.List (foldl', (++), null, intersect, (\\), union, nub, concat)
 

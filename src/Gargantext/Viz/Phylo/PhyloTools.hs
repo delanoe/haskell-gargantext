@@ -19,7 +19,7 @@ module Gargantext.Viz.Phylo.PhyloTools where
 import Data.Vector (Vector, elemIndex)
 import Data.List (sort, concat, null, union, (++), tails, sortOn)
 import Data.Set (Set, size)
-import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), toList)
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!))
 import Data.String (String)
 
 import Gargantext.Prelude
@@ -156,12 +156,12 @@ traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map l
 getFisSupport :: ContextualUnit -> Int
 getFisSupport unit = case unit of 
     Fis s _ -> s
-    _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a support")
+    -- _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a support")
 
 getFisSize :: ContextualUnit -> Int
 getFisSize unit = case unit of 
     Fis _ s -> s
-    _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a clique size")  
+    -- _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a clique size")  
 
 
 --------------
@@ -255,10 +255,10 @@ updatePhyloGroups lvl m phylo =
 pointersToLinks :: PhyloGroupId -> [Pointer] -> [Link]
 pointersToLinks id pointers = map (\p -> ((id,fst p),snd p)) pointers
 
-mergeLinks :: [Link] -> [Link] -> [Link]
-mergeLinks toChilds toParents = 
-    let toChilds' = fromList $ map (\((from,to),w) -> ((to,from),w)) toChilds
-    in  toList $ unionWith max (fromList toParents) toChilds' 
+-- mergeLinks :: [Link] -> [Link] -> [Link]
+-- mergeLinks toChilds toParents = 
+--     let toChilds' = fromList $ map (\((from,to),w) -> ((to,from),w)) toChilds
+--     in  toList $ unionWith max (fromList toParents) toChilds' 
 
 
 -------------------

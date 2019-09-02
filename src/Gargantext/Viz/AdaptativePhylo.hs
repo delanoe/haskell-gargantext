@@ -87,7 +87,6 @@ data Config =
             , corpusParser   :: CorpusParser
             , phyloName      :: Text
             , phyloLevel     :: Int
-            , phyloQuality   :: Double
             , phyloProximity :: Proximity
             , timeUnit       :: TimeUnit
             , contextualUnit :: ContextualUnit
@@ -103,7 +102,6 @@ defaultConfig =
             , corpusParser   = Csv 1000
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
-            , phyloQuality   = 0.5
             , phyloProximity = WeightedLogJaccard 10 0 0.05
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 2 4

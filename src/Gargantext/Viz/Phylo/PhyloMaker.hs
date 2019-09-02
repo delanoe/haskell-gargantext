@@ -173,8 +173,8 @@ ngramsToCooc ngrams coocs =
 
 
 -- | To transform the docs into a time map of coocurency matrix 
-docsToTimeScaleCooc :: [Document] -> Vector Ngrams -> Config -> Map Date Cooc
-docsToTimeScaleCooc docs fdt conf = 
+docsToTimeScaleCooc :: [Document] -> Vector Ngrams -> Map Date Cooc
+docsToTimeScaleCooc docs fdt = 
     let mCooc  = fromListWith sumCooc
                $ map (\(_d,l) -> (_d, listToMatrix l))
                $ map (\doc -> (date doc, sort $ ngramsToIdx (text doc) fdt)) docs
@@ -229,7 +229,7 @@ toPhyloBase docs lst conf =
         periods = toPeriods (sort $ nub $ map date docs) (getTimePeriod $ timeUnit conf) (getTimeStep $ timeUnit conf)
     in trace ("\n" <> "-- | Create PhyloBase out of " <> show(length docs) <> " docs \n") 
        $ Phylo foundations
-               (docsToTimeScaleCooc docs (foundations ^. foundations_roots) conf)
+               (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
                params
                (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels (phyloLevel conf) prd))) periods)
