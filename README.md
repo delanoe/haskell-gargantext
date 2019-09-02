@@ -42,6 +42,7 @@ issues.
 Users has to be created first
 1. stack ghci
 2. runCmd insertUsersDemo
+
 Then you can log in with user1:1resu
 
 ## Use Cases
