@@ -17,9 +17,9 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub)
 import Data.Set (Set, size)
-import Data.Map (Map, elems, fromList, unionWith, keys, member, (!))
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey)
 import Data.String (String)
 
 import Gargantext.Prelude
@@ -184,6 +184,9 @@ listToMatrix lst = fromList $ map (\k -> (k,1)) $ listToKeys $ sort lst
 sumCooc :: Cooc -> Cooc -> Cooc
 sumCooc cooc cooc' = unionWith (+) cooc cooc'
 
+getTrace :: Cooc -> Double 
+getTrace cooc = sum $ elems $ filterWithKey (\(k,k') _ -> k == k') cooc
+
 --------------------
 -- | PhyloGroup | --
 --------------------
@@ -255,11 +258,6 @@ updatePhyloGroups lvl m phylo =
 pointersToLinks :: PhyloGroupId -> [Pointer] -> [Link]
 pointersToLinks id pointers = map (\p -> ((id,fst p),snd p)) pointers
 
--- mergeLinks :: [Link] -> [Link] -> [Link]
--- mergeLinks toChilds toParents = 
---     let toChilds' = fromList $ map (\((from,to),w) -> ((to,from),w)) toChilds
---     in  toList $ unionWith max (fromList toParents) toChilds' 
-
 
 -------------------
 -- | Proximity | --
@@ -279,3 +277,11 @@ getThresholdStep :: Proximity -> Double
 getThresholdStep proxi = case proxi of 
     WeightedLogJaccard _ _ s -> s
     Hamming -> undefined  
+
+
+----------------
+-- | Branch | --
+----------------
+
+ngramsInBranches :: [[PhyloGroup]] -> [Int]
+ngramsInBranches branches = nub $ foldl (\acc g -> acc ++ (g ^. phylo_groupNgrams)) [] $ concat branches

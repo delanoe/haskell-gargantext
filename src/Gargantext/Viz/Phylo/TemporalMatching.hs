@@ -16,13 +16,14 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.TemporalMatching where
 
 import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, find, groupBy, scanl, nub, union)
-import Data.Map  (Map, fromList, fromListWith, filterWithKey, elems, restrictKeys, unionWith, intersectionWith)
+import Data.Map  (Map, fromList, fromListWith, filterWithKey, elems, restrictKeys, unionWith, intersectionWith, findWithDefault)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.SynchronicClustering
 
+import Prelude (logBase)
 import Control.Lens hiding (Level)
 
 import qualified Data.Set as Set
@@ -87,7 +88,7 @@ filterProximity proximity thr local =
 
 -- | To process the proximity between a current group and a pair of targets group
 toProximity :: Map Date Double -> Proximity -> PhyloGroup -> PhyloGroup -> PhyloGroup -> Double
-toProximity docs proximity group target target' = 
+toProximity docs proximity ego target target' = 
     let docs'  = sum $ elems docs
         cooc   = if target == target'
                  then (target ^. phylo_groupCooc)
@@ -95,7 +96,7 @@ toProximity docs proximity group target target' =
         ngrams = if target == target'
                  then (target ^. phylo_groupNgrams)
                  else union (target ^. phylo_groupNgrams) (target' ^. phylo_groupNgrams)
-    in pickProximity proximity docs' (group ^. phylo_groupCooc) cooc (group ^. phylo_groupNgrams) ngrams 
+    in pickProximity proximity docs' (ego ^. phylo_groupCooc) cooc (ego ^. phylo_groupNgrams) ngrams 
 
 
 ------------------------
@@ -117,9 +118,9 @@ makePairs candidates periods = case null periods of
 
 
 phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> Double-> PhyloGroup -> PhyloGroup
-phyloGroupMatching candidates fil proxi docs thr group = case pointers of
-    Nothing  -> addPointers group fil TemporalPointer []
-    Just pts -> addPointers group fil TemporalPointer
+phyloGroupMatching candidates fil proxi docs thr ego = case pointers of
+    Nothing  -> addPointers ego fil TemporalPointer []
+    Just pts -> addPointers ego fil TemporalPointer
               $ head' "phyloGroupMatching"
               -- | Keep only the best set of pointers grouped by proximity
               $ groupBy (\pt pt' -> snd pt == snd pt')
@@ -136,7 +137,7 @@ phyloGroupMatching candidates fil proxi docs thr group = case pointers of
                                        $ concat
                                        $ map (\(c,c') ->
                                                 -- | process the proximity between the current group and a pair of candidates 
-                                                let proximity = toProximity (filterDocs docs periods) proxi group c c'
+                                                let proximity = toProximity (filterDocs docs periods) proxi ego c c'
                                                 in if (c == c')
                                                    then [(getGroupId c,proximity)]
                                                    else [(getGroupId c,proximity),(getGroupId c',proximity)] ) pairs)
@@ -161,13 +162,13 @@ getNextPeriods fil max' pId pIds =
 
 
 getCandidates :: Filiation -> PhyloGroup -> [PhyloPeriodId] -> [PhyloGroup] -> [[PhyloGroup]]
-getCandidates fil g pIds targets = 
+getCandidates fil ego pIds targets = 
     case fil of
         ToChilds  -> targets'
         ToParents -> reverse targets'
     where
         targets' :: [[PhyloGroup]]
-        targets' = map (\groups' -> filter (\g' -> (not . null) $ intersect (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams)) groups') $ elems
+        targets' = map (\groups' -> filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams)) groups') $ elems
                  $ filterWithKey (\k _ -> elem k pIds) 
                  $ fromListWith (++)
                  $ sortOn (fst . fst)
@@ -186,13 +187,44 @@ processMatching max' periods proximity thr docs groups =
         ) groups
 
 
------------------------------
--- | Adaptative Matching | --
------------------------------
+-----------------------
+-- | Phylo Quality | --
+-----------------------
+
+
+termFreq :: Int -> [[PhyloGroup]] -> Double
+termFreq term branches = (sum $ map (\g -> findWithDefault 0 (term,term) (g ^. phylo_groupCooc)) $ concat branches)
+                       / (sum $ map (\g -> getTrace $ g ^. phylo_groupCooc) $ concat branches)
+
+
+entropy :: [[PhyloGroup]] -> Double
+entropy branches = 
+    let terms = ngramsInBranches branches
+    in  sum $ map (\term -> (1 / log (termFreq term branches))
+                          / (sum $ map (\branch -> 1 / log (termFreq term [branch])) branches)
+                          * (sum $ map (\branch ->
+                                             let q = branchObs term (length $ concat branches) branch
+                                             in  q * logBase 2 q ) branches) ) terms
+    where
+        -- | Probability to observe a branch given a random term of the phylo
+        branchObs :: Int -> Int -> [PhyloGroup] -> Double
+        branchObs term total branch = (fromIntegral $ length $ filter (\g -> elem term $ g ^. phylo_groupNgrams) branch)
+                                    / (fromIntegral total)  
+
+
+homogeneity :: [[PhyloGroup]] -> Double
+homogeneity branches = undefined
+    where 
+        branchCov :: 
 
 
 toPhyloQuality :: [[PhyloGroup]] -> Double
-toPhyloQuality _ = undefined
+toPhyloQuality branches = sqrt (homogeneity branches / entropy branches)
+
+
+-----------------------------
+-- | Adaptative Matching | --
+-----------------------------
 
 
 groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
@@ -211,7 +243,7 @@ groupsToBranches groups =
 
 
 recursiveMatching :: Proximity -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> Double -> [PhyloGroup] -> [PhyloGroup]
-recursiveMatching proximity thr max' periods docs quality groups   =
+recursiveMatching proximity thr max' periods docs quality groups =
     case quality < quality' of
                 -- | success : we localy improve the quality of the branch, let's go deeper
         True  -> concat 
