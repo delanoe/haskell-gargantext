@@ -241,6 +241,11 @@ getIdxInRoots n p = case (elemIndex n (getFoundationsRoots p)) of
     Nothing  -> panic $ "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots: " <> cs n
     Just idx -> idx
 
+getIdxInRoots' :: Ngrams -> Vector Ngrams -> Int
+getIdxInRoots' n root = case (elemIndex n root) of
+    Nothing  -> panic $ "[ERR][Viz.Phylo.Tools.getIdxInRoots] Ngrams not in foundationsRoots: " <> cs n
+    Just idx -> idx    
+
 getIdxInVector :: Ngrams -> Vector Ngrams -> Int
 getIdxInVector n ns = case (elemIndex n ns) of
   Nothing  -> panic $ "[ERR][Viz.Phylo.Tools.getIdxInVector] Ngrams not in foundationsRoots: " <> cs n

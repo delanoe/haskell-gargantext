@@ -19,9 +19,9 @@ module Gargantext.Viz.Phylo.LinkMaker
 
 import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, delete, intersect, groupBy, union, inits, scanl, find)
+import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, delete, intersect, elemIndex, groupBy, union, inits, scanl, find)
 import Data.Tuple.Extra
-import Data.Map                     (Map,(!),fromListWith,elems,restrictKeys,unionWith,member)
+import Data.Map                     (Map, (!), fromListWith, elems, restrictKeys, filterWithKey, keys, unionWith, unions, intersectionWith, member, fromList)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
@@ -221,6 +221,62 @@ interTempoMatching fil lvl _ p = updateGroups fil lvl (Map.fromList pointers) p
 
 ------------------------------------------------------------------------
 -- | Make links from Period to Period after level 1
+
+
+listToTuple :: (a -> b) -> [a] -> [(b,a)]
+listToTuple f l = map (\x -> (f x, x)) l
+
+
+groupsToMaps :: Ord b => (PhyloGroup -> b) -> [PhyloGroup] -> [Map PhyloGroupId PhyloGroup]
+groupsToMaps f gs = map (\gs' -> fromList $ listToTuple getGroupId gs')
+                  $ groupBy ((==) `on` f)
+                  $ sortOn f gs
+
+
+phyloToPeriodMaps :: Level -> Filiation -> Phylo -> [Map PhyloGroupId PhyloGroup]
+phyloToPeriodMaps lvl fil p =
+  let prdMap = groupsToMaps (fst . getGroupPeriod) (getGroupsWithLevel lvl p)
+  in case fil of  
+    Ascendant  -> reverse prdMap
+    Descendant -> prdMap
+    _          -> panic ("[ERR][Viz.Phylo.LinkMaker.phyloToPeriodMaps] Wrong type of filiation")
+
+
+trackPointersRec :: Filiation -> Map PhyloGroupId PhyloGroup -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
+trackPointersRec fil m gs res =
+  if (null gs) then res
+  else if (Map.null m) then res ++ gs
+  else 
+    let g = head' "track" gs
+        pts  = Map.fromList $ getGroupPointers PeriodEdge fil g
+        pts' = Map.toList $ fromListWith (\w w' -> max w w') $ concat $ elems
+             $ intersectionWith (\w g' -> map (\(id,_w') -> (id, w))
+                                        $ getGroupPointers LevelEdge Ascendant g') pts m
+        res' = res ++ [case fil of 
+                        Ascendant  -> g & phylo_groupPeriodParents .~ pts' 
+                        Descendant -> g & phylo_groupPeriodChilds  .~ pts'
+                        _          -> panic ("[ERR][Viz.Phylo.LinkMaker.transposeLinks] Wrong type of filiation")]
+    in trackPointersRec fil (filterWithKey (\k _ -> not $ elem k (keys pts)) m) (tail' "track" gs) res'
+
+
+
+transposeLinks :: Level -> Filiation -> Phylo -> Phylo
+transposeLinks lvl fil p = 
+  let prdMap = zip (phyloToPeriodMaps (lvl - 1) fil p) (phyloToPeriodMaps lvl fil p)
+      transposed =  map (\(gs,gs') -> 
+                            let idx  = fromJust $ elemIndex (gs,gs') prdMap
+                                next = take (getPhyloMatchingFrame p) $ snd $ splitAt (idx + 1) prdMap
+                                groups = trackPointersRec fil (unions $ map fst next) (elems gs') []
+                            in  (getGroupPeriod $ head' "transpose" groups ,groups)
+                         ) prdMap
+      transposed' = Map.fromList $ (transposed `using` parList rdeepseq)
+  in alterPhyloGroups
+      (\gs -> if ((not . null) gs) && (lvl == (getGroupLevel $ head' "transpose" gs))
+              then transposed' ! (getGroupPeriod $ head' "transpose" gs)
+              else gs
+      ) p 
+
+
 
 -- | Transpose the parent/child pointers from one level to another
 transposePeriodLinks :: Level -> Phylo -> Phylo

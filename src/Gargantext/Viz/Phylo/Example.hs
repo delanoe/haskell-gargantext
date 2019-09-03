@@ -83,7 +83,7 @@ queryViewEx = "level=3"
 
 
 phyloQueryView :: PhyloQueryView
-phyloQueryView = PhyloQueryView 2 Merge False 2 [BranchAge,BranchBirth] [] [BranchPeakInc,GroupLabelIncDyn] (Just (ByBranchBirth,Asc)) Json Flat True
+phyloQueryView = PhyloQueryView 2 Merge False 2 [BranchAge,BranchBirth,BranchGroups] [] [BranchPeakInc,GroupLabelIncDyn] (Just (ByBranchBirth,Asc)) Json Flat True
 
 
 --------------------------------------------------
