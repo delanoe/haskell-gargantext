@@ -101,7 +101,6 @@ fromDocs docs = V.map fromDocs' docs
 ---------------------------------------------------------------
 -- | Split a document in its context
 -- TODO adapt the size of the paragraph according to the corpus average
-
 splitDoc :: Mean -> SplitContext -> CsvDoc -> Vector CsvDoc
 splitDoc m splt doc = let docSize = (length $ csv_abstract doc) in
                           if docSize > 1000
@@ -113,22 +112,21 @@ splitDoc m splt doc = let docSize = (length $ csv_abstract doc) in
                                   V.fromList [doc]
                             else
                               V.fromList [doc]
-
-
-splitDoc' :: SplitContext -> CsvDoc -> Vector CsvDoc
-splitDoc' contextSize (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] <> nextDocs
-    where
-      firstDoc = CsvDoc t s py pm pd firstAbstract auth
-      firstAbstract = head' "splitDoc'1" abstracts
-      
-      nextDocs = map (\txt -> CsvDoc
-                                (head' "splitDoc'2" $ sentences txt)
-                                s py pm pd 
-                                (unsentences $ tail' "splitDoc'1" $ sentences txt)
-                                auth
-                      ) (tail' "splitDoc'2" abstracts)
-      
-      abstracts    = (splitBy $ contextSize) abst
+  where
+    splitDoc' :: SplitContext -> CsvDoc -> Vector CsvDoc
+    splitDoc' contextSize (CsvDoc t s py pm pd abst auth) = V.fromList $ [firstDoc] <> nextDocs
+        where
+          firstDoc = CsvDoc t s py pm pd firstAbstract auth
+          firstAbstract = head' "splitDoc'1" abstracts
+          
+          nextDocs = map (\txt -> CsvDoc
+                                    (head' "splitDoc'2" $ sentences txt)
+                                    s py pm pd 
+                                    (unsentences $ tail' "splitDoc'1" $ sentences txt)
+                                    auth
+                          ) (tail' "splitDoc'2" abstracts)
+          
+          abstracts    = (splitBy $ contextSize) abst
 
 ---------------------------------------------------------------
 ---------------------------------------------------------------
@@ -196,8 +194,8 @@ delimiter :: Word8
 delimiter = fromIntegral $ ord '\t'
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-readCsvOn :: [CsvDoc -> Text] -> FilePath -> IO [Text]
-readCsvOn fields fp = V.toList
+readCsvOn' :: [CsvDoc -> Text] -> FilePath -> IO [Text]
+readCsvOn' fields fp = V.toList
                    <$> V.map (\l -> intercalate (pack " ") $ map (\field -> field l) fields)
                    <$> snd
                    <$> readFile fp
@@ -231,6 +229,7 @@ readCsvLazyBS bs = case decodeByNameWith csvDecodeOptions bs of
       Right csvDocs -> csvDocs
 
 ------------------------------------------------------------------------
+
 -- | TODO use readFileLazy
 readCsvHal :: FilePath -> IO (Header, Vector CsvHal)
 readCsvHal = fmap readCsvHalLazyBS . BL.readFile
@@ -361,8 +360,35 @@ csvHal2doc (CsvHal title source
                                Nothing
                                Nothing
 
+
+csv2doc :: CsvDoc -> HyperdataDocument
+csv2doc (CsvDoc title source
+       pub_year pub_month pub_day
+       abstract authors ) = HyperdataDocument (Just "CsvHal")
+                               Nothing
+                               Nothing
+                               Nothing
+                               Nothing
+                               Nothing
+                               (Just title)
+                               (Just authors)
+                               Nothing
+                               (Just source)
+                               (Just abstract)
+                               (Just $ pack . show $ jour (fromIntegral pub_year) pub_month pub_day)
+                               (Just $ fromIntegral pub_year)
+                               (Just pub_month)
+                               (Just pub_day)
+                               Nothing
+                               Nothing
+                               Nothing
+                               Nothing
+
 ------------------------------------------------------------------------
 parseHal :: FilePath -> IO [HyperdataDocument]
-parseHal fp = map csvHal2doc <$> V.toList <$> snd <$> readCsvHal fp
+parseHal fp = V.toList <$> V.map csvHal2doc <$> snd <$> readCsvHal fp
 ------------------------------------------------------------------------
+
+parseCsv :: FilePath -> IO [HyperdataDocument]
+parseCsv fp = V.toList <$> V.map csv2doc <$> snd <$> readFile fp
 

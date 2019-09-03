@@ -56,7 +56,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~))
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~))
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -72,7 +72,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlySlow)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Utils (fromField', HasConnection)
@@ -99,18 +99,22 @@ instance ToParamSchema TODO where
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
-data TabType   = Docs     | Terms  | Sources | Authors | Institutes | Trash
+data TabType   = Docs   | Trash   | MoreFav | MoreTrash
+               | Terms  | Sources | Authors | Institutes
                | Contacts
-  deriving (Generic, Enum, Bounded)
+  deriving (Generic, Enum, Bounded, Show)
 
 instance FromHttpApiData TabType
   where
     parseUrlPiece "Docs"       = pure Docs
+    parseUrlPiece "Trash"      = pure Trash
+    parseUrlPiece "MoreFav"    = pure MoreFav
+    parseUrlPiece "MoreTrash"  = pure MoreTrash
+    
     parseUrlPiece "Terms"      = pure Terms
     parseUrlPiece "Sources"    = pure Sources
     parseUrlPiece "Institutes" = pure Institutes
     parseUrlPiece "Authors"    = pure Authors
-    parseUrlPiece "Trash"      = pure Trash
     
     parseUrlPiece "Contacts"   = pure Contacts
     
@@ -437,11 +441,11 @@ instance (Eq a, Arbitrary a) => Arbitrary (Replace a) where
     -- If they happen to be equal then the patch is Keep.
 
 instance ToSchema a => ToSchema (Replace a) where
-  declareNamedSchema (_ :: proxy (Replace a)) = do
+  declareNamedSchema (_ :: Proxy (Replace a)) = do
     -- TODO Keep constructor is not supported here.
     aSchema <- declareSchemaRef (Proxy :: Proxy a)
     return $ NamedSchema (Just "Replace") $ mempty
-      & type_ .~ SwaggerObject
+      & type_ ?~ SwaggerObject
       & properties .~
           InsOrdHashMap.fromList
           [ ("old", aSchema)
@@ -888,10 +892,10 @@ getTableNgrams :: forall env err m.
                -> Maybe OrderBy
                -> (NgramsTerm -> Bool)
                -> m (Versioned NgramsTable)
-getTableNgrams nType nId tabType listId limit_ offset
+getTableNgrams _nType nId tabType listId limit_ offset
                listType minSize maxSize orderBy searchQuery = do
 
-  lIds <- selectNodesWithUsername NodeList userMaster
+  _lIds <- selectNodesWithUsername NodeList userMaster
   let
     ngramsType = ngramsTypeFromTabType tabType
     offset'  = maybe 0 identity offset
@@ -935,11 +939,15 @@ getTableNgrams nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = (table ^.. each . ne_ngrams)
+      occurrences <- getOccByNgramsOnlyFast nId
+                                            ngramsType
+                                            ngrams_terms
+      {-
       occurrences <- getOccByNgramsOnlySlow nType nId
                                             (lIds <> [listId])
                                             ngramsType
                                             ngrams_terms
-
+    -}
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 

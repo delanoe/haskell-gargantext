@@ -56,19 +56,21 @@ queryInDatabase _ q = proc () -> do
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
-searchInCorpus :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
-searchInCorpus cId q o l order = runOpaQuery (filterWith o l order $ queryInCorpus cId q')
+searchInCorpus :: CorpusId -> IsTrash -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+searchInCorpus cId t q o l order = runOpaQuery (filterWith o l order $ queryInCorpus cId t q')
   where
     q' = intercalate " | " $ map stemIt q
 
-queryInCorpus :: CorpusId -> Text -> O.Query FacetDocRead
-queryInCorpus cId q = proc () -> do
+queryInCorpus :: CorpusId -> IsTrash -> Text -> O.Query FacetDocRead
+queryInCorpus cId t q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< ( nn_node1_id nn) .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_delete nn)   .== (toNullable $ pgBool False)
+  restrict -< if t
+                 then ( nn_category nn) .== (toNullable $ pgInt4     0)
+                 else ( nn_category nn) .>= (toNullable $ pgInt4     1)
   restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
   restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (pgBool True) (pgInt4 1)
+  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (nn_category nn) (nn_score nn)
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond

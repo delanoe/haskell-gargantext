@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  postgres:
+    image: 'postgres:latest'
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: gargantua
+      POSTGRES_PASSWORD: C8kdcUrAQy66U
+      POSTGRES_DB: gargandbV5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../:/gargantext
+      - ../dbs:/dbs
+
+volumes:
+  pgdata:

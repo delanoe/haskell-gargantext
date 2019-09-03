@@ -18,20 +18,24 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE InstanceSigs      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
+{-# OPTIONS_GHC -fno-warn-orphans    #-}
+
+{-# LANGUAGE ConstraintKinds         #-}
+{-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE ConstraintKinds         #-}
+{-# LANGUAGE DeriveGeneric           #-}
+{-# LANGUAGE FlexibleContexts        #-}
+{-# LANGUAGE InstanceSigs            #-}
+{-# LANGUAGE NoImplicitPrelude       #-}
+{-# LANGUAGE OverloadedStrings       #-}
 
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
     where
 import Prelude (String)
+import Data.Either
 import Debug.Trace (trace)
-import Control.Lens ((^.), view, Lens', _Just)
+import Control.Lens ((^.), view, _Just)
 import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.List (concat)
@@ -45,6 +49,7 @@ import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Core.Flow
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertDocNgrams)
@@ -52,7 +57,7 @@ import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..)
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
-import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, mkPhylo, mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
+import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, {-mkPhylo,-} mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
@@ -66,7 +71,7 @@ import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
-import Servant (ServantErr)
+import Gargantext.Prelude.Utils hiding (hash)
 import System.FilePath (FilePath)
 import qualified Data.List as List
 import qualified Data.Map  as Map
@@ -81,13 +86,6 @@ type FlowCmdM env err m =
   , HasRepoVar env
   )
 
-type FlowCorpus a = ( AddUniqId a
-                    , UniqId a
-                    , InsertDb a
-                    , ExtractNgramsT a
-                    , HasText a
-                    )
-
 ------------------------------------------------------------------------
 
 data ApiQuery = ApiIsidoreQuery Text | ApiIsidoreAuth Text
@@ -101,8 +99,8 @@ getDataApi lang limit (ApiIsidoreQuery q) = Isidore.get lang limit (Just q) Noth
 getDataApi lang limit (ApiIsidoreAuth  q) = Isidore.get lang limit Nothing  (Just q)
 
 
-flowCorpusApi :: ( FlowCmdM env ServantErr m)
-           => Username -> CorpusName
+flowCorpusApi :: ( FlowCmdM env err m)
+           => Username -> Either CorpusName [CorpusId]
            -> TermType Lang
            -> Maybe Limit
            -> ApiQuery
@@ -113,28 +111,27 @@ flowCorpusApi u n tt l q = do
 
 ------------------------------------------------------------------------
 
-
-flowAnnuaire :: FlowCmdM env ServantErr m 
-             => Username -> CorpusName -> (TermType Lang) -> FilePath -> m AnnuaireId
+flowAnnuaire :: FlowCmdM env err m
+             => Username -> Either CorpusName [CorpusId] -> (TermType Lang) -> FilePath -> m AnnuaireId
 flowAnnuaire u n l filePath = do
   docs <- liftIO $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
 
-flowCorpusDebat :: FlowCmdM env ServantErr m
-            => Username -> CorpusName
+flowCorpusDebat :: FlowCmdM env err m
+            => Username -> Either CorpusName [CorpusId]
             -> Limit -> FilePath
             -> m CorpusId
 flowCorpusDebat u n l fp = do
   docs <- liftIO ( splitEvery 500
                  <$> take l
-                 <$> GD.readFile fp
+                 <$> readFile' fp
                  :: IO [[GD.GrandDebatReference ]]
                  )
   flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)
 
-flowCorpusFile :: FlowCmdM env ServantErr m
-           => Username -> CorpusName
+flowCorpusFile :: FlowCmdM env err m
+           => Username -> Either CorpusName [CorpusId]
            -> Limit -- Limit the number of docs (for dev purpose)
            -> TermType Lang -> FileFormat -> FilePath
            -> m CorpusId
@@ -149,65 +146,73 @@ flowCorpusFile u n l la ff fp = do
 flowCorpusSearchInDatabase :: FlowCmdM env err m
           => Username -> Lang -> Text -> m CorpusId
 flowCorpusSearchInDatabase u la q = do
-  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
+  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster (Left "") (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
+  flowCorpusUser la u (Left q) (Nothing :: Maybe HyperdataCorpus) ids
 
 
-flowCorpusSearchInDatabase' :: FlowCmdM env ServantErr m
+flowCorpusSearchInDatabaseApi :: FlowCmdM env err m
           => Username -> Lang -> Text -> m CorpusId
-flowCorpusSearchInDatabase' u la q = do
-  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
+flowCorpusSearchInDatabaseApi u la q = do
+  (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster (Left "") (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser la u q (Nothing :: Maybe HyperdataCorpus) ids
+  flowCorpusUser la u (Left q) (Nothing :: Maybe HyperdataCorpus) ids
 
 ------------------------------------------------------------------------
+-- | TODO improve the needed type to create/update a corpus
+data UserInfo = Username Text
+              | UserId   NodeId
+data CorpusInfo = CorpusName Lang Text
+                | CorpusId   Lang NodeId
 
-flow :: (FlowCmdM env ServantErr m, FlowCorpus a, MkCorpus c)
-     => Maybe c -> Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
+
+flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
+     => Maybe c -> Username -> Either CorpusName [CorpusId] -> TermType Lang -> [[a]] -> m CorpusId
 flow c u cn la docs = do
   ids <- mapM (insertMasterDocs c la ) docs
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
 
-flowCorpus :: (FlowCmdM env ServantErr m, FlowCorpus a)
-     => Username -> CorpusName -> TermType Lang -> [[a]] -> m CorpusId
+flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
+     => Username -> Either CorpusName [CorpusId] -> TermType Lang -> [[a]] -> m CorpusId
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
-
+------------------------------------------------------------------------
 flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
-               => Lang -> Username -> CorpusName -> Maybe c -> [NodeId] -> m CorpusId
+               => Lang -> Username -> Either CorpusName [CorpusId] -> Maybe c -> [NodeId] -> m CorpusId
 flowCorpusUser l userName corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName ctype
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
+  tId <- mkNode NodeTexts userCorpusId userId
+  
+  printDebug "Node Text Id" tId
 
   -- User List Flow
   --{-
-  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster "" ctype
+  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
   ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
   userListId  <- flowList userId userCorpusId ngs
   printDebug "userListId" userListId
   -- User Graph Flow
+  _ <- mkDashboard userCorpusId userId
   _ <- mkGraph  userCorpusId userId
-  _ <- mkPhylo  userCorpusId userId
+  --_ <- mkPhylo  userCorpusId userId
   --}
 
-  -- User Dashboard Flow
-  _ <- mkDashboard userCorpusId userId
 
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
   pure userCorpusId
 
 
-insertMasterDocs :: ( FlowCmdM env ServantErr m
+insertMasterDocs :: ( FlowCmdM env err m
                     , FlowCorpus a
                     , MkCorpus   c
                     )
                  => Maybe c -> TermType Lang -> [a] -> m [DocId]
 insertMasterDocs c lang hs  =  do
-  (masterUserId, _, masterCorpusId) <- getOrMkRootWithCorpus userMaster corpusMasterName c
+  (masterUserId, _, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left corpusMasterName) c
 
   -- TODO Type NodeDocumentUnicised
   let hs' = map addUniqId hs
@@ -239,11 +244,10 @@ insertMasterDocs c lang hs  =  do
   pure $ map reId ids
 
 
-
 type CorpusName = Text
 
 getOrMkRootWithCorpus :: (HasNodeError err, MkCorpus a)
-              => Username -> CorpusName -> Maybe a
+              => Username -> Either CorpusName [CorpusId] -> Maybe a
               -> Cmd err (UserId, RootId, CorpusId)
 getOrMkRootWithCorpus username cName c = do
   maybeUserId <- getUser username
@@ -266,11 +270,11 @@ getOrMkRootWithCorpus username cName c = do
                     ns <- getCorporaWithParentId rootId
                     pure $ map _node_id ns
                   else
-                    pure []
-  
+                    pure $ fromRight [] cName
+
   corpusId' <- if corpusId'' /= []
                   then pure corpusId''
-                  else mk (Just cName) c rootId userId
+                  else mk (Just $ fromLeft "Default" cName) c rootId userId
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
 
@@ -278,21 +282,6 @@ getOrMkRootWithCorpus username cName c = do
 
 
 ------------------------------------------------------------------------
-
-
-class UniqId a
-  where
-    uniqId :: Lens' a (Maybe HashId)
-
-
-instance UniqId HyperdataDocument
-  where
-    uniqId = hyperdataDocument_uniqId
-
-instance UniqId HyperdataContact
-  where
-    uniqId = hc_uniqId
-
 viewUniqId' :: UniqId a => a -> (HashId, a)
 viewUniqId' d = maybe err (\h -> (h,d)) (view uniqId d)
       where
@@ -327,14 +316,6 @@ data DocumentIdWithNgrams a = DocumentIdWithNgrams
   , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
 
-
-class ExtractNgramsT h
-  where
-    extractNgramsT :: HasText h => TermType Lang -> h -> Cmd err (Map Ngrams (Map NgramsType Int))
-
-class HasText h
-  where
-    hasText :: h -> [Text]
 
 instance HasText HyperdataContact
   where

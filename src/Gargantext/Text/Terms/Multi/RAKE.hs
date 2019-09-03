@@ -36,7 +36,7 @@ import GHC.Real (round)
 import Data.Text (Text)
 import NLP.RAKE.Text
 
-import Gargantext.Text.Terms.Stop (stopList)
+import Gargantext.Text.Samples.EN (stopList)
 import Gargantext.Prelude
 
 select :: Double -> [a] -> [a]

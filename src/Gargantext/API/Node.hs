@@ -7,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-
 -- TODO-ACCESS: CanGetNode
 -- TODO-EVENTS: No events as this is a read only query.
 Node API
@@ -18,7 +17,6 @@ Node API
 --              Later: check userId CanDeleteNodes Nothing
 -- TODO-EVENTS: DeletedNodes [NodeId]
 --              {"tag": "DeletedNodes", "nodes": [Int*]}
-
 
 -}
 
@@ -38,7 +36,7 @@ Node API
 module Gargantext.API.Node
   where
 
-import Control.Lens (prism', (.~), (?~))
+import Control.Lens ((.~), (?~))
 import Control.Monad ((>>), forM)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
@@ -52,15 +50,15 @@ import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Search (SearchDocsAPI, searchDocs)
+import Gargantext.API.Table
 import Gargantext.API.Types
-import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
+import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, NodeError(..), HasNodeError(..))
-import Gargantext.Database.Schema.NodeNode (nodesToFavorite, nodesToTrash)
-import Gargantext.Database.Tree (treeDB, HasTreeError(..), TreeError(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
+import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
+import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
@@ -97,7 +95,7 @@ nodesAPI ids = deleteNodes ids
 -- TODO-EVENTS:
 --   PutNode ?
 -- TODO needs design discussion.
-type Roots =  Get    '[JSON] [NodeAny]
+type Roots =  Get    '[JSON] [Node HyperdataAny]
          :<|> Put    '[JSON] Int -- TODO
 
 -- | TODO: access by admin only
@@ -132,8 +130,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "ngrams"    :> TableNgramsApi
              :<|> "pairing"   :> PairingApi
 
-             :<|> "favorites" :> FavApi
-             :<|> "documents" :> DocsApi
+             :<|> "category"  :> CatApi
              :<|> "search"    :> SearchDocsAPI
 
              -- VIZ
@@ -163,27 +160,28 @@ type ChildrenApi a = Summary " Summary children"
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
 nodeAPI :: JSONB a => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
 nodeAPI p uId id
-             =  getNode     id p
-           :<|> rename      id
-           :<|> postNode    uId id
-           :<|> putNode     id
-           :<|> deleteNodeApi  id
-           :<|> getChildren id p
+             =  getNode       id p
+           :<|> rename        id
+           :<|> postNode  uId id
+           :<|> putNode       id
+           :<|> deleteNodeApi id
+           :<|> getChildren   id p
 
            -- TODO gather it
-           :<|> getTable         id
+           :<|> tableApi             id
            :<|> apiNgramsTableCorpus id
-           :<|> getPairing       id
+           :<|> getPairing           id
            -- :<|> getTableNgramsDoc id
            
-           :<|> favApi   id
-           :<|> delDocs  id
+           :<|> catApi     id
+           
            :<|> searchDocs id
+           
            :<|> getScatter id
-           :<|> getChart id
-           :<|> getPie   id
-           :<|> getTree  id
-           :<|> phyloAPI id
+           :<|> getChart   id
+           :<|> getPie     id
+           :<|> getTree    id
+           :<|> phyloAPI   id uId
            :<|> postUpload id
   where
     deleteNodeApi id' = do
@@ -194,8 +192,6 @@ nodeAPI p uId id
            
            -- Annuaire
            -- :<|> query
-
-
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
@@ -217,55 +213,30 @@ instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
 ------------------------------------------------------------------------
-type DocsApi = Summary "Docs : Move to trash"
-             :> ReqBody '[JSON] Documents
-             :> Delete  '[JSON] [Int]
-
-data Documents = Documents { documents :: [NodeId]}
-  deriving (Generic)
-
-instance FromJSON  Documents
-instance ToJSON    Documents
-instance ToSchema  Documents
-
-delDocs :: CorpusId -> Documents -> Cmd err [Int]
-delDocs cId ds = nodesToTrash $ map (\n -> (cId, n, True)) $ documents ds
-
-------------------------------------------------------------------------
-type FavApi =  Summary " Favorites label"
-            :> ReqBody '[JSON] Favorites
+type CatApi =  Summary " To Categorize NodeNodes: 0 for delete, 1/null neutral, 2 favorite"
+            :> ReqBody '[JSON] NodesToCategory
             :> Put     '[JSON] [Int]
-          :<|> Summary " Favorites unlabel"
-            :> ReqBody '[JSON] Favorites
-            :> Delete  '[JSON] [Int]
 
-data Favorites = Favorites { favorites :: [NodeId]}
+data NodesToCategory = NodesToCategory { ntc_nodesId :: [NodeId]
+                                       , ntc_category :: Int
+                                       }
   deriving (Generic)
 
-instance FromJSON  Favorites
-instance ToJSON    Favorites
-instance ToSchema  Favorites
+instance FromJSON  NodesToCategory
+instance ToJSON    NodesToCategory
+instance ToSchema  NodesToCategory
 
-putFav :: CorpusId -> Favorites -> Cmd err [Int]
-putFav cId fs = nodesToFavorite $ map (\n -> (cId, n, True)) $ favorites fs
-
-delFav :: CorpusId -> Favorites -> Cmd err [Int]
-delFav cId fs = nodesToFavorite $ map (\n -> (cId, n, False)) $ favorites fs
-
-favApi :: CorpusId -> GargServer FavApi
-favApi cId = putFav cId :<|> delFav cId
+catApi :: CorpusId -> GargServer CatApi
+catApi = putCat
+  where
+    putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
+    putCat cId cs' = nodeNodesCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
 
 ------------------------------------------------------------------------
-type TableApi = Summary " Table API"
-              :> QueryParam "view"   TabType
-              :> QueryParam "offset" Int
-              :> QueryParam "limit"  Int
-              :> QueryParam "order"  OrderBy
-              :> Get '[JSON] [FacetDoc]
-
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
 type PairingApi = Summary " Pairing API"
-              :> QueryParam "view"   TabType -- TODO change TabType -> DocType (CorpusId for pairing)
+              :> QueryParam "view"   TabType
+              -- TODO change TabType -> DocType (CorpusId for pairing)
               :> QueryParam "offset" Int
               :> QueryParam "limit"  Int
               :> QueryParam "order"  OrderBy
@@ -290,8 +261,6 @@ type TreeApi = Summary " Tree API"
            :> QueryParamR "listType"   ListType
            :> Get '[JSON] (ChartMetrics [MyTree])
 
-
-
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
                 -- New map list terms
@@ -302,7 +271,9 @@ type TreeApi = Summary " Tree API"
 
 ------------------------------------------------------------------------
 
-
+{-
+NOTE: These instances are not necessary. However, these messages could be part
+      of a display function for NodeError/TreeError.
 instance HasNodeError ServantErr where
   _NodeError = prism' mk (const Nothing) -- panic "HasNodeError ServantErr: not a prism")
     where
@@ -320,7 +291,6 @@ instance HasNodeError ServantErr where
       mk ManyParents   = err500 { errBody = e <> "Too many parents"      }
       mk ManyNodeUsers = err500 { errBody = e <> "Many userNode/user"    }
 
--- TODO(orphan): There should be a proper APIError data type with a case TreeError.
 instance HasTreeError ServantErr where
   _TreeError = prism' mk (const Nothing) -- panic "HasTreeError ServantErr: not a prism")
     where
@@ -328,6 +298,7 @@ instance HasTreeError ServantErr where
       mk NoRoot       = err404 { errBody = e <> "Root node not found"           }
       mk EmptyRoot    = err500 { errBody = e <> "Root node should not be empty" }
       mk TooManyRoots = err500 { errBody = e <> "Too many root nodes"           }
+-}
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
 -- TODO-ACCESS: CanTree or CanGetNode
@@ -339,24 +310,6 @@ treeAPI = treeDB
 -- | Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
-
-getTable :: NodeId -> Maybe TabType
-         -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Cmd err [FacetDoc]
-getTable cId ft o l order =
-  case ft of
-    (Just Docs)  -> runViewDocuments cId False o l order
-    (Just Trash) -> runViewDocuments cId True  o l order
-    _     -> panic "not implemented"
-
-getPairing :: ContactId -> Maybe TabType
-         -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Cmd err [FacetDoc]
-getPairing cId ft o l order =
-  case ft of
-    (Just Docs)  -> runViewAuthorsDoc cId False o l order
-    (Just Trash) -> runViewAuthorsDoc cId True  o l order
-    _     -> panic "not implemented"
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = mkNodeWithParent nt (Just pId) uId nodeName

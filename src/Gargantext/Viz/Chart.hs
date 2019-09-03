@@ -106,7 +106,7 @@ treeData cId nt lt = do
   pure $ toTree lt cs' m
 
 
-treeData' :: FlowCmdM env ServantErr m
+treeData' :: FlowCmdM env ServerError m
         => CorpusId -> NgramsType -> ListType
         -> m [MyTree]
 treeData' cId nt lt = do

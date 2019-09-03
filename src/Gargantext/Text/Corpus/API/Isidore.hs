@@ -69,9 +69,9 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
     langText (OnlyText t2   ) = t2
     langText (ArrayText ts  ) = Text.intercalate " " $ map langText ts
     
-  (utcTime, (pub_year, pub_month, pub_day)) <- Date.split l (maybe (Just "2019") (Just) d)
+  (utcTime, (pub_year, pub_month, pub_day)) <- Date.dateSplit l (maybe (Just "2019") (Just) d)
     
-  pure $ HyperdataDocument (Just "IsidoreApi")
+  pure $ HyperdataDocument (Just "Isidore")
                  Nothing
                  u
                  Nothing
@@ -80,7 +80,7 @@ isidoreToDoc l (IsidoreDoc t a d u s as) = do
                  (Just $ cleanText $ langText t)
                  (creator2text <$> as)
                  Nothing
-                 (_sourceName <$> s)
+                 (Just $ maybe "Nothing" identity $ _sourceName <$> s)
                  (cleanText <$> langText    <$> a)
                  (fmap (Text.pack . show) utcTime)
                  (pub_year)

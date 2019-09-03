@@ -30,7 +30,7 @@ library:
   - Gargantext.API.FrontEnd
   - Gargantext.API.Ngrams
   - Gargantext.API.Node
-  - Gargantext.API.Orchestrator
+    #  - Gargantext.API.Orchestrator
   - Gargantext.API.Search
   - Gargantext.API.Settings
   - Gargantext.Core
@@ -48,6 +48,7 @@ library:
   - Gargantext.Text
   - Gargantext.Text.Context
   - Gargantext.Text.Corpus.Parsers
+  - Gargantext.Text.Corpus.API
   - Gargantext.Text.Corpus.Parsers.CSV
   - Gargantext.Text.Examples
   - Gargantext.Text.List.CSV
@@ -57,7 +58,6 @@ library:
   - Gargantext.Text.Metrics.Count
   - Gargantext.Text.Search
   - Gargantext.Text.Terms
-  - Gargantext.Text.Terms.Stop
   - Gargantext.Text.Terms.Mono
   - Gargantext.Text.Terms.Multi.Lang.En
   - Gargantext.Text.Terms.Multi.Lang.Fr
@@ -102,6 +102,7 @@ library:
   - crawlerPubMed
   - crawlerIsidore
   - crawlerHAL
+  - crawlerISTEX
   - data-time-segment
   - deepseq
   - directory
@@ -170,7 +171,7 @@ library:
   - servant-auth
   - servant-blaze
   - servant-client
-  - servant-job
+    #  - servant-job
   - servant-mock
   - servant-multipart
   - servant-server
@@ -206,6 +207,7 @@ library:
   - zip
   - zlib
 #  - utc
+#  API external connections
 
 executables:
   gargantext-server:

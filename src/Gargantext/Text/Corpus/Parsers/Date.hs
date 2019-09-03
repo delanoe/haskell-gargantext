@@ -18,7 +18,7 @@ DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Text.Corpus.Parsers.Date (parse, parseRaw, split) where
+module Gargantext.Text.Corpus.Parsers.Date (parse, parseRaw, dateSplit, Year, Month, Day) where
 
 import Data.HashMap.Strict as HM hiding (map)
 import Data.Text (Text, unpack, splitOn, pack)
@@ -40,9 +40,9 @@ import qualified Duckling.Core as DC
 ------------------------------------------------------------------------
 -- | Parse date to Ints
 -- TODO add hours, minutes and seconds
-split :: Lang -> Maybe Text -> IO (Maybe UTCTime, (Maybe Year, Maybe Month, Maybe Day))
-split _ Nothing    = pure (Nothing, (Nothing, Nothing, Nothing))
-split l (Just txt) = do
+dateSplit :: Lang -> Maybe Text -> IO (Maybe UTCTime, (Maybe Year, Maybe Month, Maybe Day))
+dateSplit _ Nothing    = pure (Nothing, (Nothing, Nothing, Nothing))
+dateSplit l (Just txt) = do
   utcTime <- parse l txt
   let (y, m, d) = split' utcTime
   pure (Just utcTime, (Just y, Just m,Just d))

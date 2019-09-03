@@ -13,12 +13,37 @@ Institute of Paris Île-de-France (ISC-PIF) and its partners.
 
 ## Installation
 
-### Docker
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/docker-install | sh
+Disclaimer: this project is still on development, this is work in
+progress. Please report and improve this documentation if you encounter
+issues.
 
-### Debian
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/debian-install | sh
+### Build Core Code
+#### Docker
+  curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/docker-install | sh
 
+#### Debian
+  curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/debian-install | sh
+
+### Add dependencies
+
+1. CoreNLP is needed (EN and FR); This dependency will not be needed
+   soon.
+  - wget https://dl.gargantext.org/coreNLP.tar.bz2
+  - tar xvjf coreNLP.tar.bz2
+  - ./startServer.sh
+
+2. Louvain C++ needed to draw the socio-semantic graphs
+  - git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain-cplusplus.git
+  - cd clustering-louvain-cplusplus
+  - ./install
+
+### Initialization
+
+Users has to be created first
+1. stack ghci
+2. runCmd insertUsersDemo
+
+Then you can log in with user1:1resu
 
 ## Use Cases
 
@@ -33,21 +58,3 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devo
 
 stack --docker exec gargantext-cli -- CorpusFromGarg.csv ListFromGarg.csv Ouput.json
 
-```sql
-INSERT INTO auth_user (password, is_superuser, username, first_name, last_name, email, is_staff, is_active)
-  VALUES ('1resu', true, 'user1', 'user', '1', 'a@localhost', true, true);
-
--- nodetype NodeUser has id 1
--- inserted user_id = 3
-INSERT INTO nodes (typename, user_id, name)
-  VALUES (1, 3, 'user1');
-  
--- same for master user -- 'gargantua'
-INSERT INTO auth_user (password, is_superuser, username, first_name, last_name, email, is_staff, is_active)
-  VALUES ('autnagrag, true, 'gargantua, 'gargantua, '1', 'g@localhost', true, true);
-
--- nodetype NodeUser has id 1
--- inserted user_id = 5
-INSERT INTO nodes (typename, user_id, name)
-  VALUES (1, 5, 'gargantua);
-```

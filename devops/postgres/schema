@@ -1,6 +1,8 @@
 #!/bin/bash
 
 DB="gargandbV5"
+rm ../../tmp*
+rm ../../repo*
 
 psql -c "drop database IF EXISTS \"${DB}\""
 createdb "${DB}"

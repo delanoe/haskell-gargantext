@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Text.Ngrams.Token.Text
-Description : 
+Description : Tokenizer main functions
 Copyright   : (c) Grzegorz Chrupała first, after: CNRS, 2018-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -77,20 +77,20 @@ run :: Tokenizer -> (Text -> [Text])
 run f = \txt -> map T.copy $ (map unwrap . unE . f) txt
 
 defaultTokenizer :: Tokenizer
-defaultTokenizer =     whitespace 
-                   >=> uris 
-                   >=> punctuation 
-                   >=> contractions 
-                   >=> negatives 
+defaultTokenizer =     whitespace
+                   >=> uris
+                   >=> punctuation
+                   >=> contractions
+                   >=> negatives
 
 -- | Detect common uris and freeze them
 uris :: Tokenizer
 uris x | isUri x = E [Left x]
        | True    = E [Right x]
-    where isUri u = any (`T.isPrefixOf` u) ["http://","ftp://","mailto:"]
+    where isUri u = any (`T.isPrefixOf` u) ["http://","ftp://","mailto:","https://"]
 
 -- | Split off initial and final punctuation
-punctuation :: Tokenizer 
+punctuation :: Tokenizer
 punctuation = finalPunctuation >=> initialPunctuation
 
 --hyphens :: Tokenizer

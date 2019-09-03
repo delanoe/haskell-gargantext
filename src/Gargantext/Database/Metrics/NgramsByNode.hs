@@ -149,7 +149,7 @@ getNodesByNgramsUser cId nt =
           WHERE nn.node1_id = ?     -- CorpusId
             AND n.typename  = ?     -- NodeTypeId
             AND nng.ngrams_type = ? -- NgramsTypeId
-            AND nn.delete = False
+            AND nn.category > 0
             GROUP BY nng.node2_id, ng.terms
             ORDER BY (nng.node2_id, ng.terms) DESC
           --   LIMIT ?
@@ -210,7 +210,7 @@ queryNgramsOccurrencesOnlyByNodeUser = [sql|
     WHERE nn.node1_id     = ? -- CorpusId
       AND n.typename      = ? -- NodeTypeId
       AND nng.ngrams_type = ? -- NgramsTypeId
-      AND nn.delete       = False
+      AND nn.category     > 0
       GROUP BY nng.node2_id, ng.terms
   |]
 
@@ -247,7 +247,7 @@ queryNgramsOnlyByNodeUser = [sql|
     WHERE nn.node1_id     = ? -- CorpusId
       AND n.typename      = ? -- NodeTypeId
       AND nng.ngrams_type = ? -- NgramsTypeId
-      AND nn.delete       = False
+      AND nn.category     > 0
       GROUP BY ng.terms, nng.node2_id
   |]
 
@@ -298,10 +298,6 @@ getNodesByNgramsMaster ucId mcId = Map.unionsWith (<>)
                                 <$> mapM (selectNgramsByNodeMaster 1000 ucId mcId) [0,500..10000]
 
 
-
-type Limit = Int
-type Offset = Int
-
 selectNgramsByNodeMaster :: Int -> UserCorpusId -> MasterCorpusId -> Int -> Cmd err [(NodeId, Text)]
 selectNgramsByNodeMaster n ucId mcId p = runPGSQuery
                                queryNgramsByNodeMaster'
@@ -330,7 +326,7 @@ SELECT n.id, ng.terms FROM nodes n
   WHERE nn.node1_id     = ?   -- UserCorpusId
     -- AND n.typename   = ?  -- NodeTypeId
     AND nng.ngrams_type = ? -- NgramsTypeId
-    AND nn.delete = False
+    AND nn.category > 0
     AND node_pos(n.id,?) >= ?
     AND node_pos(n.id,?) <  ?
   GROUP BY n.id, ng.terms

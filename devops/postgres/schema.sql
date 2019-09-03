@@ -84,8 +84,7 @@ CREATE TABLE public.nodes_nodes (
     node1_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     node2_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     score real,
-    favorite boolean,
-    delete boolean,
+    category integer,
     PRIMARY KEY (node1_id,node2_id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
@@ -141,7 +140,7 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdat
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 
-CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, delete);
+CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
 
 CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, ngrams_id, ngrams_type);

@@ -24,26 +24,28 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
+import Data.Either
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
+import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (hash)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import Gargantext.Database.Flow (FlowCmdM)
+import Gargantext.Core (Lang(..))
+import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import qualified Gargantext.Text.Corpus.API as API
 import Gargantext.Database.Types.Node (UserId)
 
 data Query = Query { query_query      :: Text
                    , query_corpus_id  :: Int
-                   , query_files_id  :: [Text]
+                   , query_databases  :: [API.ExternalAPIs]
                    }
                    deriving (Eq, Show, Generic)
 
@@ -54,7 +56,7 @@ instance Arbitrary Query where
     arbitrary = elements [ Query q n fs
                          | q <- ["a","b"]
                          , n <- [0..10]
-                         , fs <- map (map hash) [["a","b"], ["c","d"]]
+                         , fs <- take 3 $ repeat API.externalAPIs
                          ]
 
 instance ToSchema Query where
@@ -62,19 +64,23 @@ instance ToSchema Query where
     genericDeclareNamedSchema
       defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 6 fieldLabel}
 
-
-
 type Api = Summary "New Corpus endpoint"
          :> ReqBody '[JSON] Query
          :> Post '[JSON] CorpusId
         :<|> Get '[JSON] ApiInfo
 
+-- | TODO manage several apis
+api :: (FlowCmdM env err m) => Query -> m CorpusId
+api (Query q _ as) = do
+  cId <- case head as of
+    Nothing      -> flowCorpusSearchInDatabase "user1" EN q
+    Just API.All -> flowCorpusSearchInDatabase "user1" EN q
+    Just a   -> do
+      docs <- liftIO $ API.get a q (Just 1000)
+      cId' <- flowCorpus "user1" (Left q) (Multi EN) [docs]
+      pure cId'
 
-api :: FlowCmdM env err m => Query -> m CorpusId
-api (Query q _ _) = do
-  cId <- flowCorpusSearchInDatabase "user1" EN q
   pure cId
-
 
 ------------------------------------------------
 data ApiInfo = ApiInfo { api_info :: [API.ExternalAPIs]}

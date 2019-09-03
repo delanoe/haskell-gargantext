@@ -35,41 +35,12 @@ import Gargantext.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import qualified Data.Map    as Map
 --import qualified Data.Vector.Storable as Vec
 
-
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m (Map Text (ListType, Maybe Text), [Scored Text])
 getMetrics cId maybeListId tabType maybeLimit = do
   (ngs, _, myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit
   pure (ngs, scored myCooc)
-
-
-{- | TODO remove unused function
-getMetrics :: FlowCmdM env err m
-            => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
-            -> m (Map Text (ListType, Maybe Text), [Scored Text])
-getMetrics cId maybeListId tabType maybeLimit = do
-  (ngs, ngs', metrics)    <- getLocalMetrics cId maybeListId tabType maybeLimit
-  
-  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster "" (Nothing :: Maybe HyperdataCorpus)
-  
-  lId  <- defaultList cId
-  lIds <- selectNodesWithUsername NodeList userMaster
-  
-  metrics' <- getTficfWith cId masterCorpusId (lIds <> [lId]) (ngramsTypeFromTabType tabType) ngs'
-
-  pure (ngs , toScored [metrics, Map.fromList $ map (\(a,b) -> (a, Vec.fromList [fst b])) $ Map.toList metrics'])
-
-getLocalMetrics  :: (FlowCmdM env err m)
-            => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
-          -> m ( Map Text (ListType, Maybe Text)
-               , Map Text (Maybe RootTerm)
-                 , Map Text (Vec.Vector Double)
-                 )
-getLocalMetrics cId maybeListId tabType maybeLimit = do
-  (ngs, ngs', myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit 
-  pure (ngs, ngs', localMetrics myCooc)
--}
 
 
 getNgramsCooc :: (FlowCmdM env err m)
@@ -100,6 +71,7 @@ getNgrams :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType
             -> m (Map Text (ListType, Maybe Text), Map Text (Maybe RootTerm))
 getNgrams cId maybeListId tabType = do
+
   lId <- case maybeListId of
     Nothing   -> defaultList cId
     Just lId' -> pure lId'

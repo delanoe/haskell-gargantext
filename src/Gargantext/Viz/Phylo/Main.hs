@@ -19,7 +19,6 @@ module Gargantext.Viz.Phylo.Main
   where
 
 
-import Control.Monad.IO.Class (liftIO)
 import Data.GraphViz
 import Data.Maybe
 import Data.Text (Text)
@@ -39,7 +38,6 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
-import Servant
 import qualified Data.ByteString as DB
 import qualified Data.List as List
 import qualified Data.Map  as Map
@@ -47,51 +45,35 @@ import qualified Data.Text as Text
 
 type MinSizeBranch = Int
 
-flowPhylo :: FlowCmdM env ServantErr m
+flowPhylo :: FlowCmdM env err m
           => CorpusId
-          -> Level -> MinSizeBranch
-          -> FilePath
-          -> m FilePath
-flowPhylo cId l m fp = do
+          -> m Phylo
+flowPhylo cId = do
 
   list       <- defaultList cId
-  -- listMaster <- selectNodesWithUsername NodeList userMaster
   termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms GraphTerm
-  --printDebug "termList" termList
-  
-  --x <- mapTermListRoot [list] NgramsTerms
-  --printDebug "mapTermListRoot" x
-  
-  -- TODO optimize unwords
 
-  docs' <- catMaybes <$> map (\h -> (,) <$> _hyperdataDocument_publication_year h
-                          <*> _hyperdataDocument_abstract h
-                          ) <$> selectDocs cId
-  
-  let patterns = buildPatterns termList
-  let docs = map ( (\(y,t) -> Document y t) . filterTerms patterns) docs'
-  --printDebug "docs" docs
-  --printDebug "docs" termList
+  docs' <- catMaybes
+          <$> map (\h -> (,) <$> _hyperdataDocument_publication_year h
+                             <*> _hyperdataDocument_abstract h
+                  )
+          <$> selectDocs cId
 
-  liftIO $ flowPhylo' (List.sortOn date docs) termList l m fp
+  let
+    patterns = buildPatterns termList
+    -- | To filter the Ngrams of a document based on the termList
+    filterTerms :: Patterns -> (Date, Text) -> (Date, [Text])
+    filterTerms patterns' (y,d) = (y,termsInText patterns' d)
+      where
+        --------------------------------------
+        termsInText :: Patterns -> Text -> [Text]
+        termsInText pats txt = List.nub $ List.concat $ map (map Text.unwords) $ extractTermsWithList pats txt
+        --------------------------------------
 
+    docs = map ( (\(y,t) -> Document y t) . filterTerms patterns) docs'
 
-
-
-parse :: TermList -> [(Date, Text)] -> IO [Document]
-parse l c = do
-  let patterns = buildPatterns l
-  pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) c
-
-
--- | To filter the Ngrams of a document based on the termList
-filterTerms :: Patterns -> (Date, Text) -> (Date, [Text])
-filterTerms patterns (y,d) = (y,termsInText patterns d)
-  where
-    --------------------------------------
-    termsInText :: Patterns -> Text -> [Text]
-    termsInText pats txt = List.nub $ List.concat $ map (map Text.unwords) $ extractTermsWithList pats txt
-    --------------------------------------
+  --liftIO $ flowPhylo' (List.sortOn date docs) termList l m fp
+  pure $ buildPhylo (List.sortOn date docs) termList
 
 
 -- TODO SortedList Document

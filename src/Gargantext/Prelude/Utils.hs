@@ -54,9 +54,9 @@ class ReadFile a where
   readFile' :: FilePath -> IO a
 
 
-saveFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
+writeFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
          => a -> m FilePath
-saveFile a = do
+writeFile a = do
   dataPath <- view (settings . fileFolder) <$> ask
   (fp,fn)  <- liftIO $ (toPath 3) . hash . Text.pack . show <$> newStdGen
   

@@ -815,7 +815,7 @@ getProximity cluster = case cluster of
 
 -- | To initialize all the Cluster / Proximity with their default parameters
 initFis :: Maybe Bool -> Maybe Support -> Maybe Int -> FisParams
-initFis (def True -> kmf) (def 1 -> min') (def 1 -> thr) = FisParams kmf min' thr
+initFis (def True -> kmf) (def 2 -> min') (def 4 -> thr) = FisParams kmf min' thr
 
 initHamming :: Maybe Double -> HammingParams
 initHamming (def 0.01 -> sens) = HammingParams sens
@@ -847,7 +847,7 @@ initPhyloQueryBuild :: Text          -> Text            -> Maybe Int
                     -> Maybe Double  -> Maybe Double    -> Maybe Int
                     -> Maybe Level   -> Maybe Cluster   -> PhyloQueryBuild
 initPhyloQueryBuild name desc (def 5 -> grain)
-                    (def 3 -> steps)      (def defaultFis -> cluster) (def [] -> metrics)
+                    (def 1 -> steps)      (def defaultFis -> cluster) (def [] -> metrics)
                     (def [] -> filters)   (def defaultWeightedLogJaccard -> matching') (def 5 -> frame)
                     (def 0.8 -> frameThr) (def 0.5 -> reBranchThr) (def 4 -> reBranchNth)
                     (def 2 -> nthLevel)   (def defaultRelatedComponents -> nthCluster) =

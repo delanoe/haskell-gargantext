@@ -126,7 +126,7 @@ instance HasInvalidError GargError where
 instance HasTreeError GargError where
   _TreeError = _GargTreeError
 
-showAsServantErr :: Show a => a -> ServantErr
+showAsServantErr :: Show a => a -> ServerError
 showAsServantErr a = err500 { errBody = BL8.pack $ show a }
 
 fireWall :: Applicative f => Request -> FireWall -> f Bool
@@ -321,7 +321,7 @@ serverGargAPI -- orchestrator
      :<|> New.info fakeUserId
   --   :<|> orchestrator
   where
-    fakeUserId = 1 -- TODO
+    fakeUserId = 2 -- TODO, byDefault user1 (if users automatically generated with inserUsersDemo)
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do

@@ -46,6 +46,7 @@ nodeTypeId n =
     NodeCorpusV3  -> 3
     NodeCorpus    -> 30
     NodeAnnuaire  -> 31
+    NodeTexts     -> 40
     NodeDocument  -> 4
     NodeContact   -> 41
   --NodeSwap   -> 19
@@ -60,6 +61,7 @@ nodeTypeId n =
     NodePhylo       -> 90
     NodeDashboard   -> 7
     NodeChart       -> 51
+    NodeNoteBook    -> 88
 
 --  Cooccurrences -> 9
 --

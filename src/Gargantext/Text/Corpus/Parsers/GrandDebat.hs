@@ -19,18 +19,17 @@ TODO: create a separate Lib.
 module Gargantext.Text.Corpus.Parsers.GrandDebat
   where
 
-import GHC.IO (FilePath)
 import Data.Aeson (ToJSON, FromJSON)
-import qualified Data.JsonStream.Parser as P
---import Data.Either (either)
 import Data.Maybe (Maybe())
 import Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.ByteString.Lazy as DBL
 import GHC.Generics (Generic)
-import Gargantext.Prelude
-import Gargantext.Database.Types.Node 
 import Gargantext.Core (Lang(..))
+import Gargantext.Database.Types.Node
+import Gargantext.Prelude
+import Gargantext.Prelude.Utils
+import qualified Data.ByteString.Lazy as DBL
+import qualified Data.JsonStream.Parser as P
+import qualified Data.Text as Text
 
 
 data GrandDebatReference = GrandDebatReference
@@ -91,16 +90,12 @@ instance ToHyperdataDocument GrandDebatReference
                 True  -> r'
                 False -> ""
 
-class ReadFile a
-  where
-    readFile :: FilePath -> IO a
-
 instance ReadFile [GrandDebatReference]
   where
     -- | read json: 3 version below are working but with increased optimization
     --readFile fp = maybe [] identity <$> decode <$> DBL.readFile fp
     --readFile fp = either (panic . Text.pack) identity <$> P.eitherDecode <$> DBL.readFile fp
-    readFile fp = P.parseLazyByteString (P.arrayOf P.value) <$> DBL.readFile fp
+    readFile' fp = P.parseLazyByteString (P.arrayOf P.value) <$> DBL.readFile fp
 
 
 

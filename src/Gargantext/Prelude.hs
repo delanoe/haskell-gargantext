@@ -304,3 +304,6 @@ tail' = listSafeN "tail" tailMay
 init' :: Text -> [a] -> [a]
 init' = listSafeN "init" initMay
 
+------------------------------------------------------------------------
+
+

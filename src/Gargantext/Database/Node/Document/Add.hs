@@ -40,7 +40,6 @@ import Gargantext.Prelude
 import GHC.Generics (Generic)
 ---------------------------------------------------------------------------
 
-
 add :: ParentId -> [NodeId] -> Cmd err [Only Int]
 add pId ns = runPGSQuery queryAdd (Only $ Values fields inputData)
   where
@@ -54,17 +53,16 @@ add_debug pId ns = formatPGSQuery queryAdd (Only $ Values fields inputData)
     inputData = prepare pId ns
 
 
-
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
-inputSqlTypes = ["int4","int4","bool","bool"]
+inputSqlTypes = ["int4","int4","int4"]
 
 -- | SQL query to add documents
 -- TODO return id of added documents only
 queryAdd :: Query
 queryAdd = [sql|
-       WITH input_rows(node1_id,node2_id, favorite, delete) AS (?)
-       INSERT INTO nodes_nodes (node1_id, node2_id, favorite, delete)
+       WITH input_rows(node1_id,node2_id,category) AS (?)
+       INSERT INTO nodes_nodes (node1_id, node2_id,category)
        SELECT * FROM input_rows
        ON CONFLICT (node1_id, node2_id) DO NOTHING -- on unique index
        RETURNING 1
@@ -72,7 +70,7 @@ queryAdd = [sql|
            |]
 
 prepare :: ParentId -> [NodeId] -> [InputData]
-prepare pId ns = map (\nId -> InputData pId nId False False) ns
+prepare pId ns = map (\nId -> InputData pId nId) ns
 
 ------------------------------------------------------------------------
 -- * Main Types used
@@ -80,14 +78,11 @@ prepare pId ns = map (\nId -> InputData pId nId False False) ns
 
 data InputData = InputData { inNode1_id :: NodeId
                            , inNode2_id :: NodeId
-                           , inNode_fav :: Bool
-                           , inNode_del :: Bool
                            } deriving (Show, Generic, Typeable)
 
 instance ToRow InputData where
   toRow inputData = [ toField (inNode1_id inputData)
                     , toField (inNode2_id inputData)
-                    , toField (inNode_fav inputData)
-                    , toField (inNode_del inputData)
+                    , toField (1 :: Int)
                     ]
 

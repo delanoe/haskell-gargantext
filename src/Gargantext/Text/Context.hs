@@ -49,9 +49,6 @@ type Corpus    a = [Sentence a] -- a list of sentences
 -- | Contexts definition to build/unbuild contexts.
 data SplitContext = Chars Int | Sentences Int | Paragraphs Int
 
-tag :: Text -> [Tag Text]
-tag = parseTags
-
 -- | splitBy contexts of Chars or Sentences or Paragraphs
 -- To see some examples at a higher level (sentences and paragraph), see
 -- 'Gargantext.Text.Examples.ex_terms'
@@ -67,10 +64,9 @@ tag = parseTags
 splitBy :: SplitContext -> Text -> [Text]
 splitBy (Chars     n)  = map pack        . chunkAlong (n+1) 1 . unpack
 splitBy (Sentences n)  = map unsentences . chunkAlong (n+1) 1 . sentences
-splitBy (Paragraphs _) = map unTag       . filter isTagText   . tag
+splitBy (Paragraphs _) = map unTag       . filter isTagText   . parseTags
   where
     unTag :: IsString p => Tag p -> p
     unTag (TagText x) = x
     unTag _           = ""
-
 

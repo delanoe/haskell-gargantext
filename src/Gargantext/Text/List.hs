@@ -61,7 +61,7 @@ buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorp
                  -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsLists l n m s uCid mCid = do
   ngTerms     <- buildNgramsTermsList l n m s uCid mCid
-  --ngTerms     <- buildNgramsTermsList' uCid (ngramsGroup l n m) (isStopTerm s . fst) 550 300
+  --ngTerms     <- buildNgramsTermsList' uCid (ngramsGroup l n m) (isStopTerm s . fst) 500 50
   othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
@@ -73,7 +73,8 @@ buildNgramsOthersList uCid groupIt nt = do
 
   let
     all' = Map.toList ngs
-  pure $ (toElements GraphTerm $ take 10 all') <> (toElements CandidateTerm $ drop 10 all')
+  pure $ (toElements GraphTerm all') <> (toElements CandidateTerm all')
+  --pure $ (toElements GraphTerm $ take 10 all') <> (toElements CandidateTerm $ drop 10 all')
     where
       toElements nType x = Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
                             | (t,_ns) <- x
@@ -123,8 +124,8 @@ buildNgramsTermsList l n m s uCid mCid = do
   candidates   <- sortTficf <$> getTficf' uCid mCid NgramsTerms (ngramsGroup l n m)
   let
     candidatesSize = 2000
-    a = 500
-    b = 500
+    a = 10
+    b = 10
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
     termList = (toTermList a b ((isStopTerm s) . fst) candidatesHead)
