@@ -213,9 +213,10 @@ entropy branches =
 
 
 homogeneity :: [[PhyloGroup]] -> Double
-homogeneity branches = undefined
-    where 
-        branchCov :: 
+homogeneity _ = undefined
+    -- where 
+    --     branchCov :: [PhyloGroup] -> Int -> Double
+    --     branchCov branch total = (fromIntegral $ length branch) / (fromIntegral total) 
 
 
 toPhyloQuality :: [[PhyloGroup]] -> Double
