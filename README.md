@@ -39,17 +39,17 @@ issues.
 
 ### Initialization
 
-Users has to be created first
-1. stack ghci
-2. runCmd insertUsersDemo
+Users has to be created first (user1 is created as instance):
 
-Then you can log in with user1:1resu
+- stack install
+- ~/.local/bin/gargantext-init "gargantext.ini"
 
 ## Use Cases
 
 ### Multi-User with Graphical User Interface (Server Mode)
 
 ~/.local/bin/stack --docker exec gargantext-server -- --ini "gargantext.ini" --run Prod
+Then you can log in with user1:1resu
 
 
 ### Command Line Mode tools

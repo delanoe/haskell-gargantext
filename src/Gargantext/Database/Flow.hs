@@ -246,10 +246,9 @@ insertMasterDocs c lang hs  =  do
 
 type CorpusName = Text
 
-getOrMkRootWithCorpus :: (HasNodeError err, MkCorpus a)
-              => Username -> Either CorpusName [CorpusId] -> Maybe a
-              -> Cmd err (UserId, RootId, CorpusId)
-getOrMkRootWithCorpus username cName c = do
+
+getOrMkRoot :: (HasNodeError err) => Username -> Cmd err (UserId, RootId)
+getOrMkRoot username = do
   maybeUserId <- getUser username
   userId <- case maybeUserId of
         Nothing   -> nodeError NoUserFound
@@ -264,7 +263,14 @@ getOrMkRootWithCorpus username cName c = do
             False -> pure rootId'
 
   rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
+  pure (userId, rootId)
 
+
+getOrMkRootWithCorpus :: (HasNodeError err, MkCorpus a)
+              => Username -> Either CorpusName [CorpusId] -> Maybe a
+              -> Cmd err (UserId, RootId, CorpusId)
+getOrMkRootWithCorpus username cName c = do
+  (userId, rootId) <- getOrMkRoot username
   corpusId'' <- if username == userMaster
                   then do
                     ns <- getCorporaWithParentId rootId
