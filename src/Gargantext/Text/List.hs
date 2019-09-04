@@ -61,7 +61,6 @@ buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorp
                  -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsLists l n m s uCid mCid = do
   ngTerms     <- buildNgramsTermsList l n m s uCid mCid
-  --ngTerms     <- buildNgramsTermsList' uCid (ngramsGroup l n m) (isStopTerm s . fst) 500 50
   othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
@@ -72,9 +71,12 @@ buildNgramsOthersList uCid groupIt nt = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
   let
-    all' = Map.toList ngs
-  pure $ (toElements GraphTerm all') <> (toElements CandidateTerm all')
-  --pure $ (toElements GraphTerm $ take 10 all') <> (toElements CandidateTerm $ drop 10 all')
+    listSize = 9
+    all' = List.reverse $ List.sortOn (Set.size . snd . snd) $ Map.toList ngs
+    graphTerms = List.take listSize all'
+    candiTerms = List.drop listSize all'
+  pure $ Map.unionsWith (<>) [ toElements GraphTerm     graphTerms
+                             , toElements CandidateTerm candiTerms]
     where
       toElements nType x = Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
                             | (t,_ns) <- x
