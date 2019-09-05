@@ -44,6 +44,8 @@ import GHC.IO (FilePath)
 import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
 
+import qualified Data.Text.Lazy as TextLazy
+
 
 ----------------
 -- | Config | --
@@ -102,7 +104,7 @@ defaultConfig =
             , corpusParser   = Csv 1000
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 10 0 0.05
+            , phyloProximity = WeightedLogJaccard 10 0 0.2
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 2 4
             , branchSize     = 3  
@@ -289,6 +291,12 @@ data PhyloFis = PhyloFis
   , _phyloFis_period  :: (Date,Date)
   } deriving (Generic,NFData,Show,Eq)
 
+
+----------------
+-- | Export | --
+----------------
+
+type DotId = TextLazy.Text
 
 ----------------
 -- | Lenses | --

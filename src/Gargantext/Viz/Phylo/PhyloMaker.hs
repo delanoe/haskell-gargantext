@@ -23,6 +23,7 @@ import Data.Vector (Vector)
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
+import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 
@@ -86,12 +87,13 @@ fisToGroup fis pId lvl idx fdt coocs =
                    (fis ^. phyloFis_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
-                   (1,[])
+                   (1,[0])
                    [] [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo
-toPhylo1 docs phyloBase = appendGroups fisToGroup 1 phyloFis phyloBase
+toPhylo1 docs phyloBase = temporalMatching
+                        $ appendGroups fisToGroup 1 phyloFis phyloBase
     where
         --------------------------------------
         phyloFis :: Map (Date,Date) [PhyloFis]
@@ -181,7 +183,7 @@ docsToTimeScaleCooc docs fdt =
         mCooc' = fromList
                $ map (\t -> (t,empty))
                $ toTimeScale (map date docs) 1
-    in   trace ("\n" <> "-- | Build the coocurency matrix for " <> show (length $ keys mCooc') <> " unit of time" <> "\n")
+    in  trace ("\n" <> "-- | Build the coocurency matrix for " <> show (length $ keys mCooc') <> " unit of time" <> "\n")
        $ unionWith sumCooc mCooc mCooc'
 
 

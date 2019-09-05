@@ -17,7 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init)
 import Data.Set (Set, size)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey)
 import Data.String (String)
@@ -202,11 +202,11 @@ addPointers :: PhyloGroup -> Filiation -> PointerType -> [Pointer] -> PhyloGroup
 addPointers group fil pty pointers = 
     case pty of 
         TemporalPointer -> case fil of 
-                                ToChilds  -> group & phylo_groupPeriodChilds  %~ (++ pointers)
-                                ToParents -> group & phylo_groupPeriodParents %~ (++ pointers)
+                                ToChilds  -> group & phylo_groupPeriodChilds  .~ pointers
+                                ToParents -> group & phylo_groupPeriodParents .~ pointers
         LevelPointer    -> case fil of 
-                                ToChilds  -> group & phylo_groupLevelChilds %~ (++ pointers)
-                                ToParents -> group & phylo_groupLevelParents %~ (++ pointers)
+                                ToChilds  -> group & phylo_groupLevelChilds   .~ pointers
+                                ToParents -> group & phylo_groupLevelParents  .~ pointers
 
 
 getPeriodIds :: Phylo -> [(Date,Date)]
@@ -285,3 +285,46 @@ getThresholdStep proxi = case proxi of
 
 ngramsInBranches :: [[PhyloGroup]] -> [Int]
 ngramsInBranches branches = nub $ foldl (\acc g -> acc ++ (g ^. phylo_groupNgrams)) [] $ concat branches
+
+
+traceMatchSuccess :: Double -> Double -> Double -> [[[PhyloGroup]]] -> [[[PhyloGroup]]]
+traceMatchSuccess thr qua qua' nextBranches =
+    trace ( "\n" <> "-- local branches : " <> (init $ show ((init . init . snd)
+                                                    $ (head' "trace" $ head' "trace" $ head' "trace" nextBranches) ^. phylo_groupBranchId))
+                                           <> ",(1.." <> show (length nextBranches) <> ")]"
+                 <> " | " <> show ((length . concat . concat) nextBranches) <> " groups" <> "\n"
+         <> " - splited with success in "  <> show (map length nextBranches) <> " sub-branches" <> "\n"
+         <> " - for the local threshold "  <> show (thr) <> " ( quality : " <> show (qua) <> " < " <> show(qua') <> ")\n" ) nextBranches
+
+
+traceMatchFailure :: Double -> Double -> Double -> [[PhyloGroup]] -> [[PhyloGroup]]
+traceMatchFailure thr qua qua' branches =
+    trace ( "\n" <> "-- local branches : " <> (init $ show ((init . snd) $ (head' "trace" $ head' "trace" branches) ^. phylo_groupBranchId))
+                                           <> ",(1.." <> show (length branches) <> ")]"
+                 <> " | " <> show (length $ concat branches) <> " groups" <> "\n"
+         <> " - split with failure for the local threshold " <> show (thr) <> " ( quality : " <> show (qua) <> " > " <> show(qua') <> ")\n"
+        ) branches
+
+
+traceMatchNoSplit :: [[PhyloGroup]] -> [[PhyloGroup]]
+traceMatchNoSplit branches =
+    trace ( "\n" <> "-- local branches : " <> (init $ show ((init . snd) $ (head' "trace" $ head' "trace" branches) ^. phylo_groupBranchId))
+                                           <> ",(1.." <> show (length branches) <> ")]"
+                 <> " | " <> show (length $ concat branches) <> " groups" <> "\n"
+         <> " - unable to split in smaller branches" <> "\n"
+        ) branches
+
+
+traceMatchLimit :: [[PhyloGroup]] -> [[PhyloGroup]]
+traceMatchLimit branches =
+    trace ( "\n" <> "-- local branches : " <> (init $ show ((init . snd) $ (head' "trace" $ head' "trace" branches) ^. phylo_groupBranchId))
+                                           <> ",(1.." <> show (length branches) <> ")]"
+                 <> " | " <> show (length $ concat branches) <> " groups" <> "\n"
+         <> " - unable to increase the threshold above 1" <> "\n"
+        ) branches            
+
+
+traceMatchEnd :: [PhyloGroup] -> [PhyloGroup]
+traceMatchEnd groups =
+    trace ("\n" <> "-- | End of temporal matching with " <> show (length $ nub $ map (\g -> g ^. phylo_groupBranchId) groups)
+                                                         <> " branches and " <> show (length groups) <> " groups" <> "\n") groups

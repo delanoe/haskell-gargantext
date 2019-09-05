@@ -15,7 +15,7 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.TemporalMatching where
 
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, find, groupBy, scanl, nub, union)
+import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, find, groupBy, scanl, nub, union, elemIndex, (!!))
 import Data.Map  (Map, fromList, fromListWith, filterWithKey, elems, restrictKeys, unionWith, intersectionWith, findWithDefault)
 
 import Gargantext.Prelude
@@ -23,10 +23,12 @@ import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.SynchronicClustering
 
+import Debug.Trace (trace)
 import Prelude (logBase)
 import Control.Lens hiding (Level)
 
 import qualified Data.Set as Set
+
 
 -------------------
 -- | Proximity | --
@@ -204,7 +206,9 @@ entropy branches =
                           / (sum $ map (\branch -> 1 / log (termFreq term [branch])) branches)
                           * (sum $ map (\branch ->
                                              let q = branchObs term (length $ concat branches) branch
-                                             in  q * logBase 2 q ) branches) ) terms
+                                             in if (q == 0)
+                                                then 0
+                                                else - q * logBase 2 q ) branches) ) terms
     where
         -- | Probability to observe a branch given a random term of the phylo
         branchObs :: Int -> Int -> [PhyloGroup] -> Double
@@ -213,10 +217,21 @@ entropy branches =
 
 
 homogeneity :: [[PhyloGroup]] -> Double
-homogeneity _ = undefined
-    -- where 
-    --     branchCov :: [PhyloGroup] -> Int -> Double
-    --     branchCov branch total = (fromIntegral $ length branch) / (fromIntegral total) 
+homogeneity branches =
+    let nbGroups = length $ concat branches
+    in  sum 
+      $ map (\branch -> (if (length branch == nbGroups)
+                         then 1
+                         else (1 / log (branchCov branch nbGroups))
+                            / (sum $ map (\branch' -> 1 / log (branchCov branch' nbGroups)) branches))
+                            * (sum $ map (\term -> (termFreq term branches)
+                                           / (sum $ map (\term' -> termFreq term' branches) $ ngramsInBranches [branch])
+                                           * (fromIntegral $ sum $ ngramsInBranches [filter (\g -> elem term $ g ^. phylo_groupNgrams) branch])
+                                           / (fromIntegral $ sum $ ngramsInBranches [branch])
+                                    ) $ ngramsInBranches [branch]) ) branches
+    where 
+        branchCov :: [PhyloGroup] -> Int -> Double
+        branchCov branch total = (fromIntegral $ length branch) / (fromIntegral total) 
 
 
 toPhyloQuality :: [[PhyloGroup]] -> Double
@@ -243,40 +258,55 @@ groupsToBranches groups =
            ) graph
 
 
-recursiveMatching :: Proximity -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> Double -> [PhyloGroup] -> [PhyloGroup]
-recursiveMatching proximity thr max' periods docs quality groups =
-    case quality < quality' of
-                -- | success : we localy improve the quality of the branch, let's go deeper
-        True  -> concat 
-               $ map (\branch ->
-                        recursiveMatching proximity (thr + (getThresholdStep proximity)) max' periods docs quality' branch
-                     ) branches
-                -- | failure : last step was the local maximum, let's validate it
-        False -> groups
+recursiveMatching :: Proximity -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> Double -> [[PhyloGroup]] -> [PhyloGroup]
+recursiveMatching proximity thr frame periods docs quality branches =
+    if (length branches == (length $ concat branches))
+        then concat $ traceMatchNoSplit branches
+    else if thr > 1
+        then concat $ traceMatchLimit branches
+    else  
+        case quality <= (sum nextQualities) of
+                    -- | success : the new threshold improves the quality score, let's go deeper
+            True  -> concat
+                   $ map (\branches' ->
+                            let idx = fromJust $ elemIndex branches' nextBranches 
+                            in  recursiveMatching proximity (thr + (getThresholdStep proximity)) frame periods docs (nextQualities !! idx) branches')
+                   $ traceMatchSuccess thr quality (sum nextQualities) nextBranches
+                    -- | failure : last step was a local maximum of quality, let's validate it
+            False -> concat $ traceMatchFailure thr quality (sum nextQualities) branches
     where
-        -- | 3) process a quality score on the local set of branches
-        quality' :: Double
-        quality' = toPhyloQuality branches
-        -- | 2) group the new groups into branches 
-        branches :: [[PhyloGroup]]
-        branches = groupsToBranches $ fromList $ map (\group -> (getGroupId group, group)) groups'
-        -- | 1) process a temporal matching for each group
-        groups' :: [PhyloGroup]
-        groups' = processMatching max' periods proximity thr docs groups
+        -- | 2) for each of the possible next branches process the phyloQuality score
+        nextQualities :: [Double]
+        nextQualities = map toPhyloQuality nextBranches
+        -- | 1) for each local branch process a temporal matching then find the resulting branches
+        nextBranches :: [[[PhyloGroup]]]
+        nextBranches = map (\branch -> 
+                                let branch' = processMatching frame periods proximity thr docs branch
+                                in  groupsToBranches $ fromList $ map (\group -> (getGroupId group, group)) branch'
+                           ) branches
 
 
 temporalMatching :: Phylo -> Phylo
-temporalMatching phylo = updatePhyloGroups 1 branches phylo
+temporalMatching phylo = updatePhyloGroups 1 branches' phylo
     where
-        -- | 2) run the recursive matching to find the best repartition among branches
-        branches :: Map PhyloGroupId PhyloGroup
-        branches = fromList 
+        -- | 4) run the recursive matching to find the best repartition among branches
+        branches' :: Map PhyloGroupId PhyloGroup
+        branches' = fromList 
                  $ map (\g -> (getGroupId g, g))
+                 $ traceMatchEnd
                  $ recursiveMatching (phyloProximity $ getConfig phylo) 
-                                     (getThresholdInit $ phyloProximity $ getConfig phylo) 
+                                     ( (getThresholdInit $ phyloProximity $ getConfig phylo) 
+                                     + (getThresholdStep $ phyloProximity $ getConfig phylo)) 
                                      (getTimeFrame $ timeUnit $ getConfig phylo)
                                      (getPeriodIds phylo)
-                                     (phylo ^. phylo_timeDocs) (toPhyloQuality [groups']) groups'
+                                     (phylo ^. phylo_timeDocs) quality branches
+        -- | 3) process the quality score
+        quality :: Double
+        quality = toPhyloQuality branches
+        -- | 2) group into branches
+        branches :: [[PhyloGroup]] 
+        branches = groupsToBranches $ fromList $ map (\group -> (getGroupId group, group))
+                 $ trace ("\n" <> "-- | Init temporal matching for " <> show (length $ groups') <> " groups" <> "\n") groups'
         -- | 1) for each group process an initial temporal Matching
         groups' :: [PhyloGroup]
         groups' = processMatching (getTimeFrame $ timeUnit $ getConfig phylo) (getPeriodIds phylo) 

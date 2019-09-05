@@ -29,6 +29,7 @@ import Gargantext.Text.Terms.Mono (monoTexts)
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.PhyloMaker
+import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
 
 import Control.Lens
 
@@ -40,7 +41,8 @@ import qualified Data.Vector as Vector
 -----------------------------------------------
 
 phylo1 :: Phylo
-phylo1 = appendGroups fisToGroup 1 phyloFis phyloBase
+phylo1 = temporalMatching
+       $ appendGroups fisToGroup 1 phyloFis phyloBase
 
 
 ---------------------------------------------
