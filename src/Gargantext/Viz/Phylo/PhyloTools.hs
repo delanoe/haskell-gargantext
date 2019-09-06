@@ -21,6 +21,7 @@ import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init)
 import Data.Set (Set, size)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey)
 import Data.String (String)
+import Data.Text (Text, unwords)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
@@ -59,6 +60,15 @@ isRoots n ns = Vector.elem n ns
 -- | To transform a list of nrams into a list of foundation's index
 ngramsToIdx :: [Ngrams] -> Vector Ngrams -> [Int]
 ngramsToIdx ns fdt = map (\n -> fromJust $ elemIndex n fdt) ns
+
+-- | To transform a list of Ngrams Indexes into a Label
+ngramsToLabel :: Vector Ngrams -> [Int] -> Text
+ngramsToLabel ngrams l = unwords $ tail' "ngramsToLabel" $ concat $ map (\n -> ["|",n]) $ ngramsToText ngrams l
+
+
+-- | To transform a list of Ngrams Indexes into a list of Text
+ngramsToText :: Vector Ngrams -> [Int] -> [Text]
+ngramsToText ngrams l = map (\idx -> ngrams Vector.! idx) l
 
 
 --------------
@@ -248,15 +258,6 @@ updatePhyloGroups lvl m phylo =
                     if member id m 
                     then m ! id
                     else group ) phylo
-
-
-------------------
--- | Pointers | --
-------------------
-
-
-pointersToLinks :: PhyloGroupId -> [Pointer] -> [Link]
-pointersToLinks id pointers = map (\p -> ((id,fst p),snd p)) pointers
 
 
 -------------------

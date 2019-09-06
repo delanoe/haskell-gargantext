@@ -83,12 +83,13 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
 fisToGroup :: PhyloFis -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
 fisToGroup fis pId lvl idx fdt coocs =
     let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloFis_clique) fdt
-    in  PhyloGroup pId lvl idx
+    in  PhyloGroup pId lvl idx ""
                    (fis ^. phyloFis_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
                    (1,[0])
-                   [] [] [] [] []
+                   empty
+                   [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo

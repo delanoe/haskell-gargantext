@@ -92,6 +92,7 @@ data Config =
             , phyloProximity :: Proximity
             , timeUnit       :: TimeUnit
             , contextualUnit :: ContextualUnit
+            , exportLabel    :: [Label]
             , branchSize     :: Int  
             } deriving (Show,Generic,Eq)
 
@@ -107,6 +108,7 @@ defaultConfig =
             , phyloProximity = WeightedLogJaccard 10 0 0.2
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 2 4
+            , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
             , branchSize     = 3  
             }
 
@@ -120,6 +122,10 @@ instance FromJSON TimeUnit
 instance ToJSON TimeUnit
 instance FromJSON ContextualUnit
 instance ToJSON ContextualUnit
+instance FromJSON Label
+instance ToJSON Label
+instance FromJSON Tagger
+instance ToJSON Tagger
 
 
 -- | Software parameters
@@ -250,15 +256,16 @@ data PhyloGroup =
       PhyloGroup { _phylo_groupPeriod   :: (Date,Date)
                  , _phylo_groupLevel    :: Level
                  , _phylo_groupIndex    :: Int
+                 , _phylo_groupLabel    :: Text
                  , _phylo_groupSupport  :: Support
                  , _phylo_groupNgrams   :: [Int]
                  , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
+                 , _phylo_groupMeta     :: Map Text [Double]
                  , _phylo_groupLevelParents  :: [Pointer]
                  , _phylo_groupLevelChilds   :: [Pointer]
                  , _phylo_groupPeriodParents :: [Pointer]
                  , _phylo_groupPeriodChilds  :: [Pointer]
-                 , _phylo_groupGhostPointers :: [Pointer]
                  }
                  deriving (Generic, Show, Eq)
 
@@ -267,8 +274,6 @@ type Weight = Double
 
 -- | Pointer : A weighted pointer to a given PhyloGroup
 type Pointer = (PhyloGroupId, Weight)
-
-type Link = ((PhyloGroupId, PhyloGroupId), Weight)
 
 data Filiation = ToParents | ToChilds deriving (Generic, Show)    
 data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
@@ -298,6 +303,29 @@ data PhyloFis = PhyloFis
 
 type DotId = TextLazy.Text
 
+data Tagger = MostInclusive | MostEmergentInclusive deriving (Show,Generic,Eq)
+
+data Label = 
+      BranchLabel
+      { _branch_labelTagger :: Tagger
+      , _branch_labelSize   :: Int }
+    | GroupLabel
+      { _group_labelTagger  :: Tagger
+      , _group_labelSize    :: Int }
+    deriving (Show,Generic,Eq)
+
+data PhyloBranch =
+      PhyloBranch
+      { _branch_id :: PhyloBranchId
+      , _branch_label :: Text 
+      } deriving (Generic, Show)
+
+data PhyloExport =
+      PhyloExport
+      { _export_groups   :: [PhyloGroup]
+      , _export_branches :: [PhyloBranch]
+      } deriving (Generic, Show)
+
 ----------------
 -- | Lenses | --
 ----------------
@@ -305,6 +333,7 @@ type DotId = TextLazy.Text
 makeLenses ''Config
 makeLenses ''Proximity
 makeLenses ''ContextualUnit
+makeLenses ''Label
 makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
 makeLenses ''PhyloFis
@@ -313,6 +342,8 @@ makeLenses ''PhyloPeriod
 makeLenses ''PhyloLevel
 makeLenses ''PhyloGroup
 makeLenses ''PhyloParam
+makeLenses ''PhyloExport
+makeLenses ''PhyloBranch
 
 ------------------------
 -- | JSON instances | --
