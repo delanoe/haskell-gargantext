@@ -18,7 +18,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloExport where
 
 import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault)
-import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!))
+import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition)
 import Data.Text (Text)
 import Data.Vector (Vector)
 
@@ -27,15 +27,88 @@ import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools 
 
 import Control.Lens
+import Data.GraphViz hiding (DotGraph, Order)
 import Data.GraphViz.Types.Generalised (DotGraph)
+import Data.GraphViz.Attributes.Complete hiding (EdgeType, Order) 
+import Data.GraphViz.Types.Monadic
+import Data.Text.Lazy (fromStrict)
+
+import qualified Data.Text as Text
 
 --------------------
 -- | Dot export | --
 --------------------
 
 
-toDot :: PhyloExport -> DotGraph DotId
-toDot export = undefined
+toDotLabel :: Text.Text -> Label
+toDotLabel lbl = StrLabel $ fromStrict lbl
+
+
+exportToDot :: Phylo -> PhyloExport -> DotGraph DotId
+exportToDot phylo export = 
+    digraph ((Str . fromStrict) $ (phyloName $ getConfig phylo)) $ do 
+
+    -- | set the global graph attributes
+
+    graphAttrs ( [ Label (toDotLabel $ (phyloName $ getConfig phylo))]
+              <> [ FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
+                 , Ratio FillRatio
+                 , Style [SItem Filled []],Color [toWColor White]])
+
+    -- | set the branches peaks layer
+
+    subgraph (Str "Peaks") $ do 
+
+        graphAttrs [Rank SameRank]
+
+        -- | group branches by clusters
+
+
+----------------
+-- | Filter | --
+----------------
+
+filterByBranchSize :: Double -> PhyloExport -> PhyloExport
+filterByBranchSize thr export = 
+    let branches' = partition (\b -> head' "filter" ((b ^. branch_meta) ! "size") >= thr) $ export ^. export_branches
+    in  export & export_branches .~ (fst branches')
+               & export_groups %~ (filter (\g -> not $ elem  (g ^. phylo_groupBranchId) (map _branch_id $ snd branches')))
+
+
+processFilters :: [Filter] -> PhyloExport -> PhyloExport
+processFilters filters export = 
+    foldl (\export' f -> case f of 
+                ByBranchSize thr -> filterByBranchSize thr export'
+                _ -> export' 
+        ) export filters
+
+--------------
+-- | Sort | --
+--------------
+
+sortByHierarchy :: Int -> [PhyloBranch] -> [PhyloBranch]
+sortByHierarchy depth branches 
+    | length branches == 1 = branches
+    | depth >= ((length . snd) $ (head' "sort" branches) ^. branch_id) = branches
+    | otherwise = concat 
+                $ map (\branches' -> sortByHierarchy (depth + 1) branches')
+                $ groupBy (\b b' -> ((take depth . snd) $ b ^. branch_id) == ((take depth . snd) $ b' ^. branch_id) )
+                $ sortOn (\b -> (take depth . snd) $ b ^. branch_id) branches
+
+
+sortByBirthDate :: Order -> PhyloExport -> PhyloExport
+sortByBirthDate order export = 
+    let branches  = sortOn (\b -> (b ^. branch_meta) ! "birth") $ export ^. export_branches
+        branches' = case order of
+                    Asc  -> branches
+                    Desc -> reverse branches
+    in  export & export_branches .~ branches'
+
+processSort :: Sort -> PhyloExport -> PhyloExport
+processSort sort' export = case sort' of
+    ByBirthDate o -> sortByBirthDate o export 
+    ByHierarchy   -> export & export_branches .~ sortByHierarchy 0 (export ^. export_branches)
+
 
 -----------------
 -- | Metrics | --
@@ -47,10 +120,55 @@ conditional m i j = (findWithDefault 0 (i,j) m)
                   / (m ! (j,j))
 
 
+-- | Return the genericity score of a given ngram
+genericity :: Map (Int, Int) Double -> [Int] -> Int -> Double 
+genericity m l i = ( (sum $ map (\j -> conditional m i j) l) 
+                   - (sum $ map (\j -> conditional m j i) l)) / (fromIntegral $ (length l) + 1)
+
+
+-- | Return the specificity score of a given ngram
+specificity :: Map (Int, Int) Double -> [Int] -> Int -> Double 
+specificity m l i = ( (sum $ map (\j -> conditional m j i) l)
+                    - (sum $ map (\j -> conditional m i j) l)) / (fromIntegral $ (length l) + 1)                  
+
+
 -- | Return the inclusion score of a given ngram
 inclusion :: Map (Int, Int) Double -> [Int] -> Int -> Double 
 inclusion m l i = ( (sum $ map (\j -> conditional m j i) l)
                   + (sum $ map (\j -> conditional m i j) l)) / (fromIntegral $ (length l) + 1)
+
+
+ngramsMetrics :: PhyloExport -> PhyloExport
+ngramsMetrics export =
+    over ( export_groups
+         .  traverse )
+    (\g -> g & phylo_groupMeta %~ insert "genericity" 
+                                  (map (\n -> genericity  (g ^. phylo_groupCooc) ((g ^. phylo_groupNgrams) \\ [n]) n) $ g ^. phylo_groupNgrams)
+             & phylo_groupMeta %~ insert "specificity" 
+                                  (map (\n -> specificity (g ^. phylo_groupCooc) ((g ^. phylo_groupNgrams) \\ [n]) n) $ g ^. phylo_groupNgrams)
+             & phylo_groupMeta %~ insert "inclusion" 
+                                  (map (\n -> inclusion   (g ^. phylo_groupCooc) ((g ^. phylo_groupNgrams) \\ [n]) n) $ g ^. phylo_groupNgrams)
+        ) export
+
+
+branchDating :: PhyloExport -> PhyloExport
+branchDating export =
+    over ( export_branches
+         .  traverse )
+    (\b -> 
+        let groups = sortOn fst
+                   $ foldl' (\acc g -> if (g ^. phylo_groupBranchId == b ^. branch_id)
+                                      then acc ++ [g ^. phylo_groupPeriod]
+                                      else acc ) [] $ export ^. export_groups
+            birth = fst $ head' "birth" groups
+            age   = (snd $ last' "age"  groups) - birth 
+        in b & branch_meta %~ insert "birth" [fromIntegral birth] 
+             & branch_meta %~ insert "age"   [fromIntegral age]
+             & branch_meta %~ insert "size"  [fromIntegral $ length groups] ) export
+
+processMetrics :: PhyloExport -> PhyloExport
+processMetrics export = ngramsMetrics
+                      $ branchDating export 
 
 
 -----------------
@@ -93,7 +211,7 @@ mostEmergentInclusive nth foundations export =
             in g & phylo_groupLabel .~ lbl ) export
 
 
-processLabels :: [Label] -> Vector Ngrams -> PhyloExport -> PhyloExport
+processLabels :: [PhyloLabel] -> Vector Ngrams -> PhyloExport -> PhyloExport
 processLabels labels foundations export =
     foldl (\export' label -> 
                 case label of
@@ -156,14 +274,17 @@ processDynamics groups =
 
 
 toPhyloExport :: Phylo -> DotGraph DotId
-toPhyloExport phylo = toDot 
-                    $ processLabels (exportLabel $ getConfig phylo) (getRoots phylo) export           
+toPhyloExport phylo = exportToDot phylo
+                    $ processFilters (exportFilter $ getConfig phylo)
+                    $ processSort    (exportSort   $ getConfig phylo)
+                    $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo)
+                    $ processMetrics  export           
     where
         export :: PhyloExport
         export = PhyloExport groups branches
         --------------------------------------
         branches :: [PhyloBranch] 
-        branches = map (\bId -> PhyloBranch bId "") $ nub $ map _phylo_groupBranchId groups
+        branches = map (\bId -> PhyloBranch bId "" empty ((init . snd) bId)) $ nub $ map _phylo_groupBranchId groups
         --------------------------------------    
         groups :: [PhyloGroup]
         groups = processDynamics 

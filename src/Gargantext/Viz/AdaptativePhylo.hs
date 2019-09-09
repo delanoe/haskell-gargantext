@@ -92,8 +92,9 @@ data Config =
             , phyloProximity :: Proximity
             , timeUnit       :: TimeUnit
             , contextualUnit :: ContextualUnit
-            , exportLabel    :: [Label]
-            , branchSize     :: Int  
+            , exportLabel    :: [PhyloLabel]
+            , exportSort     :: Sort
+            , exportFilter   :: [Filter]  
             } deriving (Show,Generic,Eq)
 
 
@@ -109,7 +110,8 @@ defaultConfig =
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 2 4
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
-            , branchSize     = 3  
+            , exportSort     = ByHierarchy
+            , exportFilter   = [ByBranchSize 2]  
             }
 
 instance FromJSON Config
@@ -122,10 +124,16 @@ instance FromJSON TimeUnit
 instance ToJSON TimeUnit
 instance FromJSON ContextualUnit
 instance ToJSON ContextualUnit
-instance FromJSON Label
-instance ToJSON Label
+instance FromJSON PhyloLabel
+instance ToJSON PhyloLabel
 instance FromJSON Tagger
 instance ToJSON Tagger
+instance FromJSON Sort
+instance ToJSON Sort
+instance FromJSON Order
+instance ToJSON Order
+instance FromJSON Filter
+instance ToJSON Filter
 
 
 -- | Software parameters
@@ -303,9 +311,15 @@ data PhyloFis = PhyloFis
 
 type DotId = TextLazy.Text
 
+data Filter = ByBranchSize { _branch_size :: Double } deriving (Show,Generic,Eq)
+
+data Order = Asc | Desc deriving (Show,Generic,Eq)
+
+data Sort = ByBirthDate { _sort_order :: Order } | ByHierarchy deriving (Show,Generic,Eq)
+
 data Tagger = MostInclusive | MostEmergentInclusive deriving (Show,Generic,Eq)
 
-data Label = 
+data PhyloLabel = 
       BranchLabel
       { _branch_labelTagger :: Tagger
       , _branch_labelSize   :: Int }
@@ -317,7 +331,9 @@ data Label =
 data PhyloBranch =
       PhyloBranch
       { _branch_id :: PhyloBranchId
-      , _branch_label :: Text 
+      , _branch_label   :: Text
+      , _branch_meta    :: Map Text [Double]
+      , _branch_cluster :: [Int]
       } deriving (Generic, Show)
 
 data PhyloExport =
@@ -333,7 +349,7 @@ data PhyloExport =
 makeLenses ''Config
 makeLenses ''Proximity
 makeLenses ''ContextualUnit
-makeLenses ''Label
+makeLenses ''PhyloLabel
 makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
 makeLenses ''PhyloFis

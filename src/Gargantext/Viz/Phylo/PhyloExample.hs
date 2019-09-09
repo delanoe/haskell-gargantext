@@ -82,7 +82,7 @@ nbDocsByYear = docsToTimeScaleNb docs
 config :: Config
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
-                  , branchSize = 0
+                  , exportFilter = [ByBranchSize 2]
                   , contextualUnit = Fis 0 0 }
 
 
