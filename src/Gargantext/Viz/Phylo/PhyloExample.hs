@@ -29,11 +29,20 @@ import Gargantext.Text.Terms.Mono (monoTexts)
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.PhyloMaker
+import Gargantext.Viz.Phylo.PhyloExport
 import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
 
 import Control.Lens
+import Data.GraphViz.Types.Generalised (DotGraph)
 
 import qualified Data.Vector as Vector
+
+
+phyloExport :: IO ()
+phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" phyloDot 
+
+phyloDot :: DotGraph DotId
+phyloDot = toPhyloExport phylo1
 
 
 -----------------------------------------------
@@ -82,7 +91,7 @@ nbDocsByYear = docsToTimeScaleNb docs
 config :: Config
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
-                  , exportFilter = [ByBranchSize 2]
+                  , exportFilter = [ByBranchSize 0]
                   , contextualUnit = Fis 0 0 }
 
 

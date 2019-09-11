@@ -46,7 +46,8 @@ toPhylo docs lst conf = phylo1
     where
         --------------------------------------
         phylo1 :: Phylo
-        phylo1 = toPhylo1 docs phyloBase
+        phylo1 = temporalMatching
+               $ toPhylo1 docs phyloBase
         --------------------------------------
         phyloBase :: Phylo 
         phyloBase = toPhyloBase docs lst conf

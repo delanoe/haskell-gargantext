@@ -105,8 +105,8 @@ defaultConfig =
             , outputPath     = ""
             , corpusParser   = Csv 1000
             , phyloName      = pack "Default Phylo"
-            , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 10 0 0.2
+            , phyloLevel     = 1
+            , phyloProximity = WeightedLogJaccard 10 0 0.1
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 2 4
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
@@ -311,6 +311,8 @@ data PhyloFis = PhyloFis
 
 type DotId = TextLazy.Text
 
+data EdgeType = GroupToGroup | BranchToGroup | BranchToBranch | PeriodToPeriod deriving (Show,Generic,Eq)
+
 data Filter = ByBranchSize { _branch_size :: Double } deriving (Show,Generic,Eq)
 
 data Order = Asc | Desc deriving (Show,Generic,Eq)
@@ -333,7 +335,6 @@ data PhyloBranch =
       { _branch_id :: PhyloBranchId
       , _branch_label   :: Text
       , _branch_meta    :: Map Text [Double]
-      , _branch_cluster :: [Int]
       } deriving (Generic, Show)
 
 data PhyloExport =

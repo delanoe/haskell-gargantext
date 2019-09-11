@@ -17,11 +17,12 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloExport where
 
-import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault)
-import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition)
+import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
+import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy)
 import Data.Text (Text)
 import Data.Vector (Vector)
 
+import Prelude (writeFile)
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools 
@@ -31,37 +32,196 @@ import Data.GraphViz hiding (DotGraph, Order)
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Attributes.Complete hiding (EdgeType, Order) 
 import Data.GraphViz.Types.Monadic
-import Data.Text.Lazy (fromStrict)
+import Data.Text.Lazy (fromStrict, pack, unpack)
+import System.FilePath
+import Debug.Trace (trace)
 
 import qualified Data.Text as Text
+import qualified Data.Text.Lazy as Lazy
+import qualified Data.GraphViz.Attributes.HTML as H
 
 --------------------
 -- | Dot export | --
 --------------------
 
+dotToFile :: FilePath -> DotGraph DotId -> IO ()
+dotToFile filePath dotG = writeFile filePath $ dotToString dotG
+
+dotToString :: DotGraph DotId  -> [Char]
+dotToString dotG = unpack (printDotGraph dotG)
+
+dynamicToColor :: Double -> H.Attribute
+dynamicToColor d 
+  | d == 0    = H.BGColor (toColor LightCoral)
+  | d == 1    = H.BGColor (toColor Khaki)
+  | d == 2    = H.BGColor (toColor SkyBlue)
+  | otherwise = H.Color   (toColor Black)
+
+pickLabelColor :: [Double] -> H.Attribute
+pickLabelColor lst
+  | elem 0 lst = dynamicToColor 0
+  | elem 2 lst = dynamicToColor 2
+  | elem 1 lst = dynamicToColor 1
+  | otherwise  = dynamicToColor 3  
 
 toDotLabel :: Text.Text -> Label
 toDotLabel lbl = StrLabel $ fromStrict lbl
+
+toAttr :: AttributeName -> Lazy.Text -> CustomAttribute
+toAttr k v = customAttribute k v
+
+metaToAttr :: Map Text.Text [Double] -> [CustomAttribute]
+metaToAttr meta = map (\(k,v) -> toAttr (fromStrict k) $ (pack . unwords) $ map show v) $ toList meta
+
+groupIdToDotId :: PhyloGroupId -> DotId
+groupIdToDotId (((d,d'),lvl),idx) = (fromStrict . Text.pack) $ ("group" <> (show d) <> (show d') <> (show lvl) <> (show idx))
+
+branchIdToDotId :: PhyloBranchId -> DotId
+branchIdToDotId bId = (fromStrict . Text.pack) $ ("branch" <> show (snd bId))
+
+periodIdToDotId :: PhyloPeriodId -> DotId
+periodIdToDotId prd = (fromStrict . Text.pack) $ ("period" <> show (fst prd) <> show (snd prd))
+
+groupToTable :: Vector Ngrams -> PhyloGroup -> H.Label
+groupToTable fdt g = H.Table H.HTable
+                    { H.tableFontAttrs = Just [H.PointSize 14, H.Align H.HLeft]
+                    , H.tableAttrs = [H.Border 0, H.CellBorder 0, H.BGColor (toColor White)]
+                    , H.tableRows = [header]
+                                 <> [H.Cells [H.LabelCell [H.Height 10] $ H.Text [H.Str $ fromStrict ""]]]
+                                 <> ( map ngramsToRow $ splitEvery 4 
+                                    $ reverse $ sortOn (snd . snd)
+                                    $ zip (ngramsToText fdt (g ^. phylo_groupNgrams)) 
+                                    $ zip ((g ^. phylo_groupMeta) ! "dynamics") ((g ^. phylo_groupMeta) ! "inclusion"))}
+    where
+        --------------------------------------
+        ngramsToRow :: [(Ngrams,(Double,Double))] -> H.Row
+        ngramsToRow ns = H.Cells $ map (\(n,(d,_)) -> 
+                            H.LabelCell [H.Align H.HLeft,dynamicToColor d] $ H.Text [H.Str $ fromStrict n]) ns
+        --------------------------------------
+        header :: H.Row
+        header = 
+            H.Cells [ H.LabelCell [pickLabelColor ((g ^. phylo_groupMeta) ! "dynamics")] 
+                    $ H.Text [H.Str $ (((fromStrict . Text.toUpper) $ g ^. phylo_groupLabel)
+                                   <> (fromStrict " ( ")
+                                   <> (pack $ show (fst $ g ^. phylo_groupPeriod))
+                                   <> (fromStrict " , ")
+                                   <> (pack $ show (snd $ g ^. phylo_groupPeriod))
+                                   <> (fromStrict " ) "))]] 
+        --------------------------------------
+
+branchToDotNode :: PhyloBranch -> Dot DotId
+branchToDotNode b = 
+    node (branchIdToDotId $ b ^. branch_id)
+         ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ b ^. branch_label)]
+         <> (metaToAttr $ b ^. branch_meta)
+         <> [ toAttr "nodeType" "branch"
+            , toAttr "branchId" (pack $ show (snd $ b ^. branch_id)) ])
+ 
+periodToDotNode :: (Date,Date) -> Dot DotId
+periodToDotNode prd =
+    node (periodIdToDotId prd)
+         ([Shape Square, FontSize 50, Label (toDotLabel $ Text.pack (show (fst prd) <> " " <> show (snd prd)))]
+         <> [ toAttr "nodeType" "period" 
+            , toAttr "from" (fromStrict $ Text.pack $ (show $ fst prd))
+            , toAttr "to"   (fromStrict $ Text.pack $ (show $ snd prd))])
+
+
+groupToDotNode :: Vector Ngrams -> PhyloGroup -> Dot DotId
+groupToDotNode fdt g = 
+    node (groupIdToDotId $ getGroupId g)
+                     ([FontName "Arial", Shape Square, toLabel (groupToTable fdt g)]
+                      <> [ toAttr "nodeType" "group"
+                         , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
+                         , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
+                         , toAttr "branchId" (pack $ show (snd $ g ^. phylo_groupBranchId))])  
+
+
+toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
+toDotEdge from to lbl edgeType = edge from to
+    (case edgeType of
+        GroupToGroup   -> [ Width 2, Color [toWColor Black], Constraint True
+                          , Label (StrLabel $ fromStrict lbl)]
+        BranchToGroup  -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])
+                          , Label (StrLabel $ fromStrict lbl)]
+        BranchToBranch -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])
+                          , Label (StrLabel $ fromStrict lbl)]
+        PeriodToPeriod -> [ Width 5, Color [toWColor Black]])
+
+
+mergePointers :: [PhyloGroup] -> Map (PhyloGroupId,PhyloGroupId) Double
+mergePointers groups = 
+    let toChilds  = fromList $ concat $ map (\g -> map (\(to,w) -> ((getGroupId g,to),w)) $ g ^. phylo_groupPeriodChilds) groups
+        toParents = fromList $ concat $ map (\g -> map (\(to,w) -> ((to,getGroupId g),w)) $ g ^. phylo_groupPeriodParents) groups
+    in  unionWith (\w w' -> max w w') toChilds toParents
 
 
 exportToDot :: Phylo -> PhyloExport -> DotGraph DotId
 exportToDot phylo export = 
     digraph ((Str . fromStrict) $ (phyloName $ getConfig phylo)) $ do 
 
-    -- | set the global graph attributes
+        -- | 1) init the dot graph
+        graphAttrs ( [ Label (toDotLabel $ (phyloName $ getConfig phylo))]
+                  <> [ FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
+                     , Ratio FillRatio
+                     , Style [SItem Filled []],Color [toWColor White]])
 
-    graphAttrs ( [ Label (toDotLabel $ (phyloName $ getConfig phylo))]
-              <> [ FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
-                 , Ratio FillRatio
-                 , Style [SItem Filled []],Color [toWColor White]])
+        -- | 2) create a layer for the branches labels
+        subgraph (Str "Branches peaks") $ do 
 
-    -- | set the branches peaks layer
+            graphAttrs [Rank SameRank]
 
-    subgraph (Str "Peaks") $ do 
+            -- | 3) group the branches by hierarchy
+            mapM (\branches -> 
+                    subgraph (Str "Branches clade") $ do
+                        graphAttrs [Rank SameRank]
+
+                        -- | 4) create a node for each branch
+                        mapM branchToDotNode branches
+                ) $ elems $ fromListWith (++) $ map (\b -> ((init . snd) $ b ^. branch_id,[b])) $ export ^. export_branches
+
+        -- | 5) create a layer for each period
+        mapM (\period ->
+                subgraph ((Str . fromStrict . Text.pack) $ ("Period" <> show (fst period) <> show (snd period))) $ do 
+                    graphAttrs [Rank SameRank]
+                    periodToDotNode period
+
+                    -- | 6) create a node for each group 
+                    mapM (\g -> groupToDotNode (getRoots phylo) g) (filter (\g -> g ^. phylo_groupPeriod == period) $ export ^. export_groups)
+            ) $ getPeriodIds phylo
+
+        -- | 7) create the edges between a branch and its first groups
+        mapM (\(bId,groups) ->
+                mapM (\g -> toDotEdge (branchIdToDotId bId) (groupIdToDotId $ getGroupId g) "" BranchToGroup) groups 
+             )
+           $ toList
+           $ map (\groups -> head' "toDot" 
+                           $ groupBy (\g g' -> g' ^. phylo_groupPeriod == g ^. phylo_groupPeriod)
+                           $ sortOn (fst . _phylo_groupPeriod) groups) 
+           $ fromListWith (++) $ map (\g -> (g ^. phylo_groupBranchId,[g])) $ export ^. export_groups
+
+        -- | 8) create the edges between the groups
+        mapM (\((k,k'),w) -> 
+                toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToGroup
+            ) $ (toList . mergePointers) $ export ^. export_groups
+
+        -- | 7) create the edges between the periods 
+        mapM (\(prd,prd') ->
+                toDotEdge (periodIdToDotId prd) (periodIdToDotId prd') "" PeriodToPeriod
+            ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ getPeriodIds phylo
+
+        -- | 8) create the edges between the branches 
+        mapM (\(bId,bId') ->
+                toDotEdge (branchIdToDotId bId) (branchIdToDotId bId') 
+                (Text.pack $ show(branchIdsToProximity bId bId' 
+                                    (getThresholdInit $ phyloProximity $ getConfig phylo)
+                                    (getThresholdStep $ phyloProximity $ getConfig phylo))) BranchToBranch
+            ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ map _branch_id $ export ^. export_branches
+
 
         graphAttrs [Rank SameRank]
 
-        -- | group branches by clusters
+
+        
 
 
 ----------------
@@ -87,13 +247,16 @@ processFilters filters export =
 --------------
 
 sortByHierarchy :: Int -> [PhyloBranch] -> [PhyloBranch]
-sortByHierarchy depth branches 
-    | length branches == 1 = branches
-    | depth >= ((length . snd) $ (head' "sort" branches) ^. branch_id) = branches
-    | otherwise = concat 
-                $ map (\branches' -> sortByHierarchy (depth + 1) branches')
-                $ groupBy (\b b' -> ((take depth . snd) $ b ^. branch_id) == ((take depth . snd) $ b' ^. branch_id) )
-                $ sortOn (\b -> (take depth . snd) $ b ^. branch_id) branches
+sortByHierarchy depth branches =
+    if (length branches == 1)
+        then branches
+        else concat 
+           $ map (\branches' ->
+                    let parts = partition (\b -> depth + 1 == ((length . snd) $ b ^. branch_id)) branches'
+                    in  (sortOn (\b -> (b ^. branch_meta) ! "birth") (fst parts))
+                    ++  (sortByHierarchy (depth + 1) (snd parts))) 
+            $ groupBy (\b b' -> ((take depth . snd) $ b ^. branch_id) == ((take depth . snd) $ b' ^. branch_id) )
+            $ sortOn (\b -> (take depth . snd) $ b ^. branch_id) branches
 
 
 sortByBirthDate :: Order -> PhyloExport -> PhyloExport
@@ -221,7 +384,7 @@ processLabels labels foundations export =
                             _ -> panic "[ERR][Viz.Phylo.PhyloExport] unknown tagger"
                     BranchLabel tagger nth ->
                         case tagger of
-                            MostInclusive -> undefined
+                            MostInclusive -> mostInclusive nth foundations export'
                             _ -> panic "[ERR][Viz.Phylo.PhyloExport] unknown tagger" ) export labels 
 
 
@@ -284,8 +447,15 @@ toPhyloExport phylo = exportToDot phylo
         export = PhyloExport groups branches
         --------------------------------------
         branches :: [PhyloBranch] 
-        branches = map (\bId -> PhyloBranch bId "" empty ((init . snd) bId)) $ nub $ map _phylo_groupBranchId groups
+        branches = traceBranches $ map (\bId -> PhyloBranch bId "" empty) $ nub $ map _phylo_groupBranchId groups
         --------------------------------------    
         groups :: [PhyloGroup]
-        groups = processDynamics 
+        groups = traceGroups $ processDynamics 
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo) phylo
+
+
+traceBranches :: [PhyloBranch] -> [PhyloBranch]
+traceBranches branches = trace (">>>> nb branches : " <> show(length branches)) branches
+
+traceGroups :: [PhyloGroup] -> [PhyloGroup]
+traceGroups groups = trace (">>>> nb groups : " <> show(length groups)) groups

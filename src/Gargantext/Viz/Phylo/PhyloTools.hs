@@ -17,7 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail)
 import Data.Set (Set, size)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey)
 import Data.String (String)
@@ -283,6 +283,17 @@ getThresholdStep proxi = case proxi of
 ----------------
 -- | Branch | --
 ----------------
+
+intersectInit :: Eq a => [a] -> [a] -> [a] -> [a]
+intersectInit acc lst lst' =
+    if (null lst) || (null lst')
+    then acc
+    else if (head' "intersectInit" lst) == (head' "intersectInit" lst')
+         then intersectInit (acc ++ [head' "intersectInit" lst]) (tail lst) (tail lst')
+         else acc
+
+branchIdsToProximity :: PhyloBranchId -> PhyloBranchId -> Double -> Double -> Double
+branchIdsToProximity id id' thrInit thrStep = thrInit + thrStep * (fromIntegral $ length $ intersectInit [] (snd id) (snd id'))
 
 ngramsInBranches :: [[PhyloGroup]] -> [Int]
 ngramsInBranches branches = nub $ foldl (\acc g -> acc ++ (g ^. phylo_groupNgrams)) [] $ concat branches
