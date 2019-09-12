@@ -21,7 +21,6 @@ import Data.Map  (Map, fromList, fromListWith, filterWithKey, elems, restrictKey
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
-import Gargantext.Viz.Phylo.SynchronicClustering
 
 import Debug.Trace (trace)
 import Prelude (logBase)

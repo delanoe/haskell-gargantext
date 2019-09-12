@@ -17,9 +17,9 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, intersect, (\\))
 import Data.Set (Set, size)
-import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey)
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty)
 import Data.String (String)
 import Data.Text (Text, unwords)
 
@@ -178,7 +178,6 @@ getFisSize unit = case unit of
 -- | Cooc | --
 --------------
 
-
 listToCombi' :: [a] -> [(a,a)]
 listToCombi' l = [(x,y) | (x:rest) <- tails l,  y <- rest]
 
@@ -196,6 +195,15 @@ sumCooc cooc cooc' = unionWith (+) cooc cooc'
 
 getTrace :: Cooc -> Double 
 getTrace cooc = sum $ elems $ filterWithKey (\(k,k') _ -> k == k') cooc
+
+
+-- | To build the local cooc matrix of each phylogroup
+ngramsToCooc :: [Int] -> [Cooc] -> Cooc
+ngramsToCooc ngrams coocs =
+    let cooc  = foldl (\acc cooc' -> sumCooc acc cooc') empty coocs
+        pairs = listToKeys ngrams
+    in  filterWithKey (\k _ -> elem k pairs) cooc
+
 
 --------------------
 -- | PhyloGroup | --
@@ -224,6 +232,16 @@ getPeriodIds phylo = sortOn fst
                    $ keys
                    $ phylo ^. phylo_periods
 
+getLastLevel :: Phylo -> Level
+getLastLevel phylo = last' "lastLevel" $ getLevels phylo
+
+getLevels :: Phylo -> [Level]
+getLevels phylo = nub 
+                $ map snd
+                $ keys $ view ( phylo_periods
+                       .  traverse
+                       . phylo_periodLevels ) phylo
+
 
 getConfig :: Phylo -> Config
 getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
@@ -232,6 +250,11 @@ getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
 getRoots :: Phylo -> Vector Ngrams
 getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
 
+phyloToLastBranches :: Phylo -> [[PhyloGroup]]
+phyloToLastBranches phylo = elems 
+    $ fromListWith (++)
+    $ map (\g -> (g ^. phylo_groupBranchId, [g]))
+    $ getGroupsFromLevel (last' "byBranches" $ getLevels phylo) phylo
 
 getGroupsFromLevel :: Level -> Phylo -> [PhyloGroup]
 getGroupsFromLevel lvl phylo = 
@@ -258,6 +281,21 @@ updatePhyloGroups lvl m phylo =
                     if member id m 
                     then m ! id
                     else group ) phylo
+
+--------------------
+-- | Clustering | --
+--------------------
+
+
+relatedComponents :: Eq a => [[a]] -> [[a]]
+relatedComponents graphs = foldl' (\mem groups -> 
+  if (null mem)
+  then mem ++ [groups]
+  else 
+    let related = filter (\groups' -> (not . null) $ intersect groups groups') mem
+    in if (null related)
+       then mem ++ [groups]
+       else (mem \\ related) ++ [union groups (nub $ concat related)] ) [] graphs 
 
 
 -------------------

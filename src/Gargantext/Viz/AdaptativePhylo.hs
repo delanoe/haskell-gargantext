@@ -67,6 +67,13 @@ data Proximity =
     deriving (Show,Generic,Eq) 
 
 
+data Synchrony = 
+      ByProximityThreshold 
+      { _bpt_threshold :: Double }
+    | ByProximityDistribution 
+    deriving (Show,Generic,Eq)     
+
+
 data TimeUnit = 
       Year 
       { _year_period :: Int
@@ -90,6 +97,7 @@ data Config =
             , phyloName      :: Text
             , phyloLevel     :: Int
             , phyloProximity :: Proximity
+            , phyloSynchrony :: Synchrony
             , timeUnit       :: TimeUnit
             , contextualUnit :: ContextualUnit
             , exportLabel    :: [PhyloLabel]
@@ -107,6 +115,7 @@ defaultConfig =
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 1
             , phyloProximity = WeightedLogJaccard 10 0 0.1
+            , phyloSynchrony = ByProximityThreshold 0.4
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 2 4
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
@@ -134,6 +143,8 @@ instance FromJSON Order
 instance ToJSON Order
 instance FromJSON Filter
 instance ToJSON Filter
+instance FromJSON Synchrony
+instance ToJSON Synchrony
 
 
 -- | Software parameters

@@ -31,6 +31,7 @@ import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.PhyloMaker
 import Gargantext.Viz.Phylo.PhyloExport
 import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
+import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 
 import Control.Lens
 import Data.GraphViz.Types.Generalised (DotGraph)
@@ -42,8 +43,11 @@ phyloExport :: IO ()
 phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
-phyloDot = toPhyloExport phylo1
+phyloDot = toPhyloExport phylo2
 
+
+phylo2 :: Phylo
+phylo2 = synchronicClustering phylo1
 
 -----------------------------------------------
 -- | STEP 3 | -- Build the Level 1 of the Phylo
@@ -91,6 +95,7 @@ nbDocsByYear = docsToTimeScaleNb docs
 config :: Config
 config = 
     defaultConfig { phyloName  = "Cesar et Cleopatre"
+                  , phyloLevel = 2
                   , exportFilter = [ByBranchSize 0]
                   , contextualUnit = Fis 0 0 }
 

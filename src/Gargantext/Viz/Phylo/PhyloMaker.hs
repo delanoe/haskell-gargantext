@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloMaker where
 
 import Data.List (concat, nub, partition, sort, (++))
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), filterWithKey, restrictKeys)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys)
 import Data.Set (size)
 import Data.Vector (Vector)
 
@@ -24,6 +24,7 @@ import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
+import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 
@@ -46,7 +47,8 @@ toPhylo docs lst conf = phylo1
     where
         --------------------------------------
         phylo1 :: Phylo
-        phylo1 = temporalMatching
+        phylo1 = synchronicClustering
+               $ temporalMatching
                $ toPhylo1 docs phyloBase
         --------------------------------------
         phyloBase :: Phylo 
@@ -166,14 +168,6 @@ toPhyloFis phyloDocs support clique = traceFis "Filtered Fis"
 --------------------
 -- | Coocurency | --
 --------------------
-
-
--- | To build the local cooc matrix of each phylogroup
-ngramsToCooc :: [Int] -> [Cooc] -> Cooc
-ngramsToCooc ngrams coocs =
-    let cooc  = foldl (\acc cooc' -> sumCooc acc cooc') empty coocs
-        pairs = listToKeys ngrams
-    in  filterWithKey (\k _ -> elem k pairs) cooc
 
 
 -- | To transform the docs into a time map of coocurency matrix 
