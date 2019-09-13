@@ -33,6 +33,25 @@ import qualified Data.Vector as Vector
 import qualified Data.List as List
 import qualified Data.Set as Set
 
+------------
+-- | Io | --
+------------
+
+-- | To print an important message as an IO()
+printIOMsg :: String -> IO ()
+printIOMsg msg = 
+    putStrLn ( "\n"
+            <> "------------" 
+            <> "\n"
+            <> "-- | " <> msg <> "\n" )
+
+
+-- | To print a comment as an IO()
+printIOComment :: String -> IO ()
+printIOComment cmt =
+    putStrLn ( "\n" <> cmt <> "\n" )
+
+
 --------------
 -- | Misc | --
 --------------
@@ -232,6 +251,9 @@ getPeriodIds phylo = sortOn fst
                    $ keys
                    $ phylo ^. phylo_periods
 
+getLevelParentId :: PhyloGroup -> PhyloGroupId 
+getLevelParentId g = fst $ head' "getLevelParentId" $ g ^. phylo_groupLevelParents
+
 getLastLevel :: Phylo -> Level
 getLastLevel phylo = last' "lastLevel" $ getLevels phylo
 
@@ -282,6 +304,13 @@ updatePhyloGroups lvl m phylo =
                     then m ! id
                     else group ) phylo
 
+
+traceToPhylo :: Level -> Phylo -> Phylo
+traceToPhylo lvl phylo = 
+    trace ("\n" <> "-- | End of phylo making at level " <> show (lvl) <> " with "
+                <> show (length $ getGroupsFromLevel lvl phylo) <> " groups and "
+                <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel lvl phylo) <> " branches" <> "\n") phylo 
+
 --------------------
 -- | Clustering | --
 --------------------
@@ -296,6 +325,21 @@ relatedComponents graphs = foldl' (\mem groups ->
     in if (null related)
        then mem ++ [groups]
        else (mem \\ related) ++ [union groups (nub $ concat related)] ) [] graphs 
+
+
+traceSynchronyEnd :: Phylo -> Phylo
+traceSynchronyEnd phylo = 
+    trace ( "\n" <> "-- | End of synchronic clustering for level " <> show (getLastLevel phylo) 
+                 <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
+                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
+                 <> "\n" ) phylo
+
+traceSynchronyStart :: Phylo -> Phylo
+traceSynchronyStart phylo = 
+    trace ( "\n" <> "-- | Start of synchronic clustering for level " <> show (getLastLevel phylo) 
+                 <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
+                 <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
+                 <> "\n" ) phylo    
 
 
 -------------------

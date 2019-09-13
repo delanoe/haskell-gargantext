@@ -447,15 +447,12 @@ toPhyloExport phylo = exportToDot phylo
         export = PhyloExport groups branches
         --------------------------------------
         branches :: [PhyloBranch] 
-        branches = traceBranches $ map (\bId -> PhyloBranch bId "" empty) $ nub $ map _phylo_groupBranchId groups
+        branches = traceExportBranches $ map (\bId -> PhyloBranch bId "" empty) $ nub $ map _phylo_groupBranchId groups
         --------------------------------------    
         groups :: [PhyloGroup]
-        groups = traceGroups $ processDynamics 
+        groups = processDynamics 
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo) phylo
 
 
-traceBranches :: [PhyloBranch] -> [PhyloBranch]
-traceBranches branches = trace (">>>> nb branches : " <> show(length branches)) branches
-
-traceGroups :: [PhyloGroup] -> [PhyloGroup]
-traceGroups groups = trace (">>>> nb groups : " <> show(length groups)) groups
+traceExportBranches :: [PhyloBranch] -> [PhyloBranch]
+traceExportBranches branches = trace ("\n" <> "-- | Export " <> show(length branches) <> " branches") branches

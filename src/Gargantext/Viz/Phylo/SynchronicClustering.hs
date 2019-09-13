@@ -31,51 +31,56 @@ import Debug.Trace (trace)
 -- | New Level Maker | --
 -------------------------
 
-mergeGroups :: [Cooc] -> PhyloGroupId -> [PhyloGroup] -> PhyloGroup
-mergeGroups coocs id childs = 
+toBranchId :: PhyloGroup -> PhyloBranchId
+toBranchId child = ((child ^. phylo_groupLevel) + 1, snd (child ^. phylo_groupBranchId))
+
+mergeGroups :: [Cooc] -> PhyloGroupId -> Map PhyloGroupId PhyloGroupId -> [PhyloGroup] -> PhyloGroup
+mergeGroups coocs id mapIds childs = 
     let ngrams = (sort . nub . concat) $ map _phylo_groupNgrams childs
-    in PhyloGroup (fst $ fst id)
-                  (snd $ fst id)
-                  (snd id) 
-                  ""
-                  (sum $ map _phylo_groupSupport childs)
-                  ngrams
-                  (ngramsToCooc ngrams coocs)
-                  (((head' "mergeGroups" childs) ^. phylo_groupLevel) + 1, snd ((head' "mergeGroups" childs) ^. phylo_groupBranchId))
-                  empty
-                  []
-                  (map (\g -> (getGroupId g, 1)) childs)
-                  (concat $ map _phylo_groupPeriodParents childs)
-                  (concat $ map _phylo_groupPeriodChilds childs)
+    in PhyloGroup (fst $ fst id) (snd $ fst id) (snd id)  ""
+                  (sum $ map _phylo_groupSupport childs)  ngrams
+                  (ngramsToCooc ngrams coocs) (toBranchId (head' "mergeGroups" childs))
+                  empty [] (map (\g -> (getGroupId g, 1)) childs)
+                  (updatePointers $ concat $ map _phylo_groupPeriodParents childs)
+                  (updatePointers $ concat $ map _phylo_groupPeriodChilds  childs)
+    where 
+        updatePointers :: [Pointer] -> [Pointer]
+        updatePointers pointers = map (\(pId,w) -> (mapIds ! pId,w)) pointers
 
 
-addNewLevel :: Level -> Phylo -> Phylo
-addNewLevel lvl phylo = 
-  over ( phylo_periods
-       .  traverse ) 
-  (\phyloPrd ->
-      phyloPrd & phylo_periodLevels %~ (insert (phyloPrd ^. phylo_periodPeriod, lvl + 1)
-                                               (PhyloLevel (phyloPrd ^. phylo_periodPeriod) (lvl + 1) empty))) phylo
+addPhyloLevel :: Level -> Phylo -> Phylo
+addPhyloLevel lvl phylo = 
+  over ( phylo_periods .  traverse ) 
+       (\phyloPrd -> phyloPrd & phylo_periodLevels 
+                        %~ (insert (phyloPrd ^. phylo_periodPeriod, lvl) (PhyloLevel (phyloPrd ^. phylo_periodPeriod) lvl empty))) phylo
+
 
 toNextLevel :: Phylo -> [PhyloGroup] -> Phylo
 toNextLevel phylo groups = 
-    let level   = getLastLevel phylo
-        phylo'  = updatePhyloGroups level (fromList $ map (\g -> (getGroupId g, g)) groups) phylo
-        nextGroups = fromListWith (++)
-                   $ foldlWithKey (\acc k v -> 
-                        let group = mergeGroups (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [fst $ fst k]) k v
-                        in  acc ++ [(group ^. phylo_groupPeriod,[group])]) []
-                   $ fromListWith (++) $ map (\g -> (fst $ head' "nextGroups" $ g ^. phylo_groupLevelParents,[g])) groups
-    in  trace (">>>>>>>>>>>>>>>>>>>>>>>>" <> show (nextGroups)) over ( phylo_periods
-             .  traverse
-             . phylo_periodLevels
-             .  traverse
-             . filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == (level + 1))) 
-             (\phyloLvl -> if member (phyloLvl ^. phylo_levelPeriod) nextGroups
-                           then phyloLvl & phylo_levelGroups .~ fromList ( map (\g -> (getGroupId g,g))
-                                                                    $ nextGroups ! (phyloLvl ^. phylo_levelPeriod))
-                           else phyloLvl
-             ) $ addNewLevel level phylo'   
+    let curLvl = getLastLevel phylo
+        oldGroups = fromList $ map (\g -> (getGroupId g, getLevelParentId g)) groups
+        newGroups = fromListWith (++)
+                  -- | 5) group the parents by periods
+                  $ foldlWithKey (\acc id groups' ->
+                        -- | 4) create the parent group
+                        let parent = mergeGroups (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [(fst . fst) id]) id oldGroups groups'
+                        in  acc ++ [(parent ^. phylo_groupPeriod, [parent])]) []
+                  -- | 3) group the current groups by parentId
+                  $ fromListWith (++) $ map (\g -> (getLevelParentId g, [g])) groups
+    in  traceSynchronyEnd 
+      $ over ( phylo_periods . traverse . phylo_periodLevels . traverse
+             -- | 6) update each period at curLvl + 1
+             . filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == (curLvl + 1)))
+             -- | 7) by adding the parents
+             (\phyloLvl -> 
+                if member (phyloLvl ^. phylo_levelPeriod) newGroups
+                    then phyloLvl & phylo_levelGroups
+                            .~ fromList (map (\g -> (getGroupId g, g)) $ newGroups ! (phyloLvl ^. phylo_levelPeriod))
+                    else phyloLvl)
+      -- | 2) add the curLvl + 1 phyloLevel to the phylo
+      $ addPhyloLevel (curLvl + 1)
+      -- | 1) update the current groups (with level parent pointers) in the phylo
+      $ updatePhyloGroups curLvl (fromList $ map (\g -> (getGroupId g, g)) groups) phylo 
 
 
 --------------------
@@ -99,6 +104,9 @@ groupsToEdges prox thr docs groups =
 toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
 toRelatedComponents nodes edges = relatedComponents $ ((map (\((g,g'),_) -> [g,g']) edges) ++ (map (\g -> [g]) nodes)) 
 
+toParentId :: PhyloGroup -> PhyloGroupId
+toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1), child ^. phylo_groupIndex) 
+
 
 reduceBranch :: Proximity -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
 reduceBranch prox thr docs branch = 
@@ -106,15 +114,15 @@ reduceBranch prox thr docs branch =
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
     in  (concat . concat . elems)
-      $ mapWithKey (\prd groups ->
+      $ mapWithKey (\prd groups -> 
             -- | 2) for each period, transform the groups as a proximity graph filtered by a threshold
             let edges = groupsToEdges prox thr ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) groups
-            in  map (\(idx,comp) ->
+            in  map (\comp -> 
                     -- | 4) add to each groups their futur level parent group
-                    let parentId = (((head' "reduceBranch" comp) ^. phylo_groupPeriod, 1 + (head' "reduceBranch" comp) ^. phylo_groupLevel), idx)
+                    let parentId = toParentId (head' "parentId" comp)
                     in  map (\g -> g & phylo_groupLevelParents %~ (++ [(parentId,1)]) ) comp )
                 -- |3) reduce the graph a a set of related components
-              $ zip [1..] (toRelatedComponents groups edges)) periods 
+              $ toRelatedComponents groups edges) periods 
 
 
 synchronicClustering :: Phylo -> Phylo
@@ -123,5 +131,6 @@ synchronicClustering phylo =
         ByProximityThreshold thr -> toNextLevel phylo  
                                   $ concat 
                                   $ map (\branch -> reduceBranch (phyloProximity $ getConfig phylo) thr (phylo ^. phylo_timeDocs) branch) 
-                                  $ phyloToLastBranches phylo
+                                  $ phyloToLastBranches 
+                                  $ traceSynchronyStart phylo
         ByProximityDistribution  -> undefined 

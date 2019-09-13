@@ -43,13 +43,14 @@ import qualified Data.Set as Set
 
 
 toPhylo :: [Document] -> TermList -> Config -> Phylo
-toPhylo docs lst conf = phylo1
+toPhylo docs lst conf = traceToPhylo (phyloLevel conf) $
+    if (phyloLevel conf) > 1
+      then foldl' (\phylo' _ -> synchronicClustering phylo') phylo1 [2..(phyloLevel conf)]
+      else phylo1 
     where
         --------------------------------------
         phylo1 :: Phylo
-        phylo1 = synchronicClustering
-               $ temporalMatching
-               $ toPhylo1 docs phyloBase
+        phylo1 = toPhylo1 docs phyloBase
         --------------------------------------
         phyloBase :: Phylo 
         phyloBase = toPhyloBase docs lst conf
@@ -230,4 +231,4 @@ toPhyloBase docs lst conf =
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
                params
-               (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels (phyloLevel conf) prd))) periods)
+               (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels 1 prd))) periods)

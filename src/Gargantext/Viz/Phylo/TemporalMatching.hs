@@ -260,19 +260,19 @@ groupsToBranches groups =
 recursiveMatching :: Proximity -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> Double -> [[PhyloGroup]] -> [PhyloGroup]
 recursiveMatching proximity thr frame periods docs quality branches =
     if (length branches == (length $ concat branches))
-        then concat $ traceMatchNoSplit branches
+        then concat branches
     else if thr > 1
-        then concat $ traceMatchLimit branches
+        then concat branches
     else  
         case quality <= (sum nextQualities) of
-                    -- | success : the new threshold improves the quality score, let's go deeper
+                    -- | success : the new threshold improves the quality score, let's go deeper (traceMatchSuccess thr quality (sum nextQualities))
             True  -> concat
                    $ map (\branches' ->
                             let idx = fromJust $ elemIndex branches' nextBranches 
                             in  recursiveMatching proximity (thr + (getThresholdStep proximity)) frame periods docs (nextQualities !! idx) branches')
-                   $ traceMatchSuccess thr quality (sum nextQualities) nextBranches
-                    -- | failure : last step was a local maximum of quality, let's validate it
-            False -> concat $ traceMatchFailure thr quality (sum nextQualities) branches
+                   $ nextBranches
+                    -- | failure : last step was a local maximum of quality, let's validate it (traceMatchFailure thr quality (sum nextQualities))
+            False -> concat branches
     where
         -- | 2) for each of the possible next branches process the phyloQuality score
         nextQualities :: [Double]

@@ -26,7 +26,7 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Maybe (isJust, fromJust)
 import Data.List  (concat, nub, isSuffixOf, take)
 import Data.String (String)
-import Data.Text  (Text, unwords)
+import Data.Text  (Text, unwords, unpack)
 
 import Gargantext.Prelude
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
@@ -36,7 +36,9 @@ import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Text.List.CSV (csvGraphTermList)
 import Gargantext.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
 import Gargantext.Viz.AdaptativePhylo
-import Gargantext.Viz.Phylo.PhyloMaker (toPhylo)
+import Gargantext.Viz.Phylo.PhyloMaker  (toPhylo)
+import Gargantext.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment)
+import Gargantext.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 
 import GHC.IO (FilePath) 
 import Prelude (Either(..))
@@ -52,21 +54,6 @@ import qualified Gargantext.Text.Corpus.Parsers.CSV as Csv
 ---------------
 -- | Tools | --
 ---------------
-
-
--- | To print an important message as an IO()
-printIOMsg :: String -> IO ()
-printIOMsg msg = 
-    putStrLn ( "\n"
-            <> "------------" 
-            <> "\n"
-            <> "-- | " <> msg <> "\n" )
-
-
--- | To print a comment as an IO()
-printIOComment :: String -> IO ()
-printIOComment cmt =
-    putStrLn ( "\n" <> cmt <> "\n" )
 
 
 -- | To get all the files in a directory or just a file
@@ -166,6 +153,17 @@ main = do
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 
             printIOMsg "Reconstruct the Phylo"
+            
             let phylo = toPhylo corpus mapList config
 
-            printIOMsg "End of reconstruction"
+            printIOMsg "End of reconstruction, start the export"
+
+            let dot = toPhyloExport phylo
+
+            printIOMsg "End of export to dot"
+
+            let output = (outputPath config) 
+                      <> (unpack $ phyloName config)
+                      <> "_V2.dot"
+
+            dotToFile output dot

@@ -45,7 +45,6 @@ phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" 
 phyloDot :: DotGraph DotId
 phyloDot = toPhyloExport phylo2
 
-
 phylo2 :: Phylo
 phylo2 = synchronicClustering phylo1
 
