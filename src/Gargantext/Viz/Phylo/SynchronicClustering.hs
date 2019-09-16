@@ -24,7 +24,7 @@ import Data.List ((++), null, intersect, nub, concat, sort)
 import Data.Map (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
 
 import Control.Lens hiding (Level)
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 
 
 -------------------------
@@ -117,7 +117,7 @@ reduceBranch prox thr docs branch =
       $ mapWithKey (\prd groups -> 
             -- | 2) for each period, transform the groups as a proximity graph filtered by a threshold
             let edges = groupsToEdges prox thr ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) groups
-            in  map (\comp -> 
+             in map (\comp -> 
                     -- | 4) add to each groups their futur level parent group
                     let parentId = toParentId (head' "parentId" comp)
                     in  map (\g -> g & phylo_groupLevelParents %~ (++ [(parentId,1)]) ) comp )

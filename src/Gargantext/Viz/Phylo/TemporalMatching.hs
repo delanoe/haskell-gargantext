@@ -25,6 +25,7 @@ import Gargantext.Viz.Phylo.PhyloTools
 import Debug.Trace (trace)
 import Prelude (logBase)
 import Control.Lens hiding (Level)
+import Control.Parallel.Strategies (parList, rdeepseq, using)
 
 import qualified Data.Set as Set
 
@@ -178,14 +179,16 @@ getCandidates fil ego pIds targets =
 
 processMatching :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
 processMatching max' periods proximity thr docs groups =
-    map (\group -> 
-            let childs  = getCandidates ToChilds  group
-                                        (getNextPeriods ToChilds  max' (group ^. phylo_groupPeriod) periods) groups
-                parents = getCandidates ToParents group
-                                        (getNextPeriods ToParents max' (group ^. phylo_groupPeriod) periods) groups
-            in phyloGroupMatching parents ToParents proximity docs thr
-             $ phyloGroupMatching childs  ToChilds  proximity docs thr group
-        ) groups
+    let branche  =  map (\group -> 
+                        let childs  = getCandidates ToChilds  group
+                                                    (getNextPeriods ToChilds  max' (group ^. phylo_groupPeriod) periods) groups
+                            parents = getCandidates ToParents group
+                                                    (getNextPeriods ToParents max' (group ^. phylo_groupPeriod) periods) groups
+                        in phyloGroupMatching parents ToParents proximity docs thr
+                         $ phyloGroupMatching childs  ToChilds  proximity docs thr group
+                    ) groups
+        branche' = branche `using` parList rdeepseq
+     in branche'
 
 
 -----------------------
@@ -279,10 +282,15 @@ recursiveMatching proximity thr frame periods docs quality branches =
         nextQualities = map toPhyloQuality nextBranches
         -- | 1) for each local branch process a temporal matching then find the resulting branches
         nextBranches :: [[[PhyloGroup]]]
-        nextBranches = map (\branch -> 
+        nextBranches = 
+           -- let next  = 
+                        map (\branch -> 
                                 let branch' = processMatching frame periods proximity thr docs branch
                                 in  groupsToBranches $ fromList $ map (\group -> (getGroupId group, group)) branch'
                            ) branches
+            --    next' = next `using` parList rdeepseq
+            -- in next
+
 
 
 temporalMatching :: Phylo -> Phylo

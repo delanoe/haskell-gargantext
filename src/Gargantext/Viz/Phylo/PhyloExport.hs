@@ -19,7 +19,6 @@ module Gargantext.Viz.Phylo.PhyloExport where
 
 import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
 import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy)
-import Data.Text (Text)
 import Data.Vector (Vector)
 
 import Prelude (writeFile)
@@ -137,7 +136,7 @@ groupToDotNode fdt g =
 
 
 toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
-toDotEdge from to lbl edgeType = edge from to
+toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
         GroupToGroup   -> [ Width 2, Color [toWColor Black], Constraint True
                           , Label (StrLabel $ fromStrict lbl)]
@@ -150,8 +149,8 @@ toDotEdge from to lbl edgeType = edge from to
 
 mergePointers :: [PhyloGroup] -> Map (PhyloGroupId,PhyloGroupId) Double
 mergePointers groups = 
-    let toChilds  = fromList $ concat $ map (\g -> map (\(to,w) -> ((getGroupId g,to),w)) $ g ^. phylo_groupPeriodChilds) groups
-        toParents = fromList $ concat $ map (\g -> map (\(to,w) -> ((to,getGroupId g),w)) $ g ^. phylo_groupPeriodParents) groups
+    let toChilds  = fromList $ concat $ map (\g -> map (\(target,w) -> ((getGroupId g,target),w)) $ g ^. phylo_groupPeriodChilds) groups
+        toParents = fromList $ concat $ map (\g -> map (\(target,w) -> ((target,getGroupId g),w)) $ g ^. phylo_groupPeriodParents) groups
     in  unionWith (\w w' -> max w w') toChilds toParents
 
 
@@ -180,7 +179,7 @@ exportToDot phylo export =
                 ) $ elems $ fromListWith (++) $ map (\b -> ((init . snd) $ b ^. branch_id,[b])) $ export ^. export_branches
 
         -- | 5) create a layer for each period
-        mapM (\period ->
+        _ <- mapM (\period ->
                 subgraph ((Str . fromStrict . Text.pack) $ ("Period" <> show (fst period) <> show (snd period))) $ do 
                     graphAttrs [Rank SameRank]
                     periodToDotNode period
@@ -190,7 +189,7 @@ exportToDot phylo export =
             ) $ getPeriodIds phylo
 
         -- | 7) create the edges between a branch and its first groups
-        mapM (\(bId,groups) ->
+        _ <- mapM (\(bId,groups) ->
                 mapM (\g -> toDotEdge (branchIdToDotId bId) (groupIdToDotId $ getGroupId g) "" BranchToGroup) groups 
              )
            $ toList
@@ -200,17 +199,17 @@ exportToDot phylo export =
            $ fromListWith (++) $ map (\g -> (g ^. phylo_groupBranchId,[g])) $ export ^. export_groups
 
         -- | 8) create the edges between the groups
-        mapM (\((k,k'),w) -> 
+        _ <- mapM (\((k,k'),_) -> 
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToGroup
             ) $ (toList . mergePointers) $ export ^. export_groups
 
         -- | 7) create the edges between the periods 
-        mapM (\(prd,prd') ->
+        _ <- mapM (\(prd,prd') ->
                 toDotEdge (periodIdToDotId prd) (periodIdToDotId prd') "" PeriodToPeriod
             ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ getPeriodIds phylo
 
         -- | 8) create the edges between the branches 
-        mapM (\(bId,bId') ->
+        _ <- mapM (\(bId,bId') ->
                 toDotEdge (branchIdToDotId bId) (branchIdToDotId bId') 
                 (Text.pack $ show(branchIdsToProximity bId bId' 
                                     (getThresholdInit $ phyloProximity $ getConfig phylo)
@@ -239,7 +238,6 @@ processFilters :: [Filter] -> PhyloExport -> PhyloExport
 processFilters filters export = 
     foldl (\export' f -> case f of 
                 ByBranchSize thr -> filterByBranchSize thr export'
-                _ -> export' 
         ) export filters
 
 --------------
@@ -252,9 +250,9 @@ sortByHierarchy depth branches =
         then branches
         else concat 
            $ map (\branches' ->
-                    let parts = partition (\b -> depth + 1 == ((length . snd) $ b ^. branch_id)) branches'
-                    in  (sortOn (\b -> (b ^. branch_meta) ! "birth") (fst parts))
-                    ++  (sortByHierarchy (depth + 1) (snd parts))) 
+                    let partitions = partition (\b -> depth + 1 == ((length . snd) $ b ^. branch_id)) branches'
+                    in  (sortOn (\b -> (b ^. branch_meta) ! "birth") (fst partitions))
+                    ++  (sortByHierarchy (depth + 1) (snd partitions))) 
             $ groupBy (\b b' -> ((take depth . snd) $ b ^. branch_id) == ((take depth . snd) $ b' ^. branch_id) )
             $ sortOn (\b -> (take depth . snd) $ b ^. branch_id) branches
 
@@ -396,7 +394,6 @@ processLabels labels foundations export =
 toDynamics :: Int -> [PhyloGroup] -> PhyloGroup -> Map Int (Date,Date) -> Double
 toDynamics n parents group m = 
     let prd = group ^. phylo_groupPeriod
-        bid = group ^. phylo_groupBranchId
         end = last' "dynamics" (sort $ map snd $ elems m)
     in  if (((snd prd) == (snd $ m ! n)) && (snd prd /= end))
             -- | decrease

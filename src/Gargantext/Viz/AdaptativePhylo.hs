@@ -286,7 +286,7 @@ data PhyloGroup =
                  , _phylo_groupPeriodParents :: [Pointer]
                  , _phylo_groupPeriodChilds  :: [Pointer]
                  }
-                 deriving (Generic, Show, Eq)
+                 deriving (Generic, Show, Eq, NFData)
 
 -- | Weight : A generic mesure that can be associated with an Id
 type Weight = Double
