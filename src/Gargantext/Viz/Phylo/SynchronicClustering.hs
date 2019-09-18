@@ -24,7 +24,7 @@ import Data.List ((++), null, intersect, nub, concat, sort)
 import Data.Map (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
 
 import Control.Lens hiding (Level)
--- import Debug.Trace (trace)
+import Control.Parallel.Strategies (parList, rdeepseq, using)
 
 
 -------------------------
@@ -92,31 +92,34 @@ toPairs :: [PhyloGroup] -> [(PhyloGroup,PhyloGroup)]
 toPairs groups = filter (\(g,g') -> (not . null) $ intersect (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))
                $ listToCombi' groups
 
-groupsToEdges :: Proximity -> Double -> Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
-groupsToEdges prox thr docs groups =
+groupsToEdges :: Proximity -> Double -> Double -> Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
+groupsToEdges prox thr sens docs groups =
     case prox of
-        WeightedLogJaccard sens _ _ -> filter (\(_,w) -> w >= thr)
-                                     $ map (\(g,g') -> ((g,g'), weightedLogJaccard sens docs (g ^. phylo_groupCooc) (g' ^. phylo_groupCooc) (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) 
-                                     $ toPairs groups
+        WeightedLogJaccard _ _ _ -> filter (\(_,w) -> w >= thr)
+                                  $ map (\(g,g') -> ((g,g'), weightedLogJaccard sens docs (g ^. phylo_groupCooc) (g' ^. phylo_groupCooc) (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) 
+                                  $ toPairs groups
         _ -> undefined 
 
 
 toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
-toRelatedComponents nodes edges = relatedComponents $ ((map (\((g,g'),_) -> [g,g']) edges) ++ (map (\g -> [g]) nodes)) 
+toRelatedComponents nodes edges = 
+  let ref = fromList $ map (\g -> (getGroupId g, g)) nodes
+      clusters = relatedComponents $ ((map (\((g,g'),_) -> [getGroupId g, getGroupId g']) edges) ++ (map (\g -> [getGroupId g]) nodes)) 
+   in map (\cluster -> map (\gId -> ref ! gId) cluster) clusters 
 
 toParentId :: PhyloGroup -> PhyloGroupId
 toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1), child ^. phylo_groupIndex) 
 
 
-reduceBranch :: Proximity -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
-reduceBranch prox thr docs branch = 
+reduceBranch :: Proximity -> Double -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
+reduceBranch prox thr sens docs branch = 
     -- | 1) reduce a branch as a set of periods & groups
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
     in  (concat . concat . elems)
       $ mapWithKey (\prd groups -> 
             -- | 2) for each period, transform the groups as a proximity graph filtered by a threshold
-            let edges = groupsToEdges prox thr ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) groups
+            let edges = groupsToEdges prox thr sens ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) groups
              in map (\comp -> 
                     -- | 4) add to each groups their futur level parent group
                     let parentId = toParentId (head' "parentId" comp)
@@ -128,9 +131,12 @@ reduceBranch prox thr docs branch =
 synchronicClustering :: Phylo -> Phylo
 synchronicClustering phylo = 
     case (phyloSynchrony $ getConfig phylo) of
-        ByProximityThreshold thr -> toNextLevel phylo  
-                                  $ concat 
-                                  $ map (\branch -> reduceBranch (phyloProximity $ getConfig phylo) thr (phylo ^. phylo_timeDocs) branch) 
-                                  $ phyloToLastBranches 
-                                  $ traceSynchronyStart phylo
+        ByProximityThreshold t s -> 
+          let prox = phyloProximity $ getConfig phylo
+              docs = phylo ^. phylo_timeDocs
+              branches  = map (\branch -> reduceBranch prox t s docs branch)
+                        $ phyloToLastBranches 
+                        $ traceSynchronyStart phylo
+              branches' = branches `using` parList rdeepseq
+           in toNextLevel phylo $ concat branches'
         ByProximityDistribution  -> undefined 

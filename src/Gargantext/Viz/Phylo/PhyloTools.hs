@@ -17,14 +17,16 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, intersect, (\\))
-import Data.Set (Set, size)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition)
+import Data.Set (Set, size, disjoint)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty)
 import Data.String (String)
 import Data.Text (Text, unwords)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
+import Text.Printf
+
 
 import Debug.Trace (trace)
 import Control.Lens hiding (Level)
@@ -55,6 +57,10 @@ printIOComment cmt =
 --------------
 -- | Misc | --
 --------------
+
+
+roundToStr :: (PrintfArg a, Floating a) => Int -> a -> String
+roundToStr = printf "%0.*f"
 
 
 countSup :: Double -> [Double] -> Int
@@ -231,6 +237,30 @@ ngramsToCooc ngrams coocs =
 getGroupId :: PhyloGroup -> PhyloGroupId 
 getGroupId group = ((group ^. phylo_groupPeriod, group ^. phylo_groupLevel), group ^. phylo_groupIndex)
 
+groupByField :: Ord a => (PhyloGroup -> a) -> [PhyloGroup] ->  Map a [PhyloGroup]
+groupByField toField groups = fromListWith (++) $ map (\g -> (toField g, [g])) groups
+
+getPeriodPointers :: Filiation -> PhyloGroup -> [Pointer]
+getPeriodPointers fil group = 
+    case fil of 
+        ToChilds  -> group ^. phylo_groupPeriodChilds
+        ToParents -> group ^. phylo_groupPeriodParents
+
+filterProximity :: Proximity -> Double -> Double -> Bool
+filterProximity proximity thr local = 
+    case proximity of
+        WeightedLogJaccard _ _ _ -> local >= thr
+        Hamming -> undefined        
+
+filterPointers :: Filiation -> PointerType -> Proximity -> Double -> PhyloGroup -> PhyloGroup
+filterPointers fil pty proximity thr group =
+    case pty of 
+        TemporalPointer -> case fil of 
+                                ToChilds  -> group & phylo_groupPeriodChilds  %~ (filter (\(_,w) -> filterProximity proximity thr w))
+                                ToParents -> group & phylo_groupPeriodParents %~ (filter (\(_,w) -> filterProximity proximity thr w))
+        LevelPointer    -> undefined
+
+
 ---------------
 -- | Phylo | --
 ---------------
@@ -315,28 +345,25 @@ traceToPhylo lvl phylo =
 -- | Clustering | --
 --------------------
 
-
-relatedComponents :: Eq a => [[a]] -> [[a]]
-relatedComponents graphs = foldl' (\mem groups -> 
-  if (null mem)
-  then mem ++ [groups]
-  else 
-    let related = filter (\groups' -> (not . null) $ intersect groups groups') mem
-    in if (null related)
-       then mem ++ [groups]
-       else (mem \\ related) ++ [union groups (nub $ concat related)] ) [] graphs 
+relatedComponents :: Ord a => [[a]] -> [[a]]
+relatedComponents graph = foldl' (\acc groups ->
+    if (null acc)
+    then acc ++ [groups]
+    else 
+        let acc' = partition (\groups' -> disjoint (Set.fromList groups') (Set.fromList groups)) acc
+         in (fst acc') ++ [nub $ concat $ (snd acc') ++ [groups]]) [] graph
 
 
 traceSynchronyEnd :: Phylo -> Phylo
 traceSynchronyEnd phylo = 
-    trace ( "\n" <> "-- | End of synchronic clustering for level " <> show (getLastLevel phylo) 
+    trace ( "\n" <> "-- | End synchronic clustering at level " <> show (getLastLevel phylo) 
                  <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
                  <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo
 
 traceSynchronyStart :: Phylo -> Phylo
 traceSynchronyStart phylo = 
-    trace ( "\n" <> "-- | Start of synchronic clustering for level " <> show (getLastLevel phylo) 
+    trace ( "\n" <> "-- | Start synchronic clustering at level " <> show (getLastLevel phylo) 
                  <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
                  <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo    
@@ -361,6 +388,15 @@ getThresholdStep proxi = case proxi of
     WeightedLogJaccard _ _ s -> s
     Hamming -> undefined  
 
+
+traceBranchMatching :: Proximity -> Double -> [PhyloGroup] -> [PhyloGroup]
+traceBranchMatching proxi thr groups = case proxi of 
+    WeightedLogJaccard _ i s -> trace (
+            roundToStr 2 thr <> " "
+         <> foldl (\acc _ -> acc <> ".") "." [(10*i),(10*i + 10*s)..(10*thr)]
+         <> " " <>  show(length groups) <> " groups"
+        ) groups 
+    Hamming -> undefined
 
 ----------------
 -- | Branch | --
@@ -420,5 +456,10 @@ traceMatchLimit branches =
 
 traceMatchEnd :: [PhyloGroup] -> [PhyloGroup]
 traceMatchEnd groups =
-    trace ("\n" <> "-- | End of temporal matching with " <> show (length $ nub $ map (\g -> g ^. phylo_groupBranchId) groups)
+    trace ("\n" <> "-- | End temporal matching with " <> show (length $ nub $ map (\g -> g ^. phylo_groupBranchId) groups)
                                                          <> " branches and " <> show (length groups) <> " groups" <> "\n") groups
+
+
+traceTemporalMatching :: [PhyloGroup] -> [PhyloGroup]
+traceTemporalMatching groups = 
+    trace ( "\n" <> "-- | Start temporal matching for " <> show(length groups) <> " groups" <> "\n") groups
