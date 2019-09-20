@@ -15,7 +15,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/hlcm.git
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
 - git: https://github.com/delanoe/servant-static-th.git
-  commit: 7d0e4dcd2cfe97f2843a70a0de10df32c309bcd1
+  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/delanoe/hstatistics.git
   commit: 90eef7604bb230644c2246eccd094d7bfefcb135
 - git: https://github.com/paulrzcz/HSvm.git
