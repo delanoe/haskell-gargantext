@@ -367,12 +367,13 @@ split inE t0 ts =
 ------------------------------------------------------------------------
 
 mainEleve :: Int -> [[Text]] -> [[[Text]]]
-mainEleve n x = mainEleve' n x x 
+mainEleve n x = mainEleve' n x x
 
 mainEleve' :: Int -> [[Text]] -> [[Text]] -> [[[Text]]]
 mainEleve' n x y = mainEleveWith x' n y
   where
     x' = buildTries n (fmap toToken x)
+  -- (fmap toToken i) is computed twice, since mainEleveWith is computing it too
 
 -- | This function should take the longest possible chain of:
 -- mainEleve'' n x y = maxChainSizeOf [ mainEleve' n x y
@@ -397,9 +398,9 @@ type Checks e = [(Text, Int, e, e, e, e, e, e, e, e, e)]
 testEleve :: e ~ Double => Bool -> Int -> [Text] -> Checks e -> IO Bool
 testEleve debug n output checks = do
   let
-    res = split n info_autonomy nt <$> inp
+    res = split (1 + n) info_autonomy nt <$> input
   when debug $ do
-    P.putStrLn $ show input
+    P.putStrLn . show $ (printToken <$>) <$> input
     P.putStrLn ""
     printTrie info_entropy nt
     P.putStrLn ""
@@ -411,14 +412,13 @@ testEleve debug n output checks = do
   where
     out      = T.words <$> output
     expected = fmap (T.splitOn "-") <$> out
-    input    = (T.splitOn "-" =<<) <$> out
-    inp      = toToken <$> input
+    input    = toToken . (T.splitOn "-" =<<) <$> out
 
     nt :: Tries Token (I Double)
     nt = normalizeEntropy info_entropy_var set_autonomy
        . evTrie identity set_entropy_var
        . entropyTrie isTerminal
-       $ buildTries n inp
+       $ buildTries n input
 
     check f msg ref my =
       if f ref my
@@ -445,7 +445,7 @@ testEleve debug n output checks = do
       check sim  "bwd_autonomy" bwd_autonomy (nodeEntropy info_autonomy    (_bwd nt'))
 
 -- | TODO real data is a list of tokenized sentences
-example0, example1, example2, example3, example4, example5, example6 :: [Text]
+example0, example1, example2, example3, example4, example5, example6, example7, example8, example9 :: [Text]
 example0 =  ["New-York is New-York and New-York"]
 example1 =  ["to-be or not to-be"]
 example2 =  ["to-be-or not to-be-or NOT to-be and"]
@@ -458,8 +458,13 @@ example6 =  ["le-petit chat"
             ,"le-petit rat"
             ,"le gros rat"
             ]
+example7 =  ["a-b d", "a-c e", "a-c", "a-b", "a-b", "a-c", "a-c", "a-b"]
+-- example8 =  ["z f", "z", "z", "z"] <> example7
+example8 =  ["z", "z", "z", "z"] <> example7 <> example7 <> example7
+example9 =  (T.replace "z" "a") <$> example8
+--example8 =  ["a-b d", "a-c e", "a f", "a-c g", "a-b h", "a i", "a j", "a-b k", "a-c l", "a-c m", "a n", "a-b o"]
 
-checks0, checks2 :: Checks Double
+checks0, checks2, checks7, checks8, checks9 :: Checks Double
 
 checks0 =
 -- [(token, count, entropy, ev, autonomy, fwd_entropy, fwd_ev, fwd_autonomy, bwd_entropy, bwd_ev, bwd_autonomy)]
@@ -498,8 +503,27 @@ checks2 = []
   ]
 -}
 
-runTestsEleve :: IO ()
-runTestsEleve =
+checks7 =
+  [ ("a b", 4, 2, 1.5, 1.0106455960380136, 2, 1, 0.7302967433402215, 2, 2, 1.2909944487358056)
+  , ("a c", 4, 2, 1.5, 1.0106455960380136, 2, 1, 0.7302967433402215, 2, 2, 1.2909944487358056)
+  , ("a", 8, 2, -0.7139421727208477, 0.9315597394596105, 1, -1.7139421727208477, 0.1695158759052029, 3, 0.2860578272791523, 1.693603603014018)
+  ]
+
+checks8 =
+  [ ("a b", 4, 2, 1.5, 1.2384061243840367, 2, 1, 0.9190418024406298, 2, 2, 1.5577704463274435)
+  , ("a c", 4, 2, 1.5, 1.2384061243840367, 2, 1, 0.9190418024406298, 2, 2, 1.5577704463274435)
+  , ("a", 8, 2, -1.1151193576322829, 0.8012882295122719, 1, -2.115119357632283, 1.1025957503820932e-2, 3, -0.11511935763228287, 1.5915505015207227)
+  , ("z", 4, 2, -1.1151193576322829, 0.9576679529201777, 2, -1.1151193576322829, 1.0906240295212841, 2, -1.1151193576322829, 0.8247118763190712)
+  ]
+
+checks9 =
+  [ ("a b", 4, 2, 0.8741854163060885, 0.9234576822288185, 2, -0.25162916738782304, 0.2891449181301934, 2, 2, 1.5577704463274435)
+  , ("a c", 4, 2, 0.8741854163060885, 0.9234576822288185, 2, -0.25162916738782304, 0.2891449181301934, 2, 2, 1.5577704463274435)
+  , ("a", 12, 2.91829583405449, 3.763498724462999e-2, 1.518835832034022, 2.251629167387823, -0.6290316794220367, 1.2162041043595873, 3.5849625007211565, 0.7043016539112967, 1.8214675597084569)
+  ]
+
+runTestsEleve :: Bool -> IO ()
+runTestsEleve doChecks =
   forM_
     [("example0", 3, example0, checks0)
     ,("example0", 2, example0, [])
@@ -509,9 +533,12 @@ runTestsEleve =
     ,("example4", 4, example4, [])
     ,("example5", 5, example5, [])
     ,("example6", 2, example6, [])
+    ,("example7", 2, example7, checks7)
+    ,("example8", 2, example8, checks8)
+    ,("example9", 2, example9, checks9)
     ]
     (\(name, n, ex, checks) -> do
       P.putStrLn $ name <> " " <> show n
-      b <- testEleve False n ex checks
+      b <- testEleve False n ex (if doChecks then checks else [])
       P.putStrLn $ "  splitting: " <> if b then "PASS" else "FAIL"
     )
