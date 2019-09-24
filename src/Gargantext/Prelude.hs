@@ -7,8 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -43,7 +41,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
-                 , pure, (>>=), (=<<), (<*>), (<$>)
+                 , pure, (>>=), (=<<), (<*>), (<$>), (>>)
                  , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
@@ -86,41 +84,6 @@ printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
 printDebug msg x = putStrLn $ msg <> " " <> show x
 -- printDebug _ _ = pure ()
 
-
-map2 :: (t -> b) -> [[t]] -> [[b]]
-map2 fun = map (map fun)
-
-
--- Some Statistics sugar functions
--- Exponential Average
-eavg :: [Double] -> Double
-eavg (x:xs) = a*x + (1-a)*(eavg xs)
-  where a = 0.70
-eavg [] = 0
-
--- Simple Average
-mean :: Fractional a => [a] -> a
-mean xs = sum xs / fromIntegral (length xs)
-
-
-sumMaybe :: Num a => [Maybe a] -> Maybe a
-sumMaybe = fmap sum . M.sequence
-
-variance :: Floating a => [a] -> a
-variance xs = sum ys  / (fromIntegral (length xs) - 1)
-  where
-    m = mean xs
-    ys = map (\x -> (x - m) ** 2) xs
-
-
-deviation :: Floating a => [a] -> a
-deviation = sqrt . variance
-
-movingAverage :: (Eq b, Fractional b) => Int -> [b] -> [b]
-movingAverage steps xs = map mean $ chunkAlong steps 1 xs
-
-ma :: [Double] -> [Double]
-ma = movingAverage 3
 
 -- | splitEvery n == chunkAlong n n
 splitEvery :: Int -> [a] -> [[a]]
@@ -176,7 +139,8 @@ chunkAlongV a b l = only (while  dropAlong)
 splitAlong :: [Int] -> [Char] -> [[Char]]
 splitAlong _ [] = [] -- No list? done
 splitAlong [] xs = [xs] -- No place to split at? Return the remainder
-splitAlong (x:xs) ys = take x ys : splitAlong xs (drop x ys) -- take until our split spot, recurse with next split spot and list remainder
+splitAlong (x:xs) ys = take x ys : splitAlong xs (drop x ys)
+-- take until our split spot, recurse with next split spot and list remainder
 
 takeWhileM :: (Monad m) => (a -> Bool) -> [m a] -> m [a]
 takeWhileM _ [] = return []
@@ -212,13 +176,11 @@ count2map xs = M.map (/ (fromIntegral (length xs))) (count2map' xs)
 count2map' :: (Ord k, Foldable t) => t k -> Map k Double
 count2map' xs = L.foldl' (\x y -> insertWith (+) y 1 x) M.empty xs
 
-
 trunc :: (RealFrac a, Integral c, Integral b) => b -> a -> c
 trunc n = truncate . (* 10^n)
 
 trunc' :: Int -> Double -> Double
 trunc' n x = fromIntegral $ truncate $ (x * 10^n)
-
 
 ------------------------------------------------------------------------
 bool2num :: Num a => Bool -> a
@@ -248,7 +210,7 @@ scaleNormalize xs = map (\x -> (x - v / (m + 1))) xs'
     where
         v   = variance  xs'
         m   = mean      xs'
-        xs' = map abs xs
+        xs' = map abs   xs
 
 normalize :: [Double] -> [Double]
 normalize as = normalizeWith identity as
@@ -269,8 +231,8 @@ zipSnd f xs = zip xs (f xs)
 maximumWith :: (Ord a1, Foldable t) => (a2 -> a1) -> t a2 -> a2
 maximumWith f = L.maximumBy (compare `on` f)
 
-
--- | To get all combinations of a list with no repetition and apply a function to the resulting list of pairs
+-- | To get all combinations of a list with no
+-- repetition and apply a function to the resulting list of pairs
 listToCombi :: forall a b. (a -> b) -> [a] -> [(b,b)]
 listToCombi f l = [ (f x, f y) | (x:rest) <- L.tails l,  y <- rest ]
 
@@ -305,5 +267,33 @@ init' :: Text -> [a] -> [a]
 init' = listSafeN "init" initMay
 
 ------------------------------------------------------------------------
+--- Some Statistics sugar functions
+-- Exponential Average
+eavg :: [Double] -> Double
+eavg (x:xs) = a*x + (1-a)*(eavg xs)
+  where a = 0.70
+eavg [] = 0
 
+-- Simple Average
+mean :: Fractional a => [a] -> a
+mean xs = sum xs / fromIntegral (length xs)
 
+sumMaybe :: Num a => [Maybe a] -> Maybe a
+sumMaybe = fmap sum . M.sequence
+
+variance :: Floating a => [a] -> a
+variance xs = sum ys  / (fromIntegral (length xs) - 1)
+  where
+    m = mean xs
+    ys = map (\x -> (x - m) ** 2) xs
+
+deviation :: Floating a => [a] -> a
+deviation = sqrt . variance
+
+movingAverage :: (Eq b, Fractional b) => Int -> [b] -> [b]
+movingAverage steps xs = map mean $ chunkAlong steps 1 xs
+
+ma :: [Double] -> [Double]
+ma = movingAverage 3
+
+-----------------------------------------------------------------------

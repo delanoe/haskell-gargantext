@@ -367,9 +367,12 @@ split inE t0 ts =
 ------------------------------------------------------------------------
 
 mainEleve :: Int -> [[Text]] -> [[[Text]]]
-mainEleve n i = mainEleveWith m n i
+mainEleve n x = mainEleve' n x x 
+
+mainEleve' :: Int -> [[Text]] -> [[Text]] -> [[[Text]]]
+mainEleve' n x y = mainEleveWith x' n y
   where
-    m = buildTries n (fmap toToken i)
+    x' = buildTries n (fmap toToken x)
 
 mainEleveWith :: Tries Token () -> Int -> [[Text]] -> [[[Text]]]
 mainEleveWith m n i = fmap (split n info_autonomy t) (fmap toToken i)
