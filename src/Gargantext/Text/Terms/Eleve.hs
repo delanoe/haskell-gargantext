@@ -375,7 +375,10 @@ mainEleve' n x y = mainEleveWith x' n y
     x' = buildTries n (fmap toToken x)
 
 -- | This function should take the longest possible chain of:
--- mainEleve'' n x y = maxChainWith [mainEleve' n x y, mainEleve' n x x]
+-- mainEleve'' n x y = maxChainSizeOf [ mainEleve' n x y
+--                                    , mainEleve' n x x
+--                                    , mainEleve' n y y
+--                                    ]
 mainEleve'' :: Int -> [[Text]] -> [[Text]] -> [[[Text]]]
 mainEleve'' = undefined
 
