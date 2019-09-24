@@ -41,9 +41,8 @@ import           Data.ByteString.Lazy (ByteString)
 import           Data.Either
 import           Data.Eq (Eq)
 import           Data.Monoid (mempty)
-import           Data.Text (Text, unpack, pack)
+import           Data.Text (Text, unpack)
 import           Data.Time (UTCTime)
-import           Data.Time.Segment (jour, timesAfter, Granularity(D))
 import           Data.Swagger
 
 import           Text.Read (read)
@@ -55,6 +54,8 @@ import           Servant
 
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck (elements)
+import           Test.QuickCheck.Instances.Time ()
+import           Test.QuickCheck.Instances.Text ()
 
 import           Gargantext.Prelude
 import           Gargantext.Core.Utils.Prefix (unPrefix)
@@ -132,12 +133,6 @@ type MasterUserId = UserId
 
 id2int :: NodeId -> Int
 id2int (NodeId n) = n
-
-
-type UTCTime' = UTCTime
-
-instance Arbitrary UTCTime' where
-    arbitrary = elements $ timesAfter 100 D (jour 2000 01 01)
 
 ------------------------------------------------------------------------
 data Status  = Status { status_failed    :: !Int
@@ -276,15 +271,13 @@ instance ToSchema Event where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 ------------------------------------------------------------------------
-instance Arbitrary Text where
-  arbitrary = elements $ map (\c -> pack [c]) ['a'..'z']
 
 data Resource = Resource { resource_path    :: !(Maybe Text)
                          , resource_scraper :: !(Maybe Text)
                          , resource_query   :: !(Maybe Text)
                          , resource_events  :: !([Event])
                          , resource_status  :: !Status
-                         , resource_date    :: !UTCTime'
+                         , resource_date    :: !UTCTime
                          } deriving (Show, Generic)
 $(deriveJSON (unPrefix "resource_") ''Resource)
 

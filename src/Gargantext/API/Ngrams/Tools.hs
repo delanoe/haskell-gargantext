@@ -33,6 +33,10 @@ import qualified Data.Set as Set
 
 type RootTerm = Text
 
+-- TODO-ACCESS: We want to do the security check before entering here.
+--              Add a static capability parameter would be nice.
+--              Ideally this is the access to `repoVar` which needs to
+--              be properly guarded.
 getListNgrams :: RepoCmdM env err m
                => [ListId] -> NgramsType
                -> m (Map Text NgramsRepoElement)

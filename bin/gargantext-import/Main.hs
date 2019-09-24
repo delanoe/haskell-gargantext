@@ -30,7 +30,7 @@ import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
 import Gargantext.Database.Schema.User (insertUsersDemo)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.API -- (GargError)
+import Gargantext.API.Types (GargError)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
 import System.Environment (getArgs)

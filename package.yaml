@@ -33,6 +33,7 @@ library:
     #  - Gargantext.API.Orchestrator
   - Gargantext.API.Search
   - Gargantext.API.Settings
+  - Gargantext.API.Types
   - Gargantext.Core
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Main
@@ -130,7 +131,7 @@ library:
   - hlcm
   - ini
   - insert-ordered-containers
-  - jose-jwt
+  - jose
     #  - kmeans-vector
   - json-stream
   - KMP
@@ -160,6 +161,7 @@ library:
   - simple-reflect
   - cereal     # (IGraph)
   - singletons # (IGraph)
+  - quickcheck-instances
   - random
   - rake
   - regex-compat
@@ -169,6 +171,8 @@ library:
   - semigroups
   - servant
   - servant-auth
+  - servant-auth-server >= 0.4.4.0
+  - servant-auth-swagger
   - servant-blaze
   - servant-client
     #  - servant-job

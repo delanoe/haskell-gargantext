@@ -16,6 +16,8 @@ Main authorisation of Gargantext are managed in this module
 -- 2: Implement the Auth API backend
     https://github.com/haskell-servant/servant-auth
 
+TODO-ACCESS Critical
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -28,15 +30,22 @@ Main authorisation of Gargantext are managed in this module
 module Gargantext.API.Auth
       where
 
+import Control.Lens (view)
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.List (elem)
 import Data.Swagger
 import Data.Text (Text, reverse)
+import Data.Text.Lazy (toStrict)
+import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
+import Servant.Auth.Server
 import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.API.Settings
+import Gargantext.API.Types (HasJoseError(..), joseError)
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Types.Node (NodePoly(_node_id), NodeId)
-import Gargantext.Database.Utils (Cmd)
+import Gargantext.Database.Utils (Cmd', HasConnection)
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -74,15 +83,30 @@ type TreeId = NodeId
 data CheckAuth = InvalidUser | InvalidPassword | Valid Token TreeId
   deriving (Eq)
 
-checkAuthRequest :: Username -> Password -> Cmd err CheckAuth
+makeTokenForUser :: (HasSettings env, HasJoseError err)
+                 => NodeId -> Cmd' env err Token
+makeTokenForUser uid = do
+  jwtS <- view $ settings . jwtSettings
+  e <- liftIO $ makeJWT (AuthenticatedUser uid) jwtS Nothing
+  -- TODO-SECURITY here we can implement token expiration ^^.
+  either joseError (pure . toStrict . decodeUtf8) e
+  -- TODO not sure about the encoding...
+
+checkAuthRequest :: (HasSettings env, HasConnection env, HasJoseError err)
+                 => Username -> Password -> Cmd' env err CheckAuth
 checkAuthRequest u p
   | not (u `elem` arbitraryUsername) = pure InvalidUser
   | u /= reverse p = pure InvalidPassword
   | otherwise = do
-      muId <- getRoot "user1"
-      pure $ maybe InvalidUser (Valid "token" . _node_id) $ head muId
+      muId <- head <$> getRoot "user1" -- TODO user1 hard-coded
+      case _node_id <$> muId of
+        Nothing  -> pure InvalidUser
+        Just uid -> do
+          token <- makeTokenForUser uid
+          pure $ Valid token uid
 
-auth :: AuthRequest -> Cmd err AuthResponse
+auth :: (HasSettings env, HasConnection env, HasJoseError err)
+     => AuthRequest -> Cmd' env err AuthResponse
 auth (AuthRequest u p) = do
   checkAuthRequest' <- checkAuthRequest u p
   case checkAuthRequest' of
@@ -90,9 +114,34 @@ auth (AuthRequest u p) = do
     InvalidPassword -> pure $ AuthResponse Nothing (Just $ AuthInvalid "Invalid password")
     Valid to trId   -> pure $ AuthResponse (Just $ AuthValid to trId) Nothing
 
+newtype AuthenticatedUser = AuthenticatedUser
+  { _au_id :: NodeId
+  } deriving (Generic)
+
+$(deriveJSON (unPrefix "_au_") ''AuthenticatedUser)
+instance ToSchema AuthenticatedUser
+instance ToJWT AuthenticatedUser
+instance FromJWT AuthenticatedUser
+
+--type instance BasicAuthCfg = BasicAuthData -> IO (AuthResult AuthenticatedUser)
+
+-- TODO-SECURITY why is the CookieSettings necessary?
+type AuthContext = '[JWTSettings, CookieSettings] -- , BasicAuthCfg
+
+{-
+instance FromBasicAuthData AuthenticatedUser where
+  fromBasicAuthData authData authCheckFunction = authCheckFunction authData
+
+authCheck :: forall env. env
+          -> BasicAuthData
+          -> IO (AuthResult AuthenticatedUser)
+authCheck _env (BasicAuthData login password) = pure $
+  maybe Indefinite Authenticated $ TODO
+-}
+
 -- | Instances
 $(deriveJSON (unPrefix "_authReq_") ''AuthRequest)
-instance ToSchema AuthRequest
+instance ToSchema AuthRequest -- TODO-SWAGGER unPrefix
 
 instance Arbitrary AuthRequest where
   arbitrary = elements [ AuthRequest u p
@@ -101,20 +150,20 @@ instance Arbitrary AuthRequest where
                        ]
 
 $(deriveJSON (unPrefix "_authRes_") ''AuthResponse)
-instance ToSchema AuthResponse
+instance ToSchema AuthResponse -- TODO-SWAGGER unPrefix
 instance Arbitrary AuthResponse where
   arbitrary = oneof [ AuthResponse Nothing . Just      <$> arbitrary
                     , flip AuthResponse Nothing . Just <$> arbitrary ]
 
 $(deriveJSON (unPrefix "_authInv_") ''AuthInvalid)
-instance ToSchema AuthInvalid
+instance ToSchema AuthInvalid -- TODO-SWAGGER unPrefix
 instance Arbitrary AuthInvalid where
   arbitrary = elements [ AuthInvalid m 
                        | m <- [ "Invalid user", "Invalid password"]
                        ]
 
 $(deriveJSON (unPrefix "_authVal_") ''AuthValid)
-instance ToSchema AuthValid
+instance ToSchema AuthValid -- TODO-SWAGGER unPrefix
 instance Arbitrary AuthValid where
   arbitrary = elements [ AuthValid to tr
                        | to <- ["token0", "token1"]

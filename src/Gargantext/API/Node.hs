@@ -7,6 +7,8 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+-- TODO-SECURITY: Critical
+
 -- TODO-ACCESS: CanGetNode
 -- TODO-EVENTS: No events as this is a read only query.
 Node API

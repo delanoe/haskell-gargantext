@@ -6,7 +6,7 @@ packages:
 
 docker:
   enable: false
-  repo: 'cgenie/stack-build:lts-12.26'
+  repo: 'fpco/stack-build:lts-14.6-garg'
 
 allow-newer: true
 extra-deps:

@@ -41,6 +41,7 @@ data Update = Rename NodeId Name
 unOnly :: Only a -> a
 unOnly (Only a) = a
 
+-- TODO-ACCESS
 update :: Update -> Cmd err [Int]
 update (Rename nId name) = map unOnly <$> runPGSQuery "UPDATE nodes SET name=? where id=? returning id"
                                            (DT.take 255 name,nId)

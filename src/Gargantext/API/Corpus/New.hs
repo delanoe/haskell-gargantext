@@ -70,6 +70,8 @@ type Api = Summary "New Corpus endpoint"
         :<|> Get '[JSON] ApiInfo
 
 -- | TODO manage several apis
+-- TODO-ACCESS
+-- TODO this is only the POST
 api :: (FlowCmdM env err m) => Query -> m CorpusId
 api (Query q _ as) = do
   cId <- case head as of

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-|
 Module      : Gargantext.API.Ngrams
 Description : Server API
@@ -32,6 +33,52 @@ add get
 {-# OPTIONS -fno-warn-orphans #-}
 
 module Gargantext.API.Ngrams
+  ( TableNgramsApi
+  , TableNgramsApiGet
+  , TableNgramsApiPut
+  , TableNgramsApiPost
+
+  , getTableNgrams
+  , putListNgrams
+  , tableNgramsPost
+  , apiNgramsTableCorpus
+  , apiNgramsTableDoc
+
+  , NgramsStatePatch
+  , NgramsTablePatch
+
+  , NgramsElement
+  , mkNgramsElement
+  , mergeNgramsElement
+
+  , RootParent(..)
+
+  , MSet
+  , mSetFromList
+  , mSetToList
+
+  , Repo(..)
+  , r_version
+  , r_state
+  , NgramsRepo
+  , NgramsRepoElement(..)
+  , saveRepo
+  , initRepo
+
+  , RepoEnv(..)
+  , renv_var
+  , renv_lock
+
+  , TabType(..)
+  , ngramsTypeFromTabType
+
+  , HasRepoVar(..)
+  , HasRepoSaver(..)
+  , HasRepo(..)
+  , RepoCmdM
+  , QueryParamR
+  , TODO(..)
+  )
   where
 
 -- import Debug.Trace (trace)
@@ -798,12 +845,14 @@ putListNgrams listId ngramsType nes = do
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
 
+-- TODO-ACCESS check
 tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> Maybe ListType -> [NgramsTerm] -> m ()
 tableNgramsPost tabType listId mayList =
   putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
+-- TODO-ACCESS check
 tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
                  => TabType -> ListId
                  -> Versioned NgramsTablePatch

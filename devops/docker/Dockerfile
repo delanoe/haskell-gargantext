@@ -1,4 +1,4 @@
-from fpco/stack-build:lts-12.26
+from fpco/stack-build:lts-14.6
 
 RUN apt-get update && \
     apt-get install -y git libigraph0-dev && \

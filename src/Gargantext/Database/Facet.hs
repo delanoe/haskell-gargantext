@@ -26,10 +26,22 @@ Portability : POSIX
 {-# LANGUAGE TypeFamilies              #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet
+  ( runViewAuthorsDoc
+  , runViewDocuments
+  , filterWith
+
+  , Pair(..)
+  , Facet(..)
+  , FacetDoc
+  , FacetDocRead
+  , FacetPaired(..)
+  , FacetPairedRead
+  , OrderBy(..)
+  )
   where
 ------------------------------------------------------------------------
 import Control.Arrow (returnA)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+-- import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
@@ -70,9 +82,9 @@ type Title    = Text
 
 -- TODO remove Title
 type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Favorite) (Maybe Double)
-type FacetSources = FacetDoc
-type FacetAuthors = FacetDoc
-type FacetTerms   = FacetDoc
+-- type FacetSources = FacetDoc
+-- type FacetAuthors = FacetDoc
+-- type FacetTerms   = FacetDoc
 
 
 data Facet id created title hyperdata favorite ngramCount = 
@@ -158,7 +170,7 @@ instance Arbitrary FacetDoc where
 -- Facets / Views for the Front End
 -- | Database instances
 $(makeAdaptorAndInstance "pFacetDoc" ''Facet)
-$(makeLensesWith abbreviatedFields   ''Facet)
+-- $(makeLensesWith abbreviatedFields   ''Facet)
 
 type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGTimestamptz)
@@ -196,6 +208,7 @@ instance Arbitrary OrderBy
     arbitrary = elements [minBound..maxBound]
 
 
+-- TODO-SECURITY check
 runViewAuthorsDoc :: ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
@@ -236,6 +249,7 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
 
 ------------------------------------------------------------------------
 
+-- TODO-SECURITY check
 runViewDocuments :: CorpusId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order =
     runOpaQuery $ filterWith o l order $ viewDocuments cId t ntId
