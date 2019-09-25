@@ -17,7 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy)
 import Data.Set (Set, size, disjoint)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty)
 import Data.String (String)
@@ -215,6 +215,9 @@ listToKeys lst = (listToCombi' lst) ++ (listToEqual' lst)
 listToMatrix :: [Int] -> Map (Int,Int) Double
 listToMatrix lst = fromList $ map (\k -> (k,1)) $ listToKeys $ sort lst
 
+listToSeq :: Eq a =>  [a] -> [(a,a)]
+listToSeq l = nubBy (\x y -> fst x == fst y) $ [ (x,y) | (x:rest) <- tails l,  y <- rest ]
+
 sumCooc :: Cooc -> Cooc -> Cooc
 sumCooc cooc cooc' = unionWith (+) cooc cooc'
 
@@ -251,14 +254,6 @@ filterProximity proximity thr local =
     case proximity of
         WeightedLogJaccard _ _ _ -> local >= thr
         Hamming -> undefined        
-
-filterPointers :: Filiation -> PointerType -> Proximity -> Double -> PhyloGroup -> PhyloGroup
-filterPointers fil pty proximity thr group =
-    case pty of 
-        TemporalPointer -> case fil of 
-                                ToChilds  -> group & phylo_groupPeriodChilds  %~ (filter (\(_,w) -> filterProximity proximity thr w))
-                                ToParents -> group & phylo_groupPeriodParents %~ (filter (\(_,w) -> filterProximity proximity thr w))
-        LevelPointer    -> undefined
 
 
 ---------------

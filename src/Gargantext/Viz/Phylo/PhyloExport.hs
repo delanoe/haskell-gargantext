@@ -162,7 +162,11 @@ exportToDot phylo export =
         graphAttrs ( [ Label (toDotLabel $ (phyloName $ getConfig phylo))]
                   <> [ FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
                      , Ratio FillRatio
-                     , Style [SItem Filled []],Color [toWColor White]])
+                     , Style [SItem Filled []],Color [toWColor White]
+                     , (toAttr (fromStrict "nbDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))])
+
+
+ -- toAttr (fromStrict k) $ (pack . unwords) $ map show v
 
         -- | 2) create a layer for the branches labels
         subgraph (Str "Branches peaks") $ do 

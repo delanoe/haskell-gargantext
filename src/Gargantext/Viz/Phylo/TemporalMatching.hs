@@ -15,7 +15,7 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.TemporalMatching where
 
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, elemIndex, (!!), dropWhile)
+import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, elemIndex, (!!), dropWhile, partition)
 import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, intersectionWith, findWithDefault, filterWithKey)
 
 import Gargantext.Prelude
@@ -25,6 +25,7 @@ import Gargantext.Viz.Phylo.PhyloTools
 import Prelude (logBase)
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
+-- import Debug.Trace (trace)
 
 import qualified Data.Set as Set
 
@@ -99,42 +100,78 @@ toProximity docs proximity ego target target' =
 
 
 -- | Find pairs of valuable candidates to be matched
-makePairs :: [PhyloGroup] -> [PhyloPeriodId] -> [(PhyloGroup,PhyloGroup)]
-makePairs candidates periods = case null periods of
+makePairs :: [PhyloGroup] -> [PhyloPeriodId] -> [PhyloPeriodId] -> [(PhyloGroup,PhyloGroup)]
+makePairs candidates periods periods' = case null periods of
     True  -> []
           -- | at least on of the pair candidates should be from the last added period
-    False -> filter (\(cdt,cdt') -> (inLastPeriod cdt periods)
-                                 || (inLastPeriod cdt' periods))
+    False -> filter (\(cdt,cdt') -> 
+                ((inLastPeriod cdt periods) || (inLastPeriod cdt' periods))
+             && (not $ inOldPeriods cdt  periods')
+             && (not $ inOldPeriods cdt' periods'))
            $ listToKeys candidates
     where 
         inLastPeriod :: PhyloGroup -> [PhyloPeriodId] -> Bool
         inLastPeriod g prds = (g ^. phylo_groupPeriod) == (last' "makePairs" prds)
+        --------------------------------------
+        inOldPeriods :: PhyloGroup -> [PhyloPeriodId] -> Bool
+        inOldPeriods g prds = elem (g ^. phylo_groupPeriod) prds
 
 
-phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> Double-> PhyloGroup -> PhyloGroup
+keepOldOnes :: Filiation -> Proximity -> Double -> PhyloGroup -> Bool
+keepOldOnes fil proxi thr ego = any (\(_,w) -> filterProximity proxi thr w)
+                              $ getPeriodPointers fil ego 
+
+filterPointers :: Proximity -> Double -> [Pointer] -> [Pointer]
+filterPointers proxi thr pts = filter (\(_,w) -> filterProximity proxi thr w) pts
+
+
+findLastPeriod :: Filiation -> [Pointer] -> PhyloPeriodId
+findLastPeriod fil pts = case fil of 
+    ToParents -> head' "findLastPeriod" $ sortOn fst $ map (fst . fst . fst) pts
+    ToChilds  -> head' "findLastPeriod" $ reverse $ sortOn fst $ map (fst . fst . fst) pts
+
+
+
+phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> Double -> PhyloGroup -> PhyloGroup
 phyloGroupMatching candidates fil proxi docs thr ego = 
-    case null (getPeriodPointers fil ego) of 
-        False -> filterPointers fil TemporalPointer proxi thr ego
-        True  -> case null pointers of
-                    True  -> addPointers ego fil TemporalPointer []
-                    False -> addPointers ego fil TemporalPointer
-                           $ head' "phyloGroupMatching"
-                           -- | Keep only the best set of pointers grouped by proximity
-                           $ groupBy (\pt pt' -> snd pt == snd pt')
-                           $ reverse $ sortOn snd $ head' "pointers" pointers
-                           -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
-    where 
+    if keepOldOnes fil proxi thr ego
+        -- | keep some of the old pointers 
+        then addPointers ego fil TemporalPointer
+           $ filterPointers proxi thr
+           $ getPeriodPointers fil ego 
+        else case null pointers of
+            -- | let's find new pointers
+            True  -> addPointers ego fil TemporalPointer []
+            False -> addPointers ego fil TemporalPointer
+                   $ head' "phyloGroupMatching"
+                   -- | Keep only the best set of pointers grouped by proximity
+                   $ groupBy (\pt pt' -> snd pt == snd pt')
+                   $ reverse $ sortOn snd $ head' "pointers" pointers
+                   -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
+    where
+        --------------------------------------
+        oldPeriods :: [PhyloPeriodId] -> [PhyloPeriodId]
+        oldPeriods periods = 
+            if (null $ getPeriodPointers fil ego) 
+                then []
+                else 
+                    let period = findLastPeriod fil $ getPeriodPointers fil ego
+                     in fst $ partition (\prd -> case fil of 
+                                    ToChilds  -> prd <= period
+                                    ToParents -> prd >= period ) periods 
+        --------------------------------------
         pointers :: [[Pointer]]
         pointers = take 1
                  $ dropWhile (null)
                  -- | for each time frame, process the proximity on relevant pairs of targeted groups
                  $ scanl (\acc groups ->
-                            let periods = nub 
-                                        $ concat $ map (\gs -> if null gs
-                                                               then []
-                                                               else [_phylo_groupPeriod $ head' "pointers" gs]) groups
-                                pairs = makePairs (concat groups) periods
-                            in  acc ++ ( filter (\(_,proximity) -> filterProximity proxi thr proximity)
+                            let periods  = nub 
+                                         $ concat $ map (\gs -> if null gs
+                                                                then []
+                                                                else [_phylo_groupPeriod $ head' "pointers" gs]) groups
+                                periods' = oldPeriods periods
+                                pairs = makePairs (concat groups) periods periods'
+                            in  acc ++ ( filterPointers proxi thr
                                        $ concat
                                        $ map (\(c,c') ->
                                                 -- | process the proximity between the current group and a pair of candidates 

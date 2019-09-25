@@ -39,6 +39,7 @@ import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloMaker  (toPhylo)
 import Gargantext.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment)
 import Gargantext.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
+-- import Gargantext.Viz.Phylo.SynchronicClustering (synchronicDistance')
 
 import GHC.IO (FilePath) 
 import Prelude (Either(..))
@@ -155,6 +156,14 @@ main = do
             printIOMsg "Reconstruct the Phylo"
             
             let phylo = toPhylo corpus mapList config
+
+            -- | probes
+
+            -- writeFile ((outputPath config) <> (unpack $ phyloName config) <> "_synchronic_distance_cumu_jaccard.txt") 
+            --          $ synchronicDistance' phylo 1
+
+            -- writeFile ((outputPath config) <> (unpack $ phyloName config) <> "_inflexion_points.txt") 
+            --         $ inflexionPoints phylo 1                    
 
             printIOMsg "End of reconstruction, start the export"
 

@@ -71,7 +71,8 @@ data Synchrony =
       ByProximityThreshold 
       { _bpt_threshold :: Double 
       , _bpt_sensibility :: Double}
-    | ByProximityDistribution 
+    | ByProximityDistribution
+      { _bpd_sensibility :: Double} 
     deriving (Show,Generic,Eq)     
 
 
@@ -116,7 +117,7 @@ defaultConfig =
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 1
             , phyloProximity = WeightedLogJaccard 10 0 0.1
-            , phyloSynchrony = ByProximityThreshold 0.4 0
+            , phyloSynchrony = ByProximityDistribution 0
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 2 4
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]

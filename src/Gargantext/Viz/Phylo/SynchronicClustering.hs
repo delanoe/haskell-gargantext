@@ -20,11 +20,13 @@ import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.TemporalMatching (weightedLogJaccard)
 
-import Data.List ((++), null, intersect, nub, concat, sort)
+import Data.List ((++), null, intersect, nub, concat, sort, sortOn)
 import Data.Map (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
 
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
+
+import qualified Data.Map as Map
 
 
 -------------------------
@@ -92,13 +94,42 @@ toPairs :: [PhyloGroup] -> [(PhyloGroup,PhyloGroup)]
 toPairs groups = filter (\(g,g') -> (not . null) $ intersect (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))
                $ listToCombi' groups
 
-groupsToEdges :: Proximity -> Double -> Double -> Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
-groupsToEdges prox thr sens docs groups =
-    case prox of
-        WeightedLogJaccard _ _ _ -> filter (\(_,w) -> w >= thr)
-                                  $ map (\(g,g') -> ((g,g'), weightedLogJaccard sens docs (g ^. phylo_groupCooc) (g' ^. phylo_groupCooc) (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) 
-                                  $ toPairs groups
-        _ -> undefined 
+
+toDiamonds :: [PhyloGroup] -> [[PhyloGroup]]
+toDiamonds groups = foldl' (\acc groups' ->
+                        acc ++ ( elems
+                               $ Map.filter (\v -> length v > 1)
+                               $ fromListWith (++)
+                               $ foldl' (\acc' g -> 
+                                    acc' ++ (map (\(id,_) -> (id,[g]) ) $ g ^. phylo_groupPeriodChilds)) [] groups')) []
+                  $ elems
+                  $ Map.filter (\v -> length v > 1)
+                  $ fromListWith (++)
+                  $ foldl' (\acc g -> acc ++ (map (\(id,_) -> (id,[g]) ) $ g ^. phylo_groupPeriodParents)  ) [] groups
+
+
+groupsToEdges :: Proximity -> Synchrony -> Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
+groupsToEdges prox sync docs groups =
+    case sync of
+        ByProximityThreshold  t s  -> filter (\(_,w) -> w >= t)
+                                    $ toEdges s
+                                    $ toPairs groups
+                   
+        ByProximityDistribution s  -> 
+            let diamonds = sortOn snd 
+                         $ toEdges s $ concat
+                         $ map toPairs $ toDiamonds groups 
+             in take (div (length diamonds) 2) diamonds
+    where 
+        toEdges :: Double -> [(PhyloGroup,PhyloGroup)] -> [((PhyloGroup,PhyloGroup),Double)]
+        toEdges sens edges = 
+            case prox of
+                WeightedLogJaccard _ _ _ -> map (\(g,g') -> 
+                                                 ((g,g'), weightedLogJaccard sens docs 
+                                                              (g ^. phylo_groupCooc)   (g' ^. phylo_groupCooc)
+                                                              (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
+                _ -> undefined  
+
 
 
 toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
@@ -111,32 +142,54 @@ toParentId :: PhyloGroup -> PhyloGroupId
 toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1), child ^. phylo_groupIndex) 
 
 
-reduceBranch :: Proximity -> Double -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
-reduceBranch prox thr sens docs branch = 
+reduceBranch :: Proximity -> Synchrony -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
+reduceBranch prox sync docs branch = 
     -- | 1) reduce a branch as a set of periods & groups
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
     in  (concat . concat . elems)
       $ mapWithKey (\prd groups -> 
             -- | 2) for each period, transform the groups as a proximity graph filtered by a threshold
-            let edges = groupsToEdges prox thr sens ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) groups
+            let edges = groupsToEdges prox sync ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) groups
              in map (\comp -> 
                     -- | 4) add to each groups their futur level parent group
                     let parentId = toParentId (head' "parentId" comp)
                     in  map (\g -> g & phylo_groupLevelParents %~ (++ [(parentId,1)]) ) comp )
                 -- |3) reduce the graph a a set of related components
-              $ toRelatedComponents groups edges) periods 
+              $ toRelatedComponents groups edges) periods       
 
 
 synchronicClustering :: Phylo -> Phylo
-synchronicClustering phylo = 
-    case (phyloSynchrony $ getConfig phylo) of
-        ByProximityThreshold t s -> 
-          let prox = phyloProximity $ getConfig phylo
-              docs = phylo ^. phylo_timeDocs
-              branches  = map (\branch -> reduceBranch prox t s docs branch)
-                        $ phyloToLastBranches 
-                        $ traceSynchronyStart phylo
-              branches' = branches `using` parList rdeepseq
-           in toNextLevel phylo $ concat branches'
-        ByProximityDistribution  -> undefined 
+synchronicClustering phylo =
+    let prox = phyloProximity $ getConfig phylo
+        sync = phyloSynchrony $ getConfig phylo
+        docs = phylo ^. phylo_timeDocs
+        branches  = map (\branch -> reduceBranch prox sync docs branch)
+                  $ phyloToLastBranches 
+                  $ traceSynchronyStart phylo
+        branches' = branches `using` parList rdeepseq
+     in toNextLevel phylo $ concat branches'
+
+
+----------------
+-- | probes | --
+----------------
+
+-- synchronicDistance :: Phylo -> Level -> String
+-- synchronicDistance phylo lvl = 
+--     foldl' (\acc branch -> 
+--              acc <> (foldl' (\acc' period ->
+--                               acc' <> let prox  = phyloProximity $ getConfig phylo
+--                                           sync  = phyloSynchrony $ getConfig phylo
+--                                           docs  = _phylo_timeDocs phylo
+--                                           prd   = _phylo_groupPeriod $ head' "distance" period
+--                                           edges = groupsToEdges prox 0.1 (_bpt_sensibility sync) 
+--                                                   ((sum . elems) $ restrictKeys docs $ periodsToYears [_phylo_groupPeriod $ head' "distance" period]) period
+--                                       in foldl' (\mem (_,w) -> 
+--                                           mem <> show (prd)
+--                                               <> "\t"
+--                                               <> show (w)
+--                                               <> "\n"
+--                                         ) "" edges 
+--                      ) ""  $ elems $ groupByField _phylo_groupPeriod branch)
+--     ) "period\tdistance\n" $ elems $ groupByField _phylo_groupBranchId $ getGroupsFromLevel lvl phylo
