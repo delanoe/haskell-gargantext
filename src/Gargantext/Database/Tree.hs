@@ -16,7 +16,15 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Tree (treeDB, TreeError(..), HasTreeError(..), dbTree, toNodeTree, DbTreeNode) where
+module Gargantext.Database.Tree
+  ( treeDB
+  , TreeError(..)
+  , HasTreeError(..)
+  , dbTree
+  , toNodeTree
+  , DbTreeNode
+  , isDescendantOf
+  ) where
 
 import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
 import Control.Monad.Error.Class (MonadError(throwError))
@@ -103,7 +111,21 @@ dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> runPGS
   SELECT * from tree;
   |] (Only rootId)
 
+isDescendantOf :: NodeId -> RootId -> Cmd err Bool
+isDescendantOf childId rootId = (== [Only True]) <$> runPGSQuery [sql|
+  WITH RECURSIVE
+      tree (id, parent_id) AS
+      (
+        SELECT c.id, c.parent_id
+        FROM nodes AS c
+        WHERE c.id = ?
 
+        UNION
 
-
-
+        SELECT p.id, p.parent_id
+        FROM nodes AS p
+        INNER JOIN tree AS t ON t.parent_id = p.id
+      )
+  SELECT COUNT(*) = 1 from tree AS t
+  WHERE t.id = ?;
+  |] (childId, rootId)

@@ -60,7 +60,7 @@ import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
-import Gargantext.Database.Tree (treeDB)
+import Gargantext.Database.Tree (treeDB, isDescendantOf)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
@@ -158,11 +158,20 @@ type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "offset" Int
                  :> QueryParam "limit"  Int
                  :> Get '[JSON] [Node a]
+
+withAccess :: (CmdM env err m, HasServerError err) => UserId -> NodeId -> m a -> m a
+withAccess uId id m = do
+  d <- id `isDescendantOf` NodeId uId
+  printDebug "withAccess" (uId, id, d)
+  if d then m else serverError err401
+
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: JSONB a => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p uId id
-             =  getNode       id p
+nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
+nodeAPI p uId id = hoistServer (Proxy :: Proxy (NodeAPI a)) (withAccess uId id) nodeAPI'
+  where
+    nodeAPI' :: GargServer (NodeAPI a)
+    nodeAPI' =  getNode       id p
            :<|> rename        id
            :<|> postNode  uId id
            :<|> putNode       id
@@ -174,18 +183,18 @@ nodeAPI p uId id
            :<|> apiNgramsTableCorpus id
            :<|> getPairing           id
            -- :<|> getTableNgramsDoc id
-           
+
            :<|> catApi     id
-           
+
            :<|> searchDocs id
-           
+
            :<|> getScatter id
            :<|> getChart   id
            :<|> getPie     id
            :<|> getTree    id
            :<|> phyloAPI   id uId
            :<|> postUpload id
-  where
+
     deleteNodeApi id' = do
       node <- getNode' id'
       if _node_typename node == nodeTypeId NodeUser
