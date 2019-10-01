@@ -22,6 +22,7 @@ import Data.Aeson.TH (Options, fieldLabelModifier, omitNothingFields)
 import Data.Aeson.Types (Parser)
 import Data.Char (toLower)
 import Data.Monoid ((<>))
+import Data.Swagger.SchemaOptions (SchemaOptions, fromAesonOptions)
 import Text.Read (Read(..),readMaybe)
 
 
@@ -31,6 +32,9 @@ unPrefix prefix = defaultOptions
   { fieldLabelModifier = unCapitalize . dropPrefix prefix
   , omitNothingFields = True
   }
+
+unPrefixSwagger :: String -> SchemaOptions
+unPrefixSwagger = fromAesonOptions . unPrefix
 
 -- | Lower case leading character
 unCapitalize :: String -> String

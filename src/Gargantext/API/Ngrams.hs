@@ -116,7 +116,7 @@ import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, count)
 import Data.Validity
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast)
@@ -255,7 +255,8 @@ mkNgramsElement ngrams list rp children =
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams = mkNgramsElement ngrams (fromMaybe GraphTerm mayList) Nothing mempty
 
-instance ToSchema NgramsElement
+instance ToSchema NgramsElement where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ne_")
 instance Arbitrary NgramsElement where
   arbitrary = elements [newNgramsElement Nothing "sport"]
 
@@ -509,7 +510,8 @@ data NgramsPatch =
 deriveJSON (unPrefix "_") ''NgramsPatch
 makeLenses ''NgramsPatch
 
-instance ToSchema  NgramsPatch
+instance ToSchema  NgramsPatch where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
@@ -644,7 +646,8 @@ data Versioned a = Versioned
   deriving (Generic, Show)
 deriveJSON (unPrefix "_v_") ''Versioned
 makeLenses ''Versioned
-instance ToSchema a => ToSchema (Versioned a)
+instance ToSchema a => ToSchema (Versioned a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_v_")
 instance Arbitrary a => Arbitrary (Versioned a) where
   arbitrary = Versioned 1 <$> arbitrary -- TODO 1 is constant so far
 

@@ -58,7 +58,7 @@ import           Test.QuickCheck.Instances.Time ()
 import           Test.QuickCheck.Instances.Text ()
 
 import           Gargantext.Prelude
-import           Gargantext.Core.Utils.Prefix (unPrefix)
+import           Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import           Gargantext.Viz.Phylo (Phylo)
 --import Gargantext.Database.Utils
 ------------------------------------------------------------------------
@@ -268,7 +268,7 @@ instance Arbitrary Event where
   arbitrary = Event <$> arbitrary <*> arbitrary <*> arbitrary
 
 instance ToSchema Event where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "event_")
 
 ------------------------------------------------------------------------
 
@@ -290,7 +290,7 @@ instance Arbitrary Resource where
                          <*> arbitrary
 
 instance ToSchema Resource where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "resource_")
 
 ------------------------------------------------------------------------
 data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
@@ -527,17 +527,20 @@ docExample :: ByteString
 docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 
 instance ToSchema HyperdataCorpus where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "hyperdataCorpus_") proxy
     & mapped.schema.description ?~ "a corpus"
     & mapped.schema.example ?~ toJSON hyperdataCorpus
 
 instance ToSchema HyperdataAnnuaire where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "hyperdataAnnuaire_") proxy
     & mapped.schema.description ?~ "an annuaire"
     & mapped.schema.example ?~ toJSON hyperdataAnnuaire
 
 instance ToSchema HyperdataDocument where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "hyperdataDocument_") proxy
     & mapped.schema.description ?~ "a document"
     & mapped.schema.example ?~ toJSON hyperdataDocument
 
@@ -553,14 +556,16 @@ instance ToSchema hyperdata =>
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
 
 instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
 
 
 instance ToSchema hyperdata =>
@@ -568,16 +573,19 @@ instance ToSchema hyperdata =>
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata (Maybe TSVector)
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
 
 instance ToSchema hyperdata =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata (Maybe TSVector)
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
 
 
-instance ToSchema Status
+instance ToSchema Status where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "status_")
 
 

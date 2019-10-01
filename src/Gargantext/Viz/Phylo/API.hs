@@ -29,7 +29,6 @@ import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
 import Data.Swagger
 import Gargantext.API.Types
-import Gargantext.API.Utils (swaggerOptions)
 import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
 import Gargantext.Database.Schema.Node (insertNodes, nodePhyloW, getNodePhylo)
 import Gargantext.Database.Types.Node -- (NodePhylo(..))
@@ -153,33 +152,7 @@ instance Arbitrary Phylo
   where
     arbitrary = elements [phylo]
 
-instance ToSchema Cluster
-instance ToSchema EdgeType
-instance ToSchema Filiation
-instance ToSchema Filter
-instance ToSchema FisParams
-instance ToSchema HammingParams
-instance ToSchema LouvainParams
-instance ToSchema Metric
 instance ToSchema Order
-instance ToSchema Phylo
-instance ToSchema PhyloFis
-instance ToSchema PhyloBranch
-instance ToSchema PhyloEdge
-instance ToSchema PhyloGroup
-instance ToSchema PhyloLevel
-instance ToSchema PhyloNode
-instance ToSchema PhyloParam
-instance ToSchema PhyloFoundations
-instance ToSchema PhyloPeriod
-instance ToSchema PhyloQueryBuild
-instance ToSchema PhyloView
-instance ToSchema RCParams
-instance ToSchema LBParams
-instance ToSchema SBParams
-instance ToSchema Software
-instance ToSchema WLJParams
-
 
 instance ToParamSchema Order
 instance FromHttpApiData Order
@@ -212,13 +185,6 @@ instance FromHttpApiData Sort
   where
     parseUrlPiece = readTextData
 instance ToParamSchema Sort
-
-
-instance ToSchema Proximity
-  where
-    declareNamedSchema = genericDeclareNamedSchemaUnrestricted
-                       $ swaggerOptions ""
-
 
 instance FromHttpApiData [Tagger]
   where

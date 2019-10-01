@@ -24,7 +24,7 @@ import Data.Swagger
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import GHC.IO (FilePath)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Types.Node (NodeId)
 import Gargantext.Prelude
@@ -57,9 +57,7 @@ data Node = Node { node_size  :: Int
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "node_") ''Node)
 instance ToSchema Node where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 5 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "node_")
 
 
 data Edge = Edge { edge_source :: Text
@@ -71,9 +69,7 @@ data Edge = Edge { edge_source :: Text
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "edge_") ''Edge)
 instance ToSchema Edge where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 5 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "edge_")
 
 ---------------------------------------------------------------
 data LegendField = LegendField { _lf_id :: Int
@@ -83,9 +79,7 @@ data LegendField = LegendField { _lf_id :: Int
 $(deriveJSON (unPrefix "_lf_") ''LegendField)
 
 instance ToSchema LegendField where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_lf_")
 
 makeLenses ''LegendField
 --
@@ -97,9 +91,7 @@ data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the grap
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
 instance ToSchema GraphMetadata where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_gm_")
 makeLenses ''GraphMetadata
 
 
@@ -112,10 +104,7 @@ $(deriveJSON (unPrefix "_graph_") ''Graph)
 makeLenses ''Graph
 
 instance ToSchema Graph where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 7 fieldLabel}
-
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_graph_")
 
 -- | Intances for the mack
 instance Arbitrary Graph where

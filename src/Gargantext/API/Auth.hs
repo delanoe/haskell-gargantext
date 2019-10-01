@@ -40,7 +40,7 @@ import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
 import Servant.Auth.Server
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.API.Settings
 import Gargantext.API.Types (HasJoseError(..), joseError)
 import Gargantext.Database.Root (getRoot)
@@ -115,11 +115,12 @@ auth (AuthRequest u p) = do
     Valid to trId   -> pure $ AuthResponse (Just $ AuthValid to trId) Nothing
 
 newtype AuthenticatedUser = AuthenticatedUser
-  { _au_id :: NodeId
+  { _authUser_id :: NodeId
   } deriving (Generic)
 
-$(deriveJSON (unPrefix "_au_") ''AuthenticatedUser)
-instance ToSchema AuthenticatedUser
+$(deriveJSON (unPrefix "_authUser_") ''AuthenticatedUser)
+instance ToSchema AuthenticatedUser where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_authUser_")
 instance ToJWT AuthenticatedUser
 instance FromJWT AuthenticatedUser
 
@@ -141,7 +142,8 @@ authCheck _env (BasicAuthData login password) = pure $
 
 -- | Instances
 $(deriveJSON (unPrefix "_authReq_") ''AuthRequest)
-instance ToSchema AuthRequest -- TODO-SWAGGER unPrefix
+instance ToSchema AuthRequest where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_authReq_")
 
 instance Arbitrary AuthRequest where
   arbitrary = elements [ AuthRequest u p
@@ -150,20 +152,23 @@ instance Arbitrary AuthRequest where
                        ]
 
 $(deriveJSON (unPrefix "_authRes_") ''AuthResponse)
-instance ToSchema AuthResponse -- TODO-SWAGGER unPrefix
+instance ToSchema AuthResponse where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_authRes_")
 instance Arbitrary AuthResponse where
   arbitrary = oneof [ AuthResponse Nothing . Just      <$> arbitrary
                     , flip AuthResponse Nothing . Just <$> arbitrary ]
 
 $(deriveJSON (unPrefix "_authInv_") ''AuthInvalid)
-instance ToSchema AuthInvalid -- TODO-SWAGGER unPrefix
+instance ToSchema AuthInvalid where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_authInv_")
 instance Arbitrary AuthInvalid where
   arbitrary = elements [ AuthInvalid m 
                        | m <- [ "Invalid user", "Invalid password"]
                        ]
 
 $(deriveJSON (unPrefix "_authVal_") ''AuthValid)
-instance ToSchema AuthValid -- TODO-SWAGGER unPrefix
+instance ToSchema AuthValid where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_authVal_")
 instance Arbitrary AuthValid where
   arbitrary = elements [ AuthValid to tr
                        | to <- ["token0", "token1"]

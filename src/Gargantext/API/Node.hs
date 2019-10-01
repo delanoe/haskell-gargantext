@@ -207,6 +207,7 @@ nodeAPI p uId id = hoistServer (Proxy :: Proxy (NodeAPI a)) (withAccess uId id) 
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
 
+-- TODO unPrefix "r_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  RenameNode
 instance ToJSON    RenameNode
 instance ToSchema  RenameNode
@@ -217,6 +218,7 @@ data PostNode = PostNode { pn_name :: Text
                          , pn_typename :: NodeType}
   deriving (Generic)
 
+-- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  PostNode
 instance ToJSON    PostNode
 instance ToSchema  PostNode
@@ -233,6 +235,7 @@ data NodesToCategory = NodesToCategory { ntc_nodesId :: [NodeId]
                                        }
   deriving (Generic)
 
+-- TODO unPrefix "ntc_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  NodesToCategory
 instance ToJSON    NodesToCategory
 instance ToSchema  NodesToCategory
