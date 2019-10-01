@@ -540,7 +540,7 @@ instance ToSchema HyperdataAnnuaire where
 
 instance ToSchema HyperdataDocument where
   declareNamedSchema proxy =
-    genericDeclareNamedSchema (unPrefixSwagger "hyperdataDocument_") proxy
+    genericDeclareNamedSchema (unPrefixSwagger "_hyperdataDocument_") proxy
     & mapped.schema.description ?~ "a document"
     & mapped.schema.example ?~ toJSON hyperdataDocument
 
