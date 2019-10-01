@@ -48,6 +48,7 @@ import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
+import Gargantext.API.Auth (withAccess)
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
@@ -60,7 +61,7 @@ import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
-import Gargantext.Database.Tree (treeDB, isDescendantOf)
+import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
@@ -159,16 +160,10 @@ type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "limit"  Int
                  :> Get '[JSON] [Node a]
 
-withAccess :: (CmdM env err m, HasServerError err) => UserId -> NodeId -> m a -> m a
-withAccess uId id m = do
-  d <- id `isDescendantOf` NodeId uId
-  printDebug "withAccess" (uId, id, d)
-  if d then m else serverError err401
-
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
 nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p uId id = hoistServer (Proxy :: Proxy (NodeAPI a)) (withAccess uId id) nodeAPI'
+nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId id nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
     nodeAPI' =  getNode       id p
@@ -315,8 +310,7 @@ instance HasTreeError ServantErr where
 -}
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
--- TODO-ACCESS: CanTree or CanGetNode
--- TODO-EVENTS: No events as this is a read only query.
+
 treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI = treeDB
 

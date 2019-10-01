@@ -71,7 +71,7 @@ import           Text.Blaze.Html (Html)
 --import Gargantext.API.Swagger
 
 --import Gargantext.Database.Node.Contact (HyperdataContact)
-import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth)
+import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
@@ -221,10 +221,15 @@ type GargAPI' =
 
 type GargPrivateAPI = SA.Auth '[SA.JWT] AuthenticatedUser :> GargPrivateAPI'
 
-type GargPrivateAPI' =
-           -- Roots endpoint
-                "user"  :> Summary "First user endpoint"
+type GargAdminAPI
+              -- Roots endpoint
+             =  "user"  :> Summary "First user endpoint"
                         :> Roots
+           :<|> "nodes" :> Summary "Nodes endpoint"
+                        :> ReqBody '[JSON] [NodeId] :> NodesAPI
+
+type GargPrivateAPI' =
+                GargAdminAPI
 
            -- Node endpoint
            :<|> "node"  :> Summary "Node endpoint"
@@ -241,16 +246,12 @@ type GargPrivateAPI' =
            -- Document endpoint
            :<|> "document":> Summary "Document endpoint"
                           :> Capture "id" DocId    :> "ngrams" :> TableNgramsApi
-                          
-           -- Corpus endpoint
-           :<|> "nodes" :> Summary "Nodes endpoint"
-                        :> ReqBody '[JSON] [NodeId] :> NodesAPI
-       
+
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
-           -- Corpus endpoint
+            -- TODO-SECURITY
            :<|> "count" :> Summary "Count endpoint"
                         :> ReqBody '[JSON] Query :> CountAPI
-           
+
            -- Corpus endpoint --> TODO rename s/search/filter/g
            :<|> "search":> Capture "corpus" NodeId :> SearchPairsAPI
 
@@ -308,20 +309,26 @@ serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
 serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
 -- Here throwAll' requires a concrete type for the monad.
 
+-- TODO-SECURITY admin only: withAdmin
+-- Question: How do we mark admins?
+serverGargAdminAPI :: GargServer GargAdminAPI
+serverGargAdminAPI
+   =  roots
+ :<|> nodesAPI
+
 serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
 serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
-       =  roots
+       =  serverGargAdminAPI
      :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire) uid
-     :<|> apiNgramsTableDoc
-     :<|> nodesAPI
+     :<|> withAccess (Proxy :: Proxy TableNgramsApi) Proxy uid <*> apiNgramsTableDoc
      :<|> count -- TODO: undefined
-     :<|> searchPairs -- TODO: move elsewhere
-     :<|> graphAPI -- TODO: mock
-     :<|> treeAPI
-     :<|> New.api
-     :<|> New.info uid
+     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <*> searchPairs -- TODO: move elsewhere
+     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <*> graphAPI -- TODO: mock
+     :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid <*> treeAPI
+     :<|> New.api -- TODO-SECURITY
+     :<|> New.info uid -- TODO-SECURITY
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
