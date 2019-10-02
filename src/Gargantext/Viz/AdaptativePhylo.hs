@@ -88,7 +88,13 @@ data ContextualUnit =
       Fis 
       { _fis_support :: Int
       , _fis_size    :: Int }
-      deriving (Show,Generic,Eq)       
+      deriving (Show,Generic,Eq)      
+
+
+data Quality = 
+     Quality { _qua_relevance :: Double
+             , _qua_minBranch :: Int }
+      deriving (Show,Generic,Eq)   
 
 
 data Config = 
@@ -100,6 +106,7 @@ data Config =
             , phyloLevel     :: Int
             , phyloProximity :: Proximity
             , phyloSynchrony :: Synchrony
+            , phyloQuality   :: Quality
             , timeUnit       :: TimeUnit
             , contextualUnit :: ContextualUnit
             , exportLabel    :: [PhyloLabel]
@@ -118,8 +125,9 @@ defaultConfig =
             , phyloLevel     = 1
             , phyloProximity = WeightedLogJaccard 10 0 0.1
             , phyloSynchrony = ByProximityDistribution 0
+            , phyloQuality   = Quality 1 1
             , timeUnit       = Year 3 1 5
-            , contextualUnit = Fis 2 4
+            , contextualUnit = Fis 1 4
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
             , exportSort     = ByHierarchy
             , exportFilter   = [ByBranchSize 2]  
@@ -147,6 +155,8 @@ instance FromJSON Filter
 instance ToJSON Filter
 instance FromJSON Synchrony
 instance ToJSON Synchrony
+instance FromJSON Quality
+instance ToJSON Quality
 
 
 -- | Software parameters
@@ -362,6 +372,7 @@ data PhyloExport =
 
 makeLenses ''Config
 makeLenses ''Proximity
+makeLenses ''Quality
 makeLenses ''ContextualUnit
 makeLenses ''PhyloLabel
 makeLenses ''TimeUnit

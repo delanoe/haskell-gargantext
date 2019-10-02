@@ -156,6 +156,8 @@ mergePointers groups =
 
 exportToDot :: Phylo -> PhyloExport -> DotGraph DotId
 exportToDot phylo export = 
+    trace ("\n-- | Convert " <> show(length $ export ^. export_branches) <> " branches and "
+         <> show(length $ export ^. export_groups) <> " groups to a dot file\n") $
     digraph ((Str . fromStrict) $ (phyloName $ getConfig phylo)) $ do 
 
         -- | 1) init the dot graph
@@ -238,10 +240,12 @@ filterByBranchSize thr export =
                & export_groups %~ (filter (\g -> not $ elem  (g ^. phylo_groupBranchId) (map _branch_id $ snd branches')))
 
 
-processFilters :: [Filter] -> PhyloExport -> PhyloExport
-processFilters filters export = 
+processFilters :: [Filter] -> Quality -> PhyloExport -> PhyloExport
+processFilters filters qua export = 
     foldl (\export' f -> case f of 
-                ByBranchSize thr -> filterByBranchSize thr export'
+                ByBranchSize thr -> if (thr < (fromIntegral $ qua ^. qua_minBranch))
+                                      then filterByBranchSize (fromIntegral $ qua ^. qua_minBranch) export'
+                                      else filterByBranchSize thr export'  
         ) export filters
 
 --------------
@@ -439,7 +443,7 @@ processDynamics groups =
 
 toPhyloExport :: Phylo -> DotGraph DotId
 toPhyloExport phylo = exportToDot phylo
-                    $ processFilters (exportFilter $ getConfig phylo)
+                    $ processFilters (exportFilter $ getConfig phylo) (phyloQuality $ getConfig phylo)
                     $ processSort    (exportSort   $ getConfig phylo)
                     $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo)
                     $ processMetrics  export           
