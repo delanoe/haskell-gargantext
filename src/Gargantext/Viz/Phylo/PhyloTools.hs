@@ -66,6 +66,9 @@ roundToStr = printf "%0.*f"
 countSup :: Double -> [Double] -> Int
 countSup s l = length $ filter (>s) l
 
+dropByIdx :: Int -> [a] -> [a]
+dropByIdx k l = take k l ++ drop (k+1) l
+
 
 elemIndex' :: Eq a => a -> [a] -> Int
 elemIndex' e l = case (List.elemIndex e l) of
@@ -253,8 +256,26 @@ filterProximity :: Proximity -> Double -> Double -> Bool
 filterProximity proximity thr local = 
     case proximity of
         WeightedLogJaccard _ _ _ -> local >= thr
-        Hamming -> undefined        
+        Hamming -> undefined   
 
+getProximityName :: Proximity -> String
+getProximityName proximity =
+    case proximity of
+        WeightedLogJaccard _ _ _ -> "WLJaccard"
+        Hamming -> "Hamming"
+
+getProximityInit :: Proximity -> Double
+getProximityInit proximity =
+    case proximity of
+        WeightedLogJaccard _ i _ -> i
+        Hamming -> undefined  
+
+
+getProximityStep :: Proximity -> Double
+getProximityStep proximity =
+    case proximity of
+        WeightedLogJaccard _ _ s -> s
+        Hamming -> undefined               
 
 ---------------
 -- | Phylo | --

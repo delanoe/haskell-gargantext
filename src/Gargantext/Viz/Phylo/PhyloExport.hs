@@ -114,7 +114,7 @@ branchToDotNode b =
          ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ b ^. branch_label)]
          <> (metaToAttr $ b ^. branch_meta)
          <> [ toAttr "nodeType" "branch"
-            , toAttr "branchId" (pack $ show (snd $ b ^. branch_id)) ])
+            , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ b ^. branch_id)) ])
  
 periodToDotNode :: (Date,Date) -> Dot DotId
 periodToDotNode prd =
@@ -132,7 +132,7 @@ groupToDotNode fdt g =
                       <> [ toAttr "nodeType" "group"
                          , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
-                         , toAttr "branchId" (pack $ show (snd $ g ^. phylo_groupBranchId))])  
+                         , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))])  
 
 
 toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
@@ -164,8 +164,14 @@ exportToDot phylo export =
         graphAttrs ( [ Label (toDotLabel $ (phyloName $ getConfig phylo))]
                   <> [ FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
                      , Ratio FillRatio
-                     , Style [SItem Filled []],Color [toWColor White]
-                     , (toAttr (fromStrict "nbDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))])
+                     , Style [SItem Filled []],Color [toWColor White]]
+                  -- | home made attributes
+                  <> [(toAttr (fromStrict "nbDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))
+                     ,(toAttr (fromStrict "proxiName") $ pack $ show (getProximityName $ phyloProximity $ getConfig phylo))
+                     ,(toAttr (fromStrict "proxiInit") $ pack $ show (getProximityInit $ phyloProximity $ getConfig phylo))
+                     ,(toAttr (fromStrict "proxiStep") $ pack $ show (getProximityStep $ phyloProximity $ getConfig phylo))
+                     ,(toAttr (fromStrict "quaFactor") $ pack $ show (_qua_relevance $ phyloQuality $ getConfig phylo))
+                     ])
 
 
  -- toAttr (fromStrict k) $ (pack . unwords) $ map show v
