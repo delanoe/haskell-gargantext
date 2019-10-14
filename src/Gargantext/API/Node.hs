@@ -7,6 +7,8 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+-- TODO-SECURITY: Critical
+
 -- TODO-ACCESS: CanGetNode
 -- TODO-EVENTS: No events as this is a read only query.
 Node API
@@ -46,6 +48,7 @@ import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
+import Gargantext.API.Auth (withAccess)
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
@@ -156,11 +159,14 @@ type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "offset" Int
                  :> QueryParam "limit"  Int
                  :> Get '[JSON] [Node a]
+
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: JSONB a => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p uId id
-             =  getNode       id p
+nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
+nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId id nodeAPI'
+  where
+    nodeAPI' :: GargServer (NodeAPI a)
+    nodeAPI' =  getNode       id p
            :<|> rename        id
            :<|> postNode  uId id
            :<|> putNode       id
@@ -172,18 +178,18 @@ nodeAPI p uId id
            :<|> apiNgramsTableCorpus id
            :<|> getPairing           id
            -- :<|> getTableNgramsDoc id
-           
+
            :<|> catApi     id
-           
+
            :<|> searchDocs id
-           
+
            :<|> getScatter id
            :<|> getChart   id
            :<|> getPie     id
            :<|> getTree    id
            :<|> phyloAPI   id uId
            :<|> postUpload id
-  where
+
     deleteNodeApi id' = do
       node <- getNode' id'
       if _node_typename node == nodeTypeId NodeUser
@@ -196,6 +202,7 @@ nodeAPI p uId id
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
 
+-- TODO unPrefix "r_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  RenameNode
 instance ToJSON    RenameNode
 instance ToSchema  RenameNode
@@ -206,6 +213,7 @@ data PostNode = PostNode { pn_name :: Text
                          , pn_typename :: NodeType}
   deriving (Generic)
 
+-- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  PostNode
 instance ToJSON    PostNode
 instance ToSchema  PostNode
@@ -222,6 +230,7 @@ data NodesToCategory = NodesToCategory { ntc_nodesId :: [NodeId]
                                        }
   deriving (Generic)
 
+-- TODO unPrefix "ntc_" FromJSON, ToJSON, ToSchema, adapt frontend.
 instance FromJSON  NodesToCategory
 instance ToJSON    NodesToCategory
 instance ToSchema  NodesToCategory
@@ -301,8 +310,7 @@ instance HasTreeError ServantErr where
 -}
 
 type TreeAPI   = Get '[JSON] (Tree NodeTree)
--- TODO-ACCESS: CanTree or CanGetNode
--- TODO-EVENTS: No events as this is a read only query.
+
 treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI = treeDB
 

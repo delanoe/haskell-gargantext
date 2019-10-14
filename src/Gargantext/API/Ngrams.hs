@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-|
 Module      : Gargantext.API.Ngrams
 Description : Server API
@@ -32,6 +33,52 @@ add get
 {-# OPTIONS -fno-warn-orphans #-}
 
 module Gargantext.API.Ngrams
+  ( TableNgramsApi
+  , TableNgramsApiGet
+  , TableNgramsApiPut
+  , TableNgramsApiPost
+
+  , getTableNgrams
+  , putListNgrams
+  , tableNgramsPost
+  , apiNgramsTableCorpus
+  , apiNgramsTableDoc
+
+  , NgramsStatePatch
+  , NgramsTablePatch
+
+  , NgramsElement
+  , mkNgramsElement
+  , mergeNgramsElement
+
+  , RootParent(..)
+
+  , MSet
+  , mSetFromList
+  , mSetToList
+
+  , Repo(..)
+  , r_version
+  , r_state
+  , NgramsRepo
+  , NgramsRepoElement(..)
+  , saveRepo
+  , initRepo
+
+  , RepoEnv(..)
+  , renv_var
+  , renv_lock
+
+  , TabType(..)
+  , ngramsTypeFromTabType
+
+  , HasRepoVar(..)
+  , HasRepoSaver(..)
+  , HasRepo(..)
+  , RepoCmdM
+  , QueryParamR
+  , TODO(..)
+  )
   where
 
 -- import Debug.Trace (trace)
@@ -69,7 +116,7 @@ import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, count)
 import Data.Validity
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast)
@@ -208,7 +255,8 @@ mkNgramsElement ngrams list rp children =
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams = mkNgramsElement ngrams (fromMaybe GraphTerm mayList) Nothing mempty
 
-instance ToSchema NgramsElement
+instance ToSchema NgramsElement where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ne_")
 instance Arbitrary NgramsElement where
   arbitrary = elements [newNgramsElement Nothing "sport"]
 
@@ -462,7 +510,8 @@ data NgramsPatch =
 deriveJSON (unPrefix "_") ''NgramsPatch
 makeLenses ''NgramsPatch
 
-instance ToSchema  NgramsPatch
+instance ToSchema  NgramsPatch where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
@@ -597,7 +646,8 @@ data Versioned a = Versioned
   deriving (Generic, Show)
 deriveJSON (unPrefix "_v_") ''Versioned
 makeLenses ''Versioned
-instance ToSchema a => ToSchema (Versioned a)
+instance ToSchema a => ToSchema (Versioned a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_v_")
 instance Arbitrary a => Arbitrary (Versioned a) where
   arbitrary = Versioned 1 <$> arbitrary -- TODO 1 is constant so far
 
@@ -798,12 +848,14 @@ putListNgrams listId ngramsType nes = do
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
 
+-- TODO-ACCESS check
 tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> Maybe ListType -> [NgramsTerm] -> m ()
 tableNgramsPost tabType listId mayList =
   putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
+-- TODO-ACCESS check
 tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
                  => TabType -> ListId
                  -> Versioned NgramsTablePatch

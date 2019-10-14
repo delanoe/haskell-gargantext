@@ -26,10 +26,22 @@ Portability : POSIX
 {-# LANGUAGE TypeFamilies              #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet
+  ( runViewAuthorsDoc
+  , runViewDocuments
+  , filterWith
+
+  , Pair(..)
+  , Facet(..)
+  , FacetDoc
+  , FacetDocRead
+  , FacetPaired(..)
+  , FacetPairedRead
+  , OrderBy(..)
+  )
   where
 ------------------------------------------------------------------------
 import Control.Arrow (returnA)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+-- import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
@@ -41,7 +53,7 @@ import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
@@ -70,9 +82,9 @@ type Title    = Text
 
 -- TODO remove Title
 type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Favorite) (Maybe Double)
-type FacetSources = FacetDoc
-type FacetAuthors = FacetDoc
-type FacetTerms   = FacetDoc
+-- type FacetSources = FacetDoc
+-- type FacetAuthors = FacetDoc
+-- type FacetTerms   = FacetDoc
 
 
 data Facet id created title hyperdata favorite ngramCount = 
@@ -99,9 +111,7 @@ $(deriveJSON (unPrefix "_p_") ''Pair)
 $(makeAdaptorAndInstance "pPair" ''Pair)
 
 instance (ToSchema i, ToSchema l) => ToSchema (Pair i l) where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 3 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_p_")
 instance (Arbitrary i, Arbitrary l) => Arbitrary (Pair i l) where
   arbitrary = Pair <$> arbitrary <*> arbitrary
 
@@ -116,9 +126,7 @@ $(deriveJSON (unPrefix "_fp_") ''FacetPaired)
 $(makeAdaptorAndInstance "pFacetPaired" ''FacetPaired)
 
 instance (ToSchema id, ToSchema date, ToSchema hyperdata, ToSchema pairs, ToSchema score) => ToSchema (FacetPaired id date hyperdata score pairs) where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fp_")
 
 instance ( Arbitrary id
          , Arbitrary date
@@ -142,7 +150,8 @@ type FacetPairedRead = FacetPaired (Column PGInt4       )
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
 
 -- | Documentation instance
-instance ToSchema FacetDoc
+instance ToSchema FacetDoc where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "facetDoc_")
 
 -- | Mock and Quickcheck instances
 instance Arbitrary FacetDoc where
@@ -158,7 +167,7 @@ instance Arbitrary FacetDoc where
 -- Facets / Views for the Front End
 -- | Database instances
 $(makeAdaptorAndInstance "pFacetDoc" ''Facet)
-$(makeLensesWith abbreviatedFields   ''Facet)
+-- $(makeLensesWith abbreviatedFields   ''Facet)
 
 type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGTimestamptz)
@@ -196,6 +205,7 @@ instance Arbitrary OrderBy
     arbitrary = elements [minBound..maxBound]
 
 
+-- TODO-SECURITY check
 runViewAuthorsDoc :: ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
@@ -236,6 +246,7 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
 
 ------------------------------------------------------------------------
 
+-- TODO-SECURITY check
 runViewDocuments :: CorpusId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewDocuments cId t o l order =
     runOpaQuery $ filterWith o l order $ viewDocuments cId t ntId

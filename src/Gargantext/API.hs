@@ -55,6 +55,9 @@ import           Network.Wai
 import           Network.Wai.Handler.Warp hiding (defaultSettings)
 
 import           Servant
+import           Servant.Auth as SA
+import           Servant.Auth.Server (AuthResult(..))
+import           Servant.Auth.Swagger ()
 import           Servant.HTML.Blaze (HTML)
 --import           Servant.Mock (mock)
 --import           Servant.Job.Server (WithCallbacks)
@@ -68,7 +71,7 @@ import           Text.Blaze.Html (Html)
 --import Gargantext.API.Swagger
 
 --import Gargantext.Database.Node.Contact (HyperdataContact)
-import Gargantext.API.Auth (AuthRequest, AuthResponse, auth)
+import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess)
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
@@ -76,9 +79,6 @@ import Gargantext.API.Node
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Types
 import qualified Gargantext.API.Corpus.New as New
-import Gargantext.Core.Types (HasInvalidError(..))
-import Gargantext.Database.Schema.Node (HasNodeError(..), NodeError)
-import Gargantext.Database.Tree (HasTreeError(..), TreeError)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Database.Utils (HasConnection)
@@ -109,24 +109,8 @@ import Network.HTTP.Types hiding (Query)
 
 import Gargantext.API.Settings
 
-data GargError
-  = GargNodeError NodeError
-  | GargTreeError TreeError
-  | GargInvalidError Validation
-  deriving (Show)
-
-makePrisms ''GargError
-
-instance HasNodeError GargError where
-  _NodeError = _GargNodeError
-
-instance HasInvalidError GargError where
-  _InvalidError = _GargInvalidError
-
-instance HasTreeError GargError where
-  _TreeError = _GargTreeError
-
-showAsServantErr :: Show a => a -> ServerError
+showAsServantErr :: GargError -> ServerError
+showAsServantErr (GargServerError err) = err
 showAsServantErr a = err500 { errBody = BL8.pack $ show a }
 
 fireWall :: Applicative f => Request -> FireWall -> f Bool
@@ -231,15 +215,26 @@ type GargAPI' =
                 "auth"  :> Summary "AUTH API"
                         :> ReqBody '[JSON] AuthRequest
                         :> Post    '[JSON] AuthResponse
-          
-           -- Roots endpoint
-          :<|>  "user"  :> Summary "First user endpoint"
+           -- TODO-ACCESS here we want to request a particular header for
+           -- auth and capabilities.
+          :<|> GargPrivateAPI
+
+type GargPrivateAPI = SA.Auth '[SA.JWT] AuthenticatedUser :> GargPrivateAPI'
+
+type GargAdminAPI
+              -- Roots endpoint
+             =  "user"  :> Summary "First user endpoint"
                         :> Roots
-           
+           :<|> "nodes" :> Summary "Nodes endpoint"
+                        :> ReqBody '[JSON] [NodeId] :> NodesAPI
+
+type GargPrivateAPI' =
+                GargAdminAPI
+
            -- Node endpoint
            :<|> "node"  :> Summary "Node endpoint"
                         :> Capture "id" NodeId      :> NodeAPI HyperdataAny
-           
+
            -- Corpus endpoint
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "id" CorpusId      :> NodeAPI HyperdataCorpus
@@ -251,16 +246,12 @@ type GargAPI' =
            -- Document endpoint
            :<|> "document":> Summary "Document endpoint"
                           :> Capture "id" DocId    :> "ngrams" :> TableNgramsApi
-                          
-           -- Corpus endpoint
-           :<|> "nodes" :> Summary "Nodes endpoint"
-                        :> ReqBody '[JSON] [NodeId] :> NodesAPI
-       
+
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
-           -- Corpus endpoint
+            -- TODO-SECURITY
            :<|> "count" :> Summary "Count endpoint"
                         :> ReqBody '[JSON] Query :> CountAPI
-           
+
            -- Corpus endpoint --> TODO rename s/search/filter/g
            :<|> "search":> Capture "corpus" NodeId :> SearchPairsAPI
 
@@ -290,6 +281,10 @@ type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI
 
 type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 
+-- This is the concrete monad. It needs to be used as little as possible,
+-- instead, prefer GargServer, GargServerT, GargServerC.
+type GargServerM env err = ReaderT env (ExceptT err IO)
+
 ---------------------------------------------------------------------
 -- | Server declarations
 
@@ -298,30 +293,42 @@ server :: forall env. (HasConnection env, HasRepo env, HasSettings env)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
-     :<|> hoistServer (Proxy :: Proxy GargAPI) transform serverGargAPI
+     :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
      :<|> serverStatic
   where
-    transform :: forall a. ReaderT env (ExceptT GargError IO) a -> Handler a
+    transform :: forall a. GargServerM env GargError a -> Handler a
     transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
 
-serverGargAPI :: GargServer GargAPI
+serverGargAPI :: GargServerT env err (GargServerM env err) GargAPI
 serverGargAPI -- orchestrator
-       =  auth
-     :<|> roots
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      fakeUserId
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   fakeUserId
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire) fakeUserId
-     :<|> apiNgramsTableDoc
-     :<|> nodesAPI
-     :<|> count -- TODO: undefined
-     :<|> searchPairs -- TODO: move elsewhere
-     :<|> graphAPI -- TODO: mock
-     :<|> treeAPI
-     :<|> New.api
-     :<|> New.info fakeUserId
+       =  auth :<|> serverPrivateGargAPI
   --   :<|> orchestrator
-  where
-    fakeUserId = 2 -- TODO, byDefault user1 (if users automatically generated with inserUsersDemo)
+
+serverPrivateGargAPI :: GargServerT env err (GargServerM env err) GargPrivateAPI
+serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
+serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
+-- Here throwAll' requires a concrete type for the monad.
+
+-- TODO-SECURITY admin only: withAdmin
+-- Question: How do we mark admins?
+serverGargAdminAPI :: GargServer GargAdminAPI
+serverGargAdminAPI
+   =  roots
+ :<|> nodesAPI
+
+serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
+serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
+       =  serverGargAdminAPI
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      uid
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   uid
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire) uid
+     :<|> withAccess (Proxy :: Proxy TableNgramsApi) Proxy uid <*> apiNgramsTableDoc
+     :<|> count -- TODO: undefined
+     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <*> searchPairs -- TODO: move elsewhere
+     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <*> graphAPI -- TODO: mock
+     :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid <*> treeAPI
+     :<|> New.api -- TODO-SECURITY
+     :<|> New.info uid -- TODO-SECURITY
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
@@ -341,7 +348,13 @@ swaggerFront = schemaUiServer swaggerDoc
 ---------------------------------------------------------------------
 makeApp :: (HasConnection env, HasRepo env, HasSettings env)
         => env -> IO Application
-makeApp = fmap (serve api) . server
+makeApp env = serveWithContext api cfg <$> server env
+  where
+    cfg :: Servant.Context AuthContext
+    cfg = env ^. settings . jwtSettings
+       :. env ^. settings . cookieSettings
+    -- :. authCheck env
+       :. EmptyContext
 
 --appMock :: Application
 --appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)

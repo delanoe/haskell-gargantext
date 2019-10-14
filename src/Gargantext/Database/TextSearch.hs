@@ -82,6 +82,7 @@ joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
 type AuthorName = Text
 
 -- | TODO Optim: Offset and Limit in the Query
+-- TODO-SECURITY check
 searchInCorpusWithContacts :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
 searchInCorpusWithContacts cId q o l order = take (maybe 5 identity l) <$> drop (maybe 0 identity o)
   <$> map (\((i,u,h,s), ps) -> FacetPaired i u h s (catMaybes ps))
@@ -94,6 +95,7 @@ searchInCorpusWithContacts cId q o l order = take (maybe 5 identity l) <$> drop 
     maybePair (Pair Nothing _) = Nothing
     maybePair (Pair (Just p_id) (Just p_label)) = Just $ Pair p_id p_label
 
+-- TODO-SECURITY check
 searchInCorpusWithContacts' :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
 searchInCorpusWithContacts' cId q o l order = runOpaQuery $ queryInCorpusWithContacts cId q' o l order
   where

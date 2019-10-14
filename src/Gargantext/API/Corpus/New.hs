@@ -30,7 +30,7 @@ import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Text.Terms (TermType(..))
@@ -60,9 +60,7 @@ instance Arbitrary Query where
                          ]
 
 instance ToSchema Query where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 6 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "query_")
 
 type Api = Summary "New Corpus endpoint"
          :> ReqBody '[JSON] Query
@@ -70,6 +68,8 @@ type Api = Summary "New Corpus endpoint"
         :<|> Get '[JSON] ApiInfo
 
 -- | TODO manage several apis
+-- TODO-ACCESS
+-- TODO this is only the POST
 api :: (FlowCmdM env err m) => Query -> m CorpusId
 api (Query q _ as) = do
   cId <- case head as of

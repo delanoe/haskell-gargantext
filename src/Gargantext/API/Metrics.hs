@@ -31,7 +31,7 @@ import Data.Time (UTCTime)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types (ListType(..))
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Utils
 import Gargantext.Core.Types (CorpusId, ListId, Limit)
 import Gargantext.Prelude
@@ -50,7 +50,8 @@ data Metrics = Metrics
   { metrics_data :: [Metric]}
   deriving (Generic, Show)
 
-instance ToSchema Metrics
+instance ToSchema Metrics where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "metrics_")
 instance Arbitrary Metrics
   where
     arbitrary = Metrics <$> arbitrary
@@ -62,7 +63,8 @@ data Metric = Metric
   , m_cat   :: !ListType
   } deriving (Generic, Show)
 
-instance ToSchema Metric
+instance ToSchema Metric where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "m_")
 instance Arbitrary Metric
   where
     arbitrary = Metric <$> arbitrary
@@ -78,7 +80,8 @@ deriveJSON (unPrefix "m_") ''Metric
 data ChartMetrics a = ChartMetrics { chartMetrics_data :: a }
   deriving (Generic, Show)
 
-instance (ToSchema a) => ToSchema (ChartMetrics a)
+instance (ToSchema a) => ToSchema (ChartMetrics a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "chartMetrics_")
 instance (Arbitrary a) => Arbitrary (ChartMetrics a)
   where
     arbitrary = ChartMetrics <$> arbitrary
@@ -86,7 +89,8 @@ instance (Arbitrary a) => Arbitrary (ChartMetrics a)
 deriveJSON (unPrefix "chartMetrics_") ''ChartMetrics
 
 -------------------------------------------------------------
-instance ToSchema Histo
+instance ToSchema Histo where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "histo_")
 instance Arbitrary Histo
   where
     arbitrary = elements [ Histo ["2012"] [1]
@@ -94,11 +98,6 @@ instance Arbitrary Histo
                          ]
 deriveJSON (unPrefix "histo_") ''Histo
 
-
-instance ToSchema MyTree
-instance Arbitrary MyTree
-  where
-    arbitrary = MyTree <$> arbitrary <*> arbitrary <*> arbitrary
 
 
 -------------------------------------------------------------

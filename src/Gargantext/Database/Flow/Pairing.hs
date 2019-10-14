@@ -16,6 +16,7 @@ Portability : POSIX
 -- {-# LANGUAGE Arrows #-}
 
 module Gargantext.Database.Flow.Pairing
+  (pairing)
     where
 
 --import Debug.Trace (trace)

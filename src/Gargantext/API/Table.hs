@@ -45,7 +45,7 @@ import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..))
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
 import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.TextSearch
@@ -73,9 +73,7 @@ data TableQuery = TableQuery
 $(deriveJSON (unPrefix "tq_") ''TableQuery)
 
 instance ToSchema TableQuery where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = drop 3}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tq_")
 
 instance Arbitrary TableQuery where
   arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-|
 Module      : Gargantext.Database.Bashql
 Description : BASHQL to deal with Gargantext Database.
@@ -55,13 +56,15 @@ AMS, and by SIAM.
 
 [3] https://github.com/Gabriel439/Haskell-Turtle-Library
 
+TODO-ACCESS: should the checks be done here or before.
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Bashql ( get
+module Gargantext.Database.Bashql () {-( get
                                   , ls
                                   , home
                                   , post
@@ -71,7 +74,7 @@ module Gargantext.Database.Bashql ( get
                                   , rename
                                   , tree
                                   -- , mkCorpus, mkAnnuaire
-                                 )
+                                 )-}
     where
 
 import Control.Monad.Reader -- (Reader, ask)

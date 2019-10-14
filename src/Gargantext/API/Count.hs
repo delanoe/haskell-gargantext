@@ -41,7 +41,7 @@ import Test.QuickCheck (elements)
 -- import Control.Applicative ((<*>))
 
 import Gargantext.Prelude
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanCount
@@ -93,7 +93,9 @@ instance Arbitrary Query where
                          , n <- take 10 $ permutations scrapers
                          ]
 
-instance ToSchema Query
+instance ToSchema Query where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "query_")
+
 -----------------------------------------------------------------------
 type Code = Integer
 type Error  = Text
@@ -144,7 +146,8 @@ data Count = Count { count_name    :: Scraper
 
 $(deriveJSON (unPrefix "count_") ''Count)
 
-instance ToSchema Count
+instance ToSchema Count where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "count_")
 --instance Arbitrary Count where
 --    arbitrary = Count <$> arbitrary <*> arbitrary <*> arbitrary
 

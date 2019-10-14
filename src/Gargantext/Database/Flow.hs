@@ -31,6 +31,13 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings       #-}
 
 module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
+  ( FlowCmdM
+  , flowCorpusFile
+  , flowCorpus
+  , flowCorpusSearchInDatabase
+  , getOrMkRoot
+  , getOrMkRootWithCorpus
+  )
     where
 import Prelude (String)
 import Data.Either
@@ -45,7 +52,7 @@ import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
 import GHC.Show (Show)
 import Gargantext.API.Ngrams (HasRepoVar)
-import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams, RepoCmdM)
+import Gargantext.API.Ngrams (NgramsElement, putListNgrams, RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
@@ -99,30 +106,32 @@ getDataApi lang limit (ApiIsidoreQuery q) = Isidore.get lang limit (Just q) Noth
 getDataApi lang limit (ApiIsidoreAuth  q) = Isidore.get lang limit Nothing  (Just q)
 
 
-flowCorpusApi :: ( FlowCmdM env err m)
+-- UNUSED
+_flowCorpusApi :: ( FlowCmdM env err m)
            => Username -> Either CorpusName [CorpusId]
            -> TermType Lang
            -> Maybe Limit
            -> ApiQuery
            -> m CorpusId
-flowCorpusApi u n tt l q = do
+_flowCorpusApi u n tt l q = do
   docs <- liftIO $ splitEvery 500 <$> getDataApi (_tt_lang tt) l q
   flowCorpus u n tt docs
 
 ------------------------------------------------------------------------
 
-flowAnnuaire :: FlowCmdM env err m
+-- UNUSED
+_flowAnnuaire :: FlowCmdM env err m
              => Username -> Either CorpusName [CorpusId] -> (TermType Lang) -> FilePath -> m AnnuaireId
-flowAnnuaire u n l filePath = do
+_flowAnnuaire u n l filePath = do
   docs <- liftIO $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
-
-flowCorpusDebat :: FlowCmdM env err m
+-- UNUSED
+_flowCorpusDebat :: FlowCmdM env err m
             => Username -> Either CorpusName [CorpusId]
             -> Limit -> FilePath
             -> m CorpusId
-flowCorpusDebat u n l fp = do
+_flowCorpusDebat u n l fp = do
   docs <- liftIO ( splitEvery 500
                  <$> take l
                  <$> readFile' fp
@@ -151,19 +160,22 @@ flowCorpusSearchInDatabase u la q = do
   flowCorpusUser la u (Left q) (Nothing :: Maybe HyperdataCorpus) ids
 
 
-flowCorpusSearchInDatabaseApi :: FlowCmdM env err m
+-- UNUSED
+_flowCorpusSearchInDatabaseApi :: FlowCmdM env err m
           => Username -> Lang -> Text -> m CorpusId
-flowCorpusSearchInDatabaseApi u la q = do
+_flowCorpusSearchInDatabaseApi u la q = do
   (_masterUserId, _masterRootId, cId) <- getOrMkRootWithCorpus userMaster (Left "") (Nothing :: Maybe HyperdataCorpus)
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
   flowCorpusUser la u (Left q) (Nothing :: Maybe HyperdataCorpus) ids
 
 ------------------------------------------------------------------------
 -- | TODO improve the needed type to create/update a corpus
+{- UNUSED
 data UserInfo = Username Text
               | UserId   NodeId
 data CorpusInfo = CorpusName Lang Text
                 | CorpusId   Lang NodeId
+-}
 
 
 flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
