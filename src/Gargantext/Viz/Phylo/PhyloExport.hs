@@ -182,13 +182,15 @@ exportToDot phylo export =
             graphAttrs [Rank SameRank]
 
             -- | 3) group the branches by hierarchy
-            mapM (\branches -> 
-                    subgraph (Str "Branches clade") $ do
-                        graphAttrs [Rank SameRank]
+            -- mapM (\branches -> 
+            --         subgraph (Str "Branches clade") $ do
+            --             graphAttrs [Rank SameRank]
 
-                        -- | 4) create a node for each branch
-                        mapM branchToDotNode branches
-                ) $ elems $ fromListWith (++) $ map (\b -> ((init . snd) $ b ^. branch_id,[b])) $ export ^. export_branches
+            --             -- | 4) create a node for each branch
+            --             mapM branchToDotNode branches
+            --     ) $ elems $ fromListWith (++) $ map (\b -> ((init . snd) $ b ^. branch_id,[b])) $ export ^. export_branches
+
+            mapM branchToDotNode $ export ^. export_branches
 
         -- | 5) create a layer for each period
         _ <- mapM (\period ->
