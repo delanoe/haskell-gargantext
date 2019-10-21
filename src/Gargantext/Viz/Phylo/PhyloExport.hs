@@ -138,7 +138,7 @@ groupToDotNode fdt g =
 toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
-        GroupToGroup   -> [ Width 2, Color [toWColor Black], Constraint True
+        GroupToGroup   -> [ Width 10, Color [toWColor Black], Constraint True
                           , Label (StrLabel $ fromStrict lbl)]
         BranchToGroup  -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])
                           , Label (StrLabel $ fromStrict lbl)]
