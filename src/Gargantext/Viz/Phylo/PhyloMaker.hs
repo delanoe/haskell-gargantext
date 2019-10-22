@@ -16,13 +16,15 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloMaker where
 
 import Data.List (concat, nub, partition, sort, (++))
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), filterWithKey, restrictKeys)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys)
 import Data.Set (size)
 import Data.Vector (Vector)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
+import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
+import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 
@@ -41,7 +43,10 @@ import qualified Data.Set as Set
 
 
 toPhylo :: [Document] -> TermList -> Config -> Phylo
-toPhylo docs lst conf = phylo1
+toPhylo docs lst conf = traceToPhylo (phyloLevel conf) $
+    if (phyloLevel conf) > 1
+      then foldl' (\phylo' _ -> synchronicClustering phylo') phylo1 [2..(phyloLevel conf)]
+      else phylo1 
     where
         --------------------------------------
         phylo1 :: Phylo
@@ -82,16 +87,18 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
 fisToGroup :: PhyloFis -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
 fisToGroup fis pId lvl idx fdt coocs =
     let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloFis_clique) fdt
-    in  PhyloGroup pId lvl idx
+    in  PhyloGroup pId lvl idx ""
                    (fis ^. phyloFis_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
-                   (1,[])
-                   [] [] [] [] []
+                   (1,[0])
+                   empty
+                   [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo
-toPhylo1 docs phyloBase = appendGroups fisToGroup 1 phyloFis phyloBase
+toPhylo1 docs phyloBase = temporalMatching
+                        $ appendGroups fisToGroup 1 phyloFis phyloBase
     where
         --------------------------------------
         phyloFis :: Map (Date,Date) [PhyloFis]
@@ -164,14 +171,6 @@ toPhyloFis phyloDocs support clique = traceFis "Filtered Fis"
 --------------------
 
 
--- | To build the local cooc matrix of each phylogroup
-ngramsToCooc :: [Int] -> [Cooc] -> Cooc
-ngramsToCooc ngrams coocs =
-    let cooc  = foldl (\acc cooc' -> sumCooc acc cooc') empty coocs
-        pairs = listToKeys ngrams
-    in  filterWithKey (\k _ -> elem k pairs) cooc
-
-
 -- | To transform the docs into a time map of coocurency matrix 
 docsToTimeScaleCooc :: [Document] -> Vector Ngrams -> Map Date Cooc
 docsToTimeScaleCooc docs fdt = 
@@ -181,7 +180,7 @@ docsToTimeScaleCooc docs fdt =
         mCooc' = fromList
                $ map (\t -> (t,empty))
                $ toTimeScale (map date docs) 1
-    in   trace ("\n" <> "-- | Build the coocurency matrix for " <> show (length $ keys mCooc') <> " unit of time" <> "\n")
+    in  trace ("\n" <> "-- | Build the coocurency matrix for " <> show (length $ keys mCooc') <> " unit of time" <> "\n")
        $ unionWith sumCooc mCooc mCooc'
 
 
@@ -232,4 +231,4 @@ toPhyloBase docs lst conf =
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
                params
-               (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels (phyloLevel conf) prd))) periods)
+               (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels 1 prd))) periods)

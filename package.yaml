@@ -72,6 +72,9 @@ library:
   - Gargantext.Viz.AdaptativePhylo
   - Gargantext.Viz.Phylo.PhyloMaker
   - Gargantext.Viz.Phylo.Tools
+  - Gargantext.Viz.Phylo.PhyloTools
+  - Gargantext.Viz.Phylo.PhyloExport
+  - Gargantext.Viz.Phylo.SynchronicClustering
   - Gargantext.Viz.Phylo.Example
   - Gargantext.Viz.Phylo.LevelMaker
   - Gargantext.Viz.Phylo.View.Export
