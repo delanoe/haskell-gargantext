@@ -114,7 +114,7 @@ branchToDotNode b =
          ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ b ^. branch_label)]
          <> (metaToAttr $ b ^. branch_meta)
          <> [ toAttr "nodeType" "branch"
-            , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ b ^. branch_id)) ])
+            , toAttr "branchId" (pack $ unwords (map show $ snd $ b ^. branch_id)) ])
  
 periodToDotNode :: (Date,Date) -> Dot DotId
 periodToDotNode prd =
@@ -132,7 +132,8 @@ groupToDotNode fdt g =
                       <> [ toAttr "nodeType" "group"
                          , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
-                         , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))])  
+                         , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))
+                         , toAttr "support" (pack $ show (g ^. phylo_groupSupport))])  
 
 
 toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
