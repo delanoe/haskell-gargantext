@@ -582,6 +582,7 @@ data NewNode = NewNode { _newNodeId :: NodeId
                        , _newNodeChildren :: [NodeId] }
 
 postNode :: HasNodeError err => UserId -> Maybe ParentId -> Node' -> Cmd err NewNode
+
 postNode uid pid (Node' nt txt v []) = do
   pids <- mkNodeR [node2table uid pid (Node' nt txt v [])]
   case pids of
@@ -597,6 +598,7 @@ postNode uid pid (Node' NodeAnnuaire txt v ns) = do
   NewNode pid' _ <- postNode uid pid (Node' NodeAnnuaire txt v [])
   pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
   pure $ NewNode pid' pids
+
 postNode _ _ (Node' _ _ _ _) = nodeError NotImplYet
 
 
@@ -614,7 +616,39 @@ mkNodeWithParent NodeUser Nothing  uId name =
     where
       hd = HyperdataUser . Just . pack $ show EN
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
-mkNodeWithParent _ _ _ _ = nodeError NotImplYet
+
+------------------------------------------------------------------------
+mkNodeWithParent NodeFolder (Just i) uId name = 
+   insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
+    where
+      hd = HyperdataFolder . Just . pack $ show EN
+
+mkNodeWithParent NodeFolderPrivate (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeFolderPrivate "Private" hd Nothing uId]
+    where
+      hd = HyperdataFolder . Just . pack $ show EN
+
+mkNodeWithParent NodeFolderShared (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeFolderShared "Shared" hd Nothing uId]
+    where
+      hd = HyperdataFolder . Just . pack $ show EN
+
+mkNodeWithParent NodeFolderPublic (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeFolderPublic "Public" hd Nothing uId]
+    where
+      hd = HyperdataFolder . Just . pack $ show EN
+
+------------------------------------------------------------------------
+
+
+
+mkNodeWithParent NodeCorpus (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeCorpus name hd Nothing uId]
+    where
+      hd = defaultCorpus
+
+mkNodeWithParent _ _ _ _       = nodeError NotImplYet
+
 
 
 mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]

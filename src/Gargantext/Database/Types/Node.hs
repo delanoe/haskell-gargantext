@@ -437,10 +437,15 @@ $(deriveJSON (unPrefix "hd_") ''HyperData)
 instance Hyperdata HyperData
 
 
+
 ------------------------------------------------------------------------
 -- | Then a Node can be either a Folder or a Corpus or a Document
 data NodeType = NodeUser
+              | NodeFolderPrivate
+              | NodeFolderShared
+              | NodeFolderPublic
               | NodeFolder
+
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
