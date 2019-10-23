@@ -15,8 +15,8 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.TemporalMatching where
 
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, dropWhile, partition, delete)
-import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, intersectionWith, findWithDefault, keys, (!), filterWithKey)
+import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, dropWhile, partition, delete, and)
+import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, intersectionWith, findWithDefault, keys, (!), filterWithKey, toList)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
@@ -28,6 +28,7 @@ import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Debug.Trace (trace)
 
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 
 -------------------
@@ -210,8 +211,6 @@ getCandidates fil ego targets =
 
 phyloBranchMatching :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
 phyloBranchMatching frame periods proximity thr docs branch = traceBranchMatching proximity thr
-                                                            -- $ matchByPeriods ToParents
-                                                            -- $ groupByField _phylo_groupPeriod
                                                             $ matchByPeriods
                                                             $ groupByField _phylo_groupPeriod branch
     where
@@ -291,6 +290,32 @@ toAccuracy freq term branches =
         branches' = relevantBranches term branches
 
 
+fScore :: Double -> Int -> [PhyloGroup] -> [[PhyloGroup]] -> Double
+fScore beta i bk bks = 
+  let recall = ( (fromIntegral $ length $ filter (\g -> elem i $ g ^. phylo_groupNgrams) bk)
+               / (fromIntegral $ length $ filter (\g -> elem i $ g ^. phylo_groupNgrams) $ concat bks))
+      accuracy = ( (fromIntegral $ length $ filter (\g -> elem i $ g ^. phylo_groupNgrams) bk)
+                 / (fromIntegral $ length bk))
+   in ((1 + beta ** 2) * accuracy * recall)
+    / (((beta ** 2) * accuracy + recall))
+
+
+wk :: [PhyloGroup] -> Double
+wk bk = fromIntegral $ length bk
+
+
+toPhyloQuality' :: Double -> Map Int Double -> [[PhyloGroup]] -> Double
+toPhyloQuality' beta freq branches =
+  if (null branches)
+    then 0
+    else sum 
+       $ map (\i -> 
+          let bks = relevantBranches i branches
+           in (freq ! i) * (sum $ map (\bk -> ((wk bk) / (sum $ map wk bks)) * (fScore beta i bk bks)) bks))
+       $ keys freq
+  
+
+
 toPhyloQuality :: Double -> Map Int Double -> Int -> Double -> [[PhyloGroup]] -> Double
 toPhyloQuality beta frequency border oldAcc branches =
     -- trace ("  rec : " <> show(recall)) $
@@ -346,6 +371,58 @@ alterBorder :: Int -> [[PhyloGroup]] -> [PhyloGroup] -> Int
 alterBorder border branches branch = border + (length $ concat branches) - (length branch)
 
 
+seqMatching :: Proximity -> Double -> Map Int Double -> Int -> Double -> Int -> Map Date Double -> [PhyloPeriodId] -> [([PhyloGroup],Bool)] -> ([PhyloGroup],Bool) -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
+seqMatching proximity beta frequency minBranch egoThr frame docs periods done ego rest = 
+  -- | 1) keep or not the new division of ego
+  let done' = done ++ (if snd ego 
+                        then (if ((null ego') || (quality > quality')) 
+                               then trace ("  ✗ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
+                                        <> " | " <> show((length done) + (length ego') + (length rest))
+                                        <> "["   
+                                        <> show((length $ concat $ map fst done) + (length $ concat ego') + (length $ concat $ map fst rest))
+                                        <> "]")   
+                                  $ [(fst ego,False)] 
+                               else trace ("  ✓ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
+                                        <> " | " <> show((length done) + (length ego') + (length rest))
+                                        <> "["   
+                                        <> show((length $ concat $ map fst done) + (length $ concat ego') + (length $ concat $ map fst rest))
+                                        <> "]")     
+                                  $ (map (\e -> (e,True)) ego'))
+                        else [ego])
+  in 
+    -- | 2) if there is no more branches in rest then return else continue    
+    if null rest 
+      then done'
+      else seqMatching proximity beta frequency minBranch egoThr frame docs periods
+                       done' (head' "seqMatching" rest) (tail' "seqMatching" rest) 
+  where
+    --------------------------------------
+    quality :: Double 
+    quality = toPhyloQuality' beta frequency ((map fst done) ++ [fst ego] ++ (map fst rest))
+    --------------------------------------
+    ego' :: [[PhyloGroup]]
+    ego' = 
+      let branches  = groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+                    $ phyloBranchMatching frame periods proximity egoThr docs (fst ego)
+          branches' = branches `using` parList rdeepseq
+       in filter (\b -> length b >= minBranch) branches'
+    --------------------------------------
+    quality' :: Double
+    quality' = toPhyloQuality' beta (reduceFrequency frequency ((map fst done) ++ ego' ++ (map fst rest)))
+                                    ((map fst done) ++ ego' ++ (map fst rest))
+
+
+recursiveMatching' :: Proximity -> Double -> Int -> Map Int Double -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
+recursiveMatching' proximity beta minBranch frequency egoThr frame periods docs branches =
+  if (egoThr >= 1) || ((not . and) $ map snd branches)
+    then branches
+    else 
+      let branches' = seqMatching proximity beta frequency minBranch egoThr frame docs periods 
+                                  [] (head' "recursiveMatching" branches) (tail' "recursiveMatching" branches)
+          frequency' = reduceFrequency frequency (map fst branches')
+       in recursiveMatching' proximity beta minBranch frequency' (egoThr + (getThresholdStep proximity))  frame periods docs branches'
+
+
 recursiveMatching :: Proximity -> Double -> Int -> Map Int Double -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> Double -> Int -> Double -> [PhyloGroup] -> [PhyloGroup] 
 recursiveMatching proximity beta minBranch frequency egoThr frame periods docs quality border oldAcc groups =
   if ((egoThr >= 1) || (quality > quality') || ((length $ concat $ snd branches') == (length groups)))
@@ -378,8 +455,39 @@ recursiveMatching proximity beta minBranch frequency egoThr frame periods docs q
        in partition (\b -> length b >= minBranch) (branches `using` parList rdeepseq)
 
 
-temporalMatching :: Phylo -> Phylo
-temporalMatching phylo = updatePhyloGroups 1 branches' phylo
+temporalMatching :: Phylo -> Phylo 
+temporalMatching phylo = updatePhyloGroups 1 
+                          (fromList $ map (\g -> (getGroupId g,g)) $ traceMatchEnd $ concat branches)
+                          phylo
+  where
+    branches :: [[PhyloGroup]]
+    branches = map fst
+             $ recursiveMatching' (phyloProximity $ getConfig phylo)
+                                  (_qua_relevance $ phyloQuality $ getConfig phylo)
+                                  (_qua_minBranch $ phyloQuality $ getConfig phylo)
+                                  frequency
+                                  (getThresholdInit $ phyloProximity $ getConfig phylo)
+                                  (getTimeFrame $ timeUnit $ getConfig phylo)
+                                  (getPeriodIds phylo)
+                                  (phylo ^. phylo_timeDocs)
+                                  [(groups,True)]
+    -- | 2) process the constants of the quality score    
+    frequency :: Map Int Double
+    frequency = 
+        let terms = ngramsInBranches [groups]
+            freqs = map (\t -> termFreq' t groups) terms
+         in fromList $ map (\(t,freq) -> (t,freq/(sum freqs))) $ zip terms freqs    
+    -- | 1) for each group process an initial temporal Matching
+    groups :: [PhyloGroup]
+    groups = phyloBranchMatching (getTimeFrame $ timeUnit $ getConfig phylo) (getPeriodIds phylo) 
+                                 (phyloProximity $ getConfig phylo) (getThresholdInit $ phyloProximity $ getConfig phylo)
+                                 (phylo ^. phylo_timeDocs) 
+                                 (traceTemporalMatching $ getGroupsFromLevel 1 phylo)       
+
+
+
+temporalMatching' :: Phylo -> Phylo
+temporalMatching' phylo = updatePhyloGroups 1 branches' phylo
   where
     -- | 5) apply the recursive matching
     branches' :: Map PhyloGroupId PhyloGroup
