@@ -18,16 +18,23 @@ module Gargantext.Prelude.Utils
 import Control.Lens (view)
 import Control.Monad.Reader (MonadReader)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Random.Class (MonadRandom)
 import Data.Text (Text)
 import Control.Monad.Reader (ask)
 import GHC.IO (FilePath)
 import Gargantext.Prelude
 import Gargantext.API.Settings
 import System.Random (newStdGen)
+import qualified System.Random.Shuffle as SRS
 import System.Directory (createDirectoryIfMissing)
 import qualified Data.ByteString.Lazy.Char8  as Char
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as Text
+
+
+shuffle :: MonadRandom m => [a] -> m [a]
+shuffle ns = SRS.shuffleM ns 
+
 
 type FolderPath = FilePath
 type FileName   = FilePath

@@ -160,6 +160,8 @@ library:
   - profunctors
   - protolude
   - pureMD5
+  - random-shuffle
+  - MonadRandom
   - SHA
   - simple-reflect
   - cereal     # (IGraph)
