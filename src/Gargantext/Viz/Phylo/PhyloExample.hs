@@ -62,8 +62,8 @@ phylo1 = temporalMatching
 ---------------------------------------------
 
 
-phyloFis :: Map (Date,Date) [PhyloFis]
-phyloFis = toPhyloFis docsByPeriods (getFisSupport $ contextualUnit config) (getFisSize $ contextualUnit config) 
+phyloFis :: Map (Date,Date) [PhyloCUnit]
+phyloFis = toPhyloFis docsByPeriods (getContextualUnitSupport $ contextualUnit config) (getContextualUnitSize $ contextualUnit config) 
 
 
 docsByPeriods :: Map (Date,Date) [Document]

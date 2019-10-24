@@ -171,7 +171,7 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "proxiName") $ pack $ show (getProximityName $ phyloProximity $ getConfig phylo))
                      ,(toAttr (fromStrict "proxiInit") $ pack $ show (getProximityInit $ phyloProximity $ getConfig phylo))
                      ,(toAttr (fromStrict "proxiStep") $ pack $ show (getProximityStep $ phyloProximity $ getConfig phylo))
-                     ,(toAttr (fromStrict "quaFactor") $ pack $ show (_qua_relevance $ phyloQuality $ getConfig phylo))
+                     ,(toAttr (fromStrict "quaFactor") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
                      ])
 
 

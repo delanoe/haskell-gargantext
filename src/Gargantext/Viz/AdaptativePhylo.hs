@@ -88,12 +88,14 @@ data ContextualUnit =
       Fis 
       { _fis_support :: Int
       , _fis_size    :: Int }
+    | MaxClique
+      { _clique_size :: Int } 
       deriving (Show,Generic,Eq)      
 
 
 data Quality = 
-     Quality { _qua_relevance :: Double
-             , _qua_minBranch :: Int }
+     Quality { _qua_granularity :: Double
+             , _qua_minBranch   :: Int }
       deriving (Show,Generic,Eq)   
 
 
@@ -125,7 +127,7 @@ defaultConfig =
             , phyloLevel     = 2
             , phyloProximity = WeightedLogJaccard 10 0 0.1
             , phyloSynchrony = ByProximityDistribution 0
-            , phyloQuality   = Quality 10 3
+            , phyloQuality   = Quality 0 3
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 1 5
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
@@ -315,17 +317,13 @@ data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)
 -- | Frequent Item Set | --
 ---------------------------
 
--- | Clique : Set of ngrams cooccurring in the same Document
-type Clique   = Set Ngrams
-
 -- | Support : Number of Documents where a Clique occurs
 type Support  = Int
 
--- | Fis : Frequent Items Set (ie: the association between a Clique and a Support)
-data PhyloFis = PhyloFis
-  { _phyloFis_clique  :: Clique
-  , _phyloFis_support :: Support
-  , _phyloFis_period  :: (Date,Date)
+data PhyloCUnit = PhyloCUnit
+  { _phyloCUnit_nodes   :: Set Ngrams
+  , _phyloCUnit_support :: Support
+  , _phyloCUnit_period  :: (Date,Date)
   } deriving (Generic,NFData,Show,Eq)
 
 
@@ -378,7 +376,7 @@ makeLenses ''ContextualUnit
 makeLenses ''PhyloLabel
 makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
-makeLenses ''PhyloFis
+makeLenses ''PhyloCUnit
 makeLenses ''Phylo
 makeLenses ''PhyloPeriod
 makeLenses ''PhyloLevel

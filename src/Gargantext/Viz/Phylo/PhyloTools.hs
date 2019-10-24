@@ -162,28 +162,28 @@ keepFilled f thr l = if (null $ f thr l) && (not $ null l)
                      else f thr l
 
 
-traceClique :: Map (Date, Date) [PhyloFis] -> String
+traceClique :: Map (Date, Date) [PhyloCUnit] -> String
 traceClique mFis = foldl (\msg cpt -> msg <> show (countSup cpt cliques) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         cliques :: [Double]
-        cliques = sort $ map (fromIntegral . size . _phyloFis_clique) $ concat $ elems mFis
+        cliques = sort $ map (fromIntegral . size . _phyloCUnit_nodes) $ concat $ elems mFis
         -------------------------------------- 
 
 
-traceSupport :: Map (Date, Date) [PhyloFis] -> String
+traceSupport :: Map (Date, Date) [PhyloCUnit] -> String
 traceSupport mFis = foldl (\msg cpt -> msg <> show (countSup cpt supports) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         supports :: [Double]
-        supports = sort $ map (fromIntegral . _phyloFis_support) $ concat $ elems mFis
+        supports = sort $ map (fromIntegral . _phyloCUnit_support) $ concat $ elems mFis
         -------------------------------------- 
 
 
-traceFis :: [Char] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
+traceFis :: [Char] -> Map (Date, Date) [PhyloCUnit] -> Map (Date, Date) [PhyloCUnit]
 traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map length $ elems mFis) <> "\n"
                          <> "Support : " <> (traceSupport mFis) <> "\n"
-                         <> "Clique : "  <> (traceClique mFis)  <> "\n" ) mFis
+                         <> "Nb Ngrams : "  <> (traceClique mFis)  <> "\n" ) mFis
 
 
 -------------------------
@@ -191,15 +191,15 @@ traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map l
 -------------------------
 
 
-getFisSupport :: ContextualUnit -> Int
-getFisSupport unit = case unit of 
+getContextualUnitSupport :: ContextualUnit -> Int
+getContextualUnitSupport unit = case unit of 
     Fis s _ -> s
-    -- _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a support")
+    MaxClique _ -> 0
 
-getFisSize :: ContextualUnit -> Int
-getFisSize unit = case unit of 
+getContextualUnitSize :: ContextualUnit -> Int
+getContextualUnitSize unit = case unit of 
     Fis _ s -> s
-    -- _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a clique size")  
+    MaxClique s -> s
 
 
 --------------
