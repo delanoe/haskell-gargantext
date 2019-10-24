@@ -15,7 +15,7 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloMaker where
 
-import Data.List (concat, nub, partition, sort, (++))
+import Data.List (concat, nub, partition, sort, (++), group)
 import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys)
 import Data.Set (size)
 import Data.Vector (Vector)
@@ -206,6 +206,17 @@ groupDocsByPeriod f pds es =
     --------------------------------------   
 
 
+docsToTermFreq :: [Document] -> Vector Ngrams -> Map Int Double
+docsToTermFreq docs fdt =
+  let nbDocs = fromIntegral $ length docs
+      freqs = map (/nbDocs)
+             $ fromList
+             $ map (\lst -> (head' "docsToTermFreq" lst, fromIntegral $ length lst)) 
+             $ group $ sort $ concat $ map (\d -> nub $ ngramsToIdx (text d) fdt) docs
+      sumFreqs = sum $ elems freqs
+   in map (/sumFreqs) freqs
+
+
 -- | To count the number of docs by unit of time
 docsToTimeScaleNb :: [Document] -> Map Date Double
 docsToTimeScaleNb docs = 
@@ -230,5 +241,6 @@ toPhyloBase docs lst conf =
        $ Phylo foundations
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
+               (docsToTermFreq docs (foundations ^. foundations_roots))
                params
                (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels 1 prd))) periods)

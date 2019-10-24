@@ -338,11 +338,12 @@ branchDating export =
                    $ foldl' (\acc g -> if (g ^. phylo_groupBranchId == b ^. branch_id)
                                       then acc ++ [g ^. phylo_groupPeriod]
                                       else acc ) [] $ export ^. export_groups
+            periods = nub groups
             birth = fst $ head' "birth" groups
             age   = (snd $ last' "age"  groups) - birth 
         in b & branch_meta %~ insert "birth" [fromIntegral birth] 
              & branch_meta %~ insert "age"   [fromIntegral age]
-             & branch_meta %~ insert "size"  [fromIntegral $ length groups] ) export
+             & branch_meta %~ insert "size"  [fromIntegral $ length periods] ) export
 
 processMetrics :: PhyloExport -> PhyloExport
 processMetrics export = ngramsMetrics

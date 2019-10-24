@@ -125,7 +125,7 @@ defaultConfig =
             , phyloLevel     = 2
             , phyloProximity = WeightedLogJaccard 10 0 0.1
             , phyloSynchrony = ByProximityDistribution 0
-            , phyloQuality   = Quality 0.5 1
+            , phyloQuality   = Quality 10 3
             , timeUnit       = Year 3 1 5
             , contextualUnit = Fis 1 5
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
@@ -239,6 +239,7 @@ data Phylo =
      Phylo { _phylo_foundations :: PhyloFoundations
            , _phylo_timeCooc    :: !(Map Date Cooc)
            , _phylo_timeDocs    :: !(Map Date Double)
+           , _phylo_termFreq    :: !(Map Int Double)
            , _phylo_param       :: PhyloParam
            , _phylo_periods     :: Map PhyloPeriodId PhyloPeriod
            }
