@@ -158,7 +158,8 @@ mergePointers groups =
 exportToDot :: Phylo -> PhyloExport -> DotGraph DotId
 exportToDot phylo export = 
     trace ("\n-- | Convert " <> show(length $ export ^. export_branches) <> " branches and "
-         <> show(length $ export ^. export_groups) <> " groups to a dot file\n") $
+         <> show(length $ export ^. export_groups) <> " groups " 
+         <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups) <> " terms to a dot file\n") $
     digraph ((Str . fromStrict) $ (phyloName $ getConfig phylo)) $ do 
 
         -- | 1) init the dot graph
@@ -465,9 +466,17 @@ toPhyloExport phylo = exportToDot phylo
         branches = traceExportBranches $ map (\bId -> PhyloBranch bId "" empty) $ nub $ map _phylo_groupBranchId groups
         --------------------------------------    
         groups :: [PhyloGroup]
-        groups = processDynamics 
+        groups = traceExportGroups
+               $ processDynamics 
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo) phylo
 
 
 traceExportBranches :: [PhyloBranch] -> [PhyloBranch]
-traceExportBranches branches = trace ("\n" <> "-- | Export " <> show(length branches) <> " branches") branches
+traceExportBranches branches = trace ("\n"
+  <> "-- | Export " <> show(length branches) <> " branches") branches
+
+traceExportGroups :: [PhyloGroup] -> [PhyloGroup]
+traceExportGroups groups = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Export " <> show(length groups) <> " groups and "
+    <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) groups) <> " terms"
+  ) groups
+

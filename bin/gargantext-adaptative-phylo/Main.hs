@@ -169,6 +169,8 @@ main = do
 
             let dot = toPhyloExport phylo
 
+            printIOMsg "##########################"            
+
             let output = (outputPath config) 
                       <> (unpack $ phyloName config)
                       <> "_V2.dot"
