@@ -25,7 +25,7 @@ import Gargantext.Viz.Phylo.PhyloTools
 -- import Prelude (logBase)
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 
 import qualified Data.Set as Set
 
@@ -209,8 +209,9 @@ getCandidates fil ego targets =
 
 
 phyloBranchMatching :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
-phyloBranchMatching frame periods proximity thr docs branch = traceBranchMatching proximity thr
-                                                            $ matchByPeriods
+phyloBranchMatching frame periods proximity thr docs branch = 
+                                                -- traceBranchMatching proximity thr
+                                                            matchByPeriods
                                                             $ groupByField _phylo_groupPeriod branch
     where
         --------------------------------------
@@ -298,16 +299,18 @@ seqMatching proximity beta frequency minBranch egoThr frame docs periods done eg
   -- | 1) keep or not the new division of ego
   let done' = done ++ (if snd ego 
                         then (if ((null (fst ego')) || (quality > quality')) 
-                               then trace ("  ✗ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
-                                        <> "  | "  <> show(length $ fst ego) <> " groups : " 
-                                        <> "  |✓ " <> show(length $ fst ego') <> show(map length $ fst ego')
-                                        <> "  |✗ " <> show(length $ snd ego') <> "[" <> show(length $ concat $ snd ego') <> "]")
-                                  $ [(fst ego,False)] 
-                               else trace ("  ✓ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
-                                        <> "  | "  <> show(length $ fst ego) <> " groups : " 
-                                        <> "  |✓ " <> show(length $ fst ego') <> show(map length $ fst ego')
-                                        <> "  |✗ " <> show(length $ snd ego') <> "[" <> show(length $ concat $ snd ego') <> "]")     
-                                  $ ((map (\e -> (e,True)) (fst ego')) ++ (map (\e -> (e,False)) (snd ego'))))
+                               then 
+                                -- trace ("  ✗ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
+                                --         <> "  | "  <> show(length $ fst ego) <> " groups : " 
+                                --         <> "  |✓ " <> show(length $ fst ego') <> show(map length $ fst ego')
+                                --         <> "  |✗ " <> show(length $ snd ego') <> "[" <> show(length $ concat $ snd ego') <> "]")
+                                  [(fst ego,False)] 
+                               else 
+                                -- trace ("  ✓ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
+                                --         <> "  | "  <> show(length $ fst ego) <> " groups : " 
+                                --         <> "  |✓ " <> show(length $ fst ego') <> show(map length $ fst ego')
+                                --         <> "  |✗ " <> show(length $ snd ego') <> "[" <> show(length $ concat $ snd ego') <> "]")     
+                                  ((map (\e -> (e,True)) (fst ego')) ++ (map (\e -> (e,False)) (snd ego'))))
                         else [ego])
   in 
     -- | 2) if there is no more branches in rest then return else continue    

@@ -36,6 +36,7 @@ import System.FilePath
 import Debug.Trace (trace)
 
 import qualified Data.Text as Text
+import qualified Data.Vector as Vector
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.GraphViz.Attributes.HTML as H
 
@@ -159,7 +160,8 @@ exportToDot :: Phylo -> PhyloExport -> DotGraph DotId
 exportToDot phylo export = 
     trace ("\n-- | Convert " <> show(length $ export ^. export_branches) <> " branches and "
          <> show(length $ export ^. export_groups) <> " groups " 
-         <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups) <> " terms to a dot file\n") $
+         <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups) <> " terms to a dot file\n\n"
+         <> "##########################") $
     digraph ((Str . fromStrict) $ (phyloName $ getConfig phylo)) $ do 
 
         -- | 1) init the dot graph
@@ -463,20 +465,30 @@ toPhyloExport phylo = exportToDot phylo
         export = PhyloExport groups branches
         --------------------------------------
         branches :: [PhyloBranch] 
-        branches = traceExportBranches $ map (\bId -> PhyloBranch bId "" empty) $ nub $ map _phylo_groupBranchId groups
+        branches = map (\bId -> PhyloBranch bId "" empty) $ nub $ map _phylo_groupBranchId groups
         --------------------------------------    
         groups :: [PhyloGroup]
         groups = traceExportGroups
                $ processDynamics 
-               $ getGroupsFromLevel (phyloLevel $ getConfig phylo) phylo
+               $ getGroupsFromLevel (phyloLevel $ getConfig phylo)
+               $ tracePhyloInfo phylo
 
 
 traceExportBranches :: [PhyloBranch] -> [PhyloBranch]
 traceExportBranches branches = trace ("\n"
   <> "-- | Export " <> show(length branches) <> " branches") branches
 
+tracePhyloInfo :: Phylo -> Phylo
+tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with β = "
+    <> show(_qua_granularity $ phyloQuality $ getConfig phylo) <> " applied to "
+    <> show(length $ Vector.toList $ getRoots phylo) <> " foundations"
+  ) phylo
+
+
 traceExportGroups :: [PhyloGroup] -> [PhyloGroup]
-traceExportGroups groups = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Export " <> show(length groups) <> " groups and "
+traceExportGroups groups = trace ("\n" <> "-- | Export "
+    <> show(length $ nub $ map (\g -> g ^. phylo_groupBranchId) groups) <> " branches, "
+    <> show(length groups) <> " groups and "
     <> show(length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) groups) <> " terms"
   ) groups
 

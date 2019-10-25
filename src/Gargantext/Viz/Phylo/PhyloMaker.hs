@@ -149,13 +149,15 @@ filterFisByNested m =
 
 -- | To transform a time map of docs innto a time map of Fis with some filters
 toPhyloFis :: Map (Date, Date) [Document] -> Int -> Int -> Map (Date,Date) [PhyloCUnit]
-toPhyloFis phyloDocs support clique = traceFis "Filtered Fis"
-                $ filterFisByNested 
-                $ traceFis "Filtered by clique size"
+toPhyloFis phyloDocs support clique =
+                -- traceFis "Filtered Fis"
+                filterFisByNested 
+                -- $ traceFis "Filtered by clique size"
                 $ filterFis True clique (filterFisByClique)
-                $ traceFis "Filtered by support"
+                -- $ traceFis "Filtered by support"
                 $ filterFis True support (filterFisBySupport)
-                $ traceFis "Unfiltered Fis" phyloFis
+                -- $ traceFis "Unfiltered Fis" 
+                phyloFis
     where
         -------------------------------------- 
         phyloFis :: Map (Date,Date) [PhyloCUnit]
