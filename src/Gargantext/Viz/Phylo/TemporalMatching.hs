@@ -145,20 +145,18 @@ filterPointers proxi thr pts = filter (\(_,w) -> filterProximity proxi thr w) pt
 
 phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> Double -> PhyloGroup -> PhyloGroup
 phyloGroupMatching candidates fil proxi docs thr ego = 
-    case null nextPointers of
-            -- | let's find new pointers
-            True  -> if null $ filterPointers proxi thr $ getPeriodPointers fil ego
-                        then addPointers ego fil TemporalPointer []
-                        -- | or keep the old ones
-                        else addPointers ego fil TemporalPointer
-                           $ filterPointers proxi thr $ getPeriodPointers fil ego
-            False -> addPointers ego fil TemporalPointer
-                   $ head' "phyloGroupMatching"
-                   -- | Keep only the best set of pointers grouped by proximity
-                   $ groupBy (\pt pt' -> snd pt == snd pt')
-                   $ reverse $ sortOn snd $ head' "pointers" 
-                   $ nextPointers
-                   -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
+    if (null $ filterPointers proxi thr $ getPeriodPointers fil ego)
+      -- | let's find new pointers
+      then if null nextPointers
+        then addPointers ego fil TemporalPointer []
+        else addPointers ego fil TemporalPointer
+           $ head' "phyloGroupMatching"
+           -- | Keep only the best set of pointers grouped by proximity
+           $ groupBy (\pt pt' -> snd pt == snd pt')
+           $ reverse $ sortOn snd $ head' "pointers" nextPointers
+           -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
+      else addPointers ego fil TemporalPointer
+         $ filterPointers proxi thr $ getPeriodPointers fil ego
     where
         nextPointers :: [[Pointer]]
         nextPointers = take 1
