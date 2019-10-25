@@ -129,8 +129,8 @@ makePairs' ego candidates periods pointers fil thr prox docs =
         True  -> []
         False -> toLazyPairs pointers fil thr prox lastPrd
                 -- | at least on of the pair candidates should be from the last added period 
-               $ filter (\(g,g') -> ((g  ^. phylo_groupPeriod) == lastPrd)
-                                 || ((g' ^. phylo_groupPeriod) == lastPrd))
+               -- $ filter (\(g,g') -> ((g  ^. phylo_groupPeriod) == lastPrd)
+               --                   || ((g' ^. phylo_groupPeriod) == lastPrd))
                $ listToKeys 
                $ filter (\g -> (g ^. phylo_groupPeriod == lastPrd)
                             || ((toProximity docs prox ego ego g) >= thr)) candidates 
