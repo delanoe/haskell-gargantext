@@ -211,9 +211,9 @@ groupDocsByPeriod f pds es =
 docsToTermFreq :: [Document] -> Vector Ngrams -> Map Int Double
 docsToTermFreq docs fdt =
   let nbDocs = fromIntegral $ length docs
-      freqs = map (/(log nbDocs))
+      freqs = map (/(nbDocs))
              $ fromList
-             $ map (\lst -> (head' "docsToTermFreq" lst, log $ fromIntegral $ length lst)) 
+             $ map (\lst -> (head' "docsToTermFreq" lst, fromIntegral $ length lst)) 
              $ group $ sort $ concat $ map (\d -> nub $ ngramsToIdx (text d) fdt) docs
       sumFreqs = sum $ elems freqs
    in map (/sumFreqs) freqs
