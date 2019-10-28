@@ -1,96 +1,106 @@
+{-| Module      : Gargantext.Viz.Graph.MaxClique
+Description : MaxCliques function
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+- First written by Bruno Gaume in Python        (see below for details)
+- Then  written by Alexandre Delanoë in Haskell (see below for details)
+
+# By Bruno Gaume:
+def fast_maximal_cliques(g):
+
+    def rec_maximal_cliques(g, subv):
+        mc = []
+        if subv == []: # stop condition
+            return [[]]
+        else :
+            for i in range(len(subv)):
+                newsubv = [j for j in subv[i+1:len(subv)]
+                                   if (j in g.neighbors(subv[i]))]
+                mci = rec_maximal_cliques(g, newsubv)
+                for x in mci:
+                    x.append(subv[i])
+                    mc.append(x)
+            return mc
+
+    def purge(clust):
+        clustset = [set(x) for x in clust]
+        new_clust = []
+        for i in range(len(clustset)):
+            ok = True
+            for j in range(len(clustset)):
+                if clustset[i].issubset(clustset[j]) and (not (len(clustset[i]) == len(clustset[j])) ):
+                    ok = False
+            if ok and (not (clustset[i] in new_clust)):
+                new_clust.append(clustset[i])
+        return [list(x) for x in new_clust]
+
+    # to optimize : rank the vertices on the degrees
+    subv = [(v.index, v.degree()) for v in g.vs()]
+    subv.sort(key = lambda z:z[1])
+    subv = [x for (x, y) in subv]
+    return purge(rec_maximal_cliques(g, subv))
+
+-}
+
+
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Viz.Graph.MaxClique where
 
 import Gargantext.Prelude
-import Data.List (sortOn, nub)
-import Data.Bool
-import Data.Graph.Inductive hiding (Graph, neighbors, subgraph)
-import qualified Data.Graph.Inductive as DGI
+import Data.List (sortOn, nub, concat, length)
+import Data.Set (Set)
+import Data.Set (fromList, toList, isSubsetOf)
+import Data.Graph.Inductive hiding (Graph, neighbors, subgraph, (&))
 import Gargantext.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGraphUfromEdges)
-import qualified Data.Set as Set
+
+
 
 type Graph = Graph_Undirected
 type Neighbor = Node
 
-subgraph g ns = DGI.subgraph ns g
+maxCliques :: Graph -> [[Node]]
+maxCliques g = map (\n -> subMaxCliques g (n:ns)) ns & concat & takeMax
+  where
+    ns = sortOn (degree g) $ nodes g
 
-subGraphOn :: Graph -> Node -> Graph
-subGraphOn g n = subgraph g (filter (/= n) $ neighbors g n)
-
-maximalClique :: Graph -> [Node] -> [[Node]]
-maximalClique _ []  = [[]]
-maximalClique _ [n] = [[n]]
-
-cliqueFinder :: Graph -> [[Node]]
-cliqueFinder = undefined
-
-
-{-
-------------------------------------------------------------------------
--- TODO: filter subset de cliques 
-maxClique :: Graph -> [[Node]]
-maxClique g = filterClique g 
-            $ map (maxCliqueOn g) (nodes g)
-
-------------------------------------------------------------------------
-
--- TODO: ask Bruno
--- copier python
-filterClique :: Graph -> [Set.Set Node] -> [Set.Set Node]
-filterClique = undefined
-
-------------------------------------------------------------------------
-
-type CliqueMax = [Node]
-
-maxCliqueOn :: Graph -> Node -> [CliqueMax]
-maxCliqueOn = undefined
-
-maxCliqueOn' :: Graph -> Node -> [Node] -> [CliqueMax]
-maxCliqueOn' g n []  = [[n]]
-maxCliqueOn' g n [m] = if (neighbors g n = [m]) 
-                          then [n,m]
-                          else maxCliqueOn' g n [] <> maxCliqueOn' g m []
-maxCliqueOn' g n (x:xs) = undefined 
-
-
-stopClique :: Graph -> Node -> [Node] -> [Node]
--- no self, no reflexivity
-stopClique _ n [] = [n]
-
-stopClique g n [m] = if (neighbors g n) == [m]
-            then [n,m]
-            else []
-stopClique g n ns = case all (\n' -> clique g n == clique g n') (x:xs) of
-                      True  -> n : ns
-                      -- False -> stopClique g x xs
-                      False -> stopClique g x xs
+    subMaxCliques :: Graph -> [Node] -> [[Node]]
+    subMaxCliques _ []  = [[]]
+    subMaxCliques g' (x:xs) = add x $ subMaxCliques g' ns'
       where
-        (x:xs) = sort g ns
+        ns' = [n | n <- xs, elem n $ neighborsOut g' x]
 
-subGraph :: Graph -> Node -> Graph
-subGraph g n = mkGraphUfromEdges (edges voisin <> edges g n)
+        add :: Node -> [[Node]] -> [[Node]]
+        add n [] = [[n]]
+        add n (m:ms) = [n:m] <> add n ms
+        -- | Note, it is same as :
+        -- add n ns = map (\m -> n : m) ns
+        -- -- (but using pattern matching and recursivity)
+        -- -- (map is redefined in fact)
 
--}
+        -- | To be sure self is not in neighbors of self
+        -- (out to exclude the self)
+        neighborsOut :: Graph -> Node -> [Node]
+        neighborsOut g'' n = filter (/= n) $ neighbors g'' n
+
+
+    takeMax :: [[Node]] -> [[Node]]
+    takeMax =  map toList . purge . map fromList . sortOn length . nub 
+      where
+        purge :: [Set Node] -> [Set Node]
+        purge [] = []
+        purge (x:xs) = x' <> purge xs
+          where
+            x' = if all (== False) (map (isSubsetOf x) xs)
+                    then [x]
+                    else []
+
+
 ------------------------------------------------------------------------
--- Some Tools
--- 
-{-
-sortWith :: (Node -> Node -> Ord) -> Graph -> [Node] -> [Node]
-sortWith f g ns = undefined
--}
-
-sort :: Graph -> [Node] -> [Node]
-sort _ [] = []
-sort g ns = sortOn (degree g) ns
-
-areEdged = areNeighbors
-areNeighbors :: Graph -> Node -> Node -> Bool
-areNeighbors g n m = neighbors g n == [m]
-
-------------------------------------------------------------------------
-
 test_graph :: Graph
 -- test_graph = mkGraphUfromEdges [(1,1), (2,2), (3,3)]
 test_graph = mkGraphUfromEdges [(1,2), (3,3)]
