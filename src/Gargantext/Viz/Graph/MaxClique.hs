@@ -49,7 +49,8 @@ def fast_maximal_cliques(g):
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Viz.Graph.MaxClique where
+module Gargantext.Viz.Graph.MaxClique
+  where
 
 import Gargantext.Prelude
 import Data.List (sortOn, nub, concat, length)
@@ -57,7 +58,6 @@ import Data.Set (Set)
 import Data.Set (fromList, toList, isSubsetOf)
 import Data.Graph.Inductive hiding (Graph, neighbors, subgraph, (&))
 import Gargantext.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGraphUfromEdges)
-
 
 
 type Graph = Graph_Undirected
@@ -90,7 +90,11 @@ maxCliques g = map (\n -> subMaxCliques g (n:ns)) ns & concat & takeMax
 
 
     takeMax :: [[Node]] -> [[Node]]
-    takeMax =  map toList . purge . map fromList . sortOn length . nub 
+    takeMax = map toList
+            . purge
+            . map fromList
+            . sortOn length
+            . nub 
       where
         purge :: [Set Node] -> [Set Node]
         purge [] = []
