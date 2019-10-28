@@ -66,6 +66,7 @@ type Neighbor = Node
 maxCliques :: Graph -> [[Node]]
 maxCliques g = map (\n -> subMaxCliques g (n:ns)) ns & concat & takeMax
   where
+    ns :: [Node]
     ns = sortOn (degree g) $ nodes g
 
     subMaxCliques :: Graph -> [Node] -> [[Node]]
