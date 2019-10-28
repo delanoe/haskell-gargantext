@@ -106,7 +106,8 @@ groupToTable fdt g = H.Table H.HTable
                                    <> (pack $ show (fst $ g ^. phylo_groupPeriod))
                                    <> (fromStrict " , ")
                                    <> (pack $ show (snd $ g ^. phylo_groupPeriod))
-                                   <> (fromStrict " ) "))]] 
+                                   <> (fromStrict " ) ")
+                                   <> (pack $ show (getGroupId g)))]] 
         --------------------------------------
 
 branchToDotNode :: PhyloBranch -> Dot DotId

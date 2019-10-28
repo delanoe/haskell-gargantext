@@ -129,8 +129,8 @@ makePairs' ego candidates periods pointers fil thr prox docs =
         True  -> []
         False -> toLazyPairs pointers fil thr prox lastPrd
                 -- | at least on of the pair candidates should be from the last added period 
-               -- $ filter (\(g,g') -> ((g  ^. phylo_groupPeriod) == lastPrd)
-               --                   || ((g' ^. phylo_groupPeriod) == lastPrd))
+               $ filter (\(g,g') -> ((g  ^. phylo_groupPeriod) == lastPrd)
+                                 || ((g' ^. phylo_groupPeriod) == lastPrd))
                $ listToKeys 
                $ filter (\g -> (g ^. phylo_groupPeriod == lastPrd)
                             || ((toProximity docs prox ego ego g) >= thr)) candidates 
@@ -145,18 +145,18 @@ filterPointers proxi thr pts = filter (\(_,w) -> filterProximity proxi thr w) pt
 
 phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> Double -> PhyloGroup -> PhyloGroup
 phyloGroupMatching candidates fil proxi docs thr ego = 
-    if (null $ filterPointers proxi thr $ getPeriodPointers fil ego)
-      -- | let's find new pointers
-      then if null nextPointers
-        then addPointers ego fil TemporalPointer []
-        else addPointers ego fil TemporalPointer
-           $ head' "phyloGroupMatching"
-           -- | Keep only the best set of pointers grouped by proximity
-           $ groupBy (\pt pt' -> snd pt == snd pt')
-           $ reverse $ sortOn snd $ head' "pointers" nextPointers
-           -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
-      else addPointers ego fil TemporalPointer
-         $ filterPointers proxi thr $ getPeriodPointers fil ego
+        if (null $ filterPointers proxi thr $ getPeriodPointers fil ego)
+          -- | let's find new pointers
+          then if null nextPointers
+            then addPointers ego fil TemporalPointer []
+            else addPointers ego fil TemporalPointer
+               $ head' "phyloGroupMatching"
+               -- | Keep only the best set of pointers grouped by proximity
+               $ groupBy (\pt pt' -> snd pt == snd pt')
+               $ reverse $ sortOn snd $ head' "pointers" nextPointers
+               -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
+          else addPointers ego fil TemporalPointer
+             $ filterPointers proxi thr $ getPeriodPointers fil ego
     where
         nextPointers :: [[Pointer]]
         nextPointers = take 1
@@ -193,17 +193,11 @@ getNextPeriods fil max' pId pIds =
         ToParents -> take max' $ (reverse . fst) $ splitAt (elemIndex' pId pIds) pIds
 
 
-getCandidates :: Filiation -> PhyloGroup -> [[PhyloGroup]] -> [[PhyloGroup]]
-getCandidates fil ego targets = 
-    case fil of
-        ToChilds  -> targets'
-        ToParents -> reverse targets'
-    where
-        targets' :: [[PhyloGroup]]
-        targets' = 
-            map (\groups' -> 
-                    filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams)
-                ) groups') targets
+getCandidates :: PhyloGroup -> [[PhyloGroup]] -> [[PhyloGroup]]
+getCandidates ego targets = 
+  map (\groups' -> 
+    filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams)
+  ) groups') targets
 
 
 phyloBranchMatching :: Int -> [PhyloPeriodId] -> Proximity -> Double -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
@@ -221,8 +215,8 @@ phyloBranchMatching frame periods proximity thr docs branch =
                 candidatesChi = map (\prd' -> findWithDefault [] prd' branch') periodsChi
                 docsPar = filterDocs docs ([prd] ++ periodsPar)
                 docsChi = filterDocs docs ([prd] ++ periodsChi)
-                egos  = map (\ego -> phyloGroupMatching (getCandidates ToParents ego candidatesPar) ToParents proximity docsPar thr
-                                   $ phyloGroupMatching (getCandidates ToChilds  ego candidatesChi) ToChilds  proximity docsChi thr ego)
+                egos  = map (\ego -> phyloGroupMatching (getCandidates ego candidatesPar) ToParents proximity docsPar thr
+                                   $ phyloGroupMatching (getCandidates ego candidatesChi) ToChilds  proximity docsChi thr ego)
                       $ findWithDefault [] prd branch'
                 egos' = egos `using` parList rdeepseq
              in acc ++ egos' ) [] periods
@@ -297,13 +291,13 @@ seqMatching proximity beta frequency minBranch egoThr frame docs periods done eg
   -- | 1) keep or not the new division of ego
   let done' = done ++ (if snd ego 
                         then (if ((null (fst ego')) || (quality > quality')) 
-                               then 
+                               then
                                 -- trace ("  ✗ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
                                 --         <> "  | "  <> show(length $ fst ego) <> " groups : " 
                                 --         <> "  |✓ " <> show(length $ fst ego') <> show(map length $ fst ego')
                                 --         <> "  |✗ " <> show(length $ snd ego') <> "[" <> show(length $ concat $ snd ego') <> "]")
                                   [(fst ego,False)] 
-                               else 
+                               else
                                 -- trace ("  ✓ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
                                 --         <> "  | "  <> show(length $ fst ego) <> " groups : " 
                                 --         <> "  |✓ " <> show(length $ fst ego') <> show(map length $ fst ego')
@@ -346,8 +340,8 @@ recursiveMatching' proximity beta minBranch frequency egoThr frame periods docs 
 
 temporalMatching :: Phylo -> Phylo 
 temporalMatching phylo = updatePhyloGroups 1 
-                          (fromList $ map (\g -> (getGroupId g,g)) $ traceMatchEnd $ concat branches)
-                          phylo
+                         (fromList $ map (\g -> (getGroupId g,g)) $ traceMatchEnd $ concat branches)
+                         phylo
   where
     -- | 2) init the recursiveMatching      
     branches :: [[PhyloGroup]]
@@ -360,10 +354,12 @@ temporalMatching phylo = updatePhyloGroups 1
                                   (getTimeFrame $ timeUnit $ getConfig phylo)
                                   (getPeriodIds phylo)
                                   (phylo ^. phylo_timeDocs)
-                                  [(groups,True)]    
+                                  groups    
     -- | 1) for each group process an initial temporal Matching
-    groups :: [PhyloGroup]
-    groups = phyloBranchMatching (getTimeFrame $ timeUnit $ getConfig phylo) (getPeriodIds phylo) 
+    groups :: [([PhyloGroup],Bool)]
+    groups = map (\b -> (b,(length $ nub $ map _phylo_groupPeriod b) >= (_qua_minBranch $ phyloQuality $ getConfig phylo))) 
+           $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+           $ phyloBranchMatching (getTimeFrame $ timeUnit $ getConfig phylo) (getPeriodIds phylo) 
                                  (phyloProximity $ getConfig phylo) (getThresholdInit $ phyloProximity $ getConfig phylo)
                                  (phylo ^. phylo_timeDocs) 
                                  (traceTemporalMatching $ getGroupsFromLevel 1 phylo)
