@@ -51,10 +51,10 @@ nodes = IG.nodes
 
 -- | Tools
 maximalCliques :: IG.Graph d v e -> [[Int]]
-maximalCliques g = IAC.maximalCliques g (min,max)
+maximalCliques g = IAC.maximalCliques g (min',max')
   where
-    min = 0
-    max = 0
+    min' = 0
+    max' = 0
 
 ------------------------------------------------------------------
 -- | Main sugared functions
