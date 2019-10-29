@@ -7,7 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Main authorisation of Gargantext are managed in this module
+Main authorization of Gargantext are managed in this module
 
 -- 1: Implement the Server / Client JWT authentication
       -> Client towards Python Backend
@@ -81,7 +81,6 @@ type Token  = Text
 type TreeId = NodeId
 
 -- | Main functions of authorization
-
 
 -- | Main types of authorization
 data CheckAuth = InvalidUser | InvalidPassword | Valid Token TreeId

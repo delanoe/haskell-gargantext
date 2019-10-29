@@ -106,7 +106,6 @@ import Network.Wai.Middleware.RequestLogger
 
 import Network.HTTP.Types hiding (Query)
 
-
 import Gargantext.API.Settings
 
 showAsServantErr :: GargError -> ServerError
