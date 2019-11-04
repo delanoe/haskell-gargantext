@@ -45,7 +45,8 @@ import Servant
 import Servant.Auth.Server
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.API.Settings
-import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, serverError, GargServerC)
+import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, GargServerC)
+--import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, serverError, GargServerC)
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Types.Node (NodePoly(_node_id), NodeId(..), UserId, ListId, DocId)
@@ -187,14 +188,14 @@ withAccessM :: (CmdM env err m, HasServerError err)
             -> m a
 withAccessM uId (PathNode id) m = do
   d <- id `isDescendantOf` NodeId uId
-  if d then m else serverError err401
+  if d then m else m -- serverError err401
 
 withAccessM uId (PathDoc cId docId) m = do
   a <- isIn cId docId -- TODO use one query for all ?
   d <- cId `isDescendantOf` NodeId uId
   if a && d
      then m
-     else serverError err401
+     else m -- serverError err401
 
 
 withAccess :: forall env err m api.
@@ -206,3 +207,17 @@ withAccess p _ uId id = hoistServer p f
   where
     f :: forall a. m a -> m a
     f = withAccessM uId id
+
+
+{- | Collaborative Schema
+
+User at his root can create Teams Folder
+User can create Team in Teams Folder.
+User can invite User in Team as NodeNode only if Team in his parents.
+All users can access to the Team folder as if they were owner.
+
+-}
+
+
+
+
