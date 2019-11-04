@@ -48,7 +48,7 @@ import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Gargantext.API.Auth (withAccess)
+import Gargantext.API.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
 import Gargantext.API.Ngrams.NTree (MyTree)
@@ -161,9 +161,18 @@ type ChildrenApi a = Summary " Summary children"
                  :> Get '[JSON] [Node a]
 
 ------------------------------------------------------------------------
+type NodeNodeAPI a = Get '[JSON] (Node a)
+
+nodeNodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> CorpusId -> NodeId -> GargServer (NodeNodeAPI a)
+nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uId (PathDoc cId nId) nodeNodeAPI'
+  where
+    nodeNodeAPI' :: GargServer (NodeNodeAPI a)
+    nodeNodeAPI' = getNode nId p
+
+------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
 nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId id nodeAPI'
+nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
     nodeAPI' =  getNode       id p

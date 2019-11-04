@@ -71,7 +71,7 @@ import           Text.Blaze.Html (Html)
 --import Gargantext.API.Swagger
 
 --import Gargantext.Database.Node.Contact (HyperdataContact)
-import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess)
+import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
@@ -238,6 +238,13 @@ type GargPrivateAPI' =
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "id" CorpusId      :> NodeAPI HyperdataCorpus
 
+
+           :<|> "corpus":> Summary "Corpus endpoint"
+                        :> Capture "node1_id" NodeId
+                        :> "document"
+                        :> Capture "node2_id" NodeId
+                        :> NodeNodeAPI HyperdataAny
+
            -- Annuaire endpoint
            :<|> "annuaire":> Summary "Annuaire endpoint"
                           :> Capture "id" AnnuaireId      :> NodeAPI HyperdataAnnuaire
@@ -320,12 +327,13 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
        =  serverGargAdminAPI
      :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   uid
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire) uid
-     :<|> withAccess (Proxy :: Proxy TableNgramsApi) Proxy uid <*> apiNgramsTableDoc
+     :<|> nodeNodeAPI  (Proxy :: Proxy HyperdataAny) uid
+     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire)   uid
+     :<|> withAccess (Proxy :: Proxy TableNgramsApi) Proxy uid <$> PathNode <*> apiNgramsTableDoc
      :<|> count -- TODO: undefined
-     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <*> searchPairs -- TODO: move elsewhere
-     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <*> graphAPI -- TODO: mock
-     :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid <*> treeAPI
+     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <$> PathNode <*> searchPairs -- TODO: move elsewhere
+     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <$> PathNode <*> graphAPI -- TODO: mock
+     :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid <$> PathNode <*> treeAPI
      :<|> New.api -- TODO-SECURITY
      :<|> New.info uid -- TODO-SECURITY
 

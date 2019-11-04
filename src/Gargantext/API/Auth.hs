@@ -47,8 +47,8 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.API.Settings
 import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, serverError, GargServerC)
 import Gargantext.Database.Root (getRoot)
-import Gargantext.Database.Tree (isDescendantOf)
-import Gargantext.Database.Types.Node (NodePoly(_node_id), NodeId(..), UserId)
+import Gargantext.Database.Tree (isDescendantOf, isIn)
+import Gargantext.Database.Types.Node (NodePoly(_node_id), NodeId(..), UserId, ListId, DocId)
 import Gargantext.Database.Utils (Cmd', CmdM, HasConnection)
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
@@ -178,15 +178,29 @@ instance Arbitrary AuthValid where
                        , tr <- [1..3]
                        ]
 
-withAccessM :: (CmdM env err m, HasServerError err) => UserId -> NodeId -> m a -> m a
-withAccessM uId id m = do
+data PathId = PathNode NodeId | PathDoc ListId DocId
+
+withAccessM :: (CmdM env err m, HasServerError err)
+            => UserId
+            -> PathId
+            -> m a
+            -> m a
+withAccessM uId (PathNode id) m = do
   d <- id `isDescendantOf` NodeId uId
   if d then m else serverError err401
+
+withAccessM uId (PathDoc cId docId) m = do
+  a <- isIn cId docId -- TODO use one query for all ?
+  d <- cId `isDescendantOf` NodeId uId
+  if a && d
+     then m
+     else serverError err401
+
 
 withAccess :: forall env err m api.
               (GargServerC env err m, HasServer api '[]) =>
               Proxy api -> Proxy m ->
-              UserId -> NodeId ->
+              UserId -> PathId ->
               ServerT api m -> ServerT api m
 withAccess p _ uId id = hoistServer p f
   where
