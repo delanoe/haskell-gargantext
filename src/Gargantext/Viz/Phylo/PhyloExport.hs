@@ -17,7 +17,7 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloExport where
 
-import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
+import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, delete)
 import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy)
 import Data.Vector (Vector)
 
@@ -471,6 +471,7 @@ toPhyloExport phylo = exportToDot phylo
         groups :: [PhyloGroup]
         groups = traceExportGroups
                $ processDynamics 
+               $ map (\g -> g & phylo_groupMeta %~ delete "dynamics")
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo)
                $ tracePhyloInfo phylo
 

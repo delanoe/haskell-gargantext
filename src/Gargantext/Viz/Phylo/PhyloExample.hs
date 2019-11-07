@@ -54,16 +54,16 @@ phylo2 = synchronicClustering phylo1
 
 phylo1 :: Phylo
 phylo1 = temporalMatching
-       $ appendGroups fisToGroup 1 phyloFis phyloBase
+       $ appendGroups cliqueToGroup 1 phyloClique phyloBase
 
 
 ---------------------------------------------
--- | STEP 2 | -- Build the frequent items set
+-- | STEP 2 | -- Build the cliques
 ---------------------------------------------
 
 
-phyloFis :: Map (Date,Date) [PhyloCUnit]
-phyloFis = toPhyloFis docsByPeriods (getContextualUnitSupport $ contextualUnit config) (getContextualUnitSize $ contextualUnit config) 
+phyloClique :: Map (Date,Date) [PhyloClique]
+phyloClique = toPhyloClique phyloBase docsByPeriods
 
 
 docsByPeriods :: Map (Date,Date) [Document]
@@ -96,7 +96,7 @@ config =
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2
                   , exportFilter = [ByBranchSize 0]
-                  , contextualUnit = Fis 0 0 }
+                  , clique = Fis 0 0 }
 
 
 docs :: [Document]

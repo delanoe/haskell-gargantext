@@ -162,42 +162,42 @@ keepFilled f thr l = if (null $ f thr l) && (not $ null l)
                      else f thr l
 
 
-traceClique :: Map (Date, Date) [PhyloCUnit] -> String
+traceClique :: Map (Date, Date) [PhyloClique] -> String
 traceClique mFis = foldl (\msg cpt -> msg <> show (countSup cpt cliques) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         cliques :: [Double]
-        cliques = sort $ map (fromIntegral . size . _phyloCUnit_nodes) $ concat $ elems mFis
+        cliques = sort $ map (fromIntegral . size . _phyloClique_nodes) $ concat $ elems mFis
         -------------------------------------- 
 
 
-traceSupport :: Map (Date, Date) [PhyloCUnit] -> String
+traceSupport :: Map (Date, Date) [PhyloClique] -> String
 traceSupport mFis = foldl (\msg cpt -> msg <> show (countSup cpt supports) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         supports :: [Double]
-        supports = sort $ map (fromIntegral . _phyloCUnit_support) $ concat $ elems mFis
+        supports = sort $ map (fromIntegral . _phyloClique_support) $ concat $ elems mFis
         -------------------------------------- 
 
 
-traceFis :: [Char] -> Map (Date, Date) [PhyloCUnit] -> Map (Date, Date) [PhyloCUnit]
+traceFis :: [Char] -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
 traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map length $ elems mFis) <> "\n"
                          <> "Support : " <> (traceSupport mFis) <> "\n"
                          <> "Nb Ngrams : "  <> (traceClique mFis)  <> "\n" ) mFis
 
 
--------------------------
--- | Contextual unit | --
--------------------------
+---------------
+-- | Clique| --
+---------------
 
 
-getContextualUnitSupport :: ContextualUnit -> Int
-getContextualUnitSupport unit = case unit of 
+getCliqueSupport :: Clique -> Int
+getCliqueSupport unit = case unit of 
     Fis s _ -> s
     MaxClique _ -> 0
 
-getContextualUnitSize :: ContextualUnit -> Int
-getContextualUnitSize unit = case unit of 
+getCliqueSize :: Clique -> Int
+getCliqueSize unit = case unit of 
     Fis _ s -> s
     MaxClique s -> s
 
@@ -242,6 +242,9 @@ ngramsToCooc ngrams coocs =
 
 getGroupId :: PhyloGroup -> PhyloGroupId 
 getGroupId group = ((group ^. phylo_groupPeriod, group ^. phylo_groupLevel), group ^. phylo_groupIndex)
+
+getGroupThr :: PhyloGroup -> Double
+getGroupThr group = head' "getGroupThr" ((group ^. phylo_groupMeta) ! "thr")
 
 groupByField :: Ord a => (PhyloGroup -> a) -> [PhyloGroup] ->  Map a [PhyloGroup]
 groupByField toField groups = fromListWith (++) $ map (\g -> (toField g, [g])) groups
@@ -309,6 +312,14 @@ getLevels phylo = nub
                 $ keys $ view ( phylo_periods
                        .  traverse
                        . phylo_periodLevels ) phylo
+
+
+getPhyloThresholdInit :: Phylo -> Double
+getPhyloThresholdInit phylo = getThresholdInit (phyloProximity (getConfig phylo))
+
+
+getPhyloThresholdStep :: Phylo -> Double
+getPhyloThresholdStep phylo = getThresholdStep (phyloProximity (getConfig phylo))
 
 
 getConfig :: Phylo -> Config

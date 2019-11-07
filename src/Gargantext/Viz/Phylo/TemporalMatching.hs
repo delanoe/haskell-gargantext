@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.TemporalMatching where
 
 import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, dropWhile, partition, or)
-import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, intersectionWith, findWithDefault, keys, (!), filterWithKey)
+import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, intersectionWith, findWithDefault, keys, (!), filterWithKey, singleton)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
@@ -285,6 +285,8 @@ reduceFrequency :: Map Int Double -> [[PhyloGroup]] -> Map Int Double
 reduceFrequency frequency branches = 
   restrictKeys frequency (Set.fromList $ (nub . concat) $ map _phylo_groupNgrams $ concat branches)
 
+updateThr :: Double -> [[PhyloGroup]] -> [[PhyloGroup]]
+updateThr thr branches = map (\b -> map (\g -> g & phylo_groupMeta .~ (singleton "thr" [thr])) b) branches
 
 seqMatching :: Proximity -> Double -> Map Int Double -> Int -> Double -> Int -> Map Date Double -> [PhyloPeriodId] -> [([PhyloGroup],Bool)] -> ([PhyloGroup],Bool) -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
 seqMatching proximity beta frequency minBranch egoThr frame docs periods done ego rest =
@@ -320,7 +322,10 @@ seqMatching proximity beta frequency minBranch egoThr frame docs periods done eg
       let branches  = groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
                     $ phyloBranchMatching frame periods proximity egoThr docs (fst ego)
           branches' = branches `using` parList rdeepseq
-       in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) >= minBranch) branches'
+       in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) >= minBranch) 
+        $ if (length branches' > 1)
+          then updateThr egoThr branches'
+          else branches'    
     --------------------------------------
     quality' :: Double
     quality' = toPhyloQuality' beta frequency

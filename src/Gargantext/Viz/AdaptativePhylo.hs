@@ -67,12 +67,19 @@ data Proximity =
     deriving (Show,Generic,Eq) 
 
 
+data SynchronyScope = SingleBranch | SiblingBranches | AllBranches deriving (Show,Generic,Eq)
+
+data SynchronyStrategy = MergeRegularGroups | MergeAllGroups deriving (Show,Generic,Eq)
+
 data Synchrony = 
-      ByProximityThreshold 
+      ByProximityThreshold
       { _bpt_threshold :: Double 
-      , _bpt_sensibility :: Double}
+      , _bpt_sensibility :: Double
+      , _bpt_scope :: SynchronyScope
+      , _bpt_strategy :: SynchronyStrategy }
     | ByProximityDistribution
-      { _bpd_sensibility :: Double} 
+      { _bpd_sensibility :: Double
+      , _bpd_strategy :: SynchronyStrategy } 
     deriving (Show,Generic,Eq)     
 
 
@@ -84,12 +91,12 @@ data TimeUnit =
       deriving (Show,Generic,Eq) 
 
 
-data ContextualUnit = 
+data Clique = 
       Fis 
       { _fis_support :: Int
       , _fis_size    :: Int }
     | MaxClique
-      { _clique_size :: Int } 
+      { _mcl_size :: Int } 
       deriving (Show,Generic,Eq)      
 
 
@@ -110,7 +117,7 @@ data Config =
             , phyloSynchrony :: Synchrony
             , phyloQuality   :: Quality
             , timeUnit       :: TimeUnit
-            , contextualUnit :: ContextualUnit
+            , clique         :: Clique
             , exportLabel    :: [PhyloLabel]
             , exportSort     :: Sort
             , exportFilter   :: [Filter]  
@@ -126,10 +133,10 @@ defaultConfig =
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
             , phyloProximity = WeightedLogJaccard 10 0 0.1
-            , phyloSynchrony = ByProximityDistribution 0
-            , phyloQuality   = Quality 0.2 4
+            , phyloSynchrony = ByProximityThreshold 0.1 0 SiblingBranches MergeAllGroups
+            , phyloQuality   = Quality 0.1 1
             , timeUnit       = Year 3 1 5
-            , contextualUnit = Fis 1 5
+            , clique         = Fis 1 5
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
             , exportSort     = ByHierarchy
             , exportFilter   = [ByBranchSize 2]  
@@ -143,8 +150,8 @@ instance FromJSON Proximity
 instance ToJSON Proximity
 instance FromJSON TimeUnit
 instance ToJSON TimeUnit
-instance FromJSON ContextualUnit
-instance ToJSON ContextualUnit
+instance FromJSON Clique
+instance ToJSON Clique
 instance FromJSON PhyloLabel
 instance ToJSON PhyloLabel
 instance FromJSON Tagger
@@ -155,6 +162,10 @@ instance FromJSON Order
 instance ToJSON Order
 instance FromJSON Filter
 instance ToJSON Filter
+instance FromJSON SynchronyScope
+instance ToJSON SynchronyScope
+instance FromJSON SynchronyStrategy
+instance ToJSON SynchronyStrategy
 instance FromJSON Synchrony
 instance ToJSON Synchrony
 instance FromJSON Quality
@@ -313,17 +324,17 @@ data Filiation = ToParents | ToChilds deriving (Generic, Show)
 data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
 
 
----------------------------
--- | Frequent Item Set | --
----------------------------
+----------------------
+-- | Phylo Clique | --
+----------------------
 
 -- | Support : Number of Documents where a Clique occurs
 type Support  = Int
 
-data PhyloCUnit = PhyloCUnit
-  { _phyloCUnit_nodes   :: Set Ngrams
-  , _phyloCUnit_support :: Support
-  , _phyloCUnit_period  :: (Date,Date)
+data PhyloClique = PhyloClique
+  { _phyloClique_nodes   :: Set Ngrams
+  , _phyloClique_support :: Support
+  , _phyloClique_period  :: (Date,Date)
   } deriving (Generic,NFData,Show,Eq)
 
 
@@ -372,11 +383,11 @@ data PhyloExport =
 makeLenses ''Config
 makeLenses ''Proximity
 makeLenses ''Quality
-makeLenses ''ContextualUnit
+makeLenses ''Clique
 makeLenses ''PhyloLabel
 makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
-makeLenses ''PhyloCUnit
+makeLenses ''PhyloClique
 makeLenses ''Phylo
 makeLenses ''PhyloPeriod
 makeLenses ''PhyloLevel

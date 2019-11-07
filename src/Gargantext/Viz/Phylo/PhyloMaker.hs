@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloMaker where
 
 import Data.List (concat, nub, partition, sort, (++), group)
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, singleton)
 import Data.Set (size)
 import Data.Vector (Vector)
 
@@ -63,7 +63,7 @@ toPhylo docs lst conf = traceToPhylo (phyloLevel conf) $
 --------------------
 
 
-appendGroups :: (a -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
+appendGroups :: (a -> Double -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
 appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ concat $ elems m) <> " groups to Level " <> show (lvl) <> "\n")
     $ over ( phylo_periods
            .  traverse
@@ -76,7 +76,7 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
                             in  phyloLvl 
                               & phylo_levelGroups .~ (fromList $ foldl (\groups obj ->
                                     groups ++ [ (((pId,lvl),length groups)
-                                              , f obj pId lvl (length groups) (getRoots phylo) 
+                                              , f obj(getPhyloThresholdInit phylo) pId lvl (length groups) (getRoots phylo) 
                                                   (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [pId]))
                                               ] ) [] phyloCUnit)
                          else 
@@ -84,27 +84,25 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
            phylo  
 
 
-fisToGroup :: PhyloCUnit -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
-fisToGroup fis pId lvl idx fdt coocs =
-    let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloCUnit_nodes) fdt
+cliqueToGroup :: PhyloClique -> Double -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
+cliqueToGroup fis thr pId lvl idx fdt coocs =
+    let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloClique_nodes) fdt
     in  PhyloGroup pId lvl idx ""
-                   (fis ^. phyloCUnit_support)
+                   (fis ^. phyloClique_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
                    (1,[0])
-                   empty
+                   (singleton "thr" [thr])
                    [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo
 toPhylo1 docs phyloBase = temporalMatching
-                        $ appendGroups fisToGroup 1 phyloCUnit phyloBase
+                        $ appendGroups cliqueToGroup 1 phyloClique phyloBase
     where
         --------------------------------------
-        phyloCUnit :: Map (Date,Date) [PhyloCUnit]
-        phyloCUnit =  case (contextualUnit $ getConfig phyloBase) of
-          Fis s s' ->  toPhyloFis docs' s s'
-          MaxClique _ -> undefined
+        phyloClique :: Map (Date,Date) [PhyloClique]
+        phyloClique =  toPhyloClique phyloBase docs'
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
         docs' =  groupDocsByPeriod date (getPeriodIds phyloBase) docs
@@ -117,56 +115,59 @@ toPhylo1 docs phyloBase = temporalMatching
 
 
 -- | To apply a filter with the possibility of keeping some periods non empty (keep : True|False)
-filterFis :: Bool -> Int -> (Int -> [PhyloCUnit] -> [PhyloCUnit]) -> Map (Date, Date) [PhyloCUnit] -> Map (Date, Date) [PhyloCUnit]
-filterFis keep thr f m = case keep of
+filterClique :: Bool -> Int -> (Int -> [PhyloClique] -> [PhyloClique]) -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
+filterClique keep thr f m = case keep of
   False -> map (\l -> f thr l) m
   True  -> map (\l -> keepFilled (f) thr l) m
 
 
 -- | To filter Fis with small Support
-filterFisBySupport :: Int -> [PhyloCUnit] -> [PhyloCUnit]
-filterFisBySupport thr l = filter (\fis -> (fis ^. phyloCUnit_support) >= thr) l
+filterCliqueBySupport :: Int -> [PhyloClique] -> [PhyloClique]
+filterCliqueBySupport thr l = filter (\clq -> (clq ^. phyloClique_support) >= thr) l
 
 
 -- | To filter Fis with small Clique size
-filterFisByClique :: Int -> [PhyloCUnit] -> [PhyloCUnit]
-filterFisByClique thr l = filter (\fis -> (size $ fis ^. phyloCUnit_nodes) >= thr) l
+filterCliqueBySize :: Int -> [PhyloClique] -> [PhyloClique]
+filterCliqueBySize thr l = filter (\clq -> (size $ clq ^. phyloClique_nodes) >= thr) l
 
 
 -- | To filter nested Fis
-filterFisByNested :: Map (Date, Date) [PhyloCUnit] -> Map (Date, Date) [PhyloCUnit]
-filterFisByNested m = 
-  let fis  = map (\l -> 
-                foldl (\mem f -> if (any (\f' -> isNested (Set.toList $ f' ^. phyloCUnit_nodes) (Set.toList $ f ^. phyloCUnit_nodes)) mem)
+filterCliqueByNested :: Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
+filterCliqueByNested m = 
+  let clq  = map (\l -> 
+                foldl (\mem f -> if (any (\f' -> isNested (Set.toList $ f' ^. phyloClique_nodes) (Set.toList $ f ^. phyloClique_nodes)) mem)
                                  then mem
                                  else 
-                                    let fMax = filter (\f' -> not $ isNested (Set.toList $ f ^. phyloCUnit_nodes) (Set.toList $ f' ^. phyloCUnit_nodes)) mem
+                                    let fMax = filter (\f' -> not $ isNested (Set.toList $ f ^. phyloClique_nodes) (Set.toList $ f' ^. phyloClique_nodes)) mem
                                     in  fMax ++ [f] ) [] l)
            $ elems m 
-      fis' = fis `using` parList rdeepseq
-  in  fromList $ zip (keys m) fis' 
+      clq' = clq `using` parList rdeepseq
+  in  fromList $ zip (keys m) clq' 
 
 
 -- | To transform a time map of docs innto a time map of Fis with some filters
-toPhyloFis :: Map (Date, Date) [Document] -> Int -> Int -> Map (Date,Date) [PhyloCUnit]
-toPhyloFis phyloDocs support clique =
-                -- traceFis "Filtered Fis"
-                filterFisByNested 
+toPhyloClique :: Phylo -> Map (Date, Date) [Document] -> Map (Date,Date) [PhyloClique]
+toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of 
+    Fis s s' -> -- traceFis "Filtered Fis"
+                filterCliqueByNested 
                 -- $ traceFis "Filtered by clique size"
-                $ filterFis True clique (filterFisByClique)
+                $ filterClique True s' (filterCliqueBySize)
                 -- $ traceFis "Filtered by support"
-                $ filterFis True support (filterFisBySupport)
+                $ filterClique True s (filterCliqueBySupport)
                 -- $ traceFis "Unfiltered Fis" 
-                phyloFis
+                phyloClique
+    MaxClique _ -> undefined
     where
         -------------------------------------- 
-        phyloFis :: Map (Date,Date) [PhyloCUnit]
-        phyloFis = 
-            let fis  = map (\(prd,docs) -> let lst = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
-                                           in (prd, map (\f -> PhyloCUnit (fst f) (snd f) prd) lst))
-                     $ toList phyloDocs
-                fis' = fis `using` parList rdeepseq
-            in fromList fis'
+        phyloClique :: Map (Date,Date) [PhyloClique]
+        phyloClique = case (clique $ getConfig phylo) of 
+          Fis _ _ ->  let fis  = map (\(prd,docs) -> 
+                                  let lst = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
+                                   in (prd, map (\f -> PhyloClique (fst f) (snd f) prd) lst))
+                               $ toList phyloDocs
+                          fis' = fis `using` parList rdeepseq
+                       in fromList fis'
+          MaxClique _ -> undefined
         -------------------------------------- 
 
 
