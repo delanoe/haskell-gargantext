@@ -638,6 +638,12 @@ mkNodeWithParent NodeFolderPublic (Just i) uId _ =
     where
       hd = HyperdataFolder . Just . pack $ show EN
 
+mkNodeWithParent NodeTeam (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeTeam "Team" hd Nothing uId]
+    where
+      hd = HyperdataFolder . Just . pack $ show EN
+
+
 ------------------------------------------------------------------------
 
 

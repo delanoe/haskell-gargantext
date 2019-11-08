@@ -442,7 +442,7 @@ instance Hyperdata HyperData
 -- | Then a Node can be either a Folder or a Corpus or a Document
 data NodeType = NodeUser
               | NodeFolderPrivate
-              | NodeFolderShared
+              | NodeFolderShared | NodeTeam
               | NodeFolderPublic
               | NodeFolder
 
