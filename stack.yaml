@@ -36,7 +36,9 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/patches-class
   commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
   #- git: https://github.com/np/servant-job.git
-  # commit: ac4227441bbca30c44235582b5ec31340c569021
+  #commit: ac4227441bbca30c44235582b5ec31340c569021
+- git: https://github.com/delanoe/servant-job.git
+  commit: ea1746d43c7992a953c1eb4ed2614df2630d98ce
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
   commit: 1c636112b151110408e7c5a28cec39e46657358e
 - git: https://github.com/np/patches-map
