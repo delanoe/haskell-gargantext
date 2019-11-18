@@ -91,7 +91,7 @@ cliqueToGroup fis thr pId lvl idx fdt coocs =
                    (fis ^. phyloClique_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
-                   (1,[0])
+                   (1,[0]) -- | branchid (lvl,[path in the branching tree])
                    (singleton "thr" [thr])
                    [] [] [] []
 

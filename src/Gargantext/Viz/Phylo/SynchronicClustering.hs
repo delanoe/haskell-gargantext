@@ -18,7 +18,7 @@ module Gargantext.Viz.Phylo.SynchronicClustering where
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
-import Gargantext.Viz.Phylo.TemporalMatching (weightedLogJaccard)
+import Gargantext.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, reduceDiagos)
 import Gargantext.Viz.Phylo.PhyloExport (processDynamics)
 
 import Data.List ((++), null, intersect, nub, concat, sort, sortOn, init, all, group, maximum, groupBy)
@@ -56,25 +56,15 @@ mergeBranchIds ids = (head' "mergeBranchIds" . sort . mostFreq) ids
 groupsToBranches' :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
 groupsToBranches' groups =
     -- | run the related component algorithm
-    let egos = groupBy (\gs gs' -> (fst $ fst $ head' "egos" gs) == (fst $ fst $ head' "egos" gs'))
-             $ sortOn  (\gs -> fst $ fst $ head' "egos" gs)
-             $ map (\g -> [getGroupId g] 
-                            ++ (map fst $ g ^. phylo_groupPeriodParents)
-                            ++ (map fst $ g ^. phylo_groupPeriodChilds) ) $ elems groups
-        -- | first find the related components by inside each ego's period
-        graph' = map relatedComponents egos
-        -- | then run it for the all the periods
-        graph  = relatedComponents $ concat (graph' `using` parList rdeepseq)
+    let egos  = map (\g -> [getGroupId g] 
+                        ++ (map fst $ g ^. phylo_groupPeriodParents)
+                        ++ (map fst $ g ^. phylo_groupPeriodChilds) ) $ elems groups
+        graph = relatedComponents egos
     -- | update each group's branch id
     in map (\ids ->
-        -- intervenir ici
         let groups' = elems $ restrictKeys groups (Set.fromList ids)
             bId = mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) groups'
          in map (\g -> g & phylo_groupBranchId %~ (\(lvl,_) -> (lvl + 1,bId))) groups') graph
-
-
--- toBranchId :: PhyloGroup -> PhyloBranchId
--- toBranchId child = ((child ^. phylo_groupLevel) + 1, snd (child ^. phylo_groupBranchId))
 
 getLastThr :: [PhyloGroup] -> Double
 getLastThr childs = maximum $ concat $ map (\g -> (g ^. phylo_groupMeta) ! "thr") childs
@@ -157,8 +147,8 @@ toDiamonds groups = foldl' (\acc groups' ->
                   $ foldl' (\acc g -> acc ++ (map (\(id,_) -> (id,[g]) ) $ g ^. phylo_groupPeriodParents)  ) [] groups
 
 
-groupsToEdges :: Proximity -> Synchrony -> Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
-groupsToEdges prox sync docs groups =
+groupsToEdges :: Proximity -> Synchrony -> Double -> Map Int Double -> [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)]
+groupsToEdges prox sync nbDocs diago groups =
     case sync of
         ByProximityThreshold  thr sens _ strat ->
             filter (\(_,w) -> w >= thr)
@@ -174,8 +164,7 @@ groupsToEdges prox sync docs groups =
         toEdges sens edges = 
             case prox of
                 WeightedLogJaccard _ _ _ -> map (\(g,g') -> 
-                                                 ((g,g'), weightedLogJaccard sens docs 
-                                                              (g ^. phylo_groupCooc)   (g' ^. phylo_groupCooc)
+                                                 ((g,g'), weightedLogJaccard' sens nbDocs diago
                                                               (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
                 _ -> undefined  
 
@@ -191,15 +180,16 @@ toParentId :: PhyloGroup -> PhyloGroupId
 toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1), child ^. phylo_groupIndex) 
 
 
-reduceGroups :: Proximity -> Synchrony -> Map Date Double -> [PhyloGroup] -> [PhyloGroup]
-reduceGroups prox sync docs branch = 
+reduceGroups :: Proximity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
+reduceGroups prox sync docs diagos branch = 
     -- | 1) reduce a branch as a set of periods & groups
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
     in  (concat . concat . elems)
       $ mapWithKey (\prd groups -> 
             -- | 2) for each period, transform the groups as a proximity graph filtered by a threshold
-            let edges = groupsToEdges prox sync ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) groups
+            let diago = reduceDiagos $ filterDiago diagos [prd]
+                edges = groupsToEdges prox sync ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) diago groups
              in map (\comp -> 
                     -- | 4) add to each groups their futur level parent group
                     let parentId = toParentId (head' "parentId" comp)
@@ -233,7 +223,8 @@ synchronicClustering phylo =
     let prox = phyloProximity $ getConfig phylo
         sync = phyloSynchrony $ getConfig phylo
         docs = phylo ^. phylo_timeDocs
-        newBranches  = map (\branch -> reduceGroups prox sync docs branch) 
+        diagos = map coocToDiago $ phylo ^. phylo_timeCooc
+        newBranches  = map (\branch -> reduceGroups prox sync docs diagos branch) 
                      $ map processDynamics
                      $ adjustClustering sync (getPhyloThresholdStep phylo)
                      $ phyloToLastBranches 

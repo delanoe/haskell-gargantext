@@ -171,11 +171,15 @@ exportToDot phylo export =
                      , Ratio FillRatio
                      , Style [SItem Filled []],Color [toWColor White]]
                   -- | home made attributes
-                  <> [(toAttr (fromStrict "nbDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))
+                  <> [(toAttr (fromStrict "phyloFoundations") $ pack $ show (length $ Vector.toList $ getRoots phylo))
+                     ,(toAttr (fromStrict "phyloTerms") $ pack $ show (length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups))
+                     ,(toAttr (fromStrict "phyloDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))
+                     ,(toAttr (fromStrict "phyloBranches") $ pack $ show (length $ export ^. export_branches))
+                     ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
                      ,(toAttr (fromStrict "proxiName") $ pack $ show (getProximityName $ phyloProximity $ getConfig phylo))
                      ,(toAttr (fromStrict "proxiInit") $ pack $ show (getProximityInit $ phyloProximity $ getConfig phylo))
                      ,(toAttr (fromStrict "proxiStep") $ pack $ show (getProximityStep $ phyloProximity $ getConfig phylo))
-                     ,(toAttr (fromStrict "quaFactor") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
+                     ,(toAttr (fromStrict "quaGranularity") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
                      ])
 
 

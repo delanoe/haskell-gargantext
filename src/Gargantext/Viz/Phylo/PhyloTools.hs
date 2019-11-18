@@ -227,6 +227,8 @@ sumCooc cooc cooc' = unionWith (+) cooc cooc'
 getTrace :: Cooc -> Double 
 getTrace cooc = sum $ elems $ filterWithKey (\(k,k') _ -> k == k') cooc
 
+coocToDiago :: Cooc -> Cooc
+coocToDiago cooc = filterWithKey (\(k,k') _ -> k == k') cooc
 
 -- | To build the local cooc matrix of each phylogroup
 ngramsToCooc :: [Int] -> [Cooc] -> Cooc
