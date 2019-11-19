@@ -133,6 +133,7 @@ isDescendantOf childId rootId = (== [Only True])
   WHERE t.id = ?;
   |] (childId, rootId)
 
+-- TODO should we check the category?
 isIn :: NodeId -> DocId -> Cmd err Bool
 isIn cId docId = ( == [Only True])
   <$> runPGSQuery [sql| SELECT COUNT(*) = 1

@@ -90,6 +90,8 @@ makeLenses ''Settings
 class HasSettings env where
   settings :: Getter env Settings
 
+class HasScrapers env where
+  scrapers :: Getter env ScrapersEnv
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -162,6 +164,9 @@ instance HasRepo Env where
 
 instance HasSettings Env where
   settings = env_settings
+
+instance HasScrapers Env where
+  scrapers = env_scrapers
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall

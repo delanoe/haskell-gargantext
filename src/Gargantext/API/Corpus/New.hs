@@ -18,13 +18,14 @@ New corpus means either:
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE RankNTypes         #-}
 
 module Gargantext.API.Corpus.New
       where
 
 import Data.Either
+import Control.Lens hiding (elements)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
@@ -35,7 +36,11 @@ import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Prelude
+import Gargantext.API.Settings
+import Gargantext.API.Orchestrator.Types
 import Servant
+import Servant.Job.Async
+-- import Servant.Job.Server
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Gargantext.Core (Lang(..))
@@ -95,4 +100,62 @@ instance ToSchema ApiInfo
 info :: FlowCmdM env err m => UserId -> m ApiInfo
 info _u = pure $ ApiInfo API.externalAPIs
 
+{-
+-- Proposal to replace the Query type which seems to generically named.
+data ScraperInput = ScraperInput
+  { _scin_query     :: !Text
+  , _scin_corpus_id :: !Int
+  , _scin_databases :: [API.ExternalAPIs]
+  }
+  deriving (Eq, Show, Generic)
 
+makeLenses ''ScraperInput
+
+deriveJSON (unPrefix "_scin_") 'ScraperInput
+
+data ScraperEvent = ScraperEvent
+  { _scev_message :: !(Maybe Text)
+  , _scev_level   :: !(Maybe Text)
+  , _scev_date    :: !(Maybe Text)
+  }
+  deriving Generic
+
+deriveJSON (unPrefix "_scev_") 'ScraperEvent
+
+data ScraperStatus = ScraperStatus
+  { _scst_succeeded :: !(Maybe Int)
+  , _scst_failed    :: !(Maybe Int)
+  , _scst_remaining :: !(Maybe Int)
+  , _scst_events    :: !(Maybe [ScraperEvent])
+  }
+  deriving Generic
+
+deriveJSON (unPrefix "_scst_") 'ScraperStatus
+-}
+
+type API_v2 =
+  Summary "Add to corpus endpoint" :>
+  "corpus" :>
+  Capture "id" CorpusId :>
+  "add" :>
+  "async" :> ScraperAPI2
+
+  -- TODO ScraperInput2 also has a corpus id
+addToCorpusJobFunction :: CorpusId -> ScraperInput2 -> (ScraperStatus -> IO ()) -> IO ScraperStatus
+addToCorpusJobFunction _cid _input logStatus = do
+  -- TODO ...
+  logStatus ScraperStatus { _scst_succeeded = Just 10
+                          , _scst_failed    = Just 2
+                          , _scst_remaining = Just 138
+                          , _scst_events    = Just []
+                          }
+  -- TODO ...
+  pure      ScraperStatus { _scst_succeeded = Just 137
+                          , _scst_failed    = Just 13
+                          , _scst_remaining = Just 0
+                          , _scst_events    = Just []
+                          }
+
+addToCorpus :: Env -> Server API_v2
+addToCorpus env cid = do
+  serveJobsAPI (env ^. scrapers) . JobFunction $ addToCorpusJobFunction cid

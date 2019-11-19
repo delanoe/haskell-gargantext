@@ -45,6 +45,35 @@ instance ToSchema a => ToSchema (JobInput a)
 
 instance ToSchema a => ToSchema (JobOutput a)
 
+-- | Main Types
+data ExternalAPIs = All
+                  | PubMed
+
+                  | HAL_EN
+                  | HAL_FR
+
+                  | IsTex_EN
+                  | IsTex_FR
+
+                  | Isidore_EN
+                  | Isidore_FR
+                  -- | IsidoreAuth
+  deriving (Show, Eq, Enum, Bounded, Generic)
+
+
+-- | Main Instances
+instance FromJSON ExternalAPIs
+instance ToJSON ExternalAPIs
+
+externalAPIs :: [ExternalAPIs]
+externalAPIs = [minBound..maxBound]
+
+instance Arbitrary ExternalAPIs
+  where
+    arbitrary = elements externalAPIs
+
+instance ToSchema ExternalAPIs
+
 data ScraperInput = ScraperInput
   { _scin_spider       :: !Text
   , _scin_query        :: !(Maybe Text)
@@ -61,6 +90,19 @@ makeLenses ''ScraperInput
 
 instance FromJSON ScraperInput where
   parseJSON = genericParseJSON $ jsonOptions "_scin_"
+
+-- Proposal to replace the Corpus.API.Query type which seems to generically named.
+data ScraperInput2 = ScraperInput2
+  { _scin2_query     :: !Text
+  , _scin2_corpus    :: !Int
+  , _scin2_databases :: [ExternalAPIs]
+  }
+  deriving Generic
+
+makeLenses ''ScraperInput2
+
+instance FromJSON ScraperInput2 where
+  parseJSON = genericParseJSON $ jsonOptions "_scin2_"
 
 data ScraperEvent = ScraperEvent
   { _scev_message :: !(Maybe Text)
@@ -111,3 +153,4 @@ instance ToParamSchema Limit where
 type ScrapersEnv = JobEnv ScraperStatus ScraperStatus
 
 type ScraperAPI = AsyncJobsAPI ScraperStatus ScraperInput ScraperStatus
+type ScraperAPI2 = AsyncJobsAPI ScraperStatus ScraperInput2 ScraperStatus

@@ -11,7 +11,7 @@ import Data.Text (Text)
 import GHC.Generics
 import Servant
 import Servant.Job.Utils (jsonOptions)
-import Servant.Client
+import Servant.Client.Streaming
 import Web.FormUrlEncoded hiding (parseMaybe)
 
 data Schedule = Schedule
