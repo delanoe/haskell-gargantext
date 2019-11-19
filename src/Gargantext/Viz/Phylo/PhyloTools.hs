@@ -245,6 +245,9 @@ ngramsToCooc ngrams coocs =
 getGroupId :: PhyloGroup -> PhyloGroupId 
 getGroupId group = ((group ^. phylo_groupPeriod, group ^. phylo_groupLevel), group ^. phylo_groupIndex)
 
+idToPrd :: PhyloGroupId -> PhyloPeriodId
+idToPrd id = (fst . fst) id
+
 getGroupThr :: PhyloGroup -> Double
 getGroupThr group = head' "getGroupThr" ((group ^. phylo_groupMeta) ! "thr")
 
@@ -286,8 +289,8 @@ getProximityStep proximity =
 -- | Phylo | --
 ---------------
 
-addPointers :: PhyloGroup -> Filiation -> PointerType -> [Pointer] -> PhyloGroup
-addPointers group fil pty pointers = 
+addPointers :: Filiation -> PointerType -> [Pointer] -> PhyloGroup -> PhyloGroup
+addPointers fil pty pointers group = 
     case pty of 
         TemporalPointer -> case fil of 
                                 ToChilds  -> group & phylo_groupPeriodChilds  .~ pointers

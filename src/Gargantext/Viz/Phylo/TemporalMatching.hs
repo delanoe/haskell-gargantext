@@ -74,14 +74,14 @@ weightedLogJaccard' sens nbDocs diago ngrams ngrams'
 
 
 -- | To process the proximity between a current group and a pair of targets group
-toProximity :: Double -> Map Int Double -> Proximity -> PhyloGroup -> PhyloGroup -> PhyloGroup -> Double
-toProximity nbDocs diago proximity ego target target' =
+toProximity :: Double -> Map Int Double -> Proximity -> [Int] -> [Int] -> [Int] -> Double
+toProximity nbDocs diago proximity egoNgrams targetNgrams targetNgrams' =
   case proximity of 
     WeightedLogJaccard sens _ _ -> 
-      let targetsNgrams = if target == target'
-                          then (target ^. phylo_groupNgrams)
-                          else union (target ^. phylo_groupNgrams) (target' ^. phylo_groupNgrams)
-       in weightedLogJaccard' sens nbDocs diago (ego ^. phylo_groupNgrams) targetsNgrams
+      let pairNgrams = if targetNgrams == targetNgrams'
+                          then targetNgrams
+                          else union targetNgrams targetNgrams'
+       in weightedLogJaccard' sens nbDocs diago egoNgrams pairNgrams
     Hamming -> undefined
 
 
@@ -96,39 +96,41 @@ findLastPeriod fil periods = case fil of
 
 
 -- | To filter pairs of candidates related to old pointers periods
-removeOldPointers :: [Pointer] -> Filiation -> Double -> Proximity -> PhyloPeriodId -> [(PhyloGroup,PhyloGroup)] -> [(PhyloGroup,PhyloGroup)]
+removeOldPointers :: [Pointer] -> Filiation -> Double -> Proximity -> PhyloPeriodId 
+                  -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))] 
+                  -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
 removeOldPointers oldPointers fil thr prox prd pairs
   | null oldPointers = pairs
   | null (filterPointers prox thr oldPointers) = 
     let lastMatchedPrd = findLastPeriod fil (map (fst . fst . fst) oldPointers)
      in if lastMatchedPrd == prd
         then []
-        else filter (\(g,g') -> 
+        else filter (\((id,_),(id',_)) -> 
                 case fil of
-                     ToParents -> ((fst $ g  ^. phylo_groupPeriod) < (fst lastMatchedPrd))
-                               || ((fst $ g' ^. phylo_groupPeriod) < (fst lastMatchedPrd))
-                     ToChilds  -> ((fst $ g  ^. phylo_groupPeriod) > (fst lastMatchedPrd))
-                               || ((fst $ g' ^. phylo_groupPeriod) > (fst lastMatchedPrd))) pairs 
+                     ToParents -> (((fst . fst . fst) id ) < (fst lastMatchedPrd))
+                               || (((fst . fst . fst) id') < (fst lastMatchedPrd))
+                     ToChilds  -> (((fst . fst . fst) id ) > (fst lastMatchedPrd))
+                               || (((fst . fst . fst) id') > (fst lastMatchedPrd))) pairs 
   | otherwise = []
 
 
--- | Find pairs of valuable candidates to be matched
-makePairs' :: PhyloGroup -> [PhyloGroup] -> [PhyloPeriodId] -> [Pointer] -> Filiation -> Double -> Proximity -> Map Date Double -> Map Date Cooc -> [(PhyloGroup,PhyloGroup)]
-makePairs' ego candidates periods oldPointers fil thr prox docs diagos = 
-    case null periods of 
-        True  -> []
-        False -> removeOldPointers oldPointers fil thr prox lastPrd
-               -- | at least on of the pair candidates should be from the last added period 
-               $ filter (\(g,g') -> ((g  ^. phylo_groupPeriod) == lastPrd)
-                                 || ((g' ^. phylo_groupPeriod) == lastPrd))
-               $ listToKeys 
-               $ filter (\g -> let nbDocs = sum $ elems $ (filterDocs docs ([ego ^. phylo_groupPeriod, g ^. phylo_groupPeriod]))
-                                   diago  = reduceDiagos $ filterDiago diagos ([ego ^. phylo_groupPeriod, g ^. phylo_groupPeriod])
-                                in (g ^. phylo_groupPeriod == lastPrd)
-                                || ((toProximity nbDocs diago prox ego ego g) >= thr)) candidates 
+makePairs' :: (PhyloGroupId,[Int]) -> [(PhyloGroupId,[Int])] -> [PhyloPeriodId] -> [Pointer] -> Filiation -> Double -> Proximity
+           -> Map Date Double -> Map Date Cooc -> [((PhyloGroupId,[Int]),(PhyloGroupId,[Int]))]
+makePairs' (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs diagos = 
+    if (null periods) 
+        then []
+        else removeOldPointers oldPointers fil thr prox lastPrd
+           -- | at least on of the pair candidates should be from the last added period
+           $ filter (\((id,_),(id',_)) -> ((fst . fst) id == lastPrd) || ((fst . fst) id' == lastPrd))
+           $ listToKeys
+           $ filter (\(id,ngrams) ->
+                let nbDocs = (sum . elems) $ filterDocs docs    ([(fst . fst) egoId, (fst . fst) id])
+                    diago  = reduceDiagos  $ filterDiago diagos ([(fst . fst) egoId, (fst . fst) id])
+                 in (toProximity nbDocs diago prox egoNgrams egoNgrams ngrams) >= thr   
+            ) candidates
     where 
-        lastPrd :: PhyloPeriodId
-        lastPrd = findLastPeriod fil periods
+      lastPrd :: PhyloPeriodId
+      lastPrd = findLastPeriod fil periods
 
 
 filterPointers :: Proximity -> Double -> [Pointer] -> [Pointer]
@@ -140,39 +142,39 @@ reduceDiagos diagos = mapKeys (\(k,_) -> k)
                     $ foldl (\acc diago -> unionWith (+) acc diago) empty (elems diagos)
 
 
-phyloGroupMatching :: [[PhyloGroup]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc -> Double -> PhyloGroup -> PhyloGroup
-phyloGroupMatching candidates fil proxi docs diagos thr ego = 
-        if (null $ filterPointers proxi thr $ getPeriodPointers fil ego)
+phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc
+                   -> Double -> [Pointer] -> (PhyloGroupId,[Int]) -> [Pointer]
+phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) = 
+        if (null $ filterPointers proxi thr oldPointers)
           -- | let's find new pointers
           then if null nextPointers
-            then addPointers ego fil TemporalPointer []
-            else addPointers ego fil TemporalPointer
-               $ head' "phyloGroupMatching"
+            then []
+            else head' "phyloGroupMatching"
                -- | Keep only the best set of pointers grouped by proximity
                $ groupBy (\pt pt' -> snd pt == snd pt')
                $ reverse $ sortOn snd $ head' "pointers" nextPointers
                -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
-          else ego 
+          else oldPointers
     where
         nextPointers :: [[Pointer]]
         nextPointers = take 1
                  $ dropWhile (null)
                  -- | for each time frame, process the proximity on relevant pairs of targeted groups
                  $ scanl (\acc groups ->
-                            let periods = nub $ map _phylo_groupPeriod $ concat groups
-                                nbdocs  = sum $ elems $ (filterDocs docs ([ego ^. phylo_groupPeriod] ++ periods))
+                            let periods = nub $ map (fst . fst . fst) $ concat groups
+                                nbdocs  = sum $ elems $ (filterDocs docs ([(fst . fst) id] ++ periods))
                                 diago   = reduceDiagos 
-                                        $ filterDiago diagos ([ego ^. phylo_groupPeriod] ++ periods)
+                                        $ filterDiago diagos ([(fst . fst) id] ++ periods)
                                         -- | important resize nbdocs et diago dans le make pairs
-                                pairs = makePairs' ego (concat groups) periods (getPeriodPointers fil ego) fil thr proxi docs diagos
+                                pairs = makePairs' (id,ngrams) (concat groups) periods oldPointers fil thr proxi docs diagos
                             in acc ++ ( filterPointers proxi thr 
                                         $ concat
                                         $ map (\(c,c') ->
                                             -- | process the proximity between the current group and a pair of candidates 
-                                            let proximity = toProximity nbdocs diago proxi ego c c'
+                                            let proximity = toProximity nbdocs diago proxi ngrams (snd c) (snd c')
                                             in if (c == c')
-                                               then [(getGroupId c,proximity)]
-                                               else [(getGroupId c,proximity),(getGroupId c',proximity)] ) pairs )) []
+                                               then [(fst c,proximity)]
+                                               else [(fst c,proximity),(fst c',proximity)] ) pairs )) []
                  $ inits candidates -- | groups from [[1900],[1900,1901],[1900,1901,1902],...] 
 
 
@@ -195,10 +197,10 @@ getNextPeriods fil max' pId pIds =
         ToParents -> take max' $ (reverse . fst) $ splitAt (elemIndex' pId pIds) pIds
 
 
-getCandidates :: PhyloGroup -> [[PhyloGroup]] -> [[PhyloGroup]]
+getCandidates :: PhyloGroup -> [[(PhyloGroupId,[Int])]] -> [[(PhyloGroupId,[Int])]]
 getCandidates ego targets = 
   map (\groups' -> 
-    filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams)
+    filter (\g' -> (not . null) $ intersect (ego ^. phylo_groupNgrams) (snd g')
   ) groups') targets
 
 
@@ -210,8 +212,8 @@ matchGroupsToGroups frame periods proximity thr docs coocs groups =
             periodsPar = getNextPeriods ToParents frame prd periods
             periodsChi = getNextPeriods ToChilds  frame prd periods
             -- | 2) find the parents/childs matching candidates
-            candidatesPar = map (\prd' -> findWithDefault [] prd' groups') periodsPar
-            candidatesChi = map (\prd' -> findWithDefault [] prd' groups') periodsChi 
+            candidatesPar = map (\prd' -> map (\g -> (getGroupId g, g ^. phylo_groupNgrams)) $ findWithDefault [] prd' groups') periodsPar
+            candidatesChi = map (\prd' -> map (\g -> (getGroupId g, g ^. phylo_groupNgrams)) $ findWithDefault [] prd' groups') periodsChi 
             -- | 3) find the parents/child number of docs by years
             docsPar = filterDocs docs ([prd] ++ periodsPar)
             docsChi = filterDocs docs ([prd] ++ periodsChi)
@@ -219,8 +221,13 @@ matchGroupsToGroups frame periods proximity thr docs coocs groups =
             diagoPar = filterDiago (map coocToDiago coocs) ([prd] ++ periodsPar)
             diagoChi = filterDiago (map coocToDiago coocs) ([prd] ++ periodsPar)
             -- | 5) match in parallel all the groups (egos) to their possible candidates
-            egos  = map (\ego -> phyloGroupMatching (getCandidates ego candidatesPar) ToParents proximity docsPar diagoPar thr
-                               $ phyloGroupMatching (getCandidates ego candidatesChi) ToChilds  proximity docsChi diagoChi thr ego)
+            egos  = map (\ego -> 
+                      let pointersPar = phyloGroupMatching (getCandidates ego candidatesPar) ToParents proximity docsPar diagoPar
+                                        thr (getPeriodPointers ToParents ego) (getGroupId ego, ego ^. phylo_groupNgrams)
+                          pointersChi = phyloGroupMatching (getCandidates ego candidatesChi) ToChilds  proximity docsChi diagoChi
+                                        thr (getPeriodPointers ToChilds  ego) (getGroupId ego, ego ^. phylo_groupNgrams)
+                       in addPointers ToChilds  TemporalPointer pointersChi
+                        $ addPointers ToParents TemporalPointer pointersPar ego)
                   $ findWithDefault [] prd groups'
             egos' = egos `using` parList rdeepseq 
          in acc ++ egos'       
