@@ -70,7 +70,7 @@ import           Text.Blaze.Html (Html)
 
 --import Gargantext.API.Swagger
 
---import Gargantext.Database.Node.Contact (HyperdataContact)
+import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
@@ -249,6 +249,11 @@ type GargPrivateAPI' =
            :<|> "annuaire":> Summary "Annuaire endpoint"
                           :> Capture "id" AnnuaireId      :> NodeAPI HyperdataAnnuaire
 
+           :<|> "annuaire" :> Summary "Contact endpoint"
+                           :> Capture "annuaire_id" NodeId
+                           :> "contact" :> Capture "contact_id" NodeId
+                           :> NodeNodeAPI HyperdataContact
+
            -- Document endpoint
            :<|> "document":> Summary "Document endpoint"
                           :> Capture "id" DocId    :> "ngrams" :> TableNgramsApi
@@ -325,11 +330,12 @@ serverGargAdminAPI
 serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
 serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
        =  serverGargAdminAPI
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataAny)      uid
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataCorpus)   uid
-     :<|> nodeNodeAPI  (Proxy :: Proxy HyperdataAny) uid
-     :<|> nodeAPI  (Proxy :: Proxy HyperdataAnnuaire)   uid
-     :<|> withAccess (Proxy :: Proxy TableNgramsApi) Proxy uid <$> PathNode <*> apiNgramsTableDoc
+     :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
+     :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
+     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
+     :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
+     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)      uid
+     :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid <$> PathNode <*> apiNgramsTableDoc
      :<|> count -- TODO: undefined
      :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <$> PathNode <*> searchPairs -- TODO: move elsewhere
      :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <$> PathNode <*> graphAPI -- TODO: mock

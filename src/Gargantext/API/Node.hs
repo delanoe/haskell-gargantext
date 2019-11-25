@@ -164,10 +164,12 @@ type ChildrenApi a = Summary " Summary children"
 type NodeNodeAPI a = Get '[JSON] (Node a)
 
 nodeNodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> CorpusId -> NodeId -> GargServer (NodeNodeAPI a)
-nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uId (PathDoc cId nId) nodeNodeAPI'
+nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uId (PathNodeNode cId nId) nodeNodeAPI'
   where
     nodeNodeAPI' :: GargServer (NodeNodeAPI a)
     nodeNodeAPI' = getNode nId p
+
+
 
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
@@ -204,9 +206,11 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
       if _node_typename node == nodeTypeId NodeUser
          then panic "not allowed"  -- TODO add proper Right Management Type
          else deleteNode id'
-           
+
            -- Annuaire
            -- :<|> query
+
+
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)

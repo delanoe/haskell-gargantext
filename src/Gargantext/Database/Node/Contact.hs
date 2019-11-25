@@ -76,15 +76,15 @@ data ContactWho =
 data ContactWhere =
      ContactWhere { _cw_organization :: [Text]
                   , _cw_labTeamDepts :: [Text]
-                  
+
                   , _cw_role         :: Maybe Text
-                  
+
                   , _cw_office       :: Maybe Text
                   , _cw_country      :: Maybe Text
                   , _cw_city         :: Maybe Text
-                  
+
                   , _cw_touch        :: Maybe ContactTouch
-                  
+
                   , _cw_entry        :: Maybe UTCTime
                   , _cw_exit         :: Maybe UTCTime
   } deriving (Eq, Show, Generic)

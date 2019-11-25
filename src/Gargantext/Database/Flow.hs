@@ -37,6 +37,7 @@ module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
   , flowCorpusSearchInDatabase
   , getOrMkRoot
   , getOrMkRootWithCorpus
+  , flowAnnuaire
   )
     where
 import Prelude (String)
@@ -120,9 +121,9 @@ _flowCorpusApi u n tt l q = do
 ------------------------------------------------------------------------
 
 -- UNUSED
-_flowAnnuaire :: FlowCmdM env err m
+flowAnnuaire :: FlowCmdM env err m
              => Username -> Either CorpusName [CorpusId] -> (TermType Lang) -> FilePath -> m AnnuaireId
-_flowAnnuaire u n l filePath = do
+flowAnnuaire u n l filePath = do
   docs <- liftIO $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 

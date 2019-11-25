@@ -102,7 +102,7 @@ checkAuthRequest u p
   | not (u `elem` arbitraryUsername) = pure InvalidUser
   | u /= reverse p = pure InvalidPassword
   | otherwise = do
-      muId <- head <$> getRoot "user1" -- TODO user1 hard-coded
+      muId <- head <$> getRoot u
       case _node_id <$> muId of
         Nothing  -> pure InvalidUser
         Just uid -> do
@@ -179,7 +179,7 @@ instance Arbitrary AuthValid where
                        , tr <- [1..3]
                        ]
 
-data PathId = PathNode NodeId | PathDoc ListId DocId
+data PathId = PathNode NodeId | PathNodeNode ListId DocId
 
 withAccessM :: (CmdM env err m, HasServerError err)
             => UserId
@@ -190,13 +190,12 @@ withAccessM uId (PathNode id) m = do
   d <- id `isDescendantOf` NodeId uId
   if d then m else m -- serverError err401
 
-withAccessM uId (PathDoc cId docId) m = do
-  a <- isIn cId docId -- TODO use one query for all ?
-  d <- cId `isDescendantOf` NodeId uId
-  if a && d
+withAccessM uId (PathNodeNode cId docId) m = do
+  _a <- isIn cId docId -- TODO use one query for all ?
+  _d <- cId `isDescendantOf` NodeId uId
+  if True -- a && d
      then m
-     else m -- serverError err401
-
+     else m
 
 withAccess :: forall env err m api.
               (GargServerC env err m, HasServer api '[]) =>
@@ -208,16 +207,9 @@ withAccess p _ uId id = hoistServer p f
     f :: forall a. m a -> m a
     f = withAccessM uId id
 
-
 {- | Collaborative Schema
-
 User at his root can create Teams Folder
 User can create Team in Teams Folder.
 User can invite User in Team as NodeNode only if Team in his parents.
 All users can access to the Team folder as if they were owner.
-
 -}
-
-
-
-
