@@ -55,6 +55,9 @@ main = do
     corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
     corpus = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
 
+    corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
+    corpusCsvHal = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHalFormat corpusPath
+
     annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
     annuaire = flowAnnuaire (cs user) (Left "Annuaire") (Multi EN) corpusPath
 
@@ -78,7 +81,12 @@ main = do
     _ <- if fun == "corpus"
           then runCmdDev env corpus
           else pure 0 --(cs "false")
-    
+
+    _ <- if fun == "corpusCsvHal"
+          then runCmdDev env corpusCsvHal
+          else pure 0 --(cs "false")
+ 
+
     _ <- if fun == "annuaire"
             then runCmdDev env annuaire
             else pure 0
