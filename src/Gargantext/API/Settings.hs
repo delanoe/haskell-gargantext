@@ -16,6 +16,7 @@ TODO-SECURITY: Critical
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
@@ -49,7 +50,8 @@ import qualified Data.ByteString.Lazy as L
 import Servant
 import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings, defaultCookieSettings, readKey, writeKey)
 import Servant.Client (BaseUrl, parseBaseUrl)
-import Servant.Job.Async (newJobEnv, defaultSettings)
+import qualified Servant.Job.Core
+import Servant.Job.Async (newJobEnv, defaultSettings, HasJobEnv(..), Job)
 import Web.HttpApiData (parseUrlPiece)
 
 import Control.Concurrent
@@ -89,9 +91,6 @@ makeLenses ''Settings
 
 class HasSettings env where
   settings :: Getter env Settings
-
-class HasScrapers env where
-  scrapers :: Getter env ScrapersEnv
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -165,8 +164,11 @@ instance HasRepo Env where
 instance HasSettings Env where
   settings = env_settings
 
-instance HasScrapers Env where
-  scrapers = env_scrapers
+instance Servant.Job.Core.HasEnv Env (Job ScraperStatus ScraperStatus) where
+  _env = env_scrapers . Servant.Job.Core._env
+
+instance HasJobEnv Env ScraperStatus ScraperStatus where
+  job_env = env_scrapers
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall

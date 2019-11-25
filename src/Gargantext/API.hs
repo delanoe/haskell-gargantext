@@ -14,6 +14,7 @@ Thanks @yannEsposito for our discussions at the beginning of this project :).
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
+{-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DeriveGeneric        #-}
@@ -61,6 +62,7 @@ import           Servant.Auth.Swagger ()
 import           Servant.HTML.Blaze (HTML)
 --import           Servant.Mock (mock)
 --import           Servant.Job.Server (WithCallbacks)
+import           Servant.Job.Async
 import           Servant.Static.TH.Internal.Server (fileTreeToServer)
 import           Servant.Static.TH.Internal.FileTree (fileTypeToFileTree, FileType(FileTypeFile))
 import           Servant.Swagger
@@ -86,7 +88,7 @@ import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 
 --import Gargantext.API.Orchestrator
---import Gargantext.API.Orchestrator.Types
+import Gargantext.API.Orchestrator.Types
 
 ---------------------------------------------------------------------
 
@@ -275,10 +277,9 @@ type GargPrivateAPI' =
            :<|> "tree" :> Summary "Tree endpoint"
                        :> Capture "id" NodeId        :> TreeAPI
 
+           :<|> New.API_v2
+       --  :<|> "scraper" :> WithCallbacks ScraperAPI
            :<|> "new"  :> New.Api
-
-
-       --    :<|> "scraper" :> WithCallbacks ScraperAPI
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -296,11 +297,17 @@ type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
 -- instead, prefer GargServer, GargServerT, GargServerC.
 type GargServerM env err = ReaderT env (ExceptT err IO)
 
+type EnvC env =
+  ( HasConnection env
+  , HasRepo env
+  , HasSettings env
+  , HasJobEnv env ScraperStatus ScraperStatus
+  )
+
 ---------------------------------------------------------------------
 -- | Server declarations
 
-server :: forall env. (HasConnection env, HasRepo env, HasSettings env)
-       => env -> IO (Server API)
+server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerFront
@@ -340,8 +347,14 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <$> PathNode <*> searchPairs -- TODO: move elsewhere
      :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <$> PathNode <*> graphAPI -- TODO: mock
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid <$> PathNode <*> treeAPI
+     :<|> addToCorpus
      :<|> New.api -- TODO-SECURITY
      :<|> New.info uid -- TODO-SECURITY
+
+addToCorpus :: GargServer New.API_v2
+addToCorpus cid =
+  serveJobsAPI $
+    JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log))
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
@@ -359,8 +372,7 @@ swaggerFront = schemaUiServer swaggerDoc
 --gargMock = mock apiGarg Proxy
 
 ---------------------------------------------------------------------
-makeApp :: (HasConnection env, HasRepo env, HasSettings env)
-        => env -> IO Application
+makeApp :: EnvC env => env -> IO Application
 makeApp env = serveWithContext api cfg <$> server env
   where
     cfg :: Servant.Context AuthContext
@@ -442,7 +454,3 @@ startGargantextMock port = do
   application <- makeMockApp . MockEnv $ FireWall False
   run port application
 -}
-
-
-
-

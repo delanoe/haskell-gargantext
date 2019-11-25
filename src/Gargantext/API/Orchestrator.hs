@@ -66,10 +66,14 @@ pipeline scrapyurl client_env input log_status = do
   e <- runJobMLog client_env log_status $ callScraper scrapyurl input
   either (panic . cs . show) pure e -- TODO throwError
 
+-- TODO integrate to ServerT
+--  use:
+--  * serveJobsAPI instead of simpleServeJobsAPI
+--  * JobFunction  instead of simpleJobFunction
 scrapyOrchestrator :: Env -> IO (Server (WithCallbacks ScraperAPI))
 scrapyOrchestrator env = do
   apiWithCallbacksServer (Proxy :: Proxy ScraperAPI)
     defaultSettings (extendBaseUrl ("scraper" :: String) $ env ^. env_self_url)
     (env ^. env_manager) (LogEvent logConsole) $
-    serveJobsAPI (env ^. env_scrapers) .
-      JobFunction . pipeline (URL $ env ^. env_settings . scrapydUrl)
+    simpleServeJobsAPI (env ^. env_scrapers) .
+      simpleJobFunction . pipeline (URL $ env ^. env_settings . scrapydUrl)

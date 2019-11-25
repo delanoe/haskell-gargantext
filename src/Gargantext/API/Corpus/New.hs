@@ -25,7 +25,6 @@ module Gargantext.API.Corpus.New
       where
 
 import Data.Either
-import Control.Lens hiding (elements)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
@@ -36,10 +35,8 @@ import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Prelude
-import Gargantext.API.Settings
 import Gargantext.API.Orchestrator.Types
 import Servant
-import Servant.Job.Async
 -- import Servant.Job.Server
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
@@ -141,7 +138,7 @@ type API_v2 =
   "async" :> ScraperAPI2
 
   -- TODO ScraperInput2 also has a corpus id
-addToCorpusJobFunction :: CorpusId -> ScraperInput2 -> (ScraperStatus -> IO ()) -> IO ScraperStatus
+addToCorpusJobFunction :: FlowCmdM env err m => CorpusId -> ScraperInput2 -> (ScraperStatus -> m ()) -> m ScraperStatus
 addToCorpusJobFunction _cid _input logStatus = do
   -- TODO ...
   logStatus ScraperStatus { _scst_succeeded = Just 10
@@ -155,7 +152,3 @@ addToCorpusJobFunction _cid _input logStatus = do
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
                           }
-
-addToCorpus :: Env -> Server API_v2
-addToCorpus env cid = do
-  serveJobsAPI (env ^. scrapers) . JobFunction $ addToCorpusJobFunction cid

@@ -41,9 +41,11 @@ instance ToSchema AnyInput where
 instance ToSchema AnyEvent where
   declareNamedSchema = panic "TODO"
 
-instance ToSchema a => ToSchema (JobInput a)
+instance (ToSchema (f URL), ToSchema a) => ToSchema (JobInput f a)
 
 instance ToSchema a => ToSchema (JobOutput a)
+
+instance ToSchema (NoCallbacks a)
 
 -- | Main Types
 data ExternalAPIs = All
@@ -142,6 +144,7 @@ instance FromJSON ScraperStatus where
 instance ToSchema ScraperStatus -- TODO _scst_ prefix
 
 instance ToSchema ScraperInput  -- TODO _scin_ prefix
+instance ToSchema ScraperInput2 -- TODO _scin2_ prefix
 instance ToSchema ScraperEvent  -- TODO _scev_ prefix
 
 instance ToParamSchema Offset where

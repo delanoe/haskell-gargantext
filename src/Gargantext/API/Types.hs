@@ -11,6 +11,7 @@ Portability : POSIX
 
 
 {-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
@@ -21,27 +22,30 @@ Portability : POSIX
 {-# LANGUAGE UndecidableInstances   #-}
 
 module Gargantext.API.Types
+  ( module Gargantext.API.Types
+  , HasServerError(..)
+  , serverError
+  )
   where
 
+import Control.Exception (Exception)
 import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
 import Control.Monad.Error.Class (MonadError(throwError))
 import Crypto.JOSE.Error as Jose
+import Data.Typeable
 import Data.Validity
 import Servant
+import Servant.Job.Core (HasServerError(..), serverError)
+import Servant.Job.Async (HasJobEnv)
 import Gargantext.Prelude
 import Gargantext.API.Settings
+import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Ngrams
 import Gargantext.Database.Tree
 import Gargantext.Core.Types
 import Gargantext.Database.Utils
 import Gargantext.Database.Schema.Node
-
-class HasServerError e where
-  _ServerError :: Prism' e ServerError
-
-serverError :: (MonadError e m, HasServerError e) => ServerError -> m a
-serverError e = throwError $ _ServerError # e
 
 class HasJoseError e where
   _JoseError :: Prism' e Jose.Error
@@ -76,8 +80,10 @@ type GargServerC env err m =
     , HasTreeError err
     , HasServerError err
     , HasJoseError err
+    , Exception err
     , HasRepo env
     , HasSettings env
+    , HasJobEnv env ScraperStatus ScraperStatus
     )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m
@@ -91,9 +97,11 @@ data GargError
   | GargInvalidError Validation
   | GargJoseError Jose.Error
   | GargServerError ServerError
-  deriving (Show)
+  deriving (Show, Typeable)
 
 makePrisms ''GargError
+
+instance Exception GargError
 
 instance HasNodeError GargError where
   _NodeError = _GargNodeError

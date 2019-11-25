@@ -17,6 +17,7 @@ Portability : POSIX
 {-# LANGUAGE OverloadedStrings  #-}   -- allows to write Text literals
 {-# LANGUAGE OverloadedLists    #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 

@@ -12,12 +12,14 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE RankNTypes         #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}   -- allows to write Text literals
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Gargantext.Viz.Graph.API
   where
