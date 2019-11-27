@@ -13,6 +13,7 @@ module Gargantext.API.Orchestrator.Types where
 import Gargantext.Prelude
 import Control.Lens hiding (elements)
 import Data.Aeson
+import Data.Proxy
 import Data.Text (Text)
 import Data.Swagger hiding (URL, url, port)
 import GHC.Generics hiding (to)
@@ -22,6 +23,7 @@ import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+import Gargantext.API.Ngrams (TODO(..))
 
 instance Arbitrary a => Arbitrary (JobStatus 'Safe a) where
   arbitrary = panic "TODO"
@@ -30,16 +32,16 @@ instance Arbitrary a => Arbitrary (JobOutput a) where
   arbitrary = JobOutput <$> arbitrary
 
 instance ToSchema URL where
-  declareNamedSchema = panic "TODO"
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 instance ToSchema AnyOutput where
-  declareNamedSchema = panic "TODO"
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 instance ToSchema AnyInput where
-  declareNamedSchema = panic "TODO"
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 instance ToSchema AnyEvent where
-  declareNamedSchema = panic "TODO"
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 instance (ToSchema (f URL), ToSchema a) => ToSchema (JobInput f a)
 
@@ -147,11 +149,11 @@ instance ToSchema ScraperInput  -- TODO _scin_ prefix
 instance ToSchema ScraperInput2 -- TODO _scin2_ prefix
 instance ToSchema ScraperEvent  -- TODO _scev_ prefix
 
-instance ToParamSchema Offset where
-  toParamSchema = panic "TODO"
+instance ToParamSchema Offset -- where
+  -- toParamSchema = panic "TODO"
 
-instance ToParamSchema Limit where
-  toParamSchema = panic "TODO"
+instance ToParamSchema Limit -- where
+  -- toParamSchema = panic "TODO"
 
 type ScrapersEnv = JobEnv ScraperStatus ScraperStatus
 
