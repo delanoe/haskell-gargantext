@@ -16,6 +16,7 @@ Portability : POSIX
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeOperators          #-}
@@ -33,6 +34,7 @@ import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
 import Control.Monad.Error.Class (MonadError(throwError))
 import Crypto.JOSE.Error as Jose
+import Data.Aeson.Types
 import Data.Typeable
 import Data.Validity
 import Servant
@@ -42,8 +44,8 @@ import Gargantext.Prelude
 import Gargantext.API.Settings
 import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Ngrams
-import Gargantext.Database.Tree
 import Gargantext.Core.Types
+import Gargantext.Database.Tree
 import Gargantext.Database.Utils
 import Gargantext.Database.Schema.Node
 
@@ -80,6 +82,7 @@ type GargServerC env err m =
     , HasTreeError err
     , HasServerError err
     , HasJoseError err
+    , ToJSON err -- TODO this is arguable
     , Exception err
     , HasRepo env
     , HasSettings env
@@ -100,6 +103,9 @@ data GargError
   deriving (Show, Typeable)
 
 makePrisms ''GargError
+
+instance ToJSON GargError where
+  toJSON _ = String "SomeGargErrorPleaseReport"
 
 instance Exception GargError
 
