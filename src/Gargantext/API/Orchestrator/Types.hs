@@ -99,7 +99,7 @@ instance FromJSON ScraperInput where
 data ScraperInput2 = ScraperInput2
   { _scin2_query     :: !Text
   , _scin2_corpus    :: !Int
-  , _scin2_databases :: [ExternalAPIs]
+  , _scin2_databases :: ![ExternalAPIs]
   }
   deriving Generic
 
@@ -157,5 +157,5 @@ instance ToParamSchema Limit -- where
 
 type ScrapersEnv = JobEnv ScraperStatus ScraperStatus
 
-type ScraperAPI = AsyncJobsAPI ScraperStatus ScraperInput ScraperStatus
+type ScraperAPI  = AsyncJobsAPI ScraperStatus ScraperInput  ScraperStatus
 type ScraperAPI2 = AsyncJobsAPI ScraperStatus ScraperInput2 ScraperStatus
