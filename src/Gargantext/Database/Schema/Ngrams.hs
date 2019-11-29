@@ -51,9 +51,9 @@ type NgramsId    = Int
 type NgramsTerms = Text
 type Size        = Int
 
-data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
-                                      , ngrams_terms :: terms
-                                      , ngrams_n     :: n
+data NgramsPoly id terms n = NgramsDb { _ngrams_id    :: id
+                                      , _ngrams_terms :: terms
+                                      , _ngrams_n     :: n
                                       } deriving (Show)
 
 type NgramsWrite = NgramsPoly (Maybe (Column PGInt4))
@@ -71,12 +71,13 @@ type NgramsReadNull = NgramsPoly (Column (Nullable PGInt4))
 type NgramsDb = NgramsPoly Int Text Int
 
 $(makeAdaptorAndInstance "pNgramsDb"    ''NgramsPoly)
--- $(makeLensesWith abbreviatedFields   ''NgramsPoly)
+makeLenses ''NgramsPoly
+
 
 ngramsTable :: Table NgramsWrite NgramsRead
-ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { ngrams_id    = optional "id"
-                                                 , ngrams_terms = required "terms"
-                                                 , ngrams_n     = required "n"
+ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { _ngrams_id    = optional "id"
+                                                 , _ngrams_terms = required "terms"
+                                                 , _ngrams_n     = required "n"
                                                  }
                               )
 

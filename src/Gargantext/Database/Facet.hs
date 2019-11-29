@@ -26,8 +26,8 @@ Portability : POSIX
 {-# LANGUAGE TypeFamilies              #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet
-  ( runViewAuthorsDoc
-  , runViewDocuments
+  ( -- runViewAuthorsDoc
+   runViewDocuments
   , filterWith
 
   , Pair(..)
@@ -41,6 +41,7 @@ module Gargantext.Database.Facet
   where
 ------------------------------------------------------------------------
 import Control.Arrow (returnA)
+import Control.Lens ((^.))
 -- import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
@@ -57,7 +58,6 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Utils
 import Gargantext.Database.Queries.Join
@@ -115,36 +115,39 @@ instance (ToSchema i, ToSchema l) => ToSchema (Pair i l) where
 instance (Arbitrary i, Arbitrary l) => Arbitrary (Pair i l) where
   arbitrary = Pair <$> arbitrary <*> arbitrary
 
-data FacetPaired id date hyperdata score pairs =
+data FacetPaired id date hyperdata score pair =
   FacetPaired {_fp_id        :: id
               ,_fp_date      :: date
               ,_fp_hyperdata :: hyperdata
               ,_fp_score     :: score
-              ,_fp_pairs     :: pairs
+              ,_fp_pair      :: pair
   } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_fp_") ''FacetPaired)
 $(makeAdaptorAndInstance "pFacetPaired" ''FacetPaired)
 
-instance (ToSchema id, ToSchema date, ToSchema hyperdata, ToSchema pairs, ToSchema score) => ToSchema (FacetPaired id date hyperdata score pairs) where
+instance ( ToSchema id
+         , ToSchema date
+         , ToSchema hyperdata
+         , ToSchema score
+         , ToSchema pair
+         ) => ToSchema (FacetPaired id date hyperdata score pair) where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fp_")
 
 instance ( Arbitrary id
          , Arbitrary date
          , Arbitrary hyperdata
          , Arbitrary score
-         , Arbitrary pairs
-         ) => Arbitrary (FacetPaired id date hyperdata score pairs) where
+         , Arbitrary pair
+         ) => Arbitrary (FacetPaired id date hyperdata score pair) where
   arbitrary = FacetPaired <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
---{-
 type FacetPairedRead = FacetPaired (Column PGInt4       )
                                    (Column PGTimestamptz)
                                    (Column PGJsonb      )
                                    (Column PGInt4       )
-                                   (Pair (Column (Nullable PGInt4)) (Column (Nullable PGText)))
---}
-
-
+                                   ( Column (Nullable PGInt4)
+                                   , Column (Nullable PGText)
+                                   )
 
 -- | JSON instance
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)
@@ -206,6 +209,8 @@ instance Arbitrary OrderBy
 
 
 -- TODO-SECURITY check
+
+{-
 runViewAuthorsDoc :: ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
@@ -234,16 +239,16 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable 
                                 .== nng_node_id nodeNgram
 
          cond23 :: (NgramsRead, (NodeNgramRead, NodeReadNull)) -> Column PGBool
-         cond23 (ngrams, (nodeNgram, _)) =  ngrams_id                  ngrams
+         cond23 (ngrams, (nodeNgram, _)) =  ngrams^.ngrams_id
                                         .== nng_ngrams_id nodeNgram
-         
+
          cond34 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams_id ngrams     .== nng_ngrams_id       nodeNgram2
-         
+         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams^.ngrams_id .== nng_ngrams_id       nodeNgram2
+
          cond45 :: (NodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
          cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== nng_node_id         nodeNgram2
 
-
+-}
 ------------------------------------------------------------------------
 
 -- TODO-SECURITY check
@@ -257,12 +262,12 @@ viewDocuments :: CorpusId -> IsTrash -> NodeTypeId -> Query FacetDocRead
 viewDocuments cId t ntId = proc () -> do
   n  <- queryNodeTable     -< ()
   nn <- queryNodeNodeTable -< ()
-  restrict -< _node_id        n .== nn_node2_id nn
-  restrict -< nn_node1_id    nn .== (pgNodeId cId)
-  restrict -< _node_typename  n .== (pgInt4 ntId)
-  restrict -< if t then nn_category  nn .== (pgInt4 0)
-                   else nn_category  nn .>= (pgInt4 1)
-  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (toNullable $ nn_category nn) (toNullable $ nn_score nn)
+  restrict -< n^.node_id       .== nn^.nn_node2_id
+  restrict -< nn^.nn_node1_id  .== (pgNodeId cId)
+  restrict -< n^.node_typename .== (pgInt4 ntId)
+  restrict -< if t then nn^.nn_category .== (pgInt4 0)
+                   else nn^.nn_category .>= (pgInt4 1)
+  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (toNullable $ nn^.nn_category) (toNullable $ nn^.nn_score)
 
 
 ------------------------------------------------------------------------

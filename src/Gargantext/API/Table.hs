@@ -46,7 +46,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..))
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
+import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..))
 import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.TextSearch
 import Gargantext.Database.Types.Node
@@ -97,6 +97,7 @@ getTable cId ft o l order =
     (Just MoreTrash) -> moreLike cId o l order IsTrash
     x     -> panic $ "not implemented in getTable: " <> (cs $ show x)
 
+{-
 getPairing :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
@@ -106,4 +107,4 @@ getPairing cId ft o l order =
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
     _     -> panic $ "not implemented: get Pairing" <> (cs $ show ft)
 
-
+-}

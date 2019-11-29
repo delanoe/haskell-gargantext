@@ -131,7 +131,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              -- TODO gather it
              :<|> "table"     :> TableApi
              :<|> "ngrams"    :> TableNgramsApi
-             :<|> "pairing"   :> PairingApi
+             -- :<|> "pairing"   :> PairingApi
 
              :<|> "category"  :> CatApi
              :<|> "search"    :> SearchDocsAPI
@@ -187,7 +187,7 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            -- TODO gather it
            :<|> tableApi             id
            :<|> apiNgramsTableCorpus id
-           :<|> getPairing           id
+           -- :<|> getPairing           id
            -- :<|> getTableNgramsDoc id
 
            :<|> catApi     id

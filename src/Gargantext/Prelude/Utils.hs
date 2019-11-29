@@ -85,7 +85,7 @@ writeFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
          => a -> m FilePath
 writeFile a = do
   dataPath <- view (settings . fileFolder) <$> ask
-  (fp,fn)  <- liftIO $ (toPath 3) . hash . Text.pack . show <$> newStdGen
+  (fp,fn)  <- liftIO $ (toPath 3) . sha . Text.pack . show <$> newStdGen
   
   let foldPath = dataPath <> "/" <> fp
       filePath = foldPath <> "/" <> fn

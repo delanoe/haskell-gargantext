@@ -266,7 +266,8 @@ type GargPrivateAPI' =
                         :> ReqBody '[JSON] Query :> CountAPI
 
            -- Corpus endpoint --> TODO rename s/search/filter/g
-           :<|> "search":> Capture "corpus" NodeId :> SearchPairsAPI
+           :<|> "search":> Capture "corpus" NodeId
+                        :> SearchPairsAPI
 
            -- TODO move to NodeAPI?
            :<|> "graph" :> Summary "Graph endpoint"

@@ -65,7 +65,8 @@ instance Arbitrary SearchDocResults where
 instance ToSchema SearchDocResults where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sdr_")
 
-data SearchPairedResults = SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]] }
+data SearchPairedResults =
+     SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]] }
   deriving (Generic)
 $(deriveJSON (unPrefix "spr_") ''SearchPairedResults)
 
@@ -87,12 +88,14 @@ type SearchAPI results
  :> Post '[JSON] results
 
 type SearchDocsAPI  = SearchAPI SearchDocResults
-type SearchPairsAPI = SearchAPI SearchPairedResults
+type SearchPairsAPI = 
+  Summary "" :> "list"  :> Capture "list"   ListId
+  :> SearchAPI SearchPairedResults
 -----------------------------------------------------------------------
 
 searchPairs :: NodeId -> GargServer SearchPairsAPI
-searchPairs pId (SearchQuery q) o l order =
-  SearchPairedResults <$> searchInCorpusWithContacts pId q o l order
+searchPairs pId lId (SearchQuery q) o l order =
+  SearchPairedResults <$> searchInCorpusWithContacts pId lId q o l order
 
 searchDocs :: NodeId -> GargServer SearchDocsAPI
 searchDocs nId (SearchQuery q) o l order =

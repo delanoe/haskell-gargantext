@@ -25,11 +25,11 @@ commentary with @some markup@.
 
 module Gargantext.Database.Schema.NodeNode where
 
-import Control.Lens (view)
+import Control.Lens (view, (^.))
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Lens.TH (makeLenses, makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe, catMaybes)
 import Data.Text (Text, splitOn)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -44,10 +44,10 @@ import Control.Arrow (returnA)
 import qualified Opaleye as O
 
 data NodeNodePoly node1_id node2_id score cat
-                   = NodeNode { nn_node1_id   :: node1_id
-                              , nn_node2_id   :: node2_id
-                              , nn_score      :: score
-                              , nn_category   :: cat
+                   = NodeNode { _nn_node1_id   :: node1_id
+                              , _nn_node2_id   :: node2_id
+                              , _nn_score      :: score
+                              , _nn_category   :: cat
                               } deriving (Show)
 
 type NodeNodeWrite     = NodeNodePoly (Column (PGInt4))
@@ -59,7 +59,7 @@ type NodeNodeRead      = NodeNodePoly (Column (PGInt4))
                                       (Column (PGInt4))
                                       (Column (PGFloat8))
                                       (Column (PGInt4))
-                                      
+
 type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4))
                                       (Column (Nullable PGInt4))
                                       (Column (Nullable PGFloat8))
@@ -68,14 +68,14 @@ type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4))
 type NodeNode = NodeNodePoly Int Int (Maybe Double) (Maybe Int)
 
 $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)
-$(makeLensesWith abbreviatedFields   ''NodeNodePoly)
+makeLenses ''NodeNodePoly
 
 nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
 nodeNodeTable  = Table "nodes_nodes" (pNodeNode
-                                NodeNode { nn_node1_id = required "node1_id"
-                                         , nn_node2_id = required "node2_id"
-                                         , nn_score    = optional "score"
-                                         , nn_category = optional "category"
+                                NodeNode { _nn_node1_id = required "node1_id"
+                                         , _nn_node2_id = required "node2_id"
+                                         , _nn_score    = optional "score"
+                                         , _nn_category = optional "category"
                                      }
                                      )
 
@@ -144,9 +144,9 @@ selectDocs cId = runOpaQuery (queryDocs cId)
 queryDocs :: CorpusId -> O.Query (Column PGJsonb)
 queryDocs cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_category nn)  .>= (toNullable $ pgInt4 1)
-  restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
+  restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
+  restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -< view (node_hyperdata) n
 
 
@@ -156,9 +156,9 @@ selectDocNodes cId = runOpaQuery (queryDocNodes cId)
 queryDocNodes :: CorpusId -> O.Query NodeRead
 queryDocNodes cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_category nn)  .>= (toNullable $ pgInt4 1)
-  restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
+  restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
+  restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -<  n
 
 
@@ -166,7 +166,7 @@ joinInCorpus :: O.Query (NodeRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
   where
     cond :: (NodeRead, NodeNodeRead) -> Column PGBool
-    cond (n, nn) = nn_node2_id nn .== (view node_id n)
+    cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
 
 
 ------------------------------------------------------------------------

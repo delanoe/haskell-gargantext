@@ -479,7 +479,7 @@ data NodePolySearch id        typename userId
               hyperdata search = NodeSearch { _ns_id        :: id
                                       , _ns_typename  :: typename
                                       , _ns_userId    :: userId
-                                                                --   , nodeUniqId    :: hashId
+                                                                --   , nodeUniqId    :: shaId
                                       , _ns_parentId  :: parentId
                                       , _ns_name      :: name
                                       , _ns_date      :: date

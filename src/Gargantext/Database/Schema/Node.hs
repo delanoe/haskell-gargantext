@@ -699,6 +699,7 @@ mkNode nt p u = insertNodesR [nodeDefault nt p u]
 mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
 mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
+
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
   where
@@ -709,7 +710,6 @@ mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
         dashboard = maybe arbitraryDashboard identity maybeDashboard
 
 
-
 mkPhylo :: ParentId -> UserId -> Cmd err [NodeId]
 mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 
@@ -718,8 +718,5 @@ mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 pgNodeId :: NodeId -> Column PGInt4
 pgNodeId = pgInt4 . id2int
 
-
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
-
-

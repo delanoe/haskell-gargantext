@@ -18,6 +18,7 @@ module Gargantext.Database.TextSearch where
 import Data.Aeson
 import Data.Map.Strict hiding (map, drop, take)
 import Data.Maybe
+import Control.Lens ((^.))
 import Data.List (intersperse, take, drop)
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack, intercalate)
@@ -43,97 +44,179 @@ import Opaleye hiding (Query, Order)
 
 
 ------------------------------------------------------------------------
-searchInDatabase :: ParentId -> Text -> Cmd err [(NodeId, HyperdataDocument)]
+searchInDatabase :: ParentId
+                 -> Text
+                 -> Cmd err [(NodeId, HyperdataDocument)]
 searchInDatabase p t = runOpaQuery (queryInDatabase p t)
-
--- | Global search query where ParentId is Master Node Corpus Id 
-queryInDatabase :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
-queryInDatabase _ q = proc () -> do
-    row <- queryNodeSearchTable -< ()
-    restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
-    restrict -< (_ns_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
-    returnA  -< (_ns_id row, _ns_hyperdata row)
+  where
+    -- | Global search query where ParentId is Master Node Corpus Id 
+    queryInDatabase :: ParentId -> Text -> O.Query (Column PGInt4, Column PGJsonb)
+    queryInDatabase _ q = proc () -> do
+        row <- queryNodeSearchTable -< ()
+        restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
+        restrict -< (_ns_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
+        returnA  -< (_ns_id row, _ns_hyperdata row)
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
-searchInCorpus :: CorpusId -> IsTrash -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+searchInCorpus :: CorpusId
+               -> IsTrash
+               -> [Text]
+               -> Maybe Offset
+               -> Maybe Limit
+               -> Maybe OrderBy
+               -> Cmd err [FacetDoc]
 searchInCorpus cId t q o l order = runOpaQuery (filterWith o l order $ queryInCorpus cId t q')
   where
     q' = intercalate " | " $ map stemIt q
 
-queryInCorpus :: CorpusId -> IsTrash -> Text -> O.Query FacetDocRead
+queryInCorpus :: CorpusId
+              -> IsTrash
+              -> Text
+              -> O.Query FacetDocRead
 queryInCorpus cId t q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nn_node1_id nn) .== (toNullable $ pgNodeId cId)
+  restrict -< ( nn^.nn_node1_id) .== (toNullable $ pgNodeId cId)
   restrict -< if t
-                 then ( nn_category nn) .== (toNullable $ pgInt4     0)
-                 else ( nn_category nn) .>= (toNullable $ pgInt4     1)
-  restrict -< (_ns_search n)           @@ (pgTSQuery (unpack q))
-  restrict -< (_ns_typename n)        .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< FacetDoc (_ns_id n) (_ns_date n) (_ns_name n) (_ns_hyperdata n) (nn_category nn) (nn_score nn)
+                 then ( nn^.nn_category) .== (toNullable $ pgInt4     0)
+                 else ( nn^.nn_category) .>= (toNullable $ pgInt4     1)
+  restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
+  restrict -< (n ^. ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
+  returnA  -< FacetDoc (n^.ns_id       )
+                       (n^.ns_date     )
+                       (n^.ns_name     )
+                       (n^.ns_hyperdata)
+                       (nn^.nn_category)
+                       (nn^.nn_score   )
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
   where
     cond :: (NodeSearchRead, NodeNodeRead) -> Column PGBool
-    cond (n, nn) = nn_node2_id nn .== _ns_id n
+    cond (n, nn) = nn^.nn_node2_id .== _ns_id n
 
 ------------------------------------------------------------------------
 type AuthorName = Text
 
 -- | TODO Optim: Offset and Limit in the Query
 -- TODO-SECURITY check
-searchInCorpusWithContacts :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
-searchInCorpusWithContacts cId q o l order = take (maybe 5 identity l) <$> drop (maybe 0 identity o)
-  <$> map (\((i,u,h,s), ps) -> FacetPaired i u h s (catMaybes ps))
+searchInCorpusWithContacts
+  :: CorpusId
+  -> ListId
+  -> [Text]
+  -> Maybe Offset
+  -> Maybe Limit
+  -> Maybe OrderBy
+  -> Cmd err [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]]
+searchInCorpusWithContacts cId lId q o l order =
+      take (maybe 10 identity l)
+  <$> drop (maybe 0 identity o)
+  <$> map (\((i,u,h,s), ps) -> FacetPaired i u h s ps)
   <$> toList <$> fromListWith (<>)
-  <$> map (\(FacetPaired i u h s p) -> ((i,u,h,s), [maybePair p]))
-  <$> searchInCorpusWithContacts' cId q o l order
-  where
-    maybePair (Pair Nothing Nothing) = Nothing
-    maybePair (Pair _ Nothing) = Nothing
-    maybePair (Pair Nothing _) = Nothing
-    maybePair (Pair (Just p_id) (Just p_label)) = Just $ Pair p_id p_label
+  <$> map (\(FacetPaired i u h s (p1,p2)) -> ( (i,u,h,s)
+                                             , catMaybes [Pair <$> p1 <*> p2]
+                                             )
+          )
+  <$> searchInCorpusWithContacts' cId lId q o l order
 
 -- TODO-SECURITY check
-searchInCorpusWithContacts' :: CorpusId -> [Text] -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [(FacetPaired Int UTCTime HyperdataDocument Int (Pair (Maybe Int) (Maybe Text)))]
-searchInCorpusWithContacts' cId q o l order = runOpaQuery $ queryInCorpusWithContacts cId q' o l order
-  where
-    q' = intercalate " | " $ map stemIt q
-
-
-
-queryInCorpusWithContacts :: CorpusId -> Text -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> O.Query FacetPairedRead
-queryInCorpusWithContacts cId q _ _ _ = proc () -> do
-  (docs, (corpusDoc, (_docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
-  restrict -< (_ns_search docs)              @@ (pgTSQuery  $ unpack q  )
-  restrict -< (_ns_typename docs)           .== (pgInt4 $ nodeTypeId NodeDocument)
-  restrict -< (nn_node1_id corpusDoc) .== (toNullable $ pgNodeId cId)
-  -- restrict -< (nng_listType docNgrams)      .== (toNullable $ pgNgramsType Authors)
-  restrict -< (_node_typename contacts)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
-  -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
-  returnA  -< FacetPaired (_ns_id docs) (_ns_date docs) (_ns_hyperdata docs) (pgInt4 0) (Pair (_node_id contacts) (ngrams_terms ngrams'))
-
-joinInCorpusWithContacts :: O.Query (NodeSearchRead, (NodeNodeReadNull, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))))
-joinInCorpusWithContacts = leftJoin6 queryNodeTable queryNodeNodeNgramsTable queryNgramsTable queryNodeNodeNgramsTable queryNodeNodeTable queryNodeSearchTable cond12 cond23 cond34 cond45 cond56
+searchInCorpusWithContacts'
+  :: CorpusId
+  -> ListId
+  -> [Text]
+  -> Maybe Offset
+  -> Maybe Limit
+  -> Maybe OrderBy
+  -> Cmd err [(FacetPaired Int UTCTime HyperdataDocument Int (Maybe Int, Maybe Text))]
+searchInCorpusWithContacts' cId lId q o l order =
+  runOpaQuery $ queryInCorpusWithContacts cId lId q' o l order
     where
-         cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column PGBool
-         cond12 (ng3, n2) = _node_id n2 .== nnng_node1_id ng3
----------
-         cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
-         cond23 (ng2, (nnng2, _)) = nnng_ngrams_id nnng2 .== ngrams_id ng2
-         
-         cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nng, (ng, (_,_))) = ngrams_id ng .== nnng_ngrams_id nng
-         
-         cond45 :: (NodeNodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (nn, (nng, (_,(_,_)))) = nnng_node1_id nng .== nn_node2_id nn
-         
-         cond56 :: (NodeSearchRead, (NodeNodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))) -> Column PGBool
-         cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nn_node2_id nn
+      q' = intercalate " | " $ map stemIt q
 
 
+queryInCorpusWithContacts
+  :: CorpusId
+  -> ListId
+  -> Text
+  -> Maybe Offset
+  -> Maybe Limit
+  -> Maybe OrderBy
+  -> O.Query FacetPairedRead
+queryInCorpusWithContacts cId lId q _ _ _ = proc () -> do
+  (docs, (corpusDoc, (docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
+  restrict -< (docs^.ns_search)              @@ (pgTSQuery  $ unpack q  )
+  restrict -< (docs^.ns_typename)           .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (docNgrams^.nnng_node2_id)    .== (toNullable $ pgNodeId lId)
+  restrict -< (corpusDoc^.nn_node1_id)      .== (toNullable $ pgNodeId cId)
+  -- restrict -< (nng_listType docNgrams)      .== (toNullable $ pgNgramsType Authors)
+  restrict -< (contacts^.node_typename)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
+  -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
+  returnA  -< FacetPaired (docs^.ns_id) (docs^.ns_date) (docs^.ns_hyperdata) (pgInt4 0) (contacts^.node_id, ngrams'^.ngrams_terms)
 
+joinInCorpusWithContacts :: O.Query ( NodeSearchRead
+                                    , ( NodeNodeReadNull
+                                      , ( NodeNodeNgramsReadNull
+                                        , ( NgramsReadNull
+                                          , ( NodeNodeNgramsReadNull
+                                            , NodeReadNull
+                                            )
+                                          )
+                                        )
+                                      )
+                                    )
+joinInCorpusWithContacts =
+  leftJoin6
+  queryNodeTable
+  queryNodeNodeNgramsTable
+  queryNgramsTable
+  queryNodeNodeNgramsTable
+  queryNodeNodeTable
+  queryNodeSearchTable
+  cond12
+  cond23
+  cond34
+  cond45
+  cond56
+    where
+      cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column PGBool
+      cond12 (ng3, n2) = n2^.node_id .== ng3^.nnng_node1_id
+
+      cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
+      cond23 (ng2, (nnng2, _)) = nnng2^.nnng_ngrams_id .== ng2^.ngrams_id
+
+      cond34 :: ( NodeNodeNgramsRead
+                , ( NgramsRead
+                  , ( NodeNodeNgramsReadNull
+                    , NodeReadNull
+                    )
+                  )
+                ) -> Column PGBool
+      cond34 (nng, (ng, (_,_))) = ng^.ngrams_id .== nng^.nnng_ngrams_id
+ 
+      cond45 :: ( NodeNodeRead
+                , ( NodeNodeNgramsRead
+                  , ( NgramsReadNull
+                    , ( NodeNodeNgramsReadNull
+                      , NodeReadNull
+                      )
+                    )
+                  )
+                ) -> Column PGBool
+      cond45 (nn, (nng, (_,(_,_)))) = nng^.nnng_node1_id .== nn^.nn_node2_id
+ 
+      cond56 :: ( NodeSearchRead
+                , ( NodeNodeRead
+                  , ( NodeNodeNgramsReadNull
+                    , ( NgramsReadNull
+                      , ( NodeNodeNgramsReadNull
+                        , NodeReadNull
+                        )
+                      )
+                    )
+                  )
+                ) -> Column PGBool
+      cond56 (n, (nn, (_,(_,(_,_))))) = _ns_id n .== nn^.nn_node2_id
+ 
 
 newtype TSQuery = UnsafeTSQuery [Text]
 
