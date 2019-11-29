@@ -39,7 +39,7 @@ database (in others words parent_id is necessary to preserve privacy for
 instance).
 
 - Hash policy: this UniqId is a sha256 uniq id which is the result of
-the concatenation of the parameters defined by @hashParameters@.
+the concatenation of the parameters defined by @shaParameters@.
 
 > -- * Example
 > insertTest :: FromRow r => CorpusId -> [Node HyperdataDocument] -> IO [r]
@@ -79,7 +79,7 @@ import Gargantext.Prelude
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as DT (pack, unpack, concat, take)
-import Gargantext.Prelude.Utils (hash)
+import Gargantext.Prelude.Utils (sha)
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
 --import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)

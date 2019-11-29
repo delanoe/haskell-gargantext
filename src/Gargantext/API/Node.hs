@@ -65,7 +65,7 @@ import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (hash)
+import Gargantext.Prelude.Utils (sha)
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
@@ -400,4 +400,4 @@ postUpload _ multipartData (Just fileType) = do
     --pure $ cs content
   -- is <- inputs multipartData
 
-  pure $ map (hash . cs) is
+  pure $ map (sha . cs) is

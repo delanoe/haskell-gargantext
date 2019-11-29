@@ -30,22 +30,42 @@ import System.Directory (createDirectoryIfMissing)
 import qualified Data.ByteString.Lazy.Char8  as Char
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as Text
-
+import Gargantext.Database.Types.Node (NodeId, NodeType)
+import Data.ByteString (ByteString)
+import Crypto.Argon2 as Crypto
+import Data.Either
+import Data.ByteString.Base64.URL as URL
 
 shuffle :: MonadRandom m => [a] -> m [a]
 shuffle ns = SRS.shuffleM ns 
 
-
 type FolderPath = FilePath
 type FileName   = FilePath
 
-
-hash :: Text -> Text
-hash = Text.pack
-     .  SHA.showDigest
-     .  SHA.sha256
+sha :: Text -> Text
+sha = Text.pack
+     . SHA.showDigest
+     . SHA.sha256
      . Char.pack
      . Text.unpack
+
+data NodeToHash = NodeToHash { nodeType :: NodeType
+                             , nodeId   :: NodeId
+                             }
+
+secret_key :: ByteString
+secret_key = "WRV5ymit8s~ge6%08dLR7Q!gBcpb1MY%7e67db2206"
+
+type SecretKey = ByteString
+
+hashNode :: SecretKey -> NodeToHash -> ByteString
+hashNode sk (NodeToHash nt ni) = case hashResult of
+    Left  e -> panic (cs $ show e)
+    Right h -> URL.encode h
+  where
+    hashResult = Crypto.hash Crypto.defaultHashOptions
+                  sk
+                  (cs $ show nt <> show ni)
 
 
 toPath :: Int -> Text -> (FolderPath,FileName)

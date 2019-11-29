@@ -86,11 +86,13 @@ library:
   - aeson
   - aeson-lens
   - aeson-pretty
+  - argon2
   - async
   - attoparsec
   - auto-update
   - base >=4.7 && <5
   - base16-bytestring
+  - base64-bytestring
   - blaze-html
   - blaze-markup
   - blaze-svg
