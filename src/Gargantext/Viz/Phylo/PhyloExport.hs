@@ -121,7 +121,7 @@ branchToDotNode b =
 periodToDotNode :: (Date,Date) -> Dot DotId
 periodToDotNode prd =
     node (periodIdToDotId prd)
-         ([Shape Square, FontSize 50, Label (toDotLabel $ Text.pack (show (fst prd) <> " " <> show (snd prd)))]
+         ([Shape BoxShape, FontSize 50, Label (toDotLabel $ Text.pack (show (fst prd) <> " " <> show (snd prd)))]
          <> [ toAttr "nodeType" "period" 
             , toAttr "from" (fromStrict $ Text.pack $ (show $ fst prd))
             , toAttr "to"   (fromStrict $ Text.pack $ (show $ snd prd))])
@@ -130,7 +130,7 @@ periodToDotNode prd =
 groupToDotNode :: Vector Ngrams -> PhyloGroup -> Dot DotId
 groupToDotNode fdt g = 
     node (groupIdToDotId $ getGroupId g)
-                     ([FontName "Arial", Shape Square, toLabel (groupToTable fdt g)]
+                     ([FontName "Arial", Shape BoxShape, toLabel (groupToTable fdt g)]
                       <> [ toAttr "nodeType" "group"
                          , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
