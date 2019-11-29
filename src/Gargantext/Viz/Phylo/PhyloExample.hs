@@ -38,12 +38,19 @@ import Data.GraphViz.Types.Generalised (DotGraph)
 
 import qualified Data.Vector as Vector
 
+---------------------------------
+-- | STEP 5 | -- Export the phylo
+---------------------------------
 
 phyloExport :: IO ()
 phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
 phyloDot = toPhyloExport phylo2
+
+--------------------------------------------------
+-- | STEP 4 | -- Process the synchronic clustering
+--------------------------------------------------
 
 phylo2 :: Phylo
 phylo2 = synchronicClustering phylo1
