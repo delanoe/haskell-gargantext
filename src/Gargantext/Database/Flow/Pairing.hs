@@ -20,7 +20,7 @@ module Gargantext.Database.Flow.Pairing
     where
 
 --import Debug.Trace (trace)
-import Control.Lens (_Just,view)
+import Control.Lens (_Just, (^.))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 -- import Opaleye
 -- import Opaleye.Aggregate
@@ -37,8 +37,7 @@ import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
 import Gargantext.Database.Flow.Utils
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
 import Gargantext.Database.Types.Node (AnnuaireId, CorpusId, ListId)
-import Gargantext.Database.Node.Children (getContacts)
-import Gargantext.Core.Types (NodeType(..))
+import Gargantext.Database.Node.Children (getAllContacts)
 
 -- TODO mv this type in Types Main
 type Terms = Text
@@ -49,8 +48,9 @@ pairing :: AnnuaireId
         -> ListId
         -> Cmd err Int
 pairing aId cId lId = do
-  contacts' <- getContacts aId (Just NodeContact)
-  let contactsMap = pairingPolicyToMap toLower $ toMaps extractNgramsT contacts'
+  contacts' <- getAllContacts aId
+  let contactsMap = pairingPolicyToMap toLower
+                  $ toMaps extractNgramsT contacts'
 
   ngramsMap' <- getNgramsTindexed cId Authors
   let ngramsMap = pairingPolicyToMap lastName ngramsMap'
@@ -82,7 +82,8 @@ extractNgramsT :: HyperdataContact
                -> Map (NgramsT Ngrams) Int
 extractNgramsT contact = fromList [(NgramsT Authors    a' , 1)| a' <- authors    ]
   where
-    authors    = map text2ngrams $ catMaybes [view (hc_who . _Just . cw_lastName) contact]
+    authors    = map text2ngrams
+               $ catMaybes [ contact^.(hc_who . _Just . cw_lastName) ]
 
 
 pairMaps :: Map (NgramsT Ngrams) a
@@ -110,7 +111,7 @@ getNgramsTindexed corpusId ngramsType' = fromList
       where
         selectQuery = [sql| SELECT n.id,n.terms,n.n from ngrams n
                       JOIN node_node_ngrams occ ON occ.ngrams_id = n.id
-                      JOIN nodes_nodes  nn  ON nn.node2_id = occ.node2_id
+                      JOIN nodes_nodes      nn  ON nn.node2_id   = occ.node2_id
 
                       WHERE nn.node1_id     = ?
                         AND occ.ngrams_type = ?

@@ -66,9 +66,11 @@ searchInCorpus :: CorpusId
                -> Maybe Limit
                -> Maybe OrderBy
                -> Cmd err [FacetDoc]
-searchInCorpus cId t q o l order = runOpaQuery (filterWith o l order $ queryInCorpus cId t q')
-  where
-    q' = intercalate " | " $ map stemIt q
+searchInCorpus cId t q o l order = runOpaQuery
+                                 $ filterWith o l order
+                                 $ queryInCorpus cId t
+                                 $ intercalate " | "
+                                 $ map stemIt q
 
 queryInCorpus :: CorpusId
               -> IsTrash
@@ -76,12 +78,12 @@ queryInCorpus :: CorpusId
               -> O.Query FacetDocRead
 queryInCorpus cId t q = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nn^.nn_node1_id) .== (toNullable $ pgNodeId cId)
+  restrict -< (nn^.nn_node1_id) .== (toNullable $ pgNodeId cId)
   restrict -< if t
-                 then ( nn^.nn_category) .== (toNullable $ pgInt4     0)
-                 else ( nn^.nn_category) .>= (toNullable $ pgInt4     1)
+                 then (nn^.nn_category) .== (toNullable $ pgInt4 0)
+                 else (nn^.nn_category) .>= (toNullable $ pgInt4 1)
   restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
-  restrict -< (n ^. ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (n ^. ns_typename )       .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA  -< FacetDoc (n^.ns_id       )
                        (n^.ns_date     )
                        (n^.ns_name     )
@@ -129,29 +131,33 @@ searchInCorpusWithContacts'
   -> Maybe OrderBy
   -> Cmd err [(FacetPaired Int UTCTime HyperdataDocument Int (Maybe Int, Maybe Text))]
 searchInCorpusWithContacts' cId lId q o l order =
-  runOpaQuery $ queryInCorpusWithContacts cId lId q' o l order
-    where
-      q' = intercalate " | " $ map stemIt q
+  runOpaQuery $ queryInCorpusWithContacts cId lId o l order
+              $ intercalate " | "
+              $ map stemIt q
 
 
 queryInCorpusWithContacts
   :: CorpusId
   -> ListId
-  -> Text
   -> Maybe Offset
   -> Maybe Limit
   -> Maybe OrderBy
+  -> Text
   -> O.Query FacetPairedRead
-queryInCorpusWithContacts cId lId q _ _ _ = proc () -> do
-  (docs, (corpusDoc, (docNgrams, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
-  restrict -< (docs^.ns_search)              @@ (pgTSQuery  $ unpack q  )
-  restrict -< (docs^.ns_typename)           .== (pgInt4 $ nodeTypeId NodeDocument)
-  restrict -< (docNgrams^.nnng_node2_id)    .== (toNullable $ pgNodeId lId)
-  restrict -< (corpusDoc^.nn_node1_id)      .== (toNullable $ pgNodeId cId)
-  -- restrict -< (nng_listType docNgrams)      .== (toNullable $ pgNgramsType Authors)
-  restrict -< (contacts^.node_typename)     .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
-  -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
-  returnA  -< FacetPaired (docs^.ns_id) (docs^.ns_date) (docs^.ns_hyperdata) (pgInt4 0) (contacts^.node_id, ngrams'^.ngrams_terms)
+queryInCorpusWithContacts cId lId _ _ _ q = proc () -> do
+  (n, (nn, (_nng, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
+  restrict -< (n^.ns_search)        @@ (pgTSQuery  $ unpack q  )
+  restrict -< (n^.ns_typename)     .== (pgInt4 $ nodeTypeId NodeDocument)
+--  restrict -< (nng^.nnng_node1_id) .== (toNullable $ pgNodeId lId)
+  restrict -< (nn^.nn_node1_id)    .== (toNullable $ pgNodeId cId)
+--   -- restrict -< (nng_listType nng)      .== (toNullable $ pgNgramsType Authors)
+--  restrict -< (contacts^.node_typename) .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
+--   -- let contact_id    = ifThenElse (isNull $ _node_id contacts) (toNullable $ pgInt4 0) (_node_id contacts)
+  returnA  -< FacetPaired (n^.ns_id)
+                          (n^.ns_date)
+                          (n^.ns_hyperdata)
+                          (pgInt4 0)
+                          (contacts^.node_id, ngrams'^.ngrams_terms)
 
 joinInCorpusWithContacts :: O.Query ( NodeSearchRead
                                     , ( NodeNodeReadNull
@@ -179,7 +185,7 @@ joinInCorpusWithContacts =
   cond56
     where
       cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column PGBool
-      cond12 (ng3, n2) = n2^.node_id .== ng3^.nnng_node1_id
+      cond12 (nnng, n2) = n2^.node_id .== nnng^.nnng_node1_id
 
       cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
       cond23 (ng2, (nnng2, _)) = nnng2^.nnng_ngrams_id .== ng2^.ngrams_id

@@ -157,10 +157,10 @@ RETURNS trigger AS $$
 begin
   IF new.typename = 4 AND new.hyperdata @> '{"language_iso2":"EN"}' THEN
     new.search := to_tsvector( 'english' , (new.hyperdata ->> 'title') || ' ' || (new.hyperdata ->> 'abstract'));
-  
+
   ELSIF new.typename = 4 AND new.hyperdata @> '{"language_iso2":"FR"}' THEN
     new.search := to_tsvector( 'french' , (new.hyperdata ->> 'title') || ' ' || (new.hyperdata ->> 'abstract'));
-  
+
   ELSIF new.typename = 41 THEN
     new.search := to_tsvector( 'french' , (new.hyperdata ->> 'prenom')
                                  || ' ' || (new.hyperdata ->> 'nom')
@@ -191,9 +191,6 @@ create index node_by_pos on nodes using btree(node_pos(id,typename));
 
 -- Initialize index with already existing data
 UPDATE nodes SET hyperdata = hyperdata;
-
-
-
 
 
 
