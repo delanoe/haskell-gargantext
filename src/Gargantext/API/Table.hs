@@ -57,11 +57,11 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
+
 type TableApi = Summary " Table API"
               :> ReqBody '[JSON] TableQuery
-              :> Post '[JSON] [FacetDoc]
+              :> Post    '[JSON] TableResult
 
---{-
 data TableQuery = TableQuery
   { tq_offset  :: Int
   , tq_limit   :: Int
@@ -69,6 +69,18 @@ data TableQuery = TableQuery
   , tq_view    :: TabType
   , tq_query  :: Text
   } deriving (Generic)
+
+data TableResult = TableResult { tr_count :: Int
+                               , tr_docs  :: [FacetDoc]
+                               } deriving (Generic)
+
+$(deriveJSON (unPrefix "tr_") ''TableResult)
+
+instance ToSchema TableResult where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tr_")
+
+instance Arbitrary TableResult where
+  arbitrary = TableResult <$> arbitrary <*> arbitrary
 
 $(deriveJSON (unPrefix "tq_") ''TableQuery)
 
@@ -79,20 +91,41 @@ instance Arbitrary TableQuery where
   arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]
 
 
-tableApi :: NodeId -> TableQuery -> Cmd err [FacetDoc]
+tableApi :: NodeId -> TableQuery -> Cmd err TableResult
 tableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
 tableApi cId (TableQuery o l order ft q) = case ft of
-      Docs  -> searchInCorpus cId False [q] (Just o) (Just l) (Just order)
-      Trash -> searchInCorpus cId True [q] (Just o) (Just l) (Just order)
+      Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
+      Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
+
+searchInCorpus' :: CorpusId
+                -> Bool
+                -> [Text]
+                -> Maybe Offset
+                -> Maybe Limit
+                -> Maybe OrderBy
+                -> Cmd err TableResult
+searchInCorpus' cId t q o l order = do
+  docs <- searchInCorpus cId t q o l order
+  allDocs  <- searchInCorpus cId t q Nothing Nothing Nothing
+  pure (TableResult (length allDocs) docs)
+
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
+         -> Maybe OrderBy -> Cmd err TableResult
+getTable cId ft o l order = do
+  docs <- getTable' cId ft o l order
+  allDocs  <- getTable' cId ft Nothing Nothing Nothing
+  pure (TableResult (length allDocs) docs)
+
+getTable' :: NodeId -> Maybe TabType
+         -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getTable cId ft o l order =
+getTable' cId ft o l order =
   case ft of
-    (Just Docs)  -> runViewDocuments cId False o l order
-    (Just Trash) -> runViewDocuments cId True  o l order
+    (Just Docs)      -> runViewDocuments cId False o l order
+    (Just Trash)     -> runViewDocuments cId True  o l order
     (Just MoreFav)   -> moreLike cId o l order IsFav
     (Just MoreTrash) -> moreLike cId o l order IsTrash
     x     -> panic $ "not implemented in getTable: " <> (cs $ show x)

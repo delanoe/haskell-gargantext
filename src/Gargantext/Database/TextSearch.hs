@@ -144,7 +144,7 @@ queryInCorpusWithContacts
   -> Maybe OrderBy
   -> Text
   -> O.Query FacetPairedRead
-queryInCorpusWithContacts cId lId _ _ _ q = proc () -> do
+queryInCorpusWithContacts cId _lId _ _ _ q = proc () -> do
   (n, (nn, (_nng, (ngrams', (_, contacts))))) <- joinInCorpusWithContacts -< ()
   restrict -< (n^.ns_search)        @@ (pgTSQuery  $ unpack q  )
   restrict -< (n^.ns_typename)     .== (pgInt4 $ nodeTypeId NodeDocument)
