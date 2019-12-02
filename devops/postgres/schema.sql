@@ -134,17 +134,20 @@ CREATE INDEX        ON public.rights USING btree (user_id,node_id);
 
 CREATE INDEX        ON public.nodes USING gin (hyperdata);
 CREATE INDEX        ON public.nodes USING btree (user_id, typename, parent_id);
+CREATE INDEX        ON public.nodes USING btree (typename, id);
 CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
 CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
 CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
+CREATE        INDEX ON public.ngrams USING btree (id, terms);
 
 CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
 
 CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, ngrams_id, ngrams_type);
-create INDEX on public.node_node_ngrams USING btree (node1_id, node2_id);
+CREATE        INDEX ON public.node_node_ngrams USING btree (node1_id,  node2_id);
+CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_id, node2_id);
 
 -- TRIGGERS
 -- TODO user haskell-postgresql-simple to create this function
