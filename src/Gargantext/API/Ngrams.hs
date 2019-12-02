@@ -115,7 +115,7 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, count)
 import Data.Validity
-import Formatting (hprint, (%))
+import Formatting (hprint, int, (%))
 import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
@@ -997,15 +997,20 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = (table ^.. each . ne_ngrams)
+      t1 <- getTime'
       occurrences <- getOccByNgramsOnlyFast nId
                                             ngramsType
                                             ngrams_terms
+      t2 <- getTime'
+      liftIO $ hprint stderr
+        ("getTableNgrams/setScores #ngrams=" % int % " time=" % timeSpecs % "\n")
+        (length ngrams_terms) t1 t2
       {-
       occurrences <- getOccByNgramsOnlySlow nType nId
                                             (lIds <> [listId])
                                             ngramsType
                                             ngrams_terms
-    -}
+      -}
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
