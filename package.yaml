@@ -100,6 +100,7 @@ library:
   - case-insensitive
   - cassava
   #- charsetdetect-ae  # detect charset
+  - clock
   - clustering-louvain
   - conduit
   - conduit-extra
@@ -115,6 +116,7 @@ library:
   - duckling
   - exceptions
   - filepath
+  - formatting
   - fullstop
   - fclabels
   - fgl

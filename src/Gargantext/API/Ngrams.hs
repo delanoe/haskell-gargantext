@@ -115,6 +115,8 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, count)
 import Data.Validity
+import Formatting (hprint, (%))
+import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
@@ -134,7 +136,9 @@ import Gargantext.Prelude
 -- import Gargantext.Core.Types (ListTypeId, listTypeId)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Servant hiding (Patch)
+import System.Clock (getTime, TimeSpec, Clock(..))
 import System.FileLock (FileLock)
+import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
@@ -932,7 +936,8 @@ type MaxSize = Int
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
 
-
+getTime' :: MonadIO m => m TimeSpec
+getTime' = liftIO $ getTime ProcessCPUTime
 
 
 getTableNgrams :: forall env err m.
@@ -947,7 +952,8 @@ getTableNgrams :: forall env err m.
 getTableNgrams _nType nId tabType listId limit_ offset
                listType minSize maxSize orderBy searchQuery = do
 
-  _lIds <- selectNodesWithUsername NodeList userMaster
+  t0 <- getTime'
+  -- lIds <- selectNodesWithUsername NodeList userMaster
   let
     ngramsType = ngramsTypeFromTabType tabType
     offset'  = maybe 0 identity offset
@@ -1012,11 +1018,23 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
   let nSco = needsScores orderBy
   tableMap1 <- getNgramsTableMap listId ngramsType
+  t1 <- getTime'
   tableMap2 <- tableMap1 & v_data %%~ setScores nSco
                                     . Map.mapWithKey ngramsElementFromRepo
-  tableMap2 & v_data %%~ fmap NgramsTable
-                       . setScores (not nSco)
-                       . selectAndPaginate
+  t2 <- getTime'
+  tableMap3 <- tableMap2 & v_data %%~ fmap NgramsTable
+                                    . setScores (not nSco)
+                                    . selectAndPaginate
+  t3 <- getTime'
+  liftIO $ hprint stderr
+            ("getTableNgrams total=" % timeSpecs
+                          % " map1=" % timeSpecs
+                          % " map2=" % timeSpecs
+                          % " map3=" % timeSpecs
+                          % "\n"
+            ) t0 t3 t0 t1 t1 t2 t2 t3
+  pure tableMap3
+
 
 -- APIs
 
