@@ -42,7 +42,7 @@ main = do
 
   let createUsers :: Cmd GargError Int64
       createUsers = insertUsersDemo
-  
+
   let
     mkRoots :: Cmd GargError (UserId, RootId)
     mkRoots = getOrMkRoot "user1"
