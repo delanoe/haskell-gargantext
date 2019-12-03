@@ -44,6 +44,7 @@ import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
+import Gargantext.Viz.Graph (HyperdataGraph(..))
 
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
@@ -218,11 +219,11 @@ nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_typename   = required "typename"
                                       , _node_userId     = required "user_id"
-                                      
+
                                       , _node_parentId   = optional "parent_id"
                                       , _node_name       = required "name"
                                       , _node_date       = optional "date"
-                                      
+
                                       , _node_hyperdata  = required "hyperdata"
                                       }
                             )
@@ -266,21 +267,19 @@ type NodeSearchReadNull =
     (Column (Nullable PGJsonb)      )
     (Column (Nullable PGTSVector)   )
 
---{-
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
 nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
                                       , _ns_typename   = required "typename"
                                       , _ns_userId     = required "user_id"
-                                      
+
                                       , _ns_parentId   = required "parent_id"
                                       , _ns_name       = required "name"
                                       , _ns_date       = optional "date"
-                                      
+
                                       , _ns_hyperdata  = required "hyperdata"
                                       , _ns_search     = optional "search"
                                       }
                             )
---}
 
 queryNodeSearchTable :: Query NodeSearchRead
 queryNodeSearchTable = queryTable nodeTableSearch
@@ -434,7 +433,6 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
 
-
 ------------------------------------------------------------------------
 
 {-
@@ -498,7 +496,7 @@ nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just
 
 ------------------------------------------------------------------------
 arbitraryGraph :: HyperdataGraph
-arbitraryGraph = HyperdataGraph (Just "Preferences")
+arbitraryGraph = HyperdataGraph Nothing
 
 nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite
 nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
@@ -518,10 +516,8 @@ nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
 
 
 ------------------------------------------------------------------------
-
 arbitraryDashboard :: HyperdataDashboard
 arbitraryDashboard = HyperdataDashboard (Just "Preferences")
-
 ------------------------------------------------------------------------
 
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite

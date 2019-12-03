@@ -83,6 +83,10 @@ module Gargantext.API.Ngrams
   , getNgramsTableMap
   , tableNgramsPull
   , tableNgramsPut
+
+  , Versioned(..)
+  , currentVersion
+  , listNgramsChangedSince
   )
   where
 

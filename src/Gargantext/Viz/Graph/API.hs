@@ -24,8 +24,9 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
-import Control.Lens (set)
+import Control.Lens -- (set, (^.), (_Just), (^?))
 import Control.Monad.IO.Class (liftIO)
+import Gargantext.API.Ngrams (currentVersion, listNgramsChangedSince, Versioned(..))
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
 import Gargantext.Core.Types.Main
@@ -61,28 +62,45 @@ graphAPI n =  getGraph  n
 getGraph :: NodeId -> GargServer (Get '[JSON] Graph)
 getGraph nId = do
   nodeGraph <- getNode nId HyperdataGraph
-  -- get HyperdataGraphp from Database
-  -- if Nothing else if version == current version then compute
+  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let graphVersion = graph ^? _Just
+                            . graph_metadata
+                            . _Just
+                            . gm_version
 
-  let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
+  v <- currentVersion
+
+  let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
+                  identity
+                  $ nodeGraph ^. node_parentId
+
+  case graph of
+    Nothing     -> computeGraph 0 nId NgramsTerms v
+    Just graph' -> if graphVersion == Just v
+                     then pure graph'
+                     else computeGraph 0 nId NgramsTerms v
+
+computeGraph cId nId nt v = do
   lId  <- defaultList cId
 
-  let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
+  let metadata = GraphMetadata "Title" [cId]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
                                 lId
+                                v
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   lIds <- selectNodesWithUsername NodeList userMaster
-  ngs  <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
+  ngs  <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] nt
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
                             <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) NgramsTerms (Map.keys ngs)
+                            <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
   graph <- liftIO $ cooc2graph 0 myCooc
   pure $ set graph_metadata (Just metadata) graph
+
 
 
 postGraph :: NodeId -> GargServer (Post '[JSON] [NodeId])
