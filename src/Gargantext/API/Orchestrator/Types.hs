@@ -18,7 +18,6 @@ import Data.Text (Text)
 import Data.Swagger hiding (URL, url, port)
 import GHC.Generics hiding (to)
 import Servant.Job.Async
-import Servant.Job.Client
 import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements)
@@ -30,24 +29,6 @@ instance Arbitrary a => Arbitrary (JobStatus 'Safe a) where
 
 instance Arbitrary a => Arbitrary (JobOutput a) where
   arbitrary = JobOutput <$> arbitrary
-
-instance ToSchema URL where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
-
-instance ToSchema AnyOutput where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
-
-instance ToSchema AnyInput where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
-
-instance ToSchema AnyEvent where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
-
-instance (ToSchema (f URL), ToSchema a) => ToSchema (JobInput f a)
-
-instance ToSchema a => ToSchema (JobOutput a)
-
-instance ToSchema (NoCallbacks a)
 
 -- | Main Types
 data ExternalAPIs = All
@@ -77,6 +58,9 @@ instance Arbitrary ExternalAPIs
     arbitrary = elements externalAPIs
 
 instance ToSchema ExternalAPIs
+
+instance ToSchema URL where
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 data ScraperInput = ScraperInput
   { _scin_spider       :: !Text
