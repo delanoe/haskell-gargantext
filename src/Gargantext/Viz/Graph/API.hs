@@ -61,17 +61,19 @@ graphAPI n =  getGraph  n
 getGraph :: NodeId -> GargServer (Get '[JSON] Graph)
 getGraph nId = do
   nodeGraph <- getNode nId HyperdataGraph
+  -- get HyperdataGraphp from Database
+  -- if Nothing else if version == current version then compute
 
   let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
   lId  <- defaultList cId
-  
+
   let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
                                 lId
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-  
+
   lIds <- selectNodesWithUsername NodeList userMaster
   ngs  <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
 

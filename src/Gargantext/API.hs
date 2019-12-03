@@ -125,7 +125,7 @@ fireWall req fw = do
     if  origin == originOk
        && host == hostOk
        || (not $ unFireWall fw)
-       
+
        then pure True
        else pure False
 
