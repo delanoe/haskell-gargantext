@@ -133,7 +133,7 @@ deriveJSON (unPrefix "_scst_") 'ScraperStatus
 type API_v2 =
   Summary "Add to corpus endpoint" :>
   "corpus" :>
-  Capture "id" CorpusId :>
+  Capture "corpus_id" CorpusId :>
   "add" :>
   "async" :> ScraperAPI2
 

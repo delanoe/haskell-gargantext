@@ -234,12 +234,13 @@ type GargPrivateAPI' =
 
            -- Node endpoint
            :<|> "node"  :> Summary "Node endpoint"
-                        :> Capture "id" NodeId      :> NodeAPI HyperdataAny
+                        :> Capture "node_id" NodeId
+                        :> NodeAPI HyperdataAny
 
            -- Corpus endpoint
            :<|> "corpus":> Summary "Corpus endpoint"
-                        :> Capture "id" CorpusId      :> NodeAPI HyperdataCorpus
-
+                        :> Capture "corpus_id" CorpusId
+                        :> NodeAPI HyperdataCorpus
 
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "node1_id" NodeId
@@ -249,7 +250,8 @@ type GargPrivateAPI' =
 
            -- Annuaire endpoint
            :<|> "annuaire":> Summary "Annuaire endpoint"
-                          :> Capture "id" AnnuaireId      :> NodeAPI HyperdataAnnuaire
+                          :> Capture "annuaire_id" AnnuaireId
+                          :> NodeAPI HyperdataAnnuaire
 
            :<|> "annuaire" :> Summary "Contact endpoint"
                            :> Capture "annuaire_id" NodeId
@@ -258,7 +260,8 @@ type GargPrivateAPI' =
 
            -- Document endpoint
            :<|> "document":> Summary "Document endpoint"
-                          :> Capture "id" DocId    :> "ngrams" :> TableNgramsApi
+                          :> Capture "doc_id" DocId
+                          :> "ngrams" :> TableNgramsApi
 
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
             -- TODO-SECURITY
@@ -271,12 +274,14 @@ type GargPrivateAPI' =
 
            -- TODO move to NodeAPI?
            :<|> "graph" :> Summary "Graph endpoint"
-                        :> Capture "id" NodeId       :> GraphAPI
+                        :> Capture "graph_id" NodeId
+                        :> GraphAPI
 
            -- TODO move to NodeAPI?
            -- Tree endpoint
            :<|> "tree" :> Summary "Tree endpoint"
-                       :> Capture "id" NodeId        :> TreeAPI
+                       :> Capture "tree_id" NodeId
+                       :> TreeAPI
 
            :<|> New.API_v2
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
@@ -286,9 +291,9 @@ type GargPrivateAPI' =
 -- /merge/<id>/<id>
 -- /rename/<id>
        -- :<|> "static"
-       -- :<|> "list"     :> Capture "id" Int  :> NodeAPI
-       -- :<|> "ngrams"   :> Capture "id" Int  :> NodeAPI
-       -- :<|> "auth"     :> Capture "id" Int  :> NodeAPI
+       -- :<|> "list"     :> Capture "node_id" Int  :> NodeAPI
+       -- :<|> "ngrams"   :> Capture "node_id" Int  :> NodeAPI
+       -- :<|> "auth"     :> Capture "node_id" Int  :> NodeAPI
 ---------------------------------------------------------------------
 type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI
 
