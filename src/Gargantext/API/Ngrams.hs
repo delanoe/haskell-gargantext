@@ -78,6 +78,11 @@ module Gargantext.API.Ngrams
   , RepoCmdM
   , QueryParamR
   , TODO(..)
+
+  -- Internals
+  , getNgramsTableMap
+  , tableNgramsPull
+  , tableNgramsPut
   )
   where
 
@@ -103,7 +108,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~))
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -857,6 +862,20 @@ tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> Maybe ListType -> 
 tableNgramsPost tabType listId mayList =
   putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
+tableNgramsPull :: RepoCmdM env err m
+                => ListId -> NgramsType
+                -> Version
+                -> m (Versioned NgramsTablePatch)
+tableNgramsPull listId ngramsType p_version = do
+  var <- view repoVar
+  r <- liftIO $ readMVar var
+
+  let
+    q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
+    q_table = q ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
+
+  pure (Versioned (r ^. r_version) q_table)
+
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
@@ -867,15 +886,7 @@ tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
 tableNgramsPut tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
       let ngramsType        = ngramsTypeFromTabType tabType
-
-      var <- view repoVar
-      r <- liftIO $ readMVar var
-
-      let
-        q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
-        q_table = q ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
-
-      pure (Versioned (r ^. r_version) q_table)
+      tableNgramsPull listId ngramsType p_version
 
   | otherwise         = do
       let ngramsType        = ngramsTypeFromTabType tabType
@@ -1157,3 +1168,6 @@ apiNgramsTableDoc dId =  getTableNgramsDoc dId
                         -- > add new ngrams in database (TODO AD)
                         -- > index all the corpus accordingly (TODO AD)
 
+listNgramsChangedSince :: RepoCmdM env err m => ListId -> NgramsType -> Version -> m (Versioned Bool)
+listNgramsChangedSince listId ngramsType version =
+  tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
