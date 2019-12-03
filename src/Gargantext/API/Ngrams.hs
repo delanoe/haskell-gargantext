@@ -862,6 +862,12 @@ tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> Maybe ListType -> 
 tableNgramsPost tabType listId mayList =
   putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
+currentVersion :: RepoCmdM env err m => m Version
+currentVersion = do
+  var <- view repoVar
+  r <- liftIO $ readMVar var
+  pure $ r ^. r_version
+
 tableNgramsPull :: RepoCmdM env err m
                 => ListId -> NgramsType
                 -> Version
@@ -1169,5 +1175,8 @@ apiNgramsTableDoc dId =  getTableNgramsDoc dId
                         -- > index all the corpus accordingly (TODO AD)
 
 listNgramsChangedSince :: RepoCmdM env err m => ListId -> NgramsType -> Version -> m (Versioned Bool)
-listNgramsChangedSince listId ngramsType version =
-  tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
+listNgramsChangedSince listId ngramsType version
+  | version < 0 =
+      Versioned <$> currentVersion <*> pure True
+  | otherwise   =
+      tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
