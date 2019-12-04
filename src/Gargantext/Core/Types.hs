@@ -22,6 +22,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Label, Stems
                              , HasInvalidError(..), assertValid
                              , Name
+                             , NodeTableResult(..)
                              ) where
 
 import Control.Lens (Prism', (#))
@@ -135,3 +136,8 @@ assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
 assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
 -- assertValid :: MonadIO m => Validation -> m ()
 -- assertValid v = when (not $ validationIsValid v) $ fail $ show v
+
+
+data NodeTableResult a = NodeTableResult { tr_count :: Int
+                                         , tr_docs :: [a]
+                                         } deriving (Generic)

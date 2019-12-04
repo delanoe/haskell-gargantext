@@ -55,6 +55,7 @@ import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Search (SearchDocsAPI, searchDocs)
 import Gargantext.API.Table
 import Gargantext.API.Types
+import Gargantext.Core.Types (NodeTableResult(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
@@ -158,7 +159,8 @@ type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "type"   NodeType
                  :> QueryParam "offset" Int
                  :> QueryParam "limit"  Int
-                 :> Get '[JSON] [Node a]
+                 -- :> Get '[JSON] [Node a]
+                 :> Get '[JSON] (NodeTableResult (Node a))
 
 ------------------------------------------------------------------------
 type NodeNodeAPI a = Get '[JSON] (Node a)
