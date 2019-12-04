@@ -1057,7 +1057,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
                           % " map1=" % timeSpecs
                           % " map2=" % timeSpecs
                           % " map3=" % timeSpecs
-                          % " sql="  % if nSco then "map2" else "map3"
+                          % " sql="  % (if nSco then "map2" else "map3")
                           % "\n"
             ) t0 t3 t0 t1 t1 t2 t2 t3
   pure tableMap3
