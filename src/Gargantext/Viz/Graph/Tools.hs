@@ -83,7 +83,7 @@ data2graph labels coocs bridge conf partitions = do
             | (l, n) <- labels
             , Set.member n $ Set.fromList
                            $ List.concat
-                           $ map (\((s,t),d) -> if d > 0 then [s,t] else [])
+                           $ map (\((s,t),d) -> if d > 0 && s /=t then [s,t] else [])
                            $ Map.toList bridge
             ]
 
