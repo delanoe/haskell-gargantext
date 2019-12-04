@@ -89,7 +89,7 @@ data2graph labels coocs bridge conf partitions = do
                    , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
                    -- , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
                    , edge_id     = cs (show i) }
-                   | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge), s /= t
+                   | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge), s /= t, d > 0.001
                    ]
 
     pure $ Graph nodes edges Nothing
