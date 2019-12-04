@@ -113,7 +113,7 @@ computeGraph cId nt v = do
 
   graph <- liftIO $ cooc2graph 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
-  pure graph' 
+  pure graph'
 
 
 
