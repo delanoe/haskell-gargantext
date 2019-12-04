@@ -35,15 +35,17 @@ import qualified Data.Vector.Storable as Vec
 import qualified Data.Map  as Map
 import qualified Data.List as List
 
-type Threshold = Int
+type Threshold = Double
 
-cooc2graph :: Threshold -> (Map (Text, Text) Int) -> IO Graph
+cooc2graph :: Threshold
+           -> (Map (Text, Text) Int)
+           -> IO Graph
 cooc2graph threshold myCooc = do
   let (ti, _) = createIndices myCooc
       myCooc' = toIndex ti myCooc
-      matCooc = map2mat (0) (Map.size ti) $ Map.filter (>threshold) myCooc'
+      matCooc = map2mat 0 (Map.size ti) $ Map.filter (> (round threshold)) myCooc'
       distanceMat = measureConditional matCooc
-      distanceMap = Map.filter (>0.01) $ mat2map distanceMat
+      distanceMap = Map.filter (> threshold) $ mat2map distanceMat
 
   partitions <- case Map.size distanceMap > 0 of
     True  -> cLouvain distanceMap
@@ -57,11 +59,12 @@ cooc2graph threshold myCooc = do
 
 ----------------------------------------------------------
 -- | From data to Graph
-data2graph :: [(Text, Int)] -> Map (Int, Int) Int
-                            -> Map (Int, Int) Double
-                            -> Map (Int, Int) Double
-                            -> [LouvainNode]
-              -> IO Graph
+data2graph :: [(Text, Int)]
+           -> Map (Int, Int) Int
+           -> Map (Int, Int) Double
+           -> Map (Int, Int) Double
+           -> [LouvainNode]
+           -> IO Graph
 data2graph labels coocs bridge conf partitions = do
     
     let community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
@@ -83,9 +86,11 @@ data2graph labels coocs bridge conf partitions = do
     let edges = [ Edge { edge_source = cs (show s)
                    , edge_target = cs (show t)
                    , edge_weight = d
-                   , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
+                   , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
+                   -- , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
                    , edge_id     = cs (show i) }
-            | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge) ]
+                   | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge), s /= t
+                   ]
 
     pure $ Graph nodes edges Nothing
 

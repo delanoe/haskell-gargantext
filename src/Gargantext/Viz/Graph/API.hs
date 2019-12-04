@@ -24,6 +24,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
+import Debug.Trace (trace)
 import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (Maybe(..))
@@ -106,11 +107,12 @@ computeGraph cId nt v = do
   lIds <- selectNodesWithUsername NodeList userMaster
   ngs  <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] nt
 
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
-                            <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
+  myCooc <- Map.filter (>1)
+         <$> getCoocByNgrams (Diagonal True)
+         <$> groupNodesByNgrams ngs
+         <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
-  graph <- liftIO $ cooc2graph 0 myCooc
+  graph <- trace (show myCooc) $ liftIO $ cooc2graph 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
   pure graph' 
 
