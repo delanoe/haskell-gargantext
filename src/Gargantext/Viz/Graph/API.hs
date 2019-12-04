@@ -24,7 +24,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
-import Control.Lens -- (set, (^.), (_Just), (^?))
+import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (Maybe(..))
 import Gargantext.API.Ngrams (currentVersion)
@@ -70,6 +70,9 @@ getGraph uId nId = do
                             . gm_version
 
   v <- currentVersion
+  nodeUser <- getNode (NodeId uId) HyperdataUser
+
+  let uId' = nodeUser ^. node_userId
 
   let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
                   identity
@@ -77,7 +80,7 @@ getGraph uId nId = do
   case graph of
     Nothing     -> do
       graph' <- computeGraph cId NgramsTerms v
-      _ <- insertGraph cId uId (HyperdataGraph $ Just graph')
+      _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
       pure graph'
 
     Just graph' -> if graphVersion == Just v
