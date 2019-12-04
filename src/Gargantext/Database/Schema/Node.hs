@@ -504,6 +504,12 @@ nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
     name = maybe "Graph" identity maybeName
     graph = maybe arbitraryGraph identity maybeGraph
 
+mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
+mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
+
+insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
+insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
+
 ------------------------------------------------------------------------
 arbitraryPhylo :: HyperdataPhylo
 arbitraryPhylo = HyperdataPhylo Nothing Nothing
@@ -690,11 +696,6 @@ defaultList cId =
 
 mkNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
 mkNode nt p u = insertNodesR [nodeDefault nt p u]
-
-
-mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
-mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
-
 
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
