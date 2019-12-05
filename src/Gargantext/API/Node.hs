@@ -38,7 +38,7 @@ Node API
 module Gargantext.API.Node
   where
 
-import Control.Lens ((.~), (?~))
+import Control.Lens ((.~), (?~), (^.))
 import Control.Monad ((>>), forM)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
@@ -334,7 +334,10 @@ rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
-postNode uId pId (PostNode nodeName nt) = mkNodeWithParent nt (Just pId) uId nodeName
+postNode uId pId (PostNode nodeName nt) = do
+  nodeUser <- getNode (NodeId uId) HyperdataUser
+  let uId' = nodeUser ^. node_userId
+  mkNodeWithParent nt (Just pId) uId' nodeName
 
 putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO
