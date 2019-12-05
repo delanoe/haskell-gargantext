@@ -45,8 +45,8 @@ import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..))
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..))
 import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.TextSearch
 import Gargantext.Database.Types.Node
@@ -57,11 +57,11 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
+
 type TableApi = Summary " Table API"
               :> ReqBody '[JSON] TableQuery
-              :> Post '[JSON] [FacetDoc]
+              :> Post    '[JSON] TableResult
 
---{-
 data TableQuery = TableQuery
   { tq_offset  :: Int
   , tq_limit   :: Int
@@ -70,35 +70,67 @@ data TableQuery = TableQuery
   , tq_query  :: Text
   } deriving (Generic)
 
+data TableResult = TableResult { tr_count :: Int
+                               , tr_docs  :: [FacetDoc]
+                               } deriving (Generic)
+
+$(deriveJSON (unPrefix "tr_") ''TableResult)
+
+instance ToSchema TableResult where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tr_")
+
+instance Arbitrary TableResult where
+  arbitrary = TableResult <$> arbitrary <*> arbitrary
+
 $(deriveJSON (unPrefix "tq_") ''TableQuery)
 
 instance ToSchema TableQuery where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = drop 3}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tq_")
 
 instance Arbitrary TableQuery where
   arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]
 
 
-tableApi :: NodeId -> TableQuery -> Cmd err [FacetDoc]
+tableApi :: NodeId -> TableQuery -> Cmd err TableResult
 tableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
 tableApi cId (TableQuery o l order ft q) = case ft of
-      Docs  -> searchInCorpus cId False [q] (Just o) (Just l) (Just order)
-      Trash -> searchInCorpus cId True [q] (Just o) (Just l) (Just order)
+      Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
+      Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
+
+searchInCorpus' :: CorpusId
+                -> Bool
+                -> [Text]
+                -> Maybe Offset
+                -> Maybe Limit
+                -> Maybe OrderBy
+                -> Cmd err TableResult
+searchInCorpus' cId t q o l order = do
+  docs <- searchInCorpus cId t q o l order
+  allDocs  <- searchInCorpus cId t q Nothing Nothing Nothing
+  pure (TableResult (length allDocs) docs)
+
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
+         -> Maybe OrderBy -> Cmd err TableResult
+getTable cId ft o l order = do
+  docs <- getTable' cId ft o l order
+  allDocs  <- getTable' cId ft Nothing Nothing Nothing
+  pure (TableResult (length allDocs) docs)
+
+getTable' :: NodeId -> Maybe TabType
+         -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getTable cId ft o l order =
+getTable' cId ft o l order =
   case ft of
-    (Just Docs)  -> runViewDocuments cId False o l order
-    (Just Trash) -> runViewDocuments cId True  o l order
+    (Just Docs)      -> runViewDocuments cId False o l order
+    (Just Trash)     -> runViewDocuments cId True  o l order
     (Just MoreFav)   -> moreLike cId o l order IsFav
     (Just MoreTrash) -> moreLike cId o l order IsTrash
     x     -> panic $ "not implemented in getTable: " <> (cs $ show x)
 
+{-
 getPairing :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
@@ -108,4 +140,4 @@ getPairing cId ft o l order =
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
     _     -> panic $ "not implemented: get Pairing" <> (cs $ show ft)
 
-
+-}

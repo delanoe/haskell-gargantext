@@ -44,6 +44,8 @@ import GHC.IO (FilePath)
 import Control.DeepSeq (NFData)
 import Control.Lens (makeLenses)
 
+import qualified Data.Text.Lazy as TextLazy
+
 
 ----------------
 -- | Config | --
@@ -65,6 +67,15 @@ data Proximity =
     deriving (Show,Generic,Eq) 
 
 
+data Synchrony = 
+      ByProximityThreshold 
+      { _bpt_threshold :: Double 
+      , _bpt_sensibility :: Double}
+    | ByProximityDistribution
+      { _bpd_sensibility :: Double} 
+    deriving (Show,Generic,Eq)     
+
+
 data TimeUnit = 
       Year 
       { _year_period :: Int
@@ -77,7 +88,13 @@ data ContextualUnit =
       Fis 
       { _fis_support :: Int
       , _fis_size    :: Int }
-      deriving (Show,Generic,Eq)       
+      deriving (Show,Generic,Eq)      
+
+
+data Quality = 
+     Quality { _qua_relevance :: Double
+             , _qua_minBranch :: Int }
+      deriving (Show,Generic,Eq)   
 
 
 data Config = 
@@ -88,9 +105,13 @@ data Config =
             , phyloName      :: Text
             , phyloLevel     :: Int
             , phyloProximity :: Proximity
+            , phyloSynchrony :: Synchrony
+            , phyloQuality   :: Quality
             , timeUnit       :: TimeUnit
             , contextualUnit :: ContextualUnit
-            , branchSize     :: Int  
+            , exportLabel    :: [PhyloLabel]
+            , exportSort     :: Sort
+            , exportFilter   :: [Filter]  
             } deriving (Show,Generic,Eq)
 
 
@@ -102,10 +123,14 @@ defaultConfig =
             , corpusParser   = Csv 1000
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 10 0 0.05
+            , phyloProximity = WeightedLogJaccard 10 0 0.1
+            , phyloSynchrony = ByProximityDistribution 0
+            , phyloQuality   = Quality 0.1 1
             , timeUnit       = Year 3 1 5
-            , contextualUnit = Fis 2 4
-            , branchSize     = 3  
+            , contextualUnit = Fis 1 5
+            , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
+            , exportSort     = ByHierarchy
+            , exportFilter   = [ByBranchSize 2]  
             }
 
 instance FromJSON Config
@@ -118,6 +143,20 @@ instance FromJSON TimeUnit
 instance ToJSON TimeUnit
 instance FromJSON ContextualUnit
 instance ToJSON ContextualUnit
+instance FromJSON PhyloLabel
+instance ToJSON PhyloLabel
+instance FromJSON Tagger
+instance ToJSON Tagger
+instance FromJSON Sort
+instance ToJSON Sort
+instance FromJSON Order
+instance ToJSON Order
+instance FromJSON Filter
+instance ToJSON Filter
+instance FromJSON Synchrony
+instance ToJSON Synchrony
+instance FromJSON Quality
+instance ToJSON Quality
 
 
 -- | Software parameters
@@ -248,25 +287,24 @@ data PhyloGroup =
       PhyloGroup { _phylo_groupPeriod   :: (Date,Date)
                  , _phylo_groupLevel    :: Level
                  , _phylo_groupIndex    :: Int
+                 , _phylo_groupLabel    :: Text
                  , _phylo_groupSupport  :: Support
                  , _phylo_groupNgrams   :: [Int]
                  , _phylo_groupCooc     :: !(Cooc)
                  , _phylo_groupBranchId :: PhyloBranchId
+                 , _phylo_groupMeta     :: Map Text [Double]
                  , _phylo_groupLevelParents  :: [Pointer]
                  , _phylo_groupLevelChilds   :: [Pointer]
                  , _phylo_groupPeriodParents :: [Pointer]
                  , _phylo_groupPeriodChilds  :: [Pointer]
-                 , _phylo_groupGhostPointers :: [Pointer]
                  }
-                 deriving (Generic, Show, Eq)
+                 deriving (Generic, Show, Eq, NFData)
 
 -- | Weight : A generic mesure that can be associated with an Id
 type Weight = Double
 
 -- | Pointer : A weighted pointer to a given PhyloGroup
 type Pointer = (PhyloGroupId, Weight)
-
-type Link = ((PhyloGroupId, PhyloGroupId), Weight)
 
 data Filiation = ToParents | ToChilds deriving (Generic, Show)    
 data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
@@ -291,12 +329,52 @@ data PhyloFis = PhyloFis
 
 
 ----------------
+-- | Export | --
+----------------
+
+type DotId = TextLazy.Text
+
+data EdgeType = GroupToGroup | BranchToGroup | BranchToBranch | PeriodToPeriod deriving (Show,Generic,Eq)
+
+data Filter = ByBranchSize { _branch_size :: Double } deriving (Show,Generic,Eq)
+
+data Order = Asc | Desc deriving (Show,Generic,Eq)
+
+data Sort = ByBirthDate { _sort_order :: Order } | ByHierarchy deriving (Show,Generic,Eq)
+
+data Tagger = MostInclusive | MostEmergentInclusive deriving (Show,Generic,Eq)
+
+data PhyloLabel = 
+      BranchLabel
+      { _branch_labelTagger :: Tagger
+      , _branch_labelSize   :: Int }
+    | GroupLabel
+      { _group_labelTagger  :: Tagger
+      , _group_labelSize    :: Int }
+    deriving (Show,Generic,Eq)
+
+data PhyloBranch =
+      PhyloBranch
+      { _branch_id :: PhyloBranchId
+      , _branch_label   :: Text
+      , _branch_meta    :: Map Text [Double]
+      } deriving (Generic, Show)
+
+data PhyloExport =
+      PhyloExport
+      { _export_groups   :: [PhyloGroup]
+      , _export_branches :: [PhyloBranch]
+      } deriving (Generic, Show)
+
+----------------
 -- | Lenses | --
 ----------------
 
 makeLenses ''Config
 makeLenses ''Proximity
+makeLenses ''Quality
 makeLenses ''ContextualUnit
+makeLenses ''PhyloLabel
 makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
 makeLenses ''PhyloFis
@@ -305,6 +383,8 @@ makeLenses ''PhyloPeriod
 makeLenses ''PhyloLevel
 makeLenses ''PhyloGroup
 makeLenses ''PhyloParam
+makeLenses ''PhyloExport
+makeLenses ''PhyloBranch
 
 ------------------------
 -- | JSON instances | --

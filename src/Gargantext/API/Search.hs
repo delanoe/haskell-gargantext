@@ -12,6 +12,7 @@ Count API part of Gargantext.
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
+{-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TemplateHaskell    #-}
@@ -35,7 +36,7 @@ import Test.QuickCheck (elements)
 -- import Control.Applicative ((<*>))
 import Gargantext.API.Types (GargServer)
 import Gargantext.Prelude
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.TextSearch
 import Gargantext.Database.Facet
@@ -48,9 +49,7 @@ data SearchQuery = SearchQuery
 $(deriveJSON (unPrefix "sq_") ''SearchQuery)
 
 instance ToSchema SearchQuery where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = drop 3}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sq_")
 
 instance Arbitrary SearchQuery where
   arbitrary = elements [SearchQuery ["electrodes"]]
@@ -64,11 +63,10 @@ instance Arbitrary SearchDocResults where
   arbitrary = SearchDocResults <$> arbitrary
 
 instance ToSchema SearchDocResults where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = drop 4}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sdr_")
 
-data SearchPairedResults = SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]] }
+data SearchPairedResults =
+     SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]] }
   deriving (Generic)
 $(deriveJSON (unPrefix "spr_") ''SearchPairedResults)
 
@@ -76,9 +74,7 @@ instance Arbitrary SearchPairedResults where
   arbitrary = SearchPairedResults <$> arbitrary
 
 instance ToSchema SearchPairedResults where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "spr_")
 
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanSearch? or is it part of CanGetNode
@@ -92,12 +88,14 @@ type SearchAPI results
  :> Post '[JSON] results
 
 type SearchDocsAPI  = SearchAPI SearchDocResults
-type SearchPairsAPI = SearchAPI SearchPairedResults
+type SearchPairsAPI = 
+  Summary "" :> "list"  :> Capture "list"   ListId
+  :> SearchAPI SearchPairedResults
 -----------------------------------------------------------------------
 
 searchPairs :: NodeId -> GargServer SearchPairsAPI
-searchPairs pId (SearchQuery q) o l order =
-  SearchPairedResults <$> searchInCorpusWithContacts pId q o l order
+searchPairs pId lId (SearchQuery q) o l order =
+  SearchPairedResults <$> searchInCorpusWithContacts pId lId q o l order
 
 searchDocs :: NodeId -> GargServer SearchDocsAPI
 searchDocs nId (SearchQuery q) o l order =

@@ -22,10 +22,8 @@ import Gargantext.Prelude
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types.Node (NodeId, Node, NodePoly(..), Hyperdata)
 import Gargantext.Database.Utils (Cmd)
-import Gargantext.Database.Schema.NodeNgram
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Types.Node
-import Gargantext.Core.Types.Main (ListType(..), listTypeId)
 
 toMaps :: Hyperdata a => (a -> Map (NgramsT Ngrams) Int) -> [Node a] -> Map (NgramsT Ngrams) (Map NodeId Int)
 toMaps fun ns = mapNodeIdNgrams $ documentIdWithNgrams fun ns'
@@ -39,8 +37,10 @@ mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
     n2i = map (\d -> ((documentId . documentWithId) d, document_ngrams d))
 
 
-documentIdWithNgrams :: Hyperdata a => (a -> Map (NgramsT Ngrams) Int)
-                                     -> [DocumentWithId a] -> [DocumentIdWithNgrams a]
+documentIdWithNgrams :: Hyperdata a
+                     => (a -> Map (NgramsT Ngrams) Int)
+                     -> [DocumentWithId a]
+                     -> [DocumentIdWithNgrams a]
 documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
 
 
@@ -56,19 +56,12 @@ data DocumentIdWithNgrams a =
      , document_ngrams :: Map (NgramsT Ngrams) Int
      } deriving (Show)
 
--- | TODO for now, list Type is CandidateTerm because Graph Terms
--- have to be detected in next step in the flow
--- TODO remvoe this
-insertToNodeNgrams :: Map NgramsIndexed (Map NgramsType (Map NodeId Int)) -> Cmd err Int
-insertToNodeNgrams m = insertNodeNgrams [ NodeNgram n (_ngramsId ng) Nothing (ngramsTypeId t) (listTypeId CandidateTerm) (fromIntegral i)
-                                        | (ng, t2n2i) <- DM.toList m
-                                        , (t,  n2i)   <- DM.toList t2n2i
-                                        , (n,  i)     <- DM.toList n2i
-                                        ]
 
-
-docNgrams2nodeNodeNgrams :: CorpusId -> DocNgrams -> NodeNodeNgrams
-docNgrams2nodeNodeNgrams cId (DocNgrams d n nt w) = NodeNodeNgrams Nothing cId d n nt w
+docNgrams2nodeNodeNgrams :: CorpusId
+                         -> DocNgrams
+                         -> NodeNodeNgrams
+docNgrams2nodeNodeNgrams cId (DocNgrams d n nt w) =
+  NodeNodeNgrams Nothing cId d n nt w
 
 data DocNgrams = DocNgrams { dn_doc_id :: DocId
                            , dn_ngrams_id :: Int
@@ -76,10 +69,14 @@ data DocNgrams = DocNgrams { dn_doc_id :: DocId
                            , dn_weight  :: Double
                            }
 
-insertDocNgramsOn :: CorpusId -> [DocNgrams] -> Cmd err Int
+insertDocNgramsOn :: CorpusId
+                  -> [DocNgrams]
+                  -> Cmd err Int
 insertDocNgramsOn cId dn = insertNodeNodeNgrams $ (map (docNgrams2nodeNodeNgrams cId) dn)
 
-insertDocNgrams :: CorpusId -> Map NgramsIndexed (Map NgramsType (Map NodeId Int)) -> Cmd err Int
+insertDocNgrams :: CorpusId
+                -> Map NgramsIndexed (Map NgramsType (Map NodeId Int))
+                -> Cmd err Int
 insertDocNgrams cId m = insertDocNgramsOn cId [ DocNgrams n (_ngramsId ng) (ngramsTypeId t) (fromIntegral i)
                                         | (ng, t2n2i) <- DM.toList m
                                         , (t,  n2i)   <- DM.toList t2n2i

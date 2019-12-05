@@ -1,4 +1,4 @@
-resolver: lts-14.6
+resolver: lts-14.16
 flags: {}
 extra-package-dbs: []
 packages:
@@ -6,7 +6,7 @@ packages:
 
 docker:
   enable: false
-  repo: 'cgenie/stack-build:lts-12.26'
+  repo: 'fpco/stack-build:lts-14.6-garg'
 
 allow-newer: true
 extra-deps:
@@ -15,7 +15,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/hlcm.git
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
 - git: https://github.com/delanoe/servant-static-th.git
-  commit: 7d0e4dcd2cfe97f2843a70a0de10df32c309bcd1
+  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/delanoe/hstatistics.git
   commit: 90eef7604bb230644c2246eccd094d7bfefcb135
 - git: https://github.com/paulrzcz/HSvm.git
@@ -35,8 +35,9 @@ extra-deps:
     #
 - git: https://gitlab.iscpif.fr/gargantext/patches-class
   commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
-  #- git: https://github.com/np/servant-job.git
-  # commit: ac4227441bbca30c44235582b5ec31340c569021
+#- git: https://github.com/delanoe/servant-job.git
+- git: https://github.com/np/servant-job.git
+  commit: 8557bfc9472a1b2be0b7bc632c23701ba5f44bf8
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
   commit: 1c636112b151110408e7c5a28cec39e46657358e
 - git: https://github.com/np/patches-map
@@ -67,3 +68,4 @@ extra-deps:
 - validity-0.9.0.0 # patches-{map,class}
 - directory-1.3.1.5
 - process-1.6.5.1@sha256:77a9afeb676357f67fe5cf1ad79aca0745fb6f7fb96b786d510af08f622643f6,2468
+- argon2-1.3.0.1@sha256:e7771caf255929453c7cebfed0809617c51428d1c1b22f207c80b8711b792d78,4592

@@ -19,6 +19,7 @@ import Data.Serialize (Serialize)
 import Data.Singletons (SingI)
 import Gargantext.Prelude
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
+import IGraph.Algorithms.Clique as IAC
 import qualified IGraph as IG
 import qualified Data.List as List
 
@@ -46,10 +47,17 @@ edges = IG.edges
 
 nodes :: IG.Graph d v e -> [Node]
 nodes = IG.nodes
+------------------------------------------------------------------
+
+-- | Tools
+maximalCliques :: IG.Graph d v e -> [[Int]]
+maximalCliques g = IAC.maximalCliques g (min',max')
+  where
+    min' = 0
+    max' = 0
 
 ------------------------------------------------------------------
 -- | Main sugared functions
-
 mkGraphUfromEdges :: [(Int, Int)] -> Graph_Undirected
 mkGraphUfromEdges es = mkGraph (List.replicate n ()) $ zip es $ repeat ()
   where

@@ -12,8 +12,6 @@ Portability : POSIX
 module Gargantext.Core
   where
 
-
-
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language

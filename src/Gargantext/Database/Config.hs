@@ -43,6 +43,10 @@ nodeTypeId n =
   case n of
     NodeUser      -> 1
     NodeFolder    -> 2
+    NodeFolderPrivate -> 20
+    NodeFolderShared  -> 21
+    NodeTeam          -> 210
+    NodeFolderPublic  -> 22
     NodeCorpusV3  -> 3
     NodeCorpus    -> 30
     NodeAnnuaire  -> 31

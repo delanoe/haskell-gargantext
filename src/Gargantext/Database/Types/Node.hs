@@ -41,9 +41,8 @@ import           Data.ByteString.Lazy (ByteString)
 import           Data.Either
 import           Data.Eq (Eq)
 import           Data.Monoid (mempty)
-import           Data.Text (Text, unpack, pack)
+import           Data.Text (Text, unpack)
 import           Data.Time (UTCTime)
-import           Data.Time.Segment (jour, timesAfter, Granularity(D))
 import           Data.Swagger
 
 import           Text.Read (read)
@@ -55,18 +54,20 @@ import           Servant
 
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck (elements)
+import           Test.QuickCheck.Instances.Time ()
+import           Test.QuickCheck.Instances.Text ()
 
 import           Gargantext.Prelude
-import           Gargantext.Core.Utils.Prefix (unPrefix)
+import           Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import           Gargantext.Viz.Phylo (Phylo)
 --import Gargantext.Database.Utils
 ------------------------------------------------------------------------
+
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
 
 instance ToField NodeId where
   toField (NodeId n) = toField n
-
 
 instance FromField NodeId where
   fromField field mdata = do
@@ -77,6 +78,7 @@ instance FromField NodeId where
 
 instance ToSchema NodeId
 
+
 type NodeTypeId   = Int
 type NodeName     = Text
 type TSVector     = Text
@@ -86,13 +88,13 @@ data NodePoly id        typename userId
               parentId  name     date 
               hyperdata  = Node { _node_id        :: id
                                 , _node_typename  :: typename
-                                
+
                                 , _node_userId    :: userId
                                 , _node_parentId  :: parentId
-                                
+
                                 , _node_name      :: name
                                 , _node_date      :: date
-                                
+
                                 , _node_hyperdata :: hyperdata
                                 } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_node_") ''NodePoly)
@@ -100,7 +102,6 @@ $(makeLenses ''NodePoly)
 
 -- | NodePoly indicates that Node has a Polymorphism Type
 type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
-
 
 
 ------------------------------------------------------------------------
@@ -132,12 +133,6 @@ type MasterUserId = UserId
 
 id2int :: NodeId -> Int
 id2int (NodeId n) = n
-
-
-type UTCTime' = UTCTime
-
-instance Arbitrary UTCTime' where
-    arbitrary = elements $ timesAfter 100 D (jour 2000 01 01)
 
 ------------------------------------------------------------------------
 data Status  = Status { status_failed    :: !Int
@@ -273,18 +268,16 @@ instance Arbitrary Event where
   arbitrary = Event <$> arbitrary <*> arbitrary <*> arbitrary
 
 instance ToSchema Event where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "event_")
 
 ------------------------------------------------------------------------
-instance Arbitrary Text where
-  arbitrary = elements $ map (\c -> pack [c]) ['a'..'z']
 
 data Resource = Resource { resource_path    :: !(Maybe Text)
                          , resource_scraper :: !(Maybe Text)
                          , resource_query   :: !(Maybe Text)
                          , resource_events  :: !([Event])
                          , resource_status  :: !Status
-                         , resource_date    :: !UTCTime'
+                         , resource_date    :: !UTCTime
                          } deriving (Show, Generic)
 $(deriveJSON (unPrefix "resource_") ''Resource)
 
@@ -297,7 +290,7 @@ instance Arbitrary Resource where
                          <*> arbitrary
 
 instance ToSchema Resource where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "resource_")
 
 ------------------------------------------------------------------------
 data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
@@ -408,13 +401,6 @@ $(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
 
 instance Hyperdata HyperdataDashboard
 
--- TODO add the Graph Structure here
-data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
-
-instance Hyperdata HyperdataGraph
-
 ------------------------------------------------------------------------
 
 -- TODO add the Graph Structure here
@@ -444,10 +430,15 @@ $(deriveJSON (unPrefix "hd_") ''HyperData)
 instance Hyperdata HyperData
 
 
+
 ------------------------------------------------------------------------
 -- | Then a Node can be either a Folder or a Corpus or a Document
 data NodeType = NodeUser
+              | NodeFolderPrivate
+              | NodeFolderShared | NodeTeam
+              | NodeFolderPublic
               | NodeFolder
+
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
@@ -481,7 +472,7 @@ data NodePolySearch id        typename userId
               hyperdata search = NodeSearch { _ns_id        :: id
                                       , _ns_typename  :: typename
                                       , _ns_userId    :: userId
-                                                                --   , nodeUniqId    :: hashId
+                                                                --   , nodeUniqId    :: shaId
                                       , _ns_parentId  :: parentId
                                       , _ns_name      :: name
                                       , _ns_date      :: date
@@ -534,17 +525,20 @@ docExample :: ByteString
 docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
 
 instance ToSchema HyperdataCorpus where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "hyperdataCorpus_") proxy
     & mapped.schema.description ?~ "a corpus"
     & mapped.schema.example ?~ toJSON hyperdataCorpus
 
 instance ToSchema HyperdataAnnuaire where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "hyperdataAnnuaire_") proxy
     & mapped.schema.description ?~ "an annuaire"
     & mapped.schema.example ?~ toJSON hyperdataAnnuaire
 
 instance ToSchema HyperdataDocument where
-  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "_hyperdataDocument_") proxy
     & mapped.schema.description ?~ "a document"
     & mapped.schema.example ?~ toJSON hyperdataDocument
 
@@ -560,14 +554,16 @@ instance ToSchema hyperdata =>
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
 
 instance ToSchema hyperdata =>
          ToSchema (NodePoly NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
 
 
 instance ToSchema hyperdata =>
@@ -575,16 +571,19 @@ instance ToSchema hyperdata =>
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata (Maybe TSVector)
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
 
 instance ToSchema hyperdata =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata (Maybe TSVector)
-                  )
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
 
 
-instance ToSchema Status
+instance ToSchema Status where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "status_")
 
 

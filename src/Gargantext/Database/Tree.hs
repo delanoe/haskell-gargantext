@@ -16,7 +16,16 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Tree (treeDB, TreeError(..), HasTreeError(..), dbTree, toNodeTree, DbTreeNode) where
+module Gargantext.Database.Tree
+  ( treeDB
+  , TreeError(..)
+  , HasTreeError(..)
+  , dbTree
+  , toNodeTree
+  , DbTreeNode
+  , isDescendantOf
+  , isIn
+  ) where
 
 import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
 import Control.Monad.Error.Class (MonadError(throwError))
@@ -27,7 +36,7 @@ import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Types.Node (NodeId)
+import Gargantext.Database.Types.Node (NodeId, DocId)
 import Gargantext.Database.Config (fromNodeTypeId)
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
 ------------------------------------------------------------------------
@@ -84,26 +93,53 @@ data DbTreeNode = DbTreeNode { dt_nodeId :: NodeId
 -- | Main DB Tree function
 -- TODO add typenames as parameters
 dbTree :: RootId -> Cmd err [DbTreeNode]
-dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n) <$> runPGSQuery [sql|
-  WITH RECURSIVE
-      tree (id, typename, parent_id, name) AS
+dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
+  <$> runPGSQuery [sql|
+    WITH RECURSIVE
+        tree (id, typename, parent_id, name) AS
+        (
+          SELECT p.id, p.typename, p.parent_id, p.name
+          FROM nodes AS p
+          WHERE p.id = ?
+
+          UNION
+
+          SELECT c.id, c.typename, c.parent_id, c.name
+          FROM nodes AS c
+
+          INNER JOIN tree AS s ON c.parent_id = s.id
+--          WHERE c.typename IN (2,20,21,22,3,5,30,31,40,7,9,90)
+        )
+    SELECT * from tree;
+    |] (Only rootId)
+
+isDescendantOf :: NodeId -> RootId -> Cmd err Bool
+isDescendantOf childId rootId = (== [Only True])
+  <$> runPGSQuery [sql| WITH RECURSIVE
+      tree (id, parent_id) AS
       (
-        SELECT p.id, p.typename, p.parent_id, p.name
-        FROM nodes AS p
-        WHERE p.id = ?
-        
-        UNION
-        
-        SELECT c.id, c.typename, c.parent_id, c.name
+        SELECT c.id, c.parent_id
         FROM nodes AS c
-        
-        INNER JOIN tree AS s ON c.parent_id = s.id
-        WHERE c.typename IN (2,3,5,30,31,40,7,9,90)
+        WHERE c.id = ?
+
+        UNION
+
+        SELECT p.id, p.parent_id
+        FROM nodes AS p
+        INNER JOIN tree AS t ON t.parent_id = p.id
+
       )
-  SELECT * from tree;
-  |] (Only rootId)
+  SELECT COUNT(*) = 1 from tree AS t
+  WHERE t.id = ?;
+  |] (childId, rootId)
 
-
-
+-- TODO should we check the category?
+isIn :: NodeId -> DocId -> Cmd err Bool
+isIn cId docId = ( == [Only True])
+  <$> runPGSQuery [sql| SELECT COUNT(*) = 1
+    FROM nodes_nodes nn
+      WHERE nn.node1_id = ?
+        AND nn.node2_id = ?;
+  |] (cId, docId)
 
 

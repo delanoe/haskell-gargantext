@@ -28,7 +28,7 @@ import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument, RootId)
 import Gargantext.Database.Schema.User (insertUsersDemo, UserId)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.API -- (GargError)
+import Gargantext.API.Types (GargError)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
 --import Gargantext.Text.Corpus.Parsers.GrandDebat (readFile, GrandDebatReference(..))
@@ -42,7 +42,7 @@ main = do
 
   let createUsers :: Cmd GargError Int64
       createUsers = insertUsersDemo
-  
+
   let
     mkRoots :: Cmd GargError (UserId, RootId)
     mkRoots = getOrMkRoot "user1"
