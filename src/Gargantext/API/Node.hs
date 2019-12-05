@@ -143,7 +143,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "pie"       :> PieApi
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
-             :<|> "upload"    :> UploadAPI
+             :<|> "add"       :> NodeAddAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -201,7 +201,8 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            :<|> getPie     id
            :<|> getTree    id
            :<|> phyloAPI   id uId
-           :<|> postUpload id
+           :<|> nodeAddAPI id
+           -- :<|> postUpload id
 
     deleteNodeApi id' = do
       node <- getNode' id'
@@ -376,6 +377,12 @@ instance (ToParamSchema a, HasSwagger sub) =>
       sch = mempty
         & in_         .~ ParamFormData
         & paramSchema .~ toParamSchema (Proxy :: Proxy a)
+
+type NodeAddAPI = "file" :> Summary "Node add API"
+                         :> UploadAPI
+
+nodeAddAPI :: NodeId -> GargServer NodeAddAPI
+nodeAddAPI id =  postUpload       id
 
 type UploadAPI = Summary "Upload file(s) to a corpus"
                 :> MultipartForm Mem (MultipartData Mem)

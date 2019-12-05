@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE DeriveGeneric     #-}
@@ -26,7 +27,7 @@ import GHC.Generics (Generic)
 import GHC.IO (FilePath)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core.Types (ListId)
-import Gargantext.Database.Types.Node (NodeId)
+import Gargantext.Database.Types.Node (NodeId, Hyperdata)
 import Gargantext.Prelude
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -87,6 +88,7 @@ data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the grap
                                    , _gm_corpusId :: [NodeId]  -- we can map with different corpus
                                    , _gm_legend :: [LegendField] -- legend of the Graph
                                    , _gm_listId :: ListId
+                                   , _gm_version :: Int
                                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
@@ -143,6 +145,15 @@ data GraphV3 = GraphV3 { go_links :: [EdgeV3]
 $(deriveJSON (unPrefix "go_") ''GraphV3)
 
 -----------------------------------------------------------
+
+data HyperdataGraph = HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
+                                   } deriving (Show, Generic)
+$(deriveJSON (unPrefix "") ''HyperdataGraph)
+
+instance Hyperdata HyperdataGraph
+makeLenses ''HyperdataGraph
+
+
 -----------------------------------------------------------
 
 graphV3ToGraph :: GraphV3 -> Graph

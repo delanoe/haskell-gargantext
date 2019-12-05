@@ -351,7 +351,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid <$> PathNode <*> apiNgramsTableDoc
      :<|> count -- TODO: undefined
      :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <$> PathNode <*> searchPairs -- TODO: move elsewhere
-     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <$> PathNode <*> graphAPI -- TODO: mock
+     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <$> PathNode <*> graphAPI uid -- TODO: mock
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid <$> PathNode <*> treeAPI
      :<|> addToCorpus
      :<|> New.api -- TODO-SECURITY

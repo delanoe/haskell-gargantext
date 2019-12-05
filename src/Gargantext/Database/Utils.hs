@@ -73,12 +73,13 @@ mkCmd k = do
   conn <- view connection
   liftIO $ k conn
 
-runCmd :: (HasConnection env) => env
-       -> Cmd' env err a
+runCmd :: (HasConnection env)
+       => env -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
 
-runOpaQuery :: Default FromFields fields haskells => Select fields -> Cmd err [haskells]
+runOpaQuery :: Default FromFields fields haskells
+            => Select fields -> Cmd err [haskells]
 runOpaQuery q = mkCmd $ \c -> runQuery c q
 
 formatPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err DB.ByteString
