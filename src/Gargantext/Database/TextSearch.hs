@@ -35,7 +35,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNode hiding (joinInCorpus)
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Queries.Join (leftJoin6)
-import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery)
+import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types
 import Control.Arrow (returnA)
@@ -71,6 +71,15 @@ searchInCorpus cId t q o l order = runOpaQuery
                                  $ queryInCorpus cId t
                                  $ intercalate " | "
                                  $ map stemIt q
+
+searchCountInCorpus :: CorpusId
+                    -> IsTrash
+                    -> [Text]
+                    -> Cmd err Int
+searchCountInCorpus cId t q = runCountOpaQuery
+                            $ queryInCorpus cId t
+                            $ intercalate " | "
+                            $ map stemIt q
 
 queryInCorpus :: CorpusId
               -> IsTrash

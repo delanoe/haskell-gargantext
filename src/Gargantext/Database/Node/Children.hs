@@ -30,11 +30,11 @@ import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Control.Arrow (returnA)
 
-getAllDocuments :: ParentId -> Cmd err [Node HyperdataDocument]
+getAllDocuments :: ParentId -> Cmd err (TableResult (Node HyperdataDocument))
 getAllDocuments pId = getAllChildren pId (Proxy :: Proxy HyperdataDocument)
                                          (Just NodeDocument)
 
-getAllContacts :: ParentId -> Cmd err [Node HyperdataContact]
+getAllContacts :: ParentId -> Cmd err (TableResult (Node HyperdataContact))
 getAllContacts pId = getAllChildren pId (Proxy :: Proxy HyperdataContact)
                                         (Just NodeContact)
 
@@ -42,7 +42,7 @@ getAllChildren :: JSONB a
                => ParentId
                -> proxy a
                -> Maybe NodeType
-               -> Cmd err [Node a]
+               -> Cmd err (NodeTableResult a)
 getAllChildren pId p maybeNodeType = getChildren pId p maybeNodeType Nothing Nothing
 
 getChildren :: JSONB a
@@ -56,12 +56,14 @@ getChildren pId _ maybeNodeType maybeOffset maybeLimit = do
   docs <- runOpaQuery
           $ limit' maybeLimit $ offset' maybeOffset
           $ orderBy (asc _node_id)
-          $ selectChildren pId maybeNodeType
-  allDocs <- runOpaQuery
-          $ limit' Nothing $ offset' Nothing
-          $ selectChildren pId maybeNodeType
+          $ query
 
-  pure $ NodeTableResult { tr_docs = docs, tr_count = (length allDocs) }
+  docCount <- runCountOpaQuery query
+
+  pure $ TableResult { tr_docs = docs, tr_count = docCount }
+
+  where
+    query = selectChildren pId maybeNodeType
 
 selectChildren :: ParentId
                -> Maybe NodeType
