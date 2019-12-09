@@ -1,25 +1,56 @@
 # Gargantext Instance, Backend
 
-[Release soon, help welcome]
+## Releases
+
+[Release soon, bugs are welcome, please help to contribute].
 
 ## About this project
 
 Gargantext is a collaborative web protocol for the exploration of sets
 of unstructured texts.
 
-Scientificatlly, it combines tools from natural language processing,
-text-mining, complex networks analysis and interactive data
-visualization to pave the way toward new kinds of interactions with your
-digital corpora.
+Scientifically, its ergonomic experimental tools help to combine tools
+from natural language processing, text and data mining, complex networks
+analysis and interactive data visualization.
 
-Technically, there is a [client](#gargantext-purescript) which connects
-to the instance. If the client is try to be ergonomic, it only ask for
-the instance API, either locally or remote.
+"To pave the way toward new kinds of interactions with your
+digital corpora."
+
+Technically, the [client](#gargantext-purescript) connects to the
+instances. If the client tries to be ergonomic, it only ask for the
+instance API, either locally or remote; with some local secured
+optimizations.
 
 This software is a free software, developed by the CNRS Complex Systems
 Institute of Paris Île-de-France (ISC-PIF) and its partners.
 
-## Public Rest API for Gargantext
+Source code is the master spec of this project. It explains its
+algorithmic protocol to map knowledge in a collaborative way. Three main
+parts:
+- Core.(Text|...)
+- Api.Rest
+- Data.SQL
+
+The types map the transition between each state, either from outside
+(Api.Rest).
+
+## Database schema (garGraph)
+
+In our database, which is a way to manage persistence of data, the
+schema describes the geometrical structure of our data.
+
+In data-base, atoms of Text are ngrams or context(ngrams) in nodes.
+Nodes are branches in a Tree and [Node Node] is an link in Graph.
+
+Node Node is either a corpus and its documents (collection of texts)
+or an annuaire and its contacts (collective of individuals).
+
+Node, Node Ngrams is each ngrams but with its full context of nodes.
+metrics. Why not Node-Ngrams only ? We add a "Node" as a layer for list.
+That enable to have a layer on our data.
+
+
+## Public Rest API (GargApi)
 
 ## General API Information
 * The base endpoint is: **https://api.gargantext.org**
