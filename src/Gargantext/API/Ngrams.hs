@@ -1153,8 +1153,6 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
 
 
 
-
-
 apiNgramsTableCorpus :: ( RepoCmdM env err m
                         , HasNodeError err
                         , HasInvalidError err

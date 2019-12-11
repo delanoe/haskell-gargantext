@@ -373,17 +373,17 @@ type JSONB = QueryRunnerColumnDefault PGJsonb
 
 getNode :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
 getNode nId _ = do
-    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+    fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 getNodePhylo :: NodeId -> Cmd err (Node HyperdataPhylo)
 getNodePhylo nId = do
-    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+    fromMaybe (error $ "Node Phylo does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
 getNode' :: NodeId -> Cmd err (Node Value)
-getNode' nId = fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+getNode' nId = fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
