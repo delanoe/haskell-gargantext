@@ -37,7 +37,7 @@ insertOccsUpdates cId lId = runPGSQuery query (cId, lId, nodeTypeId NodeList, no
     query :: DPS.Query
     query = [sql|
               INSERT INTO node_node_ngrams (node1_id, node2_id, ngrams_id, ngrams_type, weight)
-                SELECT nn.node1_id, lists.id, nnn.ngrams_id, count(*), 1  -- type of score
+                SELECT nn.node1_id, lists.id, nnn.ngrams_id, 1, count(*) as c  -- type of score
                    FROM node_node_ngrams nnn
                    INNER JOIN nodes_nodes nn    ON nn.node2_id = nnn.node2_id
                    INNER JOIN nodes       docs  ON docs.id     = nnn.node2_id
@@ -49,7 +49,9 @@ insertOccsUpdates cId lId = runPGSQuery query (cId, lId, nodeTypeId NodeList, no
                     AND docs.typename  = ?
                   GROUP BY nn.node1_id, lists.id, nnn.ngrams_id
                ON CONFLICT (node1_id, node2_id, ngrams_id, ngrams_type)
-                  DO UPDATE SET weight = excluded.weight +1; -- TOCHECK
+                  DO UPDATE SET weight = 3 -- c -- excluded.weight
+                  RETURNING 1
+                  -- TOCHECK
   |]
 
 

@@ -19,6 +19,7 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Metrics.NgramsByNode
   where
 
+import Debug.Trace (trace)
 import Data.Map.Strict (Map, fromListWith, elems, toList, fromList)
 import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.Set (Set)
@@ -162,6 +163,46 @@ getOccByNgramsOnlyFast :: CorpusId
 getOccByNgramsOnlyFast cId nt ngs =
   fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
 
+
+getOccByNgramsOnlyFast' :: CorpusId
+                       -> ListId
+                       -> NgramsType
+                       -> [Text]
+                       -> Cmd err (Map Text Int)
+getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $ 
+  fromListWith (+) <$> map (second round) <$> run cId lId nt tms
+  
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
+      run :: CorpusId
+           -> ListId
+           -> NgramsType
+           -> [Text]
+           -> Cmd err [(Text, Double)]
+      run cId' lId' _nt' tms' = runPGSQuery query
+                ( Values fields (DPS.Only <$> tms')
+                , cId'
+                , lId'
+                -- , ngramsTypeId nt'
+                )
+
+      query :: DPS.Query
+      query = [sql|
+        WITH input_rows(terms) AS (?)
+        SELECT ng.terms, nng.weight FROM node_node_ngrams nng
+          JOIN ngrams ng      ON nng.ngrams_id = ng.id
+          JOIN input_rows  ir ON ir.terms      = ng.terms
+          WHERE nng.node1_id     = ? -- CorpusId
+            AND nng.node2_id     = ?
+            -- AND nng.ngrams_type = ? -- NgramsTypeId
+            -- AND nn.category     > 0
+            GROUP BY ng.terms, nng.weight
+        |]
+
+
+
+
 -- just slower than getOccByNgramsOnlyFast
 getOccByNgramsOnlySlow :: NodeType
                        -> CorpusId
@@ -277,6 +318,38 @@ queryNgramsOnlyByNodeUser = [sql|
       AND nn.category     > 0
       GROUP BY ng.terms, nng.node2_id
   |]
+
+
+
+
+selectNgramsOnlyByNodeUser' :: CorpusId -> [ListId] -> NgramsType -> [Text]
+                           -> Cmd err [(Text, Int)]
+selectNgramsOnlyByNodeUser' cId ls nt tms =
+  runPGSQuery queryNgramsOnlyByNodeUser
+                ( Values fields (DPS.Only <$> tms)
+                , Values [QualifiedIdentifier Nothing "int4"] (DPS.Only <$> (map (\(NodeId n) -> n) ls))
+                , cId
+                , nodeTypeId NodeDocument
+                , ngramsTypeId nt
+                )
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
+queryNgramsOnlyByNodeUser' :: DPS.Query
+queryNgramsOnlyByNodeUser' = [sql|
+  WITH input_rows(terms) AS (?),
+       input_list(id)    AS (?)
+  SELECT ng.terms, nng.weight FROM node_node_ngrams nng
+    JOIN ngrams ng      ON nng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN input_list  il ON il.id         = nng.node2_id
+    WHERE nng.node1_id     = ? -- CorpusId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      -- AND nn.category     > 0
+      GROUP BY ng.terms, nng.weight
+  |]
+
+
 
 
 getNgramsByDocOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
