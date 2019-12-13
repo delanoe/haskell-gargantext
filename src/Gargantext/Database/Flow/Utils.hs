@@ -25,12 +25,17 @@ import Gargantext.Database.Utils (Cmd)
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Types.Node
 
-toMaps :: Hyperdata a => (a -> Map (NgramsT Ngrams) Int) -> [Node a] -> Map (NgramsT Ngrams) (Map NodeId Int)
+toMaps :: Hyperdata a
+       => (a -> Map (NgramsT Ngrams) Int)
+       -> [Node a]
+       -> Map (NgramsT Ngrams) (Map NodeId Int)
 toMaps fun ns = mapNodeIdNgrams $ documentIdWithNgrams fun ns'
   where
     ns' = map (\(Node nId _ _ _ _ _ json) -> DocumentWithId nId json) ns
 
-mapNodeIdNgrams :: Hyperdata a => [DocumentIdWithNgrams a] -> Map (NgramsT Ngrams) (Map NodeId Int)
+mapNodeIdNgrams :: Hyperdata a
+                => [DocumentIdWithNgrams a]
+                -> Map (NgramsT Ngrams) (Map NodeId Int)
 mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
   where
     xs  = [(ng, [(nId, i)]) | (nId, n2i') <- n2i ds, (ng, i) <- DM.toList n2i']
@@ -72,14 +77,17 @@ data DocNgrams = DocNgrams { dn_doc_id :: DocId
 insertDocNgramsOn :: CorpusId
                   -> [DocNgrams]
                   -> Cmd err Int
-insertDocNgramsOn cId dn = insertNodeNodeNgrams $ (map (docNgrams2nodeNodeNgrams cId) dn)
+insertDocNgramsOn cId dn =
+  insertNodeNodeNgrams
+  $ (map (docNgrams2nodeNodeNgrams cId) dn)
 
 insertDocNgrams :: CorpusId
                 -> Map NgramsIndexed (Map NgramsType (Map NodeId Int))
                 -> Cmd err Int
-insertDocNgrams cId m = insertDocNgramsOn cId [ DocNgrams n (_ngramsId ng) (ngramsTypeId t) (fromIntegral i)
-                                        | (ng, t2n2i) <- DM.toList m
-                                        , (t,  n2i)   <- DM.toList t2n2i
-                                        , (n,  i)     <- DM.toList n2i
-                                        ]
+insertDocNgrams cId m =
+  insertDocNgramsOn cId [ DocNgrams n (_ngramsId ng) (ngramsTypeId t) (fromIntegral i)
+                          | (ng, t2n2i) <- DM.toList m
+                          , (t,  n2i)   <- DM.toList t2n2i
+                          , (n,  i)     <- DM.toList n2i
+                        ]
 

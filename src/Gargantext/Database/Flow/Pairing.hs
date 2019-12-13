@@ -32,15 +32,24 @@ import qualified Data.Map as DM
 import Data.Text (Text, toLower)
 import qualified Data.Text as DT
 import Gargantext.Prelude hiding (sum)
+import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
 import Gargantext.Database.Flow.Utils
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
-import Gargantext.Database.Types.Node (AnnuaireId, CorpusId, ListId)
+import Gargantext.Database.Types.Node (AnnuaireId, CorpusId, ListId{-, DocId, ContactId-})
 import Gargantext.Database.Node.Children (getAllContacts)
 
 -- TODO mv this type in Types Main
 type Terms = Text
+
+{-
+pairing'' :: (CorpusId, CorpusId) -> (DocId -> DocId)
+pairing'' = undefined
+
+pairing' :: (CorpusId, AnnuaireId) -> (DocId -> ContactId)
+pairing' = undefined
+-}
 
 -- | TODO : add paring policy as parameter
 pairing :: AnnuaireId
@@ -50,7 +59,7 @@ pairing :: AnnuaireId
 pairing aId cId lId = do
   contacts' <- getAllContacts aId
   let contactsMap = pairingPolicyToMap toLower
-                  $ toMaps extractNgramsT contacts'
+                  $ toMaps extractNgramsT (tr_docs contacts')
 
   ngramsMap' <- getNgramsTindexed cId Authors
   let ngramsMap = pairingPolicyToMap lastName ngramsMap'

@@ -14,6 +14,7 @@ commentary with @some markup@.
 ------------------------------------------------------------------------
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE TemplateHaskell      #-}
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , module Gargantext.Database.Types.Node
@@ -22,21 +23,28 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Label, Stems
                              , HasInvalidError(..), assertValid
                              , Name
+                             , TableResult(..)
+                             , NodeTableResult
                              ) where
 
 import Control.Lens (Prism', (#))
 import Control.Monad.Error.Class (MonadError, throwError)
 
 import Data.Aeson
-import Data.Semigroup
+import Data.Aeson.TH (deriveJSON)
 import Data.Monoid
+import Data.Semigroup
 import Data.Set (Set, empty)
+import Data.Swagger (ToSchema(..), genericDeclareNamedSchema)
 --import qualified Data.Set as S
 
 import Data.Text (Text, unpack)
 import Data.Validity
 
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 import Gargantext.Core.Types.Main
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Types.Node
 import Gargantext.Prelude
 
@@ -135,3 +143,18 @@ assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
 assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
 -- assertValid :: MonadIO m => Validation -> m ()
 -- assertValid v = when (not $ validationIsValid v) $ fail $ show v
+
+
+data TableResult a = TableResult { tr_count :: Int
+                                 , tr_docs :: [a]
+                                 } deriving (Generic)
+
+$(deriveJSON (unPrefix "tr_") ''TableResult)
+
+instance ToSchema a => ToSchema (TableResult a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tr_")
+
+instance Arbitrary a => Arbitrary (TableResult a) where
+  arbitrary = TableResult <$> arbitrary <*> arbitrary
+
+type NodeTableResult a = TableResult (Node a)

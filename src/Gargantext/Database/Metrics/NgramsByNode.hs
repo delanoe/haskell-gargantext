@@ -19,6 +19,7 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Metrics.NgramsByNode
   where
 
+import Debug.Trace (trace)
 import Data.Map.Strict (Map, fromListWith, elems, toList, fromList)
 import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.Set (Set)
@@ -68,21 +69,19 @@ getTficf' u m nt f = do
   pure $ toTficfData (countNodesByNgramsWith f u')
                      (countNodesByNgramsWith f m')
 
---{-
 getTficfWith :: UserCorpusId -> MasterCorpusId -> [ListId]
            -> NgramsType -> Map Text (Maybe Text)
            -> Cmd err (Map Text (Double, Set Text))
 getTficfWith u m ls nt mtxt = do
   u' <- getNodesByNgramsOnlyUser   u ls nt (Map.keys mtxt)
   m' <- getNodesByNgramsMaster     u m
-  
+
   let f x = case Map.lookup x mtxt of
         Nothing -> x
         Just x' -> maybe x identity x'
-  
+
   pure $ toTficfData (countNodesByNgramsWith f u')
                      (countNodesByNgramsWith f m')
---}
 
 
 type Context = (Double, Map Text (Double, Set Text))
@@ -121,7 +120,8 @@ groupNodesByNgramsWith f m =
                         $ toList m
 
 ------------------------------------------------------------------------
-getNodesByNgramsUser :: CorpusId -> NgramsType
+getNodesByNgramsUser :: CorpusId
+                     -> NgramsType
                      -> Cmd err (Map Text (Set NodeId))
 getNodesByNgramsUser cId nt =
   fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
@@ -141,7 +141,6 @@ getNodesByNgramsUser cId nt =
 
       queryNgramsByNodeUser :: DPS.Query
       queryNgramsByNodeUser = [sql|
-
         SELECT nng.node2_id, ng.terms FROM node_node_ngrams nng
           JOIN ngrams ng      ON nng.ngrams_id = ng.id
           JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
@@ -157,13 +156,59 @@ getNodesByNgramsUser cId nt =
         |]
 ------------------------------------------------------------------------
 -- TODO add groups
-getOccByNgramsOnlyFast :: CorpusId -> NgramsType -> [Text]
+getOccByNgramsOnlyFast :: CorpusId
+                       -> NgramsType
+                       -> [Text]
                        -> Cmd err (Map Text Int)
 getOccByNgramsOnlyFast cId nt ngs =
   fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
 
+
+getOccByNgramsOnlyFast' :: CorpusId
+                       -> ListId
+                       -> NgramsType
+                       -> [Text]
+                       -> Cmd err (Map Text Int)
+getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $ 
+  fromListWith (+) <$> map (second round) <$> run cId lId nt tms
+  
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
+      run :: CorpusId
+           -> ListId
+           -> NgramsType
+           -> [Text]
+           -> Cmd err [(Text, Double)]
+      run cId' lId' _nt' tms' = runPGSQuery query
+                ( Values fields (DPS.Only <$> tms')
+                , cId'
+                , lId'
+                -- , ngramsTypeId nt'
+                )
+
+      query :: DPS.Query
+      query = [sql|
+        WITH input_rows(terms) AS (?)
+        SELECT ng.terms, nng.weight FROM node_node_ngrams nng
+          JOIN ngrams ng      ON nng.ngrams_id = ng.id
+          JOIN input_rows  ir ON ir.terms      = ng.terms
+          WHERE nng.node1_id     = ? -- CorpusId
+            AND nng.node2_id     = ?
+            -- AND nng.ngrams_type = ? -- NgramsTypeId
+            -- AND nn.category     > 0
+            GROUP BY ng.terms, nng.weight
+        |]
+
+
+
+
 -- just slower than getOccByNgramsOnlyFast
-getOccByNgramsOnlySlow :: NodeType -> CorpusId -> [ListId] -> NgramsType -> [Text]
+getOccByNgramsOnlySlow :: NodeType
+                       -> CorpusId
+                       -> [ListId]
+                       -> NgramsType
+                       -> [Text]
                        -> Cmd err (Map Text Int)
 getOccByNgramsOnlySlow t cId ls nt ngs =
   Map.map Set.size <$> getScore' t cId ls nt ngs
@@ -172,7 +217,10 @@ getOccByNgramsOnlySlow t cId ls nt ngs =
       getScore' NodeDocument = getNgramsByDocOnlyUser
       getScore' _            = getNodesByNgramsOnlyUser
 
-getOccByNgramsOnlySafe :: CorpusId -> [ListId] -> NgramsType -> [Text]
+getOccByNgramsOnlySafe :: CorpusId
+                       -> [ListId]
+                       -> NgramsType
+                       -> [Text]
                        -> Cmd err (Map Text Int)
 getOccByNgramsOnlySafe cId ls nt ngs = do
   printDebug "getOccByNgramsOnlySafe" (cId, nt, length ngs)
@@ -200,7 +248,6 @@ selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
 -- equivalent ngrams intersections are not empty)
 queryNgramsOccurrencesOnlyByNodeUser :: DPS.Query
 queryNgramsOccurrencesOnlyByNodeUser = [sql|
-
   WITH input_rows(terms) AS (?)
   SELECT ng.terms, COUNT(nng.node2_id) FROM node_node_ngrams nng
     JOIN ngrams ng      ON nng.ngrams_id = ng.id
@@ -214,11 +261,33 @@ queryNgramsOccurrencesOnlyByNodeUser = [sql|
       GROUP BY nng.node2_id, ng.terms
   |]
 
+
+
+queryNgramsOccurrencesOnlyByNodeUser' :: DPS.Query
+queryNgramsOccurrencesOnlyByNodeUser' = [sql|
+  WITH input_rows(terms) AS (?)
+  SELECT ng.terms, COUNT(nng.node2_id) FROM node_node_ngrams nng
+    JOIN ngrams ng      ON nng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
+    JOIN nodes  n       ON nn.node2_id   = n.id
+    WHERE nn.node1_id     = ? -- CorpusId
+      AND n.typename      = ? -- NodeTypeId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      AND nn.category     > 0
+      GROUP BY nng.node2_id, ng.terms
+  |]
+
+
+
+
 getNodesByNgramsOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
                          -> Cmd err (Map Text (Set NodeId))
-getNodesByNgramsOnlyUser cId ls nt ngs = Map.unionsWith (<>)
-                                    . map (fromListWith (<>) . map (second Set.singleton))
-                                   <$> mapM (selectNgramsOnlyByNodeUser cId ls nt) (splitEvery 1000 ngs)
+getNodesByNgramsOnlyUser cId ls nt ngs =
+  Map.unionsWith (<>)
+   . map (fromListWith (<>) . map (second Set.singleton))
+  <$> mapM (selectNgramsOnlyByNodeUser cId ls nt)
+           (splitEvery 1000 ngs)
 
 selectNgramsOnlyByNodeUser :: CorpusId -> [ListId] -> NgramsType -> [Text]
                            -> Cmd err [(Text, NodeId)]
@@ -235,7 +304,6 @@ selectNgramsOnlyByNodeUser cId ls nt tms =
 
 queryNgramsOnlyByNodeUser :: DPS.Query
 queryNgramsOnlyByNodeUser = [sql|
-
   WITH input_rows(terms) AS (?),
        input_list(id)    AS (?)
   SELECT ng.terms, nng.node2_id FROM node_node_ngrams nng
@@ -253,12 +321,43 @@ queryNgramsOnlyByNodeUser = [sql|
 
 
 
+
+selectNgramsOnlyByNodeUser' :: CorpusId -> [ListId] -> NgramsType -> [Text]
+                           -> Cmd err [(Text, Int)]
+selectNgramsOnlyByNodeUser' cId ls nt tms =
+  runPGSQuery queryNgramsOnlyByNodeUser
+                ( Values fields (DPS.Only <$> tms)
+                , Values [QualifiedIdentifier Nothing "int4"] (DPS.Only <$> (map (\(NodeId n) -> n) ls))
+                , cId
+                , nodeTypeId NodeDocument
+                , ngramsTypeId nt
+                )
+    where
+      fields = [QualifiedIdentifier Nothing "text"]
+
+queryNgramsOnlyByNodeUser' :: DPS.Query
+queryNgramsOnlyByNodeUser' = [sql|
+  WITH input_rows(terms) AS (?),
+       input_list(id)    AS (?)
+  SELECT ng.terms, nng.weight FROM node_node_ngrams nng
+    JOIN ngrams ng      ON nng.ngrams_id = ng.id
+    JOIN input_rows  ir ON ir.terms      = ng.terms
+    JOIN input_list  il ON il.id         = nng.node2_id
+    WHERE nng.node1_id     = ? -- CorpusId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      -- AND nn.category     > 0
+      GROUP BY ng.terms, nng.weight
+  |]
+
+
+
+
 getNgramsByDocOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
                          -> Cmd err (Map Text (Set NodeId))
-getNgramsByDocOnlyUser cId ls nt ngs = Map.unionsWith (<>)
-                                    . map (fromListWith (<>) . map (second Set.singleton))
-                                   <$> mapM (selectNgramsOnlyByDocUser cId ls nt) (splitEvery 1000 ngs)
-
+getNgramsByDocOnlyUser cId ls nt ngs =
+  Map.unionsWith (<>)
+  . map (fromListWith (<>) . map (second Set.singleton))
+  <$> mapM (selectNgramsOnlyByDocUser cId ls nt) (splitEvery 1000 ngs)
 
 
 selectNgramsOnlyByDocUser :: DocId -> [ListId] -> NgramsType -> [Text]
@@ -275,7 +374,6 @@ selectNgramsOnlyByDocUser dId ls nt tms =
 
 queryNgramsOnlyByDocUser :: DPS.Query
 queryNgramsOnlyByDocUser = [sql|
-
   WITH input_rows(terms) AS (?),
        input_list(id)    AS (?)
   SELECT ng.terms, nng.node2_id FROM node_node_ngrams nng
@@ -286,7 +384,6 @@ queryNgramsOnlyByDocUser = [sql|
       AND nng.ngrams_type = ? -- NgramsTypeId
       GROUP BY ng.terms, nng.node2_id
   |]
-
 
 ------------------------------------------------------------------------
 -- | TODO filter by language, database, any social field
@@ -316,37 +413,36 @@ selectNgramsByNodeMaster n ucId mcId p = runPGSQuery
 -- | TODO fix node_node_ngrams relation
 queryNgramsByNodeMaster' :: DPS.Query
 queryNgramsByNodeMaster' = [sql|
+  WITH nodesByNgramsUser AS (
 
-WITH nodesByNgramsUser AS (
+  SELECT n.id, ng.terms FROM nodes n
+    JOIN nodes_nodes  nn  ON n.id = nn.node2_id
+    JOIN node_node_ngrams nng ON nng.node2_id   = n.id
+    JOIN ngrams       ng  ON nng.ngrams_id = ng.id
+    WHERE nn.node1_id     = ?   -- UserCorpusId
+      -- AND n.typename   = ?  -- NodeTypeId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+      AND nn.category > 0
+      AND node_pos(n.id,?) >= ?
+      AND node_pos(n.id,?) <  ?
+    GROUP BY n.id, ng.terms
 
-SELECT n.id, ng.terms FROM nodes n
-  JOIN nodes_nodes  nn  ON n.id = nn.node2_id
-  JOIN node_node_ngrams nng ON nng.node2_id   = n.id
-  JOIN ngrams       ng  ON nng.ngrams_id = ng.id
-  WHERE nn.node1_id     = ?   -- UserCorpusId
-    -- AND n.typename   = ?  -- NodeTypeId
-    AND nng.ngrams_type = ? -- NgramsTypeId
-    AND nn.category > 0
-    AND node_pos(n.id,?) >= ?
-    AND node_pos(n.id,?) <  ?
-  GROUP BY n.id, ng.terms
+    ),
 
-  ),
+  nodesByNgramsMaster AS (
 
-nodesByNgramsMaster AS (
+  SELECT n.id, ng.terms FROM nodes n TABLESAMPLE SYSTEM_ROWS(?)
+    JOIN node_node_ngrams nng  ON n.id  = nng.node2_id
+    JOIN ngrams       ng   ON ng.id = nng.ngrams_id
 
-SELECT n.id, ng.terms FROM nodes n TABLESAMPLE SYSTEM_ROWS(?)
-  JOIN node_node_ngrams nng  ON n.id  = nng.node2_id
-  JOIN ngrams       ng   ON ng.id = nng.ngrams_id
+    WHERE n.parent_id  = ?     -- Master Corpus NodeTypeId
+      AND n.typename   = ?     -- NodeTypeId
+      AND nng.ngrams_type = ? -- NgramsTypeId
+    GROUP BY n.id, ng.terms
+    )
 
-  WHERE n.parent_id  = ?     -- Master Corpus NodeTypeId
-    AND n.typename   = ?     -- NodeTypeId
-    AND nng.ngrams_type = ? -- NgramsTypeId
-  GROUP BY n.id, ng.terms
-  )
-
-SELECT m.id, m.terms FROM nodesByNgramsMaster m
-  RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
+  SELECT m.id, m.terms FROM nodesByNgramsMaster m
+    RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
   |]
 
 

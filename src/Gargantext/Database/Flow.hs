@@ -67,6 +67,7 @@ import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd, CmdM)
+import Gargantext.Database.Triggers
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
@@ -223,14 +224,16 @@ flowCorpusUser l userName corpusName ctype ids = do
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
   tId <- mkNode NodeTexts userCorpusId userId
-  
+
   printDebug "Node Text Id" tId
 
   -- User List Flow
   --{-
-  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
-  ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
-  userListId  <- flowList userId userCorpusId ngs
+  (masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
+  ngs        <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
+  userListId <- flowList userId userCorpusId ngs
+  mastListId <- getOrMkList masterCorpusId masterUserId
+  _ <- insertOccsUpdates userCorpusId mastListId
   printDebug "userListId" userListId
   -- User Graph Flow
   _ <- mkDashboard userCorpusId userId

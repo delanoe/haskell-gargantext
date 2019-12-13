@@ -44,7 +44,7 @@ import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..))
-import Gargantext.Core.Types (Offset, Limit)
+import Gargantext.Core.Types (Offset, Limit, TableResult(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..))
 import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
@@ -60,7 +60,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 type TableApi = Summary " Table API"
               :> ReqBody '[JSON] TableQuery
-              :> Post    '[JSON] TableResult
+              :> Post    '[JSON] FacetTableResult
 
 data TableQuery = TableQuery
   { tq_offset  :: Int
@@ -70,17 +70,7 @@ data TableQuery = TableQuery
   , tq_query  :: Text
   } deriving (Generic)
 
-data TableResult = TableResult { tr_count :: Int
-                               , tr_docs  :: [FacetDoc]
-                               } deriving (Generic)
-
-$(deriveJSON (unPrefix "tr_") ''TableResult)
-
-instance ToSchema TableResult where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tr_")
-
-instance Arbitrary TableResult where
-  arbitrary = TableResult <$> arbitrary <*> arbitrary
+type FacetTableResult = TableResult FacetDoc
 
 $(deriveJSON (unPrefix "tq_") ''TableQuery)
 
@@ -91,7 +81,7 @@ instance Arbitrary TableQuery where
   arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]
 
 
-tableApi :: NodeId -> TableQuery -> Cmd err TableResult
+tableApi :: NodeId -> TableQuery -> Cmd err FacetTableResult
 tableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
 tableApi cId (TableQuery o l order ft q) = case ft of
       Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
@@ -104,20 +94,21 @@ searchInCorpus' :: CorpusId
                 -> Maybe Offset
                 -> Maybe Limit
                 -> Maybe OrderBy
-                -> Cmd err TableResult
+                -> Cmd err FacetTableResult
 searchInCorpus' cId t q o l order = do
   docs <- searchInCorpus cId t q o l order
-  allDocs  <- searchInCorpus cId t q Nothing Nothing Nothing
-  pure (TableResult (length allDocs) docs)
+  countAllDocs  <- searchCountInCorpus cId t q
+  pure $ TableResult { tr_docs = docs, tr_count = countAllDocs }
 
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
-         -> Maybe OrderBy -> Cmd err TableResult
+         -> Maybe OrderBy -> Cmd err FacetTableResult
 getTable cId ft o l order = do
   docs <- getTable' cId ft o l order
+  -- TODO: Rewrite to use runCountOpaQuery and avoid (length allDocs)
   allDocs  <- getTable' cId ft Nothing Nothing Nothing
-  pure (TableResult (length allDocs) docs)
+  pure $ TableResult { tr_docs = docs, tr_count = length allDocs }
 
 getTable' :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit

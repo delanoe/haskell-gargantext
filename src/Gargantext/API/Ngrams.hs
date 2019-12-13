@@ -130,7 +130,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Utils (fromField', HasConnection)
@@ -1019,7 +1019,8 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores True  table = do
       let ngrams_terms = (table ^.. each . ne_ngrams)
       t1 <- getTime'
-      occurrences <- getOccByNgramsOnlyFast nId
+      occurrences <- getOccByNgramsOnlyFast' nId
+                                             listId
                                             ngramsType
                                             ngrams_terms
       t2 <- getTime'
@@ -1150,8 +1151,6 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
   let searchQuery = flip S.member (S.fromList ngs)
   getTableNgrams NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
-
-
 
 
 
