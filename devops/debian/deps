@@ -6,6 +6,7 @@ cd clustering-louvain-cplusplus
 cd ..
 
 
+sudo apt install default-jdk
 wget https://dl.gargantext.org/coreNLP.tar.bz2
 tar xvjf coreNLP.tar.bz2
 # ./startServer.sh

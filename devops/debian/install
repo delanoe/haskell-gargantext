@@ -1,73 +1,133 @@
 #!/bin/bash
 
+#   ____                             _            _   
+#  / ___| __ _ _ __ __ _  __ _ _ __ | |_ _____  _| |_ 
+# | |  _ / _` | '__/ _` |/ _` | '_ \| __/ _ \ \/ / __|
+# | |_| | (_| | | | (_| | (_| | | | | ||  __/>  <| |_ 
+#  \____|\__,_|_|  \__, |\__,_|_| |_|\__\___/_/\_\\__|
+#                  |___/                              
+
+# This receipe is for specific use (Open Stack && Debien)
+# Step by step installation process (advanced user mainly)
+# For others: a docker image is coming
+
+########################################################################
+# To be sure to have updated packages
 sudo apt update
 sudo apt upgrade
 
-sudo sed -i "s/stretch/buster/g" /etc/apt/sources.list
+# Tmux to avoid disconnections during the installation process
+# Htop for visual monitoring
+sudo apt install tmux htop
 
+########################################################################
+tmux
+########################################################################
+# Open Stack only: attach volumes
+# attach the volume created (OS interface or API)
+sudo fdisk -l
+sudo fisk /dev/vdb (n,p,t,83,w)
+sudo mkfs.ext4 /dev/vdb1
+
+sudo blkid
+# copy UUID in fstab (same parameters)
+sudo vim /etc/fstab 
+
+########################################################################
+
+sudo sed -i "s/stretch/buster/g" /etc/apt/sources.list
 sudo apt update
 sudo apt dist-upgrade
-
-sudo adduser --disabled-password --gecos "" gargantua
-
-if git --version;
-then 
-  echo "git installed, ok"
-else
-  sudo apt update && sudo apt install git
-  git config --global user.email "contact@gargantext.org"
-  git config --global user.name "Gargantua"
-fi
+# sudo reboot #recommended
+########################################################################
 
 sudo apt update
 sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-11 nginx libigraph0-dev
 
-#echo "Which user?"
-#read USER
-#sudo adduser --disabled-password --gecos "" $USER
-#sudo su $USER
+
+sudo apt install git
+git config --global user.email "contact@gargantext.org"
+git config --global user.name "Gargantua"
+
+
+########################################################################
+
+echo "Which user?"
+read USER
+USER="gargantua"
+sudo adduser --disabled-password --gecos "" $USER
+
+cd /home
+sudo mv -if /home/$USER /srv/
+sudo ln -s /srv/$USER
 
 curl -sSL https://get.haskellstack.org/ | sh
+
+sudo apt install curl
+sudo su $USER
 stack update
 stack upgrade
 
 git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
 
-
 cd haskell-gargantext
-git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
-
 ##########
+git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
+cd purescript-gargantext
+
+# as sudoer
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 sudo apt update
 sudo apt install yarn
+# as user
+yarn install && yarn install-ps && yarn build
 
+# temporary bug (help welcome)
+cp src/index.html dist/index.html
+
+#########################################################################
+
+# stack install should be enough but all process is the following steps
+stack setup && stack build && stack install
+
+#########################################################################
+# build deps
+
+
+#!/bin/bash
 mkdir deps
 cd deps
-git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
+
+git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain-cplusplus.git
+cd clustering-louvain-cplusplus
+./install
 cd ..
 
-stack setup
-stack build
-stack install
+sudo apt install default-jdk
+wget https://dl.gargantext.org/coreNLP.tar.bz2
+tar xvjf coreNLP.tar.bz2
+# CoreNLP needs to be started
+# ./startServer.sh
+
 
 
 # Specific to our servers
 
-### Configure timezone and locale ###################################
-echo "###########  LOCALES & TZ #################"
-echo "Europe/Paris" > /etc/timezone
-dpkg-reconfigure --frontend=noninteractive tzdata
-#ENV TZ "Europe/Paris"
-
-sed -i -e 's/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen && \
-sed -i -e 's/# fr_FR.UTF-8 UTF-8/fr_FR.UTF-8 UTF-8/' /etc/locale.gen && \
-locale-gen && \
-update-locale LANG=fr_FR.UTF-8 && \
-update-locale LANGUAGE=fr_FR.UTF-8 && \
-update-locale LC_ALL=fr_FR.UTF-8
-################################################################
+#### Configure timezone and locale ###################################
+# todo sync dates
+#echo "###########  LOCALES & TZ #################"
+#echo "Europe/Paris" > /etc/timezone
+#dpkg-reconfigure --frontend=noninteractive tzdata
+##ENV TZ "Europe/Paris"
+#
+#sed -i -e 's/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen && \
+#sed -i -e 's/# fr_FR.UTF-8 UTF-8/fr_FR.UTF-8 UTF-8/' /etc/locale.gen && \
+#locale-gen && \
+#update-locale LANG=fr_FR.UTF-8 && \
+#update-locale LANGUAGE=fr_FR.UTF-8 && \
+#update-locale LC_ALL=fr_FR.UTF-8
+#################################################################
 
 # Database configuration
 # CREATE USER gargantua WITH PASSWORD $(grep DB_PASS gargantext.ini)
@@ -78,9 +138,67 @@ update-locale LC_ALL=fr_FR.UTF-8
 #######################################################################
 
 PGVersion = 11
-mkdir /srv/gargantua/gargandata
+GARGDATA = "/srv/gargantua/gargandata"
+mkdir $GARGDATA
+sudo apt install rsync
+sudo sed -iP "s%^data_directory.*%data_directory = \'$GARGADATA\'%" /etc/postgresql/$PGVersion/main/postgresql.conf
+sudo rsync -av /var/lib/postgresql/$PGVersion/main $GARGDATA
 
-sed -iP "s%^data_directory.*%data_directory = \'\/srv\/gargantua\/gargandata\'%" /etc/postgresql/$PGVersion/main/postgresql.conf 
-#echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/$PGVersion/main/pg_hba.conf                                 
-#echo "listen_addresses='*'" >> /etc/postgresql/$PGVersion/main/postgresql.conf
+# configure the database with script in devops/postgres
+# edit gargantext.ini
+
+
+
+                        ..........,,;;;;,,,oKXNNNNNNNNNXXXXXKK0OOxdl::ccc:::::;;;;,,,'..                                 
+              .........';;;;;;,,,,'''''''''dXNMMMMMMMMMMMMMMMMMMMWWWNNNWNNNNNNXXXXKKK0Oxddlcc::::::::;;;,,,'....         
+    .........',,,;;;;,,,'''''''''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWWWNNNNNNNXXXXKKK0Oxddlcccc::;;
+   .::cccllc:;''''''''''''''''''''.''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNXXXXKK0O
+...';;;;;;;;;,'''''''''''''''''''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWWNNNNNNX0
+;;,,'''''''''''''''''''''''''''''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+'''''''''''''''''''''''''''''''''',;:::cclldkOOOOO00000KKKXXNWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+'''''''''''''''''''''''''''';:loodkkOO0KKXXkc:;;;;:::::cccloodxkkO0NMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+''''''''''''''''''','''''',,:okKKNMMMMMMMMMk;,'''''''',''''''',;;cd0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+''''''''''''''''''''''',:lxxk0KNNWMWWWNXKKKkoooolllcc:;,''''''',,:lOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+''''''''''''''''''',:llx0XWWMMWWWX0kddolcccx0KXXXXKKK0Okxxo:;'''';:OMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+'''''''''''''''''':oOXXNMMMMNXOddl:,'''''''oXNMMMMMMMMMMWWX0l'''';:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+'''''''''''''''':lONWMMMMNXXkl:,,''''''''''dXNMMMMMMMMMMMMWWx,,'';:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''''''',::xXNMMMMWWOoo:''''''''''''''dXNMMMMWNNNNWWWMMk:;'';cOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''''''':oo0MMMMMMWXd,,,,''''''''''',,dXNMMMMNXXXXNWWMMOc;'';cOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+'''''''''''''lOOXMMMMMMXkl'''''''''''''''''dXNMMWNKOOOO0KKNMKxoccod0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''''',:kWWWMMMWWWk:,'''''''''''''''''dXNMMXOkxxxxxxx0NNNXKKKXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''''''cxKMMMMMMNKKo'''''''''''''''''''dXNMMXOkxxxxxxx0NWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+'''''''''''oKNMMMMMMKddc'''''''''''''''''''dXWMMNX0OOOkO00XWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''''''dNWMMMMMM0oo:'''''''''''''''''''oXNMMWWX000OKNNWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''',,xWWMMMMMMOcc;'''''''''''''''''''oXNMMMWNNNXXNWWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''',;;kMMMMMMMMk;;,'''''''''''''''''''dXWMMMMMMMMWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''',::kMMMMMMMMk;;,'''''''''''''''''''dXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''';::kMMMMMMMMk;;,'''''''''''''''''''dXNMMNKOkkkkkkkkkkkkkkkkkkkkkOOOXMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''',;;kMMMMMMMMO::;'''''''''''''''''''dXNMMKxo::::;,,,,,,,,,,,;;;;:cll0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''',,,kMMMMMMMMOcc;'''''''''''''''''''oXNMMXkocc::;,,,''''''''',,;:loo0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''',,xWWMMMMMM0ll:'''''''''''''''''''oXNMMNX0OOOkkxxc'''''',,cxxkkO00XMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''''''oKNMMMMMMKkkc'''''''''''''''''''dXWMMMMMMMMMWWWx,,'''',;kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,''''''''''cdKMMMMMMNXXo'''''''''''''''''''dXWMMMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''''',;xWWWMMMMWWk:;'''''''''''''''''dXNMMMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+,''''''''''''lkkKMMMMMMX0o'''''''''''''''''dXNMMMMMMMMMMMMx,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''''''':llOMMMMMMWWx,,,''''''''''''''dXNWWMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+,'''''''''''',::xXNMMMMMW0oo:''''''''''''''dXNMMMMMMMMMMMMk,,'''',;kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
+;,,''''''''''''':lONWMMMMWNNOl:''''''''''''oXNMMMMMMMMMMMMx,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+.';,,,,''''''''''':dONNWMMMMWXOddl:,'''''''dXNMMMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+  .',,,;,''''',,''',:ookKNMMMMWWWXOxddlc:;;xXNWWWWWWWNXXKKd,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+   .'',:;''''''''''''''cxKMMMMMMMMMWNN0xollxKXWWWWNXXK0Okkl,''''';:kWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
+    ....';;,''''''''''';cokk0XWMMMMWWWXK0OOkxxxxdddddoolcc;'''',,:lOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNK0
+        ...,;,,,,'''',,'',,,:odkkO0KXXNNWWWk:;'''',,,;;:ccclodxkkO0XMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNX0kko:;,
+            .';;;;,'''''''''''',,;:clloodddxxxxxxxkkkOO000KXNWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNXX0kocc:;'..    
+              ....';,''''''''''''''''''''''dXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNXX0koc:;;'.            
+                  ..,;;;,''''''''''''''''''dXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWNXKOOd::;;'.                   
+                    .cc:,''''''''''''''''''dXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNXXK0dcc.                         
+                    ...,;;,,,''''''''''''''dXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNNKOdcc::,...                         
+                        ..'',;,''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNXKOOd::::,..                                 
+                            ..';;,'''''''''oKNMMMMMMMMMMMMMMMMMMMWWNXXKOd::::,...                                        
+                               ..';;,,,''''oXNMMMMMMMMMMMMWWNXKOOdc:;;,.. TODO, too big, what diet for this ascii art ?  
+                                 .::;;,''''oXNWWMMMMMMMMMMWNK0d::.                                                       
+                                 ..',,,,,''oKNMMMMWWWNX0OOdc:;,..                                                        
+                                    ....';;o0KXXKOdcc:;,...                                                              
+                                        .ccdOO00xl.                                                                      
+
 
