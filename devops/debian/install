@@ -1,6 +1,14 @@
 #!/bin/bash
 
+sudo apt update
+sudo apt upgrade
 
+sudo sed -i "s/stretch/buster/g" /etc/apt/sources.list
+
+sudo apt update
+sudo apt dist-upgrade
+
+sudo adduser --disabled-password --gecos "" gargantua
 
 if git --version;
 then 
@@ -10,7 +18,7 @@ else
 fi
 
 sudo apt update
-sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-9.6 nginx libigraph-dev
+sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-11 nginx libigraph0-dev
 
 #echo "Which user?"
 #read USER
@@ -21,20 +29,21 @@ curl -sSL https://get.haskellstack.org/ | sh
 stack update
 stack upgrade
 
-
 git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
+
 
 cd haskell-gargantext
 git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
 
+##########
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo apt update
+sudo apt install yarn
+
 mkdir deps
 cd deps
 git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
-git clone https://github.com/np/servant-job.git
-git clone https://github.com/np/patches-map
-git clone https://gitlab.com/npouillard/patches-class.git
-git clone https://github.com/delanoe/haskell-opaleye
-git clone -b next --single-branch https://github.com/delanoe/hsparql
 cd ..
 
 stack setup
@@ -65,7 +74,11 @@ update-locale LC_ALL=fr_FR.UTF-8
 #######################################################################
 ## POSTGRESQL DATA (as ROOT)
 #######################################################################
-sed -iP "s%^data_directory.*%data_directory = \'\/srv\/gargandata\'%" /etc/postgresql/9.6/main/postgresql.conf 
-echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/9.6/main/pg_hba.conf                                 
-echo "listen_addresses='*'" >> /etc/postgresql/9.6/main/postgresql.conf
+
+PGVersion = 11
+mkdir /srv/gargantua/gargandata
+
+sed -iP "s%^data_directory.*%data_directory = \'\/srv\/gargantua\/gargandata\'%" /etc/postgresql/$PGVersion/main/postgresql.conf 
+#echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/$PGVersion/main/pg_hba.conf                                 
+#echo "listen_addresses='*'" >> /etc/postgresql/$PGVersion/main/postgresql.conf
 
