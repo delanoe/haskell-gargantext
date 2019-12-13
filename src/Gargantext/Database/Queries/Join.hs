@@ -64,7 +64,9 @@ leftJoin3
      -> ((fieldsL2, fieldsR) -> Column PGBool)
      -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
      -> Opaleye.Select (fieldsL1, nullableFieldsR2)
-leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q2 q1 cond12) cond23
+leftJoin3 q1 q2     q3
+         cond12 cond23 =
+  leftJoin q3 ( leftJoin q2 q1 cond12) cond23
 
 
 leftJoin4
@@ -85,7 +87,13 @@ leftJoin4
      -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
      -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
      -> Opaleye.Select (fieldsL1, nullableFieldsR3)
-leftJoin4 q1 q2 q3 q4 cond12 cond23 cond34 = leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34
+leftJoin4 q1 q2     q3     q4
+         cond12 cond23 cond34 =
+  leftJoin q4 ( leftJoin q3
+                ( leftJoin q2 q1
+                    cond12
+                ) cond23
+              ) cond34
 
 
 leftJoin5 :: ( Default Unpackspec fieldsL1 fieldsL1,
@@ -110,7 +118,15 @@ leftJoin5 :: ( Default Unpackspec fieldsL1 fieldsL1,
                -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
                -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
                -> Query (fieldsL1, nullableFieldsR4)
-leftJoin5 q1 q2 q3 q4 q5 cond12 cond23 cond34 cond45 = leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45
+leftJoin5 q1 q2     q3     q4     q5
+         cond12 cond23 cond34 cond45 =
+  leftJoin q5 ( leftJoin q4
+                ( leftJoin q3
+                  ( leftJoin q2 q1
+                       cond12
+                   ) cond23
+                 ) cond34
+               ) cond45
 
 
 leftJoin6 :: ( Default Unpackspec fieldsL1 fieldsL1,
@@ -139,7 +155,17 @@ leftJoin6 :: ( Default Unpackspec fieldsL1 fieldsL1,
      -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
      -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
      -> Query (fieldsL1, nullableFieldsR5)
-leftJoin6 q1 q2 q3 q4 q5 q6 cond12 cond23 cond34 cond45 cond56 = leftJoin q6 (leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45) cond56
+leftJoin6 q1 q2     q3     q4     q5     q6
+         cond12 cond23 cond34 cond45 cond56 =
+  leftJoin q6 ( leftJoin q5
+                ( leftJoin q4
+                  ( leftJoin q3
+                    ( leftJoin q2 q1
+                         cond12
+                     ) cond23
+                  ) cond34
+                ) cond45
+              ) cond56
 
 
 leftJoin7
@@ -175,7 +201,19 @@ leftJoin7
      -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
      -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
      -> Opaleye.Select (fieldsL1, nullableFieldsR6)
-leftJoin7 q1 q2 q3 q4 q5 q6 q7 cond12 cond23 cond34 cond45 cond56 cond67 = leftJoin q7 (leftJoin q6 (leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45) cond56) cond67
+leftJoin7 q1 q2     q3     q4     q5     q6     q7
+         cond12 cond23 cond34 cond45 cond56 cond67 =
+  leftJoin q7 ( leftJoin q6
+                ( leftJoin q5
+                  ( leftJoin q4
+                    ( leftJoin q3
+                      ( leftJoin q2 q1
+                       cond12
+                    ) cond23
+                   ) cond34
+                  ) cond45
+                 ) cond56
+                ) cond67
 
 
 leftJoin8
@@ -216,7 +254,21 @@ leftJoin8
      -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
      -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
      -> Opaleye.Select (fieldsL1, nullableFieldsR7)
-leftJoin8 q1 q2 q3 q4 q5 q6 q7 q8 cond12 cond23 cond34 cond45 cond56 cond67 cond78 = leftJoin q8 (leftJoin q7 (leftJoin q6 (leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45) cond56) cond67) cond78
+leftJoin8 q1 q2     q3     q4     q5     q6     q7     q8
+         cond12 cond23 cond34 cond45 cond56 cond67 cond78 =
+  leftJoin q8 ( leftJoin q7
+                ( leftJoin q6
+                  ( leftJoin q5
+                    ( leftJoin q4
+                      ( leftJoin q3
+                        ( leftJoin q2 q1
+                             cond12
+                        ) cond23
+                      ) cond34
+                    ) cond45
+                  ) cond56
+                ) cond67
+              ) cond78
 
 
 leftJoin9
@@ -262,5 +314,21 @@ leftJoin9
      -> ((fieldsL2, (fieldsL3, nullableFieldsR2)) -> Column PGBool)
      -> ((fieldsL1, (fieldsL2, nullableFieldsR1)) -> Column PGBool)
      -> Opaleye.Select (fieldsL1, nullableFieldsR8)
-leftJoin9 q1 q2 q3 q4 q5 q6 q7 q8 q9 cond12 cond23 cond34 cond45 cond56 cond67 cond78 cond89 = leftJoin q9 (leftJoin q8 (leftJoin q7 (leftJoin q6 (leftJoin q5 (leftJoin q4 (leftJoin q3 (leftJoin q2 q1 cond12) cond23) cond34) cond45) cond56) cond67) cond78) cond89
+leftJoin9   q1 q2    q3     q4     q5     q6      q7    q8     q9
+          cond12 cond23 cond34 cond45 cond56 cond67 cond78 cond89 =
+  leftJoin q9 ( leftJoin q8
+                ( leftJoin q7
+                  ( leftJoin q6
+                    ( leftJoin q5
+                      ( leftJoin q4
+                        ( leftJoin q3
+                          ( leftJoin q2 q1
+                              cond12
+                          ) cond23
+                        ) cond34
+                      ) cond45
+                    ) cond56
+                  ) cond67
+                ) cond78
+              ) cond89
 

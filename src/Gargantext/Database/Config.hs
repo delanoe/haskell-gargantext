@@ -43,6 +43,10 @@ nodeTypeId n =
   case n of
     NodeUser      -> 1
     NodeFolder    -> 2
+    NodeFolderPrivate -> 20
+    NodeFolderShared  -> 21
+    NodeTeam          -> 210
+    NodeFolderPublic  -> 22
     NodeCorpusV3  -> 3
     NodeCorpus    -> 30
     NodeAnnuaire  -> 31
@@ -90,4 +94,9 @@ nodeTypes = [ (n, nodeTypeId n) | n <- allNodeTypes ]
 
 fromNodeTypeId :: NodeTypeId -> NodeType
 fromNodeTypeId tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")
-                            (lookup tId nodeTypeInv)
+                               (lookup tId nodeTypeInv)
+
+
+
+
+

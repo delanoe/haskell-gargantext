@@ -95,7 +95,11 @@ prox_markov g ns l r nf = foldl' (\m _ -> spreading g m r nf) ms path
            _    -> Map.empty
 
 
-spreading :: Graph_Undirected -> Map Node Double -> FalseReflexive -> NeighborsFilter -> Map Node Double
+spreading :: Graph_Undirected
+          -> Map Node Double
+          -> FalseReflexive
+          -> NeighborsFilter
+          -> Map Node Double
 spreading g ms r nf = Map.fromListWith (+) $ List.concat $ map pvalue (Map.keys ms)
   where
     -- TODO if list empty ...
@@ -106,22 +110,6 @@ spreading g ms r nf = Map.fromListWith (+) $ List.concat $ map pvalue (Map.keys 
         value   n'    = maybe 0 identity $ Map.lookup n' ms
         neighborhood  = (nf g n) <> (if r then [n] else [])
 
-
-------------------------------------------------------------------------
--- | Graph Tools
-
-filterNeighbors :: Graph_Undirected -> Node -> [Node]
-filterNeighbors g n = List.nub $ neighbors g n
-
-degree :: Graph_Undirected -> Node -> Double
-degree g n = fromIntegral $ List.length (filterNeighbors g n)
-
-vcount :: Graph_Undirected -> Double
-vcount = fromIntegral . List.length . List.nub . nodes
-
--- | TODO tests, optim and use IGraph library, fix IO ?
-ecount :: Graph_Undirected -> Double
-ecount = fromIntegral . List.length . List.nub . edges
 
 ------------------------------------------------------------------------
 -- | Behavior tests

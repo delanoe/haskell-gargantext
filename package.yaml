@@ -33,6 +33,7 @@ library:
     #  - Gargantext.API.Orchestrator
   - Gargantext.API.Search
   - Gargantext.API.Settings
+  - Gargantext.API.Types
   - Gargantext.Core
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Main
@@ -71,6 +72,9 @@ library:
   - Gargantext.Viz.AdaptativePhylo
   - Gargantext.Viz.Phylo.PhyloMaker
   - Gargantext.Viz.Phylo.Tools
+  - Gargantext.Viz.Phylo.PhyloTools
+  - Gargantext.Viz.Phylo.PhyloExport
+  - Gargantext.Viz.Phylo.SynchronicClustering
   - Gargantext.Viz.Phylo.Example
   - Gargantext.Viz.Phylo.LevelMaker
   - Gargantext.Viz.Phylo.View.Export
@@ -82,11 +86,13 @@ library:
   - aeson
   - aeson-lens
   - aeson-pretty
+  - argon2
   - async
   - attoparsec
   - auto-update
   - base >=4.7 && <5
   - base16-bytestring
+  - base64-bytestring
   - blaze-html
   - blaze-markup
   - blaze-svg
@@ -94,6 +100,7 @@ library:
   - case-insensitive
   - cassava
   #- charsetdetect-ae  # detect charset
+  - clock
   - clustering-louvain
   - conduit
   - conduit-extra
@@ -109,6 +116,7 @@ library:
   - duckling
   - exceptions
   - filepath
+  - formatting
   - fullstop
   - fclabels
   - fgl
@@ -130,7 +138,7 @@ library:
   - hlcm
   - ini
   - insert-ordered-containers
-  - jose-jwt
+  - jose
     #  - kmeans-vector
   - json-stream
   - KMP
@@ -156,10 +164,13 @@ library:
   - profunctors
   - protolude
   - pureMD5
+  - random-shuffle
+  - MonadRandom
   - SHA
   - simple-reflect
   - cereal     # (IGraph)
   - singletons # (IGraph)
+  - quickcheck-instances
   - random
   - rake
   - regex-compat
@@ -169,9 +180,11 @@ library:
   - semigroups
   - servant
   - servant-auth
+  - servant-auth-server >= 0.4.4.0
+  - servant-auth-swagger
   - servant-blaze
   - servant-client
-    #  - servant-job
+  - servant-job
   - servant-mock
   - servant-multipart
   - servant-server

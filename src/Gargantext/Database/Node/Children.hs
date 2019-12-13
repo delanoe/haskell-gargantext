@@ -18,6 +18,7 @@ Portability : POSIX
 
 module Gargantext.Database.Node.Children where
 
+import Data.Proxy
 import Opaleye
 import Gargantext.Core.Types
 import Gargantext.Database.Schema.Node
@@ -29,30 +30,52 @@ import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Control.Arrow (returnA)
 
--- | TODO: use getChildren with Proxy ?
-getContacts :: ParentId -> Maybe NodeType -> Cmd err [Node HyperdataContact]
-getContacts pId maybeNodeType = runOpaQuery $ selectChildren pId maybeNodeType
+getAllDocuments :: ParentId -> Cmd err (TableResult (Node HyperdataDocument))
+getAllDocuments pId = getAllChildren pId (Proxy :: Proxy HyperdataDocument)
+                                         (Just NodeDocument)
 
+getAllContacts :: ParentId -> Cmd err (TableResult (Node HyperdataContact))
+getAllContacts pId = getAllChildren pId (Proxy :: Proxy HyperdataContact)
+                                        (Just NodeContact)
 
-getChildren :: JSONB a => ParentId -> proxy a -> Maybe NodeType -> Maybe Offset -> Maybe Limit -> Cmd err [Node a]
-getChildren pId _ maybeNodeType maybeOffset maybeLimit = runOpaQuery
-                  $ limit' maybeLimit $ offset' maybeOffset
-                  $ orderBy (asc _node_id)
-                  $ selectChildren pId maybeNodeType
+getAllChildren :: JSONB a
+               => ParentId
+               -> proxy a
+               -> Maybe NodeType
+               -> Cmd err (NodeTableResult a)
+getAllChildren pId p maybeNodeType = getChildren pId p maybeNodeType Nothing Nothing
 
-selectChildren :: ParentId -> Maybe NodeType -> Query NodeRead
+getChildren :: JSONB a
+            => ParentId
+            -> proxy a
+            -> Maybe NodeType
+            -> Maybe Offset
+            -> Maybe Limit
+            -> Cmd err (NodeTableResult a)
+getChildren pId _ maybeNodeType maybeOffset maybeLimit = do
+  docs <- runOpaQuery
+          $ limit' maybeLimit $ offset' maybeOffset
+          $ orderBy (asc _node_id)
+          $ query
+
+  docCount <- runCountOpaQuery query
+
+  pure $ TableResult { tr_docs = docs, tr_count = docCount }
+
+  where
+    query = selectChildren pId maybeNodeType
+
+selectChildren :: ParentId
+               -> Maybe NodeType
+               -> Query NodeRead
 selectChildren parentId maybeNodeType = proc () -> do
     row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
     (NodeNode n1id n2id _ _) <- queryNodeNodeTable -< ()
-    
+
     let nodeType = maybe 0 nodeTypeId maybeNodeType
     restrict -< typeName  .== pgInt4 nodeType
-    
+
     restrict -< (.||) (parent_id .== (pgNodeId parentId))
                       ( (.&&) (n1id .== pgNodeId parentId)
                               (n2id .== nId))
     returnA -< row
-
-
-
-

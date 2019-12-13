@@ -30,6 +30,7 @@ import Control.Monad.Except
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.Either.Extra (Either(Left, Right))
 import Data.Ini (readIniFile, lookupValue)
+import qualified Data.List as DL
 import Data.Maybe (maybe)
 import Data.Monoid ((<>))
 import Data.Profunctor.Product.Default (Default)
@@ -41,6 +42,7 @@ import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(Conversion
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
+import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import Text.Read (read)
 import qualified Data.ByteString      as DB
@@ -67,19 +69,29 @@ type Cmd' env err a = forall m. CmdM' env err m => m a
 
 type Cmd err a = forall m env. CmdM env err m => m a
 
+fromInt64ToInt :: Int64 -> Int
+fromInt64ToInt = fromIntegral
+
 -- TODO: ideally there should be very few calls to this functions.
 mkCmd :: (Connection -> IO a) -> Cmd err a
 mkCmd k = do
   conn <- view connection
   liftIO $ k conn
 
-runCmd :: (HasConnection env) => env
-       -> Cmd' env err a
+runCmd :: (HasConnection env)
+       => env -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
 
-runOpaQuery :: Default FromFields fields haskells => Select fields -> Cmd err [haskells]
+runOpaQuery :: Default FromFields fields haskells
+            => Select fields -> Cmd err [haskells]
 runOpaQuery q = mkCmd $ \c -> runQuery c q
+
+runCountOpaQuery :: Select a -> Cmd err Int
+runCountOpaQuery q = do
+  counts <- mkCmd $ \c -> runQuery c $ countRows q
+  -- countRows is guaranteed to return a list with exactly one row so DL.head is safe here
+  pure $ fromInt64ToInt $ DL.head counts
 
 formatPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err DB.ByteString
 formatPGSQuery q a = mkCmd $ \conn -> PGS.formatQuery conn q a

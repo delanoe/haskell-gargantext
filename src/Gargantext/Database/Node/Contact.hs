@@ -22,12 +22,12 @@ module Gargantext.Database.Node.Contact
 
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
-import Data.Swagger (ToSchema)
+import Data.Swagger (ToSchema(..), genericDeclareNamedSchema)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core.Types (Name)
 import Gargantext.Database.Schema.Node (NodeWrite, node)
 import Gargantext.Database.Types.Node (Node,Hyperdata,NodeType(..), UserId, AnnuaireId)
@@ -76,15 +76,15 @@ data ContactWho =
 data ContactWhere =
      ContactWhere { _cw_organization :: [Text]
                   , _cw_labTeamDepts :: [Text]
-                  
+
                   , _cw_role         :: Maybe Text
-                  
+
                   , _cw_office       :: Maybe Text
                   , _cw_country      :: Maybe Text
                   , _cw_city         :: Maybe Text
-                  
+
                   , _cw_touch        :: Maybe ContactTouch
-                  
+
                   , _cw_entry        :: Maybe UTCTime
                   , _cw_exit         :: Maybe UTCTime
   } deriving (Eq, Show, Generic)
@@ -105,15 +105,21 @@ nodeContactW maybeName maybeContact aId =
       contact = maybe arbitraryHyperdataContact identity maybeContact
 
 
--- | Main instances of Contact
-instance ToSchema HyperdataContact
-instance ToSchema ContactWho
-instance ToSchema ContactWhere
-instance ToSchema ContactTouch
+-- | ToSchema instances
+instance ToSchema HyperdataContact where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_hc_")
+instance ToSchema ContactWho where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_cw_")
+instance ToSchema ContactWhere where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_cw_")
+instance ToSchema ContactTouch where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ct_")
+instance ToSchema ContactMetaData where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_cm_")
 
+-- | Arbitrary instances
 instance Arbitrary HyperdataContact where
   arbitrary = elements [HyperdataContact Nothing Nothing [] Nothing Nothing Nothing Nothing Nothing]
-
 
 -- | Specific Gargantext instance
 instance Hyperdata HyperdataContact

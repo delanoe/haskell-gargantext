@@ -37,10 +37,11 @@ import Data.Text    (Text)
 import Data.Set     (Set)
 import Data.Map     (Map)
 import Data.Vector  (Vector)
+import Data.Swagger
 --import Data.Time.Clock.POSIX  (POSIXTime)
 import GHC.Generics (Generic)
 --import Gargantext.Database.Schema.Ngrams (NgramsId)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Prelude
 
@@ -517,6 +518,57 @@ $(deriveJSON (unPrefix "_pn_" ) ''PhyloNode   )
 $(deriveJSON defaultOptions ''Filiation )
 $(deriveJSON defaultOptions ''EdgeType  )
 
+---------------------------
+-- | Swagger instances | --
+---------------------------
+
+instance ToSchema Phylo where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
+instance ToSchema PhyloFoundations where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_foundations")
+instance ToSchema PhyloPeriod where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_period")
+instance ToSchema PhyloLevel where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_level")
+instance ToSchema PhyloGroup where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_group")
+instance ToSchema PhyloFis where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phyloFis_")
+instance ToSchema Software where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_software_")
+instance ToSchema PhyloParam where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phyloParam_")
+instance ToSchema Filter
+instance ToSchema Metric
+instance ToSchema Cluster
+instance ToSchema Proximity where
+  declareNamedSchema = genericDeclareNamedSchemaUnrestricted defaultSchemaOptions
+instance ToSchema FisParams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fis_")
+instance ToSchema HammingParams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_hamming_")
+instance ToSchema LouvainParams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_louvain_")
+instance ToSchema RCParams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_rc_")
+instance ToSchema WLJParams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wlj_")
+instance ToSchema LBParams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_lb_")
+instance ToSchema SBParams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_sb_")
+instance ToSchema PhyloQueryBuild where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_q_")
+instance ToSchema PhyloView where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_pv_")
+instance ToSchema PhyloBranch where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_pb_")
+instance ToSchema PhyloEdge where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_pe_")
+instance ToSchema PhyloNode where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_pn_")
+instance ToSchema Filiation
+instance ToSchema EdgeType
 
 ----------------------------
 -- | TODO XML instances | --

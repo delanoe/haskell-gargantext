@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-|
 Module      : Gargantext.API.Ngrams
 Description : Server API
@@ -32,6 +33,61 @@ add get
 {-# OPTIONS -fno-warn-orphans #-}
 
 module Gargantext.API.Ngrams
+  ( TableNgramsApi
+  , TableNgramsApiGet
+  , TableNgramsApiPut
+  , TableNgramsApiPost
+
+  , getTableNgrams
+  , putListNgrams
+  , tableNgramsPost
+  , apiNgramsTableCorpus
+  , apiNgramsTableDoc
+
+  , NgramsStatePatch
+  , NgramsTablePatch
+
+  , NgramsElement
+  , mkNgramsElement
+  , mergeNgramsElement
+
+  , RootParent(..)
+
+  , MSet
+  , mSetFromList
+  , mSetToList
+
+  , Repo(..)
+  , r_version
+  , r_state
+  , NgramsRepo
+  , NgramsRepoElement(..)
+  , saveRepo
+  , initRepo
+
+  , RepoEnv(..)
+  , renv_var
+  , renv_lock
+
+  , TabType(..)
+  , ngramsTypeFromTabType
+
+  , HasRepoVar(..)
+  , HasRepoSaver(..)
+  , HasRepo(..)
+  , RepoCmdM
+  , QueryParamR
+  , TODO(..)
+
+  -- Internals
+  , getNgramsTableMap
+  , tableNgramsPull
+  , tableNgramsPut
+
+  , Versioned(..)
+  , currentVersion
+  , listNgramsChangedSince
+  )
   where
 
 -- import Debug.Trace (trace)
@@ -56,7 +112,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~))
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -68,11 +124,13 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, count)
 import Data.Validity
+import Formatting (hprint, int, (%))
+import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Utils (fromField', HasConnection)
@@ -87,7 +145,9 @@ import Gargantext.Prelude
 -- import Gargantext.Core.Types (ListTypeId, listTypeId)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Servant hiding (Patch)
+import System.Clock (getTime, TimeSpec, Clock(..))
 import System.FileLock (FileLock)
+import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
@@ -208,7 +268,8 @@ mkNgramsElement ngrams list rp children =
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams = mkNgramsElement ngrams (fromMaybe GraphTerm mayList) Nothing mempty
 
-instance ToSchema NgramsElement
+instance ToSchema NgramsElement where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ne_")
 instance Arbitrary NgramsElement where
   arbitrary = elements [newNgramsElement Nothing "sport"]
 
@@ -462,7 +523,8 @@ data NgramsPatch =
 deriveJSON (unPrefix "_") ''NgramsPatch
 makeLenses ''NgramsPatch
 
-instance ToSchema  NgramsPatch
+instance ToSchema  NgramsPatch where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
@@ -597,7 +659,8 @@ data Versioned a = Versioned
   deriving (Generic, Show)
 deriveJSON (unPrefix "_v_") ''Versioned
 makeLenses ''Versioned
-instance ToSchema a => ToSchema (Versioned a)
+instance ToSchema a => ToSchema (Versioned a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_v_")
 instance Arbitrary a => Arbitrary (Versioned a) where
   arbitrary = Versioned 1 <$> arbitrary -- TODO 1 is constant so far
 
@@ -798,12 +861,34 @@ putListNgrams listId ngramsType nes = do
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
 
+-- TODO-ACCESS check
 tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> Maybe ListType -> [NgramsTerm] -> m ()
 tableNgramsPost tabType listId mayList =
   putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
+currentVersion :: RepoCmdM env err m => m Version
+currentVersion = do
+  var <- view repoVar
+  r <- liftIO $ readMVar var
+  pure $ r ^. r_version
+
+tableNgramsPull :: RepoCmdM env err m
+                => ListId -> NgramsType
+                -> Version
+                -> m (Versioned NgramsTablePatch)
+tableNgramsPull listId ngramsType p_version = do
+  var <- view repoVar
+  r <- liftIO $ readMVar var
+
+  let
+    q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
+    q_table = q ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
+
+  pure (Versioned (r ^. r_version) q_table)
+
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
+-- TODO-ACCESS check
 tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
                  => TabType -> ListId
                  -> Versioned NgramsTablePatch
@@ -811,15 +896,7 @@ tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
 tableNgramsPut tabType listId (Versioned p_version p_table)
   | p_table == mempty = do
       let ngramsType        = ngramsTypeFromTabType tabType
-
-      var <- view repoVar
-      r <- liftIO $ readMVar var
-
-      let
-        q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
-        q_table = q ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
-
-      pure (Versioned (r ^. r_version) q_table)
+      tableNgramsPull listId ngramsType p_version
 
   | otherwise         = do
       let ngramsType        = ngramsTypeFromTabType tabType
@@ -880,7 +957,8 @@ type MaxSize = Int
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
 
-
+getTime' :: MonadIO m => m TimeSpec
+getTime' = liftIO $ getTime ProcessCPUTime
 
 
 getTableNgrams :: forall env err m.
@@ -895,7 +973,8 @@ getTableNgrams :: forall env err m.
 getTableNgrams _nType nId tabType listId limit_ offset
                listType minSize maxSize orderBy searchQuery = do
 
-  _lIds <- selectNodesWithUsername NodeList userMaster
+  t0 <- getTime'
+  -- lIds <- selectNodesWithUsername NodeList userMaster
   let
     ngramsType = ngramsTypeFromTabType tabType
     offset'  = maybe 0 identity offset
@@ -939,15 +1018,21 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores False table = pure table
     setScores True  table = do
       let ngrams_terms = (table ^.. each . ne_ngrams)
-      occurrences <- getOccByNgramsOnlyFast nId
+      t1 <- getTime'
+      occurrences <- getOccByNgramsOnlyFast' nId
+                                             listId
                                             ngramsType
                                             ngrams_terms
+      t2 <- getTime'
+      liftIO $ hprint stderr
+        ("getTableNgrams/setScores #ngrams=" % int % " time=" % timeSpecs % "\n")
+        (length ngrams_terms) t1 t2
       {-
       occurrences <- getOccByNgramsOnlySlow nType nId
                                             (lIds <> [listId])
                                             ngramsType
                                             ngrams_terms
-    -}
+      -}
       let
         setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
@@ -960,11 +1045,24 @@ getTableNgrams _nType nId tabType listId limit_ offset
 
   let nSco = needsScores orderBy
   tableMap1 <- getNgramsTableMap listId ngramsType
+  t1 <- getTime'
   tableMap2 <- tableMap1 & v_data %%~ setScores nSco
                                     . Map.mapWithKey ngramsElementFromRepo
-  tableMap2 & v_data %%~ fmap NgramsTable
-                       . setScores (not nSco)
-                       . selectAndPaginate
+  t2 <- getTime'
+  tableMap3 <- tableMap2 & v_data %%~ fmap NgramsTable
+                                    . setScores (not nSco)
+                                    . selectAndPaginate
+  t3 <- getTime'
+  liftIO $ hprint stderr
+            ("getTableNgrams total=" % timeSpecs
+                          % " map1=" % timeSpecs
+                          % " map2=" % timeSpecs
+                          % " map3=" % timeSpecs
+                          % " sql="  % (if nSco then "map2" else "map3")
+                          % "\n"
+            ) t0 t3 t0 t1 t1 t2 t2 t3
+  pure tableMap3
+
 
 -- APIs
 
@@ -1056,8 +1154,6 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
 
 
 
-
-
 apiNgramsTableCorpus :: ( RepoCmdM env err m
                         , HasNodeError err
                         , HasInvalidError err
@@ -1081,3 +1177,9 @@ apiNgramsTableDoc dId =  getTableNgramsDoc dId
                         -- > add new ngrams in database (TODO AD)
                         -- > index all the corpus accordingly (TODO AD)
 
+listNgramsChangedSince :: RepoCmdM env err m => ListId -> NgramsType -> Version -> m (Versioned Bool)
+listNgramsChangedSince listId ngramsType version
+  | version < 0 =
+      Versioned <$> currentVersion <*> pure True
+  | otherwise   =
+      tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)

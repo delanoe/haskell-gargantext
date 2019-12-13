@@ -21,22 +21,6 @@ import Gargantext.Prelude
 import Data.Maybe (Maybe, fromMaybe)
 import Prelude (String)
 import qualified Data.Text as T
-import Data.Swagger
-import Data.Text (Text)
-
-
-
-swaggerOptions :: Text -> SchemaOptions
-swaggerOptions pref = defaultSchemaOptions
-  { Data.Swagger.fieldLabelModifier = modifier pref
-  , Data.Swagger.unwrapUnaryRecords = False
-  }
-
-
-modifier :: Text -> String -> String
-modifier pref field = T.unpack
-                    $ T.stripPrefix pref (T.pack field) ?! "Expecting prefix " <> T.unpack pref
-
 
 infixr 4 ?|
 

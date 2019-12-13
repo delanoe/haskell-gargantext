@@ -6,6 +6,8 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
+
+TODO-SECURITY: Critical
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -14,6 +16,7 @@ Portability : POSIX
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
@@ -40,16 +43,16 @@ import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
 import Data.Text
-import Data.Text.Encoding (encodeUtf8)
+--import Data.Text.Encoding (encodeUtf8)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
 
 import Servant
+import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings, defaultCookieSettings, readKey, writeKey)
 import Servant.Client (BaseUrl, parseBaseUrl)
---import Servant.Job.Async (newJobEnv, defaultSettings)
+import qualified Servant.Job.Core
+import Servant.Job.Async (newJobEnv, defaultSettings, HasJobEnv(..), Job)
 import Web.HttpApiData (parseUrlPiece)
-import qualified Jose.Jwk as Jose
-import qualified Jose.Jwa as Jose
 
 import Control.Concurrent
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
@@ -60,7 +63,7 @@ import Control.Lens
 import Gargantext.Prelude
 import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
---import Gargantext.API.Orchestrator.Types
+import Gargantext.API.Orchestrator.Types
 
 type PortNumber = Int
 
@@ -77,7 +80,8 @@ data Settings = Settings
     , _logLevelLimit   :: LogLevel -- log level from the monad-logger package
 --    , _dbServer        :: Text
 --    ^ this is not used yet
-    , _jwtSecret       :: Jose.Jwk -- key from the jose-jwt package
+    , _jwtSettings     :: JWTSettings
+    , _cookieSettings  :: CookieSettings
     , _sendLoginEmails :: SendEmailType
     , _scrapydUrl      :: BaseUrl
     , _fileFolder      :: FilePath
@@ -88,30 +92,22 @@ makeLenses ''Settings
 class HasSettings env where
   settings :: Getter env Settings
 
-
-parseJwk :: Text -> Jose.Jwk
-parseJwk secretStr = jwk
-    where
-        secretBs = encodeUtf8 secretStr
-        jwk      = Jose.SymmetricJwk secretBs 
-                                     Nothing 
-                                     Nothing 
-                                     (Just $ Jose.Signed Jose.HS256)
-
-devSettings :: Settings
-devSettings = Settings
+devSettings :: FilePath -> IO Settings
+devSettings jwkFile = do
+  jwkExists <- doesFileExist jwkFile
+  when (not jwkExists) $ writeKey jwkFile
+  jwk <- readKey jwkFile
+  pure $ Settings
     { _allowedOrigin = "http://localhost:8008"
     , _allowedHost = "localhost:3000"
     , _appPort = 3000
     , _logLevelLimit = LevelDebug
 --    , _dbServer = "localhost"
-    -- generate with dd if=/dev/urandom bs=1 count=32 | base64
-    -- make sure jwtSecret differs between development and production, because you do not want
-    -- your production key inside source control.
-    , _jwtSecret = parseJwk "MVg0YAPVSPiYQc/qIs/rV/X32EFR0zOJWfHFgMbszMw="
     , _sendLoginEmails = LogEmailToConsole
     , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
     , _fileFolder = "data"
+    , _cookieSettings = defaultCookieSettings -- TODO-SECURITY tune
+    , _jwtSettings = defaultJWTSettings jwk -- TODO-SECURITY tune
     }
 
 
@@ -147,7 +143,7 @@ data Env = Env
   , _env_repo     :: !RepoEnv
   , _env_manager  :: !Manager
   , _env_self_url :: !BaseUrl
-  --, _env_scrapers :: !ScrapersEnv
+  , _env_scrapers :: !ScrapersEnv
   }
   deriving (Generic)
 
@@ -167,6 +163,12 @@ instance HasRepo Env where
 
 instance HasSettings Env where
   settings = env_settings
+
+instance Servant.Job.Core.HasEnv Env (Job ScraperStatus ScraperStatus) where
+  _env = env_scrapers . Servant.Job.Core._env
+
+instance HasJobEnv Env ScraperStatus ScraperStatus where
+  job_env = env_scrapers
 
 data MockEnv = MockEnv
   { _menv_firewall :: !FireWall
@@ -232,10 +234,13 @@ readRepoEnv = do
   saver <- mkRepoSaver mvar
   pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver, _renv_lock = lock }
 
+devJwkFile :: FilePath
+devJwkFile = "dev.jwk"
+
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
   manager <- newTlsManager
-  settings <- pure (devSettings & appPort .~ port) -- TODO read from 'file'
+  settings <- devSettings devJwkFile <&> appPort .~ port -- TODO read from 'file'
   when (port /= settings ^. appPort) $
     panic "TODO: conflicting settings of port"
 
@@ -243,7 +248,7 @@ newEnv port file = do
   param    <- databaseParameters file
   conn     <- connect param
   repo     <- readRepoEnv
-  --scrapers_env <- newJobEnv defaultSettings manager
+  scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
 
   pure $ Env
@@ -252,7 +257,7 @@ newEnv port file = do
     , _env_conn       = conn
     , _env_repo       = repo
     , _env_manager    = manager
-    --, _env_scrapers   = scrapers_env
+    , _env_scrapers   = scrapers_env
     , _env_self_url   = self_url
     }
 
@@ -295,10 +300,11 @@ withDevEnv iniPath k = do
       param <- databaseParameters iniPath
       conn  <- connect param
       repo  <- readRepoEnv
+      setts <- devSettings devJwkFile
       pure $ DevEnv
         { _dev_env_conn = conn
         , _dev_env_repo = repo
-        , _dev_env_settings = devSettings
+        , _dev_env_settings = setts
         }
 
 -- | Run Cmd Sugar for the Repl (GHCI)

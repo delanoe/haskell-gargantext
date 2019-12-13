@@ -25,7 +25,7 @@ module Gargantext.Database.Schema.NodeNodeNgrams
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
---import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Lens.TH (makeLenses)
 import Gargantext.Database.Utils (Cmd, mkCmd)
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)
 import Gargantext.Database.Schema.Node (pgNodeId)
@@ -35,12 +35,12 @@ import Opaleye
 
 
 data NodeNodeNgramsPoly id' n1 n2 ngrams_id ngt w
-   = NodeNodeNgrams { nnng_id         :: id'
-                    , nnng_node1_id   :: n1
-                    , nnng_node2_id   :: n2
-                    , nnng_ngrams_id  :: ngrams_id
-                    , nnng_ngramsType :: ngt
-                    , nnng_weight     :: w
+   = NodeNodeNgrams { _nnng_id         :: id'
+                    , _nnng_node1_id   :: n1
+                    , _nnng_node2_id   :: n2
+                    , _nnng_ngrams_id  :: ngrams_id
+                    , _nnng_ngramsType :: ngt
+                    , _nnng_weight     :: w
                     } deriving (Show)
 
 
@@ -71,19 +71,19 @@ type NodeNodeNgramsReadNull =
 type NodeNodeNgrams =
   NodeNodeNgramsPoly (Maybe Int) CorpusId DocId NgramsId NgramsTypeId Double
 
---{-
 $(makeAdaptorAndInstance "pNodeNodeNgrams" ''NodeNodeNgramsPoly)
--- $(makeLensesWith          abbreviatedFields ''NodeNodeNgramsPoly)
+makeLenses ''NodeNodeNgramsPoly
+
 
 nodeNodeNgramsTable :: Table NodeNodeNgramsWrite NodeNodeNgramsRead
 nodeNodeNgramsTable  = Table "node_node_ngrams"
                           ( pNodeNodeNgrams NodeNodeNgrams
-                               { nnng_id         = optional "id"
-                               , nnng_node1_id   = required "node1_id"
-                               , nnng_node2_id   = required "node2_id"
-                               , nnng_ngrams_id  = required "ngrams_id"
-                               , nnng_ngramsType = required "ngrams_type"
-                               , nnng_weight     = required "weight"
+                               { _nnng_id         = optional "id"
+                               , _nnng_node1_id   = required "node1_id"
+                               , _nnng_node2_id   = required "node2_id"
+                               , _nnng_ngrams_id  = required "ngrams_id"
+                               , _nnng_ngramsType = required "ngrams_type"
+                               , _nnng_weight     = required "weight"
                                }
                           )
 

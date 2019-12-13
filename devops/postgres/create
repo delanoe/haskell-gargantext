@@ -1,19 +1,21 @@
 #!/bin/bash
 
-sudo su postgres
+# sudo su postgres
+
+# postgresql://$USER:$PW@localhost/$DB
 
 PW="password"
 DB="gargandbV5"
 USER="gargantua"
 
-psql -c "CREATE USER \"${USER}\"
+psql -c "CREATE USER \"${USER}\""
 psql -c "ALTER USER \"${USER}\" with PASSWORD \"${PW}\""
 
 psql -c "DROP DATABASE IF EXISTS \"${DB}\""
 createdb "${DB}"
 psql "${DB}" < schema.sql
 
-psql -c "ALTER DATABASE \"${DB}\" OWNER to \"${USER}\" ;"
+psql -c "ALTER DATABASE \"${DB}\" OWNER to \"${USER}\""
 
 
 
