@@ -23,7 +23,6 @@ module Gargantext.Database.Schema.NodeNodeNgrams
   where
 
 import Prelude
-import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLenses)
 import Gargantext.Database.Utils (Cmd, mkCmd)
@@ -34,9 +33,8 @@ import Opaleye
 
 
 
-data NodeNodeNgramsPoly id' n1 n2 ngrams_id ngt w
-   = NodeNodeNgrams { _nnng_id         :: id'
-                    , _nnng_node1_id   :: n1
+data NodeNodeNgramsPoly n1 n2 ngrams_id ngt w
+   = NodeNodeNgrams { _nnng_node1_id   :: n1
                     , _nnng_node2_id   :: n2
                     , _nnng_ngrams_id  :: ngrams_id
                     , _nnng_ngramsType :: ngt
@@ -45,8 +43,7 @@ data NodeNodeNgramsPoly id' n1 n2 ngrams_id ngt w
 
 
 type NodeNodeNgramsWrite =
-     NodeNodeNgramsPoly (Maybe (Column PGInt4  ))
-                        (Column PGInt4  )
+     NodeNodeNgramsPoly (Column PGInt4  )
                         (Column PGInt4  )
                         (Column PGInt4  )
                         (Column PGInt4  )
@@ -57,7 +54,6 @@ type NodeNodeNgramsRead  =
                         (Column PGInt4  )
                         (Column PGInt4  )
                         (Column PGInt4  )
-                        (Column PGInt4  )
                         (Column PGFloat8)
 
 type NodeNodeNgramsReadNull =
@@ -65,11 +61,10 @@ type NodeNodeNgramsReadNull =
                         (Column (Nullable PGInt4  ))
                         (Column (Nullable PGInt4  ))
                         (Column (Nullable PGInt4  ))
-                        (Column (Nullable PGInt4  ))
                         (Column (Nullable PGFloat8))
 
 type NodeNodeNgrams =
-  NodeNodeNgramsPoly (Maybe Int) CorpusId DocId NgramsId NgramsTypeId Double
+  NodeNodeNgramsPoly CorpusId DocId NgramsId NgramsTypeId Double
 
 $(makeAdaptorAndInstance "pNodeNodeNgrams" ''NodeNodeNgramsPoly)
 makeLenses ''NodeNodeNgramsPoly
@@ -78,8 +73,7 @@ makeLenses ''NodeNodeNgramsPoly
 nodeNodeNgramsTable :: Table NodeNodeNgramsWrite NodeNodeNgramsRead
 nodeNodeNgramsTable  = Table "node_node_ngrams"
                           ( pNodeNodeNgrams NodeNodeNgrams
-                               { _nnng_id         = optional "id"
-                               , _nnng_node1_id   = required "node1_id"
+                               { _nnng_node1_id   = required "node1_id"
                                , _nnng_node2_id   = required "node2_id"
                                , _nnng_ngrams_id  = required "ngrams_id"
                                , _nnng_ngramsType = required "ngrams_type"
@@ -94,9 +88,8 @@ queryNodeNodeNgramsTable = queryTable nodeNodeNgramsTable
 -- | Insert utils
 insertNodeNodeNgrams :: [NodeNodeNgrams] -> Cmd err Int
 insertNodeNodeNgrams = insertNodeNodeNgramsW
-                     . map (\(NodeNodeNgrams id'' n1 n2 ng nt w) ->
-                              NodeNodeNgrams (pgInt4 <$> id'')
-                                             (pgNodeId n1)
+                     . map (\(NodeNodeNgrams n1 n2 ng nt w) ->
+                              NodeNodeNgrams (pgNodeId n1)
                                              (pgNodeId n2)
                                              (pgInt4   ng)
                                              (pgNgramsTypeId nt)

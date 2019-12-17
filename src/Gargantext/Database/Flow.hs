@@ -67,7 +67,6 @@ import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Utils (Cmd, CmdM)
-import Gargantext.Database.Triggers
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
@@ -221,6 +220,7 @@ flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
 flowCorpusUser l userName corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName ctype
+  listId <- getOrMkList userCorpusId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
   tId <- mkNode NodeTexts userCorpusId userId
@@ -229,11 +229,11 @@ flowCorpusUser l userName corpusName ctype ids = do
 
   -- User List Flow
   --{-
-  (masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
+  (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
   ngs        <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
-  userListId <- flowList userId userCorpusId ngs
-  mastListId <- getOrMkList masterCorpusId masterUserId
-  _ <- insertOccsUpdates userCorpusId mastListId
+  userListId <- flowList listId ngs
+  --mastListId <- getOrMkList masterCorpusId masterUserId
+  -- _ <- insertOccsUpdates userCorpusId mastListId
   printDebug "userListId" userListId
   -- User Graph Flow
   _ <- mkDashboard userCorpusId userId
@@ -475,12 +475,10 @@ listInsert lId ngs = mapM_ (\(typeList, ngElmts)
                              ) $ toList ngs
 
 flowList :: FlowCmdM env err m
-         => UserId
-         -> CorpusId
+         => ListId
          -> Map NgramsType [NgramsElement]
          -> m ListId
-flowList uId cId ngs = do
-  lId <- getOrMkList cId uId
+flowList lId ngs = do
   printDebug "listId flowList" lId
   listInsert lId ngs
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs

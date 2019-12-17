@@ -96,7 +96,3 @@ fromNodeTypeId :: NodeTypeId -> NodeType
 fromNodeTypeId tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")
                                (lookup tId nodeTypeInv)
 
-
-
-
-

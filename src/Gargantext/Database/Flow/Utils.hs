@@ -66,7 +66,7 @@ docNgrams2nodeNodeNgrams :: CorpusId
                          -> DocNgrams
                          -> NodeNodeNgrams
 docNgrams2nodeNodeNgrams cId (DocNgrams d n nt w) =
-  NodeNodeNgrams Nothing cId d n nt w
+  NodeNodeNgrams cId d n nt w
 
 data DocNgrams = DocNgrams { dn_doc_id :: DocId
                            , dn_ngrams_id :: Int
