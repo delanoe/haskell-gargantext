@@ -214,7 +214,7 @@ mkRepoSaver repo_var = mkDebounce settings
 readRepoEnv :: IO RepoEnv
 readRepoEnv = do
   -- Does file exist ? :: Bool
-  _repoDir <- doesDirectoryExist True repoDir
+  _repoDir <- createDirectoryIfMissing True repoDir
 
   repoFile <- doesFileExist repoSnapshot
 
