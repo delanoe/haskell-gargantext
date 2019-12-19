@@ -178,14 +178,18 @@ data MockEnv = MockEnv
 makeLenses ''MockEnv
 
 -- | TODO add this path in Settings
+
+repoDir :: FilePath
+repoDir = "repos"
+
 repoSnapshot :: FilePath
-repoSnapshot = "repo.json"
+repoSnapshot = repoDir <> "/repo.json"
 
 -- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: ToJSON a => a -> IO ()
 repoSaverAction a = do
-  withTempFile "." "tmp-repo.json" $ \fp h -> do
+  withTempFile "repos" "tmp-repo.json" $ \fp h -> do
     -- printDebug "repoSaverAction" fp
     L.hPut h $ encode a
     hClose h
@@ -210,6 +214,8 @@ mkRepoSaver repo_var = mkDebounce settings
 readRepoEnv :: IO RepoEnv
 readRepoEnv = do
   -- Does file exist ? :: Bool
+  _repoDir <- doesDirectoryExist True repoDir
+
   repoFile <- doesFileExist repoSnapshot
 
   -- Is file not empty ? :: Bool
@@ -230,7 +236,7 @@ readRepoEnv = do
         pure repo
       else
         pure initRepo
-
+  -- TODO save in DB here
   saver <- mkRepoSaver mvar
   pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver, _renv_lock = lock }
 

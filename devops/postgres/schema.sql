@@ -93,13 +93,12 @@ ALTER TABLE public.nodes_nodes OWNER TO gargantua;
 ---------------------------------------------------------------
 -- TODO should reference "id" of nodes_nodes (instead of node1_id, node2_id)
 CREATE TABLE public.node_node_ngrams (
-id SERIAL,
 node1_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
 node2_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
 ngrams_id  INTEGER NOT NULL REFERENCES public.ngrams (id) ON DELETE CASCADE,
 ngrams_type INTEGER,
 weight double precision,
-PRIMARY KEY (id)
+PRIMARY KEY (node1_id, node2_id, ngrams_id, ngrams_type)
 );
 ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
 --------------------------------------------------------------

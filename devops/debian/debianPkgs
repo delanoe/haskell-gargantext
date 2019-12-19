@@ -14,5 +14,5 @@ sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config l
 # Phylo management
 sudo apt install graphviz
 
-sudo apt install postgresql-server-dev-9.6 
+sudo apt install postgresql-server-dev-11
 
