@@ -74,8 +74,8 @@ data ClustersParams = ClustersParams { bridgness :: Double
 clustersParams :: Int -> ClustersParams
 clustersParams x = ClustersParams (fromIntegral x) y
   where
-    y | x < 100  = "0.0001"
-      | x < 350  = "0.001"
+    y | x < 100  = "0.01"
+      | x < 350  = "0.01"
       | x < 500  = "0.01"
       | x < 1000 = "0.1"
       | otherwise = "1"

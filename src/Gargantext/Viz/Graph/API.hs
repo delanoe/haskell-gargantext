@@ -24,6 +24,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
+import Debug.Trace (trace)
 import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (Maybe(..))
@@ -77,7 +78,8 @@ getGraph uId nId = do
   let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
-  case graph of
+
+  g <- case graph of
     Nothing     -> do
       graph' <- computeGraph cId NgramsTerms v
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
@@ -89,6 +91,8 @@ getGraph uId nId = do
                        graph'' <- computeGraph cId NgramsTerms v
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure graph''
+  pure $ trace ("salut" <> show g) $ g
+
 
 -- TODO use Database Monad only here ?
 computeGraph :: CorpusId -> NgramsType -> Int -> GargServer (Get '[JSON] Graph)
