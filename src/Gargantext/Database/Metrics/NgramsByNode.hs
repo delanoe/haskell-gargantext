@@ -279,8 +279,6 @@ queryNgramsOccurrencesOnlyByNodeUser' = [sql|
   |]
 
 
-
-
 getNodesByNgramsOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
                          -> Cmd err (Map Text (Set NodeId))
 getNodesByNgramsOnlyUser cId ls nt ngs =

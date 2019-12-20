@@ -60,6 +60,7 @@ module Gargantext.API.Ngrams
   , Repo(..)
   , r_version
   , r_state
+  , r_history
   , NgramsRepo
   , NgramsRepoElement(..)
   , saveRepo

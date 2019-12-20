@@ -480,6 +480,7 @@ flowList :: FlowCmdM env err m
          -> m ListId
 flowList lId ngs = do
   printDebug "listId flowList" lId
+  -- TODO save in database
   listInsert lId ngs
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
   pure lId

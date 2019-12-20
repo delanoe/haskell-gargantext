@@ -78,7 +78,7 @@ getGraph uId nId = do
   let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
-
+  
   g <- case graph of
     Nothing     -> do
       graph' <- computeGraph cId NgramsTerms v
