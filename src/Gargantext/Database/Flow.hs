@@ -49,8 +49,7 @@ import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
 import GHC.Show (Show)
-import Gargantext.API.Ngrams (HasRepoVar)
-import Gargantext.API.Ngrams (NgramsElement, putListNgrams, RepoCmdM)
+import Gargantext.API.Ngrams (HasRepoVar, NgramsElement(..), putListNgrams, RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
@@ -63,6 +62,7 @@ import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, {-mkPhylo,-} mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
+import Gargantext.Database.Schema.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
@@ -474,6 +474,19 @@ listInsert lId ngs = mapM_ (\(typeList, ngElmts)
                              -> putListNgrams lId typeList ngElmts
                              ) $ toList ngs
 
+toNodeNgramsW :: ListId
+              -> [(NgramsType, [NgramsElement])]
+              -> [NodeNgramsW]
+toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW' l) ngs
+  where
+    toNodeNgramsW' :: ListId
+                  -> (NgramsType, [NgramsElement])
+                  -> [NodeNgramsW]
+    toNodeNgramsW' l' (ngrams_type, elms) =
+      [ NodeNgrams Nothing l' list_type ngrams_terms' ngrams_type Nothing Nothing Nothing 0 |
+       (NgramsElement ngrams_terms' _size list_type _occ _root _parent _children) <- elms
+      ]
+
 flowList :: FlowCmdM env err m
          => ListId
          -> Map NgramsType [NgramsElement]
@@ -481,6 +494,7 @@ flowList :: FlowCmdM env err m
 flowList lId ngs = do
   printDebug "listId flowList" lId
   -- TODO save in database
+  _ <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
   listInsert lId ngs
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
   pure lId

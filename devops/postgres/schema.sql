@@ -1,10 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 CREATE EXTENSION IF NOT EXISTS tsm_system_rows;
-
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
--- CREATE USER WITH ...
--- createdb "gargandb"
 
 CREATE TABLE public.auth_user (
     id SERIAL,
@@ -23,7 +19,6 @@ CREATE TABLE public.auth_user (
 
 ALTER TABLE public.auth_user OWNER TO gargantua;
 
-
 -- TODO add publication_date
 -- TODO typename -> type_id
 CREATE TABLE public.nodes (
@@ -40,7 +35,6 @@ CREATE TABLE public.nodes (
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
 
-
 CREATE TABLE public.ngrams (
     id SERIAL,
     terms character varying(255),
@@ -53,19 +47,18 @@ ALTER TABLE public.ngrams OWNER TO gargantua;
 CREATE TABLE public.node_ngrams (
     id SERIAL,
     node_id integer NOT NULL,
+    node_subtype integer,
     ngrams_id integer NOT NULL,
-    list_type integer,
     ngrams_type integer, -- change to ngrams_field? (no for pedagogic reason)
     ngrams_field integer,
     ngrams_tag integer,
     ngrams_class integer,
     weight double precision,
+    PRIMARY KEY (id),
     FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
-    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
-    PRIMARY KEY (id)
+    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
 );
 ALTER TABLE public.node_ngrams OWNER TO gargantua;
-
 
 CREATE TABLE public.node_node_ngrams_ngrams (
     node_id integer NOT NULL,

@@ -47,7 +47,7 @@ module Gargantext.API.Ngrams
   , NgramsStatePatch
   , NgramsTablePatch
 
-  , NgramsElement
+  , NgramsElement(..)
   , mkNgramsElement
   , mergeNgramsElement
 

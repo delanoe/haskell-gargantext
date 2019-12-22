@@ -101,7 +101,7 @@ instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
 
 
 -- TODO: Add option on conflict
-insertNodeNgramsNgramsNew :: [NodeNgramsNgrams] -> Cmd err Int
+insertNodeNgramsNgramsNew :: [NodeNgramsNgrams] -> Cmd err Int64
 insertNodeNgramsNgramsNew = insertNodeNgramsNgramsW
                  . map (\(NodeNgramsNgrams n ng1 ng2 maybeWeight) ->
                           NodeNgramsNgrams (pgNodeId n  )
@@ -110,8 +110,8 @@ insertNodeNgramsNgramsNew = insertNodeNgramsNgramsW
                                            (pgDouble <$> maybeWeight)
                         )
 
-insertNodeNgramsNgramsW :: [NodeNgramsNgramsWrite] -> Cmd err Int
+insertNodeNgramsNgramsW :: [NodeNgramsNgramsWrite] -> Cmd err Int64
 insertNodeNgramsNgramsW ns = do
   c <- view connection
-  liftIO $ fromIntegral <$> runInsertMany c nodeNgramsNgramsTable ns
+  liftIO $ runInsertMany c nodeNgramsNgramsTable ns
 
