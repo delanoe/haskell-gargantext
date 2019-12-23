@@ -7,7 +7,8 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-NodeNgrams: mainly NodeList and its ngrams.
+NodeNgrams register Context of Ngrams (named Cgrams then)
+
 
 -}
 
@@ -35,7 +36,6 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Data.Maybe (Maybe, fromMaybe)
 import Gargantext.Core.Types
 import Gargantext.Database.Utils
-import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Ngrams (NgramsType, NgramsTypeId, ngramsTypeId)
 import Gargantext.Prelude
 
@@ -105,21 +105,23 @@ type NodeNgramsW =
                   NgramsType (Maybe NgramsField) (Maybe NgramsTag) (Maybe NgramsClass)
                   Double
 
-data Result = Result { unResult :: Int }
+data Returning = Returning { re_terms :: Text 
+                           , re_ngrams_id :: Int
+                           }
   deriving (Show)
 
-instance FromRow Result where
-  fromRow = Result <$> field
+instance FromRow Returning where
+  fromRow = Returning <$> field <*> field
 
 -- insertDb :: ListId -> Map NgramsType [NgramsElemet] -> Cmd err [Result]
 listInsertDb :: ListId
              -> (ListId -> a -> [NodeNgramsW])
              -> a
-             -> Cmd err [Result]
+             -> Cmd err [Returning]
 listInsertDb l f ngs = insertNodeNgrams (f l ngs)
 
 -- TODO optimize with size of ngrams
-insertNodeNgrams :: [NodeNgramsW] -> Cmd err [Result]
+insertNodeNgrams :: [NodeNgramsW] -> Cmd err [Returning]
 insertNodeNgrams nns = runPGSQuery query (PGS.Only $ Values fields nns')
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) [ "int4","int4","text","int4"
@@ -140,10 +142,11 @@ insertNodeNgrams nns = runPGSQuery query (PGS.Only $ Values fields nns')
 
     query :: PGS.Query
     query = [sql|
-          INSERT INTO node_ngrams_ngrams VALUES (node_id, node_type, ngrams_id, ngrams_type, ngrams_field, ngrams_tag, ngrams_class, weight)
+          INSERT INTO node_ngrams_ngrams nnn VALUES (node_id, node_type, ngrams_id, ngrams_type, ngrams_field, ngrams_tag, ngrams_class, weight)
           SELECT n.node_id, n.node_type, ng.ngrams_id, n.ngrams_type, n.ngrams_field, n.ngrams_tag, n.ngrams_class, n.weight FROM (?)
               AS n(node_id, node_type, ngrams_terms, ngrams_type, ngrams_field, ngrams_tag, ngrams_class, weight)
           INNER JOIN ngrams as ng ON ng.terms = n.ngrams_terms
           ON CONFLICT(node_id, ngrams_id)
           DO UPDATE SET node_type = excluded.node_type, ngrams_type = excluded.ngrams_type, ngrams_field = excluded.ngrams_field, ngrams_tag = excluded.ngrams_tag, ngrams_class = excluded.ngrams_class, weight = excluded.weight
+          RETURNING nnn.id, n.ngrams_terms
   |]
