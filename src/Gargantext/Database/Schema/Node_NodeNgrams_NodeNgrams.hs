@@ -35,12 +35,10 @@ Next Step benchmark:
 module Gargantext.Database.Schema.Node_NodeNgrams_NodeNgrams
   where
 
-import Control.Lens (view)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Gargantext.Database.Utils (Cmd, runOpaQuery, connection)
+import Gargantext.Database.Utils (Cmd, runOpaQuery, mkCmd)
 import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Prelude
@@ -115,6 +113,10 @@ insert_Node_NodeNgrams_NodeNgrams = insert_Node_NodeNgrams_NodeNgrams_W
                         )
 
 insert_Node_NodeNgrams_NodeNgrams_W :: [Node_NodeNgrams_NodeNgrams_Write] -> Cmd err Int64
-insert_Node_NodeNgrams_NodeNgrams_W ns = do
-  c <- view connection
-  liftIO $ runInsertMany c node_NodeNgrams_NodeNgrams_Table ns
+insert_Node_NodeNgrams_NodeNgrams_W ns =
+  mkCmd $ \c -> runInsert_ c Insert { iTable = node_NodeNgrams_NodeNgrams_Table
+                                    , iRows  = ns
+                                    , iReturning = rCount
+                                    , iOnConflict = (Just DoNothing)
+                                    }
+
