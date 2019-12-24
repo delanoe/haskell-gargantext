@@ -36,7 +36,7 @@ import Gargantext.Database.Config
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Node.Select
-import Gargantext.Database.Schema.Node (getNode, defaultList, insertGraph)
+import Gargantext.Database.Schema.Node (getNodeWith, defaultList, insertGraph)
 import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Prelude
@@ -63,7 +63,7 @@ graphAPI u n =  getGraph  u n
 
 getGraph :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
 getGraph uId nId = do
-  nodeGraph <- getNode nId HyperdataGraph
+  nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let graphVersion = graph ^? _Just
                             . graph_metadata
@@ -71,7 +71,7 @@ getGraph uId nId = do
                             . gm_version
 
   v <- currentVersion
-  nodeUser <- getNode (NodeId uId) HyperdataUser
+  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
 
   let uId' = nodeUser ^. node_userId
 

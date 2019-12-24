@@ -444,6 +444,7 @@ data NodeType = NodeUser
               | NodeGraph      | NodePhylo
               | NodeDashboard  | NodeChart    | NodeNoteBook
               | NodeList       | NodeListModel
+              | NodeListCooc
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 

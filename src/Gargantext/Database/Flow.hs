@@ -221,20 +221,21 @@ flowCorpusUser l userName corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName ctype
   listId <- getOrMkList userCorpusId userId
+  _cooc  <- mkNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
-  tId <- mkNode NodeTexts userCorpusId userId
 
-  printDebug "Node Text Id" tId
+  _tId <- mkNode NodeTexts userCorpusId userId
+  -- printDebug "Node Text Id" tId
 
   -- User List Flow
   --{-
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
   ngs        <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
-  userListId <- flowList listId ngs
+  _userListId <- flowList listId ngs
   --mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId
-  printDebug "userListId" userListId
+  -- printDebug "userListId" userListId
   -- User Graph Flow
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph  userCorpusId userId
@@ -284,6 +285,7 @@ insertMasterDocs c lang hs  =  do
   let indexedNgrams = Map.mapKeys (indexNgrams terms2id) maps
 
   lId <- getOrMkList masterCorpusId masterUserId
+  _cooc <- mkNode NodeListCooc lId masterUserId
   _   <- insertDocNgrams lId indexedNgrams
 
   pure $ map reId ids
@@ -494,7 +496,8 @@ flowList :: FlowCmdM env err m
 flowList lId ngs = do
   printDebug "listId flowList" lId
   -- TODO save in database
-  _ <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+  r <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+  printDebug "result " r
   listInsert lId ngs
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
   pure lId
