@@ -61,13 +61,15 @@ CREATE TABLE public.node_ngrams (
 ALTER TABLE public.node_ngrams OWNER TO gargantua;
 
 CREATE TABLE public.node_node_ngrams_ngrams (
-    node_id integer NOT NULL,
+    node1_id integer NOT NULL,
+    node2_id integer NOT NULL,
     node_ngrams1_id integer NOT NULL,
     node_ngrams2_id integer NOT NULL,
-    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (node1_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (node2_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
     FOREIGN KEY (node_ngrams1_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
     FOREIGN KEY (node_ngrams2_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
-    PRIMARY KEY (node_id, node_ngrams1_id, node_ngrams2_id)
+    PRIMARY KEY (node1_id, node2_id, node_ngrams1_id, node_ngrams2_id)
 );
 ALTER TABLE public.node_node_ngrams_ngrams OWNER TO gargantua;
 

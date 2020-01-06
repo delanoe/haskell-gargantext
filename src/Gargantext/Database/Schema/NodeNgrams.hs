@@ -125,7 +125,7 @@ listInsertDb l f ngs = insertNodeNgrams (f l ngs)
 insertNodeNgrams :: [NodeNgramsW] -> Cmd err [Returning]
 insertNodeNgrams nns = runPGSQuery query (PGS.Only $ Values fields nns')
   where
-    fields = map (\t-> QualifiedIdentifier Nothing t) [ "int4","int4","text","int4"
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","text","int4"
                                                       ,"int4","int4","int4","int4"
                                                       ,"float8"]
     -- nns' :: [(Int, ListTypeId, NgramsText, NgramsTypeId ,NgramsField, NgramsTag, NgramsClass, Double)]

@@ -77,8 +77,8 @@ flowList :: FlowCmdM env err m
 flowList lId ngs = do
   printDebug "listId flowList" lId
   -- TODO save in database
-  r <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
-  printDebug "result " r
+  _r <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+  -- printDebug "result " r
   listInsert lId ngs
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
   pure lId
