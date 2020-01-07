@@ -28,7 +28,7 @@ import Debug.Trace (trace)
 import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (Maybe(..))
-import Gargantext.API.Ngrams (currentVersion)
+import Gargantext.API.Ngrams (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
 import Gargantext.Core.Types.Main
@@ -36,9 +36,10 @@ import Gargantext.Database.Config
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Node.Select
-import Gargantext.Database.Schema.Node (getNodeWith, defaultList, insertGraph)
+import Gargantext.Database.Schema.Node (getNodeWith, defaultList, insertGraph, HasNodeError)
 import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
@@ -70,7 +71,8 @@ getGraph uId nId = do
                             . _Just
                             . gm_version
 
-  v <- currentVersion
+  repo <- getRepo
+  let v = repo ^. r_version
   nodeUser <- getNodeWith (NodeId uId) HyperdataUser
 
   let uId' = nodeUser ^. node_userId
@@ -78,39 +80,41 @@ getGraph uId nId = do
   let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
-  
+
   g <- case graph of
     Nothing     -> do
-      graph' <- computeGraph cId NgramsTerms v
+      graph' <- computeGraph cId NgramsTerms repo
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
       pure graph'
 
     Just graph' -> if graphVersion == Just v
                      then pure graph'
                      else do
-                       graph'' <- computeGraph cId NgramsTerms v
+                       graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure graph''
   pure $ trace ("salut" <> show g) $ g
 
 
 -- TODO use Database Monad only here ?
-computeGraph :: CorpusId -> NgramsType -> Int -> GargServer (Get '[JSON] Graph)
-computeGraph cId nt v = do
+computeGraph :: HasNodeError err => CorpusId -> NgramsType -> NgramsRepo -> Cmd err Graph
+computeGraph cId nt repo = do
   lId  <- defaultList cId
-  v'   <- currentVersion
+
+  -- what is the relation between this version and repo^.r_version.
+  -- v'   <- currentVersion
+  let v' = repo ^. r_version
 
   let metadata = GraphMetadata "Title" [cId]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
                                 (ListForGraph lId v')
-                                v
+                                (repo ^. r_version)
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   lIds <- selectNodesWithUsername NodeList userMaster
-  repo <- getRepo
-  let ngs = filterListWithRoot GraphTerm <$> mapTermListRoot [lId] nt repo
+  let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] nt repo
 
   myCooc <- Map.filter (>1)
          <$> getCoocByNgrams (Diagonal True)
