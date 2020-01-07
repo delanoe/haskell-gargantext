@@ -75,7 +75,8 @@ getGraph nId = do
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   lIds <- selectNodesWithUsername NodeList userMaster
-  ngs  <- filterListWithRoot GraphTerm <$> mapTermListRoot [lId] NgramsTerms
+  repo <- getRepo
+  let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] NgramsTerms repo
 
   myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
                             <$> groupNodesByNgrams ngs
