@@ -65,10 +65,11 @@ getGraph :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
 getGraph uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
-  let graphVersion = graph ^? _Just
+  let listVersion = graph ^? _Just
                             . graph_metadata
                             . _Just
-                            . gm_version
+                            . gm_list
+                            . lfg_version
 
   v <- currentVersion
   nodeUser <- getNodeWith (NodeId uId) HyperdataUser
@@ -85,7 +86,7 @@ getGraph uId nId = do
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
       pure graph'
 
-    Just graph' -> if graphVersion == Just v
+    Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
                        graph'' <- computeGraph cId NgramsTerms v
@@ -98,14 +99,12 @@ getGraph uId nId = do
 computeGraph :: CorpusId -> NgramsType -> Int -> GargServer (Get '[JSON] Graph)
 computeGraph cId nt v = do
   lId  <- defaultList cId
-  v'   <- currentVersion
 
   let metadata = GraphMetadata "Title" [cId]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
-                                (ListForGraph lId v')
-                                v
+                                (ListForGraph lId v)
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   lIds <- selectNodesWithUsername NodeList userMaster

@@ -100,7 +100,7 @@ data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the grap
                                    , _gm_corpusId :: [NodeId]  -- we can map with different corpus
                                    , _gm_legend   :: [LegendField] -- legend of the Graph
                                    , _gm_list     :: ListForGraph
-                                   , _gm_version  :: Int
+                                   -- , _gm_version  :: Int
                                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
