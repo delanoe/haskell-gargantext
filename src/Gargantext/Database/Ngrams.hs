@@ -28,10 +28,10 @@ import Gargantext.Prelude
 import Opaleye
 import Control.Arrow (returnA)
 
-selectNgramsByDoc :: [CorpusId] -> DocId -> NgramsType -> Cmd err [Text]
-selectNgramsByDoc cIds dId nt = runOpaQuery (query cIds dId nt)
+selectNgramsByDoc :: [ListId] -> DocId -> NgramsType -> Cmd err [Text]
+selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
   where
-    
+
     join :: Query (NgramsRead, NodeNodeNgramsReadNull)
     join = leftJoin queryNgramsTable queryNodeNodeNgramsTable on1
       where
@@ -42,7 +42,7 @@ selectNgramsByDoc cIds dId nt = runOpaQuery (query cIds dId nt)
       restrict -< foldl (\b cId -> ((toNullable $ pgNodeId cId) .== nnng^.nnng_node1_id) .|| b) (pgBool True) cIds'
       restrict -< (toNullable $ pgNodeId dId')    .== nnng^.nnng_node2_id
       restrict -< (toNullable $ pgNgramsType nt') .== nnng^.nnng_ngramsType
-      returnA -< ng^.ngrams_terms
+      returnA  -< ng^.ngrams_terms
 
 
 postNgrams :: CorpusId -> DocId -> [Text] -> Cmd err Int

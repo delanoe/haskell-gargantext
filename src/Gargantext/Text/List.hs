@@ -17,7 +17,7 @@ module Gargantext.Text.List
   where
 
 import Data.Either (partitionEithers, Either(..))
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -161,7 +161,7 @@ toList stop l n = case stop n of
 
 toTermList :: Int -> Int -> (a -> Bool) -> [a] -> [(ListType, a)]
 toTermList _ _ _ [] = []
-toTermList a b stop ns =  trace ("computing toTermList") $
+toTermList a b stop ns =  -- trace ("computing toTermList") $
                       map (toList stop CandidateTerm) xs
                    <> map (toList stop GraphTerm)     ys
                    <> toTermList a b stop zs

@@ -15,10 +15,11 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
---import Debug.Trace (trace)
+import Debug.Trace (trace)
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import Gargantext.Prelude
 import Gargantext.Core.Statistics
@@ -35,33 +36,59 @@ import qualified Data.Vector.Storable as Vec
 import qualified Data.Map  as Map
 import qualified Data.List as List
 
-type Threshold = Int
+type Threshold = Double
 
-cooc2graph :: Threshold -> (Map (Text, Text) Int) -> IO Graph
+cooc2graph :: Threshold
+           -> (Map (Text, Text) Int)
+           -> IO Graph
 cooc2graph threshold myCooc = do
   let (ti, _) = createIndices myCooc
       myCooc' = toIndex ti myCooc
-      matCooc = map2mat (0) (Map.size ti) $ Map.filter (>threshold) myCooc'
+      matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
       distanceMat = measureConditional matCooc
-      distanceMap = Map.filter (>0.01) $ mat2map distanceMat
+      distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+
+  let nodesApprox :: Int
+      nodesApprox = n'
+        where
+          (as, bs) = List.unzip $ Map.keys distanceMap
+          n' = Set.size $ Set.fromList $ as <> bs
+      ClustersParams rivers level = trace ("nodesApprox: " <> show nodesApprox) $ clustersParams nodesApprox
+
 
   partitions <- case Map.size distanceMap > 0 of
-    True  -> cLouvain distanceMap
+    True  -> trace ("level" <> show level) $ cLouvain level distanceMap
     False -> panic "Text.Flow: DistanceMap is empty"
 
-  let bridgeness' = bridgeness 300 partitions distanceMap
+  let bridgeness' = trace ("rivers: " <> show rivers) $ bridgeness rivers partitions distanceMap
   let confluence' = confluence (Map.keys bridgeness') 3 True False
 
   data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
 
 
+
+data ClustersParams = ClustersParams { bridgness :: Double
+                                     , louvain   :: Text
+                                     } deriving (Show)
+
+clustersParams :: Int -> ClustersParams
+clustersParams x = ClustersParams (fromIntegral x) y
+  where
+    y | x < 100  = "0.01"
+      | x < 350  = "0.01"
+      | x < 500  = "0.01"
+      | x < 1000 = "0.1"
+      | otherwise = "1"
+
+
 ----------------------------------------------------------
 -- | From data to Graph
-data2graph :: [(Text, Int)] -> Map (Int, Int) Int
-                            -> Map (Int, Int) Double
-                            -> Map (Int, Int) Double
-                            -> [LouvainNode]
-              -> IO Graph
+data2graph :: [(Text, Int)]
+           -> Map (Int, Int) Int
+           -> Map (Int, Int) Double
+           -> Map (Int, Int) Double
+           -> [LouvainNode]
+           -> IO Graph
 data2graph labels coocs bridge conf partitions = do
     
     let community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
@@ -74,18 +101,24 @@ data2graph labels coocs bridge conf partitions = do
                    , node_x_coord = 0
                    , node_y_coord = 0
                    , node_attributes =
-                     Attributes { clust_default = maybe 0 identity 
+                     Attributes { clust_default = maybe 0 identity
                                 (Map.lookup n community_id_by_node_id) } }
                )
             | (l, n) <- labels
+            , Set.member n $ Set.fromList
+                           $ List.concat
+                           $ map (\((s,t),d) -> if d > 0 && s /=t then [s,t] else [])
+                           $ Map.toList bridge
             ]
 
     let edges = [ Edge { edge_source = cs (show s)
-                   , edge_target = cs (show t)
-                   , edge_weight = d
-                   , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
+                       , edge_target = cs (show t)
+                       , edge_weight =  d
+                       , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
+                   -- , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
                    , edge_id     = cs (show i) }
-            | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge) ]
+                   | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge), s /= t, d > 0
+                   ]
 
     pure $ Graph nodes edges Nothing
 

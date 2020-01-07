@@ -47,7 +47,7 @@ module Gargantext.API.Ngrams
   , NgramsStatePatch
   , NgramsTablePatch
 
-  , NgramsElement
+  , NgramsElement(..)
   , mkNgramsElement
   , mergeNgramsElement
 
@@ -60,6 +60,7 @@ module Gargantext.API.Ngrams
   , Repo(..)
   , r_version
   , r_state
+  , r_history
   , NgramsRepo
   , NgramsRepoElement(..)
   , saveRepo
@@ -83,6 +84,10 @@ module Gargantext.API.Ngrams
   , getNgramsTableMap
   , tableNgramsPull
   , tableNgramsPut
+
+  , Versioned(..)
+  , currentVersion
+  , listNgramsChangedSince
   )
   where
 
@@ -126,7 +131,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 -- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
 import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast)
+import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Types.Node (NodeType(..))
 import Gargantext.Database.Utils (fromField', HasConnection)
@@ -1015,7 +1020,8 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores True  table = do
       let ngrams_terms = (table ^.. each . ne_ngrams)
       t1 <- getTime'
-      occurrences <- getOccByNgramsOnlyFast nId
+      occurrences <- getOccByNgramsOnlyFast' nId
+                                             listId
                                             ngramsType
                                             ngrams_terms
       t2 <- getTime'
@@ -1053,7 +1059,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
                           % " map1=" % timeSpecs
                           % " map2=" % timeSpecs
                           % " map3=" % timeSpecs
-                          % " sql="  % if nSco then "map2" else "map3"
+                          % " sql="  % (if nSco then "map2" else "map3")
                           % "\n"
             ) t0 t3 t0 t1 t1 t2 t2 t3
   pure tableMap3
@@ -1146,8 +1152,6 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
   let searchQuery = flip S.member (S.fromList ngs)
   getTableNgrams NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
-
-
 
 
 

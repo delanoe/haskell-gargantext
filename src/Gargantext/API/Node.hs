@@ -38,7 +38,7 @@ Node API
 module Gargantext.API.Node
   where
 
-import Control.Lens ((.~), (?~))
+import Control.Lens ((.~), (?~), (^.))
 import Control.Monad ((>>), forM)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
@@ -55,11 +55,12 @@ import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Search (SearchDocsAPI, searchDocs)
 import Gargantext.API.Table
 import Gargantext.API.Types
+import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
@@ -142,7 +143,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "pie"       :> PieApi
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
-             :<|> "upload"    :> UploadAPI
+             :<|> "add"       :> NodeAddAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -158,7 +159,8 @@ type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "type"   NodeType
                  :> QueryParam "offset" Int
                  :> QueryParam "limit"  Int
-                 :> Get '[JSON] [Node a]
+                 -- :> Get '[JSON] [Node a]
+                 :> Get '[JSON] (NodeTableResult a)
 
 ------------------------------------------------------------------------
 type NodeNodeAPI a = Get '[JSON] (Node a)
@@ -167,7 +169,7 @@ nodeNodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> Corpu
 nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uId (PathNodeNode cId nId) nodeNodeAPI'
   where
     nodeNodeAPI' :: GargServer (NodeNodeAPI a)
-    nodeNodeAPI' = getNode nId p
+    nodeNodeAPI' = getNodeWith nId p
 
 
 
@@ -177,7 +179,7 @@ nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId ->
 nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
-    nodeAPI' =  getNode       id p
+    nodeAPI' =  getNodeWith       id p
            :<|> rename        id
            :<|> postNode  uId id
            :<|> putNode       id
@@ -199,10 +201,11 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            :<|> getPie     id
            :<|> getTree    id
            :<|> phyloAPI   id uId
-           :<|> postUpload id
+           :<|> nodeAddAPI id
+           -- :<|> postUpload id
 
     deleteNodeApi id' = do
-      node <- getNode' id'
+      node <- getNode id'
       if _node_typename node == nodeTypeId NodeUser
          then panic "not allowed"  -- TODO add proper Right Management Type
          else deleteNode id'
@@ -333,7 +336,10 @@ rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
-postNode uId pId (PostNode nodeName nt) = mkNodeWithParent nt (Just pId) uId nodeName
+postNode uId pId (PostNode nodeName nt) = do
+  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
+  let uId' = nodeUser ^. node_userId
+  mkNodeWithParent nt (Just pId) uId' nodeName
 
 putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO
@@ -374,6 +380,12 @@ instance (ToParamSchema a, HasSwagger sub) =>
       sch = mempty
         & in_         .~ ParamFormData
         & paramSchema .~ toParamSchema (Proxy :: Proxy a)
+
+type NodeAddAPI = "file" :> Summary "Node add API"
+                         :> UploadAPI
+
+nodeAddAPI :: NodeId -> GargServer NodeAddAPI
+nodeAddAPI id =  postUpload       id
 
 type UploadAPI = Summary "Upload file(s) to a corpus"
                 :> MultipartForm Mem (MultipartData Mem)

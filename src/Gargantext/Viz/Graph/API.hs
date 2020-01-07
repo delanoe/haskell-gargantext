@@ -24,8 +24,11 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
-import Control.Lens (set)
+import Debug.Trace (trace)
+import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
+import Data.Maybe (Maybe(..))
+import Gargantext.API.Ngrams (currentVersion)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
 import Gargantext.Core.Types.Main
@@ -33,9 +36,9 @@ import Gargantext.Database.Config
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Node.Select
-import Gargantext.Database.Schema.Node (getNode)
-import Gargantext.Database.Schema.Node (defaultList)
+import Gargantext.Database.Schema.Node (getNodeWith, defaultList, insertGraph)
 import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
+import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
@@ -51,39 +54,73 @@ type GraphAPI   =  Get  '[JSON] Graph
               :<|> Put  '[JSON] Int
 
 
-graphAPI :: NodeId -> GargServer GraphAPI
-graphAPI n =  getGraph  n
+graphAPI :: UserId -> NodeId -> GargServer GraphAPI
+graphAPI u n =  getGraph  u n
          :<|> postGraph n
          :<|> putGraph  n
 
 ------------------------------------------------------------------------
 
-getGraph :: NodeId -> GargServer (Get '[JSON] Graph)
-getGraph nId = do
-  nodeGraph <- getNode nId HyperdataGraph
-  -- get HyperdataGraphp from Database
-  -- if Nothing else if version == current version then compute
+getGraph :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
+getGraph uId nId = do
+  nodeGraph <- getNodeWith nId HyperdataGraph
+  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let graphVersion = graph ^? _Just
+                            . graph_metadata
+                            . _Just
+                            . gm_version
 
-  let cId = maybe (panic "no parentId") identity $ _node_parentId nodeGraph
+  v <- currentVersion
+  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
+
+  let uId' = nodeUser ^. node_userId
+
+  let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
+                  identity
+                  $ nodeGraph ^. node_parentId
+  
+  g <- case graph of
+    Nothing     -> do
+      graph' <- computeGraph cId NgramsTerms v
+      _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
+      pure graph'
+
+    Just graph' -> if graphVersion == Just v
+                     then pure graph'
+                     else do
+                       graph'' <- computeGraph cId NgramsTerms v
+                       _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
+                       pure graph''
+  pure $ trace ("salut" <> show g) $ g
+
+
+-- TODO use Database Monad only here ?
+computeGraph :: CorpusId -> NgramsType -> Int -> GargServer (Get '[JSON] Graph)
+computeGraph cId nt v = do
   lId  <- defaultList cId
+  v'   <- currentVersion
 
-  let metadata = GraphMetadata "Title" [maybe 0 identity $ _node_parentId nodeGraph]
+  let metadata = GraphMetadata "Title" [cId]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
-                                lId
+                                (ListForGraph lId v')
+                                v
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   lIds <- selectNodesWithUsername NodeList userMaster
   repo <- getRepo
-  let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] NgramsTerms repo
+  let ngs = filterListWithRoot GraphTerm <$> mapTermListRoot [lId] nt repo
 
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal False)
-                            <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) NgramsTerms (Map.keys ngs)
+  myCooc <- Map.filter (>1)
+         <$> getCoocByNgrams (Diagonal True)
+         <$> groupNodesByNgrams ngs
+         <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
   graph <- liftIO $ cooc2graph 0 myCooc
-  pure $ set graph_metadata (Just metadata) graph
+  let graph' = set graph_metadata (Just metadata) graph
+  pure graph'
+
 
 
 postGraph :: NodeId -> GargServer (Post '[JSON] [NodeId])
@@ -91,9 +128,4 @@ postGraph = undefined
 
 putGraph :: NodeId -> GargServer (Put '[JSON] Int)
 putGraph = undefined
-
-
-
-
--- | Instances
 

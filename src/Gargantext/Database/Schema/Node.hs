@@ -44,6 +44,7 @@ import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
+import Gargantext.Viz.Graph (HyperdataGraph(..))
 
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
@@ -218,11 +219,11 @@ nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_typename   = required "typename"
                                       , _node_userId     = required "user_id"
-                                      
+
                                       , _node_parentId   = optional "parent_id"
                                       , _node_name       = required "name"
                                       , _node_date       = optional "date"
-                                      
+
                                       , _node_hyperdata  = required "hyperdata"
                                       }
                             )
@@ -266,21 +267,20 @@ type NodeSearchReadNull =
     (Column (Nullable PGJsonb)      )
     (Column (Nullable PGTSVector)   )
 
---{-
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
 nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
                                       , _ns_typename   = required "typename"
                                       , _ns_userId     = required "user_id"
-                                      
+
                                       , _ns_parentId   = required "parent_id"
                                       , _ns_name       = required "name"
                                       , _ns_date       = optional "date"
-                                      
+
                                       , _ns_hyperdata  = required "hyperdata"
                                       , _ns_search     = optional "search"
                                       }
                             )
---}
+
 
 queryNodeSearchTable :: Query NodeSearchRead
 queryNodeSearchTable = queryTable nodeTableSearch
@@ -372,19 +372,19 @@ selectNodesWithType type_id = proc () -> do
 
 type JSONB = QueryRunnerColumnDefault PGJsonb
 
-getNode :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
-getNode nId _ = do
-    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+
+getNode :: NodeId -> Cmd err (Node Value)
+getNode nId = fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
+             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+
+getNodeWith :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
+getNodeWith nId _ = do
+    fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 getNodePhylo :: NodeId -> Cmd err (Node HyperdataPhylo)
 getNodePhylo nId = do
-    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
-             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
-
-
-getNode' :: NodeId -> Cmd err (Node Value)
-getNode' nId = fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+    fromMaybe (error $ "Node Phylo does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
@@ -434,7 +434,6 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
 
-
 ------------------------------------------------------------------------
 
 {-
@@ -466,12 +465,14 @@ instance HasDefault NodeType where
   hasDefaultData nt = case nt of
       NodeTexts -> HyperdataTexts (Just "Preferences")
       NodeList  -> HyperdataList' (Just "Preferences")
+      NodeListCooc -> HyperdataList' (Just "Preferences")
       _         -> undefined
       --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
 
   hasDefaultName nt = case nt of
       NodeTexts -> "Texts"
       NodeList  -> "Lists"
+      NodeListCooc -> "Cooc"
       _         -> undefined
 
 ------------------------------------------------------------------------
@@ -498,13 +499,19 @@ nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just
 
 ------------------------------------------------------------------------
 arbitraryGraph :: HyperdataGraph
-arbitraryGraph = HyperdataGraph (Just "Preferences")
+arbitraryGraph = HyperdataGraph Nothing
 
 nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite
 nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
   where
     name = maybe "Graph" identity maybeName
     graph = maybe arbitraryGraph identity maybeGraph
+
+mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
+mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
+
+insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
+insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
 
 ------------------------------------------------------------------------
 arbitraryPhylo :: HyperdataPhylo
@@ -518,10 +525,8 @@ nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
 
 
 ------------------------------------------------------------------------
-
 arbitraryDashboard :: HyperdataDashboard
 arbitraryDashboard = HyperdataDashboard (Just "Preferences")
-
 ------------------------------------------------------------------------
 
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
@@ -695,11 +700,6 @@ defaultList cId =
 mkNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
 mkNode nt p u = insertNodesR [nodeDefault nt p u]
 
-
-mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
-mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
-
-
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
   where
@@ -720,3 +720,4 @@ pgNodeId = pgInt4 . id2int
 
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
+

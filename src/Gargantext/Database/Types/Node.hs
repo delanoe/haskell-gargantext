@@ -62,12 +62,12 @@ import           Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import           Gargantext.Viz.Phylo (Phylo)
 --import Gargantext.Database.Utils
 ------------------------------------------------------------------------
+
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
 
 instance ToField NodeId where
   toField (NodeId n) = toField n
-
 
 instance FromField NodeId where
   fromField field mdata = do
@@ -78,6 +78,7 @@ instance FromField NodeId where
 
 instance ToSchema NodeId
 
+
 type NodeTypeId   = Int
 type NodeName     = Text
 type TSVector     = Text
@@ -87,13 +88,13 @@ data NodePoly id        typename userId
               parentId  name     date 
               hyperdata  = Node { _node_id        :: id
                                 , _node_typename  :: typename
-                                
+
                                 , _node_userId    :: userId
                                 , _node_parentId  :: parentId
-                                
+
                                 , _node_name      :: name
                                 , _node_date      :: date
-                                
+
                                 , _node_hyperdata :: hyperdata
                                 } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_node_") ''NodePoly)
@@ -101,7 +102,6 @@ $(makeLenses ''NodePoly)
 
 -- | NodePoly indicates that Node has a Polymorphism Type
 type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
-
 
 
 ------------------------------------------------------------------------
@@ -401,13 +401,6 @@ $(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
 
 instance Hyperdata HyperdataDashboard
 
--- TODO add the Graph Structure here
-data HyperdataGraph = HyperdataGraph { hyperdataGraph_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataGraph_") ''HyperdataGraph)
-
-instance Hyperdata HyperdataGraph
-
 ------------------------------------------------------------------------
 
 -- TODO add the Graph Structure here
@@ -451,6 +444,7 @@ data NodeType = NodeUser
               | NodeGraph      | NodePhylo
               | NodeDashboard  | NodeChart    | NodeNoteBook
               | NodeList       | NodeListModel
+              | NodeListCooc
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 

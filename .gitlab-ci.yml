@@ -1,36 +1,61 @@
-# This file is a template, and might need editing before it works on your project.
-# see https://docs.gitlab.com/ce/ci/yaml/README.html for all available options
+# Thanks to:
+# https://vadosware.io/post/zero-to-continuous-integrated-testing-a-haskell-project-with-gitlab/
+#
+#
+image: haskell:8
 
-# you can delete this line if you're not using Docker
-#image: busybox:latest
+variables:
+  STACK_ROOT: "${CI_PROJECT_DIR}/.stack"
+  STACK_OPTS: "--system-ghc"
 
-before_script:
-  - echo "Before script section"
-  - echo "For example you might run an update here or install a build dependency"
-  - echo "Or perhaps you might print out some debugging details"
-   
-after_script:
-  - echo "After script section"
-  - echo "For example you might do some cleanup here"
-   
-build1:
+cache:
+  paths:
+    - .stack
+    - .stack-work
+    - target
+
+#before_script:
+  #- apt-get update
+  #- apt-get install make xz-utils
+
+stages:
+  - build
+  - test
+
+build:
   stage: build
   script:
-    - ./install
-   
-#test1:
+    - make setup
+    - make build
+
+      # TOOO
+#unit-test:
 #  stage: test
-#  script: 
-#    - echo "Do a test here"
-#    - echo "For example run a test suite"
-#   
-#test2:
-#  stage: test
-#  script: 
-#    - echo "Do another parallel test here"
-#    - echo "For example run a lint test"
-#   
-#deploy1:
-#  stage: deploy
 #  script:
-#    - echo "Do your deploy here"
+#    - make test-unit
+#
+#int-test:
+#  stage: test
+#  script:
+#    - make test-int
+#
+#e2e-test:
+#  stage: test
+#  script:
+#    - make test-e2e
+#
+
+# If you find yourself with a non-sensical build error when you know your project should be building just fine, this fragment should help:
+#
+#build:
+#  stage: build
+#  script:
+#    # Clear out cache files
+#    - rm -rf .stack
+#    - rm -rf .stack-work
+#    - stack setup --system-ghc
+#    - stack install --local-bin-path target --system-ghc
+
+
+
+
