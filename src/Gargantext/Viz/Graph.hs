@@ -83,12 +83,24 @@ instance ToSchema LegendField where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_lf_")
 
 makeLenses ''LegendField
+---------------------------------------------------------------
+type Version = Int
+data ListForGraph = ListForGraph { _lfg_listId  :: ListId
+                                 , _lfg_version :: Version
+                 } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_lfg_") ''ListForGraph)
+
+instance ToSchema ListForGraph where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_lfg_")
+
+makeLenses ''ListForGraph
+
 --
 data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the graph
                                    , _gm_corpusId :: [NodeId]  -- we can map with different corpus
-                                   , _gm_legend :: [LegendField] -- legend of the Graph
-                                   , _gm_listId :: ListId
-                                   , _gm_version :: Int
+                                   , _gm_legend   :: [LegendField] -- legend of the Graph
+                                   , _gm_list     :: ListForGraph
+                                   , _gm_version  :: Int
                                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)

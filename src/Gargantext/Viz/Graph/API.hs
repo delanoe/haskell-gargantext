@@ -98,12 +98,13 @@ getGraph uId nId = do
 computeGraph :: CorpusId -> NgramsType -> Int -> GargServer (Get '[JSON] Graph)
 computeGraph cId nt v = do
   lId  <- defaultList cId
+  v'   <- currentVersion
 
   let metadata = GraphMetadata "Title" [cId]
                                      [ LegendField 1 "#FFF" "Cluster"
                                      , LegendField 2 "#FFF" "Cluster"
                                      ]
-                                lId
+                                (ListForGraph lId v')
                                 v
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
