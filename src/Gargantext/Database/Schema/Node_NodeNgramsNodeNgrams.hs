@@ -32,7 +32,7 @@ Next Step benchmark:
 {-# LANGUAGE TemplateHaskell        #-}
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-module Gargantext.Database.Schema.Node_NodeNgrams_NodeNgrams
+module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
   where
 
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)

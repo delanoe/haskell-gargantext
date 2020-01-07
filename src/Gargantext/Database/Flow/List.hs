@@ -75,7 +75,7 @@ flowList :: FlowCmdM env err m
          -> Map NgramsType [NgramsElement]
          -> m ListId
 flowList lId ngs = do
-  printDebug "listId flowList" lId
+  -- printDebug "listId flowList" lId
   -- TODO save in database
   _r <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
   -- printDebug "result " r
