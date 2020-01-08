@@ -50,7 +50,7 @@ import Data.Text (Text, splitOn, intercalate)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
-import Gargantext.Core.Flow
+import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertDocNgrams)
@@ -223,7 +223,7 @@ flowCorpusUser l userName corpusName ctype ids = do
   --{-
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
   ngs        <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
-  _userListId <- flowList listId ngs
+  _userListId <- flowList masterCorpusId listId ngs
   --mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId

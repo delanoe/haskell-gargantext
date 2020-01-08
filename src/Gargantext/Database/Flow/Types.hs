@@ -26,7 +26,7 @@ module Gargantext.Database.Flow.Types
 
 import Data.Map (Map)
 import Gargantext.Prelude
-import Gargantext.Core.Flow
+import Gargantext.Core.Flow.Types
 import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
 import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
 import Gargantext.Database.Types.Node (NodeId)

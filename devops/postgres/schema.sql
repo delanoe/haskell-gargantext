@@ -64,6 +64,7 @@ CREATE TABLE public.node_ngrams_ngrams (
     node_id integer NOT NULL,
     node_ngrams1_id integer NOT NULL,
     node_ngrams2_id integer NOT NULL,
+    weight double precision,
     FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
     FOREIGN KEY (node_ngrams1_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
     FOREIGN KEY (node_ngrams2_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,

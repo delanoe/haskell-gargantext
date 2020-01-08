@@ -25,10 +25,11 @@ module Gargantext.Database.Flow.List
     where
 import Control.Monad (mapM_)
 import Data.Map (Map, toList)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), catMaybes)
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
-import Gargantext.Database.Schema.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb)
+import Gargantext.Database.Schema.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
+import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams -- (insert_Node_NodeNgrams_NodeNgrams, Node_NodeNgrams_NodeNgrams(..))
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Flow.Types
 import Gargantext.Prelude
@@ -71,14 +72,20 @@ toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW' l) ngs
       ]
 
 flowList :: FlowCmdM env err m
-         => ListId
+         => CorpusId
+         -> ListId
          -> Map NgramsType [NgramsElement]
          -> m ListId
-flowList lId ngs = do
+flowList _cId lId ngs = do
   -- printDebug "listId flowList" lId
   -- TODO save in database
-  _r <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
-  -- printDebug "result " r
+  mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+  let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> parent)
+                                  <*>  getCgramsId mapCgramsId ntype ngram
+                  | (ntype, ngs') <- Map.toList ngs
+                  , NgramsElement ngram _ _ _ _ parent _ <- ngs'
+                  ]
+  _r <- insert_Node_NodeNgrams_NodeNgrams $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
   listInsert lId ngs
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
   pure lId

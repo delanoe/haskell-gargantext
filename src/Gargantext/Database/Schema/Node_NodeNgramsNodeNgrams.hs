@@ -54,7 +54,7 @@ data Node_NodeNgrams_NodeNgrams_Poly node_id nng1_id nng2_id weight =
 type Node_NodeNgrams_NodeNgrams_Write =
   Node_NodeNgrams_NodeNgrams_Poly
     (Column PGInt4          )
-    (Column PGInt4          )
+    (Maybe (Column PGInt4  ))
     (Column PGInt4          )
     (Maybe (Column PGFloat8))
 
@@ -68,7 +68,7 @@ type Node_NodeNgrams_NodeNgrams_Read  =
 type ListNgramsId = Int
 
 type Node_NodeNgrams_NodeNgrams =
-  Node_NodeNgrams_NodeNgrams_Poly CorpusId ListNgramsId ListNgramsId (Maybe Double)
+  Node_NodeNgrams_NodeNgrams_Poly CorpusId (Maybe ListNgramsId) ListNgramsId (Maybe Double)
 
 $(makeAdaptorAndInstance "pNode_NodeNgrams_NodeNgrams"
                          ''Node_NodeNgrams_NodeNgrams_Poly)
@@ -78,11 +78,11 @@ $(makeLensesWith abbreviatedFields
 
 node_NodeNgrams_NodeNgrams_Table :: Table Node_NodeNgrams_NodeNgrams_Write Node_NodeNgrams_NodeNgrams_Read
 node_NodeNgrams_NodeNgrams_Table =
-  Table "nodes_nodengrams_nodengrams"
+  Table "node_ngrams_ngrams"
        ( pNode_NodeNgrams_NodeNgrams Node_NodeNgrams_NodeNgrams
                        { _nnn_node_id = required "node_id"
-                       , _nnn_nng1_id = required "nng1_id"
-                       , _nnn_nng2_id = required "nng2_id"
+                       , _nnn_nng1_id = optional "node_ngrams1_id"
+                       , _nnn_nng2_id = required "node_ngrams2_id"
                        , _nnn_weight  = optional "weight"
                        }
        )
@@ -107,7 +107,7 @@ insert_Node_NodeNgrams_NodeNgrams :: [Node_NodeNgrams_NodeNgrams] -> Cmd err Int
 insert_Node_NodeNgrams_NodeNgrams = insert_Node_NodeNgrams_NodeNgrams_W
                  . map (\(Node_NodeNgrams_NodeNgrams n ng1 ng2 maybeWeight) ->
                           Node_NodeNgrams_NodeNgrams (pgNodeId n  )
-                                           (pgInt4 ng1)
+                                           (pgInt4 <$> ng1)
                                            (pgInt4 ng2)
                                            (pgDouble <$> maybeWeight)
                         )
