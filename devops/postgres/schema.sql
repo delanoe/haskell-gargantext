@@ -1,10 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 CREATE EXTENSION IF NOT EXISTS tsm_system_rows;
-
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
--- CREATE USER WITH ...
--- createdb "gargandb"
 
 CREATE TABLE public.auth_user (
     id SERIAL,
@@ -23,7 +19,6 @@ CREATE TABLE public.auth_user (
 
 ALTER TABLE public.auth_user OWNER TO gargantua;
 
-
 -- TODO add publication_date
 -- TODO typename -> type_id
 CREATE TABLE public.nodes (
@@ -40,7 +35,6 @@ CREATE TABLE public.nodes (
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
 
-
 CREATE TABLE public.ngrams (
     id SERIAL,
     terms character varying(255),
@@ -50,22 +44,34 @@ CREATE TABLE public.ngrams (
 ALTER TABLE public.ngrams OWNER TO gargantua;
 
 --------------------------------------------------------------
--- TODO: delete delete this table
---CREATE TABLE public.nodes_ngrams (
---    id SERIAL,
---    node_id integer NOT NULL,
---    ngrams_id integer NOT NULL,
---    parent_id integer REFERENCES public.nodes_ngrams(id) ON DELETE SET NULL,
---    ngrams_type integer,
---    list_type integer,
---    weight double precision,
---    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
---    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
---    PRIMARY KEY (id)
---);
---ALTER TABLE public.nodes_ngrams OWNER TO gargantua;
---------------------------------------------------------------
+CREATE TABLE public.node_ngrams (
+    id SERIAL,
+    node_id integer NOT NULL,
+    node_subtype integer,
+    ngrams_id integer NOT NULL,
+    ngrams_type integer, -- change to ngrams_field? (no for pedagogic reason)
+    ngrams_field integer,
+    ngrams_tag integer,
+    ngrams_class integer,
+    weight double precision,
+    PRIMARY KEY (id),
+    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
+);
+ALTER TABLE public.node_ngrams OWNER TO gargantua;
 
+CREATE TABLE public.node_ngrams_ngrams (
+    node_id integer NOT NULL,
+    node_ngrams1_id integer NOT NULL,
+    node_ngrams2_id integer NOT NULL,
+    FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (node_ngrams1_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
+    FOREIGN KEY (node_ngrams2_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
+    PRIMARY KEY (node_id, node_ngrams1_id, node_ngrams2_id)
+);
+ALTER TABLE public.node_ngrams_ngrams OWNER TO gargantua;
+
+--------------------------------------------------------------
 --------------------------------------------------------------
 --
 --
@@ -78,7 +84,6 @@ ALTER TABLE public.ngrams OWNER TO gargantua;
 --);
 --
 --ALTER TABLE public.nodes_ngrams_ngrams OWNER TO gargantua;
-
 ---------------------------------------------------------------
 -- TODO nodes_nodes(node1_id int, node2_id int, edge_type int , weight real)
 CREATE TABLE public.nodes_nodes (
@@ -93,13 +98,15 @@ ALTER TABLE public.nodes_nodes OWNER TO gargantua;
 ---------------------------------------------------------------
 -- TODO should reference "id" of nodes_nodes (instead of node1_id, node2_id)
 CREATE TABLE public.node_node_ngrams (
-id SERIAL,
 node1_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
+-- here id to node_ngrams
 node2_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
 ngrams_id  INTEGER NOT NULL REFERENCES public.ngrams (id) ON DELETE CASCADE,
 ngrams_type INTEGER,
+--ngrams_tag INTEGER,
+--ngrams_class INTEGER,
 weight double precision,
-PRIMARY KEY (id)
+PRIMARY KEY (node1_id, node2_id, ngrams_id, ngrams_type)
 );
 ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
 --------------------------------------------------------------
@@ -124,7 +131,6 @@ CREATE TABLE public.rights (
 );
 ALTER TABLE public.rights OWNER TO gargantua;
 
-
 ------------------------------------------------------------
 -- INDEXES
 
@@ -142,6 +148,7 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdat
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 CREATE        INDEX ON public.ngrams USING btree (id, terms);
+CREATE UNIQUE INDEX ON public.node_ngrams USING btree (node_id,node_subtype, ngrams_id);
 
 CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
@@ -150,36 +157,10 @@ CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, 
 CREATE        INDEX ON public.node_node_ngrams USING btree (node1_id,  node2_id);
 CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_id, node2_id);
 
--- TRIGGERS
--- TODO user haskell-postgresql-simple to create this function
--- with rights typename
-CREATE OR REPLACE FUNCTION public.search_update()
-RETURNS trigger AS $$
-begin
-  IF new.typename = 4 AND new.hyperdata @> '{"language_iso2":"EN"}' THEN
-    new.search := to_tsvector( 'english' , (new.hyperdata ->> 'title') || ' ' || (new.hyperdata ->> 'abstract'));
 
-  ELSIF new.typename = 4 AND new.hyperdata @> '{"language_iso2":"FR"}' THEN
-    new.search := to_tsvector( 'french' , (new.hyperdata ->> 'title') || ' ' || (new.hyperdata ->> 'abstract'));
-
-  ELSIF new.typename = 41 THEN
-    new.search := to_tsvector( 'french' , (new.hyperdata ->> 'prenom')
-                                 || ' ' || (new.hyperdata ->> 'nom')
-                                 || ' ' || (new.hyperdata ->> 'fonction')
-                             );
-  ELSE
-    new.search := to_tsvector( 'english' , new.name);
-  END IF;
-  return new;
-end
-$$ LANGUAGE plpgsql;
-
-ALTER FUNCTION public.search_update() OWNER TO gargantua;
-
-CREATE TRIGGER search_update_trigger BEFORE INSERT OR UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE search_update();
-
+------------------------------------------------------------------------
 -- Ngrams Full DB Extraction Optim
--- TODO remove hard parameter
+-- TODO remove hard parameter and move elsewhere
 CREATE OR REPLACE function node_pos(int, int) returns bigint
    AS 'SELECT count(id) from nodes
       WHERE  id < $1
@@ -189,9 +170,4 @@ CREATE OR REPLACE function node_pos(int, int) returns bigint
 
 --drop index node_by_pos;
 create index node_by_pos on nodes using btree(node_pos(id,typename));
-
--- Initialize index with already existing data
-UPDATE nodes SET hyperdata = hyperdata;
-
-
 

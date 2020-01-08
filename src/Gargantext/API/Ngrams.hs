@@ -47,7 +47,7 @@ module Gargantext.API.Ngrams
   , NgramsStatePatch
   , NgramsTablePatch
 
-  , NgramsElement
+  , NgramsElement(..)
   , mkNgramsElement
   , mergeNgramsElement
 
@@ -60,6 +60,7 @@ module Gargantext.API.Ngrams
   , Repo(..)
   , r_version
   , r_state
+  , r_history
   , NgramsRepo
   , NgramsRepoElement(..)
   , saveRepo

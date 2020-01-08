@@ -60,7 +60,7 @@ import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
@@ -169,7 +169,7 @@ nodeNodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> Corpu
 nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uId (PathNodeNode cId nId) nodeNodeAPI'
   where
     nodeNodeAPI' :: GargServer (NodeNodeAPI a)
-    nodeNodeAPI' = getNode nId p
+    nodeNodeAPI' = getNodeWith nId p
 
 
 
@@ -179,7 +179,7 @@ nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId ->
 nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
-    nodeAPI' =  getNode       id p
+    nodeAPI' =  getNodeWith       id p
            :<|> rename        id
            :<|> postNode  uId id
            :<|> putNode       id
@@ -205,7 +205,7 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            -- :<|> postUpload id
 
     deleteNodeApi id' = do
-      node <- getNode' id'
+      node <- getNode id'
       if _node_typename node == nodeTypeId NodeUser
          then panic "not allowed"  -- TODO add proper Right Management Type
          else deleteNode id'
@@ -337,7 +337,7 @@ rename nId (RenameNode name') = U.update (U.Rename nId name')
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = do
-  nodeUser <- getNode (NodeId uId) HyperdataUser
+  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
   let uId' = nodeUser ^. node_userId
   mkNodeWithParent nt (Just pId) uId' nodeName
 

@@ -46,8 +46,6 @@ class HasText h
   where
     hasText :: h -> [Text]
 
-------------------------------------------------------------------------
-
 instance UniqId HyperdataDocument
   where
     uniqId = hyperdataDocument_uniqId
@@ -55,5 +53,4 @@ instance UniqId HyperdataDocument
 instance UniqId HyperdataContact
   where
     uniqId = hc_uniqId
-
 

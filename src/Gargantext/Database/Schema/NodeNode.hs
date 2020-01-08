@@ -120,12 +120,12 @@ nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
     catQuery :: PGS.Query
-    catQuery = [sql| UPDATE nodes_nodes as old SET
-                 category = new.category
-                 from (?) as new(node1_id,node2_id,category)
-                 WHERE old.node1_id = new.node1_id
-                 AND   old.node2_id = new.node2_id
-                 RETURNING new.node2_id
+    catQuery = [sql| UPDATE nodes_nodes as nn0
+                      SET category = nn1.category
+                       FROM (?) as nn1(node1_id,node2_id,category)
+                       WHERE nn0.node1_id = nn1.node1_id
+                       AND   nn0.node2_id = nn1.node2_id
+                       RETURNING nn1.node2_id
                   |]
 
 ------------------------------------------------------------------------
@@ -187,12 +187,12 @@ nodesToTrash input = map (\(PGS.Only a) -> a)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
     trashQuery :: PGS.Query
-    trashQuery = [sql| UPDATE nodes_nodes as old SET
-                 delete = new.delete
-                 from (?) as new(node1_id,node2_id,delete)
-                 WHERE old.node1_id = new.node1_id
-                 AND   old.node2_id = new.node2_id
-                 RETURNING new.node2_id
+    trashQuery = [sql| UPDATE nodes_nodes as nn0 SET
+                 delete = nn1.delete
+                 from (?) as nn1(node1_id,node2_id,delete)
+                 WHERE nn0.node1_id = nn1.node1_id
+                 AND   nn0.node2_id = nn1.node2_id
+                 RETURNING nn1.node2_id
                   |]
 
 -- | /!\ Really remove nodes in the Corpus or Annuaire

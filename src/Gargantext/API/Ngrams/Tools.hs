@@ -33,24 +33,28 @@ import qualified Data.Set as Set
 
 type RootTerm = Text
 
--- TODO-ACCESS: We want to do the security check before entering here.
---              Add a static capability parameter would be nice.
---              Ideally this is the access to `repoVar` which needs to
---              be properly guarded.
-getListNgrams :: RepoCmdM env err m
-               => [ListId] -> NgramsType
-               -> m (Map Text NgramsRepoElement)
-getListNgrams nodeIds ngramsType = do
-  v    <- view repoVar
-  repo <- liftIO $ readMVar v
+getRepo :: RepoCmdM env err m => m NgramsRepo
+getRepo = do
+  v <- view repoVar
+  liftIO $ readMVar v
 
-  let
+listNgramsFromRepo :: [ListId] -> NgramsType
+                   -> NgramsRepo -> Map Text NgramsRepoElement
+listNgramsFromRepo nodeIds ngramsType repo = ngrams
+  where
     ngramsMap = repo ^. r_state . at ngramsType . _Just
 
     ngrams    = Map.unionsWith mergeNgramsElement
               [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
-  pure ngrams
+-- TODO-ACCESS: We want to do the security check before entering here.
+--              Add a static capability parameter would be nice.
+--              Ideally this is the access to `repoVar` which needs to
+--              be properly guarded.
+getListNgrams :: RepoCmdM env err m
+              => [ListId] -> NgramsType
+              -> m (Map Text NgramsRepoElement)
+getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType <$> getRepo
 
 getTermsWith :: (RepoCmdM env err m, Ord a)
           => (Text -> a ) -> [ListId]
@@ -61,19 +65,19 @@ getTermsWith f ls ngt lt = Map.fromListWith (<>)
                       <$> Map.toList
                       <$> Map.filter (\f' -> (fst f') == lt)
                       <$> mapTermListRoot ls ngt
+                      <$> getRepo
   where
     toTreeWith f'' (t, (_lt, maybeRoot)) = case maybeRoot of
       Nothing -> (f'' t, [])
       Just  r -> (f'' r, map f'' [t])
 
-mapTermListRoot :: RepoCmdM env err m
-               => [ListId] -> NgramsType
-               -> m (Map Text (ListType, (Maybe Text)))
-mapTermListRoot nodeIds ngramsType = do
-  ngrams <- getListNgrams nodeIds ngramsType
-  pure $ Map.fromList [ (t, (_nre_list nre, _nre_root nre))
-                      | (t, nre) <- Map.toList ngrams
-                      ]
+mapTermListRoot :: [ListId] -> NgramsType
+                -> NgramsRepo -> Map Text (ListType, (Maybe Text))
+mapTermListRoot nodeIds ngramsType repo =
+  Map.fromList [ (t, (_nre_list nre, _nre_root nre))
+               | (t, nre) <- Map.toList ngrams
+               ]
+  where ngrams = listNgramsFromRepo nodeIds ngramsType repo
 
 filterListWithRoot :: ListType -> Map Text (ListType, Maybe Text)
                       -> Map Text (Maybe RootTerm)

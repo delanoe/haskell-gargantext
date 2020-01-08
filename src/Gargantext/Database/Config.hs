@@ -57,14 +57,15 @@ nodeTypeId n =
 
 ----  Lists
     NodeList      -> 5
-    NodeListModel -> 10
+    NodeListCooc  -> 50
+    NodeListModel -> 52
 
 ----  Scores
 --    NodeOccurrences -> 10
     NodeGraph       -> 9
     NodePhylo       -> 90
-    NodeDashboard   -> 7
-    NodeChart       -> 51
+    NodeChart       -> 7
+    NodeDashboard   -> 71
     NodeNoteBook    -> 88
 
 --  Cooccurrences -> 9
@@ -95,8 +96,4 @@ nodeTypes = [ (n, nodeTypeId n) | n <- allNodeTypes ]
 fromNodeTypeId :: NodeTypeId -> NodeType
 fromNodeTypeId tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")
                                (lookup tId nodeTypeInv)
-
-
-
-
 
