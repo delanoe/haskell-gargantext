@@ -252,7 +252,7 @@ data NgramsElement =
                    , _ne_occurrences :: Int
                    , _ne_root        :: Maybe NgramsTerm
                    , _ne_parent      :: Maybe NgramsTerm
-                   , _ne_children    :: MSet NgramsTerm
+                   , _ne_children    :: MSet  NgramsTerm
                    }
       deriving (Ord, Eq, Show, Generic)
 
