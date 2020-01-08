@@ -72,7 +72,7 @@ pieData :: FlowCmdM env err m
 pieData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt
+  ts <- mapTermListRoot ls nt <$> getRepo
   let
     dico = filterListWithRoot lt ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ Map.toList dico
@@ -94,7 +94,7 @@ treeData :: FlowCmdM env err m
 treeData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt
+  ts <- mapTermListRoot ls nt <$> getRepo
   
   let
     dico = filterListWithRoot lt ts
@@ -112,7 +112,7 @@ treeData' :: FlowCmdM env ServerError m
 treeData' cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt
+  ts <- mapTermListRoot ls nt <$> getRepo
   
   let
     dico = filterListWithRoot lt ts
