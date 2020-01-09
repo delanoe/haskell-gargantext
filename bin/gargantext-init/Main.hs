@@ -50,7 +50,7 @@ main = do
     initMaster = do
       (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus userMaster (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
       masterListId <- getOrMkList masterCorpusId masterUserId
-      _ <- initTriggers masterListId
+      _triggers <- initTriggers masterListId
       pure (masterUserId, masterRootId, masterCorpusId, masterListId)
 
   withDevEnv iniPath $ \env -> do

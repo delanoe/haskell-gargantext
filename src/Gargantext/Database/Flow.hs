@@ -37,8 +37,10 @@ module Gargantext.Database.Flow -- (flowDatabase, ngrams2list)
   , flowAnnuaire
   )
     where
+
 import Prelude (String)
 import Data.Either
+import Data.Tuple.Extra (first, second)
 import Data.Traversable (traverse)
 import Debug.Trace (trace)
 import Control.Lens ((^.), view, _Just)
@@ -63,7 +65,8 @@ import Gargantext.Database.Root (getRoot)
 
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, {-mkPhylo,-} mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
-
+import Gargantext.Database.Schema.NodeNgrams (listInsertDb, getCgramsId)
+import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNodeNodeNgrams2)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
@@ -266,11 +269,27 @@ insertMasterDocs c lang hs  =  do
   maps <- mapNodeIdNgrams
        <$> documentIdWithNgrams (extractNgramsT $ withLang lang documentsWithId) documentsWithId
 
-  lId      <- getOrMkList masterCorpusId masterUserId
   terms2id <- insertNgrams $ Map.keys maps
+  -- to be removed
   let indexedNgrams = Map.mapKeys (indexNgrams terms2id) maps
+ 
+  -- new
+  lId      <- getOrMkList masterCorpusId masterUserId
+  mapCgramsId <- listInsertDb lId toNodeNgramsW'
+                $ map (first _ngramsTerms . second Map.keys)
+                $ Map.toList maps
+  -- insertDocNgrams
+  _return <- insertNodeNodeNgrams2
+           $ catMaybes [ NodeNodeNgrams2 <$> Just nId
+                                         <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms)
+                                         <*> Just (fromIntegral w :: Double)
+                       | (terms, mapNgramsTypes) <- Map.toList maps
+                       , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
+                       , (nId, w) <- Map.toList mapNodeIdWeight
+                       ]
 
   _cooc <- mkNode NodeListCooc lId masterUserId
+  -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
 
   pure ids'
