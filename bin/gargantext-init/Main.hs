@@ -23,7 +23,7 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import System.Environment (getArgs)
 import Gargantext.Prelude
-import Gargantext.Database.Flow (getOrMkRoot, getOrMkRootWithCorpus)
+import Gargantext.Database.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Schema.Node (getOrMkList)
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId, RootId, HyperdataCorpus, ListId)
@@ -48,7 +48,7 @@ main = do
   let
     initMaster :: Cmd GargError (UserId, RootId, CorpusId, ListId)
     initMaster = do
-      (masterUserId, masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
+      (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus userMaster (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
       masterListId <- getOrMkList masterCorpusId masterUserId
       _ <- initTriggers masterListId
       pure (masterUserId, masterRootId, masterCorpusId, masterListId)

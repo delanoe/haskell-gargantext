@@ -50,13 +50,26 @@ mapNodeIdNgrams = Map.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap f
         nId = documentId $ documentWithId d
 
 ------------------------------------------------------------------------
-listInsert :: FlowCmdM env err m
-             => ListId
-             -> Map NgramsType [NgramsElement]
-             -> m ()
-listInsert lId ngs = mapM_ (\(typeList, ngElmts)
-                             -> putListNgrams lId typeList ngElmts
-                             ) $ toList ngs
+flowList_DbRepo :: FlowCmdM env err m
+         => ListId
+         -> Map NgramsType [NgramsElement]
+         -> m ListId
+flowList_DbRepo lId ngs = do
+  -- printDebug "listId flowList" lId
+  mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
+  let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> parent)
+                                 <*>  getCgramsId mapCgramsId ntype ngram
+                           | (ntype, ngs') <- Map.toList ngs
+                           , NgramsElement ngram _ _ _ _ parent _ <- ngs'
+                           ]
+  -- Inserting groups of ngrams
+  _r <- insert_Node_NodeNgrams_NodeNgrams
+     $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
+  listInsert lId ngs
+  --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
+  pure lId
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 toNodeNgramsW :: ListId
               -> [(NgramsType, [NgramsElement])]
@@ -71,22 +84,15 @@ toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW' l) ngs
        (NgramsElement ngrams_terms' _size list_type _occ _root _parent _children) <- elms
       ]
 
-flowList :: FlowCmdM env err m
-         => CorpusId
-         -> ListId
-         -> Map NgramsType [NgramsElement]
-         -> m ListId
-flowList _cId lId ngs = do
-  -- printDebug "listId flowList" lId
-  -- TODO save in database
-  mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
-  let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> parent)
-                                  <*>  getCgramsId mapCgramsId ntype ngram
-                  | (ntype, ngs') <- Map.toList ngs
-                  , NgramsElement ngram _ _ _ _ parent _ <- ngs'
-                  ]
-  _r <- insert_Node_NodeNgrams_NodeNgrams $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
-  listInsert lId ngs
-  --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
-  pure lId
+listInsert :: FlowCmdM env err m
+             => ListId
+             -> Map NgramsType [NgramsElement]
+             -> m ()
+listInsert lId ngs = mapM_ (\(typeList, ngElmts)
+                             -> putListNgrams lId typeList ngElmts
+                             ) $ toList ngs
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+
 
