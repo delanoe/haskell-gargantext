@@ -4,16 +4,16 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 CREATE TABLE public.auth_user (
     id SERIAL,
-    password     character varying(128) NOT NULL,
-    last_login   timestamp with time zone,
-    is_superuser boolean NOT NULL,
-    username     character varying(150) NOT NULL,
-    first_name   character varying(30) NOT NULL,
-    last_name    character varying(30) NOT NULL,
-    email        character varying(254) NOT NULL,
-    is_staff     boolean NOT NULL,
-    is_active    boolean NOT NULL,
-    date_joined timestamp with time zone DEFAULT now() NOT NULL,
+    password     CHARACTER varying(128) NOT NULL,
+    last_login   TIMESTAMP with time zone,
+    is_superuser BOOLEAN NOT NULL,
+    username     CHARACTER varying(150) NOT NULL,
+    first_name   CHARACTER varying(30) NOT NULL,
+    last_name    CHARACTER varying(30) NOT NULL,
+    email        CHARACTER varying(254) NOT NULL,
+    is_staff     BOOLEAN NOT NULL,
+    is_active    BOOLEAN NOT NULL,
+    date_joined  TIMESTAMP with time zone DEFAULT now() NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -23,11 +23,11 @@ ALTER TABLE public.auth_user OWNER TO gargantua;
 -- TODO typename -> type_id
 CREATE TABLE public.nodes (
     id        SERIAL,
-    typename  integer NOT NULL,
-    user_id   integer NOT NULL,
-    parent_id integer REFERENCES public.nodes(id) ON DELETE CASCADE ,
-    name      character varying(255) DEFAULT ''::character varying NOT NULL,
-    date      timestamp with time zone DEFAULT now() NOT NULL,
+    typename  INTEGER NOT NULL,
+    user_id   INTEGER NOT NULL,
+    parent_id INTEGER REFERENCES public.nodes(id) ON DELETE CASCADE ,
+    name      CHARACTER varying(255) DEFAULT ''::character varying NOT NULL,
+    date      TIMESTAMP with time zone DEFAULT now() NOT NULL,
     hyperdata jsonb DEFAULT '{}'::jsonb NOT NULL,
     search tsvector,
     PRIMARY KEY (id),
@@ -37,8 +37,8 @@ ALTER TABLE public.nodes OWNER TO gargantua;
 
 CREATE TABLE public.ngrams (
     id SERIAL,
-    terms character varying(255),
-    n integer,
+    terms CHARACTER varying(255),
+    n INTEGER,
     PRIMARY KEY (id)
 );
 ALTER TABLE public.ngrams OWNER TO gargantua;
@@ -46,13 +46,13 @@ ALTER TABLE public.ngrams OWNER TO gargantua;
 --------------------------------------------------------------
 CREATE TABLE public.node_ngrams (
     id SERIAL,
-    node_id integer NOT NULL,
-    node_subtype integer,
-    ngrams_id integer NOT NULL,
-    ngrams_type integer, -- change to ngrams_field? (no for pedagogic reason)
-    ngrams_field integer,
-    ngrams_tag integer,
-    ngrams_class integer,
+    node_id INTEGER NOT NULL,
+    node_subtype INTEGER,
+    ngrams_id INTEGER NOT NULL,
+    ngrams_type INTEGER, -- change to ngrams_field? (no for pedagogic reason)
+    ngrams_field INTEGER,
+    ngrams_tag INTEGER,
+    ngrams_class INTEGER,
     weight double precision,
     PRIMARY KEY (id),
     FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
@@ -60,17 +60,17 @@ CREATE TABLE public.node_ngrams (
 );
 ALTER TABLE public.node_ngrams OWNER TO gargantua;
 
-CREATE TABLE public.node_ngrams_ngrams (
-    node_id integer NOT NULL,
-    node_ngrams1_id integer NOT NULL,
-    node_ngrams2_id integer NOT NULL,
+CREATE TABLE public.node_nodengrams_nodengrams (
+    node_id INTEGER NOT NULL,
+    node_ngrams1_id INTEGER NOT NULL,
+    node_ngrams2_id INTEGER NOT NULL,
     weight double precision,
     FOREIGN KEY (node_id) REFERENCES public.nodes(id) ON DELETE CASCADE,
     FOREIGN KEY (node_ngrams1_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
     FOREIGN KEY (node_ngrams2_id) REFERENCES public.node_ngrams(id) ON DELETE CASCADE,
     PRIMARY KEY (node_id, node_ngrams1_id, node_ngrams2_id)
 );
-ALTER TABLE public.node_ngrams_ngrams OWNER TO gargantua;
+ALTER TABLE public.node_nodengrams_nodengrams OWNER TO gargantua;
 
 --------------------------------------------------------------
 --------------------------------------------------------------
@@ -88,28 +88,34 @@ ALTER TABLE public.node_ngrams_ngrams OWNER TO gargantua;
 ---------------------------------------------------------------
 -- TODO nodes_nodes(node1_id int, node2_id int, edge_type int , weight real)
 CREATE TABLE public.nodes_nodes (
-    node1_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
-    node2_id integer NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
-    score real,
-    category integer,
+    node1_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
+    node2_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
+    score REAL,
+    category INTEGER,
     PRIMARY KEY (node1_id,node2_id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
 
 ---------------------------------------------------------------
--- TODO should reference "id" of nodes_nodes (instead of node1_id, node2_id)
 CREATE TABLE public.node_node_ngrams (
 node1_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
--- here id to node_ngrams
 node2_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
 ngrams_id  INTEGER NOT NULL REFERENCES public.ngrams (id) ON DELETE CASCADE,
 ngrams_type INTEGER,
---ngrams_tag INTEGER,
---ngrams_class INTEGER,
 weight double precision,
 PRIMARY KEY (node1_id, node2_id, ngrams_id, ngrams_type)
 );
 ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
+
+
+CREATE TABLE public.node_node_ngrams2 (
+node_id   INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
+node_ngrams_id   INTEGER NOT NULL REFERENCES public.node_ngrams  (id) ON DELETE CASCADE,
+weight double precision,
+PRIMARY KEY (node_id, node_ngrams_id, ngrams_field)
+);
+ALTER TABLE public.node_node_ngrams2 OWNER TO gargantua;
+
 --------------------------------------------------------------
 
 --CREATE TABLE public.nodes_ngrams_repo (

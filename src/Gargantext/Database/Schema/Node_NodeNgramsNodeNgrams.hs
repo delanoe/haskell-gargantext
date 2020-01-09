@@ -78,7 +78,7 @@ $(makeLensesWith abbreviatedFields
 
 node_NodeNgrams_NodeNgrams_Table :: Table Node_NodeNgrams_NodeNgrams_Write Node_NodeNgrams_NodeNgrams_Read
 node_NodeNgrams_NodeNgrams_Table =
-  Table "node_ngrams_ngrams"
+  Table "node_nodengrams_nodengrams"
        ( pNode_NodeNgrams_NodeNgrams Node_NodeNgrams_NodeNgrams
                        { _nnn_node_id = required "node_id"
                        , _nnn_nng1_id = optional "node_ngrams1_id"
