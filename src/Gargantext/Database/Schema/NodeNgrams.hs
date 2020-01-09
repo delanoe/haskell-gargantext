@@ -43,6 +43,8 @@ import Gargantext.Database.Utils
 import Gargantext.Database.Schema.Ngrams (NgramsType, ngramsTypeId, fromNgramsTypeId)
 import Gargantext.Prelude
 
+type NodeNgramsId = Int
+
 data NodeNgramsPoly id
                     node_id'
                     node_subtype

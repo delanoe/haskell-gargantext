@@ -23,11 +23,13 @@ Portability : POSIX
 
 module Gargantext.Database.Flow.List
     where
+import Data.Text (Text)
 import Control.Monad (mapM_)
 import Data.Map (Map, toList)
 import Data.Maybe (Maybe(..), catMaybes)
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
+import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Schema.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
 import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams -- (insert_Node_NodeNgrams_NodeNgrams, Node_NodeNgrams_NodeNgrams(..))
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
@@ -74,15 +76,24 @@ flowList_DbRepo lId ngs = do
 toNodeNgramsW :: ListId
               -> [(NgramsType, [NgramsElement])]
               -> [NodeNgramsW]
-toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW' l) ngs
+toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW'' l) ngs
   where
-    toNodeNgramsW' :: ListId
+    toNodeNgramsW'' :: ListId
                   -> (NgramsType, [NgramsElement])
                   -> [NodeNgramsW]
-    toNodeNgramsW' l' (ngrams_type, elms) =
+    toNodeNgramsW'' l' (ngrams_type, elms) =
       [ NodeNgrams Nothing l' list_type ngrams_terms' ngrams_type Nothing Nothing Nothing 0 |
        (NgramsElement ngrams_terms' _size list_type _occ _root _parent _children) <- elms
       ]
+
+toNodeNgramsW' :: ListId
+               -> [(Text, [NgramsType])]
+               -> [NodeNgramsW]
+toNodeNgramsW' l'' ngs = [ NodeNgrams Nothing l'' CandidateTerm terms ngrams_type Nothing Nothing Nothing 0
+                         | (terms, ngrams_types) <- ngs
+                         , ngrams_type <- ngrams_types
+                         ]
+
 
 listInsert :: FlowCmdM env err m
              => ListId
