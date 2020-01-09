@@ -11,8 +11,27 @@ services:
       POSTGRES_DB: gargandbV5
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ../:/gargantext
+      - ../../:/gargantext
       - ../dbs:/dbs
+
+  setup:
+    image: 'postgres:latest'
+    environment:
+      POSTGRES_USER: gargantua
+      PGPASSWORD: C8kdcUrAQy66U
+      POSTGRES_DB: gargandbV5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../../:/gargantext
+      - ../dbs:/dbs
+    links:
+      - postgres
+    command: /gargantext/devops/docker/postgres-setup.sh
+
+  corenlp:
+    image: 'konradstrack/corenlp'
+    ports:
+      - 9000:9000
 
 volumes:
   pgdata:

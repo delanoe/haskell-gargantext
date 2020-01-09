@@ -42,7 +42,11 @@ issues.
 Users has to be created first (user1 is created as instance):
 
 - stack install
+- devops/postgres/create
 - ~/.local/bin/gargantext-init "gargantext.ini"
+- ~/.local/bin/gargantext-import
+- ~/.local/bin/gargantext-server
+- ~/.local/bin/gargantext-import "corpusCsvHal" "user1" "IMT" gargantext.ini 10000 doc/data/imt/csvHal/1000.csv
 
 ## Use Cases
 
