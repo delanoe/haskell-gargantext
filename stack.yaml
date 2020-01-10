@@ -46,6 +46,7 @@ extra-deps:
   commit: 53385de076be09f728a1b58c035a18e9ff9bcfd6
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
+- Unique-0.4.7.6@sha256:a1ff411f4d68c756e01e8d532fbe8e57f1ac77f2cc0ee8a999770be2bca185c5,2723
 - KMP-0.1.0.2
 - accelerate-1.2.0.1
 - aeson-lens-0.5.0.0

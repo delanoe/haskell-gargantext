@@ -23,6 +23,7 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 -- import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
+import Gargantext.Core.Types.Main (listTypeId, ListType(CandidateTerm))
 import Gargantext.Database.Utils (Cmd, execPGSQuery)
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
@@ -105,7 +106,12 @@ triggerCountInsert2 = execPGSQuery query (nodeTypeId NodeCorpus, nodeTypeId Node
 
 -- TODO add the groups
 triggerCoocInsert :: Cmd err Int64
-triggerCoocInsert = execPGSQuery query (nodeTypeId NodeCorpus, nodeTypeId NodeDocument, nodeTypeId NodeList)
+triggerCoocInsert = execPGSQuery query ( nodeTypeId NodeCorpus
+                                       , nodeTypeId NodeDocument
+                                       , nodeTypeId NodeList
+                                       , listTypeId CandidateTerm
+                                       , listTypeId CandidateTerm
+                                       )
   where
     query :: DPS.Query
     query = [sql|
@@ -116,7 +122,7 @@ triggerCoocInsert = execPGSQuery query (nodeTypeId NodeCorpus, nodeTypeId NodeDo
             END IF;
             IF TG_OP = 'INSERT' THEN
                 INSERT INTO node_nodengrams_nodengrams (node_id, node_ngrams1_id, node_ngrams2_id, weight)
-
+                WITH input(corpus_id, nn1, nn2, weight) AS (
                   SELECT corpus.id, nng1.id, nng2.id, count(*) from NEW as new1
                         INNER JOIN node_ngrams nng1   ON nng1.id     = new1.nodengrams_id
                         INNER JOIN nodes       list   ON list.id     = nng1.node_id
@@ -131,8 +137,12 @@ triggerCoocInsert = execPGSQuery query (nodeTypeId NodeCorpus, nodeTypeId NodeDo
                           AND doc.typename    = ? -- 4  -- maybe not mandatory
                           AND list.typename   = ? -- 5  -- list
                           AND nng2.node_id    = list.id
-                          -- AND nng1.id <> nng2.id
+                          AND nng1.id < nng2.id
+                          AND nng1.node_subtype >= ?
+                          AND nng2.node_subtype >= ?
                         GROUP BY corpus.id, nng1.id, nng2.id
+                        )
+                    SELECT * from input where weight > 1
 
                 ON CONFLICT (node_id, node_ngrams1_id, node_ngrams2_id)
                    DO UPDATE set weight = node_nodengrams_nodengrams.weight + excluded.weight
