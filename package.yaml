@@ -208,6 +208,7 @@ library:
   - transformers
   - transformers-base
   - unordered-containers
+  - Unique
   - uuid
   - validity
   - vector

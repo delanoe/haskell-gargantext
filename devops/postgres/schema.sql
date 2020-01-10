@@ -155,10 +155,11 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdat
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 CREATE        INDEX ON public.ngrams USING btree (id, terms);
+CREATE        INDEX ON public.node_ngrams USING btree (node_id,node_subtype);
 CREATE UNIQUE INDEX ON public.node_ngrams USING btree (node_id,node_subtype, ngrams_id);
 
-CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
 CREATE UNIQUE INDEX ON public.nodes_nodes  USING btree (node1_id, node2_id);
+CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, category);
 
 CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, ngrams_id, ngrams_type);
 CREATE        INDEX ON public.node_node_ngrams USING btree (node1_id,  node2_id);
