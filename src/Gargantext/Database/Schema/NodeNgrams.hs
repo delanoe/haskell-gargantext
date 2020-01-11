@@ -28,8 +28,8 @@ module Gargantext.Database.Schema.NodeNgrams where
 
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.List.UniqueStrict (sortUniq)
 import qualified Data.List as List
+import Data.List.Extra (nubOrd)
 import Data.Text (Text)
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
@@ -67,43 +67,6 @@ data NodeNgramsPoly id
                               } deriving (Show, Eq, Ord)
 
 {-
-instance ( Eq id
-         , Eq node_id'
-         , Eq node_subtype
-         , Eq ngrams_id
-         , Eq ngrams_type
-         , Eq ngrams_field
-         , Eq ngrams_tag
-         , Eq ngrams_class
-         , Eq weight
-         ) => Eq (NodeNgramsPoly id node_id' node_subtype ngrams_id ngrams_type ngrams_field ngrams_tag ngrams_class weight) where
-  (==) (NodeNgrams a b c d e f g h i)
-       (NodeNgrams a' b' c' d' e' f' g' h' i') =
-         all identity [ a == a'
-                       , b == b'
-                       , c == c'
-                       , d == d'
-                       , e == e'
-                       , f == f'
-                       , g == g'
-                       , h == h'
-                       , i == i'
-                       ]
-
-instance ( Ord id
-         , Ord node_id'
-         , Ord node_subtype
-         , Ord ngrams_id
-         , Ord ngrams_type
-         , Ord ngrams_field
-         , Ord ngrams_tag
-         , Ord ngrams_class
-         , Ord weight
-         ) => Ord (NodeNgramsPoly id node_id' node_subtype ngrams_id ngrams_type ngrams_field ngrams_tag ngrams_class weight) where
-  compare (NodeNgrams a _b _c _d _e _f _g _h _i)
-          (NodeNgrams a' _b' _c' _d' _e' _f' _g' _h' _i') =
-            compare a a'
-
 
 type NodeNgramsWrite = NodeNgramsPoly (Maybe (Column (PGInt4)))
                                       (Column (PGInt4))
@@ -195,7 +158,7 @@ insertNodeNgrams nns = runPGSQuery query (PGS.Only $ Values fields nns')
                                  , toField $ fromMaybe 0 ngrams_class
                                  , toField weight
                                  ]
-                  ) $ sortUniq nns
+                  ) $ nubOrd nns
 
     query :: PGS.Query
     query = [sql|
