@@ -281,6 +281,7 @@ nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optio
                                       }
                             )
 
+
 queryNodeSearchTable :: Query NodeSearchRead
 queryNodeSearchTable = queryTable nodeTableSearch
 
@@ -371,19 +372,19 @@ selectNodesWithType type_id = proc () -> do
 
 type JSONB = QueryRunnerColumnDefault PGJsonb
 
-getNode :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
-getNode nId _ = do
+
+getNode :: NodeId -> Cmd err (Node Value)
+getNode nId = fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
+             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+
+getNodeWith :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
+getNodeWith nId _ = do
     fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 getNodePhylo :: NodeId -> Cmd err (Node HyperdataPhylo)
 getNodePhylo nId = do
     fromMaybe (error $ "Node Phylo does not exist: " <> show nId) . headMay
-             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
-
-
-getNode' :: NodeId -> Cmd err (Node Value)
-getNode' nId = fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
@@ -464,12 +465,14 @@ instance HasDefault NodeType where
   hasDefaultData nt = case nt of
       NodeTexts -> HyperdataTexts (Just "Preferences")
       NodeList  -> HyperdataList' (Just "Preferences")
+      NodeListCooc -> HyperdataList' (Just "Preferences")
       _         -> undefined
       --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
 
   hasDefaultName nt = case nt of
       NodeTexts -> "Texts"
       NodeList  -> "Lists"
+      NodeListCooc -> "Cooc"
       _         -> undefined
 
 ------------------------------------------------------------------------
@@ -717,3 +720,4 @@ pgNodeId = pgInt4 . id2int
 
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
+

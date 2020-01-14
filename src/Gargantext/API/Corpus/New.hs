@@ -27,9 +27,14 @@ module Gargantext.API.Corpus.New
 import Data.Either
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
+import Data.Aeson
+import Servant.Job.Utils (jsonOptions)
+import Control.Lens hiding (elements)
+import Servant.Multipart
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Servant.Job.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
@@ -44,6 +49,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import qualified Gargantext.Text.Corpus.API as API
 import Gargantext.Database.Types.Node (UserId)
+import Gargantext.API.Corpus.New.File
 
 data Query = Query { query_query      :: Text
                    , query_corpus_id  :: Int
@@ -72,8 +78,8 @@ type Api = Summary "New Corpus endpoint"
 -- | TODO manage several apis
 -- TODO-ACCESS
 -- TODO this is only the POST
-api :: (FlowCmdM env err m) => Query -> m CorpusId
-api (Query q _ as) = do
+api :: (FlowCmdM env err m) => UserId -> Query -> m CorpusId
+api _uId (Query q _ as) = do
   cId <- case head as of
     Nothing      -> flowCorpusSearchInDatabase "user1" EN q
     Just API.All -> flowCorpusSearchInDatabase "user1" EN q
@@ -130,15 +136,53 @@ data ScraperStatus = ScraperStatus
 deriveJSON (unPrefix "_scst_") 'ScraperStatus
 -}
 
-type API_v2 =
-  Summary "Add to corpus endpoint" :>
-  "corpus" :>
-  Capture "corpus_id" CorpusId :>
-  "add" :>
-  "async" :> ScraperAPI2
 
-  -- TODO ScraperInput2 also has a corpus id
-addToCorpusJobFunction :: FlowCmdM env err m => CorpusId -> ScraperInput2 -> (ScraperStatus -> m ()) -> m ScraperStatus
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+data WithQuery = WithQuery
+  { _wq_query     :: !Text
+  , _wq_databases :: ![ExternalAPIs]
+  }
+  deriving Generic
+
+makeLenses ''WithQuery
+
+instance FromJSON WithQuery where
+  parseJSON = genericParseJSON $ jsonOptions "_wq_"
+
+instance ToSchema WithQuery
+
+------------------------------------------------------------------------
+type
+  AddAPI withInput = AsyncJobsAPI ScraperStatus withInput ScraperStatus
+------------------------------------------------------------------------
+
+type AddWithQuery = Summary "Add to corpus endpoint"
+   :> "corpus"
+   :> Capture "corpus_id" CorpusId
+   :> "add"
+   :> "query"
+   :> "async"
+   :> AddAPI WithQuery
+
+type AddWithFile = Summary "Add to corpus endpoint"
+   :> "corpus"
+   :> Capture "corpus_id" CorpusId
+   :> "add" 
+   :> "file"
+   :> MultipartForm Mem (MultipartData Mem)
+   :> QueryParam "fileType"  FileType
+   :> "async"
+   :> AddAPI ()
+
+------------------------------------------------------------------------
+-- TODO WithQuery also has a corpus id
+addToCorpusJobFunction :: FlowCmdM env err m
+                       => CorpusId
+                       -> WithQuery
+                       -> (ScraperStatus -> m ())
+                       -> m ScraperStatus
 addToCorpusJobFunction _cid _input logStatus = do
   -- TODO ...
   logStatus ScraperStatus { _scst_succeeded = Just 10
@@ -152,3 +196,24 @@ addToCorpusJobFunction _cid _input logStatus = do
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
                           }
+
+addToCorpusWithFile :: FlowCmdM env err m
+                    => CorpusId
+                    -> MultipartData Mem
+                    -> Maybe FileType
+                    -> (ScraperStatus -> m ())
+                    -> m ScraperStatus
+addToCorpusWithFile cid input filetype logStatus = do
+  logStatus ScraperStatus { _scst_succeeded = Just 10
+                          , _scst_failed    = Just 2
+                          , _scst_remaining = Just 138
+                          , _scst_events    = Just []
+                          }
+  _h <- postUpload cid filetype input
+
+  pure      ScraperStatus { _scst_succeeded = Just 137
+                          , _scst_failed    = Just 13
+                          , _scst_remaining = Just 0
+                          , _scst_events    = Just []
+                          }
+

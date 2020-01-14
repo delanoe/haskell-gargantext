@@ -32,7 +32,6 @@ import Gargantext.Database.Types.Node
 import Opaleye
 
 
-
 data NodeNodeNgramsPoly n1 n2 ngrams_id ngt w
    = NodeNodeNgrams { _nnng_node1_id   :: n1
                     , _nnng_node2_id   :: n2

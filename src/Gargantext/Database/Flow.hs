@@ -41,16 +41,12 @@ import Prelude (String)
 import Data.Either
 import Debug.Trace (trace)
 import Control.Lens ((^.), view, _Just)
-import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.List (concat)
-import Data.Map (Map, lookup, toList)
+import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
 import Data.Text (Text, splitOn, intercalate)
-import GHC.Show (Show)
-import Gargantext.API.Ngrams (HasRepoVar)
-import Gargantext.API.Ngrams (NgramsElement, putListNgrams, RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (Username)
@@ -58,6 +54,8 @@ import Gargantext.Core.Flow
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Flow.Utils (insertDocNgrams)
+import Gargantext.Database.Flow.List
+import Gargantext.Database.Flow.Types
 import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Root (getRoot)
@@ -66,7 +64,7 @@ import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGrap
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
-import Gargantext.Database.Utils (Cmd, CmdM)
+import Gargantext.Database.Utils (Cmd)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
@@ -83,13 +81,6 @@ import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Text.Corpus.Parsers.GrandDebat as GD
-
-type FlowCmdM env err m =
-  ( CmdM     env err m
-  , RepoCmdM env err m
-  , HasNodeError err
-  , HasRepoVar env
-  )
 
 ------------------------------------------------------------------------
 
@@ -221,20 +212,21 @@ flowCorpusUser l userName corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMkRootWithCorpus userName corpusName ctype
   listId <- getOrMkList userCorpusId userId
+  _cooc  <- mkNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
-  tId <- mkNode NodeTexts userCorpusId userId
 
-  printDebug "Node Text Id" tId
+  _tId <- mkNode NodeTexts userCorpusId userId
+  -- printDebug "Node Text Id" tId
 
   -- User List Flow
   --{-
   (_masterUserId, _masterRootId, masterCorpusId) <- getOrMkRootWithCorpus userMaster (Left "") ctype
   ngs        <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
-  userListId <- flowList listId ngs
+  _userListId <- flowList listId ngs
   --mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId
-  printDebug "userListId" userListId
+  -- printDebug "userListId" userListId
   -- User Graph Flow
   _ <- mkDashboard userCorpusId userId
   _ <- mkGraph  userCorpusId userId
@@ -284,6 +276,7 @@ insertMasterDocs c lang hs  =  do
   let indexedNgrams = Map.mapKeys (indexNgrams terms2id) maps
 
   lId <- getOrMkList masterCorpusId masterUserId
+  _cooc <- mkNode NodeListCooc lId masterUserId
   _   <- insertDocNgrams lId indexedNgrams
 
   pure $ map reId ids
@@ -351,15 +344,6 @@ toInserted =
   Map.fromList . map    (\r ->  (reUniqId r, r)    )
                . filter (\r -> reInserted r == True)
 
-data DocumentWithId a = DocumentWithId
-  { documentId   :: !NodeId
-  , documentData :: !a
-  } deriving (Show)
-
-instance HasText a => HasText (DocumentWithId a)
-  where
-    hasText (DocumentWithId _ a) = hasText a
-
 mergeData :: Map HashId ReturnId
           -> Map HashId a
           -> [DocumentWithId a]
@@ -370,11 +354,6 @@ mergeData rs = catMaybes . map toDocumentWithId . Map.toList
                      <*> Just hpd
 
 ------------------------------------------------------------------------
-data DocumentIdWithNgrams a = DocumentIdWithNgrams
-  { documentWithId  :: !(DocumentWithId a)
-  , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
-  } deriving (Show)
-
 
 instance HasText HyperdataContact
   where
@@ -451,36 +430,4 @@ documentIdWithNgrams f = mapM toDocumentIdWithNgrams
     toDocumentIdWithNgrams d = do
       e <- f $ documentData         d
       pure   $ DocumentIdWithNgrams d e
-
-
--- FLOW LIST
--- | TODO check optimization
-mapNodeIdNgrams :: [DocumentIdWithNgrams a]
-                -> Map Ngrams (Map NgramsType (Map NodeId Int))
-mapNodeIdNgrams = Map.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap f
-  where
-    f :: DocumentIdWithNgrams a
-      -> Map Ngrams (Map NgramsType (Map NodeId Int))
-    f d = fmap (fmap (Map.singleton nId)) $ document_ngrams d
-      where
-        nId = documentId $ documentWithId d
-
-------------------------------------------------------------------------
-listInsert :: FlowCmdM env err m
-             => ListId
-             -> Map NgramsType [NgramsElement]
-             -> m ()
-listInsert lId ngs = mapM_ (\(typeList, ngElmts)
-                             -> putListNgrams lId typeList ngElmts
-                             ) $ toList ngs
-
-flowList :: FlowCmdM env err m
-         => ListId
-         -> Map NgramsType [NgramsElement]
-         -> m ListId
-flowList lId ngs = do
-  printDebug "listId flowList" lId
-  listInsert lId ngs
-  --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
-  pure lId
 

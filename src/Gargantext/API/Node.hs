@@ -38,19 +38,18 @@ Node API
 module Gargantext.API.Node
   where
 
-import Control.Lens ((.~), (?~), (^.))
-import Control.Monad ((>>), forM)
+import Control.Lens ((^.))
+import Control.Monad ((>>))
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Maybe
-import Data.Monoid (mempty)
 import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR, TODO)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Search (SearchDocsAPI, searchDocs)
 import Gargantext.API.Table
@@ -60,19 +59,15 @@ import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNode, getNode', deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
+import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
-import Servant.Multipart
-import Servant.Swagger (HasSwagger(toSwagger))
-import Servant.Swagger.Internal
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.Database.Node.Update as U (update, Update(..))
@@ -143,7 +138,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "pie"       :> PieApi
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
-             :<|> "add"       :> NodeAddAPI
+             -- :<|> "add"       :> NodeAddAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -169,7 +164,7 @@ nodeNodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> Corpu
 nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uId (PathNodeNode cId nId) nodeNodeAPI'
   where
     nodeNodeAPI' :: GargServer (NodeNodeAPI a)
-    nodeNodeAPI' = getNode nId p
+    nodeNodeAPI' = getNodeWith nId p
 
 
 
@@ -179,7 +174,7 @@ nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId ->
 nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
-    nodeAPI' =  getNode       id p
+    nodeAPI' =  getNodeWith       id p
            :<|> rename        id
            :<|> postNode  uId id
            :<|> putNode       id
@@ -201,18 +196,14 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            :<|> getPie     id
            :<|> getTree    id
            :<|> phyloAPI   id uId
-           :<|> nodeAddAPI id
+           -- :<|> nodeAddAPI id
            -- :<|> postUpload id
 
     deleteNodeApi id' = do
-      node <- getNode' id'
+      node <- getNode id'
       if _node_typename node == nodeTypeId NodeUser
          then panic "not allowed"  -- TODO add proper Right Management Type
          else deleteNode id'
-
-           -- Annuaire
-           -- :<|> query
-
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
@@ -290,9 +281,6 @@ type TreeApi = Summary " Tree API"
                 -- New documents for a corpus
                 -- New map list terms
              -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
-                
-                -- To launch a query and update the corpus
-             -- :<|> "query"    :> Capture "string" Text       :> Get  '[JSON] Text
 
 ------------------------------------------------------------------------
 
@@ -337,79 +325,11 @@ rename nId (RenameNode name') = U.update (U.Rename nId name')
 
 postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = do
-  nodeUser <- getNode (NodeId uId) HyperdataUser
+  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
   let uId' = nodeUser ^. node_userId
   mkNodeWithParent nt (Just pId) uId' nodeName
 
 putNode :: NodeId -> Cmd err Int
 putNode = undefined -- TODO
 
-query :: Monad m => Text -> m Text
-query s = pure s
-
 -------------------------------------------------------------
-type Hash = Text
-data FileType = CSV | PresseRIS
-  deriving (Eq, Show, Generic)
-
-instance ToSchema FileType
-instance Arbitrary FileType
-  where
-    arbitrary = elements [CSV, PresseRIS]
-instance ToParamSchema FileType
-
-instance ToParamSchema (MultipartData Mem) where
-  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
-
-instance FromHttpApiData FileType
-  where
-    parseUrlPiece "CSV"       = pure CSV
-    parseUrlPiece "PresseRis" = pure PresseRIS
-    parseUrlPiece _           = pure CSV -- TODO error here
-
-
-instance (ToParamSchema a, HasSwagger sub) =>
-         HasSwagger (MultipartForm tag a :> sub) where
-  -- TODO
-  toSwagger _ = toSwagger (Proxy :: Proxy sub)
-    & addParam param
-    where
-      param = mempty
-        & required ?~ True
-        & schema   .~ ParamOther sch
-      sch = mempty
-        & in_         .~ ParamFormData
-        & paramSchema .~ toParamSchema (Proxy :: Proxy a)
-
-type NodeAddAPI = "file" :> Summary "Node add API"
-                         :> UploadAPI
-
-nodeAddAPI :: NodeId -> GargServer NodeAddAPI
-nodeAddAPI id =  postUpload       id
-
-type UploadAPI = Summary "Upload file(s) to a corpus"
-                :> MultipartForm Mem (MultipartData Mem)
-                :> QueryParam "fileType"  FileType
-                :> Post '[JSON] [Hash]
-
---postUpload :: NodeId -> Maybe FileType ->  GargServer UploadAPI
---postUpload :: NodeId -> GargServer UploadAPI
-postUpload :: NodeId -> MultipartData Mem -> Maybe FileType -> Cmd err [Hash]
-postUpload _ _ Nothing = panic "fileType is a required parameter"
-postUpload _ multipartData (Just fileType) = do
-  putStrLn $ "File Type: " <> (show fileType)
-  is <- liftIO $ do
-    putStrLn ("Inputs:" :: Text)
-    forM (inputs multipartData) $ \input -> do
-      putStrLn $ ("iName  " :: Text) <> (iName input)
-            <> ("iValue " :: Text) <> (iValue input)
-      pure $ iName input
-
-  _ <- forM (files multipartData) $ \file -> do
-    let content = fdPayload file
-    putStrLn $ ("XXX " :: Text) <> (fdFileName file)
-    putStrLn $ ("YYY " :: Text) <>  cs content
-    --pure $ cs content
-  -- is <- inputs multipartData
-
-  pure $ map (sha . cs) is

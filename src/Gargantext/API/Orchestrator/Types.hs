@@ -23,7 +23,6 @@ import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Gargantext.API.Ngrams (TODO(..))
-
 instance Arbitrary a => Arbitrary (JobStatus 'Safe a) where
   arbitrary = panic "TODO"
 
@@ -80,17 +79,6 @@ instance FromJSON ScraperInput where
   parseJSON = genericParseJSON $ jsonOptions "_scin_"
 
 -- Proposal to replace the Corpus.API.Query type which seems to generically named.
-data ScraperInput2 = ScraperInput2
-  { _scin2_query     :: !Text
-  , _scin2_corpus    :: !Int
-  , _scin2_databases :: ![ExternalAPIs]
-  }
-  deriving Generic
-
-makeLenses ''ScraperInput2
-
-instance FromJSON ScraperInput2 where
-  parseJSON = genericParseJSON $ jsonOptions "_scin2_"
 
 data ScraperEvent = ScraperEvent
   { _scev_message :: !(Maybe Text)
@@ -119,7 +107,11 @@ data ScraperStatus = ScraperStatus
   deriving Generic
 
 instance Arbitrary ScraperStatus where
-  arbitrary = ScraperStatus <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = ScraperStatus
+           <$> arbitrary
+           <*> arbitrary
+           <*> arbitrary
+           <*> arbitrary
 
 instance ToJSON ScraperStatus where
   toJSON = genericToJSON $ jsonOptions "_scst_"
@@ -130,7 +122,6 @@ instance FromJSON ScraperStatus where
 instance ToSchema ScraperStatus -- TODO _scst_ prefix
 
 instance ToSchema ScraperInput  -- TODO _scin_ prefix
-instance ToSchema ScraperInput2 -- TODO _scin2_ prefix
 instance ToSchema ScraperEvent  -- TODO _scev_ prefix
 
 instance ToParamSchema Offset -- where
@@ -142,4 +133,3 @@ instance ToParamSchema Limit -- where
 type ScrapersEnv = JobEnv ScraperStatus ScraperStatus
 
 type ScraperAPI  = AsyncJobsAPI ScraperStatus ScraperInput  ScraperStatus
-type ScraperAPI2 = AsyncJobsAPI ScraperStatus ScraperInput2 ScraperStatus
