@@ -138,10 +138,10 @@ deriveJSON (unPrefix "_scst_") 'ScraperStatus
 
 
 
-----------------------------------------
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 data WithQuery = WithQuery
   { _wq_query     :: !Text
-  , _wq_corpus    :: !Int
   , _wq_databases :: ![ExternalAPIs]
   }
   deriving Generic
@@ -151,17 +151,20 @@ makeLenses ''WithQuery
 instance FromJSON WithQuery where
   parseJSON = genericParseJSON $ jsonOptions "_wq_"
 
-instance ToSchema WithQuery -- TODO _scin2_ prefix
+instance ToSchema WithQuery
 
-type (AddAPI m) = AsyncJobsAPI ScraperStatus m ScraperStatus
+------------------------------------------------------------------------
+type
+  AddAPI withInput = AsyncJobsAPI ScraperStatus withInput ScraperStatus
+------------------------------------------------------------------------
 
 type AddWithQuery = Summary "Add to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
-   :> "add" :> "query" :> "async" :> (AddAPI WithQuery)
-
-
-type WithUpload' = QueryParam "fileType"  FileType
+   :> "add"
+   :> "query"
+   :> "async"
+   :> AddAPI WithQuery
 
 type AddWithFile = Summary "Add to corpus endpoint"
    :> "corpus"
@@ -170,9 +173,10 @@ type AddWithFile = Summary "Add to corpus endpoint"
    :> "file"
    :> MultipartForm Mem (MultipartData Mem)
    :> QueryParam "fileType"  FileType
-   :> "async" :> (AddAPI WithQuery)
+   :> "async"
+   :> AddAPI ()
 
-
+------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
 addToCorpusJobFunction :: FlowCmdM env err m
                        => CorpusId

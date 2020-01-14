@@ -284,7 +284,7 @@ type GargPrivateAPI' =
                        :> TreeAPI
 
            :<|> New.AddWithQuery
-           -- :<|> New.AddWithFile
+           :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
@@ -365,7 +365,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
           <$> PathNode <*> treeAPI
      -- TODO access
      :<|> addWithQuery
-     -- :<|> addWithQuery
+     :<|> addWithFile
      -- :<|> addToCorpus
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
