@@ -283,9 +283,10 @@ type GargPrivateAPI' =
                        :> Capture "tree_id" NodeId
                        :> TreeAPI
 
-           :<|> New.API_v2
+           :<|> New.AddWithQuery
+           -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
-           :<|> "new"  :> New.Api
+       --  :<|> "new"  :> New.Api
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -347,26 +348,43 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
-     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)      uid
-     :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid <$> PathNode <*> apiNgramsTableDoc
-     :<|> count -- TODO: undefined
-     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid <$> PathNode <*> searchPairs -- TODO: move elsewhere
-     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid <$> PathNode <*> graphAPI uid -- TODO: mock
-     :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid <$> PathNode <*> treeAPI
-     :<|> addToCorpus
-     :<|> New.api -- TODO-SECURITY
-     :<|> New.info uid -- TODO-SECURITY
+     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)  uid
 
-addToCorpus :: GargServer New.API_v2
-addToCorpus cid =
+     :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid
+          <$> PathNode <*> apiNgramsTableDoc
+
+     :<|> count -- TODO: undefined
+
+     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid
+          <$> PathNode <*> searchPairs -- TODO: move elsewhere
+
+     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid
+          <$> PathNode <*> graphAPI uid -- TODO: mock
+
+     :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
+          <$> PathNode <*> treeAPI
+     -- TODO access
+     :<|> addWithQuery
+     -- :<|> addWithQuery
+     -- :<|> addToCorpus
+     -- :<|> New.api  uid -- TODO-SECURITY
+     -- :<|> New.info uid -- TODO-SECURITY
+
+addWithQuery :: GargServer New.AddWithQuery
+addWithQuery cid =
   serveJobsAPI $
     JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log))
 
+addWithFile :: GargServer New.AddWithFile
+addWithFile cid i f =
+  serveJobsAPI $
+    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftIO . log))
+
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
-                let path = "purescript-gargantext/dist/index.html"
-                Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
-                fileTreeToServer s
+                  let path = "purescript-gargantext/dist/index.html"
+                  Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
+                  fileTreeToServer s
                 )
 
 ---------------------------------------------------------------------
