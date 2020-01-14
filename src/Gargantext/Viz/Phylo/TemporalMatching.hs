@@ -15,18 +15,19 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.TemporalMatching where
 
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, dropWhile, partition, or)
-import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), singleton, empty, mapKeys)
+import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, dropWhile, partition, or, sort, (!!))
+import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), (!?), filterWithKey, singleton, empty, mapKeys, adjust)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 
--- import Prelude (logBase)
+import Prelude (floor)
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
--- import Debug.Trace (trace)
+import Debug.Trace (trace)
 
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 
@@ -77,7 +78,7 @@ weightedLogJaccard' sens nbDocs diago ngrams ngrams'
 toProximity :: Double -> Map Int Double -> Proximity -> [Int] -> [Int] -> [Int] -> Double
 toProximity nbDocs diago proximity egoNgrams targetNgrams targetNgrams' =
   case proximity of 
-    WeightedLogJaccard sens _ _ -> 
+    WeightedLogJaccard sens -> 
       let pairNgrams = if targetNgrams == targetNgrams'
                           then targetNgrams
                           else union targetNgrams targetNgrams'
@@ -268,9 +269,9 @@ toPhyloQuality' beta freq branches =
        $ keys freq
 
 
------------------------------
--- | Adaptative Matching | --
------------------------------
+------------------------------------
+-- | Constant Temporal Matching | --
+------------------------------------
 
 
 groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
@@ -299,18 +300,21 @@ reduceFrequency frequency branches =
   restrictKeys frequency (Set.fromList $ (nub . concat) $ map _phylo_groupNgrams $ concat branches)
 
 updateThr :: Double -> [[PhyloGroup]] -> [[PhyloGroup]]
-updateThr thr branches = map (\b -> map (\g -> g & phylo_groupMeta .~ (singleton "thr" [thr])) b) branches
+updateThr thr branches = map (\b -> map (\g -> 
+  g & phylo_groupMeta .~ (singleton "seaLevels" (((g ^. phylo_groupMeta) ! "seaLevels") ++ [thr]))) b) branches
 
 
 -- | Sequentially break each branch of a phylo where
 -- done = all the allready broken branches
 -- ego  = the current branch we want to break
 -- rest = the branches we still have to break
-breakBranches :: Proximity -> Double -> Map Int Double -> Int -> Double -> Int -> Map Date Double -> Map Date Cooc -> [PhyloPeriodId] -> [([PhyloGroup],Bool)] -> ([PhyloGroup],Bool) -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
-breakBranches proximity beta frequency minBranch thr frame docs coocs periods done ego rest =
+breakBranches :: Proximity -> Double -> Map Int Double -> Int -> Double -> Double -> Double 
+              -> Int -> Map Date Double -> Map Date Cooc -> [PhyloPeriodId] -> [([PhyloGroup],Bool)] -> ([PhyloGroup],Bool) -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
+breakBranches proximity beta frequency minBranch thr depth elevation frame docs coocs periods done ego rest =
   -- | 1) keep or not the new division of ego
   let done' = done ++ (if snd ego 
-                        then (if ((null (fst ego')) || (quality > quality')) 
+                        then
+                            (if ((null (fst ego')) || (quality > quality')) 
                                then
                                 -- trace ("  ✗ F(β) = " <> show(quality) <> " (vs) " <> show(quality')
                                 --         <> "  | "  <> show(length $ fst ego) <> " groups : " 
@@ -328,7 +332,7 @@ breakBranches proximity beta frequency minBranch thr frame docs coocs periods do
     -- | 2) if there is no more branches in rest then return else continue    
     if null rest 
       then done'
-      else breakBranches proximity beta frequency minBranch thr frame docs coocs periods
+      else breakBranches proximity beta frequency minBranch thr depth elevation frame docs coocs periods
                        done' (head' "breakBranches" rest) (tail' "breakBranches" rest) 
   where
     --------------------------------------
@@ -341,41 +345,43 @@ breakBranches proximity beta frequency minBranch thr frame docs coocs periods do
                     $ matchGroupsToGroups frame periods proximity thr docs coocs (fst ego)
           branches' = branches `using` parList rdeepseq
        in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) >= minBranch) 
-        $ if (length branches' > 1)
-          then updateThr thr branches'
-          else branches'    
+        $ thrToMeta thr
+        $ depthToMeta (elevation - depth) branches'    
     --------------------------------------
     quality' :: Double
     quality' = toPhyloQuality' beta frequency
                                     ((map fst done) ++ (fst ego') ++ (snd ego') ++ (map fst rest))
 
 
-seaLevelMatching :: Proximity -> Double -> Int -> Map Int Double -> Double -> Int -> [PhyloPeriodId] -> Map Date Double -> Map Date Cooc -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
-seaLevelMatching proximity beta minBranch frequency thr frame periods docs coocs branches =
-  -- | if there is no branch to break or if sea level > 1 then end
+seaLevelMatching :: Proximity -> Double -> Int -> Map Int Double -> Double -> Double -> Double -> Double
+                 -> Int -> [PhyloPeriodId] -> Map Date Double -> Map Date Cooc -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
+seaLevelMatching proximity beta minBranch frequency thr step depth elevation frame periods docs coocs branches =
+  -- | if there is no branch to break or if seaLvl level > 1 then end
   if (thr >= 1) || ((not . or) $ map snd branches)
     then branches
     else 
-      -- | break all the possible branches at the current sea level
-      let branches'  = breakBranches proximity beta frequency minBranch thr frame docs coocs periods 
+      -- | break all the possible branches at the current seaLvl level
+      let branches'  = breakBranches proximity beta frequency minBranch thr depth elevation frame docs coocs periods 
                                      [] (head' "seaLevelMatching" branches) (tail' "seaLevelMatching" branches)
           frequency' = reduceFrequency frequency (map fst branches')
-       in seaLevelMatching proximity beta minBranch frequency' (thr + (getThresholdStep proximity)) frame periods docs coocs branches'
+       in seaLevelMatching proximity beta minBranch frequency' (thr + step) step (depth - 1) elevation frame periods docs coocs branches'
 
 
-temporalMatching :: Phylo -> Phylo 
-temporalMatching phylo = updatePhyloGroups 1 
+constanteTemporalMatching :: Double -> Double -> Phylo -> Phylo 
+constanteTemporalMatching start step phylo = updatePhyloGroups 1 
                          (fromList $ map (\g -> (getGroupId g,g)) $ traceMatchEnd $ concat branches)
                          phylo
   where
-    -- | 2) process the temporal matching by elevating sea level      
+    -- | 2) process the temporal matching by elevating seaLvl level      
     branches :: [[PhyloGroup]]
     branches = map fst
              $ seaLevelMatching (phyloProximity $ getConfig phylo)
                                 (_qua_granularity $ phyloQuality $ getConfig phylo)
                                 (_qua_minBranch $ phyloQuality $ getConfig phylo)
                                 (phylo ^. phylo_termFreq)
-                                (getThresholdInit $ phyloProximity $ getConfig phylo)
+                                start step
+                                (fromIntegral $ round (((1 - start) / step) - 1))
+                                (fromIntegral $ round ((1 - start) / step))
                                 (getTimeFrame $ timeUnit $ getConfig phylo)
                                 (getPeriodIds phylo)
                                 (phylo ^. phylo_timeDocs)
@@ -388,7 +394,153 @@ temporalMatching phylo = updatePhyloGroups 1
            $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
            $ matchGroupsToGroups (getTimeFrame $ timeUnit $ getConfig phylo) 
                          (getPeriodIds phylo) (phyloProximity $ getConfig phylo) 
-                         (getThresholdInit $ phyloProximity $ getConfig phylo) 
+                         start 
                          (phylo ^. phylo_timeDocs) 
                          (phylo ^. phylo_timeCooc)
                          (traceTemporalMatching $ getGroupsFromLevel 1 phylo)
+
+
+--------------------------------------
+-- | Adaptative Temporal Matching | --
+--------------------------------------
+
+
+thrToMeta :: Double -> [[PhyloGroup]] -> [[PhyloGroup]]
+thrToMeta thr branches = 
+  map (\b -> 
+    map (\g -> g & phylo_groupMeta .~ (adjust (\lst -> lst ++ [thr]) "seaLevels" (g ^. phylo_groupMeta))) b) branches
+
+depthToMeta :: Double -> [[PhyloGroup]] -> [[PhyloGroup]]
+depthToMeta depth branches =
+  let break = length branches > 1
+   in map (\b -> 
+        map (\g -> 
+          if break then g & phylo_groupMeta .~ (adjust (\lst -> lst ++ [depth]) "breaks"(g ^. phylo_groupMeta))
+                   else g) b) branches
+
+reduceTupleMapByKeys :: Eq a => [a] -> Map (a,a) Double -> Map (a,a) Double
+reduceTupleMapByKeys ks m = filterWithKey (\(k,k') _ -> (elem k ks) && (elem k' ks)) m
+
+
+getInTupleMap :: Ord a => Map (a,a) Double -> a -> a -> Double
+getInTupleMap m k k'
+  | isJust (m !? ( k ,k')) = m ! ( k ,k')
+  | isJust (m !? ( k',k )) = m ! ( k',k )
+  | otherwise = 0
+
+
+toThreshold :: Double -> Map (PhyloGroupId,PhyloGroupId) Double -> Double
+toThreshold lvl proxiGroups = 
+  let idx = ((Map.size proxiGroups) `div` (floor lvl)) - 1
+   in if idx >= 0
+        then (sort $ elems proxiGroups) !! idx
+        else 1 
+
+
+-- done = all the allready broken branches
+-- ego  = the current branch we want to break
+-- rest = the branches we still have to break
+adaptativeBreakBranches :: Proximity -> Double -> Double -> Map (PhyloGroupId,PhyloGroupId) Double
+               -> Double -> Map Int Double -> Int -> Int -> Map Date Double -> Map Date Cooc 
+               -> [PhyloPeriodId] -> [([PhyloGroup],(Bool,[Double]))] -> ([PhyloGroup],(Bool,[Double])) -> [([PhyloGroup],(Bool,[Double]))]
+               -> [([PhyloGroup],(Bool,[Double]))]
+adaptativeBreakBranches proxiConf depth elevation groupsProxi beta frequency minBranch frame docs coocs periods done ego rest =
+  -- | 1) keep or not the new division of ego
+  let done' = done ++ (if (fst . snd) ego 
+                        then (if ((null (fst ego')) || (quality > quality')) 
+                               then 
+                                  [(concat $ thrToMeta thr $ [fst ego],(False, ((snd . snd) ego)))] 
+                               else   
+                                  (  (map (\e -> (e,(True,  ((snd . snd) ego) ++ [thr]))) (fst ego'))
+                                  ++ (map (\e -> (e,(False, ((snd . snd) ego)))) (snd ego'))))
+                        else [(concat $ thrToMeta thr $ [fst ego], snd ego)])
+  in
+    -- | uncomment let .. in for debugging 
+    -- let part1 = partition (snd) done'
+    --     part2 = partition (snd) rest
+    --  in trace ( "[✓ " <> show(length $ fst part1) <> "(" <> show(length $ concat $ map (fst) $ fst part1) <> ")|✗ " <> show(length $ snd part1) <> "(" <> show(length $ concat $ map (fst) $ snd part1) <> ")] "             
+    --          <> "[✓ " <> show(length $ fst part2) <> "(" <> show(length $ concat $ map (fst) $ fst part2) <> ")|✗ " <> show(length $ snd part2) <> "(" <> show(length $ concat $ map (fst) $ snd part2) <> ")]"
+    --            ) $  
+    -- | 2) if there is no more branches in rest then return else continue    
+    if null rest 
+      then done'
+      else adaptativeBreakBranches proxiConf depth elevation groupsProxi beta frequency minBranch frame docs coocs periods
+                       done' (head' "breakBranches" rest) (tail' "breakBranches" rest) 
+  where
+    --------------------------------------
+    thr :: Double
+    thr = toThreshold depth $ Map.filter (\v -> v > (last' "breakBranches" $ (snd . snd) ego)) $ reduceTupleMapByKeys (map getGroupId $ fst ego) groupsProxi  
+    --------------------------------------
+    quality :: Double 
+    quality = toPhyloQuality' beta frequency ((map fst done) ++ [fst ego] ++ (map fst rest))
+    --------------------------------------
+    ego' :: ([[PhyloGroup]],[[PhyloGroup]])
+    ego' = 
+      let branches  = groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+                    $ matchGroupsToGroups frame periods proxiConf thr docs coocs (fst ego)
+          branches' = branches `using` parList rdeepseq
+       in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) > minBranch)
+        $ thrToMeta thr
+        $ depthToMeta (elevation - depth) branches'          
+    --------------------------------------
+    quality' :: Double
+    quality' = toPhyloQuality' beta frequency
+                                    ((map fst done) ++ (fst ego') ++ (snd ego') ++ (map fst rest))
+
+
+adaptativeSeaLevelMatching :: Proximity -> Double -> Double -> Map (PhyloGroupId, PhyloGroupId) Double 
+                  -> Double -> Int -> Map Int Double 
+                  -> Int -> [PhyloPeriodId] -> Map Date Double -> Map Date Cooc 
+                  -> [([PhyloGroup],(Bool,[Double]))] -> [([PhyloGroup],(Bool,[Double]))]
+adaptativeSeaLevelMatching proxiConf depth elevation groupsProxi beta minBranch frequency frame periods docs coocs branches =
+  -- | if there is no branch to break or if seaLvl level >= depth then end
+  if (Map.null groupsProxi) || (depth <= 0) || ((not . or) $ map (fst . snd) branches)
+    then branches
+    else
+      -- | break all the possible branches at the current seaLvl level
+      let branches'  = adaptativeBreakBranches proxiConf depth elevation groupsProxi beta frequency minBranch frame docs coocs periods 
+                                      [] (head' "seaLevelMatching" branches) (tail' "seaLevelMatching" branches)
+          frequency' = reduceFrequency frequency (map fst branches')
+          groupsProxi' = reduceTupleMapByKeys (map (getGroupId) $ concat $ map (fst) $ filter (fst . snd) branches') groupsProxi
+          -- thr = toThreshold depth groupsProxi
+       in trace("\n  " <> foldl (\acc _ -> acc <> "🌊 ") "" [0..(elevation - depth)]
+                       <> " [✓ " <> show(length $ filter (fst . snd) branches') <> "(" <> show(length $ concat $ map (fst) $ filter (fst . snd) branches')
+                       <> ")|✗ " <> show(length $ filter (not . fst . snd) branches') <> "(" <> show(length $ concat $ map (fst) $ filter (not . fst . snd) branches') <> ")]"
+                       <> " thr = ")
+        $ adaptativeSeaLevelMatching proxiConf (depth - 1) elevation groupsProxi' beta minBranch frequency' frame periods docs coocs branches'
+
+
+adaptativeTemporalMatching :: Double -> Phylo -> Phylo 
+adaptativeTemporalMatching elevation phylo = updatePhyloGroups 1 
+                          (fromList $ map (\g -> (getGroupId g,g)) $ traceMatchEnd $ concat branches)
+                          phylo
+  where
+    -- | 2) process the temporal matching by elevating seaLvl level      
+    branches :: [[PhyloGroup]]
+    branches = map fst
+             $ adaptativeSeaLevelMatching (phyloProximity $ getConfig phylo)
+                                 (elevation - 1)
+                                 elevation
+                                 (phylo ^. phylo_groupsProxi)
+                                 (_qua_granularity $ phyloQuality $ getConfig phylo)
+                                 (_qua_minBranch $ phyloQuality $ getConfig phylo)
+                                 (phylo ^. phylo_termFreq)
+                                 (getTimeFrame $ timeUnit $ getConfig phylo)
+                                 (getPeriodIds phylo)
+                                 (phylo ^. phylo_timeDocs)
+                                 (phylo ^. phylo_timeCooc)
+                                 groups    
+    -- | 1) for each group process an initial temporal Matching
+    -- | here we suppose that all the groups of level 1 are part of the same big branch
+    groups :: [([PhyloGroup],(Bool,[Double]))]
+    groups = map (\b -> (b,((length $ nub $ map _phylo_groupPeriod b) >= (_qua_minBranch $ phyloQuality $ getConfig phylo),[thr])))
+           $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+           $ matchGroupsToGroups (getTimeFrame $ timeUnit $ getConfig phylo) 
+                         (getPeriodIds phylo) (phyloProximity $ getConfig phylo) 
+                         thr
+                         (phylo ^. phylo_timeDocs) 
+                         (phylo ^. phylo_timeCooc)
+                         (traceTemporalMatching $ getGroupsFromLevel 1 phylo)
+    --------------------------------------
+    thr :: Double
+    thr = toThreshold elevation (phylo ^. phylo_groupsProxi)

@@ -15,15 +15,15 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloMaker where
 
-import Data.List (concat, nub, partition, sort, (++), group)
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, singleton)
+import Data.List (concat, nub, partition, sort, (++), group, intersect, null)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey)
 import Data.Set (size)
 import Data.Vector (Vector)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
-import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
+import Gargantext.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
 import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
@@ -43,7 +43,8 @@ import qualified Data.Set as Set
 
 
 toPhylo :: [Document] -> TermList -> Config -> Phylo
-toPhylo docs lst conf = traceToPhylo (phyloLevel conf) $
+toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
+                      $ traceToPhylo (phyloLevel conf) $
     if (phyloLevel conf) > 1
       then foldl' (\phylo' _ -> synchronicClustering phylo') phylo1 [2..(phyloLevel conf)]
       else phylo1 
@@ -62,8 +63,35 @@ toPhylo docs lst conf = traceToPhylo (phyloLevel conf) $
 -- | To Phylo 1 | --
 --------------------
 
+toGroupsProxi :: Level -> Phylo -> Phylo
+toGroupsProxi lvl phylo = 
+  let proximity = phyloProximity $ getConfig phylo
+      groupsProxi = foldlWithKey (\acc pId pds -> 
+                      -- 1) process period by period
+                      let egos = map (\g -> (getGroupId g, g ^. phylo_groupNgrams))
+                               $ elems 
+                               $ view ( phylo_periodLevels 
+                                      . traverse . filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl) 
+                                      . phylo_levelGroups ) pds
+                          next    = getNextPeriods ToParents (getTimeFrame $ timeUnit $ getConfig phylo) pId (keys $ phylo ^. phylo_periods)
+                          targets = map (\g ->  (getGroupId g, g ^. phylo_groupNgrams)) $ getGroupsFromLevelPeriods lvl next phylo
+                          docs    = filterDocs  (phylo ^. phylo_timeDocs) ([pId] ++ next)
+                          diagos  = filterDiago (phylo ^. phylo_timeCooc) ([pId] ++ next)
+                          -- 2) compute the pairs in parallel
+                          pairs  = map (\(id,ngrams) -> 
+                                        map (\(id',ngrams') -> 
+                                            let nbDocs = (sum . elems) $ filterDocs docs    ([idToPrd id, idToPrd id'])
+                                                diago  = reduceDiagos  $ filterDiago diagos ([idToPrd id, idToPrd id'])
+                                             in ((id,id'),toProximity nbDocs diago proximity ngrams ngrams' ngrams')
+                                        ) $ filter (\(_,ngrams') -> (not . null) $ intersect ngrams ngrams') targets 
+                                 ) egos
+                          pairs' = pairs `using` parList rdeepseq
+                       in acc ++ (concat pairs')
+                    ) [] $ phylo ^. phylo_periods
+   in phylo & phylo_groupsProxi .~ ((traceGroupsProxi . fromList) groupsProxi) 
 
-appendGroups :: (a -> Double -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
+
+appendGroups :: (a -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
 appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ concat $ elems m) <> " groups to Level " <> show (lvl) <> "\n")
     $ over ( phylo_periods
            .  traverse
@@ -76,7 +104,7 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
                             in  phyloLvl 
                               & phylo_levelGroups .~ (fromList $ foldl (\groups obj ->
                                     groups ++ [ (((pId,lvl),length groups)
-                                              , f obj(getPhyloThresholdInit phylo) pId lvl (length groups) (getRoots phylo) 
+                                              , f obj pId lvl (length groups) (getRoots phylo) 
                                                   (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [pId]))
                                               ] ) [] phyloCUnit)
                          else 
@@ -84,21 +112,26 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
            phylo  
 
 
-cliqueToGroup :: PhyloClique -> Double -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
-cliqueToGroup fis thr pId lvl idx fdt coocs =
+cliqueToGroup :: PhyloClique -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
+cliqueToGroup fis pId lvl idx fdt coocs =
     let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloClique_nodes) fdt
     in  PhyloGroup pId lvl idx ""
                    (fis ^. phyloClique_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
                    (1,[0]) -- | branchid (lvl,[path in the branching tree])
-                   (singleton "thr" [thr])
+                   (fromList [("breaks",[0]),("seaLevels",[0])])
                    [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo
-toPhylo1 docs phyloBase = temporalMatching
-                        $ appendGroups cliqueToGroup 1 phyloClique phyloBase
+toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of 
+    Constante start gap -> constanteTemporalMatching  start gap 
+                   $ toGroupsProxi 1
+                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase    
+    Adaptative steps    -> adaptativeTemporalMatching steps
+                   $ toGroupsProxi 1
+                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase
     where
         --------------------------------------
         phyloClique :: Map (Date,Date) [PhyloClique]
@@ -247,5 +280,6 @@ toPhyloBase docs lst conf =
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
                (docsToTermFreq docs (foundations ^. foundations_roots))
+               empty
                params
                (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels 1 prd))) periods)

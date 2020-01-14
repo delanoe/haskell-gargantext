@@ -17,8 +17,8 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloExport where
 
-import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, delete)
-import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy)
+import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
+import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy, inits)
 import Data.Vector (Vector)
 
 import Prelude (writeFile)
@@ -116,7 +116,11 @@ branchToDotNode b =
          ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ b ^. branch_label)]
          <> (metaToAttr $ b ^. branch_meta)
          <> [ toAttr "nodeType" "branch"
-            , toAttr "branchId" (pack $ unwords (map show $ snd $ b ^. branch_id)) ])
+            , toAttr "branchId" (pack $ unwords (map show $ snd $ b ^. branch_id))
+            , toAttr "branch_x" (fromStrict $ Text.pack $ (show $ b ^. branch_x))
+            , toAttr "branch_y" (fromStrict $ Text.pack $ (show $ b ^. branch_y))
+            , toAttr "label"    (pack $ show $ b ^. branch_label)
+            ])
  
 periodToDotNode :: (Date,Date) -> Dot DotId
 periodToDotNode prd =
@@ -130,7 +134,7 @@ periodToDotNode prd =
 groupToDotNode :: Vector Ngrams -> PhyloGroup -> Dot DotId
 groupToDotNode fdt g = 
     node (groupIdToDotId $ getGroupId g)
-                     ([FontName "Arial", Shape BoxShape, toLabel (groupToTable fdt g)]
+                     ([FontName "Arial", Shape Square, penWidth 4,  toLabel (groupToTable fdt g)]
                       <> [ toAttr "nodeType" "group"
                          , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
@@ -141,7 +145,7 @@ groupToDotNode fdt g =
 toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
-        GroupToGroup   -> [ Width 10, Color [toWColor Black], Constraint True
+        GroupToGroup   -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True
                           , Label (StrLabel $ fromStrict lbl)]
         BranchToGroup  -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])
                           , Label (StrLabel $ fromStrict lbl)]
@@ -174,12 +178,9 @@ exportToDot phylo export =
                   <> [(toAttr (fromStrict "phyloFoundations") $ pack $ show (length $ Vector.toList $ getRoots phylo))
                      ,(toAttr (fromStrict "phyloTerms") $ pack $ show (length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups))
                      ,(toAttr (fromStrict "phyloDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))
+                     ,(toAttr (fromStrict "phyloPeriods") $ pack $ show (length $ elems $ phylo ^. phylo_periods))
                      ,(toAttr (fromStrict "phyloBranches") $ pack $ show (length $ export ^. export_branches))
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
-                     ,(toAttr (fromStrict "proxiName") $ pack $ show (getProximityName $ phyloProximity $ getConfig phylo))
-                     ,(toAttr (fromStrict "proxiInit") $ pack $ show (getProximityInit $ phyloProximity $ getConfig phylo))
-                     ,(toAttr (fromStrict "proxiStep") $ pack $ show (getProximityStep $ phyloProximity $ getConfig phylo))
-                     ,(toAttr (fromStrict "quaGranularity") $ pack $ show (_qua_granularity $ phyloQuality $ getConfig phylo))
                      ])
 
 
@@ -232,12 +233,12 @@ exportToDot phylo export =
             ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ getPeriodIds phylo
 
         -- | 8) create the edges between the branches 
-        _ <- mapM (\(bId,bId') ->
-                toDotEdge (branchIdToDotId bId) (branchIdToDotId bId') 
-                (Text.pack $ show(branchIdsToProximity bId bId' 
-                                    (getThresholdInit $ phyloProximity $ getConfig phylo)
-                                    (getThresholdStep $ phyloProximity $ getConfig phylo))) BranchToBranch
-            ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ map _branch_id $ export ^. export_branches
+        -- _ <- mapM (\(bId,bId') ->
+        --         toDotEdge (branchIdToDotId bId) (branchIdToDotId bId') 
+        --         (Text.pack $ show(branchIdsToProximity bId bId' 
+        --                             (getThresholdInit $ phyloProximity $ getConfig phylo)
+        --                             (getThresholdStep $ phyloProximity $ getConfig phylo))) BranchToBranch
+        --     ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ map _branch_id $ export ^. export_branches
 
 
         graphAttrs [Rank SameRank]
@@ -418,8 +419,8 @@ processLabels labels foundations export =
 
 
 toDynamics :: Int -> [PhyloGroup] -> PhyloGroup -> Map Int (Date,Date) -> Double
-toDynamics n parents group m = 
-    let prd = group ^. phylo_groupPeriod
+toDynamics n parents g m = 
+    let prd = g ^. phylo_groupPeriod
         end = last' "dynamics" (sort $ map snd $ elems m)
     in  if (((snd prd) == (snd $ m ! n)) && (snd prd /= end))
             -- | decrease
@@ -438,7 +439,7 @@ toDynamics n parents group m =
 
 
 processDynamics :: [PhyloGroup] -> [PhyloGroup]
-processDynamics groups = 
+processDynamics groups =
     map (\g ->
         let parents = filter (\g' -> (g ^. phylo_groupBranchId == g' ^. phylo_groupBranchId)
                                   && ((fst $ g ^. phylo_groupPeriod) > (fst $ g' ^. phylo_groupPeriod))) groups
@@ -467,15 +468,38 @@ toPhyloExport phylo = exportToDot phylo
                     $ processMetrics  export           
     where
         export :: PhyloExport
-        export = PhyloExport groups branches
+        export = PhyloExport groups
+               $ map (\(x,b) -> b & branch_x .~ x)
+               $ zip branchesGaps branches
         --------------------------------------
-        branches :: [PhyloBranch] 
-        branches = map (\bId -> PhyloBranch bId "" empty) $ nub $ map _phylo_groupBranchId groups
+        branchesGaps :: [Double]
+        branchesGaps = map sum
+                     $ inits
+                     $ map (\(b,x) -> b ^. branch_y + 0.05 - x)
+                     $ zip branches 
+                     $ ([0] ++ (map (\(b,b') -> 
+                                        let idx = length $ commonPrefix (b ^. branch_canonId) (b' ^. branch_canonId) []
+                                         in (b' ^. branch_seaLevel) !! (idx - 1)
+                                        ) $ listToSeq branches))
+        --------------------------------------
+        branches :: [PhyloBranch]
+        branches = map (\g -> 
+                      let seaLvl = (g ^. phylo_groupMeta) ! "seaLevels"
+                          breaks = (g ^. phylo_groupMeta) ! "breaks"
+                          canonId = take (round $ (last' "export" breaks) + 2) (snd $ g ^. phylo_groupBranchId)
+                       in trace (show(canonId)) $ PhyloBranch (g ^. phylo_groupBranchId) 
+                                      canonId
+                                      seaLvl
+                                      0 
+                                      (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl))
+                                      "" empty)  
+                  $ map (\gs -> head' "export" gs)
+                  $ groupBy (\g g' -> g ^. phylo_groupBranchId == g' ^. phylo_groupBranchId)
+                  $ sortOn (\g -> g ^. phylo_groupBranchId) groups
         --------------------------------------    
         groups :: [PhyloGroup]
         groups = traceExportGroups
-               $ processDynamics 
-               $ map (\g -> g & phylo_groupMeta %~ delete "dynamics")
+               $ processDynamics
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo)
                $ tracePhyloInfo phylo
 

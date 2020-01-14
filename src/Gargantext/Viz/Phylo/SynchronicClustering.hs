@@ -21,8 +21,9 @@ import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, reduceDiagos)
 import Gargantext.Viz.Phylo.PhyloExport (processDynamics)
 
-import Data.List ((++), null, intersect, nub, concat, sort, sortOn, init, all, group, maximum, groupBy)
-import Data.Map (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member, singleton)
+import Data.List ((++), null, intersect, nub, concat, sort, sortOn, all, groupBy, group, maximum)
+import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
+import Data.Text (Text)
 
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
@@ -37,20 +38,26 @@ import qualified Data.Set as Set
 -------------------------
 
 mergeBranchIds :: [[Int]] -> [Int]
-mergeBranchIds ids = (head' "mergeBranchIds" . sort . mostFreq) ids
+mergeBranchIds ids = (head' "mergeBranchIds" . sort . mostFreq') ids
   where
     -- | 2) find the most Up Left ids in the hierarchy of similarity
     -- mostUpLeft :: [[Int]] -> [[Int]]
     -- mostUpLeft ids' = 
     --      let groupIds = (map (\gIds -> (length $ head' "gIds" gIds, head' "gIds" gIds)) . groupBy (\id id' -> length id == length id') . sortOn length) ids'
     --          inf = (fst . minimum) groupIds
-    --       in map snd $ filter (\gIds -> fst gIds == inf) groupIds
+    --      in map snd $ filter (\gIds -> fst gIds == inf) groupIds
     -- | 1) find the most frequent ids
-    mostFreq :: [[Int]] -> [[Int]]
-    mostFreq ids' = 
-      let groupIds = (map (\gIds -> (length gIds, head' "gIds" gIds)) . group . sort) ids'
-          sup = (fst . maximum) groupIds
-       in map snd $ filter (\gIds -> fst gIds == sup) groupIds
+    mostFreq' :: [[Int]] -> [[Int]]
+    mostFreq' ids' = 
+       let groupIds = (map (\gIds -> (length gIds, head' "gIds" gIds)) . group . sort) ids'
+           sup = (fst . maximum) groupIds
+        in map snd $ filter (\gIds -> fst gIds == sup) groupIds
+
+
+mergeMeta :: [Int] -> [PhyloGroup] -> Map Text [Double]
+mergeMeta bId groups = 
+  let ego = head' "mergeMeta" $ filter (\g -> (snd (g ^. phylo_groupBranchId)) == bId) groups  
+   in fromList [("breaks",(ego ^. phylo_groupMeta) ! "breaks"),("seaLevels",(ego ^. phylo_groupMeta) ! "seaLevels")]     
 
 
 groupsToBranches' :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
@@ -64,10 +71,8 @@ groupsToBranches' groups =
     in map (\ids ->
         let groups' = elems $ restrictKeys groups (Set.fromList ids)
             bId = mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) groups'
-         in map (\g -> g & phylo_groupBranchId %~ (\(lvl,_) -> (lvl + 1,bId))) groups') graph
+         in map (\g -> g & phylo_groupBranchId %~ (\(lvl,_) -> (lvl,bId))) groups') graph
 
-getLastThr :: [PhyloGroup] -> Double
-getLastThr childs = maximum $ concat $ map (\g -> (g ^. phylo_groupMeta) ! "thr") childs
 
 mergeGroups :: [Cooc] -> PhyloGroupId -> Map PhyloGroupId PhyloGroupId -> [PhyloGroup] -> PhyloGroup
 mergeGroups coocs id mapIds childs = 
@@ -75,11 +80,15 @@ mergeGroups coocs id mapIds childs =
     in PhyloGroup (fst $ fst id) (snd $ fst id) (snd id)  ""
                   (sum $ map _phylo_groupSupport childs)  ngrams
                   (ngramsToCooc ngrams coocs) 
-                  ((snd $ fst id),(mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) childs))
-                  (singleton "thr" [getLastThr childs]) [] (map (\g -> (getGroupId g, 1)) childs)
+                  ((snd $ fst id),bId)
+                  (mergeMeta bId childs) [] (map (\g -> (getGroupId g, 1)) childs)
                   (updatePointers $ concat $ map _phylo_groupPeriodParents childs)
                   (updatePointers $ concat $ map _phylo_groupPeriodChilds  childs)
-    where 
+    where
+        --------------------
+        bId :: [Int]
+        bId = mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) childs
+        --------------------
         updatePointers :: [Pointer] -> [Pointer]
         updatePointers pointers = map (\(pId,w) -> (mapIds ! pId,w)) pointers
 
@@ -92,7 +101,7 @@ addPhyloLevel lvl phylo =
 
 
 toNextLevel' :: Phylo -> [PhyloGroup] -> Phylo
-toNextLevel' phylo groups = 
+toNextLevel' phylo groups =
     let curLvl = getLastLevel phylo
         oldGroups = fromList $ map (\g -> (getGroupId g, getLevelParentId g)) groups
         newGroups = concat $ groupsToBranches'
@@ -163,9 +172,9 @@ groupsToEdges prox sync nbDocs diago groups =
         toEdges :: Double -> [(PhyloGroup,PhyloGroup)] -> [((PhyloGroup,PhyloGroup),Double)]
         toEdges sens edges = 
             case prox of
-                WeightedLogJaccard _ _ _ -> map (\(g,g') -> 
-                                                 ((g,g'), weightedLogJaccard' sens nbDocs diago
-                                                              (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
+                WeightedLogJaccard _ -> map (\(g,g') -> 
+                                                     ((g,g'), weightedLogJaccard' sens nbDocs diago
+                                                                  (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
                 _ -> undefined  
 
 
@@ -181,7 +190,7 @@ toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1),
 
 
 reduceGroups :: Proximity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
-reduceGroups prox sync docs diagos branch = 
+reduceGroups prox sync docs diagos branch =
     -- | 1) reduce a branch as a set of periods & groups
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
@@ -198,21 +207,13 @@ reduceGroups prox sync docs diagos branch =
               $ toRelatedComponents groups edges) periods 
 
 
-getGroupRealBId :: Double -> PhyloGroup -> [Int]
-getGroupRealBId step g = 
-  let nb = round(getGroupThr g / step) + 2
-   in take nb (snd $ g ^. phylo_groupBranchId)
-
-
-
-adjustClustering :: Synchrony -> Double -> [[PhyloGroup]] -> [[PhyloGroup]]
-adjustClustering sync step branches = case sync of
-  ByProximityThreshold _ _ scope _ -> 
-    case scope of 
+adjustClustering :: Synchrony -> [[PhyloGroup]] -> [[PhyloGroup]]
+adjustClustering sync branches = case sync of
+  ByProximityThreshold _ _ scope _ -> case scope of 
       SingleBranch -> branches
-      SiblingBranches -> groupBy (\g g' -> (init $ getGroupRealBId step g) == (init $ getGroupRealBId step g'))
+      SiblingBranches -> groupBy (\g g' -> (last' "adjustClustering" $ (g  ^. phylo_groupMeta) ! "breaks") 
+                                        == (last' "adjustClustering" $ (g' ^. phylo_groupMeta) ! "breaks"))
                        $ sortOn _phylo_groupBranchId $ concat branches
-      -- SiblingBranches -> elems $ fromListWith (++) $ map (\b -> ((init . snd . _phylo_groupBranchId) $ head' "adjustClustering" b,b)) branches
       AllBranches -> [concat branches]
   ByProximityDistribution _ _ -> branches
 
@@ -226,7 +227,7 @@ synchronicClustering phylo =
         diagos = map coocToDiago $ phylo ^. phylo_timeCooc
         newBranches  = map (\branch -> reduceGroups prox sync docs diagos branch) 
                      $ map processDynamics
-                     $ adjustClustering sync (getPhyloThresholdStep phylo)
+                     $ adjustClustering sync
                      $ phyloToLastBranches 
                      $ traceSynchronyStart phylo
         newBranches' = newBranches `using` parList rdeepseq

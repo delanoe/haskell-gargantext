@@ -34,6 +34,7 @@ import Control.Lens hiding (Level)
 import qualified Data.Vector as Vector
 import qualified Data.List as List
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 ------------
 -- | Io | --
@@ -66,6 +67,7 @@ roundToStr = printf "%0.*f"
 countSup :: Double -> [Double] -> Int
 countSup s l = length $ filter (>s) l
 
+
 dropByIdx :: Int -> [a] -> [a]
 dropByIdx k l = take k l ++ drop (k+1) l
 
@@ -74,6 +76,15 @@ elemIndex' :: Eq a => a -> [a] -> Int
 elemIndex' e l = case (List.elemIndex e l) of
     Nothing -> panic ("[ERR][Viz.Phylo.PhyloTools] element not in list")
     Just i  -> i
+
+
+commonPrefix :: Eq a => [a] -> [a] -> [a] -> [a]
+commonPrefix lst lst' acc =
+    if (null lst || null lst')
+        then acc
+        else if (head' "commonPrefix" lst == head' "commonPrefix" lst')
+                then commonPrefix (tail lst) (tail lst') (acc ++ [head' "commonPrefix" lst])
+                else acc
 
 
 ---------------------
@@ -249,7 +260,7 @@ idToPrd :: PhyloGroupId -> PhyloPeriodId
 idToPrd id = (fst . fst) id
 
 getGroupThr :: PhyloGroup -> Double
-getGroupThr group = head' "getGroupThr" ((group ^. phylo_groupMeta) ! "thr")
+getGroupThr group = last' "getGroupThr" ((group ^. phylo_groupMeta) ! "breaks")
 
 groupByField :: Ord a => (PhyloGroup -> a) -> [PhyloGroup] ->  Map a [PhyloGroup]
 groupByField toField groups = fromListWith (++) $ map (\g -> (toField g, [g])) groups
@@ -263,27 +274,14 @@ getPeriodPointers fil group =
 filterProximity :: Proximity -> Double -> Double -> Bool
 filterProximity proximity thr local = 
     case proximity of
-        WeightedLogJaccard _ _ _ -> local >= thr
+        WeightedLogJaccard _ -> local >= thr
         Hamming -> undefined   
 
 getProximityName :: Proximity -> String
 getProximityName proximity =
     case proximity of
-        WeightedLogJaccard _ _ _ -> "WLJaccard"
-        Hamming -> "Hamming"
-
-getProximityInit :: Proximity -> Double
-getProximityInit proximity =
-    case proximity of
-        WeightedLogJaccard _ i _ -> i
-        Hamming -> undefined  
-
-
-getProximityStep :: Proximity -> Double
-getProximityStep proximity =
-    case proximity of
-        WeightedLogJaccard _ _ s -> s
-        Hamming -> undefined               
+        WeightedLogJaccard _ -> "WLJaccard"
+        Hamming -> "Hamming"            
 
 ---------------
 -- | Phylo | --
@@ -318,13 +316,8 @@ getLevels phylo = nub
                        .  traverse
                        . phylo_periodLevels ) phylo
 
-
-getPhyloThresholdInit :: Phylo -> Double
-getPhyloThresholdInit phylo = getThresholdInit (phyloProximity (getConfig phylo))
-
-
-getPhyloThresholdStep :: Phylo -> Double
-getPhyloThresholdStep phylo = getThresholdStep (phyloProximity (getConfig phylo))
+getSeaElevation :: Phylo -> SeaElevation
+getSeaElevation phylo = seaElevation (getConfig phylo)
 
 
 getConfig :: Phylo -> Config
@@ -348,6 +341,26 @@ getGroupsFromLevel lvl phylo =
                  .  traverse
                  .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
                  . phylo_levelGroups ) phylo
+
+
+getGroupsFromLevelPeriods :: Level -> [PhyloPeriodId] -> Phylo -> [PhyloGroup]
+getGroupsFromLevelPeriods lvl periods phylo = 
+    elems $ view ( phylo_periods
+                 .  traverse
+                 .  filtered (\phyloPrd -> elem (phyloPrd ^. phylo_periodPeriod) periods)
+                 . phylo_periodLevels
+                 .  traverse
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
+                 . phylo_levelGroups ) phylo    
+
+
+getGroupsFromPeriods :: Level -> Map PhyloPeriodId PhyloPeriod -> [PhyloGroup]
+getGroupsFromPeriods lvl periods = 
+    elems $ view (  traverse
+                 . phylo_periodLevels
+                 .  traverse
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
+                 . phylo_levelGroups ) periods
 
 
 updatePhyloGroups :: Level -> Map PhyloGroupId PhyloGroup -> Phylo -> Phylo
@@ -407,27 +420,7 @@ traceSynchronyStart phylo =
 
 getSensibility :: Proximity -> Double
 getSensibility proxi = case proxi of 
-    WeightedLogJaccard s _ _ -> s
-    Hamming -> undefined
-
-getThresholdInit :: Proximity -> Double
-getThresholdInit proxi = case proxi of 
-    WeightedLogJaccard _ t _ -> t
-    Hamming -> undefined  
-
-getThresholdStep :: Proximity -> Double
-getThresholdStep proxi = case proxi of 
-    WeightedLogJaccard _ _ s -> s
-    Hamming -> undefined  
-
-
-traceBranchMatching :: Proximity -> Double -> [PhyloGroup] -> [PhyloGroup]
-traceBranchMatching proxi thr groups = case proxi of 
-    WeightedLogJaccard _ i s -> trace (
-            roundToStr 2 thr <> " "
-         <> foldl (\acc _ -> acc <> ".") "." [(10*i),(10*i + 10*s)..(10*thr)]
-         <> " " <>  show(length groups) <> " groups"
-        ) groups 
+    WeightedLogJaccard s -> s
     Hamming -> undefined
 
 ----------------
@@ -495,3 +488,8 @@ traceMatchEnd groups =
 traceTemporalMatching :: [PhyloGroup] -> [PhyloGroup]
 traceTemporalMatching groups = 
     trace ( "\n" <> "-- | Start temporal matching for " <> show(length groups) <> " groups" <> "\n") groups
+
+
+traceGroupsProxi :: Map (PhyloGroupId,PhyloGroupId) Double -> Map (PhyloGroupId,PhyloGroupId) Double
+traceGroupsProxi m = 
+    trace ( "\n" <> "-- | " <> show(Map.size m) <> " computed pairs of groups proximity" <> "\n") m

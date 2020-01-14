@@ -57,12 +57,22 @@ data CorpusParser =
     | Csv {_csv_limit :: Int}
     deriving (Show,Generic,Eq) 
 
+data SeaElevation = 
+      Constante  
+      { _cons_start :: Double
+      , _cons_step  :: Double }
+    | Adaptative 
+      { _adap_granularity :: Double }
+    deriving (Show,Generic,Eq)
 
 data Proximity = 
       WeightedLogJaccard 
       { _wlj_sensibility   :: Double 
-      , _wlj_thresholdInit :: Double
-      , _wlj_thresholdStep :: Double }
+      -- , _wlj_thresholdInit :: Double
+      -- , _wlj_thresholdStep :: Double
+      -- | max height for sea level in temporal matching
+      -- , _wlj_elevation     :: Double
+      }
     | Hamming 
     deriving (Show,Generic,Eq) 
 
@@ -114,6 +124,7 @@ data Config =
             , phyloName      :: Text
             , phyloLevel     :: Int
             , phyloProximity :: Proximity
+            , seaElevation   :: SeaElevation
             , phyloSynchrony :: Synchrony
             , phyloQuality   :: Quality
             , timeUnit       :: TimeUnit
@@ -132,8 +143,9 @@ defaultConfig =
             , corpusParser   = Csv 1000
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 10 0 0.1
-            , phyloSynchrony = ByProximityThreshold 0.1 10 AllBranches MergeAllGroups
+            , phyloProximity = WeightedLogJaccard 10
+            , seaElevation   = Adaptative 25
+            , phyloSynchrony = ByProximityThreshold 0.6 10 SiblingBranches MergeAllGroups
             , phyloQuality   = Quality 0.1 1
             , timeUnit       = Year 3 1 5
             , clique         = Fis 1 5
@@ -148,6 +160,8 @@ instance FromJSON CorpusParser
 instance ToJSON CorpusParser
 instance FromJSON Proximity
 instance ToJSON Proximity
+instance FromJSON SeaElevation
+instance ToJSON SeaElevation
 instance FromJSON TimeUnit
 instance ToJSON TimeUnit
 instance FromJSON Clique
@@ -253,6 +267,7 @@ data Phylo =
            , _phylo_timeCooc    :: !(Map Date Cooc)
            , _phylo_timeDocs    :: !(Map Date Double)
            , _phylo_termFreq    :: !(Map Int Double)
+           , _phylo_groupsProxi :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_param       :: PhyloParam
            , _phylo_periods     :: Map PhyloPeriodId PhyloPeriod
            }
@@ -366,9 +381,13 @@ data PhyloLabel =
 data PhyloBranch =
       PhyloBranch
       { _branch_id :: PhyloBranchId
-      , _branch_label   :: Text
-      , _branch_meta    :: Map Text [Double]
-      } deriving (Generic, Show)
+      , _branch_canonId  :: [Int]
+      , _branch_seaLevel :: [Double]
+      , _branch_x        :: Double
+      , _branch_y        :: Double
+      , _branch_label    :: Text
+      , _branch_meta     :: Map Text [Double]
+      } deriving (Generic, Show, Eq)
 
 data PhyloExport =
       PhyloExport
@@ -382,6 +401,7 @@ data PhyloExport =
 
 makeLenses ''Config
 makeLenses ''Proximity
+makeLenses ''SeaElevation
 makeLenses ''Quality
 makeLenses ''Clique
 makeLenses ''PhyloLabel

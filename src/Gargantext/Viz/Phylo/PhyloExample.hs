@@ -30,7 +30,7 @@ import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.PhyloMaker
 import Gargantext.Viz.Phylo.PhyloExport
-import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
+import Gargantext.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
 import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 
 import Control.Lens
@@ -60,7 +60,12 @@ phylo2 = synchronicClustering phylo1
 -----------------------------------------------
 
 phylo1 :: Phylo
-phylo1 = temporalMatching
+phylo1 = case (getSeaElevation phyloBase) of 
+    Constante s g   -> constanteTemporalMatching s g 
+       $ toGroupsProxi 1
+       $ appendGroups cliqueToGroup 1 phyloClique phyloBase
+    Adaptative s    -> adaptativeTemporalMatching s
+       $ toGroupsProxi 1
        $ appendGroups cliqueToGroup 1 phyloClique phyloBase
 
 
