@@ -24,6 +24,7 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
+import Web.FormUrlEncoded          (FromForm)
 import Data.Either
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
@@ -152,18 +153,18 @@ instance FromJSON WithQuery where
   parseJSON = genericParseJSON $ jsonOptions "_wq_"
 
 instance ToSchema WithQuery
-
+-------------------------------------------------------
 data WithForm = WithForm
   { _wf_filetype :: !FileType
   , _wf_data     :: !Text
-  } deriving Generic
+  } deriving (Eq, Show, Generic)
 
 makeLenses ''WithForm
 
 instance FromJSON WithForm where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
-
 instance ToSchema WithForm
+instance FromForm WithForm
 
 
 ------------------------------------------------------------------------
@@ -194,9 +195,9 @@ type AddWithForm = Summary "Add to corpus endpoint"
    :> Capture "corpus_id" CorpusId
    :> "add"
    :> "form"
+   :> ReqBody '[FormUrlEncoded] WithForm
    :> "async"
-   :> AddAPI WithForm
-
+   :> AddAPI ()
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
