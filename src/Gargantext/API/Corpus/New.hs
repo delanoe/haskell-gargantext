@@ -245,13 +245,14 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm cid (WithForm ft d) logStatus = do
+addToCorpusWithForm _cid (WithForm ft d) logStatus = do
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
                           , _scst_remaining = Just 138
                           , _scst_events    = Just []
                           }
-  _h <- putStrLn $ show ft
+  _ <- putStrLn $ show ft
+  _ <- putStrLn $ show d
 
   pure      ScraperStatus { _scst_succeeded = Just 137
                           , _scst_failed    = Just 13
