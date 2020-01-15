@@ -285,6 +285,7 @@ type GargPrivateAPI' =
 
            :<|> New.AddWithQuery
            :<|> New.AddWithFile
+           :<|> New.AddWithForm
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
@@ -366,6 +367,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- TODO access
      :<|> addWithQuery
      :<|> addWithFile
+     :<|> addWithForm
      -- :<|> addToCorpus
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
@@ -379,6 +381,12 @@ addWithFile :: GargServer New.AddWithFile
 addWithFile cid i f =
   serveJobsAPI $
     JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftIO . log))
+
+addWithForm :: GargServer New.AddWithForm
+addWithForm cid =
+  serveJobsAPI $
+    JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log))
+
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do

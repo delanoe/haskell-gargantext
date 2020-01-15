@@ -153,6 +153,19 @@ instance FromJSON WithQuery where
 
 instance ToSchema WithQuery
 
+data WithForm = WithForm
+  { _wf_filetype :: !FileType
+  , _wf_data     :: !Text
+  } deriving Generic
+
+makeLenses ''WithForm
+
+instance FromJSON WithForm where
+  parseJSON = genericParseJSON $ jsonOptions "_wf_"
+
+instance ToSchema WithForm
+
+
 ------------------------------------------------------------------------
 type
   AddAPI withInput = AsyncJobsAPI ScraperStatus withInput ScraperStatus
@@ -176,6 +189,15 @@ type AddWithFile = Summary "Add to corpus endpoint"
    :> "async"
    :> AddAPI ()
 
+type AddWithForm = Summary "Add to corpus endpoint"
+   :> "corpus"
+   :> Capture "corpus_id" CorpusId
+   :> "add"
+   :> "form"
+   :> "async"
+   :> AddAPI WithForm
+
+
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
 addToCorpusJobFunction :: FlowCmdM env err m
@@ -197,6 +219,7 @@ addToCorpusJobFunction _cid _input logStatus = do
                           , _scst_events    = Just []
                           }
 
+
 addToCorpusWithFile :: FlowCmdM env err m
                     => CorpusId
                     -> MultipartData Mem
@@ -210,6 +233,25 @@ addToCorpusWithFile cid input filetype logStatus = do
                           , _scst_events    = Just []
                           }
   _h <- postUpload cid filetype input
+
+  pure      ScraperStatus { _scst_succeeded = Just 137
+                          , _scst_failed    = Just 13
+                          , _scst_remaining = Just 0
+                          , _scst_events    = Just []
+                          }
+
+addToCorpusWithForm :: FlowCmdM env err m
+                    => CorpusId
+                    -> WithForm
+                    -> (ScraperStatus -> m ())
+                    -> m ScraperStatus
+addToCorpusWithForm cid (WithForm ft d) logStatus = do
+  logStatus ScraperStatus { _scst_succeeded = Just 10
+                          , _scst_failed    = Just 2
+                          , _scst_remaining = Just 138
+                          , _scst_events    = Just []
+                          }
+  _h <- putStrLn $ show ft
 
   pure      ScraperStatus { _scst_succeeded = Just 137
                           , _scst_failed    = Just 13
