@@ -7,8 +7,20 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Main REST API of Gargantext (both Server and Client sides)
-Thanks @yannEsposito for our discussions at the beginning of this project :).
+Main (RESTful) API of the instance Gargantext.
+
+The Garg-API is typed to derive the documentation, the mock and tests.
+
+This API is indeed typed in order to be able to derive both the server
+and the client sides.
+
+The Garg-API-Monad enables:
+  - Features
+  - Database connection (long term)
+  - In Memory stack management (short term)
+  - Logs
+
+Thanks to @yannEsposito (at the start) and @np (after).
 
 -}
 

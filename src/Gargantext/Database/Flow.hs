@@ -361,7 +361,6 @@ getOrMk_RootWithCorpus username cName c = do
                     pure c'
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
-
   pure (userId, rootId, corpusId)
 
 
