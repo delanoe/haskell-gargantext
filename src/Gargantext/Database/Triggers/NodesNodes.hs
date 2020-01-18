@@ -23,6 +23,7 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 -- import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
+import Gargantext.Core.Types.Main (listTypeId, ListType(CandidateTerm))
 import Gargantext.Database.Utils (Cmd, execPGSQuery)
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
@@ -156,4 +157,62 @@ triggerUpdateDel lId = execPGSQuery query (lId, nodeTypeId NodeList)
         EXECUTE PROCEDURE set_update_ngrams_count_del();
 
   |]
+
+-- TODO add groups
+triggerCoocInsert :: MasterListId -> Cmd err Int64
+triggerCoocInsert lid = execPGSQuery query ( lid
+                                           -- , nodeTypeId NodeCorpus
+                                           -- , nodeTypeId NodeDocument
+                                           -- , nodeTypeId NodeList
+                                           , listTypeId CandidateTerm
+                                           , listTypeId CandidateTerm
+                                           )
+  where
+    query :: DPS.Query
+    query = [sql|
+          CREATE OR REPLACE FUNCTION nodes_nodes_set_cooc() RETURNS trigger AS $$
+          BEGIN
+            IF pg_trigger_depth() <> 1 THEN
+              RETURN NEW;
+            END IF;
+            IF TG_OP = 'INSERT' THEN
+                INSERT INTO node_nodengrams_nodengrams (node_id, node_ngrams1_id, node_ngrams2_id, weight)
+                WITH input(corpus_id, nn1, nn2, weight) AS (
+                  SELECT new1.node1_id, nn1.id, nn2.id, count(*) from NEW as new1
+                        INNER JOIN node_ngrams nn1
+                                ON nn1.node_id = ? -- COALESCE(?,?) --(masterList, userList)
+                        INNER JOIN node_ngrams nn2
+                                ON nn2.node_id = nn1.node_id
+
+                        INNER JOIN node_node_ngrams2 nnn1
+                                ON nnn1.node_id = new1.node2_id
+
+                        INNER JOIN node_node_ngrams2 nnn2
+                                ON nnn2.node_id = new1.node2_id
+
+                        WHERE nnn1.nodengrams_id = nn1.id
+                          AND nnn2.nodengrams_id = nn2.id
+                          AND nn1.id < nn2.id
+                          AND nn1.node_subtype >= ?
+                          AND nn2.node_subtype >= ?
+                        GROUP BY new1.node1_id, nn1.id, nn2.id
+                        )
+                    SELECT * from input where weight >= 1
+
+                ON CONFLICT (node_id, node_ngrams1_id, node_ngrams2_id)
+                   DO UPDATE set weight = node_nodengrams_nodengrams.weight + excluded.weight
+                   ;
+            END IF;
+
+            RETURN NULL;
+          END
+          $$ LANGUAGE plpgsql;
+
+          -- DROP trigger trigger_cooc on node_node_ngrams2;
+
+          CREATE TRIGGER trigger_cooc_insert AFTER INSERT on nodes_nodes
+          REFERENCING NEW TABLE AS NEW
+          FOR EACH STATEMENT
+          EXECUTE PROCEDURE nodes_nodes_set_cooc();
+   |]
 

@@ -55,15 +55,15 @@ data NodeNgramsPoly id
                     ngrams_tag
                     ngrams_class
                     weight
-                   = NodeNgrams { _nng_id        :: id
-                                , _nng_node_id   :: node_id'
-                                , _nng_node_subtype :: node_subtype
-                                , _nng_ngrams_id :: ngrams_id
-                                , _nng_ngrams_type :: ngrams_type
-                                , _nng_ngrams_field :: ngrams_field
-                                , _nng_ngrams_tag :: ngrams_tag
-                                , _nng_ngrams_class :: ngrams_class
-                                , _nng_ngrams_weight :: weight
+                   = NodeNgrams { _nng_id            :: !id
+                                , _nng_node_id       :: !node_id'
+                                , _nng_node_subtype  :: !node_subtype
+                                , _nng_ngrams_id     :: !ngrams_id
+                                , _nng_ngrams_type   :: !ngrams_type
+                                , _nng_ngrams_field  :: !ngrams_field
+                                , _nng_ngrams_tag    :: !ngrams_tag
+                                , _nng_ngrams_class  :: !ngrams_class
+                                , _nng_ngrams_weight :: !weight
                               } deriving (Show, Eq, Ord)
 
 {-
@@ -113,9 +113,9 @@ type NodeNgramsW =
                   NgramsType (Maybe NgramsField) (Maybe NgramsTag) (Maybe NgramsClass)
                   Double
 
-data Returning = Returning { re_type :: Maybe NgramsType
-                           , re_terms :: Text
-                           , re_ngrams_id :: Int
+data Returning = Returning { re_type      :: !(Maybe NgramsType)
+                           , re_terms     :: !Text
+                           , re_ngrams_id :: !Int
                            }
   deriving (Show)
 

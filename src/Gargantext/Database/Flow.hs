@@ -259,7 +259,6 @@ insertMasterDocs c lang hs  =  do
   let
     ids' = map reId ids
     documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' docs)
-  _ <- Doc.add masterCorpusId ids'
   -- TODO
   -- create a corpus with database name (CSV or PubMed)
   -- add documents to the corpus (create node_node link)
@@ -288,6 +287,7 @@ insertMasterDocs c lang hs  =  do
                        , (nId, w) <- Map.toList mapNodeIdWeight
                        ]
 
+  _ <- Doc.add masterCorpusId ids'
   _cooc <- mkNode NodeListCooc lId masterUserId
   -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
