@@ -24,6 +24,7 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
+--import Debug.Trace (trace)
 import Web.FormUrlEncoded          (FromForm)
 import Data.Either
 import Control.Monad.IO.Class (liftIO)
@@ -172,7 +173,7 @@ type
   AddAPI withInput = AsyncJobsAPI ScraperStatus withInput ScraperStatus
 ------------------------------------------------------------------------
 
-type AddWithQuery = Summary "Add to corpus endpoint"
+type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add"
@@ -180,7 +181,7 @@ type AddWithQuery = Summary "Add to corpus endpoint"
    :> "async"
    :> AddAPI WithQuery
 
-type AddWithFile = Summary "Add to corpus endpoint"
+type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add" 
@@ -190,7 +191,7 @@ type AddWithFile = Summary "Add to corpus endpoint"
    :> "async"
    :> AddAPI ()
 
-type AddWithForm = Summary "Add to corpus endpoint"
+type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add"
@@ -247,13 +248,13 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
 addToCorpusWithForm _cid (WithForm ft d) logStatus = do
+  printDebug "filetype" ft
+  putStrLn ("data"     <> show d)
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
                           , _scst_remaining = Just 138
                           , _scst_events    = Just []
                           }
-  _ <- putStrLn $ show ft
-  _ <- putStrLn $ show d
 
   pure      ScraperStatus { _scst_succeeded = Just 137
                           , _scst_failed    = Just 13
