@@ -186,6 +186,7 @@ library:
   - servant-auth-swagger
   - servant-blaze
   - servant-client
+  - servant-flatten
   - servant-job
   - servant-mock
   - servant-multipart

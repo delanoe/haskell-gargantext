@@ -24,33 +24,37 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
-import Web.FormUrlEncoded          (FromForm)
-import Data.Either
-import Control.Monad.IO.Class (liftIO)
-import Data.Aeson.TH (deriveJSON)
-import Data.Aeson
-import Servant.Job.Utils (jsonOptions)
+--import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat(..))
 import Control.Lens hiding (elements)
-import Servant.Multipart
+import Control.Monad.IO.Class (liftIO)
+import Data.Aeson
+import Data.Aeson.TH (deriveJSON)
+import Data.Either
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Servant.Job.Types
+import Gargantext.API.Corpus.New.File
+import Gargantext.API.Orchestrator.Types
+import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
-import Gargantext.Text.Terms (TermType(..))
+import Gargantext.Database.Types.Node (ToHyperdataDocument(..))
+import Gargantext.Database.Types.Node (UserId)
 import Gargantext.Prelude
-import Gargantext.API.Orchestrator.Types
+import Gargantext.Text.Corpus.Parsers.CSV (parseHal')
+import Gargantext.Text.Terms (TermType(..))
 import Servant
--- import Servant.Job.Server
+import Servant.API.Flatten (Flat)
+import Servant.Job.Core
+import Servant.Job.Types
+import Servant.Job.Utils (jsonOptions)
+import Servant.Multipart
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import Gargantext.Core (Lang(..))
-import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
+import Web.FormUrlEncoded          (FromForm)
 import qualified Gargantext.Text.Corpus.API as API
-import Gargantext.Database.Types.Node (UserId)
-import Gargantext.API.Corpus.New.File
 
 data Query = Query { query_query      :: Text
                    , query_corpus_id  :: Int
@@ -104,41 +108,6 @@ instance ToSchema ApiInfo
 info :: FlowCmdM env err m => UserId -> m ApiInfo
 info _u = pure $ ApiInfo API.externalAPIs
 
-{-
--- Proposal to replace the Query type which seems to generically named.
-data ScraperInput = ScraperInput
-  { _scin_query     :: !Text
-  , _scin_corpus_id :: !Int
-  , _scin_databases :: [API.ExternalAPIs]
-  }
-  deriving (Eq, Show, Generic)
-
-makeLenses ''ScraperInput
-
-deriveJSON (unPrefix "_scin_") 'ScraperInput
-
-data ScraperEvent = ScraperEvent
-  { _scev_message :: !(Maybe Text)
-  , _scev_level   :: !(Maybe Text)
-  , _scev_date    :: !(Maybe Text)
-  }
-  deriving Generic
-
-deriveJSON (unPrefix "_scev_") 'ScraperEvent
-
-data ScraperStatus = ScraperStatus
-  { _scst_succeeded :: !(Maybe Int)
-  , _scst_failed    :: !(Maybe Int)
-  , _scst_remaining :: !(Maybe Int)
-  , _scst_events    :: !(Maybe [ScraperEvent])
-  }
-  deriving Generic
-
-deriveJSON (unPrefix "_scst_") 'ScraperStatus
--}
-
-
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 data WithQuery = WithQuery
@@ -148,11 +117,11 @@ data WithQuery = WithQuery
   deriving Generic
 
 makeLenses ''WithQuery
-
 instance FromJSON WithQuery where
   parseJSON = genericParseJSON $ jsonOptions "_wq_"
+instance ToSchema WithQuery where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wq_")
 
-instance ToSchema WithQuery
 -------------------------------------------------------
 data WithForm = WithForm
   { _wf_filetype :: !FileType
@@ -160,27 +129,25 @@ data WithForm = WithForm
   } deriving (Eq, Show, Generic)
 
 makeLenses ''WithForm
-
+instance FromForm WithForm
 instance FromJSON WithForm where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
-instance ToSchema WithForm
-instance FromForm WithForm
-
+instance ToSchema WithForm where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 
 ------------------------------------------------------------------------
-type
-  AddAPI withInput = AsyncJobsAPI ScraperStatus withInput ScraperStatus
+type AsyncJobs event ctI input output =
+  Flat (AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output)
 ------------------------------------------------------------------------
-
-type AddWithQuery = Summary "Add to corpus endpoint"
+type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add"
    :> "query"
    :> "async"
-   :> AddAPI WithQuery
+   :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
 
-type AddWithFile = Summary "Add to corpus endpoint"
+type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add" 
@@ -188,16 +155,15 @@ type AddWithFile = Summary "Add to corpus endpoint"
    :> MultipartForm Mem (MultipartData Mem)
    :> QueryParam "fileType"  FileType
    :> "async"
-   :> AddAPI ()
+   :> AsyncJobs ScraperStatus '[JSON] () ScraperStatus
 
-type AddWithForm = Summary "Add to corpus endpoint"
+type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add"
    :> "form"
-   :> ReqBody '[FormUrlEncoded] WithForm
    :> "async"
-   :> AddAPI ()
+   :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
@@ -206,7 +172,7 @@ addToCorpusJobFunction :: FlowCmdM env err m
                        -> WithQuery
                        -> (ScraperStatus -> m ())
                        -> m ScraperStatus
-addToCorpusJobFunction _cid _input logStatus = do
+addToCorpusJobFunction _cid (WithQuery _q _dbs) logStatus = do
   -- TODO ...
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
@@ -246,17 +212,23 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm _cid (WithForm ft d) logStatus = do
-  logStatus ScraperStatus { _scst_succeeded = Just 10
-                          , _scst_failed    = Just 2
-                          , _scst_remaining = Just 138
+addToCorpusWithForm cid (WithForm _ft d) logStatus = do
+
+  let docs = splitEvery 500
+           $ take 10000
+           $ parseHal' (cs d)
+
+  logStatus ScraperStatus { _scst_succeeded = Just 1
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
-  _ <- putStrLn $ show ft
-  _ <- putStrLn $ show d
 
-  pure      ScraperStatus { _scst_succeeded = Just 137
-                          , _scst_failed    = Just 13
+  cid' <- flowCorpus "user1" (Right [cid]) (Multi EN) (map (map toHyperdataDocument) docs)
+  printDebug "cid'" cid' 
+
+  pure      ScraperStatus { _scst_succeeded = Just 2
+                          , _scst_failed    = Just 0
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
                           }

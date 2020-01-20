@@ -395,9 +395,9 @@ addWithFile cid i f =
     JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftIO . log))
 
 addWithForm :: GargServer New.AddWithForm
-addWithForm cid f =
+addWithForm cid =
   serveJobsAPI $
-    JobFunction (\_i log -> New.addToCorpusWithForm cid f (liftIO . log))
+    JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log))
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
