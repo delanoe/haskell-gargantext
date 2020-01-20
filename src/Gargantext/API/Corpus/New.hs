@@ -256,18 +256,18 @@ addToCorpusWithForm cid (WithForm _ft d) logStatus = do
            $ take 10000
            $ parseHal' (cs d)
 
-  cid' <- flowCorpus "user1" (Right [cid]) (Multi EN) (map (map toHyperdataDocument) docs)
-  printDebug "cid'" cid' 
-
-  logStatus ScraperStatus { _scst_succeeded = Just 10
-                          , _scst_failed    = Just 2
-                          , _scst_remaining = Just 138
+  logStatus ScraperStatus { _scst_succeeded = Just 1
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
 
-  pure      ScraperStatus { _scst_succeeded = Just 137
-                          , _scst_failed    = Just 13
-                          , _scst_remaining = Just 0
+  cid' <- flowCorpus "user1" (Right [cid]) (Multi EN) (map (map toHyperdataDocument) docs)
+  printDebug "cid'" cid' 
+
+  pure      ScraperStatus { _scst_succeeded = Just 2
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
 
