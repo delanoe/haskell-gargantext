@@ -172,17 +172,15 @@ instance FromForm WithForm
 
 
 ------------------------------------------------------------------------
-type
-  AddAPI withInput = AsyncJobsAPI ScraperStatus withInput ScraperStatus
-------------------------------------------------------------------------
 
+------------------------------------------------------------------------
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add"
    :> "query"
    :> "async"
-   :> AddAPI WithQuery
+   :> AsyncJobsAPI2 ScraperStatus '[JSON] WithQuery ScraperStatus
 
 type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
    :> "corpus"
@@ -192,16 +190,15 @@ type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
    :> MultipartForm Mem (MultipartData Mem)
    :> QueryParam "fileType"  FileType
    :> "async"
-   :> AddAPI ()
+   :> AsyncJobsAPI2 ScraperStatus '[JSON] () ScraperStatus
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add"
    :> "form"
-   :> ReqBody '[FormUrlEncoded] WithForm
    :> "async"
-   :> AddAPI ()
+   :> AsyncJobsAPI2 ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
