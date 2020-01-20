@@ -50,6 +50,9 @@ import Test.QuickCheck.Arbitrary
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import qualified Gargantext.Text.Corpus.API as API
+--import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat(..))
+import Gargantext.Text.Corpus.Parsers.CSV (parseHal')
+import Gargantext.Database.Types.Node (ToHyperdataDocument(..))
 import Gargantext.Database.Types.Node (UserId)
 import Gargantext.API.Corpus.New.File
 
@@ -247,9 +250,15 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm _cid (WithForm ft d) logStatus = do
-  printDebug "filetype" ft
-  putStrLn ("data"     <> show d)
+addToCorpusWithForm cid (WithForm _ft d) logStatus = do
+
+  let docs = splitEvery 500
+           $ take 10000
+           $ parseHal' (cs d)
+
+  cid' <- flowCorpus "user1" (Right [cid]) (Multi EN) (map (map toHyperdataDocument) docs)
+  printDebug "cid'" cid' 
+
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
                           , _scst_remaining = Just 138
