@@ -295,9 +295,10 @@ type GargPrivateAPI' =
                        :> Capture "tree_id" NodeId
                        :> TreeAPI
 
-           :<|> New.AddWithQuery
-           :<|> New.AddWithFile
+           -- :<|> New.Upload
            :<|> New.AddWithForm
+           -- :<|> New.AddWithQuery
+           -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
@@ -377,12 +378,18 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
           <$> PathNode <*> treeAPI
      -- TODO access
-     :<|> addWithQuery
-     :<|> addWithFile
+     -- :<|> addUpload
+     -- (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
+     -- :<|> addWithFile
      :<|> addWithForm
-     -- :<|> addToCorpus
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
+
+{-
+addUpload :: GargServer New.Upload
+addUpload cId = serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log))
+    :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log)))
+-}
 
 addWithQuery :: GargServer New.AddWithQuery
 addWithQuery cid =

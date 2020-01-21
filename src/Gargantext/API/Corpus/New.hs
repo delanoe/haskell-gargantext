@@ -139,6 +139,14 @@ instance ToSchema WithForm where
 type AsyncJobs event ctI input output =
   Flat (AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output)
 ------------------------------------------------------------------------
+
+type Upload = Summary "Corpus Upload endpoint"
+   :> "corpus"
+   :> Capture "corpus_id" CorpusId
+    :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
+    :<|> "addWithfile"  :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
+
+
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
