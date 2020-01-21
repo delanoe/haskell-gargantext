@@ -148,10 +148,10 @@ type Upload = Summary "Corpus Upload endpoint"
 
 
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
-   :> "corpus"
+   :> "query"
    :> Capture "corpus_id" CorpusId
    :> "add"
-   :> "query"
+   :> "corpus"
    :> "async"
    :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
 

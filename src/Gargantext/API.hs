@@ -297,7 +297,7 @@ type GargPrivateAPI' =
 
            -- :<|> New.Upload
            :<|> New.AddWithForm
-           -- :<|> New.AddWithQuery
+           :<|> New.AddWithQuery
            -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
@@ -379,17 +379,17 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
           <$> PathNode <*> treeAPI
      -- TODO access
      -- :<|> addUpload
-     -- (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     -- :<|> addWithFile
+     -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
      :<|> addWithForm
+     :<|> addWithQuery
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
 
 {-
 addUpload :: GargServer New.Upload
-addUpload cId = serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log))
-    :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log)))
--}
+addUpload cId = (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log)))
+           :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm    cid i (liftIO . log)))
+--}
 
 addWithQuery :: GargServer New.AddWithQuery
 addWithQuery cid =
