@@ -387,6 +387,10 @@ csv2doc (CsvDoc title source
 ------------------------------------------------------------------------
 parseHal :: FilePath -> IO [HyperdataDocument]
 parseHal fp = V.toList <$> V.map csvHal2doc <$> snd <$> readCsvHal fp
+
+parseHal' :: BL.ByteString -> [HyperdataDocument]
+parseHal' = V.toList . V.map csvHal2doc . snd . readCsvHalLazyBS 
+
 ------------------------------------------------------------------------
 
 parseCsv :: FilePath -> IO [HyperdataDocument]

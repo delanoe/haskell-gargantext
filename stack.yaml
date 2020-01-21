@@ -3,6 +3,7 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
+#- 'deps/servant-job'
 
 docker:
   enable: false
@@ -35,9 +36,10 @@ extra-deps:
     #
 - git: https://gitlab.iscpif.fr/gargantext/patches-class
   commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
-#- git: https://github.com/delanoe/servant-job.git
+  #- git: https://github.com/delanoe/servant-job.git
+  #commit: 7a7b7100e6d132adb4c11b25b2128e6309690ac0
 - git: https://github.com/np/servant-job.git
-  commit: 8557bfc9472a1b2be0b7bc632c23701ba5f44bf8
+  commit: 4016c76398a56e1a352a45b3ee9d698dd0dd2597
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
   commit: e5814cbfa71f43b0a453efb65f476240d7d51a53
 - git: https://github.com/np/patches-map
