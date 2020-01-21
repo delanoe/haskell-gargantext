@@ -167,8 +167,8 @@ insertNodeNgrams nns = runPGSQuery query (PGS.Only $ Values fields nns')
             INSERT INTO node_ngrams (node_id, node_subtype, ngrams_id, ngrams_type, ngrams_field, ngrams_tag, ngrams_class, weight)
             SELECT i.node_id, i.node_subtype, ng.id, i.ngrams_type, i.ngrams_field, i.ngrams_tag, i.ngrams_class, i.weight FROM input as i
             INNER JOIN ngrams as ng ON ng.terms = i.ngrams_terms
-            ON CONFLICT(node_id, node_subtype, ngrams_id)
-            DO UPDATE SET node_subtype = excluded.node_subtype, ngrams_type = excluded.ngrams_type, ngrams_field = excluded.ngrams_field, ngrams_tag = excluded.ngrams_tag, ngrams_class = excluded.ngrams_class, weight = excluded.weight
+            ON CONFLICT(node_id, node_subtype, ngrams_id) DO NOTHING
+            -- DO UPDATE SET node_subtype = excluded.node_subtype, ngrams_type = excluded.ngrams_type, ngrams_field = excluded.ngrams_field, ngrams_tag = excluded.ngrams_tag, ngrams_class = excluded.ngrams_class, weight = excluded.weight
             RETURNING id, ngrams_type, ngrams_id
           )
           SELECT return.ngrams_type, ng.terms, return.id FROM return

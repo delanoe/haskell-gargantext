@@ -65,7 +65,7 @@ import Gargantext.Database.Root (getRoot)
 
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, {-mkPhylo,-} mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
-import Gargantext.Database.Schema.NodeNgrams (listInsertDb, getCgramsId)
+import Gargantext.Database.Schema.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNodeNodeNgrams2)
 import Gargantext.Database.Schema.User (getUser, UserLight(..))
 import Gargantext.Database.TextSearch (searchInDatabase)
@@ -75,7 +75,7 @@ import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Eleve (buildTries, toToken)
---import Gargantext.Text.List (buildNgramsLists,StopSize(..))
+import Gargantext.Text.List (buildNgramsLists,StopSize(..))
 import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
@@ -214,7 +214,7 @@ flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
                -> Maybe c
                -> [NodeId]
                -> m CorpusId
-flowCorpusUser _l userName corpusName ctype ids = do
+flowCorpusUser l userName corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus userName corpusName ctype
   listId <- getOrMkList userCorpusId userId
@@ -226,10 +226,10 @@ flowCorpusUser _l userName corpusName ctype ids = do
   -- printDebug "Node Text Id" tId
 
   -- User List Flow
-  (_masterUserId, _masterRootId, _masterCorpusId) <- getOrMk_RootWithCorpus userMaster (Left "") ctype
-  --ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
-  -- _userListId <- flowList_DbRepo listId ngs
-  --mastListId <- getOrMkList masterCorpusId masterUserId
+  (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus userMaster (Left "") ctype
+  ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
+  _userListId <- flowList_DbRepo listId ngs
+  _mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
   -- User Graph Flow

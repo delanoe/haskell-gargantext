@@ -23,7 +23,7 @@ module Gargantext.Database.Init
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
 import Gargantext.Database.Triggers.Nodes (triggerSearchUpdate)
-import Gargantext.Database.Triggers.NodesNodes (triggerDeleteCount, triggerInsertCount, triggerUpdateAdd, triggerUpdateDel, MasterListId, triggerCoocInsert)
+import Gargantext.Database.Triggers.NodesNodes (triggerDeleteCount, triggerInsertCount, triggerUpdateAdd, triggerUpdateDel, MasterListId) -- , triggerCoocInsert)
 import Gargantext.Database.Triggers.NodeNodeNgrams (triggerCountInsert, triggerCountInsert2)
 ------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ initTriggers lId = do
   t0 <- triggerSearchUpdate
   t1 <- triggerCountInsert
   t1' <- triggerCountInsert2
-  t1'' <- triggerCoocInsert lId
+  -- t1'' <- triggerCoocInsert lId
   t2 <- triggerDeleteCount lId
   t3 <- triggerInsertCount lId
   t4 <- triggerUpdateAdd   lId
@@ -40,7 +40,7 @@ initTriggers lId = do
   pure [t0
        ,t1
        ,t1'
-       ,t1''
+       -- ,t1''
        ,t2
        ,t3
        ,t4
