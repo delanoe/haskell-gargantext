@@ -61,6 +61,7 @@ import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
+import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Utils -- (Cmd, CmdM)
@@ -160,13 +161,16 @@ type ChildrenApi a = Summary " Summary children"
 ------------------------------------------------------------------------
 type NodeNodeAPI a = Get '[JSON] (Node a)
 
-nodeNodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> CorpusId -> NodeId -> GargServer (NodeNodeAPI a)
+nodeNodeAPI :: forall proxy a. (JSONB a, ToJSON a)
+            => proxy a
+            -> UserId
+            -> CorpusId
+            -> NodeId
+            -> GargServer (NodeNodeAPI a)
 nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uId (PathNodeNode cId nId) nodeNodeAPI'
   where
     nodeNodeAPI' :: GargServer (NodeNodeAPI a)
     nodeNodeAPI' = getNodeWith nId p
-
-
 
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
@@ -174,10 +178,10 @@ nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId ->
 nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
-    nodeAPI' =  getNodeWith       id p
+    nodeAPI' =  getNodeWith   id p
            :<|> rename        id
            :<|> postNode  uId id
-           :<|> putNode       id
+           :<|> putNode       id p
            :<|> deleteNodeApi id
            :<|> getChildren   id p
 
@@ -323,13 +327,21 @@ treeAPI = treeDB
 rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
 
-postNode :: HasNodeError err => UserId -> NodeId -> PostNode -> Cmd err [NodeId]
+postNode :: HasNodeError err
+         => UserId
+         -> NodeId
+         -> PostNode
+         -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = do
   nodeUser <- getNodeWith (NodeId uId) HyperdataUser
   let uId' = nodeUser ^. node_userId
   mkNodeWithParent nt (Just pId) uId' nodeName
 
-putNode :: NodeId -> Cmd err Int
-putNode = undefined -- TODO
-
+putNode :: forall err proxy a. (HasNodeError err, JSONB a, ToJSON a)
+        => NodeId
+        -> proxy a
+        -> Cmd err Int
+putNode n h = do
+  n <- fromIntegral <$> updateHyperdata n h
+  pure n
 -------------------------------------------------------------
