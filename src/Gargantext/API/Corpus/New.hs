@@ -113,6 +113,7 @@ info _u = pure $ ApiInfo API.externalAPIs
 data WithQuery = WithQuery
   { _wq_query     :: !Text
   , _wq_databases :: ![ExternalAPIs]
+  , _wq_lang      :: !(Maybe Lang)
   }
   deriving Generic
 
@@ -148,10 +149,10 @@ type Upload = Summary "Corpus Upload endpoint"
 
 
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
-   :> "query"
+   :> "corpus"
    :> Capture "corpus_id" CorpusId
    :> "add"
-   :> "corpus"
+   :> "query"
    :> "async"
    :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
 
@@ -180,7 +181,7 @@ addToCorpusJobFunction :: FlowCmdM env err m
                        -> WithQuery
                        -> (ScraperStatus -> m ())
                        -> m ScraperStatus
-addToCorpusJobFunction _cid (WithQuery _q _dbs) logStatus = do
+addToCorpusJobFunction _cid (WithQuery _q _dbs _l) logStatus = do
   -- TODO ...
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
@@ -223,7 +224,7 @@ addToCorpusWithForm :: FlowCmdM env err m
 addToCorpusWithForm cid (WithForm _ft d) logStatus = do
 
   let docs = splitEvery 500
-           $ take 10000
+           $ take 1000000
            $ parseHal' (cs d)
 
   logStatus ScraperStatus { _scst_succeeded = Just 1

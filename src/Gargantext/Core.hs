@@ -9,9 +9,17 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE TemplateHaskell    #-}
+
 module Gargantext.Core
   where
 
+import Gargantext.Prelude
+import GHC.Generics (Generic)
+import Data.Aeson
+import Data.Swagger
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
@@ -29,8 +37,11 @@ module Gargantext.Core
 -- | All languages supported
 -- TODO : DE | SP | CH
 data Lang = EN | FR
-  deriving (Show, Eq, Ord, Bounded, Enum)
+  deriving (Show, Eq, Ord, Bounded, Enum, Generic)
 
+instance ToJSON Lang
+instance FromJSON Lang
+instance ToSchema Lang
 
 allLangs :: [Lang]
 allLangs = [minBound ..]
