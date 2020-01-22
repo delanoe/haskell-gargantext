@@ -293,25 +293,70 @@ instance ToSchema Resource where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "resource_")
 
 ------------------------------------------------------------------------
-data HyperdataUser = HyperdataUser { hyperdataUser_language       :: Maybe Text
+data HyperdataUser = HyperdataUser { hyperdataUser_language       :: !(Maybe Text)
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
 instance Hyperdata HyperdataUser
 ------------------------------------------------------------------------
-data HyperdataFolder = HyperdataFolder { hyperdataFolder_desc    :: Maybe Text
+data HyperdataFolder = HyperdataFolder { hyperdataFolder_desc    :: !(Maybe Text)
                                        } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 
 instance Hyperdata HyperdataFolder
 ------------------------------------------------------------------------
-data HyperdataCorpus = HyperdataCorpus { hyperdataCorpus_title        :: !(Maybe Text)
-                                       , hyperdataCorpus_desc         :: !(Maybe Text)
-                                       , hyperdataCorpus_query        :: !(Maybe Text)
-                                       , hyperdataCorpus_authors      :: !(Maybe Text)
-                                       , hyperdataCorpus_resources    :: !(Maybe [Resource])
-                                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataCorpus_") ''HyperdataCorpus)
+
+data CodeType = JSON | Markdown
+  deriving (Generic)
+instance ToJSON CodeType
+instance FromJSON CodeType
+instance ToSchema CodeType
+
+------------------------------------------------------------------------
+data CorpusField = MarkdownField { _cf_text :: !Text }
+                  | JsonField { _cf_title :: !Text
+                              , _cf_desc  :: !Text
+                              , _cf_query :: !Text
+                              , _cf_authors :: !Text
+                              , _cf_resources :: ![Resource]
+                              } deriving (Generic)
+
+$(deriveJSON (unPrefix "_cf_") ''CorpusField)
+$(makeLenses ''CorpusField)
+
+defaultCorpusField :: CorpusField
+defaultCorpusField = MarkdownField "#title"
+
+instance ToSchema CorpusField where
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "_cf_") proxy
+    & mapped.schema.description ?~ "CorpusField"
+    & mapped.schema.example ?~ toJSON defaultCorpusField
+
+------------------------------------------------------------------------
+data HyperdataField a =
+  HyperdataField { _hf_type :: !CodeType
+                 , _hf_name :: !Text
+                 , _hf_data :: !a
+                 } deriving (Generic)
+$(deriveJSON (unPrefix "_hf_") ''HyperdataField)
+$(makeLenses ''HyperdataField)
+
+defaultHyperdataField :: HyperdataField CorpusField
+defaultHyperdataField = HyperdataField Markdown "name" defaultCorpusField
+
+instance (ToSchema a) => ToSchema (HyperdataField a) where
+  declareNamedSchema =
+    genericDeclareNamedSchema (unPrefixSwagger "_hf_")
+    -- & mapped.schema.description ?~ "HyperdataField"
+    -- & mapped.schema.example ?~ toJSON defaultHyperdataField
+
+------------------------------------------------------------------------
+data HyperdataCorpus =
+  HyperdataCorpus { _hc_fields :: ![HyperdataField CorpusField] }
+    deriving (Generic)
+$(deriveJSON (unPrefix "_hc_") ''HyperdataCorpus)
+$(makeLenses ''HyperdataCorpus)
 
 instance Hyperdata HyperdataCorpus
 
@@ -319,7 +364,9 @@ corpusExample :: ByteString
 corpusExample = "" -- TODO
 
 defaultCorpus :: HyperdataCorpus
-defaultCorpus = (HyperdataCorpus (Just "Title") (Just "Descr") (Just "Bool query") (Just "Authors") Nothing)
+defaultCorpus = HyperdataCorpus [ HyperdataField JSON "Mandatory fields" (JsonField "Title" "Descr" "Bool query" "Authors" [])
+                                , HyperdataField Markdown "Optional Text" (MarkdownField "#title\n##subtitle")
+                                ]
 
 hyperdataCorpus :: HyperdataCorpus
 hyperdataCorpus = case decode corpusExample of
@@ -477,7 +524,7 @@ data NodePolySearch id        typename userId
                                       , _ns_parentId  :: parentId
                                       , _ns_name      :: name
                                       , _ns_date      :: date
-                                  
+
                                       , _ns_hyperdata :: hyperdata
                                       , _ns_search    :: search
                                       } deriving (Show, Generic)
@@ -527,8 +574,8 @@ docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",
 
 instance ToSchema HyperdataCorpus where
   declareNamedSchema proxy =
-    genericDeclareNamedSchema (unPrefixSwagger "hyperdataCorpus_") proxy
-    & mapped.schema.description ?~ "a corpus"
+    genericDeclareNamedSchema (unPrefixSwagger "_hc_") proxy
+    & mapped.schema.description ?~ "Corpus"
     & mapped.schema.example ?~ toJSON hyperdataCorpus
 
 instance ToSchema HyperdataAnnuaire where

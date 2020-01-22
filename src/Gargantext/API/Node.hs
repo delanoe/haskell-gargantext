@@ -121,7 +121,7 @@ roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
 type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> RenameApi
              :<|> PostNodeApi -- TODO move to children POST
-             :<|> Put    '[JSON] Int
+             :<|> ReqBody '[JSON] a :> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
 
@@ -174,14 +174,14 @@ nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uI
 
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: forall proxy a. (JSONB a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
+nodeAPI :: forall proxy a. (JSONB a, FromJSON a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
 nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
     nodeAPI' =  getNodeWith   id p
            :<|> rename        id
            :<|> postNode  uId id
-           :<|> putNode       id p
+           :<|> putNode       id
            :<|> deleteNodeApi id
            :<|> getChildren   id p
 
@@ -337,11 +337,9 @@ postNode uId pId (PostNode nodeName nt) = do
   let uId' = nodeUser ^. node_userId
   mkNodeWithParent nt (Just pId) uId' nodeName
 
-putNode :: forall err proxy a. (HasNodeError err, JSONB a, ToJSON a)
+putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         => NodeId
-        -> proxy a
+        -> a
         -> Cmd err Int
-putNode n h = do
-  n <- fromIntegral <$> updateHyperdata n h
-  pure n
+putNode n h = fromIntegral <$> updateHyperdata n h
 -------------------------------------------------------------
