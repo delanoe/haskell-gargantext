@@ -325,7 +325,7 @@ $(deriveJSON (unPrefix "_cf_") ''CorpusField)
 $(makeLenses ''CorpusField)
 
 defaultCorpusField :: CorpusField
-defaultCorpusField = MarkdownField "#title"
+defaultCorpusField = MarkdownField "# title"
 
 instance ToSchema CorpusField where
   declareNamedSchema proxy =
@@ -365,7 +365,7 @@ corpusExample = "" -- TODO
 
 defaultCorpus :: HyperdataCorpus
 defaultCorpus = HyperdataCorpus [ HyperdataField JSON "Mandatory fields" (JsonField "Title" "Descr" "Bool query" "Authors" [])
-                                , HyperdataField Markdown "Optional Text" (MarkdownField "#title\n##subtitle")
+                                , HyperdataField Markdown "Optional Text" (MarkdownField "# title\n## subtitle")
                                 ]
 
 hyperdataCorpus :: HyperdataCorpus
