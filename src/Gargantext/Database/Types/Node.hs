@@ -318,7 +318,7 @@ data CorpusField = MarkdownField { _cf_text :: !Text }
                               , _cf_desc  :: !Text
                               , _cf_query :: !Text
                               , _cf_authors :: !Text
-                              , _cf_resources :: ![Resource]
+                              -- , _cf_resources :: ![Resource]
                               } deriving (Generic)
 
 $(deriveJSON (unPrefix "_cf_") ''CorpusField)
@@ -364,7 +364,7 @@ corpusExample :: ByteString
 corpusExample = "" -- TODO
 
 defaultCorpus :: HyperdataCorpus
-defaultCorpus = HyperdataCorpus [ HyperdataField JSON "Mandatory fields" (JsonField "Title" "Descr" "Bool query" "Authors" [])
+defaultCorpus = HyperdataCorpus [ HyperdataField JSON "Mandatory fields" (JsonField "Title" "Descr" "Bool query" "Authors")
                                 , HyperdataField Markdown "Optional Text" (MarkdownField "# title\n## subtitle")
                                 ]
 
