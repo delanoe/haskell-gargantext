@@ -148,6 +148,8 @@ CREATE INDEX        ON public.rights USING btree (user_id,node_id);
 
 CREATE INDEX        ON public.nodes USING gin (hyperdata);
 CREATE INDEX        ON public.nodes USING btree (user_id, typename, parent_id);
+CREATE INDEX        ON public.nodes USING btree (id, typename, date ASC);
+CREATE INDEX        ON public.nodes USING btree (id, typename, date DESC);
 CREATE INDEX        ON public.nodes USING btree (typename, id);
 CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
 CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
@@ -171,6 +173,7 @@ CREATE INDEX ON public.node_nodengrams_nodengrams USING btree (node_ngrams2_id);
 CREATE INDEX ON public.node_node_ngrams2 USING btree (node_id);
 CREATE INDEX ON public.node_node_ngrams2 USING btree (nodengrams_id);
 CREATE INDEX ON public.node_node_ngrams2 USING btree (node_id, nodengrams_id);
+------------------------------------------------------------
 ------------------------------------------------------------------------
 -- Ngrams Full DB Extraction Optim
 -- TODO remove hard parameter and move elsewhere
