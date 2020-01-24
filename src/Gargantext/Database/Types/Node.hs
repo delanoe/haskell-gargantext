@@ -306,7 +306,7 @@ $(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
 instance Hyperdata HyperdataFolder
 ------------------------------------------------------------------------
 
-data CodeType = JSON | Markdown
+data CodeType = JSON | Markdown | Haskell
   deriving (Generic)
 instance ToJSON CodeType
 instance FromJSON CodeType
@@ -319,7 +319,9 @@ data CorpusField = MarkdownField { _cf_text :: !Text }
                               , _cf_query :: !Text
                               , _cf_authors :: !Text
                               -- , _cf_resources :: ![Resource]
-                              } deriving (Generic)
+                              } 
+                  | HaskellField { _cf_haskell :: !Text }
+                  deriving (Generic)
 
 $(deriveJSON (unPrefix "_cf_") ''CorpusField)
 $(makeLenses ''CorpusField)
