@@ -32,8 +32,8 @@ import Gargantext.Prelude hiding (length)
 import Gargantext.Text
 import Gargantext.Text.Context
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString as  BS
-import qualified Data.Vector as V
+import qualified Data.ByteString      as BS
+import qualified Data.Vector          as V
 
 ---------------------------------------------------------------
 headerCsvGargV3 :: Header

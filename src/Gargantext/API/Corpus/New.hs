@@ -43,7 +43,7 @@ import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Database.Types.Node (ToHyperdataDocument(..))
 import Gargantext.Database.Types.Node (UserId)
 import Gargantext.Prelude
-import Gargantext.Text.Corpus.Parsers.CSV (parseCsv', parseHal')
+import Gargantext.Text.Corpus.Parsers (FileFormat(..), parseFormat)
 import Gargantext.Text.Terms (TermType(..))
 import Servant
 import Servant.API.Flatten (Flat)
@@ -227,13 +227,14 @@ addToCorpusWithForm cid (WithForm ft d) logStatus = do
 
   let
     parse = case ft of
-      CSV_HAL -> parseHal'
-      CSV     -> parseCsv'
-      _       -> parseHal'
+      CSV_HAL -> parseFormat CsvHal
+      CSV     -> parseFormat CsvGargV3
+      _       -> parseFormat CsvHal
 
-    docs = splitEvery 500
-           $ take 1000000
-           $ parse (cs d)
+  docs <- liftIO
+        $ splitEvery 500
+       <$> take 1000000
+       <$> parse (cs d)
 
   logStatus ScraperStatus { _scst_succeeded = Just 1
                           , _scst_failed    = Just 0

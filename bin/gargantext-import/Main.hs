@@ -51,12 +51,12 @@ main = do
   let
     --tt = (Unsupervised EN 6 0 Nothing)
     tt = (Multi EN)
-    format = CsvGargV3 -- CsvHalFormat --WOS
+    format = CsvGargV3 -- CsvHal --WOS
     corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
     corpus = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
 
     corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpusCsvHal = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHalFormat corpusPath
+    corpusCsvHal = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath
 
     annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
     annuaire = flowAnnuaire (cs user) (Left "Annuaire") (Multi EN) corpusPath
