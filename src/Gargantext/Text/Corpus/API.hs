@@ -36,7 +36,6 @@ import qualified Gargantext.Text.Corpus.API.Istex   as ISTEX
 
 -- | Get External API metadata main function
 get :: ExternalAPIs -> Query -> Maybe Limit -> IO [HyperdataDocument]
-get All        _ _ = undefined
 
 get PubMed     q l = PUBMED.get q l
 
@@ -49,6 +48,7 @@ get IsTex_FR   q l = ISTEX.get FR q l
 get Isidore_EN q l = ISIDORE.get EN (fromIntegral <$> l) (Just q) Nothing
 get Isidore_FR q l = ISIDORE.get FR (fromIntegral <$> l) (Just q) Nothing
 
+get _  _ _ = undefined
 -- | Some Sugar for the documentation
 type Query = PUBMED.Query
 type Limit = PUBMED.Limit

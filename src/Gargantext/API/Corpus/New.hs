@@ -43,7 +43,7 @@ import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Database.Types.Node (ToHyperdataDocument(..))
 import Gargantext.Database.Types.Node (UserId)
 import Gargantext.Prelude
-import Gargantext.Text.Corpus.Parsers.CSV (parseCsv')--parseHal')--, parseCsv')
+import Gargantext.Text.Corpus.Parsers.CSV (parseCsv', parseHal')
 import Gargantext.Text.Terms (TermType(..))
 import Servant
 import Servant.API.Flatten (Flat)
@@ -223,15 +223,17 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> m ScraperStatus
 addToCorpusWithForm cid (WithForm ft d) logStatus = do
 
+  printDebug "ft" ft
+
   let
     parse = case ft of
-    Just CSV_HAL -> parseHal'
-    Just CSV     -> parseCsv'
-    _            -> parseHal'
+      CSV_HAL -> parseHal'
+      CSV     -> parseCsv'
+      _       -> parseHal'
 
     docs = splitEvery 500
            $ take 1000000
-           $ parseCsv' (cs d)
+           $ parse (cs d)
 
   logStatus ScraperStatus { _scst_succeeded = Just 1
                           , _scst_failed    = Just 0
