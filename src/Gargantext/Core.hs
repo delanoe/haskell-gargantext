@@ -36,7 +36,7 @@ import Data.Swagger
 
 -- | All languages supported
 -- TODO : DE | SP | CH
-data Lang = EN | FR
+data Lang = EN | FR | All
   deriving (Show, Eq, Ord, Bounded, Enum, Generic)
 
 instance ToJSON Lang
