@@ -396,3 +396,6 @@ parseHal' = V.toList . V.map csvHal2doc . snd . readCsvHalLazyBS
 parseCsv :: FilePath -> IO [HyperdataDocument]
 parseCsv fp = V.toList <$> V.map csv2doc <$> snd <$> readFile fp
 
+parseCsv' :: BL.ByteString -> [HyperdataDocument]
+parseCsv' bs = V.toList $ V.map csv2doc $ snd $ readCsvLazyBS bs
+

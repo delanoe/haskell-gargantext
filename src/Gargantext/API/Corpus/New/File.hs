@@ -48,7 +48,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 -------------------------------------------------------------
 type Hash = Text
-data FileType = CSV | PresseRIS
+data FileType = CSV | CSV_HAL | PresseRIS
   deriving (Eq, Show, Generic)
 
 instance ToSchema FileType
@@ -65,6 +65,7 @@ instance ToParamSchema (MultipartData Mem) where
 instance FromHttpApiData FileType
   where
     parseUrlPiece "CSV"       = pure CSV
+    parseUrlPiece "CSV_HAL"   = pure CSV_HAL
     parseUrlPiece "PresseRis" = pure PresseRIS
     parseUrlPiece _           = pure CSV -- TODO error here
 
