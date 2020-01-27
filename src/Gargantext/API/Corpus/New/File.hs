@@ -48,7 +48,10 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 -------------------------------------------------------------
 type Hash = Text
-data FileType = CSV | CSV_HAL | PresseRIS
+data FileType = CSV
+              | CSV_HAL
+              | PresseRIS
+              | WOS
   deriving (Eq, Show, Generic)
 
 instance ToSchema FileType

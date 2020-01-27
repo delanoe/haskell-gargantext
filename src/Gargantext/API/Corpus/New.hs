@@ -29,6 +29,7 @@ import Control.Lens hiding (elements)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import Data.Maybe (fromMaybe)
 import Data.Either
 import Data.Swagger
 import Data.Text (Text)
@@ -43,7 +44,7 @@ import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Database.Types.Node (ToHyperdataDocument(..))
 import Gargantext.Database.Types.Node (UserId)
 import Gargantext.Prelude
-import Gargantext.Text.Corpus.Parsers (FileFormat(..), parseFormat)
+import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 import Gargantext.Text.Terms (TermType(..))
 import Servant
 import Servant.API.Flatten (Flat)
@@ -127,6 +128,7 @@ instance ToSchema WithQuery where
 data WithForm = WithForm
   { _wf_filetype :: !FileType
   , _wf_data     :: !Text
+  , _wf_lang     :: !(Maybe Lang)
   } deriving (Eq, Show, Generic)
 
 makeLenses ''WithForm
@@ -221,15 +223,16 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm cid (WithForm ft d) logStatus = do
+addToCorpusWithForm cid (WithForm ft d l) logStatus = do
 
   printDebug "ft" ft
 
   let
     parse = case ft of
-      CSV_HAL -> parseFormat CsvHal
-      CSV     -> parseFormat CsvGargV3
-      _       -> parseFormat CsvHal
+      CSV_HAL   -> Parser.parseFormat Parser.CsvHal
+      CSV       -> Parser.parseFormat Parser.CsvGargV3
+      WOS       -> Parser.parseFormat Parser.WOS
+      PresseRIS -> Parser.parseFormat Parser.RisPresse
 
   docs <- liftIO
         $ splitEvery 500
@@ -241,8 +244,11 @@ addToCorpusWithForm cid (WithForm ft d) logStatus = do
                           , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
+  cid' <- flowCorpus "user1"
+                     (Right [cid])
+                     (Multi $ fromMaybe EN l)
+                     (map (map toHyperdataDocument) docs)
 
-  cid' <- flowCorpus "user1" (Right [cid]) (Multi EN) (map (map toHyperdataDocument) docs)
   printDebug "cid'" cid' 
 
   pure      ScraperStatus { _scst_succeeded = Just 2
