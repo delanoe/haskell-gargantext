@@ -401,10 +401,10 @@ nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
     name = maybe "User" identity maybeName
     user = maybe defaultUser identity maybeHyperdata
 ------------------------------------------------------------------------
-defaultFolder :: HyperdataFolder
-defaultFolder = HyperdataFolder (Just "Markdown Description")
+defaultFolder :: HyperdataCorpus
+defaultFolder = defaultCorpus
 
-nodeFolderW :: Maybe Name -> Maybe HyperdataFolder -> ParentId -> UserId -> NodeWrite
+nodeFolderW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
 nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
   where
     name   = maybe "Folder" identity maybeName
@@ -626,27 +626,27 @@ mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 mkNodeWithParent NodeFolder (Just i) uId name = 
    insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
     where
-      hd = HyperdataFolder . Just . pack $ show EN
+      hd = defaultFolder
 
 mkNodeWithParent NodeFolderPrivate (Just i) uId _ = 
    insertNodesWithParentR (Just i) [node NodeFolderPrivate "Private" hd Nothing uId]
     where
-      hd = HyperdataFolder . Just . pack $ show EN
+      hd = defaultFolder
 
 mkNodeWithParent NodeFolderShared (Just i) uId _ = 
    insertNodesWithParentR (Just i) [node NodeFolderShared "Shared" hd Nothing uId]
     where
-      hd = HyperdataFolder . Just . pack $ show EN
+      hd = defaultFolder
 
 mkNodeWithParent NodeFolderPublic (Just i) uId _ = 
    insertNodesWithParentR (Just i) [node NodeFolderPublic "Public" hd Nothing uId]
     where
-      hd = HyperdataFolder . Just . pack $ show EN
+      hd = defaultFolder
 
 mkNodeWithParent NodeTeam (Just i) uId _ = 
    insertNodesWithParentR (Just i) [node NodeTeam "Team" hd Nothing uId]
     where
-      hd = HyperdataFolder . Just . pack $ show EN
+      hd = defaultFolder
 
 
 ------------------------------------------------------------------------

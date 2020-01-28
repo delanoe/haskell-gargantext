@@ -299,13 +299,9 @@ $(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
 
 instance Hyperdata HyperdataUser
 ------------------------------------------------------------------------
-data HyperdataFolder = HyperdataFolder { hyperdataFolder_desc    :: !(Maybe Text)
-                                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataFolder_") ''HyperdataFolder)
-
-instance Hyperdata HyperdataFolder
 ------------------------------------------------------------------------
-
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 data CodeType = JSON | Markdown | Haskell
   deriving (Generic)
 instance ToJSON CodeType
