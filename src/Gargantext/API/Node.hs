@@ -51,7 +51,7 @@ import Gargantext.API.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Ngrams.NTree (MyTree)
-import Gargantext.API.Search (SearchDocsAPI, searchDocs)
+import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.API.Types
 import Gargantext.Core.Types (NodeTableResult)
@@ -131,7 +131,8 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "pairing"   :> PairingApi
 
              :<|> "category"  :> CatApi
-             :<|> "search"    :> SearchDocsAPI
+             :<|> "search"     :> SearchDocsAPI
+             :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
              :<|> "metrics" :> ScatterAPI
@@ -193,7 +194,8 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
 
            :<|> catApi     id
 
-           :<|> searchDocs id
+           :<|> searchDocs  id
+           :<|> searchPairs id
 
            :<|> getScatter id
            :<|> getChart   id

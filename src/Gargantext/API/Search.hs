@@ -79,27 +79,28 @@ instance ToSchema SearchPairedResults where
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanSearch? or is it part of CanGetNode
 -- TODO-EVENTS: No event, this is a read-only query.
-type SearchAPI results
-  = Summary "Search endpoint"
- :> ReqBody '[JSON] SearchQuery
- :> QueryParam "offset" Int
- :> QueryParam "limit"  Int
- :> QueryParam "order"  OrderBy
- :> Post '[JSON] results
+type SearchAPI results = Summary "Search endpoint"
+                       :> ReqBody '[JSON] SearchQuery
+                       :> QueryParam "offset" Int
+                       :> QueryParam "limit"  Int
+                       :> QueryParam "order"  OrderBy
+                       :> Post '[JSON] results
 
 type SearchDocsAPI  = SearchAPI SearchDocResults
-type SearchPairsAPI = 
-  Summary "" :> "list"  :> Capture "list"   ListId
-  :> SearchAPI SearchPairedResults
------------------------------------------------------------------------
-
-searchPairs :: NodeId -> GargServer SearchPairsAPI
-searchPairs pId lId (SearchQuery q) o l order =
-  SearchPairedResults <$> searchInCorpusWithContacts pId lId q o l order
-
 searchDocs :: NodeId -> GargServer SearchDocsAPI
 searchDocs nId (SearchQuery q) o l order =
   SearchDocResults <$> searchInCorpus nId False q o l order
   --SearchResults <$> searchInCorpusWithContacts nId q o l order
 
+-----------------------------------------------------------------------
+type SearchPairsAPI = Summary ""
+                    :> "list"
+                    :> Capture "list" ListId
+                    :> SearchAPI SearchPairedResults
+searchPairs :: NodeId -> GargServer SearchPairsAPI
+
+searchPairs pId lId (SearchQuery q) o l order =
+  SearchPairedResults <$> searchInCorpusWithContacts pId lId q o l order
+
+-----------------------------------------------------------------------
 
