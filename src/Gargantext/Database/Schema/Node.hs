@@ -536,7 +536,7 @@ node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgI
 
                   -------------------------------
 insertNodes :: [NodeWrite] -> Cmd err Int64
-insertNodes ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
+insertNodes ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns rCount Nothing
 
 insertNodesR :: [NodeWrite] -> Cmd err [NodeId]
 insertNodesR ns = mkCmd $ \conn ->
@@ -576,10 +576,10 @@ data Node' = Node' { _n_type :: NodeType
                    } deriving (Show)
 
 mkNodes :: [NodeWrite] -> Cmd err Int64
-mkNodes ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
+mkNodes ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns rCount Nothing
 
 mkNodeR :: [NodeWrite] -> Cmd err [NodeId]
-mkNodeR ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable ns (_node_id)
+mkNodeR ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns (rReturning _node_id) Nothing
 
 ------------------------------------------------------------------------
 
