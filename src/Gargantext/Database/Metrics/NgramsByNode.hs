@@ -174,17 +174,17 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
   
     where
       fields = [QualifiedIdentifier Nothing "text"]
-
+      
       run :: CorpusId
            -> ListId
            -> NgramsType
            -> [Text]
            -> Cmd err [(Text, Double)]
-      run cId' lId' _nt' tms' = runPGSQuery query
+      run cId' lId' nt' tms' = runPGSQuery query
                 ( Values fields (DPS.Only <$> tms')
                 , cId'
                 , lId'
-                -- , ngramsTypeId nt'
+                , ngramsTypeId nt'
                 )
 
       query :: DPS.Query
@@ -193,10 +193,10 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
         SELECT ng.terms, nng.weight FROM node_node_ngrams nng
           JOIN ngrams ng      ON nng.ngrams_id = ng.id
           JOIN input_rows  ir ON ir.terms      = ng.terms
-          WHERE nng.node1_id     = ? -- CorpusId
-            AND nng.node2_id     = ?
-            -- AND nng.ngrams_type = ? -- NgramsTypeId
-            -- AND nn.category     > 0
+          WHERE nng.node1_id     = ?   -- CorpusId
+            AND nng.node2_id     = ?   -- ListId
+            AND nng.ngrams_type  = ? -- NgramsTypeId
+            -- AND nn.category     > 0 -- TODO
             GROUP BY ng.terms, nng.weight
         |]
 
