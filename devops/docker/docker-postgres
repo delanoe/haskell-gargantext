@@ -1,4 +1,7 @@
+#!/bin/bash
+
 set -eu
+
 docker stop dbgarg || :
 docker rm --volumes dbgarg || :
 export PGPASSWORD="$(grep DB_PASS gargantext.ini | \awk '{print $3}')"
