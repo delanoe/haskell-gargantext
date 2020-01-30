@@ -26,8 +26,8 @@ Portability : POSIX
 {-# LANGUAGE TypeFamilies              #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Facet
-  ( -- runViewAuthorsDoc
-   runViewDocuments
+  ( runViewAuthorsDoc
+  , runViewDocuments
   , filterWith
 
   , Pair(..)
@@ -57,9 +57,13 @@ import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNode
+import Gargantext.Database.Schema.NodeNodeNgrams
+-- import Gargantext.Database.Schema.NodeNodeNgrams2
 import Gargantext.Database.Utils
 import Gargantext.Database.Queries.Filter
+import Gargantext.Database.Queries.Join (leftJoin5)
 import Opaleye
 import Prelude hiding (null, id, map, sum, not, read)
 import Servant.API
@@ -208,7 +212,7 @@ instance Arbitrary OrderBy
 
 -- TODO-SECURITY check
 
-{-
+--{-
 runViewAuthorsDoc :: ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
@@ -227,26 +231,31 @@ viewAuthorsDoc cId _ nt = proc () -> do
   restrict -< _node_id   contact   .== (toNullable $ pgNodeId cId)
   restrict -< _node_typename doc   .== (pgInt4 $ nodeTypeId nt)
 
-  returnA  -< FacetDoc (_node_id doc) (_node_date doc) (_node_name doc) (_node_hyperdata doc) (toNullable $ pgInt4 1) (toNullable $ pgDouble 1)
+  returnA  -< FacetDoc (_node_id        doc)
+                       (_node_date      doc)
+                       (_node_name      doc)
+                       (_node_hyperdata doc)
+                       (toNullable $ pgInt4 1)
+                       (toNullable $ pgDouble 1)
 
-queryAuthorsDoc :: Query (NodeRead, (NodeNgramReadNull, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull))))
-queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNgramTable queryNgramsTable queryNodeNgramTable queryNodeTable cond12 cond23 cond34 cond45
+queryAuthorsDoc :: Query (NodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))
+queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsTable queryNodeNodeNgramsTable queryNodeTable cond12 cond23 cond34 cond45
     where
-         cond12 :: (NodeNgramRead, NodeRead) -> Column PGBool
+         cond12 :: (NodeNodeNgramsRead, NodeRead) -> Column PGBool
          cond12 (nodeNgram, doc) =  _node_id                  doc
-                                .== nng_node_id nodeNgram
+                                .== _nnng_node1_id nodeNgram
 
-         cond23 :: (NgramsRead, (NodeNgramRead, NodeReadNull)) -> Column PGBool
+         cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
          cond23 (ngrams, (nodeNgram, _)) =  ngrams^.ngrams_id
-                                        .== nng_ngrams_id nodeNgram
+                                        .== _nnng_ngrams_id nodeNgram
 
-         cond34 :: (NodeNgramRead, (NgramsRead, (NodeNgramReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams^.ngrams_id .== nng_ngrams_id       nodeNgram2
+         cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column PGBool
+         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams^.ngrams_id .== _nnng_ngrams_id       nodeNgram2
 
-         cond45 :: (NodeRead, (NodeNgramRead, (NgramsReadNull, (NodeNgramReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== nng_node_id         nodeNgram2
+         cond45 :: (NodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column PGBool
+         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== _nnng_node1_id         nodeNgram2
 
--}
+--}
 ------------------------------------------------------------------------
 
 -- TODO-SECURITY check
@@ -265,8 +274,12 @@ viewDocuments cId t ntId = proc () -> do
   restrict -< n^.node_typename .== (pgInt4 ntId)
   restrict -< if t then nn^.nn_category .== (pgInt4 0)
                    else nn^.nn_category .>= (pgInt4 1)
-  returnA  -< FacetDoc (_node_id n) (_node_date n) (_node_name n) (_node_hyperdata n) (toNullable $ nn^.nn_category) (toNullable $ nn^.nn_score)
-
+  returnA  -< FacetDoc (_node_id        n)
+                       (_node_date      n)
+                       (_node_name      n)
+                       (_node_hyperdata n)
+                       (toNullable $ nn^.nn_category)
+                       (toNullable $ nn^.nn_score)
 
 ------------------------------------------------------------------------
 filterWith :: (PGOrd date, PGOrd title, PGOrd score, hyperdata ~ Column SqlJsonb) =>

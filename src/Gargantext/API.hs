@@ -15,10 +15,11 @@ This API is indeed typed in order to be able to derive both the server
 and the client sides.
 
 The Garg-API-Monad enables:
-  - Features
+  - Security (WIP)
+  - Features (WIP)
   - Database connection (long term)
   - In Memory stack management (short term)
-  - Logs
+  - Logs (WIP)
 
 Thanks to @yannEsposito (at the start) and @np (after).
 
