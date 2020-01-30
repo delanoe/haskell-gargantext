@@ -75,7 +75,7 @@ stack install
 For Docker env, run:
 
 ``` sh
-stack run gargantext-init -- gargantext.ini
+stack --docker run gargantext-init -- gargantext.ini
 ```
 
 ### Importing data
