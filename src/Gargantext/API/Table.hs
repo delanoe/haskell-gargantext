@@ -121,14 +121,13 @@ getTable' cId ft o l order =
     (Just MoreTrash) -> moreLike cId o l order IsTrash
     x     -> panic $ "not implemented in getTable: " <> (cs $ show x)
 
---{-
-getPairing :: ContactId -> Maybe TabType
+
+getPair :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getPairing cId ft o l order =
+getPair cId ft o l order =
   case ft of
     (Just Docs)  -> runViewAuthorsDoc cId False o l order
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
     _     -> panic $ "not implemented: get Pairing" <> (cs $ show ft)
 
---}

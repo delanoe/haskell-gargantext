@@ -52,11 +52,11 @@ pairing' = undefined
 -}
 
 -- | TODO : add paring policy as parameter
-pairing :: AnnuaireId -- (AnnuaireId, ListId) -- Pair (Either CorpusId AnnuaireId) ListId
-        -> CorpusId   -- (CorpusId,   ListId) -- Pair (Either CorpusId AnnuaireId) ListId
+pairing :: CorpusId   -- (CorpusId,   ListId) -- Pair (Either CorpusId AnnuaireId) ListId
+        -> AnnuaireId -- (AnnuaireId, ListId) -- Pair (Either CorpusId AnnuaireId) ListId
         -> ListId
         -> Cmd err Int
-pairing aId cId lId = do
+pairing cId aId lId = do
   contacts' <- getAllContacts aId
   let contactsMap = pairingPolicyToMap toLower
                   $ toMaps extractNgramsT (tr_docs contacts')

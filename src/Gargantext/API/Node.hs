@@ -57,6 +57,7 @@ import Gargantext.API.Types
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Flow.Pairing (pairing)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
@@ -128,10 +129,11 @@ type NodeAPI a = Get '[JSON] (Node a)
              -- TODO gather it
              :<|> "table"     :> TableApi
              :<|> "ngrams"    :> TableNgramsApi
-             :<|> "pairing"   :> PairingApi
 
              :<|> "category"  :> CatApi
              :<|> "search"     :> SearchDocsAPI
+             -- Pairing utilities
+             :<|> "pairing"    :> PairingApi
              :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
@@ -189,12 +191,12 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            -- TODO gather it
            :<|> tableApi             id
            :<|> apiNgramsTableCorpus id
-           :<|> getPairing           id
-           -- :<|> getTableNgramsDoc id
 
-           :<|> catApi     id
+           :<|> catApi        id
 
            :<|> searchDocs  id
+           -- Pairing Tools
+           :<|> getPair       id
            :<|> searchPairs id
 
            :<|> getScatter id
@@ -256,6 +258,7 @@ catApi = putCat
 
 ------------------------------------------------------------------------
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
+-- Pairing utilities to move elsewhere
 type PairingApi = Summary " Pairing API"
               :> QueryParam "view"   TabType
               -- TODO change TabType -> DocType (CorpusId for pairing)
@@ -263,6 +266,18 @@ type PairingApi = Summary " Pairing API"
               :> QueryParam "limit"  Int
               :> QueryParam "order"  OrderBy
               :> Get '[JSON] [FacetDoc]
+
+----------
+
+type PairWith = Summary "Pair a Corpus with an Annuaire"
+              :> "annuaire" :> Capture "annuaire_id" AnnuaireId
+              :> "list"     :> Capture "list_id"     ListId
+              :> Post '[JSON] Int
+
+pairWith :: CorpusId -> GargServer PairWith
+pairWith cId aId lId = do
+  r <- pairing cId aId lId
+  pure r
 
 ------------------------------------------------------------------------
 type ChartApi = Summary " Chart API"
