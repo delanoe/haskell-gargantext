@@ -530,9 +530,16 @@ arbitraryDashboard = HyperdataDashboard (Just "Preferences")
 ------------------------------------------------------------------------
 
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
-node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgInt4 userId) (pgNodeId <$> parentId) (pgStrictText name) Nothing (pgJSONB $ cs $ encode hyperData)
-  where
-    typeId = nodeTypeId nodeType
+node nodeType name hyperData parentId userId =
+  Node Nothing 
+       (pgInt4 typeId)
+       (pgInt4 userId)
+       (pgNodeId <$> parentId)
+       (pgStrictText name)
+       Nothing
+       (pgJSONB $ cs $ encode hyperData)
+    where
+      typeId = nodeTypeId nodeType
 
                   -------------------------------
 insertNodes :: [NodeWrite] -> Cmd err Int64

@@ -12,7 +12,6 @@ Portability : POSIX
 -- TODO-ACCESS: CanGetNode
 -- TODO-EVENTS: No events as this is a read only query.
 Node API
-
 -------------------------------------------------------------------
 -- TODO-ACCESS: access by admin only.
 --              At first let's just have an isAdmin check.
@@ -61,7 +60,7 @@ import Gargantext.Database.Flow.Pairing (pairing)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
-import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
+import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
@@ -132,7 +131,10 @@ type NodeAPI a = Get '[JSON] (Node a)
 
              :<|> "category"  :> CatApi
              :<|> "search"     :> SearchDocsAPI
+
              -- Pairing utilities
+             :<|> "pairwith"   :> PairWith
+             :<|> "pairs"      :> Pairs
              :<|> "pairing"    :> PairingApi
              :<|> "searchPair" :> SearchPairsAPI
 
@@ -192,11 +194,13 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            :<|> tableApi             id
            :<|> apiNgramsTableCorpus id
 
-           :<|> catApi        id
+           :<|> catApi      id
 
            :<|> searchDocs  id
            -- Pairing Tools
-           :<|> getPair       id
+           :<|> pairWith    id
+           :<|> pairs       id
+           :<|> getPair     id
            :<|> searchPairs id
 
            :<|> getScatter id
@@ -268,6 +272,12 @@ type PairingApi = Summary " Pairing API"
               :> Get '[JSON] [FacetDoc]
 
 ----------
+type Pairs    = Summary "List of Pairs"
+              :> Get '[JSON] [AnnuaireId]
+pairs :: CorpusId -> GargServer Pairs
+pairs cId = do
+  ns <- getNodeNode cId
+  pure $ map _nn_node2_id ns
 
 type PairWith = Summary "Pair a Corpus with an Annuaire"
               :> "annuaire" :> Capture "annuaire_id" AnnuaireId
@@ -277,6 +287,7 @@ type PairWith = Summary "Pair a Corpus with an Annuaire"
 pairWith :: CorpusId -> GargServer PairWith
 pairWith cId aId lId = do
   r <- pairing cId aId lId
+  _ <- insertNodeNode [ NodeNode cId aId Nothing Nothing]
   pure r
 
 ------------------------------------------------------------------------

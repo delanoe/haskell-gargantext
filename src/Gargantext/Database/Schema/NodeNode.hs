@@ -65,7 +65,7 @@ type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4))
                                       (Column (Nullable PGFloat8))
                                       (Column (Nullable PGInt4))
 
-type NodeNode = NodeNodePoly Int Int (Maybe Double) (Maybe Int)
+type NodeNode = NodeNodePoly NodeId NodeId (Maybe Double) (Maybe Int)
 
 $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)
 makeLenses ''NodeNodePoly
@@ -102,8 +102,30 @@ instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
 instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-
 ------------------------------------------------------------------------
+-- | Basic NodeNode tools
+getNodeNode :: NodeId -> Cmd err [NodeNode]
+getNodeNode n = runOpaQuery (selectNodeNode $ pgNodeId n)
+  where
+    selectNodeNode :: Column PGInt4 -> Query NodeNodeRead
+    selectNodeNode n' = proc () -> do
+      ns <- queryNodeNodeTable -< ()
+      restrict -< _nn_node1_id ns .== n'
+      returnA -< ns
+
+-------------------------
+insertNodeNode :: [NodeNode] -> Cmd err Int64
+insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeNodeTable ns' rCount Nothing
+  where
+    ns' :: [NodeNodeWrite]
+    ns' = map (\(NodeNode n1 n2 x y)
+                -> NodeNode (pgNodeId n1)
+                            (pgNodeId n2)
+                            (pgDouble <$> x)
+                            (pgInt4   <$> y) 
+              ) ns
+
+
 -- | Favorite management
 nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
 nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
@@ -131,12 +153,10 @@ nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
 ------------------------------------------------------------------------
 -- | TODO use UTCTime fast 
 selectDocsDates :: CorpusId -> Cmd err [Text]
-selectDocsDates cId = 
-                map (head' "selectDocsDates" . splitOn "-")
-               <$> catMaybes
-               <$> map (view hyperdataDocument_publication_date)
-               <$> selectDocs cId
-
+selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
+                   <$> catMaybes
+                   <$> map (view hyperdataDocument_publication_date)
+                   <$> selectDocs cId
 
 selectDocs :: CorpusId -> Cmd err [HyperdataDocument]
 selectDocs cId = runOpaQuery (queryDocs cId)
@@ -149,7 +169,6 @@ queryDocs cId = proc () -> do
   restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -< view (node_hyperdata) n
 
-
 selectDocNodes :: CorpusId -> Cmd err [Node HyperdataDocument]
 selectDocNodes cId = runOpaQuery (queryDocNodes cId)
 
@@ -161,13 +180,11 @@ queryDocNodes cId = proc () -> do
   restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -<  n
 
-
 joinInCorpus :: O.Query (NodeRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
   where
     cond :: (NodeRead, NodeNodeRead) -> Column PGBool
     cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
-
 
 ------------------------------------------------------------------------
 -- | Trash management
