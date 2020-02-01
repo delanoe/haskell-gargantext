@@ -166,7 +166,7 @@ CREATE INDEX        ON public.nodes_nodes  USING btree (node1_id, node2_id, cate
 CREATE UNIQUE INDEX ON public.node_node_ngrams USING btree (node1_id, node2_id, ngrams_id, ngrams_type);
 CREATE        INDEX ON public.node_node_ngrams USING btree (node1_id,  node2_id);
 CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_id, node2_id);
-
+CREATE        INDEX ON public.node_node_ngrams USING btree (ngrams_type);
 CREATE INDEX ON public.node_nodengrams_nodengrams USING btree (node_id, node_ngrams1_id, node_ngrams2_id);
 CREATE INDEX ON public.node_nodengrams_nodengrams USING btree (node_ngrams1_id);
 CREATE INDEX ON public.node_nodengrams_nodengrams USING btree (node_ngrams2_id);
