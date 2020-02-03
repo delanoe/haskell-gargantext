@@ -78,7 +78,7 @@ module Gargantext.API.Ngrams
   , HasRepo(..)
   , RepoCmdM
   , QueryParamR
-  , TODO(..)
+  , TODO
 
   -- Internals
   , getNgramsTableMap
@@ -143,7 +143,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
 import Gargantext.Prelude
--- import Gargantext.Core.Types (ListTypeId, listTypeId)
+import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Servant hiding (Patch)
 import System.Clock (getTime, TimeSpec, Clock(..))
@@ -151,12 +151,6 @@ import System.FileLock (FileLock)
 import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-
-data TODO = TODO
-  deriving (Generic)
-
-instance ToSchema TODO where
-instance ToParamSchema TODO where
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart

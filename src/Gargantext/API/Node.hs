@@ -78,7 +78,6 @@ import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 
-
 type NodesAPI  = Delete '[JSON] Int
 
 -- | Delete Nodes
@@ -371,3 +370,4 @@ putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         -> Cmd err Int
 putNode n h = fromIntegral <$> updateHyperdata n h
 -------------------------------------------------------------
+

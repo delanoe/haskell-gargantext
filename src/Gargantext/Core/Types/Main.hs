@@ -52,8 +52,6 @@ instance ToSchema NodeTree where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nt_")
 ------------------------------------------------------------------------
 
-
-
 --data Classification = Favorites | MyClassifcation
 
 type HashId   = Text

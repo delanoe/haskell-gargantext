@@ -76,17 +76,17 @@ instance {-# OVERLAPPABLE #-} (MonadError e m) => ThrowAll' e (m a) where
   throwAll' = throwError
 
 type GargServerC env err m =
-    ( CmdM env err m
-    , HasNodeError err
-    , HasInvalidError err
-    , HasTreeError err
-    , HasServerError err
-    , HasJoseError err
-    , ToJSON err -- TODO this is arguable
-    , Exception err
-    , HasRepo env
-    , HasSettings env
-    , HasJobEnv env ScraperStatus ScraperStatus
+    ( CmdM         env err m
+    , HasNodeError     err
+    , HasInvalidError  err
+    , HasTreeError     err
+    , HasServerError   err
+    , HasJoseError     err
+    , ToJSON           err -- TODO this is arguable
+    , Exception        err
+    , HasRepo      env
+    , HasSettings  env
+    , HasJobEnv    env ScraperStatus ScraperStatus
     )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m
@@ -94,12 +94,25 @@ type GargServerT env err m api = GargServerC env err m => ServerT api m
 type GargServer api =
   forall env err m. GargServerT env err m api
 
+-------------------------------------------------------------------
+-- | This Type is needed to prepare the function before the GargServer
+type GargNoServer' env err m =
+  ( CmdM           env err m
+  , HasRepo        env
+  , HasSettings    env
+  , HasNodeError       err
+  )
+
+type GargNoServer t =
+  forall env err m. GargNoServer' env err m => m t
+-------------------------------------------------------------------
+
 data GargError
-  = GargNodeError NodeError
-  | GargTreeError TreeError
+  = GargNodeError    NodeError
+  | GargTreeError    TreeError
   | GargInvalidError Validation
-  | GargJoseError Jose.Error
-  | GargServerError ServerError
+  | GargJoseError    Jose.Error
+  | GargServerError  ServerError
   deriving (Show, Typeable)
 
 makePrisms ''GargError

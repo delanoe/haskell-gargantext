@@ -278,15 +278,32 @@ queryNgramsOccurrencesOnlyByNodeUser' = [sql|
       GROUP BY nng.node2_id, ng.terms
   |]
 
+------------------------------------------------------------------------
 
 getNodesByNgramsOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
                          -> Cmd err (Map Text (Set NodeId))
 getNodesByNgramsOnlyUser cId ls nt ngs =
-  Map.unionsWith (<>)
-   . map (fromListWith (<>) . map (second Set.singleton))
+     Map.unionsWith    (<>)
+   . map (fromListWith (<>)
+   . map (second Set.singleton))
   <$> mapM (selectNgramsOnlyByNodeUser cId ls nt)
            (splitEvery 1000 ngs)
 
+
+getNgramsByNodeOnlyUser :: NodeId
+                        -> [ListId]
+                        -> NgramsType
+                        -> [Text]
+                        -> Cmd err (Map NodeId (Set Text))
+getNgramsByNodeOnlyUser cId ls nt ngs =
+     Map.unionsWith    (<>)
+   . map (fromListWith (<>)
+   . map (second Set.singleton))
+   . map (map swap)
+  <$> mapM (selectNgramsOnlyByNodeUser cId ls nt)
+           (splitEvery 1000 ngs)
+
+------------------------------------------------------------------------
 selectNgramsOnlyByNodeUser :: CorpusId -> [ListId] -> NgramsType -> [Text]
                            -> Cmd err [(Text, NodeId)]
 selectNgramsOnlyByNodeUser cId ls nt tms =
@@ -319,7 +336,6 @@ queryNgramsOnlyByNodeUser = [sql|
 
 
 
-
 selectNgramsOnlyByNodeUser' :: CorpusId -> [ListId] -> NgramsType -> [Text]
                            -> Cmd err [(Text, Int)]
 selectNgramsOnlyByNodeUser' cId ls nt tms =
@@ -346,7 +362,6 @@ queryNgramsOnlyByNodeUser' = [sql|
       -- AND nn.category     > 0
       GROUP BY ng.terms, nng.weight
   |]
-
 
 
 

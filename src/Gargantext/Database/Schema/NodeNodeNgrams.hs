@@ -78,6 +78,8 @@ nodeNodeNgramsTable  = Table "node_node_ngrams"
                                }
                           )
 
+------------------------------------------------
+
 queryNodeNodeNgramsTable :: Query NodeNodeNgramsRead
 queryNodeNodeNgramsTable = queryTable nodeNodeNgramsTable
 

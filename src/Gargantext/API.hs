@@ -93,6 +93,7 @@ import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgra
 import Gargantext.API.Node
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Types
+import qualified Gargantext.API.Export as Export
 import qualified Gargantext.API.Corpus.New as New
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
@@ -261,6 +262,9 @@ type GargPrivateAPI' =
                         :> Capture "node2_id" NodeId
                         :> NodeNodeAPI HyperdataAny
 
+           :<|> "corpus" :> Capture "node_id" CorpusId
+                         :> Export.API
+
            -- Annuaire endpoint
            :<|> "annuaire":> Summary "Annuaire endpoint"
                           :> Capture "annuaire_id" AnnuaireId
@@ -362,6 +366,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
+     :<|> Export.getCorpus   -- uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)  uid
 

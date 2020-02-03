@@ -37,7 +37,7 @@ import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Main
 import Gargantext.Viz.Phylo.Example
-import Gargantext.API.Ngrams (TODO(..))
+import Gargantext.Core.Types (TODO(..))
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)

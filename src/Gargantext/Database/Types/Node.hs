@@ -106,7 +106,6 @@ type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName U
 
 ------------------------------------------------------------------------
 
-
 instance FromHttpApiData NodeId where
   parseUrlPiece n = pure $ NodeId $ (read . cs) n
 
