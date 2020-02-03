@@ -30,6 +30,7 @@ module Gargantext.API.Export
 import Data.Aeson.TH (deriveJSON)
 import Data.Map (Map)
 import Data.Set (Set)
+import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -47,36 +48,51 @@ import Gargantext.Database.Schema.NodeNode (selectDocNodes)
 import Gargantext.Database.Types.Node (Node, HyperdataDocument(..), NodeId, ListId, CorpusId)
 import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
+import Gargantext.Prelude.Utils (sha)
 import Servant
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.List as List
+
 
 -- Corpus Export
 data Corpus =
   Corpus { _c_corpus :: [Document]
-         -- , _c_listVersion :: Int
-         , _c_hash        :: Text
+         , _c_hash   :: Hash
          } deriving (Generic)
 
 -- | Document Export
 data Document =
   Document { _d_document :: Node HyperdataDocument
-           , _d_ngrams   :: [Text]
-           -- , _d_hash     :: Text
+           , _d_ngrams   :: Ngrams
+           , _d_hash     :: Hash
            } deriving (Generic)
 
+data Ngrams =
+  Ngrams { _ng_ngrams :: [Text]
+         , _ng_hash   :: Hash
+         } deriving (Generic)
+
+type Hash = Text
+-------
 instance ToSchema Corpus where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_c_")
 
 instance ToSchema Document where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_d_")
 
+instance ToSchema Ngrams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ng_")
+
+-------
 instance ToParamSchema Corpus where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
 instance ToParamSchema Document where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
+instance ToParamSchema Ngrams where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 --------------------------------------------------
 type API = Summary "Corpus Export"
             :> "export"
@@ -101,12 +117,17 @@ getCorpus cId lId nt' = do
        <$> selectDocNodes cId
   repo <- getRepo
   ngs  <- getNodeNgrams cId lId nt repo
-  let r = Map.intersectionWith (\a b -> Document a (Set.toList b)) ns ngs
-  pure $ Corpus (Map.elems r) "HASH_TODO"
+  let  -- uniqId is hash computed already for each document imported in database
+    r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (ng_hash b)) (d_hash a b)
+                             ) ns ngs
+          where
+            ng_hash b   = sha $ Set.foldl (\x y -> x<>y) "" b
+            d_hash  a b = sha $ (fromMaybe "" (_hyperdataDocument_uniqId $ _node_hyperdata a))
+                             <> (ng_hash b)
 
--- getCorpusNgrams :: CorpusId -> ListId -> 
--- Exports List
--- Version number of the list
+  pure $ Corpus (Map.elems r) (sha $ List.foldl (\a b -> a<>b) ""
+                                   $ List.map _d_hash $ Map.elems r
+                              )
 
 getNodeNgrams :: HasNodeError err
         => CorpusId
@@ -127,4 +148,11 @@ getNodeNgrams cId lId' nt repo = do
 
 $(deriveJSON (unPrefix "_c_") ''Corpus)
 $(deriveJSON (unPrefix "_d_") ''Document)
+$(deriveJSON (unPrefix "_ng_") ''Ngrams)
+
+
+-- TODO
+-- Exports List
+-- Version number of the list
+
 
