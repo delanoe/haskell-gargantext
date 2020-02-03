@@ -21,7 +21,8 @@ The Garg-API-Monad enables:
   - In Memory stack management (short term)
   - Logs (WIP)
 
-Thanks to @yannEsposito (at the start) and @np (after).
+Thanks to Yann Esposito for our discussions at the start and to Nicolas
+Pouillard (who mainly made it).
 
 -}
 
@@ -315,9 +316,11 @@ type GargPrivateAPI' =
        -- :<|> "ngrams"   :> Capture "node_id" Int  :> NodeAPI
        -- :<|> "auth"     :> Capture "node_id" Int  :> NodeAPI
 ---------------------------------------------------------------------
-type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI
 
-type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
+type API = SwaggerAPI
+       :<|> FrontEndAPI
+       :<|> GargAPI
+       :<|> Get '[HTML] Html
 
 -- This is the concrete monad. It needs to be used as little as possible,
 -- instead, prefer GargServer, GargServerT, GargServerC.
@@ -336,7 +339,8 @@ type EnvC env =
 server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
-  pure $  swaggerFront
+  pure $  schemaUiServer swaggerDoc
+     :<|> frontEndServer
      :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
      :<|> serverStatic
   where
@@ -420,13 +424,8 @@ serverStatic = $(do
                 )
 
 ---------------------------------------------------------------------
-swaggerFront :: Server SwaggerFrontAPI
-swaggerFront = schemaUiServer swaggerDoc
-           :<|> frontEndServer
-
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy
-
 ---------------------------------------------------------------------
 makeApp :: EnvC env => env -> IO Application
 makeApp env = serveWithContext api cfg <$> server env
@@ -439,7 +438,6 @@ makeApp env = serveWithContext api cfg <$> server env
 
 --appMock :: Application
 --appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
-
 ---------------------------------------------------------------------
 api :: Proxy API
 api  = Proxy
@@ -447,11 +445,9 @@ api  = Proxy
 apiGarg :: Proxy GargAPI
 apiGarg  = Proxy
 ---------------------------------------------------------------------
-
 schemaUiServer :: (Server api ~ Handler Swagger)
         => Swagger -> Server (SwaggerSchemaUI' dir api)
 schemaUiServer = swaggerSchemaUIServer
-
 
 -- Type Family for the Documentation
 type family TypeName (x :: *) :: Symbol where
