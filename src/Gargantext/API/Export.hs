@@ -121,7 +121,7 @@ getCorpus cId lId nt' = do
     r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (ng_hash b)) (d_hash a b)
                              ) ns ngs
           where
-            ng_hash b   = sha $ Set.foldl (\x y -> x<>y) "" b
+            ng_hash b   = sha $ List.foldl (\x y -> x<>y) "" $ List.sort $ Set.toList b
             d_hash  a b = sha $ (fromMaybe "" (_hyperdataDocument_uniqId $ _node_hyperdata a))
                              <> (ng_hash b)
 
