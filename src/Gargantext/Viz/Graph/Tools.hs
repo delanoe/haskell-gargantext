@@ -53,14 +53,14 @@ cooc2graph threshold myCooc = do
         where
           (as, bs) = List.unzip $ Map.keys distanceMap
           n' = Set.size $ Set.fromList $ as <> bs
-      ClustersParams rivers level = trace ("nodesApprox: " <> show nodesApprox) $ clustersParams nodesApprox
+      ClustersParams rivers level = {-trace ("nodesApprox: " <> show nodesApprox) $-} clustersParams nodesApprox
 
 
   partitions <- case Map.size distanceMap > 0 of
     True  -> trace ("level" <> show level) $ cLouvain level distanceMap
     False -> panic "Text.Flow: DistanceMap is empty"
 
-  let bridgeness' = trace ("rivers: " <> show rivers) $ bridgeness rivers partitions distanceMap
+  let bridgeness' = {-trace ("rivers: " <> show rivers) $-} bridgeness rivers partitions distanceMap
   let confluence' = confluence (Map.keys bridgeness') 3 True False
 
   data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
@@ -72,14 +72,14 @@ data ClustersParams = ClustersParams { bridgness :: Double
                                      } deriving (Show)
 
 clustersParams :: Int -> ClustersParams
-clustersParams x = ClustersParams (fromIntegral x) y
-  where
-    y | x < 100  = "0.01"
-      | x < 350  = "0.01"
-      | x < 500  = "0.01"
-      | x < 1000 = "0.1"
+clustersParams x = ClustersParams (fromIntegral x) "0.00000001" -- y
+  {- where
+    y | x < 100  = "0.000001"
+      | x < 350  = "0.000001"
+      | x < 500  = "0.000001"
+      | x < 1000 = "0.000001"
       | otherwise = "1"
-
+ -}
 
 ----------------------------------------------------------
 -- | From data to Graph
