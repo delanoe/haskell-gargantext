@@ -22,7 +22,7 @@ import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import Gargantext.API.Ngrams (TODO(..))
+import Gargantext.Core.Types (TODO(..))
 instance Arbitrary a => Arbitrary (JobStatus 'Safe a) where
   arbitrary = panic "TODO"
 

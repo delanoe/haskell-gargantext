@@ -115,7 +115,9 @@ userTable = Table "auth_user" (pUser User { user_id      = optional "id"
 
 -- TODO: on conflict, nice message
 insertUsers :: [UserWrite] -> Cmd err Int64
-insertUsers us = mkCmd $ \c -> runInsertMany c userTable us
+insertUsers us = mkCmd $ \c -> runInsert_ c insert
+  where
+    insert = Insert userTable us rCount Nothing
 
 
 gargantextUser :: Username -> UserWrite

@@ -135,7 +135,6 @@ instance InsertDb HyperdataContact
                       , (toField . toJSON) h
                       ]
 
-
 -- | Debug SQL function
 --
 -- to print rendered query (Debug purpose) use @formatQuery@ function.

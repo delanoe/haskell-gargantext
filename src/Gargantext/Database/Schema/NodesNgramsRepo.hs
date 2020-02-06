@@ -80,7 +80,7 @@ selectPatches = proc () -> do
 
 
 insertRepos :: [NgramsStatePatch] -> Cmd err Int64
-insertRepos ns = mkCmd $ \conn -> runInsertMany conn repoTable (toWrite ns)
+insertRepos ns = mkCmd $ \conn -> runInsert_ conn $ Insert repoTable (toWrite ns) rCount Nothing
   where
     toWrite :: [NgramsStatePatch] -> [RepoDbWrite]
     toWrite = undefined

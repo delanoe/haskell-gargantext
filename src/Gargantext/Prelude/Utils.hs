@@ -36,12 +36,11 @@ import Crypto.Argon2 as Crypto
 import Data.Either
 import Data.ByteString.Base64.URL as URL
 
+--------------------------------------------------------------------------
 shuffle :: MonadRandom m => [a] -> m [a]
 shuffle ns = SRS.shuffleM ns 
 
-type FolderPath = FilePath
-type FileName   = FilePath
-
+--------------------------------------------------------------------------
 sha :: Text -> Text
 sha = Text.pack
      . SHA.showDigest
@@ -49,6 +48,7 @@ sha = Text.pack
      . Char.pack
      . Text.unpack
 
+--------------------------------------------------------------------------
 data NodeToHash = NodeToHash { nodeType :: NodeType
                              , nodeId   :: NodeId
                              }
@@ -57,6 +57,9 @@ secret_key :: ByteString
 secret_key = "WRV5ymit8s~ge6%08dLR7Q!gBcpb1MY%7e67db2206"
 
 type SecretKey = ByteString
+
+type FolderPath = FilePath
+type FileName   = FilePath
 
 hashNode :: SecretKey -> NodeToHash -> ByteString
 hashNode sk (NodeToHash nt ni) = case hashResult of

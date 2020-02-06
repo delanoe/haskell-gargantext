@@ -75,7 +75,6 @@ prepare pId ns = map (\nId -> InputData pId nId) ns
 ------------------------------------------------------------------------
 -- * Main Types used
 
-
 data InputData = InputData { inNode1_id :: NodeId
                            , inNode2_id :: NodeId
                            } deriving (Show, Generic, Typeable)

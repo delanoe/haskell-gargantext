@@ -12,7 +12,6 @@ Portability : POSIX
 -- TODO-ACCESS: CanGetNode
 -- TODO-EVENTS: No events as this is a read only query.
 Node API
-
 -------------------------------------------------------------------
 -- TODO-ACCESS: access by admin only.
 --              At first let's just have an isAdmin check.
@@ -51,16 +50,17 @@ import Gargantext.API.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Ngrams.NTree (MyTree)
-import Gargantext.API.Search (SearchDocsAPI, searchDocs)
+import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.API.Types
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Flow.Pairing (pairing)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
-import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
+import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
@@ -77,7 +77,6 @@ import qualified Gargantext.Database.Node.Update as U (update, Update(..))
 import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
-
 
 type NodesAPI  = Delete '[JSON] Int
 
@@ -128,10 +127,15 @@ type NodeAPI a = Get '[JSON] (Node a)
              -- TODO gather it
              :<|> "table"     :> TableApi
              :<|> "ngrams"    :> TableNgramsApi
-             -- :<|> "pairing"   :> PairingApi
 
              :<|> "category"  :> CatApi
-             :<|> "search"    :> SearchDocsAPI
+             :<|> "search"     :> SearchDocsAPI
+
+             -- Pairing utilities
+             :<|> "pairwith"   :> PairWith
+             :<|> "pairs"      :> Pairs
+             :<|> "pairing"    :> PairingApi
+             :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
              :<|> "metrics" :> ScatterAPI
@@ -188,12 +192,15 @@ nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode i
            -- TODO gather it
            :<|> tableApi             id
            :<|> apiNgramsTableCorpus id
-           -- :<|> getPairing           id
-           -- :<|> getTableNgramsDoc id
 
-           :<|> catApi     id
+           :<|> catApi      id
 
-           :<|> searchDocs id
+           :<|> searchDocs  id
+           -- Pairing Tools
+           :<|> pairWith    id
+           :<|> pairs       id
+           :<|> getPair     id
+           :<|> searchPairs id
 
            :<|> getScatter id
            :<|> getChart   id
@@ -254,6 +261,7 @@ catApi = putCat
 
 ------------------------------------------------------------------------
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
+-- Pairing utilities to move elsewhere
 type PairingApi = Summary " Pairing API"
               :> QueryParam "view"   TabType
               -- TODO change TabType -> DocType (CorpusId for pairing)
@@ -261,6 +269,25 @@ type PairingApi = Summary " Pairing API"
               :> QueryParam "limit"  Int
               :> QueryParam "order"  OrderBy
               :> Get '[JSON] [FacetDoc]
+
+----------
+type Pairs    = Summary "List of Pairs"
+              :> Get '[JSON] [AnnuaireId]
+pairs :: CorpusId -> GargServer Pairs
+pairs cId = do
+  ns <- getNodeNode cId
+  pure $ map _nn_node2_id ns
+
+type PairWith = Summary "Pair a Corpus with an Annuaire"
+              :> "annuaire" :> Capture "annuaire_id" AnnuaireId
+              :> "list"     :> Capture "list_id"     ListId
+              :> Post '[JSON] Int
+
+pairWith :: CorpusId -> GargServer PairWith
+pairWith cId aId lId = do
+  r <- pairing cId aId lId
+  _ <- insertNodeNode [ NodeNode cId aId Nothing Nothing]
+  pure r
 
 ------------------------------------------------------------------------
 type ChartApi = Summary " Chart API"
@@ -343,3 +370,4 @@ putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         -> Cmd err Int
 putNode n h = fromIntegral <$> updateHyperdata n h
 -------------------------------------------------------------
+

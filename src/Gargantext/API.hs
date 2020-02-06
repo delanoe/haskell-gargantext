@@ -15,12 +15,14 @@ This API is indeed typed in order to be able to derive both the server
 and the client sides.
 
 The Garg-API-Monad enables:
-  - Features
+  - Security (WIP)
+  - Features (WIP)
   - Database connection (long term)
   - In Memory stack management (short term)
-  - Logs
+  - Logs (WIP)
 
-Thanks to @yannEsposito (at the start) and @np (after).
+Thanks to Yann Esposito for our discussions at the start and to Nicolas
+Pouillard (who mainly made it).
 
 -}
 
@@ -92,6 +94,7 @@ import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgra
 import Gargantext.API.Node
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Types
+import qualified Gargantext.API.Export as Export
 import qualified Gargantext.API.Corpus.New as New
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
@@ -260,6 +263,9 @@ type GargPrivateAPI' =
                         :> Capture "node2_id" NodeId
                         :> NodeNodeAPI HyperdataAny
 
+           :<|> "corpus" :> Capture "node_id" CorpusId
+                         :> Export.API
+
            -- Annuaire endpoint
            :<|> "annuaire":> Summary "Annuaire endpoint"
                           :> Capture "annuaire_id" AnnuaireId
@@ -310,9 +316,11 @@ type GargPrivateAPI' =
        -- :<|> "ngrams"   :> Capture "node_id" Int  :> NodeAPI
        -- :<|> "auth"     :> Capture "node_id" Int  :> NodeAPI
 ---------------------------------------------------------------------
-type SwaggerFrontAPI = SwaggerAPI :<|> FrontEndAPI
 
-type API = SwaggerFrontAPI :<|> GargAPI :<|> Get '[HTML] Html
+type API = SwaggerAPI
+       :<|> FrontEndAPI
+       :<|> GargAPI
+       :<|> Get '[HTML] Html
 
 -- This is the concrete monad. It needs to be used as little as possible,
 -- instead, prefer GargServer, GargServerT, GargServerC.
@@ -331,7 +339,8 @@ type EnvC env =
 server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
-  pure $  swaggerFront
+  pure $  schemaUiServer swaggerDoc
+     :<|> frontEndServer
      :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
      :<|> serverStatic
   where
@@ -361,6 +370,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
+     :<|> Export.getCorpus   -- uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)  uid
 
@@ -414,13 +424,8 @@ serverStatic = $(do
                 )
 
 ---------------------------------------------------------------------
-swaggerFront :: Server SwaggerFrontAPI
-swaggerFront = schemaUiServer swaggerDoc
-           :<|> frontEndServer
-
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy
-
 ---------------------------------------------------------------------
 makeApp :: EnvC env => env -> IO Application
 makeApp env = serveWithContext api cfg <$> server env
@@ -433,7 +438,6 @@ makeApp env = serveWithContext api cfg <$> server env
 
 --appMock :: Application
 --appMock = serve api (swaggerFront :<|> gargMock :<|> serverStatic)
-
 ---------------------------------------------------------------------
 api :: Proxy API
 api  = Proxy
@@ -441,11 +445,9 @@ api  = Proxy
 apiGarg :: Proxy GargAPI
 apiGarg  = Proxy
 ---------------------------------------------------------------------
-
 schemaUiServer :: (Server api ~ Handler Swagger)
         => Swagger -> Server (SwaggerSchemaUI' dir api)
 schemaUiServer = swaggerSchemaUIServer
-
 
 -- Type Family for the Documentation
 type family TypeName (x :: *) :: Symbol where

@@ -78,7 +78,7 @@ module Gargantext.API.Ngrams
   , HasRepo(..)
   , RepoCmdM
   , QueryParamR
-  , TODO(..)
+  , TODO
 
   -- Internals
   , getNgramsTableMap
@@ -143,7 +143,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)
 import Gargantext.Prelude
--- import Gargantext.Core.Types (ListTypeId, listTypeId)
+import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Servant hiding (Patch)
 import System.Clock (getTime, TimeSpec, Clock(..))
@@ -151,12 +151,6 @@ import System.FileLock (FileLock)
 import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-
-data TODO = TODO
-  deriving (Generic)
-
-instance ToSchema TODO where
-instance ToParamSchema TODO where
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -1044,14 +1038,14 @@ getTableNgrams _nType nId tabType listId limit_ offset
   -- trace (show lists) $
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
-  let nSco = needsScores orderBy
+  let scoresNeeded = needsScores orderBy
   tableMap1 <- getNgramsTableMap listId ngramsType
   t1 <- getTime'
-  tableMap2 <- tableMap1 & v_data %%~ setScores nSco
+  tableMap2 <- tableMap1 & v_data %%~ setScores scoresNeeded
                                     . Map.mapWithKey ngramsElementFromRepo
   t2 <- getTime'
   tableMap3 <- tableMap2 & v_data %%~ fmap NgramsTable
-                                    . setScores (not nSco)
+                                    . setScores (not scoresNeeded)
                                     . selectAndPaginate
   t3 <- getTime'
   liftIO $ hprint stderr
@@ -1059,7 +1053,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
                           % " map1=" % timeSpecs
                           % " map2=" % timeSpecs
                           % " map3=" % timeSpecs
-                          % " sql="  % (if nSco then "map2" else "map3")
+                          % " sql="  % (if scoresNeeded then "map2" else "map3")
                           % "\n"
             ) t0 t3 t0 t1 t1 t2 t2 t3
   pure tableMap3

@@ -52,11 +52,11 @@ pairing' = undefined
 -}
 
 -- | TODO : add paring policy as parameter
-pairing :: AnnuaireId
-        -> CorpusId
+pairing :: CorpusId   -- (CorpusId,   ListId) -- Pair (Either CorpusId AnnuaireId) ListId
+        -> AnnuaireId -- (AnnuaireId, ListId) -- Pair (Either CorpusId AnnuaireId) ListId
         -> ListId
         -> Cmd err Int
-pairing aId cId lId = do
+pairing cId aId lId = do
   contacts' <- getAllContacts aId
   let contactsMap = pairingPolicyToMap toLower
                   $ toMaps extractNgramsT (tr_docs contacts')
@@ -120,6 +120,7 @@ getNgramsTindexed corpusId ngramsType' = fromList
       where
         selectQuery = [sql| SELECT n.id,n.terms,n.n from ngrams n
                       JOIN node_node_ngrams occ ON occ.ngrams_id = n.id
+                      -- JOIN node_node_ngrams2 occ ON occ.ngrams_id = n.id
                       JOIN nodes_nodes      nn  ON nn.node2_id   = occ.node2_id
 
                       WHERE nn.node1_id     = ?
