@@ -64,7 +64,7 @@ type AsyncJobs event ctI input output =
 ------------------------------------------------------------------------
 
 type AddWithForm = Summary "Add with FormUrlEncoded to annuaire endpoint"
-   :> "corpus"
+   :> "annuaire"
    :> Capture "annuaire_id" AnnuaireId
    :> "add"
    :> "form"
