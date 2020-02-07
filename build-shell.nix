@@ -8,7 +8,8 @@ haskell.lib.buildStackProject {
     docker-compose
     blas
     bzip2
-    gfortran
+    #gfortran
+    gfortran.cc.lib
     glibc
     gmp
     gsl
