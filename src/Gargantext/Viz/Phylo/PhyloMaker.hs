@@ -15,7 +15,7 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloMaker where
 
-import Data.List (concat, nub, partition, sort, (++), group, intersect, null)
+import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy)
 import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey)
 import Data.Set (size)
 import Data.Vector (Vector)
@@ -127,7 +127,6 @@ cliqueToGroup fis pId lvl idx fdt coocs =
 toPhylo1 :: [Document] -> Phylo -> Phylo
 toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of 
     Constante start gap -> constanteTemporalMatching  start gap 
-                   $ toGroupsProxi 1
                    $ appendGroups cliqueToGroup 1 phyloClique phyloBase    
     Adaptative steps    -> adaptativeTemporalMatching steps
                    $ toGroupsProxi 1
@@ -138,7 +137,7 @@ toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of
         phyloClique =  toPhyloClique phyloBase docs'
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
-        docs' =  groupDocsByPeriod date (getPeriodIds phyloBase) docs
+        docs' =  groupDocsByPeriod' date (getPeriodIds phyloBase) docs
         --------------------------------------
 
 
@@ -225,6 +224,21 @@ docsToTimeScaleCooc docs fdt =
 -----------------------
 -- | to Phylo Base | --
 -----------------------
+
+-- | To group a list of Documents by fixed periods
+groupDocsByPeriod' :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
+groupDocsByPeriod' f pds docs = 
+  let docs'    = groupBy (\d d' -> f d == f d') $ sortOn f docs
+      periods  = map (inPeriode f docs') pds
+      periods' = periods `using` parList rdeepseq
+   in trace ("\n" <> "-- | Group " <> show(length docs) <> " docs by " <> show(length pds) <> " periods" <> "\n") 
+    $ fromList $ zip pds periods'
+  where
+    --------------------------------------
+    inPeriode :: Ord b => (t -> b) -> [[t]] -> (b, b) -> [t]
+    inPeriode f' h (start,end) =
+      concat $ fst $ partition (\d -> f' (head' "inPeriode" d) >= start && f' (head' "inPeriode" d) <= end) h
+
 
 
 -- | To group a list of Documents by fixed periods

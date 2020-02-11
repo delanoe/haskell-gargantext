@@ -144,9 +144,9 @@ defaultConfig =
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
             , phyloProximity = WeightedLogJaccard 10
-            , seaElevation   = Adaptative 25
-            , phyloSynchrony = ByProximityThreshold 0.6 10 SiblingBranches MergeAllGroups
-            , phyloQuality   = Quality 0.1 1
+            , seaElevation   = Constante 0 0.1
+            , phyloSynchrony = ByProximityThreshold 0.5 10 SiblingBranches MergeAllGroups
+            , phyloQuality   = Quality 0.6 1
             , timeUnit       = Year 3 1 5
             , clique         = Fis 1 5
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
@@ -385,6 +385,8 @@ data PhyloBranch =
       , _branch_seaLevel :: [Double]
       , _branch_x        :: Double
       , _branch_y        :: Double
+      , _branch_w        :: Double
+      , _branch_t        :: Double
       , _branch_label    :: Text
       , _branch_meta     :: Map Text [Double]
       } deriving (Generic, Show, Eq)

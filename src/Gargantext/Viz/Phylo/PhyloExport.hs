@@ -18,10 +18,10 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloExport where
 
 import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
-import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy, inits)
+import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy, inits, tail)
 import Data.Vector (Vector)
 
-import Prelude (writeFile)
+import Prelude (writeFile, replicate)
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools 
@@ -468,9 +468,26 @@ toPhyloExport phylo = exportToDot phylo
                     $ processMetrics  export           
     where
         export :: PhyloExport
-        export = PhyloExport groups
-               $ map (\(x,b) -> b & branch_x .~ x)
-               $ zip branchesGaps branches
+        export = PhyloExport groups 
+               $ map (\((w,t),b) -> b & branch_w .~ w
+                                      & branch_t .~ t)
+               $ zip toScale branches'
+        --------------------------------------
+        toScale :: [(Double,Double)]
+        toScale = 
+          let ws  = map (\b -> 5 * (2 * (b ^. branch_w) - 1)) branches' 
+              ts  = map (/2) ws
+              ts' = map (\(x,y) -> x + y)
+                  $ zip ts
+                  $ map (\(x,y) -> x + y)
+                  $ zip (map sum $ tail $ inits $ replicate (length ws) 10)
+                  $ map sum $ init $ inits ws
+           in zip ws ts'
+        --------------------------------------
+        branches' :: [PhyloBranch]
+        branches' = sortOn _branch_x
+                  $ map (\(x,b) -> b & branch_x .~ x)
+                  $ zip branchesGaps branches
         --------------------------------------
         branchesGaps :: [Double]
         branchesGaps = map sum
@@ -481,9 +498,15 @@ toPhyloExport phylo = exportToDot phylo
                                         let idx = length $ commonPrefix (b ^. branch_canonId) (b' ^. branch_canonId) []
                                          in (b' ^. branch_seaLevel) !! (idx - 1)
                                         ) $ listToSeq branches))
+        --------------------------------------     
+        toWidth :: [PhyloGroup] -> Double
+        toWidth gs = fromIntegral 
+                   $ maximum
+                   $ map length
+                   $ groupBy (\g g' -> g ^. phylo_groupPeriod == g' ^. phylo_groupPeriod) gs        
         --------------------------------------
         branches :: [PhyloBranch]
-        branches = map (\g -> 
+        branches = map (\(g,w) -> 
                       let seaLvl = (g ^. phylo_groupMeta) ! "seaLevels"
                           breaks = (g ^. phylo_groupMeta) ! "breaks"
                           canonId = take (round $ (last' "export" breaks) + 2) (snd $ g ^. phylo_groupBranchId)
@@ -492,8 +515,10 @@ toPhyloExport phylo = exportToDot phylo
                                       seaLvl
                                       0 
                                       (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl))
+                                      w
+                                      0
                                       "" empty)  
-                  $ map (\gs -> head' "export" gs)
+                  $ map (\gs -> (head' "export" gs,toWidth gs))
                   $ groupBy (\g g' -> g ^. phylo_groupBranchId == g' ^. phylo_groupBranchId)
                   $ sortOn (\g -> g ^. phylo_groupBranchId) groups
         --------------------------------------    

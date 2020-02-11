@@ -380,8 +380,8 @@ constanteTemporalMatching start step phylo = updatePhyloGroups 1
                                 (_qua_minBranch $ phyloQuality $ getConfig phylo)
                                 (phylo ^. phylo_termFreq)
                                 start step
-                                (fromIntegral $ round (((1 - start) / step) - 1))
-                                (fromIntegral $ round ((1 - start) / step))
+                                ((((1 - start) / step) - 1))
+                                (((1 - start) / step))
                                 (getTimeFrame $ timeUnit $ getConfig phylo)
                                 (getPeriodIds phylo)
                                 (phylo ^. phylo_timeDocs)
