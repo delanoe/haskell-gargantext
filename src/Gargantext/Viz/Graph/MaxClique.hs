@@ -63,6 +63,25 @@ import Gargantext.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGraphUfr
 type Graph = Graph_Undirected
 type Neighbor = Node
 
+{-
+-- prefiltre
+-- Texte -> Ngrams
+-- Map Terms
+-- pré-filtre: spécifiques
+-- soit conditionnelle, matrice spécifiques
+-- combien de voisins maximum avant le calcul de cliques (les génériques)
+-- calcul maxcliques
+-- calcul de densité/inclusion si graph gros
+-- 
+-- FIS: ensemble de termes un niveau du document
+-- maxclique: ensemble de termes au niveau de l'ensemble du document
+
+type Density = Double
+maxCliques' :: [[Text]] -> Map (Set Ngrams) Density
+maxCliques' = undefined
+-}
+
+
 maxCliques :: Graph -> [[Node]]
 maxCliques g = map (\n -> subMaxCliques g (n:ns)) ns & concat & takeMax
   where
