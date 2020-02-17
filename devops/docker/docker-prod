@@ -1,1 +1,3 @@
+#!/bin/bash
+
 stack --docker exec gargantext-server -- --run Prod --ini gargantext.ini
