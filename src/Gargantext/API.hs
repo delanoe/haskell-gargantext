@@ -318,9 +318,8 @@ type GargPrivateAPI' =
 ---------------------------------------------------------------------
 
 type API = SwaggerAPI
-       :<|> FrontEndAPI
-       -- :<|> Get '[HTML] Html
        :<|> GargAPI
+       :<|> FrontEndAPI
 
 -- This is the concrete monad. It needs to be used as little as possible,
 -- instead, prefer GargServer, GargServerT, GargServerC.
@@ -340,9 +339,8 @@ server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  schemaUiServer swaggerDoc
-     :<|> frontEndServer
-     -- :<|> serverStatic
      :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
+     :<|> frontEndServer
   where
     transform :: forall a. GargServerM env GargError a -> Handler a
     transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
@@ -415,13 +413,6 @@ addWithForm :: GargServer New.AddWithForm
 addWithForm cid =
   serveJobsAPI $
     JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log))
-
-serverStatic :: Server (Get '[HTML] Html)
-serverStatic = $(do
-                  let path = "purescript-gargantext/dist/index.html"
-                  Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
-                  fileTreeToServer s
-                )
 
 ---------------------------------------------------------------------
 --gargMock :: Server GargAPI
