@@ -144,7 +144,10 @@ fromField' field mb = do
       where
           valueToHyperdata v = case fromJSON v of
              Success a  -> pure a
-             Error _err -> returnError ConversionFailed field $ DL.intercalate " " ["cannot parse hyperdata for JSON: ", show v]
+             Error _err -> returnError ConversionFailed field
+                         $ DL.intercalate " " [ "cannot parse hyperdata for JSON: "
+                                              , show v
+                                              ]
 
 printSqlOpa :: Default Unpackspec a a => Query a -> IO ()
 printSqlOpa = putStrLn . maybe "Empty query" identity . showSqlForPostgres
