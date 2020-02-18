@@ -1,4 +1,4 @@
-resolver: lts-14.22
+resolver: lts-14.27
 flags: {}
 extra-package-dbs: []
 packages:
@@ -7,7 +7,7 @@ packages:
 
 docker:
   enable: false
-  repo: 'fpco/stack-build:lts-14.22-garg'
+  repo: 'fpco/stack-build:lts-14.27-garg'
 
 nix:
   enable: false
@@ -72,6 +72,7 @@ extra-deps:
 - serialise-0.2.0.0
 - servant-flatten-0.2
   #- servant-multipart-0.11.2
+- servant-server-0.16
 - stemmer-0.5.2
 - time-units-1.0.0
 - validity-0.9.0.0 # patches-{map,class}

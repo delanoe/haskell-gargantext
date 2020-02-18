@@ -12,15 +12,16 @@ Loads all static file for the front-end.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE TypeOperators        #-}
 
 ---------------------------------------------------------------------
 module Gargantext.API.FrontEnd where
 
-import Servant.Static.TH (createApiAndServerDecs)
+import Servant
+import Servant.Server.StaticFiles (serveDirectoryWebApp)
 
----------------------------------------------------------------------
-$(createApiAndServerDecs "FrontEndAPI" "frontEndServer" "purescript-gargantext/dist")
----------------------------------------------------------------------
+type FrontEndAPI = Raw
 
+frontEndServer :: Server FrontEndAPI
+frontEndServer = serveDirectoryWebApp "./purescript-gargantext/dist"

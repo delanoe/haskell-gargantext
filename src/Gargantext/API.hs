@@ -319,7 +319,7 @@ type GargPrivateAPI' =
 
 type API = SwaggerAPI
        :<|> FrontEndAPI
-       :<|> Get '[HTML] Html
+       -- :<|> Get '[HTML] Html
        :<|> GargAPI
 
 -- This is the concrete monad. It needs to be used as little as possible,
@@ -341,7 +341,7 @@ server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  schemaUiServer swaggerDoc
      :<|> frontEndServer
-     :<|> serverStatic
+     -- :<|> serverStatic
      :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
   where
     transform :: forall a. GargServerM env GargError a -> Handler a
