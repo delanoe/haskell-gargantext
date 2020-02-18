@@ -108,7 +108,7 @@ dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
           FROM nodes AS c
 
           INNER JOIN tree AS s ON c.parent_id = s.id
-           WHERE c.typename IN (2,20,21,22,3,5,30,31,40,7,9,90,71)
+           -- WHERE c.typename IN (2,20,21,22,3,5,30,31,40,7,9,90,71)
         )
     SELECT * from tree;
     |] (Only rootId)

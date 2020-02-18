@@ -94,6 +94,7 @@ import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgra
 import Gargantext.API.Node
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Types
+import qualified Gargantext.API.Annuaire as Annuaire
 import qualified Gargantext.API.Export as Export
 import qualified Gargantext.API.Corpus.New as New
 import Gargantext.Database.Types.Node
@@ -304,6 +305,8 @@ type GargPrivateAPI' =
            -- :<|> New.Upload
            :<|> New.AddWithForm
            :<|> New.AddWithQuery
+
+           :<|> Annuaire.AddWithForm
            -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
@@ -390,8 +393,10 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- TODO access
      -- :<|> addUpload
      -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     :<|> addWithForm
-     :<|> addWithQuery
+     :<|> addCorpusWithForm
+     :<|> addCorpusWithQuery
+
+     :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
 
@@ -401,8 +406,8 @@ addUpload cId = (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunctio
            :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm    cid i (liftIO . log)))
 --}
 
-addWithQuery :: GargServer New.AddWithQuery
-addWithQuery cid =
+addCorpusWithQuery :: GargServer New.AddWithQuery
+addCorpusWithQuery cid =
   serveJobsAPI $
     JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log))
 
@@ -411,10 +416,15 @@ addWithFile cid i f =
   serveJobsAPI $
     JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftIO . log))
 
-addWithForm :: GargServer New.AddWithForm
-addWithForm cid =
+addCorpusWithForm :: GargServer New.AddWithForm
+addCorpusWithForm cid =
   serveJobsAPI $
     JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log))
+
+addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
+addAnnuaireWithForm cid =
+  serveJobsAPI $
+    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftIO . log))
 
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do

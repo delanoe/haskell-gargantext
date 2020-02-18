@@ -620,15 +620,18 @@ childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Nod
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
+-- =================================================================== --
+------------------------------------------------------------------------
 -- | TODO mk all others nodes
 mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
 mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
+
+------------------------------------------------------------------------
 mkNodeWithParent NodeUser Nothing  uId name =
   insertNodesWithParentR Nothing [node NodeUser name hd Nothing uId]
     where
       hd = HyperdataUser . Just . pack $ show EN
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
-
 ------------------------------------------------------------------------
 mkNodeWithParent NodeFolder (Just i) uId name = 
    insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
@@ -654,18 +657,20 @@ mkNodeWithParent NodeTeam (Just i) uId _ =
    insertNodesWithParentR (Just i) [node NodeTeam "Team" hd Nothing uId]
     where
       hd = defaultFolder
-
-
 ------------------------------------------------------------------------
-
-
-
 mkNodeWithParent NodeCorpus (Just i) uId name =
    insertNodesWithParentR (Just i) [node NodeCorpus name hd Nothing uId]
     where
       hd = defaultCorpus
 
+mkNodeWithParent NodeAnnuaire (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeAnnuaire name hd Nothing uId]
+    where
+      hd = defaultAnnuaire
+
 mkNodeWithParent _ _ _ _       = nodeError NotImplYet
+------------------------------------------------------------------------
+-- =================================================================== --
 
 
 
