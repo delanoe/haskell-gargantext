@@ -19,9 +19,9 @@ Loads all static file for the front-end.
 module Gargantext.API.FrontEnd where
 
 import Servant
-import Servant.Server.StaticFiles (serveDirectoryWebApp)
+import Servant.Server.StaticFiles (serveDirectoryFileServer)
 
 type FrontEndAPI = Raw
 
 frontEndServer :: Server FrontEndAPI
-frontEndServer = serveDirectoryWebApp "./purescript-gargantext/dist"
+frontEndServer = serveDirectoryFileServer "./purescript-gargantext/dist"

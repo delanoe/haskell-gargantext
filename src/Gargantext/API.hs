@@ -73,16 +73,12 @@ import           Servant
 import           Servant.Auth as SA
 import           Servant.Auth.Server (AuthResult(..))
 import           Servant.Auth.Swagger ()
-import           Servant.HTML.Blaze (HTML)
 --import           Servant.Mock (mock)
 --import           Servant.Job.Server (WithCallbacks)
 import           Servant.Job.Async
-import           Servant.Static.TH.Internal.Server (fileTreeToServer)
-import           Servant.Static.TH.Internal.FileTree (fileTypeToFileTree, FileType(FileTypeFile))
 import           Servant.Swagger
 import           Servant.Swagger.UI
 -- import Servant.API.Stream
-import           Text.Blaze.Html (Html)
 
 --import Gargantext.API.Swagger
 
