@@ -18,38 +18,83 @@ progress. Please report and improve this documentation if you encounter
 issues.
 
 ### Build Core Code
+
 #### Docker
-  curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/docker-install | sh
+
+``` sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/docker/docker-install | sh
+```
 
 #### Debian
-  curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/debian-install | sh
+
+``` sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/debian/install | sh
+```
 
 ### Add dependencies
 
 1. CoreNLP is needed (EN and FR); This dependency will not be needed
    soon.
-  - wget https://dl.gargantext.org/coreNLP.tar.bz2
-  - tar xvjf coreNLP.tar.bz2
-  - ./startServer.sh
+
+``` sh
+./devops/install-corenlp
+```
 
 2. Louvain C++ needed to draw the socio-semantic graphs
-  - git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain-cplusplus.git
-  - cd clustering-louvain-cplusplus
-  - ./install
+
+NOTE: This is already added in the Docker build.
+
+``` sh
+git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain-cplusplus.git
+cd clustering-louvain-cplusplus
+./install
+```
 
 ### Initialization
 
-Users has to be created first (user1 is created as instance):
+#### Docker
 
-- stack install
-- ~/.local/bin/gargantext-init "gargantext.ini"
+Run PostgreSQL first:
+
+``` sh
+cd devops/docker
+docker-compose up
+```
+
+Initialization schema should be loaded automatically (from `devops/postgres/schema.sql`).
+
+#### Gargantext
+
+Users have to be created first (`user1` is created as instance):
+
+``` sh
+stack install
+~/.local/bin/gargantext-init "gargantext.ini"
+```
+
+For Docker env, run:
+
+``` sh
+stack --docker run gargantext-init -- gargantext.ini
+```
+
+### Importing data
+
+You can import some data with:
+``` sh
+docker run --rm -it -p 9000:9000 cgenie/corenlp-garg
+stack exec gargantext-import -- "corpusCsvHal" "user1" "IMT3" gargantext.ini 10000 ./1000.csv
+```
 
 ## Use Cases
 
 ### Multi-User with Graphical User Interface (Server Mode)
 
+``` sh
 ~/.local/bin/stack --docker exec gargantext-server -- --ini "gargantext.ini" --run Prod
-Then you can log in with user1:1resu
+```
+
+Then you can log in with `user1:1resu`.
 
 
 ### Command Line Mode tools

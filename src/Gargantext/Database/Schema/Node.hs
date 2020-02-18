@@ -672,7 +672,16 @@ mkNodeWithParent _ _ _ _       = nodeError NotImplYet
 mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
 mkRoot uname uId = case uId > 0 of
                False -> nodeError NegativeId
-               True  -> mkNodeWithParent NodeUser Nothing uId uname
+               True  -> do
+                 rs <- mkNodeWithParent NodeUser Nothing uId uname
+                 _ <- case rs of
+                   [r] -> do
+                     _ <- mkNodeWithParent NodeFolderPrivate (Just r) uId uname
+                     _ <- mkNodeWithParent NodeFolderShared  (Just r) uId uname
+                     _ <- mkNodeWithParent NodeFolderPublic  (Just r) uId uname
+                     pure rs
+                   _   -> pure rs
+                 pure rs
 
 -- |
 -- CorpusDocument is a corpus made from a set of documents

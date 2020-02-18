@@ -37,27 +37,27 @@ exec sudo -E /usr/bin/docker \"\$@\"" >> $DOCKERBIN
 fi
 ########################################################################
 
-curl -sSL https://get.haskellstack.org/ | sh
-stack update
-stack upgrade
-
+if stack --version;
+then
+  echo "Haskell stack installed, ok"
+else
+  curl -sSL https://get.haskellstack.org/ | sh
+  stack update
+  stack upgrade
+fi
 
 git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
 
 cd haskell-gargantext
 git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
 
-mkdir deps
-cd deps
-git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
-git clone https://github.com/np/servant-job.git
-git clone https://github.com/np/patches-map
-git clone https://gitlab.com/npouillard/patches-class.git
-git clone https://github.com/delanoe/haskell-opaleye
-git clone -b next --single-branch https://github.com/delanoe/hsparql
-cd ..
+../install-deps $(pwd)
 
-stack docker pull
+pushd devops/docker
+docker build --pull -t fpco/stack-build:lts-14.22-garg .
+popd
+
+#stack docker pull
 stack --docker setup
 stack --docker build
 stack --docker install
