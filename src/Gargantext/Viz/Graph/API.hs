@@ -24,7 +24,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (Maybe(..))
@@ -94,7 +94,7 @@ getGraph uId nId = do
                        graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure graph''
-  pure $ trace ("salut" <> show g) $ g
+  pure {- $ trace (show g) $ -} g
 
 
 -- TODO use Database Monad only here ?
