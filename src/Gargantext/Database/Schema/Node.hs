@@ -526,7 +526,7 @@ nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
 
 ------------------------------------------------------------------------
 arbitraryDashboard :: HyperdataDashboard
-arbitraryDashboard = HyperdataDashboard (Just "Preferences")
+arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
 ------------------------------------------------------------------------
 
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
@@ -608,6 +608,11 @@ postNode uid pid (Node' NodeCorpus txt v ns) = do
 
 postNode uid pid (Node' NodeAnnuaire txt v ns) = do
   NewNode pid' _ <- postNode uid pid (Node' NodeAnnuaire txt v [])
+  pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
+  pure $ NewNode pid' pids
+
+postNode uid pid (Node' NodeDashboard txt v ns) = do
+  NewNode pid' _ <- postNode uid pid (Node' NodeDashboard txt v [])
   pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
   pure $ NewNode pid' pids
 
