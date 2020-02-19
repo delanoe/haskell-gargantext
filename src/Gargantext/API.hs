@@ -73,16 +73,12 @@ import           Servant
 import           Servant.Auth as SA
 import           Servant.Auth.Server (AuthResult(..))
 import           Servant.Auth.Swagger ()
-import           Servant.HTML.Blaze (HTML)
 --import           Servant.Mock (mock)
 --import           Servant.Job.Server (WithCallbacks)
 import           Servant.Job.Async
-import           Servant.Static.TH.Internal.Server (fileTreeToServer)
-import           Servant.Static.TH.Internal.FileTree (fileTypeToFileTree, FileType(FileTypeFile))
 import           Servant.Swagger
 import           Servant.Swagger.UI
 -- import Servant.API.Stream
-import           Text.Blaze.Html (Html)
 
 --import Gargantext.API.Swagger
 
@@ -321,9 +317,8 @@ type GargPrivateAPI' =
 ---------------------------------------------------------------------
 
 type API = SwaggerAPI
-       :<|> FrontEndAPI
-       :<|> Get '[HTML] Html
        :<|> GargAPI
+       :<|> FrontEndAPI
 
 -- This is the concrete monad. It needs to be used as little as possible,
 -- instead, prefer GargServer, GargServerT, GargServerC.
@@ -343,9 +338,8 @@ server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  schemaUiServer swaggerDoc
-     :<|> frontEndServer
-     :<|> serverStatic
      :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
+     :<|> frontEndServer
   where
     transform :: forall a. GargServerM env GargError a -> Handler a
     transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
@@ -426,13 +420,14 @@ addAnnuaireWithForm cid =
   serveJobsAPI $
     JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftIO . log))
 
+{-
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
                   let path = "purescript-gargantext/dist/index.html"
                   Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
                   fileTreeToServer s
                 )
-
+-}
 ---------------------------------------------------------------------
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy

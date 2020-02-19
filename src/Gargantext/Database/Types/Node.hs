@@ -325,7 +325,6 @@ data CorpusField = MarkdownField { _cf_text :: !Text }
                               , _cf_desc  :: !Text
                               , _cf_query :: !Text
                               , _cf_authors :: !Text
-                              , _cf_charts :: ![Chart]
                               -- , _cf_resources :: ![Resource]
                               } 
                   | HaskellField { _cf_haskell :: !Text }
@@ -375,7 +374,7 @@ corpusExample = "" -- TODO
 
 defaultCorpus :: HyperdataCorpus
 defaultCorpus = HyperdataCorpus [
-    HyperdataField JSON "Mandatory fields" (JsonField "Title" "Descr" "Bool query" "Authors" [])
+    HyperdataField JSON "Mandatory fields" (JsonField "Title" "Descr" "Bool query" "Authors")
   , HyperdataField Markdown "Optional Text" (MarkdownField "# title\n## subtitle")
   ]
 
@@ -454,6 +453,7 @@ instance Hyperdata HyperdataResource
 
 ------------------------------------------------------------------------
 data HyperdataDashboard = HyperdataDashboard { hyperdataDashboard_preferences   :: !(Maybe Text)
+                                             , hyperdataDashboard_charts        :: ![Chart]
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
 
