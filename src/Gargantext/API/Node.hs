@@ -344,7 +344,7 @@ instance HasTreeError ServantErr where
       mk TooManyRoots = err500 { errBody = e <> "Too many root nodes"           }
 -}
 
-type TreeAPI   = Get '[JSON] (Tree NodeTree)
+type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
 
 treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI = treeDB
