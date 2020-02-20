@@ -167,7 +167,7 @@ main = do
 
             printIOMsg "End of reconstruction, start the export"
 
-            let dot = toPhyloExport phylo
+            let dot = toPhyloExport phylo        
 
             let output = (outputPath config) 
                       <> (unpack $ phyloName config)

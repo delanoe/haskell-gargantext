@@ -34,6 +34,7 @@ import Control.Lens hiding (Level)
 import qualified Data.Vector as Vector
 import qualified Data.List as List
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 ------------
 -- | Io | --
@@ -66,6 +67,7 @@ roundToStr = printf "%0.*f"
 countSup :: Double -> [Double] -> Int
 countSup s l = length $ filter (>s) l
 
+
 dropByIdx :: Int -> [a] -> [a]
 dropByIdx k l = take k l ++ drop (k+1) l
 
@@ -74,6 +76,15 @@ elemIndex' :: Eq a => a -> [a] -> Int
 elemIndex' e l = case (List.elemIndex e l) of
     Nothing -> panic ("[ERR][Viz.Phylo.PhyloTools] element not in list")
     Just i  -> i
+
+
+commonPrefix :: Eq a => [a] -> [a] -> [a] -> [a]
+commonPrefix lst lst' acc =
+    if (null lst || null lst')
+        then acc
+        else if (head' "commonPrefix" lst == head' "commonPrefix" lst')
+                then commonPrefix (tail lst) (tail lst') (acc ++ [head' "commonPrefix" lst])
+                else acc
 
 
 ---------------------
@@ -162,44 +173,44 @@ keepFilled f thr l = if (null $ f thr l) && (not $ null l)
                      else f thr l
 
 
-traceClique :: Map (Date, Date) [PhyloFis] -> String
+traceClique :: Map (Date, Date) [PhyloClique] -> String
 traceClique mFis = foldl (\msg cpt -> msg <> show (countSup cpt cliques) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         cliques :: [Double]
-        cliques = sort $ map (fromIntegral . size . _phyloFis_clique) $ concat $ elems mFis
+        cliques = sort $ map (fromIntegral . size . _phyloClique_nodes) $ concat $ elems mFis
         -------------------------------------- 
 
 
-traceSupport :: Map (Date, Date) [PhyloFis] -> String
+traceSupport :: Map (Date, Date) [PhyloClique] -> String
 traceSupport mFis = foldl (\msg cpt -> msg <> show (countSup cpt supports) <> " (>" <> show (cpt) <> ") "  ) "" [1..6]
     where
         --------------------------------------
         supports :: [Double]
-        supports = sort $ map (fromIntegral . _phyloFis_support) $ concat $ elems mFis
+        supports = sort $ map (fromIntegral . _phyloClique_support) $ concat $ elems mFis
         -------------------------------------- 
 
 
-traceFis :: [Char] -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
+traceFis :: [Char] -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
 traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map length $ elems mFis) <> "\n"
                          <> "Support : " <> (traceSupport mFis) <> "\n"
-                         <> "Clique : "  <> (traceClique mFis)  <> "\n" ) mFis
+                         <> "Nb Ngrams : "  <> (traceClique mFis)  <> "\n" ) mFis
 
 
--------------------------
--- | Contextual unit | --
--------------------------
+---------------
+-- | Clique| --
+---------------
 
 
-getFisSupport :: ContextualUnit -> Int
-getFisSupport unit = case unit of 
+getCliqueSupport :: Clique -> Int
+getCliqueSupport unit = case unit of 
     Fis s _ -> s
-    -- _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a support")
+    MaxClique _ -> 0
 
-getFisSize :: ContextualUnit -> Int
-getFisSize unit = case unit of 
+getCliqueSize :: Clique -> Int
+getCliqueSize unit = case unit of 
     Fis _ s -> s
-    -- _       -> panic ("[ERR][Viz.Phylo.PhyloTools.getFisSupport] Only Fis has a clique size")  
+    MaxClique s -> s
 
 
 --------------
@@ -227,6 +238,8 @@ sumCooc cooc cooc' = unionWith (+) cooc cooc'
 getTrace :: Cooc -> Double 
 getTrace cooc = sum $ elems $ filterWithKey (\(k,k') _ -> k == k') cooc
 
+coocToDiago :: Cooc -> Cooc
+coocToDiago cooc = filterWithKey (\(k,k') _ -> k == k') cooc
 
 -- | To build the local cooc matrix of each phylogroup
 ngramsToCooc :: [Int] -> [Cooc] -> Cooc
@@ -243,6 +256,12 @@ ngramsToCooc ngrams coocs =
 getGroupId :: PhyloGroup -> PhyloGroupId 
 getGroupId group = ((group ^. phylo_groupPeriod, group ^. phylo_groupLevel), group ^. phylo_groupIndex)
 
+idToPrd :: PhyloGroupId -> PhyloPeriodId
+idToPrd id = (fst . fst) id
+
+getGroupThr :: PhyloGroup -> Double
+getGroupThr group = last' "getGroupThr" ((group ^. phylo_groupMeta) ! "breaks")
+
 groupByField :: Ord a => (PhyloGroup -> a) -> [PhyloGroup] ->  Map a [PhyloGroup]
 groupByField toField groups = fromListWith (++) $ map (\g -> (toField g, [g])) groups
 
@@ -255,34 +274,21 @@ getPeriodPointers fil group =
 filterProximity :: Proximity -> Double -> Double -> Bool
 filterProximity proximity thr local = 
     case proximity of
-        WeightedLogJaccard _ _ _ -> local >= thr
+        WeightedLogJaccard _ -> local >= thr
         Hamming -> undefined   
 
 getProximityName :: Proximity -> String
 getProximityName proximity =
     case proximity of
-        WeightedLogJaccard _ _ _ -> "WLJaccard"
-        Hamming -> "Hamming"
-
-getProximityInit :: Proximity -> Double
-getProximityInit proximity =
-    case proximity of
-        WeightedLogJaccard _ i _ -> i
-        Hamming -> undefined  
-
-
-getProximityStep :: Proximity -> Double
-getProximityStep proximity =
-    case proximity of
-        WeightedLogJaccard _ _ s -> s
-        Hamming -> undefined               
+        WeightedLogJaccard _ -> "WLJaccard"
+        Hamming -> "Hamming"            
 
 ---------------
 -- | Phylo | --
 ---------------
 
-addPointers :: PhyloGroup -> Filiation -> PointerType -> [Pointer] -> PhyloGroup
-addPointers group fil pty pointers = 
+addPointers :: Filiation -> PointerType -> [Pointer] -> PhyloGroup -> PhyloGroup
+addPointers fil pty pointers group = 
     case pty of 
         TemporalPointer -> case fil of 
                                 ToChilds  -> group & phylo_groupPeriodChilds  .~ pointers
@@ -310,6 +316,9 @@ getLevels phylo = nub
                        .  traverse
                        . phylo_periodLevels ) phylo
 
+getSeaElevation :: Phylo -> SeaElevation
+getSeaElevation phylo = seaElevation (getConfig phylo)
+
 
 getConfig :: Phylo -> Config
 getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
@@ -332,6 +341,26 @@ getGroupsFromLevel lvl phylo =
                  .  traverse
                  .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
                  . phylo_levelGroups ) phylo
+
+
+getGroupsFromLevelPeriods :: Level -> [PhyloPeriodId] -> Phylo -> [PhyloGroup]
+getGroupsFromLevelPeriods lvl periods phylo = 
+    elems $ view ( phylo_periods
+                 .  traverse
+                 .  filtered (\phyloPrd -> elem (phyloPrd ^. phylo_periodPeriod) periods)
+                 . phylo_periodLevels
+                 .  traverse
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
+                 . phylo_levelGroups ) phylo    
+
+
+getGroupsFromPeriods :: Level -> Map PhyloPeriodId PhyloPeriod -> [PhyloGroup]
+getGroupsFromPeriods lvl periods = 
+    elems $ view (  traverse
+                 . phylo_periodLevels
+                 .  traverse
+                 .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
+                 . phylo_levelGroups ) periods
 
 
 updatePhyloGroups :: Level -> Map PhyloGroupId PhyloGroup -> Phylo -> Phylo
@@ -391,27 +420,7 @@ traceSynchronyStart phylo =
 
 getSensibility :: Proximity -> Double
 getSensibility proxi = case proxi of 
-    WeightedLogJaccard s _ _ -> s
-    Hamming -> undefined
-
-getThresholdInit :: Proximity -> Double
-getThresholdInit proxi = case proxi of 
-    WeightedLogJaccard _ t _ -> t
-    Hamming -> undefined  
-
-getThresholdStep :: Proximity -> Double
-getThresholdStep proxi = case proxi of 
-    WeightedLogJaccard _ _ s -> s
-    Hamming -> undefined  
-
-
-traceBranchMatching :: Proximity -> Double -> [PhyloGroup] -> [PhyloGroup]
-traceBranchMatching proxi thr groups = case proxi of 
-    WeightedLogJaccard _ i s -> trace (
-            roundToStr 2 thr <> " "
-         <> foldl (\acc _ -> acc <> ".") "." [(10*i),(10*i + 10*s)..(10*thr)]
-         <> " " <>  show(length groups) <> " groups"
-        ) groups 
+    WeightedLogJaccard s -> s
     Hamming -> undefined
 
 ----------------
@@ -479,3 +488,8 @@ traceMatchEnd groups =
 traceTemporalMatching :: [PhyloGroup] -> [PhyloGroup]
 traceTemporalMatching groups = 
     trace ( "\n" <> "-- | Start temporal matching for " <> show(length groups) <> " groups" <> "\n") groups
+
+
+traceGroupsProxi :: Map (PhyloGroupId,PhyloGroupId) Double -> Map (PhyloGroupId,PhyloGroupId) Double
+traceGroupsProxi m = 
+    trace ( "\n" <> "-- | " <> show(Map.size m) <> " computed pairs of groups proximity" <> "\n") m

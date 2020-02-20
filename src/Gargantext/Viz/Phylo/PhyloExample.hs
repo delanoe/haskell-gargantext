@@ -30,7 +30,7 @@ import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.PhyloMaker
 import Gargantext.Viz.Phylo.PhyloExport
-import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
+import Gargantext.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching)
 import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 
 import Control.Lens
@@ -38,12 +38,19 @@ import Data.GraphViz.Types.Generalised (DotGraph)
 
 import qualified Data.Vector as Vector
 
+---------------------------------
+-- | STEP 5 | -- Export the phylo
+---------------------------------
 
 phyloExport :: IO ()
 phyloExport = dotToFile "/home/qlobbe/data/phylo/output/cesar_cleopatre_V2.dot" phyloDot 
 
 phyloDot :: DotGraph DotId
 phyloDot = toPhyloExport phylo2
+
+--------------------------------------------------
+-- | STEP 4 | -- Process the synchronic clustering
+--------------------------------------------------
 
 phylo2 :: Phylo
 phylo2 = synchronicClustering phylo1
@@ -53,17 +60,22 @@ phylo2 = synchronicClustering phylo1
 -----------------------------------------------
 
 phylo1 :: Phylo
-phylo1 = temporalMatching
-       $ appendGroups fisToGroup 1 phyloFis phyloBase
+phylo1 = case (getSeaElevation phyloBase) of 
+    Constante s g   -> constanteTemporalMatching s g 
+       $ toGroupsProxi 1
+       $ appendGroups cliqueToGroup 1 phyloClique phyloBase
+    Adaptative s    -> adaptativeTemporalMatching s
+       $ toGroupsProxi 1
+       $ appendGroups cliqueToGroup 1 phyloClique phyloBase
 
 
 ---------------------------------------------
--- | STEP 2 | -- Build the frequent items set
+-- | STEP 2 | -- Build the cliques
 ---------------------------------------------
 
 
-phyloFis :: Map (Date,Date) [PhyloFis]
-phyloFis = toPhyloFis docsByPeriods (getFisSupport $ contextualUnit config) (getFisSize $ contextualUnit config) 
+phyloClique :: Map (Date,Date) [PhyloClique]
+phyloClique = toPhyloClique phyloBase docsByPeriods
 
 
 docsByPeriods :: Map (Date,Date) [Document]
@@ -96,7 +108,7 @@ config =
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2
                   , exportFilter = [ByBranchSize 0]
-                  , contextualUnit = Fis 0 0 }
+                  , clique = Fis 0 0 }
 
 
 docs :: [Document]

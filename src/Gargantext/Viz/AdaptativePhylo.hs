@@ -57,22 +57,39 @@ data CorpusParser =
     | Csv {_csv_limit :: Int}
     deriving (Show,Generic,Eq) 
 
+data SeaElevation = 
+      Constante  
+      { _cons_start :: Double
+      , _cons_step  :: Double }
+    | Adaptative 
+      { _adap_granularity :: Double }
+    deriving (Show,Generic,Eq)
 
 data Proximity = 
       WeightedLogJaccard 
       { _wlj_sensibility   :: Double 
-      , _wlj_thresholdInit :: Double
-      , _wlj_thresholdStep :: Double }
+      -- , _wlj_thresholdInit :: Double
+      -- , _wlj_thresholdStep :: Double
+      -- | max height for sea level in temporal matching
+      -- , _wlj_elevation     :: Double
+      }
     | Hamming 
     deriving (Show,Generic,Eq) 
 
 
+data SynchronyScope = SingleBranch | SiblingBranches | AllBranches deriving (Show,Generic,Eq)
+
+data SynchronyStrategy = MergeRegularGroups | MergeAllGroups deriving (Show,Generic,Eq)
+
 data Synchrony = 
-      ByProximityThreshold 
+      ByProximityThreshold
       { _bpt_threshold :: Double 
-      , _bpt_sensibility :: Double}
+      , _bpt_sensibility :: Double
+      , _bpt_scope :: SynchronyScope
+      , _bpt_strategy :: SynchronyStrategy }
     | ByProximityDistribution
-      { _bpd_sensibility :: Double} 
+      { _bpd_sensibility :: Double
+      , _bpd_strategy :: SynchronyStrategy } 
     deriving (Show,Generic,Eq)     
 
 
@@ -84,16 +101,18 @@ data TimeUnit =
       deriving (Show,Generic,Eq) 
 
 
-data ContextualUnit = 
+data Clique = 
       Fis 
       { _fis_support :: Int
       , _fis_size    :: Int }
+    | MaxClique
+      { _mcl_size :: Int } 
       deriving (Show,Generic,Eq)      
 
 
 data Quality = 
-     Quality { _qua_relevance :: Double
-             , _qua_minBranch :: Int }
+     Quality { _qua_granularity :: Double
+             , _qua_minBranch   :: Int }
       deriving (Show,Generic,Eq)   
 
 
@@ -105,10 +124,11 @@ data Config =
             , phyloName      :: Text
             , phyloLevel     :: Int
             , phyloProximity :: Proximity
+            , seaElevation   :: SeaElevation
             , phyloSynchrony :: Synchrony
             , phyloQuality   :: Quality
             , timeUnit       :: TimeUnit
-            , contextualUnit :: ContextualUnit
+            , clique         :: Clique
             , exportLabel    :: [PhyloLabel]
             , exportSort     :: Sort
             , exportFilter   :: [Filter]  
@@ -123,11 +143,12 @@ defaultConfig =
             , corpusParser   = Csv 1000
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
-            , phyloProximity = WeightedLogJaccard 10 0 0.1
-            , phyloSynchrony = ByProximityDistribution 0
-            , phyloQuality   = Quality 0.1 1
+            , phyloProximity = WeightedLogJaccard 10
+            , seaElevation   = Constante 0 0.1
+            , phyloSynchrony = ByProximityThreshold 0.5 10 SiblingBranches MergeAllGroups
+            , phyloQuality   = Quality 0.6 1
             , timeUnit       = Year 3 1 5
-            , contextualUnit = Fis 1 5
+            , clique         = Fis 1 5
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
             , exportSort     = ByHierarchy
             , exportFilter   = [ByBranchSize 2]  
@@ -139,10 +160,12 @@ instance FromJSON CorpusParser
 instance ToJSON CorpusParser
 instance FromJSON Proximity
 instance ToJSON Proximity
+instance FromJSON SeaElevation
+instance ToJSON SeaElevation
 instance FromJSON TimeUnit
 instance ToJSON TimeUnit
-instance FromJSON ContextualUnit
-instance ToJSON ContextualUnit
+instance FromJSON Clique
+instance ToJSON Clique
 instance FromJSON PhyloLabel
 instance ToJSON PhyloLabel
 instance FromJSON Tagger
@@ -153,6 +176,10 @@ instance FromJSON Order
 instance ToJSON Order
 instance FromJSON Filter
 instance ToJSON Filter
+instance FromJSON SynchronyScope
+instance ToJSON SynchronyScope
+instance FromJSON SynchronyStrategy
+instance ToJSON SynchronyStrategy
 instance FromJSON Synchrony
 instance ToJSON Synchrony
 instance FromJSON Quality
@@ -239,6 +266,8 @@ data Phylo =
      Phylo { _phylo_foundations :: PhyloFoundations
            , _phylo_timeCooc    :: !(Map Date Cooc)
            , _phylo_timeDocs    :: !(Map Date Double)
+           , _phylo_termFreq    :: !(Map Int Double)
+           , _phylo_groupsProxi :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_param       :: PhyloParam
            , _phylo_periods     :: Map PhyloPeriodId PhyloPeriod
            }
@@ -310,21 +339,17 @@ data Filiation = ToParents | ToChilds deriving (Generic, Show)
 data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)                
 
 
----------------------------
--- | Frequent Item Set | --
----------------------------
-
--- | Clique : Set of ngrams cooccurring in the same Document
-type Clique   = Set Ngrams
+----------------------
+-- | Phylo Clique | --
+----------------------
 
 -- | Support : Number of Documents where a Clique occurs
 type Support  = Int
 
--- | Fis : Frequent Items Set (ie: the association between a Clique and a Support)
-data PhyloFis = PhyloFis
-  { _phyloFis_clique  :: Clique
-  , _phyloFis_support :: Support
-  , _phyloFis_period  :: (Date,Date)
+data PhyloClique = PhyloClique
+  { _phyloClique_nodes   :: Set Ngrams
+  , _phyloClique_support :: Support
+  , _phyloClique_period  :: (Date,Date)
   } deriving (Generic,NFData,Show,Eq)
 
 
@@ -356,9 +381,15 @@ data PhyloLabel =
 data PhyloBranch =
       PhyloBranch
       { _branch_id :: PhyloBranchId
-      , _branch_label   :: Text
-      , _branch_meta    :: Map Text [Double]
-      } deriving (Generic, Show)
+      , _branch_canonId  :: [Int]
+      , _branch_seaLevel :: [Double]
+      , _branch_x        :: Double
+      , _branch_y        :: Double
+      , _branch_w        :: Double
+      , _branch_t        :: Double
+      , _branch_label    :: Text
+      , _branch_meta     :: Map Text [Double]
+      } deriving (Generic, Show, Eq)
 
 data PhyloExport =
       PhyloExport
@@ -372,12 +403,13 @@ data PhyloExport =
 
 makeLenses ''Config
 makeLenses ''Proximity
+makeLenses ''SeaElevation
 makeLenses ''Quality
-makeLenses ''ContextualUnit
+makeLenses ''Clique
 makeLenses ''PhyloLabel
 makeLenses ''TimeUnit
 makeLenses ''PhyloFoundations
-makeLenses ''PhyloFis
+makeLenses ''PhyloClique
 makeLenses ''Phylo
 makeLenses ''PhyloPeriod
 makeLenses ''PhyloLevel
