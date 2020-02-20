@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE DeriveGeneric     #-}
@@ -24,9 +25,9 @@ import Data.Swagger
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import GHC.IO (FilePath)
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core.Types (ListId)
-import Gargantext.Database.Types.Node (NodeId)
+import Gargantext.Database.Types.Node (NodeId, Hyperdata)
 import Gargantext.Prelude
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -57,9 +58,7 @@ data Node = Node { node_size  :: Int
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "node_") ''Node)
 instance ToSchema Node where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 5 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "node_")
 
 
 data Edge = Edge { edge_source :: Text
@@ -71,9 +70,7 @@ data Edge = Edge { edge_source :: Text
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "edge_") ''Edge)
 instance ToSchema Edge where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 5 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "edge_")
 
 ---------------------------------------------------------------
 data LegendField = LegendField { _lf_id :: Int
@@ -83,23 +80,32 @@ data LegendField = LegendField { _lf_id :: Int
 $(deriveJSON (unPrefix "_lf_") ''LegendField)
 
 instance ToSchema LegendField where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_lf_")
 
 makeLenses ''LegendField
+---------------------------------------------------------------
+type Version = Int
+data ListForGraph = ListForGraph { _lfg_listId  :: ListId
+                                 , _lfg_version :: Version
+                 } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_lfg_") ''ListForGraph)
+
+instance ToSchema ListForGraph where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_lfg_")
+
+makeLenses ''ListForGraph
+
 --
 data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the graph
                                    , _gm_corpusId :: [NodeId]  -- we can map with different corpus
-                                   , _gm_legend :: [LegendField] -- legend of the Graph
-                                   , _gm_listId :: ListId
+                                   , _gm_legend   :: [LegendField] -- legend of the Graph
+                                   , _gm_list     :: ListForGraph
+                                   -- , _gm_version  :: Int
                                    }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
 instance ToSchema GraphMetadata where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 4 fieldLabel}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_gm_")
 makeLenses ''GraphMetadata
 
 
@@ -112,10 +118,7 @@ $(deriveJSON (unPrefix "_graph_") ''Graph)
 makeLenses ''Graph
 
 instance ToSchema Graph where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = \fieldLabel -> drop 7 fieldLabel}
-
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_graph_")
 
 -- | Intances for the mack
 instance Arbitrary Graph where
@@ -154,6 +157,15 @@ data GraphV3 = GraphV3 { go_links :: [EdgeV3]
 $(deriveJSON (unPrefix "go_") ''GraphV3)
 
 -----------------------------------------------------------
+
+data HyperdataGraph = HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
+                                   } deriving (Show, Generic)
+$(deriveJSON (unPrefix "") ''HyperdataGraph)
+
+instance Hyperdata HyperdataGraph
+makeLenses ''HyperdataGraph
+
+
 -----------------------------------------------------------
 
 graphV3ToGraph :: GraphV3 -> Graph

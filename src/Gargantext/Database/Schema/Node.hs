@@ -44,6 +44,7 @@ import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
+import Gargantext.Viz.Graph (HyperdataGraph(..))
 
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
@@ -218,11 +219,11 @@ nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_typename   = required "typename"
                                       , _node_userId     = required "user_id"
-                                      
+
                                       , _node_parentId   = optional "parent_id"
                                       , _node_name       = required "name"
                                       , _node_date       = optional "date"
-                                      
+
                                       , _node_hyperdata  = required "hyperdata"
                                       }
                             )
@@ -266,21 +267,20 @@ type NodeSearchReadNull =
     (Column (Nullable PGJsonb)      )
     (Column (Nullable PGTSVector)   )
 
---{-
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
 nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
                                       , _ns_typename   = required "typename"
                                       , _ns_userId     = required "user_id"
-                                      
+
                                       , _ns_parentId   = required "parent_id"
                                       , _ns_name       = required "name"
                                       , _ns_date       = optional "date"
-                                      
+
                                       , _ns_hyperdata  = required "hyperdata"
                                       , _ns_search     = optional "search"
                                       }
                             )
---}
+
 
 queryNodeSearchTable :: Query NodeSearchRead
 queryNodeSearchTable = queryTable nodeTableSearch
@@ -372,19 +372,19 @@ selectNodesWithType type_id = proc () -> do
 
 type JSONB = QueryRunnerColumnDefault PGJsonb
 
-getNode :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
-getNode nId _ = do
-    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+
+getNode :: NodeId -> Cmd err (Node Value)
+getNode nId = fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
+             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+
+getNodeWith :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
+getNodeWith nId _ = do
+    fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 getNodePhylo :: NodeId -> Cmd err (Node HyperdataPhylo)
 getNodePhylo nId = do
-    fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
-             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
-
-
-getNode' :: NodeId -> Cmd err (Node Value)
-getNode' nId = fromMaybe (error $ "Node does node exist: " <> show nId) . headMay
+    fromMaybe (error $ "Node Phylo does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
@@ -401,10 +401,10 @@ nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
     name = maybe "User" identity maybeName
     user = maybe defaultUser identity maybeHyperdata
 ------------------------------------------------------------------------
-defaultFolder :: HyperdataFolder
-defaultFolder = HyperdataFolder (Just "Markdown Description")
+defaultFolder :: HyperdataCorpus
+defaultFolder = defaultCorpus
 
-nodeFolderW :: Maybe Name -> Maybe HyperdataFolder -> ParentId -> UserId -> NodeWrite
+nodeFolderW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
 nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
   where
     name   = maybe "Folder" identity maybeName
@@ -433,7 +433,6 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
   where
     name     = maybe "Annuaire" identity maybeName
     annuaire = maybe defaultAnnuaire identity maybeAnnuaire
-
 
 ------------------------------------------------------------------------
 
@@ -466,12 +465,14 @@ instance HasDefault NodeType where
   hasDefaultData nt = case nt of
       NodeTexts -> HyperdataTexts (Just "Preferences")
       NodeList  -> HyperdataList' (Just "Preferences")
+      NodeListCooc -> HyperdataList' (Just "Preferences")
       _         -> undefined
       --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
 
   hasDefaultName nt = case nt of
       NodeTexts -> "Texts"
       NodeList  -> "Lists"
+      NodeListCooc -> "Cooc"
       _         -> undefined
 
 ------------------------------------------------------------------------
@@ -498,13 +499,19 @@ nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just
 
 ------------------------------------------------------------------------
 arbitraryGraph :: HyperdataGraph
-arbitraryGraph = HyperdataGraph (Just "Preferences")
+arbitraryGraph = HyperdataGraph Nothing
 
 nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite
 nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
   where
     name = maybe "Graph" identity maybeName
     graph = maybe arbitraryGraph identity maybeGraph
+
+mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
+mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
+
+insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
+insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
 
 ------------------------------------------------------------------------
 arbitraryPhylo :: HyperdataPhylo
@@ -518,20 +525,25 @@ nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
 
 
 ------------------------------------------------------------------------
-
 arbitraryDashboard :: HyperdataDashboard
-arbitraryDashboard = HyperdataDashboard (Just "Preferences")
-
+arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
 ------------------------------------------------------------------------
 
 node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
-node nodeType name hyperData parentId userId = Node Nothing (pgInt4 typeId) (pgInt4 userId) (pgNodeId <$> parentId) (pgStrictText name) Nothing (pgJSONB $ cs $ encode hyperData)
-  where
-    typeId = nodeTypeId nodeType
+node nodeType name hyperData parentId userId =
+  Node Nothing 
+       (pgInt4 typeId)
+       (pgInt4 userId)
+       (pgNodeId <$> parentId)
+       (pgStrictText name)
+       Nothing
+       (pgJSONB $ cs $ encode hyperData)
+    where
+      typeId = nodeTypeId nodeType
 
                   -------------------------------
 insertNodes :: [NodeWrite] -> Cmd err Int64
-insertNodes ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
+insertNodes ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns rCount Nothing
 
 insertNodesR :: [NodeWrite] -> Cmd err [NodeId]
 insertNodesR ns = mkCmd $ \conn ->
@@ -571,10 +583,10 @@ data Node' = Node' { _n_type :: NodeType
                    } deriving (Show)
 
 mkNodes :: [NodeWrite] -> Cmd err Int64
-mkNodes ns = mkCmd $ \conn -> runInsertMany conn nodeTable ns
+mkNodes ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns rCount Nothing
 
 mkNodeR :: [NodeWrite] -> Cmd err [NodeId]
-mkNodeR ns = mkCmd $ \conn -> runInsertManyReturning conn nodeTable ns (_node_id)
+mkNodeR ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns (rReturning _node_id) Nothing
 
 ------------------------------------------------------------------------
 
@@ -582,6 +594,7 @@ data NewNode = NewNode { _newNodeId :: NodeId
                        , _newNodeChildren :: [NodeId] }
 
 postNode :: HasNodeError err => UserId -> Maybe ParentId -> Node' -> Cmd err NewNode
+
 postNode uid pid (Node' nt txt v []) = do
   pids <- mkNodeR [node2table uid pid (Node' nt txt v [])]
   case pids of
@@ -597,6 +610,12 @@ postNode uid pid (Node' NodeAnnuaire txt v ns) = do
   NewNode pid' _ <- postNode uid pid (Node' NodeAnnuaire txt v [])
   pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
   pure $ NewNode pid' pids
+
+postNode uid pid (Node' NodeDashboard txt v ns) = do
+  NewNode pid' _ <- postNode uid pid (Node' NodeDashboard txt v [])
+  pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
+  pure $ NewNode pid' pids
+
 postNode _ _ (Node' _ _ _ _) = nodeError NotImplYet
 
 
@@ -606,21 +625,73 @@ childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Nod
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
+-- =================================================================== --
+------------------------------------------------------------------------
 -- | TODO mk all others nodes
 mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
 mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
+
+------------------------------------------------------------------------
 mkNodeWithParent NodeUser Nothing  uId name =
   insertNodesWithParentR Nothing [node NodeUser name hd Nothing uId]
     where
       hd = HyperdataUser . Just . pack $ show EN
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
-mkNodeWithParent _ _ _ _ = nodeError NotImplYet
+------------------------------------------------------------------------
+mkNodeWithParent NodeFolder (Just i) uId name = 
+   insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
+    where
+      hd = defaultFolder
+
+mkNodeWithParent NodeFolderPrivate (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeFolderPrivate "Private" hd Nothing uId]
+    where
+      hd = defaultFolder
+
+mkNodeWithParent NodeFolderShared (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeFolderShared "Shared" hd Nothing uId]
+    where
+      hd = defaultFolder
+
+mkNodeWithParent NodeFolderPublic (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeFolderPublic "Public" hd Nothing uId]
+    where
+      hd = defaultFolder
+
+mkNodeWithParent NodeTeam (Just i) uId _ = 
+   insertNodesWithParentR (Just i) [node NodeTeam "Team" hd Nothing uId]
+    where
+      hd = defaultFolder
+------------------------------------------------------------------------
+mkNodeWithParent NodeCorpus (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeCorpus name hd Nothing uId]
+    where
+      hd = defaultCorpus
+
+mkNodeWithParent NodeAnnuaire (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeAnnuaire name hd Nothing uId]
+    where
+      hd = defaultAnnuaire
+
+mkNodeWithParent _ _ _ _       = nodeError NotImplYet
+------------------------------------------------------------------------
+-- =================================================================== --
+
 
 
 mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
 mkRoot uname uId = case uId > 0 of
                False -> nodeError NegativeId
-               True  -> mkNodeWithParent NodeUser Nothing uId uname
+               True  -> do
+                 rs <- mkNodeWithParent NodeUser Nothing uId uname
+                 _ <- case rs of
+                   [r] -> do
+                     _ <- mkNodeWithParent NodeFolderPrivate (Just r) uId uname
+                     _ <- mkNodeWithParent NodeFolderShared  (Just r) uId uname
+                     _ <- mkNodeWithParent NodeFolderPublic  (Just r) uId uname
+                     pure rs
+                   _   -> pure rs
+                 pure rs
 
 -- |
 -- CorpusDocument is a corpus made from a set of documents
@@ -655,10 +726,6 @@ defaultList cId =
 mkNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
 mkNode nt p u = insertNodesR [nodeDefault nt p u]
 
-
-mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
-mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
-
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
   where
@@ -669,7 +736,6 @@ mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
         dashboard = maybe arbitraryDashboard identity maybeDashboard
 
 
-
 mkPhylo :: ParentId -> UserId -> Cmd err [NodeId]
 mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 
@@ -678,8 +744,6 @@ mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 pgNodeId :: NodeId -> Column PGInt4
 pgNodeId = pgInt4 . id2int
 
-
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
-
 

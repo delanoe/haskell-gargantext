@@ -21,7 +21,7 @@ module Gargantext.Database.Metrics
 import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (TabType(..), ngramsTypeFromTabType)
-import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm)
+import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
 import Gargantext.Database.Flow (FlowCmdM)
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
@@ -76,7 +76,7 @@ getNgrams cId maybeListId tabType = do
     Nothing   -> defaultList cId
     Just lId' -> pure lId'
 
-  lists    <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType)
+  lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo
   let maybeSyn = Map.unions $ map (\t -> filterListWithRoot t lists)
                              [GraphTerm, StopTerm, CandidateTerm]
   pure (lists, maybeSyn)

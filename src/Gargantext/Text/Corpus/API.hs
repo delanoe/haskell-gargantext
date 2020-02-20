@@ -15,42 +15,27 @@ Portability : POSIX
 {-# LANGUAGE InstanceSigs      #-}
 
 module Gargantext.Text.Corpus.API
+  ( ExternalAPIs(..)
+  , Query
+  , Limit
+  , get
+  , externalAPIs
+  )
     where
 
-import GHC.Generics (Generic)
-import Data.Aeson
 import Data.Maybe
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
+import Gargantext.API.Orchestrator.Types (ExternalAPIs(..), externalAPIs)
 import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck (elements)
-import Data.Swagger
 
 import qualified Gargantext.Text.Corpus.API.Pubmed  as PUBMED
 import qualified Gargantext.Text.Corpus.API.Isidore as ISIDORE
 import qualified Gargantext.Text.Corpus.API.Hal     as HAL
 import qualified Gargantext.Text.Corpus.API.Istex   as ISTEX
 
--- | Main Types
-data ExternalAPIs = All
-                  | PubMed
-
-                  | HAL_EN
-                  | HAL_FR
-
-                  | IsTex_EN
-                  | IsTex_FR
-
-                  | Isidore_EN
-                  | Isidore_FR
-                  -- | IsidoreAuth
-  deriving (Show, Eq, Enum, Bounded, Generic)
-
-
 -- | Get External API metadata main function
 get :: ExternalAPIs -> Query -> Maybe Limit -> IO [HyperdataDocument]
-get All        _ _ = undefined
 
 get PubMed     q l = PUBMED.get q l
 
@@ -63,20 +48,7 @@ get IsTex_FR   q l = ISTEX.get FR q l
 get Isidore_EN q l = ISIDORE.get EN (fromIntegral <$> l) (Just q) Nothing
 get Isidore_FR q l = ISIDORE.get FR (fromIntegral <$> l) (Just q) Nothing
 
-
--- | Main Instances
-instance FromJSON ExternalAPIs
-instance ToJSON ExternalAPIs
-
-externalAPIs :: [ExternalAPIs]
-externalAPIs = [minBound..maxBound]
-
-instance Arbitrary ExternalAPIs
-  where
-    arbitrary = elements externalAPIs
-
-instance ToSchema ExternalAPIs
-
+get _  _ _ = undefined
 -- | Some Sugar for the documentation
 type Query = PUBMED.Query
 type Limit = PUBMED.Limit

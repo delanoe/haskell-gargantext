@@ -7,6 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+TODO-SECURITY review purpose of this module
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}

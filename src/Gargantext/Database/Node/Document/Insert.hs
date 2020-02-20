@@ -39,7 +39,7 @@ database (in others words parent_id is necessary to preserve privacy for
 instance).
 
 - Hash policy: this UniqId is a sha256 uniq id which is the result of
-the concatenation of the parameters defined by @hashParameters@.
+the concatenation of the parameters defined by @shaParameters@.
 
 > -- * Example
 > insertTest :: FromRow r => CorpusId -> [Node HyperdataDocument] -> IO [r]
@@ -79,7 +79,7 @@ import Gargantext.Prelude
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as DT (pack, unpack, concat, take)
-import Gargantext.Prelude.Utils (hash)
+import Gargantext.Prelude.Utils (sha)
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
 --import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
@@ -135,7 +135,6 @@ instance InsertDb HyperdataContact
                       , (toField . toJSON) h
                       ]
 
-
 -- | Debug SQL function
 --
 -- to print rendered query (Debug purpose) use @formatQuery@ function.
@@ -186,7 +185,7 @@ queryInsert = [sql|
 data ReturnId = ReturnId { reInserted :: Bool -- if the document is inserted (True: is new, False: is not new)
                          , reId       :: NodeId  -- always return the id of the document (even new or not new)
                                          --   this is the uniq id in the database
-                         , reUniqId   :: Text -- Hash Id with concatenation of hash parameters
+                         , reUniqId   :: Text -- Hash Id with concatenation of sha parameters
                          } deriving (Show, Generic)
 
 instance FromRow ReturnId where
@@ -204,14 +203,14 @@ instance AddUniqId HyperdataDocument
     addUniqId = addUniqIdsDoc
       where
         addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
-        addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just hashBdd)
-                          $ set hyperdataDocument_uniqId    (Just hashUni) doc
+        addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just shaBdd)
+                          $ set hyperdataDocument_uniqId    (Just shaUni) doc
           where
-            hashUni = hash $ DT.concat $ map ($ doc) hashParametersDoc
-            hashBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hyperdataDocument_bdd d))] <> hashParametersDoc)
+            shaUni = sha $ DT.concat $ map ($ doc) shaParametersDoc
+            shaBdd = sha $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hyperdataDocument_bdd d))] <> shaParametersDoc)
 
-        hashParametersDoc :: [(HyperdataDocument -> Text)]
-        hashParametersDoc = [ \d -> maybeText (_hyperdataDocument_title    d)
+        shaParametersDoc :: [(HyperdataDocument -> Text)]
+        shaParametersDoc = [ \d -> maybeText (_hyperdataDocument_title    d)
                             , \d -> maybeText (_hyperdataDocument_abstract d)
                             , \d -> maybeText (_hyperdataDocument_source   d)
                             , \d -> maybeText (_hyperdataDocument_publication_date   d)
@@ -226,18 +225,18 @@ instance AddUniqId HyperdataContact
     addUniqId = addUniqIdsContact
 
 addUniqIdsContact :: HyperdataContact -> HyperdataContact
-addUniqIdsContact hc = set (hc_uniqIdBdd) (Just hashBdd)
-                     $ set (hc_uniqId   ) (Just hashUni) hc
+addUniqIdsContact hc = set (hc_uniqIdBdd) (Just shaBdd)
+                     $ set (hc_uniqId   ) (Just shaUni) hc
   where
-    hashUni = uniqId $ DT.concat $ map ($ hc) hashParametersContact
-    hashBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybeText (view hc_bdd d)] <> hashParametersContact)
+    shaUni = uniqId $ DT.concat $ map ($ hc) shaParametersContact
+    shaBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybeText (view hc_bdd d)] <> shaParametersContact)
 
     uniqId :: Text -> Text
     uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
 
-    -- | TODO add more hashparameters
-    hashParametersContact :: [(HyperdataContact -> Text)]
-    hashParametersContact = [ \d -> maybeText $ view (hc_who . _Just . cw_firstName) d
+    -- | TODO add more shaparameters
+    shaParametersContact :: [(HyperdataContact -> Text)]
+    shaParametersContact = [ \d -> maybeText $ view (hc_who . _Just . cw_firstName) d
                             , \d -> maybeText $ view (hc_who . _Just . cw_lastName ) d
                             , \d -> maybeText $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
                             ]

@@ -41,8 +41,12 @@ import Database.PostgreSQL.Simple.ToRow   (toRow)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
+import Gargantext.Core.Types (TODO(..))
 import Gargantext.Prelude
 import Opaleye hiding (FromField)
+import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
+import Text.Read (read)
+import Data.Swagger (ToParamSchema, toParamSchema)
 import Prelude (Enum, Bounded, minBound, maxBound, Functor)
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -51,9 +55,9 @@ type NgramsId    = Int
 type NgramsTerms = Text
 type Size        = Int
 
-data NgramsPoly id terms n = NgramsDb { ngrams_id    :: id
-                                      , ngrams_terms :: terms
-                                      , ngrams_n     :: n
+data NgramsPoly id terms n = NgramsDb { _ngrams_id    :: id
+                                      , _ngrams_terms :: terms
+                                      , _ngrams_n     :: n
                                       } deriving (Show)
 
 type NgramsWrite = NgramsPoly (Maybe (Column PGInt4))
@@ -71,12 +75,13 @@ type NgramsReadNull = NgramsPoly (Column (Nullable PGInt4))
 type NgramsDb = NgramsPoly Int Text Int
 
 $(makeAdaptorAndInstance "pNgramsDb"    ''NgramsPoly)
--- $(makeLensesWith abbreviatedFields   ''NgramsPoly)
+makeLenses ''NgramsPoly
+
 
 ngramsTable :: Table NgramsWrite NgramsRead
-ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { ngrams_id    = optional "id"
-                                                 , ngrams_terms = required "terms"
-                                                 , ngrams_n     = required "n"
+ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { _ngrams_id    = optional "id"
+                                                 , _ngrams_terms = required "terms"
+                                                 , _ngrams_n     = required "n"
                                                  }
                               )
 
@@ -93,7 +98,7 @@ dbGetNgramsDb = runOpaQuery queryNgramsTable
 -- ngrams in authors field of document has Authors Type
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
-  deriving (Eq, Show, Ord, Enum, Bounded, Generic)
+  deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
 instance FromJSON NgramsType
 instance FromJSONKey NgramsType where
@@ -113,6 +118,15 @@ instance FromField NgramsTypeId where
     n <- fromField fld mdata
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
+
+instance FromHttpApiData NgramsType where
+  parseUrlPiece n = pure $ (read . cs) n
+
+instance ToParamSchema NgramsType where
+  toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
+
+
+
 
 instance QueryRunnerColumnDefault (Nullable PGInt4) NgramsTypeId
   where

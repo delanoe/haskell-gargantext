@@ -25,15 +25,18 @@ Phylomemy was first described in Chavalarias, D., Cointet, J.-P., 2013. Phylomem
 
 module Gargantext.Core.Types.Phylo where
 
+import Control.Lens (makeLenses)
+
 import Data.Aeson.TH (deriveJSON)
 import Data.Maybe   (Maybe)
+import Data.Swagger
 import Data.Text    (Text)
 import Data.Time.Clock.POSIX  (POSIXTime)
 
 import GHC.Generics (Generic)
 
 import Gargantext.Prelude
-import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 
 ------------------------------------------------------------------------
 -- | Phylo datatype descriptor of a phylomemy
@@ -94,8 +97,24 @@ type PhyloGroupId = (PhyloLevelId, Int)
 type Edge         = (PhyloGroupId, Weight)
 type Weight       = Double
 
+-- | Lenses
+makeLenses ''Phylo
+makeLenses ''PhyloPeriod
+makeLenses ''PhyloLevel
+makeLenses ''PhyloGroup
+
 -- | JSON instances
 $(deriveJSON (unPrefix "_phylo_"       ) ''Phylo       )
 $(deriveJSON (unPrefix "_phylo_Period" ) ''PhyloPeriod )
 $(deriveJSON (unPrefix "_phylo_Level"  ) ''PhyloLevel  )
 $(deriveJSON (unPrefix "_phylo_Group"  ) ''PhyloGroup  )
+
+-- | ToSchema instances
+instance ToSchema Phylo where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_")
+instance ToSchema PhyloPeriod where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_Period")
+instance ToSchema PhyloLevel where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_Level")
+instance ToSchema PhyloGroup where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_phylo_Group")

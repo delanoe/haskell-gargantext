@@ -9,11 +9,20 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Gargantext.Core
   where
 
-
-
+import Gargantext.Prelude
+import GHC.Generics (Generic)
+import Data.Aeson
+import Data.Either(Either(Left))
+import Data.Swagger
+import Servant.API
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
@@ -30,9 +39,17 @@ module Gargantext.Core
 
 -- | All languages supported
 -- TODO : DE | SP | CH
-data Lang = EN | FR
-  deriving (Show, Eq, Ord, Bounded, Enum)
+data Lang = EN | FR | All
+  deriving (Show, Eq, Ord, Bounded, Enum, Generic)
 
-
+instance ToJSON Lang
+instance FromJSON Lang
+instance ToSchema Lang
+instance FromHttpApiData Lang
+  where
+    parseUrlPiece "EN" = pure EN
+    parseUrlPiece "FR" = pure FR
+    parseUrlPiece "All" = pure All
+    parseUrlPiece _            = Left "Unexpected value of OrderBy"
 allLangs :: [Lang]
 allLangs = [minBound ..]

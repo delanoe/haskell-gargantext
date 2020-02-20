@@ -25,12 +25,11 @@ type Graph_Undirected = FGL.Gr () ()
 type Graph_Directed   = FGL.Gr () ()
 
 type Graph = FGL.Graph
-type Node = FGL.Node
-type Edge = FGL.Edge
+type Node = FGL.Node -- Int
+type Edge = FGL.Edge -- (Int, Int)
 
 ------------------------------------------------------------------
 -- | Main Functions
-
 mkGraph :: [Node] -> [Edge] -> Graph_Undirected
 mkGraph = FGL.mkUGraph
 
@@ -44,6 +43,24 @@ edges = FGL.edges
 
 nodes :: Graph gr => gr a b -> [Node]
 nodes = FGL.nodes
+
+------------------------------------------------------------------------
+-- | Graph Tools
+
+filterNeighbors :: Graph_Undirected -> Node -> [Node]
+filterNeighbors g n = List.nub $ neighbors g n
+
+-- Q: why not D.G.I.deg ? (Int as result)
+degree :: Graph_Undirected -> Node -> Double
+degree g n = fromIntegral $ List.length (filterNeighbors g n)
+
+vcount :: Graph_Undirected -> Double
+vcount = fromIntegral . List.length . List.nub . nodes
+
+-- | TODO tests, optim and use IGraph library, fix IO ?
+ecount :: Graph_Undirected -> Double
+ecount = fromIntegral . List.length . List.nub . edges
+
 
 ------------------------------------------------------------------
 -- | Main sugared functions

@@ -32,8 +32,8 @@ import Gargantext.Prelude hiding (length)
 import Gargantext.Text
 import Gargantext.Text.Context
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString as  BS
-import qualified Data.Vector as V
+import qualified Data.ByteString      as BS
+import qualified Data.Vector          as V
 
 ---------------------------------------------------------------
 headerCsvGargV3 :: Header
@@ -387,8 +387,15 @@ csv2doc (CsvDoc title source
 ------------------------------------------------------------------------
 parseHal :: FilePath -> IO [HyperdataDocument]
 parseHal fp = V.toList <$> V.map csvHal2doc <$> snd <$> readCsvHal fp
+
+parseHal' :: BL.ByteString -> [HyperdataDocument]
+parseHal' = V.toList . V.map csvHal2doc . snd . readCsvHalLazyBS 
+
 ------------------------------------------------------------------------
 
 parseCsv :: FilePath -> IO [HyperdataDocument]
 parseCsv fp = V.toList <$> V.map csv2doc <$> snd <$> readFile fp
+
+parseCsv' :: BL.ByteString -> [HyperdataDocument]
+parseCsv' bs = V.toList $ V.map csv2doc $ snd $ readCsvLazyBS bs
 

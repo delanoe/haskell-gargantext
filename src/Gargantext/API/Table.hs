@@ -44,9 +44,9 @@ import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..))
-import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Core.Utils.Prefix (unPrefix)
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..),runViewAuthorsDoc)
+import Gargantext.Core.Types (Offset, Limit, TableResult(..))
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..), runViewAuthorsDoc)
 import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.TextSearch
 import Gargantext.Database.Types.Node
@@ -57,11 +57,11 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
+
 type TableApi = Summary " Table API"
               :> ReqBody '[JSON] TableQuery
-              :> Post '[JSON] [FacetDoc]
+              :> Post    '[JSON] FacetTableResult
 
---{-
 data TableQuery = TableQuery
   { tq_offset  :: Int
   , tq_limit   :: Int
@@ -70,42 +70,64 @@ data TableQuery = TableQuery
   , tq_query  :: Text
   } deriving (Generic)
 
+type FacetTableResult = TableResult FacetDoc
+
 $(deriveJSON (unPrefix "tq_") ''TableQuery)
 
 instance ToSchema TableQuery where
-  declareNamedSchema =
-    genericDeclareNamedSchema
-      defaultSchemaOptions {fieldLabelModifier = drop 3}
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tq_")
 
 instance Arbitrary TableQuery where
   arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]
 
 
-tableApi :: NodeId -> TableQuery -> Cmd err [FacetDoc]
+tableApi :: NodeId -> TableQuery -> Cmd err FacetTableResult
 tableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
 tableApi cId (TableQuery o l order ft q) = case ft of
-      Docs  -> searchInCorpus cId False [q] (Just o) (Just l) (Just order)
-      Trash -> searchInCorpus cId True [q] (Just o) (Just l) (Just order)
+      Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
+      Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
+
+searchInCorpus' :: CorpusId
+                -> Bool
+                -> [Text]
+                -> Maybe Offset
+                -> Maybe Limit
+                -> Maybe OrderBy
+                -> Cmd err FacetTableResult
+searchInCorpus' cId t q o l order = do
+  docs <- searchInCorpus cId t q o l order
+  countAllDocs  <- searchCountInCorpus cId t q
+  pure $ TableResult { tr_docs = docs, tr_count = countAllDocs }
+
 
 getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
+         -> Maybe OrderBy -> Cmd err FacetTableResult
+getTable cId ft o l order = do
+  docs <- getTable' cId ft o l order
+  -- TODO: Rewrite to use runCountOpaQuery and avoid (length allDocs)
+  allDocs  <- getTable' cId ft Nothing Nothing Nothing
+  pure $ TableResult { tr_docs = docs, tr_count = length allDocs }
+
+getTable' :: NodeId -> Maybe TabType
+         -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getTable cId ft o l order =
+getTable' cId ft o l order =
   case ft of
-    (Just Docs)  -> runViewDocuments cId False o l order
-    (Just Trash) -> runViewDocuments cId True  o l order
+    (Just Docs)      -> runViewDocuments cId False o l order
+    (Just Trash)     -> runViewDocuments cId True  o l order
     (Just MoreFav)   -> moreLike cId o l order IsFav
     (Just MoreTrash) -> moreLike cId o l order IsTrash
     x     -> panic $ "not implemented in getTable: " <> (cs $ show x)
 
-getPairing :: ContactId -> Maybe TabType
+
+getPair :: ContactId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err [FacetDoc]
-getPairing cId ft o l order =
+getPair cId ft o l order =
   case ft of
     (Just Docs)  -> runViewAuthorsDoc cId False o l order
     (Just Trash) -> runViewAuthorsDoc cId True  o l order
     _     -> panic $ "not implemented: get Pairing" <> (cs $ show ft)
-
 

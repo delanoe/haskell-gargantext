@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ ! -d coreNLP ]; then
+    mkdir -v coreNLP
+fi
+
+pushd coreNLP
+
+wget https://dl.gargantext.org/coreNLP.tar.bz2
+tar xvjf coreNLP.tar.bz2
+pushd home/debian/CoreNLP
+./startServer.sh

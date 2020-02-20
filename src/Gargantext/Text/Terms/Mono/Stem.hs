@@ -55,7 +55,7 @@ stem lang = DT.pack . N.stem lang' . DT.unpack
     lang' = case lang of
               EN -> N.English
               FR -> N.French
-            --_  -> panic $ DT.pack "not implemented yet"
+              _  -> panic $ DT.pack "not implemented yet"
 
 
 

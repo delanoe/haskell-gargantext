@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Flow
+Module      : Gargantext.Core.Flow.Types
 Description : Core Flow main Types
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
 
-module Gargantext.Core.Flow where
+module Gargantext.Core.Flow.Types where
 
 import Control.Lens (Lens')
 import Data.Map (Map)
@@ -40,13 +40,14 @@ class UniqId a
 
 class ExtractNgramsT h
   where
-    extractNgramsT :: HasText h => TermType Lang -> h -> Cmd err (Map Ngrams (Map NgramsType Int))
+    extractNgramsT :: HasText h
+                   => TermType Lang
+                   -> h
+                   -> Cmd err (Map Ngrams (Map NgramsType Int))
 
 class HasText h
   where
     hasText :: h -> [Text]
-
-------------------------------------------------------------------------
 
 instance UniqId HyperdataDocument
   where
@@ -55,5 +56,3 @@ instance UniqId HyperdataDocument
 instance UniqId HyperdataContact
   where
     uniqId = hc_uniqId
-
-

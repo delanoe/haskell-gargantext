@@ -23,14 +23,14 @@ import Data.Either
 import Prelude (read)
 import Control.Exception (finally)
 import Gargantext.Prelude
-import Gargantext.Database.Flow (FlowCmdM, flowCorpusFile)
+import Gargantext.Database.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire)
 import Gargantext.Text.Corpus.Parsers (FileFormat(..))
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
 import Gargantext.Database.Schema.User (insertUsersDemo)
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.API -- (GargError)
+import Gargantext.API.Types (GargError)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
 import System.Environment (getArgs)
@@ -41,18 +41,27 @@ import Control.Monad.IO.Class (liftIO)
 
 main :: IO ()
 main = do
-  [userCreate, user, name, iniPath, limit, corpusPath] <- getArgs
+  [fun, user, name, iniPath, limit, corpusPath] <- getArgs
 
   --{-
+
   let createUsers :: Cmd GargError Int64
       createUsers = insertUsersDemo
   
   let
     --tt = (Unsupervised EN 6 0 Nothing)
     tt = (Multi EN)
-    format = CsvGargV3 -- CsvHalFormat --WOS
-    cmd :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    cmd = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
+    format = CsvGargV3 -- CsvHal --WOS
+    corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
+    corpus = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
+
+    corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
+    corpusCsvHal = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath
+
+    annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
+    annuaire = flowAnnuaire (cs user) (Left "Annuaire") (Multi EN) corpusPath
+
+
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
       debatCorpus = do
@@ -64,13 +73,23 @@ main = do
         flowCorpus (Text.pack user) (Text.pack name) (Multi FR) (map (map toHyperdataDocument) docs)
   --}
 
-
   withDevEnv iniPath $ \env -> do
-    _ <- if userCreate == "true"
+    _ <- if fun == "users"
           then runCmdDev env createUsers
           else pure 0 --(cs "false")
 
-    _ <- runCmdDev env cmd
+    _ <- if fun == "corpus"
+          then runCmdDev env corpus
+          else pure 0 --(cs "false")
+
+    _ <- if fun == "corpusCsvHal"
+          then runCmdDev env corpusCsvHal
+          else pure 0 --(cs "false")
+ 
+
+    _ <- if fun == "annuaire"
+            then runCmdDev env annuaire
+            else pure 0
     {-
     _ <- if corpusType == "csv"
             then runCmdDev env csvCorpus

@@ -19,7 +19,6 @@ This document defines basic of Text definitions according to Gargantext..
 - What is a sentence ?
 - What is a paragraph ?
 
-
 -}
 
 {-# LANGUAGE BangPatterns      #-}
@@ -134,6 +133,7 @@ incExcSpeGen_sorted :: Ord t => Map (t,t) Int -> ([(t,Double)],[(t,Double)])
 incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat ti m)
   where
     (ti,fi) = createIndices m
-    ordonne x = sortWith (Down . snd) $ zip (map snd $ M.toList fi) (toList x)
+    ordonne x = sortWith (Down . snd)
+              $ zip (map snd $ M.toList fi) (toList x)
 
 

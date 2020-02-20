@@ -1,0 +1,6 @@
+
+sudo apt install apache2-utils
+htpasswd -c /etc/nginx/haskell_gargantext.htpasswd username1
+
+sudo apt-get install certbot python-certbot-nginx
+sudo certbot --nginx

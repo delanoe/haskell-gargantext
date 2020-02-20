@@ -1,0 +1,33 @@
+#!/bin/bash
+
+DIR=$1
+DEPS_DIR=${DIR}/deps
+
+function clone_or_update() {
+    REPO=$1
+    echo "Checking repo ${REPO}"
+    # strip only dir name from URL
+    DIR=${REPO##*/}
+    # strip the remaining '.git' suffix
+    RAW_DIR=${DIR%.*}
+    if [ -d "${RAW_DIR}" ]; then
+        pushd ${RAW_DIR}
+        git pull
+        popd ..
+    else
+        git clone "$@"
+    fi
+}
+
+if [ ! -d "${DEPS_DIR}" ]; then
+    mkdir ${DIR}/deps
+fi
+
+cd ${DIR}/deps
+
+clone_or_update https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
+clone_or_update https://github.com/np/servant-job.git
+clone_or_update https://github.com/np/patches-map
+clone_or_update https://gitlab.com/npouillard/patches-class.git
+clone_or_update https://github.com/delanoe/haskell-opaleye
+clone_or_update https://github.com/delanoe/hsparql -b next --single-branch

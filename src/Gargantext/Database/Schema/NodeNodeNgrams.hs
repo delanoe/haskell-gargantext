@@ -23,30 +23,24 @@ module Gargantext.Database.Schema.NodeNodeNgrams
   where
 
 import Prelude
-import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
---import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Lens.TH (makeLenses)
 import Gargantext.Database.Utils (Cmd, mkCmd)
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)
 import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Database.Types.Node
 import Opaleye
 
-
-
-data NodeNodeNgramsPoly id' n1 n2 ngrams_id ngt w
-   = NodeNodeNgrams { nnng_id         :: id'
-                    , nnng_node1_id   :: n1
-                    , nnng_node2_id   :: n2
-                    , nnng_ngrams_id  :: ngrams_id
-                    , nnng_ngramsType :: ngt
-                    , nnng_weight     :: w
+data NodeNodeNgramsPoly n1 n2 ngrams_id ngt w
+   = NodeNodeNgrams { _nnng_node1_id   :: n1
+                    , _nnng_node2_id   :: n2
+                    , _nnng_ngrams_id  :: ngrams_id
+                    , _nnng_ngramsType :: ngt
+                    , _nnng_weight     :: w
                     } deriving (Show)
 
-
 type NodeNodeNgramsWrite =
-     NodeNodeNgramsPoly (Maybe (Column PGInt4  ))
-                        (Column PGInt4  )
+     NodeNodeNgramsPoly (Column PGInt4  )
                         (Column PGInt4  )
                         (Column PGInt4  )
                         (Column PGInt4  )
@@ -57,7 +51,6 @@ type NodeNodeNgramsRead  =
                         (Column PGInt4  )
                         (Column PGInt4  )
                         (Column PGInt4  )
-                        (Column PGInt4  )
                         (Column PGFloat8)
 
 type NodeNodeNgramsReadNull =
@@ -65,38 +58,36 @@ type NodeNodeNgramsReadNull =
                         (Column (Nullable PGInt4  ))
                         (Column (Nullable PGInt4  ))
                         (Column (Nullable PGInt4  ))
-                        (Column (Nullable PGInt4  ))
                         (Column (Nullable PGFloat8))
 
 type NodeNodeNgrams =
-  NodeNodeNgramsPoly (Maybe Int) CorpusId DocId NgramsId NgramsTypeId Double
+  NodeNodeNgramsPoly CorpusId DocId NgramsId NgramsTypeId Double
 
---{-
 $(makeAdaptorAndInstance "pNodeNodeNgrams" ''NodeNodeNgramsPoly)
--- $(makeLensesWith          abbreviatedFields ''NodeNodeNgramsPoly)
+makeLenses ''NodeNodeNgramsPoly
+
 
 nodeNodeNgramsTable :: Table NodeNodeNgramsWrite NodeNodeNgramsRead
 nodeNodeNgramsTable  = Table "node_node_ngrams"
                           ( pNodeNodeNgrams NodeNodeNgrams
-                               { nnng_id         = optional "id"
-                               , nnng_node1_id   = required "node1_id"
-                               , nnng_node2_id   = required "node2_id"
-                               , nnng_ngrams_id  = required "ngrams_id"
-                               , nnng_ngramsType = required "ngrams_type"
-                               , nnng_weight     = required "weight"
+                               { _nnng_node1_id   = required "node1_id"
+                               , _nnng_node2_id   = required "node2_id"
+                               , _nnng_ngrams_id  = required "ngrams_id"
+                               , _nnng_ngramsType = required "ngrams_type"
+                               , _nnng_weight     = required "weight"
                                }
                           )
+
+------------------------------------------------
 
 queryNodeNodeNgramsTable :: Query NodeNodeNgramsRead
 queryNodeNodeNgramsTable = queryTable nodeNodeNgramsTable
 
-
 -- | Insert utils
 insertNodeNodeNgrams :: [NodeNodeNgrams] -> Cmd err Int
 insertNodeNodeNgrams = insertNodeNodeNgramsW
-                     . map (\(NodeNodeNgrams id'' n1 n2 ng nt w) ->
-                              NodeNodeNgrams (pgInt4 <$> id'')
-                                             (pgNodeId n1)
+                     . map (\(NodeNodeNgrams n1 n2 ng nt w) ->
+                              NodeNodeNgrams (pgNodeId n1)
                                              (pgNodeId n2)
                                              (pgInt4   ng)
                                              (pgNgramsTypeId nt)
@@ -112,5 +103,4 @@ insertNodeNodeNgramsW nnnw =
                               , iReturning = rCount
                               , iOnConflict = (Just DoNothing)
       })
-
 

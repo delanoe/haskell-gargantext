@@ -25,11 +25,11 @@ commentary with @some markup@.
 
 module Gargantext.Database.Schema.NodeNode where
 
-import Control.Lens (view)
+import Control.Lens (view, (^.))
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Lens.TH (makeLenses)
 import Data.Maybe (Maybe, catMaybes)
 import Data.Text (Text, splitOn)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -44,10 +44,10 @@ import Control.Arrow (returnA)
 import qualified Opaleye as O
 
 data NodeNodePoly node1_id node2_id score cat
-                   = NodeNode { nn_node1_id   :: node1_id
-                              , nn_node2_id   :: node2_id
-                              , nn_score      :: score
-                              , nn_category   :: cat
+                   = NodeNode { _nn_node1_id   :: node1_id
+                              , _nn_node2_id   :: node2_id
+                              , _nn_score      :: score
+                              , _nn_category   :: cat
                               } deriving (Show)
 
 type NodeNodeWrite     = NodeNodePoly (Column (PGInt4))
@@ -59,23 +59,23 @@ type NodeNodeRead      = NodeNodePoly (Column (PGInt4))
                                       (Column (PGInt4))
                                       (Column (PGFloat8))
                                       (Column (PGInt4))
-                                      
+
 type NodeNodeReadNull  = NodeNodePoly (Column (Nullable PGInt4))
                                       (Column (Nullable PGInt4))
                                       (Column (Nullable PGFloat8))
                                       (Column (Nullable PGInt4))
 
-type NodeNode = NodeNodePoly Int Int (Maybe Double) (Maybe Int)
+type NodeNode = NodeNodePoly NodeId NodeId (Maybe Double) (Maybe Int)
 
 $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)
-$(makeLensesWith abbreviatedFields   ''NodeNodePoly)
+makeLenses ''NodeNodePoly
 
 nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
 nodeNodeTable  = Table "nodes_nodes" (pNodeNode
-                                NodeNode { nn_node1_id = required "node1_id"
-                                         , nn_node2_id = required "node2_id"
-                                         , nn_score    = optional "score"
-                                         , nn_category = optional "category"
+                                NodeNode { _nn_node1_id = required "node1_id"
+                                         , _nn_node2_id = required "node2_id"
+                                         , _nn_score    = optional "score"
+                                         , _nn_category = optional "category"
                                      }
                                      )
 
@@ -102,8 +102,30 @@ instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
 instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-
 ------------------------------------------------------------------------
+-- | Basic NodeNode tools
+getNodeNode :: NodeId -> Cmd err [NodeNode]
+getNodeNode n = runOpaQuery (selectNodeNode $ pgNodeId n)
+  where
+    selectNodeNode :: Column PGInt4 -> Query NodeNodeRead
+    selectNodeNode n' = proc () -> do
+      ns <- queryNodeNodeTable -< ()
+      restrict -< _nn_node1_id ns .== n'
+      returnA -< ns
+
+-------------------------
+insertNodeNode :: [NodeNode] -> Cmd err Int64
+insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeNodeTable ns' rCount Nothing
+  where
+    ns' :: [NodeNodeWrite]
+    ns' = map (\(NodeNode n1 n2 x y)
+                -> NodeNode (pgNodeId n1)
+                            (pgNodeId n2)
+                            (pgDouble <$> x)
+                            (pgInt4   <$> y) 
+              ) ns
+
+
 -- | Favorite management
 nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
 nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
@@ -120,23 +142,21 @@ nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
     catQuery :: PGS.Query
-    catQuery = [sql| UPDATE nodes_nodes as old SET
-                 category = new.category
-                 from (?) as new(node1_id,node2_id,category)
-                 WHERE old.node1_id = new.node1_id
-                 AND   old.node2_id = new.node2_id
-                 RETURNING new.node2_id
+    catQuery = [sql| UPDATE nodes_nodes as nn0
+                      SET category = nn1.category
+                       FROM (?) as nn1(node1_id,node2_id,category)
+                       WHERE nn0.node1_id = nn1.node1_id
+                       AND   nn0.node2_id = nn1.node2_id
+                       RETURNING nn1.node2_id
                   |]
 
 ------------------------------------------------------------------------
 -- | TODO use UTCTime fast 
 selectDocsDates :: CorpusId -> Cmd err [Text]
-selectDocsDates cId = 
-                map (head' "selectDocsDates" . splitOn "-")
-               <$> catMaybes
-               <$> map (view hyperdataDocument_publication_date)
-               <$> selectDocs cId
-
+selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
+                   <$> catMaybes
+                   <$> map (view hyperdataDocument_publication_date)
+                   <$> selectDocs cId
 
 selectDocs :: CorpusId -> Cmd err [HyperdataDocument]
 selectDocs cId = runOpaQuery (queryDocs cId)
@@ -144,11 +164,10 @@ selectDocs cId = runOpaQuery (queryDocs cId)
 queryDocs :: CorpusId -> O.Query (Column PGJsonb)
 queryDocs cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_category nn)  .>= (toNullable $ pgInt4 1)
-  restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
+  restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
+  restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -< view (node_hyperdata) n
-
 
 selectDocNodes :: CorpusId -> Cmd err [Node HyperdataDocument]
 selectDocNodes cId = runOpaQuery (queryDocNodes cId)
@@ -156,18 +175,16 @@ selectDocNodes cId = runOpaQuery (queryDocNodes cId)
 queryDocNodes :: CorpusId -> O.Query NodeRead
 queryDocNodes cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
-  restrict -< ( nn_node1_id nn)  .== (toNullable $ pgNodeId cId)
-  restrict -< ( nn_category nn)  .>= (toNullable $ pgInt4 1)
-  restrict -< (_node_typename n) .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
+  restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
+  restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
   returnA -<  n
-
 
 joinInCorpus :: O.Query (NodeRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
   where
     cond :: (NodeRead, NodeNodeRead) -> Column PGBool
-    cond (n, nn) = nn_node2_id nn .== (view node_id n)
-
+    cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
 
 ------------------------------------------------------------------------
 -- | Trash management
@@ -187,12 +204,12 @@ nodesToTrash input = map (\(PGS.Only a) -> a)
   where
     fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
     trashQuery :: PGS.Query
-    trashQuery = [sql| UPDATE nodes_nodes as old SET
-                 delete = new.delete
-                 from (?) as new(node1_id,node2_id,delete)
-                 WHERE old.node1_id = new.node1_id
-                 AND   old.node2_id = new.node2_id
-                 RETURNING new.node2_id
+    trashQuery = [sql| UPDATE nodes_nodes as nn0 SET
+                 delete = nn1.delete
+                 from (?) as nn1(node1_id,node2_id,delete)
+                 WHERE nn0.node1_id = nn1.node1_id
+                 AND   nn0.node2_id = nn1.node2_id
+                 RETURNING nn1.node2_id
                   |]
 
 -- | /!\ Really remove nodes in the Corpus or Annuaire
