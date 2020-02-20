@@ -202,6 +202,8 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
           MaxClique _ -> undefined
         -------------------------------------- 
 
+        -- dev viz graph maxClique getMaxClique
+
 
 --------------------
 -- | Coocurency | --
