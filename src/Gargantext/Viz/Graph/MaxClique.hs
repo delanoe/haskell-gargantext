@@ -52,35 +52,35 @@ def fast_maximal_cliques(g):
 module Gargantext.Viz.Graph.MaxClique
   where
 
+import Data.Maybe (catMaybes)
 import Gargantext.Prelude
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.List (sortOn, nub, concat, length)
 import Data.Set (Set)
 import Data.Set (fromList, toList, isSubsetOf)
 import Data.Graph.Inductive hiding (Graph, neighbors, subgraph, (&))
 import Gargantext.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGraphUfromEdges)
-
-
+import Gargantext.Viz.Graph.Tools (cooc2graph', Threshold)
+import Gargantext.Viz.Graph.Index (createIndices, toIndex)
 type Graph = Graph_Undirected
 type Neighbor = Node
 
-{-
--- prefiltre
--- Texte -> Ngrams
--- Map Terms
--- pré-filtre: spécifiques
--- soit conditionnelle, matrice spécifiques
--- combien de voisins maximum avant le calcul de cliques (les génériques)
--- calcul maxcliques
--- calcul de densité/inclusion si graph gros
--- 
--- FIS: ensemble de termes un niveau du document
--- maxclique: ensemble de termes au niveau de l'ensemble du document
 
-type Density = Double
-maxCliques' :: [[Text]] -> Map (Set Ngrams) Density
-maxCliques' = undefined
--}
+-- | getMaxCliques
+-- TODO chose distance order
+getMaxCliques :: Ord a => Threshold -> Map (a, a) Int -> [[a]]
+getMaxCliques t m = map fromIndices $ getMaxCliques' t m'
+  where
+    m'          = toIndex to m
+    (to,from)   = createIndices m
+    fromIndices = catMaybes . map (\n -> Map.lookup n from)
 
+    getMaxCliques' :: Threshold -> Map (Int, Int) Int -> [[Int]]
+    getMaxCliques' t' n = maxCliques graph
+      where
+        graph = mkGraphUfromEdges (Map.keys n')
+        n'    = cooc2graph' t' n
 
 maxCliques :: Graph -> [[Node]]
 maxCliques g = map (\n -> subMaxCliques g (n:ns)) ns & concat & takeMax

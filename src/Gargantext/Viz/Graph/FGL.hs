@@ -25,12 +25,11 @@ type Graph_Undirected = FGL.Gr () ()
 type Graph_Directed   = FGL.Gr () ()
 
 type Graph = FGL.Graph
-type Node = FGL.Node
-type Edge = FGL.Edge
+type Node = FGL.Node -- Int
+type Edge = FGL.Edge -- (Int, Int)
 
 ------------------------------------------------------------------
 -- | Main Functions
-
 mkGraph :: [Node] -> [Edge] -> Graph_Undirected
 mkGraph = FGL.mkUGraph
 

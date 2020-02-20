@@ -26,7 +26,7 @@ import Gargantext.Core.Statistics
 import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Viz.Graph.Distances.Matrice (measureConditional)
-import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map)
+import Gargantext.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index)
 import Gargantext.Viz.Graph.IGraph (mkGraphUfromEdges)
 import Gargantext.Viz.Graph.Proxemy (confluence)
 import GHC.Float (sin, cos)
@@ -37,6 +37,19 @@ import qualified Data.Map  as Map
 import qualified Data.List as List
 
 type Threshold = Double
+
+
+cooc2graph' :: Ord t => Double
+                     -> Map (t, t) Int
+                     -> Map (Index, Index) Double
+cooc2graph' threshold myCooc = distanceMap
+  where
+    (ti, _) = createIndices myCooc
+    myCooc' = toIndex ti myCooc
+    matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
+    distanceMat = measureConditional matCooc
+    distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+
 
 cooc2graph :: Threshold
            -> (Map (Text, Text) Int)
@@ -60,11 +73,12 @@ cooc2graph threshold myCooc = do
     True  -> trace ("level" <> show level) $ cLouvain level distanceMap
     False -> panic "Text.Flow: DistanceMap is empty"
 
-  let bridgeness' = {-trace ("rivers: " <> show rivers) $-} bridgeness rivers partitions distanceMap
+  let bridgeness' = {-trace ("rivers: " <> show rivers) $-}
+                    bridgeness rivers partitions distanceMap
+
   let confluence' = confluence (Map.keys bridgeness') 3 True False
 
   data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
-
 
 
 data ClustersParams = ClustersParams { bridgness :: Double
