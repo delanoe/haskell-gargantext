@@ -15,15 +15,15 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloMaker where
 
-import Data.List (concat, nub, partition, sort, (++))
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys)
+import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey)
 import Data.Set (size)
 import Data.Vector (Vector)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
-import Gargantext.Viz.Phylo.TemporalMatching (temporalMatching)
+import Gargantext.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
 import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
@@ -43,7 +43,8 @@ import qualified Data.Set as Set
 
 
 toPhylo :: [Document] -> TermList -> Config -> Phylo
-toPhylo docs lst conf = traceToPhylo (phyloLevel conf) $
+toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
+                      $ traceToPhylo (phyloLevel conf) $
     if (phyloLevel conf) > 1
       then foldl' (\phylo' _ -> synchronicClustering phylo') phylo1 [2..(phyloLevel conf)]
       else phylo1 
@@ -62,6 +63,33 @@ toPhylo docs lst conf = traceToPhylo (phyloLevel conf) $
 -- | To Phylo 1 | --
 --------------------
 
+toGroupsProxi :: Level -> Phylo -> Phylo
+toGroupsProxi lvl phylo = 
+  let proximity = phyloProximity $ getConfig phylo
+      groupsProxi = foldlWithKey (\acc pId pds -> 
+                      -- 1) process period by period
+                      let egos = map (\g -> (getGroupId g, g ^. phylo_groupNgrams))
+                               $ elems 
+                               $ view ( phylo_periodLevels 
+                                      . traverse . filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl) 
+                                      . phylo_levelGroups ) pds
+                          next    = getNextPeriods ToParents (getTimeFrame $ timeUnit $ getConfig phylo) pId (keys $ phylo ^. phylo_periods)
+                          targets = map (\g ->  (getGroupId g, g ^. phylo_groupNgrams)) $ getGroupsFromLevelPeriods lvl next phylo
+                          docs    = filterDocs  (phylo ^. phylo_timeDocs) ([pId] ++ next)
+                          diagos  = filterDiago (phylo ^. phylo_timeCooc) ([pId] ++ next)
+                          -- 2) compute the pairs in parallel
+                          pairs  = map (\(id,ngrams) -> 
+                                        map (\(id',ngrams') -> 
+                                            let nbDocs = (sum . elems) $ filterDocs docs    ([idToPrd id, idToPrd id'])
+                                                diago  = reduceDiagos  $ filterDiago diagos ([idToPrd id, idToPrd id'])
+                                             in ((id,id'),toProximity nbDocs diago proximity ngrams ngrams' ngrams')
+                                        ) $ filter (\(_,ngrams') -> (not . null) $ intersect ngrams ngrams') targets 
+                                 ) egos
+                          pairs' = pairs `using` parList rdeepseq
+                       in acc ++ (concat pairs')
+                    ) [] $ phylo ^. phylo_periods
+   in phylo & phylo_groupsProxi .~ ((traceGroupsProxi . fromList) groupsProxi) 
+
 
 appendGroups :: (a -> PhyloPeriodId -> Level -> Int -> Vector Ngrams -> [Cooc] -> PhyloGroup) -> Level -> Map (Date,Date) [a] -> Phylo -> Phylo
 appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ concat $ elems m) <> " groups to Level " <> show (lvl) <> "\n")
@@ -72,40 +100,44 @@ appendGroups f lvl m phylo =  trace ("\n" <> "-- | Append " <> show (length $ co
            (\phyloLvl -> if lvl == (phyloLvl ^. phylo_levelLevel)
                          then
                             let pId = phyloLvl ^. phylo_levelPeriod
-                                phyloFis = m ! pId
+                                phyloCUnit = m ! pId
                             in  phyloLvl 
                               & phylo_levelGroups .~ (fromList $ foldl (\groups obj ->
                                     groups ++ [ (((pId,lvl),length groups)
                                               , f obj pId lvl (length groups) (getRoots phylo) 
                                                   (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [pId]))
-                                              ] ) [] phyloFis)
+                                              ] ) [] phyloCUnit)
                          else 
                             phyloLvl )
            phylo  
 
 
-fisToGroup :: PhyloFis -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
-fisToGroup fis pId lvl idx fdt coocs =
-    let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloFis_clique) fdt
+cliqueToGroup :: PhyloClique -> PhyloPeriodId -> Level ->  Int -> Vector Ngrams -> [Cooc] -> PhyloGroup
+cliqueToGroup fis pId lvl idx fdt coocs =
+    let ngrams = ngramsToIdx (Set.toList $ fis ^. phyloClique_nodes) fdt
     in  PhyloGroup pId lvl idx ""
-                   (fis ^. phyloFis_support)
+                   (fis ^. phyloClique_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
-                   (1,[0])
-                   empty
+                   (1,[0]) -- | branchid (lvl,[path in the branching tree])
+                   (fromList [("breaks",[0]),("seaLevels",[0])])
                    [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo
-toPhylo1 docs phyloBase = temporalMatching
-                        $ appendGroups fisToGroup 1 phyloFis phyloBase
+toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of 
+    Constante start gap -> constanteTemporalMatching  start gap 
+                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase    
+    Adaptative steps    -> adaptativeTemporalMatching steps
+                   $ toGroupsProxi 1
+                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase
     where
         --------------------------------------
-        phyloFis :: Map (Date,Date) [PhyloFis]
-        phyloFis =  toPhyloFis docs' (getFisSupport $ contextualUnit $ getConfig phyloBase) (getFisSize $ contextualUnit $ getConfig phyloBase)
+        phyloClique :: Map (Date,Date) [PhyloClique]
+        phyloClique =  toPhyloClique phyloBase docs'
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
-        docs' =  groupDocsByPeriod date (getPeriodIds phyloBase) docs
+        docs' =  groupDocsByPeriod' date (getPeriodIds phyloBase) docs
         --------------------------------------
 
 
@@ -115,54 +147,59 @@ toPhylo1 docs phyloBase = temporalMatching
 
 
 -- | To apply a filter with the possibility of keeping some periods non empty (keep : True|False)
-filterFis :: Bool -> Int -> (Int -> [PhyloFis] -> [PhyloFis]) -> Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFis keep thr f m = case keep of
+filterClique :: Bool -> Int -> (Int -> [PhyloClique] -> [PhyloClique]) -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
+filterClique keep thr f m = case keep of
   False -> map (\l -> f thr l) m
   True  -> map (\l -> keepFilled (f) thr l) m
 
 
 -- | To filter Fis with small Support
-filterFisBySupport :: Int -> [PhyloFis] -> [PhyloFis]
-filterFisBySupport thr l = filter (\fis -> (fis ^. phyloFis_support) >= thr) l
+filterCliqueBySupport :: Int -> [PhyloClique] -> [PhyloClique]
+filterCliqueBySupport thr l = filter (\clq -> (clq ^. phyloClique_support) >= thr) l
 
 
 -- | To filter Fis with small Clique size
-filterFisByClique :: Int -> [PhyloFis] -> [PhyloFis]
-filterFisByClique thr l = filter (\fis -> (size $ fis ^. phyloFis_clique) >= thr) l
+filterCliqueBySize :: Int -> [PhyloClique] -> [PhyloClique]
+filterCliqueBySize thr l = filter (\clq -> (size $ clq ^. phyloClique_nodes) >= thr) l
 
 
 -- | To filter nested Fis
-filterFisByNested :: Map (Date, Date) [PhyloFis] -> Map (Date, Date) [PhyloFis]
-filterFisByNested m = 
-  let fis  = map (\l -> 
-                foldl (\mem f -> if (any (\f' -> isNested (Set.toList $ f' ^. phyloFis_clique) (Set.toList $ f ^. phyloFis_clique)) mem)
+filterCliqueByNested :: Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
+filterCliqueByNested m = 
+  let clq  = map (\l -> 
+                foldl (\mem f -> if (any (\f' -> isNested (Set.toList $ f' ^. phyloClique_nodes) (Set.toList $ f ^. phyloClique_nodes)) mem)
                                  then mem
                                  else 
-                                    let fMax = filter (\f' -> not $ isNested (Set.toList $ f ^. phyloFis_clique) (Set.toList $ f' ^. phyloFis_clique)) mem
+                                    let fMax = filter (\f' -> not $ isNested (Set.toList $ f ^. phyloClique_nodes) (Set.toList $ f' ^. phyloClique_nodes)) mem
                                     in  fMax ++ [f] ) [] l)
            $ elems m 
-      fis' = fis `using` parList rdeepseq
-  in  fromList $ zip (keys m) fis' 
+      clq' = clq `using` parList rdeepseq
+  in  fromList $ zip (keys m) clq' 
 
 
 -- | To transform a time map of docs innto a time map of Fis with some filters
-toPhyloFis :: Map (Date, Date) [Document] -> Int -> Int -> Map (Date,Date) [PhyloFis]
-toPhyloFis phyloDocs support clique = traceFis "Filtered Fis"
-                $ filterFisByNested 
-                $ traceFis "Filtered by clique size"
-                $ filterFis True clique (filterFisByClique)
-                $ traceFis "Filtered by support"
-                $ filterFis True support (filterFisBySupport)
-                $ traceFis "Unfiltered Fis" phyloFis
+toPhyloClique :: Phylo -> Map (Date, Date) [Document] -> Map (Date,Date) [PhyloClique]
+toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of 
+    Fis s s' -> -- traceFis "Filtered Fis"
+                filterCliqueByNested 
+                -- $ traceFis "Filtered by clique size"
+                $ filterClique True s' (filterCliqueBySize)
+                -- $ traceFis "Filtered by support"
+                $ filterClique True s (filterCliqueBySupport)
+                -- $ traceFis "Unfiltered Fis" 
+                phyloClique
+    MaxClique _ -> undefined
     where
         -------------------------------------- 
-        phyloFis :: Map (Date,Date) [PhyloFis]
-        phyloFis = 
-            let fis  = map (\(prd,docs) -> let lst = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
-                                           in (prd, map (\f -> PhyloFis (fst f) (snd f) prd) lst))
-                     $ toList phyloDocs
-                fis' = fis `using` parList rdeepseq
-            in fromList fis'
+        phyloClique :: Map (Date,Date) [PhyloClique]
+        phyloClique = case (clique $ getConfig phylo) of 
+          Fis _ _ ->  let fis  = map (\(prd,docs) -> 
+                                  let lst = toList $ fisWithSizePolyMap (Segment 1 20) 1 (map text docs)
+                                   in (prd, map (\f -> PhyloClique (fst f) (snd f) prd) lst))
+                               $ toList phyloDocs
+                          fis' = fis `using` parList rdeepseq
+                       in fromList fis'
+          MaxClique _ -> undefined
         -------------------------------------- 
 
 
@@ -188,6 +225,21 @@ docsToTimeScaleCooc docs fdt =
 -- | to Phylo Base | --
 -----------------------
 
+-- | To group a list of Documents by fixed periods
+groupDocsByPeriod' :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
+groupDocsByPeriod' f pds docs = 
+  let docs'    = groupBy (\d d' -> f d == f d') $ sortOn f docs
+      periods  = map (inPeriode f docs') pds
+      periods' = periods `using` parList rdeepseq
+   in trace ("\n" <> "-- | Group " <> show(length docs) <> " docs by " <> show(length pds) <> " periods" <> "\n") 
+    $ fromList $ zip pds periods'
+  where
+    --------------------------------------
+    inPeriode :: Ord b => (t -> b) -> [[t]] -> (b, b) -> [t]
+    inPeriode f' h (start,end) =
+      concat $ fst $ partition (\d -> f' (head' "inPeriode" d) >= start && f' (head' "inPeriode" d) <= end) h
+
+
 
 -- | To group a list of Documents by fixed periods
 groupDocsByPeriod :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
@@ -204,6 +256,17 @@ groupDocsByPeriod f pds es =
     inPeriode f' h (start,end) =
       fst $ partition (\d -> f' d >= start && f' d <= end) h
     --------------------------------------   
+
+
+docsToTermFreq :: [Document] -> Vector Ngrams -> Map Int Double
+docsToTermFreq docs fdt =
+  let nbDocs = fromIntegral $ length docs
+      freqs = map (/(nbDocs))
+             $ fromList
+             $ map (\lst -> (head' "docsToTermFreq" lst, fromIntegral $ length lst)) 
+             $ group $ sort $ concat $ map (\d -> nub $ ngramsToIdx (text d) fdt) docs
+      sumFreqs = sum $ elems freqs
+   in map (/sumFreqs) freqs
 
 
 -- | To count the number of docs by unit of time
@@ -230,5 +293,7 @@ toPhyloBase docs lst conf =
        $ Phylo foundations
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
+               (docsToTermFreq docs (foundations ^. foundations_roots))
+               empty
                params
                (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels 1 prd))) periods)
