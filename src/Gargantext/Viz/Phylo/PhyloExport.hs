@@ -18,10 +18,10 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloExport where
 
 import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
-import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy, inits, tail)
+import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy, inits, elemIndex)
 import Data.Vector (Vector)
 
-import Prelude (writeFile, replicate)
+import Prelude (writeFile)
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools 
@@ -110,12 +110,13 @@ groupToTable fdt g = H.Table H.HTable
                                    <> (pack $ show (getGroupId g)))]] 
         --------------------------------------
 
-branchToDotNode :: PhyloBranch -> Dot DotId
-branchToDotNode b = 
+branchToDotNode :: PhyloBranch -> Int -> Dot DotId
+branchToDotNode b bId = 
     node (branchIdToDotId $ b ^. branch_id)
          ([FillColor [toWColor CornSilk], FontName "Arial", FontSize 40, Shape Egg, Style [SItem Bold []], Label (toDotLabel $ b ^. branch_label)]
          <> (metaToAttr $ b ^. branch_meta)
          <> [ toAttr "nodeType" "branch"
+            , toAttr "bId"      (pack $ show bId)
             , toAttr "branchId" (pack $ unwords (map show $ snd $ b ^. branch_id))
             , toAttr "branch_x" (fromStrict $ Text.pack $ (show $ b ^. branch_x))
             , toAttr "branch_y" (fromStrict $ Text.pack $ (show $ b ^. branch_y))
@@ -131,14 +132,15 @@ periodToDotNode prd =
             , toAttr "to"   (fromStrict $ Text.pack $ (show $ snd prd))])
 
 
-groupToDotNode :: Vector Ngrams -> PhyloGroup -> Dot DotId
-groupToDotNode fdt g = 
+groupToDotNode :: Vector Ngrams -> PhyloGroup -> Int -> Dot DotId
+groupToDotNode fdt g bId = 
     node (groupIdToDotId $ getGroupId g)
                      ([FontName "Arial", Shape Square, penWidth 4,  toLabel (groupToTable fdt g)]
                       <> [ toAttr "nodeType" "group"
                          , toAttr "from" (pack $ show (fst $ g ^. phylo_groupPeriod))
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
                          , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))
+                         , toAttr "bId" (pack $ show bId)
                          , toAttr "support" (pack $ show (g ^. phylo_groupSupport))])  
 
 
@@ -146,9 +148,9 @@ toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
         GroupToGroup   -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True
-                          , Label (StrLabel $ fromStrict lbl)]
+                          , Label (StrLabel $ fromStrict lbl)] <> [toAttr "edgeType" "link" ]
         BranchToGroup  -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])
-                          , Label (StrLabel $ fromStrict lbl)]
+                          , Label (StrLabel $ fromStrict lbl)] <> [toAttr "edgeType" "branchLink" ]
         BranchToBranch -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])
                           , Label (StrLabel $ fromStrict lbl)]
         PeriodToPeriod -> [ Width 5, Color [toWColor Black]])
@@ -160,6 +162,11 @@ mergePointers groups =
         toParents = fromList $ concat $ map (\g -> map (\(target,w) -> ((target,getGroupId g),w)) $ g ^. phylo_groupPeriodParents) groups
     in  unionWith (\w w' -> max w w') toChilds toParents
 
+
+toBid :: PhyloGroup -> [PhyloBranch] -> Int
+toBid g bs = 
+  let b' = head' "toBid" (filter (\b -> b ^. branch_id == g ^. phylo_groupBranchId) bs)
+   in fromJust $ elemIndex b' bs
 
 exportToDot :: Phylo -> PhyloExport -> DotGraph DotId
 exportToDot phylo export = 
@@ -200,7 +207,7 @@ exportToDot phylo export =
             --             mapM branchToDotNode branches
             --     ) $ elems $ fromListWith (++) $ map (\b -> ((init . snd) $ b ^. branch_id,[b])) $ export ^. export_branches
 
-            mapM branchToDotNode $ export ^. export_branches
+            mapM (\b -> branchToDotNode b (fromJust $ elemIndex b (export ^. export_branches))) $ export ^. export_branches
 
         -- | 5) create a layer for each period
         _ <- mapM (\period ->
@@ -209,7 +216,7 @@ exportToDot phylo export =
                     periodToDotNode period
 
                     -- | 6) create a node for each group 
-                    mapM (\g -> groupToDotNode (getRoots phylo) g) (filter (\g -> g ^. phylo_groupPeriod == period) $ export ^. export_groups)
+                    mapM (\g -> groupToDotNode (getRoots phylo) g (toBid g (export ^. export_branches))) (filter (\g -> g ^. phylo_groupPeriod == period) $ export ^. export_groups)
             ) $ getPeriodIds phylo
 
         -- | 7) create the edges between a branch and its first groups
@@ -270,11 +277,25 @@ processFilters filters qua export =
 -- | Sort | --
 --------------
 
+branchToIso :: [PhyloBranch] -> [PhyloBranch]
+branchToIso branches =
+    let steps = map sum
+              $ inits
+              $ map (\(b,x) -> b ^. branch_y + 0.05 - x)
+              $ zip branches 
+              $ ([0] ++ (map (\(b,b') -> 
+                                 let idx = length $ commonPrefix (b ^. branch_canonId) (b' ^. branch_canonId) []
+                                  in (b' ^. branch_seaLevel) !! (idx - 1)
+                                 ) $ listToSeq branches))
+     in map (\(x,b) -> b & branch_x .~ x)
+      $ zip steps branches
+
+
 sortByHierarchy :: Int -> [PhyloBranch] -> [PhyloBranch]
 sortByHierarchy depth branches =
     if (length branches == 1)
-        then branches
-        else concat 
+        then branchToIso branches
+        else branchToIso $ concat 
            $ map (\branches' ->
                     let partitions = partition (\b -> depth + 1 == ((length . snd) $ b ^. branch_id)) branches'
                     in  (sortOn (\b -> (b ^. branch_meta) ! "birth") (fst partitions))
@@ -459,7 +480,6 @@ processDynamics groups =
 -- | phyloExport | --
 ---------------------   
 
-
 toPhyloExport :: Phylo -> DotGraph DotId
 toPhyloExport phylo = exportToDot phylo
                     $ processFilters (exportFilter $ getConfig phylo) (phyloQuality $ getConfig phylo)
@@ -468,57 +488,22 @@ toPhyloExport phylo = exportToDot phylo
                     $ processMetrics  export           
     where
         export :: PhyloExport
-        export = PhyloExport groups 
-               $ map (\((w,t),b) -> b & branch_w .~ w
-                                      & branch_t .~ t)
-               $ zip toScale branches'
-        --------------------------------------
-        toScale :: [(Double,Double)]
-        toScale = 
-          let ws  = map (\b -> 5 * (2 * (b ^. branch_w) - 1)) branches' 
-              ts  = map (/2) ws
-              ts' = map (\(x,y) -> x + y)
-                  $ zip ts
-                  $ map (\(x,y) -> x + y)
-                  $ zip (map sum $ tail $ inits $ replicate (length ws) 10)
-                  $ map sum $ init $ inits ws
-           in zip ws ts'
-        --------------------------------------
-        branches' :: [PhyloBranch]
-        branches' = sortOn _branch_x
-                  $ map (\(x,b) -> b & branch_x .~ x)
-                  $ zip branchesGaps branches
-        --------------------------------------
-        branchesGaps :: [Double]
-        branchesGaps = map sum
-                     $ inits
-                     $ map (\(b,x) -> b ^. branch_y + 0.05 - x)
-                     $ zip branches 
-                     $ ([0] ++ (map (\(b,b') -> 
-                                        let idx = length $ commonPrefix (b ^. branch_canonId) (b' ^. branch_canonId) []
-                                         in (b' ^. branch_seaLevel) !! (idx - 1)
-                                        ) $ listToSeq branches))
-        --------------------------------------     
-        toWidth :: [PhyloGroup] -> Double
-        toWidth gs = fromIntegral 
-                   $ maximum
-                   $ map length
-                   $ groupBy (\g g' -> g ^. phylo_groupPeriod == g' ^. phylo_groupPeriod) gs        
+        export = PhyloExport groups branches      
         --------------------------------------
         branches :: [PhyloBranch]
-        branches = map (\(g,w) -> 
+        branches = map (\g -> 
                       let seaLvl = (g ^. phylo_groupMeta) ! "seaLevels"
                           breaks = (g ^. phylo_groupMeta) ! "breaks"
                           canonId = take (round $ (last' "export" breaks) + 2) (snd $ g ^. phylo_groupBranchId)
-                       in trace (show(canonId)) $ PhyloBranch (g ^. phylo_groupBranchId) 
+                       in PhyloBranch (g ^. phylo_groupBranchId) 
                                       canonId
                                       seaLvl
                                       0 
                                       (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl))
-                                      w
+                                      0
                                       0
                                       "" empty)  
-                  $ map (\gs -> (head' "export" gs,toWidth gs))
+                  $ map (\gs -> head' "export" gs)
                   $ groupBy (\g g' -> g ^. phylo_groupBranchId == g' ^. phylo_groupBranchId)
                   $ sortOn (\g -> g ^. phylo_groupBranchId) groups
         --------------------------------------    
