@@ -61,6 +61,7 @@ import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
 import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
 import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
+import Gargantext.Database.Schema.User (getUserById, UserLight)
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Tree (treeDB)
 import Gargantext.Database.Types.Node
@@ -161,6 +162,18 @@ type ChildrenApi a = Summary " Summary children"
                  :> QueryParam "limit"  Int
                  -- :> Get '[JSON] [Node a]
                  :> Get '[JSON] (NodeTableResult a)
+
+------------------------------------------------------------------------
+type UserAPI = Get '[JSON] (Maybe UserLight)
+
+userAPI :: forall proxy.
+           proxy (Maybe UserLight)
+        -> UserId
+        -> GargServer UserAPI
+userAPI _p uId = withAccess (Proxy :: Proxy (Maybe UserLight)) Proxy uId (PathUser uId) userAPI'
+  where
+    userAPI' :: GargServer UserAPI
+    userAPI' = getUserById uId
 
 ------------------------------------------------------------------------
 type NodeNodeAPI a = Get '[JSON] (Node a)

@@ -179,7 +179,7 @@ instance Arbitrary AuthValid where
                        , tr <- [1..3]
                        ]
 
-data PathId = PathNode NodeId | PathNodeNode ListId DocId
+data PathId = PathNode NodeId | PathNodeNode ListId DocId | PathUser UserId
 
 withAccessM :: (CmdM env err m, HasServerError err)
             => UserId
@@ -196,6 +196,9 @@ withAccessM uId (PathNodeNode cId docId) m = do
   if True -- a && d
      then m
      else m
+
+withAccessM uId (PathUser id) m = do
+  if uId == id then m else m -- serverError err401
 
 withAccess :: forall env err m api.
               (GargServerC env err m, HasServer api '[]) =>

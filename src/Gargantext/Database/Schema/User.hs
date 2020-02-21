@@ -14,6 +14,7 @@ Functions to deal with users, database side.
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleInstances           #-}
 {-# LANGUAGE MultiParamTypeClasses       #-}
 {-# LANGUAGE FunctionalDependencies      #-}
@@ -25,15 +26,20 @@ Functions to deal with users, database side.
 module Gargantext.Database.Schema.User where
 
 import Control.Arrow (returnA)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Control.Lens.TH (makeLenses)
+import Data.Aeson.TH (deriveJSON)
 import Data.Eq(Eq(..))
 import Data.List (find)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Swagger
 import Data.Text (Text)
 import Data.Time (UTCTime)
+import GHC.Generics (Generic)
 import GHC.Show(Show(..))
+
 import Gargantext.Core.Types.Individu (Username, arbitraryUsername)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Utils
 import Gargantext.Prelude
 import Opaleye
@@ -46,7 +52,11 @@ type UserId = Int
 data UserLight = UserLight { userLight_id   :: Int
                            , userLight_username :: Text
                            , userLight_email    :: Text
-                           } deriving (Show)
+                           } deriving (Show, Generic)
+
+deriveJSON (unPrefix "userLight_") ''UserLight
+instance ToSchema UserLight where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "userLight_")
 
 toUserLight :: User -> UserLight
 toUserLight (User id _ _ _ u _ _ e _ _ _ ) = UserLight id u e
@@ -95,20 +105,21 @@ type UserReadNull = UserPoly     (Column (Nullable PGInt4))         (Column (Nul
 type User = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
 
 $(makeAdaptorAndInstance "pUser"     ''UserPoly)
-$(makeLensesWith abbreviatedFields   ''UserPoly)
+-- $(makeLensesWith abbreviatedFields   ''UserPoly)
+makeLenses ''UserPoly
 
 
 userTable :: Table UserWrite UserRead
 userTable = Table "auth_user" (pUser User { user_id      = optional "id"
-                                          , user_password    = required "password"
+                                          , user_password    = Opaleye.required "password"
                                           , user_lastLogin   = optional "last_login"
-                                          , user_isSuperUser = required "is_superuser"
-                                          , user_username    = required "username"
-                                          , user_firstName   = required "first_name"
-                                          , user_lastName    = required "last_name"
-                                          , user_email       = required "email"
-                                          , user_isStaff     = required "is_staff"
-                                          , user_isActive    = required "is_active"
+                                          , user_isSuperUser = Opaleye.required "is_superuser"
+                                          , user_username    = Opaleye.required "username"
+                                          , user_firstName   = Opaleye.required "first_name"
+                                          , user_lastName    = Opaleye.required "last_name"
+                                          , user_email       = Opaleye.required "email"
+                                          , user_isStaff     = Opaleye.required "is_staff"
+                                          , user_isActive    = Opaleye.required "is_active"
                                           , user_dateJoined  = optional "date_joined"
                                           }
                               )
@@ -175,4 +186,5 @@ usersLight = map toUserLight <$> users
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
 
-
+getUserById :: Int -> Cmd err (Maybe UserLight)
+getUserById uId = userLightWithId uId <$> usersLight

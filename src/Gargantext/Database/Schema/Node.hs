@@ -292,7 +292,6 @@ selectNode id = proc () -> do
     returnA -< row
 
 
-
 runGetNodes :: Query NodeRead -> Cmd err [Node HyperdataAny]
 runGetNodes = runOpaQuery
 

@@ -93,6 +93,7 @@ import Gargantext.API.Types
 import qualified Gargantext.API.Annuaire as Annuaire
 import qualified Gargantext.API.Export as Export
 import qualified Gargantext.API.Corpus.New as New
+import Gargantext.Database.Schema.User (UserLight)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Database.Utils (HasConnection)
@@ -263,6 +264,11 @@ type GargPrivateAPI' =
            :<|> "corpus" :> Capture "node_id" CorpusId
                          :> Export.API
 
+           -- Contact endpoint
+           :<|> "user" :> Summary "User endpoint"
+                       :> Capture "user_id" NodeId
+                       :> UserAPI
+
            -- Annuaire endpoint
            :<|> "annuaire":> Summary "Annuaire endpoint"
                           :> Capture "annuaire_id" AnnuaireId
@@ -368,6 +374,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> Export.getCorpus   -- uid
+     :<|> userAPI     (Proxy :: Proxy (Maybe UserLight)) uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)  uid
 
