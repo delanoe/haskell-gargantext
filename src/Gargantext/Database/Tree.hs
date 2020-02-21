@@ -36,8 +36,8 @@ import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Types.Node (NodeId, DocId)
-import Gargantext.Database.Config (fromNodeTypeId)
+import Gargantext.Database.Config (fromNodeTypeId, nodeTypeId)
+import Gargantext.Database.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
 import Gargantext.Database.Utils (Cmd, runPGSQuery)
 ------------------------------------------------------------------------
 -- import Gargantext.Database.Utils (runCmdDev)
@@ -55,8 +55,8 @@ treeError :: (MonadError e m, HasTreeError e) => TreeError -> m a
 treeError te = throwError $ _TreeError # te
 
 -- | Returns the Tree of Nodes in Database
-treeDB :: HasTreeError err => RootId -> Cmd err (Tree NodeTree)
-treeDB r = toTree =<< (toTreeParent <$> dbTree r)
+treeDB :: HasTreeError err => RootId -> [NodeType] -> Cmd err (Tree NodeTree)
+treeDB r nodeTypes = toTree =<< (toTreeParent <$> dbTree r nodeTypes)
 
 type RootId = NodeId
 type ParentId = NodeId
@@ -92,8 +92,8 @@ data DbTreeNode = DbTreeNode { dt_nodeId :: NodeId
 
 -- | Main DB Tree function
 -- TODO add typenames as parameters
-dbTree :: RootId -> Cmd err [DbTreeNode]
-dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
+dbTree :: RootId -> [NodeType] -> Cmd err [DbTreeNode]
+dbTree rootId nodeTypes = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
   <$> runPGSQuery [sql|
     WITH RECURSIVE
         tree (id, typename, parent_id, name) AS
@@ -108,10 +108,16 @@ dbTree rootId = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
           FROM nodes AS c
 
           INNER JOIN tree AS s ON c.parent_id = s.id
-           -- WHERE c.typename IN (2,20,21,22,3,5,30,31,40,7,9,90,71)
+           WHERE c.typename IN ?
         )
     SELECT * from tree;
-    |] (Only rootId)
+    |] (rootId, In typename)
+  where
+    typename = map nodeTypeId ns
+    ns = case nodeTypes of
+      [] -> allNodeTypes
+      -- [2, 20, 21, 22, 3, 5, 30, 31, 40, 7, 9, 90, 71]
+      _  -> nodeTypes
 
 isDescendantOf :: NodeId -> RootId -> Cmd err Bool
 isDescendantOf childId rootId = (== [Only True])
