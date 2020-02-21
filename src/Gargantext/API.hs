@@ -241,6 +241,15 @@ type GargAdminAPI
            :<|> "nodes" :> Summary "Nodes endpoint"
                         :> ReqBody '[JSON] [NodeId] :> NodesAPI
 
+----------------------------------------
+-- For Tests
+type FibAPI = Get '[JSON] Int
+
+fibAPI ::  Int -> GargServer FibAPI
+fibAPI n = pure (fib n)
+----------------------------------------
+
+
 type GargPrivateAPI' =
                 GargAdminAPI
 
@@ -306,6 +315,9 @@ type GargPrivateAPI' =
            -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
+           :<|> "fib" :> Summary "Fib test"
+                      :> Capture "x" Int
+                      :> FibAPI -- Get '[JSON] Int
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -361,6 +373,7 @@ serverGargAdminAPI
    =  roots
  :<|> nodesAPI
 
+
 serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
 serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
        =  serverGargAdminAPI
@@ -393,6 +406,8 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
+     :<|> fibAPI
+
 
 {-
 addUpload :: GargServer New.Upload
@@ -511,3 +526,6 @@ startGargantextMock port = do
   application <- makeMockApp . MockEnv $ FireWall False
   run port application
 -}
+
+
+
