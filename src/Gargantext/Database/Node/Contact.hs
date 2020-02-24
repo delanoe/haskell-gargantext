@@ -28,9 +28,7 @@ import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Core.Types (Name)
-import Gargantext.Database.Schema.Node (NodeWrite, node)
-import Gargantext.Database.Types.Node (Node,Hyperdata,NodeType(..), UserId, AnnuaireId)
+import Gargantext.Database.Types.Node (Node,Hyperdata)
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
@@ -95,14 +93,6 @@ data ContactTouch =
                   , _ct_url       :: Maybe Text
   } deriving (Eq, Show, Generic)
 
-
-nodeContactW :: Maybe Name -> Maybe HyperdataContact
-             -> AnnuaireId -> UserId -> NodeWrite
-nodeContactW maybeName maybeContact aId = 
-  node NodeContact name contact (Just aId)
-    where
-      name    = maybe "Contact" identity maybeName
-      contact = maybe arbitraryHyperdataContact identity maybeContact
 
 
 -- | ToSchema instances

@@ -59,7 +59,7 @@ import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Flow.Pairing (pairing)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
+import Gargantext.Database.Schema.Node (getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..), getNodeUser)
 import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Tree (treeDB)
@@ -360,7 +360,7 @@ postNode :: HasNodeError err
          -> PostNode
          -> Cmd err [NodeId]
 postNode uId pId (PostNode nodeName nt) = do
-  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
+  nodeUser <- getNodeUser (NodeId uId)
   let uId' = nodeUser ^. node_userId
   mkNodeWithParent nt (Just pId) uId' nodeName
 

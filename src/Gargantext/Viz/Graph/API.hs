@@ -36,7 +36,7 @@ import Gargantext.Database.Config
 import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Node.Select
-import Gargantext.Database.Schema.Node (getNodeWith, defaultList, insertGraph, HasNodeError)
+import Gargantext.Database.Schema.Node (getNodeWith, getNodeUser, defaultList, insertGraph, HasNodeError)
 import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Utils (Cmd)
@@ -74,7 +74,7 @@ getGraph uId nId = do
 
   repo <- getRepo
   let v = repo ^. r_version
-  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
+  nodeUser <- getNodeUser (NodeId uId)
 
   let uId' = nodeUser ^. node_userId
 

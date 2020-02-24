@@ -103,7 +103,6 @@ import Gargantext.Viz.Graph.API
 import Gargantext.API.Orchestrator.Types
 
 ---------------------------------------------------------------------
-
 import GHC.Base (Applicative)
 -- import Control.Lens
 

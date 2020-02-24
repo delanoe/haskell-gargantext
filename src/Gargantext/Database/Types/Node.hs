@@ -292,16 +292,7 @@ instance ToSchema Resource where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "resource_")
 
 ------------------------------------------------------------------------
-data HyperdataUser = HyperdataUser { hyperdataUser_language       :: !(Maybe Text)
-                                       } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataUser_") ''HyperdataUser)
-
-instance Hyperdata HyperdataUser
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-
 data Chart =
     CDocsHistogram
   | CAuthorsPie

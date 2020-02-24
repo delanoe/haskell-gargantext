@@ -33,15 +33,16 @@ import Control.Monad.Error.Class (MonadError(..))
 import Data.Aeson
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Int (Int64)
-import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
+import Gargantext.Database.Node.User (HyperdataUser(..))
+import Gargantext.Database.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))
@@ -87,10 +88,6 @@ instance FromField HyperdataDocument
     fromField = fromField'
 
 instance FromField HyperdataDocumentV3
-  where
-    fromField = fromField'
-
-instance FromField HyperdataUser
   where
     fromField = fromField'
 
@@ -144,10 +141,6 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataUser
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
@@ -382,6 +375,12 @@ getNodeWith nId _ = do
     fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
+getNodeUser :: NodeId -> Cmd err (Node HyperdataUser)
+getNodeUser nId = do
+    fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
+             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+
+
 getNodePhylo :: NodeId -> Cmd err (Node HyperdataPhylo)
 getNodePhylo nId = do
     fromMaybe (error $ "Node Phylo does not exist: " <> show nId) . headMay
@@ -393,13 +392,22 @@ getNodesWithType = runOpaQuery . selectNodesWithType
 
 ------------------------------------------------------------------------
 defaultUser :: HyperdataUser
-defaultUser = HyperdataUser (Just $ (pack . show) EN)
+defaultUser = HyperdataUser Nothing Nothing Nothing
 
 nodeUserW :: Maybe Name -> Maybe HyperdataUser -> UserId -> NodeWrite
 nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
   where
     name = maybe "User" identity maybeName
     user = maybe defaultUser identity maybeHyperdata
+
+nodeContactW :: Maybe Name -> Maybe HyperdataContact
+             -> AnnuaireId -> UserId -> NodeWrite
+nodeContactW maybeName maybeContact aId = 
+  node NodeContact name contact (Just aId)
+    where
+      name    = maybe "Contact" identity maybeName
+      contact = maybe arbitraryHyperdataContact identity maybeContact
+
 ------------------------------------------------------------------------
 defaultFolder :: HyperdataCorpus
 defaultFolder = defaultCorpus
@@ -633,9 +641,8 @@ mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
 
 ------------------------------------------------------------------------
 mkNodeWithParent NodeUser Nothing  uId name =
-  insertNodesWithParentR Nothing [node NodeUser name hd Nothing uId]
-    where
-      hd = HyperdataUser . Just . pack $ show EN
+  insertNodesWithParentR Nothing [node NodeUser name defaultUser Nothing uId]
+
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 ------------------------------------------------------------------------
 mkNodeWithParent NodeFolder (Just i) uId name = 
