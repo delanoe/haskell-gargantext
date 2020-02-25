@@ -333,8 +333,10 @@ getNodesWith parentId _ nodeType maybeOffset maybeLimit =
 
 -- TODO: Why is the second parameter ignored?
 -- TODO: Why not use getNodesWith?
-getNodesWithParentId :: NodeId -> Maybe Text -> Cmd err [Node HyperdataAny]
-getNodesWithParentId n _ = runOpaQuery $ selectNodesWithParentID n
+getNodesWithParentId :: (Hyperdata a, QueryRunnerColumnDefault PGJsonb a)
+                     => NodeId
+                     -> Cmd err [Node a]
+getNodesWithParentId n = runOpaQuery $ selectNodesWithParentID n
 
 ------------------------------------------------------------------------
 getDocumentsV3WithParentId :: NodeId -> Cmd err [Node HyperdataDocumentV3]

@@ -106,8 +106,10 @@ get []  = pure []
 get pwd = runOpaQuery $ selectNodesWithParentID (last pwd)
 
 -- | Home, need to filter with UserId
+{-
 home :: Cmd err PWD
 home = map _node_id <$> getNodesWithParentId 0 Nothing
+-}
 
 -- | ls == get Children
 ls :: PWD -> Cmd err [Node HyperdataAny]

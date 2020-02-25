@@ -38,8 +38,6 @@ module Gargantext.API.Node
   where
 
 import Control.Lens ((^.))
-import Control.Monad ((>>))
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Maybe
 import Data.Swagger
@@ -59,6 +57,7 @@ import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Flow.Pairing (pairing)
 import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Node.Children (getChildren)
+import Gargantext.Database.Node.User (NodeUser)
 import Gargantext.Database.Schema.Node (getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..), getNodeUser)
 import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
 import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
@@ -94,13 +93,13 @@ nodesAPI ids = deleteNodes ids
 -- TODO-EVENTS:
 --   PutNode ?
 -- TODO needs design discussion.
-type Roots =  Get    '[JSON] [Node HyperdataAny]
+type Roots =  Get    '[JSON] [NodeUser]
          :<|> Put    '[JSON] Int -- TODO
 
 -- | TODO: access by admin only
-roots :: GargServer Roots
-roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
-   :<|> pure (panic "not implemented yet") -- TODO use patch map to update what we need
+roots :: NodeId -> GargServer Roots
+roots n = getNodesWithParentId n
+    :<|> pure (panic "not implemented yet") -- TODO use patch map to update what we need
 
 -------------------------------------------------------------------
 -- | Node API Types management
