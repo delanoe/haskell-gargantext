@@ -28,7 +28,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Node.Contact (HyperdataContact)
+import Gargantext.Database.Node.Contact (HyperdataContact, fake_HyperdataContact)
 import Gargantext.Database.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
 import Gargantext.Database.Utils (fromField')
 import Gargantext.Prelude
@@ -37,7 +37,6 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
-
 type NodeUser  = Node HyperdataUser
 
 data HyperdataUser =
@@ -57,6 +56,19 @@ data HyperdataPublic =
                      , _hpu_publications :: ![DocumentId]
                      }
      deriving (Eq, Show, Generic)
+
+-- | Fake instances
+
+fake_HyperdataUser :: HyperdataUser
+fake_HyperdataUser = HyperdataUser (Just fake_HyperdataPrivate)
+                                   (Just fake_HyperdataContact)
+                                   (Just fake_HyperdataPublic)
+
+fake_HyperdataPublic :: HyperdataPublic
+fake_HyperdataPublic = HyperdataPublic "pseudo" [1..10]
+
+fake_HyperdataPrivate :: HyperdataPrivate
+fake_HyperdataPrivate = HyperdataPrivate "password" EN
 
 -- | ToSchema instances
 instance ToSchema HyperdataUser where
@@ -112,3 +124,7 @@ makeLenses ''HyperdataPublic
 $(deriveJSON (unPrefix "_hu_") ''HyperdataUser)
 $(deriveJSON (unPrefix "_hpr_") ''HyperdataPrivate)
 $(deriveJSON (unPrefix "_hpu_") ''HyperdataPublic)
+
+
+
+

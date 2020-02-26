@@ -48,6 +48,7 @@ import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
 type Name = Text
 type Term  = Text
 type Stems = Set Text

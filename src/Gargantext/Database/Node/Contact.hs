@@ -21,6 +21,7 @@ module Gargantext.Database.Node.Contact
   where
 
 import Control.Lens (makeLenses)
+import Data.Time.Segment (jour)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger (ToSchema(..), genericDeclareNamedSchema)
 import Data.Text (Text)
@@ -45,23 +46,38 @@ data HyperdataContact =
                       , _hc_where  :: [ContactWhere]
                       , _hc_title  :: Maybe Text -- TODO remove (only demo)
                       , _hc_source :: Maybe Text -- TODO remove (only demo)
-                      , _hc_lastValidation  :: Maybe Text
+                      , _hc_lastValidation  :: Maybe Text -- TODO UTCTime
                       , _hc_uniqIdBdd       :: Maybe Text
                       , _hc_uniqId          :: Maybe Text
 
   } deriving (Eq, Show, Generic)
 
+
+fake_HyperdataContact :: HyperdataContact
+fake_HyperdataContact = HyperdataContact (Just "bdd")
+                                         (Just fake_ContactWho)
+                                         [fake_ContactWhere]
+                                         (Just "Title")
+                                         (Just "Source")
+                                         (Just "TODO lastValidation date")
+                                         (Just "DO NOT expose this")
+                                         (Just "DO NOT expose this")
+
+
 -- TOD0 contact metadata (Type is too flat)
 data ContactMetaData =
      ContactMetaData { _cm_bdd :: Maybe Text
-                     , _cm_lastValidation  :: Maybe Text
+                     , _cm_lastValidation  :: Maybe Text -- TODO UTCTIME
   } deriving (Eq, Show, Generic)
 
+fake_ContactMetaData :: ContactMetaData
+fake_ContactMetaData = ContactMetaData (Just "bdd") (Just "TODO UTCTime")
 
 arbitraryHyperdataContact :: HyperdataContact
 arbitraryHyperdataContact = HyperdataContact Nothing Nothing []
                                              Nothing Nothing Nothing
                                              Nothing Nothing
+
 
 data ContactWho = 
      ContactWho { _cw_id          :: Maybe Text
@@ -70,6 +86,13 @@ data ContactWho =
                 , _cw_keywords :: [Text]
                 , _cw_freetags :: [Text]
   } deriving (Eq, Show, Generic)
+
+fake_ContactWho :: ContactWho
+fake_ContactWho = ContactWho (Just "123123")
+                             (Just "First Name")
+                             (Just "Last Name")
+                             ["keyword A"]
+                             ["freetag A"]
 
 data ContactWhere =
      ContactWhere { _cw_organization :: [Text]
@@ -87,13 +110,27 @@ data ContactWhere =
                   , _cw_exit         :: Maybe UTCTime
   } deriving (Eq, Show, Generic)
 
+fake_ContactWhere :: ContactWhere
+fake_ContactWhere = ContactWhere ["Organization A"]
+                                 ["Organization B"]
+                                 (Just "Role")
+                                 (Just "Office")
+                                 (Just "Country")
+                                 (Just "City")
+                                 (Just fake_ContactTouch)
+                                 (Just $ jour 01 01 2020)
+                                 (Just $ jour 01 01 2029)
+
 data ContactTouch =
      ContactTouch { _ct_mail      :: Maybe Text
                   , _ct_phone     :: Maybe Text
                   , _ct_url       :: Maybe Text
   } deriving (Eq, Show, Generic)
 
-
+fake_ContactTouch :: ContactTouch
+fake_ContactTouch = ContactTouch (Just "email@data.com")
+                                 (Just "+336 328 283 288")
+                                 (Just "https://url.com")
 
 -- | ToSchema instances
 instance ToSchema HyperdataContact where

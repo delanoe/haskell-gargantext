@@ -41,7 +41,7 @@ import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
-import Gargantext.Database.Node.User (HyperdataUser(..))
+import Gargantext.Database.Node.User (HyperdataUser(..), fake_HyperdataUser)
 import Gargantext.Database.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
@@ -393,14 +393,11 @@ getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
 getNodesWithType = runOpaQuery . selectNodesWithType
 
 ------------------------------------------------------------------------
-defaultUser :: HyperdataUser
-defaultUser = HyperdataUser Nothing Nothing Nothing
-
 nodeUserW :: Maybe Name -> Maybe HyperdataUser -> UserId -> NodeWrite
 nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
   where
     name = maybe "User" identity maybeName
-    user = maybe defaultUser identity maybeHyperdata
+    user = maybe fake_HyperdataUser identity maybeHyperdata
 
 nodeContactW :: Maybe Name -> Maybe HyperdataContact
              -> AnnuaireId -> UserId -> NodeWrite
@@ -409,7 +406,6 @@ nodeContactW maybeName maybeContact aId =
     where
       name    = maybe "Contact" identity maybeName
       contact = maybe arbitraryHyperdataContact identity maybeContact
-
 ------------------------------------------------------------------------
 defaultFolder :: HyperdataCorpus
 defaultFolder = defaultCorpus
@@ -494,7 +490,6 @@ nodeDefault nt parent = node nt name hyper (Just parent)
     hyper = (hasDefaultData nt)
 
 ------------------------------------------------------------------------
-
 arbitraryListModel :: HyperdataListModel
 arbitraryListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
 
@@ -643,7 +638,7 @@ mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
 
 ------------------------------------------------------------------------
 mkNodeWithParent NodeUser Nothing  uId name =
-  insertNodesWithParentR Nothing [node NodeUser name defaultUser Nothing uId]
+  insertNodesWithParentR Nothing [node NodeUser name fake_HyperdataUser Nothing uId]
 
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 ------------------------------------------------------------------------
@@ -755,4 +750,10 @@ pgNodeId = pgInt4 . id2int
 
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
+
+
+-- import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
+-- updateNodeUser_fake :: NodeId -> Cmd err Int64
+-- updateNodeUser_fake n = updateHyperdata n fake_HyperdataUser
+
 
