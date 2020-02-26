@@ -367,14 +367,14 @@ serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
 
 -- TODO-SECURITY admin only: withAdmin
 -- Question: How do we mark admins?
-serverGargAdminAPI :: NodeId -> GargServer GargAdminAPI
-serverGargAdminAPI n = roots n
-                   :<|> nodesAPI
+serverGargAdminAPI :: GargServer GargAdminAPI
+serverGargAdminAPI =  roots
+                 :<|> nodesAPI
 
 
 serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
 serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
-       =  serverGargAdminAPI (NodeId 0)
+       =  serverGargAdminAPI
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid

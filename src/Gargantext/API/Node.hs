@@ -97,8 +97,8 @@ type Roots =  Get    '[JSON] [NodeUser]
          :<|> Put    '[JSON] Int -- TODO
 
 -- | TODO: access by admin only
-roots :: NodeId -> GargServer Roots
-roots n = getNodesWithParentId n
+roots :: GargServer Roots
+roots = getNodesWithParentId Nothing
     :<|> pure (panic "not implemented yet") -- TODO use patch map to update what we need
 
 -------------------------------------------------------------------

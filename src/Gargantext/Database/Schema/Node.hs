@@ -334,9 +334,13 @@ getNodesWith parentId _ nodeType maybeOffset maybeLimit =
 -- TODO: Why is the second parameter ignored?
 -- TODO: Why not use getNodesWith?
 getNodesWithParentId :: (Hyperdata a, QueryRunnerColumnDefault PGJsonb a)
-                     => NodeId
+                     => Maybe NodeId
                      -> Cmd err [Node a]
-getNodesWithParentId n = runOpaQuery $ selectNodesWithParentID n
+getNodesWithParentId n = runOpaQuery $ selectNodesWithParentID n'
+  where
+    n' = case n of
+      Just n'' -> n''
+      Nothing  -> 0
 
 ------------------------------------------------------------------------
 getDocumentsV3WithParentId :: NodeId -> Cmd err [Node HyperdataDocumentV3]
