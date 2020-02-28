@@ -46,7 +46,7 @@ import Gargantext.Prelude
 import Opaleye hiding (FromField)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
 import Text.Read (read)
-import Data.Swagger (ToParamSchema, toParamSchema)
+import Data.Swagger (ToParamSchema, toParamSchema, ToSchema)
 import Prelude (Enum, Bounded, minBound, maxBound, Functor)
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -99,6 +99,14 @@ dbGetNgramsDb = runOpaQuery queryNgramsTable
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
+
+ngramsTypes :: [NgramsType]
+ngramsTypes = [minBound..]
+
+instance ToSchema NgramsType
+{-  where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nre_")
+-}
 
 instance FromJSON NgramsType
 instance FromJSONKey NgramsType where

@@ -11,9 +11,7 @@ Main exports of Gargantext:
 - corpus
 - document and ngrams
 - lists
-
 -}
-
 
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE DeriveGeneric     #-}

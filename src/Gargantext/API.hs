@@ -92,6 +92,7 @@ import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Types
 import qualified Gargantext.API.Annuaire as Annuaire
 import qualified Gargantext.API.Export as Export
+import qualified Gargantext.API.Ngrams.List as List
 import qualified Gargantext.API.Corpus.New as New
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
@@ -257,7 +258,7 @@ type GargPrivateAPI' =
                         :> Capture "node_id" NodeId
                         :> NodeAPI HyperdataAny
 
-           -- Corpus endpoint
+           -- Corpus endpoints
            :<|> "corpus":> Summary "Corpus endpoint"
                         :> Capture "corpus_id" CorpusId
                         :> NodeAPI HyperdataCorpus
@@ -314,6 +315,11 @@ type GargPrivateAPI' =
            -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
+
+           :<|> "list" :> Summary "List export API"
+                       :> Capture "listId" ListId
+                       :> List.API
+
            :<|> "fib" :> Summary "Fib test"
                       :> Capture "x" Int
                       :> FibAPI -- Get '[JSON] Int
@@ -404,6 +410,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
+     :<|> List.api
      :<|> fibAPI
 
 

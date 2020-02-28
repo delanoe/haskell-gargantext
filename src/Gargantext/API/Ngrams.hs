@@ -40,12 +40,14 @@ module Gargantext.API.Ngrams
 
   , getTableNgrams
   , putListNgrams
+  , putListNgrams'
   , tableNgramsPost
   , apiNgramsTableCorpus
   , apiNgramsTableDoc
 
   , NgramsStatePatch
   , NgramsTablePatch
+  , NgramsTableMap
 
   , NgramsElement(..)
   , mkNgramsElement
@@ -85,6 +87,7 @@ module Gargantext.API.Ngrams
   , tableNgramsPull
   , tableNgramsPut
 
+  , Version
   , Versioned(..)
   , currentVersion
   , listNgramsChangedSince
@@ -239,6 +242,10 @@ data NgramsRepoElement = NgramsRepoElement
 deriveJSON (unPrefix "_nre_") ''NgramsRepoElement
 makeLenses ''NgramsRepoElement
 
+instance ToSchema NgramsRepoElement where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nre_")
+
+
 data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm
                    , _ne_size        :: Int
@@ -253,7 +260,11 @@ data NgramsElement =
 deriveJSON (unPrefix "_ne_") ''NgramsElement
 makeLenses ''NgramsElement
 
-mkNgramsElement :: NgramsTerm -> ListType -> Maybe RootParent -> MSet NgramsTerm -> NgramsElement
+mkNgramsElement :: NgramsTerm
+                -> ListType
+                -> Maybe RootParent
+                -> MSet NgramsTerm
+                -> NgramsElement
 mkNgramsElement ngrams list rp children =
   NgramsElement ngrams size list 1 (_rp_root <$> rp) (_rp_parent <$> rp) children
   where
@@ -261,7 +272,8 @@ mkNgramsElement ngrams list rp children =
     size = 1 + count " " ngrams
 
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
-newNgramsElement mayList ngrams = mkNgramsElement ngrams (fromMaybe GraphTerm mayList) Nothing mempty
+newNgramsElement mayList ngrams =
+  mkNgramsElement ngrams (fromMaybe GraphTerm mayList) Nothing mempty
 
 instance ToSchema NgramsElement where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ne_")
@@ -270,17 +282,17 @@ instance Arbitrary NgramsElement where
 
 ngramsElementToRepo :: NgramsElement -> NgramsRepoElement
 ngramsElementToRepo
-  (NgramsElement { _ne_size = s
-                 , _ne_list = l
-                 , _ne_root = r
-                 , _ne_parent = p
+  (NgramsElement { _ne_size     = s
+                 , _ne_list     = l
+                 , _ne_root     = r
+                 , _ne_parent   = p
                  , _ne_children = c
                  }) =
   NgramsRepoElement
-    { _nre_size = s
-    , _nre_list = l
-    , _nre_parent = p
-    , _nre_root   = r
+    { _nre_size     = s
+    , _nre_list     = l
+    , _nre_parent   = p
+    , _nre_root     = r
     , _nre_children = c
     }
 
@@ -288,18 +300,18 @@ ngramsElementFromRepo :: NgramsTerm -> NgramsRepoElement -> NgramsElement
 ngramsElementFromRepo
   ngrams
   (NgramsRepoElement
-      { _nre_size = s
-      , _nre_list = l
-      , _nre_parent = p
-      , _nre_root = r
+      { _nre_size     = s
+      , _nre_list     = l
+      , _nre_parent   = p
+      , _nre_root     = r
       , _nre_children = c
       }) =
-  NgramsElement { _ne_size = s
-                , _ne_list = l
-                , _ne_root = r
-                , _ne_parent = p
-                , _ne_children = c
-                , _ne_ngrams = ngrams
+  NgramsElement { _ne_size        = s
+                , _ne_list        = l
+                , _ne_root        = r
+                , _ne_parent      = p
+                , _ne_children    = c
+                , _ne_ngrams      = ngrams
                 , _ne_occurrences = panic $ "API.Ngrams._ne_occurrences"
                 {-
                 -- Here we could use 0 if we want to avoid any `panic`.
@@ -313,7 +325,7 @@ ngramsElementFromRepo
 newtype NgramsTable = NgramsTable [NgramsElement]
   deriving (Ord, Eq, Generic, ToJSON, FromJSON, Show)
 
-type ListNgrams = NgramsTable
+type NgramsList = NgramsTable
 
 makePrisms ''NgramsTable
 
@@ -335,10 +347,10 @@ toNgramsElement ns = map toNgramsElement' ns
                  Just x  -> lookup x mapParent
           c' = maybe mempty identity $ lookup t mapChildren
           lt' = maybe (panic "API.Ngrams: listypeId") identity lt
-      
+
       mapParent :: Map Int Text
       mapParent   = Map.fromListWith (<>) $ map (\(NgramsTableData i _ t _ _ _) -> (i,t)) ns
-      
+
       mapChildren :: Map Text (Set Text)
       mapChildren = Map.mapKeys (\i -> (maybe (panic "API.Ngrams.mapChildren: ParentId with no Terms: Impossible") identity $ lookup i mapParent))
                   $ Map.fromListWith (<>)
@@ -372,7 +384,6 @@ instance ToSchema NgramsTable
 
 ------------------------------------------------------------------------
 type NgramsTableMap = Map NgramsTerm NgramsRepoElement
-
 ------------------------------------------------------------------------
 -- On the Client side:
 --data Action = InGroup     NgramsId NgramsId
@@ -847,24 +858,47 @@ putListNgrams :: RepoCmdM env err m
               => NodeId -> NgramsType
               -> [NgramsElement] -> m ()
 putListNgrams _ _ [] = pure ()
-putListNgrams listId ngramsType nes = do
+putListNgrams listId ngramsType nes = putListNgrams' listId ngramsType m
+  where
+    m = Map.fromList $ map (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) nes
+
+putListNgrams' :: RepoCmdM env err m
+               => ListId -> NgramsType
+               -> Map NgramsTerm NgramsRepoElement
+               -> m ()
+putListNgrams' listId ngramsType ns = do
   -- printDebug "putListNgrams" (length nes)
   var <- view repoVar
   liftIO $ modifyMVar_ var $
-    pure . (r_state . at ngramsType %~ (Just . (at listId %~ (Just . (<> m) . something)) . something))
+    pure . ( r_state
+           . at ngramsType %~
+             (Just .
+               (at listId %~
+                 ( Just
+                 . (<> ns)
+                 . something
+                 )
+               )
+               . something
+             )
+           )
   saveRepo
-  where
-    m = Map.fromList $ (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) <$> nes
+
 
 -- TODO-ACCESS check
-tableNgramsPost :: RepoCmdM env err m => TabType -> NodeId -> Maybe ListType -> [NgramsTerm] -> m ()
+tableNgramsPost :: RepoCmdM env err m
+                => TabType
+                -> NodeId
+                -> Maybe ListType
+                -> [NgramsTerm] -> m ()
 tableNgramsPost tabType listId mayList =
   putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
-currentVersion :: RepoCmdM env err m => m Version
+currentVersion :: RepoCmdM env err m
+               => m Version
 currentVersion = do
   var <- view repoVar
-  r <- liftIO $ readMVar var
+  r   <- liftIO $ readMVar var
   pure $ r ^. r_version
 
 tableNgramsPull :: RepoCmdM env err m
@@ -937,7 +971,9 @@ mergeNgramsElement _neOld neNew = neNew
   -}
 
 getNgramsTableMap :: RepoCmdM env err m
-                  => NodeId -> NgramsType -> m (Versioned NgramsTableMap)
+                  => ListId
+                  -> NgramsType
+                  -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
   v    <- view repoVar
   repo <- liftIO $ readMVar v
@@ -1172,9 +1208,20 @@ apiNgramsTableDoc dId =  getTableNgramsDoc dId
                         -- > add new ngrams in database (TODO AD)
                         -- > index all the corpus accordingly (TODO AD)
 
-listNgramsChangedSince :: RepoCmdM env err m => ListId -> NgramsType -> Version -> m (Versioned Bool)
+listNgramsChangedSince :: RepoCmdM env err m
+                       => ListId -> NgramsType -> Version -> m (Versioned Bool)
 listNgramsChangedSince listId ngramsType version
   | version < 0 =
       Versioned <$> currentVersion <*> pure True
   | otherwise   =
       tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
+
+
+-- Instances
+instance Arbitrary NgramsRepoElement where
+  arbitrary = elements $ map ngramsElementToRepo ns
+    where
+      NgramsTable ns = mockTable
+
+
+
