@@ -13,7 +13,6 @@ docker:
 
 nix:
   enable: false
-  #packages: [gmp]
   add-gc-roots: true
   shell-file: build-shell.nix
 

@@ -1,6 +1,8 @@
+# this version of nixpkgs contains liblapack at 3.8.0
+# this version of nixpkgs contains gsl at 2.5.0
 import (
   builtins.fetchTarball {
-    url = "https://github.com/nixos/nixpkgs/archive/ece829033b7b8f4e81261fef5427144df4147bc4.tar.gz";
-    sha256 = "07n91k3d9i9pym8npsszha9mnvg4d1r0l0ldnhk4g8sx15vv1br5";
+    url = "https://github.com/NixOS/nixpkgs/archive/18.09.tar.gz";
+    sha256 = "1ib96has10v5nr6bzf7v8kw7yzww8zanxgw2qi1ll1sbv6kj6zpd";
   }
 )
