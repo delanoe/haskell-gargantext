@@ -46,6 +46,7 @@ get lId = fromList
        <$> zip ngramsTypes
        <$> mapM (getNgramsTableMap lId) ngramsTypes
 
+-- TODO : purge list
 put :: FlowCmdM env err m
     => ListId
     -> NgramsList
@@ -53,5 +54,7 @@ put :: FlowCmdM env err m
 put l m = do
   -- TODO check with Version for optim
   _ <- mapM (\(nt, Versioned _v ns) -> putListNgrams' l nt ns) $ toList m
+  -- TODO reindex
   pure True
+
 

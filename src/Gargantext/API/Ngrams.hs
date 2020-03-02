@@ -789,11 +789,11 @@ instance HasRepoVar RepoEnv where
 instance HasRepoSaver RepoEnv where
   repoSaver = renv_saver
 
-type RepoCmdM env err m =
-  ( MonadReader env m
-  , MonadError err m
-  , MonadIO m
-  , HasRepo env
+type RepoCmdM   env err m =
+  ( MonadReader env     m
+  , MonadError      err m
+  , MonadIO             m
+  , HasRepo     env
   )
 ------------------------------------------------------------------------
 
@@ -1216,12 +1216,9 @@ listNgramsChangedSince listId ngramsType version
   | otherwise   =
       tableNgramsPull listId ngramsType version & mapped . v_data %~ (== mempty)
 
-
 -- Instances
 instance Arbitrary NgramsRepoElement where
   arbitrary = elements $ map ngramsElementToRepo ns
     where
       NgramsTable ns = mockTable
-
-
 

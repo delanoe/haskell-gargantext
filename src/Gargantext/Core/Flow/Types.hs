@@ -10,6 +10,7 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
 
@@ -18,8 +19,10 @@ module Gargantext.Core.Flow.Types where
 import Control.Lens (Lens')
 import Data.Map (Map)
 import Data.Text (Text)
+import Data.Maybe (Maybe)
 import Gargantext.Text.Terms (TermType)
 import Gargantext.Core (Lang)
+import Gargantext.Prelude
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Core.Types.Main (HashId)
 import Gargantext.Database.Types.Node -- (HyperdataDocument(..))

@@ -17,18 +17,15 @@ commentary with @some markup@.
 
 module Gargantext.Text.Terms.WithList where
 
-import qualified Data.Algorithms.KMP as KMP
-import Data.Text (Text, concat)
-import qualified Data.IntMap.Strict as IntMap
-
-import Gargantext.Text.Context
-import Gargantext.Text.Terms.Mono (monoTextsBySentence)
-
-import Prelude (error)
-import Gargantext.Prelude
 import Data.List (null, concatMap)
 import Data.Ord
-
+import Data.Text (Text, concat)
+import Gargantext.Prelude
+import Gargantext.Text.Context
+import Gargantext.Text.Terms.Mono (monoTextsBySentence)
+import Prelude (error)
+import qualified Data.Algorithms.KMP as KMP
+import qualified Data.IntMap.Strict as IntMap
 
 ------------------------------------------------------------------------
 
@@ -40,7 +37,6 @@ data Pattern = Pattern
 type Patterns = [Pattern]
 
 ------------------------------------------------------------------------
-
 replaceTerms :: Patterns -> [Text] -> [[Text]]
 replaceTerms pats terms = go 0
   where
@@ -81,6 +77,25 @@ extractTermsWithList pats = map (replaceTerms pats) . monoTextsBySentence
 -- extractTermsWithList' (buildPatterns termList) "Le chat blanc"["chat blanc"]
 -- ["chat blanc"]
 extractTermsWithList' :: Patterns -> Text -> [Text]
-extractTermsWithList' pats = map (concat . map concat . replaceTerms pats) . monoTextsBySentence
+extractTermsWithList' pats = map (concat . map concat . replaceTerms pats)
+                           . monoTextsBySentence
 
+
+filterWith :: TermList
+           -> (a -> Text)
+           -> [a] 
+           -> [(a, [Text])]
+filterWith termList f xs = filterWith' termList f zip xs
+
+
+filterWith' :: TermList
+           -> (a -> Text)
+           -> ([a] -> [[Text]] -> [b])
+           -> [a] 
+           -> [b]
+filterWith' termList f f' xs = f' xs
+                            $ map (extractTermsWithList' pats)
+                            $ map f xs
+    where
+      pats = buildPatterns termList
 

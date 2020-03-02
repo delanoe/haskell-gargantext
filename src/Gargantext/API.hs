@@ -47,80 +47,56 @@ Pouillard (who mainly made it).
 module Gargantext.API
       where
 ---------------------------------------------------------------------
-
-import           System.IO (FilePath)
-
-import           GHC.Generics (D1, Meta (..), Rep)
-import           GHC.TypeLits (AppendSymbol, Symbol)
-
-import           Control.Lens
-import           Control.Exception (finally)
-import           Control.Monad.Except (withExceptT, ExceptT)
-import           Control.Monad.IO.Class (liftIO)
-import           Control.Monad.Reader (ReaderT, runReaderT)
-import           Data.Aeson.Encode.Pretty (encodePretty)
-import qualified Data.ByteString.Lazy.Char8 as BL8
-import           Data.Swagger
-import           Data.Text (Text)
-import qualified Data.Text.IO as T
---import qualified Data.Set as Set
-import           Data.Validity
-
-import           Network.Wai
-import           Network.Wai.Handler.Warp hiding (defaultSettings)
-
-import           Servant
-import           Servant.Auth as SA
-import           Servant.Auth.Server (AuthResult(..))
-import           Servant.Auth.Swagger ()
---import           Servant.Mock (mock)
---import           Servant.Job.Server (WithCallbacks)
-import           Servant.Job.Async
-import           Servant.Swagger
-import           Servant.Swagger.UI
--- import Servant.API.Stream
-
---import Gargantext.API.Swagger
-
-import Gargantext.Database.Node.Contact (HyperdataContact)
+import Control.Concurrent (threadDelay)
+import Control.Exception (finally)
+import Control.Lens
+import Control.Monad.Except (withExceptT, ExceptT)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (ReaderT, runReaderT)
+import Data.Aeson.Encode.Pretty (encodePretty)
+import Data.Swagger
+import Data.Text (Text)
+import Data.Validity
+import GHC.Generics (D1, Meta (..), Rep)
+import GHC.TypeLits (AppendSymbol, Symbol)
+import Network.Wai
+import Network.Wai.Handler.Warp hiding (defaultSettings)
+import Servant
+import Servant.Auth as SA
+import Servant.Auth.Server (AuthResult(..))
+import Servant.Auth.Swagger ()
+import Servant.Job.Async
+import Servant.Swagger
+import Servant.Swagger.UI
+import System.IO (FilePath)
+import Data.List (lookup)
+import Data.Text.Encoding (encodeUtf8)
+import GHC.Base (Applicative)
 import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
+import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
+import Gargantext.API.Settings
 import Gargantext.API.Types
-import qualified Gargantext.API.Annuaire as Annuaire
-import qualified Gargantext.API.Export as Export
-import qualified Gargantext.API.Ngrams.List as List
-import qualified Gargantext.API.Corpus.New as New
+import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Database.Utils (HasConnection)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
-
---import Gargantext.API.Orchestrator
-import Gargantext.API.Orchestrator.Types
-
----------------------------------------------------------------------
-import GHC.Base (Applicative)
--- import Control.Lens
-
-import Data.List (lookup)
-import Data.Text.Encoding (encodeUtf8)
-
---import Network.Wai (Request, requestHeaders, responseLBS)
-import Network.Wai (Request, requestHeaders)
---import qualified Network.Wai.Handler.Warp as Warp
-import Network.Wai.Middleware.Cors
-
-import Network.Wai.Middleware.RequestLogger
--- import qualified Network.Wai.Middleware.RequestLogger as RequestLogger
-
 import Network.HTTP.Types hiding (Query)
-
-import Gargantext.API.Settings
+import Network.Wai (Request, requestHeaders)
+import Network.Wai.Middleware.Cors
+import Network.Wai.Middleware.RequestLogger
+import qualified Data.ByteString.Lazy.Char8 as BL8
+import qualified Data.Text.IO               as T
+import qualified Gargantext.API.Annuaire    as Annuaire
+import qualified Gargantext.API.Corpus.New  as New
+import qualified Gargantext.API.Export      as Export
+import qualified Gargantext.API.Ngrams.List as List
 
 showAsServantErr :: GargError -> ServerError
 showAsServantErr (GargServerError err) = err
@@ -243,10 +219,14 @@ type GargAdminAPI
 
 ----------------------------------------
 -- For Tests
-type FibAPI = Get '[JSON] Int
+type WaitAPI = Get '[JSON] Text
 
-fibAPI ::  Int -> GargServer FibAPI
-fibAPI n = pure (fib n)
+waitAPI ::  Int -> GargServer WaitAPI
+waitAPI n = do
+  let
+    m = (10 :: Int) ^ (6 :: Int)
+  _ <- liftIO $ threadDelay ( m * n)
+  pure $ "Waited: " <> (cs $ show n)
 ----------------------------------------
 
 
@@ -320,9 +300,9 @@ type GargPrivateAPI' =
                        :> Capture "listId" ListId
                        :> List.API
 
-           :<|> "fib" :> Summary "Fib test"
+           :<|> "wait" :> Summary "Wait test"
                       :> Capture "x" Int
-                      :> FibAPI -- Get '[JSON] Int
+                      :> WaitAPI -- Get '[JSON] Int
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -411,7 +391,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
      :<|> List.api
-     :<|> fibAPI
+     :<|> waitAPI
 
 
 {-

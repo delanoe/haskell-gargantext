@@ -25,6 +25,7 @@ module Gargantext.Viz.Graph.API
   where
 
 -- import Debug.Trace (trace)
+import Control.Concurrent -- (forkIO)
 import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (Maybe(..))
@@ -61,9 +62,16 @@ graphAPI u n =  getGraph  u n
          :<|> putGraph  n
 
 ------------------------------------------------------------------------
-
 getGraph :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
-getGraph uId nId = do
+getGraph u n = do
+  newGraph  <- liftIO newEmptyMVar
+  g  <- getGraph u n
+  _  <- liftIO $ forkIO $ putMVar newGraph g
+  g' <- liftIO $ takeMVar newGraph
+  pure g'
+
+getGraph' :: UserId -> NodeId -> GargNoServer Graph
+getGraph' uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let listVersion = graph ^? _Just

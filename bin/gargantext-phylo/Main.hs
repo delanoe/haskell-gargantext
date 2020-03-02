@@ -123,7 +123,10 @@ filterTerms patterns (y,d) = (y,termsInText patterns d)
   where
     --------------------------------------
     termsInText :: Patterns -> Text -> [Text]
-    termsInText pats txt = DL.nub $ DL.concat $ map (map unwords) $ extractTermsWithList pats txt
+    termsInText pats txt = DL.nub
+                         $ DL.concat
+                         $ map (map unwords)
+                         $ extractTermsWithList pats txt
     --------------------------------------
 
 
