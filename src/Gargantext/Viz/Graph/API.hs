@@ -62,16 +62,22 @@ graphAPI u n =  getGraph  u n
          :<|> putGraph  n
 
 ------------------------------------------------------------------------
-getGraph :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
-getGraph u n = do
+
+{- Model to fork Graph Computation
+-- This is not really optimized since it increases the need RAM
+-- and freezes the whole system
+-- This is mainly for documentation (see a better solution in the function below)
+-- Each process has to be tailored
+getGraph' :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
+getGraph' u n = do
   newGraph  <- liftIO newEmptyMVar
   g  <- getGraph u n
   _  <- liftIO $ forkIO $ putMVar newGraph g
   g' <- liftIO $ takeMVar newGraph
   pure g'
-
-getGraph' :: UserId -> NodeId -> GargNoServer Graph
-getGraph' uId nId = do
+-}
+getGraph :: UserId -> NodeId -> GargNoServer Graph
+getGraph uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let listVersion = graph ^? _Just
@@ -90,6 +96,7 @@ getGraph' uId nId = do
                   identity
                   $ nodeGraph ^. node_parentId
 
+  newGraph  <- liftIO newEmptyMVar
   g <- case graph of
     Nothing     -> do
       graph' <- computeGraph cId NgramsTerms repo
@@ -102,7 +109,9 @@ getGraph' uId nId = do
                        graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure graph''
-  pure {- $ trace (show g) $ -} g
+  _  <- liftIO $ forkIO $ putMVar newGraph g
+  g' <- liftIO $ takeMVar newGraph
+  pure {- $ trace (show g) $ -} g'
 
 
 -- TODO use Database Monad only here ?
