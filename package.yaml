@@ -10,6 +10,8 @@ copyright:
 license: BSD3
 homepage: https://gargantext.org
 ghc-options: -Wall
+extra-libraries:
+- gfortran
 dependencies:
 - extra
 - text
