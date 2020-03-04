@@ -23,6 +23,7 @@ Portability : POSIX
 module Gargantext.API.Ngrams.List
   where
 
+import Data.Text (Text)
 import Data.Aeson
 import Data.List (zip)
 import Data.Map (Map, toList, fromList)
@@ -46,7 +47,7 @@ instance ToJSON a => MimeRender HTML a where
 
 type API = Get '[JSON] NgramsList
       :<|> ReqBody '[JSON] NgramsList :> Put '[JSON] Bool
-      :<|> Get '[HTML] (Headers '[Header "Content-Disposition" String] NgramsList)
+      :<|> Get '[HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
 
 api :: ListId -> GargServer API
 api l = get l :<|> put l :<|> getHtml l
@@ -58,7 +59,7 @@ get lId = fromList
        <$> mapM (getNgramsTableMap lId) ngramsTypes
 
 getHtml :: RepoCmdM env err m
-        => ListId -> m (Headers '[Header "Content-Disposition" String] NgramsList)
+        => ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 getHtml lId = do
   lst <- get lId
   return $ addHeader "attachment" lst
