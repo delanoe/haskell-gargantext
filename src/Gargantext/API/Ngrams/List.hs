@@ -46,7 +46,7 @@ instance ToJSON a => MimeRender HTML a where
 
 type API = Get '[JSON] NgramsList
       :<|> ReqBody '[JSON] NgramsList :> Put '[JSON] Bool
-      :<|> Get '[HTML] (Headers '[Header "Content-Type" String] NgramsList)
+      :<|> Get '[HTML] (Headers '[Header "Content-Disposition" String] NgramsList)
 
 api :: ListId -> GargServer API
 api l = get l :<|> put l :<|> getHtml l
@@ -58,7 +58,7 @@ get lId = fromList
        <$> mapM (getNgramsTableMap lId) ngramsTypes
 
 getHtml :: RepoCmdM env err m
-        => ListId -> m (Headers '[Header "Content-Type" String] NgramsList)
+        => ListId -> m (Headers '[Header "Content-Disposition" String] NgramsList)
 getHtml lId = do
   lst <- get lId
   return $ addHeader "attachment" lst
