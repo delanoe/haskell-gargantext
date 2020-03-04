@@ -62,7 +62,7 @@ getHtml :: RepoCmdM env err m
 getHtml lId = do
   lst <- get lId
   let (NodeId id) = lId
-  return $ addHeader (concat ["attachment; filename=list-", pack $ show id, ".json"]) lst
+  return $ addHeader (concat ["attachment; filename=GarganText_NgramsList-", pack $ show id, ".json"]) lst
 
 
 -- TODO : purge list
