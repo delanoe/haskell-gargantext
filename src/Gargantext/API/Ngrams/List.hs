@@ -24,11 +24,8 @@ module Gargantext.API.Ngrams.List
   where
 
 import Data.Aeson
--- import qualified Data.ByteString.Lazy as BSL
 import Data.List (zip)
 import Data.Map (Map, toList, fromList)
--- import qualified Data.Text as T
--- import qualified Data.Text.Encoding as TE
 import Network.HTTP.Media ((//), (/:))
 import Servant
 
@@ -52,7 +49,7 @@ type API = Get '[JSON] NgramsList
       :<|> Get '[HTML] NgramsList
 
 api :: ListId -> GargServer API
-api l = get l :<|> put l :<|> get l
+api l = get l :<|> put l :<|> getHtml l
 
 get :: RepoCmdM env err m
     => ListId -> m NgramsList
@@ -65,7 +62,6 @@ getHtml :: RepoCmdM env err m
 getHtml lId = do
   lst <- get lId
   return lst
-  --return $ TE.decodeUtf8 $ BSL.toStrict $ encode lst
 
 
 -- TODO : purge list
