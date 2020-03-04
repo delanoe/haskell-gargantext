@@ -121,7 +121,12 @@ dbTree rootId nodeTypes = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
 
 isDescendantOf :: NodeId -> RootId -> Cmd err Bool
 isDescendantOf childId rootId = (== [Only True])
-  <$> runPGSQuery [sql| WITH RECURSIVE
+  <$> runPGSQuery [sql|
+                  BEGIN ;
+                  SET TRANSACTION READ ONLY;
+                  COMMIT;
+
+                  WITH RECURSIVE
       tree (id, parent_id) AS
       (
         SELECT c.id, c.parent_id
