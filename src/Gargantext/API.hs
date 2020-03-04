@@ -296,9 +296,9 @@ type GargPrivateAPI' =
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
-           :<|> "list" :> Summary "List export API"
-                       :> Capture "listId" ListId
-                       :> List.API
+           :<|> "lists" :> Summary "List export API"
+                        :> Capture "listId" ListId
+                        :> List.API
 
            :<|> "wait" :> Summary "Wait test"
                       :> Capture "x" Int
