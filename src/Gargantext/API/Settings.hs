@@ -48,7 +48,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
 
 import Servant
-import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings, defaultCookieSettings, readKey, writeKey)
+import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (BaseUrl, parseBaseUrl)
 import qualified Servant.Job.Core
 import Servant.Job.Async (newJobEnv, defaultSettings, HasJobEnv(..), Job)
@@ -106,9 +106,11 @@ devSettings jwkFile = do
     , _sendLoginEmails = LogEmailToConsole
     , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
     , _fileFolder = "data"
-    , _cookieSettings = defaultCookieSettings -- TODO-SECURITY tune
+    , _cookieSettings = defaultCookieSettings { cookieXsrfSetting = Just xsrfCookieSetting } -- TODO-SECURITY tune
     , _jwtSettings = defaultJWTSettings jwk -- TODO-SECURITY tune
     }
+  where
+    xsrfCookieSetting = defaultXsrfCookieSettings { xsrfExcludeGet = True }
 
 
 

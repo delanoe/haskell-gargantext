@@ -12,6 +12,8 @@ Portability : POSIX
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
@@ -21,30 +23,47 @@ Portability : POSIX
 module Gargantext.API.Ngrams.List
   where
 
-import Gargantext.Prelude
-import Gargantext.API.Ngrams
-import Servant
+import Data.Text (Text, concat, pack)
+import Data.Aeson
 import Data.List (zip)
 import Data.Map (Map, toList, fromList)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
-import Gargantext.Database.Flow (FlowCmdM)
+import Network.HTTP.Media ((//), (/:))
+import Servant
+
+import Gargantext.Prelude
+import Gargantext.API.Ngrams
 import Gargantext.API.Types (GargServer)
-import Gargantext.API.Ngrams (putListNgrams')
+import Gargantext.Database.Flow (FlowCmdM)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
+import Gargantext.Database.Types.Node
 
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))
 
-type API = Get '[JSON] NgramsList
-      :<|> ReqBody '[JSON] NgramsList :> Put '[JSON] Bool
+data HTML
+instance Accept HTML where
+  contentType _ = "text" // "html" /: ("charset", "utf-8")
+instance ToJSON a => MimeRender HTML a where
+  mimeRender _ = encode
+
+type API = ReqBody '[JSON] NgramsList :> Put '[JSON] Bool
+      :<|> Get '[HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
 
 api :: ListId -> GargServer API
-api l = get l :<|> put l
+api l = put l :<|> getHtml l
 
-get :: RepoCmdM env err m 
+get :: RepoCmdM env err m
     => ListId -> m NgramsList
 get lId = fromList
        <$> zip ngramsTypes
        <$> mapM (getNgramsTableMap lId) ngramsTypes
+
+getHtml :: RepoCmdM env err m
+        => ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
+getHtml lId = do
+  lst <- get lId
+  let (NodeId id) = lId
+  return $ addHeader (concat ["attachment; filename=GarganText_NgramsList-", pack $ show id, ".json"]) lst
+
 
 -- TODO : purge list
 put :: FlowCmdM env err m
