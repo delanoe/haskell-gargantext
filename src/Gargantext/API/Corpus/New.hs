@@ -130,6 +130,7 @@ data WithForm = WithForm
   { _wf_filetype :: !FileType
   , _wf_data     :: !Text
   , _wf_lang     :: !(Maybe Lang)
+  , _wf_name     :: !Text
   } deriving (Eq, Show, Generic)
 
 makeLenses ''WithForm
@@ -241,7 +242,7 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm cid (WithForm ft d l) logStatus = do
+addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
 
   printDebug "ft" ft
 
