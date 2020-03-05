@@ -862,6 +862,8 @@ rmListNgrams ::  RepoCmdM env err m
               -> m ()
 rmListNgrams l nt = setListNgrams l nt mempty
 
+-- | TODO: incr the Version number
+-- && should use patch
 setListNgrams ::  RepoCmdM env err m
               => NodeId
               -> NgramsType
