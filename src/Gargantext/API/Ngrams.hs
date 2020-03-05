@@ -39,6 +39,8 @@ module Gargantext.API.Ngrams
   , TableNgramsApiPost
 
   , getTableNgrams
+  , setListNgrams
+  , rmListNgrams
   , putListNgrams
   , putListNgrams'
   , tableNgramsPost
@@ -116,7 +118,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (.~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -673,7 +675,7 @@ instance Arbitrary a => Arbitrary (Versioned a) where
 
 
 {-
--- TODO sequencs of modifications (Patchs)
+-- TODO sequences of modifications (Patchs)
 type NgramsIdPatch = Patch NgramsId NgramsPatch
 
 ngramsPatch :: Int -> NgramsPatch
@@ -853,6 +855,30 @@ addListNgrams listId ngramsType nes = do
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
+
+rmListNgrams ::  RepoCmdM env err m
+              => ListId
+              -> NgramsType
+              -> m ()
+rmListNgrams l nt = setListNgrams l nt mempty
+
+setListNgrams ::  RepoCmdM env err m
+              => NodeId
+              -> NgramsType
+              -> Map NgramsTerm NgramsRepoElement
+              -> m ()
+setListNgrams listId ngramsType ns = do
+  var <- view repoVar
+  liftIO $ modifyMVar_ var $
+    pure . ( r_state
+           . at ngramsType %~
+             (Just .
+               (at listId .~ ( Just ns))
+               . something
+             )
+           )
+  saveRepo
+
 
 -- If the given list of ngrams elements contains ngrams already in
 -- the repo, they will be ignored.

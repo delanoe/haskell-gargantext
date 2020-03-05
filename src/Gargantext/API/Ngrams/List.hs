@@ -95,7 +95,7 @@ post :: FlowCmdM env err m
     -> m Bool
 post l m  = do
   -- TODO check with Version for optim
-  _ <- mapM (\(nt, Versioned _v ns) -> putListNgrams' l nt ns) $ toList m
+  _ <- mapM (\(nt, Versioned _v ns) -> setListNgrams l nt ns) $ toList m
   -- TODO reindex
   pure True
 
