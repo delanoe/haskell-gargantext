@@ -20,6 +20,7 @@ New corpus means either:
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE RankNTypes         #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Corpus.New
       where
@@ -148,8 +149,8 @@ type AsyncJobs event ctI input output =
 type Upload = Summary "Corpus Upload endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
-    :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
-    :<|> "addWithfile"  :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
+    :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
+    :<|> "addWithfile"  :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
 
 
 type AddWithQuery = Summary "Add with Query to corpus endpoint"

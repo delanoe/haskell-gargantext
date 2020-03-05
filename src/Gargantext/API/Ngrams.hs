@@ -123,6 +123,7 @@ import Control.Monad.State
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
+import Data.Either.Extra (maybeToEither)
 -- import Data.Map (lookup)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
@@ -662,13 +663,14 @@ data Versioned a = Versioned
   { _v_version :: Version
   , _v_data    :: a
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 deriveJSON (unPrefix "_v_") ''Versioned
 makeLenses ''Versioned
 instance ToSchema a => ToSchema (Versioned a) where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_v_")
 instance Arbitrary a => Arbitrary (Versioned a) where
   arbitrary = Versioned 1 <$> arbitrary -- TODO 1 is constant so far
+
 
 {-
 -- TODO sequencs of modifications (Patchs)
@@ -1100,7 +1102,6 @@ getTableNgrams _nType nId tabType listId limit_ offset
 -- TODO: find a better place for the code above, All APIs stay here
 type QueryParamR = QueryParam' '[Required, Strict]
 
-
 data OrderBy = TermAsc | TermDesc | ScoreAsc | ScoreDesc
              deriving (Generic, Enum, Bounded, Read, Show)
 
@@ -1111,6 +1112,7 @@ instance FromHttpApiData OrderBy
     parseUrlPiece "ScoreAsc"  = pure ScoreAsc
     parseUrlPiece "ScoreDesc" = pure ScoreDesc
     parseUrlPiece _           = Left "Unexpected value of OrderBy"
+
 
 instance ToParamSchema OrderBy
 instance FromJSON  OrderBy
@@ -1205,8 +1207,8 @@ apiNgramsTableDoc :: ( RepoCmdM env err m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId
                     :<|> tableNgramsPut
                     :<|> tableNgramsPost
-                        -- > add new ngrams in database (TODO AD)
-                        -- > index all the corpus accordingly (TODO AD)
+                    -- > add new ngrams in database (TODO AD)
+                    -- > index all the corpus accordingly (TODO AD)
 
 listNgramsChangedSince :: RepoCmdM env err m
                        => ListId -> NgramsType -> Version -> m (Versioned Bool)
@@ -1222,3 +1224,7 @@ instance Arbitrary NgramsRepoElement where
     where
       NgramsTable ns = mockTable
 
+--{-
+instance FromHttpApiData (Map NgramsType (Versioned NgramsTableMap))
+  where
+    parseUrlPiece x = maybeToEither x (decode $ cs x)
