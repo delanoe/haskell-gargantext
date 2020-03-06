@@ -78,10 +78,15 @@ instance Arbitrary Query where
 instance ToSchema Query where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "query_")
 
-type Api = Summary "New Corpus endpoint"
-         :> ReqBody '[JSON] Query
-         :> Post '[JSON] CorpusId
-        :<|> Get '[JSON] ApiInfo
+------------------------------------------------------------------------
+
+type Api = PostApi
+        :<|> GetApi
+
+type PostApi = Summary "New Corpus endpoint"
+             :> ReqBody '[JSON] Query
+             :> Post '[JSON] CorpusId
+type GetApi = Get '[JSON] ApiInfo
 
 -- | TODO manage several apis
 -- TODO-ACCESS

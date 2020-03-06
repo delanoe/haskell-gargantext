@@ -171,14 +171,14 @@ instance FromHttpApiData TabType
     parseUrlPiece "Trash"      = pure Trash
     parseUrlPiece "MoreFav"    = pure MoreFav
     parseUrlPiece "MoreTrash"  = pure MoreTrash
-    
+
     parseUrlPiece "Terms"      = pure Terms
     parseUrlPiece "Sources"    = pure Sources
     parseUrlPiece "Institutes" = pure Institutes
     parseUrlPiece "Authors"    = pure Authors
-    
+
     parseUrlPiece "Contacts"   = pure Contacts
-    
+
     parseUrlPiece _            = Left "Unexpected value of TabType"
 
 instance ToParamSchema   TabType

@@ -15,6 +15,8 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
+import Control.Monad.IO.Class (liftIO)
+import Control.Concurrent (newEmptyMVar, takeMVar, putMVar, forkIO)
 import Debug.Trace (trace)
 import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
@@ -68,10 +70,13 @@ cooc2graph threshold myCooc = do
           n' = Set.size $ Set.fromList $ as <> bs
       ClustersParams rivers level = {-trace ("nodesApprox: " <> show nodesApprox) $-} clustersParams nodesApprox
 
-
-  partitions <- case Map.size distanceMap > 0 of
+  partitionsV <- liftIO newEmptyMVar
+  partitions' <- case Map.size distanceMap > 0 of
     True  -> trace ("level" <> show level) $ cLouvain level distanceMap
     False -> panic "Text.Flow: DistanceMap is empty"
+
+  _ <- liftIO $ forkIO $ putMVar partitionsV partitions'
+  partitions <- liftIO $ takeMVar partitionsV
 
   let bridgeness' = {-trace ("rivers: " <> show rivers) $-}
                     bridgeness rivers partitions distanceMap

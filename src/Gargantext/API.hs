@@ -164,7 +164,7 @@ makeDevMiddleware = do
 --                True  -> app req resp
 --                False -> resp ( responseLBS status401 [] 
 --                              "Invalid Origin or Host header")
---        
+--
     let corsMiddleware = cors $ \_ -> Just CorsResourcePolicy
 --          { corsOrigins        = Just ([env^.settings.allowedOrigin], False)
             { corsOrigins        = Nothing --  == /*
@@ -180,7 +180,7 @@ makeDevMiddleware = do
 
     --let warpS = Warp.setPort (8008 :: Int)   -- (env^.settings.appPort)
     --          $ Warp.defaultSettings
-    
+
     --pure (warpS, logWare . checkOriginAndHost . corsMiddleware)
     pure $ logStdoutDev . corsMiddleware
 
@@ -234,58 +234,60 @@ type GargPrivateAPI' =
                 GargAdminAPI
 
            -- Node endpoint
-           :<|> "node"  :> Summary "Node endpoint"
-                        :> Capture "node_id" NodeId
-                        :> NodeAPI HyperdataAny
+           :<|> "node"     :> Summary "Node endpoint"
+                           :> Capture "node_id" NodeId
+                           :> NodeAPI HyperdataAny
 
            -- Corpus endpoints
-           :<|> "corpus":> Summary "Corpus endpoint"
-                        :> Capture "corpus_id" CorpusId
-                        :> NodeAPI HyperdataCorpus
+           :<|> "corpus"   :> Summary "Corpus endpoint"
+                           :> Capture "corpus_id" CorpusId
+                           :> NodeAPI HyperdataCorpus
 
-           :<|> "corpus":> Summary "Corpus endpoint"
-                        :> Capture "node1_id" NodeId
-                        :> "document"
-                        :> Capture "node2_id" NodeId
-                        :> NodeNodeAPI HyperdataAny
+           :<|> "corpus"   :> Summary "Corpus endpoint"
+                           :> Capture "node1_id" NodeId
+                           :> "document"
+                           :> Capture "node2_id" NodeId
+                           :> NodeNodeAPI HyperdataAny
 
-           :<|> "corpus" :> Capture "node_id" CorpusId
-                         :> Export.API
+           :<|> "corpus"   :> Capture "node_id" CorpusId
+                           :> Export.API
 
            -- Annuaire endpoint
-           :<|> "annuaire":> Summary "Annuaire endpoint"
-                          :> Capture "annuaire_id" AnnuaireId
-                          :> NodeAPI HyperdataAnnuaire
+           :<|> "annuaire" :> Summary "Annuaire endpoint"
+                           :> Capture "annuaire_id" AnnuaireId
+                           :> NodeAPI HyperdataAnnuaire
 
            :<|> "annuaire" :> Summary "Contact endpoint"
                            :> Capture "annuaire_id" NodeId
-                           :> "contact" :> Capture "contact_id" NodeId
+                           :> "contact"
+                           :> Capture "contact_id" NodeId
                            :> NodeNodeAPI HyperdataContact
 
            -- Document endpoint
-           :<|> "document":> Summary "Document endpoint"
-                          :> Capture "doc_id" DocId
-                          :> "ngrams" :> TableNgramsApi
+           :<|> "document" :> Summary "Document endpoint"
+                           :> Capture "doc_id" DocId
+                           :> "ngrams" :> TableNgramsApi
 
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
             -- TODO-SECURITY
-           :<|> "count" :> Summary "Count endpoint"
-                        :> ReqBody '[JSON] Query :> CountAPI
+           :<|> "count"    :> Summary "Count endpoint"
+                           :> ReqBody '[JSON] Query
+                           :> CountAPI
 
            -- Corpus endpoint --> TODO rename s/search/filter/g
-           :<|> "search":> Capture "corpus" NodeId
-                        :> SearchPairsAPI
+           :<|> "search"   :> Capture "corpus" NodeId
+                           :> SearchPairsAPI
 
            -- TODO move to NodeAPI?
-           :<|> "graph" :> Summary "Graph endpoint"
-                        :> Capture "graph_id" NodeId
-                        :> GraphAPI
+           :<|> "graph"    :> Summary "Graph endpoint"
+                           :> Capture "graph_id" NodeId
+                           :> GraphAPI
 
            -- TODO move to NodeAPI?
            -- Tree endpoint
-           :<|> "tree" :> Summary "Tree endpoint"
-                       :> Capture "tree_id" NodeId
-                       :> TreeAPI
+           :<|> "tree"    :> Summary "Tree endpoint"
+                          :> Capture "tree_id" NodeId
+                          :> TreeAPI
 
            -- :<|> New.Upload
            :<|> New.AddWithForm
@@ -296,13 +298,13 @@ type GargPrivateAPI' =
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
-           :<|> "lists" :> Summary "List export API"
-                        :> Capture "listId" ListId
-                        :> List.API
+           :<|> "lists"  :> Summary "List export API"
+                         :> Capture "listId" ListId
+                         :> List.API
 
-           :<|> "wait" :> Summary "Wait test"
-                      :> Capture "x" Int
-                      :> WaitAPI -- Get '[JSON] Int
+           :<|> "wait"   :> Summary "Wait test"
+                         :> Capture "x" Int
+                         :> WaitAPI -- Get '[JSON] Int
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -470,7 +472,7 @@ type Desc t n = Description (AppendSymbol (TypeName t) (AppendSymbol " | " n))
 swaggerDoc :: Swagger
 swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
   & info.title       .~ "Gargantext"
-  & info.version     .~ "4.0.2" -- TODO same version as Gargantext
+  & info.version     .~ "0.0.1.3.1" -- TODO same version as Gargantext
   -- & info.base_url     ?~ (URL "http://gargantext.org/")
   & info.description ?~ "REST API specifications"
   -- & tags             .~ Set.fromList [Tag "Garg" (Just "Main perations") Nothing]
