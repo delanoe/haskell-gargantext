@@ -31,6 +31,7 @@ import Control.Monad.IO.Class (liftIO)
 import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.Text
 import Servant
 import Servant.XML
 import qualified Xmlbf as Xmlbf
@@ -53,6 +54,8 @@ import Gargantext.Viz.Graph
 import qualified Gargantext.Viz.Graph as G
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
 
+-- Converts to GEXF format
+-- See https://gephi.org/gexf/format/
 instance Xmlbf.ToXml Graph where
   toXml (Graph { _graph_nodes = graphNodes
                 , _graph_edges = graphEdges }) = root graphNodes graphEdges
@@ -66,8 +69,8 @@ instance Xmlbf.ToXml Graph where
       meta = Xmlbf.element "meta" params $ creator <> description
         where
           params = HashMap.fromList [ ("lastmodifieddate", "2020-03-13") ]
-      creator = Xmlbf.element "Gargantext.org" HashMap.empty []
-      description = Xmlbf.element "Gargantext gexf file" HashMap.empty []
+      creator = Xmlbf.element "creator" HashMap.empty $ Xmlbf.text "Gargantext.org"
+      description = Xmlbf.element "description" HashMap.empty $ Xmlbf.text "Gargantext gexf file"
       graph :: [G.Node] -> [G.Edge] -> [Xmlbf.Node]
       graph gn ge = Xmlbf.element "graph" params $ (nodes gn) <> (edges ge)
         where
@@ -98,7 +101,7 @@ instance Xmlbf.ToXml Graph where
 type GraphAPI   =  Get  '[JSON] Graph
               :<|> Post '[JSON] [GraphId]
               :<|> Put  '[JSON] Int
-              :<|> "gexf" :> Get '[XML] Graph
+              :<|> "gexf" :> Get '[XML] (Headers '[Header "Content-Disposition" Text] Graph)
 
 
 graphAPI :: UserId -> NodeId -> GargServer GraphAPI
@@ -193,7 +196,7 @@ putGraph :: NodeId -> GargServer (Put '[JSON] Int)
 putGraph = undefined
 
 
-getGraphGexf :: UserId -> NodeId -> GargNoServer Graph
+getGraphGexf :: UserId -> NodeId -> GargNoServer (Headers '[Header "Content-Disposition" Text] Graph)
 getGraphGexf uId nId = do
   graph <- getGraph uId nId
-  pure graph
+  pure $ addHeader (concat [ "attachment; filename=graph.gexf" ]) graph
