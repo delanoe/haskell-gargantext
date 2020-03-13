@@ -52,6 +52,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not, any, all
+                 , concatMap
                  , fst, snd, toS
                  , elem, die, mod, div, const, either
                  , curry, uncurry, repeat
