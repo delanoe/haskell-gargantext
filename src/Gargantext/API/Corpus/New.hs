@@ -20,6 +20,7 @@ New corpus means either:
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE RankNTypes         #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Corpus.New
       where
@@ -77,10 +78,15 @@ instance Arbitrary Query where
 instance ToSchema Query where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "query_")
 
-type Api = Summary "New Corpus endpoint"
-         :> ReqBody '[JSON] Query
-         :> Post '[JSON] CorpusId
-        :<|> Get '[JSON] ApiInfo
+------------------------------------------------------------------------
+
+type Api = PostApi
+        :<|> GetApi
+
+type PostApi = Summary "New Corpus endpoint"
+             :> ReqBody '[JSON] Query
+             :> Post '[JSON] CorpusId
+type GetApi = Get '[JSON] ApiInfo
 
 -- | TODO manage several apis
 -- TODO-ACCESS
@@ -130,6 +136,7 @@ data WithForm = WithForm
   { _wf_filetype :: !FileType
   , _wf_data     :: !Text
   , _wf_lang     :: !(Maybe Lang)
+  , _wf_name     :: !Text
   } deriving (Eq, Show, Generic)
 
 makeLenses ''WithForm
@@ -147,8 +154,8 @@ type AsyncJobs event ctI input output =
 type Upload = Summary "Corpus Upload endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
-    :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
-    :<|> "addWithfile"  :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
+    :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
+    :<|> "addWithfile"  :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
 
 
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
@@ -241,7 +248,7 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm cid (WithForm ft d l) logStatus = do
+addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
 
   printDebug "ft" ft
 

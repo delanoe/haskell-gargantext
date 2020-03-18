@@ -39,6 +39,8 @@ module Gargantext.API.Ngrams
   , TableNgramsApiPost
 
   , getTableNgrams
+  , setListNgrams
+  , rmListNgrams
   , putListNgrams
   , putListNgrams'
   , tableNgramsPost
@@ -116,13 +118,14 @@ import Data.Map.Strict (Map)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
-import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
+import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (.~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
+import Data.Either.Extra (maybeToEither)
 -- import Data.Map (lookup)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Swagger hiding (version, patch)
@@ -168,14 +171,14 @@ instance FromHttpApiData TabType
     parseUrlPiece "Trash"      = pure Trash
     parseUrlPiece "MoreFav"    = pure MoreFav
     parseUrlPiece "MoreTrash"  = pure MoreTrash
-    
+
     parseUrlPiece "Terms"      = pure Terms
     parseUrlPiece "Sources"    = pure Sources
     parseUrlPiece "Institutes" = pure Institutes
     parseUrlPiece "Authors"    = pure Authors
-    
+
     parseUrlPiece "Contacts"   = pure Contacts
-    
+
     parseUrlPiece _            = Left "Unexpected value of TabType"
 
 instance ToParamSchema   TabType
@@ -662,7 +665,7 @@ data Versioned a = Versioned
   { _v_version :: Version
   , _v_data    :: a
   }
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 deriveJSON (unPrefix "_v_") ''Versioned
 makeLenses ''Versioned
 instance ToSchema a => ToSchema (Versioned a) where
@@ -670,8 +673,9 @@ instance ToSchema a => ToSchema (Versioned a) where
 instance Arbitrary a => Arbitrary (Versioned a) where
   arbitrary = Versioned 1 <$> arbitrary -- TODO 1 is constant so far
 
+
 {-
--- TODO sequencs of modifications (Patchs)
+-- TODO sequences of modifications (Patchs)
 type NgramsIdPatch = Patch NgramsId NgramsPatch
 
 ngramsPatch :: Int -> NgramsPatch
@@ -851,6 +855,32 @@ addListNgrams listId ngramsType nes = do
   where
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
+
+rmListNgrams ::  RepoCmdM env err m
+              => ListId
+              -> NgramsType
+              -> m ()
+rmListNgrams l nt = setListNgrams l nt mempty
+
+-- | TODO: incr the Version number
+-- && should use patch
+setListNgrams ::  RepoCmdM env err m
+              => NodeId
+              -> NgramsType
+              -> Map NgramsTerm NgramsRepoElement
+              -> m ()
+setListNgrams listId ngramsType ns = do
+  var <- view repoVar
+  liftIO $ modifyMVar_ var $
+    pure . ( r_state
+           . at ngramsType %~
+             (Just .
+               (at listId .~ ( Just ns))
+               . something
+             )
+           )
+  saveRepo
+
 
 -- If the given list of ngrams elements contains ngrams already in
 -- the repo, they will be ignored.
@@ -1100,7 +1130,6 @@ getTableNgrams _nType nId tabType listId limit_ offset
 -- TODO: find a better place for the code above, All APIs stay here
 type QueryParamR = QueryParam' '[Required, Strict]
 
-
 data OrderBy = TermAsc | TermDesc | ScoreAsc | ScoreDesc
              deriving (Generic, Enum, Bounded, Read, Show)
 
@@ -1111,6 +1140,7 @@ instance FromHttpApiData OrderBy
     parseUrlPiece "ScoreAsc"  = pure ScoreAsc
     parseUrlPiece "ScoreDesc" = pure ScoreDesc
     parseUrlPiece _           = Left "Unexpected value of OrderBy"
+
 
 instance ToParamSchema OrderBy
 instance FromJSON  OrderBy
@@ -1205,8 +1235,8 @@ apiNgramsTableDoc :: ( RepoCmdM env err m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId
                     :<|> tableNgramsPut
                     :<|> tableNgramsPost
-                        -- > add new ngrams in database (TODO AD)
-                        -- > index all the corpus accordingly (TODO AD)
+                    -- > add new ngrams in database (TODO AD)
+                    -- > index all the corpus accordingly (TODO AD)
 
 listNgramsChangedSince :: RepoCmdM env err m
                        => ListId -> NgramsType -> Version -> m (Versioned Bool)
@@ -1222,3 +1252,7 @@ instance Arbitrary NgramsRepoElement where
     where
       NgramsTable ns = mockTable
 
+--{-
+instance FromHttpApiData (Map NgramsType (Versioned NgramsTableMap))
+  where
+    parseUrlPiece x = maybeToEither x (decode $ cs x)
