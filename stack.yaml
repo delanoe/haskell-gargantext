@@ -8,13 +8,12 @@ packages:
 
 docker:
   enable: false
-  repo: 'fpco/stack-build:lts-14.6-garg'
+  repo: 'fpco/stack-build:lts-14.27-garg'
   run-args:
     - '--publish=8008:8008'
 
 nix:
   enable: false
-  #packages: [gmp]
   add-gc-roots: true
   shell-file: build-shell.nix
 

@@ -1,4 +1,4 @@
-{ pkgs ? import ./pinned.nix {} }:
+{ pkgs ? import ./pinned-19.09.nix {} }:
 
 pkgs.mkShell {
   buildInputs = with pkgs; [
