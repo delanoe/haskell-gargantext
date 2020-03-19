@@ -199,18 +199,24 @@ type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
 
 
-type GargAPIVersion = "v1.0" :> Summary "v1.0: " :> GargAPI'
+type GargAPIVersion = "v1.0"
+                   :> Summary "Garg API Version "
+                   :> GargAPI'
+
+type GargVersion = "version"
+                 :> Summary "Backend version"
+                 :> Get '[JSON] Text
 
 type GargAPI' =
            -- Auth endpoint
                 "auth"  :> Summary "AUTH API"
                         :> ReqBody '[JSON] AuthRequest
                         :> Post    '[JSON] AuthResponse
-          :<|> "version" :> Summary "Backend version"
-                          :> Get '[JSON] Text
-           -- TODO-ACCESS here we want to request a particular header for
+          :<|> GargVersion
+                   -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
           :<|> GargPrivateAPI
+
 
 type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser :> GargPrivateAPI'
 
@@ -341,7 +347,11 @@ server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  schemaUiServer swaggerDoc
-     :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
+     :<|> hoistServerWithContext 
+            (Proxy :: Proxy GargAPI)
+            (Proxy :: Proxy AuthContext)
+            transform
+            serverGargAPI
      :<|> frontEndServer
   where
     transform :: forall a. GargServerM env GargError a -> Handler a
@@ -353,13 +363,14 @@ serverGargAPI -- orchestrator
      :<|> gargVersion
      :<|> serverPrivateGargAPI
   --   :<|> orchestrator
+  where
 
-gargVersion :: GargServer Text
-gargVersion = pure $ (showVersion PG.version :: Text)
+    gargVersion :: GargServer GargVersion
+    gargVersion = pure (cs $ showVersion PG.version)
 
-serverPrivateGargAPI :: GargServerT env err (GargServerM env err) GargPrivateAPI
-serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
-serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
+    serverPrivateGargAPI :: GargServerT env err (GargServerM env err) GargPrivateAPI
+    serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
+    serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
 -- Here throwAll' requires a concrete type for the monad.
 
 -- TODO-SECURITY admin only: withAdmin
