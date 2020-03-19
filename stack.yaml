@@ -4,6 +4,7 @@ extra-package-dbs: []
 packages:
 - .
 #- 'deps/servant-job'
+#- 'deps/clustering-louvain'
 
 docker:
   enable: false
@@ -49,7 +50,7 @@ extra-deps:
 - git: https://github.com/np/servant-job.git
   commit: 4016c76398a56e1a352a45b3ee9d698dd0dd2597
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
-  commit: e5814cbfa71f43b0a453efb65f476240d7d51a53
+  commit: f8fd33e4e9639730d47cd02b223a0f8fbbbfe975
 - git: https://github.com/np/patches-map
   commit: 8c6f38c4844ead53e664cf9c82ba461715dbe445
 - git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0

@@ -25,7 +25,7 @@ import Data.Map (Map, fromListWith, lookup, fromList, delete, toList, mapKeys, m
 import qualified Data.Map as DM
 import Data.Maybe (fromJust)
 import Data.List (concat, sortOn)
-import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
+import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 
 
 -- TODO mv in Louvain Lib

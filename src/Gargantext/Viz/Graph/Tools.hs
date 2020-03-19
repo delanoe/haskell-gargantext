@@ -15,10 +15,8 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
-import Control.Monad.IO.Class (liftIO)
-import Control.Concurrent (newEmptyMVar, takeMVar, putMVar, forkIO)
 import Debug.Trace (trace)
-import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
+import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
 import qualified Data.Set as Set
@@ -70,20 +68,21 @@ cooc2graph threshold myCooc = do
           n' = Set.size $ Set.fromList $ as <> bs
       ClustersParams rivers level = {-trace ("nodesApprox: " <> show nodesApprox) $-} clustersParams nodesApprox
 
-  partitionsV <- liftIO newEmptyMVar
-  partitions' <- case Map.size distanceMap > 0 of
+  partitions <- inMVarIO $ case Map.size distanceMap > 0 of
     True  -> trace ("level" <> show level) $ cLouvain level distanceMap
     False -> panic "Text.Flow: DistanceMap is empty"
 
-  _ <- liftIO $ forkIO $ putMVar partitionsV partitions'
-  partitions <- liftIO $ takeMVar partitionsV
-
-  let bridgeness' = {-trace ("rivers: " <> show rivers) $-}
+  bridgeness' <- trace "bridgeness" $ inMVar $ {-trace ("rivers: " <> show rivers) $-}
                     bridgeness rivers partitions distanceMap
 
-  let confluence' = confluence (Map.keys bridgeness') 3 True False
+  confluence' <- trace "confluence" $ inMVar $ confluence (Map.keys bridgeness') 3 True False
 
-  data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
+  r <- trace "data2graph" $ inMVarIO $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
+
+  pure r
+
+
+
 
 
 data ClustersParams = ClustersParams { bridgness :: Double

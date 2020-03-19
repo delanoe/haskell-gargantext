@@ -31,10 +31,11 @@ module Gargantext.Prelude
   )
   where
 
+import Control.Monad.IO.Class (liftIO, MonadIO)
+import Control.Concurrent (newEmptyMVar, takeMVar, putMVar, forkIO)
 import GHC.Exts (sortWith)
 import GHC.Err.Located (undefined)
 import GHC.Real (round)
-import Control.Monad.IO.Class (MonadIO)
 import Data.Maybe (isJust, fromJust, maybe)
 import Data.Text (Text)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
@@ -302,6 +303,25 @@ fib :: Int -> Int
 fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
+
+
+
+-----------------------------------------------------------------------
+-- Memory Optimization
+
+inMVarIO :: MonadIO m => m b -> m b
+inMVarIO f = do
+  mVar <- liftIO newEmptyMVar
+  zVar <- f
+  _ <- liftIO $ forkIO $ putMVar mVar zVar
+  liftIO $ takeMVar mVar
+
+inMVar :: b -> IO b
+inMVar f = do
+  mVar <- newEmptyMVar
+  let zVar = f
+  _ <- liftIO $ forkIO $ putMVar mVar zVar
+  liftIO $ takeMVar mVar
 
 
 

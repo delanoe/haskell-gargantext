@@ -99,7 +99,7 @@ getGraph uId nId = do
   newGraph  <- liftIO newEmptyMVar
   g <- case graph of
     Nothing     -> do
-      graph' <- computeGraph cId NgramsTerms repo
+      graph' <- inMVarIO $ computeGraph cId NgramsTerms repo
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
       pure graph'
 
@@ -134,7 +134,7 @@ computeGraph cId nt repo = do
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
-  graph <- liftIO $ cooc2graph 0 myCooc
+  graph <- liftIO $ inMVarIO $ cooc2graph 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
   pure graph'
 
