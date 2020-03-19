@@ -57,10 +57,12 @@ import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Swagger
 import Data.Text (Text)
 import Data.Validity
+import Data.Version (showVersion)
 import GHC.Generics (D1, Meta (..), Rep)
 import GHC.TypeLits (AppendSymbol, Symbol)
 import Network.Wai
 import Network.Wai.Handler.Warp hiding (defaultSettings)
+import qualified Paths_gargantext as PG -- cabal magic build module
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Server (AuthResult(..))
@@ -204,6 +206,8 @@ type GargAPI' =
                 "auth"  :> Summary "AUTH API"
                         :> ReqBody '[JSON] AuthRequest
                         :> Post    '[JSON] AuthResponse
+          :<|> "version" :> Summary "Backend version"
+                          :> Get '[JSON] Text
            -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
           :<|> GargPrivateAPI
@@ -345,8 +349,13 @@ server env = do
 
 serverGargAPI :: GargServerT env err (GargServerM env err) GargAPI
 serverGargAPI -- orchestrator
-       =  auth :<|> serverPrivateGargAPI
+       =  auth
+     :<|> gargVersion
+     :<|> serverPrivateGargAPI
   --   :<|> orchestrator
+
+gargVersion :: GargServer Text
+gargVersion = pure $ (showVersion PG.version :: Text)
 
 serverPrivateGargAPI :: GargServerT env err (GargServerM env err) GargPrivateAPI
 serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
