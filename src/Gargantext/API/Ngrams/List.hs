@@ -50,7 +50,7 @@ import Servant.Job.Utils (jsonOptions)
 ------------------------------------------------------------------------
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))
 ------------------------------------------------------------------------
-type API =  Get '[HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
+type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
        -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool
        :<|> PostAPI
 
