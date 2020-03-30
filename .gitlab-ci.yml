@@ -1,22 +1,13 @@
-# Thanks to:
-# https://vadosware.io/post/zero-to-continuous-integrated-testing-a-haskell-project-with-gitlab/
-#
-#
-image: haskell:8
+image: tweag/stack-docker-nix
 
 variables:
   STACK_ROOT: "${CI_PROJECT_DIR}/.stack"
-  STACK_OPTS: "--system-ghc"
 
 cache:
   paths:
     - .stack
     - .stack-work
     - target
-
-#before_script:
-  #- apt-get update
-  #- apt-get install make xz-utils
 
 stages:
   - build
@@ -28,7 +19,6 @@ build:
     - make setup
     - make build
 
-      # TOOO
 #unit-test:
 #  stage: test
 #  script:
@@ -55,7 +45,3 @@ build:
 #    - rm -rf .stack-work
 #    - stack setup --system-ghc
 #    - stack install --local-bin-path target --system-ghc
-
-
-
-
