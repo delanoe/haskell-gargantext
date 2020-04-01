@@ -323,5 +323,3 @@ inMVar f = do
   _ <- liftIO $ forkIO $ putMVar mVar zVar
   liftIO $ takeMVar mVar
 
-
-

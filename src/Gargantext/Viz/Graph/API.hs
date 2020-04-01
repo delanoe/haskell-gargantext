@@ -24,7 +24,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
--- import Debug.Trace (trace)
+import Debug.Trace (trace)
 import Control.Concurrent -- (forkIO)
 import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
@@ -45,6 +45,10 @@ import Gargantext.Prelude
 import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
 import Servant
+
+import Gargantext.API.Orchestrator.Types
+import Servant.Job.Types
+import Servant.Job.Async
 import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
@@ -54,12 +58,14 @@ import qualified Data.Map as Map
 type GraphAPI   =  Get  '[JSON] Graph
               :<|> Post '[JSON] [GraphId]
               :<|> Put  '[JSON] Int
+              :<|> GraphAsync
 
 
 graphAPI :: UserId -> NodeId -> GargServer GraphAPI
 graphAPI u n =  getGraph  u n
          :<|> postGraph n
          :<|> putGraph  n
+         :<|> graphAsync u n
 
 ------------------------------------------------------------------------
 
@@ -96,10 +102,9 @@ getGraph uId nId = do
                   identity
                   $ nodeGraph ^. node_parentId
 
-  newGraph  <- liftIO newEmptyMVar
   g <- case graph of
     Nothing     -> do
-      graph' <- inMVarIO $ computeGraph cId NgramsTerms repo
+      graph' <- computeGraph cId NgramsTerms repo
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
       pure graph'
 
@@ -109,6 +114,8 @@ getGraph uId nId = do
                        graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure graph''
+
+  newGraph  <- liftIO newEmptyMVar
   _  <- liftIO $ forkIO $ putMVar newGraph g
   g' <- liftIO $ takeMVar newGraph
   pure {- $ trace (show g) $ -} g'
@@ -129,12 +136,12 @@ computeGraph cId nt repo = do
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] nt repo
 
-  myCooc <- Map.filter (>1)
-         <$> getCoocByNgrams (Diagonal True)
+  myCooc <- inMVarIO $ Map.filter (>1)
+         <$> getCoocByNgrams (Diagonal False)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
-  graph <- liftIO $ inMVarIO $ cooc2graph 0 myCooc
+  graph <- liftIO $ inMVar $ cooc2graph 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
   pure graph'
 
@@ -146,3 +153,31 @@ postGraph = undefined
 putGraph :: NodeId -> GargServer (Put '[JSON] Int)
 putGraph = undefined
 
+------------------------------------------------------------
+
+type GraphAsync = Summary "Update graph"
+                :> "async"
+                :> AsyncJobsAPI ScraperStatus () ScraperStatus
+
+graphAsync :: UserId -> NodeId -> GargServer GraphAsync
+graphAsync u n =
+  serveJobsAPI $
+    JobFunction (\_ log' -> graphAsync' u n (liftIO . log'))
+
+
+graphAsync' :: UserId
+           -> NodeId
+           -> (ScraperStatus -> GargNoServer ())
+           -> GargNoServer ScraperStatus
+graphAsync' u n logStatus = do
+  logStatus ScraperStatus { _scst_succeeded = Just 1
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
+                          , _scst_events    = Just []
+                          }
+  _g <- trace (show u) $ getGraph u n
+  pure  ScraperStatus { _scst_succeeded = Just 1
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
+                          , _scst_events    = Just []
+                          }

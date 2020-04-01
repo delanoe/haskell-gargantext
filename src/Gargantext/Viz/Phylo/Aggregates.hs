@@ -27,7 +27,7 @@ import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 
 import Debug.Trace (trace)
- 
+
 import Data.List    (partition, concat, nub, elem, sort, (++), null, union)
 import Data.Map     (Map, fromList, fromListWith, adjust, filterWithKey, elems, keys, unionWith, mapWithKey)
 import Data.Set     (size)
