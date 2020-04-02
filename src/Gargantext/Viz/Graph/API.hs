@@ -86,6 +86,47 @@ getGraph :: UserId -> NodeId -> GargNoServer Graph
 getGraph uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  -- let listVersion = graph ^? _Just
+  --                           . graph_metadata
+  --                           . _Just
+  --                           . gm_list
+  --                           . lfg_version
+
+  repo <- getRepo
+  -- let v = repo ^. r_version
+  nodeUser <- getNodeUser (NodeId uId)
+
+  let uId' = nodeUser ^. node_userId
+
+  let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
+                  identity
+                  $ nodeGraph ^. node_parentId
+
+  g <- case graph of
+    Nothing     -> do
+      graph' <- computeGraph cId NgramsTerms repo
+      _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
+      pure graph'
+
+    Just graph' -> pure graph'
+
+    -- Just graph' -> if listVersion == Just v
+    --                  then pure graph'
+    --                  else do
+    --                    graph'' <- computeGraph cId NgramsTerms repo
+    --                    _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
+    --                    pure graph''
+
+  newGraph  <- liftIO newEmptyMVar
+  _  <- liftIO $ forkIO $ putMVar newGraph g
+  g' <- liftIO $ takeMVar newGraph
+  pure {- $ trace (show g) $ -} g'
+
+
+recomputeGraph :: UserId -> NodeId -> GargNoServer Graph
+recomputeGraph uId nId = do
+  nodeGraph <- getNodeWith nId HyperdataGraph
+  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let listVersion = graph ^? _Just
                             . graph_metadata
                             . _Just
@@ -118,7 +159,7 @@ getGraph uId nId = do
   newGraph  <- liftIO newEmptyMVar
   _  <- liftIO $ forkIO $ putMVar newGraph g
   g' <- liftIO $ takeMVar newGraph
-  pure {- $ trace (show g) $ -} g'
+  pure g'
 
 
 -- TODO use Database Monad only here ?
@@ -170,17 +211,14 @@ graphAsync' :: UserId
            -> (ScraperStatus -> GargNoServer ())
            -> GargNoServer ScraperStatus
 graphAsync' u n logStatus = do
-  logStatus ScraperStatus { _scst_succeeded = Just 1
+  logStatus ScraperStatus { _scst_succeeded = Just 0
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
-  _g <- trace (show u) $ getGraph u n
+  _g <- trace (show u) $ recomputeGraph u n
   pure  ScraperStatus { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
-
-
-
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 0
+                      , _scst_events    = Just []
+                      }
