@@ -104,11 +104,11 @@ getGraph uId nId = do
 
   g <- case graph of
     Nothing     -> do
-      graph' <- computeGraph cId NgramsTerms repo
-      _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
-      pure graph'
+        graph' <- computeGraph cId NgramsTerms repo
+        _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
+        pure $ trace "Graph empty, computing" $ graph'
 
-    Just graph' -> pure graph'
+    Just graph' -> pure $ trace "Graph exists, returning" $ graph'
 
     -- Just graph' -> if listVersion == Just v
     --                  then pure graph'
@@ -147,14 +147,14 @@ recomputeGraph uId nId = do
     Nothing     -> do
       graph' <- computeGraph cId NgramsTerms repo
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
-      pure graph'
+      pure $ trace "[recomputeGraph] Graph empty, computing" $ graph'
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
                        graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
-                       pure graph''
+                       pure $ trace "[recomputeGraph] Graph exists, recomputing" $ graph''
 
   newGraph  <- liftIO newEmptyMVar
   _  <- liftIO $ forkIO $ putMVar newGraph g
