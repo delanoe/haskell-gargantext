@@ -12,13 +12,14 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}   -- allows to write Text literals
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
-{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TypeOperators     #-}
 
 module Gargantext.Viz.Graph.API
@@ -28,7 +29,11 @@ import Debug.Trace (trace)
 import Control.Concurrent -- (forkIO)
 import Control.Lens (set, (^.), _Just, (^?))
 import Control.Monad.IO.Class (liftIO)
+import Data.Aeson
 import Data.Maybe (Maybe(..))
+import Data.Swagger
+import GHC.Generics (Generic)
+
 import Gargantext.API.Ngrams (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Types
@@ -58,14 +63,22 @@ import qualified Data.Map as Map
 type GraphAPI   =  Get  '[JSON] Graph
               :<|> Post '[JSON] [GraphId]
               :<|> Put  '[JSON] Int
-              :<|> GraphAsync
+              :<|> GraphAsyncAPI
+              :<|> "versions" :> GraphVersionsAPI
 
+
+data GraphVersions = GraphVersions { gv_graph :: Maybe Int
+                                   , gv_repo :: Int } deriving (Show, Generic)
+
+instance ToJSON GraphVersions
+instance ToSchema GraphVersions
 
 graphAPI :: UserId -> NodeId -> GargServer GraphAPI
 graphAPI u n =  getGraph  u n
          :<|> postGraph n
          :<|> putGraph  n
          :<|> graphAsync u n
+         :<|> graphVersionsAPI u n
 
 ------------------------------------------------------------------------
 
@@ -196,11 +209,11 @@ putGraph = undefined
 
 ------------------------------------------------------------
 
-type GraphAsync = Summary "Update graph"
-                :> "async"
-                :> AsyncJobsAPI ScraperStatus () ScraperStatus
+type GraphAsyncAPI = Summary "Update graph"
+                   :> "async"
+                   :> AsyncJobsAPI ScraperStatus () ScraperStatus
 
-graphAsync :: UserId -> NodeId -> GargServer GraphAsync
+graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
 graphAsync u n =
   serveJobsAPI $
     JobFunction (\_ log' -> graphAsync' u n (liftIO . log'))
@@ -222,3 +235,34 @@ graphAsync' u n logStatus = do
                       , _scst_remaining = Just 0
                       , _scst_events    = Just []
                       }
+
+------------------------------------------------------------
+
+type GraphVersionsAPI = Summary "Graph versions"
+                        :> Get '[JSON] GraphVersions
+                   :<|> Summary "Recompute graph version"
+                        :> Post '[JSON] Graph
+
+graphVersionsAPI :: UserId -> NodeId -> GargServer GraphVersionsAPI
+graphVersionsAPI u n =
+           graphVersions u n
+      :<|> recomputeVersions u n
+
+graphVersions :: UserId -> NodeId -> GargNoServer GraphVersions
+graphVersions _uId nId = do
+  nodeGraph <- getNodeWith nId HyperdataGraph
+  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let listVersion = graph ^? _Just
+                            . graph_metadata
+                            . _Just
+                            . gm_list
+                            . lfg_version
+
+  repo <- getRepo
+  let v = repo ^. r_version
+
+  pure $ GraphVersions { gv_graph = listVersion
+                       , gv_repo = v }
+
+recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
+recomputeVersions uId nId = recomputeGraph uId nId
