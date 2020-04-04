@@ -67,7 +67,6 @@ data Query = Query { query_query      :: Text
 
 deriveJSON (unPrefix "query_") 'Query
 
-
 instance Arbitrary Query where
     arbitrary = elements [ Query q n fs
                          | q <- ["a","b"]
@@ -157,7 +156,6 @@ type Upload = Summary "Corpus Upload endpoint"
     :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
     :<|> "addWithfile"  :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
 
-
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
    :> Capture "corpus_id" CorpusId
@@ -204,7 +202,6 @@ addToCorpusJobFunction _cid (WithQuery _q _dbs _l) logStatus = do
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
                           }
-
 
 addToCorpusWithFile :: FlowCmdM env err m
                     => CorpusId
