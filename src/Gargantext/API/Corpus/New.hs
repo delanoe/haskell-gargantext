@@ -257,11 +257,11 @@ addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
       PresseRIS -> Parser.parseFormat Parser.RisPresse
 
   newDocs <- liftIO newEmptyMVar
-  docs <- liftIO
-        $ splitEvery 500
+  _ <- liftIO $ forkIO
+       <$> putMVar newDocs
+       <$> splitEvery 500
        <$> take 1000000
        <$> parse (cs d)
-  _  <- liftIO $ forkIO $ putMVar newDocs docs
 
   logStatus ScraperStatus { _scst_succeeded = Just 1
                           , _scst_failed    = Just 0
@@ -269,13 +269,14 @@ addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
                           , _scst_events    = Just []
                           }
 
-  docs' <- liftIO $ takeMVar newDocs
+  docs'  <- liftIO $ takeMVar newDocs
+
   newCid <- liftIO newEmptyMVar
-  cid' <- flowCorpus "user1"
-                     (Right [cid])
-                     (Multi $ fromMaybe EN l)
-                     (map (map toHyperdataDocument) docs')
-  _  <- liftIO $ forkIO $ putMVar newCid cid'
+  _ <- forkIO <$> putMVar newCid
+              <$> flowCorpus "user1"
+                             (Right [cid])
+                             (Multi $ fromMaybe EN l)
+                             (map (map toHyperdataDocument) docs')
 
   cid'' <- liftIO $ takeMVar newCid
   printDebug "cid'" cid''

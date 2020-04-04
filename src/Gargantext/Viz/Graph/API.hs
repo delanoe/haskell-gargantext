@@ -158,25 +158,37 @@ recomputeGraph uId nId = do
 
   g <- case graph of
     Nothing     -> do
-      graph' <- computeGraph cId NgramsTerms repo
+      graph' <- computeGraphAsync cId NgramsTerms repo
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
       pure $ trace "[recomputeGraph] Graph empty, computing" $ graph'
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
-                       graph'' <- computeGraph cId NgramsTerms repo
+                       graph'' <- computeGraphAsync cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure $ trace "[recomputeGraph] Graph exists, recomputing" $ graph''
 
-  newGraph  <- liftIO newEmptyMVar
-  _  <- liftIO $ forkIO $ putMVar newGraph g
-  g' <- liftIO $ takeMVar newGraph
+  pure g
+
+computeGraphAsync :: HasNodeError err
+             => CorpusId
+             -> NgramsType
+             -> NgramsRepo
+             -> Cmd err Graph
+computeGraphAsync cId nt repo = do
+  g <- liftIO newEmptyMVar
+  _ <- forkIO <$> putMVar g <$> computeGraph cId nt repo
+  g' <- liftIO $ takeMVar g
   pure g'
 
 
 -- TODO use Database Monad only here ?
-computeGraph :: HasNodeError err => CorpusId -> NgramsType -> NgramsRepo -> Cmd err Graph
+computeGraph :: HasNodeError err
+             => CorpusId
+             -> NgramsType
+             -> NgramsRepo
+             -> Cmd err Graph
 computeGraph cId nt repo = do
   lId  <- defaultList cId
 
@@ -190,12 +202,12 @@ computeGraph cId nt repo = do
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] nt repo
 
-  myCooc <- inMVarIO $ Map.filter (>1)
+  myCooc <- Map.filter (>1)
          <$> getCoocByNgrams (Diagonal False)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
-  graph <- liftIO $ inMVar $ cooc2graph 0 myCooc
+  let graph  = cooc2graph 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
   pure graph'
 
