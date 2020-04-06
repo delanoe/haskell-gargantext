@@ -11,6 +11,7 @@ Triggers on Nodes table.
 
 -}
 
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}

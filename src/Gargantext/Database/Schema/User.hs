@@ -14,6 +14,7 @@ Functions to deal with users, database side.
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE TemplateHaskell             #-}
+{-# LANGUAGE FlexibleContexts            #-}
 {-# LANGUAGE FlexibleInstances           #-}
 {-# LANGUAGE MultiParamTypeClasses       #-}
 {-# LANGUAGE FunctionalDependencies      #-}

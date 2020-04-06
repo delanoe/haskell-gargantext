@@ -22,6 +22,7 @@ Next Step benchmark:
 -}
 
 {-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
