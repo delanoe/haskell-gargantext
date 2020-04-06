@@ -128,6 +128,7 @@ getGraph uId nId = do
     --                    graph'' <- computeGraph cId NgramsTerms repo
     --                    _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
     --                    pure graph''
+  
 
   newGraph  <- liftBase newEmptyMVar
   _  <- liftBase $ forkIO $ putMVar newGraph g
@@ -206,7 +207,7 @@ computeGraph cId nt repo = do
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
-  let graph  = cooc2graph 0 myCooc
+  graph <- liftBase $ cooc2graph 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
   pure graph'
 

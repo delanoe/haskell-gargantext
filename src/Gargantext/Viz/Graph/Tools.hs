@@ -16,8 +16,8 @@ module Gargantext.Viz.Graph.Tools
   where
 
 import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
-import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
--- import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
+-- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
+import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -53,9 +53,9 @@ cooc2graph' threshold myCooc = distanceMap
 
 cooc2graph :: Threshold
            -> (Map (Text, Text) Int)
-           -> Graph
-cooc2graph threshold myCooc = data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
-  where
+           -> IO Graph
+cooc2graph threshold myCooc = do
+  let
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
     matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
@@ -67,21 +67,20 @@ cooc2graph threshold myCooc = data2graph (Map.toList ti) myCooc' bridgeness' con
       where
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
-    ClustersParams rivers _level = clustersParams nodesApprox
+    ClustersParams rivers level = clustersParams nodesApprox
 
-    partitions = if (Map.size distanceMap > 0)
-        --then iLouvainMap 100 10 distanceMap
-        then hLouvain distanceMap
-        else panic "Text.Flow: DistanceMap is empty"
-        -- True  -> trace ("level" <> show level) $ cLouvain level distanceMap
 
+  partitions <- if (Map.size distanceMap > 0)
+      --then iLouvainMap 100 10 distanceMap
+      -- then hLouvain distanceMap
+      then cLouvain level distanceMap
+      else panic "Text.Flow: DistanceMap is empty"
+
+  let
     bridgeness' = bridgeness rivers partitions distanceMap
-
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
-
-
-
+  pure $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
 
 
 
