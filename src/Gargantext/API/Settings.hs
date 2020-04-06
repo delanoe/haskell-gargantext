@@ -309,11 +309,11 @@ withDevEnv iniPath k = do
   where
     newDevEnv = do
       param <- databaseParameters iniPath
-      conn  <- connect param
+      pool  <- newPool param
       repo  <- readRepoEnv
       setts <- devSettings devJwkFile
       pure $ DevEnv
-        { _dev_env_conn = conn
+        { _dev_env_pool = pool
         , _dev_env_repo = repo
         , _dev_env_settings = setts
         }

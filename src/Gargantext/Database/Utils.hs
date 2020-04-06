@@ -13,6 +13,7 @@ commentary with @some markup@.
 
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -22,10 +23,11 @@ module Gargantext.Database.Utils where
 
 import Data.ByteString.Char8 (hPutStrLn)
 import System.IO (stderr)
-import Control.Exception 
+import Control.Exception
 import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Lens (Getter, view)
 import Control.Monad.Reader
+import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Except
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.Either.Extra (Either(Left, Right))
@@ -33,10 +35,12 @@ import Data.Ini (readIniFile, lookupValue)
 import qualified Data.List as DL
 import Data.Maybe (maybe)
 import Data.Monoid ((<>))
+import Data.Pool (Pool, withResource)
 import Data.Profunctor.Product.Default (Default)
 import Data.Text (unpack, pack)
 import Data.Typeable (Typeable)
 import Data.Word (Word16)
+--import Database.PostgreSQL.Simple (Connection, Pool, connect, withPoolConnection)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
@@ -48,11 +52,11 @@ import Text.Read (read)
 import qualified Data.ByteString      as DB
 import qualified Database.PostgreSQL.Simple as PGS
 
-class HasConnection env where
-  connection :: Getter env Connection
+class HasConnectionPool env where
+  connPool :: Getter env (Pool Connection)
 
-instance HasConnection Connection where
-  connection = identity
+instance HasConnectionPool (Pool Connection) where
+  connPool = identity
 
 type CmdM' env err m =
   ( MonadReader env m
@@ -62,7 +66,8 @@ type CmdM' env err m =
 
 type CmdM env err m =
   ( CmdM' env err m
-  , HasConnection env
+  , MonadBaseControl IO m
+  , HasConnectionPool env
   )
 
 type Cmd' env err a = forall m. CmdM' env err m => m a
@@ -75,10 +80,10 @@ fromInt64ToInt = fromIntegral
 -- TODO: ideally there should be very few calls to this functions.
 mkCmd :: (Connection -> IO a) -> Cmd err a
 mkCmd k = do
-  conn <- view connection
-  liftIO $ k conn
+  pool <- view connPool
+  withResource pool (liftIO . k)
 
-runCmd :: (HasConnection env)
+runCmd :: (HasConnectionPool env)
        => env -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
@@ -100,8 +105,8 @@ formatPGSQuery q a = mkCmd $ \conn -> PGS.formatQuery conn q a
 runPGSQuery' :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
 runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
 
-runPGSQuery :: (MonadError err m, MonadReader env m,
-                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnection env)
+runPGSQuery :: (MonadError err m, MonadReader env m, MonadBaseControl IO m,
+                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnectionPool env)
                 => PGS.Query -> q -> m [r]
 runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
   where
