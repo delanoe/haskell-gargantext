@@ -28,7 +28,6 @@ module Gargantext.API.Corpus.New
 --import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat(..))
 import Control.Lens hiding (elements)
 import Control.Monad.IO.Class (liftIO)
-import Control.Concurrent
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Maybe (fromMaybe)
@@ -245,9 +244,28 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
+addToCorpusWithForm cid form logStatus = do
 
-  printDebug "ft" ft
+
+  logStatus ScraperStatus { _scst_succeeded = Just 1
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
+                          , _scst_events    = Just []
+                          }
+
+  _ <- asyncFlowCorpus cid form
+
+  pure      ScraperStatus { _scst_succeeded = Just 2
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 0
+                          , _scst_events    = Just []
+                          }
+
+asyncFlowCorpus :: FlowCmdM env err m
+                    => CorpusId
+                    -> WithForm
+                    -> m ()
+asyncFlowCorpus cid (WithForm ft d l _n) = do
 
   let
     parse = case ft of
@@ -256,34 +274,12 @@ addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
       WOS       -> Parser.parseFormat Parser.WOS
       PresseRIS -> Parser.parseFormat Parser.RisPresse
 
-  newDocs <- liftIO newEmptyMVar
-  _ <- liftIO $ forkIO
-       <$> putMVar newDocs
-       <$> splitEvery 500
-       <$> take 1000000
-       <$> parse (cs d)
+  docs <- liftIO $ splitEvery 500
+      <$> take 1000000
+      <$> parse (cs d)
 
-  logStatus ScraperStatus { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
-
-  docs'  <- liftIO $ takeMVar newDocs
-
-  newCid <- liftIO newEmptyMVar
-  _ <- forkIO <$> putMVar newCid
-              <$> flowCorpus "user1"
-                             (Right [cid])
-                             (Multi $ fromMaybe EN l)
-                             (map (map toHyperdataDocument) docs')
-
-  cid'' <- liftIO $ takeMVar newCid
-  printDebug "cid'" cid''
-
-  pure      ScraperStatus { _scst_succeeded = Just 2
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
-
+  _cid' <- flowCorpus "user1"
+                     (Right [cid])
+                     (Multi $ fromMaybe EN l)
+                     (map (map toHyperdataDocument) docs)
+  pure ()
