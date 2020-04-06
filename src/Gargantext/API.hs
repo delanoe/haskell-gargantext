@@ -435,7 +435,11 @@ addWithFile cid i f =
 addCorpusWithForm :: GargServer New.AddWithForm
 addCorpusWithForm cid =
   serveJobsAPI $
-    JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log))
+    JobFunction (\i log -> New.addToCorpusWithForm cid i log')
+  where
+    log' x = do
+      printDebug "addCorpusWithForm" x
+      liftIO $ log x
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =
