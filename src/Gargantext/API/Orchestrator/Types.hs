@@ -85,7 +85,7 @@ data ScraperEvent = ScraperEvent
   , _scev_level   :: !(Maybe Text)
   , _scev_date    :: !(Maybe Text)
   }
-  deriving Generic
+  deriving (Show, Generic)
 
 instance Arbitrary ScraperEvent where
   arbitrary = ScraperEvent <$> elements [Nothing, Just "test message"]
@@ -104,7 +104,7 @@ data ScraperStatus = ScraperStatus
   , _scst_remaining :: !(Maybe Int)
   , _scst_events    :: !(Maybe [ScraperEvent])
   }
-  deriving Generic
+  deriving (Show, Generic)
 
 instance Arbitrary ScraperStatus where
   arbitrary = ScraperStatus
