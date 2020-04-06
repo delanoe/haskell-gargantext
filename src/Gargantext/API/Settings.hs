@@ -35,7 +35,7 @@ import System.Environment (lookupEnv)
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
-import Database.PostgreSQL.Simple (Connection, connect, close)
+import Database.PostgreSQL.Simple (Connection, connect, close, PGSConnectInfo)
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
 
@@ -269,8 +269,8 @@ newEnv port file = do
     , _env_self_url   = self_url
     }
 
-gargPool :: IO (Pool a)
-gargPool = createPool connect close 1 (60*60) 8
+newPool :: PGSConnectInfo -> IO (Pool a)
+newPool param = createPool (connect param) close 1 (60*60) 8
 
 data DevEnv = DevEnv
   { _dev_env_conn :: !Connection
