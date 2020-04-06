@@ -244,28 +244,7 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm cid form logStatus = do
-
-
-  logStatus ScraperStatus { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
-
-  _ <- asyncFlowCorpus cid form
-
-  pure      ScraperStatus { _scst_succeeded = Just 2
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
-
-asyncFlowCorpus :: FlowCmdM env err m
-                    => CorpusId
-                    -> WithForm
-                    -> m ()
-asyncFlowCorpus cid (WithForm ft d l _n) = do
+addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
 
   let
     parse = case ft of
@@ -274,12 +253,33 @@ asyncFlowCorpus cid (WithForm ft d l _n) = do
       WOS       -> Parser.parseFormat Parser.WOS
       PresseRIS -> Parser.parseFormat Parser.RisPresse
 
+  logStatus ScraperStatus { _scst_succeeded = Just 1
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
+                          , _scst_events    = Just []
+                          }
+
+  printDebug "Parsing corpus: " cid
+
+  -- TODO granularity of the logStatus
   docs <- liftIO $ splitEvery 500
       <$> take 1000000
       <$> parse (cs d)
 
+  printDebug "Parsing corpus finished : " cid
+  printDebug "Starting extraction     : " cid
+
+  -- TODO granularity of the logStatus
   _cid' <- flowCorpus "user1"
                      (Right [cid])
                      (Multi $ fromMaybe EN l)
                      (map (map toHyperdataDocument) docs)
-  pure ()
+
+  printDebug "Extraction finished   : " cid
+
+  pure      ScraperStatus { _scst_succeeded = Just 2
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 0
+                          , _scst_events    = Just []
+                          }
+
