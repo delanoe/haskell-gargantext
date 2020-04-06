@@ -12,6 +12,7 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
 
+{-# LANGUAGE     FlexibleContexts        #-}
 {-# LANGUAGE     NoImplicitPrelude       #-}
 {-# LANGUAGE     OverloadedStrings       #-}
 {-# LANGUAGE     RankNTypes              #-}
@@ -28,11 +29,11 @@ module Gargantext.Prelude
   , round
   , sortWith
   , module Prelude
+  , MonadBase(..)
   )
   where
 
-import Control.Monad.IO.Class (liftIO, MonadIO)
-import Control.Concurrent (newEmptyMVar, takeMVar, putMVar, forkIO)
+import Control.Monad.Base (MonadBase(..))
 import GHC.Exts (sortWith)
 import GHC.Err.Located (undefined)
 import GHC.Real (round)
@@ -43,7 +44,6 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Enum, Bounded, Float
                  , Floating, Char, IO
                  , pure, (>>=), (=<<), (<*>), (<$>), (>>)
-                 , putStrLn
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, mapM, zip, drop, take, zipWith
@@ -63,7 +63,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , panic
                  )
 
-import Prelude (Enum, Bounded, minBound, maxBound)
+import Prelude (Enum, Bounded, minBound, maxBound, putStrLn)
 -- TODO import functions optimized in Utils.Count
 -- import Protolude hiding (head, last, all, any, sum, product, length)
 -- import Gargantext.Utils.Count
@@ -81,8 +81,8 @@ import Text.Read (Read())
 import Data.String.Conversions (cs)
 
 
-printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
-printDebug msg x = putStrLn $ msg <> " " <> show x
+printDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
+printDebug msg x = liftBase . putStrLn $ msg <> " " <> show x
 -- printDebug _ _ = pure ()
 
 

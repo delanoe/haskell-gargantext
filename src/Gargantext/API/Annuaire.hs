@@ -88,7 +88,7 @@ addToAnnuaireWithForm _cid (WithForm ft _d _l) logStatus = do
     --   WOS       -> Parser.parseFormat Parser.WOS
     --   PresseRIS -> Parser.parseFormat Parser.RisPresse
 
-  -- docs <- liftIO
+  -- docs <- liftBase
   --       $ splitEvery 500
   --      <$> take 1000000
   --      <$> parse (cs d)

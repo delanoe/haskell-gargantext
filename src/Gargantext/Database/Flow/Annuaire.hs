@@ -29,7 +29,7 @@ import Gargantext.Database.Flow
 
 flowAnnuaire :: FlowCmdM env ServantErr m => FilePath -> m ()
 flowAnnuaire filePath = do
-  contacts <- liftIO $ deserialiseImtUsersFromFile filePath
+  contacts <- liftBase $ deserialiseImtUsersFromFile filePath
   ps <- flowInsertAnnuaire "Annuaire"
       $ map (\h-> ToDbContact h)
       $ map addUniqIdsContact contacts

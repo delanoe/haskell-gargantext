@@ -119,6 +119,7 @@ import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (.~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
+import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -797,15 +798,14 @@ instance HasRepoSaver RepoEnv where
 type RepoCmdM   env err m =
   ( MonadReader env     m
   , MonadError      err m
-  , MonadIO             m -- TODO liftIO -> liftBase
   , MonadBaseControl IO m
   , HasRepo     env
   )
 ------------------------------------------------------------------------
 
-saveRepo :: ( MonadReader env m, MonadIO m, HasRepoSaver env )
+saveRepo :: ( MonadReader env m, MonadBase IO m, HasRepoSaver env )
          => m ()
-saveRepo = liftIO =<< view repoSaver
+saveRepo = liftBase =<< view repoSaver
 
 listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
@@ -836,7 +836,7 @@ copyListNgrams :: RepoCmdM env err m
                -> m ()
 copyListNgrams srcListId dstListId ngramsType = do
   var <- view repoVar
-  liftIO $ modifyMVar_ var $
+  liftBase $ modifyMVar_ var $
     pure . (r_state . at ngramsType %~ (Just . f . something))
   saveRepo
   where
@@ -851,7 +851,7 @@ addListNgrams :: RepoCmdM env err m
               -> [NgramsElement] -> m ()
 addListNgrams listId ngramsType nes = do
   var <- view repoVar
-  liftIO $ modifyMVar_ var $
+  liftBase $ modifyMVar_ var $
     pure . (r_state . at ngramsType . _Just . at listId . _Just <>~ m)
   saveRepo
   where
@@ -873,7 +873,7 @@ setListNgrams ::  RepoCmdM env err m
               -> m ()
 setListNgrams listId ngramsType ns = do
   var <- view repoVar
-  liftIO $ modifyMVar_ var $
+  liftBase $ modifyMVar_ var $
     pure . ( r_state
            . at ngramsType %~
              (Just .
@@ -901,7 +901,7 @@ putListNgrams' :: RepoCmdM env err m
 putListNgrams' listId ngramsType ns = do
   -- printDebug "putListNgrams" (length nes)
   var <- view repoVar
-  liftIO $ modifyMVar_ var $
+  liftBase $ modifyMVar_ var $
     pure . ( r_state
            . at ngramsType %~
              (Just .
@@ -930,7 +930,7 @@ currentVersion :: RepoCmdM env err m
                => m Version
 currentVersion = do
   var <- view repoVar
-  r   <- liftIO $ readMVar var
+  r   <- liftBase $ readMVar var
   pure $ r ^. r_version
 
 tableNgramsPull :: RepoCmdM env err m
@@ -939,7 +939,7 @@ tableNgramsPull :: RepoCmdM env err m
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
   var <- view repoVar
-  r <- liftIO $ readMVar var
+  r <- liftBase $ readMVar var
 
   let
     q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
@@ -968,7 +968,7 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
       assertValid p_validity
 
       var <- view repoVar
-      vq' <- liftIO $ modifyMVar var $ \r -> do
+      vq' <- liftBase $ modifyMVar var $ \r -> do
         let
           q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
           (p', q') = transformWith ngramsStatePatchConflictResolution p q
@@ -1008,7 +1008,7 @@ getNgramsTableMap :: RepoCmdM env err m
                   -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
   v    <- view repoVar
-  repo <- liftIO $ readMVar v
+  repo <- liftBase $ readMVar v
   pure $ Versioned (repo ^. r_version)
                    (repo ^. r_state . at ngramsType . _Just . at nodeId . _Just)
 
@@ -1020,8 +1020,8 @@ type MaxSize = Int
 -- | Table of Ngrams is a ListNgrams formatted (sorted and/or cut).
 -- TODO: should take only one ListId
 
-getTime' :: MonadIO m => m TimeSpec
-getTime' = liftIO $ getTime ProcessCPUTime
+getTime' :: MonadBase IO m => m TimeSpec
+getTime' = liftBase $ getTime ProcessCPUTime
 
 
 getTableNgrams :: forall env err m.
@@ -1087,7 +1087,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
                                             ngramsType
                                             ngrams_terms
       t2 <- getTime'
-      liftIO $ hprint stderr
+      liftBase $ hprint stderr
         ("getTableNgrams/setScores #ngrams=" % int % " time=" % timeSpecs % "\n")
         (length ngrams_terms) t1 t2
       {-
@@ -1116,7 +1116,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
                                     . setScores (not scoresNeeded)
                                     . selectAndPaginate
   t3 <- getTime'
-  liftIO $ hprint stderr
+  liftBase $ hprint stderr
             ("getTableNgrams total=" % timeSpecs
                           % " map1=" % timeSpecs
                           % " map2=" % timeSpecs

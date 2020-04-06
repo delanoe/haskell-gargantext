@@ -44,7 +44,6 @@ import Data.Tuple.Extra (first, second)
 import Data.Traversable (traverse)
 import Debug.Trace (trace)
 import Control.Lens ((^.), view, _Just)
-import Control.Monad.IO.Class (liftIO)
 import Data.List (concat)
 import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
@@ -109,7 +108,7 @@ _flowCorpusApi :: ( FlowCmdM env err m)
                -> ApiQuery
                -> m CorpusId
 _flowCorpusApi u n tt l q = do
-  docs <- liftIO $ splitEvery 500 <$> getDataApi (_tt_lang tt) l q
+  docs <- liftBase $ splitEvery 500 <$> getDataApi (_tt_lang tt) l q
   flowCorpus u n tt docs
 
 ------------------------------------------------------------------------
@@ -121,7 +120,7 @@ flowAnnuaire :: FlowCmdM env err m
              -> FilePath
              -> m AnnuaireId
 flowAnnuaire u n l filePath = do
-  docs <- liftIO $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
+  docs <- liftBase $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
 -- UNUSED
@@ -130,7 +129,7 @@ _flowCorpusDebat :: FlowCmdM env err m
                  -> Limit -> FilePath
                  -> m CorpusId
 _flowCorpusDebat u n l fp = do
-  docs <- liftIO ( splitEvery 500
+  docs <- liftBase ( splitEvery 500
                  <$> take l
                  <$> readFile' fp
                  :: IO [[GD.GrandDebatReference ]]
@@ -143,7 +142,7 @@ flowCorpusFile :: FlowCmdM env err m
            -> TermType Lang -> FileFormat -> FilePath
            -> m CorpusId
 flowCorpusFile u n l la ff fp = do
-  docs <- liftIO ( splitEvery 500
+  docs <- liftBase ( splitEvery 500
                  <$> take l
                  <$> parseFile ff fp
                  )
@@ -439,7 +438,7 @@ instance ExtractNgramsT HyperdataDocument
           terms' <- map text2ngrams
                  <$> map (intercalate " " . _terms_label)
                  <$> concat
-                 <$> liftIO (extractTerms lang' $ hasText doc)
+                 <$> liftBase (extractTerms lang' $ hasText doc)
 
           pure $ Map.fromList $  [(source, Map.singleton Sources 1)]
                              <> [(i', Map.singleton Institutes  1) | i' <- institutes ]

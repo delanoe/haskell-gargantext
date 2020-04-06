@@ -9,6 +9,7 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE     FlexibleContexts        #-}
 {-# LANGUAGE     NoImplicitPrelude       #-}
 {-# LANGUAGE     OverloadedStrings       #-}
 
@@ -17,7 +18,6 @@ module Gargantext.Prelude.Utils
 
 import Control.Lens (view)
 import Control.Monad.Reader (MonadReader)
-import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Random.Class (MonadRandom)
 import Data.Text (Text)
 import Control.Monad.Reader (ask)
@@ -84,23 +84,23 @@ class ReadFile a where
   readFile' :: FilePath -> IO a
 
 
-writeFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
+writeFile :: (MonadReader env m, MonadBase IO m, HasSettings env, SaveFile a)
          => a -> m FilePath
 writeFile a = do
   dataPath <- view (settings . fileFolder) <$> ask
-  (fp,fn)  <- liftIO $ (toPath 3) . sha . Text.pack . show <$> newStdGen
+  (fp,fn)  <- liftBase $ (toPath 3) . sha . Text.pack . show <$> newStdGen
   
   let foldPath = dataPath <> "/" <> fp
       filePath = foldPath <> "/" <> fn
   
-  _ <- liftIO $ createDirectoryIfMissing True foldPath
-  _ <- liftIO $ saveFile' filePath a
+  _ <- liftBase $ createDirectoryIfMissing True foldPath
+  _ <- liftBase $ saveFile' filePath a
   
   pure filePath
 
 
-readFile :: (MonadReader env m, MonadIO m, HasSettings env, ReadFile a)
+readFile :: (MonadReader env m, MonadBase IO m, HasSettings env, ReadFile a)
          => FilePath -> m a
 readFile fp = do
   dataPath <- view (settings . fileFolder) <$> ask
-  liftIO $ readFile' $ dataPath <> "/" <> fp
+  liftBase $ readFile' $ dataPath <> "/" <> fp

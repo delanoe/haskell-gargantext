@@ -33,7 +33,6 @@ module Gargantext.API.Auth
       where
 
 import Control.Lens (view)
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson.TH (deriveJSON)
 import Data.List (elem)
 import Data.Swagger
@@ -91,7 +90,7 @@ makeTokenForUser :: (HasSettings env, HasJoseError err)
                  => NodeId -> Cmd' env err Token
 makeTokenForUser uid = do
   jwtS <- view $ settings . jwtSettings
-  e <- liftIO $ makeJWT (AuthenticatedUser uid) jwtS Nothing
+  e <- liftBase $ makeJWT (AuthenticatedUser uid) jwtS Nothing
   -- TODO-SECURITY here we can implement token expiration ^^.
   either joseError (pure . toStrict . decodeUtf8) e
   -- TODO not sure about the encoding...

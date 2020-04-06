@@ -27,7 +27,6 @@ module Gargantext.API.Corpus.New
 
 --import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat(..))
 import Control.Lens hiding (elements)
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Maybe (fromMaybe)
@@ -95,7 +94,7 @@ api _uId (Query q _ as) = do
     Nothing      -> flowCorpusSearchInDatabase "user1" EN q
     Just API.All -> flowCorpusSearchInDatabase "user1" EN q
     Just a   -> do
-      docs <- liftIO $ API.get a q (Just 1000)
+      docs <- liftBase $ API.get a q (Just 1000)
       cId' <- flowCorpus "user1" (Left q) (Multi EN) [docs]
       pure cId'
 
@@ -234,10 +233,10 @@ addToCorpusWithForm' :: FlowCmdM env err m
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
 addToCorpusWithForm' cid (WithForm ft d l) logStatus = do
-  newStatus <- liftIO newEmptyMVar
+  newStatus <- liftBase newEmptyMVar
   s  <- addToCorpusWithForm cid (WithForm ft d l) logStatus
-  _  <- liftIO $ forkIO $ putMVar newStatus s
-  s' <- liftIO $ takeMVar newStatus
+  _  <- liftBase $ forkIO $ putMVar newStatus s
+  s' <- liftBase $ takeMVar newStatus
   pure s'
 -}
 addToCorpusWithForm :: FlowCmdM env err m
@@ -264,7 +263,7 @@ addToCorpusWithForm username cid (WithForm ft d l _n) logStatus = do
   printDebug "Parsing corpus: " cid
 
   -- TODO granularity of the logStatus
-  docs <- liftIO $ splitEvery 500
+  docs <- liftBase $ splitEvery 500
       <$> take 1000000
       <$> parse (cs d)
 

@@ -61,12 +61,11 @@ instance HasConnectionPool (Pool Connection) where
 type CmdM' env err m =
   ( MonadReader env m
   , MonadError err m
-  , MonadIO m
+  , MonadBaseControl IO m
   )
 
 type CmdM env err m =
   ( CmdM' env err m
-  , MonadBaseControl IO m
   , HasConnectionPool env
   )
 
@@ -81,7 +80,7 @@ fromInt64ToInt = fromIntegral
 mkCmd :: (Connection -> IO a) -> Cmd err a
 mkCmd k = do
   pool <- view connPool
-  withResource pool (liftIO . k)
+  withResource pool (liftBase . k)
 
 runCmd :: (HasConnectionPool env)
        => env -> Cmd' env err a
@@ -106,7 +105,7 @@ runPGSQuery' :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
 runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
 
 runPGSQuery :: (MonadError err m, MonadReader env m, MonadBaseControl IO m,
-                PGS.FromRow r, PGS.ToRow q, MonadIO m, HasConnectionPool env)
+                PGS.FromRow r, PGS.ToRow q, HasConnectionPool env)
                 => PGS.Query -> q -> m [r]
 runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
   where

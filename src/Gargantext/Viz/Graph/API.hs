@@ -28,7 +28,6 @@ module Gargantext.Viz.Graph.API
 import Debug.Trace (trace)
 import Control.Concurrent -- (forkIO)
 import Control.Lens (set, (^.), _Just, (^?))
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
 import Data.Maybe (Maybe(..))
 import Data.Swagger
@@ -89,10 +88,10 @@ graphAPI u n =  getGraph  u n
 -- Each process has to be tailored
 getGraph' :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
 getGraph' u n = do
-  newGraph  <- liftIO newEmptyMVar
+  newGraph  <- liftBase newEmptyMVar
   g  <- getGraph u n
-  _  <- liftIO $ forkIO $ putMVar newGraph g
-  g' <- liftIO $ takeMVar newGraph
+  _  <- liftBase $ forkIO $ putMVar newGraph g
+  g' <- liftBase $ takeMVar newGraph
   pure g'
 -}
 getGraph :: UserId -> NodeId -> GargNoServer Graph
@@ -130,9 +129,9 @@ getGraph uId nId = do
     --                    _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
     --                    pure graph''
 
-  newGraph  <- liftIO newEmptyMVar
-  _  <- liftIO $ forkIO $ putMVar newGraph g
-  g' <- liftIO $ takeMVar newGraph
+  newGraph  <- liftBase newEmptyMVar
+  _  <- liftBase $ forkIO $ putMVar newGraph g
+  g' <- liftBase $ takeMVar newGraph
   pure {- $ trace (show g) $ -} g'
 
 
@@ -177,9 +176,9 @@ computeGraphAsync :: HasNodeError err
              -> NgramsRepo
              -> Cmd err Graph
 computeGraphAsync cId nt repo = do
-  g <- liftIO newEmptyMVar
+  g <- liftBase newEmptyMVar
   _ <- forkIO <$> putMVar g <$> computeGraph cId nt repo
-  g' <- liftIO $ takeMVar g
+  g' <- liftBase $ takeMVar g
   pure g'
 
 
@@ -228,7 +227,7 @@ type GraphAsyncAPI = Summary "Update graph"
 graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
 graphAsync u n =
   serveJobsAPI $
-    JobFunction (\_ log' -> graphAsync' u n (liftIO . log'))
+    JobFunction (\_ log' -> graphAsync' u n (liftBase . log'))
 
 
 graphAsync' :: UserId

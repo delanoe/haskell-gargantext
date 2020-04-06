@@ -51,7 +51,6 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Except (withExceptT, ExceptT)
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Swagger
@@ -235,7 +234,7 @@ waitAPI ::  Int -> GargServer WaitAPI
 waitAPI n = do
   let
     m = (10 :: Int) ^ (6 :: Int)
-  _ <- liftIO $ threadDelay ( m * n)
+  _ <- liftBase $ threadDelay ( m * n)
   pure $ "Waited: " <> (cs $ show n)
 ----------------------------------------
 
@@ -418,19 +417,19 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
 
 {-
 addUpload :: GargServer New.Upload
-addUpload cId = (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log)))
-           :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm    cid i (liftIO . log)))
+addUpload cId = (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftBase . log)))
+           :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm    cid i (liftBase . log)))
 --}
 
 addCorpusWithQuery :: GargServer New.AddWithQuery
 addCorpusWithQuery cid =
   serveJobsAPI $
-    JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log))
+    JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftBase . log))
 
 addWithFile :: GargServer New.AddWithFile
 addWithFile cid i f =
   serveJobsAPI $
-    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftIO . log))
+    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
 
 addCorpusWithForm :: Text -> GargServer New.AddWithForm
 addCorpusWithForm username cid =
@@ -439,19 +438,19 @@ addCorpusWithForm username cid =
       let
         log' x = do
           printDebug "addCorpusWithForm" x
-          liftIO $ log x
+          liftBase $ log x
       in New.addToCorpusWithForm username cid i log')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =
   serveJobsAPI $
-    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftIO . log))
+    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
 
 {-
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
                   let path = "purescript-gargantext/dist/index.html"
-                  Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
+                  Just s <- liftBase (fileTypeToFileTree (FileTypeFile path))
                   fileTreeToServer s
                 )
 -}

@@ -37,7 +37,7 @@ type RootTerm = Text
 getRepo :: RepoCmdM env err m => m NgramsRepo
 getRepo = do
   v <- view repoVar
-  liftIO $ readMVar v
+  liftBase $ readMVar v
 
 listNgramsFromRepo :: [ListId] -> NgramsType
                    -> NgramsRepo -> Map Text NgramsRepoElement

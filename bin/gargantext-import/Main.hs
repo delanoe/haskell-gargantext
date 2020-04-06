@@ -37,7 +37,6 @@ import System.Environment (getArgs)
 --import Gargantext.Text.Corpus.Parsers.GrandDebat (readFile, GrandDebatReference(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Control.Monad.IO.Class (liftIO)
 
 main :: IO ()
 main = do
