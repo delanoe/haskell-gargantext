@@ -303,23 +303,3 @@ fib :: Int -> Int
 fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
-
-
-
------------------------------------------------------------------------
--- Memory Optimization
-
-inMVarIO :: MonadIO m => m b -> m b
-inMVarIO f = do
-  mVar <- liftIO newEmptyMVar
-  zVar <- f
-  _ <- liftIO $ forkIO $ putMVar mVar zVar
-  liftIO $ takeMVar mVar
-
-inMVar :: b -> IO b
-inMVar f = do
-  mVar <- newEmptyMVar
-  let zVar = f
-  _ <- liftIO $ forkIO $ putMVar mVar zVar
-  liftIO $ takeMVar mVar
-
