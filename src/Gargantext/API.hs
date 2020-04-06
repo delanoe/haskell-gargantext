@@ -86,7 +86,7 @@ import Gargantext.API.Types
 import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
-import Gargantext.Database.Utils (HasConnection)
+import Gargantext.Database.Utils (HasConnectionPool)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 import Network.HTTP.Types hiding (Query)
@@ -334,7 +334,7 @@ type API = SwaggerAPI
 type GargServerM env err = ReaderT env (ExceptT err IO)
 
 type EnvC env =
-  ( HasConnection env
+  ( HasConnectionPool env
   , HasRepo env
   , HasSettings env
   , HasJobEnv env ScraperStatus ScraperStatus

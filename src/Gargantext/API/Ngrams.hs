@@ -122,6 +122,7 @@ import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
@@ -140,7 +141,7 @@ import Gargantext.Database.Config (userMaster)
 import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Types.Node (NodeType(..))
-import Gargantext.Database.Utils (fromField', HasConnection)
+import Gargantext.Database.Utils (fromField', HasConnectionPool)
 import Gargantext.Database.Node.Select
 import Gargantext.Database.Ngrams
 --import Gargantext.Database.Lists (listsWith)
@@ -796,7 +797,8 @@ instance HasRepoSaver RepoEnv where
 type RepoCmdM   env err m =
   ( MonadReader env     m
   , MonadError      err m
-  , MonadIO             m
+  , MonadIO             m -- TODO liftIO -> liftBase
+  , MonadBaseControl IO m
   , HasRepo     env
   )
 ------------------------------------------------------------------------
@@ -1023,7 +1025,7 @@ getTime' = liftIO $ getTime ProcessCPUTime
 
 
 getTableNgrams :: forall env err m.
-                  (RepoCmdM env err m, HasNodeError err, HasConnection env)
+                  (RepoCmdM env err m, HasNodeError err, HasConnectionPool env)
                => NodeType -> NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -1184,7 +1186,7 @@ type TableNgramsApi =  TableNgramsApiGet
                   :<|> TableNgramsApiPut
                   :<|> TableNgramsApiPost
 
-getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env)
                => NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -1198,7 +1200,7 @@ getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize o
       searchQuery = maybe (const True) isInfixOf mt
 
 -- | Text search is deactivated for now for ngrams by doc only
-getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnection env)
+getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env)
                => DocId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -1218,7 +1220,7 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
 apiNgramsTableCorpus :: ( RepoCmdM env err m
                         , HasNodeError err
                         , HasInvalidError err
-                        , HasConnection env
+                        , HasConnectionPool env
                         )
                      => NodeId -> ServerT TableNgramsApi m
 apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
@@ -1229,7 +1231,7 @@ apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
 apiNgramsTableDoc :: ( RepoCmdM env err m
                      , HasNodeError err
                      , HasInvalidError err
-                     , HasConnection env
+                     , HasConnectionPool env
                      )
                   => DocId -> ServerT TableNgramsApi m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId

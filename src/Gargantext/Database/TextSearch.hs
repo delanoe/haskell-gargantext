@@ -9,6 +9,7 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE Arrows            #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}

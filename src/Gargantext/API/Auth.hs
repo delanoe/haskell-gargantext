@@ -50,7 +50,7 @@ import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, GargSe
 import Gargantext.Database.Root (getRoot)
 import Gargantext.Database.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Types.Node (NodePoly(_node_id), NodeId(..), UserId, ListId, DocId)
-import Gargantext.Database.Utils (Cmd', CmdM, HasConnection)
+import Gargantext.Database.Utils (Cmd', CmdM, HasConnectionPool)
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -96,7 +96,7 @@ makeTokenForUser uid = do
   either joseError (pure . toStrict . decodeUtf8) e
   -- TODO not sure about the encoding...
 
-checkAuthRequest :: (HasSettings env, HasConnection env, HasJoseError err)
+checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err)
                  => Username -> Password -> Cmd' env err CheckAuth
 checkAuthRequest u p
   | not (u `elem` arbitraryUsername) = pure InvalidUser
@@ -109,7 +109,7 @@ checkAuthRequest u p
           token <- makeTokenForUser uid
           pure $ Valid token uid
 
-auth :: (HasSettings env, HasConnection env, HasJoseError err)
+auth :: (HasSettings env, HasConnectionPool env, HasJoseError err)
      => AuthRequest -> Cmd' env err AuthResponse
 auth (AuthRequest u p) = do
   checkAuthRequest' <- checkAuthRequest u p

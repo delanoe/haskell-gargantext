@@ -49,6 +49,7 @@ the concatenation of the parameters defined by @shaParameters@.
 -}
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE OverloadedStrings    #-}
