@@ -214,6 +214,7 @@ addToCorpusWithFile cid input filetype logStatus = do
                           , _scst_remaining = Just 138
                           , _scst_events    = Just []
                           }
+  printDebug "addToCorpusWithFile" cid
   _h <- postUpload cid filetype input
 
   pure      ScraperStatus { _scst_succeeded = Just 137
@@ -240,11 +241,12 @@ addToCorpusWithForm' cid (WithForm ft d l) logStatus = do
   pure s'
 -}
 addToCorpusWithForm :: FlowCmdM env err m
-                    => CorpusId
+                    => Text
+                    -> CorpusId
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
+addToCorpusWithForm username cid (WithForm ft d l _n) logStatus = do
 
   let
     parse = case ft of
@@ -270,7 +272,7 @@ addToCorpusWithForm cid (WithForm ft d l _n) logStatus = do
   printDebug "Starting extraction     : " cid
 
   -- TODO granularity of the logStatus
-  _cid' <- flowCorpus "user1"
+  _cid' <- flowCorpus username
                      (Right [cid])
                      (Multi $ fromMaybe EN l)
                      (map (map toHyperdataDocument) docs)

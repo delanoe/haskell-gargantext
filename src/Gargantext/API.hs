@@ -303,7 +303,7 @@ type GargPrivateAPI' =
            :<|> New.AddWithForm
            :<|> New.AddWithQuery
 
-           :<|> Annuaire.AddWithForm
+           :<|> "annuaire" :> Annuaire.AddWithForm
            -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
@@ -406,7 +406,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- TODO access
      -- :<|> addUpload
      -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     :<|> addCorpusWithForm
+     :<|> addCorpusWithForm "user1"
      :<|> addCorpusWithQuery
 
      :<|> addAnnuaireWithForm
@@ -432,15 +432,15 @@ addWithFile cid i f =
   serveJobsAPI $
     JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftIO . log))
 
-addCorpusWithForm :: GargServer New.AddWithForm
-addCorpusWithForm cid =
+addCorpusWithForm :: Text -> GargServer New.AddWithForm
+addCorpusWithForm username cid =
   serveJobsAPI $
     JobFunction (\i log ->
       let
         log' x = do
           printDebug "addCorpusWithForm" x
           liftIO $ log x
-      in New.addToCorpusWithForm cid i log')
+      in New.addToCorpusWithForm username cid i log')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =
