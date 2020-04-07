@@ -10,6 +10,7 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE ConstrainedClassMethods #-}

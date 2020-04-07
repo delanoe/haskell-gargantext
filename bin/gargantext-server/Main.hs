@@ -22,9 +22,11 @@ Script to start gargantext with different modes (Dev, Prod, Mock).
 
 module Main where
 
-
-import Options.Generic
+import Data.Version (showVersion)
 import Data.Text (unpack)
+import qualified Paths_gargantext as PG -- cabal magic build module
+import Options.Generic
+import System.Exit (exitSuccess)
 
 import Gargantext.Prelude
 import Gargantext.API (startGargantext) -- , startGargantextMock)
@@ -51,6 +53,8 @@ data MyOptions w =
                         <?> "By default: 8008"
             , ini  :: w ::: Maybe Text
                         <?> "Ini-file path of gargantext.ini"
+            , version :: w ::: Bool
+                        <?> "Show version number and exit"
             }
    deriving (Generic)
 
@@ -60,8 +64,14 @@ deriving instance Show (MyOptions Unwrapped)
 
 main :: IO ()
 main = do
-  MyOptions myMode myPort myIniFile  <- unwrapRecord
+  MyOptions myMode myPort myIniFile myVersion  <- unwrapRecord
           "Gargantext server"
+
+  if myVersion then do
+    putStrLn $ "Version: " <> showVersion PG.version
+    System.Exit.exitSuccess
+  else
+    return ()
 
   let myPort' = case myPort of
         Just p  -> p

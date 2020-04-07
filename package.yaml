@@ -10,6 +10,8 @@ copyright:
 license: BSD3
 homepage: https://gargantext.org
 ghc-options: -Wall
+extra-libraries:
+- gfortran
 dependencies:
 - extra
 - text
@@ -82,13 +84,18 @@ library:
   - Gargantext.Viz.Phylo.View.Export
   - Gargantext.Viz.Phylo.View.ViewMaker
   dependencies:
-  - array
+  - HSvm
+  - KMP
+  - MonadRandom
   - QuickCheck
+  - SHA
+  - Unique
   - accelerate
   - aeson
   - aeson-lens
   - aeson-pretty
   - argon2
+  - array
   - async
   - attoparsec
   - auto-update
@@ -101,53 +108,51 @@ library:
   - bytestring
   - case-insensitive
   - cassava
-  #- charsetdetect-ae  # detect charset
+  - cereal     # (IGraph)
   - clock
   - clustering-louvain
   - conduit
   - conduit-extra
   - containers
   - contravariant
-  - crawlerPubMed
-  - crawlerIsidore
   - crawlerHAL
   - crawlerISTEX
+  - crawlerIsidore
+  - crawlerPubMed
   - data-time-segment
   - deepseq
   - directory
   - duckling
   - exceptions
-  - filepath
-  - formatting
-  - fullstop
+  - fast-logger
   - fclabels
   - fgl
-  - fast-logger
   - filelock
+  - filepath
+  - formatting
   - full-text-search
+  - fullstop
   - graphviz
   - haskell-igraph
+  - hlcm
+  - hsparql
+  - hstatistics
+  - http-api-data
   - http-client
   - http-client-tls
   - http-conduit
   - http-media
-  - http-api-data
   - http-types
-  - hsparql
-  - hstatistics
-  - HSvm
   - hxt
-  - hlcm
   - ini
   - insert-ordered-containers
   - jose
-    #  - kmeans-vector
   - json-stream
-  - KMP
   - lens
   - located-base
   - logging-effect
   - matrix
+  - monad-control
   - monad-logger
   - mtl
   - natural-transformation
@@ -166,36 +171,35 @@ library:
   - profunctors
   - protolude
   - pureMD5
-  - random-shuffle
-  - MonadRandom
-  - SHA
-  - simple-reflect
-  - cereal     # (IGraph)
-  - singletons # (IGraph)
   - quickcheck-instances
-  - random
   - rake
-  - regex-compat
-  - resourcet
+  - random
+  - random-shuffle
   - rdf4h
+  - regex-compat
+  - resource-pool
+  - resourcet
   - safe
   - semigroups
+  - serialise
   - servant
   - servant-auth
   - servant-auth-server >= 0.4.4.0
   - servant-auth-swagger
   - servant-blaze
+  - servant-cassava
   - servant-client
   - servant-flatten
   - servant-job
   - servant-mock
   - servant-multipart
   - servant-server
+  - servant-static-th
   - servant-swagger
   - servant-swagger-ui
-  - servant-static-th
-  - servant-cassava
-  - serialise
+  - servant-xml
+  - simple-reflect
+  - singletons # (IGraph)
   - split
   - stemmer
   - string-conversions
@@ -209,7 +213,6 @@ library:
   - transformers
   - transformers-base
   - unordered-containers
-  - Unique
   - uuid
   - validity
   - vector
@@ -220,9 +223,12 @@ library:
   - wreq
   - xml-conduit
   - xml-types
+  - xmlbf
   - yaml
   - zip
   - zlib
+    #  - kmeans-vector
+  #- charsetdetect-ae  # detect charset
 #  - utc
 #  API external connections
 

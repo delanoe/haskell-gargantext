@@ -12,32 +12,37 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}   -- allows to write Text literals
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
-{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TypeOperators     #-}
 
 module Gargantext.Viz.Graph.API
   where
 
--- import Debug.Trace (trace)
 import Control.Concurrent -- (forkIO)
 import Control.Lens (set, (^.), _Just, (^?))
-import Control.Monad.IO.Class (liftIO)
+import Data.Aeson
+import Debug.Trace (trace)
 import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.Swagger
 import Data.Text
+import GHC.Generics (Generic)
 import Servant
+import Servant.Job.Async
 import Servant.XML
 import qualified Xmlbf as Xmlbf
 
 import Gargantext.API.Ngrams (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Types
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Config
@@ -66,11 +71,11 @@ instance Xmlbf.ToXml Graph where
         where
           params = HashMap.fromList [ ("xmlns", "http://www.gexf.net/1.2draft")
                                     , ("version", "1.2") ]
-      meta = Xmlbf.element "meta" params $ creator <> description
+      meta = Xmlbf.element "meta" params $ creator <> desc
         where
           params = HashMap.fromList [ ("lastmodifieddate", "2020-03-13") ]
       creator = Xmlbf.element "creator" HashMap.empty $ Xmlbf.text "Gargantext.org"
-      description = Xmlbf.element "description" HashMap.empty $ Xmlbf.text "Gargantext gexf file"
+      desc = Xmlbf.element "description" HashMap.empty $ Xmlbf.text "Gargantext gexf file"
       graph :: [G.Node] -> [G.Edge] -> [Xmlbf.Node]
       graph gn ge = Xmlbf.element "graph" params $ (nodes gn) <> (edges ge)
         where
@@ -101,14 +106,24 @@ instance Xmlbf.ToXml Graph where
 type GraphAPI   =  Get  '[JSON] Graph
               :<|> Post '[JSON] [GraphId]
               :<|> Put  '[JSON] Int
-              :<|> "gexf" :> Get '[XML] (Headers '[Header "Content-Disposition" Text] Graph)
+              :<|> "gexf" :> Get '[XML] (Headers '[Servant.Header "Content-Disposition" Text] Graph)
+              :<|> GraphAsyncAPI
+              :<|> "versions" :> GraphVersionsAPI
+             
 
+data GraphVersions = GraphVersions { gv_graph :: Maybe Int
+                                   , gv_repo :: Int } deriving (Show, Generic)
+
+instance ToJSON GraphVersions
+instance ToSchema GraphVersions
 
 graphAPI :: UserId -> NodeId -> GargServer GraphAPI
 graphAPI u n =  getGraph  u n
          :<|> postGraph n
          :<|> putGraph  n
          :<|> getGraphGexf u n
+         :<|> graphAsync u n
+         :<|> graphVersionsAPI u n
 
 ------------------------------------------------------------------------
 
@@ -119,14 +134,56 @@ graphAPI u n =  getGraph  u n
 -- Each process has to be tailored
 getGraph' :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
 getGraph' u n = do
-  newGraph  <- liftIO newEmptyMVar
+  newGraph  <- liftBase newEmptyMVar
   g  <- getGraph u n
-  _  <- liftIO $ forkIO $ putMVar newGraph g
-  g' <- liftIO $ takeMVar newGraph
+  _  <- liftBase $ forkIO $ putMVar newGraph g
+  g' <- liftBase $ takeMVar newGraph
   pure g'
 -}
 getGraph :: UserId -> NodeId -> GargNoServer Graph
 getGraph uId nId = do
+  nodeGraph <- getNodeWith nId HyperdataGraph
+  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  -- let listVersion = graph ^? _Just
+  --                           . graph_metadata
+  --                           . _Just
+  --                           . gm_list
+  --                           . lfg_version
+
+  repo <- getRepo
+  -- let v = repo ^. r_version
+  nodeUser <- getNodeUser (NodeId uId)
+
+  let uId' = nodeUser ^. node_userId
+
+  let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
+                  identity
+                  $ nodeGraph ^. node_parentId
+
+  g <- case graph of
+    Nothing     -> do
+        graph' <- computeGraph cId NgramsTerms repo
+        _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
+        pure $ trace "Graph empty, computing" $ graph'
+
+    Just graph' -> pure $ trace "Graph exists, returning" $ graph'
+
+    -- Just graph' -> if listVersion == Just v
+    --                  then pure graph'
+    --                  else do
+    --                    graph'' <- computeGraph cId NgramsTerms repo
+    --                    _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
+    --                    pure graph''
+  
+
+  newGraph  <- liftBase newEmptyMVar
+  _  <- liftBase $ forkIO $ putMVar newGraph g
+  g' <- liftBase $ takeMVar newGraph
+  pure {- $ trace (show g) $ -} g'
+
+
+recomputeGraph :: UserId -> NodeId -> GargNoServer Graph
+recomputeGraph uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let listVersion = graph ^? _Just
@@ -145,26 +202,39 @@ getGraph uId nId = do
                   identity
                   $ nodeGraph ^. node_parentId
 
-  newGraph  <- liftIO newEmptyMVar
   g <- case graph of
     Nothing     -> do
-      graph' <- computeGraph cId NgramsTerms repo
+      graph' <- computeGraphAsync cId NgramsTerms repo
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
-      pure graph'
+      pure $ trace "[recomputeGraph] Graph empty, computing" $ graph'
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
-                       graph'' <- computeGraph cId NgramsTerms repo
+                       graph'' <- computeGraphAsync cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
-                       pure graph''
-  _  <- liftIO $ forkIO $ putMVar newGraph g
-  g' <- liftIO $ takeMVar newGraph
-  pure {- $ trace (show g) $ -} g'
+                       pure $ trace "[recomputeGraph] Graph exists, recomputing" $ graph''
+
+  pure g
+
+computeGraphAsync :: HasNodeError err
+             => CorpusId
+             -> NgramsType
+             -> NgramsRepo
+             -> Cmd err Graph
+computeGraphAsync cId nt repo = do
+  g <- liftBase newEmptyMVar
+  _ <- forkIO <$> putMVar g <$> computeGraph cId nt repo
+  g' <- liftBase $ takeMVar g
+  pure g'
 
 
 -- TODO use Database Monad only here ?
-computeGraph :: HasNodeError err => CorpusId -> NgramsType -> NgramsRepo -> Cmd err Graph
+computeGraph :: HasNodeError err
+             => CorpusId
+             -> NgramsType
+             -> NgramsRepo
+             -> Cmd err Graph
 computeGraph cId nt repo = do
   lId  <- defaultList cId
 
@@ -179,11 +249,11 @@ computeGraph cId nt repo = do
   let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] nt repo
 
   myCooc <- Map.filter (>1)
-         <$> getCoocByNgrams (Diagonal True)
+         <$> getCoocByNgrams (Diagonal False)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
-  graph <- liftIO $ cooc2graph 0 myCooc
+  graph <- liftBase $ cooc2graph 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
   pure graph'
 
@@ -196,7 +266,69 @@ putGraph :: NodeId -> GargServer (Put '[JSON] Int)
 putGraph = undefined
 
 
-getGraphGexf :: UserId -> NodeId -> GargNoServer (Headers '[Header "Content-Disposition" Text] Graph)
+------------------------------------------------------------
+
+getGraphGexf :: UserId -> NodeId -> GargNoServer (Headers '[Servant.Header "Content-Disposition" Text] Graph)
 getGraphGexf uId nId = do
   graph <- getGraph uId nId
   pure $ addHeader (concat [ "attachment; filename=graph.gexf" ]) graph
+
+------------------------------------------------------------
+
+type GraphAsyncAPI = Summary "Update graph"
+                   :> "async"
+                   :> AsyncJobsAPI ScraperStatus () ScraperStatus
+
+graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
+graphAsync u n =
+  serveJobsAPI $
+    JobFunction (\_ log' -> graphAsync' u n (liftBase . log'))
+
+
+graphAsync' :: UserId
+           -> NodeId
+           -> (ScraperStatus -> GargNoServer ())
+           -> GargNoServer ScraperStatus
+graphAsync' u n logStatus = do
+  logStatus ScraperStatus { _scst_succeeded = Just 0
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
+                          , _scst_events    = Just []
+                          }
+  _g <- trace (show u) $ recomputeGraph u n
+  pure  ScraperStatus { _scst_succeeded = Just 1
+                      , _scst_failed    = Just 0
+                      , _scst_remaining = Just 0
+                      , _scst_events    = Just []
+                      }
+
+------------------------------------------------------------
+
+type GraphVersionsAPI = Summary "Graph versions"
+                        :> Get '[JSON] GraphVersions
+                   :<|> Summary "Recompute graph version"
+                        :> Post '[JSON] Graph
+
+graphVersionsAPI :: UserId -> NodeId -> GargServer GraphVersionsAPI
+graphVersionsAPI u n =
+           graphVersions u n
+      :<|> recomputeVersions u n
+
+graphVersions :: UserId -> NodeId -> GargNoServer GraphVersions
+graphVersions _uId nId = do
+  nodeGraph <- getNodeWith nId HyperdataGraph
+  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let listVersion = graph ^? _Just
+                            . graph_metadata
+                            . _Just
+                            . gm_list
+                            . lfg_version
+
+  repo <- getRepo
+  let v = repo ^. r_version
+
+  pure $ GraphVersions { gv_graph = listVersion
+                       , gv_repo = v }
+
+recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
+recomputeVersions uId nId = recomputeGraph uId nId

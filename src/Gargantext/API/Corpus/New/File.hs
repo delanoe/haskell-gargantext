@@ -27,7 +27,6 @@ module Gargantext.API.Corpus.New.File
 
 import Control.Lens ((.~), (?~))
 import Control.Monad (forM)
-import Control.Monad.IO.Class (liftIO)
 import Data.Maybe
 import Data.Aeson
 import Data.Monoid (mempty)
@@ -100,18 +99,18 @@ postUpload :: NodeId
            -> Cmd err [Hash]
 postUpload _ Nothing _ = panic "fileType is a required parameter"
 postUpload _ (Just fileType) multipartData = do
-  putStrLn $ "File Type: " <> (show fileType)
-  is <- liftIO $ do
-    putStrLn ("Inputs:" :: Text)
+  printDebug "File Type: " fileType
+  is <- liftBase $ do
+    printDebug "Inputs:" ()
     forM (inputs multipartData) $ \input -> do
-      putStrLn $ ("iName  " :: Text) <> (iName input)
-               <> ("iValue " :: Text) <> (iValue input)
+      printDebug "iName  " (iName input)
+      printDebug "iValue " (iValue input)
       pure $ iName input
 
   _ <- forM (files multipartData) $ \file -> do
     let content = fdPayload file
-    putStrLn $ ("XXX " :: Text) <> (fdFileName file)
-    putStrLn $ ("YYY " :: Text) <>  cs content
+    printDebug "XXX " (fdFileName file)
+    printDebug "YYY " content
     --pure $ cs content
   -- is <- inputs multipartData
 

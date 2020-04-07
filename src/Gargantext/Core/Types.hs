@@ -12,8 +12,8 @@ commentary with @some markup@.
 -}
 
 ------------------------------------------------------------------------
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell      #-}
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
@@ -139,7 +139,7 @@ class HasInvalidError e where
 
 assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
 assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
--- assertValid :: MonadIO m => Validation -> m ()
+-- assertValid :: MonadBase IO m => Validation -> m ()
 -- assertValid v = when (not $ validationIsValid v) $ fail $ show v
 
 

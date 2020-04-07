@@ -35,13 +35,14 @@ import System.Environment (lookupEnv)
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
-import Database.PostgreSQL.Simple (Connection, connect)
+import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
 
 import Data.Aeson
 import Data.Maybe (fromMaybe)
 import Data.Either (either)
+import Data.Pool (Pool, createPool)
 import Data.Text
 --import Data.Text.Encoding (encodeUtf8)
 import Data.ByteString (ByteString)
@@ -61,7 +62,7 @@ import Control.Monad.Logger
 import Control.Monad.Reader
 import Control.Lens
 import Gargantext.Prelude
-import Gargantext.Database.Utils (databaseParameters, HasConnection(..), Cmd', runCmd)
+import Gargantext.Database.Utils (databaseParameters, HasConnectionPool(..), Cmd', runCmd)
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
 import Gargantext.API.Orchestrator.Types
 
@@ -141,7 +142,7 @@ data FireWall = FireWall { unFireWall :: Bool }
 data Env = Env
   { _env_settings :: !Settings
   , _env_logger   :: !LoggerSet
-  , _env_conn     :: !Connection
+  , _env_pool     :: !(Pool Connection)
   , _env_repo     :: !RepoEnv
   , _env_manager  :: !Manager
   , _env_self_url :: !BaseUrl
@@ -151,8 +152,8 @@ data Env = Env
 
 makeLenses ''Env
 
-instance HasConnection Env where
-  connection = env_conn
+instance HasConnectionPool Env where
+  connPool = env_pool
 
 instance HasRepoVar Env where
   repoVar = repoEnv . repoVar
@@ -254,7 +255,7 @@ newEnv port file = do
 
   self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   param    <- databaseParameters file
-  conn     <- connect param
+  pool     <- newPool param
   repo     <- readRepoEnv
   scrapers_env <- newJobEnv defaultSettings manager
   logger <- newStderrLoggerSet defaultBufSize
@@ -262,23 +263,26 @@ newEnv port file = do
   pure $ Env
     { _env_settings   = settings
     , _env_logger     = logger
-    , _env_conn       = conn
+    , _env_pool       = pool
     , _env_repo       = repo
     , _env_manager    = manager
     , _env_scrapers   = scrapers_env
     , _env_self_url   = self_url
     }
 
+newPool :: ConnectInfo -> IO (Pool Connection)
+newPool param = createPool (connect param) close 1 (60*60) 8
+
 data DevEnv = DevEnv
-  { _dev_env_conn :: !Connection
+  { _dev_env_pool :: !(Pool Connection)
   , _dev_env_repo :: !RepoEnv
   , _dev_env_settings :: !Settings
   }
 
 makeLenses ''DevEnv
 
-instance HasConnection DevEnv where
-  connection = dev_env_conn
+instance HasConnectionPool DevEnv where
+  connPool = dev_env_pool
 
 instance HasRepoVar DevEnv where
   repoVar = repoEnv . repoVar
@@ -306,11 +310,11 @@ withDevEnv iniPath k = do
   where
     newDevEnv = do
       param <- databaseParameters iniPath
-      conn  <- connect param
+      pool  <- newPool param
       repo  <- readRepoEnv
       setts <- devSettings devJwkFile
       pure $ DevEnv
-        { _dev_env_conn = conn
+        { _dev_env_pool = pool
         , _dev_env_repo = repo
         , _dev_env_settings = setts
         }
@@ -326,7 +330,7 @@ runCmdReplServantErr = runCmdRepl
 -- In particular this writes the repo file after running
 -- the command.
 -- This function is constrained to the DevEnv rather than
--- using HasConnection and HasRepoVar.
+-- using HasConnectionPool and HasRepoVar.
 runCmdDev :: Show err => DevEnv -> Cmd' DevEnv err a -> IO a
 runCmdDev env f =
   (either (fail . show) pure =<< runCmd env f)

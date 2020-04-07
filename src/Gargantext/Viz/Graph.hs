@@ -10,6 +10,7 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE DeriveGeneric     #-}
@@ -18,7 +19,6 @@ module Gargantext.Viz.Graph
   where
 
 import Control.Lens (makeLenses)
-import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 import Data.Swagger
@@ -189,7 +189,7 @@ graphV3ToGraphWithFiles g1 g2 = do
 
   DBL.writeFile g2 (DA.encode $ graphV3ToGraph newGraph)
 
-readGraphFromJson :: MonadIO m => FilePath -> m (Maybe Graph)
+readGraphFromJson :: MonadBase IO m => FilePath -> m (Maybe Graph)
 readGraphFromJson fp = do
-  graph <- liftIO $ DBL.readFile fp
+  graph <- liftBase $ DBL.readFile fp
   pure $ DA.decode graph

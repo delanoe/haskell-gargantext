@@ -51,16 +51,17 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Except (withExceptT, ExceptT)
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Swagger
 import Data.Text (Text)
 import Data.Validity
+import Data.Version (showVersion)
 import GHC.Generics (D1, Meta (..), Rep)
 import GHC.TypeLits (AppendSymbol, Symbol)
 import Network.Wai
 import Network.Wai.Handler.Warp hiding (defaultSettings)
+import qualified Paths_gargantext as PG -- cabal magic build module
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Server (AuthResult(..))
@@ -84,7 +85,7 @@ import Gargantext.API.Types
 import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
-import Gargantext.Database.Utils (HasConnection)
+import Gargantext.Database.Utils (HasConnectionPool)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 import Network.HTTP.Types hiding (Query)
@@ -197,16 +198,24 @@ type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
 
 
-type GargAPIVersion = "v1.0" :> Summary "v1.0: " :> GargAPI'
+type GargAPIVersion = "v1.0"
+                   :> Summary "Garg API Version "
+                   :> GargAPI'
+
+type GargVersion = "version"
+                 :> Summary "Backend version"
+                 :> Get '[JSON] Text
 
 type GargAPI' =
            -- Auth endpoint
                 "auth"  :> Summary "AUTH API"
                         :> ReqBody '[JSON] AuthRequest
                         :> Post    '[JSON] AuthResponse
-           -- TODO-ACCESS here we want to request a particular header for
+          :<|> GargVersion
+                   -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
           :<|> GargPrivateAPI
+
 
 type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser :> GargPrivateAPI'
 
@@ -225,7 +234,7 @@ waitAPI ::  Int -> GargServer WaitAPI
 waitAPI n = do
   let
     m = (10 :: Int) ^ (6 :: Int)
-  _ <- liftIO $ threadDelay ( m * n)
+  _ <- liftBase $ threadDelay ( m * n)
   pure $ "Waited: " <> (cs $ show n)
 ----------------------------------------
 
@@ -293,7 +302,7 @@ type GargPrivateAPI' =
            :<|> New.AddWithForm
            :<|> New.AddWithQuery
 
-           :<|> Annuaire.AddWithForm
+           :<|> "annuaire" :> Annuaire.AddWithForm
            -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
@@ -324,7 +333,7 @@ type API = SwaggerAPI
 type GargServerM env err = ReaderT env (ExceptT err IO)
 
 type EnvC env =
-  ( HasConnection env
+  ( HasConnectionPool env
   , HasRepo env
   , HasSettings env
   , HasJobEnv env ScraperStatus ScraperStatus
@@ -337,7 +346,11 @@ server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  schemaUiServer swaggerDoc
-     :<|> hoistServerWithContext (Proxy :: Proxy GargAPI) (Proxy :: Proxy AuthContext) transform serverGargAPI
+     :<|> hoistServerWithContext 
+            (Proxy :: Proxy GargAPI)
+            (Proxy :: Proxy AuthContext)
+            transform
+            serverGargAPI
      :<|> frontEndServer
   where
     transform :: forall a. GargServerM env GargError a -> Handler a
@@ -345,12 +358,18 @@ server env = do
 
 serverGargAPI :: GargServerT env err (GargServerM env err) GargAPI
 serverGargAPI -- orchestrator
-       =  auth :<|> serverPrivateGargAPI
+       =  auth
+     :<|> gargVersion
+     :<|> serverPrivateGargAPI
   --   :<|> orchestrator
+  where
 
-serverPrivateGargAPI :: GargServerT env err (GargServerM env err) GargPrivateAPI
-serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
-serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
+    gargVersion :: GargServer GargVersion
+    gargVersion = pure (cs $ showVersion PG.version)
+
+    serverPrivateGargAPI :: GargServerT env err (GargServerM env err) GargPrivateAPI
+    serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
+    serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
 -- Here throwAll' requires a concrete type for the monad.
 
 -- TODO-SECURITY admin only: withAdmin
@@ -386,7 +405,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- TODO access
      -- :<|> addUpload
      -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     :<|> addCorpusWithForm
+     :<|> addCorpusWithForm "user1"
      :<|> addCorpusWithQuery
 
      :<|> addAnnuaireWithForm
@@ -398,35 +417,40 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
 
 {-
 addUpload :: GargServer New.Upload
-addUpload cId = (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log)))
-           :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm    cid i (liftIO . log)))
+addUpload cId = (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftBase . log)))
+           :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm    cid i (liftBase . log)))
 --}
 
 addCorpusWithQuery :: GargServer New.AddWithQuery
 addCorpusWithQuery cid =
   serveJobsAPI $
-    JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftIO . log))
+    JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftBase . log))
 
 addWithFile :: GargServer New.AddWithFile
 addWithFile cid i f =
   serveJobsAPI $
-    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftIO . log))
+    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
 
-addCorpusWithForm :: GargServer New.AddWithForm
-addCorpusWithForm cid =
+addCorpusWithForm :: Text -> GargServer New.AddWithForm
+addCorpusWithForm username cid =
   serveJobsAPI $
-    JobFunction (\i log -> New.addToCorpusWithForm cid i (liftIO . log))
+    JobFunction (\i log ->
+      let
+        log' x = do
+          printDebug "addCorpusWithForm" x
+          liftBase $ log x
+      in New.addToCorpusWithForm username cid i log')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =
   serveJobsAPI $
-    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftIO . log))
+    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
 
 {-
 serverStatic :: Server (Get '[HTML] Html)
 serverStatic = $(do
                   let path = "purescript-gargantext/dist/index.html"
-                  Just s <- liftIO (fileTypeToFileTree (FileTypeFile path))
+                  Just s <- liftBase (fileTypeToFileTree (FileTypeFile path))
                   fileTreeToServer s
                 )
 -}

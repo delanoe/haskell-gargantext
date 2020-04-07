@@ -72,7 +72,7 @@ flowPhylo cId = do
 
     docs = map ( (\(y,t) -> Document y t) . filterTerms patterns) docs'
 
-  --liftIO $ flowPhylo' (List.sortOn date docs) termList l m fp
+  --liftBase $ flowPhylo' (List.sortOn date docs) termList l m fp
   pure $ buildPhylo (List.sortOn date docs) termList
 
 

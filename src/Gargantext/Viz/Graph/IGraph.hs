@@ -8,6 +8,9 @@ Portability : POSIX
 
 Main IGraph funs/types to ease portability with FGL.
 
+Reference:
+* Gábor Csárdi, Tamás Nepusz: The igraph software package for complex network research. InterJournal Complex Systems, 1695, 2006.
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}

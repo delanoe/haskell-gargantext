@@ -11,6 +11,7 @@ Ngrams by node enable contextual metrics.
 
 -}
 
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}

@@ -12,6 +12,7 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}

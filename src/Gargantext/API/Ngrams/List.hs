@@ -24,7 +24,6 @@ module Gargantext.API.Ngrams.List
   where
 
 import Control.Lens hiding (elements)
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
 import Data.List (zip)
 import Data.Map (Map, toList, fromList)
@@ -50,7 +49,7 @@ import Servant.Job.Utils (jsonOptions)
 ------------------------------------------------------------------------
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))
 ------------------------------------------------------------------------
-type API =  Get '[HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
+type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] NgramsList)
        -- :<|> ReqBody '[JSON] NgramsList :> Post '[JSON] Bool
        :<|> PostAPI
 
@@ -111,7 +110,7 @@ type PostAPI = Summary "Update List"
 postAsync :: ListId -> GargServer PostAPI
 postAsync lId =
   serveJobsAPI $
-    JobFunction (\f  log' -> postAsync' lId f (liftIO . log'))
+    JobFunction (\f  log' -> postAsync' lId f (liftBase . log'))
 
 postAsync' :: FlowCmdM env err m
           => ListId

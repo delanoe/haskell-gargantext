@@ -42,7 +42,6 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Web.HttpApiData (parseUrlPiece, readTextData)
-import Control.Monad.IO.Class (liftIO)
 import Network.HTTP.Media ((//), (/:))
 
 ------------------------------------------------------------------------
@@ -108,7 +107,7 @@ getPhylo phId _lId l msb  = do
     branc = maybe 2 identity msb
     maybePhylo = hyperdataPhylo_data $ _node_hyperdata phNode
 
-  p <- liftIO $ viewPhylo2Svg $ viewPhylo level branc  $ maybe phyloFromQuery identity maybePhylo
+  p <- liftBase $ viewPhylo2Svg $ viewPhylo level branc  $ maybe phyloFromQuery identity maybePhylo
   pure (SVG p)
 ------------------------------------------------------------------------
 type PostPhylo =  QueryParam "listId" ListId

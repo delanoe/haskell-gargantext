@@ -15,10 +15,8 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
-import Control.Monad.IO.Class (liftIO)
-import Control.Concurrent (newEmptyMVar, takeMVar, putMVar, forkIO)
-import Debug.Trace (trace)
-import Data.Graph.Clustering.Louvain.CplusPlus (LouvainNode(..))
+import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
+-- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
 import qualified Data.Set as Set
@@ -57,33 +55,33 @@ cooc2graph :: Threshold
            -> (Map (Text, Text) Int)
            -> IO Graph
 cooc2graph threshold myCooc = do
-  let (ti, _) = createIndices myCooc
-      myCooc' = toIndex ti myCooc
-      matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
-      distanceMat = measureConditional matCooc
-      distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+  let
+    (ti, _) = createIndices myCooc
+    myCooc' = toIndex ti myCooc
+    matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
+    distanceMat = measureConditional matCooc
+    distanceMap = Map.filter (> threshold) $ mat2map distanceMat
 
-  let nodesApprox :: Int
-      nodesApprox = n'
-        where
-          (as, bs) = List.unzip $ Map.keys distanceMap
-          n' = Set.size $ Set.fromList $ as <> bs
-      ClustersParams rivers level = {-trace ("nodesApprox: " <> show nodesApprox) $-} clustersParams nodesApprox
+    nodesApprox :: Int
+    nodesApprox = n'
+      where
+        (as, bs) = List.unzip $ Map.keys distanceMap
+        n' = Set.size $ Set.fromList $ as <> bs
+    ClustersParams rivers level = clustersParams nodesApprox
 
-  partitionsV <- liftIO newEmptyMVar
-  partitions' <- case Map.size distanceMap > 0 of
-    True  -> trace ("level" <> show level) $ cLouvain level distanceMap
-    False -> panic "Text.Flow: DistanceMap is empty"
 
-  _ <- liftIO $ forkIO $ putMVar partitionsV partitions'
-  partitions <- liftIO $ takeMVar partitionsV
+  partitions <- if (Map.size distanceMap > 0)
+      --then iLouvainMap 100 10 distanceMap
+      -- then hLouvain distanceMap
+      then cLouvain level distanceMap
+      else panic "Text.Flow: DistanceMap is empty"
 
-  let bridgeness' = {-trace ("rivers: " <> show rivers) $-}
-                    bridgeness rivers partitions distanceMap
+  let
+    bridgeness' = bridgeness rivers partitions distanceMap
+    confluence' = confluence (Map.keys bridgeness') 3 True False
 
-  let confluence' = confluence (Map.keys bridgeness') 3 True False
+  pure $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
 
-  data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
 
 
 data ClustersParams = ClustersParams { bridgness :: Double
@@ -107,12 +105,13 @@ data2graph :: [(Text, Int)]
            -> Map (Int, Int) Double
            -> Map (Int, Int) Double
            -> [LouvainNode]
-           -> IO Graph
-data2graph labels coocs bridge conf partitions = do
-    
-    let community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
+           -> Graph
+data2graph labels coocs bridge conf partitions = Graph nodes edges Nothing
+  where
 
-    nodes <- mapM (setCoord ForceAtlas labels bridge)
+    community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
+
+    nodes = map (setCoord ForceAtlas labels bridge)
           [ (n, Node { node_size = maybe 0 identity (Map.lookup (n,n) coocs)
                    , node_type = Terms -- or Unknown
                    , node_id    = cs (show n)
@@ -130,7 +129,7 @@ data2graph labels coocs bridge conf partitions = do
                            $ Map.toList bridge
             ]
 
-    let edges = [ Edge { edge_source = cs (show s)
+    edges = [ Edge { edge_source = cs (show s)
                        , edge_target = cs (show t)
                        , edge_weight =  d
                        , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
@@ -139,7 +138,6 @@ data2graph labels coocs bridge conf partitions = do
                    | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge), s /= t, d > 0
                    ]
 
-    pure $ Graph nodes edges Nothing
 
 ------------------------------------------------------------------------
 
@@ -153,22 +151,23 @@ setCoord' f (i,n) = n { node_x_coord = x, node_y_coord = y }
 
 
 -- | ACP
-setCoord :: Ord a => Layout -> [(a, Int)] -> Map (Int, Int) Double -> (Int, Node) -> IO Node
-setCoord l labels m (n,node) = getCoord l labels m n
-                           >>= \(x,y) -> pure $ node { node_x_coord = x
-                                                     , node_y_coord = y
-                                                     }
+setCoord :: Ord a => Layout -> [(a, Int)] -> Map (Int, Int) Double -> (Int, Node) -> Node
+setCoord l labels m (n,node) = node { node_x_coord = x
+                                    , node_y_coord = y
+                                    }
+  where
+    (x,y) = getCoord l labels m n
 
 
 getCoord :: Ord a => Layout
-                  -> [(a, Int)] -> Map (Int, Int) Double -> Int -> IO (Double, Double)
-getCoord KamadaKawai _ m n = layout m n
+                  -> [(a, Int)] -> Map (Int, Int) Double -> Int -> (Double, Double)
+getCoord KamadaKawai _ _m _n = undefined -- layout m n
 
-getCoord ForceAtlas _ _ n = pure (sin d, cos d)
+getCoord ForceAtlas _ _ n = (sin d, cos d)
   where
     d = fromIntegral n
 
-getCoord ACP labels m n = pure $ to2d $ maybe (panic "Graph.Tools no coordinate") identity
+getCoord ACP labels m n = to2d $ maybe (panic "Graph.Tools no coordinate") identity
              $ Map.lookup n
              $ pcaReduceTo (Dimension 2)
              $ mapArray labels m
