@@ -25,7 +25,6 @@ Portability : POSIX
 module Gargantext.Viz.Graph.API
   where
 
-import Control.Concurrent -- (forkIO)
 import Control.Lens (set, (^.), _Just, (^?))
 import Data.Aeson
 import Debug.Trace (trace)
@@ -127,19 +126,6 @@ graphAPI u n =  getGraph  u n
 
 ------------------------------------------------------------------------
 
-{- Model to fork Graph Computation
--- This is not really optimized since it increases the need RAM
--- and freezes the whole system
--- This is mainly for documentation (see a better solution in the function below)
--- Each process has to be tailored
-getGraph' :: UserId -> NodeId -> GargServer (Get '[JSON] Graph)
-getGraph' u n = do
-  newGraph  <- liftBase newEmptyMVar
-  g  <- getGraph u n
-  _  <- liftBase $ forkIO $ putMVar newGraph g
-  g' <- liftBase $ takeMVar newGraph
-  pure g'
--}
 getGraph :: UserId -> NodeId -> GargNoServer Graph
 getGraph uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
@@ -175,11 +161,7 @@ getGraph uId nId = do
     --                    _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
     --                    pure graph''
   
-
-  newGraph  <- liftBase newEmptyMVar
-  _  <- liftBase $ forkIO $ putMVar newGraph g
-  g' <- liftBase $ takeMVar newGraph
-  pure {- $ trace (show g) $ -} g'
+  pure g
 
 
 recomputeGraph :: UserId -> NodeId -> GargNoServer Graph
@@ -204,29 +186,17 @@ recomputeGraph uId nId = do
 
   g <- case graph of
     Nothing     -> do
-      graph' <- computeGraphAsync cId NgramsTerms repo
+      graph' <- computeGraph cId NgramsTerms repo
       _ <- insertGraph cId uId' (HyperdataGraph $ Just graph')
       pure $ trace "[recomputeGraph] Graph empty, computing" $ graph'
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
-                       graph'' <- computeGraphAsync cId NgramsTerms repo
+                       graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure $ trace "[recomputeGraph] Graph exists, recomputing" $ graph''
-
   pure g
-
-computeGraphAsync :: HasNodeError err
-             => CorpusId
-             -> NgramsType
-             -> NgramsRepo
-             -> Cmd err Graph
-computeGraphAsync cId nt repo = do
-  g <- liftBase newEmptyMVar
-  _ <- forkIO <$> putMVar g <$> computeGraph cId nt repo
-  g' <- liftBase $ takeMVar g
-  pure g'
 
 
 -- TODO use Database Monad only here ?
