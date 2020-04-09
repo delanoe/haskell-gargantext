@@ -38,6 +38,7 @@ library:
   - Gargantext.API.Types
   - Gargantext.Core
   - Gargantext.Core.Types
+  - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database

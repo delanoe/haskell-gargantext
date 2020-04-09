@@ -28,6 +28,7 @@ import Gargantext.Text.Corpus.Parsers (FileFormat(..))
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
 import Gargantext.Database.Schema.User (insertUsersDemo)
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Text.Terms (TermType(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.API.Types (GargError)
@@ -52,13 +53,13 @@ main = do
     tt = (Multi EN)
     format = CsvGargV3 -- CsvHal --WOS
     corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpus = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
+    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
 
     corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpusCsvHal = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath
+    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath
 
     annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    annuaire = flowAnnuaire (cs user) (Left "Annuaire") (Multi EN) corpusPath
+    annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath
 
 
   {-

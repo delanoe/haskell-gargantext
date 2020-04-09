@@ -27,9 +27,8 @@ Portability : POSIX
 module Gargantext.Database.Schema.Node where
 
 import Control.Arrow (returnA)
-import Control.Lens (Prism', set, view, (#), (^?))
+import Control.Lens (set, view)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Control.Monad.Error.Class (MonadError(..))
 import Data.Aeson
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
@@ -37,18 +36,17 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Int (Int64)
 import Gargantext.Core.Types
-import Gargantext.Database.Types.Errors
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Queries.Filter (limit', offset')
-import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
-import Gargantext.Database.Node.User (HyperdataUser(..), fake_HyperdataUser)
 import Gargantext.Database.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
+import Gargantext.Database.Node.User (HyperdataUser(..), fake_HyperdataUser)
+import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Schema.User (getUserId)
+import Gargantext.Database.Types.Errors
+import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))
-
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)

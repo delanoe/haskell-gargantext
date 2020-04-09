@@ -20,7 +20,6 @@ module Gargantext.Core.Types.Individu
 
 import Gargantext.Prelude hiding (reverse)
 import Data.Text (Text, pack, reverse)
-import Gargantext.Database.Types.Node (NodeId)
 
 type UserId = Int
 

@@ -23,11 +23,12 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import System.Environment (getArgs)
 import Gargantext.Prelude
+import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Database.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Schema.Node (getOrMkList)
 import Gargantext.Database.Utils (Cmd, )
 import Gargantext.Database.Types.Node (CorpusId, RootId, HyperdataCorpus, ListId)
-import Gargantext.Database.Schema.User (insertUsersDemo, UserId)
+import Gargantext.Database.Schema.User (insertUsersDemo)
 import Gargantext.API.Types (GargError)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev)
@@ -42,13 +43,13 @@ main = do
 
   let
     mkRoots :: Cmd GargError [(UserId, RootId)]
-    mkRoots = mapM getOrMkRoot ["gargantua", "user1", "user2"]
+    mkRoots = mapM getOrMkRoot $ map UserName ["gargantua", "user1", "user2"]
     -- TODO create all users roots
 
   let
     initMaster :: Cmd GargError (UserId, RootId, CorpusId, ListId)
     initMaster = do
-      (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus userMaster (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
+      (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
       masterListId <- getOrMkList masterCorpusId masterUserId
       _triggers <- initTriggers masterListId
       pure (masterUserId, masterRootId, masterCorpusId, masterListId)

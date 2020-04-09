@@ -37,18 +37,17 @@ import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
 import Data.Typeable
 import Data.Validity
-import Servant
-import Servant.Job.Core (HasServerError(..), serverError)
-import Servant.Job.Async (HasJobEnv)
-import Gargantext.Prelude
-import Gargantext.API.Settings
-import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Ngrams
+import Gargantext.API.Orchestrator.Types
+import Gargantext.API.Settings
 import Gargantext.Core.Types
-import Gargantext.Database.Types.Errors (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Tree
+import Gargantext.Database.Types.Errors (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Utils
-import Gargantext.Database.Schema.Node
+import Gargantext.Prelude
+import Servant
+import Servant.Job.Async (HasJobEnv)
+import Servant.Job.Core (HasServerError(..), serverError)
 
 class HasJoseError e where
   _JoseError :: Prism' e Jose.Error
