@@ -20,6 +20,12 @@ module Gargantext.Core.Types.Individu
 
 import Gargantext.Prelude hiding (reverse)
 import Data.Text (Text, pack, reverse)
+import Gargantext.Database.Types.Node (NodeId)
+
+type UserId = Int
+
+data User = UserDBId UserId | UserName Text
+  deriving (Eq)
 
 type Username = Text
 type Password = Text
@@ -36,6 +42,5 @@ arbitraryUsername = ["gargantua"] <> users
 
 arbitraryPassword :: [Password]
 arbitraryPassword = map reverse arbitraryUsername
-
 
 

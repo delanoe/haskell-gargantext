@@ -146,7 +146,7 @@ import Gargantext.Database.Utils (fromField', HasConnectionPool)
 import Gargantext.Database.Node.Select
 import Gargantext.Database.Ngrams
 --import Gargantext.Database.Lists (listsWith)
-import Gargantext.Database.Schema.Node (HasNodeError)
+import Gargantext.Database.Types.Errors (HasNodeError)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 -- import Gargantext.Database.Schema.NodeNgram hiding (Action)

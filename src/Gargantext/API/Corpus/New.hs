@@ -42,7 +42,7 @@ import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
 import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
 import Gargantext.Database.Types.Node (CorpusId)
 import Gargantext.Database.Types.Node (ToHyperdataDocument(..))
-import Gargantext.Database.Types.Node (UserId)
+import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 import Gargantext.Text.Terms (TermType(..))
@@ -89,13 +89,13 @@ type GetApi = Get '[JSON] ApiInfo
 -- TODO-ACCESS
 -- TODO this is only the POST
 api :: (FlowCmdM env err m) => UserId -> Query -> m CorpusId
-api _uId (Query q _ as) = do
+api uid (Query q _ as) = do
   cId <- case head as of
-    Nothing      -> flowCorpusSearchInDatabase "user1" EN q
-    Just API.All -> flowCorpusSearchInDatabase "user1" EN q
+    Nothing      -> flowCorpusSearchInDatabase (UserDBId uid) EN q
+    Just API.All -> flowCorpusSearchInDatabase (UserDBId uid) EN q
     Just a   -> do
       docs <- liftBase $ API.get a q (Just 1000)
-      cId' <- flowCorpus "user1" (Left q) (Multi EN) [docs]
+      cId' <- flowCorpus (UserDBId uid) (Left q) (Multi EN) [docs]
       pure cId'
 
   pure cId
@@ -240,12 +240,12 @@ addToCorpusWithForm' cid (WithForm ft d l) logStatus = do
   pure s'
 -}
 addToCorpusWithForm :: FlowCmdM env err m
-                    => Text
+                    => User
                     -> CorpusId
                     -> WithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm username cid (WithForm ft d l _n) logStatus = do
+addToCorpusWithForm user cid (WithForm ft d l _n) logStatus = do
 
   let
     parse = case ft of
@@ -271,7 +271,7 @@ addToCorpusWithForm username cid (WithForm ft d l _n) logStatus = do
   printDebug "Starting extraction     : " cid
 
   -- TODO granularity of the logStatus
-  _cid' <- flowCorpus username
+  _cid' <- flowCorpus user
                      (Right [cid])
                      (Multi $ fromMaybe EN l)
                      (map (map toHyperdataDocument) docs)

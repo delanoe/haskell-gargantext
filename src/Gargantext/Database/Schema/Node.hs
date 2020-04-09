@@ -37,12 +37,14 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Int (Int64)
 import Gargantext.Core.Types
-import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Database.Types.Errors
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Queries.Filter (limit', offset')
 import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Node.User (HyperdataUser(..), fake_HyperdataUser)
 import Gargantext.Database.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
+import Gargantext.Database.Schema.User (getUserId)
 import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))
@@ -50,30 +52,6 @@ import Gargantext.Viz.Graph (HyperdataGraph(..))
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
-
-------------------------------------------------------------------------
-
-data NodeError = NoListFound
-               | NoRootFound
-               | NoCorpusFound
-               | NoUserFound
-               | MkNode
-               | UserNoParent
-               | HasParent
-               | ManyParents
-               | NegativeId
-               | NotImplYet
-               | ManyNodeUsers
-  deriving (Show)
-
-class HasNodeError e where
-  _NodeError :: Prism' e NodeError
-
-nodeError :: (MonadError e m, HasNodeError e) => NodeError -> m a
-nodeError ne = throwError $ _NodeError # ne
-
-catchNodeError :: (MonadError e m, HasNodeError e) => m a -> (NodeError -> m a) -> m a
-catchNodeError f g = catchError f (\e -> maybe (throwError e) g (e ^? _NodeError))
 
 ------------------------------------------------------------------------
 instance FromField HyperdataAny where
@@ -637,36 +615,41 @@ childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a c
 -- =================================================================== --
 ------------------------------------------------------------------------
 -- | TODO mk all others nodes
-mkNodeWithParent :: HasNodeError err => NodeType -> Maybe ParentId -> UserId -> Name -> Cmd err [NodeId]
+mkNodeWithParent :: HasNodeError err
+                 => NodeType
+                 -> Maybe ParentId
+                 -> UserId
+                 -> Name
+                 -> Cmd err [NodeId]
 mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
 
 ------------------------------------------------------------------------
-mkNodeWithParent NodeUser Nothing  uId name =
+mkNodeWithParent NodeUser Nothing uId name =
   insertNodesWithParentR Nothing [node NodeUser name fake_HyperdataUser Nothing uId]
 
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 ------------------------------------------------------------------------
-mkNodeWithParent NodeFolder (Just i) uId name = 
+mkNodeWithParent NodeFolder (Just i) uId name =
    insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
     where
       hd = defaultFolder
 
-mkNodeWithParent NodeFolderPrivate (Just i) uId _ = 
+mkNodeWithParent NodeFolderPrivate (Just i) uId _ =
    insertNodesWithParentR (Just i) [node NodeFolderPrivate "Private" hd Nothing uId]
     where
       hd = defaultFolder
 
-mkNodeWithParent NodeFolderShared (Just i) uId _ = 
+mkNodeWithParent NodeFolderShared (Just i) uId _ =
    insertNodesWithParentR (Just i) [node NodeFolderShared "Shared" hd Nothing uId]
     where
       hd = defaultFolder
 
-mkNodeWithParent NodeFolderPublic (Just i) uId _ = 
+mkNodeWithParent NodeFolderPublic (Just i) uId _ =
    insertNodesWithParentR (Just i) [node NodeFolderPublic "Public" hd Nothing uId]
     where
       hd = defaultFolder
 
-mkNodeWithParent NodeTeam (Just i) uId _ = 
+mkNodeWithParent NodeTeam (Just i) uId _ =
    insertNodesWithParentR (Just i) [node NodeTeam "Team" hd Nothing uId]
     where
       hd = defaultFolder
@@ -685,21 +668,27 @@ mkNodeWithParent _ _ _ _       = nodeError NotImplYet
 ------------------------------------------------------------------------
 -- =================================================================== --
 
+mkRoot :: HasNodeError err
+       => User
+       -> Cmd err [RootId]
+mkRoot user = do
 
+  uid <- getUserId user
 
-mkRoot :: HasNodeError err => Username -> UserId -> Cmd err [RootId]
-mkRoot uname uId = case uId > 0 of
-               False -> nodeError NegativeId
-               True  -> do
-                 rs <- mkNodeWithParent NodeUser Nothing uId uname
-                 _ <- case rs of
-                   [r] -> do
-                     _ <- mkNodeWithParent NodeFolderPrivate (Just r) uId uname
-                     _ <- mkNodeWithParent NodeFolderShared  (Just r) uId uname
-                     _ <- mkNodeWithParent NodeFolderPublic  (Just r) uId uname
-                     pure rs
-                   _   -> pure rs
-                 pure rs
+  let una = "username"
+
+  case uid > 0 of
+     False -> nodeError NegativeId
+     True  -> do
+       rs <- mkNodeWithParent NodeUser Nothing uid una
+       _ <- case rs of
+         [r] -> do
+           _ <- mkNodeWithParent NodeFolderPrivate (Just r) uid una
+           _ <- mkNodeWithParent NodeFolderShared  (Just r) uid una
+           _ <- mkNodeWithParent NodeFolderPublic  (Just r) uid una
+           pure rs
+         _   -> pure rs
+       pure rs
 
 -- |
 -- CorpusDocument is a corpus made from a set of documents

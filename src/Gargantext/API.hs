@@ -53,26 +53,15 @@ import Control.Lens
 import Control.Monad.Except (withExceptT, ExceptT)
 import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Aeson.Encode.Pretty (encodePretty)
+import Data.List (lookup)
 import Data.Swagger
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 import Data.Validity
 import Data.Version (showVersion)
+import GHC.Base (Applicative)
 import GHC.Generics (D1, Meta (..), Rep)
 import GHC.TypeLits (AppendSymbol, Symbol)
-import Network.Wai
-import Network.Wai.Handler.Warp hiding (defaultSettings)
-import qualified Paths_gargantext as PG -- cabal magic build module
-import Servant
-import Servant.Auth as SA
-import Servant.Auth.Server (AuthResult(..))
-import Servant.Auth.Swagger ()
-import Servant.Job.Async
-import Servant.Swagger
-import Servant.Swagger.UI
-import System.IO (FilePath)
-import Data.List (lookup)
-import Data.Text.Encoding (encodeUtf8)
-import GHC.Base (Applicative)
 import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
@@ -82,6 +71,7 @@ import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Settings
 import Gargantext.API.Types
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Node.Contact (HyperdataContact)
 import Gargantext.Database.Types.Node
 import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
@@ -89,9 +79,20 @@ import Gargantext.Database.Utils (HasConnectionPool)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 import Network.HTTP.Types hiding (Query)
+import Network.Wai
 import Network.Wai (Request, requestHeaders)
+import Network.Wai.Handler.Warp hiding (defaultSettings)
 import Network.Wai.Middleware.Cors
 import Network.Wai.Middleware.RequestLogger
+import Servant
+import Servant.Auth as SA
+import Servant.Auth.Server (AuthResult(..))
+import Servant.Auth.Swagger ()
+import Servant.Job.Async
+import Servant.Swagger
+import Servant.Swagger.UI
+import System.IO (FilePath)
+import qualified Paths_gargantext as PG -- cabal magic build module
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
 import qualified Gargantext.API.Annuaire    as Annuaire
@@ -405,7 +406,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- TODO access
      -- :<|> addUpload
      -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     :<|> addCorpusWithForm "user1"
+     :<|> addCorpusWithForm (UserDBId uid) -- "user1"
      :<|> addCorpusWithQuery
 
      :<|> addAnnuaireWithForm
@@ -431,15 +432,15 @@ addWithFile cid i f =
   serveJobsAPI $
     JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
 
-addCorpusWithForm :: Text -> GargServer New.AddWithForm
-addCorpusWithForm username cid =
+addCorpusWithForm :: User -> GargServer New.AddWithForm
+addCorpusWithForm user cid =
   serveJobsAPI $
     JobFunction (\i log ->
       let
         log' x = do
           printDebug "addCorpusWithForm" x
           liftBase $ log x
-      in New.addToCorpusWithForm username cid i log')
+      in New.addToCorpusWithForm user cid i log')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =

@@ -53,7 +53,7 @@ import Gargantext.Database.Utils (Cmd', CmdM, HasConnectionPool)
 import Gargantext.Prelude hiding (reverse)
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Gargantext.Core.Types.Individu (Username, Password, arbitraryUsername, arbitraryPassword)
+import Gargantext.Core.Types.Individu (User(..), Username, Password, arbitraryUsername, arbitraryPassword)
 
 ---------------------------------------------------
 
@@ -101,7 +101,7 @@ checkAuthRequest u p
   | not (u `elem` arbitraryUsername) = pure InvalidUser
   | u /= reverse p = pure InvalidPassword
   | otherwise = do
-      muId <- head <$> getRoot u
+      muId <- head <$> getRoot (UserName u)
       case _node_id <$> muId of
         Nothing  -> pure InvalidUser
         Just uid -> do

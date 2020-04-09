@@ -30,7 +30,7 @@ import Gargantext.Core.Flow.Types
 import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
 import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
 import Gargantext.Database.Types.Node (NodeId)
-import Gargantext.Database.Schema.Node (HasNodeError)
+import Gargantext.Database.Types.Errors (HasNodeError)
 import Gargantext.Database.Utils (CmdM)
 
 type FlowCmdM env err m =

@@ -34,27 +34,26 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
-import Gargantext.Core.Types.Individu (Username, arbitraryUsername)
+import Gargantext.Core.Types.Individu (Username, arbitraryUsername, User(..), UserId)
+import Gargantext.Database.Types.Errors
 import Gargantext.Database.Utils
 import Gargantext.Prelude
 import Opaleye
 
 ------------------------------------------------------------------------
-
 ------------------------------------------------------------------------
-type UserId = Int
 
 data UserLight = UserLight { userLight_id   :: Int
                            , userLight_username :: Text
                            , userLight_email    :: Text
                            } deriving (Show)
 
-toUserLight :: User -> UserLight
-toUserLight (User id _ _ _ u _ _ e _ _ _ ) = UserLight id u e
+toUserLight :: UserDB -> UserLight
+toUserLight (UserDB id _ _ _ u _ _ e _ _ _ ) = UserLight id u e
 
 data UserPoly id pass llogin suser
               uname fname lname
-              mail staff active djoined = User { user_id          :: id
+              mail staff active djoined = UserDB { user_id          :: id
                                                , user_password    :: pass
                                                , user_lastLogin   :: llogin
                                                , user_isSuperUser :: suser
@@ -93,14 +92,14 @@ type UserReadNull = UserPoly     (Column (Nullable PGInt4))         (Column (Nul
 
 
 
-type User = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
+type UserDB = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
 
-$(makeAdaptorAndInstance "pUser"     ''UserPoly)
+$(makeAdaptorAndInstance "pUserDB"   ''UserPoly)
 $(makeLensesWith abbreviatedFields   ''UserPoly)
 
 
 userTable :: Table UserWrite UserRead
-userTable = Table "auth_user" (pUser User { user_id      = optional "id"
+userTable = Table "auth_user" (pUserDB UserDB { user_id      = optional "id"
                                           , user_password    = required "password"
                                           , user_lastLogin   = optional "last_login"
                                           , user_isSuperUser = required "is_superuser"
@@ -122,7 +121,7 @@ insertUsers us = mkCmd $ \c -> runInsert_ c insert
 
 
 gargantextUser :: Username -> UserWrite
-gargantextUser u = User (Nothing) (pgStrictText "password")
+gargantextUser u = UserDB (Nothing) (pgStrictText "password")
                          (Nothing) (pgBool True) (pgStrictText u)
                          (pgStrictText "first_name")
                          (pgStrictText "last_name")
@@ -132,14 +131,13 @@ gargantextUser u = User (Nothing) (pgStrictText "password")
 insertUsersDemo :: Cmd err Int64
 insertUsersDemo = insertUsers $ map (\u -> gargantextUser u) arbitraryUsername
 
-
 ------------------------------------------------------------------
 queryUserTable :: Query UserRead
 queryUserTable = queryTable userTable
 
 selectUsersLight :: Query UserRead
 selectUsersLight = proc () -> do
-      row@(User i _p _ll _is _un _fn _ln _m _iff _ive _dj) <- queryUserTable -< ()
+      row@(UserDB i _p _ll _is _un _fn _ln _m _iff _ive _dj) <- queryUserTable -< ()
       restrict -< i .== 1
       --returnA -< User i p ll is un fn ln m iff ive dj
       returnA -< row
@@ -150,10 +148,10 @@ userWith :: (Eq a1, Foldable t) => (a -> a1) -> a1 -> t a -> Maybe a
 userWith f t xs = find (\x -> f x == t) xs
 
 -- | Select User with Username
-userWithUsername :: Text -> [User] -> Maybe User
+userWithUsername :: Text -> [UserDB] -> Maybe UserDB
 userWithUsername t xs = userWith user_username t xs
 
-userWithId :: Int -> [User] -> Maybe User
+userWithId :: Int -> [UserDB] -> Maybe UserDB
 userWithId t xs = userWith user_id t xs
 
 userLightWithUsername :: Text -> [UserLight] -> Maybe UserLight
@@ -167,7 +165,7 @@ instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
-users :: Cmd err [User]
+users :: Cmd err [UserDB]
 users = runOpaQuery queryUserTable
 
 usersLight :: Cmd err [UserLight]
@@ -175,5 +173,16 @@ usersLight = map toUserLight <$> users
 
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
+
+
+getUserId :: HasNodeError err
+          => User
+          -> Cmd err UserId
+getUserId (UserDBId uid) = pure uid
+getUserId (UserName u  ) = do
+  muser <- getUser u
+  case muser of
+    Just user -> pure $ userLight_id user
+    Nothing   -> nodeError NoUserFound
 
 

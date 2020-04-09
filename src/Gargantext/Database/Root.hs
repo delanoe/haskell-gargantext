@@ -26,29 +26,41 @@ Portability : POSIX
 
 module Gargantext.Database.Root where
 
-import Opaleye (restrict, (.==), Query)
-import Opaleye.PGTypes (pgStrictText, pgInt4)
 import Control.Arrow (returnA)
-import Gargantext.Prelude
-import Gargantext.Database.Types.Node (Node, NodePoly(..), NodeType(NodeUser))
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Config (nodeTypeId)
 import Gargantext.Database.Node.User (HyperdataUser)
 import Gargantext.Database.Schema.Node (NodeRead)
+import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Database.Schema.User (queryUserTable, UserPoly(..))
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Database.Types.Node (Node, NodePoly(..), NodeType(NodeUser))
 import Gargantext.Database.Utils (Cmd, runOpaQuery)
+import Gargantext.Prelude
+import Opaleye (restrict, (.==), Query)
+import Opaleye.PGTypes (pgStrictText, pgInt4)
 
-getRoot :: Username -> Cmd err [Node HyperdataUser]
+getRoot :: User -> Cmd err [Node HyperdataUser]
 getRoot = runOpaQuery . selectRoot
 
-selectRoot :: Username -> Query NodeRead
-selectRoot username = proc () -> do
+selectRoot :: User -> Query NodeRead
+selectRoot (UserName username) = proc () -> do
     row   <- queryNodeTable -< ()
     users <- queryUserTable -< ()
     restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< user_username  users .== (pgStrictText username)
     restrict -< _node_userId   row   .== (user_id users)
     returnA  -< row
+
+selectRoot (UserDBId uid) = proc () -> do
+    row   <- queryNodeTable -< ()
+    restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_userId   row   .== (pgInt4 uid)
+    returnA  -< row
+
+
+
+
+
 
 
