@@ -213,9 +213,9 @@ flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
                -> Maybe c
                -> [NodeId]
                -> m CorpusId
-flowCorpusUser l userName corpusName ctype ids = do
+flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
-  (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus userName corpusName ctype
+  (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   listId <- getOrMkList userCorpusId userId
   _cooc  <- mkNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
@@ -337,9 +337,9 @@ getOrMk_RootWithCorpus :: (HasNodeError err, MkCorpus a)
                       -> Either CorpusName [CorpusId]
                       -> Maybe a
                       -> Cmd err (UserId, RootId, CorpusId)
-getOrMk_RootWithCorpus username cName c = do
-  (userId, rootId) <- getOrMkRoot username
-  corpusId'' <- if username == UserName userMaster
+getOrMk_RootWithCorpus user cName c = do
+  (userId, rootId) <- getOrMkRoot user
+  corpusId'' <- if user == UserName userMaster
                   then do
                     ns <- getCorporaWithParentId rootId
                     pure $ map _node_id ns

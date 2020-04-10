@@ -179,6 +179,9 @@ getUserId :: HasNodeError err
           => User
           -> Cmd err UserId
 getUserId (UserDBId uid) = pure uid
+getUserId (RootId   rid) = do
+  n <- getNode rid
+  pure $ _node_userId n
 getUserId (UserName u  ) = do
   muser <- getUser u
   case muser of

@@ -406,8 +406,8 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- TODO access
      -- :<|> addUpload
      -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     :<|> addCorpusWithForm (UserDBId uid) -- "user1"
-     :<|> addCorpusWithQuery
+     :<|> addCorpusWithForm  (UserDBId uid)
+     :<|> addCorpusWithQuery (RootId   uid)
 
      :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
@@ -416,16 +416,10 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> waitAPI
 
 
-{-
-addUpload :: GargServer New.Upload
-addUpload cId = (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftBase . log)))
-           :<|> (serveJobsAPI $ JobFunction (\i log -> New.addToCorpusWithForm    cid i (liftBase . log)))
---}
-
-addCorpusWithQuery :: GargServer New.AddWithQuery
-addCorpusWithQuery cid =
+addCorpusWithQuery :: User -> GargServer New.AddWithQuery
+addCorpusWithQuery user cid =
   serveJobsAPI $
-    JobFunction (\i log -> New.addToCorpusJobFunction cid i (liftBase . log))
+    JobFunction (\i log -> New.addToCorpusWithQuery user cid i (liftBase . log))
 
 addWithFile :: GargServer New.AddWithFile
 addWithFile cid i f =

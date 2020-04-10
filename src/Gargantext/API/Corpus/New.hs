@@ -82,7 +82,7 @@ type Api = PostApi
 
 type PostApi = Summary "New Corpus endpoint"
              :> ReqBody '[JSON] Query
-             :> Post '[JSON] CorpusId
+             :> Post    '[JSON] CorpusId
 type GetApi = Get '[JSON] ApiInfo
 
 -- | TODO manage several apis
@@ -182,18 +182,26 @@ type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
-addToCorpusJobFunction :: FlowCmdM env err m
-                       => CorpusId
+addToCorpusWithQuery :: FlowCmdM env err m
+                       => User
+                       -> CorpusId
                        -> WithQuery
                        -> (ScraperStatus -> m ())
                        -> m ScraperStatus
-addToCorpusJobFunction _cid (WithQuery _q _dbs _l) logStatus = do
+addToCorpusWithQuery u cid (WithQuery q _dbs l) logStatus = do
   -- TODO ...
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
                           , _scst_remaining = Just 138
                           , _scst_events    = Just []
                           }
+  printDebug "addToCorpusWithQuery" cid
+  -- TODO add cid
+  -- TODO if cid is folder -> create Corpus
+  --      if cid is corpus -> add to corpus
+  --      if cid is root   -> create corpus in Private
+  cids <- flowCorpusSearchInDatabase u (maybe EN identity l) q
+  printDebug "corpus id" cids
   -- TODO ...
   pure      ScraperStatus { _scst_succeeded = Just 137
                           , _scst_failed    = Just 13
