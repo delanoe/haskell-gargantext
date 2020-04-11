@@ -1,0 +1,30 @@
+[gargantext]
+MASTER_USER = gargantua
+
+[django]
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = PASSWORD_TO_CHANGE
+# Space-separated list of hosts
+ALLOWED_HOSTS = localhost
+# Time-zone, possible values here: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+TIME_ZONE = Europe/Paris
+# PostgreSQL access
+DB_HOST = 127.0.0.1
+DB_PORT = 5432
+DB_NAME = gargandbV5
+DB_USER = gargantua
+DB_PASS = PASSWORD_TO_CHANGE
+# Logs
+LOG_FILE = /var/log/gargantext/backend/django.log
+LOG_LEVEL = DEBUG
+LOG_FORMATTER = verbose
+# Pidfile of django backend test server
+TESTSERVER_PIDFILE = /tmp/gargantext_testserver.pid
+# Celery
+CELERYD_PID_FILE = /tmp/celery.pid
+CELERYD_LOG_FILE = /var/log/gargantext/backend/celery.log
+CELERYD_LOG_LEVEL = DEBUG
+
