@@ -65,6 +65,17 @@ Initialization schema should be loaded automatically (from `devops/postgres/sche
 
 #### Gargantext
 
+##### Fix the passwords
+
+Change the passwords in gargantext.ini_toModify then move it:
+
+mv gargantext.ini_toModify gargantext.ini
+
+(.gitignore avoids adding this file to the repository by mistake)
+
+
+##### Run Gargantext
+
 Users have to be created first (`user1` is created as instance):
 
 ``` sh
