@@ -27,24 +27,24 @@ module Gargantext.API.Metrics
 
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
-import Data.Time (UTCTime)
 import Data.Text (Text)
+import Data.Time (UTCTime)
 import GHC.Generics (Generic)
+import Gargantext.API.Ngrams
+import Gargantext.API.Ngrams.NTree
+import Gargantext.Core.Types (CorpusId, ListId, Limit)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Utils
-import Gargantext.Core.Types (CorpusId, ListId, Limit)
+import Gargantext.Database.Action.Flow
+import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude
-import Gargantext.API.Ngrams
 import Gargantext.Text.Metrics (Scored(..))
-import Gargantext.API.Ngrams.NTree
-import Gargantext.Database.Flow
 import Gargantext.Viz.Chart
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Map as Map
-import qualified Gargantext.Database.Metrics as Metrics
+import qualified Gargantext.Database.Action.Metrics as Metrics
 
 data Metrics = Metrics
   { metrics_data :: [Metric]}

@@ -25,7 +25,6 @@ please follow the types.
 module Gargantext.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cleanText, parseFormat)
     where
 
---import Data.ByteString (ByteString)
 import "zip" Codec.Archive.Zip (withArchive, getEntry, getEntries)
 import Control.Concurrent.Async as CCA (mapConcurrently)
 import Control.Monad (join)
@@ -40,15 +39,15 @@ import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Tuple.Extra (both, first, second)
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
 import Gargantext.Prelude
 import Gargantext.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv')
 import Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich)
 import Gargantext.Text.Learn (detectLangDefault)
 import System.FilePath (FilePath(), takeExtension)
 import qualified Data.ByteString       as DB
-import qualified Data.ByteString.Lazy  as DBL
 import qualified Data.ByteString.Char8 as DBC
+import qualified Data.ByteString.Lazy  as DBL
 import qualified Data.Map              as DM
 import qualified Data.Text             as DT
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date

@@ -26,7 +26,7 @@ import Debug.Trace (trace)
 import GHC.IO (FilePath)
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.Core.Types
-import Gargantext.Database.Flow
+import Gargantext.Database.Action.Flow
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node (defaultList)
 import Gargantext.Database.Schema.NodeNode (selectDocs)

@@ -19,17 +19,17 @@ module Gargantext.Core.Flow.Types where
 
 import Control.Lens (Lens')
 import Data.Map (Map)
-import Data.Text (Text)
 import Data.Maybe (Maybe)
-import Gargantext.Text.Terms (TermType)
+import Data.Text (Text)
 import Gargantext.Core (Lang)
-import Gargantext.Prelude
-import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Core.Types.Main (HashId)
-import Gargantext.Database.Types.Node -- (HyperdataDocument(..))
-import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
-import Gargantext.Database.Node.Document.Insert (AddUniqId, InsertDb)
-import Gargantext.Database.Utils (Cmd)
+import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..))
+import Gargantext.Database.Action.Query.Node.Document.Insert (AddUniqId, InsertDb)
+import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..))
+import Gargantext.Database.Admin.Utils (Cmd)
+import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
+import Gargantext.Prelude
+import Gargantext.Text.Terms (TermType)
 
 type FlowCorpus a = ( AddUniqId      a
                     , UniqId         a

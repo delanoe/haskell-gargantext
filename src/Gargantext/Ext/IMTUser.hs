@@ -19,16 +19,16 @@ Here is writtent a common interface.
 module Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
   where
 
-
-import System.IO (FilePath)
 import Codec.Serialise
 import Data.Maybe (Maybe, catMaybes)
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact, ContactWho, ContactWhere, ContactTouch, ContactMetaData)
 import Gargantext.Prelude
-
-import Gargantext.Database.Admin.Node.Contact -- (HyperdataContact, ContactWho, ContactWhere, ContactTouch, ContactMetaData)
+import System.IO (FilePath)
 import qualified Data.ByteString.Lazy as BSL
+
+------------------------------------------------------------------------
 
 instance Serialise IMTUser
 

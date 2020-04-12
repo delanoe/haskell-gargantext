@@ -46,11 +46,11 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..))
 import Gargantext.Core.Types (Offset, Limit, TableResult(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Facet (FacetDoc , runViewDocuments, OrderBy(..), runViewAuthorsDoc)
-import Gargantext.Database.Learn (FavOrTrash(..), moreLike)
-import Gargantext.Database.TextSearch
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils -- (Cmd, CmdM)
+import Gargantext.Database.Action.Facet (FacetDoc , runViewDocuments, OrderBy(..), runViewAuthorsDoc)
+import Gargantext.Database.Action.Learn (FavOrTrash(..), moreLike)
+import Gargantext.Database.Action.Search
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)

@@ -26,45 +26,42 @@ TODO-SECURITY: Critical
 module Gargantext.API.Settings
     where
 
-import System.Directory
-import System.Log.FastLogger
-import GHC.Enum
-import GHC.Generics (Generic)
-import Prelude (Bounded(), fail)
-import System.Environment (lookupEnv)
-import System.IO (FilePath, hClose)
-import System.IO.Temp (withTempFile)
-import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
-import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
-import Network.HTTP.Client (Manager)
-import Network.HTTP.Client.TLS (newTlsManager)
-
-import Data.Aeson
-import Data.Maybe (fromMaybe)
-import Data.Either (either)
-import Data.Pool (Pool, createPool)
-import Data.Text
---import Data.Text.Encoding (encodeUtf8)
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as L
-
-import Servant
-import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
-import Servant.Client (BaseUrl, parseBaseUrl)
-import qualified Servant.Job.Core
-import Servant.Job.Async (newJobEnv, defaultSettings, HasJobEnv(..), Job)
-import Web.HttpApiData (parseUrlPiece)
-
 import Control.Concurrent
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Exception (finally)
+import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
-import Control.Lens
-import Gargantext.Prelude
-import Gargantext.Database.Utils (databaseParameters, HasConnectionPool(..), Cmd', runCmd)
+import Data.Aeson
+import Data.ByteString (ByteString)
+import Data.Either (either)
+import Data.Maybe (fromMaybe)
+import Data.Pool (Pool, createPool)
+import Data.Text
+import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
+import GHC.Enum
+import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
 import Gargantext.API.Orchestrator.Types
+import Gargantext.Database.Admin.Utils (databaseParameters, HasConnectionPool(..), Cmd', runCmd)
+import Gargantext.Prelude
+import Network.HTTP.Client (Manager)
+import Network.HTTP.Client.TLS (newTlsManager)
+import Prelude (Bounded(), fail)
+import Servant
+import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
+import Servant.Client (BaseUrl, parseBaseUrl)
+import Servant.Job.Async (newJobEnv, defaultSettings, HasJobEnv(..), Job)
+import System.Directory
+import System.Environment (lookupEnv)
+import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
+import System.IO (FilePath, hClose)
+import System.IO.Temp (withTempFile)
+import System.Log.FastLogger
+import Web.HttpApiData (parseUrlPiece)
+import qualified Data.ByteString.Lazy as L
+import qualified Servant.Job.Core
+
 
 type PortNumber = Int
 

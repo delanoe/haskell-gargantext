@@ -30,7 +30,7 @@ module Gargantext.Database.Action.Query.Tree.Root
 import Control.Arrow (returnA)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Action.Node.User (HyperdataUser)
+import Gargantext.Database.Action.Query.Node.User (HyperdataUser)
 import Gargantext.Database.Schema.Node (NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Database.Schema.User (queryUserTable, UserPoly(..))

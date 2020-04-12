@@ -16,15 +16,14 @@ module Gargantext.Text.Corpus.API.Istex
     where
 
 import Data.Either (either)
-import Data.Maybe
 import Data.List (concat)
+import Data.Maybe
 import Data.Maybe (catMaybes)
 import Data.Text (Text, pack)
-import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
+import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
-
 import qualified ISTEX        as ISTEX
 import qualified ISTEX.Client as ISTEX
 

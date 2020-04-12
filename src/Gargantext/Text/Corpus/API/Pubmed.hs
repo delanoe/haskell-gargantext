@@ -19,7 +19,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
 import qualified Data.Text as Text
 
 import qualified PUBMED as PubMed

@@ -29,23 +29,20 @@ one 8, e54847.
 
 module Gargantext.Viz.Phylo where
 
-import Prelude (Bounded)
+import Control.DeepSeq
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON,defaultOptions)
-import Data.Maybe   (Maybe)
-import Data.Text    (Text)
-import Data.Set     (Set)
 import Data.Map     (Map)
-import Data.Vector  (Vector)
+import Data.Maybe   (Maybe)
+import Data.Set     (Set)
 import Data.Swagger
---import Data.Time.Clock.POSIX  (POSIXTime)
+import Data.Text    (Text)
+import Data.Vector  (Vector)
 import GHC.Generics (Generic)
---import Gargantext.Database.Schema.Ngrams (NgramsId)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Text.Context (TermList)
 import Gargantext.Prelude
-
-import Control.DeepSeq
+import Gargantext.Text.Context (TermList)
+import Prelude (Bounded)
 
 --------------------
 -- | PhyloParam | --

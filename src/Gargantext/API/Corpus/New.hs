@@ -25,7 +25,6 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
---import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat(..))
 import Control.Lens hiding (elements)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
@@ -38,10 +37,8 @@ import Gargantext.API.Corpus.New.File
 import Gargantext.API.Orchestrator.Types
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Flow (FlowCmdM, flowCorpus)
-import Gargantext.Database.Flow (flowCorpusSearchInDatabase)
-import Gargantext.Database.Types.Node (CorpusId)
-import Gargantext.Database.Types.Node (ToHyperdataDocument(..))
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, flowCorpusSearchInDatabase)
+import Gargantext.Database.Admin.Types.Node (CorpusId, ToHyperdataDocument(..))
 import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)

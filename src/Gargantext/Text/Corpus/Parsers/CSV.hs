@@ -27,12 +27,12 @@ import Data.Vector (Vector)
 import GHC.IO (FilePath)
 import GHC.Real (round)
 import GHC.Word (Word8)
-import Gargantext.Database.Types.Node -- (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..))
 import Gargantext.Prelude hiding (length)
 import Gargantext.Text
 import Gargantext.Text.Context
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString      as BS
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector          as V
 
 ---------------------------------------------------------------

@@ -24,7 +24,7 @@ import Data.Maybe (Maybe())
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Types.Node
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils
 import qualified Data.ByteString.Lazy as DBL

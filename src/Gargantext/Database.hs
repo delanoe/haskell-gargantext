@@ -16,7 +16,7 @@ Gargantext's database.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Database ( module Gargantext.Database.Utils
+module Gargantext.Database ( module Gargantext.Database.Admin.Utils
                         -- , module Gargantext.Database.Bashql
                            )
     where

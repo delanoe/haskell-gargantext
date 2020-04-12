@@ -27,15 +27,15 @@ module Gargantext.API.Corpus.New.File
 
 import Control.Lens ((.~), (?~))
 import Control.Monad (forM)
-import Data.Maybe
 import Data.Aeson
+import Data.Maybe
 import Data.Monoid (mempty)
 import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TODO)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils -- (Cmd, CmdM)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (sha)
 import Servant

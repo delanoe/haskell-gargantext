@@ -85,6 +85,7 @@ import Data.List (concat, last)
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Utils (runOpaQuery, Cmd)
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Action.Query.Node
 import qualified Gargantext.Database.Action.Query.Node.Update as U (Update(..), update)
 import Gargantext.Prelude
 

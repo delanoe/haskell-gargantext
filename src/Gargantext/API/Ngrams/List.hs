@@ -35,16 +35,16 @@ import Gargantext.API.Corpus.New.File (FileType(..))
 import Gargantext.API.Ngrams
 import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Types (GargServer)
-import Gargantext.Database.Flow (FlowCmdM)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
-import Gargantext.Database.Types.Node
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
+import Gargantext.Database.Action.Flow (FlowCmdM)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
 import Gargantext.Prelude
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Servant.Job.Async
-import Web.FormUrlEncoded          (FromForm)
 import Servant.Job.Utils (jsonOptions)
+import Web.FormUrlEncoded (FromForm)
 
 ------------------------------------------------------------------------
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))

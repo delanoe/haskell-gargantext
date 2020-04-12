@@ -25,9 +25,9 @@ import Data.Swagger
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import GHC.IO (FilePath)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core.Types (ListId)
-import Gargantext.Database.Types.Node (NodeId, Hyperdata)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Admin.Types.Node (NodeId, Hyperdata)
 import Gargantext.Prelude
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)

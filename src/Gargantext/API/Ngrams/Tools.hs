@@ -31,7 +31,6 @@ import Gargantext.Prelude
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
-
 type RootTerm = Text
 
 getRepo :: RepoCmdM env err m => m NgramsRepo

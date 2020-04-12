@@ -53,18 +53,18 @@ import Gargantext.API.Table
 import Gargantext.API.Types
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Flow.Pairing (pairing)
-import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
-import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Node.User (NodeUser)
+import Gargantext.Database.Action.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Database.Action.Flow.Pairing (pairing)
+import Gargantext.Database.Action.Query.Node.Children (getChildren)
+import Gargantext.Database.Action.Query.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Action.Query.Node.User (NodeUser)
+import Gargantext.Database.Action.Tree (treeDB)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
 import Gargantext.Database.Schema.Node (getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, getNodeUser)
 import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
-import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Tree (treeDB)
-import Gargantext.Database.Types.Errors (HasNodeError(..))
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)

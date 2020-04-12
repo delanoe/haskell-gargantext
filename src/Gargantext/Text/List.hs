@@ -18,7 +18,6 @@ module Gargantext.Text.List
   where
 
 import Data.Either (partitionEithers, Either(..))
--- import Debug.Trace (trace)
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -26,13 +25,12 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mS
 import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, NodeId)
-import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Utils (Cmd)
+import Gargantext.Prelude
 import Gargantext.Text.List.Learn (Model(..))
 import Gargantext.Text.Metrics (takeScored)
-import Gargantext.Prelude
---import Gargantext.Text.Terms (TermType(..))
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Map as Map

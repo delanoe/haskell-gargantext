@@ -21,21 +21,19 @@ Portability : POSIX
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
-import Data.Map (fromList, lookup)
 import Data.Either (Either(..))
 import Data.Eq (Eq())
+import Data.Map (fromList, lookup)
 import Data.Monoid ((<>))
-import Data.Text (Text, unpack)
 import Data.Swagger
-
-import Gargantext.Database.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Prelude
-
+import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Admin.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
+import Gargantext.Prelude
+import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant.API (FromHttpApiData(..))
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)

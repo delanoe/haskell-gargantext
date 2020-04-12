@@ -17,7 +17,7 @@ commentary with @some markup@.
 {-# LANGUAGE TemplateHaskell      #-}
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
-                             , module Gargantext.Database.Types.Node
+                             , module Gargantext.Database.Admin.Types.Node
                              , Term, Terms(..)
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
@@ -28,7 +28,6 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , TODO(..)
                              ) where
 
---import qualified Data.Set as S
 import Control.Lens (Prism', (#))
 import Control.Monad.Error.Class (MonadError, throwError)
 import Data.Aeson
@@ -43,11 +42,10 @@ import Data.Validity
 import GHC.Generics
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Types.Node
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 type Name = Text
 type Term  = Text

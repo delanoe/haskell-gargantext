@@ -72,10 +72,10 @@ import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.API.Settings
 import Gargantext.API.Types
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Node.Contact (HyperdataContact)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Types.Node (NodeId, CorpusId, AnnuaireId)
-import Gargantext.Database.Utils (HasConnectionPool)
+import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
+import Gargantext.Database.Admin.Utils (HasConnectionPool)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 import Network.HTTP.Types hiding (Query)
@@ -92,13 +92,13 @@ import Servant.Job.Async
 import Servant.Swagger
 import Servant.Swagger.UI
 import System.IO (FilePath)
-import qualified Paths_gargantext as PG -- cabal magic build module
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
 import qualified Gargantext.API.Annuaire    as Annuaire
 import qualified Gargantext.API.Corpus.New  as New
 import qualified Gargantext.API.Export      as Export
 import qualified Gargantext.API.Ngrams.List as List
+import qualified Paths_gargantext as PG -- cabal magic build module
 
 showAsServantErr :: GargError -> ServerError
 showAsServantErr (GargServerError err) = err

@@ -17,14 +17,13 @@ module Gargantext.Text.Corpus.API.Hal
 
 import Data.Maybe
 import Data.Text (Text, pack, intercalate)
-import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
+import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
-
 import qualified HAL            as HAL
-import qualified HAL.Doc.Corpus as HAL
 import qualified HAL.Client     as HAL
+import qualified HAL.Doc.Corpus as HAL
 
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q ml = do

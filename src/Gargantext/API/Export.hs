@@ -27,8 +27,8 @@ module Gargantext.API.Export
 
 import Data.Aeson.TH (deriveJSON)
 import Data.Map (Map)
-import Data.Set (Set)
 import Data.Maybe (fromMaybe)
+import Data.Set (Set)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -37,21 +37,21 @@ import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo
 import Gargantext.API.Types (GargNoServer)
 import Gargantext.Core.Types --
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
-import Gargantext.Database.Node.Select (selectNodesWithUsername)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
+import Gargantext.Database.Action.Query.Node.Select (selectNodesWithUsername)
+import Gargantext.Database.Admin.Config (userMaster)
+import Gargantext.Database.Admin.Types.Errors (HasNodeError)
+import Gargantext.Database.Admin.Types.Node (Node, HyperdataDocument(..), NodeId, ListId, CorpusId)
+import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.Node (defaultList)
-import Gargantext.Database.Types.Errors (HasNodeError)
 import Gargantext.Database.Schema.NodeNode (selectDocNodes)
-import Gargantext.Database.Types.Node (Node, HyperdataDocument(..), NodeId, ListId, CorpusId)
-import Gargantext.Database.Utils (Cmd)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (sha)
 import Servant
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Data.List as List
 
 
 -- Corpus Export

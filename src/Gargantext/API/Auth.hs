@@ -40,20 +40,19 @@ import Data.Text (Text, reverse)
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
-import Servant
-import Servant.Auth.Server
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.API.Settings
 import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, GargServerC)
---import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, serverError, GargServerC)
-import Gargantext.Database.Root (getRoot)
-import Gargantext.Database.Tree (isDescendantOf, isIn)
-import Gargantext.Database.Types.Node (NodePoly(_node_id), NodeId(..), UserId, ListId, DocId)
-import Gargantext.Database.Utils (Cmd', CmdM, HasConnectionPool)
+import Gargantext.Core.Types.Individu (User(..), Username, Password, arbitraryUsername, arbitraryPassword)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Action.Root (getRoot)
+import Gargantext.Database.Action.Tree (isDescendantOf, isIn)
+import Gargantext.Database.Admin.Types.Node (NodePoly(_node_id), NodeId(..), UserId, ListId, DocId)
+import Gargantext.Database.Admin.Utils (Cmd', CmdM, HasConnectionPool)
 import Gargantext.Prelude hiding (reverse)
+import Servant
+import Servant.Auth.Server
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Gargantext.Core.Types.Individu (User(..), Username, Password, arbitraryUsername, arbitraryPassword)
 
 ---------------------------------------------------
 

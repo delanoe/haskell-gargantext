@@ -96,26 +96,6 @@ module Gargantext.API.Ngrams
   )
   where
 
--- import Debug.Trace (trace)
-import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
--- import Gargantext.Database.Schema.User  (UserId)
-import Data.Patch.Class (Replace, replace, Action(act), Applicable(..),
-                         Composable(..), Transformable(..),
-                         PairPatch(..), Patched, ConflictResolution,
-                         ConflictResolutionReplace, ours)
-import qualified Data.Map.Strict.Patch as PM
-import Data.Monoid
-import Data.Ord (Down(..))
-import Data.Foldable
---import Data.Semigroup
-import Data.Set (Set)
-import qualified Data.Set as S
-import qualified Data.List as List
-import Data.Maybe (fromMaybe)
--- import Data.Tuple.Extra (first)
-import qualified Data.Map.Strict as Map
-import Data.Map.Strict (Map)
-import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Concurrent
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (.~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
@@ -128,37 +108,46 @@ import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
 import Data.Either.Extra (maybeToEither)
--- import Data.Map (lookup)
-import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
+import Data.Foldable
+import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe)
+import Data.Monoid
+import Data.Ord (Down(..))
+import Data.Patch.Class (Replace, replace, Action(act), Applicable(..), Composable(..), Transformable(..), PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace, ours)
+import Data.Set (Set)
 import Data.Swagger hiding (version, patch)
 import Data.Text (Text, isInfixOf, count)
 import Data.Validity
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Formatting (hprint, int, (%))
 import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
--- import Gargantext.Database.Schema.Ngrams (NgramsTypeId, ngramsTypeId, NgramsTableData(..))
-import Gargantext.Database.Config (userMaster)
-import Gargantext.Database.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
-import Gargantext.Database.Schema.Ngrams (NgramsType)
-import Gargantext.Database.Types.Node (NodeType(..))
-import Gargantext.Database.Utils (fromField', HasConnectionPool)
-import Gargantext.Database.Node.Select
-import Gargantext.Database.Ngrams
---import Gargantext.Database.Lists (listsWith)
-import Gargantext.Database.Types.Errors (HasNodeError)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import qualified Gargantext.Database.Schema.Ngrams as Ngrams
--- import Gargantext.Database.Schema.NodeNgram hiding (Action)
-import Gargantext.Prelude
-import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
+import Gargantext.Core.Types (TODO)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
+import Gargantext.Database.Action.Query.Ngrams
+import Gargantext.Database.Action.Query.Node.Select
+import Gargantext.Database.Admin.Config (userMaster)
+import Gargantext.Database.Admin.Types.Errors (HasNodeError)
+import Gargantext.Database.Admin.Types.Node (NodeType(..))
+import Gargantext.Database.Admin.Utils (fromField', HasConnectionPool)
+import Gargantext.Database.Schema.Ngrams (NgramsType)
+import Gargantext.Prelude
+import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 import Servant hiding (Patch)
 import System.Clock (getTime, TimeSpec, Clock(..))
 import System.FileLock (FileLock)
 import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict.Patch as PM
+import qualified Data.Set as S
+import qualified Data.Set as Set
+import qualified Gargantext.Database.Schema.Ngrams as Ngrams
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart

@@ -43,7 +43,8 @@ import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Admin.Utils
-import Gargantext.Database.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
+import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
+import Gargantext.Database.Action.Query.Node.User
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))

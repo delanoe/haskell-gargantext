@@ -18,9 +18,9 @@ Individu defintions
 module Gargantext.Core.Types.Individu
   where
 
-import Gargantext.Prelude hiding (reverse)
 import Data.Text (Text, pack, reverse)
-import Gargantext.Database.Types.Node (NodeId)
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Prelude hiding (reverse)
 
 type UserId = Int
 

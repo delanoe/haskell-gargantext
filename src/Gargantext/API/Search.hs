@@ -25,21 +25,20 @@ Count API part of Gargantext.
 module Gargantext.API.Search
       where
 
-import GHC.Generics (Generic)
-import Data.Time (UTCTime)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
 import Data.Text (Text)
-import Servant
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck (elements)
--- import Control.Applicative ((<*>))
+import Data.Time (UTCTime)
+import GHC.Generics (Generic)
 import Gargantext.API.Types (GargServer)
-import Gargantext.Prelude
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.TextSearch
-import Gargantext.Database.Facet
+import Gargantext.Database.Action.Facet
+import Gargantext.Database.Action.Search
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Prelude
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
 
 -----------------------------------------------------------------------
 data SearchQuery = SearchQuery

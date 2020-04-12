@@ -29,8 +29,8 @@ import qualified Gargantext.API.Corpus.New.File as NewFile
 import Gargantext.API.Orchestrator.Types
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
-import Gargantext.Database.Flow (FlowCmdM)  -- flowAnnuaire
-import Gargantext.Database.Types.Node (AnnuaireId)
+import Gargantext.Database.Action.Flow (FlowCmdM)  -- flowAnnuaire
+import Gargantext.Database.Admin.Types.Node (AnnuaireId)
 import Gargantext.Prelude
 import Servant
 import Servant.API.Flatten (Flat)

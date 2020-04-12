@@ -17,24 +17,24 @@ module Gargantext.Prelude.Utils
   where
 
 import Control.Lens (view)
-import Control.Monad.Reader (MonadReader)
 import Control.Monad.Random.Class (MonadRandom)
-import Data.Text (Text)
+import Control.Monad.Reader (MonadReader)
 import Control.Monad.Reader (ask)
+import Crypto.Argon2 as Crypto
+import Data.ByteString (ByteString)
+import Data.ByteString.Base64.URL as URL
+import Data.Either
+import Data.Text (Text)
 import GHC.IO (FilePath)
-import Gargantext.Prelude
 import Gargantext.API.Settings
-import System.Random (newStdGen)
-import qualified System.Random.Shuffle as SRS
+import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
+import Gargantext.Prelude
 import System.Directory (createDirectoryIfMissing)
+import System.Random (newStdGen)
 import qualified Data.ByteString.Lazy.Char8  as Char
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as Text
-import Gargantext.Database.Types.Node (NodeId, NodeType)
-import Data.ByteString (ByteString)
-import Crypto.Argon2 as Crypto
-import Data.Either
-import Data.ByteString.Base64.URL as URL
+import qualified System.Random.Shuffle as SRS
 
 --------------------------------------------------------------------------
 shuffle :: MonadRandom m => [a] -> m [a]

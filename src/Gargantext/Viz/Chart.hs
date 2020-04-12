@@ -18,33 +18,31 @@ Portability : POSIX
 module Gargantext.Viz.Chart
   where
 
-
-import Data.Text (Text)
 import Data.List (unzip, sortOn)
 import Data.Map (toList)
+import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.Prelude
-import Gargantext.Database.Config
-import Gargantext.Database.Schema.NodeNode (selectDocsDates)
-import Gargantext.Database.Utils
-import Gargantext.Database.Types.Node (CorpusId)
-import Gargantext.Database.Node.Select
-import Gargantext.Text.Metrics.Count (occurrencesWith)
 import Gargantext.Core.Types.Main
+import Gargantext.Database.Action.Query.Node.Select
+import Gargantext.Database.Admin.Config
+import Gargantext.Database.Admin.Types.Node (CorpusId)
+import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Schema.NodeNode (selectDocsDates)
+import Gargantext.Prelude
+import Gargantext.Text.Metrics.Count (occurrencesWith)
 
 -- Pie Chart
 import Data.Maybe (catMaybes)
-import qualified Data.Map as Map
-import qualified Data.List as List
-import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.NTree
-import Gargantext.Database.Metrics.NgramsByNode
+import Gargantext.API.Ngrams.Tools
+import Gargantext.Core.Types
+import Gargantext.Database.Action.Flow
+import Gargantext.Database.Action.Metrics.NgramsByNode
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
-import Gargantext.Core.Types
-import Gargantext.Database.Flow
-
 import Servant
+import qualified Data.List as List
+import qualified Data.Map as Map
 
 
 data Chart = ChartHisto | ChartScatter | ChartPie

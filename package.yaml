@@ -42,13 +42,13 @@ library:
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database
-  - Gargantext.Database.Init
-  - Gargantext.Database.Config
-  - Gargantext.Database.Flow
+  - Gargantext.Database.Admin.Init
+  - Gargantext.Database.Admin.Config
+  - Gargantext.Database.Action.Flow
   - Gargantext.Database.Schema.Node
-  - Gargantext.Database.Tree
-  - Gargantext.Database.Types.Node
-  - Gargantext.Database.Utils
+  - Gargantext.Database.Action.Tree
+  - Gargantext.Database.Admin.Types.Node
+  - Gargantext.Database.Admin.Utils
   - Gargantext.Database.Schema.User
   - Gargantext.Prelude
   - Gargantext.Text

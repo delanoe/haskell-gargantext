@@ -41,9 +41,9 @@ import Gargantext.API.Ngrams
 import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Settings
 import Gargantext.Core.Types
-import Gargantext.Database.Tree
-import Gargantext.Database.Types.Errors (NodeError(..), HasNodeError(..))
-import Gargantext.Database.Utils
+import Gargantext.Database.Action.Tree
+import Gargantext.Database.Admin.Types.Errors (NodeError(..), HasNodeError(..))
+import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude
 import Servant
 import Servant.Job.Async (HasJobEnv)
