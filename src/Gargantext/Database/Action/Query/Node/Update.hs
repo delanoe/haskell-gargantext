@@ -15,8 +15,7 @@ Portability : POSIX
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
 
-
-module Gargantext.Database.Query.Node.Update (Update(..), update)
+module Gargantext.Database.Action.Query.Node.Update (Update(..), update)
   where
 
 import qualified Data.Text as DT
@@ -24,8 +23,8 @@ import Database.PostgreSQL.Simple
 
 import Gargantext.Prelude
 import Gargantext.Core.Types (Name)
-import Gargantext.Database.Utils
-import Gargantext.Database.Types.Node (NodeId, ParentId)
+import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Admin.Types.Node (NodeId, ParentId)
 
 -- import Data.ByteString
 --rename :: NodeId -> Text -> IO ByteString

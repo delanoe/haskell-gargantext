@@ -25,10 +25,11 @@ Multiple Join functions with Opaleye.
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE TemplateHaskell           #-}
+
 ------------------------------------------------------------------------
-module Gargantext.Database.Query.Query.Join
+
+module Gargantext.Database.Action.Query.Join
   where
-------------------------------------------------------------------------
 
 import Control.Applicative ((<*>))
 import Control.Arrow ((>>>))
@@ -37,7 +38,6 @@ import Gargantext.Prelude
 import Opaleye
 import Opaleye.Internal.Join (NullMaker(..))
 import qualified Opaleye.Internal.Unpackspec()
-
 
 --leftJoin3 :: Query columnsL1 -> Query columnsR -> Query columnsL
 --     -> ((columnsL1, columnsR) -> Column PGBool)
@@ -50,7 +50,6 @@ join3 :: Query columnsA -> Query columnsB -> Query columnsC
 join3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
 
 ------------------------------------------------------------------------
-
 leftJoin3
   :: (Default Unpackspec fieldsL1 fieldsL1,
       Default Unpackspec fieldsL2 fieldsL2,

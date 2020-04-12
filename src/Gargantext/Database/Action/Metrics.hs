@@ -23,17 +23,15 @@ import Data.Text (Text)
 import Gargantext.API.Ngrams (TabType(..), ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
-import Gargantext.Database.Flow (FlowCmdM)
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
-import Gargantext.Database.Node.Select
+import Gargantext.Database.Action.Flow (FlowCmdM)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
+import Gargantext.Database.Action.Query.Node.Select
+import Gargantext.Database.Admin.Config (userMaster)
+import Gargantext.Database.Admin.Types.Node (ListId, CorpusId{-, HyperdataCorpus-})
 import Gargantext.Database.Schema.Node (defaultList)
-import Gargantext.Database.Types.Node (ListId, CorpusId{-, HyperdataCorpus-})
---import Gargantext.Database.Flow (getOrMkRootWithCorpus)
-import Gargantext.Database.Config (userMaster)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import qualified Data.Map    as Map
---import qualified Data.Vector.Storable as Vec
 
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit

@@ -19,13 +19,11 @@ TODO: configure nodes table in Haskell (Config typenames etc.)
 module Gargantext.Database.Admin.Config
     where
 
-
+import Data.List        (lookup)
+import Data.Maybe       (fromMaybe)
 import Data.Text        (Text,pack)
 import Data.Tuple.Extra (swap)
-import Data.Maybe       (fromMaybe)
-import Data.List        (lookup)
-
-import Gargantext.Database.Types.Node
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 
 -- TODO put this in config.ini file

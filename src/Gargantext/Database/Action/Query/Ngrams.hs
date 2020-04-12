@@ -14,19 +14,19 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Query.Ngrams
+module Gargantext.Database.Action.Query.Ngrams
     where
 
-import Data.Text (Text)
+import Control.Arrow (returnA)
 import Control.Lens ((^.))
+import Data.Text (Text)
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Utils (runOpaQuery, Cmd)
-import Gargantext.Database.Admin.Schema.Ngrams
-import Gargantext.Database.Admin.Schema.NodeNodeNgrams
-import Gargantext.Database.Admin.Schema.Node
+import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Prelude
 import Opaleye
-import Control.Arrow (returnA)
 
 selectNgramsByDoc :: [ListId] -> DocId -> NgramsType -> Cmd err [Text]
 selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)

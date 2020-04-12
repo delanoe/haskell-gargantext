@@ -20,12 +20,12 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Admin.Trigger.Init
   where
 
--- import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Gargantext.Database.Utils (Cmd)
+import Gargantext.Database.Admin.Triggers.NodeNodeNgrams (triggerCountInsert, triggerCountInsert2)
+import Gargantext.Database.Admin.Triggers.Nodes (triggerSearchUpdate)
+import Gargantext.Database.Admin.Triggers.NodesNodes (triggerDeleteCount, triggerInsertCount, triggerUpdateAdd, triggerUpdateDel, MasterListId) -- , triggerCoocInsert)
+import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Prelude
-import Gargantext.Database.Triggers.Nodes (triggerSearchUpdate)
-import Gargantext.Database.Triggers.NodesNodes (triggerDeleteCount, triggerInsertCount, triggerUpdateAdd, triggerUpdateDel, MasterListId) -- , triggerCoocInsert)
-import Gargantext.Database.Triggers.NodeNodeNgrams (triggerCountInsert, triggerCountInsert2)
+
 ------------------------------------------------------------------------
 
 initTriggers :: MasterListId -> Cmd err [Int64]

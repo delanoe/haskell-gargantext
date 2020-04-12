@@ -16,19 +16,20 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE RankNTypes             #-}
 
-module Gargantext.Database.Query.Node.Children where
+module Gargantext.Database.Action.Query.Node.Children
+  where
 
-import Data.Proxy
-import Opaleye
-import Gargantext.Core.Types
-import Gargantext.Database.Admin.Schema.Node
-import Gargantext.Database.Admin.Utils
-import Gargantext.Database.Admin.Schema.NodeNode
-import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Node.Contact (HyperdataContact)
-import Gargantext.Database.Admin.Schema.Node (pgNodeId)
 import Control.Arrow (returnA)
+import Data.Proxy
+import Gargantext.Core.Types
+import Gargantext.Database.Action.Query.Filter
+import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Node (pgNodeId)
+import Gargantext.Database.Schema.NodeNode
+import Opaleye
 
 getAllDocuments :: ParentId -> Cmd err (TableResult (Node HyperdataDocument))
 getAllDocuments pId = getAllChildren pId (Proxy :: Proxy HyperdataDocument)

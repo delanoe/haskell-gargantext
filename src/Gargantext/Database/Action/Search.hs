@@ -16,32 +16,32 @@ Portability : POSIX
 
 module Gargantext.Database.Action.Search where
 
+--import Gargantext.Database.Node.Contact
+import Control.Arrow (returnA)
+import Control.Lens ((^.))
 import Data.Aeson
+import Data.List (intersperse, take, drop)
 import Data.Map.Strict hiding (map, drop, take)
 import Data.Maybe
-import Control.Lens ((^.))
-import Data.List (intersperse, take, drop)
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Types.Node (NodeType(..))
-import Gargantext.Prelude
---import Gargantext.Database.Node.Contact
-import Gargantext.Database.Facet
-import Gargantext.Database.Schema.Node
+import Gargantext.Core.Types
+import Gargantext.Database.Action.Facet
+import Gargantext.Database.Action.Query.Join (leftJoin6)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Node (NodeType(..))
+import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNode hiding (joinInCorpus)
 import Gargantext.Database.Schema.NodeNodeNgrams
-import Gargantext.Database.Query.Join (leftJoin6)
-import Gargantext.Database.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
+import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Core.Types
-import Control.Arrow (returnA)
-import qualified Opaleye as O hiding (Order)
 import Opaleye hiding (Query, Order)
+import qualified Opaleye as O hiding (Order)
 
 
 ------------------------------------------------------------------------

@@ -24,7 +24,8 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 
-module Gargantext.Database.Query.Node where
+module Gargantext.Database.Action.Query.Node
+  where
 
 import Control.Arrow (returnA)
 import Control.Lens (set, view)
@@ -37,13 +38,13 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Int (Int64)
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Action.Query.Filter (limit', offset')
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
+import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
-import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Types.Errors
-import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
-import Gargantext.Database.Utils
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))
 import Opaleye hiding (FromField)

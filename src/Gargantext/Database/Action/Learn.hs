@@ -19,18 +19,17 @@ Portability : POSIX
 module Gargantext.Database.Action.Learn
   where
 
+import Data.Maybe
 import Data.Text (Text)
 import Data.Tuple (snd)
-import Data.Maybe
-import Gargantext.Database.Facet
-import Gargantext.Database.Types.Node
+import Gargantext.Core.Types (Offset, Limit)
+import Gargantext.Database.Action.Facet
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Prelude
 import Gargantext.Text.Learn
 import qualified Data.List as List
 import qualified Data.Text as Text
---import Gargantext.Database.Schema.NodeNode (nodeNodesCategory)
-import Gargantext.Database.Utils (Cmd)
-import Gargantext.Core.Types (Offset, Limit)
 
 data FavOrTrash = IsFav | IsTrash
   deriving (Eq)

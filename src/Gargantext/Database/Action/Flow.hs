@@ -53,22 +53,22 @@ import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types (NodePoly(..), Terms(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
-import Gargantext.Database.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Flow.List
-import Gargantext.Database.Flow.Types
-import Gargantext.Database.Flow.Utils (insertDocNgrams)
-import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
-import Gargantext.Database.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
-import Gargantext.Database.Root (getRoot)
+import Gargantext.Database.Action.Flow.List
+import Gargantext.Database.Action.Flow.Types
+import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
+import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..), ContactWho(..))
+import Gargantext.Database.Action.Query.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
+import Gargantext.Database.Action.Root (getRoot)
+import Gargantext.Database.Action.Search (searchInDatabase)
+import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
+import Gargantext.Database.Admin.Types.Errors (HasNodeError(..), NodeError(..), nodeError)
+import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
+import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, {-mkPhylo,-} mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNodeNodeNgrams2)
 import Gargantext.Database.Schema.User (getUserId)
-import Gargantext.Database.TextSearch (searchInDatabase)
-import Gargantext.Database.Types.Errors (HasNodeError(..), NodeError(..), nodeError)
-import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
-import Gargantext.Database.Utils (Cmd)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
@@ -83,7 +83,7 @@ import System.FilePath (FilePath)
 import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Text as Text
-import qualified Gargantext.Database.Node.Document.Add  as Doc  (add)
+import qualified Gargantext.Database.Action.Query.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
 import qualified Gargantext.Text.Corpus.Parsers.GrandDebat as GD
 

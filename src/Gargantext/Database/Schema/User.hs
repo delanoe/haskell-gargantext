@@ -23,7 +23,7 @@ Functions to deal with users, database side.
 {-# LANGUAGE OverloadedStrings           #-}
 {-# LANGUAGE RankNTypes                  #-}
 
-module Gargantext.Database.Admin.Schema.User where
+module Gargantext.Database.Schema.User where
 
 import Control.Arrow (returnA)
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
@@ -35,8 +35,8 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
 import Gargantext.Core.Types.Individu (Username, arbitraryUsername, User(..), UserId)
-import Gargantext.Database.Types.Errors
-import Gargantext.Database.Utils
+import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude
 import Opaleye
 

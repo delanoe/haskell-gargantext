@@ -14,17 +14,17 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Query.Node.Select
+module Gargantext.Database.Action.Query.Node.Select
   where
 
-import Opaleye
-import Gargantext.Core.Types
-import Gargantext.Database.Schema.Node
-import Gargantext.Database.Utils
-import Gargantext.Database.Config
-import Gargantext.Database.Schema.User
-import Gargantext.Core.Types.Individu (Username)
 import Control.Arrow (returnA)
+import Gargantext.Core.Types
+import Gargantext.Core.Types.Individu (Username)
+import Gargantext.Database.Admin.Config
+import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.User
+import Opaleye
 
 selectNodesWithUsername :: NodeType -> Username -> Cmd err [NodeId]
 selectNodesWithUsername nt u = runOpaQuery (q u)

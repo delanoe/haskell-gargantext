@@ -20,7 +20,6 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Action.Metrics.NgramsByNode
   where
 
-import Debug.Trace (trace)
 import Data.Map.Strict (Map, fromListWith, elems, toList, fromList)
 import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.Set (Set)
@@ -28,11 +27,12 @@ import Data.Text (Text)
 import Data.Tuple.Extra (second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
+import Debug.Trace (trace)
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Config (nodeTypeId)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
+import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
-import Gargantext.Database.Types.Node -- (ListId, CorpusId, NodeId)
-import Gargantext.Database.Utils (Cmd, runPGSQuery)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.TFICF
 import Gargantext.Text.Terms.Mono.Stem (stem)

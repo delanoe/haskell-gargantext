@@ -57,30 +57,32 @@ the concatenation of the parameters defined by @shaParameters@.
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
-module Gargantext.Database.Query.Node.Document.Insert where
+module Gargantext.Database.Action.Query.Node.Document.Insert
+  where
 
 import Control.Lens (set, view)
-import Control.Lens.Prism
 import Control.Lens.Cons
+import Control.Lens.Prism
 import Data.Aeson (toJSON)
 import Data.Maybe (maybe)
-import Data.Time.Segment (jour)
 import Data.Text (Text)
+import Data.Time.Segment (jour)
 import Database.PostgreSQL.Simple (FromRow, Query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField, Action)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Utils (Cmd, runPGSQuery)
-import Gargantext.Database.Node.Contact -- (HyperdataContact(..), ContactWho(..))
-import Gargantext.Database.Types.Node
+import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..), ContactWho(..))
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
 import Gargantext.Prelude
+import Gargantext.Prelude.Utils (sha)
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
 import qualified Data.Text                   as DT (pack, unpack, concat, take)
-import Gargantext.Prelude.Utils (sha)
+
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
 --import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)

@@ -25,7 +25,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE TypeFamilies              #-}
 ------------------------------------------------------------------------
-module Gargantext.Database.Query.Facet
+module Gargantext.Database.Action.Query.Facet
   ( runViewAuthorsDoc
   , runViewDocuments
   , filterWith
@@ -39,10 +39,9 @@ module Gargantext.Database.Query.Facet
   , OrderBy(..)
   )
   where
-------------------------------------------------------------------------
+
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
--- import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either(Either(Left))
@@ -55,15 +54,14 @@ import Data.Time.Segment (jour)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Schema.Node
+import Gargantext.Database.Action.Query.Filter
+import Gargantext.Database.Action.Query.Join (leftJoin5)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Schema.NodeNodeNgrams
--- import Gargantext.Database.Schema.NodeNodeNgrams2
-import Gargantext.Database.Utils
-import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Join (leftJoin5)
 import Opaleye
 import Prelude hiding (null, id, map, sum, not, read)
 import Servant.API

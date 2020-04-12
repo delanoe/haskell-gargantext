@@ -37,12 +37,12 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Int (Int64)
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
-import Gargantext.Database.Query.Filter (limit', offset')
-import Gargantext.Database.Types.Errors
-import Gargantext.Database.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
-import Gargantext.Database.Utils
+import Gargantext.Database.Action.Query.Filter (limit', offset')
+import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
+import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))
 import Opaleye hiding (FromField)

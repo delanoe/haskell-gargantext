@@ -21,5 +21,5 @@ module Gargantext.Database ( module Gargantext.Database.Utils
                            )
     where
 
-import Gargantext.Database.Utils (connectGargandb)
+import Gargantext.Database.Admin.Utils (connectGargandb)
 -- import Gargantext.Database.Bashql

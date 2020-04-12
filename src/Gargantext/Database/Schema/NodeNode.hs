@@ -24,24 +24,24 @@ commentary with @some markup@.
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Admin.Schema.NodeNode where
+module Gargantext.Database.Schema.NodeNode where
 
+import Control.Arrow (returnA)
 import Control.Lens (view, (^.))
-import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Control.Lens.TH (makeLenses)
 import Data.Maybe (Maybe, catMaybes)
-import Data.Text (Text, splitOn)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Gargantext.Database.Tools.Node (pgNodeId)
+import Data.Text (Text, splitOn)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core.Types
-import Gargantext.Database.Utils
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Types.Node (CorpusId, DocId)
+import Gargantext.Database.Action.Query.Node (pgNodeId)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Node (CorpusId, DocId)
+import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude
 import Opaleye
-import Control.Arrow (returnA)
+import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import qualified Opaleye as O
 
 data NodeNodePoly node1_id node2_id score cat

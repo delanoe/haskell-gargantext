@@ -20,17 +20,17 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Admin.Schema.NodeNodeNgrams2
+module Gargantext.Database.Schema.NodeNodeNgrams2
   where
 
-import Prelude
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLenses)
-import Gargantext.Database.Utils (Cmd, mkCmd)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Gargantext.Database.Schema.NodeNgrams (NodeNgramsId)
-import Gargantext.Database.Tools.Node (pgNodeId)
-import Gargantext.Database.Types.Node
+import Gargantext.Database.Action.Query.Node (pgNodeId)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
 import Opaleye
+import Prelude
 
 data NodeNodeNgrams2Poly node_id nodengrams_id w
    = NodeNodeNgrams2 { _nnng2_node_id      :: node_id

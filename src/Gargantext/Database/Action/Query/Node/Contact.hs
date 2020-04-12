@@ -17,7 +17,7 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Query.Node.Contact
+module Gargantext.Database.Action.Query.Node.Contact
   where
 
 import Control.Lens (makeLenses)
@@ -29,8 +29,8 @@ import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Types.Node (Node,Hyperdata)
-import Gargantext.Database.Utils (fromField')
+import Gargantext.Database.Admin.Types.Node (Node,Hyperdata)
+import Gargantext.Database.Admin.Utils (fromField')
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)

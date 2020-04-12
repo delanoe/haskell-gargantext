@@ -25,7 +25,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell            #-}
 
 
-module Gargantext.Database.Admin.Schema.NodesNgramsRepo
+module Gargantext.Database.Schema.NodesNgramsRepo
   where
 
 import Control.Arrow (returnA)
@@ -34,8 +34,8 @@ import Data.Map.Strict.Patch (PatchMap)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Gargantext.API.Ngrams (NgramsStatePatch, NgramsTablePatch)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
-import Gargantext.Database.Types.Node (NodeId)
-import Gargantext.Database.Utils (mkCmd, Cmd, runOpaQuery)
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Admin.Utils (mkCmd, Cmd, runOpaQuery)
 import Gargantext.Prelude
 import Opaleye
 

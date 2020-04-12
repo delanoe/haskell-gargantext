@@ -20,26 +20,22 @@ module Gargantext.Database.Action.Flow.Pairing
   (pairing)
     where
 
---import Debug.Trace (trace)
 import Control.Lens (_Just, (^.))
-import Database.PostgreSQL.Simple.SqlQQ (sql)
--- import Opaleye
--- import Opaleye.Aggregate
--- import Control.Arrow (returnA)
-import Data.Maybe (catMaybes)
 import Data.Map (Map, fromList)
+import Data.Maybe (catMaybes)
+import Data.Text (Text, toLower)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Gargantext.Core.Types (TableResult(..))
+import Gargantext.Database.Action.Flow.Utils
+import Gargantext.Database.Admin.Types.Node (AnnuaireId, CorpusId, ListId{-, DocId, ContactId-})
+import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
+import Gargantext.Database.Node.Children (getAllContacts)
+import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
+import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
+import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
 import qualified Data.Map as DM
-import Data.Text (Text, toLower)
 import qualified Data.Text as DT
-import Gargantext.Prelude hiding (sum)
-import Gargantext.Core.Types (TableResult(..))
-import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
-import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
-import Gargantext.Database.Flow.Utils
-import Gargantext.Database.Utils (Cmd, runPGSQuery)
-import Gargantext.Database.Types.Node (AnnuaireId, CorpusId, ListId{-, DocId, ContactId-})
-import Gargantext.Database.Node.Children (getAllContacts)
 
 -- TODO mv this type in Types Main
 type Terms = Text

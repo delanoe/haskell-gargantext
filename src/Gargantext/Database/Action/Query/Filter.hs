@@ -19,7 +19,8 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell        #-}
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-module Gargantext.Database.Query.Filter where
+module Gargantext.Database.Action.Query.Filter
+  where
 
 import Gargantext.Core.Types (Limit, Offset)
 import Data.Maybe (Maybe, maybe)

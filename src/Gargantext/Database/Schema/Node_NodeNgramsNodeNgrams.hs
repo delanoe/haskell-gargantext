@@ -33,15 +33,15 @@ Next Step benchmark:
 {-# LANGUAGE TemplateHaskell        #-}
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-module Gargantext.Database.Admin.Schema.Node_NodeNgramsNodeNgrams
+module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
   where
 
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Gargantext.Database.Utils (Cmd, runOpaQuery, mkCmd)
-import Gargantext.Database.Types.Node (CorpusId)
-import Gargantext.Database.Tools.Node (pgNodeId)
+import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery, mkCmd)
+import Gargantext.Database.Admin.Types.Node (CorpusId)
+import Gargantext.Database.Action.Query.Node (pgNodeId)
 import Gargantext.Prelude
 import Opaleye
 

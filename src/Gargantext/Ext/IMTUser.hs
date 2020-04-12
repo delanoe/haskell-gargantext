@@ -27,7 +27,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Prelude
 
-import Gargantext.Database.Node.Contact -- (HyperdataContact, ContactWho, ContactWhere, ContactTouch, ContactMetaData)
+import Gargantext.Database.Admin.Node.Contact -- (HyperdataContact, ContactWho, ContactWhere, ContactTouch, ContactMetaData)
 import qualified Data.ByteString.Lazy as BSL
 
 instance Serialise IMTUser

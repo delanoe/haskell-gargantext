@@ -23,17 +23,18 @@ Portability : POSIX
 
 module Gargantext.Database.Action.Flow.List
     where
-import Data.Text (Text)
+
 import Control.Monad (mapM_)
 import Data.Map (Map, toList)
 import Data.Maybe (Maybe(..), catMaybes)
+import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
-import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
+import Gargantext.Database.Action.Flow.Types
+import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
+import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
 import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams -- (insert_Node_NodeNgrams_NodeNgrams, Node_NodeNgrams_NodeNgrams(..))
-import Gargantext.Database.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
-import Gargantext.Database.Flow.Types
 import Gargantext.Prelude
 import qualified Data.List as List
 import qualified Data.Map  as Map

@@ -23,24 +23,22 @@ Add Documents/Contact to a Corpus/Annuaire.
 {-# LANGUAGE TypeSynonymInstances #-}
 
 ------------------------------------------------------------------------
-module Gargantext.Database.Query.Node.Document.Add
+module Gargantext.Database.Action.Query.Node.Document.Add
   where
 
 import Data.ByteString.Internal (ByteString)
+import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Database.PostgreSQL.Simple (Query, Only(..))
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-
-import Data.Text (Text)
-
-import Gargantext.Database.Utils (Cmd, runPGSQuery, formatPGSQuery)
-import Gargantext.Database.Types.Node
+import GHC.Generics (Generic)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, formatPGSQuery)
 import Gargantext.Prelude
 
-import GHC.Generics (Generic)
 ---------------------------------------------------------------------------
 
 add :: ParentId -> [NodeId] -> Cmd err [Only Int]

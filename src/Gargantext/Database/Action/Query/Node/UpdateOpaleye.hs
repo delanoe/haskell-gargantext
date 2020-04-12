@@ -16,15 +16,16 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes        #-}
 
 
-module Gargantext.Database.Query.Node.UpdateOpaleye where
+module Gargantext.Database.Action.Query.Node.UpdateOpaleye
+  where
 
 
 import Opaleye
 import Data.Aeson (encode, ToJSON)
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Node 
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils (Cmd, mkCmd)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
 
 updateHyperdata :: ToJSON a => NodeId -> a -> Cmd err Int64
 updateHyperdata i h = mkCmd $ \c -> runUpdate_ c (updateHyperdataQuery i h)

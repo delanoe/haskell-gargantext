@@ -21,18 +21,16 @@ commentary with @some markup@.
 
 module Gargantext.Database.Admin.Utils where
 
-import Data.ByteString.Char8 (hPutStrLn)
-import System.IO (stderr)
 import Control.Exception
-import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Lens (Getter, view)
+import Control.Monad.Error.Class -- (MonadError(..), Error)
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.Trans.Control (MonadBaseControl)
-import Control.Monad.Except
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
+import Data.ByteString.Char8 (hPutStrLn)
 import Data.Either.Extra (Either(Left, Right))
 import Data.Ini (readIniFile, lookupValue)
-import qualified Data.List as DL
 import Data.Maybe (maybe)
 import Data.Monoid ((<>))
 import Data.Pool (Pool, withResource)
@@ -40,7 +38,6 @@ import Data.Profunctor.Product.Default (Default)
 import Data.Text (unpack, pack)
 import Data.Typeable (Typeable)
 import Data.Word (Word16)
---import Database.PostgreSQL.Simple (Connection, Pool, connect, withPoolConnection)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
@@ -48,8 +45,10 @@ import Gargantext.Prelude
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
+import System.IO (stderr)
 import Text.Read (read)
 import qualified Data.ByteString      as DB
+import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
 
 class HasConnectionPool env where

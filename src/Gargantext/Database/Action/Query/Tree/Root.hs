@@ -24,17 +24,18 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Query.Tree.Root where
+module Gargantext.Database.Action.Query.Tree.Root
+  where
 
 import Control.Arrow (returnA)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Node.User (HyperdataUser)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Action.Node.User (HyperdataUser)
 import Gargantext.Database.Schema.Node (NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Database.Schema.User (queryUserTable, UserPoly(..))
-import Gargantext.Database.Types.Node (Node, NodePoly(..), NodeType(NodeUser))
-import Gargantext.Database.Utils (Cmd, runOpaQuery)
+import Gargantext.Database.Admin.Types.Node (Node, NodePoly(..), NodeType(NodeUser))
+import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery)
 import Gargantext.Prelude
 import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)

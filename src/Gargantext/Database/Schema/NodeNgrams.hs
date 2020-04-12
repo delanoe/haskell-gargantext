@@ -25,25 +25,24 @@ NodeNgrams register Context of Ngrams (named Cgrams then)
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Admin.Schema.NodeNgrams where
+module Gargantext.Database.Schema.NodeNgrams where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
-import qualified Data.List as List
 import Data.List.Extra (nubOrd)
-import Data.Text (Text)
-import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Database.PostgreSQL.Simple.FromRow (fromRow, field)
-import Database.PostgreSQL.Simple.ToField (toField)
-import Database.PostgreSQL.Simple (FromRow)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
--- import Control.Lens.TH (makeLenses)
+import Data.Map (Map)
 import Data.Maybe (Maybe, fromMaybe)
+import Data.Text (Text)
+import Database.PostgreSQL.Simple (FromRow)
+import Database.PostgreSQL.Simple.FromRow (fromRow, field)
+import Database.PostgreSQL.Simple.SqlQQ (sql)
+import Database.PostgreSQL.Simple.ToField (toField)
+import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core.Types
-import Gargantext.Database.Utils
+import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Ngrams (NgramsType, ngramsTypeId, fromNgramsTypeId)
 import Gargantext.Prelude
+import qualified Data.List as List
+import qualified Data.Map as Map
+import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 
 type NodeNgramsId = Int
 

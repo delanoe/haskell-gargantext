@@ -25,42 +25,35 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Node
   where
 
-import Prelude (Enum, Bounded, minBound, maxBound)
-
-import GHC.Generics (Generic)
-
-import           Control.Lens hiding (elements, (&))
-import           Control.Applicative ((<*>))
-import           Control.Monad (mzero)
-
-import           Data.Aeson
-import           Data.Aeson.Types (emptyObject)
-import           Data.Aeson (Object, toJSON)
-import           Data.Aeson.TH (deriveJSON)
-import           Data.ByteString.Lazy (ByteString)
-import           Data.Either
-import           Data.Eq (Eq)
-import           Data.Monoid (mempty)
-import           Data.Text (Text, unpack)
-import           Data.Time (UTCTime)
-import           Data.Swagger
-
-import           Text.Read (read)
-import           Text.Show (Show())
-
-import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
+import Control.Applicative ((<*>))
+import Control.Lens hiding (elements, (&))
+import Control.Monad (mzero)
+import Data.Aeson
+import Data.Aeson (Object, toJSON)
+import Data.Aeson.TH (deriveJSON)
+import Data.Aeson.Types (emptyObject)
+import Data.ByteString.Lazy (ByteString)
+import Data.Either
+import Data.Eq (Eq)
+import Data.Monoid (mempty)
+import Data.Swagger
+import Data.Text (Text, unpack)
+import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import           Servant
+import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
+import GHC.Generics (Generic)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Prelude
+import Gargantext.Viz.Phylo (Phylo)
+import Prelude (Enum, Bounded, minBound, maxBound)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Instances.Text ()
+import Test.QuickCheck.Instances.Time ()
+import Text.Read (read)
+import Text.Show (Show())
 
-import           Test.QuickCheck.Arbitrary
-import           Test.QuickCheck (elements)
-import           Test.QuickCheck.Instances.Time ()
-import           Test.QuickCheck.Instances.Text ()
-
-import           Gargantext.Prelude
-import           Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import           Gargantext.Viz.Phylo (Phylo)
---import Gargantext.Database.Utils
 ------------------------------------------------------------------------
 
 newtype NodeId = NodeId Int

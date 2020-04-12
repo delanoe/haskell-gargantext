@@ -28,14 +28,13 @@ module Gargantext.Database.Action.Metrics.Lists
 
 import Gargantext.API.Ngrams (TabType(..))
 import Gargantext.Core.Types -- (NodePoly(..), NodeCorpus, ListId)
-import Gargantext.Database.Flow (FlowCmdM)
+import Gargantext.Database.Action.Flow (FlowCmdM)
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Text.Metrics (Scored(..))
 import Prelude hiding (null, id, map, sum)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vec
-import qualified Gargantext.Database.Metrics as Metrics
-
+import qualified Gargantext.Database.Action.Metrics as Metrics
 
 {-
 trainModel :: FlowCmdM env ServantErr m

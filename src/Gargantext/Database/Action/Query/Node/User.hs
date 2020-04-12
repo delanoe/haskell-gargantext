@@ -17,7 +17,7 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Query.Node.User
+module Gargantext.Database.Action.Query.Node.User
   where
 
 import Control.Lens (makeLenses)
@@ -27,13 +27,13 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Node.Contact (HyperdataContact, fake_HyperdataContact)
-import Gargantext.Database.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
-import Gargantext.Database.Utils (fromField')
-import Gargantext.Database.Tools.Node (getNode)
-import Gargantext.Database.Schema.Node (Node(..))
 import Gargantext.Core.Types.Individu (Username, arbitraryUsername, User(..), UserId)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Action.Query.Node (getNode)
+import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact, fake_HyperdataContact)
+import Gargantext.Database.Admin.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
+import Gargantext.Database.Admin.Utils (fromField')
+import Gargantext.Database.Schema.Node (Node(..))
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
