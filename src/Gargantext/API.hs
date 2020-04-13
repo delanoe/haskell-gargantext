@@ -407,7 +407,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- :<|> addUpload
      -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
      :<|> addCorpusWithForm  (UserDBId uid)
-     :<|> addCorpusWithQuery (RootId   uid)
+     :<|> addCorpusWithQuery (RootId   (NodeId uid))
 
      :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
