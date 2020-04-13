@@ -23,11 +23,12 @@ import Control.Arrow (returnA)
 import Data.Proxy
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Query.Filter
+import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.Node (pgNodeId)
 import Gargantext.Database.Schema.NodeNode
 import Opaleye
 

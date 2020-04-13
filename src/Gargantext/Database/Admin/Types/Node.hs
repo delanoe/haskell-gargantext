@@ -53,8 +53,17 @@ import Test.QuickCheck.Instances.Text ()
 import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
 import Text.Show (Show())
+import qualified Opaleye as O
 
 ------------------------------------------------------------------------
+pgNodeId :: NodeId -> O.Column O.PGInt4
+pgNodeId = O.pgInt4 . id2int
+  where
+    id2int :: NodeId -> Int
+    id2int (NodeId n) = n
+
+------------------------------------------------------------------------
+
 
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
@@ -122,9 +131,6 @@ type ContactId  = NodeId
 
 type UserId   = Int
 type MasterUserId = UserId
-
-id2int :: NodeId -> Int
-id2int (NodeId n) = n
 
 ------------------------------------------------------------------------
 data Status  = Status { status_failed    :: !Int

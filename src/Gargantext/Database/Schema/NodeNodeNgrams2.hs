@@ -26,7 +26,7 @@ module Gargantext.Database.Schema.NodeNodeNgrams2
 import Control.Lens.TH (makeLenses)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Gargantext.Database.Schema.NodeNgrams (NodeNgramsId)
-import Gargantext.Database.Action.Query.Node (pgNodeId)
+import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
 import Opaleye

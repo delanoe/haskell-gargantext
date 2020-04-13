@@ -28,7 +28,7 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLenses)
 import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)
-import Gargantext.Database.Action.Query.Node (pgNodeId)
+import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Types.Node
 import Opaleye
 

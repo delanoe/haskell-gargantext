@@ -10,11 +10,13 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Action.Query.Node.User
@@ -22,20 +24,22 @@ module Gargantext.Database.Action.Query.Node.User
 
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
+import Data.Maybe (fromMaybe)
 import Data.Swagger (ToSchema(..), genericDeclareNamedSchema)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types (Name)
 import Gargantext.Core.Types.Individu (Username, arbitraryUsername, User(..), UserId)
+import Gargantext.Database.Action.Query.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Query.Node (getNode)
 import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact, fake_HyperdataContact)
 import Gargantext.Database.Admin.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
-import Gargantext.Database.Admin.Utils (fromField')
-import Gargantext.Database.Schema.Node (Node(..))
+import Gargantext.Database.Admin.Utils -- (fromField', Cmd)
+import Gargantext.Database.Schema.Node -- (Node(..))
 import Gargantext.Prelude
-import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
+import Opaleye hiding (FromField)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
@@ -130,23 +134,9 @@ $(deriveJSON (unPrefix "_hpu_") ''HyperdataPublic)
 
 
 -----------------------------------------------------------------
-getUserId :: HasNodeError err
-          => User
-          -> Cmd err UserId
-getUserId (UserDBId uid) = pure uid
-getUserId (RootId   rid) = do
-  n <- getNode rid
-  pure $ _node_userId n
-getUserId (UserName u  ) = do
-  muser <- getUser u
-  case muser of
-    Just user -> pure $ userLight_id user
-    Nothing   -> nodeError NoUserFound
-
-
 getNodeUser :: NodeId -> Cmd err (Node HyperdataUser)
 getNodeUser nId = do
-    fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
+    fromMaybe (panic $ "Node does not exist: " <> show nId) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 

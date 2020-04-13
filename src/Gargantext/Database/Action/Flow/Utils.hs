@@ -23,8 +23,26 @@ import Gargantext.Database.Admin.Types.Node (NodeId, Node, NodePoly(..), Hyperda
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.NodeNodeNgrams
+import Gargantext.Database.Action.Query.Node (getNode)
 import Gargantext.Prelude
 import qualified Data.Map as DM
+
+
+getUserId :: HasNodeError err
+          => User
+          -> Cmd err UserId
+getUserId (UserDBId uid) = pure uid
+getUserId (RootId   rid) = do
+  n <- getNode rid
+  pure $ _node_userId n
+getUserId (UserName u  ) = do
+  muser <- getUser u
+  case muser of
+    Just user -> pure $ userLight_id user
+    Nothing   -> nodeError NoUserFound
+
+
+
 
 toMaps :: Hyperdata a
        => (a -> Map (NgramsT Ngrams) Int)

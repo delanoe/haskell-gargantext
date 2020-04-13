@@ -29,7 +29,7 @@ import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
 import Gargantext.Core.Types
-import Gargantext.Database.Action.Facet
+import Gargantext.Database.Action.Query.Facet
 import Gargantext.Database.Action.Query.Join (leftJoin6)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))

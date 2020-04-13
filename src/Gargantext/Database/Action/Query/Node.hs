@@ -44,7 +44,6 @@ import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
-import Gargantext.Database.Action.Query.Node.User
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))
@@ -52,9 +51,6 @@ import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
 
-
-pgNodeId :: NodeId -> Column PGInt4
-pgNodeId = pgInt4 . id2int
 
 queryNodeSearchTable :: Query NodeSearchRead
 queryNodeSearchTable = queryTable nodeTableSearch
@@ -64,7 +60,6 @@ selectNode id = proc () -> do
     row <- queryNodeTable -< ()
     restrict -< _node_id row .== id
     returnA -< row
-
 
 
 runGetNodes :: Query NodeRead -> Cmd err [Node HyperdataAny]
@@ -405,60 +400,6 @@ childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Nod
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
 
 
--- =================================================================== --
-------------------------------------------------------------------------
--- | TODO mk all others nodes
-mkNodeWithParent :: HasNodeError err
-                 => NodeType
-                 -> Maybe ParentId
-                 -> UserId
-                 -> Name
-                 -> Cmd err [NodeId]
-mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
-
-------------------------------------------------------------------------
-mkNodeWithParent NodeUser Nothing uId name =
-  insertNodesWithParentR Nothing [node NodeUser name fake_HyperdataUser Nothing uId]
-
-mkNodeWithParent _ Nothing _ _ = nodeError HasParent
-------------------------------------------------------------------------
-mkNodeWithParent NodeFolder (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
-    where
-      hd = defaultFolder
-
-mkNodeWithParent NodeFolderPrivate (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderPrivate "Private" hd Nothing uId]
-    where
-      hd = defaultFolder
-
-mkNodeWithParent NodeFolderShared (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderShared "Shared" hd Nothing uId]
-    where
-      hd = defaultFolder
-
-mkNodeWithParent NodeFolderPublic (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderPublic "Public" hd Nothing uId]
-    where
-      hd = defaultFolder
-
-mkNodeWithParent NodeTeam (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeTeam "Team" hd Nothing uId]
-    where
-      hd = defaultFolder
-------------------------------------------------------------------------
-mkNodeWithParent NodeCorpus (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeCorpus name hd Nothing uId]
-    where
-      hd = defaultCorpus
-
-mkNodeWithParent NodeAnnuaire (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeAnnuaire name hd Nothing uId]
-    where
-      hd = defaultAnnuaire
-
-mkNodeWithParent _ _ _ _       = nodeError NotImplYet
-------------------------------------------------------------------------
 -- =================================================================== --
 -- |
 -- CorpusDocument is a corpus made from a set of documents

@@ -35,10 +35,11 @@ import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core.Types
-import Gargantext.Database.Action.Query.Node (pgNodeId)
+import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (CorpusId, DocId)
 import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
