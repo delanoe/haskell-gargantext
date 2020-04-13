@@ -39,6 +39,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Text.Read (read)
 
+type CorpusName = Text
 ------------------------------------------------------------------------
 data NodeTree = NodeTree { _nt_name :: Text
                          , _nt_type :: NodeType
@@ -74,7 +75,7 @@ type ListTypeId = Int
 listTypeId :: ListType -> ListTypeId
 listTypeId StopTerm      = 0
 listTypeId CandidateTerm = 1
-listTypeId GraphTerm       = 2
+listTypeId GraphTerm     = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
 fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]
@@ -95,7 +96,7 @@ type Offset   = Int
 type IsTrash  = Bool
 
 ------------------------------------------------------------------------
--- All the Database is structred like a hierarchical Tree
+-- All the Database is structured as a hierarchical Tree
 data Tree a = TreeN { _tn_node :: a, _tn_children :: [Tree a] }
   deriving (Show, Read, Eq, Generic, Ord)
 

@@ -27,12 +27,19 @@ Portability : POSIX
 module Gargantext.Database.Action.Query.Tree.Root
   where
 
+import Data.Either (Either, fromLeft, fromRight)
 import Control.Arrow (returnA)
+import Gargantext.Core.Types.Main (CorpusName)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
+import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Action.Query.Node.User (HyperdataUser)
+import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Schema.Node (NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
+import Gargantext.Database.Action.Query
 import Gargantext.Database.Schema.User (UserPoly(..))
 import Gargantext.Database.Action.Query.User (queryUserTable)
 import Gargantext.Database.Admin.Types.Node (Node, NodePoly(..), NodeType(NodeUser), pgNodeId)
@@ -40,6 +47,83 @@ import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery)
 import Gargantext.Prelude
 import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)
+
+
+
+getOrMkRoot :: (HasNodeError err)
+            => User
+            -> Cmd err (UserId, RootId)
+getOrMkRoot user = do
+  userId <- getUserId user
+
+  rootId' <- map _node_id <$> getRoot user
+
+  rootId'' <- case rootId' of
+        []  -> mkRoot user
+        n   -> case length n >= 2 of
+            True  -> nodeError ManyNodeUsers
+            False -> pure rootId'
+
+  rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
+  pure (userId, rootId)
+
+
+getOrMk_RootWithCorpus :: (HasNodeError err, MkCorpus a)
+                      => User
+                      -> Either CorpusName [CorpusId]
+                      -> Maybe a
+                      -> Cmd err (UserId, RootId, CorpusId)
+getOrMk_RootWithCorpus user cName c = do
+  (userId, rootId) <- getOrMkRoot user
+  corpusId'' <- if user == UserName userMaster
+                  then do
+                    ns <- getCorporaWithParentId rootId
+                    pure $ map _node_id ns
+                  else
+                    pure $ fromRight [] cName
+
+  corpusId' <- if corpusId'' /= []
+                  then pure corpusId''
+                  else do
+                    c' <- mk (Just $ fromLeft "Default" cName) c rootId userId
+                    _tId <- case head c' of
+                              Nothing -> pure [0]
+                              Just c'' -> mkNode NodeTexts c'' userId
+                    pure c'
+
+  corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
+  pure (userId, rootId, corpusId)
+
+
+
+
+
+
+mkRoot :: HasNodeError err
+       => User
+       -> Cmd err [RootId]
+mkRoot user = do
+
+  -- TODO
+  -- udb <- getUserDb user
+  -- let uid = user_id udb
+  uid <- getUserId user
+
+  -- TODO ? Which name for user Node ?
+  let una = "username"
+
+  case uid > 0 of
+     False -> nodeError NegativeId
+     True  -> do
+       rs <- mkNodeWithParent NodeUser Nothing uid una
+       _ <- case rs of
+         [r] -> do
+           _ <- mkNodeWithParent NodeFolderPrivate (Just r) uid una
+           _ <- mkNodeWithParent NodeFolderShared  (Just r) uid una
+           _ <- mkNodeWithParent NodeFolderPublic  (Just r) uid una
+           pure rs
+         _   -> pure rs
+       pure rs
 
 getRoot :: User -> Cmd err [Node HyperdataUser]
 getRoot = runOpaQuery . selectRoot
@@ -65,6 +149,4 @@ selectRoot (RootId nid) =
     restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< _node_id   row   .== (pgNodeId nid)
     returnA  -< row
-
-
 

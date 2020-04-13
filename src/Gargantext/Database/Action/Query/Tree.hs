@@ -27,45 +27,12 @@ import Data.Map (Map, fromListWith, lookup)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
-import Gargantext.Core.Types.Individu
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
 import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
-import Gargantext.Database.Action.Query
-import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
-import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
 import Gargantext.Prelude
-
-------------------------------------------------------------------------
--- import Gargantext.Database.Utils (runCmdDev)
--- treeTest :: IO (Tree NodeTree)
--- treeTest = runCmdDev $ treeDB 347474
-------------------------------------------------------------------------
-
-mkRoot :: HasNodeError err
-       => User
-       -> Cmd err [RootId]
-mkRoot user = do
-
-  uid <- getUserId user
-
-  let una = "username"
-
-  case uid > 0 of
-     False -> nodeError NegativeId
-     True  -> do
-       rs <- mkNodeWithParent NodeUser Nothing uid una
-       _ <- case rs of
-         [r] -> do
-           _ <- mkNodeWithParent NodeFolderPrivate (Just r) uid una
-           _ <- mkNodeWithParent NodeFolderShared  (Just r) uid una
-           _ <- mkNodeWithParent NodeFolderPublic  (Just r) uid una
-           pure rs
-         _   -> pure rs
-       pure rs
-
 
 ------------------------------------------------------------------------
 data TreeError = NoRoot | EmptyRoot | TooManyRoots
@@ -74,16 +41,24 @@ data TreeError = NoRoot | EmptyRoot | TooManyRoots
 class HasTreeError e where
   _TreeError :: Prism' e TreeError
 
-treeError :: (MonadError e m, HasTreeError e) => TreeError -> m a
+treeError :: ( MonadError e m
+             , HasTreeError e)
+             => TreeError
+             -> m a
 treeError te = throwError $ _TreeError # te
 
 -- | Returns the Tree of Nodes in Database
-treeDB :: HasTreeError err => RootId -> [NodeType] -> Cmd err (Tree NodeTree)
+treeDB :: HasTreeError err
+       => RootId
+       -> [NodeType]
+       -> Cmd err (Tree NodeTree)
 treeDB r nodeTypes = toTree =<< (toTreeParent <$> dbTree r nodeTypes)
 
 ------------------------------------------------------------------------
-toTree :: (MonadError e m, HasTreeError e)
-       => Map (Maybe ParentId) [DbTreeNode] -> m (Tree NodeTree)
+toTree :: ( MonadError e m
+          , HasTreeError e)
+       => Map (Maybe ParentId) [DbTreeNode]
+       -> m (Tree NodeTree)
 toTree m =
     case lookup Nothing m of
         Just [n] -> pure $ toTree' m n
@@ -91,18 +66,22 @@ toTree m =
         Just []  -> treeError EmptyRoot
         Just _   -> treeError TooManyRoots
 
-toTree' :: Map (Maybe ParentId) [DbTreeNode] -> DbTreeNode -> Tree NodeTree
+toTree' :: Map (Maybe ParentId) [DbTreeNode]
+        -> DbTreeNode
+        -> Tree NodeTree
 toTree' m n =
   TreeN (toNodeTree n) $
     m ^.. at (Just $ dt_nodeId n) . _Just . each . to (toTree' m)
 
 ------------------------------------------------------------------------
-toNodeTree :: DbTreeNode -> NodeTree
+toNodeTree :: DbTreeNode
+           -> NodeTree
 toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
   where
     nodeType = fromNodeTypeId tId
 ------------------------------------------------------------------------
-toTreeParent :: [DbTreeNode] -> Map (Maybe ParentId) [DbTreeNode]
+toTreeParent :: [DbTreeNode]
+             -> Map (Maybe ParentId) [DbTreeNode]
 toTreeParent = fromListWith (<>) . map (\n -> (dt_parentId n, [n]))
 ------------------------------------------------------------------------
 data DbTreeNode = DbTreeNode { dt_nodeId :: NodeId
@@ -113,7 +92,9 @@ data DbTreeNode = DbTreeNode { dt_nodeId :: NodeId
 
 -- | Main DB Tree function
 -- TODO add typenames as parameters
-dbTree :: RootId -> [NodeType] -> Cmd err [DbTreeNode]
+dbTree :: RootId
+       -> [NodeType]
+       -> Cmd err [DbTreeNode]
 dbTree rootId nodeTypes = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
   <$> runPGSQuery [sql|
     WITH RECURSIVE

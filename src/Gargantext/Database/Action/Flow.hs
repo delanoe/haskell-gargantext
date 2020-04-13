@@ -50,20 +50,19 @@ import Data.Tuple.Extra (first, second)
 import Debug.Trace (trace)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Flow.Types
-import Gargantext.Core.Types (NodePoly(..), Terms(..))
+import Gargantext.Core.Types (Terms(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Flow.Utils (insertDocNgrams, getUserId)
+import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
 import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Action.Query.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
-import Gargantext.Database.Action.Query.Tree.Root (getRoot)
-import Gargantext.Database.Action.Query.Tree (mkRoot)
+import Gargantext.Database.Action.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Admin.Types.Errors (HasNodeError(..), NodeError(..), nodeError)
+import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
@@ -309,54 +308,6 @@ withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
                              )
       just_m -> just_m
 withLang l _ = l
-
-
-
-type CorpusName = Text
-
-getOrMkRoot :: (HasNodeError err)
-            => User
-            -> Cmd err (UserId, RootId)
-getOrMkRoot user = do
-  userId <- getUserId user
-
-  rootId' <- map _node_id <$> getRoot user
-
-  rootId'' <- case rootId' of
-        []  -> mkRoot user
-        n   -> case length n >= 2 of
-            True  -> nodeError ManyNodeUsers
-            False -> pure rootId'
-
-  rootId <- maybe (nodeError NoRootFound) pure (head rootId'')
-  pure (userId, rootId)
-
-
-getOrMk_RootWithCorpus :: (HasNodeError err, MkCorpus a)
-                      => User
-                      -> Either CorpusName [CorpusId]
-                      -> Maybe a
-                      -> Cmd err (UserId, RootId, CorpusId)
-getOrMk_RootWithCorpus user cName c = do
-  (userId, rootId) <- getOrMkRoot user
-  corpusId'' <- if user == UserName userMaster
-                  then do
-                    ns <- getCorporaWithParentId rootId
-                    pure $ map _node_id ns
-                  else
-                    pure $ fromRight [] cName
-
-  corpusId' <- if corpusId'' /= []
-                  then pure corpusId''
-                  else do
-                    c' <- mk (Just $ fromLeft "Default" cName) c rootId userId
-                    _tId <- case head c' of
-                              Nothing -> pure [0]
-                              Just c'' -> mkNode NodeTexts c'' userId
-                    pure c'
-
-  corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
-  pure (userId, rootId, corpusId)
 
 
 ------------------------------------------------------------------------
