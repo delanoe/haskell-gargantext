@@ -32,7 +32,6 @@ library:
   - Gargantext.API.FrontEnd
   - Gargantext.API.Ngrams
   - Gargantext.API.Node
-    #  - Gargantext.API.Orchestrator
   - Gargantext.API.Search
   - Gargantext.API.Settings
   - Gargantext.API.Types
@@ -41,15 +40,13 @@ library:
   - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
-  - Gargantext.Database
-  - Gargantext.Database.Admin.Init
-  - Gargantext.Database.Admin.Config
   - Gargantext.Database.Action.Flow
-  - Gargantext.Database.Schema.Node
-  - Gargantext.Database.Action.Tree
-  - Gargantext.Database.Admin.Types.Node
+  - Gargantext.Database.Action.Query.User
+  - Gargantext.Database.Action.Query.Node
   - Gargantext.Database.Admin.Utils
-  - Gargantext.Database.Schema.User
+  - Gargantext.Database.Admin.Trigger.Init
+  - Gargantext.Database.Admin.Config
+  - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context

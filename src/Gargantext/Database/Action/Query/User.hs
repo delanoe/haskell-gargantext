@@ -27,16 +27,12 @@ module Gargantext.Database.Action.Query.User
   where
 
 import Control.Arrow (returnA)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Eq(Eq(..))
 import Data.List (find)
 import Data.Maybe (Maybe)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
-import GHC.Show(Show(..))
-import Gargantext.Core.Types.Individu (Username, arbitraryUsername, User(..), UserId)
-import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Core.Types.Individu
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude

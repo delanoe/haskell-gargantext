@@ -41,7 +41,7 @@ import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery, mkCmd)
 import Gargantext.Database.Admin.Types.Node (CorpusId, pgNodeId)
-import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Node()
 import Gargantext.Prelude
 import Opaleye
 

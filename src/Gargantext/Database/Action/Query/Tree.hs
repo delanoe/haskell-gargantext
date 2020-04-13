@@ -14,6 +14,7 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
 
@@ -28,9 +29,7 @@ import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 import Gargantext.Core.Types.Individu
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
-import Gargantext.Database.Action.Query.User
 import Gargantext.Database.Action.Query
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)

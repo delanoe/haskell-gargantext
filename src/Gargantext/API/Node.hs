@@ -65,7 +65,6 @@ import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Prelude
 import Gargantext.Viz.Chart
@@ -181,42 +180,42 @@ nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uI
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
 nodeAPI :: forall proxy a. (JSONB a, FromJSON a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
+nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id') nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
-    nodeAPI' =  getNodeWith   id p
-           :<|> rename        id
-           :<|> postNode  uId id
-           :<|> putNode       id
-           :<|> deleteNodeApi id
-           :<|> getChildren   id p
+    nodeAPI' =  getNodeWith   id' p
+           :<|> rename        id'
+           :<|> postNode  uId id'
+           :<|> putNode       id'
+           :<|> deleteNodeApi id'
+           :<|> getChildren   id' p
 
            -- TODO gather it
-           :<|> tableApi             id
-           :<|> apiNgramsTableCorpus id
+           :<|> tableApi             id'
+           :<|> apiNgramsTableCorpus id'
 
-           :<|> catApi      id
+           :<|> catApi      id'
 
-           :<|> searchDocs  id
+           :<|> searchDocs  id'
            -- Pairing Tools
-           :<|> pairWith    id
-           :<|> pairs       id
-           :<|> getPair     id
-           :<|> searchPairs id
+           :<|> pairWith    id'
+           :<|> pairs       id'
+           :<|> getPair     id'
+           :<|> searchPairs id'
 
-           :<|> getScatter id
-           :<|> getChart   id
-           :<|> getPie     id
-           :<|> getTree    id
-           :<|> phyloAPI   id uId
-           -- :<|> nodeAddAPI id
-           -- :<|> postUpload id
+           :<|> getScatter id'
+           :<|> getChart   id'
+           :<|> getPie     id'
+           :<|> getTree    id'
+           :<|> phyloAPI   id' uId
+           -- :<|> nodeAddAPI id'
+           -- :<|> postUpload id'
 
-    deleteNodeApi id' = do
-      node <- getNode id'
-      if _node_typename node == nodeTypeId NodeUser
+    deleteNodeApi id'' = do
+      node' <- getNode id''
+      if _node_typename node' == nodeTypeId NodeUser
          then panic "not allowed"  -- TODO add proper Right Management Type
-         else deleteNode id'
+         else deleteNode id''
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }

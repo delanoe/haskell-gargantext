@@ -50,7 +50,6 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Action.Query.Node.Select
 import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Action.Query.Node.User
-import Gargantext.Database.Schema.Node -- (getNodeWith, getNodeUser, defaultList, insertGraph)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
 import Gargantext.Database.Action.Query.Node.UpdateOpaleye (updateHyperdata)
@@ -84,9 +83,10 @@ instance Xmlbf.ToXml Graph where
           params = HashMap.fromList [ ("mode", "static")
                                     , ("defaultedgetype", "directed") ]
       nodes :: [G.Node] -> [Xmlbf.Node]
-      nodes gn = Xmlbf.element "nodes" HashMap.empty $ P.concatMap node gn
-      node :: G.Node -> [Xmlbf.Node]
-      node (G.Node { node_id = nId, node_label = l }) =
+      nodes gn = Xmlbf.element "nodes" HashMap.empty $ P.concatMap node' gn
+
+      node' :: G.Node -> [Xmlbf.Node]
+      node' (G.Node { node_id = nId, node_label = l }) =
         Xmlbf.element "node" params []
         where
           params = HashMap.fromList [ ("id", nId)

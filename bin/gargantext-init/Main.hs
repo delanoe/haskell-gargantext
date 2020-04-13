@@ -21,19 +21,20 @@ module Main where
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import System.Environment (getArgs)
-import Gargantext.Prelude
-import Gargantext.Core.Types.Individu (UserId, User(..))
-import Gargantext.Database.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
-import Gargantext.Database.Schema.Node (getOrMkList)
-import Gargantext.Database.Utils (Cmd, )
-import Gargantext.Database.Types.Node (CorpusId, RootId, HyperdataCorpus, ListId)
-import Gargantext.Database.Schema.User (insertUsersDemo)
-import Gargantext.API.Types (GargError)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev)
-import Gargantext.Database.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Init (initTriggers)
+import Gargantext.API.Types (GargError)
+import Gargantext.Core.Types.Individu (UserId, User(..))
+import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
+import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
+import Gargantext.Database.Admin.Trigger.Init (initTriggers)
+import Gargantext.Database.Admin.Types.Node (CorpusId, RootId, HyperdataCorpus, ListId)
+import Gargantext.Database.Admin.Utils (Cmd, )
+import Gargantext.Database.Action.Query.Node (getOrMkList)
+import Gargantext.Database.Action.Query.User (insertUsersDemo)
+import Gargantext.Prelude
+import System.Environment (getArgs)
+
 main :: IO ()
 main = do
   [iniPath] <- getArgs

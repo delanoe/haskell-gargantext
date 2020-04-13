@@ -40,7 +40,6 @@ import Gargantext.Core.Types
 import Gargantext.Database.Action.Flow
 import Gargantext.Database.Action.Metrics.NgramsByNode
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node
 import Servant
 import qualified Data.List as List
 import qualified Data.Map as Map

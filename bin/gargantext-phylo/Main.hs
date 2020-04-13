@@ -22,42 +22,35 @@ Phylo binaries
 
 module Main where
 
-import System.Directory (doesFileExist) 
-
+import Control.Concurrent.Async as CCA (mapConcurrently)
+import Control.Monad (mapM)
 import Data.Aeson
-import Data.Text (Text, unwords, unlines)
 import Data.List ((++),concat)
+import Data.Maybe
+import Data.Text (Text, unwords, unlines)
 import GHC.Generics
 import GHC.IO (FilePath)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
-import Gargantext.Text.List.CSV (csvGraphTermList)
-import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
-import qualified Gargantext.Text.Corpus.Parsers.CSV as CSV
-import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
-import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Context (TermList)
-
-import Control.Monad (mapM)
-
-import System.Environment
-
+import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
+import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Text.List.CSV (csvGraphTermList)
+import Gargantext.Text.Terms.WithList
 import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.LevelMaker
+import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.View.ViewMaker
-
-import Gargantext.Database.Types.Node
-import Data.Maybe
-
-import Control.Concurrent.Async as CCA (mapConcurrently)
-
-import qualified Data.Map    as DM
-import qualified Data.Vector as DV
-import qualified Data.List   as DL
-import qualified Data.Text   as DT
-import qualified Prelude     as P
+import System.Directory (doesFileExist)
+import System.Environment
 import qualified Data.ByteString.Lazy as L
+import qualified Data.List   as DL
+import qualified Data.Map    as DM
+import qualified Data.Text   as DT
+import qualified Data.Vector as DV
+import qualified Gargantext.Text.Corpus.Parsers.CSV as CSV
+import qualified Prelude     as P
 
 
 --------------

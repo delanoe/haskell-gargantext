@@ -19,24 +19,23 @@ Import a corpus binary.
 
 module Main where
 
-import Data.Either
-import Prelude (read)
 import Control.Exception (finally)
-import Gargantext.Prelude
-import Gargantext.Database.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire)
-import Gargantext.Text.Corpus.Parsers (FileFormat(..))
-import Gargantext.Database.Utils (Cmd, )
-import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
-import Gargantext.Database.Schema.User (insertUsersDemo)
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Text.Terms (TermType(..))
-import Gargantext.Core (Lang(..))
-import Gargantext.API.Types (GargError)
+import Data.Either
+import Data.Text (Text)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
+import Gargantext.API.Types (GargError)
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire)
+import Gargantext.Database.Action.Query.User (insertUsersDemo)
+import Gargantext.Database.Admin.Types.Node (CorpusId, toHyperdataDocument)
+import Gargantext.Database.Admin.Utils (Cmd, )
+import Gargantext.Prelude
+import Gargantext.Text.Corpus.Parsers (FileFormat(..))
+import Gargantext.Text.Terms (TermType(..))
+import Prelude (read)
 import System.Environment (getArgs)
---import Gargantext.Text.Corpus.Parsers.GrandDebat (readFile, GrandDebatReference(..))
-import Data.Text (Text)
 import qualified Data.Text as Text
 
 main :: IO ()

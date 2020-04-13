@@ -21,11 +21,9 @@ import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Text (Text)
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Utils (runOpaQuery, Cmd)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Prelude
 import Opaleye

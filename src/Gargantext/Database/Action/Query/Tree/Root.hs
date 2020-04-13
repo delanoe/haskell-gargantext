@@ -35,7 +35,7 @@ import Gargantext.Database.Schema.Node (NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Database.Schema.User (UserPoly(..))
 import Gargantext.Database.Action.Query.User (queryUserTable)
-import Gargantext.Database.Admin.Types.Node (Node, NodePoly(..), NodeType(NodeUser))
+import Gargantext.Database.Admin.Types.Node (Node, NodePoly(..), NodeType(NodeUser), pgNodeId)
 import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery)
 import Gargantext.Prelude
 import Opaleye (restrict, (.==), Query)
@@ -58,4 +58,13 @@ selectRoot (UserDBId uid) = proc () -> do
     restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< _node_userId   row   .== (pgInt4 uid)
     returnA  -< row
+
+selectRoot (RootId nid) =
+ proc () -> do
+    row   <- queryNodeTable -< ()
+    restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_id   row   .== (pgNodeId nid)
+    returnA  -< row
+
+
 

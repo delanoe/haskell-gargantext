@@ -30,12 +30,9 @@ module Gargantext.Database.Action.Query
 import Gargantext.Core.Types (Name)
 import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Action.Query.Node.User
-import Gargantext.Database.Action.Query.User
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd)
-import Gargantext.Database.Schema.Node
-import Opaleye hiding (FromField)
 import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------

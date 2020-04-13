@@ -25,7 +25,6 @@ import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Action.Query.User
-import Gargantext.Database.Action.Query.Node
 import Opaleye
 
 selectNodesWithUsername :: NodeType -> Username -> Cmd err [NodeId]

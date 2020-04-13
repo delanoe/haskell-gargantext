@@ -15,6 +15,7 @@ Portability : POSIX
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
@@ -30,7 +31,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Name)
-import Gargantext.Core.Types.Individu (Username, arbitraryUsername, User(..), UserId)
+import Gargantext.Core.Types.Individu
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Action.Query.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
