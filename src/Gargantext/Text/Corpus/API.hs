@@ -27,7 +27,7 @@ import Data.Maybe
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.API.Orchestrator.Types (ExternalAPIs(..), externalAPIs)
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
 
 import qualified Gargantext.Text.Corpus.API.Pubmed  as PUBMED
 import qualified Gargantext.Text.Corpus.API.Isidore as ISIDORE

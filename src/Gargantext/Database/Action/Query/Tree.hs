@@ -18,15 +18,7 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 {-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Action.Query.Tree
-  ( treeDB
-  , TreeError(..)
-  , HasTreeError(..)
-  , dbTree
-  , toNodeTree
-  , DbTreeNode
-  , isDescendantOf
-  , isIn
-  ) where
+  where
 
 import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
 import Control.Monad.Error.Class (MonadError(throwError))
@@ -34,15 +26,18 @@ import Data.Map (Map, fromListWith, lookup)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
-
-import Gargantext.Prelude
+import Gargantext.Core.Types.Individu
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
-import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
-import Gargantext.Database.Admin.Types.Errors
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
 import Gargantext.Database.Action.Query.Node
+import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
 import Gargantext.Database.Action.Query.User
+import Gargantext.Database.Action.Query
+import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
+import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
+import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 -- import Gargantext.Database.Utils (runCmdDev)
@@ -87,8 +82,6 @@ treeError te = throwError $ _TreeError # te
 treeDB :: HasTreeError err => RootId -> [NodeType] -> Cmd err (Tree NodeTree)
 treeDB r nodeTypes = toTree =<< (toTreeParent <$> dbTree r nodeTypes)
 
-type RootId = NodeId
-type ParentId = NodeId
 ------------------------------------------------------------------------
 toTree :: (MonadError e m, HasTreeError e)
        => Map (Maybe ParentId) [DbTreeNode] -> m (Tree NodeTree)

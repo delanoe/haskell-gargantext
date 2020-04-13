@@ -16,7 +16,6 @@ Portability : POSIX
 
 module Gargantext.Database.Action.Search where
 
---import Gargantext.Database.Node.Contact
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Aeson
@@ -31,6 +30,7 @@ import Database.PostgreSQL.Simple.ToField
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Query.Facet
 import Gargantext.Database.Action.Query.Join (leftJoin6)
+import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
@@ -42,7 +42,6 @@ import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Opaleye hiding (Query, Order)
 import qualified Opaleye as O hiding (Order)
-
 
 ------------------------------------------------------------------------
 searchInDatabase :: ParentId

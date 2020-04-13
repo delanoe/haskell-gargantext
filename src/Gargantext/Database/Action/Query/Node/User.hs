@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Node.User
+Module      : Gargantext.Database.Action.Query.Node.User
 Description : User Node in Gargantext
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -15,7 +15,6 @@ Portability : POSIX
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
@@ -32,8 +31,10 @@ import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Name)
 import Gargantext.Core.Types.Individu (Username, arbitraryUsername, User(..), UserId)
+import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Action.Query.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact, fake_HyperdataContact)
 import Gargantext.Database.Admin.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
 import Gargantext.Database.Admin.Utils -- (fromField', Cmd)
@@ -44,8 +45,6 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
-type NodeUser  = Node HyperdataUser
-
 data HyperdataUser =
      HyperdataUser { _hu_private   :: !(Maybe HyperdataPrivate)
                    , _hu_shared    :: !(Maybe HyperdataContact)
@@ -136,7 +135,7 @@ $(deriveJSON (unPrefix "_hpu_") ''HyperdataPublic)
 -----------------------------------------------------------------
 getNodeUser :: NodeId -> Cmd err (Node HyperdataUser)
 getNodeUser nId = do
-    fromMaybe (panic $ "Node does not exist: " <> show nId) . headMay
+    fromMaybe (panic $ "Node does not exist: " <> (cs $ show nId)) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
@@ -145,6 +144,3 @@ nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
   where
     name = maybe "User" identity maybeName
     user = maybe fake_HyperdataUser identity maybeHyperdata
-
-
-

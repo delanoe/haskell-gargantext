@@ -44,15 +44,17 @@ import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Types
 import Gargantext.Core.Types.Main
-import Gargantext.Database.Config
-import Gargantext.Database.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Admin.Config
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Node.Select
-import Gargantext.Database.Schema.Node (getNodeWith, getNodeUser, defaultList, insertGraph)
-import Gargantext.Database.Types.Errors (HasNodeError)
-import Gargantext.Database.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
-import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Utils (Cmd)
+import Gargantext.Database.Action.Query.Node.Select
+import Gargantext.Database.Action.Query.Node
+import Gargantext.Database.Action.Query.Node.User
+import Gargantext.Database.Schema.Node -- (getNodeWith, getNodeUser, defaultList, insertGraph)
+import Gargantext.Database.Admin.Types.Errors (HasNodeError)
+import Gargantext.Database.Admin.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
+import Gargantext.Database.Action.Query.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Prelude
 import qualified Gargantext.Prelude as P
 import Gargantext.Viz.Graph

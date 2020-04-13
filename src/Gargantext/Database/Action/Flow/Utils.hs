@@ -18,15 +18,19 @@ module Gargantext.Database.Action.Flow.Utils
     where
 
 import Data.Map (Map)
+import Gargantext.Core.Types (Name)
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.Query.Node
+import Gargantext.Database.Action.Query.User
+import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Types.Node (NodeId, Node, NodePoly(..), Hyperdata)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.User
 import Gargantext.Database.Schema.NodeNodeNgrams
-import Gargantext.Database.Action.Query.Node (getNode)
 import Gargantext.Prelude
 import qualified Data.Map as DM
-
 
 getUserId :: HasNodeError err
           => User
@@ -40,8 +44,6 @@ getUserId (UserName u  ) = do
   case muser of
     Just user -> pure $ userLight_id user
     Nothing   -> nodeError NoUserFound
-
-
 
 
 toMaps :: Hyperdata a

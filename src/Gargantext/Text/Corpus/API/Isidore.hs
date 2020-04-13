@@ -18,7 +18,7 @@ module Gargantext.Text.Corpus.API.Isidore where
 import System.FilePath (FilePath())
 import Data.Text (Text)
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
 import Gargantext.Prelude
 import Isidore.Client
 import Servant.Client

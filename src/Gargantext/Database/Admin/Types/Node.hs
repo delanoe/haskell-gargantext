@@ -63,8 +63,6 @@ pgNodeId = O.pgInt4 . id2int
     id2int (NodeId n) = n
 
 ------------------------------------------------------------------------
-
-
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
 
@@ -120,7 +118,7 @@ type CorpusId = NodeId
 type ListId   = NodeId
 type DocumentId = NodeId
 type DocId      = NodeId
-type RootId   = NodeId
+type RootId     = NodeId
 type MasterCorpusId = CorpusId
 type UserCorpusId   = CorpusId
 

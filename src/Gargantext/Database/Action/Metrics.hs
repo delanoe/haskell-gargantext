@@ -28,7 +28,7 @@ import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser
 import Gargantext.Database.Action.Query.Node.Select
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId{-, HyperdataCorpus-})
-import Gargantext.Database.Schema.Node (defaultList)
+import Gargantext.Database.Action.Query.Node (defaultList)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import qualified Data.Map    as Map

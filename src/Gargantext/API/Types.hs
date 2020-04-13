@@ -41,7 +41,7 @@ import Gargantext.API.Ngrams
 import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Settings
 import Gargantext.Core.Types
-import Gargantext.Database.Action.Tree
+import Gargantext.Database.Action.Query.Tree
 import Gargantext.Database.Admin.Types.Errors (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude

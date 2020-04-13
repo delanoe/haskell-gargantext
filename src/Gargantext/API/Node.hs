@@ -53,25 +53,27 @@ import Gargantext.API.Table
 import Gargantext.API.Types
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
-import Gargantext.Database.Action.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Database.Action.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Query.Node.Children (getChildren)
 import Gargantext.Database.Action.Query.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Action.Query.Node.User (NodeUser)
-import Gargantext.Database.Action.Tree (treeDB)
+import Gargantext.Database.Action.Query.Node.User
+import Gargantext.Database.Action.Query.Node hiding (postNode)
+import Gargantext.Database.Action.Query
+import Gargantext.Database.Action.Query.Tree (treeDB)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node (getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, getNodeUser)
-import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
+import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.NodeNode
 import Gargantext.Prelude
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Gargantext.Database.Node.Update as U (update, Update(..))
+import qualified Gargantext.Database.Action.Query.Node.Update as U (update, Update(..))
 
 {-
 import qualified Gargantext.Text.List.Learn as Learn
@@ -94,7 +96,7 @@ nodesAPI ids = deleteNodes ids
 -- TODO-EVENTS:
 --   PutNode ?
 -- TODO needs design discussion.
-type Roots =  Get    '[JSON] [NodeUser]
+type Roots =  Get    '[JSON] [Node HyperdataUser]
          :<|> Put    '[JSON] Int -- TODO
 
 -- | TODO: access by admin only

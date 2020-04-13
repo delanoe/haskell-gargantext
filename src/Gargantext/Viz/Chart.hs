@@ -24,6 +24,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Action.Query.Node.Select
+import Gargantext.Database.Action.Query.Node
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Admin.Utils

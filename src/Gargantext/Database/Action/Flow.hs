@@ -55,10 +55,13 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
+import Gargantext.Database.Action.Flow.Utils (insertDocNgrams, getUserId)
+import Gargantext.Database.Action.Query.Node
+import Gargantext.Database.Action.Query.User
 import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Action.Query.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
-import Gargantext.Database.Action.Root (getRoot)
+import Gargantext.Database.Action.Query.Tree.Root (getRoot)
+import Gargantext.Database.Action.Query.Tree (mkRoot)
 import Gargantext.Database.Action.Search (searchInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..), NodeError(..), nodeError)
@@ -68,7 +71,6 @@ import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsInd
 import Gargantext.Database.Schema.Node -- (mkRoot, mkCorpus, getOrMkList, mkGraph, {-mkPhylo,-} mkDashboard, mkAnnuaire, getCorporaWithParentId, HasNodeError, NodeError(..), nodeError)
 import Gargantext.Database.Schema.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNodeNodeNgrams2)
-import Gargantext.Database.Schema.User (getUserId)
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
