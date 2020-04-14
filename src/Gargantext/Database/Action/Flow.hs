@@ -71,7 +71,6 @@ import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNod
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils hiding (sha)
 import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
 import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
@@ -84,7 +83,6 @@ import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Action.Query.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
-import qualified Gargantext.Text.Corpus.Parsers.GrandDebat as GD
 
 ------------------------------------------------------------------------
 
@@ -111,7 +109,6 @@ _flowCorpusApi u n tt l q = do
   flowCorpus u n tt docs
 
 ------------------------------------------------------------------------
-
 flowAnnuaire :: FlowCmdM env err m
              => User
              -> Either CorpusName [CorpusId]
@@ -121,19 +118,7 @@ flowAnnuaire :: FlowCmdM env err m
 flowAnnuaire u n l filePath = do
   docs <- liftBase $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
-
--- UNUSED
-_flowCorpusDebat :: FlowCmdM env err m
-                 => User -> Either CorpusName [CorpusId]
-                 -> Limit -> FilePath
-                 -> m CorpusId
-_flowCorpusDebat u n l fp = do
-  docs <- liftBase ( splitEvery 500
-                 <$> take l
-                 <$> readFile' fp
-                 :: IO [[GD.GrandDebatReference ]]
-                 )
-  flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)
+------------------------------------------------------------------------
 
 flowCorpusFile :: FlowCmdM env err m
            => User -> Either CorpusName [CorpusId]

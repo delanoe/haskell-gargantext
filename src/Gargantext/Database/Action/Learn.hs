@@ -44,13 +44,13 @@ moreLike cId o l order ft = do
 ---------------------------------------------------------------------------
 getPriors :: FavOrTrash -> CorpusId -> Cmd err (Events Bool)
 getPriors ft cId = do
-  
+
   docs_fav   <- filter (\(FacetDoc _ _ _ _ f _) -> f == Just 2)
               <$> runViewDocuments cId False Nothing Nothing Nothing
-  
+
   docs_trash <- List.take (List.length docs_fav)
             <$> runViewDocuments cId True Nothing Nothing Nothing
-  
+
 
   let priors = priorEventsWith text (fav2bool ft) (  List.zip (repeat False) docs_fav
                                       <> List.zip (repeat True ) docs_trash

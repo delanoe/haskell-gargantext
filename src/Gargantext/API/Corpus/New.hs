@@ -54,6 +54,7 @@ import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
 import qualified Gargantext.Text.Corpus.API as API
 
+------------------------------------------------------------------------
 data Query = Query { query_query      :: Text
                    , query_corpus_id  :: Int
                    , query_databases  :: [API.ExternalAPIs]
@@ -64,7 +65,8 @@ deriveJSON (unPrefix "query_") 'Query
 
 instance Arbitrary Query where
     arbitrary = elements [ Query q n fs
-                         | q <- ["a","b"]
+                         | q <- ["honeybee* AND collopase"
+                                ,"covid 19"]
                          , n <- [0..10]
                          , fs <- take 3 $ repeat API.externalAPIs
                          ]
@@ -85,6 +87,7 @@ type GetApi = Get '[JSON] ApiInfo
 -- | TODO manage several apis
 -- TODO-ACCESS
 -- TODO this is only the POST
+{-
 api :: (FlowCmdM env err m) => UserId -> Query -> m CorpusId
 api uid (Query q _ as) = do
   cId <- case head as of
@@ -96,8 +99,10 @@ api uid (Query q _ as) = do
       pure cId'
 
   pure cId
+-}
 
 ------------------------------------------------
+-- TODO use this route for Client implementation
 data ApiInfo = ApiInfo { api_info :: [API.ExternalAPIs]}
   deriving (Generic)
 instance Arbitrary ApiInfo where
@@ -147,35 +152,35 @@ type AsyncJobs event ctI input output =
 
 type Upload = Summary "Corpus Upload endpoint"
    :> "corpus"
-   :> Capture "corpus_id" CorpusId
-    :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
-    :<|> "addWithfile"  :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
+     :> Capture "corpus_id" CorpusId
+   :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
+   :<|> "addWithfile"  :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
 
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
-   :> Capture "corpus_id" CorpusId
+     :> Capture "corpus_id" CorpusId
    :> "add"
    :> "query"
    :> "async"
-   :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
+     :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
 
 type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
    :> "corpus"
-   :> Capture "corpus_id" CorpusId
-   :> "add" 
+     :> Capture "corpus_id" CorpusId
+   :> "add"
    :> "file"
-   :> MultipartForm Mem (MultipartData Mem)
-   :> QueryParam "fileType"  FileType
+     :> MultipartForm Mem (MultipartData Mem)
+     :> QueryParam "fileType"  FileType
    :> "async"
-   :> AsyncJobs ScraperStatus '[JSON] () ScraperStatus
+     :> AsyncJobs ScraperStatus '[JSON] () ScraperStatus
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "corpus"
-   :> Capture "corpus_id" CorpusId
+     :> Capture "corpus_id" CorpusId
    :> "add"
    :> "form"
    :> "async"
-   :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
+     :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
@@ -227,23 +232,6 @@ addToCorpusWithFile cid input filetype logStatus = do
                           , _scst_events    = Just []
                           }
 
-{- | Model to fork the flow
--- This is not really optimized since it increases the need RAM
--- and freezes the whole system
--- This is mainly for documentation (see a better solution in the function below)
--- Each process has to be tailored
-addToCorpusWithForm' :: FlowCmdM env err m
-                    => CorpusId
-                    -> WithForm
-                    -> (ScraperStatus -> m ())
-                    -> m ScraperStatus
-addToCorpusWithForm' cid (WithForm ft d l) logStatus = do
-  newStatus <- liftBase newEmptyMVar
-  s  <- addToCorpusWithForm cid (WithForm ft d l) logStatus
-  _  <- liftBase $ forkIO $ putMVar newStatus s
-  s' <- liftBase $ takeMVar newStatus
-  pure s'
--}
 addToCorpusWithForm :: FlowCmdM env err m
                     => User
                     -> CorpusId

@@ -7,7 +7,18 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-TODO: create a separate Lib.
+_flowCorpusDebat :: FlowCmdM env err m
+                 => User -> Either CorpusName [CorpusId]
+                 -> Limit -> FilePath
+                 -> m CorpusId
+_flowCorpusDebat u n l fp = do
+  docs <- liftBase ( splitEvery 500
+                 <$> take l
+                 <$> readFile' fp
+                 :: IO [[GD.GrandDebatReference ]]
+                 )
+  flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)
+
 
 -}
 

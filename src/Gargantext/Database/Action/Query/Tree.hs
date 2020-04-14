@@ -35,6 +35,16 @@ import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
+
+findCorpus :: RootId -> Cmd err (Maybe CorpusId)
+findCorpus r = do
+  _mapNodes <- toTreeParent <$> dbTree r []
+  pure Nothing
+
+
+
+
+------------------------------------------------------------------------
 data TreeError = NoRoot | EmptyRoot | TooManyRoots
   deriving (Show)
 
