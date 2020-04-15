@@ -30,7 +30,7 @@ import Data.Swagger
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Gargantext.API.Types (GargServer)
+import Gargantext.API.Admin.Types (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Query.Facet
 import Gargantext.Database.Action.Search

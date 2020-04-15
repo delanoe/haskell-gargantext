@@ -33,8 +33,8 @@ import GHC.Generics (Generic)
 import Gargantext.API.Corpus.New
 import Gargantext.API.Corpus.New.File (FileType(..))
 import Gargantext.API.Ngrams
-import Gargantext.API.Orchestrator.Types
-import Gargantext.API.Types (GargServer)
+import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Admin.Types (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node

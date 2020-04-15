@@ -28,20 +28,19 @@ module Gargantext.API.Corpus.New
 import Control.Lens hiding (elements)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
-import Data.Maybe (fromMaybe)
 import Data.Either
+import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Corpus.New.File
-import Gargantext.API.Orchestrator.Types
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, flowCorpusSearchInDatabase)
 import Gargantext.Database.Admin.Types.Node (CorpusId, ToHyperdataDocument(..))
-import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Prelude
-import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 import Gargantext.Text.Terms (TermType(..))
 import Servant
 import Servant.API.Flatten (Flat)
@@ -53,6 +52,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
 import qualified Gargantext.Text.Corpus.API as API
+import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 
 ------------------------------------------------------------------------
 data Query = Query { query_query      :: Text
@@ -153,8 +153,10 @@ type AsyncJobs event ctI input output =
 type Upload = Summary "Corpus Upload endpoint"
    :> "corpus"
      :> Capture "corpus_id" CorpusId
-   :<|> "addWithquery" :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
-   :<|> "addWithfile"  :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
+   :<|> "addWithquery"
+     :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
+   :<|> "addWithfile"
+     :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
 
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"

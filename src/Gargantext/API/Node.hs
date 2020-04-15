@@ -44,22 +44,22 @@ import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Gargantext.API.Auth (withAccess, PathId(..))
+import Gargantext.API.Admin.Auth (withAccess, PathId(..))
+import Gargantext.API.Admin.Types
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
-import Gargantext.API.Types
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
-import Gargantext.Database.Action.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Action.Flow.Pairing (pairing)
+import Gargantext.Database.Action.Query
+import Gargantext.Database.Action.Query.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Database.Action.Query.Node hiding (postNode)
 import Gargantext.Database.Action.Query.Node.Children (getChildren)
 import Gargantext.Database.Action.Query.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Action.Query.Node.User
-import Gargantext.Database.Action.Query.Node hiding (postNode)
-import Gargantext.Database.Action.Query
 import Gargantext.Database.Action.Query.Tree (treeDB)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))

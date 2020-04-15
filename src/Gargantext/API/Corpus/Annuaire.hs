@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Annuaire
+Module      : Gargantext.API.Corpus.Annuaire
 Description : New annuaire API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -17,7 +17,7 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE RankNTypes         #-}
 
-module Gargantext.API.Annuaire
+module Gargantext.API.Corpus.Annuaire
       where
 
 import Control.Lens hiding (elements)
@@ -25,8 +25,7 @@ import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import qualified Gargantext.API.Corpus.New.File as NewFile
-import Gargantext.API.Orchestrator.Types
+import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM)  -- flowAnnuaire
@@ -37,7 +36,8 @@ import Servant.API.Flatten (Flat)
 import Servant.Job.Core
 import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded          (FromForm)
+import Web.FormUrlEncoded (FromForm)
+import qualified Gargantext.API.Corpus.New.File as NewFile
 
 
 type Api = Summary "New Annuaire endpoint"

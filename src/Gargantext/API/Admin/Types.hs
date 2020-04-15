@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Types
+Module      : Gargantext.API.Admin.Types
 Description : Server API main Types
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -22,8 +22,8 @@ Portability : POSIX
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module Gargantext.API.Types
-  ( module Gargantext.API.Types
+module Gargantext.API.Admin.Types
+  ( module Gargantext.API.Admin.Types
   , HasServerError(..)
   , serverError
   )
@@ -37,9 +37,9 @@ import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
 import Data.Typeable
 import Data.Validity
+import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Admin.Settings
 import Gargantext.API.Ngrams
-import Gargantext.API.Orchestrator.Types
-import Gargantext.API.Settings
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Query.Tree
 import Gargantext.Database.Admin.Types.Errors (NodeError(..), HasNodeError(..))

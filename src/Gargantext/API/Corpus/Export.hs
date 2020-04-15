@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Export
+Module      : Gargantext.API.Corpus.Export
 Description : Get Metrics from Storage (Database like)
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -22,7 +22,7 @@ Main exports of Gargantext:
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
-module Gargantext.API.Export
+module Gargantext.API.Corpus.Export
   where
 
 import Data.Aeson.TH (deriveJSON)
@@ -34,7 +34,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
-import Gargantext.API.Types (GargNoServer)
+import Gargantext.API.Admin.Types (GargNoServer)
 import Gargantext.Core.Types --
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)

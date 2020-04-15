@@ -27,14 +27,9 @@ library:
   exposed-modules:
   - Gargantext
   - Gargantext.API
-  - Gargantext.API.Auth
-  - Gargantext.API.Count
-  - Gargantext.API.FrontEnd
-  - Gargantext.API.Ngrams
   - Gargantext.API.Node
-  - Gargantext.API.Search
-  - Gargantext.API.Settings
-  - Gargantext.API.Types
+  - Gargantext.API.Admin.Settings
+  - Gargantext.API.Admin.Types
   - Gargantext.Core
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu

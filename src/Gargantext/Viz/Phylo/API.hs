@@ -29,7 +29,7 @@ import Data.String.Conversions
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
 import Data.Swagger
-import Gargantext.API.Types
+import Gargantext.API.Admin.Types
 import Gargantext.Database.Action.Query.Node (insertNodes, nodePhyloW, getNodePhylo)
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
 import Gargantext.Prelude

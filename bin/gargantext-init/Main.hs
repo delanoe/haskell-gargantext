@@ -22,8 +22,8 @@ module Main where
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Gargantext.API.Node () -- instances
-import Gargantext.API.Settings (withDevEnv, runCmdDev)
-import Gargantext.API.Types (GargError)
+import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
+import Gargantext.API.Admin.Types (GargError)
 import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)

@@ -21,7 +21,8 @@ module Gargantext.Text.List.Learn
   where
 
 import Control.Monad.Reader (MonadReader)
-import Gargantext.API.Settings
+-- TODO remvoe this deps
+import Gargantext.API.Admin.Settings
 import Data.Map (Map)
 import Data.Maybe (maybe)
 import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)

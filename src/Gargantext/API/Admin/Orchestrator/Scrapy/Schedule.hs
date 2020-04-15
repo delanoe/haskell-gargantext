@@ -1,18 +1,33 @@
+{-|
+Module      : Gargantext.API.Admin.Orchestartor.Scrapy.Schedule
+Description : Server API Auth Module
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
-module Gargantext.API.Orchestrator.Scrapy.Schedule where
+
+module Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
+  where
 
 import Control.Lens
 import Data.Aeson
-import qualified Data.HashMap.Strict as H
 import Data.Text (Text)
 import GHC.Generics
 import Servant
-import Servant.Job.Utils (jsonOptions)
 import Servant.Client
+import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded hiding (parseMaybe)
+import qualified Data.HashMap.Strict as H
+
+------------------------------------------------------------------------
 
 data Schedule = Schedule
   { s_project :: !Text

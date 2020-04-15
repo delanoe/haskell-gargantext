@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Utils
+Module      : Gargantext.API.Admin.Utils
 Description : Server API main Types
 Copyright   : (c) CNRS, 2017-Present
 License     : BSD3
@@ -14,7 +14,7 @@ Mainly copied from Servant.Job.Utils (Thanks)
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 
-module Gargantext.API.Utils
+module Gargantext.API.Admin.Utils
   where
 
 import Gargantext.Prelude

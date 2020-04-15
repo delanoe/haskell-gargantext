@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Auth
+Module      : Gargantext.API.Admin.Auth
 Description : Server API Auth Module
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -29,7 +29,7 @@ TODO-ACCESS Critical
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 
-module Gargantext.API.Auth
+module Gargantext.API.Admin.Auth
       where
 
 import Control.Lens (view)
@@ -40,12 +40,12 @@ import Data.Text (Text, reverse)
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
-import Gargantext.API.Settings
-import Gargantext.API.Types (HasJoseError(..), joseError, HasServerError, GargServerC)
+import Gargantext.API.Admin.Settings
+import Gargantext.API.Admin.Types (HasJoseError(..), joseError, HasServerError, GargServerC)
 import Gargantext.Core.Types.Individu (User(..), Username, Password, arbitraryUsername, arbitraryPassword)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Query.Tree.Root (getRoot)
 import Gargantext.Database.Action.Query.Tree (isDescendantOf, isIn)
+import Gargantext.Database.Action.Query.Tree.Root (getRoot)
 import Gargantext.Database.Admin.Types.Node (NodePoly(_node_id), NodeId(..), UserId, ListId, DocId)
 import Gargantext.Database.Admin.Utils (Cmd', CmdM, HasConnectionPool)
 import Gargantext.Prelude hiding (reverse)

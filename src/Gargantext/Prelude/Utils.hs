@@ -26,7 +26,7 @@ import Data.ByteString.Base64.URL as URL
 import Data.Either
 import Data.Text (Text)
 import GHC.IO (FilePath)
-import Gargantext.API.Settings
+import Gargantext.API.Admin.Settings
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
 import Gargantext.Prelude
 import System.Directory (createDirectoryIfMissing)

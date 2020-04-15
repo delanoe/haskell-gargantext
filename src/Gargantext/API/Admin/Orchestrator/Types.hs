@@ -8,21 +8,25 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
-module Gargantext.API.Orchestrator.Types where
+module Gargantext.API.Admin.Orchestrator.Types
+  where
 
-import Gargantext.Prelude
 import Control.Lens hiding (elements)
 import Data.Aeson
 import Data.Proxy
-import Data.Text (Text)
 import Data.Swagger hiding (URL, url, port)
+import Data.Text (Text)
 import GHC.Generics hiding (to)
+import Gargantext.Core.Types (TODO(..))
+import Gargantext.Prelude
 import Servant.Job.Async
 import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-import Gargantext.Core.Types (TODO(..))
+
+------------------------------------------------------------------------
+
 instance Arbitrary a => Arbitrary (JobStatus 'Safe a) where
   arbitrary = panic "TODO"
 

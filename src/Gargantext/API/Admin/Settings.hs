@@ -1,5 +1,5 @@
 {-| 
-Module      : Gargantext.API.Settings
+Module      : Gargantext.API.Admin.Settings
 Description : Settings of the API (Server and Client)
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -23,7 +23,7 @@ TODO-SECURITY: Critical
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 
-module Gargantext.API.Settings
+module Gargantext.API.Admin.Settings
     where
 
 import Control.Concurrent
@@ -41,8 +41,8 @@ import Data.Text
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
 import GHC.Enum
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
-import Gargantext.API.Orchestrator.Types
 import Gargantext.Database.Admin.Utils (databaseParameters, HasConnectionPool(..), Cmd', runCmd)
 import Gargantext.Prelude
 import Network.HTTP.Client (Manager)

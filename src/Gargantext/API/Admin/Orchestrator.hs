@@ -1,3 +1,14 @@
+{-|
+Module      : Gargantext.API.Admin.Orchestrator
+Description : Jobs Orchestrator
+Copyright   : (c) CNRS, 2017-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts  #-}
@@ -7,12 +18,12 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
-module Gargantext.API.Orchestrator where
+module Gargantext.API.Admin.Orchestrator where
 
 import Gargantext.Prelude
-import Gargantext.API.Settings
-import Gargantext.API.Orchestrator.Types
-import Gargantext.API.Orchestrator.Scrapy.Schedule
+import Gargantext.API.Admin.Settings
+import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
 import Control.Lens hiding (elements)
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as LBS

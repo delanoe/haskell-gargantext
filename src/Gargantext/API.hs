@@ -62,15 +62,15 @@ import Data.Version (showVersion)
 import GHC.Base (Applicative)
 import GHC.Generics (D1, Meta (..), Rep)
 import GHC.TypeLits (AppendSymbol, Symbol)
-import Gargantext.API.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
+import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
+import Gargantext.API.Admin.FrontEnd (FrontEndAPI, frontEndServer)
+import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Admin.Settings
+import Gargantext.API.Admin.Types
 import Gargantext.API.Count  ( CountAPI, count, Query)
-import Gargantext.API.FrontEnd (FrontEndAPI, frontEndServer)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
-import Gargantext.API.Orchestrator.Types
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
-import Gargantext.API.Settings
-import Gargantext.API.Types
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Types.Node
@@ -94,11 +94,11 @@ import Servant.Swagger.UI
 import System.IO (FilePath)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
-import qualified Gargantext.API.Annuaire    as Annuaire
-import qualified Gargantext.API.Corpus.New  as New
-import qualified Gargantext.API.Export      as Export
-import qualified Gargantext.API.Ngrams.List as List
-import qualified Paths_gargantext as PG -- cabal magic build module
+import qualified Gargantext.API.Corpus.Annuaire  as Annuaire
+import qualified Gargantext.API.Corpus.Export    as Export
+import qualified Gargantext.API.Corpus.New       as New
+import qualified Gargantext.API.Ngrams.List      as List
+import qualified Paths_gargantext                as PG -- cabal magic build module
 
 showAsServantErr :: GargError -> ServerError
 showAsServantErr (GargServerError err) = err

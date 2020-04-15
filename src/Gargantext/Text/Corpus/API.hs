@@ -24,15 +24,14 @@ module Gargantext.Text.Corpus.API
     where
 
 import Data.Maybe
-import Gargantext.Prelude
+import Gargantext.API.Admin.Orchestrator.Types (ExternalAPIs(..), externalAPIs)
 import Gargantext.Core (Lang(..))
-import Gargantext.API.Orchestrator.Types (ExternalAPIs(..), externalAPIs)
 import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
-
-import qualified Gargantext.Text.Corpus.API.Pubmed  as PUBMED
-import qualified Gargantext.Text.Corpus.API.Isidore as ISIDORE
+import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.API.Hal     as HAL
+import qualified Gargantext.Text.Corpus.API.Isidore as ISIDORE
 import qualified Gargantext.Text.Corpus.API.Istex   as ISTEX
+import qualified Gargantext.Text.Corpus.API.Pubmed  as PUBMED
 
 -- | Get External API metadata main function
 get :: ExternalAPIs -> Query -> Maybe Limit -> IO [HyperdataDocument]
