@@ -30,41 +30,45 @@ compute graph
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Text.Terms
   where
 
 import Control.Lens
+import Data.Aeson.TH (deriveJSON)
+import Data.Swagger
 import Data.Text (Text)
 import Data.Traversable
 import GHC.Base (String)
-
-import Gargantext.Prelude
+import GHC.Generics (Generic)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Text.Terms.Multi (multiterms)
+import Gargantext.Prelude
+import Gargantext.Text (sentences)
+import Gargantext.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
 import Gargantext.Text.Terms.Mono  (monoTerms)
 import Gargantext.Text.Terms.Mono.Stem (stem)
-
-import qualified Data.Set  as Set
-import qualified Data.List as List
-import qualified Data.Text as Text
-import Gargantext.Text (sentences)
 import Gargantext.Text.Terms.Mono.Token.En (tokenize)
-import Gargantext.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
+import Gargantext.Text.Terms.Multi (multiterms)
+import qualified Data.List as List
+import qualified Data.Set  as Set
+import qualified Data.Text as Text
 
 data TermType lang
   = Mono      { _tt_lang :: lang }
   | Multi     { _tt_lang :: lang }
   | MonoMulti { _tt_lang :: lang }
   | Unsupervised { _tt_lang  :: lang
-                 , _tt_windoSize  :: Int
+                 , _tt_windowSize :: Int
                  , _tt_ngramsSize :: Int
-                 , _tt_model :: Maybe (Tries Token ())
-  }
-makeLenses ''TermType
+                 , _tt_model      :: Maybe (Tries Token ())
+                 }
+  deriving Generic
 
+makeLenses ''TermType
 --group :: [Text] -> [Text]
 --group = undefined
 

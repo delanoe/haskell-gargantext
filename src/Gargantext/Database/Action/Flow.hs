@@ -26,24 +26,32 @@ Portability : POSIX
 {-# LANGUAGE InstanceSigs            #-}
 {-# LANGUAGE NoImplicitPrelude       #-}
 {-# LANGUAGE OverloadedStrings       #-}
+{-# LANGUAGE TemplateHaskell         #-}
 
 module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   ( FlowCmdM
+  , getDataText
+  , flowDataText
+
   , flowCorpusFile
   , flowCorpus
-  , flowCorpusSearchInDatabase
+  , flowAnnuaire
+
   , getOrMkRoot
   , getOrMk_RootWithCorpus
-  , flowAnnuaire
+  , TermType(..)
+  , DataOrigin(..)
   )
     where
 
-import Control.Lens ((^.), view, _Just)
+import Control.Lens ((^.), view, _Just, makeLenses)
+import Data.Aeson.TH (deriveJSON)
 import Data.Either
 import Data.List (concat)
 import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
+import Data.Swagger
 import Data.Text (Text, splitOn, intercalate)
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
@@ -69,46 +77,91 @@ import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsInd
 import Gargantext.Database.Schema.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNodeNodeNgrams2)
 import Gargantext.Ext.IMT (toSchoolName)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
-import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
+import qualified Gargantext.Text.Terms as GTT (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Eleve (buildTries, toToken)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
+import GHC.Generics (Generic)
 import Prelude (String)
 import System.FilePath (FilePath)
 import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import qualified Gargantext.Database.Action.Query.Node.Document.Add  as Doc  (add)
-import qualified Gargantext.Text.Corpus.API.Isidore as Isidore
+import qualified Gargantext.Text.Corpus.API as API
 
 ------------------------------------------------------------------------
+-- TODO use internal with API name (could be old data)
+data DataOrigin = Internal Gargantext
+                | External API.ExternalAPIs
+               -- TODO Web
 
-data ApiQuery = ApiIsidoreQuery Text | ApiIsidoreAuth Text
--- | APIs
--- TODO instances
-getDataApi :: Lang
-           -> Maybe Limit
-           -> ApiQuery
-           -> IO [HyperdataDocument]
-getDataApi lang limit (ApiIsidoreQuery q) = Isidore.get lang limit (Just q) Nothing
-getDataApi lang limit (ApiIsidoreAuth  q) = Isidore.get lang limit Nothing  (Just q)
+data DataText = DataOld ![NodeId]
+              | DataNew ![[HyperdataDocument]]
 
 
--- UNUSED
-_flowCorpusApi :: ( FlowCmdM env err m)
-               => User -> Either CorpusName [CorpusId]
-               -> TermType Lang
-               -> Maybe Limit
-               -> ApiQuery
-               -> m CorpusId
-_flowCorpusApi u n tt l q = do
-  docs <- liftBase $ splitEvery 500 <$> getDataApi (_tt_lang tt) l q
-  flowCorpus u n tt docs
+-- TODO use the split parameter in config file
+getDataText :: FlowCmdM env err m
+            => DataOrigin
+            -> TermType Lang
+            -> API.Query
+            -> Maybe API.Limit
+            -> m DataText
+getDataText (External api) la q li = liftBase $ DataNew
+                                  <$> splitEvery 500
+                                  <$> API.get api (_tt_lang la) q li
+getDataText Gargantext     la q li = do
+  (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
+                                           (UserName userMaster)
+                                           (Left "")
+                                           (Nothing :: Maybe HyperdataCorpus)
+  ids <-  map fst <$> searchInDatabase cId (stemIt q)
+  pure $ DataOld ids
+
+-------------------------------------------------------------------------------
+-- API for termType
+data TermType lang
+  = Mono      { _tt_lang :: lang }
+  | Multi     { _tt_lang :: lang }
+  | MonoMulti { _tt_lang :: lang }
+  | Unsupervised { _tt_lang  :: lang
+                 , _tt_windowSize  :: Int
+                 , _tt_ngramsSize :: Int
+                 }
+  deriving Generic
+
+-- | GTT.TermType as a complex type in Unsupervised configuration that is not needed
+-- for the API use
+tta2tt :: TermType lang -> GTT.TermType lang
+tta2tt (Mono    l)            = GTT.Mono  l
+tta2tt (Multi   l)            = GTT.Multi l
+tta2tt (MonoMulti l)          = GTT.MonoMulti l
+tta2tt (Unsupervised la w ng) = GTT.Unsupervised la w ng Nothing
+
+makeLenses ''TermType
+deriveJSON (unPrefix "_tt_") ''TermType
+
+instance (ToSchema a) => ToSchema (TermType a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_tta_")
+
+
+flowDataText :: FlowCmdM env err m
+             => User
+             -> DataText
+             -> TermType Lang
+             -> CorpusId
+             -> m CorpusId
+flowDataText u (DataOld ids) tt cid = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids
+  where
+    corpusType = (Nothing :: Maybe HyperdataCorpus)
+flowDataText u (DataNew txt) tt cid = flowCorpus u (Right [cid]) tt txt
 
 ------------------------------------------------------------------------
+-- TODO use proxy
 flowAnnuaire :: FlowCmdM env err m
              => User
              -> Either CorpusName [CorpusId]
@@ -118,10 +171,11 @@ flowAnnuaire :: FlowCmdM env err m
 flowAnnuaire u n l filePath = do
   docs <- liftBase $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
-------------------------------------------------------------------------
 
+------------------------------------------------------------------------
 flowCorpusFile :: FlowCmdM env err m
-           => User -> Either CorpusName [CorpusId]
+           => User
+           -> Either CorpusName [CorpusId]
            -> Limit -- Limit the number of docs (for dev purpose)
            -> TermType Lang -> FileFormat -> FilePath
            -> m CorpusId
@@ -132,43 +186,17 @@ flowCorpusFile u n l la ff fp = do
                  )
   flowCorpus u n la (map (map toHyperdataDocument) docs)
 
--- TODO query with complex query
-flowCorpusSearchInDatabase :: FlowCmdM env err m
-                           => User
-                           -> Lang
-                           -> Text
-                           -> m CorpusId
-flowCorpusSearchInDatabase u la q = do
-  (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
-                                           (UserName userMaster)
-                                           (Left "")
-                                           (Nothing :: Maybe HyperdataCorpus)
-  ids <-  map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser la u (Left q) (Nothing :: Maybe HyperdataCorpus) ids
-
-
--- UNUSED
-_flowCorpusSearchInDatabaseApi :: FlowCmdM env err m
-                               => User
-                               -> Lang
-                               -> Text
-                               -> m CorpusId
-_flowCorpusSearchInDatabaseApi u la q = do
-  (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
-                                           (UserName userMaster)
-                                           (Left "")
-                                           (Nothing :: Maybe HyperdataCorpus)
-  ids <-  map fst <$> searchInDatabase cId (stemIt q)
-  flowCorpusUser la u (Left q) (Nothing :: Maybe HyperdataCorpus) ids
-
 ------------------------------------------------------------------------
 -- | TODO improve the needed type to create/update a corpus
-{- UNUSED
-data UserInfo = Username Text
-              | UserId   NodeId
-data CorpusInfo = CorpusName Lang Text
-                | CorpusId   Lang NodeId
--}
+-- (For now, Either is enough)
+flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
+           => User
+           -> Either CorpusName [CorpusId]
+           -> TermType Lang
+           -> [[a]]
+           -> m CorpusId
+flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
+
 
 flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
      => Maybe c
@@ -178,16 +206,9 @@ flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
      -> [[a]]
      -> m CorpusId
 flow c u cn la docs = do
-  ids <- traverse (insertMasterDocs c la ) docs
-  flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
-
-flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
-           => User
-           -> Either CorpusName [CorpusId]
-           -> TermType Lang
-           -> [[a]]
-           -> m CorpusId
-flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
+  let la' = tta2tt la
+  ids <- traverse (insertMasterDocs c la') docs
+  flowCorpusUser (la' ^. GTT.tt_lang) u cn c (concat ids)
 
 ------------------------------------------------------------------------
 flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
@@ -230,7 +251,7 @@ insertMasterDocs :: ( FlowCmdM env err m
                     , MkCorpus   c
                     )
                  => Maybe c
-                 -> TermType Lang
+                 -> GTT.TermType Lang
                  -> [a]
                  -> m [DocId]
 insertMasterDocs c lang hs  =  do
@@ -278,15 +299,16 @@ insertMasterDocs c lang hs  =  do
   pure ids'
 
 
-withLang :: HasText a => TermType Lang
+withLang :: HasText a
+         => GTT.TermType Lang
          -> [DocumentWithId a]
-         -> TermType Lang
-withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
+         -> GTT.TermType Lang
+withLang (GTT.Unsupervised l n s m) ns = GTT.Unsupervised l n s m'
   where
     m' = case m of
       Nothing -> trace ("buildTries here" :: String)
               $ Just
-              $ buildTries n ( fmap toToken $ uniText
+              $ buildTries n ( fmap toToken $ GTT.uniText
                                             $ Text.intercalate " . "
                                             $ List.concat
                                             $ map hasText ns
@@ -329,7 +351,7 @@ instance ExtractNgramsT HyperdataContact
   where
     extractNgramsT l hc = filterNgramsT 255 <$> extract l hc
       where
-        extract :: TermType Lang -> HyperdataContact
+        extract :: GTT.TermType Lang -> HyperdataContact
                 -> Cmd err (Map Ngrams (Map NgramsType Int))
         extract _l hc' = do
           let authors = map text2ngrams
@@ -346,12 +368,12 @@ instance HasText HyperdataDocument
 
 instance ExtractNgramsT HyperdataDocument
   where
-    extractNgramsT :: TermType Lang
+    extractNgramsT :: GTT.TermType Lang
                    -> HyperdataDocument
                    -> Cmd err (Map Ngrams (Map NgramsType Int))
     extractNgramsT lang hd = filterNgramsT 255 <$> extractNgramsT' lang hd
       where
-        extractNgramsT' :: TermType Lang
+        extractNgramsT' :: GTT.TermType Lang
                         -> HyperdataDocument
                        -> Cmd err (Map Ngrams (Map NgramsType Int))
         extractNgramsT' lang' doc = do
@@ -370,7 +392,7 @@ instance ExtractNgramsT HyperdataDocument
           terms' <- map text2ngrams
                  <$> map (intercalate " " . _terms_label)
                  <$> concat
-                 <$> liftBase (extractTerms lang' $ hasText doc)
+                 <$> liftBase (GTT.extractTerms lang' $ hasText doc)
 
           pure $ Map.fromList $  [(source, Map.singleton Sources 1)]
                              <> [(i', Map.singleton Institutes  1) | i' <- institutes ]

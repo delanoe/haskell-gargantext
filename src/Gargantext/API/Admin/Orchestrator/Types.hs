@@ -36,15 +36,9 @@ instance Arbitrary a => Arbitrary (JobOutput a) where
 -- | Main Types
 data ExternalAPIs = All
                   | PubMed
-
-                  | HAL_EN
-                  | HAL_FR
-
-                  | IsTex_EN
-                  | IsTex_FR
-
-                  | Isidore_EN
-                  | Isidore_FR
+                  | HAL
+                  | IsTex
+                  | Isidore
                   -- | IsidoreAuth
   deriving (Show, Eq, Enum, Bounded, Generic)
 

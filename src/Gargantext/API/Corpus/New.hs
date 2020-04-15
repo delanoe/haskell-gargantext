@@ -38,10 +38,9 @@ import Gargantext.API.Corpus.New.File
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, flowCorpusSearchInDatabase)
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..))
 import Gargantext.Database.Admin.Types.Node (CorpusId, ToHyperdataDocument(..))
 import Gargantext.Prelude
-import Gargantext.Text.Terms (TermType(..))
 import Servant
 import Servant.API.Flatten (Flat)
 import Servant.Job.Core
@@ -65,8 +64,9 @@ deriveJSON (unPrefix "query_") 'Query
 
 instance Arbitrary Query where
     arbitrary = elements [ Query q n fs
-                         | q <- ["honeybee* AND collopase"
-                                ,"covid 19"]
+                         | q <- ["honeybee* AND collapse"
+                                ,"covid 19"
+                                ]
                          , n <- [0..10]
                          , fs <- take 3 $ repeat API.externalAPIs
                          ]
@@ -119,8 +119,8 @@ info _u = pure $ ApiInfo API.externalAPIs
 ------------------------------------------------------------------------
 data WithQuery = WithQuery
   { _wq_query     :: !Text
-  , _wq_databases :: ![ExternalAPIs]
-  , _wq_lang      :: !(Maybe Lang)
+  , _wq_databases :: ![DataOrigin]
+  , _wq_lang      :: !(Maybe (TermType Lang))
   }
   deriving Generic
 
@@ -192,7 +192,7 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        -> WithQuery
                        -> (ScraperStatus -> m ())
                        -> m ScraperStatus
-addToCorpusWithQuery u cid (WithQuery q _dbs l) logStatus = do
+addToCorpusWithQuery u cid (WithQuery q dbs l) logStatus = do
   -- TODO ...
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
@@ -204,7 +204,8 @@ addToCorpusWithQuery u cid (WithQuery q _dbs l) logStatus = do
   -- TODO if cid is folder -> create Corpus
   --      if cid is corpus -> add to corpus
   --      if cid is root   -> create corpus in Private
-  cids <- flowCorpusSearchInDatabase u (maybe EN identity l) q
+  txts <- mapM (\db  -> getDataText db (fromMaybe (Multi EN) l) q (Just 10000)) dbs
+  cids <- mapM (\txt -> flowDataText u txt (fromMaybe (Multi EN) l) cid) txts
   printDebug "corpus id" cids
   -- TODO ...
   pure      ScraperStatus { _scst_succeeded = Just 137
