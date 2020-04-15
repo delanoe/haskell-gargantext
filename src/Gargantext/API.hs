@@ -491,7 +491,7 @@ type Desc t n = Description (AppendSymbol (TypeName t) (AppendSymbol " | " n))
 swaggerDoc :: Swagger
 swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
   & info.title       .~ "Gargantext"
-  & info.version     .~ "0.0.1.3.1" -- TODO same version as Gargantext
+  & info.version     .~ (cs $ showVersion PG.version)
   -- & info.base_url     ?~ (URL "http://gargantext.org/")
   & info.description ?~ "REST API specifications"
   -- & tags             .~ Set.fromList [Tag "Garg" (Just "Main perations") Nothing]
