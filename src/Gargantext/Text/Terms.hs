@@ -37,13 +37,10 @@ module Gargantext.Text.Terms
   where
 
 import Control.Lens
-import Data.Aeson.TH (deriveJSON)
-import Data.Swagger
 import Data.Text (Text)
 import Data.Traversable
 import GHC.Base (String)
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Prelude

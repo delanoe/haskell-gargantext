@@ -35,10 +35,10 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Corpus.New.File
-import Gargantext.Core (Lang(..))
+import Gargantext.Core (Lang(..), allLangs)
 import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..))
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..), allDataOrigins)
 import Gargantext.Database.Admin.Types.Node (CorpusId, ToHyperdataDocument(..))
 import Gargantext.Prelude
 import Servant
@@ -55,20 +55,22 @@ import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parse
 
 ------------------------------------------------------------------------
 data Query = Query { query_query      :: Text
-                   , query_corpus_id  :: Int
-                   , query_databases  :: [API.ExternalAPIs]
+                   , query_node_id    :: Int
+                   , query_lang       :: Lang
+                   , query_databases  :: [DataOrigin]
                    }
-                   deriving (Eq, Show, Generic)
+                   deriving (Eq, Generic)
 
 deriveJSON (unPrefix "query_") 'Query
 
 instance Arbitrary Query where
-    arbitrary = elements [ Query q n fs
+    arbitrary = elements [ Query q n la fs
                          | q <- ["honeybee* AND collapse"
                                 ,"covid 19"
                                 ]
                          , n <- [0..10]
-                         , fs <- take 3 $ repeat API.externalAPIs
+                         , la <- allLangs
+                         , fs <- take 3 $ repeat allDataOrigins
                          ]
 
 instance ToSchema Query where
@@ -204,7 +206,7 @@ addToCorpusWithQuery u cid (WithQuery q dbs l) logStatus = do
   -- TODO if cid is folder -> create Corpus
   --      if cid is corpus -> add to corpus
   --      if cid is root   -> create corpus in Private
-  txts <- mapM (\db  -> getDataText db (fromMaybe (Multi EN) l) q (Just 10000)) dbs
+  txts <- mapM (\db  -> getDataText db     (fromMaybe (Multi EN) l) q (Just 10000)) dbs
   cids <- mapM (\txt -> flowDataText u txt (fromMaybe (Multi EN) l) cid) txts
   printDebug "corpus id" cids
   -- TODO ...

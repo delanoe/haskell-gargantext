@@ -41,6 +41,13 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , getOrMk_RootWithCorpus
   , TermType(..)
   , DataOrigin(..)
+  , allDataOrigins
+
+-- To remove maybe
+  , tt_lang
+  , tt_ngramsSize
+  , tt_windowSize
+  , do_api
   )
     where
 
@@ -52,7 +59,7 @@ import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
 import Data.Swagger
-import Data.Text (Text, splitOn, intercalate)
+import Data.Text (splitOn, intercalate)
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
 import Debug.Trace (trace)
@@ -96,9 +103,20 @@ import qualified Gargantext.Text.Corpus.API as API
 
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
-data DataOrigin = Internal Gargantext
-                | External API.ExternalAPIs
+data DataOrigin = Internal { _do_api :: API.ExternalAPIs }
+                | External { _do_api :: API.ExternalAPIs }
                -- TODO Web
+  deriving (Generic, Eq)
+
+makeLenses ''DataOrigin
+deriveJSON (unPrefix "_do_") ''DataOrigin
+instance ToSchema DataOrigin where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_do_")
+
+allDataOrigins :: [DataOrigin]
+allDataOrigins = map Internal API.externalAPIs <> map External API.externalAPIs
+
+---------------
 
 data DataText = DataOld ![NodeId]
               | DataNew ![[HyperdataDocument]]
@@ -114,7 +132,7 @@ getDataText :: FlowCmdM env err m
 getDataText (External api) la q li = liftBase $ DataNew
                                   <$> splitEvery 500
                                   <$> API.get api (_tt_lang la) q li
-getDataText Gargantext     la q li = do
+getDataText (Internal _) _la q _li = do
   (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
                                            (UserName userMaster)
                                            (Left "")
@@ -146,7 +164,7 @@ makeLenses ''TermType
 deriveJSON (unPrefix "_tt_") ''TermType
 
 instance (ToSchema a) => ToSchema (TermType a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_tta_")
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_tt_")
 
 
 flowDataText :: FlowCmdM env err m
