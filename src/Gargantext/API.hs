@@ -97,7 +97,7 @@ import qualified Data.Text.IO               as T
 import qualified Gargantext.API.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Corpus.Export    as Export
 import qualified Gargantext.API.Corpus.New       as New
--- import qualified Gargantext.API.Ngrams.List      as List
+import qualified Gargantext.API.Ngrams.List      as List
 import qualified Paths_gargantext                as PG -- cabal magic build module
 
 showAsServantErr :: GargError -> ServerError
@@ -300,7 +300,7 @@ type GargPrivateAPI' =
                           :> TreeAPI
 
            -- :<|> New.Upload
-           -- :<|> New.AddWithForm
+           :<|> New.AddWithForm
            :<|> New.AddWithQuery
 
            -- :<|> "annuaire" :> Annuaire.AddWithForm
@@ -308,16 +308,13 @@ type GargPrivateAPI' =
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
-           :<|> "wait"   :> Summary "Wait test"
-                         :> Capture "x" Int
-                         :> WaitAPI -- Get '[JSON] Int
-
-          -- TODO "list"
-          {-
            :<|> "lists"  :> Summary "List export API"
                          :> Capture "listId" ListId
                          :> List.API
--}
+
+           :<|> "wait"   :> Summary "Wait test"
+                         :> Capture "x" Int
+                         :> WaitAPI -- Get '[JSON] Int
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -407,16 +404,14 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
           <$> PathNode <*> treeAPI
      -- TODO access
-     -- :<|> addUpload
-     -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     -- :<|> addCorpusWithForm  (UserDBId uid)
+     :<|> addCorpusWithForm  (UserDBId uid)
      :<|> addCorpusWithQuery (RootId   (NodeId uid))
 
      -- :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
+     :<|> List.api
      :<|> waitAPI
-     -- :<|> List.api
 
 
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
