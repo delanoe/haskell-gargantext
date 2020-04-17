@@ -97,7 +97,7 @@ import qualified Data.Text.IO               as T
 import qualified Gargantext.API.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Corpus.Export    as Export
 import qualified Gargantext.API.Corpus.New       as New
-import qualified Gargantext.API.Ngrams.List      as List
+-- import qualified Gargantext.API.Ngrams.List      as List
 import qualified Paths_gargantext                as PG -- cabal magic build module
 
 showAsServantErr :: GargError -> ServerError
@@ -300,21 +300,24 @@ type GargPrivateAPI' =
                           :> TreeAPI
 
            -- :<|> New.Upload
-           :<|> New.AddWithForm
+           -- :<|> New.AddWithForm
            :<|> New.AddWithQuery
 
-           :<|> "annuaire" :> Annuaire.AddWithForm
+           -- :<|> "annuaire" :> Annuaire.AddWithForm
            -- :<|> New.AddWithFile
        --  :<|> "scraper" :> WithCallbacks ScraperAPI
        --  :<|> "new"  :> New.Api
 
-           :<|> "lists"  :> Summary "List export API"
-                         :> Capture "listId" ListId
-                         :> List.API
-
            :<|> "wait"   :> Summary "Wait test"
                          :> Capture "x" Int
                          :> WaitAPI -- Get '[JSON] Int
+
+          -- TODO "list"
+          {-
+           :<|> "lists"  :> Summary "List export API"
+                         :> Capture "listId" ListId
+                         :> List.API
+-}
 
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
@@ -406,25 +409,33 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- TODO access
      -- :<|> addUpload
      -- :<|> (\corpus -> addWithQuery corpus :<|> addWithFile corpus)
-     :<|> addCorpusWithForm  (UserDBId uid)
+     -- :<|> addCorpusWithForm  (UserDBId uid)
      :<|> addCorpusWithQuery (RootId   (NodeId uid))
 
-     :<|> addAnnuaireWithForm
+     -- :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
-     :<|> List.api
      :<|> waitAPI
+     -- :<|> List.api
 
 
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =
   serveJobsAPI $
-    JobFunction (\i log -> New.addToCorpusWithQuery user cid i (liftBase . log))
+    JobFunction (\q log ->
+      let
+        log' x = do
+          printDebug "addToCorpusWithQuery" x
+          liftBase $ log x
+      in New.addToCorpusWithQuery user cid q log'
+      )
 
+{-
 addWithFile :: GargServer New.AddWithFile
 addWithFile cid i f =
   serveJobsAPI $
     JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
+-}
 
 addCorpusWithForm :: User -> GargServer New.AddWithForm
 addCorpusWithForm user cid =
@@ -432,7 +443,7 @@ addCorpusWithForm user cid =
     JobFunction (\i log ->
       let
         log' x = do
-          printDebug "addCorpusWithForm" x
+          printDebug "addToCorpusWithForm" x
           liftBase $ log x
       in New.addToCorpusWithForm user cid i log')
 

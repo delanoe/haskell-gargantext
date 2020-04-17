@@ -103,8 +103,8 @@ import qualified Gargantext.Text.Corpus.API as API
 
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
-data DataOrigin = Internal { _do_api :: API.ExternalAPIs }
-                | External { _do_api :: API.ExternalAPIs }
+data DataOrigin = InternalOrigin { _do_api :: API.ExternalAPIs }
+                | ExternalOrigin { _do_api :: API.ExternalAPIs }
                -- TODO Web
   deriving (Generic, Eq)
 
@@ -114,7 +114,8 @@ instance ToSchema DataOrigin where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_do_")
 
 allDataOrigins :: [DataOrigin]
-allDataOrigins = map Internal API.externalAPIs <> map External API.externalAPIs
+allDataOrigins = map InternalOrigin API.externalAPIs
+              <> map ExternalOrigin API.externalAPIs
 
 ---------------
 
@@ -129,10 +130,10 @@ getDataText :: FlowCmdM env err m
             -> API.Query
             -> Maybe API.Limit
             -> m DataText
-getDataText (External api) la q li = liftBase $ DataNew
+getDataText (ExternalOrigin api) la q li = liftBase $ DataNew
                                   <$> splitEvery 500
                                   <$> API.get api (_tt_lang la) q li
-getDataText (Internal _) _la q _li = do
+getDataText (InternalOrigin _) _la q _li = do
   (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
                                            (UserName userMaster)
                                            (Left "")

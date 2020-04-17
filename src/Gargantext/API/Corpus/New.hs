@@ -25,7 +25,7 @@ New corpus means either:
 module Gargantext.API.Corpus.New
       where
 
-import Control.Lens hiding (elements)
+import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
@@ -33,12 +33,13 @@ import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Admin.Orchestrator.Types (ScraperStatus(..))
+import qualified Gargantext.API.Admin.Orchestrator.Types as T
 import Gargantext.API.Corpus.New.File
-import Gargantext.Core (Lang(..), allLangs)
+import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..), allDataOrigins)
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
 import Gargantext.Database.Admin.Types.Node (CorpusId, ToHyperdataDocument(..))
 import Gargantext.Prelude
 import Servant
@@ -46,14 +47,15 @@ import Servant.API.Flatten (Flat)
 import Servant.Job.Core
 import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
-import Servant.Multipart
-import Test.QuickCheck (elements)
+-- import Servant.Multipart
+-- import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
 import qualified Gargantext.Text.Corpus.API as API
 import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 
 ------------------------------------------------------------------------
+{-
 data Query = Query { query_query      :: Text
                    , query_node_id    :: Int
                    , query_lang       :: Lang
@@ -75,9 +77,11 @@ instance Arbitrary Query where
 
 instance ToSchema Query where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "query_")
+-}
 
 ------------------------------------------------------------------------
 
+{-
 type Api = PostApi
         :<|> GetApi
 
@@ -85,6 +89,7 @@ type PostApi = Summary "New Corpus endpoint"
              :> ReqBody '[JSON] Query
              :> Post    '[JSON] CorpusId
 type GetApi = Get '[JSON] ApiInfo
+-}
 
 -- | TODO manage several apis
 -- TODO-ACCESS
@@ -118,11 +123,30 @@ info :: FlowCmdM env err m => UserId -> m ApiInfo
 info _u = pure $ ApiInfo API.externalAPIs
 
 ------------------------------------------------------------------------
+
+data Database = Empty
+              | PubMed
+              | HAL
+              | IsTex
+              | Isidore
+  deriving (Eq, Show, Generic)
+
+deriveJSON (unPrefix "") ''Database
+instance ToSchema Database
+
+database2origin :: Database -> DataOrigin
+database2origin Empty   = InternalOrigin T.IsTex
+database2origin PubMed  = ExternalOrigin T.PubMed
+database2origin HAL     = ExternalOrigin T.HAL
+database2origin IsTex   = ExternalOrigin T.IsTex
+database2origin Isidore = ExternalOrigin T.Isidore
+
 ------------------------------------------------------------------------
 data WithQuery = WithQuery
   { _wq_query     :: !Text
-  , _wq_databases :: ![DataOrigin]
-  , _wq_lang      :: !(Maybe (TermType Lang))
+  , _wq_databases :: !Database
+  , _wq_lang      :: !Lang
+  , _wq_node_id   :: !Int
   }
   deriving Generic
 
@@ -152,22 +176,13 @@ type AsyncJobs event ctI input output =
   Flat (AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output)
 ------------------------------------------------------------------------
 
-type Upload = Summary "Corpus Upload endpoint"
-   :> "corpus"
-     :> Capture "corpus_id" CorpusId
-   :<|> "addWithquery"
-     :> AsyncJobsAPI ScraperStatus                   WithQuery ScraperStatus
-   :<|> "addWithfile"
-     :> AsyncJobs    ScraperStatus '[FormUrlEncoded] WithForm  ScraperStatus
-
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
      :> Capture "corpus_id" CorpusId
-   :> "add"
    :> "query"
-   :> "async"
-     :> AsyncJobsAPI ScraperStatus WithQuery ScraperStatus
+     :> AsyncJobs ScraperStatus '[JSON] WithQuery ScraperStatus
 
+{-
 type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
    :> "corpus"
      :> Capture "corpus_id" CorpusId
@@ -177,6 +192,7 @@ type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
      :> QueryParam "fileType"  FileType
    :> "async"
      :> AsyncJobs ScraperStatus '[JSON] () ScraperStatus
+-}
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "corpus"
@@ -194,7 +210,7 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        -> WithQuery
                        -> (ScraperStatus -> m ())
                        -> m ScraperStatus
-addToCorpusWithQuery u cid (WithQuery q dbs l) logStatus = do
+addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   -- TODO ...
   logStatus ScraperStatus { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
@@ -206,31 +222,10 @@ addToCorpusWithQuery u cid (WithQuery q dbs l) logStatus = do
   -- TODO if cid is folder -> create Corpus
   --      if cid is corpus -> add to corpus
   --      if cid is root   -> create corpus in Private
-  txts <- mapM (\db  -> getDataText db     (fromMaybe (Multi EN) l) q (Just 10000)) dbs
-  cids <- mapM (\txt -> flowDataText u txt (fromMaybe (Multi EN) l) cid) txts
+  txts <- mapM (\db  -> getDataText db     (Multi l) q (Just 10000)) [database2origin dbs]
+  cids <- mapM (\txt -> flowDataText u txt (Multi l) cid) txts
   printDebug "corpus id" cids
   -- TODO ...
-  pure      ScraperStatus { _scst_succeeded = Just 137
-                          , _scst_failed    = Just 13
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
-
-addToCorpusWithFile :: FlowCmdM env err m
-                    => CorpusId
-                    -> MultipartData Mem
-                    -> Maybe FileType
-                    -> (ScraperStatus -> m ())
-                    -> m ScraperStatus
-addToCorpusWithFile cid input filetype logStatus = do
-  logStatus ScraperStatus { _scst_succeeded = Just 10
-                          , _scst_failed    = Just 2
-                          , _scst_remaining = Just 138
-                          , _scst_events    = Just []
-                          }
-  printDebug "addToCorpusWithFile" cid
-  _h <- postUpload cid filetype input
-
   pure      ScraperStatus { _scst_succeeded = Just 137
                           , _scst_failed    = Just 13
                           , _scst_remaining = Just 0
@@ -281,4 +276,28 @@ addToCorpusWithForm user cid (WithForm ft d l _n) logStatus = do
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
                           }
+
+{-
+addToCorpusWithFile :: FlowCmdM env err m
+                    => CorpusId
+                    -> MultipartData Mem
+                    -> Maybe FileType
+                    -> (ScraperStatus -> m ())
+                    -> m ScraperStatus
+addToCorpusWithFile cid input filetype logStatus = do
+  logStatus ScraperStatus { _scst_succeeded = Just 10
+                          , _scst_failed    = Just 2
+                          , _scst_remaining = Just 138
+                          , _scst_events    = Just []
+                          }
+  printDebug "addToCorpusWithFile" cid
+  _h <- postUpload cid filetype input
+
+  pure      ScraperStatus { _scst_succeeded = Just 137
+                          , _scst_failed    = Just 13
+                          , _scst_remaining = Just 0
+                          , _scst_events    = Just []
+                          }
+-}
+
 

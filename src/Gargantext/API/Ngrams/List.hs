@@ -54,11 +54,7 @@ type API =  Get '[JSON, HTML] (Headers '[Header "Content-Disposition" Text] Ngra
        :<|> PostAPI
 
 api :: ListId -> GargServer API
-api l =
-        get l
-    :<|>
-        -- post l
-        postAsync l
+api l = get l :<|> postAsync l
 
 data HTML
 instance Accept HTML where
