@@ -43,10 +43,6 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , DataOrigin(..)
   , allDataOrigins
 
--- To remove maybe
-  , tt_lang
-  , tt_ngramsSize
-  , tt_windowSize
   , do_api
   )
     where
@@ -89,7 +85,7 @@ import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Prelude
 import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
-import qualified Gargantext.Text.Terms as GTT (TermType(..), tt_lang, extractTerms, uniText)
+import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
 import Gargantext.Text.Terms.Eleve (buildTries, toToken)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import GHC.Generics (Generic)
@@ -142,32 +138,6 @@ getDataText (InternalOrigin _) _la q _li = do
   pure $ DataOld ids
 
 -------------------------------------------------------------------------------
--- API for termType
-data TermType lang
-  = Mono      { _tt_lang :: lang }
-  | Multi     { _tt_lang :: lang }
-  | MonoMulti { _tt_lang :: lang }
-  | Unsupervised { _tt_lang  :: lang
-                 , _tt_windowSize  :: Int
-                 , _tt_ngramsSize :: Int
-                 }
-  deriving Generic
-
--- | GTT.TermType as a complex type in Unsupervised configuration that is not needed
--- for the API use
-tta2tt :: TermType lang -> GTT.TermType lang
-tta2tt (Mono    l)            = GTT.Mono  l
-tta2tt (Multi   l)            = GTT.Multi l
-tta2tt (MonoMulti l)          = GTT.MonoMulti l
-tta2tt (Unsupervised la w ng) = GTT.Unsupervised la w ng Nothing
-
-makeLenses ''TermType
-deriveJSON (unPrefix "_tt_") ''TermType
-
-instance (ToSchema a) => ToSchema (TermType a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_tt_")
-
-
 flowDataText :: FlowCmdM env err m
              => User
              -> DataText
@@ -225,9 +195,8 @@ flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
      -> [[a]]
      -> m CorpusId
 flow c u cn la docs = do
-  let la' = tta2tt la
-  ids <- traverse (insertMasterDocs c la') docs
-  flowCorpusUser (la' ^. GTT.tt_lang) u cn c (concat ids)
+  ids <- traverse (insertMasterDocs c la) docs
+  flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
 
 ------------------------------------------------------------------------
 flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
@@ -270,7 +239,7 @@ insertMasterDocs :: ( FlowCmdM env err m
                     , MkCorpus   c
                     )
                  => Maybe c
-                 -> GTT.TermType Lang
+                 -> TermType Lang
                  -> [a]
                  -> m [DocId]
 insertMasterDocs c lang hs  =  do
@@ -319,15 +288,15 @@ insertMasterDocs c lang hs  =  do
 
 
 withLang :: HasText a
-         => GTT.TermType Lang
+         => TermType Lang
          -> [DocumentWithId a]
-         -> GTT.TermType Lang
-withLang (GTT.Unsupervised l n s m) ns = GTT.Unsupervised l n s m'
+         -> TermType Lang
+withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
   where
     m' = case m of
       Nothing -> trace ("buildTries here" :: String)
               $ Just
-              $ buildTries n ( fmap toToken $ GTT.uniText
+              $ buildTries n ( fmap toToken $ uniText
                                             $ Text.intercalate " . "
                                             $ List.concat
                                             $ map hasText ns
@@ -370,7 +339,7 @@ instance ExtractNgramsT HyperdataContact
   where
     extractNgramsT l hc = filterNgramsT 255 <$> extract l hc
       where
-        extract :: GTT.TermType Lang -> HyperdataContact
+        extract :: TermType Lang -> HyperdataContact
                 -> Cmd err (Map Ngrams (Map NgramsType Int))
         extract _l hc' = do
           let authors = map text2ngrams
@@ -387,12 +356,12 @@ instance HasText HyperdataDocument
 
 instance ExtractNgramsT HyperdataDocument
   where
-    extractNgramsT :: GTT.TermType Lang
+    extractNgramsT :: TermType Lang
                    -> HyperdataDocument
                    -> Cmd err (Map Ngrams (Map NgramsType Int))
     extractNgramsT lang hd = filterNgramsT 255 <$> extractNgramsT' lang hd
       where
-        extractNgramsT' :: GTT.TermType Lang
+        extractNgramsT' :: TermType Lang
                         -> HyperdataDocument
                        -> Cmd err (Map Ngrams (Map NgramsType Int))
         extractNgramsT' lang' doc = do
@@ -411,7 +380,7 @@ instance ExtractNgramsT HyperdataDocument
           terms' <- map text2ngrams
                  <$> map (intercalate " " . _terms_label)
                  <$> concat
-                 <$> liftBase (GTT.extractTerms lang' $ hasText doc)
+                 <$> liftBase (extractTerms lang' $ hasText doc)
 
           pure $ Map.fromList $  [(source, Map.singleton Sources 1)]
                              <> [(i', Map.singleton Institutes  1) | i' <- institutes ]
