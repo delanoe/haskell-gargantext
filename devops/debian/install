@@ -42,7 +42,7 @@ sudo apt dist-upgrade
 ########################################################################
 
 sudo apt update
-sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-11 nginx libigraph0-dev
+sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-11 nginx libigraph0-dev libgfortran-8-dev
 
 
 sudo apt install git
