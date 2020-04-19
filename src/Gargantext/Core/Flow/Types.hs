@@ -20,38 +20,16 @@ module Gargantext.Core.Flow.Types where
 import Control.Lens (Lens')
 import Data.Map (Map)
 import Data.Maybe (Maybe)
-import Data.Text (Text)
-import Gargantext.Core (Lang)
+import Gargantext.Text (HasText(..))
 import Gargantext.Core.Types.Main (HashId)
 import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..))
-import Gargantext.Database.Action.Query.Node.Document.Insert (AddUniqId, InsertDb)
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..))
-import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Prelude
-import Gargantext.Text.Terms (TermType)
-
-type FlowCorpus a = ( AddUniqId      a
-                    , UniqId         a
-                    , InsertDb       a
-                    , ExtractNgramsT a
-                    , HasText        a
-                    )
 
 class UniqId a
   where
     uniqId :: Lens' a (Maybe HashId)
-
-class ExtractNgramsT h
-  where
-    extractNgramsT :: HasText h
-                   => TermType Lang
-                   -> h
-                   -> Cmd err (Map Ngrams (Map NgramsType Int))
-
-class HasText h
-  where
-    hasText :: h -> [Text]
 
 instance UniqId HyperdataDocument
   where
@@ -60,3 +38,18 @@ instance UniqId HyperdataDocument
 instance UniqId HyperdataContact
   where
     uniqId = hc_uniqId
+
+data DocumentIdWithNgrams a = DocumentIdWithNgrams
+  { documentWithId  :: !(DocumentWithId a)
+  , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
+  } deriving (Show)
+
+data DocumentWithId a = DocumentWithId
+  { documentId   :: !NodeId
+  , documentData :: !a
+  } deriving (Show)
+
+instance HasText a => HasText (DocumentWithId a)
+  where
+    hasText (DocumentWithId _ a) = hasText a
+

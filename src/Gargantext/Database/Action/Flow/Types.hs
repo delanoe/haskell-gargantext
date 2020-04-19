@@ -24,14 +24,13 @@ Portability : POSIX
 module Gargantext.Database.Action.Flow.Types
     where
 
-import Data.Map (Map)
-import Gargantext.Prelude
 import Gargantext.Core.Flow.Types
+import Gargantext.Text
+import Gargantext.Text.Terms
 import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
-import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Utils (CmdM)
+import Gargantext.Database.Action.Query.Node.Document.Insert
 
 type FlowCmdM env err m =
   ( CmdM     env err m
@@ -40,18 +39,10 @@ type FlowCmdM env err m =
   , HasRepoVar env
   )
 
-data DocumentIdWithNgrams a = DocumentIdWithNgrams
-  { documentWithId  :: !(DocumentWithId a)
-  , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
-  } deriving (Show)
-
-data DocumentWithId a = DocumentWithId
-  { documentId   :: !NodeId
-  , documentData :: !a
-  } deriving (Show)
-
-instance HasText a => HasText (DocumentWithId a)
-  where
-    hasText (DocumentWithId _ a) = hasText a
-
+type FlowCorpus a = ( AddUniqId      a
+                    , UniqId         a
+                    , InsertDb       a
+                    , ExtractNgramsT a
+                    , HasText        a
+                    )
 

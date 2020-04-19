@@ -58,7 +58,6 @@ import Data.Swagger
 import Data.Text (splitOn, intercalate)
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
-import Debug.Trace (trace)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types (Terms(..))
@@ -82,18 +81,15 @@ import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNod
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
+import Gargantext.Text
 import Gargantext.Prelude
 import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
-import Gargantext.Text.Terms (TermType(..), tt_lang, extractTerms, uniText)
-import Gargantext.Text.Terms.Eleve (buildTries, toToken)
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
+import Gargantext.Text.Terms
 import GHC.Generics (Generic)
-import Prelude (String)
 import System.FilePath (FilePath)
-import qualified Data.List as List
 import qualified Data.Map  as Map
-import qualified Data.Text as Text
 import qualified Gargantext.Database.Action.Query.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Text.Corpus.API as API
 
@@ -272,9 +268,9 @@ insertMasterDocs c lang hs  =  do
   -- insertDocNgrams
   _return <- insertNodeNodeNgrams2
            $ catMaybes [ NodeNodeNgrams2 <$> Just nId
-                                         <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms)
+                                         <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
                                          <*> Just (fromIntegral w :: Double)
-                       | (terms, mapNgramsTypes) <- Map.toList maps
+                       | (terms'', mapNgramsTypes) <- Map.toList maps
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
                        , (nId, w) <- Map.toList mapNodeIdWeight
                        ]
@@ -287,22 +283,8 @@ insertMasterDocs c lang hs  =  do
   pure ids'
 
 
-withLang :: HasText a
-         => TermType Lang
-         -> [DocumentWithId a]
-         -> TermType Lang
-withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
-  where
-    m' = case m of
-      Nothing -> trace ("buildTries here" :: String)
-              $ Just
-              $ buildTries n ( fmap toToken $ uniText
-                                            $ Text.intercalate " . "
-                                            $ List.concat
-                                            $ map hasText ns
-                             )
-      just_m -> just_m
-withLang l _ = l
+------------------------------------------------------------------------
+
 
 
 ------------------------------------------------------------------------
@@ -334,6 +316,24 @@ mergeData rs = catMaybes . map toDocumentWithId . Map.toList
 instance HasText HyperdataContact
   where
     hasText = undefined
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+documentIdWithNgrams :: HasNodeError err
+                     => (a
+                     -> Cmd err (Map Ngrams (Map NgramsType Int)))
+                     -> [DocumentWithId a]
+                     -> Cmd err [DocumentIdWithNgrams a]
+documentIdWithNgrams f = traverse toDocumentIdWithNgrams
+  where
+    toDocumentIdWithNgrams d = do
+      e <- f $ documentData         d
+      pure   $ DocumentIdWithNgrams d e
+
+
+------------------------------------------------------------------------
+
 
 instance ExtractNgramsT HyperdataContact
   where
@@ -387,23 +387,4 @@ instance ExtractNgramsT HyperdataDocument
                              <> [(a', Map.singleton Authors     1) | a' <- authors    ]
                              <> [(t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
 
-filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
-                     -> Map Ngrams (Map NgramsType Int)
-filterNgramsT s ms = Map.fromList $ map (\a -> filter' s a) $ Map.toList ms
-  where
-    filter' s' (ng@(Ngrams t n),y) = case (Text.length t) < s' of
-          True  -> (ng,y)
-          False -> (Ngrams (Text.take s' t) n , y)
-
-
-documentIdWithNgrams :: HasNodeError err
-                     => (a
-                     -> Cmd err (Map Ngrams (Map NgramsType Int)))
-                     -> [DocumentWithId a]
-                     -> Cmd err [DocumentIdWithNgrams a]
-documentIdWithNgrams f = traverse toDocumentIdWithNgrams
-  where
-    toDocumentIdWithNgrams d = do
-      e <- f $ documentData         d
-      pure   $ DocumentIdWithNgrams d e
 

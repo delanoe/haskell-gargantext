@@ -30,6 +30,7 @@ import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
+import Gargantext.Core.Flow.Types
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)

@@ -24,16 +24,13 @@ import NLP.FullStop (segment)
 import qualified Data.Text as DT
 
 -----------------------------------------------------------------
--- | Why not use data ?
-data Niveau = NiveauTexte      Texte
-            | NiveauParagraphe Paragraphe
-            | NiveauPhrase     Phrase
-            | NiveauMultiTerme MultiTerme
-            | NiveauMot        Mot
-            | NiveauLettre     Lettre
-  deriving (Show)
 
--- | Why use newtype ?
+class HasText h
+  where
+    hasText :: h -> [Text]
+
+-----------------------------------------------------------------
+-- French words to distinguish contexts
 newtype Texte      = Texte      Text
 newtype Paragraphe = Paragraphe Text
 newtype Phrase     = Phrase     Text
@@ -43,6 +40,7 @@ newtype Lettre     = Lettre     Text
 
 -- | Type syn seems obvious
 type    Titre      = Phrase
+
 -----------------------------------------------------------------
 
 instance Show Texte where
@@ -84,14 +82,6 @@ instance Collage Phrase MultiTerme where
 instance Collage MultiTerme Mot where
   dec (MultiTerme mt) = map Mot $ DT.words mt
   inc                 = MultiTerme . DT.intercalate " " . map (\(Mot m) -> m)
-
--- | We could use Type Classes but we lose the Sum Type classification
-toMultiTerme :: Niveau -> [MultiTerme]
-toMultiTerme (NiveauTexte (Texte _t))           = undefined
-toMultiTerme (NiveauPhrase p)      = dec p
-toMultiTerme (NiveauMultiTerme mt) = [mt]
-toMultiTerme (NiveauMot _m) = undefined 
-toMultiTerme _ = undefined
 
 -------------------------------------------------------------------
 -- Contexts of text
