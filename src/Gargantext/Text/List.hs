@@ -25,7 +25,7 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mS
 import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, NodeId)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
@@ -33,8 +33,8 @@ import Gargantext.Text.List.Learn (Model(..))
 import Gargantext.Text.Metrics (takeScored)
 import qualified Data.Char as Char
 import qualified Data.List as List
-import qualified Data.Map as Map
-import qualified Data.Set as Set
+import qualified Data.Map  as Map
+import qualified Data.Set  as Set
 import qualified Data.Text as Text
 
 
@@ -44,11 +44,11 @@ data NgramsListBuilder = BuilderStepO { stemSize :: Int
                                       }
                        | BuilderStep1 { withModel :: Model }
                        | BuilderStepN { withModel :: Model }
-                       | Tficf { nlb_lang :: Lang
-                               , nlb_group1 :: Int
-                               , nlb_group2 :: Int
-                               , nlb_stopSize :: StopSize
-                               , nlb_userCorpusId :: UserCorpusId
+                       | Tficf { nlb_lang           :: Lang
+                               , nlb_group1         :: Int
+                               , nlb_group2         :: Int
+                               , nlb_stopSize       :: StopSize
+                               , nlb_userCorpusId   :: UserCorpusId
                                , nlb_masterCorpusId :: MasterCorpusId
                                }
 
@@ -56,7 +56,12 @@ data NgramsListBuilder = BuilderStepO { stemSize :: Int
 data StopSize = StopSize {unStopSize :: Int}
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
-buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
+buildNgramsLists :: Lang
+                 -> Int
+                 -> Int
+                 -> StopSize
+                 -> UserCorpusId
+                 -> MasterCorpusId
                  -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsLists l n m s uCid mCid = do
   ngTerms     <- buildNgramsTermsList l n m s uCid mCid
@@ -64,7 +69,9 @@ buildNgramsLists l n m s uCid mCid = do
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
 
-buildNgramsOthersList :: UserCorpusId -> (Text -> Text) -> NgramsType
+buildNgramsOthersList :: UserCorpusId
+                      -> (Text -> Text)
+                      -> NgramsType
                       -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsOthersList uCid groupIt nt = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
@@ -83,12 +90,14 @@ buildNgramsOthersList uCid groupIt nt = do
                         )
                       ]
 
---{-
+{-
 buildNgramsTermsList' :: UserCorpusId
                       -> (Text -> Text)
-                      -> ((Text, (Set Text, Set NodeId)) -> Bool) -> Int -> Int
+                      -> ((Text, (Set Text, Set NodeId)) -> Bool)
+                      -> Int
+                      -> Int
                       -> Cmd err (Map NgramsType [NgramsElement])
---}
+
 buildNgramsTermsList' uCid groupIt stop gls is = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid NgramsTerms
   
@@ -117,21 +126,31 @@ buildNgramsTermsList' uCid groupIt stop gls is = do
          <> map (\t -> (GraphTerm, toList' t)) m
 
   pure $ Map.fromList [(NgramsTerms, ngs')]
+-}
 
-
-buildNgramsTermsList :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
+buildNgramsTermsList :: Lang
+                     -> Int
+                     -> Int
+                     -> StopSize
+                     -> UserCorpusId
+                     -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
-  candidates   <- sortTficf <$> getTficf' uCid mCid NgramsTerms (ngramsGroup l n m)
+  candidates   <- sortTficf <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
+
   let
     candidatesSize = 2000
+
     a = 10
     b = 10
+
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
+
     termList = (toTermList a b ((isStopTerm s) . fst) candidatesHead)
              <> (map (toList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
-  let ngs = List.concat $ map toNgramsElement termList
+
+    ngs = List.concat $ map toNgramsElement termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
 
@@ -167,7 +186,7 @@ toTermList a b stop ns =  -- trace ("computing toTermList") $
     where
       xs = take a ns
       ta = drop a ns
-      
+
       ys = take b ta
       zs = drop b ta
 

@@ -46,7 +46,11 @@ import qualified Database.PostgreSQL.Simple as DPS
 -- discussed. Main purpose of this is offering
 -- a first grouping option to user and get some
 -- enriched data to better learn and improve that algo
-ngramsGroup :: Lang -> Int -> Int -> Text -> Text
+ngramsGroup :: Lang
+            -> Int
+            -> Int
+            -> Text
+            -> Text
 ngramsGroup l _m _n = Text.intercalate " "
                   . map (stem l)
                   -- . take n
@@ -61,18 +65,25 @@ sortTficf :: (Map Text (Double, Set Text))
 sortTficf  = List.sortOn (fst . snd) . toList
 
 
-getTficf' :: UserCorpusId -> MasterCorpusId -> NgramsType -> (Text -> Text)
+getTficf :: UserCorpusId
+         -> MasterCorpusId
+         -> NgramsType
+         -> (Text -> Text)
          -> Cmd err (Map Text (Double, Set Text))
-getTficf' u m nt f = do
+getTficf u m nt f = do
   u' <- getNodesByNgramsUser   u nt
   m' <- getNodesByNgramsMaster u m
 
   pure $ toTficfData (countNodesByNgramsWith f u')
                      (countNodesByNgramsWith f m')
 
-getTficfWith :: UserCorpusId -> MasterCorpusId -> [ListId]
-           -> NgramsType -> Map Text (Maybe Text)
-           -> Cmd err (Map Text (Double, Set Text))
+{-
+getTficfWith :: UserCorpusId
+             -> MasterCorpusId
+             -> [ListId]
+             -> NgramsType
+             -> Map Text (Maybe Text)
+             -> Cmd err (Map Text (Double, Set Text))
 getTficfWith u m ls nt mtxt = do
   u' <- getNodesByNgramsOnlyUser   u ls nt (Map.keys mtxt)
   m' <- getNodesByNgramsMaster     u m
@@ -83,13 +94,14 @@ getTficfWith u m ls nt mtxt = do
 
   pure $ toTficfData (countNodesByNgramsWith f u')
                      (countNodesByNgramsWith f m')
-
+-}
 
 type Context = (Double, Map Text (Double, Set Text))
 type Supra   = Context
 type Infra   = Context
 
-toTficfData :: Infra -> Supra
+toTficfData :: Infra
+            -> Supra
             -> Map Text (Double, Set Text)
 toTficfData (ti, mi) (ts, ms) =
   fromList [ (t, ( tficf (TficfInfra (Count n                              )(Total ti))
@@ -129,7 +141,8 @@ getNodesByNgramsUser cId nt =
                     <$> selectNgramsByNodeUser cId nt
     where
 
-      selectNgramsByNodeUser :: CorpusId -> NgramsType
+      selectNgramsByNodeUser :: CorpusId
+                             -> NgramsType
                              -> Cmd err [(NodeId, Text)]
       selectNgramsByNodeUser cId' nt' =
         runPGSQuery queryNgramsByNodeUser
@@ -172,10 +185,10 @@ getOccByNgramsOnlyFast' :: CorpusId
                        -> Cmd err (Map Text Int)
 getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $ 
   fromListWith (+) <$> map (second round) <$> run cId lId nt tms
-  
+
     where
       fields = [QualifiedIdentifier Nothing "text"]
-      
+
       run :: CorpusId
            -> ListId
            -> NgramsType
@@ -202,8 +215,6 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
         |]
 
 
-
-
 -- just slower than getOccByNgramsOnlyFast
 getOccByNgramsOnlySlow :: NodeType
                        -> CorpusId
@@ -228,12 +239,15 @@ getOccByNgramsOnlySafe cId ls nt ngs = do
   fast <- getOccByNgramsOnlyFast cId nt ngs
   slow <- getOccByNgramsOnlySlow NodeCorpus cId ls nt ngs
   when (fast /= slow) $
-    printDebug "getOccByNgramsOnlySafe: difference" (diff slow fast :: PatchMap Text (Replace (Maybe Int)))
+    printDebug "getOccByNgramsOnlySafe: difference"
+               (diff slow fast :: PatchMap Text (Replace (Maybe Int)))
   pure slow
 
 
-selectNgramsOccurrencesOnlyByNodeUser :: CorpusId -> NgramsType -> [Text]
-                           -> Cmd err [(Text, Int)]
+selectNgramsOccurrencesOnlyByNodeUser :: CorpusId
+                                      -> NgramsType
+                                      -> [Text]
+                                      -> Cmd err [(Text, Int)]
 selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
   runPGSQuery queryNgramsOccurrencesOnlyByNodeUser
                 ( Values fields (DPS.Only <$> tms)
@@ -262,8 +276,6 @@ queryNgramsOccurrencesOnlyByNodeUser = [sql|
       GROUP BY nng.node2_id, ng.terms
   |]
 
-
-
 queryNgramsOccurrencesOnlyByNodeUser' :: DPS.Query
 queryNgramsOccurrencesOnlyByNodeUser' = [sql|
   WITH input_rows(terms) AS (?)
@@ -280,8 +292,10 @@ queryNgramsOccurrencesOnlyByNodeUser' = [sql|
   |]
 
 ------------------------------------------------------------------------
-
-getNodesByNgramsOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
+getNodesByNgramsOnlyUser :: NodeId
+                         -> [ListId]
+                         -> NgramsType
+                         -> [Text]
                          -> Cmd err (Map Text (Set NodeId))
 getNodesByNgramsOnlyUser cId ls nt ngs =
      Map.unionsWith    (<>)
@@ -305,12 +319,16 @@ getNgramsByNodeOnlyUser cId ls nt ngs =
            (splitEvery 1000 ngs)
 
 ------------------------------------------------------------------------
-selectNgramsOnlyByNodeUser :: CorpusId -> [ListId] -> NgramsType -> [Text]
+selectNgramsOnlyByNodeUser :: CorpusId
+                           -> [ListId]
+                           -> NgramsType
+                           -> [Text]
                            -> Cmd err [(Text, NodeId)]
 selectNgramsOnlyByNodeUser cId ls nt tms =
   runPGSQuery queryNgramsOnlyByNodeUser
                 ( Values fields (DPS.Only <$> tms)
-                , Values [QualifiedIdentifier Nothing "int4"] (DPS.Only <$> (map (\(NodeId n) -> n) ls))
+                , Values [QualifiedIdentifier Nothing "int4"] 
+                         (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , cId
                 , nodeTypeId NodeDocument
                 , ngramsTypeId nt
@@ -336,13 +354,16 @@ queryNgramsOnlyByNodeUser = [sql|
   |]
 
 
-
-selectNgramsOnlyByNodeUser' :: CorpusId -> [ListId] -> NgramsType -> [Text]
-                           -> Cmd err [(Text, Int)]
+selectNgramsOnlyByNodeUser' :: CorpusId
+                            -> [ListId]
+                            -> NgramsType
+                            -> [Text]
+                            -> Cmd err [(Text, Int)]
 selectNgramsOnlyByNodeUser' cId ls nt tms =
   runPGSQuery queryNgramsOnlyByNodeUser
                 ( Values fields (DPS.Only <$> tms)
-                , Values [QualifiedIdentifier Nothing "int4"] (DPS.Only <$> (map (\(NodeId n) -> n) ls))
+                , Values [QualifiedIdentifier Nothing "int4"]
+                         (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , cId
                 , nodeTypeId NodeDocument
                 , ngramsTypeId nt
@@ -365,26 +386,33 @@ queryNgramsOnlyByNodeUser' = [sql|
   |]
 
 
-
-getNgramsByDocOnlyUser :: NodeId -> [ListId] -> NgramsType -> [Text]
-                         -> Cmd err (Map Text (Set NodeId))
+getNgramsByDocOnlyUser :: NodeId
+                       -> [ListId]
+                       -> NgramsType
+                       -> [Text]
+                       -> Cmd err (Map Text (Set NodeId))
 getNgramsByDocOnlyUser cId ls nt ngs =
   Map.unionsWith (<>)
   . map (fromListWith (<>) . map (second Set.singleton))
   <$> mapM (selectNgramsOnlyByDocUser cId ls nt) (splitEvery 1000 ngs)
 
 
-selectNgramsOnlyByDocUser :: DocId -> [ListId] -> NgramsType -> [Text]
-                           -> Cmd err [(Text, NodeId)]
+selectNgramsOnlyByDocUser :: DocId
+                          -> [ListId]
+                          -> NgramsType
+                          -> [Text]
+                          -> Cmd err [(Text, NodeId)]
 selectNgramsOnlyByDocUser dId ls nt tms =
   runPGSQuery queryNgramsOnlyByDocUser
                 ( Values fields (DPS.Only <$> tms)
-                , Values [QualifiedIdentifier Nothing "int4"] (DPS.Only <$> (map (\(NodeId n) -> n) ls))
+                , Values [QualifiedIdentifier Nothing "int4"]
+                         (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , dId
                 , ngramsTypeId nt
                 )
     where
       fields = [QualifiedIdentifier Nothing "text"]
+
 
 queryNgramsOnlyByDocUser :: DPS.Query
 queryNgramsOnlyByDocUser = [sql|
@@ -408,8 +436,11 @@ getNodesByNgramsMaster ucId mcId = Map.unionsWith (<>)
                                  -- . takeWhile (\l -> List.length l > 3)
                                 <$> mapM (selectNgramsByNodeMaster 1000 ucId mcId) [0,500..10000]
 
-
-selectNgramsByNodeMaster :: Int -> UserCorpusId -> MasterCorpusId -> Int -> Cmd err [(NodeId, Text)]
+selectNgramsByNodeMaster :: Int
+                         -> UserCorpusId
+                         -> MasterCorpusId
+                         -> Int
+                         -> Cmd err [(NodeId, Text)]
 selectNgramsByNodeMaster n ucId mcId p = runPGSQuery
                                queryNgramsByNodeMaster'
                                  ( ucId
@@ -458,5 +489,3 @@ queryNgramsByNodeMaster' = [sql|
   SELECT m.id, m.terms FROM nodesByNgramsMaster m
     RIGHT JOIN nodesByNgramsUser u ON u.id = m.id
   |]
-
-

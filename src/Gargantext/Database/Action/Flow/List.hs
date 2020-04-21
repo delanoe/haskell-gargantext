@@ -69,7 +69,9 @@ flowList_DbRepo lId ngs = do
   -- Inserting groups of ngrams
   _r <- insert_Node_NodeNgrams_NodeNgrams
      $ map (\(a,b) -> Node_NodeNgrams_NodeNgrams lId a b Nothing) toInsert
+
   listInsert lId ngs
+
   --trace (show $ List.filter (\n -> _ne_ngrams n == "versatile") $ List.concat $ Map.elems ngs) $ listInsert lId ngs
   pure lId
 ------------------------------------------------------------------------
@@ -88,6 +90,7 @@ toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW'' l) ngs
        (NgramsElement ngrams_terms' _size list_type _occ _root _parent _children) <- elms
       ]
 
+
 toNodeNgramsW' :: ListId
                -> [(Text, [NgramsType])]
                -> [NodeNgramsW]
@@ -102,8 +105,7 @@ listInsert :: FlowCmdM env err m
              -> Map NgramsType [NgramsElement]
              -> m ()
 listInsert lId ngs = mapM_ (\(typeList, ngElmts)
-                             -> putListNgrams lId typeList ngElmts
-                             ) $ toList ngs
+                             -> putListNgrams lId typeList ngElmts) (toList ngs)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
