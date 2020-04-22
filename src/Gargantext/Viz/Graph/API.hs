@@ -222,7 +222,7 @@ computeGraph cId nt repo = do
   let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] nt repo
 
   myCooc <- Map.filter (>1)
-         <$> getCoocByNgrams (Diagonal False)
+         <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 

@@ -159,8 +159,12 @@ setCoord l labels m (n,node) = node { node_x_coord = x
     (x,y) = getCoord l labels m n
 
 
-getCoord :: Ord a => Layout
-                  -> [(a, Int)] -> Map (Int, Int) Double -> Int -> (Double, Double)
+getCoord :: Ord a
+         => Layout
+         -> [(a, Int)]
+         -> Map (Int, Int) Double
+         -> Int
+         -> (Double, Double)
 getCoord KamadaKawai _ _m _n = undefined -- layout m n
 
 getCoord ForceAtlas _ _ n = (sin d, cos d)
