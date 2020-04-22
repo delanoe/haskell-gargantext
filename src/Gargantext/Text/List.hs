@@ -17,20 +17,20 @@ Portability : POSIX
 module Gargantext.Text.List
   where
 
-import Data.Either (partitionEithers, Either(..))
+-- import Data.Either (partitionEithers, Either(..))
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
-import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
+-- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, NodeId)
+import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import Gargantext.Text.List.Learn (Model(..))
-import Gargantext.Text.Metrics (takeScored)
+-- import Gargantext.Text.Metrics (takeScored)
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Map  as Map
@@ -78,17 +78,20 @@ buildNgramsOthersList uCid groupIt nt = do
 
   let
     listSize = 9
-    all' = List.reverse $ List.sortOn (Set.size . snd . snd) $ Map.toList ngs
+    all'     = List.reverse $ List.sortOn (Set.size . snd . snd) $ Map.toList ngs
+
     graphTerms = List.take listSize all'
     candiTerms = List.drop listSize all'
+
   pure $ Map.unionsWith (<>) [ toElements GraphTerm     graphTerms
-                             , toElements CandidateTerm candiTerms]
+                             , toElements CandidateTerm candiTerms
+                             ]
     where
-      toElements nType x = Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
-                            | (t,_ns) <- x
-                            ]
-                        )
-                      ]
+      toElements nType x =
+        Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
+                           | (t,_ns) <- x
+                           ]
+                     )]
 
 {-
 buildNgramsTermsList' :: UserCorpusId
@@ -121,9 +124,9 @@ buildNgramsTermsList' uCid groupIt stop gls is = do
 
   let ngs' = List.concat
           $ map toNgramsElement
-          $ map (\t -> (StopTerm, toList' t)) s
+          $ map (\t -> (StopTerm     , toList' t)) s
          <> map (\t -> (CandidateTerm, toList' t)) c
-         <> map (\t -> (GraphTerm, toList' t)) m
+         <> map (\t -> (GraphTerm    , toList' t)) m
 
   pure $ Map.fromList [(NgramsTerms, ngs')]
 -}

@@ -86,5 +86,12 @@ mkNodeWithParent NodeAnnuaire (Just i) uId name =
     where
       hd = defaultAnnuaire
 
+{-
+mkNodeWithParent NodeList (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeList name hd Nothing uId]
+    where
+      hd = defaultList
+-}
+
 mkNodeWithParent _ _ _ _       = nodeError NotImplYet
 

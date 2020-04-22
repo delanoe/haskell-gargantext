@@ -376,8 +376,9 @@ instance Arbitrary HyperdataCorpus where
 
 ------------------------------------------------------------------------
 
-data HyperdataList = HyperdataList {hd_list         :: !(Maybe Text)
-                                           } deriving (Show, Generic)
+data HyperdataList =
+  HyperdataList { hd_list :: !(Maybe Text)
+                } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hd_") ''HyperdataList)
 
 instance Hyperdata HyperdataList
@@ -412,10 +413,11 @@ instance Arbitrary HyperdataList' where
 -}
 
                       ----
-data HyperdataListModel = HyperdataListModel { _hlm_params  :: !(Int, Int)
-                                             , _hlm_path    :: !Text
-                                             , _hlm_score   :: !(Maybe Double)
-                                   } deriving (Show, Generic)
+data HyperdataListModel =
+  HyperdataListModel { _hlm_params  :: !(Int, Int)
+                     , _hlm_path    :: !Text
+                     , _hlm_score   :: !(Maybe Double)
+                     } deriving (Show, Generic)
 
 instance Hyperdata HyperdataListModel
 instance Arbitrary HyperdataListModel where
@@ -432,7 +434,6 @@ $(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
 instance Hyperdata HyperdataScore
 
 ------------------------------------------------------------------------
-
 data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
@@ -448,7 +449,6 @@ $(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
 instance Hyperdata HyperdataDashboard
 
 ------------------------------------------------------------------------
-
 -- TODO add the Graph Structure here
 data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: !(Maybe Text)
                                      , hyperdataPhylo_data          :: !(Maybe Phylo)
@@ -474,8 +474,6 @@ data HyperData = HyperdataTexts { hd_preferences :: Maybe Text }
 $(deriveJSON (unPrefix "hd_") ''HyperData)
 
 instance Hyperdata HyperData
-
-
 
 ------------------------------------------------------------------------
 -- | Then a Node can be either a Folder or a Corpus or a Document

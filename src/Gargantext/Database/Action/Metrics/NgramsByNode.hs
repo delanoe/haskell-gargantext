@@ -71,8 +71,8 @@ getTficf :: UserCorpusId
          -> (Text -> Text)
          -> Cmd err (Map Text (Double, Set Text))
 getTficf u m nt f = do
-  u' <- getNodesByNgramsUser   u nt
-  m' <- getNodesByNgramsMaster u m
+  u' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsUser   u nt
+  m' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsMaster u m
 
   pure $ toTficfData (countNodesByNgramsWith f u')
                      (countNodesByNgramsWith f m')
@@ -92,8 +92,7 @@ getTficfWith u m ls nt mtxt = do
         Nothing -> x
         Just x' -> maybe x identity x'
 
-  pure $ toTficfData (countNodesByNgramsWith f u')
-                     (countNodesByNgramsWith f m')
+  pure $ toTficfData (countNodesByNgramsWith f u') (countNodesByNgramsWith f m')
 -}
 
 type Context = (Double, Map Text (Double, Set Text))
@@ -183,7 +182,7 @@ getOccByNgramsOnlyFast' :: CorpusId
                        -> NgramsType
                        -> [Text]
                        -> Cmd err (Map Text Int)
-getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $ 
+getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
   fromListWith (+) <$> map (second round) <$> run cId lId nt tms
 
     where

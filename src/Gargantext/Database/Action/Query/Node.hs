@@ -416,11 +416,20 @@ instance MkCorpus HyperdataAnnuaire
     mk n h p u = insertNodesR [nodeAnnuaireW n h p u]
 
 
-getOrMkList :: HasNodeError err => ParentId -> UserId -> Cmd err ListId
+getOrMkList :: HasNodeError err
+            => ParentId
+            -> UserId
+            -> Cmd err ListId
 getOrMkList pId uId =
   maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
     where
       mkList' pId uId = maybe (nodeError MkNode) pure . headMay =<< mkNode NodeList pId uId
+
+mkList :: HasNodeError err
+            => ParentId
+            -> UserId
+            -> Cmd err [ListId]
+mkList pId uId = mkNode NodeList pId uId
 
 -- | TODO remove defaultList
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
