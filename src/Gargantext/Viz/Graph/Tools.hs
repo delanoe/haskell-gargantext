@@ -15,6 +15,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Tools
   where
 
+import Debug.Trace (trace)
 import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 -- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
@@ -71,14 +72,14 @@ cooc2graph threshold myCooc = do
 
 
   partitions <- if (Map.size distanceMap > 0)
-      --then iLouvainMap 100 10 distanceMap
+      -- then iLouvainMap 100 10 distanceMap
       -- then hLouvain distanceMap
       then cLouvain level distanceMap
       else panic "Text.Flow: DistanceMap is empty"
 
   let
-    bridgeness' = distanceMap
-    _bridgeness' = bridgeness rivers partitions distanceMap
+    -- bridgeness' = distanceMap
+    bridgeness' = trace ("Rivers: " <> show rivers) $ bridgeness rivers partitions distanceMap
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
   pure $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions

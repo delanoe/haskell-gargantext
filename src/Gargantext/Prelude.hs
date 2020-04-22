@@ -30,6 +30,7 @@ module Gargantext.Prelude
   , sortWith
   , module Prelude
   , MonadBase(..)
+  , Map2 , lookup2
   )
   where
 
@@ -37,6 +38,7 @@ import Control.Monad.Base (MonadBase(..))
 import GHC.Exts (sortWith)
 import GHC.Err.Located (undefined)
 import GHC.Real (round)
+import Data.Map (Map, lookup)
 import Data.Maybe (isJust, fromJust, maybe)
 import Data.Text (Text)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
@@ -298,9 +300,25 @@ movingAverage steps xs = map mean $ chunkAlong steps 1 xs
 ma :: [Double] -> [Double]
 ma = movingAverage 3
 
-
 -----------------------------------------------------------------------
 fib :: Int -> Int
 fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
+
+
+-----------------------------------------------------------------------
+--- Map in Map = Map2
+-- To avoid Map (a,a) b
+type Map2 a b = Map a (Map a b)
+
+lookup2 :: Ord a
+        => a
+        -> a
+        -> Map2 a b
+        -> Maybe b
+lookup2 a b m = do
+  m' <- lookup a m
+  lookup b m'
+
+

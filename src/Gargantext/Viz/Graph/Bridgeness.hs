@@ -10,20 +10,26 @@ Portability : POSIX
 Let be a graph with partitions (from Louvain algo), Bridgeness uniformly
 filters inter-communities links.
 
-TODO rewrite Bridgeness with "equivalence structurale" metrics
+TODO rewrite Bridgeness with "equivalence structurale" metrics (Confluence)
+
+TODO use Map LouvainNodeId (Map LouvainNodeId)
+
+
+
+
+
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Viz.Graph.Bridgeness (bridgeness)
   where
---import GHC.Base (Semigroup)
+
+import Data.Ord (Down(..))
 import Gargantext.Prelude
---import Data.Tuple.Extra (swap)
---import Gargantext.Viz.Graph
-import Data.Map (Map, fromListWith, lookup, fromList, delete, toList, mapKeys, mapWithKey, elems)
+import Data.Map (Map, fromListWith, lookup, fromList, toList, mapWithKey, elems)
 import qualified Data.Map as DM
-import Data.Maybe (fromJust)
+import Data.Maybe (catMaybes)
 import Data.List (concat, sortOn)
 import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 
@@ -45,34 +51,36 @@ bridgeness b ns = DM.fromList
                 . filterComs b
                 . groupEdges (nodeId2comId ns)
 
+
 nodeId2comId :: [LouvainNode] -> Map LouvainNodeId CommunityId
 nodeId2comId ns = fromList [ (nId,cId) | LouvainNode nId cId <- ns]
+
 
 groupEdges :: Map LouvainNodeId CommunityId
            -> Map (LouvainNodeId, LouvainNodeId) Double
            -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
-groupEdges m = mapKeys fromJust
-             . delete Nothing
-             . fromListWith (<>)
+groupEdges m = fromListWith (<>)
+             . catMaybes
              . map (\((n1,n2), d)
-                     -> ((,) <$> lookup n1 m
-                             <*> lookup n2 m
-                        , [((n1,n2),d)]
-                        )
-                   )
+                     -> let 
+                          n1n2_m = (,) <$> lookup n1 m <*> lookup n2 m
+                          n1n2_d = Just [((n1,n2),d)]
+                        in (,) <$> n1n2_m <*> n1n2_d
+                    )
              . toList
 
+-- | TODO : sortOn Confluence
 filterComs :: Bridgeness
            -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
            -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
 filterComs b m = mapWithKey filter' m
   where
-    filter' (c1,c2) a = case c1 == c2 of
-      True  -> a
-      False -> take n $ sortOn snd a
-        where
-          n = round $ b * a' / t
-          a'= fromIntegral $ length a
-          t = fromIntegral $ length $ concat $ elems m
+    filter' (c1,c2) a
+      | c1 == c2  = a
+      | otherwise = take n $ sortOn (Down . snd) a
+          where
+            n = round $ 100 * b * a' / t
+            a'= fromIntegral $ length a
+            t = fromIntegral $ length $ concat $ elems m
 
 
