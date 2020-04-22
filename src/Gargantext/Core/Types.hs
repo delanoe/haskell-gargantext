@@ -25,6 +25,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Name
                              , TableResult(..)
                              , NodeTableResult
+                             , Ordering(..)
                              , TODO(..)
                              ) where
 
@@ -45,6 +46,8 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
+data Ordering = Down | Up
 
 ------------------------------------------------------------------------
 type Name = Text

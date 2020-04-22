@@ -24,7 +24,7 @@ import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
+import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
@@ -139,18 +139,21 @@ buildNgramsTermsList :: Lang
                      -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
-  candidates   <- sortTficf <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
+  candidates <- sortTficf Up <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
 
   let
-    candidatesSize = 1000
+    candidatesSize = 400
 
+{-
     a = 50
     b = 50
-
+-}
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
 
-    termList = (toTermList a b ((isStopTerm s) . fst) candidatesHead)
+    termList = 
+          -- (toTermList a b ((isStopTerm s) . fst) candidatesHead)
+                (map (toList ((isStopTerm s) .fst) GraphTerm)     candidatesHead)
              <> (map (toList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
 
     ngs = List.concat $ map toNgramsElement termList

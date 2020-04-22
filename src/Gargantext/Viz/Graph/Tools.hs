@@ -77,7 +77,8 @@ cooc2graph threshold myCooc = do
       else panic "Text.Flow: DistanceMap is empty"
 
   let
-    bridgeness' = bridgeness rivers partitions distanceMap
+    bridgeness' = distanceMap
+    _bridgeness' = bridgeness rivers partitions distanceMap
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
   pure $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
