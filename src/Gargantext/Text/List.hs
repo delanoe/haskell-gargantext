@@ -142,10 +142,10 @@ buildNgramsTermsList l n m s uCid mCid = do
   candidates   <- sortTficf <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
 
   let
-    candidatesSize = 2000
+    candidatesSize = 1000
 
-    a = 10
-    b = 10
+    a = 50
+    b = 50
 
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
@@ -156,6 +156,24 @@ buildNgramsTermsList l n m s uCid mCid = do
     ngs = List.concat $ map toNgramsElement termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
+
+
+toTermList :: Int
+           -> Int
+           -> (a -> Bool)
+           -> [a]
+           -> [(ListType, a)]
+toTermList _ _ _ [] = []
+toTermList a b stop ns =  -- trace ("computing toTermList") $
+                      map (toList stop CandidateTerm) xs
+                   <> map (toList stop GraphTerm)     ys
+                   <> toTermList a b stop zs
+    where
+      xs = take a ns
+      xz = drop a ns
+
+      ys = take b xz
+      zs = drop b xz
 
 
 toNgramsElement :: (ListType, (Text, (Double, Set Text))) -> [NgramsElement]
@@ -179,19 +197,6 @@ toList stop l n = case stop n of
     True  -> (StopTerm, n)
     False -> (l, n)
 
-
-toTermList :: Int -> Int -> (a -> Bool) -> [a] -> [(ListType, a)]
-toTermList _ _ _ [] = []
-toTermList a b stop ns =  -- trace ("computing toTermList") $
-                      map (toList stop CandidateTerm) xs
-                   <> map (toList stop GraphTerm)     ys
-                   <> toTermList a b stop zs
-    where
-      xs = take a ns
-      ta = drop a ns
-
-      ys = take b ta
-      zs = drop b ta
 
 
 isStopTerm :: StopSize -> Text -> Bool
