@@ -30,7 +30,6 @@ module Gargantext.Prelude
   , sortWith
   , module Prelude
   , MonadBase(..)
-  , Map2 , lookup2
   )
   where
 
@@ -72,10 +71,7 @@ import Prelude (Enum, Bounded, minBound, maxBound, putStrLn)
 -- import Gargantext.Utils.Count
 import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
-
-import Data.Map (Map)
-import qualified Data.Map as M
-
+import qualified Data.Map      as M
 import Data.Map.Strict (insertWith)
 import qualified Data.Vector as V
 import Safe (headMay, lastMay, initMay, tailMay)

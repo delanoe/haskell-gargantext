@@ -53,10 +53,10 @@ bridgeness b ns = DM.fromList
 
 
 nodeId2comId :: [LouvainNode] -> Map LouvainNodeId CommunityId
-nodeId2comId ns = fromList [ (nId,cId) | LouvainNode nId cId <- ns]
+nodeId2comId ns = fromList [(nId,cId) | LouvainNode nId cId <- ns]
 
 
-groupEdges :: Map LouvainNodeId CommunityId
+groupEdges :: Map  LouvainNodeId CommunityId
            -> Map (LouvainNodeId, LouvainNodeId) Double
            -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
 groupEdges m = fromListWith (<>)
@@ -73,14 +73,16 @@ groupEdges m = fromListWith (<>)
 filterComs :: Bridgeness
            -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
            -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
-filterComs b m = mapWithKey filter' m
+filterComs _b m = DM.filter (\n -> length n > 0) $ mapWithKey filter' m
   where
     filter' (c1,c2) a
       | c1 == c2  = a
-      | otherwise = take n $ sortOn (Down . snd) a
-          where
-            n = round $ 100 * b * a' / t
+      -- TODO use n here
+      | otherwise = take 1 $ sortOn (Down . snd) a
+           where
+            _n :: Int
+            _n = round $ 100 * a' / t
             a'= fromIntegral $ length a
+            t :: Double
             t = fromIntegral $ length $ concat $ elems m
-
 
