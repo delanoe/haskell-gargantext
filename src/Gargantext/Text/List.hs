@@ -139,11 +139,10 @@ buildNgramsTermsList :: Lang
                      -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
-  candidates <- sortTficf Up <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
+  candidates <- sortTficf Down <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
 
   let
     candidatesSize = 400
-
 {-
     a = 50
     b = 50

@@ -7,8 +7,9 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+Nice optimization of the Fibonacci function.
 
-Source: 
+Source:
 Gabriel Gonzales, Blazing fast Fibonacci numbers using Monoids, 2020-04,
 http://www.haskellforall.com/2020/04/blazing-fast-fibonacci-numbers-using.html
 (This post illustrates a nifty application of Haskell’s standard library to solve a numeric problem.)
