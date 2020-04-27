@@ -51,7 +51,7 @@ triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
                                          || ' ' || (new.hyperdata ->> 'fonction')
                                      );
           ELSE
-            new.search := to_tsvector( 'english' , new.name);
+            new.search := to_tsvector( 'english' , (new.hyperdata ->> 'title') || ' ' || (new.hyperdata ->> 'abstract'));
           END IF;
           return new;
         end
@@ -63,7 +63,7 @@ triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
           BEFORE INSERT OR UPDATE
           ON nodes FOR EACH ROW
           EXECUTE PROCEDURE search_update();
-      
+
       -- Initialize index with already existing data
       UPDATE nodes SET hyperdata = hyperdata;
 
