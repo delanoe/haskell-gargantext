@@ -36,6 +36,7 @@ triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
   where
     query :: DPS.Query
     query = [sql|
+        -- DROP TRIGGER search_update_trigger on nodes;
         CREATE OR REPLACE FUNCTION public.search_update()
         RETURNS trigger AS $$
         begin
