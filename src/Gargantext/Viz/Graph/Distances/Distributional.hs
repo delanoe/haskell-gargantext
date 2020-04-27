@@ -39,7 +39,7 @@ distributional m = filter (\((x,y), d) -> foldl' (&&) True (conditions x y d) ) 
                          ]
     distriList   = toListsWithIndex distriMatrix
     distriMatrix = ri (mi m)
-    
+
     distriMap    = M.fromList $ distriList
     miniMax'     = miniMax distriMatrix
 
@@ -60,11 +60,11 @@ mi m = matrix c r createMat
     (c,r) = (nOf Col m, nOf Row m)
     createMat (x,y) = doMi x y m
     doMi x y m' = if x == y then 0 else (max (log (doMi' x y m')) 0 )
-    
+
     doMi' x y m' = (getElem x y m) / ( cross x y m / total m' )
-    
+
     cross x y m' = (V.sum $ ax Col x y m) * (V.sum $ ax Row x y m')
-    
+
 
 
 ax :: Axis -> Int -> Int -> Matrix a -> Vector a

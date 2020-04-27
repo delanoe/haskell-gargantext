@@ -17,8 +17,15 @@ module Gargantext.Viz.Graph.Distances
   where
 
 
+import Data.Array.Accelerate
+import Gargantext.Viz.Graph.Distances.Matrice (measureConditional, distributional)
+
+data Distance = Conditional | Distributional
 
 
+measure :: Distance -> Matrix Int -> Matrix Double
+measure Conditional    = measureConditional
+measure Distributional = distributional
 
 
 
