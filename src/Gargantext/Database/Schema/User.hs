@@ -47,20 +47,21 @@ toUserLight (UserDB id _ _ _ u _ _ e _ _ _ ) = UserLight id u e
 
 data UserPoly id pass llogin suser
               uname fname lname
-              mail staff active djoined = UserDB { user_id          :: id
-                                               , user_password    :: pass
-                                               , user_lastLogin   :: llogin
-                                               , user_isSuperUser :: suser
+              mail staff active djoined =
+    UserDB { user_id          :: id
+           , user_password    :: pass
+           , user_lastLogin   :: llogin
+           , user_isSuperUser :: suser
 
-                                               , user_username    :: uname
-                                               , user_firstName   :: fname
-                                               , user_lastName    :: lname
-                                               , user_email       :: mail
+           , user_username    :: uname
+           , user_firstName   :: fname
+           , user_lastName    :: lname
+           , user_email       :: mail
 
-                                               , user_isStaff     :: staff
-                                               , user_isActive    :: active
-                                               , user_dateJoined  :: djoined
-                                               } deriving (Show)
+           , user_isStaff     :: staff
+           , user_isActive    :: active
+           , user_dateJoined  :: djoined
+           } deriving (Show)
 
 type UserWrite = UserPoly (Maybe (Column PGInt4))        (Column PGText)
                           (Maybe (Column PGTimestamptz)) (Column PGBool)

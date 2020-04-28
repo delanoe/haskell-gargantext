@@ -131,6 +131,9 @@ buildNgramsTermsList' uCid groupIt stop gls is = do
   pure $ Map.fromList [(NgramsTerms, ngs')]
 -}
 
+
+
+
 buildNgramsTermsList :: Lang
                      -> Int
                      -> Int
@@ -152,8 +155,8 @@ buildNgramsTermsList l n m s uCid mCid = do
 
     termList = 
           -- (toTermList a b ((isStopTerm s) . fst) candidatesHead)
-                (map (toList ((isStopTerm s) .fst) GraphTerm)     candidatesHead)
-             <> (map (toList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
+                (map (toGargList ((isStopTerm s) .fst) GraphTerm)     candidatesHead)
+             <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
 
     ngs = List.concat $ map toNgramsElement termList
 
@@ -167,8 +170,8 @@ toTermList :: Int
            -> [(ListType, a)]
 toTermList _ _ _ [] = []
 toTermList a b stop ns =  -- trace ("computing toTermList") $
-                      map (toList stop CandidateTerm) xs
-                   <> map (toList stop GraphTerm)     ys
+                      map (toGargList stop CandidateTerm) xs
+                   <> map (toGargList stop GraphTerm)     ys
                    <> toTermList a b stop zs
     where
       xs = take a ns
@@ -194,8 +197,8 @@ toNgramsElement (listType, (_stem, (_score, setNgrams))) =
                             ) children
 
 
-toList :: (b -> Bool) -> ListType -> b -> (ListType, b)
-toList stop l n = case stop n of
+toGargList :: (b -> Bool) -> ListType -> b -> (ListType, b)
+toGargList stop l n = case stop n of
     True  -> (StopTerm, n)
     False -> (l, n)
 

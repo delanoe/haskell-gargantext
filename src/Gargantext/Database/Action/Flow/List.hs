@@ -26,22 +26,76 @@ module Gargantext.Database.Action.Flow.List
 
 import Control.Monad (mapM_)
 import Data.Map (Map, toList)
+import Data.Either
 import Data.Maybe (Maybe(..), catMaybes)
+import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
-import Gargantext.Core.Types.Main (ListType(CandidateTerm))
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types.Individu
 import Gargantext.Core.Flow.Types
+import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Action.Flow.Types
+import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
+import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
 import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams -- (insert_Node_NodeNgrams_NodeNgrams, Node_NodeNgrams_NodeNgrams(..))
 import Gargantext.Prelude
+import Gargantext.Text.List
 import qualified Data.List as List
 import qualified Data.Map  as Map
-
+import qualified Data.Set as Set
+import Gargantext.Database.Action.Metrics.NgramsByNode
+import Gargantext.Database.Action.Query.Tree.Root (getOrMk_RootWithCorpus)
 
 -- FLOW LIST
+-- 1. select specific terms of the corpus when compared with others langs
+-- (for now, suppose english)
+-- 2. select specific terms of the corpus when compared with others corpora (same database)
+-- 3. select clusters of terms (generic and specific)
+
+{-
+data FlowList = FlowListLang
+              | FlowListTficf
+              | FlowListSpeGen
+
+
+flowList_Tficf :: UserCorpusId
+               -> MasterCorpusId
+               -> NgramsType
+               -> (Text -> Text)
+               -> Cmd err (Map Text (Double, Set Text))
+flowList_Tficf u m nt f = do
+
+  u' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsUser   u nt
+  m' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsMaster u m
+
+  pure $ sortTficf Down
+       $ toTficfData (countNodesByNgramsWith f u')
+                     (countNodesByNgramsWith f m')
+
+flowList_Tficf' :: UserCorpusId
+               -> MasterCorpusId
+               -> NgramsType
+               -> Cmd err (Map Text (Double, Set Text))
+flowList_Tficf' u m nt f = do
+
+  u' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsUser   u nt
+  m' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsMaster u m
+
+  pure $ sortTficf Down
+       $ toTficfData (countNodesByNgramsWith f u')
+                     (countNodesByNgramsWith f m')
+
+-}
+
+
+
+
+
+
 -- | TODO check optimization
 mapNodeIdNgrams :: [DocumentIdWithNgrams a]
                 -> Map Ngrams (Map NgramsType (Map NodeId Int))

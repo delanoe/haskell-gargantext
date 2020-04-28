@@ -212,7 +212,7 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
           JOIN input_rows  ir ON ir.terms      = ng.terms
           WHERE nng.node1_id     = ?   -- CorpusId
             AND nng.node2_id     = ?   -- ListId
-            AND nng.ngrams_type  = ? -- NgramsTypeId
+            AND nng.ngrams_type  = ?   -- NgramsTypeId
             -- AND nn.category     > 0 -- TODO
             GROUP BY ng.terms, nng.weight
         |]

@@ -65,7 +65,10 @@ triggerCountInsert = execPGSQuery query (nodeTypeId NodeDocument, nodeTypeId Nod
    |]
 
 triggerCountInsert2 :: Cmd err Int64
-triggerCountInsert2 = execPGSQuery query (nodeTypeId NodeCorpus, nodeTypeId NodeDocument, nodeTypeId NodeList)
+triggerCountInsert2 = execPGSQuery query ( nodeTypeId NodeCorpus
+                                         , nodeTypeId NodeDocument
+                                         , nodeTypeId NodeList
+                                         )
   where
     query :: DPS.Query
     query = [sql|

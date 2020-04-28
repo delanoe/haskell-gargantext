@@ -39,6 +39,112 @@ import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------
+
+$(makeAdaptorAndInstance "pNode" ''NodePoly)
+$(makeLensesWith abbreviatedFields ''NodePoly)
+
+$(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
+$(makeLensesWith abbreviatedFields ''NodePolySearch)
+
+------------------------------------------------------------------------
+nodeTable :: Table NodeWrite NodeRead
+nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
+                                      , _node_typename   = required "typename"
+                                      , _node_userId     = required "user_id"
+
+                                      , _node_parentId   = optional "parent_id"
+                                      , _node_name       = required "name"
+                                      , _node_date       = optional "date"
+
+                                      , _node_hyperdata  = required "hyperdata"
+                                      -- ignoring ts_vector field here
+                                      }
+                            )
+
+queryNodeTable :: Query NodeRead
+queryNodeTable = queryTable nodeTable
+------------------------------------------------------------------------
+type NodeWrite = NodePoly (Maybe (Column PGInt4)      )
+                                 (Column PGInt4)
+                                 (Column PGInt4)
+                          (Maybe (Column PGInt4)      )
+                                 (Column PGText)
+                          (Maybe (Column PGTimestamptz))
+                                 (Column PGJsonb)
+
+type NodeRead = NodePoly (Column PGInt4        )
+                         (Column PGInt4        )
+                         (Column PGInt4        )
+                         (Column PGInt4        )
+                         (Column PGText        )
+                         (Column PGTimestamptz )
+                         (Column PGJsonb       )
+
+type NodeReadNull = NodePoly (Column (Nullable PGInt4))
+                             (Column (Nullable PGInt4))
+                             (Column (Nullable PGInt4))
+                             (Column (Nullable PGInt4))
+                             (Column (Nullable PGText))
+                             (Column (Nullable PGTimestamptz))
+                             (Column (Nullable PGJsonb))
+
+------------------------------------------------------------------------
+-- | Node(Read|Write)Search is slower than Node(Write|Read) use it
+-- for full text search only
+nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
+nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
+                                      , _ns_typename   = required "typename"
+                                      , _ns_userId     = required "user_id"
+
+                                      , _ns_parentId   = required "parent_id"
+                                      , _ns_name       = required "name"
+                                      , _ns_date       = optional "date"
+
+                                      , _ns_hyperdata  = required "hyperdata"
+                                      , _ns_search     = optional "search"
+                                      }
+                            )
+
+
+
+type NodeSearchWrite =
+  NodePolySearch
+    (Maybe  (Column  PGInt4)      )
+    (Column  PGInt4               )
+    (Column  PGInt4               )
+    (Column (Nullable PGInt4)     )
+    (Column PGText                )
+    (Maybe  (Column PGTimestamptz))
+    (Column  PGJsonb              )
+    (Maybe  (Column PGTSVector)   )
+
+type NodeSearchRead =
+  NodePolySearch
+    (Column  PGInt4           )
+    (Column  PGInt4           )
+    (Column  PGInt4           )
+    (Column (Nullable PGInt4 ))
+    (Column  PGText           )
+    (Column  PGTimestamptz    )
+    (Column  PGJsonb          )
+    (Column  PGTSVector       )
+
+type NodeSearchReadNull =
+  NodePolySearch
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGInt4)       )
+    (Column (Nullable PGText)       )
+    (Column (Nullable PGTimestamptz))
+    (Column (Nullable PGJsonb)      )
+    (Column (Nullable PGTSVector)   )
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
+
 instance FromField HyperdataAny where
     fromField = fromField'
 
@@ -139,102 +245,5 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-
-------------------------------------------------------------------------
-$(makeAdaptorAndInstance "pNode" ''NodePoly)
-$(makeLensesWith abbreviatedFields ''NodePoly)
-
-$(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
-$(makeLensesWith abbreviatedFields ''NodePolySearch)
-
-type NodeWrite = NodePoly (Maybe (Column PGInt4)      )
-                                 (Column PGInt4)
-                                 (Column PGInt4)
-                          (Maybe (Column PGInt4)      )
-                                 (Column PGText)
-                          (Maybe (Column PGTimestamptz))
-                                 (Column PGJsonb)
-
-type NodeRead = NodePoly (Column PGInt4        )
-                         (Column PGInt4        )
-                         (Column PGInt4        )
-                         (Column PGInt4        )
-                         (Column PGText        )
-                         (Column PGTimestamptz )
-                         (Column PGJsonb       )
-
-type NodeReadNull = NodePoly (Column (Nullable PGInt4))
-                             (Column (Nullable PGInt4))
-                             (Column (Nullable PGInt4))
-                             (Column (Nullable PGInt4))
-                             (Column (Nullable PGText))
-                             (Column (Nullable PGTimestamptz))
-                             (Column (Nullable PGJsonb))
-
-nodeTable :: Table NodeWrite NodeRead
-nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
-                                      , _node_typename   = required "typename"
-                                      , _node_userId     = required "user_id"
-
-                                      , _node_parentId   = optional "parent_id"
-                                      , _node_name       = required "name"
-                                      , _node_date       = optional "date"
-
-                                      , _node_hyperdata  = required "hyperdata"
-                                      }
-                            )
-
-queryNodeTable :: Query NodeRead
-queryNodeTable = queryTable nodeTable
-
-------------------------------------------------------------------------
--- | Node(Read|Write)Search is slower than Node(Write|Read) use it
--- for full text search only
-type NodeSearchWrite =
-  NodePolySearch
-    (Maybe  (Column  PGInt4)      )
-    (Column  PGInt4               )
-    (Column  PGInt4               )
-    (Column (Nullable PGInt4)     )
-    (Column PGText                )
-    (Maybe  (Column PGTimestamptz))
-    (Column  PGJsonb              )
-    (Maybe  (Column PGTSVector)   )
-
-type NodeSearchRead =
-  NodePolySearch
-    (Column  PGInt4           )
-    (Column  PGInt4           )
-    (Column  PGInt4           )
-    (Column (Nullable PGInt4 ))
-    (Column  PGText           )
-    (Column  PGTimestamptz    )
-    (Column  PGJsonb          )
-    (Column  PGTSVector       )
-
-type NodeSearchReadNull =
-  NodePolySearch
-    (Column (Nullable PGInt4)       )
-    (Column (Nullable PGInt4)       )
-    (Column (Nullable PGInt4)       )
-    (Column (Nullable PGInt4)       )
-    (Column (Nullable PGText)       )
-    (Column (Nullable PGTimestamptz))
-    (Column (Nullable PGJsonb)      )
-    (Column (Nullable PGTSVector)   )
-
-nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
-nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
-                                      , _ns_typename   = required "typename"
-                                      , _ns_userId     = required "user_id"
-
-                                      , _ns_parentId   = required "parent_id"
-                                      , _ns_name       = required "name"
-                                      , _ns_date       = optional "date"
-
-                                      , _ns_hyperdata  = required "hyperdata"
-                                      , _ns_search     = optional "search"
-                                      }
-                            )
 
 

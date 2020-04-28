@@ -71,8 +71,8 @@ lastName texte = DT.toLower
   where
     lastName' = lastMay . DT.splitOn " "
 
--- TODO: this method is dangerous (maybe equalities of the result are not taken into account
--- emergency demo plan...)
+-- TODO: this method is dangerous (maybe equalities of the result are
+-- not taken into account emergency demo plan...)
 pairingPolicyToMap :: (Terms -> Terms)
                    -> Map (NgramsT Ngrams) a
                    -> Map (NgramsT Ngrams) a
