@@ -35,20 +35,14 @@ import Data.Map (Map, fromList, lookup)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger (ToParamSchema, toParamSchema, ToSchema)
 import Data.Text (Text, splitOn, pack)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Database.PostgreSQL.Simple.FromRow (fromRow, field)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.ToField (toField, ToField)
-import Database.PostgreSQL.Simple.ToRow   (toRow)
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Core.Types (TODO(..))
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
 import Gargantext.Prelude
-import Opaleye hiding (FromField)
 import Prelude (Enum, Bounded, minBound, maxBound, Functor)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
 import Text.Read (read)
+import Gargantext.Database.Schema.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
 

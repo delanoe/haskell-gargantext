@@ -38,7 +38,7 @@ module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
 
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery, mkCmd)
 import Gargantext.Database.Admin.Types.Node (CorpusId, pgNodeId)
 import Gargantext.Database.Schema.Node()

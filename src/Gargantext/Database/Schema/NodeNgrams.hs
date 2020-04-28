@@ -30,18 +30,13 @@ import Data.List.Extra (nubOrd)
 import Data.Map (Map)
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Text (Text)
-import Database.PostgreSQL.Simple (FromRow)
-import Database.PostgreSQL.Simple.FromRow (fromRow, field)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.ToField (toField)
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
+import Gargantext.Database.Schema.Prelude
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Ngrams (NgramsType, ngramsTypeId, fromNgramsTypeId)
 import Gargantext.Prelude
 import qualified Data.List as List
 import qualified Data.Map as Map
-import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 
 
 data NodeNgramsPoly id

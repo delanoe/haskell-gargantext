@@ -30,16 +30,14 @@ import Control.Arrow (returnA)
 import Control.Lens (view, (^.))
 import Control.Lens.TH (makeLenses)
 import Data.Maybe (Maybe, catMaybes)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text, splitOn)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (CorpusId, DocId)
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Schema.Prelude
 import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))

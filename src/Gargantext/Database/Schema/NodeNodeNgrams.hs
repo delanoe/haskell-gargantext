@@ -24,7 +24,6 @@ module Gargantext.Database.Schema.NodeNodeNgrams
   where
 
 import Prelude
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Control.Lens.TH (makeLenses)
 import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)

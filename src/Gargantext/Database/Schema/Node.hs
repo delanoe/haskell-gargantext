@@ -27,21 +27,10 @@ Portability : POSIX
 module Gargantext.Database.Schema.Node where
 
 import Control.Lens hiding (elements, (&))
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Data.Aeson.TH (deriveJSON)
-import Data.Maybe (Maybe(..))
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Swagger hiding (required)
 import Data.Text (Text)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Utils
-import Opaleye hiding (FromField)
-import Opaleye.Internal.QueryArr (Query)
+import Gargantext.Database.Schema.Prelude
 import Prelude hiding (null, id, map, sum)
-import Test.QuickCheck.Arbitrary
-
 
 ------------------------------------------------------------------------
 -- Main polymorphic Node definition
