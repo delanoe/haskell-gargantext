@@ -65,6 +65,7 @@ import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
+import Gargantext.Database.Schema.Node (node_userId, _node_typename)
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Prelude
 import Gargantext.Viz.Chart

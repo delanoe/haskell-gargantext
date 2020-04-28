@@ -46,7 +46,8 @@ import Gargantext.Core.Types.Individu (User(..), Username, Password, arbitraryUs
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Query.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Action.Query.Tree.Root (getRoot)
-import Gargantext.Database.Admin.Types.Node (NodePoly(_node_id), NodeId(..), UserId, ListId, DocId)
+import Gargantext.Database.Schema.Node (NodePoly(_node_id)) 
+import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId, ListId, DocId)
 import Gargantext.Database.Admin.Utils (Cmd', CmdM, HasConnectionPool)
 import Gargantext.Prelude hiding (reverse)
 import Servant

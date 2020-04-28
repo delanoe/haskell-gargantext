@@ -23,8 +23,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Label, Stems
                              , HasInvalidError(..), assertValid
                              , Name
-                             , TableResult(..)
-                             , NodeTableResult
+                             , TableResult(..), NodeTableResult
                              , Ordering(..)
                              , TODO(..)
                              ) where
@@ -42,8 +41,8 @@ import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
 import Gargantext.Core.Types.Main
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
@@ -143,6 +142,9 @@ assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # 
 -- assertValid :: MonadBase IO m => Validation -> m ()
 -- assertValid v = when (not $ validationIsValid v) $ fail $ show v
 
+-- | NodeTableResult (Table computations)
+type NodeTableResult a = TableResult (Node a)
+
 
 data TableResult a = TableResult { tr_count :: Int
                                  , tr_docs :: [a]
@@ -156,7 +158,6 @@ instance ToSchema a => ToSchema (TableResult a) where
 instance Arbitrary a => Arbitrary (TableResult a) where
   arbitrary = TableResult <$> arbitrary <*> arbitrary
 
-type NodeTableResult a = TableResult (Node a)
 
 -- TO BE removed
 data TODO = TODO

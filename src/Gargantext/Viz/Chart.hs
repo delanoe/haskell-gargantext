@@ -29,6 +29,7 @@ import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.NodeNode (selectDocsDates)
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.Count (occurrencesWith)
 

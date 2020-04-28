@@ -25,6 +25,7 @@ import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Prelude

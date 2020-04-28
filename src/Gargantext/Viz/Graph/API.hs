@@ -46,6 +46,7 @@ import Gargantext.API.Admin.Types
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Schema.Node (node_userId, node_parentId, node_hyperdata)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Action.Query.Node.Select
 import Gargantext.Database.Action.Query.Node

@@ -26,25 +26,43 @@ Portability : POSIX
 
 module Gargantext.Database.Schema.Node where
 
+import Control.Lens hiding (elements, (&))
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.Aeson.TH (deriveJSON)
 import Data.Maybe (Maybe(..))
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Swagger hiding (required)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Gargantext.Core.Types
+import GHC.Generics (Generic)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Utils
-import Gargantext.Viz.Graph (HyperdataGraph(..))
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
+import Test.QuickCheck.Arbitrary
+
 
 ------------------------------------------------------------------------
+data NodePoly id        typename userId 
+              parentId  name     date 
+              hyperdata  = Node { _node_id        :: id
+                                , _node_typename  :: typename
 
-$(makeAdaptorAndInstance "pNode" ''NodePoly)
+                                , _node_userId    :: userId
+                                , _node_parentId  :: parentId
+
+                                , _node_name      :: name
+                                , _node_date      :: date
+
+                                , _node_hyperdata :: hyperdata
+                                } deriving (Show, Generic)
+
+$(deriveJSON (unPrefix "_node_") ''NodePoly)
+$(makeLenses ''NodePoly)
+
+$(makeAdaptorAndInstance "pNode"   ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
-
-$(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
-$(makeLensesWith abbreviatedFields ''NodePolySearch)
 
 ------------------------------------------------------------------------
 nodeTable :: Table NodeWrite NodeRead
@@ -91,21 +109,6 @@ type NodeReadNull = NodePoly (Column (Nullable PGInt4))
 ------------------------------------------------------------------------
 -- | Node(Read|Write)Search is slower than Node(Write|Read) use it
 -- for full text search only
-nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
-nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
-                                      , _ns_typename   = required "typename"
-                                      , _ns_userId     = required "user_id"
-
-                                      , _ns_parentId   = required "parent_id"
-                                      , _ns_name       = required "name"
-                                      , _ns_date       = optional "date"
-
-                                      , _ns_hyperdata  = required "hyperdata"
-                                      , _ns_search     = optional "search"
-                                      }
-                            )
-
-
 
 type NodeSearchWrite =
   NodePolySearch
@@ -140,110 +143,37 @@ type NodeSearchReadNull =
     (Column (Nullable PGJsonb)      )
     (Column (Nullable PGTSVector)   )
 
+
+data NodePolySearch id        typename userId 
+              parentId  name     date 
+              hyperdata search = NodeSearch { _ns_id        :: id
+                                      , _ns_typename  :: typename
+                                      , _ns_userId    :: userId
+                                                                --   , nodeUniqId    :: shaId
+                                      , _ns_parentId  :: parentId
+                                      , _ns_name      :: name
+                                      , _ns_date      :: date
+
+                                      , _ns_hyperdata :: hyperdata
+                                      , _ns_search    :: search
+                                      } deriving (Show, Generic)
+
+$(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
+$(makeLensesWith abbreviatedFields ''NodePolySearch)
+$(deriveJSON (unPrefix "_ns_")     ''NodePolySearch)
+$(makeLenses ''NodePolySearch)
+
+nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
+nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
+                                      , _ns_typename   = required "typename"
+                                      , _ns_userId     = required "user_id"
+
+                                      , _ns_parentId   = required "parent_id"
+                                      , _ns_name       = required "name"
+                                      , _ns_date       = optional "date"
+
+                                      , _ns_hyperdata  = required "hyperdata"
+                                      , _ns_search     = optional "search"
+                                      }
+                            )
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
--- Instances
-------------------------------------------------------------------------
-
-instance FromField HyperdataAny where
-    fromField = fromField'
-
-instance FromField HyperdataCorpus
-  where
-    fromField = fromField'
-
-instance FromField HyperdataDocument
-  where
-    fromField = fromField'
-
-instance FromField HyperdataDocumentV3
-  where
-    fromField = fromField'
-
-instance FromField HyperData
-  where
-    fromField = fromField'
-
-instance FromField HyperdataListModel
-  where
-    fromField = fromField'
-
-instance FromField HyperdataGraph
-  where
-    fromField = fromField'
-
-instance FromField HyperdataPhylo
-  where
-    fromField = fromField'
-
-instance FromField HyperdataAnnuaire
-  where
-    fromField = fromField'
-
-instance FromField HyperdataList
-  where
-    fromField = fromField'
-
-instance FromField (NodeId, Text)
-  where
-    fromField = fromField'
-------------------------------------------------------------------------
-instance QueryRunnerColumnDefault PGJsonb HyperdataAny
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataList
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperData
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataDocument
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGInt4 (Maybe NodeId)
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGInt4 NodeId
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
-

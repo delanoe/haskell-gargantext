@@ -44,6 +44,7 @@ import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (Node, HyperdataDocument(..), NodeId, ListId, CorpusId)
 import Gargantext.Database.Admin.Utils (Cmd)
+import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Database.Schema.NodeNode (selectDocNodes)
 import Gargantext.Prelude

@@ -10,10 +10,12 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE DeriveGeneric     #-}
+
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 module Gargantext.Viz.Graph
   where
@@ -30,6 +32,9 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Types.Node (NodeId, Hyperdata)
 import Gargantext.Prelude
 import Test.QuickCheck (elements)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import Gargantext.Database.Admin.Utils (fromField')
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Aeson as DA
 import qualified Data.Text as T
@@ -164,6 +169,14 @@ $(deriveJSON (unPrefix "") ''HyperdataGraph)
 
 instance Hyperdata HyperdataGraph
 makeLenses ''HyperdataGraph
+
+instance FromField HyperdataGraph
+  where
+    fromField = fromField'
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 
 -----------------------------------------------------------

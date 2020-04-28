@@ -15,10 +15,10 @@ Portability : POSIX
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE NoImplicitPrelude          #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- {-# LANGUAGE DuplicateRecordFields #-}
 
@@ -43,10 +43,13 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Admin.Utils (fromField')
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo (Phylo)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGJsonb, PGTSVector, Nullable, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Instances.Text ()
@@ -54,6 +57,77 @@ import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
 import Text.Show (Show())
 import qualified Opaleye as O
+
+
+------------------------------------------------------------------------
+
+-- | NodePoly indicates that Node has a Polymorphism Type
+type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+
+-- | NodeSearch (queries)
+type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
+
+------------------------------------------------------------------------
+
+instance ToSchema hyperdata =>
+         ToSchema (NodePoly NodeId NodeTypeId
+                            (Maybe UserId)
+                            ParentId NodeName
+                            UTCTime hyperdata
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
+
+instance ToSchema hyperdata =>
+         ToSchema (NodePoly NodeId NodeTypeId
+                            UserId
+                            (Maybe ParentId) NodeName
+                            UTCTime hyperdata
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
+
+
+instance ToSchema hyperdata =>
+         ToSchema (NodePolySearch NodeId NodeTypeId
+                            (Maybe UserId)
+                            ParentId NodeName
+                            UTCTime hyperdata (Maybe TSVector)
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
+
+instance ToSchema hyperdata =>
+         ToSchema (NodePolySearch NodeId NodeTypeId
+                            UserId
+                            (Maybe ParentId) NodeName
+                            UTCTime hyperdata (Maybe TSVector)
+                  ) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
+
+
+instance (Arbitrary hyperdata
+         ,Arbitrary nodeId
+         ,Arbitrary nodeTypeId
+         ,Arbitrary userId
+         ,Arbitrary nodeParentId
+         ) => Arbitrary (NodePoly nodeId nodeTypeId userId nodeParentId
+                                  NodeName UTCTime hyperdata) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary
+
+instance (Arbitrary hyperdata
+         ,Arbitrary nodeId
+         ,Arbitrary nodeTypeId
+         ,Arbitrary userId
+         ,Arbitrary nodeParentId
+         ) => Arbitrary (NodePolySearch nodeId nodeTypeId userId nodeParentId
+                                  NodeName UTCTime hyperdata (Maybe TSVector)) where
+    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
+    arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary <*> arbitrary <*> arbitrary
+                     <*> arbitrary <*> arbitrary
+
+
 
 ------------------------------------------------------------------------
 pgNodeId :: NodeId -> O.Column O.PGInt4
@@ -78,32 +152,11 @@ instance FromField NodeId where
 
 instance ToSchema NodeId
 
-
 type NodeTypeId   = Int
 type NodeName     = Text
 type TSVector     = Text
 
 ------------------------------------------------------------------------
-data NodePoly id        typename userId 
-              parentId  name     date 
-              hyperdata  = Node { _node_id        :: id
-                                , _node_typename  :: typename
-
-                                , _node_userId    :: userId
-                                , _node_parentId  :: parentId
-
-                                , _node_name      :: name
-                                , _node_date      :: date
-
-                                , _node_hyperdata :: hyperdata
-                                } deriving (Show, Generic)
-$(deriveJSON (unPrefix "_node_") ''NodePoly)
-$(makeLenses ''NodePoly)
-
--- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
-
-
 ------------------------------------------------------------------------
 
 instance FromHttpApiData NodeId where
@@ -512,51 +565,7 @@ instance ToParamSchema NodeType
 instance ToSchema      NodeType
 
 
-data NodePolySearch id        typename userId 
-              parentId  name     date 
-              hyperdata search = NodeSearch { _ns_id        :: id
-                                      , _ns_typename  :: typename
-                                      , _ns_userId    :: userId
-                                                                --   , nodeUniqId    :: shaId
-                                      , _ns_parentId  :: parentId
-                                      , _ns_name      :: name
-                                      , _ns_date      :: date
-
-                                      , _ns_hyperdata :: hyperdata
-                                      , _ns_search    :: search
-                                      } deriving (Show, Generic)
-$(deriveJSON (unPrefix "_ns_") ''NodePolySearch)
-$(makeLenses ''NodePolySearch)
-
-type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
 ------------------------------------------------------------------------
-
-
-instance (Arbitrary hyperdata
-         ,Arbitrary nodeId
-         ,Arbitrary nodeTypeId
-         ,Arbitrary userId
-         ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePoly nodeId nodeTypeId userId nodeParentId
-                                  NodeName UTCTime hyperdata) where
-    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
-    arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary
-
-instance (Arbitrary hyperdata
-         ,Arbitrary nodeId
-         ,Arbitrary nodeTypeId
-         ,Arbitrary userId
-         ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePolySearch nodeId nodeTypeId userId nodeParentId
-                                  NodeName UTCTime hyperdata (Maybe TSVector)) where
-    --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
-    arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary <*> arbitrary
-
-
 ------------------------------------------------------------------------
 hyperdataDocument :: HyperdataDocument
 hyperdataDocument = case decode docExample of
@@ -568,6 +577,10 @@ hyperdataDocument = case decode docExample of
                                                    Nothing Nothing Nothing
 docExample :: ByteString
 docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"
+
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
 
 instance ToSchema HyperdataCorpus where
   declareNamedSchema proxy =
@@ -594,41 +607,103 @@ instance ToSchema HyperdataAny where
              & schema.example ?~ emptyObject -- TODO
 
 
-instance ToSchema hyperdata =>
-         ToSchema (NodePoly NodeId NodeTypeId
-                            (Maybe UserId)
-                            ParentId NodeName
-                            UTCTime hyperdata
-                  ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
-
-instance ToSchema hyperdata =>
-         ToSchema (NodePoly NodeId NodeTypeId
-                            UserId
-                            (Maybe ParentId) NodeName
-                            UTCTime hyperdata
-                  ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
-
-
-instance ToSchema hyperdata =>
-         ToSchema (NodePolySearch NodeId NodeTypeId
-                            (Maybe UserId)
-                            ParentId NodeName
-                            UTCTime hyperdata (Maybe TSVector)
-                  ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
-
-instance ToSchema hyperdata =>
-         ToSchema (NodePolySearch NodeId NodeTypeId
-                            UserId
-                            (Maybe ParentId) NodeName
-                            UTCTime hyperdata (Maybe TSVector)
-                  ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
-
-
 instance ToSchema Status where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "status_")
+
+
+
+instance FromField HyperdataAny where
+    fromField = fromField'
+
+instance FromField HyperdataCorpus
+  where
+    fromField = fromField'
+
+instance FromField HyperdataDocument
+  where
+    fromField = fromField'
+
+instance FromField HyperdataDocumentV3
+  where
+    fromField = fromField'
+
+instance FromField HyperData
+  where
+    fromField = fromField'
+
+instance FromField HyperdataListModel
+  where
+    fromField = fromField'
+
+instance FromField HyperdataPhylo
+  where
+    fromField = fromField'
+
+instance FromField HyperdataAnnuaire
+  where
+    fromField = fromField'
+
+instance FromField HyperdataList
+  where
+    fromField = fromField'
+
+instance FromField (NodeId, Text)
+  where
+    fromField = fromField'
+------------------------------------------------------------------------
+instance QueryRunnerColumnDefault PGJsonb HyperdataAny
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataList
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperData
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataDocument
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataDocumentV3
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataAnnuaire
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGInt4 (Maybe NodeId)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGInt4 NodeId
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
 
 
