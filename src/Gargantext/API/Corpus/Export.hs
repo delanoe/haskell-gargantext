@@ -46,7 +46,7 @@ import Gargantext.Database.Admin.Types.Node (Node, HyperdataDocument(..), NodeId
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Schema.NodeNode (selectDocNodes)
+import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (sha)
 import Servant

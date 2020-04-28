@@ -67,7 +67,6 @@ data NodeNgramsPoly id
                               } deriving (Show, Eq, Ord)
 
 {-
-
 type NodeNgramsWrite = NodeNgramsPoly (Maybe (Column (PGInt4)))
                                       (Column (PGInt4))
                                       (Maybe  (Column (PGInt4)))

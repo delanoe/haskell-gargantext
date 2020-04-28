@@ -135,7 +135,6 @@ instance ToParamSchema NgramsType where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
 
 
-
 instance QueryRunnerColumnDefault (Nullable PGInt4) NgramsTypeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
@@ -251,5 +250,4 @@ queryInsertNgrams = [sql|
     FROM   input_rows
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
-
 

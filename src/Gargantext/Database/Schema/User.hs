@@ -35,8 +35,6 @@ import Gargantext.Prelude
 import Opaleye
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
-
 data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
                            , userLight_email    :: !Text
@@ -84,27 +82,23 @@ type UserReadNull = UserPoly     (Column (Nullable PGInt4))         (Column (Nul
                                  (Column (Nullable PGBool))         (Column (Nullable PGBool))
                                  (Column (Nullable PGTimestamptz))
 
-
-
-
 type UserDB = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
 
 $(makeAdaptorAndInstance "pUserDB"   ''UserPoly)
 $(makeLensesWith abbreviatedFields   ''UserPoly)
 
-
 userTable :: Table UserWrite UserRead
-userTable = Table "auth_user" (pUserDB UserDB { user_id      = optional "id"
-                                          , user_password    = required "password"
-                                          , user_lastLogin   = optional "last_login"
-                                          , user_isSuperUser = required "is_superuser"
-                                          , user_username    = required "username"
-                                          , user_firstName   = required "first_name"
-                                          , user_lastName    = required "last_name"
-                                          , user_email       = required "email"
-                                          , user_isStaff     = required "is_staff"
-                                          , user_isActive    = required "is_active"
-                                          , user_dateJoined  = optional "date_joined"
-                                          }
-                              )
-
+userTable = Table "auth_user"
+  (pUserDB UserDB { user_id      = optional "id"
+                  , user_password    = required "password"
+                  , user_lastLogin   = optional "last_login"
+                  , user_isSuperUser = required "is_superuser"
+                  , user_username    = required "username"
+                  , user_firstName   = required "first_name"
+                  , user_lastName    = required "last_name"
+                  , user_email       = required "email"
+                  , user_isStaff     = required "is_staff"
+                  , user_isActive    = required "is_active"
+                  , user_dateJoined  = optional "date_joined"
+                  }
+      )
