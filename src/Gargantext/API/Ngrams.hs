@@ -126,7 +126,7 @@ import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset
 import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
-import Gargantext.Database.Action.Query.Ngrams
+import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Action.Query.Node.Select
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)

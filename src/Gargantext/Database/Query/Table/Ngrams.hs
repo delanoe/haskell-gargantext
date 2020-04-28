@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Ngrams
+Module      : Gargantext.Database.Query.Table.Ngrams
 Description : Deal with in Gargantext Database.
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -14,7 +14,7 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Action.Query.Ngrams
+module Gargantext.Database.Query.Table.Ngrams
     where
 
 import Control.Arrow (returnA)

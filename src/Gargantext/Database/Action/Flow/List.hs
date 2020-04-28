@@ -40,7 +40,7 @@ import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
-import Gargantext.Database.Schema.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
+import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
 import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams -- (insert_Node_NodeNgrams_NodeNgrams, Node_NodeNgrams_NodeNgrams(..))
 import Gargantext.Prelude
 import Gargantext.Text.List
