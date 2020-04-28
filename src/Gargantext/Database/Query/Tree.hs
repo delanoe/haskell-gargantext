@@ -18,7 +18,7 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Action.Query.Tree
+module Gargantext.Database.Query.Tree
   where
 
 import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
@@ -35,14 +35,11 @@ import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
-
+-- TODO more generic find fun
 findCorpus :: RootId -> Cmd err (Maybe CorpusId)
 findCorpus r = do
   _mapNodes <- toTreeParent <$> dbTree r []
   pure Nothing
-
-
-
 
 ------------------------------------------------------------------------
 data TreeError = NoRoot | EmptyRoot | TooManyRoots

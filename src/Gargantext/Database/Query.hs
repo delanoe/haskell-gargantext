@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Action.Query
+Module      : Gargantext.Database.Query
 Description : Main Tools of Node to the database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -24,12 +24,12 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 
-module Gargantext.Database.Action.Query
+module Gargantext.Database.Query
   where
 
 import Gargantext.Core.Types (Name)
-import Gargantext.Database.Action.Query.Node
-import Gargantext.Database.Action.Query.Node.User
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd)

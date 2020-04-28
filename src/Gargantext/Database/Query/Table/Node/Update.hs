@@ -15,7 +15,7 @@ Portability : POSIX
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Action.Query.Node.Update (Update(..), update)
+module Gargantext.Database.Query.Table.Node.Update (Update(..), update)
   where
 
 import qualified Data.Text as DT

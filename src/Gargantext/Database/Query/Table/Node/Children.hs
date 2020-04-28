@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Node.Children
+Module      : Gargantext.Database.Query.Table.Node.Children
 Description : Main requests of Node to the database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -16,15 +16,15 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE RankNTypes             #-}
 
-module Gargantext.Database.Action.Query.Node.Children
+module Gargantext.Database.Query.Table.Node.Children
   where
 
 import Control.Arrow (returnA)
 import Data.Proxy
 import Gargantext.Core.Types
-import Gargantext.Database.Action.Query.Filter
-import Gargantext.Database.Action.Query.Node
-import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact)
+import Gargantext.Database.Query.Filter
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Utils

@@ -23,7 +23,7 @@ Add Documents/Contact to a Corpus/Annuaire.
 {-# LANGUAGE TypeSynonymInstances #-}
 
 ------------------------------------------------------------------------
-module Gargantext.Database.Action.Query.Node.Document.Add
+module Gargantext.Database.Query.Table.Node.Document.Add
   where
 
 import Data.ByteString.Internal (ByteString)

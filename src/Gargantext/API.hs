@@ -72,7 +72,7 @@ import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgra
 import Gargantext.API.Node
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact)
+import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Database.Admin.Utils (HasConnectionPool)

@@ -22,7 +22,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Gargantext.Text (HasText(..))
 import Gargantext.Core.Types.Main (HashId)
-import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..))
+import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..))
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Prelude

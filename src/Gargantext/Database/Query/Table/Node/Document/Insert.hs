@@ -57,7 +57,7 @@ the concatenation of the parameters defined by @shaParameters@.
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
-module Gargantext.Database.Action.Query.Node.Document.Insert
+module Gargantext.Database.Query.Table.Node.Document.Insert
   where
 
 import Control.Lens (set, view)
@@ -73,7 +73,7 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField, Action)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
-import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..), ContactWho(..))
+import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)

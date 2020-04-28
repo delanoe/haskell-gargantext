@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Tools.Node
+Module      : Gargantext.Database.Query.Table.Node
 Description : Main Tools of Node to the database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -24,7 +24,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 
-module Gargantext.Database.Action.Query.Node
+module Gargantext.Database.Query.Table.Node
   where
 
 import Control.Arrow (returnA)
@@ -34,12 +34,12 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Text (Text)
 import GHC.Int (Int64)
 import Gargantext.Core.Types
-import Gargantext.Database.Action.Query.Filter (limit', offset')
+import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Admin.Utils
-import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
+import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))

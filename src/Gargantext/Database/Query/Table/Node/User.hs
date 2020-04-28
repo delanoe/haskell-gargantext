@@ -19,7 +19,7 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Action.Query.Node.User
+module Gargantext.Database.Query.Table.Node.User
   where
 
 import Control.Lens (makeLenses)
@@ -32,13 +32,13 @@ import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Name)
 import Gargantext.Core.Types.Individu
-import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Action.Query.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
-import Gargantext.Database.Action.Query.Node.Contact (HyperdataContact, fake_HyperdataContact)
 import Gargantext.Database.Admin.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
+import Gargantext.Database.Admin.Types.Node (NodeType(..))
+import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Utils -- (fromField', Cmd)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact, fake_HyperdataContact)
 import Gargantext.Database.Schema.Node -- (Node(..))
 import Gargantext.Prelude
 import Opaleye hiding (FromField)

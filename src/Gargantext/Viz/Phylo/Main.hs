@@ -28,7 +28,7 @@ import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Flow
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Action.Query.Node(defaultList)
+import Gargantext.Database.Query.Table.Node(defaultList)
 import Gargantext.Database.Query.Table.NodeNode (selectDocs)
 import Gargantext.Prelude
 import Gargantext.Text.Context (TermList)

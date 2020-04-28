@@ -23,7 +23,7 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Tuple (snd)
 import Gargantext.Core.Types (Offset, Limit)
-import Gargantext.Database.Action.Query.Facet
+import Gargantext.Database.Query.Facet
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Prelude

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.user
+Module      : Gargantext.Database.Query.Table.User
 Description : User Database management tools
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -23,7 +23,12 @@ Functions to deal with users, database side.
 {-# LANGUAGE OverloadedStrings           #-}
 {-# LANGUAGE RankNTypes                  #-}
 
-module Gargantext.Database.Action.Query.User
+module Gargantext.Database.Query.Table.User
+  ( insertUsers
+  , queryUserTable
+  , getUser
+  , module Gargantext.Database.Schema.User
+  )
   where
 
 import Control.Arrow (returnA)

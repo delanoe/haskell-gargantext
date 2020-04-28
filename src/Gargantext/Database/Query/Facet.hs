@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Facet
+Module      : Gargantext.Database.Query.Facet
 Description : Main requests of Node to the database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -25,7 +25,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE TypeFamilies              #-}
 ------------------------------------------------------------------------
-module Gargantext.Database.Action.Query.Facet
+module Gargantext.Database.Query.Facet
   ( runViewAuthorsDoc
   , runViewDocuments
   , filterWith
@@ -54,8 +54,8 @@ import Data.Time.Segment (jour)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Query.Filter
-import Gargantext.Database.Action.Query.Join (leftJoin5)
+import Gargantext.Database.Query.Filter
+import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Ngrams

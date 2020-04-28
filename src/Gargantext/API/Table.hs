@@ -46,7 +46,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TabType(..))
 import Gargantext.Core.Types (Offset, Limit, TableResult(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Query.Facet (FacetDoc , runViewDocuments, OrderBy(..), runViewAuthorsDoc)
+import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, OrderBy(..), runViewAuthorsDoc)
 import Gargantext.Database.Action.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Node

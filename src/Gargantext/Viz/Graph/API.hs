@@ -48,12 +48,12 @@ import Gargantext.Database.Admin.Config
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Schema.Node (node_userId, node_parentId, node_hyperdata)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Action.Query.Node.Select
-import Gargantext.Database.Action.Query.Node
-import Gargantext.Database.Action.Query.Node.User
+import Gargantext.Database.Query.Table.Node.Select
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
-import Gargantext.Database.Action.Query.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Prelude
 import qualified Gargantext.Prelude as P

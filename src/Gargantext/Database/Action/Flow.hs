@@ -66,10 +66,10 @@ import Gargantext.Core.Types.Main
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
-import Gargantext.Database.Action.Query.Node
-import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..), ContactWho(..))
-import Gargantext.Database.Action.Query.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
-import Gargantext.Database.Action.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..), ContactWho(..))
+import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
+import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
@@ -90,7 +90,7 @@ import Gargantext.Text.Terms
 import GHC.Generics (Generic)
 import System.FilePath (FilePath)
 import qualified Data.Map  as Map
-import qualified Gargantext.Database.Action.Query.Node.Document.Add  as Doc  (add)
+import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Text.Corpus.API as API
 
 ------------------------------------------------------------------------

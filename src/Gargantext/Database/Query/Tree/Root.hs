@@ -24,7 +24,7 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Action.Query.Tree.Root
+module Gargantext.Database.Query.Tree.Root
   where
 
 import Data.Either (Either, fromLeft, fromRight)
@@ -34,14 +34,13 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Action.Query.Node
-import Gargantext.Database.Action.Query.Node.User (HyperdataUser)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.User (HyperdataUser)
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
-import Gargantext.Database.Action.Query
-import Gargantext.Database.Schema.User (UserPoly(..))
-import Gargantext.Database.Action.Query.User (queryUserTable)
+import Gargantext.Database.Query
+import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Admin.Types.Node (Node, NodeType(NodeUser), pgNodeId)
 import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery)
 import Gargantext.Prelude

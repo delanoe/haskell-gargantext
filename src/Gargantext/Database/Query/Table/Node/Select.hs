@@ -14,7 +14,7 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Gargantext.Database.Action.Query.Node.Select
+module Gargantext.Database.Query.Table.Node.Select
   where
 
 import Control.Arrow (returnA)
@@ -24,7 +24,7 @@ import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.User
-import Gargantext.Database.Action.Query.User
+import Gargantext.Database.Query.Table.User
 import Opaleye
 
 selectNodesWithUsername :: NodeType -> Username -> Cmd err [NodeId]

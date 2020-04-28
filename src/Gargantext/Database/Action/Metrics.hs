@@ -25,10 +25,10 @@ import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diag
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
 import Gargantext.Database.Action.Flow (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
-import Gargantext.Database.Action.Query.Node.Select
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId{-, HyperdataCorpus-})
-import Gargantext.Database.Action.Query.Node (defaultList)
+import Gargantext.Database.Query.Table.Node (defaultList)
+import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import qualified Data.Map    as Map

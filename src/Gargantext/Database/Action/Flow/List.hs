@@ -48,7 +48,7 @@ import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Set as Set
 import Gargantext.Database.Action.Metrics.NgramsByNode
-import Gargantext.Database.Action.Query.Tree.Root (getOrMk_RootWithCorpus)
+import Gargantext.Database.Query.Tree.Root (getOrMk_RootWithCorpus)
 
 -- FLOW LIST
 -- 1. select specific terms of the corpus when compared with others langs

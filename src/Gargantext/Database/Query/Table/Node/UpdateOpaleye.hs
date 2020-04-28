@@ -16,7 +16,7 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes        #-}
 
 
-module Gargantext.Database.Action.Query.Node.UpdateOpaleye
+module Gargantext.Database.Query.Table.Node.UpdateOpaleye
   where
 
 

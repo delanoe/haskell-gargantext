@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Node.Contact
+Module      : Gargantext.Database.Query.Table.Node.Contact
 Description : Update Node in Database (Postgres)
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -17,7 +17,7 @@ Portability : POSIX
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Action.Query.Node.Contact
+module Gargantext.Database.Query.Table.Node.Contact
   where
 
 import Control.Lens (makeLenses)

@@ -28,7 +28,7 @@ Multiple Join functions with Opaleye.
 
 ------------------------------------------------------------------------
 
-module Gargantext.Database.Action.Query.Join
+module Gargantext.Database.Query.Join
   where
 
 import Control.Applicative ((<*>))

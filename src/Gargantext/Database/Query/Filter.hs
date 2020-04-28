@@ -19,7 +19,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell        #-}
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-module Gargantext.Database.Action.Query.Filter
+module Gargantext.Database.Query.Filter
   where
 
 import Gargantext.Core.Types (Limit, Offset)

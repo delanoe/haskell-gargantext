@@ -54,13 +54,13 @@ import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Action.Query
-import Gargantext.Database.Action.Query.Facet (FacetDoc, OrderBy(..))
-import Gargantext.Database.Action.Query.Node hiding (postNode)
-import Gargantext.Database.Action.Query.Node.Children (getChildren)
-import Gargantext.Database.Action.Query.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Action.Query.Node.User
-import Gargantext.Database.Action.Query.Tree (treeDB)
+import Gargantext.Database.Query
+import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Database.Query.Table.Node hiding (postNode)
+import Gargantext.Database.Query.Table.Node.Children (getChildren)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Query.Table.Node.User
+import Gargantext.Database.Query.Tree (treeDB)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
@@ -74,7 +74,7 @@ import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Gargantext.Database.Action.Query.Node.Update as U (update, Update(..))
+import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
 {-
 import qualified Gargantext.Text.List.Learn as Learn

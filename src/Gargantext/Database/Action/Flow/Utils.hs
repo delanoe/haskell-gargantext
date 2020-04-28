@@ -19,14 +19,13 @@ module Gargantext.Database.Action.Flow.Utils
 
 import Data.Map (Map)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Query.Node
-import Gargantext.Database.Action.Query.User
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.User
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.User
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Prelude
 import qualified Data.Map as DM

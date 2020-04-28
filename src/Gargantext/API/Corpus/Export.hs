@@ -38,8 +38,8 @@ import Gargantext.API.Admin.Types (GargNoServer)
 import Gargantext.Core.Types --
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
-import Gargantext.Database.Action.Query.Node
-import Gargantext.Database.Action.Query.Node.Select (selectNodesWithUsername)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (Node, HyperdataDocument(..), NodeId, ListId, CorpusId)

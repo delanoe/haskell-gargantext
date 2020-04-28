@@ -29,12 +29,12 @@ import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Database.Action.Flow.Utils
 import Gargantext.Database.Admin.Types.Node (AnnuaireId, CorpusId, ListId{-, DocId, ContactId-})
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
-import Gargantext.Database.Action.Query.Node.Children (getAllContacts)
-import Gargantext.Database.Action.Query.Node.Contact -- (HyperdataContact(..))
+import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
+import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..))
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
-import qualified Data.Map as DM
+import qualified Data.Map  as DM
 import qualified Data.Text as DT
 
 -- TODO mv this type in Types Main

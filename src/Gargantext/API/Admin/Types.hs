@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
@@ -41,7 +40,7 @@ import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Settings
 import Gargantext.API.Ngrams
 import Gargantext.Core.Types
-import Gargantext.Database.Action.Query.Tree
+import Gargantext.Database.Query.Tree
 import Gargantext.Database.Admin.Types.Errors (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Admin.Utils
 import Gargantext.Prelude
