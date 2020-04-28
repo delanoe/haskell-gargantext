@@ -41,9 +41,9 @@ import Opaleye
 
 
 data RepoDbPoly version patches
-   = RepoDbNgrams { _rdp_version :: version
-              , _rdp_patches :: patches
-              } deriving (Show)
+   = RepoDbNgrams { _rdp_version :: !version
+                  , _rdp_patches :: !patches
+                  } deriving (Show)
 
 type RepoDbWrite
   = RepoDbPoly (Column PGInt4)

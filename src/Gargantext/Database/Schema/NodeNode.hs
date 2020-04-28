@@ -46,10 +46,10 @@ import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import qualified Opaleye as O
 
 data NodeNodePoly node1_id node2_id score cat
-                   = NodeNode { _nn_node1_id   :: node1_id
-                              , _nn_node2_id   :: node2_id
-                              , _nn_score      :: score
-                              , _nn_category   :: cat
+                   = NodeNode { _nn_node1_id   :: !node1_id
+                              , _nn_node2_id   :: !node2_id
+                              , _nn_score      :: !score
+                              , _nn_category   :: !cat
                               } deriving (Show)
 
 type NodeNodeWrite     = NodeNodePoly (Column (PGInt4))

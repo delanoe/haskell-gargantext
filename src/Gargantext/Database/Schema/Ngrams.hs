@@ -56,9 +56,9 @@ type NgramsId    = Int
 type NgramsTerms = Text
 type Size        = Int
 
-data NgramsPoly id terms n = NgramsDb { _ngrams_id    :: id
-                                      , _ngrams_terms :: terms
-                                      , _ngrams_n     :: n
+data NgramsPoly id terms n = NgramsDb { _ngrams_id    :: !id
+                                      , _ngrams_terms :: !terms
+                                      , _ngrams_n     :: !n
                                       } deriving (Show)
 
 type NgramsWrite = NgramsPoly (Maybe (Column PGInt4))
@@ -107,7 +107,7 @@ ngramsTypes = [minBound..]
 instance ToSchema NgramsType
 {-  where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nre_")
--}
+--}
 
 instance FromJSON NgramsType
 instance FromJSONKey NgramsType where
@@ -136,7 +136,6 @@ instance ToParamSchema NgramsType where
 
 
 
-
 instance QueryRunnerColumnDefault (Nullable PGInt4) NgramsTypeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
@@ -154,7 +153,10 @@ ngramsTypeId Sources     = 3
 ngramsTypeId NgramsTerms = 4
 
 fromNgramsTypeId :: NgramsTypeId -> Maybe NgramsType
-fromNgramsTypeId id = lookup id $ fromList [(ngramsTypeId nt,nt) | nt <- [minBound .. maxBound] :: [NgramsType]]
+fromNgramsTypeId id = lookup id
+                    $ fromList [ (ngramsTypeId nt,nt)
+                               | nt <- [minBound .. maxBound] :: [NgramsType]
+                               ]
 
 ------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Text.Ngrams
@@ -249,6 +251,5 @@ queryInsertNgrams = [sql|
     FROM   input_rows
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
-
 
 

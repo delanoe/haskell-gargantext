@@ -9,7 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-#  OPTIONS_GHC -fno-warn-orphans  #-}
 
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FlexibleContexts       #-}
@@ -33,11 +33,11 @@ import Gargantext.Database.Admin.Types.Node
 import Opaleye
 
 data NodeNodeNgramsPoly n1 n2 ngrams_id ngt w
-   = NodeNodeNgrams { _nnng_node1_id   :: n1
-                    , _nnng_node2_id   :: n2
-                    , _nnng_ngrams_id  :: ngrams_id
-                    , _nnng_ngramsType :: ngt
-                    , _nnng_weight     :: w
+   = NodeNodeNgrams { _nnng_node1_id   :: !n1
+                    , _nnng_node2_id   :: !n2
+                    , _nnng_ngrams_id  :: !ngrams_id
+                    , _nnng_ngramsType :: !ngt
+                    , _nnng_weight     :: !w
                     } deriving (Show)
 
 type NodeNodeNgramsWrite =

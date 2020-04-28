@@ -33,9 +33,9 @@ import Opaleye
 import Prelude
 
 data NodeNodeNgrams2Poly node_id nodengrams_id w
-   = NodeNodeNgrams2 { _nnng2_node_id       :: node_id
-                     , _nnng2_nodengrams_id :: nodengrams_id
-                     , _nnng2_weight        :: w
+   = NodeNodeNgrams2 { _nnng2_node_id       :: !node_id
+                     , _nnng2_nodengrams_id :: !nodengrams_id
+                     , _nnng2_weight        :: !w
                      } deriving (Show)
 
 type NodeNodeNgrams2Write =

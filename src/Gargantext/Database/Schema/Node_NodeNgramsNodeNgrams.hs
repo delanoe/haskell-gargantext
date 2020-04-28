@@ -46,10 +46,10 @@ import Gargantext.Prelude
 import Opaleye
 
 data Node_NodeNgrams_NodeNgrams_Poly node_id nng1_id nng2_id weight =
-  Node_NodeNgrams_NodeNgrams { _nnn_node_id :: node_id
-                             , _nnn_nng1_id :: nng1_id
-                             , _nnn_nng2_id :: nng2_id
-                             , _nnn_weight  :: weight
+  Node_NodeNgrams_NodeNgrams { _nnn_node_id :: !node_id
+                             , _nnn_nng1_id :: !nng1_id
+                             , _nnn_nng2_id :: !nng2_id
+                             , _nnn_weight  :: !weight
                              } deriving (Show)
 
 type Node_NodeNgrams_NodeNgrams_Write =

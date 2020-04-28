@@ -44,20 +44,29 @@ import Test.QuickCheck.Arbitrary
 
 
 ------------------------------------------------------------------------
-data NodePoly id        typename userId 
-              parentId  name     date 
-              hyperdata  = Node { _node_id        :: id
-                                , _node_typename  :: typename
+-- Main polymorphic Node definition
 
-                                , _node_userId    :: userId
-                                , _node_parentId  :: parentId
+data NodePoly id
+              typename
+              userId
+              parentId
+              name
+              date
+              hyperdata  =
+     Node { _node_id        :: !id
+          , _node_typename  :: !typename
 
-                                , _node_name      :: name
-                                , _node_date      :: date
+          , _node_userId    :: !userId
+          , _node_parentId  :: !parentId
 
-                                , _node_hyperdata :: hyperdata
-                                } deriving (Show, Generic)
+          , _node_name      :: !name
+          , _node_date      :: !date
 
+          , _node_hyperdata :: !hyperdata
+          } deriving (Show, Generic)
+
+------------------------------------------------------------------------
+-- Automatic instances derivation
 $(deriveJSON (unPrefix "_node_") ''NodePoly)
 $(makeLenses ''NodePoly)
 
@@ -105,7 +114,6 @@ type NodeReadNull = NodePoly (Column (Nullable PGInt4))
                              (Column (Nullable PGText))
                              (Column (Nullable PGTimestamptz))
                              (Column (Nullable PGJsonb))
-
 ------------------------------------------------------------------------
 -- | Node(Read|Write)Search is slower than Node(Write|Read) use it
 -- for full text search only
@@ -144,19 +152,25 @@ type NodeSearchReadNull =
     (Column (Nullable PGTSVector)   )
 
 
-data NodePolySearch id        typename userId 
-              parentId  name     date 
-              hyperdata search = NodeSearch { _ns_id        :: id
-                                      , _ns_typename  :: typename
-                                      , _ns_userId    :: userId
-                                                                --   , nodeUniqId    :: shaId
-                                      , _ns_parentId  :: parentId
-                                      , _ns_name      :: name
-                                      , _ns_date      :: date
+data NodePolySearch id
+                    typename
+                    userId
+                    parentId
+                    name
+                    date
+                    hyperdata
+                    search =
+     NodeSearch { _ns_id        :: id
+                , _ns_typename  :: typename
+                , _ns_userId    :: userId
+                                          --   , nodeUniqId    :: shaId
+                , _ns_parentId  :: parentId
+                , _ns_name      :: name
+                , _ns_date      :: date
 
-                                      , _ns_hyperdata :: hyperdata
-                                      , _ns_search    :: search
-                                      } deriving (Show, Generic)
+                , _ns_hyperdata :: hyperdata
+                , _ns_search    :: search
+                } deriving (Show, Generic)
 
 $(makeAdaptorAndInstance "pNodeSearch" ''NodePolySearch)
 $(makeLensesWith abbreviatedFields ''NodePolySearch)
