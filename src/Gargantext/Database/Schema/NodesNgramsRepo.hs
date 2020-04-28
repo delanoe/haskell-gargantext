@@ -28,10 +28,8 @@ Portability : POSIX
 module Gargantext.Database.Schema.NodesNgramsRepo
   where
 
-import Control.Arrow (returnA)
-import Control.Lens.TH (makeLenses)
 import Data.Map.Strict.Patch (PatchMap)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Gargantext.Database.Schema.Prelude
 import Gargantext.API.Ngrams (NgramsStatePatch, NgramsTablePatch)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Admin.Types.Node (NodeId)

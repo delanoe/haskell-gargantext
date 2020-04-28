@@ -25,13 +25,18 @@ Functions to deal with users, database side.
 
 module Gargantext.Database.Schema.User where
 
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
 import Gargantext.Prelude
+
+-- FIXME PLZ : the import below leads to an error, why ?
+-- import Gargantext.Database.Schema.Prelude hiding (makeLensesWith, abbreviatedFields, makeAdaptorAndInstance)
+
+-- When FIXED : Imports to remove:
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Opaleye
 
 ------------------------------------------------------------------------

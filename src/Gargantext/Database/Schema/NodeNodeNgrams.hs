@@ -24,12 +24,11 @@ module Gargantext.Database.Schema.NodeNodeNgrams
   where
 
 import Prelude
-import Control.Lens.TH (makeLenses)
 import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
+import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Types.Node
-import Opaleye
 
 data NodeNodeNgramsPoly n1 n2 ngrams_id ngt w
    = NodeNodeNgrams { _nnng_node1_id   :: !n1

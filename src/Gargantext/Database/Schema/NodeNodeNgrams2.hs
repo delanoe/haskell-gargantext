@@ -23,13 +23,11 @@ Portability : POSIX
 module Gargantext.Database.Schema.NodeNodeNgrams2
   where
 
-import Control.Lens.TH (makeLenses)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Schema.NodeNgrams (NodeNgramsId)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
-import Opaleye
 import Prelude
 
 data NodeNodeNgrams2Poly node_id nodengrams_id w
