@@ -61,7 +61,7 @@ import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.NodeNode
+import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Opaleye
 import Prelude hiding (null, id, map, sum, not, read)

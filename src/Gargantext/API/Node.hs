@@ -67,7 +67,6 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
 import Gargantext.Database.Schema.Node (node_userId, _node_typename)
 import Gargantext.Database.Query.Table.NodeNode
-import Gargantext.Database.Schema.NodeNode
 import Gargantext.Prelude
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)

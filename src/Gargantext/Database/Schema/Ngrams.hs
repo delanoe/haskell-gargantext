@@ -38,7 +38,6 @@ import Data.Swagger (ToParamSchema, toParamSchema, ToSchema)
 import Data.Text (Text, splitOn, pack)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types (TODO(..))
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
 import Gargantext.Prelude
 import Prelude (Enum, Bounded, minBound, maxBound, Functor)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))

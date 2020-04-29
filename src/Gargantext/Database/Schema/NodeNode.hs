@@ -28,7 +28,6 @@ module Gargantext.Database.Schema.NodeNode where
 
 import Data.Maybe (Maybe)
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Prelude
 
@@ -69,13 +68,7 @@ nodeNodeTable  = Table "nodes_nodes" (pNodeNode
                                      }
                                      )
 
-queryNodeNodeTable :: Query NodeNodeRead
-queryNodeNodeTable = queryTable nodeNodeTable
 
-
--- | not optimized (get all ngrams without filters)
-nodesNodes :: Cmd err [NodeNode]
-nodesNodes = runOpaQuery queryNodeNodeTable
 
 instance QueryRunnerColumnDefault (Nullable PGInt4)   Int            where
     queryRunnerColumnDefault = fieldQueryRunnerColumn

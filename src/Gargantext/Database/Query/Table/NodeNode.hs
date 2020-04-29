@@ -24,7 +24,17 @@ commentary with @some markup@.
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Query.Table.NodeNode where
+module Gargantext.Database.Query.Table.NodeNode
+  ( module Gargantext.Database.Schema.NodeNode
+  , queryNodeNodeTable
+  , selectDocsDates
+  , selectDocNodes
+  , selectDocs
+  , nodeNodesCategory
+  , getNodeNode
+  , insertNodeNode
+  )
+  where
 
 import Control.Arrow (returnA)
 import Control.Lens (view, (^.))
@@ -43,6 +53,14 @@ import Gargantext.Prelude
 import Opaleye
 import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
 import qualified Opaleye as O
+
+
+queryNodeNodeTable :: Query NodeNodeRead
+queryNodeNodeTable = queryTable nodeNodeTable
+
+-- | not optimized (get all ngrams without filters)
+nodesNodes :: Cmd err [NodeNode]
+nodesNodes = runOpaQuery queryNodeNodeTable
 
 ------------------------------------------------------------------------
 -- | Basic NodeNode tools

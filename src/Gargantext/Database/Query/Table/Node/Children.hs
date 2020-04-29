@@ -24,6 +24,7 @@ import Data.Proxy
 import Gargantext.Core.Types
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
