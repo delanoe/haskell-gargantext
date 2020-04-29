@@ -33,7 +33,7 @@ import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Utils (runOpaQuery, Cmd)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
-import Gargantext.Database.Schema.NodeNodeNgrams
+import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Prelude
 import Data.ByteString.Internal (ByteString)

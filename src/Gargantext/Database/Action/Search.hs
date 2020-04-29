@@ -32,12 +32,12 @@ import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Join (leftJoin6)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.NodeNode
+import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Opaleye hiding (Query, Order)

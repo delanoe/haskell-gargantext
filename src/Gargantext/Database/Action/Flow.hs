@@ -77,7 +77,7 @@ import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
-import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNodeNodeNgrams2)
+import Gargantext.Database.Query.Table.NodeNodeNgrams2
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)

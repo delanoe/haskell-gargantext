@@ -26,7 +26,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.NodeNodeNgrams
+import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Prelude
 import qualified Data.Map as DM
 

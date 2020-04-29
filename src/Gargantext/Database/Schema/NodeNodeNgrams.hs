@@ -24,10 +24,8 @@ module Gargantext.Database.Schema.NodeNodeNgrams
   where
 
 import Prelude
-import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Types.Node
 
 data NodeNodeNgramsPoly n1 n2 ngrams_id ngt w
@@ -76,30 +74,4 @@ nodeNodeNgramsTable  = Table "node_node_ngrams"
                                , _nnng_weight     = required "weight"
                                }
                           )
-
-------------------------------------------------
-
-queryNodeNodeNgramsTable :: Query NodeNodeNgramsRead
-queryNodeNodeNgramsTable = queryTable nodeNodeNgramsTable
-
--- | Insert utils
-insertNodeNodeNgrams :: [NodeNodeNgrams] -> Cmd err Int
-insertNodeNodeNgrams = insertNodeNodeNgramsW
-                     . map (\(NodeNodeNgrams n1 n2 ng nt w) ->
-                              NodeNodeNgrams (pgNodeId n1)
-                                             (pgNodeId n2)
-                                             (pgInt4   ng)
-                                             (pgNgramsTypeId nt)
-                                             (pgDouble w)
-                                                  )
-
-insertNodeNodeNgramsW :: [NodeNodeNgramsWrite] -> Cmd err Int
-insertNodeNodeNgramsW nnnw =
-  mkCmd $ \c -> fromIntegral <$> runInsert_ c insertNothing
-    where
-      insertNothing = (Insert { iTable = nodeNodeNgramsTable
-                              , iRows  = nnnw
-                              , iReturning = rCount
-                              , iOnConflict = (Just DoNothing)
-      })
 
