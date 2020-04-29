@@ -36,7 +36,7 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
-import Gargantext.Database.Admin.Utils -- (fromField', Cmd)
+import Gargantext.Database.Prelude -- (fromField', Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact, fake_HyperdataContact)
 import Gargantext.Database.Schema.Node -- (Node(..))

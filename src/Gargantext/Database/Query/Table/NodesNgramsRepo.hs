@@ -31,7 +31,7 @@ module Gargantext.Database.Query.Table.NodesNgramsRepo
 import Gargantext.Database.Schema.Prelude
 import Gargantext.API.Ngrams (NgramsStatePatch)
 import Gargantext.Database.Schema.NodesNgramsRepo
-import Gargantext.Database.Admin.Utils (mkCmd, Cmd, runOpaQuery)
+import Gargantext.Database.Prelude (mkCmd, Cmd, runOpaQuery)
 import Gargantext.Prelude
 
 

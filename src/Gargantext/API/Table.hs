@@ -50,7 +50,7 @@ import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, OrderBy(..)
 import Gargantext.Database.Action.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
+import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)

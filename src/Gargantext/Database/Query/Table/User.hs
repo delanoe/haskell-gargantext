@@ -45,7 +45,7 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Core.Types.Individu
 import Gargantext.Database.Schema.User
-import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Opaleye
 

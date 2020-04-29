@@ -75,7 +75,7 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
-import Gargantext.Database.Admin.Utils (HasConnectionPool)
+import Gargantext.Database.Prelude (HasConnectionPool)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 import Network.HTTP.Types hiding (Query)

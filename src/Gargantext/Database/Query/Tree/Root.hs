@@ -42,7 +42,7 @@ import Gargantext.Database.Schema.Node (queryNodeTable)
 import Gargantext.Database.Query
 import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Admin.Types.Node (Node, NodeType(NodeUser), pgNodeId)
-import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery)
+import Gargantext.Database.Prelude (Cmd, runOpaQuery)
 import Gargantext.Prelude
 import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)

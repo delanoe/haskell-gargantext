@@ -21,7 +21,7 @@ import Control.Arrow (returnA)
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
 import Gargantext.Database.Admin.Config
-import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Query.Table.User

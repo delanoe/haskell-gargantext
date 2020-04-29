@@ -36,7 +36,7 @@ import Database.PostgreSQL.Simple.ToRow (ToRow(..))
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, formatPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery, formatPGSQuery)
 import Gargantext.Prelude
 
 ---------------------------------------------------------------------------

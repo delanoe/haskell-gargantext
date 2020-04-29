@@ -41,7 +41,7 @@ module Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
   where
 
 import Gargantext.Database.Schema.Prelude
-import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery, mkCmd)
+import Gargantext.Database.Prelude (Cmd, runOpaQuery, mkCmd)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
 import Gargantext.Database.Schema.Node()

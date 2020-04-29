@@ -30,7 +30,7 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire, TermType(..))
 import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Types.Node (CorpusId, toHyperdataDocument)
-import Gargantext.Database.Admin.Utils (Cmd, )
+import Gargantext.Database.Prelude (Cmd, )
 import Gargantext.Prelude
 import Gargantext.Text.Corpus.Parsers (FileFormat(..))
 import Prelude (read)

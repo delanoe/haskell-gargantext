@@ -31,7 +31,7 @@ import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Trigger.Init (initTriggers)
 import Gargantext.Database.Admin.Types.Node (CorpusId, RootId, HyperdataCorpus, ListId)
-import Gargantext.Database.Admin.Utils (Cmd, )
+import Gargantext.Database.Prelude (Cmd, )
 import Gargantext.Prelude
 import System.Environment (getArgs)
 

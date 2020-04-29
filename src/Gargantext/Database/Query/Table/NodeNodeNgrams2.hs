@@ -29,7 +29,7 @@ module Gargantext.Database.Query.Table.NodeNodeNgrams2
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Schema.NodeNodeNgrams2
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
-import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
+import Gargantext.Database.Prelude (Cmd, mkCmd)
 import Prelude
 
 

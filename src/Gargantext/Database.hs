@@ -16,10 +16,10 @@ Gargantext's database.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Gargantext.Database ( module Gargantext.Database.Admin.Utils
+module Gargantext.Database ( module Gargantext.Database.Prelude
                         -- , module Gargantext.Database.Bashql
                            )
     where
 
-import Gargantext.Database.Admin.Utils (connectGargandb)
+import Gargantext.Database.Prelude (connectGargandb)
 -- import Gargantext.Database.Bashql

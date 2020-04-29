@@ -23,7 +23,7 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.User
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Utils (Cmd)
+import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Query.Table.NodeNodeNgrams

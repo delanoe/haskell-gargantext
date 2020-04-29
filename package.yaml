@@ -38,7 +38,7 @@ library:
   - Gargantext.Database.Action.Flow
   - Gargantext.Database.Query.Table.User
   - Gargantext.Database.Query.Table.Node
-  - Gargantext.Database.Admin.Utils
+  - Gargantext.Database.Prelude
   - Gargantext.Database.Admin.Trigger.Init
   - Gargantext.Database.Admin.Config
   - Gargantext.Database.Admin.Types.Node

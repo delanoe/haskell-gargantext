@@ -131,7 +131,7 @@ import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ng
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Admin.Utils (fromField', HasConnectionPool)
+import Gargantext.Database.Prelude (fromField', HasConnectionPool)
 import Gargantext.Prelude
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 import Servant hiding (Patch)

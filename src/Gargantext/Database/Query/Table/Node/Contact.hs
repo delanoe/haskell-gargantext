@@ -30,7 +30,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Admin.Types.Node (Hyperdata, Node)
-import Gargantext.Database.Admin.Utils (fromField')
+import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)

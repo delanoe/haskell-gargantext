@@ -48,7 +48,7 @@ import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Query.Tree.Root (getRoot)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id)) 
 import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId, ListId, DocId)
-import Gargantext.Database.Admin.Utils (Cmd', CmdM, HasConnectionPool)
+import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool)
 import Gargantext.Prelude hiding (reverse)
 import Servant
 import Servant.Auth.Server

@@ -29,7 +29,7 @@ import Gargantext.Text
 import Gargantext.Text.Terms
 import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
-import Gargantext.Database.Admin.Utils (CmdM)
+import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node.Document.Insert
 
 type FlowCmdM env err m =

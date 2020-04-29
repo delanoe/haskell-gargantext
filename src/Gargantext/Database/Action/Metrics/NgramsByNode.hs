@@ -33,7 +33,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Ordering(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.TFICF

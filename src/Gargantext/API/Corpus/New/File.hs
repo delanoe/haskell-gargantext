@@ -35,7 +35,7 @@ import Data.Text (Text())
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams (TODO)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Utils -- (Cmd, CmdM)
+import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (sha)
 import Servant

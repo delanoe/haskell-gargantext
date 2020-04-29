@@ -76,7 +76,7 @@ import GHC.Generics (Generic)
 import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (sha)
 import qualified Data.ByteString.Lazy.Char8  as DC (pack)

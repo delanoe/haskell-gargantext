@@ -31,9 +31,9 @@ import Data.Text (Text)
 import Data.Map (Map, fromList)
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
-import Gargantext.Database.Admin.Utils (runOpaQuery, Cmd)
+import Gargantext.Database.Prelude (runOpaQuery, Cmd)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Admin.Utils (runPGSQuery, formatPGSQuery)
+import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Prelude

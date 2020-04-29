@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Util
+Module      : Gargantext.Database.Prelude
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -7,8 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-Here is a longer description of this module, containing some
-commentary with @some markup@.
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
@@ -19,7 +17,7 @@ commentary with @some markup@.
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes                 #-}
 
-module Gargantext.Database.Admin.Utils where
+module Gargantext.Database.Prelude where
 
 import Control.Exception
 import Control.Lens (Getter, view)

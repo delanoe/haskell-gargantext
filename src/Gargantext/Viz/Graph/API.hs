@@ -54,7 +54,7 @@ import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Admin.Utils (Cmd)
+import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
 import qualified Gargantext.Prelude as P
 import Gargantext.Viz.Graph

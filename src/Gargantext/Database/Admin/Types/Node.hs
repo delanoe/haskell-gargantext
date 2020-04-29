@@ -43,7 +43,7 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField, toJSONField)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Admin.Utils (fromField')
+import Gargantext.Database.Prelude (fromField')
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo (Phylo)

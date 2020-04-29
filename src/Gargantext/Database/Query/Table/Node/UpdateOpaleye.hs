@@ -25,7 +25,7 @@ import Data.Aeson (encode, ToJSON)
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Node 
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
+import Gargantext.Database.Prelude (Cmd, mkCmd)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 
 updateHyperdata :: ToJSON a => NodeId -> a -> Cmd err Int64

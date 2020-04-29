@@ -36,7 +36,7 @@ import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)

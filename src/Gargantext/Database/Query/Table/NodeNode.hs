@@ -47,7 +47,7 @@ import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (CorpusId, DocId)
-import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Opaleye

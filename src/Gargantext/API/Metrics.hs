@@ -36,7 +36,7 @@ import Gargantext.Core.Types (CorpusId, ListId, Limit)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow
-import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart

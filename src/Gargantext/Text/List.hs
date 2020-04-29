@@ -26,7 +26,7 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mS
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
-import Gargantext.Database.Admin.Utils (Cmd)
+import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import Gargantext.Text.List.Learn (Model(..))

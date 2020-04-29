@@ -31,7 +31,7 @@ import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
 import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------

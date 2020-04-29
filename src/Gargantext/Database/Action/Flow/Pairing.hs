@@ -28,7 +28,7 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Database.Action.Flow.Utils
 import Gargantext.Database.Admin.Types.Node (AnnuaireId, CorpusId, ListId{-, DocId, ContactId-})
-import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
 import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..))
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))

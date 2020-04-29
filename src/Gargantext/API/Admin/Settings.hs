@@ -43,7 +43,7 @@ import GHC.Enum
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Admin.Utils (databaseParameters, HasConnectionPool(..), Cmd', runCmd)
+import Gargantext.Database.Prelude (databaseParameters, HasConnectionPool(..), Cmd', runCmd)
 import Gargantext.Prelude
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)

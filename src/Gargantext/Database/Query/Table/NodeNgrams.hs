@@ -41,7 +41,7 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.ToField (toField)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Ngrams (NgramsType, ngramsTypeId, fromNgramsTypeId)
 import Gargantext.Database.Schema.NodeNgrams
 import Gargantext.Prelude

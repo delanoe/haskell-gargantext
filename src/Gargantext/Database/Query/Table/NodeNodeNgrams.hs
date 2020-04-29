@@ -28,7 +28,7 @@ module Gargantext.Database.Query.Table.NodeNodeNgrams
   where
 
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
-import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
+import Gargantext.Database.Prelude (Cmd, mkCmd)
 import Gargantext.Database.Schema.Ngrams (pgNgramsTypeId)
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Database.Schema.Prelude

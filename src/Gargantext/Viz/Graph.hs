@@ -33,7 +33,7 @@ import Gargantext.Database.Admin.Types.Node (NodeId, Hyperdata)
 import Gargantext.Prelude
 import Test.QuickCheck (elements)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Gargantext.Database.Admin.Utils (fromField')
+import Gargantext.Database.Prelude (fromField')
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Aeson as DA

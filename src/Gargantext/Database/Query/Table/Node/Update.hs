@@ -23,7 +23,7 @@ import Database.PostgreSQL.Simple
 
 import Gargantext.Prelude
 import Gargantext.Core.Types (Name)
-import Gargantext.Database.Admin.Utils
+import Gargantext.Database.Prelude
 import Gargantext.Database.Admin.Types.Node (NodeId, ParentId)
 
 -- import Data.ByteString

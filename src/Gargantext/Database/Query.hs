@@ -32,7 +32,7 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Admin.Types.Errors
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Utils (Cmd)
+import Gargantext.Database.Prelude (Cmd)
 import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------

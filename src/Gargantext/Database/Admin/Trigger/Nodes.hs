@@ -23,7 +23,7 @@ module Gargantext.Database.Admin.Trigger.Nodes
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
-import Gargantext.Database.Admin.Utils (Cmd, execPGSQuery)
+import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
 
