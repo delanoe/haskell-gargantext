@@ -31,7 +31,6 @@ import Control.Lens (makeLenses, over)
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
-import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList, lookup)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger (ToParamSchema, toParamSchema, ToSchema)

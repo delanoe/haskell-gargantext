@@ -1,12 +1,11 @@
 {-|
 Module      : Gargantext.Database.Schema.NodesNgramsRepo
-Description : NodeNgram for Ngram indexation or Lists
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
-
 
 -}
 
@@ -24,32 +23,28 @@ Portability : POSIX
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
-
 module Gargantext.Database.Query.Table.NodesNgramsRepo
   ( module Gargantext.Database.Schema.NodesNgramsRepo
   )
   where
 
 import Gargantext.Database.Schema.Prelude
-import Gargantext.API.Ngrams (NgramsStatePatch, NgramsTablePatch)
-import Gargantext.Database.Schema.Ngrams (NgramsType)
-import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.API.Ngrams (NgramsStatePatch)
 import Gargantext.Database.Schema.NodesNgramsRepo
 import Gargantext.Database.Admin.Utils (mkCmd, Cmd, runOpaQuery)
 import Gargantext.Prelude
 
-
-selectRepo :: Cmd err [RepoDbNgrams]
-selectRepo =  runOpaQuery selectPatches
 
 selectPatches :: Query RepoDbRead
 selectPatches = proc () -> do
   repos <- queryTable repoTable -< ()
   returnA -< repos
 
+_selectRepo :: Cmd err [RepoDbNgrams]
+_selectRepo =  runOpaQuery selectPatches
 
-insertRepos :: [NgramsStatePatch] -> Cmd err Int64
-insertRepos ns = mkCmd $ \conn -> runInsert_ conn $ Insert repoTable (toWrite ns) rCount Nothing
+_insertRepos :: [NgramsStatePatch] -> Cmd err Int64
+_insertRepos ns = mkCmd $ \conn -> runInsert_ conn $ Insert repoTable (toWrite ns) rCount Nothing
   where
     toWrite :: [NgramsStatePatch] -> [RepoDbWrite]
     toWrite = undefined

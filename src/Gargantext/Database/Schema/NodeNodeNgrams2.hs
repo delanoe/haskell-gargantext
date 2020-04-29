@@ -25,7 +25,6 @@ module Gargantext.Database.Schema.NodeNodeNgrams2
 
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Schema.NodeNgrams (NodeNgramsId)
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Types.Node
 import Prelude
 

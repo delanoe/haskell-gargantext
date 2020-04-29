@@ -59,7 +59,6 @@ import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Utils
-import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.NodeNodeNgrams

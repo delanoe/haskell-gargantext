@@ -40,11 +40,9 @@ module Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
   )
   where
 
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Data.Maybe (Maybe)
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery, mkCmd)
-import Gargantext.Database.Admin.Types.Node (CorpusId, pgNodeId)
+import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
 import Gargantext.Database.Schema.Node()
 import Gargantext.Prelude
@@ -55,8 +53,8 @@ queryNode_NodeNgrams_NodeNgrams_Table = queryTable node_NodeNgrams_NodeNgrams_Ta
 
 -- | Select NodeNgramsNgrams
 -- TODO not optimized (get all ngrams without filters)
-node_Node_NodeNgrams_NodeNgrams :: Cmd err [Node_NodeNgrams_NodeNgrams]
-node_Node_NodeNgrams_NodeNgrams = runOpaQuery queryNode_NodeNgrams_NodeNgrams_Table
+_node_Node_NodeNgrams_NodeNgrams :: Cmd err [Node_NodeNgrams_NodeNgrams]
+_node_Node_NodeNgrams_NodeNgrams = runOpaQuery queryNode_NodeNgrams_NodeNgrams_Table
 
 
 -- TODO: Add option on conflict

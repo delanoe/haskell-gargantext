@@ -33,8 +33,8 @@ import Gargantext.Database.Admin.Utils (Cmd, mkCmd)
 import Prelude
 
 
-queryNodeNodeNgrams2Table :: Query NodeNodeNgrams2Read
-queryNodeNodeNgrams2Table = queryTable nodeNodeNgrams2Table
+_queryNodeNodeNgrams2Table :: Query NodeNodeNgrams2Read
+_queryNodeNodeNgrams2Table = queryTable nodeNodeNgrams2Table
 
 -- | Insert utils
 insertNodeNodeNgrams2 :: [NodeNodeNgrams2] -> Cmd err Int

@@ -59,8 +59,8 @@ queryNodeNodeTable :: Query NodeNodeRead
 queryNodeNodeTable = queryTable nodeNodeTable
 
 -- | not optimized (get all ngrams without filters)
-nodesNodes :: Cmd err [NodeNode]
-nodesNodes = runOpaQuery queryNodeNodeTable
+_nodesNodes :: Cmd err [NodeNode]
+_nodesNodes = runOpaQuery queryNodeNodeTable
 
 ------------------------------------------------------------------------
 -- | Basic NodeNode tools
@@ -87,8 +87,8 @@ insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeNodeTable ns' 
 
 
 -- | Favorite management
-nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
-nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
+_nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
+_nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
   where
     favQuery :: PGS.Query
     favQuery = [sql|UPDATE nodes_nodes SET category = ?
@@ -146,40 +146,3 @@ joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
     cond :: (NodeRead, NodeNodeRead) -> Column PGBool
     cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
 
-------------------------------------------------------------------------
--- | Trash management
-nodeToTrash :: CorpusId -> DocId -> Bool -> Cmd err [PGS.Only Int]
-nodeToTrash cId dId b = runPGSQuery trashQuery (b,cId,dId)
-  where
-    trashQuery :: PGS.Query
-    trashQuery = [sql|UPDATE nodes_nodes SET delete = ?
-                  WHERE node1_id = ? AND node2_id = ?
-                  RETURNING node2_id
-                  |]
-
--- | Trash Massive
-nodesToTrash :: [(CorpusId,DocId,Bool)] -> Cmd err [Int]
-nodesToTrash input = map (\(PGS.Only a) -> a)
-                        <$> runPGSQuery trashQuery (PGS.Only $ Values fields input)
-  where
-    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","bool"]
-    trashQuery :: PGS.Query
-    trashQuery = [sql| UPDATE nodes_nodes as nn0 SET
-                 delete = nn1.delete
-                 from (?) as nn1(node1_id,node2_id,delete)
-                 WHERE nn0.node1_id = nn1.node1_id
-                 AND   nn0.node2_id = nn1.node2_id
-                 RETURNING nn1.node2_id
-                  |]
-
--- | /!\ Really remove nodes in the Corpus or Annuaire
-emptyTrash :: CorpusId -> Cmd err [PGS.Only Int]
-emptyTrash cId = runPGSQuery delQuery (PGS.Only cId)
-  where
-    delQuery :: PGS.Query
-    delQuery = [sql|DELETE from nodes_nodes n
-                    WHERE n.node1_id = ?
-                      AND n.delete = true
-                    RETURNING n.node2_id
-                |]
-------------------------------------------------------------------------
