@@ -25,44 +25,33 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell            #-}
 
 
-module Gargantext.Database.Schema.NodesNgramsRepo
+module Gargantext.Database.Query.Table.NodesNgramsRepo
+  ( module Gargantext.Database.Schema.NodesNgramsRepo
+  )
   where
 
-import Data.Map.Strict.Patch (PatchMap)
 import Gargantext.Database.Schema.Prelude
 import Gargantext.API.Ngrams (NgramsStatePatch, NgramsTablePatch)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Schema.NodesNgramsRepo
+import Gargantext.Database.Admin.Utils (mkCmd, Cmd, runOpaQuery)
 import Gargantext.Prelude
 
 
-data RepoDbPoly version patches
-   = RepoDbNgrams { _rdp_version :: !version
-                  , _rdp_patches :: !patches
-                  } deriving (Show)
+selectRepo :: Cmd err [RepoDbNgrams]
+selectRepo =  runOpaQuery selectPatches
 
-type RepoDbWrite
-  = RepoDbPoly (Column PGInt4)
-             (Column PGJsonb)
-type RepoDbRead
-  = RepoDbPoly (Column PGInt4)
-             (Column PGJsonb)
+selectPatches :: Query RepoDbRead
+selectPatches = proc () -> do
+  repos <- queryTable repoTable -< ()
+  returnA -< repos
 
-type RepoDbNgrams = RepoDbPoly Int NgramsStatePatch
-$(makeAdaptorAndInstance "pRepoDbNgrams" ''RepoDbPoly)
-makeLenses ''RepoDbPoly
 
-instance QueryRunnerColumnDefault PGJsonb
-                          (PatchMap NgramsType
-                          (PatchMap NodeId NgramsTablePatch))
+insertRepos :: [NgramsStatePatch] -> Cmd err Int64
+insertRepos ns = mkCmd $ \conn -> runInsert_ conn $ Insert repoTable (toWrite ns) rCount Nothing
   where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-repoTable :: Table RepoDbWrite RepoDbRead
-repoTable = Table "nodes_ngrams_repo"
-    (pRepoDbNgrams RepoDbNgrams
-                   { _rdp_version = required "version"
-                   , _rdp_patches = required "patches"
-                   }
-    )
+    toWrite :: [NgramsStatePatch] -> [RepoDbWrite]
+    toWrite = undefined
+    --ns' = map (\(RepoDbNgrams v ps) -> RepoDbWrite (pgInt4 v) (pgJSONB ps)) ns
 

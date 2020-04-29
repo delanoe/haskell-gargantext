@@ -21,6 +21,8 @@ Next Step benchmark:
 
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
+
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
@@ -31,7 +33,6 @@ Next Step benchmark:
 {-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
-{-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
   where
@@ -39,8 +40,7 @@ module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Maybe (Maybe)
 import Gargantext.Database.Schema.Prelude
-import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery, mkCmd)
-import Gargantext.Database.Admin.Types.Node (CorpusId, pgNodeId)
+import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Schema.Node()
 import Gargantext.Prelude
 
@@ -87,35 +87,9 @@ node_NodeNgrams_NodeNgrams_Table =
                        }
        )
 
-queryNode_NodeNgrams_NodeNgrams_Table :: Query Node_NodeNgrams_NodeNgrams_Read
-queryNode_NodeNgrams_NodeNgrams_Table = queryTable node_NodeNgrams_NodeNgrams_Table
-
--- | Select NodeNgramsNgrams
--- TODO not optimized (get all ngrams without filters)
-node_Node_NodeNgrams_NodeNgrams :: Cmd err [Node_NodeNgrams_NodeNgrams]
-node_Node_NodeNgrams_NodeNgrams = runOpaQuery queryNode_NodeNgrams_NodeNgrams_Table
-
 instance QueryRunnerColumnDefault PGInt4 (Maybe Int) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGFloat8 (Maybe Double) where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-
--- TODO: Add option on conflict
-insert_Node_NodeNgrams_NodeNgrams :: [Node_NodeNgrams_NodeNgrams] -> Cmd err Int64
-insert_Node_NodeNgrams_NodeNgrams = insert_Node_NodeNgrams_NodeNgrams_W
-                 . map (\(Node_NodeNgrams_NodeNgrams n ng1 ng2 maybeWeight) ->
-                          Node_NodeNgrams_NodeNgrams (pgNodeId n  )
-                                           (pgInt4 <$> ng1)
-                                           (pgInt4 ng2)
-                                           (pgDouble <$> maybeWeight)
-                        )
-
-insert_Node_NodeNgrams_NodeNgrams_W :: [Node_NodeNgrams_NodeNgrams_Write] -> Cmd err Int64
-insert_Node_NodeNgrams_NodeNgrams_W ns =
-  mkCmd $ \c -> runInsert_ c Insert { iTable = node_NodeNgrams_NodeNgrams_Table
-                                    , iRows  = ns
-                                    , iReturning = rCount
-                                    , iOnConflict = (Just DoNothing)
-                                    }
