@@ -21,7 +21,7 @@ import Data.Map (Map)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.User
-import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams

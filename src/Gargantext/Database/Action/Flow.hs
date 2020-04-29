@@ -72,7 +72,7 @@ import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments,
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Ngrams

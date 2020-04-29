@@ -41,7 +41,7 @@ import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Admin.Config (userMaster)
-import Gargantext.Database.Admin.Types.Errors (HasNodeError)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (Node, HyperdataDocument(..), NodeId, ListId, CorpusId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)

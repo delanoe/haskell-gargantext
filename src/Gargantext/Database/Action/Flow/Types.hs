@@ -28,7 +28,7 @@ import Gargantext.Core.Flow.Types
 import Gargantext.Text
 import Gargantext.Text.Terms
 import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
-import Gargantext.Database.Admin.Types.Errors (HasNodeError)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node.Document.Insert
 

@@ -1,6 +1,6 @@
 {-|
-Module      : Gargantext.Database.Types.Errors
-Description : Main requests of Node to the database
+Module      : Gargantext.Database.Types.Error
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -24,7 +24,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 
-module Gargantext.Database.Admin.Types.Errors where
+module Gargantext.Database.Query.Table.Node.Error where
 
 import Control.Lens (Prism', (#), (^?))
 import Control.Monad.Error.Class (MonadError(..))
@@ -43,12 +43,28 @@ data NodeError = NoListFound
                | NegativeId
                | NotImplYet
                | ManyNodeUsers
-  deriving (Show)
+
+instance Show NodeError
+  where
+    show NoListFound   = "No list   found"
+    show NoRootFound   = "No Root   found"
+    show NoCorpusFound = "No Corpus found"
+    show NoUserFound   = "No user   found"
+
+    show MkNode        = "Cannot make node"
+    show NegativeId    = "Node with negative Id"
+    show UserNoParent  = "Should not have parent"
+    show HasParent     = "NodeType has parent"
+    show NotImplYet    = "Not implemented yet"
+    show ManyParents   = "Too many parents"
+    show ManyNodeUsers = "Many userNode/user"
 
 class HasNodeError e where
   _NodeError :: Prism' e NodeError
 
-nodeError :: (MonadError e m, HasNodeError e) => NodeError -> m a
+nodeError :: ( MonadError e m
+             , HasNodeError e)
+          => NodeError -> m a
 nodeError ne = throwError $ _NodeError # ne
 
 catchNodeError :: (MonadError e m, HasNodeError e) => m a -> (NodeError -> m a) -> m a

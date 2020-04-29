@@ -1,4 +1,5 @@
 {-|
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 Module      : Gargantext.Database.Query.Table.Node
 Description : Main Tools of Node to the database
 Copyright   : (c) CNRS, 2017-Present
@@ -36,7 +37,7 @@ import GHC.Int (Int64)
 import Gargantext.Core.Types
 import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
@@ -56,7 +57,6 @@ selectNode id = proc () -> do
     row <- queryNodeTable -< ()
     restrict -< _node_id row .== id
     returnA -< row
-
 
 runGetNodes :: Query NodeRead -> Cmd err [Node HyperdataAny]
 runGetNodes = runOpaQuery
@@ -341,6 +341,7 @@ post c uid pid [ Node' NodeCorpus "name" "{}" []
 -- TODO
 -- currently this function removes the child relation
 -- needs a Temporary type between Node' and NodeWriteT
+
 node2table :: UserId -> Maybe ParentId -> Node' -> NodeWrite
 node2table uid pid (Node' nt txt v []) = Node Nothing (pgInt4 $ nodeTypeId nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"

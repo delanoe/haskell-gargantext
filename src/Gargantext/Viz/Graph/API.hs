@@ -51,7 +51,7 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.User
-import Gargantext.Database.Admin.Types.Errors (HasNodeError)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Prelude (Cmd)

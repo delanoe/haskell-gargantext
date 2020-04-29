@@ -19,10 +19,15 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 {-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Query.Tree
+  ( module Gargantext.Database.Query.Tree.Error
+  , isDescendantOf
+  , isIn
+  , treeDB
+  )
   where
 
-import Control.Lens (Prism', (#), (^..), at, each, _Just, to)
-import Control.Monad.Error.Class (MonadError(throwError))
+import Control.Lens ((^..), at, each, _Just, to)
+import Control.Monad.Error.Class (MonadError())
 import Data.Map (Map, fromListWith, lookup)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
@@ -32,27 +37,15 @@ import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Query.Tree.Error
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 -- TODO more generic find fun
-findCorpus :: RootId -> Cmd err (Maybe CorpusId)
-findCorpus r = do
+_findCorpus :: RootId -> Cmd err (Maybe CorpusId)
+_findCorpus r = do
   _mapNodes <- toTreeParent <$> dbTree r []
   pure Nothing
-
-------------------------------------------------------------------------
-data TreeError = NoRoot | EmptyRoot | TooManyRoots
-  deriving (Show)
-
-class HasTreeError e where
-  _TreeError :: Prism' e TreeError
-
-treeError :: ( MonadError e m
-             , HasTreeError e)
-             => TreeError
-             -> m a
-treeError te = throwError $ _TreeError # te
 
 -- | Returns the Tree of Nodes in Database
 treeDB :: HasTreeError err

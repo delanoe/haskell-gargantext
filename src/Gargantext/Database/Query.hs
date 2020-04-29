@@ -30,7 +30,7 @@ module Gargantext.Database.Query
 import Gargantext.Core.Types (Name)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.User
-import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Prelude hiding (null, id, map, sum)
@@ -71,8 +71,8 @@ mkNodeWithParent NodeFolderPublic (Just i) uId _ =
     where
       hd = defaultFolder
 
-mkNodeWithParent NodeTeam (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeTeam "Team" hd Nothing uId]
+mkNodeWithParent NodeTeam (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeTeam name hd Nothing uId]
     where
       hd = defaultFolder
 ------------------------------------------------------------------------
@@ -86,12 +86,10 @@ mkNodeWithParent NodeAnnuaire (Just i) uId name =
     where
       hd = defaultAnnuaire
 
-{-
 mkNodeWithParent NodeList (Just i) uId name =
    insertNodesWithParentR (Just i) [node NodeList name hd Nothing uId]
     where
-      hd = defaultList
--}
+      hd = defaultAnnuaire
 
 mkNodeWithParent _ _ _ _       = nodeError NotImplYet
 

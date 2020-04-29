@@ -62,7 +62,7 @@ import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Query.Tree (treeDB)
 import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Schema.Node (node_userId, _node_typename)
@@ -316,35 +316,6 @@ type TreeApi = Summary " Tree API"
              -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
 
 ------------------------------------------------------------------------
-
-{-
-NOTE: These instances are not necessary. However, these messages could be part
-      of a display function for NodeError/TreeError.
-instance HasNodeError ServantErr where
-  _NodeError = prism' mk (const Nothing) -- panic "HasNodeError ServantErr: not a prism")
-    where
-      e = "Gargantext NodeError: "
-      mk NoListFound   = err404 { errBody = e <> "No list found"         }
-      mk NoRootFound   = err404 { errBody = e <> "No Root found"         }
-      mk NoCorpusFound = err404 { errBody = e <> "No Corpus found"       }
-      mk NoUserFound   = err404 { errBody = e <> "No User found"         }
-
-      mk MkNode        = err500 { errBody = e <> "Cannot mk node"        }
-      mk NegativeId    = err500 { errBody = e <> "Node with negative Id" }
-      mk UserNoParent  = err500 { errBody = e <> "Should not have parent"}
-      mk HasParent     = err500 { errBody = e <> "NodeType has parent"   }
-      mk NotImplYet    = err500 { errBody = e <> "Not implemented yet"   }
-      mk ManyParents   = err500 { errBody = e <> "Too many parents"      }
-      mk ManyNodeUsers = err500 { errBody = e <> "Many userNode/user"    }
-
-instance HasTreeError ServantErr where
-  _TreeError = prism' mk (const Nothing) -- panic "HasTreeError ServantErr: not a prism")
-    where
-      e = "TreeError: "
-      mk NoRoot       = err404 { errBody = e <> "Root node not found"           }
-      mk EmptyRoot    = err500 { errBody = e <> "Root node should not be empty" }
-      mk TooManyRoots = err500 { errBody = e <> "Too many root nodes"           }
--}
 
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
 

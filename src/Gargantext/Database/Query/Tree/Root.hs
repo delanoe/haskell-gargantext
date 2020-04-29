@@ -32,7 +32,7 @@ import Control.Arrow (returnA)
 import Gargantext.Core.Types.Main (CorpusName)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
-import Gargantext.Database.Admin.Types.Errors
+import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.User (HyperdataUser)
