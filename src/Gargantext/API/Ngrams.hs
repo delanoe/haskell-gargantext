@@ -126,13 +126,12 @@ import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset
 import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
-import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.Node.Select
+import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..))
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Admin.Utils (fromField', HasConnectionPool)
-import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 import Servant hiding (Patch)
@@ -147,7 +146,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Map.Strict.Patch as PM
 import qualified Data.Set as S
 import qualified Data.Set as Set
-import qualified Gargantext.Database.Schema.Ngrams as Ngrams
+import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -583,7 +582,7 @@ instance FromField NgramsTablePatch
   where
     fromField = fromField'
 
-instance FromField (PatchMap NgramsType (PatchMap NodeId NgramsTablePatch))
+instance FromField (PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch))
   where
     fromField = fromField'
 
@@ -710,14 +709,14 @@ mkChildrenGroups addOrRem nt patches =
   ]
 -}
 
-ngramsTypeFromTabType :: TabType -> NgramsType
+ngramsTypeFromTabType :: TabType -> TableNgrams.NgramsType
 ngramsTypeFromTabType tabType =
   let lieu = "Garg.API.Ngrams: " :: Text in
     case tabType of
-      Sources    -> Ngrams.Sources
-      Authors    -> Ngrams.Authors
-      Institutes -> Ngrams.Institutes
-      Terms      -> Ngrams.NgramsTerms
+      Sources    -> TableNgrams.Sources
+      Authors    -> TableNgrams.Authors
+      Institutes -> TableNgrams.Institutes
+      Terms      -> TableNgrams.NgramsTerms
       _          -> panic $ lieu <> "No Ngrams for this tab"
       -- TODO: This `panic` would disapear with custom NgramsType.
 
@@ -743,13 +742,13 @@ initRepo :: Monoid s => Repo s p
 initRepo = Repo 1 mempty []
 
 type NgramsRepo       = Repo NgramsState NgramsStatePatch
-type NgramsState      = Map NgramsType (Map NodeId NgramsTableMap)
-type NgramsStatePatch = PatchMap NgramsType (PatchMap NodeId NgramsTablePatch)
+type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
+type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
 
 initMockRepo :: NgramsRepo
 initMockRepo = Repo 1 s []
   where
-    s = Map.singleton Ngrams.NgramsTerms
+    s = Map.singleton TableNgrams.NgramsTerms
       $ Map.singleton 47254
       $ Map.fromList
       [ (n ^. ne_ngrams, ngramsElementToRepo n) | n <- mockTable ^. _NgramsTable ]
@@ -800,7 +799,9 @@ listTypeConflictResolution :: ListType -> ListType -> ListType
 listTypeConflictResolution _ _ = undefined -- TODO Use Map User ListType
 
 ngramsStatePatchConflictResolution
-  :: NgramsType -> NodeId -> NgramsTerm
+  :: TableNgrams.NgramsType
+  -> NodeId
+  -> NgramsTerm
   -> ConflictResolutionNgramsPatch
 ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
   = (const ours, ours)
@@ -849,7 +850,7 @@ addListNgrams listId ngramsType nes = do
 
 rmListNgrams ::  RepoCmdM env err m
               => ListId
-              -> NgramsType
+              -> TableNgrams.NgramsType
               -> m ()
 rmListNgrams l nt = setListNgrams l nt mempty
 
@@ -857,7 +858,7 @@ rmListNgrams l nt = setListNgrams l nt mempty
 -- && should use patch
 setListNgrams ::  RepoCmdM env err m
               => NodeId
-              -> NgramsType
+              -> TableNgrams.NgramsType
               -> Map NgramsTerm NgramsRepoElement
               -> m ()
 setListNgrams listId ngramsType ns = do
@@ -876,7 +877,8 @@ setListNgrams listId ngramsType ns = do
 -- If the given list of ngrams elements contains ngrams already in
 -- the repo, they will be ignored.
 putListNgrams :: RepoCmdM env err m
-              => NodeId -> NgramsType
+              => NodeId
+              -> TableNgrams.NgramsType
               -> [NgramsElement] -> m ()
 putListNgrams _ _ [] = pure ()
 putListNgrams listId ngramsType nes = putListNgrams' listId ngramsType m
@@ -884,7 +886,8 @@ putListNgrams listId ngramsType nes = putListNgrams' listId ngramsType m
     m = Map.fromList $ map (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) nes
 
 putListNgrams' :: RepoCmdM env err m
-               => ListId -> NgramsType
+               => ListId
+               -> TableNgrams.NgramsType
                -> Map NgramsTerm NgramsRepoElement
                -> m ()
 putListNgrams' listId ngramsType ns = do
@@ -923,7 +926,8 @@ currentVersion = do
   pure $ r ^. r_version
 
 tableNgramsPull :: RepoCmdM env err m
-                => ListId -> NgramsType
+                => ListId
+                -> TableNgrams.NgramsType
                 -> Version
                 -> m (Versioned NgramsTablePatch)
 tableNgramsPull listId ngramsType p_version = do
@@ -993,7 +997,7 @@ mergeNgramsElement _neOld neNew = neNew
 
 getNgramsTableMap :: RepoCmdM env err m
                   => ListId
-                  -> NgramsType
+                  -> TableNgrams.NgramsType
                   -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
   v    <- view repoVar
@@ -1230,7 +1234,7 @@ apiNgramsTableDoc dId =  getTableNgramsDoc dId
                     -- > index all the corpus accordingly (TODO AD)
 
 listNgramsChangedSince :: RepoCmdM env err m
-                       => ListId -> NgramsType -> Version -> m (Versioned Bool)
+                       => ListId -> TableNgrams.NgramsType -> Version -> m (Versioned Bool)
 listNgramsChangedSince listId ngramsType version
   | version < 0 =
       Versioned <$> currentVersion <*> pure True
@@ -1244,6 +1248,6 @@ instance Arbitrary NgramsRepoElement where
       NgramsTable ns = mockTable
 
 --{-
-instance FromHttpApiData (Map NgramsType (Versioned NgramsTableMap))
+instance FromHttpApiData (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
   where
     parseUrlPiece x = maybeToEither x (decode $ cs x)

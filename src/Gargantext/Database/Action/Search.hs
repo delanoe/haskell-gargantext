@@ -31,6 +31,7 @@ import Gargantext.Core.Types
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Join (leftJoin6)
 import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)

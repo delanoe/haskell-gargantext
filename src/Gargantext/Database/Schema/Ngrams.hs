@@ -24,7 +24,8 @@ Ngrams connection to the Database.
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Gargantext.Database.Schema.Ngrams where
+module Gargantext.Database.Schema.Ngrams
+  where
 
 import Control.Lens (makeLenses, over)
 import Control.Monad (mzero)
@@ -80,11 +81,7 @@ ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { _ngrams_id    = optional "id"
                                                  }
                               )
 
-queryNgramsTable :: Query NgramsRead
-queryNgramsTable = queryTable ngramsTable
 
-dbGetNgramsDb :: Cmd err [NgramsDb]
-dbGetNgramsDb = runOpaQuery queryNgramsTable
 
 -- | Main Ngrams Types
 -- | Typed Ngrams
@@ -103,13 +100,6 @@ instance ToSchema NgramsType
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nre_")
 --}
 
-instance FromJSON NgramsType
-instance FromJSONKey NgramsType where
-   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
-instance ToJSON NgramsType
-instance ToJSONKey NgramsType where
-   toJSONKey = toJSONKeyText (pack . show)
-
 newtype NgramsTypeId = NgramsTypeId Int
   deriving (Eq, Show, Ord, Num)
 
@@ -121,6 +111,13 @@ instance FromField NgramsTypeId where
     n <- fromField fld mdata
     if (n :: Int) > 0 then return $ NgramsTypeId n
                       else mzero
+
+instance FromJSON NgramsType
+instance FromJSONKey NgramsType where
+   fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
+instance ToJSON NgramsType
+instance ToJSONKey NgramsType where
+   toJSONKey = toJSONKeyText (pack . show)
 
 instance FromHttpApiData NgramsType where
   parseUrlPiece n = pure $ (read . cs) n
@@ -211,37 +208,6 @@ indexNgramsTWith = fmap . indexNgramsWith
 indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed
 indexNgramsWith f n = NgramsIndexed n (f $ _ngramsTerms n)
 
--- TODO-ACCESS: access must not be checked here but when insertNgrams is called.
-insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
-insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
 
--- TODO-ACCESS: access must not be checked here but when insertNgrams' is called.
-insertNgrams' :: [Ngrams] -> Cmd err [NgramIds]
-insertNgrams' ns = runPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
-  where
-    fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
-insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd err ByteString
-insertNgrams_Debug ns = formatPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
-  where
-    fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
-
-----------------------
-queryInsertNgrams :: PGS.Query
-queryInsertNgrams = [sql|
-    WITH input_rows(terms,n) AS (?)
-    , ins AS (
-       INSERT INTO ngrams (terms,n)
-       SELECT * FROM input_rows
-       ON CONFLICT (terms) DO NOTHING -- unique index created here
-       RETURNING id,terms
-       )
-
-    SELECT id, terms
-    FROM   ins
-    UNION  ALL
-    SELECT c.id, terms
-    FROM   input_rows
-    JOIN   ngrams c USING (terms);     -- columns of unique index
-           |]
 

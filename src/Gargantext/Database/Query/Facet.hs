@@ -56,6 +56,7 @@ import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
+import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Ngrams

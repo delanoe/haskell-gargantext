@@ -75,7 +75,7 @@ import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Errors (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Admin.Utils (Cmd)
-import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
+import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Schema.NodeNodeNgrams2 -- (NodeNodeNgrams2, insertNodeNodeNgrams2)
 import Gargantext.Ext.IMT (toSchoolName)

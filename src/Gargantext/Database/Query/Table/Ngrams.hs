@@ -13,20 +13,35 @@ Portability : POSIX
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE QuasiQuotes       #-}
 
 module Gargantext.Database.Query.Table.Ngrams
+  ( module Gargantext.Database.Schema.Ngrams
+  , queryNgramsTable
+  , selectNgramsByDoc
+  , insertNgrams
+  )
     where
 
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Text (Text)
+import Data.Map (Map, fromList, lookup)
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Utils (runOpaQuery, Cmd)
 import Gargantext.Database.Schema.Ngrams
+import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, formatPGSQuery)
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Prelude
+import Gargantext.Database.Schema.Prelude
+import Data.ByteString.Internal (ByteString)
+import qualified Database.PostgreSQL.Simple as PGS
 import Opaleye
+
+queryNgramsTable :: Query NgramsRead
+queryNgramsTable = queryTable ngramsTable
 
 selectNgramsByDoc :: [ListId] -> DocId -> NgramsType -> Cmd err [Text]
 selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
@@ -47,4 +62,45 @@ selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
 
 postNgrams :: CorpusId -> DocId -> [Text] -> Cmd err Int
 postNgrams = undefined
+
+dbGetNgramsDb :: Cmd err [NgramsDb]
+dbGetNgramsDb = runOpaQuery queryNgramsTable
+
+
+-- TODO-ACCESS: access must not be checked here but when insertNgrams is called.
+insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
+insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
+
+-- TODO-ACCESS: access must not be checked here but when insertNgrams' is called.
+insertNgrams' :: [Ngrams] -> Cmd err [NgramIds]
+insertNgrams' ns = runPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
+  where
+    fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
+
+insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd err ByteString
+insertNgrams_Debug ns = formatPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
+  where
+    fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
+
+----------------------
+queryInsertNgrams :: PGS.Query
+queryInsertNgrams = [sql|
+    WITH input_rows(terms,n) AS (?)
+    , ins AS (
+       INSERT INTO ngrams (terms,n)
+       SELECT * FROM input_rows
+       ON CONFLICT (terms) DO NOTHING -- unique index created here
+       RETURNING id,terms
+       )
+
+    SELECT id, terms
+    FROM   ins
+    UNION  ALL
+    SELECT c.id, terms
+    FROM   input_rows
+    JOIN   ngrams c USING (terms);     -- columns of unique index
+           |]
+
+
+
 
