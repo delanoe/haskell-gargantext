@@ -35,7 +35,6 @@ import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Admin.Utils (mkCmd, Cmd, runOpaQuery)
 import Gargantext.Prelude
-import Opaleye
 
 
 data RepoDbPoly version patches

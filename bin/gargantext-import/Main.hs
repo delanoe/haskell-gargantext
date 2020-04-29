@@ -28,7 +28,7 @@ import Gargantext.API.Admin.Types (GargError)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire, TermType(..))
-import Gargantext.Database.Action.Query.User (insertUsersDemo)
+import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Types.Node (CorpusId, toHyperdataDocument)
 import Gargantext.Database.Admin.Utils (Cmd, )
 import Gargantext.Prelude

@@ -43,7 +43,6 @@ import Gargantext.Database.Admin.Utils (Cmd, runOpaQuery, mkCmd)
 import Gargantext.Database.Admin.Types.Node (CorpusId, pgNodeId)
 import Gargantext.Database.Schema.Node()
 import Gargantext.Prelude
-import Opaleye
 
 data Node_NodeNgrams_NodeNgrams_Poly node_id nng1_id nng2_id weight =
   Node_NodeNgrams_NodeNgrams { _nnn_node_id :: !node_id

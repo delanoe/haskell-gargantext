@@ -27,8 +27,6 @@ Portability : POSIX
 module Gargantext.Database.Schema.Node where
 
 import Control.Lens hiding (elements, (&))
-import Data.Text (Text)
-import Gargantext.Database.Admin.Utils
 import Gargantext.Database.Schema.Prelude
 import Prelude hiding (null, id, map, sum)
 

@@ -52,7 +52,7 @@ import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Admin.Types.Errors (HasNodeError)
-import Gargantext.Database.Admin.Types.Node hiding (node_id) -- (GraphId, ListId, CorpusId, NodeId)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Admin.Utils (Cmd)
 import Gargantext.Prelude

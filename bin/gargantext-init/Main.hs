@@ -21,17 +21,17 @@ module Main where
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Gargantext.API.Node () -- instances
 import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
 import Gargantext.API.Admin.Types (GargError)
+import Gargantext.API.Node () -- instances
 import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
+import Gargantext.Database.Query.Table.Node (getOrMkList)
+import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Trigger.Init (initTriggers)
 import Gargantext.Database.Admin.Types.Node (CorpusId, RootId, HyperdataCorpus, ListId)
 import Gargantext.Database.Admin.Utils (Cmd, )
-import Gargantext.Database.Action.Query.Node (getOrMkList)
-import Gargantext.Database.Action.Query.User (insertUsersDemo)
 import Gargantext.Prelude
 import System.Environment (getArgs)
 

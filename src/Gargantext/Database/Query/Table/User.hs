@@ -27,6 +27,12 @@ module Gargantext.Database.Query.Table.User
   ( insertUsers
   , queryUserTable
   , getUser
+  , gargantextUser
+  , insertUsersDemo
+  , selectUsersLight
+  , userWithUsername
+  , userWithId
+  , userLightWithId
   , module Gargantext.Database.Schema.User
   )
   where

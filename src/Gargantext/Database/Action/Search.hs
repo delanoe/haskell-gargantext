@@ -36,7 +36,7 @@ import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Admin.Utils (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.NodeNode hiding (joinInCorpus)
+import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Schema.NodeNodeNgrams
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)

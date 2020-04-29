@@ -28,9 +28,7 @@ module Gargantext.Database.Query.Table.NodeNode where
 
 import Control.Arrow (returnA)
 import Control.Lens (view, (^.))
-import Control.Lens.TH (makeLenses)
-import Data.Maybe (Maybe, catMaybes)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Maybe (catMaybes)
 import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))

@@ -26,29 +26,19 @@ module Gargantext.Database.Action.Flow.List
 
 import Control.Monad (mapM_)
 import Data.Map (Map, toList)
-import Data.Either
 import Data.Maybe (Maybe(..), catMaybes)
-import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
-import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types.Individu
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
-import Gargantext.Database.Admin.Utils (Cmd)
-import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
+import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams -- (insert_Node_NodeNgrams_NodeNgrams, Node_NodeNgrams_NodeNgrams(..))
 import Gargantext.Prelude
-import Gargantext.Text.List
 import qualified Data.List as List
 import qualified Data.Map  as Map
-import qualified Data.Set as Set
-import Gargantext.Database.Action.Metrics.NgramsByNode
-import Gargantext.Database.Query.Tree.Root (getOrMk_RootWithCorpus)
 
 -- FLOW LIST
 -- 1. select specific terms of the corpus when compared with others langs

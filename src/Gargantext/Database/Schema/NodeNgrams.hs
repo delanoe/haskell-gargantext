@@ -26,17 +26,11 @@ NodeNgrams register Context of Ngrams (named Cgrams then)
 
 module Gargantext.Database.Schema.NodeNgrams where
 
-import Data.List.Extra (nubOrd)
-import Data.Map (Map)
-import Data.Maybe (Maybe, fromMaybe)
+import Data.Maybe (Maybe)
 import Data.Text (Text)
-import Gargantext.Database.Schema.Prelude
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Utils
-import Gargantext.Database.Schema.Ngrams (NgramsType, ngramsTypeId, fromNgramsTypeId)
+import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
-import qualified Data.List as List
-import qualified Data.Map as Map
 
 
 data NodeNgramsPoly id
