@@ -54,9 +54,9 @@ queryNodeSearchTable = queryTable nodeTableSearch
 
 selectNode :: Column PGInt4 -> Query NodeRead
 selectNode id = proc () -> do
-    row <- queryNodeTable -< ()
+    row      <- queryNodeTable -< ()
     restrict -< _node_id row .== id
-    returnA -< row
+    returnA  -< row
 
 runGetNodes :: Query NodeRead -> Cmd err [Node HyperdataAny]
 runGetNodes = runOpaQuery
@@ -67,7 +67,7 @@ runGetNodes = runOpaQuery
 -- Favorites (Bool), node_ngrams
 selectNodesWith :: ParentId     -> Maybe NodeType
                 -> Maybe Offset -> Maybe Limit   -> Query NodeRead
-selectNodesWith parentId maybeNodeType maybeOffset maybeLimit = 
+selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
   limit' maybeLimit $ offset' maybeOffset
                     $ orderBy (asc _node_id)
@@ -154,11 +154,14 @@ getNodeWith nId _ = do
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
 
-getNodePhylo :: NodeId -> Cmd err (Node HyperdataPhylo)
+getNodePhylo :: HasNodeError err
+             => NodeId
+             -> Cmd err (Node HyperdataPhylo)
 getNodePhylo nId = do
-    fromMaybe (error $ "Node Phylo does not exist: " <> show nId) . headMay
-             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
-
+    res <- headMay <$> runOpaQuery (selectNode (pgNodeId nId))
+    case res of
+      Nothing -> nodeError (DoesNotExist nId)
+      Just  r -> pure r
 
 getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
 getNodesWithType = runOpaQuery . selectNodesWithType
@@ -293,15 +296,20 @@ nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
     name = maybe "Phylo" identity maybeName
     graph = maybe arbitraryPhylo identity maybePhylo
 
-
 ------------------------------------------------------------------------
 arbitraryDashboard :: HyperdataDashboard
 arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
 ------------------------------------------------------------------------
 
-node :: (ToJSON a, Hyperdata a) => NodeType -> Name -> a -> Maybe ParentId -> UserId -> NodeWrite
+node :: (ToJSON a, Hyperdata a)
+     => NodeType
+     -> Name
+     -> a
+     -> Maybe ParentId
+     -> UserId
+     -> NodeWrite
 node nodeType name hyperData parentId userId =
-  Node Nothing 
+  Node Nothing
        (pgInt4 typeId)
        (pgInt4 userId)
        (pgNodeId <$> parentId)
@@ -355,7 +363,8 @@ data Node' = Node' { _n_type :: NodeType
                    } deriving (Show)
 
 mkNodes :: [NodeWrite] -> Cmd err Int64
-mkNodes ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns rCount Nothing
+mkNodes ns = mkCmd $ \conn -> runInsert_ conn
+                   $ Insert nodeTable ns rCount Nothing
 
 mkNodeR :: [NodeWrite] -> Cmd err [NodeId]
 mkNodeR ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns (rReturning _node_id) Nothing
@@ -365,7 +374,11 @@ mkNodeR ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns (rReturning 
 data NewNode = NewNode { _newNodeId :: NodeId
                        , _newNodeChildren :: [NodeId] }
 
-postNode :: HasNodeError err => UserId -> Maybe ParentId -> Node' -> Cmd err NewNode
+postNode :: HasNodeError err
+         => UserId
+         -> Maybe ParentId
+         -> Node'
+         -> Cmd err NewNode
 
 postNode uid pid (Node' nt txt v []) = do
   pids <- mkNodeR [node2table uid pid (Node' nt txt v [])]

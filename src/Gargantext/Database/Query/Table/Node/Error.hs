@@ -26,6 +26,7 @@ Portability : POSIX
 
 module Gargantext.Database.Query.Table.Node.Error where
 
+import Gargantext.Database.Admin.Types.Node (NodeId)
 import Control.Lens (Prism', (#), (^?))
 import Control.Monad.Error.Class (MonadError(..))
 import Gargantext.Prelude hiding (sum, head)
@@ -43,6 +44,7 @@ data NodeError = NoListFound
                | NegativeId
                | NotImplYet
                | ManyNodeUsers
+               | DoesNotExist NodeId
 
 instance Show NodeError
   where
@@ -58,6 +60,7 @@ instance Show NodeError
     show NotImplYet    = "Not implemented yet"
     show ManyParents   = "Too many parents"
     show ManyNodeUsers = "Many userNode/user"
+    show (DoesNotExist n) = "Node does not exist" <> show n
 
 class HasNodeError e where
   _NodeError :: Prism' e NodeError
