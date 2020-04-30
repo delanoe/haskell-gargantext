@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Corpus.New.File
+Module      : Gargantext.API.Node.Corpus.New.File
 Description : Server API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -22,7 +22,7 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
 
-module Gargantext.API.Corpus.New.File
+module Gargantext.API.Node.Corpus.New.File
   where
 
 import Control.Lens ((.~), (?~))

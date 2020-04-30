@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Corpus.Export
+Module      : Gargantext.API.Node.Corpus.Export
 Description : Get Metrics from Storage (Database like)
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -22,7 +22,7 @@ Main exports of Gargantext:
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
-module Gargantext.API.Corpus.Export
+module Gargantext.API.Node.Corpus.Export
   where
 
 import Data.Aeson.TH (deriveJSON)

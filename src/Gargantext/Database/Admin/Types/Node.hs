@@ -85,7 +85,6 @@ instance ToSchema hyperdata =>
                   ) where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
 
-
 instance ToSchema hyperdata =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             (Maybe UserId)
@@ -101,7 +100,6 @@ instance ToSchema hyperdata =>
                             UTCTime hyperdata (Maybe TSVector)
                   ) where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
-
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
@@ -126,8 +124,6 @@ instance (Arbitrary hyperdata
     arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary
-
-
 
 ------------------------------------------------------------------------
 pgNodeId :: NodeId -> O.Column O.PGInt4
@@ -158,7 +154,6 @@ type TSVector     = Text
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
 instance FromHttpApiData NodeId where
   parseUrlPiece n = pure $ NodeId $ (read . cs) n
 
@@ -306,7 +301,6 @@ instance ToSchema EventLevel where
   declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
 
 ------------------------------------------------------------------------
-
 data Event = Event { event_level   :: !EventLevel
                    , event_message :: !Text
                    , event_date    :: !UTCTime
@@ -320,7 +314,6 @@ instance ToSchema Event where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "event_")
 
 ------------------------------------------------------------------------
-
 data Resource = Resource { resource_path    :: !(Maybe Text)
                          , resource_scraper :: !(Maybe Text)
                          , resource_query   :: !(Maybe Text)
@@ -428,7 +421,6 @@ instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO
 
 ------------------------------------------------------------------------
-
 data HyperdataList =
   HyperdataList { hd_list :: !(Maybe Text)
                 } deriving (Show, Generic)
@@ -564,7 +556,6 @@ instance FromHttpApiData NodeType
 instance ToParamSchema NodeType
 instance ToSchema      NodeType
 
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 hyperdataDocument :: HyperdataDocument
@@ -606,11 +597,10 @@ instance ToSchema HyperdataAny where
              & schema.description ?~ "a node"
              & schema.example ?~ emptyObject -- TODO
 
-
 instance ToSchema Status where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "status_")
 
-
+------------------------------------------------------------------------
 
 instance FromField HyperdataAny where
     fromField = fromField'
@@ -662,7 +652,6 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataList
 instance QueryRunnerColumnDefault PGJsonb HyperData
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
-
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument
   where

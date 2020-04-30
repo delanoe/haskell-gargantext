@@ -30,8 +30,8 @@ import Data.Map (Map, toList, fromList)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
 import GHC.Generics (Generic)
-import Gargantext.API.Corpus.New
-import Gargantext.API.Corpus.New.File (FileType(..))
+import Gargantext.API.Node.Corpus.New
+import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Ngrams
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Types (GargServer)

@@ -94,9 +94,9 @@ import Servant.Swagger.UI
 import System.IO (FilePath)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
-import qualified Gargantext.API.Corpus.Annuaire  as Annuaire
-import qualified Gargantext.API.Corpus.Export    as Export
-import qualified Gargantext.API.Corpus.New       as New
+import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
+import qualified Gargantext.API.Node.Corpus.Export    as Export
+import qualified Gargantext.API.Node.Corpus.New       as New
 import qualified Gargantext.API.Ngrams.List      as List
 import qualified Paths_gargantext                as PG -- cabal magic build module
 
@@ -109,11 +109,8 @@ fireWall req fw = do
     let origin = lookup "Origin" (requestHeaders req)
     let host   = lookup "Host"   (requestHeaders req)
 
-    let hostOk   = Just (encodeUtf8 "localhost:3000")
-    let originOk = Just (encodeUtf8 "http://localhost:8008")
-
-    if  origin == originOk
-       && host == hostOk
+    if  origin == Just (encodeUtf8 "http://localhost:8008")
+       && host == Just (encodeUtf8 "localhost:3000")
        || (not $ unFireWall fw)
 
        then pure True

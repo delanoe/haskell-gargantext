@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Corpus.Annuaire
+Module      : Gargantext.API.Node.Corpus.Annuaire
 Description : New annuaire API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -17,7 +17,7 @@ Portability : POSIX
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE RankNTypes         #-}
 
-module Gargantext.API.Corpus.Annuaire
+module Gargantext.API.Node.Corpus.Annuaire
       where
 
 import Control.Lens hiding (elements)
@@ -37,7 +37,7 @@ import Servant.Job.Core
 import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
-import qualified Gargantext.API.Corpus.New.File as NewFile
+import qualified Gargantext.API.Node.Corpus.New.File as NewFile
 
 
 type Api = Summary "New Annuaire endpoint"

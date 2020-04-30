@@ -31,7 +31,6 @@ module Gargantext.Database.Query.Table.Node
 import Control.Arrow (returnA)
 import Control.Lens (set, view)
 import Data.Aeson
-import Data.Proxy (Proxy(..))
 import Data.Maybe (Maybe(..))
 import Data.Text (Text)
 import GHC.Int (Int64)
@@ -231,8 +230,8 @@ class HasDefault a where
 
 instance HasDefault NodeType where
   hasDefaultData nt = case nt of
-      NodeTexts -> HyperdataTexts (Just "Preferences")
-      NodeList  -> HyperdataList' (Just "Preferences")
+      NodeTexts    -> HyperdataTexts (Just "Preferences")
+      NodeList     -> HyperdataList' (Just "Preferences")
       NodeListCooc -> HyperdataList' (Just "Preferences")
       _         -> undefined
       --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
@@ -244,7 +243,6 @@ instance HasDefault NodeType where
       _         -> undefined
 
 ------------------------------------------------------------------------
-
 nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
 nodeDefault nt parent = node nt name hyper (Just parent)
   where

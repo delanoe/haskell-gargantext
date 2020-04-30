@@ -180,7 +180,14 @@ nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uI
 
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: forall proxy a. (JSONB a, FromJSON a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
+nodeAPI :: forall proxy a.
+       ( JSONB a
+       , FromJSON a
+       , ToJSON a
+       ) => proxy a
+         -> UserId
+         -> NodeId
+         -> GargServer (NodeAPI a)
 nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id') nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)

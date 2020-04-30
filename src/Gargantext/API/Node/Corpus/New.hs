@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Corpus.New
+Module      : Gargantext.API.Node.Corpus.New
 Description : New corpus API
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -22,7 +22,7 @@ New corpus means either:
 {-# LANGUAGE RankNTypes         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Gargantext.API.Corpus.New
+module Gargantext.API.Node.Corpus.New
       where
 
 import Control.Lens hiding (elements, Empty)
@@ -35,7 +35,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (ScraperStatus(..))
 import qualified Gargantext.API.Admin.Orchestrator.Types as T
-import Gargantext.API.Corpus.New.File
+import Gargantext.API.Node.Corpus.New.File
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Types.Individu (UserId, User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
