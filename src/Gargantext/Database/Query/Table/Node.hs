@@ -355,7 +355,6 @@ node2table uid pid (Node' nt txt v []) = Node Nothing (pgInt4 $ nodeTypeId nt) (
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 
-
 data Node' = Node' { _n_type :: NodeType
                    , _n_name :: Text
                    , _n_data :: Value
@@ -371,6 +370,7 @@ mkNodeR ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns (rReturning 
 
 ------------------------------------------------------------------------
 
+{-
 data NewNode = NewNode { _newNodeId :: NodeId
                        , _newNodeChildren :: [NodeId] }
 
@@ -402,7 +402,7 @@ postNode uid pid (Node' NodeDashboard txt v ns) = do
   pure $ NewNode pid' pids
 
 postNode _ _ (Node' _ _ _ _) = nodeError NotImplYet
-
+-}
 
 childWith :: UserId -> ParentId -> Node' -> NodeWrite
 childWith uId pId (Node' NodeDocument txt v []) = node2table uId (Just pId) (Node' NodeDocument txt v [])

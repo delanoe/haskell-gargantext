@@ -54,9 +54,9 @@ import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Query
+import Gargantext.Database.Action.Node
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
-import Gargantext.Database.Query.Table.Node hiding (postNode)
+import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User

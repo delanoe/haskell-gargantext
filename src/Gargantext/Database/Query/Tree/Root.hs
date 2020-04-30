@@ -39,7 +39,7 @@ import Gargantext.Database.Query.Table.Node.User (HyperdataUser)
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
-import Gargantext.Database.Query
+import Gargantext.Database.Action.Node
 import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Admin.Types.Node (Node, NodeType(NodeUser), pgNodeId)
 import Gargantext.Database.Prelude (Cmd, runOpaQuery)
