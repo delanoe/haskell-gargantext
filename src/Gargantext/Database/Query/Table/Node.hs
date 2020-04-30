@@ -31,7 +31,8 @@ module Gargantext.Database.Query.Table.Node
 import Control.Arrow (returnA)
 import Control.Lens (set, view)
 import Data.Aeson
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Proxy (Proxy(..))
+import Data.Maybe (Maybe(..))
 import Data.Text (Text)
 import GHC.Int (Int64)
 import Gargantext.Core.Types
@@ -144,27 +145,20 @@ selectNodesWithType type_id = proc () -> do
 type JSONB = QueryRunnerColumnDefault PGJsonb
 
 
-getNode :: NodeId -> Cmd err (Node Value)
-getNode nId = fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
-             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
+getNode :: HasNodeError err => NodeId -> Cmd err (Node Value)
+getNode nId = do
+  maybeNode <- headMay <$> runOpaQuery (selectNode (pgNodeId nId))
+  case maybeNode of
+    Nothing -> nodeError (DoesNotExist nId)
+    Just  r -> pure r
 
-getNodeWith :: JSONB a => NodeId -> proxy a -> Cmd err (Node a)
+getNodeWith :: (HasNodeError err, JSONB a)
+            => NodeId -> proxy a -> Cmd err (Node a)
 getNodeWith nId _ = do
-    fromMaybe (error $ "Node does not exist: " <> show nId) . headMay
-             <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
-
-
-getNodePhylo :: HasNodeError err
-             => NodeId
-             -> Cmd err (Node HyperdataPhylo)
-getNodePhylo nId = do
-    res <- headMay <$> runOpaQuery (selectNode (pgNodeId nId))
-    case res of
-      Nothing -> nodeError (DoesNotExist nId)
-      Just  r -> pure r
-
-getNodesWithType :: Column PGInt4 -> Cmd err [Node HyperdataDocument]
-getNodesWithType = runOpaQuery . selectNodesWithType
+  maybeNode <- headMay <$> runOpaQuery (selectNode (pgNodeId nId))
+  case maybeNode of
+    Nothing -> nodeError (DoesNotExist nId)
+    Just  r -> pure r
 
 ------------------------------------------------------------------------
 nodeContactW :: Maybe Name -> Maybe HyperdataContact

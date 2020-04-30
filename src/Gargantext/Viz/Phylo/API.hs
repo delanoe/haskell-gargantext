@@ -28,10 +28,11 @@ import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
+import Data.Proxy (Proxy(..))
 import Data.Swagger
 import Gargantext.API.Admin.Types
 import Gargantext.Database.Schema.Node (_node_hyperdata)
-import Gargantext.Database.Query.Table.Node (insertNodes, nodePhyloW, getNodePhylo)
+import Gargantext.Database.Query.Table.Node (insertNodes, nodePhyloW, getNodeWith)
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
@@ -101,7 +102,7 @@ type GetPhylo =  QueryParam "listId"      ListId
 getPhylo :: PhyloId -> GargServer GetPhylo
 --getPhylo phId _lId l msb _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
 getPhylo phId _lId l msb  = do
-  phNode     <- getNodePhylo phId
+  phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
   let
     level = maybe 2 identity l
     branc = maybe 2 identity msb
