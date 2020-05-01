@@ -59,8 +59,10 @@ import Text.Show (Show())
 import qualified Opaleye as O
 
 
-------------------------------------------------------------------------
+type UserId = Int
+type MasterUserId = UserId
 
+------------------------------------------------------------------------
 -- | NodePoly indicates that Node has a Polymorphism Type
 type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
 
@@ -174,9 +176,6 @@ type GraphId  = NodeId
 type PhyloId  = NodeId
 type AnnuaireId = NodeId
 type ContactId  = NodeId
-
-type UserId   = Int
-type MasterUserId = UserId
 
 ------------------------------------------------------------------------
 data Status  = Status { status_failed    :: !Int

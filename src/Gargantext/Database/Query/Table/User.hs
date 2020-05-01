@@ -56,7 +56,6 @@ insertUsers us = mkCmd $ \c -> runInsert_ c insert
   where
     insert = Insert userTable us rCount Nothing
 
-
 gargantextUser :: Username -> UserWrite
 gargantextUser u = UserDB (Nothing) (pgStrictText "password")
                          (Nothing) (pgBool True) (pgStrictText u)

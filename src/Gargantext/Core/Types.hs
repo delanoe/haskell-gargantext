@@ -46,8 +46,8 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
+------------------------------------------------------------------------
 data Ordering = Down | Up
-
 ------------------------------------------------------------------------
 type Name = Text
 type Term  = Text

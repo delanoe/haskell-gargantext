@@ -37,7 +37,6 @@ Node API
 module Gargantext.API.Node
   where
 
-import Control.Lens ((^.))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Maybe
 import Data.Swagger
@@ -49,12 +48,12 @@ import Gargantext.API.Admin.Types
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.API.Node.New
 import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Action.Node
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Children (getChildren)
@@ -65,7 +64,7 @@ import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node (node_userId, _node_typename)
+import Gargantext.Database.Schema.Node (_node_typename)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Prelude
 import Gargantext.Viz.Chart
@@ -236,17 +235,6 @@ instance ToSchema  RenameNode
 instance Arbitrary RenameNode where
   arbitrary = elements [RenameNode "test"]
 ------------------------------------------------------------------------
-data PostNode = PostNode { pn_name :: Text
-                         , pn_typename :: NodeType}
-  deriving (Generic)
-
--- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  PostNode
-instance ToJSON    PostNode
-instance ToSchema  PostNode
-instance Arbitrary PostNode where
-  arbitrary = elements [PostNode "Node test" NodeCorpus]
-
 ------------------------------------------------------------------------
 type CatApi =  Summary " To Categorize NodeNodes: 0 for delete, 1/null neutral, 2 favorite"
             :> ReqBody '[JSON] NodesToCategory
@@ -333,16 +321,6 @@ treeAPI = treeDB
 -- | Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
-
-postNode :: HasNodeError err
-         => UserId
-         -> NodeId
-         -> PostNode
-         -> Cmd err [NodeId]
-postNode uId pId (PostNode nodeName nt) = do
-  nodeUser <- getNodeUser (NodeId uId)
-  let uId' = nodeUser ^. node_userId
-  mkNodeWithParent nt (Just pId) uId' nodeName
 
 putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         => NodeId

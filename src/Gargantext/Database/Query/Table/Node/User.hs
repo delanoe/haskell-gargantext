@@ -31,11 +31,8 @@ import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (Name)
-import Gargantext.Core.Types.Individu
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Admin.Types.Node (Node,Hyperdata, DocumentId, NodeId(..))
-import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
+import Gargantext.Database.Admin.Types.Node (Node,Hyperdata, DocumentId, NodeId(..), UserId, NodeType(..), pgNodeId)
 import Gargantext.Database.Prelude -- (fromField', Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact, fake_HyperdataContact)

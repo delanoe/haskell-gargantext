@@ -19,11 +19,10 @@ module Gargantext.Core.Types.Individu
   where
 
 import Data.Text (Text, pack, reverse)
-import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Admin.Types.Node (NodeId, UserId)
 import Gargantext.Prelude hiding (reverse)
 
-type UserId = Int
-
+-- FIXME UserName used twice
 data User = UserDBId UserId | UserName Text | RootId NodeId
   deriving (Eq)
 

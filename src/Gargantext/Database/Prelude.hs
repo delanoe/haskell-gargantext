@@ -19,6 +19,7 @@ Portability : POSIX
 
 module Gargantext.Database.Prelude where
 
+
 import Control.Exception
 import Control.Lens (Getter, view)
 import Control.Monad.Error.Class -- (MonadError(..), Error)
@@ -49,6 +50,7 @@ import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
 
+-------------------------------------------------------
 
 class HasConnectionPool env where
   connPool :: Getter env (Pool Connection)
