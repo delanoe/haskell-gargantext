@@ -70,6 +70,7 @@ import Gargantext.API.Admin.Types
 import Gargantext.API.Count  ( CountAPI, count, Query)
 import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
+import qualified Gargantext.API.Node.New as NodeNew
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
@@ -411,47 +412,6 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> waitAPI
 
 
-addCorpusWithQuery :: User -> GargServer New.AddWithQuery
-addCorpusWithQuery user cid =
-  serveJobsAPI $
-    JobFunction (\q log ->
-      let
-        log' x = do
-          printDebug "addToCorpusWithQuery" x
-          liftBase $ log x
-      in New.addToCorpusWithQuery user cid q log'
-      )
-
-{-
-addWithFile :: GargServer New.AddWithFile
-addWithFile cid i f =
-  serveJobsAPI $
-    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
--}
-
-addCorpusWithForm :: User -> GargServer New.AddWithForm
-addCorpusWithForm user cid =
-  serveJobsAPI $
-    JobFunction (\i log ->
-      let
-        log' x = do
-          printDebug "addToCorpusWithForm" x
-          liftBase $ log x
-      in New.addToCorpusWithForm user cid i log')
-
-addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
-addAnnuaireWithForm cid =
-  serveJobsAPI $
-    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
-
-{-
-serverStatic :: Server (Get '[HTML] Html)
-serverStatic = $(do
-                  let path = "purescript-gargantext/dist/index.html"
-                  Just s <- liftBase (fileTypeToFileTree (FileTypeFile path))
-                  fileTreeToServer s
-                )
--}
 ---------------------------------------------------------------------
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy
@@ -537,4 +497,43 @@ startGargantextMock port = do
 -}
 
 
+----------------------------------------------------------------------
+
+addCorpusWithQuery :: User -> GargServer New.AddWithQuery
+addCorpusWithQuery user cid =
+  serveJobsAPI $
+    JobFunction (\q log ->
+      let
+        log' x = do
+          printDebug "addToCorpusWithQuery" x
+          liftBase $ log x
+      in New.addToCorpusWithQuery user cid q log'
+      )
+
+{-
+addWithFile :: GargServer New.AddWithFile
+addWithFile cid i f =
+  serveJobsAPI $
+    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
+-}
+
+addCorpusWithForm :: User -> GargServer New.AddWithForm
+addCorpusWithForm user cid =
+  serveJobsAPI $
+    JobFunction (\i log ->
+      let
+        log' x = do
+          printDebug "addToCorpusWithForm" x
+          liftBase $ log x
+      in New.addToCorpusWithForm user cid i log')
+
+addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
+addAnnuaireWithForm cid =
+  serveJobsAPI $
+    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
+
+postNodeAsync :: UserId -> NodeId -> GargServer NodeNew.PostNodeAsync
+postNodeAsync uId nId =
+  serveJobsAPI $ 
+    JobFunction (\p log -> NodeNew.postNodeAsync uId nId p (liftBase . log))
 

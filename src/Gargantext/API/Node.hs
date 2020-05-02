@@ -121,6 +121,7 @@ roots = getNodesWithParentId Nothing
 type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> RenameApi
              :<|> PostNodeApi -- TODO move to children POST
+             -- :<|> PostNodeAsync
              :<|> ReqBody '[JSON] a :> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
@@ -193,6 +194,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
     nodeAPI' =  getNodeWith   id' p
            :<|> rename        id'
            :<|> postNode  uId id'
+           -- :<|> postNodeAsync  uId id'
            :<|> putNode       id'
            :<|> deleteNodeApi id'
            :<|> getChildren   id' p
