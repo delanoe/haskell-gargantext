@@ -22,7 +22,7 @@ module Main where
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
-import Gargantext.API.Admin.Types (GargError)
+import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)

@@ -34,7 +34,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
-import Gargantext.API.Admin.Types (GargNoServer)
+import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Core.Types --
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)

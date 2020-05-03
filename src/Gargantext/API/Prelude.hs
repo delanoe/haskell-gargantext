@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Admin.Types
+Module      : Gargantext.API.Prelude
 Description : Server API main Types
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -21,8 +21,8 @@ Portability : POSIX
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
-module Gargantext.API.Admin.Types
-  ( module Gargantext.API.Admin.Types
+module Gargantext.API.Prelude
+  ( module Gargantext.API.Prelude
   , HasServerError(..)
   , serverError
   )
@@ -32,6 +32,8 @@ import Control.Exception (Exception)
 import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
 import Control.Monad.Error.Class (MonadError(throwError))
+import Control.Monad.Except (ExceptT)
+import Control.Monad.Reader (ReaderT)
 import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
 import Data.Typeable
@@ -92,6 +94,19 @@ type GargServerT env err m api = GargServerC env err m => ServerT api m
 
 type GargServer api =
   forall env err m. GargServerT env err m api
+
+-- This is the concrete monad. It needs to be used as little as possible,
+-- instead, prefer GargServer, GargServerT, GargServerC.
+type GargServerM env err = ReaderT env (ExceptT err IO)
+
+type EnvC env =
+  ( HasConnectionPool env
+  , HasRepo env
+  , HasSettings env
+  , HasJobEnv env ScraperStatus ScraperStatus
+  )
+
+
 
 -------------------------------------------------------------------
 -- | This Type is needed to prepare the function before the GargServer

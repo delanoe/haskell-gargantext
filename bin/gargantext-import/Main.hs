@@ -24,7 +24,7 @@ import Data.Either
 import Data.Text (Text)
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev, DevEnv)
-import Gargantext.API.Admin.Types (GargError)
+import Gargantext.API.Prelude (GargError)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire, TermType(..))

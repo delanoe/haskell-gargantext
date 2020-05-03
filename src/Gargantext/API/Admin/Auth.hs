@@ -41,7 +41,7 @@ import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Settings
-import Gargantext.API.Admin.Types (HasJoseError(..), joseError, HasServerError, GargServerC)
+import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC)
 import Gargantext.Core.Types.Individu (User(..), Username, Password, arbitraryUsername, arbitraryPassword)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Query.Tree (isDescendantOf, isIn)

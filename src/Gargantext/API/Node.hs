@@ -44,7 +44,7 @@ import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
-import Gargantext.API.Admin.Types
+import Gargantext.API.Prelude
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Ngrams.NTree (MyTree)
@@ -121,7 +121,7 @@ roots = getNodesWithParentId Nothing
 type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> RenameApi
              :<|> PostNodeApi -- TODO move to children POST
-             -- :<|> PostNodeAsync
+             :<|> PostNodeAsync
              :<|> ReqBody '[JSON] a :> Put    '[JSON] Int
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
@@ -194,7 +194,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
     nodeAPI' =  getNodeWith   id' p
            :<|> rename        id'
            :<|> postNode  uId id'
-           -- :<|> postNodeAsync  uId id'
+           :<|> postNodeAsyncAPI  uId id'
            :<|> putNode       id'
            :<|> deleteNodeApi id'
            :<|> getChildren   id' p
@@ -330,4 +330,5 @@ putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         -> Cmd err Int
 putNode n h = fromIntegral <$> updateHyperdata n h
 -------------------------------------------------------------
+
 

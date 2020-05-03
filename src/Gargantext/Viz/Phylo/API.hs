@@ -30,7 +30,7 @@ import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
 import Data.Proxy (Proxy(..))
 import Data.Swagger
-import Gargantext.API.Admin.Types
+import Gargantext.API.Prelude
 import Gargantext.Database.Schema.Node (_node_hyperdata)
 import Gargantext.Database.Query.Table.Node (insertNodes, nodePhyloW, getNodeWith)
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))

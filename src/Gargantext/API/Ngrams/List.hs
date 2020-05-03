@@ -34,7 +34,7 @@ import Gargantext.API.Node.Corpus.New
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Ngrams
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Admin.Types (GargServer)
+import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node

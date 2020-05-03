@@ -32,6 +32,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (ScraperStatus(..))
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
+import Gargantext.API.Prelude
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Node
 import Gargantext.Database.Admin.Types.Node
@@ -41,8 +42,10 @@ import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Servant
+import Servant.Job.Async
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+import Web.FormUrlEncoded          (FromForm)
 
 ------------------------------------------------------------------------
 data PostNode = PostNode { pn_name     :: Text
@@ -53,6 +56,7 @@ data PostNode = PostNode { pn_name     :: Text
 instance FromJSON  PostNode
 instance ToJSON    PostNode
 instance ToSchema  PostNode
+instance FromForm  PostNode
 instance Arbitrary PostNode where
   arbitrary = elements [PostNode "Node test" NodeCorpus]
 
@@ -71,6 +75,12 @@ postNode uId pId (PostNode nodeName nt) = do
 type PostNodeAsync = Summary "Post Node"
    :> "async"
    :> AsyncJobs ScraperStatus '[FormUrlEncoded] PostNode ScraperStatus
+
+
+postNodeAsyncAPI :: UserId -> NodeId -> GargServer PostNodeAsync
+postNodeAsyncAPI uId nId =
+  serveJobsAPI $ 
+    JobFunction (\p logs -> postNodeAsync uId nId p (liftBase . logs))
 
 ------------------------------------------------------------------------
 postNodeAsync :: FlowCmdM env err m

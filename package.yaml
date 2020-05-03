@@ -29,7 +29,7 @@ library:
   - Gargantext.API
   - Gargantext.API.Node
   - Gargantext.API.Admin.Settings
-  - Gargantext.API.Admin.Types
+  - Gargantext.API.Prelude
   - Gargantext.Core
   - Gargantext.Core.Types
   - Gargantext.Core.Types.Individu

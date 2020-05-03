@@ -42,7 +42,7 @@ import qualified Xmlbf as Xmlbf
 import Gargantext.API.Ngrams (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Admin.Types
+import Gargantext.API.Prelude
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)

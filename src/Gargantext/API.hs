@@ -50,8 +50,8 @@ module Gargantext.API
 import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import Control.Lens
-import Control.Monad.Except (withExceptT, ExceptT)
-import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.Except (withExceptT)
+import Control.Monad.Reader (runReaderT)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.List (lookup)
 import Data.Swagger
@@ -64,19 +64,16 @@ import GHC.Generics (D1, Meta (..), Rep)
 import GHC.TypeLits (AppendSymbol, Symbol)
 import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI, frontEndServer)
-import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Settings
-import Gargantext.API.Admin.Types
+import Gargantext.API.Prelude
 import Gargantext.API.Count  ( CountAPI, count, Query)
-import Gargantext.API.Ngrams (HasRepo(..), HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
+import Gargantext.API.Ngrams (HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
-import qualified Gargantext.API.Node.New as NodeNew
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
-import Gargantext.Database.Prelude (HasConnectionPool)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 import Network.HTTP.Types hiding (Query)
@@ -327,17 +324,6 @@ type API = SwaggerAPI
        :<|> GargAPI
        :<|> FrontEndAPI
 
--- This is the concrete monad. It needs to be used as little as possible,
--- instead, prefer GargServer, GargServerT, GargServerC.
-type GargServerM env err = ReaderT env (ExceptT err IO)
-
-type EnvC env =
-  ( HasConnectionPool env
-  , HasRepo env
-  , HasSettings env
-  , HasJobEnv env ScraperStatus ScraperStatus
-  )
-
 ---------------------------------------------------------------------
 -- | Server declarations
 
@@ -474,6 +460,7 @@ portRouteInfo port = do
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
   T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
+-- TODO clean this Monad condition (more generic) ?
 stopGargantext :: HasRepoSaver env => env -> IO ()
 stopGargantext env = do
   T.putStrLn "----- Stopping gargantext -----"
@@ -495,7 +482,6 @@ startGargantextMock port = do
   application <- makeMockApp . MockEnv $ FireWall False
   run port application
 -}
-
 
 ----------------------------------------------------------------------
 
@@ -532,8 +518,4 @@ addAnnuaireWithForm cid =
   serveJobsAPI $
     JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
 
-postNodeAsync :: UserId -> NodeId -> GargServer NodeNew.PostNodeAsync
-postNodeAsync uId nId =
-  serveJobsAPI $ 
-    JobFunction (\p log -> NodeNew.postNodeAsync uId nId p (liftBase . log))
 
