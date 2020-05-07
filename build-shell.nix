@@ -4,6 +4,7 @@
 let
   buildInputs = with pkgs; [
     bzip2
+    git
     gmp
     gsl
     igraph
