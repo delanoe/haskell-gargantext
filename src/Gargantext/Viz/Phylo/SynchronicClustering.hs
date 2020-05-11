@@ -22,7 +22,7 @@ import Gargantext.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, 
 import Gargantext.Viz.Phylo.PhyloExport (processDynamics)
 
 import Data.List ((++), null, intersect, nub, concat, sort, sortOn, all, groupBy, group, maximum)
-import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
+import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member,keys)
 import Data.Text (Text)
 
 import Control.Lens hiding (Level)
@@ -234,9 +234,19 @@ synchronicClustering phylo =
      in toNextLevel' phylo $ concat newBranches'
 
 
-----------------
--- | probes | --
-----------------
+-----------------
+-- | horizon | --
+-----------------
+
+horizonToAncestors :: Double -> Phylo -> Map [PhyloGroupId] [Int]
+horizonToAncestors thr phylo = 
+  let horizon = Map.filter (\v -> v >= thr) $ phylo ^. phylo_horizon
+      groups = fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevelPeriods 1 (take 1 (getPeriodIds phylo)) phylo
+      graph = toRelatedComponents 
+                    (elems groups)
+                    (map (\((k,k'),v) -> ((groups ! k, groups ! k'),v)) $ Map.toList horizon)
+   -- in fromList $ map (\ancestors -> (map getGroupId ancestors, unionWith (++) $ map _phylo_groupNgrams ancestors)) graph
+   in undefined
 
 -- synchronicDistance :: Phylo -> Level -> String
 -- synchronicDistance phylo lvl = 

@@ -297,5 +297,6 @@ toPhyloBase docs lst conf =
                (docsToTimeScaleNb docs)
                (docsToTermFreq docs (foundations ^. foundations_roots))
                empty
+               empty
                params
                (fromList $ map (\prd -> (prd, PhyloPeriod prd (initPhyloLevels 1 prd))) periods)

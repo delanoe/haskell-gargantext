@@ -146,7 +146,7 @@ defaultConfig =
             , phyloProximity = WeightedLogJaccard 10
             , seaElevation   = Constante 0 0.1
             , phyloSynchrony = ByProximityThreshold 0.5 10 SiblingBranches MergeAllGroups
-            , phyloQuality   = Quality 0.6 1
+            , phyloQuality   = Quality 1 1
             , timeUnit       = Year 3 1 5
             , clique         = Fis 1 5
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
@@ -267,6 +267,7 @@ data Phylo =
            , _phylo_timeCooc    :: !(Map Date Cooc)
            , _phylo_timeDocs    :: !(Map Date Double)
            , _phylo_termFreq    :: !(Map Int Double)
+           , _phylo_horizon     :: !(Map (PhyloGroupId,PhyloGroupId) Double)           
            , _phylo_groupsProxi :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_param       :: PhyloParam
            , _phylo_periods     :: Map PhyloPeriodId PhyloPeriod
