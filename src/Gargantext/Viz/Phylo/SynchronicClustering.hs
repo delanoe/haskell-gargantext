@@ -22,7 +22,7 @@ import Gargantext.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, 
 import Gargantext.Viz.Phylo.PhyloExport (processDynamics)
 
 import Data.List ((++), null, intersect, nub, concat, sort, sortOn, all, groupBy, group, maximum)
-import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member,keys)
+import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
 import Data.Text (Text)
 
 import Control.Lens hiding (Level)
@@ -177,14 +177,6 @@ groupsToEdges prox sync nbDocs diago groups =
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
                 _ -> undefined  
 
-
-
-toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
-toRelatedComponents nodes edges = 
-  let ref = fromList $ map (\g -> (getGroupId g, g)) nodes
-      clusters = relatedComponents $ ((map (\((g,g'),_) -> [getGroupId g, getGroupId g']) edges) ++ (map (\g -> [getGroupId g]) nodes)) 
-   in map (\cluster -> map (\gId -> ref ! gId) cluster) clusters 
-
 toParentId :: PhyloGroup -> PhyloGroupId
 toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1), child ^. phylo_groupIndex) 
 
@@ -233,20 +225,6 @@ synchronicClustering phylo =
         newBranches' = newBranches `using` parList rdeepseq
      in toNextLevel' phylo $ concat newBranches'
 
-
------------------
--- | horizon | --
------------------
-
-horizonToAncestors :: Double -> Phylo -> Map [PhyloGroupId] [Int]
-horizonToAncestors thr phylo = 
-  let horizon = Map.filter (\v -> v >= thr) $ phylo ^. phylo_horizon
-      groups = fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevelPeriods 1 (take 1 (getPeriodIds phylo)) phylo
-      graph = toRelatedComponents 
-                    (elems groups)
-                    (map (\((k,k'),v) -> ((groups ! k, groups ! k'),v)) $ Map.toList horizon)
-   -- in fromList $ map (\ancestors -> (map getGroupId ancestors, unionWith (++) $ map _phylo_groupNgrams ancestors)) graph
-   in undefined
 
 -- synchronicDistance :: Phylo -> Level -> String
 -- synchronicDistance phylo lvl = 

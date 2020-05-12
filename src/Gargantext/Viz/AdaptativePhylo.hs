@@ -354,6 +354,16 @@ data PhyloClique = PhyloClique
   } deriving (Generic,NFData,Show,Eq)
 
 
+------------------------
+-- | Phylo Ancestor | --
+------------------------
+
+data PhyloAncestor = PhyloAncestor
+  { _phyloAncestor_id   :: Int
+  , _phyloAncestor_ngrams :: [Int]
+  , _phyloAncestor_groups :: [PhyloGroupId]
+  } deriving (Generic,NFData,Show,Eq)
+
 ----------------
 -- | Export | --
 ----------------
@@ -394,8 +404,9 @@ data PhyloBranch =
 
 data PhyloExport =
       PhyloExport
-      { _export_groups   :: [PhyloGroup]
-      , _export_branches :: [PhyloBranch]
+      { _export_groups    :: [PhyloGroup]
+      , _export_branches  :: [PhyloBranch]
+      , _export_ancestors :: [PhyloAncestor]
       } deriving (Generic, Show)
 
 ----------------

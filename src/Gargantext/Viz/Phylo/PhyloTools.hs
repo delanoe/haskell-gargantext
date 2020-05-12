@@ -398,6 +398,12 @@ relatedComponents graph = foldl' (\acc groups ->
         let acc' = partition (\groups' -> disjoint (Set.fromList groups') (Set.fromList groups)) acc
          in (fst acc') ++ [nub $ concat $ (snd acc') ++ [groups]]) [] graph
 
+toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
+toRelatedComponents nodes edges = 
+  let ref = fromList $ map (\g -> (getGroupId g, g)) nodes
+      clusters = relatedComponents $ ((map (\((g,g'),_) -> [getGroupId g, getGroupId g']) edges) ++ (map (\g -> [getGroupId g]) nodes)) 
+   in map (\cluster -> map (\gId -> ref ! gId) cluster) clusters 
+
 
 traceSynchronyEnd :: Phylo -> Phylo
 traceSynchronyEnd phylo = 
