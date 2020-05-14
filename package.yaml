@@ -182,7 +182,6 @@ library:
   - servant-blaze
   - servant-cassava
   - servant-client
-  - servant-flatten
   - servant-job
   - servant-mock
   - servant-multipart

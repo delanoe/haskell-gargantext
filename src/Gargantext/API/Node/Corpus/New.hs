@@ -43,7 +43,6 @@ import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowD
 import Gargantext.Database.Admin.Types.Node (CorpusId, ToHyperdataDocument(..), UserId)
 import Gargantext.Prelude
 import Servant
-import Servant.API.Flatten (Flat)
 import Servant.Job.Core
 import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
@@ -173,7 +172,7 @@ instance ToSchema WithForm where
 
 ------------------------------------------------------------------------
 type AsyncJobs event ctI input output =
-  Flat (AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output)
+  AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output
 ------------------------------------------------------------------------
 
 type AddWithQuery = Summary "Add with Query to corpus endpoint"
