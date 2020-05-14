@@ -15,8 +15,8 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.PhyloMaker where
 
-import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy)
-import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey)
+import Data.List (concat, nub, partition, sort, (++), group, intersect, null, sortOn, groupBy, tail)
+import Data.Map (Map, fromListWith, keys, unionWith, fromList, empty, toList, elems, (!), restrictKeys, foldlWithKey, insert)
 import Data.Set (size)
 import Data.Vector (Vector)
 
@@ -137,7 +137,8 @@ toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of
         phyloClique =  toPhyloClique phyloBase docs'
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
-        docs' =  groupDocsByPeriod' date (getPeriodIds phyloBase) docs
+        docs' =  groupDocsByPeriodRec date (getPeriodIds phyloBase) (sortOn date docs) empty
+        -- docs' =  groupDocsByPeriod' date (getPeriodIds phyloBase) docs
         --------------------------------------
 
 
@@ -226,6 +227,16 @@ docsToTimeScaleCooc docs fdt =
 -----------------------
 -- | to Phylo Base | --
 -----------------------
+
+groupDocsByPeriodRec :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc] -> Map (date, date) [doc]
+groupDocsByPeriodRec f prds docs acc = 
+    if ((null prds) || (null docs))
+      then acc 
+      else 
+        let prd = head' "groupBy" prds
+            docs' = partition (\d -> (f d >= fst prd) && (f d <= snd prd)) docs
+         in groupDocsByPeriodRec f (tail prds) (snd docs') (insert prd (fst docs') acc)
+
 
 -- | To group a list of Documents by fixed periods
 groupDocsByPeriod' :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
