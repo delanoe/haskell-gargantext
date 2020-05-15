@@ -33,7 +33,6 @@ import Data.Aeson.TH (deriveJSON)
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
 import Data.Map (Map)
-import Data.Set (Set)
 
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
@@ -348,7 +347,7 @@ data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)
 type Support  = Int
 
 data PhyloClique = PhyloClique
-  { _phyloClique_nodes   :: Set Ngrams
+  { _phyloClique_nodes   :: [Int]
   , _phyloClique_support :: Support
   , _phyloClique_period  :: (Date,Date)
   } deriving (Generic,NFData,Show,Eq)
