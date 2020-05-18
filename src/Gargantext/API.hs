@@ -47,7 +47,6 @@ Pouillard (who mainly made it).
 module Gargantext.API
       where
 ---------------------------------------------------------------------
-import Control.Concurrent (threadDelay)
 import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Except (withExceptT)
@@ -62,20 +61,13 @@ import Data.Version (showVersion)
 import GHC.Base (Applicative)
 import GHC.Generics (D1, Meta (..), Rep)
 import GHC.TypeLits (AppendSymbol, Symbol)
-import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), AuthContext, auth, withAccess, PathId(..))
-import Gargantext.API.Admin.FrontEnd (FrontEndAPI, frontEndServer)
+import Gargantext.API.Admin.Auth (AuthContext, auth)
+import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import Gargantext.API.Admin.Settings
+import Gargantext.API.Ngrams (HasRepoSaver(..), saveRepo)
 import Gargantext.API.Prelude
-import Gargantext.API.Count  ( CountAPI, count, Query)
-import Gargantext.API.Ngrams (HasRepoSaver(..), saveRepo, TableNgramsApi, apiNgramsTableDoc)
-import Gargantext.API.Node
-import Gargantext.API.Search (SearchPairsAPI, searchPairs)
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
+import Gargantext.API.Routes
 import Gargantext.Prelude
-import Gargantext.Viz.Graph.API
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
 import Network.Wai (Request, requestHeaders)
@@ -83,24 +75,65 @@ import Network.Wai.Handler.Warp hiding (defaultSettings)
 import Network.Wai.Middleware.Cors
 import Network.Wai.Middleware.RequestLogger
 import Servant
-import Servant.Auth as SA
 import Servant.Auth.Server (AuthResult(..))
 import Servant.Auth.Swagger ()
-import Servant.Job.Async
 import Servant.Swagger
 import Servant.Swagger.UI
 import System.IO (FilePath)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
-import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
-import qualified Gargantext.API.Node.Corpus.Export    as Export
-import qualified Gargantext.API.Node.Corpus.New       as New
-import qualified Gargantext.API.Ngrams.List      as List
-import qualified Paths_gargantext                as PG -- cabal magic build module
+import qualified Paths_gargantext           as PG -- cabal magic build module
 
-showAsServantErr :: GargError -> ServerError
-showAsServantErr (GargServerError err) = err
-showAsServantErr a = err500 { errBody = BL8.pack $ show a }
+
+-- | startGargantext takes as parameters port number and Ini file.
+startGargantext :: PortNumber -> FilePath -> IO ()
+startGargantext port file = do
+  env <- newEnv port file
+  portRouteInfo port
+  app <- makeApp env
+  mid <- makeDevMiddleware
+  run port (mid app) `finally` stopGargantext env
+
+portRouteInfo :: PortNumber -> IO ()
+portRouteInfo port = do
+  T.putStrLn "      ----Main Routes-----      "
+  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
+  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
+
+-- TODO clean this Monad condition (more generic) ?
+stopGargantext :: HasRepoSaver env => env -> IO ()
+stopGargantext env = do
+  T.putStrLn "----- Stopping gargantext -----"
+  runReaderT saveRepo env
+
+
+-- | Output generated @swagger.json@ file for the @'TodoAPI'@.
+swaggerWriteJSON :: IO ()
+swaggerWriteJSON = BL8.writeFile "swagger.json" (encodePretty swaggerDoc)
+
+-- | Swagger Specifications
+swaggerDoc :: Swagger
+swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
+  & info.title       .~ "Gargantext"
+  & info.version     .~ (cs $ showVersion PG.version)
+  -- & info.base_url     ?~ (URL "http://gargantext.org/")
+  & info.description ?~ "REST API specifications"
+  -- & tags             .~ Set.fromList [Tag "Garg" (Just "Main perations") Nothing]
+  & applyTagsFor (subOperations (Proxy :: Proxy GargAPI)(Proxy :: Proxy GargAPI)) 
+                 ["Gargantext" & description ?~ "Main operations"]
+  & info.license     ?~ ("AGPLV3 (English) and CECILL (French)" & url ?~ URL urlLicence )
+    where
+        urlLicence = "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/blob/master/LICENSE"
+
+{-
+startGargantextMock :: PortNumber -> IO ()
+startGargantextMock port = do
+  portRouteInfo port
+  application <- makeMockApp . MockEnv $ FireWall False
+  run port application
+-}
+
+----------------------------------------------------------------------
 
 fireWall :: Applicative f => Request -> FireWall -> f Bool
 fireWall req fw = do
@@ -183,150 +216,8 @@ makeDevMiddleware = do
 
 ---------------------------------------------------------------------
 -- | API Global
-
--- | API for serving @swagger.json@
-type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
-
--- | API for serving main operational routes of @gargantext.org@
-
-
-type GargAPI = "api" :> Summary "API " :> GargAPIVersion
--- | TODO          :<|> Summary "Latest API" :> GargAPI'
-
-
-type GargAPIVersion = "v1.0"
-                   :> Summary "Garg API Version "
-                   :> GargAPI'
-
-type GargVersion = "version"
-                 :> Summary "Backend version"
-                 :> Get '[JSON] Text
-
-type GargAPI' =
-           -- Auth endpoint
-                "auth"  :> Summary "AUTH API"
-                        :> ReqBody '[JSON] AuthRequest
-                        :> Post    '[JSON] AuthResponse
-          :<|> GargVersion
-                   -- TODO-ACCESS here we want to request a particular header for
-           -- auth and capabilities.
-          :<|> GargPrivateAPI
-
-
-type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser :> GargPrivateAPI'
-
-type GargAdminAPI
-              -- Roots endpoint
-             =  "user"  :> Summary "First user endpoint"
-                        :> Roots
-           :<|> "nodes" :> Summary "Nodes endpoint"
-                        :> ReqBody '[JSON] [NodeId] :> NodesAPI
-
-----------------------------------------
--- For Tests
-type WaitAPI = Get '[JSON] Text
-
-waitAPI ::  Int -> GargServer WaitAPI
-waitAPI n = do
-  let
-    m = (10 :: Int) ^ (6 :: Int)
-  _ <- liftBase $ threadDelay ( m * n)
-  pure $ "Waited: " <> (cs $ show n)
-----------------------------------------
-
-
-type GargPrivateAPI' =
-                GargAdminAPI
-
-           -- Node endpoint
-           :<|> "node"     :> Summary "Node endpoint"
-                           :> Capture "node_id" NodeId
-                           :> NodeAPI HyperdataAny
-
-           -- Corpus endpoints
-           :<|> "corpus"   :> Summary "Corpus endpoint"
-                           :> Capture "corpus_id" CorpusId
-                           :> NodeAPI HyperdataCorpus
-
-           :<|> "corpus"   :> Summary "Corpus endpoint"
-                           :> Capture "node1_id" NodeId
-                           :> "document"
-                           :> Capture "node2_id" NodeId
-                           :> NodeNodeAPI HyperdataAny
-
-           :<|> "corpus"   :> Capture "node_id" CorpusId
-                           :> Export.API
-
-           -- Annuaire endpoint
-           :<|> "annuaire" :> Summary "Annuaire endpoint"
-                           :> Capture "annuaire_id" AnnuaireId
-                           :> NodeAPI HyperdataAnnuaire
-
-           :<|> "annuaire" :> Summary "Contact endpoint"
-                           :> Capture "annuaire_id" NodeId
-                           :> "contact"
-                           :> Capture "contact_id" NodeId
-                           :> NodeNodeAPI HyperdataContact
-
-           -- Document endpoint
-           :<|> "document" :> Summary "Document endpoint"
-                           :> Capture "doc_id" DocId
-                           :> "ngrams" :> TableNgramsApi
-
-        -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
-            -- TODO-SECURITY
-           :<|> "count"    :> Summary "Count endpoint"
-                           :> ReqBody '[JSON] Query
-                           :> CountAPI
-
-           -- Corpus endpoint --> TODO rename s/search/filter/g
-           :<|> "search"   :> Capture "corpus" NodeId
-                           :> SearchPairsAPI
-
-           -- TODO move to NodeAPI?
-           :<|> "graph"    :> Summary "Graph endpoint"
-                           :> Capture "graph_id" NodeId
-                           :> GraphAPI
-
-           -- TODO move to NodeAPI?
-           -- Tree endpoint
-           :<|> "tree"    :> Summary "Tree endpoint"
-                          :> Capture "tree_id" NodeId
-                          :> TreeAPI
-
-           -- :<|> New.Upload
-           :<|> New.AddWithForm
-           :<|> New.AddWithQuery
-
-           -- :<|> "annuaire" :> Annuaire.AddWithForm
-           -- :<|> New.AddWithFile
-       --  :<|> "scraper" :> WithCallbacks ScraperAPI
-       --  :<|> "new"  :> New.Api
-
-           :<|> "lists"  :> Summary "List export API"
-                         :> Capture "listId" ListId
-                         :> List.API
-
-           :<|> "wait"   :> Summary "Wait test"
-                         :> Capture "x" Int
-                         :> WaitAPI -- Get '[JSON] Int
-
--- /mv/<id>/<id>
--- /merge/<id>/<id>
--- /rename/<id>
-       -- :<|> "static"
-       -- :<|> "list"     :> Capture "node_id" Int  :> NodeAPI
-       -- :<|> "ngrams"   :> Capture "node_id" Int  :> NodeAPI
-       -- :<|> "auth"     :> Capture "node_id" Int  :> NodeAPI
----------------------------------------------------------------------
-
-type API = SwaggerAPI
-       :<|> GargAPI
-       :<|> FrontEndAPI
-
 ---------------------------------------------------------------------
 -- | Server declarations
-
 server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
@@ -340,6 +231,12 @@ server env = do
   where
     transform :: forall a. GargServerM env GargError a -> Handler a
     transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
+
+showAsServantErr :: GargError -> ServerError
+showAsServantErr (GargServerError err) = err
+showAsServantErr a = err500 { errBody = BL8.pack $ show a }
+
+---------------------------
 
 serverGargAPI :: GargServerT env err (GargServerM env err) GargAPI
 serverGargAPI -- orchestrator
@@ -357,46 +254,14 @@ serverGargAPI -- orchestrator
     serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
 -- Here throwAll' requires a concrete type for the monad.
 
+
 -- TODO-SECURITY admin only: withAdmin
 -- Question: How do we mark admins?
+{-
 serverGargAdminAPI :: GargServer GargAdminAPI
 serverGargAdminAPI =  roots
                  :<|> nodesAPI
-
-
-serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
-serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
-       =  serverGargAdminAPI
-     :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
-     :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
-     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
-     :<|> Export.getCorpus   -- uid
-     :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
-     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)  uid
-
-     :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid
-          <$> PathNode <*> apiNgramsTableDoc
-
-     :<|> count -- TODO: undefined
-
-     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid
-          <$> PathNode <*> searchPairs -- TODO: move elsewhere
-
-     :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid
-          <$> PathNode <*> graphAPI uid -- TODO: mock
-
-     :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
-          <$> PathNode <*> treeAPI
-     -- TODO access
-     :<|> addCorpusWithForm  (UserDBId uid)
-     :<|> addCorpusWithQuery (RootId   (NodeId uid))
-
-     -- :<|> addAnnuaireWithForm
-     -- :<|> New.api  uid -- TODO-SECURITY
-     -- :<|> New.info uid -- TODO-SECURITY
-     :<|> List.api
-     :<|> waitAPI
-
+-}
 
 ---------------------------------------------------------------------
 --gargMock :: Server GargAPI
@@ -424,6 +289,7 @@ schemaUiServer :: (Server api ~ Handler Swagger)
         => Swagger -> Server (SwaggerSchemaUI' dir api)
 schemaUiServer = swaggerSchemaUIServer
 
+---------------------------------------------------------------------
 -- Type Family for the Documentation
 type family TypeName (x :: *) :: Symbol where
     TypeName Int  = "Int"
@@ -434,88 +300,5 @@ type family GenericTypeName t (r :: *) :: Symbol where
     GenericTypeName t (D1 ('MetaData name mod pkg nt) f x) = name
 
 type Desc t n = Description (AppendSymbol (TypeName t) (AppendSymbol " | " n))
-
-
--- | Swagger Specifications
-swaggerDoc :: Swagger
-swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
-  & info.title       .~ "Gargantext"
-  & info.version     .~ (cs $ showVersion PG.version)
-  -- & info.base_url     ?~ (URL "http://gargantext.org/")
-  & info.description ?~ "REST API specifications"
-  -- & tags             .~ Set.fromList [Tag "Garg" (Just "Main perations") Nothing]
-  & applyTagsFor (subOperations (Proxy :: Proxy GargAPI)(Proxy :: Proxy GargAPI)) 
-                 ["Gargantext" & description ?~ "Main operations"]
-  & info.license     ?~ ("AGPLV3 (English) and CECILL (French)" & url ?~ URL urlLicence )
-    where
-        urlLicence = "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/blob/master/LICENSE"
-
--- | Output generated @swagger.json@ file for the @'TodoAPI'@.
-swaggerWriteJSON :: IO ()
-swaggerWriteJSON = BL8.writeFile "swagger.json" (encodePretty swaggerDoc)
-
-portRouteInfo :: PortNumber -> IO ()
-portRouteInfo port = do
-  T.putStrLn "      ----Main Routes-----      "
-  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
-  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
-
--- TODO clean this Monad condition (more generic) ?
-stopGargantext :: HasRepoSaver env => env -> IO ()
-stopGargantext env = do
-  T.putStrLn "----- Stopping gargantext -----"
-  runReaderT saveRepo env
-
--- | startGargantext takes as parameters port number and Ini file.
-startGargantext :: PortNumber -> FilePath -> IO ()
-startGargantext port file = do
-  env <- newEnv port file
-  portRouteInfo port
-  app <- makeApp env
-  mid <- makeDevMiddleware
-  run port (mid app) `finally` stopGargantext env
-
-{-
-startGargantextMock :: PortNumber -> IO ()
-startGargantextMock port = do
-  portRouteInfo port
-  application <- makeMockApp . MockEnv $ FireWall False
-  run port application
--}
-
-----------------------------------------------------------------------
-
-addCorpusWithQuery :: User -> GargServer New.AddWithQuery
-addCorpusWithQuery user cid =
-  serveJobsAPI $
-    JobFunction (\q log ->
-      let
-        log' x = do
-          printDebug "addToCorpusWithQuery" x
-          liftBase $ log x
-      in New.addToCorpusWithQuery user cid q log'
-      )
-
-{-
-addWithFile :: GargServer New.AddWithFile
-addWithFile cid i f =
-  serveJobsAPI $
-    JobFunction (\_i log -> New.addToCorpusWithFile cid i f (liftBase . log))
--}
-
-addCorpusWithForm :: User -> GargServer New.AddWithForm
-addCorpusWithForm user cid =
-  serveJobsAPI $
-    JobFunction (\i log ->
-      let
-        log' x = do
-          printDebug "addToCorpusWithForm" x
-          liftBase $ log x
-      in New.addToCorpusWithForm user cid i log')
-
-addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
-addAnnuaireWithForm cid =
-  serveJobsAPI $
-    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
 
 
