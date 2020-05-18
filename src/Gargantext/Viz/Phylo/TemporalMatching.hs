@@ -252,8 +252,8 @@ fScore beta x bk bx =
                / (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) $ concat bx))
       accuracy = ( (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk)
                  / (fromIntegral $ length bk))
-   in ((1 + beta ** 2) * accuracy * recall)
-    / (((beta ** 2) * accuracy + recall))
+   in ((1 + (1 / beta) ** 2) * accuracy * recall)
+    / ((((1 / beta) ** 2) * accuracy + recall))
 
 
 wk :: [PhyloGroup] -> Double
