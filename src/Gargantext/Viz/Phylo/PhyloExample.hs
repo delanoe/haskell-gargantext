@@ -108,7 +108,7 @@ config =
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2
                   , exportFilter = [ByBranchSize 0]
-                  , clique = MaxClique 0 }
+                  , clique = Fis 0 0 }
 
 
 docs :: [Document]
