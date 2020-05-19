@@ -43,10 +43,11 @@ import Opaleye
 data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
                            , userLight_email    :: !Text
+                           , userLigth_password :: !Text
                            } deriving (Show)
 
 toUserLight :: UserDB -> UserLight
-toUserLight (UserDB id _ _ _ u _ _ e _ _ _ ) = UserLight id u e
+toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e p
 
 data UserPoly id pass llogin suser
               uname fname lname

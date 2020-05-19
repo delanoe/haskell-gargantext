@@ -27,9 +27,9 @@ module Gargantext.Database.Query.Table.User
   ( insertUsers
   , queryUserTable
   , getUser
-  , gargantextUser
+  , gargUserWith
   , insertUsersDemo
-  , selectUsersLight
+  , selectUsersLightWith
   , userWithUsername
   , userWithId
   , userLightWithId
@@ -44,35 +44,43 @@ import Data.Maybe (Maybe)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Core.Types.Individu
+import qualified Gargantext.Core.Auth as Auth
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Opaleye
 
 ------------------------------------------------------------------------
+
+
 -- TODO: on conflict, nice message
 insertUsers :: [UserWrite] -> Cmd err Int64
 insertUsers us = mkCmd $ \c -> runInsert_ c insert
   where
     insert = Insert userTable us rCount Nothing
 
-gargantextUser :: Username -> UserWrite
-gargantextUser u = UserDB (Nothing) (pgStrictText "password")
+insertUsersDemo :: Cmd err Int64
+insertUsersDemo = do
+  users <- liftBase arbitraryUsersHash
+  insertUsers $ map (\(u,m,h) -> gargUserWith u m h) users
+
+-----------------------------------------------------------------------
+
+gargUserWith :: Username -> Email -> Auth.PasswordHash Auth.Argon2 -> UserWrite
+gargUserWith u m (Auth.PasswordHash p) = UserDB (Nothing) (pgStrictText p)
                          (Nothing) (pgBool True) (pgStrictText u)
                          (pgStrictText "first_name")
                          (pgStrictText "last_name")
-                         (pgStrictText "e@mail")
-                         (pgBool True) (pgBool True) (Nothing)
-
-insertUsersDemo :: Cmd err Int64
-insertUsersDemo = insertUsers $ map (\u -> gargantextUser u) arbitraryUsername
+                         (pgStrictText m)
+                         (pgBool True) 
+                         (pgBool True) Nothing
 
 ------------------------------------------------------------------
 queryUserTable :: Query UserRead
 queryUserTable = queryTable userTable
 
-selectUsersLight :: Query UserRead
-selectUsersLight = proc () -> do
+selectUsersLightWith :: Query UserRead
+selectUsersLightWith = proc () -> do
       row@(UserDB i _p _ll _is _un _fn _ln _m _iff _ive _dj) <- queryUserTable -< ()
       restrict -< i .== 1
       --returnA -< User i p ll is un fn ln m iff ive dj

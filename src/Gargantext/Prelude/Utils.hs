@@ -20,10 +20,6 @@ import Control.Lens (view)
 import Control.Monad.Random.Class (MonadRandom)
 import Control.Monad.Reader (MonadReader)
 import Control.Monad.Reader (ask)
-import Crypto.Argon2 as Crypto
-import Data.ByteString (ByteString)
-import Data.ByteString.Base64.URL as URL
-import Data.Either
 import Data.Text (Text)
 import GHC.IO (FilePath)
 import Gargantext.API.Admin.Settings
@@ -53,23 +49,8 @@ data NodeToHash = NodeToHash { nodeType :: NodeType
                              , nodeId   :: NodeId
                              }
 
-secret_key :: ByteString
-secret_key = "WRV5ymit8s~ge6%08dLR7Q!gBcpb1MY%7e67db2206"
-
-type SecretKey = ByteString
-
 type FolderPath = FilePath
 type FileName   = FilePath
-
-hashNode :: SecretKey -> NodeToHash -> ByteString
-hashNode sk (NodeToHash nt ni) = case hashResult of
-    Left  e -> panic (cs $ show e)
-    Right h -> URL.encode h
-  where
-    hashResult = Crypto.hash Crypto.defaultHashOptions
-                  sk
-                  (cs $ show nt <> show ni)
-
 
 toPath :: Int -> Text -> (FolderPath,FileName)
 toPath n x = (Text.unpack $ Text.intercalate "/" [x1,x2], Text.unpack xs)

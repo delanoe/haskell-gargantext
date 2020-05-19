@@ -87,7 +87,7 @@ library:
   - aeson
   - aeson-lens
   - aeson-pretty
-  - argon2
+  - password
   - array
   - async
   - attoparsec
