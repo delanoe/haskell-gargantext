@@ -11,16 +11,22 @@ Individu defintions
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# LANGUAGE DeriveGeneric               #-}
 {-# LANGUAGE NoImplicitPrelude           #-}
 {-# LANGUAGE FlexibleInstances           #-}
 {-# LANGUAGE OverloadedStrings           #-}
+{-# LANGUAGE TemplateHaskell             #-}
 
 module Gargantext.Core.Types.Individu
   where
 
+import Data.Aeson.TH (deriveJSON)
 import Control.Monad.IO.Class (MonadIO)
+import GHC.Generics (Generic)
+import Data.Swagger
 import Data.Text (Text, pack, reverse)
 import Gargantext.Database.Admin.Types.Node (NodeId, UserId)
+import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude hiding (reverse)
 import qualified Gargantext.Core.Auth as Auth
 
@@ -29,7 +35,15 @@ data User = UserDBId UserId | UserName Text | RootId NodeId
   deriving (Eq)
 
 type Username = Text
-type Password = Text
+
+newtype GargPassword = GargPassword Text
+  deriving (Generic)
+
+instance Show GargPassword where
+  show (GargPassword _) = "*GargPassword*"
+
+instance ToSchema GargPassword
+
 type Email    = Text
 
 type UsernameMaster = Username
@@ -42,8 +56,8 @@ arbitraryUsername = ["gargantua"] <> users
     users = zipWith (\a b -> a <> (pack . show) b) 
                     (repeat "user") ([1..20]::[Int])
 
-arbitraryPassword :: [Password]
-arbitraryPassword = map reverse arbitraryUsername
+arbitraryPassword :: [GargPassword]
+arbitraryPassword = map (\u -> GargPassword (reverse u)) arbitraryUsername
 
 -----------------------------------------------------------
 
@@ -52,12 +66,15 @@ arbitraryUsersHash :: MonadIO m
 arbitraryUsersHash = mapM userHash arbitraryUsers
 
 userHash :: MonadIO m
-                  => (Username, Email, Password)
+                  => (Username, Email, GargPassword)
                   -> m (Username, Email, Auth.PasswordHash Auth.Argon2)
-userHash (u,m,p) = do
+userHash (u,m,GargPassword p) = do
   h <- Auth.createPasswordHash p
   pure (u, m, h)
 
-arbitraryUsers :: [(Username, Email, Password)]
-arbitraryUsers = map (\u -> (u, u <> "@gargantext.org", reverse u)) arbitraryUsername
+arbitraryUsers :: [(Username, Email, GargPassword)]
+arbitraryUsers = map (\u -> (u, u <> "@gargantext.org", GargPassword $ reverse u)) arbitraryUsername
+
+
+$(deriveJSON (unPrefix "") ''GargPassword)
 

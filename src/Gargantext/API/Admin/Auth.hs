@@ -41,7 +41,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Settings
 import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC)
-import Gargantext.Core.Types.Individu (User(..), Username, Password, arbitraryUsername, arbitraryPassword)
+import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..), arbitraryUsername, arbitraryPassword)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Query.Tree.Root (getRoot)
@@ -60,7 +60,7 @@ import qualified Gargantext.Core.Auth as Auth
 
 -- | Main types for AUTH API
 data AuthRequest = AuthRequest { _authReq_username :: Username
-                               , _authReq_password :: Password
+                               , _authReq_password :: GargPassword
                                }
   deriving (Generic)
 
@@ -98,9 +98,9 @@ makeTokenForUser uid = do
 
 checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err)
                  => Username
-                 -> Password
+                 -> GargPassword
                  -> Cmd' env err CheckAuth
-checkAuthRequest u p = do
+checkAuthRequest u (GargPassword p) = do
   candidate <- head <$> getUsersWith u
   case candidate of
     Nothing -> pure InvalidUser
@@ -129,8 +129,10 @@ newtype AuthenticatedUser = AuthenticatedUser
   } deriving (Generic)
 
 $(deriveJSON (unPrefix "_authUser_") ''AuthenticatedUser)
+
 instance ToSchema AuthenticatedUser where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_authUser_")
+
 instance ToJWT AuthenticatedUser
 instance FromJWT AuthenticatedUser
 
