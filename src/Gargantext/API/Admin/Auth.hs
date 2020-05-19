@@ -34,9 +34,8 @@ module Gargantext.API.Admin.Auth
 
 import Control.Lens (view)
 import Data.Aeson.TH (deriveJSON)
-import Data.List (elem)
 import Data.Swagger
-import Data.Text (Text, reverse)
+import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
@@ -50,10 +49,12 @@ import Gargantext.Database.Schema.Node (NodePoly(_node_id))
 import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId, ListId, DocId)
 import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool)
 import Gargantext.Prelude hiding (reverse)
+import Gargantext.Database.Query.Table.User
 import Servant
 import Servant.Auth.Server
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Gargantext.Core.Auth as Auth
 
 ---------------------------------------------------
 
@@ -96,17 +97,23 @@ makeTokenForUser uid = do
   -- TODO not sure about the encoding...
 
 checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err)
-                 => Username -> Password -> Cmd' env err CheckAuth
-checkAuthRequest u p
-  | not (u `elem` arbitraryUsername) = pure InvalidUser
-  | u /= reverse p = pure InvalidPassword
-  | otherwise = do
-      muId <- head <$> getRoot (UserName u)
-      case _node_id <$> muId of
-        Nothing  -> pure InvalidUser
-        Just uid -> do
-          token <- makeTokenForUser uid
-          pure $ Valid token uid
+                 => Username
+                 -> Password
+                 -> Cmd' env err CheckAuth
+checkAuthRequest u p = do
+  candidate <- head <$> getUsersWith u
+  case candidate of
+    Nothing -> pure InvalidUser
+    Just (UserLight _id _u _email h) ->
+      case Auth.checkPassword (Auth.mkPassword p) (Auth.PasswordHash h) of
+        Auth.PasswordCheckFail    -> pure InvalidPassword
+        Auth.PasswordCheckSuccess -> do
+          muId <- head <$> getRoot (UserName u)
+          case _node_id <$> muId of
+            Nothing  -> pure InvalidUser
+            Just uid -> do
+              token <- makeTokenForUser uid
+              pure $ Valid token uid
 
 auth :: (HasSettings env, HasConnectionPool env, HasJoseError err)
      => AuthRequest -> Cmd' env err AuthResponse

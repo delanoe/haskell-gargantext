@@ -33,6 +33,7 @@ module Gargantext.Database.Query.Table.User
   , userWithUsername
   , userWithId
   , userLightWithId
+  , getUsersWith
   , module Gargantext.Database.Schema.User
   )
   where
@@ -76,15 +77,18 @@ gargUserWith u m (Auth.PasswordHash p) = UserDB (Nothing) (pgStrictText p)
                          (pgBool True) Nothing
 
 ------------------------------------------------------------------
+getUsersWith :: Username -> Cmd err [UserLight]
+getUsersWith u = map toUserLight <$> runOpaQuery (selectUsersLightWith u)
+
+selectUsersLightWith :: Username -> Query UserRead
+selectUsersLightWith u = proc () -> do
+      row      <- queryUserTable -< ()
+      restrict -< user_username row .== pgStrictText u
+      returnA  -< row
+
 queryUserTable :: Query UserRead
 queryUserTable = queryTable userTable
 
-selectUsersLightWith :: Query UserRead
-selectUsersLightWith = proc () -> do
-      row@(UserDB i _p _ll _is _un _fn _ln _m _iff _ive _dj) <- queryUserTable -< ()
-      restrict -< i .== 1
-      --returnA -< User i p ll is un fn ln m iff ive dj
-      returnA -< row
 ------------------------------------------------------------------
 -- | Select User with some parameters
 -- Not optimized version

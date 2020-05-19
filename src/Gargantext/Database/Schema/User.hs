@@ -13,6 +13,7 @@ Functions to deal with users, database side.
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE TemplateHaskell             #-}
 {-# LANGUAGE FlexibleContexts            #-}
 {-# LANGUAGE FlexibleInstances           #-}
@@ -22,6 +23,7 @@ Functions to deal with users, database side.
 {-# LANGUAGE NoImplicitPrelude           #-}
 {-# LANGUAGE OverloadedStrings           #-}
 {-# LANGUAGE RankNTypes                  #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Schema.User where
 
@@ -30,6 +32,11 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
 import Gargantext.Prelude
+import GHC.Generics (Generic)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import Data.Aeson.TH (deriveJSON)
+import Gargantext.Database.Prelude (fromField')
+import Gargantext.Core.Utils.Prefix (unPrefix)
 
 -- FIXME PLZ : the import below leads to an error, why ?
 -- import Gargantext.Database.Schema.Prelude hiding (makeLensesWith, abbreviatedFields, makeAdaptorAndInstance)
@@ -37,17 +44,18 @@ import Gargantext.Prelude
 -- When FIXED : Imports to remove:
 import Control.Lens.TH (makeLensesWith, abbreviatedFields)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Opaleye
+import Opaleye hiding (FromField)
 
 ------------------------------------------------------------------------
 data UserLight = UserLight { userLight_id       :: !Int
                            , userLight_username :: !Text
                            , userLight_email    :: !Text
-                           , userLigth_password :: !Text
-                           } deriving (Show)
+                           , userLight_password :: !Text
+                           } deriving (Show, Generic)
 
 toUserLight :: UserDB -> UserLight
 toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e p
+
 
 data UserPoly id pass llogin suser
               uname fname lname
@@ -65,7 +73,8 @@ data UserPoly id pass llogin suser
            , user_isStaff     :: !staff
            , user_isActive    :: !active
            , user_dateJoined  :: !djoined
-           } deriving (Show)
+           } deriving (Show, Generic)
+
 
 type UserWrite = UserPoly (Maybe (Column PGInt4))        (Column PGText)
                           (Maybe (Column PGTimestamptz)) (Column PGBool)
@@ -108,3 +117,12 @@ userTable = Table "auth_user"
                   , user_dateJoined  = optional "date_joined"
                   }
       )
+
+instance FromField UserLight where
+  fromField = fromField'
+
+instance FromField UserDB where
+  fromField = fromField'
+
+$(deriveJSON (unPrefix "userLight_") ''UserLight)
+$(deriveJSON (unPrefix "user_") ''UserPoly)
