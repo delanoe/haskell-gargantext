@@ -15,18 +15,16 @@ Individu defintions
 {-# LANGUAGE NoImplicitPrelude           #-}
 {-# LANGUAGE FlexibleInstances           #-}
 {-# LANGUAGE OverloadedStrings           #-}
-{-# LANGUAGE TemplateHaskell             #-}
 
 module Gargantext.Core.Types.Individu
   where
 
-import Data.Aeson.TH (deriveJSON)
+import Data.Aeson
 import Control.Monad.IO.Class (MonadIO)
 import GHC.Generics (Generic)
 import Data.Swagger
 import Data.Text (Text, pack, reverse)
 import Gargantext.Database.Admin.Types.Node (NodeId, UserId)
-import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude hiding (reverse)
 import qualified Gargantext.Core.Auth as Auth
 
@@ -41,6 +39,9 @@ newtype GargPassword = GargPassword Text
 
 instance Show GargPassword where
   show (GargPassword _) = "*GargPassword*"
+
+instance ToJSON GargPassword
+instance FromJSON GargPassword
 
 instance ToSchema GargPassword
 
@@ -75,6 +76,4 @@ userHash (u,m,GargPassword p) = do
 arbitraryUsers :: [(Username, Email, GargPassword)]
 arbitraryUsers = map (\u -> (u, u <> "@gargantext.org", GargPassword $ reverse u)) arbitraryUsername
 
-
-$(deriveJSON (unPrefix "") ''GargPassword)
 
