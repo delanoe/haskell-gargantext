@@ -59,7 +59,7 @@ import Data.Text.Encoding (encodeUtf8)
 import Data.Validity
 import Data.Version (showVersion)
 import GHC.Base (Applicative)
-import GHC.Generics (D1, Meta (..), Rep)
+import GHC.Generics (D1, Meta (..), Rep, Generic)
 import GHC.TypeLits (AppendSymbol, Symbol)
 import Gargantext.API.Admin.Auth (AuthContext, auth)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
@@ -85,13 +85,17 @@ import qualified Data.Text.IO               as T
 import qualified Paths_gargantext           as PG -- cabal magic build module
 
 
+data Mode = Dev | Mock | Prod 
+       deriving (Show, Read, Generic)
+
+
 -- | startGargantext takes as parameters port number and Ini file.
-startGargantext :: PortNumber -> FilePath -> IO ()
-startGargantext port file = do
+startGargantext :: Mode -> PortNumber -> FilePath -> IO ()
+startGargantext mode port file = do
   env <- newEnv port file
   portRouteInfo port
   app <- makeApp env
-  mid <- makeDevMiddleware
+  mid <- makeDevMiddleware mode
   run port (mid app) `finally` stopGargantext env
 
 portRouteInfo :: PortNumber -> IO ()
@@ -183,8 +187,8 @@ makeMockApp env = do
 -}
 
 
-makeDevMiddleware :: IO Middleware
-makeDevMiddleware = do
+makeDevMiddleware :: Mode -> IO Middleware
+makeDevMiddleware mode = do
 
     -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
     --logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
@@ -212,7 +216,9 @@ makeDevMiddleware = do
     --          $ Warp.defaultSettings
 
     --pure (warpS, logWare . checkOriginAndHost . corsMiddleware)
-    pure $ logStdoutDev . corsMiddleware
+    case mode of
+      Prod -> pure $ logStdout . corsMiddleware
+      _    -> pure $ logStdoutDev . corsMiddleware
 
 ---------------------------------------------------------------------
 -- | API Global

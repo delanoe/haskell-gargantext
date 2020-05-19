@@ -29,7 +29,7 @@ import Options.Generic
 import System.Exit (exitSuccess)
 
 import Gargantext.Prelude
-import Gargantext.API (startGargantext) -- , startGargantextMock)
+import Gargantext.API (startGargantext, Mode(..)) -- , startGargantextMock)
 
 --------------------------------------------------------
 -- Graph Tests
@@ -39,12 +39,9 @@ import Gargantext.API (startGargantext) -- , startGargantextMock)
 --import qualified Gargantext.Graph.Distances.Matrice        as M
 --------------------------------------------------------
 
-data Mode = Dev | Mock | Prod 
-       deriving (Show, Read, Generic)
 instance ParseRecord Mode
 instance ParseField  Mode
 instance ParseFields Mode
-
 
 data MyOptions w =
   MyOptions { run  :: w ::: Mode
@@ -78,14 +75,12 @@ main = do
         Nothing -> 8008
 
   let start = case myMode of
-        Prod -> startGargantext myPort' (unpack myIniFile')
+        Mock -> panic "[ERROR] Mock mode unsupported"
+        _ -> startGargantext myMode myPort' (unpack myIniFile')
             where
               myIniFile' = case myIniFile of
                   Nothing -> panic "[ERROR] gargantext.ini needed"
                   Just i  -> i
-        Dev -> panic "[ERROR] Dev mode unsupported"
-        Mock -> panic "[ERROR] Mock mode unsupported"
-        -- _ -> startGargantextMock myPort'
 
   putStrLn $ "Starting with " <> show myMode <> " mode."
   start
