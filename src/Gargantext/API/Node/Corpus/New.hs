@@ -117,6 +117,8 @@ instance Arbitrary ApiInfo where
 deriveJSON (unPrefix "") 'ApiInfo
 
 instance ToSchema ApiInfo
+  where
+    declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "api_")
 
 info :: FlowCmdM env err m => UserId -> m ApiInfo
 info _u = pure $ ApiInfo API.externalAPIs

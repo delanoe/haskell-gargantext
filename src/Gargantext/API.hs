@@ -66,7 +66,7 @@ import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import Gargantext.API.Admin.Settings
 import Gargantext.API.Ngrams (HasRepoSaver(..), saveRepo)
 import Gargantext.API.Prelude
-import Gargantext.API.Routes
+import Gargantext.API.BugRoutes
 import Gargantext.Prelude
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
