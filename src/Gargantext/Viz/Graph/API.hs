@@ -83,35 +83,20 @@ getGraph :: UserId -> NodeId -> GargNoServer Graph
 getGraph _uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
-  -- let listVersion = graph ^? _Just
-  --                           . graph_metadata
-  --                           . _Just
-  --                           . gm_list
-  --                           . lfg_version
-
   repo <- getRepo
-  -- let v = repo ^. r_version
-  -- nodeUser <- getNodeUser (NodeId uId)
-  -- let uId' = nodeUser ^. node_userId
 
-  let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
+  let cId = maybe (panic "[G.V.G.API] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
 
   g <- case graph of
     Nothing     -> do
         graph' <- computeGraph cId NgramsTerms repo
-        _ <- updateHyperdata nId (HyperdataGraph $ Just graph')
-        pure $ trace "Graph empty, computing" $ graph'
+        _      <- updateHyperdata nId (HyperdataGraph $ Just graph')
+        pure $ trace "[G.V.G.API] Graph empty, computing" $ graph'
 
-    Just graph' -> pure $ trace "Graph exists, returning" $ graph'
+    Just graph' -> pure $ trace "[G.V.G.API] Graph exists, returning" $ graph'
 
-    -- Just graph' -> if listVersion == Just v
-    --                  then pure graph'
-    --                  else do
-    --                    graph'' <- computeGraph cId NgramsTerms repo
-    --                    _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
-    --                    pure graph''
   pure g
 
 
@@ -126,12 +111,8 @@ recomputeGraph _uId nId = do
                             . lfg_version
 
   repo <- getRepo
-  let v = repo ^. r_version
-  -- nodeUser <- getNodeUser (NodeId uId)
-
-  -- let uId' = nodeUser ^. node_userId
-
-  let cId = maybe (panic "[ERR:G.V.G.API] Node has no parent")
+  let v   = repo ^. r_version
+  let cId = maybe (panic "[G.V.G.API.recomputeGraph] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
 
@@ -139,14 +120,14 @@ recomputeGraph _uId nId = do
     Nothing     -> do
       graph' <- computeGraph cId NgramsTerms repo
       _ <- updateHyperdata nId (HyperdataGraph $ Just graph')
-      pure $ trace "[recomputeGraph] Graph empty, computed" $ graph'
+      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" $ graph'
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
                        graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
-                       pure $ trace "[recomputeGraph] Graph exists, recomputing" $ graph''
+                       pure $ trace "[G.V.G.API] Graph exists, recomputing" $ graph''
   pure g
 
 
@@ -179,16 +160,10 @@ computeGraph cId nt repo = do
   pure graph'
 
 ------------------------------------------------------------
-
-getGraphGexf :: UserId -> NodeId -> GargNoServer (Headers '[Servant.Header "Content-Disposition" Text] Graph)
-getGraphGexf uId nId = do
-  graph <- getGraph uId nId
-  pure $ addHeader (concat [ "attachment; filename=graph.gexf" ]) graph
-
-------------------------------------------------------------
 type GraphAsyncAPI = Summary "Update graph"
                    :> "async"
                    :> AsyncJobsAPI ScraperStatus () ScraperStatus
+
 
 graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
 graphAsync u n =
@@ -214,7 +189,6 @@ graphAsync' u n logStatus = do
                       }
 
 ------------------------------------------------------------
-
 type GraphVersionsAPI = Summary "Graph versions"
                         :> Get '[JSON] GraphVersions
                    :<|> Summary "Recompute graph version"
@@ -243,3 +217,14 @@ graphVersions _uId nId = do
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
 recomputeVersions uId nId = recomputeGraph uId nId
+
+------------------------------------------------------------
+getGraphGexf :: UserId
+             -> NodeId
+             -> GargNoServer (Headers '[Servant.Header "Content-Disposition" Text] Graph)
+getGraphGexf uId nId = do
+  graph <- getGraph uId nId
+  pure $ addHeader (concat [ "attachment; filename=graph.gexf" ]) graph
+
+
+
