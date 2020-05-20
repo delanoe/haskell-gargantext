@@ -1,6 +1,6 @@
 {-|
-Module      : Gargantext.Viz.Phylo.Tools
-Description : Phylomemy Tools to build/manage it
+Module      : Gargantext.Viz.Graph
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
@@ -28,17 +28,14 @@ module Gargantext.Viz.Graph.API
 import Control.Lens (set, (^.), _Just, (^?))
 import Data.Aeson
 import Debug.Trace (trace)
-import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Swagger
 import Data.Text
 import GHC.Generics (Generic)
 import Servant
-import Servant.Job.Async
 import Servant.XML
-import qualified Xmlbf as Xmlbf
-
+import Servant.Job.Async
 import Gargantext.API.Ngrams (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Admin.Orchestrator.Types
@@ -56,54 +53,11 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
-import qualified Gargantext.Prelude as P
 import Gargantext.Viz.Graph
-import qualified Gargantext.Viz.Graph as G
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
-
--- Converts to GEXF format
--- See https://gephi.org/gexf/format/
-instance Xmlbf.ToXml Graph where
-  toXml (Graph { _graph_nodes = graphNodes
-                , _graph_edges = graphEdges }) = root graphNodes graphEdges
-    where
-      root :: [G.Node] -> [G.Edge] -> [Xmlbf.Node]
-      root gn ge =
-        Xmlbf.element "gexf" params $ meta <> (graph gn ge)
-        where
-          params = HashMap.fromList [ ("xmlns", "http://www.gexf.net/1.2draft")
-                                    , ("version", "1.2") ]
-      meta = Xmlbf.element "meta" params $ creator <> desc
-        where
-          params = HashMap.fromList [ ("lastmodifieddate", "2020-03-13") ]
-      creator = Xmlbf.element "creator" HashMap.empty $ Xmlbf.text "Gargantext.org"
-      desc = Xmlbf.element "description" HashMap.empty $ Xmlbf.text "Gargantext gexf file"
-      graph :: [G.Node] -> [G.Edge] -> [Xmlbf.Node]
-      graph gn ge = Xmlbf.element "graph" params $ (nodes gn) <> (edges ge)
-        where
-          params = HashMap.fromList [ ("mode", "static")
-                                    , ("defaultedgetype", "directed") ]
-      nodes :: [G.Node] -> [Xmlbf.Node]
-      nodes gn = Xmlbf.element "nodes" HashMap.empty $ P.concatMap node' gn
-
-      node' :: G.Node -> [Xmlbf.Node]
-      node' (G.Node { node_id = nId, node_label = l }) =
-        Xmlbf.element "node" params []
-        where
-          params = HashMap.fromList [ ("id", nId)
-                                    , ("label", l) ]
-      edges :: [G.Edge] -> [Xmlbf.Node]
-      edges gn = Xmlbf.element "edges" HashMap.empty $ P.concatMap edge gn
-      edge :: G.Edge -> [Xmlbf.Node]
-      edge (G.Edge { edge_id = eId, edge_source = es, edge_target = et }) =
-        Xmlbf.element "edge" params []
-        where
-          params = HashMap.fromList [ ("id", eId)
-                                    , ("source", es)
-                                    , ("target", et) ]
+import Gargantext.Viz.Graph.GEXF ()
 
 ------------------------------------------------------------------------
-
 -- | There is no Delete specific API for Graph since it can be deleted
 -- as simple Node.
 type GraphAPI   =  Get  '[JSON] Graph
@@ -112,20 +66,22 @@ type GraphAPI   =  Get  '[JSON] Graph
               :<|> "gexf" :> Get '[XML] (Headers '[Servant.Header "Content-Disposition" Text] Graph)
               :<|> GraphAsyncAPI
               :<|> "versions" :> GraphVersionsAPI
-             
 
-data GraphVersions = GraphVersions { gv_graph :: Maybe Int
-                                   , gv_repo :: Int } deriving (Show, Generic)
+
+data GraphVersions =
+  GraphVersions { gv_graph :: Maybe Int
+                , gv_repo :: Int }
+   deriving (Show, Generic)
 
 instance ToJSON GraphVersions
 instance ToSchema GraphVersions
 
 graphAPI :: UserId -> NodeId -> GargServer GraphAPI
-graphAPI u n =  getGraph  u n
-         :<|> postGraph n
-         :<|> putGraph  n
-         :<|> getGraphGexf u n
-         :<|> graphAsync u n
+graphAPI u n =  getGraph       u n
+         :<|> postGraph          n
+         :<|> putGraph           n
+         :<|> getGraphGexf     u n
+         :<|> graphAsync       u n
          :<|> graphVersionsAPI u n
 
 ------------------------------------------------------------------------
