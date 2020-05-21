@@ -91,5 +91,10 @@ mkNodeWithParent NodeList (Just i) uId name =
     where
       hd = defaultAnnuaire
 
+mkNodeWithParent NodeGraph (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeGraph "Graph" hd Nothing uId]
+    where
+      hd = arbitraryGraph
+
 mkNodeWithParent _ _ _ _       = nodeError NotImplYet
 
