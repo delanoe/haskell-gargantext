@@ -26,14 +26,13 @@ TODO-SECURITY: Critical
 module Gargantext.API.Admin.Settings
     where
 
-import Codec.Serialise (Serialise(), serialise)
+import Codec.Serialise (Serialise(), serialise, deserialise)
 import Control.Concurrent
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
-import Data.Aeson hiding (encode)
 import Data.ByteString (ByteString)
 import Data.Either (either)
 import Data.Maybe (fromMaybe)
@@ -191,7 +190,7 @@ repoSnapshot = repoDir <> "/repo.json"
 repoSaverAction :: Serialise a => a -> IO ()
 repoSaverAction a = do
   withTempFile "repos" "tmp-repo.json" $ \fp h -> do
-    -- printDebug "repoSaverAction" fp
+    printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h
     renameFile fp repoSnapshot
@@ -230,8 +229,9 @@ readRepoEnv = do
   mvar <- newMVar =<<
     if repoExists
       then do
-        e_repo <- eitherDecodeFileStrict repoSnapshot
-        repo   <- either fail pure e_repo
+        -- e_repo <- eitherDecodeStrict <$> deserialise <$> L.readFile repoSnapshot
+        repo <- deserialise <$> L.readFile repoSnapshot
+        -- repo   <- either fail pure e_repo
         let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
         copyFile repoSnapshot archive
         pure repo
