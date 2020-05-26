@@ -91,7 +91,7 @@ mkNodeWithParent NodeList (Just i) uId name =
     where
       hd = defaultAnnuaire
 
-mkNodeWithParent NodeGraph (Just i) uId name =
+mkNodeWithParent NodeGraph (Just i) uId _name =
    insertNodesWithParentR (Just i) [node NodeGraph "Graph" hd Nothing uId]
     where
       hd = arbitraryGraph

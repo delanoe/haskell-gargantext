@@ -26,13 +26,14 @@ TODO-SECURITY: Critical
 module Gargantext.API.Admin.Settings
     where
 
+import Codec.Serialise (Serialise(), serialise)
 import Control.Concurrent
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
 import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
-import Data.Aeson
+import Data.Aeson hiding (encode)
 import Data.ByteString (ByteString)
 import Data.Either (either)
 import Data.Maybe (fromMaybe)
@@ -187,11 +188,11 @@ repoSnapshot = repoDir <> "/repo.json"
 
 -- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
-repoSaverAction :: ToJSON a => a -> IO ()
+repoSaverAction :: Serialise a => a -> IO ()
 repoSaverAction a = do
   withTempFile "repos" "tmp-repo.json" $ \fp h -> do
     -- printDebug "repoSaverAction" fp
-    L.hPut h $ encode a
+    L.hPut h $ serialise a
     hClose h
     renameFile fp repoSnapshot
 

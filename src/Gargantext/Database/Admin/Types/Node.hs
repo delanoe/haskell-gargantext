@@ -25,6 +25,7 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Node
   where
 
+import Codec.Serialise (Serialise())
 import Control.Applicative ((<*>))
 import Control.Lens hiding (elements, (&))
 import Control.Monad (mzero)
@@ -137,6 +138,8 @@ pgNodeId = O.pgInt4 . id2int
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
+
+instance Serialise NodeId
 
 instance ToField NodeId where
   toField (NodeId n) = toField n

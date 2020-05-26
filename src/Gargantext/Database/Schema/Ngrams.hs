@@ -27,6 +27,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams
   where
 
+import Codec.Serialise (Serialise())
 import Control.Lens (makeLenses, over)
 import Control.Monad (mzero)
 import Data.Aeson
@@ -89,6 +90,8 @@ ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { _ngrams_id    = optional "id"
 -- ngrams in text (title or abstract) of documents has Terms Type
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
+
+instance Serialise NgramsType
 
 ngramsTypes :: [NgramsType]
 ngramsTypes = [minBound..]

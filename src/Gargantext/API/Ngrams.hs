@@ -96,6 +96,7 @@ module Gargantext.API.Ngrams
   )
   where
 
+import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
 import Control.Concurrent
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (.~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
@@ -238,6 +239,8 @@ makeLenses ''NgramsRepoElement
 instance ToSchema NgramsRepoElement where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_nre_")
 
+instance Serialise (MSet NgramsTerm)
+instance Serialise NgramsRepoElement
 
 data NgramsElement =
      NgramsElement { _ne_ngrams      :: NgramsTerm
@@ -443,6 +446,8 @@ instance ToSchema a => ToSchema (PatchSet a)
 
 type AddRem = Replace (Maybe ())
 
+instance Serialise AddRem
+
 remPatch, addPatch :: AddRem
 remPatch = replace (Just ()) Nothing
 addPatch = replace Nothing (Just ())
@@ -452,12 +457,16 @@ isRem = (== remPatch)
 
 type PatchMap = PM.PatchMap
 
+
 newtype PatchMSet a = PatchMSet (PatchMap a AddRem)
   deriving (Eq, Show, Generic, Validity, Semigroup, Monoid,
             Transformable, Composable)
 
 type ConflictResolutionPatchMSet a = a -> ConflictResolutionReplace (Maybe ())
 type instance ConflictResolution (PatchMSet a) = ConflictResolutionPatchMSet a
+
+instance (Serialise a, Ord a) => Serialise (PatchMap a AddRem)
+instance (Serialise a, Ord a) => Serialise (PatchMSet a)
 
 -- TODO this breaks module abstraction
 makePrisms ''PM.PatchMap
@@ -528,6 +537,10 @@ instance ToSchema  NgramsPatch where
 instance Arbitrary NgramsPatch where
   arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
 
+instance Serialise NgramsPatch
+instance Serialise (Replace ListType)
+instance Serialise ListType
+
 type NgramsPatchIso = PairPatch (PatchMSet NgramsTerm) (Replace ListType)
 
 _NgramsPatch :: Iso' NgramsPatch NgramsPatchIso
@@ -577,6 +590,9 @@ instance Action NgramsPatch (Maybe NgramsRepoElement) where
 
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
   deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
+
+instance Serialise NgramsTablePatch
+instance Serialise (PatchMap NgramsTerm NgramsPatch)
 
 instance FromField NgramsTablePatch
   where
@@ -736,6 +752,8 @@ instance (ToJSON s, ToJSON p) => ToJSON (Repo s p) where
   toJSON     = genericToJSON     $ unPrefix "_r_"
   toEncoding = genericToEncoding $ unPrefix "_r_"
 
+instance (Serialise s, Serialise p) => Serialise (Repo s p)
+
 makeLenses ''Repo
 
 initRepo :: Monoid s => Repo s p
@@ -744,6 +762,9 @@ initRepo = Repo 1 mempty []
 type NgramsRepo       = Repo NgramsState NgramsStatePatch
 type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
 type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
+
+instance Serialise (PM.PatchMap NodeId NgramsTablePatch)
+instance Serialise NgramsStatePatch
 
 initMockRepo :: NgramsRepo
 initMockRepo = Repo 1 s []

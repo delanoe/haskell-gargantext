@@ -235,6 +235,7 @@ executables:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
+    - -fprof-auto
     dependencies:
       - base
       - containers
