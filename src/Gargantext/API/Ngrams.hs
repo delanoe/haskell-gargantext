@@ -1141,6 +1141,30 @@ getTableNgrams _nType nId tabType listId limit_ offset
   pure tableMap3
 
 
+scoresRecomputeTableNgrams :: forall env err m. (RepoCmdM env err m, HasNodeError err, HasConnectionPool env) => NodeId -> TabType -> ListId -> m Int
+scoresRecomputeTableNgrams nId tabType listId = do
+  tableMap <- getNgramsTableMap listId ngramsType
+  _ <- tableMap & v_data %%~ setScores
+                           . Map.mapWithKey ngramsElementFromRepo
+
+  pure $ 1
+  where
+    ngramsType = ngramsTypeFromTabType tabType
+
+    setScores :: forall t. Each t t NgramsElement NgramsElement => t -> m t
+    setScores table = do
+      let ngrams_terms = (table ^.. each . ne_ngrams)
+      occurrences <- getOccByNgramsOnlyFast' nId
+                                             listId
+                                            ngramsType
+                                            ngrams_terms
+      let
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+
+      pure $ table & each %~ setOcc
+
+
+
 -- APIs
 
 -- TODO: find a better place for the code above, All APIs stay here
@@ -1196,9 +1220,15 @@ type TableNgramsApiPost = Summary " Table Ngrams API Adds new ngrams"
                        :> ReqBody '[JSON] [NgramsTerm]
                        :> Post    '[JSON] ()
 
+type RecomputeScoresNgramsApiGet = Summary " Recompute scores for ngrams table"
+                       :> QueryParamR "ngramsType"  TabType
+                       :> QueryParamR "list"        ListId
+                       :> "recompute" :> Post '[JSON] Int
+
 type TableNgramsApi =  TableNgramsApiGet
                   :<|> TableNgramsApiPut
                   :<|> TableNgramsApiPost
+                  :<|> RecomputeScoresNgramsApiGet
 
 getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env)
                => NodeId -> TabType
@@ -1240,7 +1270,7 @@ apiNgramsTableCorpus :: ( RepoCmdM env err m
 apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
                        :<|> tableNgramsPut
                        :<|> tableNgramsPost
-
+                       :<|> scoresRecomputeTableNgrams cId
 
 apiNgramsTableDoc :: ( RepoCmdM env err m
                      , HasNodeError err
@@ -1251,6 +1281,7 @@ apiNgramsTableDoc :: ( RepoCmdM env err m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId
                     :<|> tableNgramsPut
                     :<|> tableNgramsPost
+                    :<|> scoresRecomputeTableNgrams dId
                     -- > add new ngrams in database (TODO AD)
                     -- > index all the corpus accordingly (TODO AD)
 
