@@ -9,8 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Strict            #-}
 
 module Gargantext.Viz.Graph.Distances

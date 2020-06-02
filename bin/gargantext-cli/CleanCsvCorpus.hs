@@ -11,7 +11,6 @@ Given a Gargantext CSV File and its Query This script cleans and
 compress the contexts around the main terms of the query.
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module CleanCsvCorpus  where
 

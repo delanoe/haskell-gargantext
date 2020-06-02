@@ -9,9 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE     FlexibleContexts        #-}
-{-# LANGUAGE     NoImplicitPrelude       #-}
-{-# LANGUAGE     OverloadedStrings       #-}
 
 module Gargantext.Prelude.Utils
   where

@@ -9,10 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.API.Ngrams.Tools
   where

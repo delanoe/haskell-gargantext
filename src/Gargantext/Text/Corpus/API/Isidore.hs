@@ -9,9 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings   #-}
 
 module Gargantext.Text.Corpus.API.Isidore where
 

@@ -12,8 +12,6 @@ commentary with @some markup@.
 -}
 
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell      #-}
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main

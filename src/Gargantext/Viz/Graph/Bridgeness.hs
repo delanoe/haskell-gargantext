@@ -20,7 +20,6 @@ TODO use Map LouvainNodeId (Map LouvainNodeId)
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Viz.Graph.Bridgeness (bridgeness)
   where

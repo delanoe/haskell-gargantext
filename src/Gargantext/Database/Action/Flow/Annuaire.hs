@@ -10,11 +10,6 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE FlexibleContexts  #-}
 
 module Gargantext.Database.Action.Flow.Annuaire
     where

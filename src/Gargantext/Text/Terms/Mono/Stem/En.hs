@@ -15,7 +15,6 @@ Adapted from:
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Terms.Mono.Stem.En (stemIt)
   where

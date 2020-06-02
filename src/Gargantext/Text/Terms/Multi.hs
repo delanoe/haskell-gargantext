@@ -11,7 +11,6 @@ Multi-terms are ngrams where n > 1.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Terms.Multi (multiterms, multiterms_rake)
   where

@@ -47,7 +47,6 @@ def fast_maximal_cliques(g):
 -}
 
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Viz.Graph.MaxClique
   where

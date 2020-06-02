@@ -9,8 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE OverloadedStrings   #-}
 
 module Gargantext.Core.Auth ( createPasswordHash
                             , checkPassword

@@ -18,8 +18,6 @@ TODO:
 -}
 
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE MonoLocalBinds    #-}
 

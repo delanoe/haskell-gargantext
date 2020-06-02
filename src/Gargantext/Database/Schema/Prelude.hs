@@ -9,7 +9,6 @@ Portability : POSIX
 -}
 
 
-{-# LANGUAGE NoImplicitPrelude      #-}
 
 module Gargantext.Database.Schema.Prelude
   ( module Control.Arrow

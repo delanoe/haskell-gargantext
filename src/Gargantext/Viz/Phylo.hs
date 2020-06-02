@@ -22,10 +22,8 @@ one 8, e54847.
 
 -}
 
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DeriveAnyClass   #-}
 {-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo where
 

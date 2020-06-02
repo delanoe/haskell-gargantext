@@ -11,9 +11,6 @@ Node API
 -}
 
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
 
 module Gargantext.Database.Action.Metrics
   where

@@ -18,9 +18,7 @@ This module mainly describe how to add a new parser to Gargantext,
 please follow the types.
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PackageImports    #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Corpus.Parsers (FileFormat(..), clean, parseFile, cleanText, parseFormat)
     where

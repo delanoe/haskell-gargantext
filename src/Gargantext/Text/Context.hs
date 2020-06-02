@@ -19,8 +19,6 @@ How to split contexts is describes in this module.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Context
   where

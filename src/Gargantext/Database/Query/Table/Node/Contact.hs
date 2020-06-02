@@ -9,12 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Query.Table.Node.Contact

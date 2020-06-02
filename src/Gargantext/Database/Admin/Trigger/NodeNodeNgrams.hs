@@ -11,11 +11,7 @@ Triggers on NodeNodeNgrams table.
 
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Admin.Trigger.NodeNodeNgrams
   where

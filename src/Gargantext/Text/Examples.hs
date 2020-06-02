@@ -22,8 +22,6 @@ This document defines basic of Text definitions according to Gargantext..
 -}
 
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Examples
   where

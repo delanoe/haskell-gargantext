@@ -13,8 +13,6 @@ Gargantext's database.
 TODO: configure nodes table in Haskell (Config typenames etc.)
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Database.Admin.Config
     where

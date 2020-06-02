@@ -10,7 +10,6 @@ Portability : POSIX
 Mainly reexport functions in @Data.Text.Metrics@
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 
 module Gargantext.Text.Metrics.CharByChar (levenshtein

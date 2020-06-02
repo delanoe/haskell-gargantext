@@ -8,7 +8,6 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))

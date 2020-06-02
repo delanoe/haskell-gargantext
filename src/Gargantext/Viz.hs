@@ -11,8 +11,6 @@ Vizualisation of text stats
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Viz
   where

@@ -12,14 +12,8 @@ New corpus means either:
 - new data in existing corpus
 -}
 
-{-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE RankNTypes         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Node.Corpus.New

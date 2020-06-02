@@ -19,10 +19,6 @@ words as nouns, verbs, adjectives, adverbs, etc.
 Source: https://en.wikipedia.org/wiki/Part-of-speech_tagging
 -}
 
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
