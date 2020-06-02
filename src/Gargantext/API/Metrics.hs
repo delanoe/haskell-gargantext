@@ -30,9 +30,16 @@ import Data.Swagger
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.Map as Map
+
+import qualified Gargantext.Database.Action.Metrics as Metrics
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.NTree
 import Gargantext.Core.Types (CorpusId, ListId, Limit)
+import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..))
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow
@@ -40,53 +47,6 @@ import Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Data.Map as Map
-import qualified Gargantext.Database.Action.Metrics as Metrics
-
-data Metrics = Metrics
-  { metrics_data :: [Metric]}
-  deriving (Generic, Show)
-
-instance ToSchema Metrics where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "metrics_")
-instance Arbitrary Metrics
-  where
-    arbitrary = Metrics <$> arbitrary
-
-data Metric = Metric
-  { m_label :: !Text
-  , m_x     :: !Double
-  , m_y     :: !Double
-  , m_cat   :: !ListType
-  } deriving (Generic, Show)
-
-instance ToSchema Metric where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "m_")
-instance Arbitrary Metric
-  where
-    arbitrary = Metric <$> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-                       <*> arbitrary
-
-deriveJSON (unPrefix "metrics_") ''Metrics
-deriveJSON (unPrefix "m_") ''Metric
-
--------------------------------------------------------------
-
-data ChartMetrics a = ChartMetrics { chartMetrics_data :: a }
-  deriving (Generic, Show)
-
-instance (ToSchema a) => ToSchema (ChartMetrics a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "chartMetrics_")
-instance (Arbitrary a) => Arbitrary (ChartMetrics a)
-  where
-    arbitrary = ChartMetrics <$> arbitrary
-
-deriveJSON (unPrefix "chartMetrics_") ''ChartMetrics
 
 -------------------------------------------------------------
 instance ToSchema Histo where
