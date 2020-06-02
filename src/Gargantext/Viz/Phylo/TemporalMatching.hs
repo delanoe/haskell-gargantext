@@ -381,7 +381,7 @@ seaLevelMatching proximity beta minBranch frequency thr step depth elevation fra
     else 
       -- | break all the possible branches at the current seaLvl level
       let quality    = toPhyloQuality beta frequency (map fst branches)
-          branches'  = trace ("↑ level = " <> printf "%.2f" thr <> " F(β) = " <> printf "%.5f" quality <> " branches = " <> show(length branches) <> " ↴") 
+          branches'  = trace ("↑ level = " <> printf "%.3f" thr <> " F(β) = " <> printf "%.5f" quality <> " branches = " <> show(length branches) <> " ↴") 
                      $ breakBranches proximity beta frequency minBranch thr depth elevation frame docs coocs periods 
                                      [] (head' "seaLevelMatching" branches) (tail' "seaLevelMatching" branches)
           frequency' = reduceFrequency frequency (map fst branches')
