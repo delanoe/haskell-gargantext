@@ -15,6 +15,16 @@ extra-libraries:
 dependencies:
 - extra
 - text
+default-extensions:
+  - DataKinds
+  - DeriveGeneric
+  - FlexibleContexts
+  - FlexibleInstances
+  - GeneralizedNewtypeDeriving
+  - MultiParamTypeClasses
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - RankNTypes
 library:
   source-dirs: src
   ghc-options:

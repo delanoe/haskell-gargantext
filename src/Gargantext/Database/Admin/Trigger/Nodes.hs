@@ -11,11 +11,7 @@ Triggers on Nodes table.
 
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Admin.Trigger.Nodes
   where

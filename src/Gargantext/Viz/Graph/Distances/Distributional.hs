@@ -11,8 +11,6 @@ Motivation and definition of the @Distributional@ distance.
 -}
 
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Strict            #-}
 
 

@@ -9,9 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
@@ -21,6 +18,7 @@ import Control.Lens
 import Data.Aeson
 import Data.Text (Text)
 import GHC.Generics
+import Protolude
 import Servant
 import Servant.Client
 import Servant.Job.Utils (jsonOptions)

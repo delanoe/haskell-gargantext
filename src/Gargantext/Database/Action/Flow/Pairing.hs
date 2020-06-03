@@ -9,11 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 -- {-# LANGUAGE Arrows #-}
 
 module Gargantext.Database.Action.Flow.Pairing

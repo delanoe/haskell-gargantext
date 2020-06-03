@@ -13,16 +13,9 @@ Functions to deal with users, database side.
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
-{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE TemplateHaskell             #-}
-{-# LANGUAGE FlexibleContexts            #-}
-{-# LANGUAGE FlexibleInstances           #-}
-{-# LANGUAGE MultiParamTypeClasses       #-}
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE Arrows                      #-}
-{-# LANGUAGE NoImplicitPrelude           #-}
-{-# LANGUAGE OverloadedStrings           #-}
-{-# LANGUAGE RankNTypes                  #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Schema.User where

@@ -11,10 +11,6 @@ Import a corpus binary.
 
  -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE Strict            #-}
 
 module Main where

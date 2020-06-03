@@ -32,9 +32,6 @@ Notes for current implementation:
 
 -}
 {-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 

@@ -15,9 +15,7 @@ TODO:
 -}
 
 
-{-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings   #-}
 
 module Gargantext.Text.Corpus.Parsers.Isidore where
 

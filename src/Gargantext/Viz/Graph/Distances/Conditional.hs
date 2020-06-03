@@ -11,8 +11,6 @@ Motivation and definition of the @Conditional@ distance.
 -}
 
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Strict            #-}
 module Gargantext.Viz.Graph.Distances.Conditional
   where

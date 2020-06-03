@@ -11,8 +11,6 @@ Mainly copied from Servant.Job.Utils (Thanks)
 
 -}
 
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE NoImplicitPrelude  #-}
 
 module Gargantext.API.Admin.Utils
   where

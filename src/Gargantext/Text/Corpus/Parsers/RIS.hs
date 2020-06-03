@@ -16,8 +16,6 @@ citation programs to exchange data.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Corpus.Parsers.RIS (parser, onField, fieldWith, lines) where
 

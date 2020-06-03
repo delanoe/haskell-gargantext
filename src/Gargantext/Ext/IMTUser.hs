@@ -12,9 +12,6 @@ Here is writtent a common interface.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
   where

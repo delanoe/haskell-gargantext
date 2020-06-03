@@ -11,8 +11,6 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Ngrams.Lang.Occurrences where

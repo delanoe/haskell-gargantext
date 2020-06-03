@@ -22,6 +22,9 @@ TODO: quikcheck
 
 module Gargantext.Prelude.Fibonacci where
 
+import Protolude
+
+import qualified Data.Monoid as Monoid
 import qualified Data.Semigroup as Semigroup
 
 -------------------------------------------------------------
@@ -37,14 +40,14 @@ data Matrix2x2 = Matrix
     , x10 :: Integer, x11 :: Integer
     }
 
-instance Monoid Matrix2x2 where
+instance Monoid.Monoid Matrix2x2 where
     mempty =
         Matrix
             { x00 = 1, x01 = 0
             , x10 = 0, x11 = 1
             }
 
-instance Semigroup Matrix2x2 where
+instance Semigroup.Semigroup Matrix2x2 where
     Matrix l00 l01 l10 l11 <> Matrix r00 r01 r10 r11 =
         Matrix
             { x00 = l00 * r00 + l01 * r10, x01 = l00 * r01 + l01 * r11

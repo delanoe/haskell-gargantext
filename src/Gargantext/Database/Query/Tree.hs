@@ -12,11 +12,7 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Query.Tree
   ( module Gargantext.Database.Query.Tree.Error

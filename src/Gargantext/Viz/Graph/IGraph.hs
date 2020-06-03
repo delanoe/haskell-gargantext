@@ -13,8 +13,6 @@ Reference:
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DataKinds         #-}
 
 module Gargantext.Viz.Graph.IGraph where
 

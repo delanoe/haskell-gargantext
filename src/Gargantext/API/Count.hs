@@ -12,13 +12,9 @@ Count API part of Gargantext.
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
-{-# LANGUAGE OverloadedStrings  #-}
 
 module Gargantext.API.Count
       where

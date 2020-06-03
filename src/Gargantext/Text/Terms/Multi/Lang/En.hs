@@ -12,8 +12,6 @@ the tokens into extracted terms.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Terms.Multi.Lang.En (group)
   where

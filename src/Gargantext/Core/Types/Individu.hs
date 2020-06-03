@@ -11,10 +11,6 @@ Individu defintions
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE DeriveGeneric               #-}
-{-# LANGUAGE NoImplicitPrelude           #-}
-{-# LANGUAGE FlexibleInstances           #-}
-{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.Core.Types.Individu
   where

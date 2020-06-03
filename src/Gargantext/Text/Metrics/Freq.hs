@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Metrics.Freq where
 

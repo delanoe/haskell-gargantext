@@ -12,8 +12,6 @@ These functions are used for Vector.Matrix only.
 -}
 
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Strict            #-}
 
 module Gargantext.Viz.Graph.Utils

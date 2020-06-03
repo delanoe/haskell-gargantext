@@ -9,11 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Query.Tree.Error
   where

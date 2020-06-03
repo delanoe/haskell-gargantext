@@ -12,10 +12,6 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
 
-{-# LANGUAGE     FlexibleContexts        #-}
-{-# LANGUAGE     NoImplicitPrelude       #-}
-{-# LANGUAGE     OverloadedStrings       #-}
-{-# LANGUAGE     RankNTypes              #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude

@@ -22,10 +22,6 @@ _flowCorpusDebat u n l fp = do
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 module Gargantext.Text.Corpus.Parsers.GrandDebat
   where

@@ -10,7 +10,6 @@ Portability : POSIX
 @Gargantext@: search, map, share
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext ( module Gargantext.API
                   , module Gargantext.Core

@@ -31,8 +31,6 @@ Implementation use Accelerate library which enables GPU and CPU computation:
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ScopedTypeVariables #-}

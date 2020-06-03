@@ -13,8 +13,6 @@ is ADJectiv in french.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Terms.Multi.Lang.Fr (group)
   where

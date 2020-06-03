@@ -13,8 +13,6 @@ This include an xml parser for wikipedia's xml
 and an wikimedia to plaintext converter for the wikipedia text field
 -}
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Corpus.Parsers.Wikimedia
   where
