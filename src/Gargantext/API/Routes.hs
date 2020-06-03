@@ -34,6 +34,12 @@ module Gargantext.API.Routes
 import Control.Concurrent (threadDelay)
 import Data.Text (Text)
 import Data.Validity
+import Servant
+import Servant.Auth as SA
+import Servant.Auth.Swagger ()
+import Servant.Job.Async
+import Servant.Swagger.UI
+
 import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Prelude
@@ -43,15 +49,11 @@ import Gargantext.API.Node
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
-import Servant
-import Servant.Auth as SA
-import Servant.Auth.Swagger ()
-import Servant.Job.Async
-import Servant.Swagger.UI
 import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Node.Corpus.Export    as Export
 import qualified Gargantext.API.Node.Corpus.New       as New

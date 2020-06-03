@@ -41,6 +41,7 @@ library:
   - Gargantext.Database.Prelude
   - Gargantext.Database.Admin.Trigger.Init
   - Gargantext.Database.Admin.Config
+  - Gargantext.Database.Admin.Types.Hyperdata
   - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
   - Gargantext.Text
@@ -76,6 +77,7 @@ library:
   - Gargantext.Viz.Phylo.LevelMaker
   - Gargantext.Viz.Phylo.View.Export
   - Gargantext.Viz.Phylo.View.ViewMaker
+  - Gargantext.Viz.Types
   dependencies:
   - HSvm
   - KMP

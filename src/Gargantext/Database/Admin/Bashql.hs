@@ -80,11 +80,13 @@ module Gargantext.Database.Admin.Bashql () {-( get
 import Control.Monad.Reader -- (Reader, ask)
 import Data.Text (Text)
 import Data.List (concat, last)
+
 import Gargantext.Core.Types
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAny)
 import Gargantext.Database.Prelude (runOpaQuery, Cmd)
-import Gargantext.Database.Schema.Node
 import Gargantext.Database.Query.Table.Node
 import qualified Gargantext.Database.Query.Table.Node.Update as U (Update(..), update)
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 
 

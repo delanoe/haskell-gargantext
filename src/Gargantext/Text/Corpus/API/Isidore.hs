@@ -17,12 +17,12 @@ module Gargantext.Text.Corpus.API.Isidore where
 
 import System.FilePath (FilePath())
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
 import Isidore.Client
 import Servant.Client
-import qualified Data.Text as Text
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import qualified Isidore as Isidore
 import Gargantext.Text.Corpus.Parsers.CSV (writeDocs2Csv)

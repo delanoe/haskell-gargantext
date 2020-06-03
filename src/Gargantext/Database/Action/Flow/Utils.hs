@@ -18,17 +18,19 @@ module Gargantext.Database.Action.Flow.Utils
     where
 
 import Data.Map (Map)
+import qualified Data.Map as DM
+
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
+import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.User
 import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Prelude
-import qualified Data.Map as DM
 
 getUserId :: HasNodeError err
           => User

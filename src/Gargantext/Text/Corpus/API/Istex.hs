@@ -20,8 +20,9 @@ import Data.List (concat)
 import Data.Maybe
 import Data.Maybe (catMaybes)
 import Data.Text (Text, pack)
+
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import qualified ISTEX        as ISTEX

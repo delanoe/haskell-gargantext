@@ -1,13 +1,12 @@
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Admin.Types.Metrics where
 
-import Control.Lens hiding (elements, (&))
-import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
 import GHC.Generics (Generic)
-import Data.Text (Text, unpack)
+import Data.Text (Text)
 import Test.QuickCheck.Arbitrary
 
 import Gargantext.Core.Types (ListType(..))

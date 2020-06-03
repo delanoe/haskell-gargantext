@@ -17,8 +17,9 @@ module Gargantext.Text.Corpus.API.Hal
 
 import Data.Maybe
 import Data.Text (Text, pack, intercalate)
+
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import qualified HAL            as HAL

@@ -27,21 +27,23 @@ import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
+import Opaleye hiding (Query, Order)
+import qualified Opaleye as O hiding (Order)
+
 import Gargantext.Core.Types
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Join (leftJoin6)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Query.Table.Ngrams
-import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
-import Opaleye hiding (Query, Order)
-import qualified Opaleye as O hiding (Order)
 
 ------------------------------------------------------------------------
 searchInDatabase :: ParentId

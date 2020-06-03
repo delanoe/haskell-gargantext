@@ -24,6 +24,7 @@ import Data.Text (Text)
 import Data.Tuple (snd)
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Database.Query.Facet
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude

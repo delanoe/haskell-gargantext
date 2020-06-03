@@ -42,17 +42,18 @@ import Data.Maybe (catMaybes)
 import Data.Text (Text, splitOn)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
+import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
+import qualified Opaleye as O
+import Opaleye
+
 import Gargantext.Core.Types
 import Gargantext.Database.Schema.NodeNode
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Admin.Types.Node (CorpusId, DocId)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node (CorpusId, DocId, pgNodeId)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import Opaleye
-import qualified Database.PostgreSQL.Simple as PGS (Query, Only(..))
-import qualified Opaleye as O
 
 
 queryNodeNodeTable :: Query NodeNodeRead

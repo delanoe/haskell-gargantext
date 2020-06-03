@@ -25,20 +25,21 @@ module Gargantext.Database.Action.Flow.List
     where
 
 import Control.Monad (mapM_)
+import qualified Data.List as List
+import qualified Data.Map  as Map
 import Data.Map (Map, toList)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text)
+
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
-import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
 import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
 import Gargantext.Prelude
-import qualified Data.List as List
-import qualified Data.Map  as Map
 
 -- FLOW LIST
 -- 1. select specific terms of the corpus when compared with others langs

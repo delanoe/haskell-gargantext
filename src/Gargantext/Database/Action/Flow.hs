@@ -51,6 +51,7 @@ import Control.Lens ((^.), view, _Just, makeLenses)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
 import Data.List (concat)
+import qualified Data.Map  as Map
 import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
@@ -58,6 +59,9 @@ import Data.Swagger
 import Data.Text (splitOn, intercalate)
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
+import GHC.Generics (Generic)
+import System.FilePath (FilePath)
+
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types (Terms(..))
@@ -73,6 +77,7 @@ import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Ngrams
@@ -87,9 +92,6 @@ import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Text.List (buildNgramsLists,StopSize(..))
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Text.Terms
-import GHC.Generics (Generic)
-import System.FilePath (FilePath)
-import qualified Data.Map  as Map
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Text.Corpus.API as API
 

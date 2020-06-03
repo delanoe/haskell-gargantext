@@ -22,23 +22,25 @@ module Gargantext.Viz.Graph
 
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.Aeson as DA
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 import Data.Swagger
 import Data.Text (Text, pack)
+import qualified Data.Text as T
 import GHC.Generics (Generic)
 import GHC.IO (FilePath)
-import Gargantext.Core.Types (ListId)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Admin.Types.Node (NodeId, Hyperdata)
-import Gargantext.Prelude
-import Test.QuickCheck (elements)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Gargantext.Database.Prelude (fromField')
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Data.Aeson as DA
-import qualified Data.Text as T
+import Test.QuickCheck (elements)
 import qualified Text.Read as T
+
+import Gargantext.Core.Types (ListId)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
+import Gargantext.Database.Prelude (fromField')
+import Gargantext.Prelude
 
 
 data TypeNode = Terms | Unknown

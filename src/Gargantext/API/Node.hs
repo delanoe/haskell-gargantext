@@ -43,6 +43,10 @@ import Data.Swagger
 import Data.Text (Text())
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
 import Gargantext.API.Prelude
 import Gargantext.API.Metrics
@@ -54,6 +58,7 @@ import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
+import Gargantext.Database.Admin.Types.Metrics (ChartMetrics)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Children (getChildren)
@@ -67,11 +72,8 @@ import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Schema.Node (_node_typename)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Prelude
-import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import Gargantext.Viz.Types
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
 {-
@@ -140,7 +142,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
-             :<|> "metrics" :> ScatterAPI
+             :<|> "metrics"   :> ScatterAPI
              :<|> "chart"     :> ChartApi
              :<|> "pie"       :> PieApi
              :<|> "tree"      :> TreeApi
@@ -212,7 +214,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> getPair     id'
            :<|> searchPairs id'
 
-           :<|> getScatter id'
+           :<|> scatterApi id'
            :<|> getChart   id'
            :<|> getPie     id'
            :<|> getTree    id'
@@ -225,6 +227,11 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
       if _node_typename node' == nodeTypeId NodeUser
          then panic "not allowed"  -- TODO add proper Right Management Type
          else deleteNode id''
+
+scatterApi :: NodeId -> GargServer ScatterAPI
+scatterApi id' =  getScatter id'
+             :<|> updateScatter id'
+
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }

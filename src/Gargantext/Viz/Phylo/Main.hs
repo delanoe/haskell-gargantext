@@ -20,16 +20,22 @@ module Gargantext.Viz.Phylo.Main
 
 
 import Data.GraphViz
+import qualified Data.ByteString as DB
+import qualified Data.List as List
+import qualified Data.Map  as Map
 import Data.Maybe
+import qualified Data.Text as Text
 import Data.Text (Text)
 import Debug.Trace (trace)
 import GHC.IO (FilePath)
+
 import Gargantext.API.Ngrams.Tools (getTermsWith)
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Flow
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Table.Node(defaultList)
 import Gargantext.Database.Query.Table.NodeNode (selectDocs)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Terms.WithList
@@ -38,10 +44,6 @@ import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.Tools
 import Gargantext.Viz.Phylo.View.Export
 import Gargantext.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
-import qualified Data.ByteString as DB
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Text as Text
 
 type MinSizeBranch = Int
 

@@ -30,6 +30,7 @@ import Data.Maybe
 import Data.Text (Text, unwords, unlines)
 import GHC.Generics
 import GHC.IO (FilePath)
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Gargantext.Text.Context (TermList)
