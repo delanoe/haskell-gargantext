@@ -59,7 +59,6 @@ main = do
     annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
     annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath
 
-
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
       debatCorpus = do
@@ -84,7 +83,6 @@ main = do
           then runCmdDev env corpusCsvHal
           else pure 0 --(cs "false")
  
-
     _ <- if fun == "annuaire"
             then runCmdDev env annuaire
             else pure 0

@@ -23,3 +23,6 @@ module Gargantext.Database ( module Gargantext.Database.Prelude
 
 import Gargantext.Database.Prelude (connectGargandb)
 -- import Gargantext.Database.Bashql
+
+
+

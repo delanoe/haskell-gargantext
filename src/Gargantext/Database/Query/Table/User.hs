@@ -66,7 +66,6 @@ insertUsersDemo = do
   insertUsers $ map (\(u,m,h) -> gargUserWith u m h) users
 
 -----------------------------------------------------------------------
-
 gargUserWith :: Username -> Email -> Auth.PasswordHash Auth.Argon2 -> UserWrite
 gargUserWith u m (Auth.PasswordHash p) = UserDB (Nothing) (pgStrictText p)
                          (Nothing) (pgBool True) (pgStrictText u)

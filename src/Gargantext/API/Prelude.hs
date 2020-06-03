@@ -106,7 +106,9 @@ type EnvC env =
   , HasJobEnv env ScraperStatus ScraperStatus
   )
 
-
+-------------------------------------------------------------------
+runCmdReplEasy :: Cmd' DevEnv GargError a -> IO a
+runCmdReplEasy f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
 
 -------------------------------------------------------------------
 -- | This Type is needed to prepare the function before the GargServer
