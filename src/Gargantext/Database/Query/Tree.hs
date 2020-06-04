@@ -31,7 +31,7 @@ module Gargantext.Database.Query.Tree
   )
   where
 
-import Control.Lens ((^..), at, each, _Just, to, set, makeLenses)
+import Control.Lens ((^..), at, each, _Just, to, set, makeLenses, view)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat)
 import Data.Map (Map, fromListWith, lookup)
@@ -44,6 +44,7 @@ import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId, hasNodeType)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
 import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Tree.Error
 import Gargantext.Prelude
@@ -83,16 +84,18 @@ sharedTree p n nt = dbTree n nt
 
 shareNodeWith :: HasNodeError err => NodeId -> User -> Cmd err Int64
 shareNodeWith n u = do
-  nodeToCheck <- getNode n
-  if hasNodeType nodeToCheck NodeTeam
-     then do
+  nodeToCheck <- getNode   n
+  userIdCheck <- getUserId u
+  if not (hasNodeType nodeToCheck NodeTeam)
+    then panic "Can share node Team only"
+    else if (view node_userId nodeToCheck == userIdCheck)
+     then panic "Can share to others only"
+     else do 
        r <- map _node_id <$> getRoot u
        s <- case head r of
            Nothing -> panic "no root id"
            Just r' -> findNodesId r' [NodeFolderShared]
        insertNodeNode $ map (\s' -> NodeNode s' n Nothing Nothing) s
-     else
-       panic "node has not type Team"
 
 -- TODO delete node, if not owned, then suppress the link only
 
@@ -221,6 +224,3 @@ isIn cId docId = ( == [Only True])
   |] (cId, docId)
 
 -----------------------------------------------------
-
-
-
