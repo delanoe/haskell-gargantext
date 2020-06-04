@@ -13,22 +13,33 @@ Let a Root Node, return the Tree of the Node as a directed acyclic graph
 -}
 
 {-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Database.Query.Tree
   ( module Gargantext.Database.Query.Tree.Error
   , isDescendantOf
   , isIn
   , treeDB
+  , treeDB'
+  , findNodesId
+  , DbTreeNode(..)
+  , dt_name
+  , dt_nodeId
+  , dt_typeId
+  , shareNodeWith
+  , findShared
   )
   where
 
-import Control.Lens ((^..), at, each, _Just, to)
+import Control.Lens ((^..), at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
+import Data.List (tail, concat)
 import Data.Map (Map, fromListWith, lookup)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
@@ -36,19 +47,78 @@ import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Tree.Error
 import Gargantext.Prelude
 
-------------------------------------------------------------------------
--- TODO more generic find fun
-_findCorpus :: RootId -> Cmd err (Maybe CorpusId)
-_findCorpus r = do
-  _mapNodes <- toTreeParent <$> dbTree r []
-  pure Nothing
+import Gargantext.Database.Query.Tree.Root (getRoot)
+import Gargantext.Database.Query.Table.NodeNode (insertNodeNode, getNodeNode)
+import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
 
+import Gargantext.Database.Schema.Node
+
+------------------------------------------------------------------------
+data DbTreeNode = DbTreeNode { _dt_nodeId :: NodeId
+                             , _dt_typeId :: Int
+                             , _dt_parentId :: Maybe NodeId
+                             , _dt_name     :: Text
+                             } deriving (Show)
+
+makeLenses ''DbTreeNode
+------------------------------------------------------------------------
+-- | Collaborative Nodes in the Tree
+findShared :: RootId -> [NodeType] -> Cmd err [DbTreeNode]
+findShared r nt = do
+  folderSharedId <- maybe (panic "no folder found") identity
+                <$> head
+                <$> findNodesId r [NodeFolderShared]
+  folders <- getNodeNode folderSharedId
+  nodesSharedId <- mapM (\child -> sharedTree folderSharedId child nt)
+                   $ map _nn_node2_id folders
+  pure $ concat nodesSharedId
+
+sharedTree :: ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]
+sharedTree p n nt = dbTree n nt
+               <&> map (\n' -> if _dt_nodeId n' == n 
+                                  then set dt_parentId (Just p) n'
+                                  else n')
+
+
+shareNodeWith :: NodeId -> User -> Cmd err Int64
+shareNodeWith n u = do
+  r <- map _node_id <$> getRoot u
+  s <- case head r of
+      Nothing -> panic "no root id"
+      Just r' -> findNodesId r' [NodeFolderShared]
+  insertNodeNode $ map (\s' -> NodeNode s' n Nothing Nothing) s
+
+-- TODO delete node, if not owned, then suppress the link only
+
+-- | findNodesId returns all nodes matching nodeType but the root (Nodeuser)
+findNodesId :: RootId -> [NodeType] -> Cmd err [NodeId]
+findNodesId r nt = tail
+                <$> map _dt_nodeId
+                <$> dbTree r nt
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- | Returns the Tree of Nodes in Database
+-- (without shared folders)
+-- keeping this for teaching purpose only
+treeDB' :: HasTreeError err
+       => RootId
+       -> [NodeType]
+       -> Cmd err (Tree NodeTree)
+treeDB' r nodeTypes = 
+  (dbTree r nodeTypes <&> toTreeParent) >>= toTree
+  -- Same as (but easier to read) :
+  -- toTree =<< (toTreeParent <$> dbTree r nodeTypes)
+
 treeDB :: HasTreeError err
        => RootId
        -> [NodeType]
        -> Cmd err (Tree NodeTree)
-treeDB r nodeTypes = toTree =<< (toTreeParent <$> dbTree r nodeTypes)
+treeDB r nodeTypes = do
+  mainRoot    <- dbTree r nodeTypes
+  sharedRoots <- findShared r nodeTypes
+  toTree      $ toTreeParent (mainRoot <> sharedRoots)
+ 
 
 ------------------------------------------------------------------------
 toTree :: ( MonadError e m
@@ -62,12 +132,13 @@ toTree m =
         Just []  -> treeError EmptyRoot
         Just _   -> treeError TooManyRoots
 
-toTree' :: Map (Maybe ParentId) [DbTreeNode]
-        -> DbTreeNode
-        -> Tree NodeTree
-toTree' m n =
-  TreeN (toNodeTree n) $
-    m ^.. at (Just $ dt_nodeId n) . _Just . each . to (toTree' m)
+     where
+      toTree' :: Map (Maybe ParentId) [DbTreeNode]
+              -> DbTreeNode
+              -> Tree NodeTree
+      toTree' m' n =
+        TreeN (toNodeTree n) $
+          m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
 
 ------------------------------------------------------------------------
 toNodeTree :: DbTreeNode
@@ -78,16 +149,9 @@ toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
              -> Map (Maybe ParentId) [DbTreeNode]
-toTreeParent = fromListWith (<>) . map (\n -> (dt_parentId n, [n]))
+toTreeParent = fromListWith (<>) . map (\n -> (_dt_parentId n, [n]))
 ------------------------------------------------------------------------
-data DbTreeNode = DbTreeNode { dt_nodeId :: NodeId
-                             , dt_typeId :: Int
-                             , dt_parentId :: Maybe NodeId
-                             , dt_name     :: Text
-                             } deriving (Show)
-
 -- | Main DB Tree function
--- TODO add typenames as parameters
 dbTree :: RootId
        -> [NodeType]
        -> Cmd err [DbTreeNode]
@@ -114,7 +178,6 @@ dbTree rootId nodeTypes = map (\(nId, tId, pId, n) -> DbTreeNode nId tId pId n)
     typename = map nodeTypeId ns
     ns = case nodeTypes of
       [] -> allNodeTypes
-      -- [2, 20, 21, 22, 3, 5, 30, 31, 40, 7, 9, 90, 71]
       _  -> nodeTypes
 
 isDescendantOf :: NodeId -> RootId -> Cmd err Bool
@@ -150,5 +213,8 @@ isIn cId docId = ( == [Only True])
       WHERE nn.node1_id = ?
         AND nn.node2_id = ?;
   |] (cId, docId)
+
+-----------------------------------------------------
+
 
 

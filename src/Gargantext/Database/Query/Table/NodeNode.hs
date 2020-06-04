@@ -67,9 +67,10 @@ getNodeNode n = runOpaQuery (selectNodeNode $ pgNodeId n)
       restrict -< _nn_node1_id ns .== n'
       returnA -< ns
 
--------------------------
+------------------------------------------------------------------------
 insertNodeNode :: [NodeNode] -> Cmd err Int64
-insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeNodeTable ns' rCount Nothing
+insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
+                          $ Insert nodeNodeTable ns' rCount Nothing
   where
     ns' :: [NodeNodeWrite]
     ns' = map (\(NodeNode n1 n2 x y)
