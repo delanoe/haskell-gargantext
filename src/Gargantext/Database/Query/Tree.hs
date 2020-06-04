@@ -41,12 +41,14 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
-import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
+import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId, hasNodeType)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
+import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Tree.Error
 import Gargantext.Prelude
 
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Tree.Root (getRoot)
 import Gargantext.Database.Query.Table.NodeNode (insertNodeNode, getNodeNode)
 import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
@@ -79,14 +81,18 @@ sharedTree p n nt = dbTree n nt
                                   then set dt_parentId (Just p) n'
                                   else n')
 
-
-shareNodeWith :: NodeId -> User -> Cmd err Int64
+shareNodeWith :: HasNodeError err => NodeId -> User -> Cmd err Int64
 shareNodeWith n u = do
-  r <- map _node_id <$> getRoot u
-  s <- case head r of
-      Nothing -> panic "no root id"
-      Just r' -> findNodesId r' [NodeFolderShared]
-  insertNodeNode $ map (\s' -> NodeNode s' n Nothing Nothing) s
+  nodeToCheck <- getNode n
+  if hasNodeType nodeToCheck NodeTeam
+     then do
+       r <- map _node_id <$> getRoot u
+       s <- case head r of
+           Nothing -> panic "no root id"
+           Just r' -> findNodesId r' [NodeFolderShared]
+       insertNodeNode $ map (\s' -> NodeNode s' n Nothing Nothing) s
+     else
+       panic "node has not type Team"
 
 -- TODO delete node, if not owned, then suppress the link only
 
