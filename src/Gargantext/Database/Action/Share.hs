@@ -7,9 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-
 -}
-
 
 module Gargantext.Database.Action.Share
   where

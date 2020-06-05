@@ -52,7 +52,7 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User
-import Gargantext.Database.Query.Tree (treeDB)
+import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
@@ -310,7 +310,7 @@ type TreeApi = Summary " Tree API"
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
 
 treeAPI :: NodeId -> GargServer TreeAPI
-treeAPI = treeDB
+treeAPI = tree Advanced
 
 ------------------------------------------------------------------------
 -- | Check if the name is less than 255 char

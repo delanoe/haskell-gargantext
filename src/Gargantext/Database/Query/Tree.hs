@@ -21,8 +21,8 @@ module Gargantext.Database.Query.Tree
   ( module Gargantext.Database.Query.Tree.Error
   , isDescendantOf
   , isIn
-  , treeDB
-  , treeDB'
+  , tree
+  , TreeMode(..)
   , findNodesId
   , DbTreeNode(..)
   , dt_name
@@ -58,23 +58,36 @@ data DbTreeNode = DbTreeNode { _dt_nodeId :: NodeId
 
 makeLenses ''DbTreeNode
 ------------------------------------------------------------------------
+
+data TreeMode = Basic | Advanced
+
 -- | Returns the Tree of Nodes in Database
+tree :: HasTreeError err
+       => TreeMode
+       -> RootId
+       -> [NodeType]
+       -> Cmd err (Tree NodeTree)
+tree Basic    = tree_basic
+tree Advanced = tree_advanced
+
+-- | Tree basic returns the Tree of Nodes in Database
 -- (without shared folders)
 -- keeping this for teaching purpose only
-treeDB' :: HasTreeError err
+tree_basic :: HasTreeError err
        => RootId
        -> [NodeType]
        -> Cmd err (Tree NodeTree)
-treeDB' r nodeTypes = 
+tree_basic r nodeTypes = 
   (dbTree r nodeTypes <&> toTreeParent) >>= toTree
   -- Same as (but easier to read) :
   -- toTree =<< (toTreeParent <$> dbTree r nodeTypes)
 
-treeDB :: HasTreeError err
+-- | Advanced mode of the Tree enables shared nodes
+tree_advanced :: HasTreeError err
        => RootId
        -> [NodeType]
        -> Cmd err (Tree NodeTree)
-treeDB r nodeTypes = do
+tree_advanced r nodeTypes = do
   mainRoot    <- dbTree r nodeTypes
   sharedRoots <- findShared r nodeTypes
   toTree      $ toTreeParent (mainRoot <> sharedRoots)
