@@ -10,6 +10,8 @@ Portability : POSIX
 Let a Root Node, return the Tree of the Node as a directed acyclic graph
 (Tree).
 
+-- TODO delete node, if not owned, then suppress the link only
+-- see Action/Delete.hs
 -}
 
 {-# LANGUAGE QuasiQuotes       #-}
@@ -26,12 +28,11 @@ module Gargantext.Database.Query.Tree
   , dt_name
   , dt_nodeId
   , dt_typeId
-  , shareNodeWith
   , findShared
   )
   where
 
-import Control.Lens ((^..), at, each, _Just, to, set, makeLenses, view)
+import Control.Lens ((^..), at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat)
 import Data.Map (Map, fromListWith, lookup)
@@ -39,22 +40,14 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
-import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId, hasNodeType)
+import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
-import Gargantext.Database.Query.Table.Node (getNode)
-import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Query.Table.NodeNode (getNodeNode)
 import Gargantext.Database.Query.Tree.Error
-import Gargantext.Prelude
-
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
-import Gargantext.Database.Query.Tree.Root (getRoot)
-import Gargantext.Database.Query.Table.NodeNode (insertNodeNode, getNodeNode)
 import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
-
-import Gargantext.Database.Schema.Node
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 data DbTreeNode = DbTreeNode { _dt_nodeId :: NodeId
@@ -64,48 +57,6 @@ data DbTreeNode = DbTreeNode { _dt_nodeId :: NodeId
                              } deriving (Show)
 
 makeLenses ''DbTreeNode
-------------------------------------------------------------------------
--- | Collaborative Nodes in the Tree
-findShared :: RootId -> [NodeType] -> Cmd err [DbTreeNode]
-findShared r nt = do
-  folderSharedId <- maybe (panic "no folder found") identity
-                <$> head
-                <$> findNodesId r [NodeFolderShared]
-  folders <- getNodeNode folderSharedId
-  nodesSharedId <- mapM (\child -> sharedTree folderSharedId child nt)
-                   $ map _nn_node2_id folders
-  pure $ concat nodesSharedId
-
-sharedTree :: ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]
-sharedTree p n nt = dbTree n nt
-               <&> map (\n' -> if _dt_nodeId n' == n 
-                                  then set dt_parentId (Just p) n'
-                                  else n')
-
-shareNodeWith :: HasNodeError err => NodeId -> User -> Cmd err Int64
-shareNodeWith n u = do
-  nodeToCheck <- getNode   n
-  userIdCheck <- getUserId u
-  if not (hasNodeType nodeToCheck NodeTeam)
-    then panic "Can share node Team only"
-    else if (view node_userId nodeToCheck == userIdCheck)
-     then panic "Can share to others only"
-     else do 
-       r <- map _node_id <$> getRoot u
-       s <- case head r of
-           Nothing -> panic "no root id"
-           Just r' -> findNodesId r' [NodeFolderShared]
-       insertNodeNode $ map (\s' -> NodeNode s' n Nothing Nothing) s
-
--- TODO delete node, if not owned, then suppress the link only
-
--- | findNodesId returns all nodes matching nodeType but the root (Nodeuser)
-findNodesId :: RootId -> [NodeType] -> Cmd err [NodeId]
-findNodesId r nt = tail
-                <$> map _dt_nodeId
-                <$> dbTree r nt
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | Returns the Tree of Nodes in Database
 -- (without shared folders)
@@ -127,8 +78,31 @@ treeDB r nodeTypes = do
   mainRoot    <- dbTree r nodeTypes
   sharedRoots <- findShared r nodeTypes
   toTree      $ toTreeParent (mainRoot <> sharedRoots)
- 
 
+------------------------------------------------------------------------
+-- | Collaborative Nodes in the Tree
+findShared :: RootId -> [NodeType] -> Cmd err [DbTreeNode]
+findShared r nt = do
+  folderSharedId <- maybe (panic "no folder found") identity
+                <$> head
+                <$> findNodesId r [NodeFolderShared]
+  folders <- getNodeNode folderSharedId
+  nodesSharedId <- mapM (\child -> sharedTree folderSharedId child nt)
+                   $ map _nn_node2_id folders
+  pure $ concat nodesSharedId
+
+sharedTree :: ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]
+sharedTree p n nt = dbTree n nt
+               <&> map (\n' -> if _dt_nodeId n' == n 
+                                  then set dt_parentId (Just p) n'
+                                  else n')
+
+-- | findNodesId returns all nodes matching nodeType but the root (Nodeuser)
+findNodesId :: RootId -> [NodeType] -> Cmd err [NodeId]
+findNodesId r nt = tail
+                <$> map _dt_nodeId
+                <$> dbTree r nt
+------------------------------------------------------------------------
 ------------------------------------------------------------------------
 toTree :: ( MonadError e m
           , HasTreeError e)
@@ -149,12 +123,11 @@ toTree m =
         TreeN (toNodeTree n) $
           m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
 
-------------------------------------------------------------------------
-toNodeTree :: DbTreeNode
-           -> NodeTree
-toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
-  where
-    nodeType = fromNodeTypeId tId
+      toNodeTree :: DbTreeNode
+                 -> NodeTree
+      toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
+        where
+          nodeType = fromNodeTypeId tId
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
              -> Map (Maybe ParentId) [DbTreeNode]
@@ -222,5 +195,4 @@ isIn cId docId = ( == [Only True])
       WHERE nn.node1_id = ?
         AND nn.node2_id = ?;
   |] (cId, docId)
-
 -----------------------------------------------------
