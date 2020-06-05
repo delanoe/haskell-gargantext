@@ -19,11 +19,10 @@ import Gargantext.Database.Admin.Config (hasNodeType)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
 import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Query.Table.Node (getNode, getNodesWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
-import Gargantext.Database.Query.Table.NodeNode (insertNodeNode)
-import Gargantext.Database.Query.Tree
-import Gargantext.Database.Query.Tree.Root (getRoot)
+import Gargantext.Database.Query.Table.NodeNode (insertNodeNode, deleteNodeNode)
+import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
 import Gargantext.Prelude
@@ -41,10 +40,23 @@ shareNodeWith n u = do
     else if (view node_userId nodeToCheck == userIdCheck)
      then panic "Can share to others only"
      else do 
-       r <- map _node_id <$> getRoot u
-       s <- case head r of
-           Nothing -> panic "no root id"
-           Just r' -> findNodesId r' [NodeFolderShared]
-       insertNodeNode $ map (\s' -> NodeNode s' n Nothing Nothing) s
+       folderSharedId  <- getFolderSharedId u
+       insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
 ------------------------------------------------------------------------
+
+getFolderSharedId :: User -> Cmd err NodeId
+getFolderSharedId u = do
+  rootId <- getRootId u
+  s <- getNodesWith rootId HyperdataAny (Just NodeFolderShared) Nothing Nothing
+  case head s of
+    Nothing -> panic "No folder shared found"
+    Just  f -> pure (_node_id f)
+
+type TeamId = NodeId
+
+delFolderTeam :: User -> TeamId -> Cmd err Int
+delFolderTeam u nId = do
+  folderSharedId <- getFolderSharedId u
+  deleteNodeNode folderSharedId nId
+
 

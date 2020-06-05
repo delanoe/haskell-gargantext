@@ -48,16 +48,15 @@ import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
-import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node (_node_typename)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Prelude
 import Gargantext.Viz.Chart
@@ -66,12 +65,15 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
+import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
 
 {-
 import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 
+-- | Admin NodesAPI
+-- TODO
 type NodesAPI  = Delete '[JSON] Int
 
 -- | Delete Nodes
@@ -120,10 +122,10 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "children"  :> ChildrenApi a
 
              -- TODO gather it
-             :<|> "table"     :> TableApi
-             :<|> "ngrams"    :> TableNgramsApi
+             :<|> "table"      :> TableApi
+             :<|> "ngrams"     :> TableNgramsApi
 
-             :<|> "category"  :> CatApi
+             :<|> "category"   :> CatApi
              :<|> "search"     :> SearchDocsAPI
 
              -- Pairing utilities
@@ -133,11 +135,11 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
-             :<|> "metrics" :> ScatterAPI
-             :<|> "chart"     :> ChartApi
-             :<|> "pie"       :> PieApi
-             :<|> "tree"      :> TreeApi
-             :<|> "phylo"     :> PhyloAPI
+             :<|> "metrics"    :> ScatterAPI
+             :<|> "chart"      :> ChartApi
+             :<|> "pie"        :> PieApi
+             :<|> "tree"       :> TreeApi
+             :<|> "phylo"      :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
@@ -189,7 +191,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> postNode  uId id'
            :<|> postNodeAsyncAPI  uId id'
            :<|> putNode       id'
-           :<|> deleteNodeApi id'
+           :<|> Action.deleteNode (RootId $ NodeId uId) id'
            :<|> getChildren   id' p
 
            -- TODO gather it
@@ -212,12 +214,6 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> phyloAPI   id' uId
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
-
-    deleteNodeApi id'' = do
-      node' <- getNode id''
-      if _node_typename node' == nodeTypeId NodeUser
-         then panic "not allowed"  -- TODO add proper Right Management Type
-         else deleteNode id''
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
@@ -306,7 +302,6 @@ type TreeApi = Summary " Tree API"
              -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
 
 ------------------------------------------------------------------------
-
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
 
 treeAPI :: NodeId -> GargServer TreeAPI

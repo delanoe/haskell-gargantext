@@ -152,6 +152,7 @@ getNodeWith nId _ = do
     Nothing -> nodeError (DoesNotExist nId)
     Just  r -> pure r
 
+
 ------------------------------------------------------------------------
 nodeContactW :: Maybe Name -> Maybe HyperdataContact
              -> AnnuaireId -> UserId -> NodeWrite

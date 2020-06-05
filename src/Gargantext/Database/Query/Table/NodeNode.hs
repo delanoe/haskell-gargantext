@@ -27,6 +27,7 @@ module Gargantext.Database.Query.Table.NodeNode
   , nodeNodesCategory
   , getNodeNode
   , insertNodeNode
+  , deleteNodeNode
   )
   where
 
@@ -80,7 +81,17 @@ insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
                             (pgInt4   <$> y)
               ) ns
 
+------------------------------------------------------------------------
+type Node1_Id = NodeId
+type Node2_Id = NodeId
 
+deleteNodeNode :: Node1_Id -> Node2_Id -> Cmd err Int
+deleteNodeNode n1 n2 = mkCmd $ \conn ->
+  fromIntegral <$> runDelete conn nodeNodeTable
+                 (\(NodeNode n1_id n2_id _ _) -> n1_id .== pgNodeId n1
+                                             .&& n2_id .== pgNodeId n2 )
+
+------------------------------------------------------------------------
 -- | Favorite management
 _nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
 _nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)
