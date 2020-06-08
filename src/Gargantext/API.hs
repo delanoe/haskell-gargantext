@@ -81,7 +81,6 @@ import qualified Paths_gargantext           as PG -- cabal magic build module
 data Mode = Dev | Mock | Prod 
        deriving (Show, Read, Generic)
 
-
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: Mode -> PortNumber -> FilePath -> IO ()
 startGargantext mode port file = do
@@ -102,7 +101,6 @@ stopGargantext :: HasRepoSaver env => env -> IO ()
 stopGargantext env = do
   T.putStrLn "----- Stopping gargantext -----"
   runReaderT saveRepo env
-
 
 -- | Output generated @swagger.json@ file for the @'TodoAPI'@.
 swaggerWriteJSON :: IO ()
