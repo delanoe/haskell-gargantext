@@ -246,14 +246,20 @@ relevantBranches :: Int -> [[PhyloGroup]] -> [[PhyloGroup]]
 relevantBranches term branches = 
     filter (\groups -> (any (\group -> elem term $ group ^. phylo_groupNgrams) groups)) branches
 
+accuracy :: Int -> [PhyloGroup] -> Double
+accuracy x bk  = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk) 
+               /  (fromIntegral $ length bk))
+
+recall :: Int -> [PhyloGroup] -> [[PhyloGroup]] -> Double
+recall x bk bx = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk) 
+               /  (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) $ concat bx))
+
 fScore :: Double -> Int -> [PhyloGroup] -> [[PhyloGroup]] -> Double
 fScore beta x bk bx = 
-  let recall = ( (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk)
-               / (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) $ concat bx))
-      accuracy = ( (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk)
-                 / (fromIntegral $ length bk))
-   in ((1 + beta ** 2) * accuracy * recall)
-    / (((beta ** 2) * recall + accuracy))
+  let rec = recall x bk bx
+      acc = accuracy x bk
+   in ((1 + beta ** 2) * acc * rec)
+    / (((beta ** 2) * rec + acc))
 
 
 wk :: [PhyloGroup] -> Double
@@ -269,6 +275,38 @@ toPhyloQuality' beta freq branches =
           let bks = relevantBranches i branches
            in (freq ! i) * (sum $ map (\bk -> ((wk bk) / (sum $ map wk bks)) * (fScore beta i bk bks)) bks))
        $ keys freq
+
+toRecall :: Map Int Double -> [[PhyloGroup]] -> Double
+toRecall freq branches = 
+  if (null branches)
+    then 0
+    else sum 
+       $ map (\x -> 
+          let px = freq ! x
+              bx = relevantBranches x branches
+              wks = sum $ map wk bx 
+           in (px / pys) * (sum $ map (\bk -> ((wk bk) / wks) * (recall x bk bx)) bx))
+       $ keys freq
+  where 
+      pys :: Double 
+      pys = sum (elems freq)     
+
+
+toAccuracy :: Map Int Double -> [[PhyloGroup]] -> Double
+toAccuracy freq branches = 
+  if (null branches)
+    then 0
+    else sum 
+       $ map (\x -> 
+          let px = freq ! x
+              bx = relevantBranches x branches
+              wks = sum $ map wk bx 
+           in (px / pys) * (sum $ map (\bk -> ((wk bk) / wks) * (accuracy x bk)) bx))
+       $ keys freq
+  where 
+      pys :: Double 
+      pys = sum (elems freq)     
+
 
 -- | here we do the average of all the local f_scores
 toPhyloQuality :: Double -> Map Int Double -> [[PhyloGroup]] -> Double
@@ -381,7 +419,12 @@ seaLevelMatching proximity beta minBranch frequency thr step depth elevation fra
     else 
       -- | break all the possible branches at the current seaLvl level
       let quality    = toPhyloQuality beta frequency (map fst branches)
-          branches'  = trace ("↑ level = " <> printf "%.3f" thr <> " F(β) = " <> printf "%.5f" quality <> " branches = " <> show(length branches) <> " ↴") 
+          acc        = toAccuracy frequency (map fst branches)
+          rec        = toRecall frequency (map fst branches)
+          branches'  = trace ("↑ level = " <> printf "%.3f" thr <> " F(β) = " <> printf "%.5f" quality 
+                                                                <> " ξ = " <> printf "%.5f" acc
+                                                                <> " ρ = " <> printf "%.5f" rec 
+                                                                <> " branches = " <> show(length branches) <> " ↴") 
                      $ breakBranches proximity beta frequency minBranch thr depth elevation frame docs coocs periods 
                                      [] (head' "seaLevelMatching" branches) (tail' "seaLevelMatching" branches)
           frequency' = reduceFrequency frequency (map fst branches')
