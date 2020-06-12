@@ -215,7 +215,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> searchPairs id'
 
            :<|> scatterApi id'
-           :<|> getChart   id'
+           :<|> chartApi   id'
            :<|> getPie     id'
            :<|> getTree    id'
            :<|> phyloAPI   id' uId
@@ -230,7 +230,10 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
 
 scatterApi :: NodeId -> GargServer ScatterAPI
 scatterApi id' =  getScatter id'
-             :<|> updateScatter id'
+
+chartApi :: NodeId -> GargServer ChartApi
+chartApi id' =  getChart id'
+           :<|> updateChart id'
 
 
 ------------------------------------------------------------------------
@@ -300,6 +303,11 @@ type ChartApi = Summary " Chart API"
               :> QueryParam "from" UTCTime
               :> QueryParam "to"   UTCTime
               :> Get '[JSON] (ChartMetrics Histo)
+        :<|> Summary "SepGen IncExc chart update"
+                :> QueryParam  "list"       ListId
+                :> QueryParamR "ngramsType" TabType
+                :> QueryParam  "limit"      Int
+                :> Post '[JSON] ()
 
 type PieApi = Summary " Chart API"
            :> QueryParam "from" UTCTime

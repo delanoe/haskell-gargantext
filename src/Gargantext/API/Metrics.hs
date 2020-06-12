@@ -25,6 +25,7 @@ Metrics API
 module Gargantext.API.Metrics
     where
 
+import Control.Lens
 import Data.Time (UTCTime)
 import Servant
 import qualified Data.Map as Map
@@ -34,8 +35,12 @@ import Gargantext.API.Ngrams.NTree
 import Gargantext.Core.Types (CorpusId, Limit, ListId, ListType(..))
 import qualified Gargantext.Database.Action.Metrics as Metrics
 import Gargantext.Database.Action.Flow
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataList(..))
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metric(..), Metrics(..))
+import Gargantext.Database.Query.Table.Node (defaultList, getNodeWith)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Prelude
+import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
@@ -48,11 +53,6 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
                   :> QueryParamR "ngramsType" TabType
                   :> QueryParam  "limit"      Int
                   :> Get '[JSON] Metrics
-                :<|> Summary "SepGen IncExc metrics update"
-                  :> QueryParam  "list"       ListId
-                  :> QueryParamR "ngramsType" TabType
-                  :> QueryParam  "limit"      Int
-                  :> Post '[JSON] ()
 
 getScatter :: FlowCmdM env err m =>
   CorpusId
@@ -70,26 +70,6 @@ getScatter cId maybeListId tabType maybeLimit = do
     errorMsg     = "API.Node.metrics: key absent"
 
   pure $ Metrics metrics
-
-
-updateScatter :: FlowCmdM env err m =>
-  CorpusId
-  -> Maybe ListId
-  -> TabType
-  -> Maybe Limit
-  -> m ()
-updateScatter cId maybeListId tabType maybeLimit = do
-  (_ngs', _scores) <- Metrics.getMetrics cId maybeListId tabType maybeLimit
-
-  let
-    -- metrics      = map (\(Scored t s1 s2) -> Metric t (log' 5 s1) (log' 2 s2) (listType t ngs')) scores
-    -- log' n x     = 1 + (if x <= 0 then 0 else (log $ (10^(n::Int)) * x))
-    -- listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
-    -- errorMsg     = "API.Node.metrics: key absent"
-
-  --pure $ Metrics metrics
-  pure ()
-
 
 
 -- TODO add start / end
@@ -110,3 +90,23 @@ getTree cId _start _end tt lt = do
 
 
 
+updateChart :: FlowCmdM env err m =>
+  CorpusId
+  -> Maybe ListId
+  -> TabType
+  -> Maybe Limit
+  -> m ()
+updateChart cId maybeListId _tabType _maybeLimit = do
+  listId <- case maybeListId of
+    Just lid -> pure lid
+    Nothing  -> defaultList cId
+
+  node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
+
+  let (HyperdataList { hd_list = hdl }) = node ^. node_hyperdata
+
+  h <- histoData listId
+
+  _ <- updateHyperdata listId $ HyperdataList hdl $ Just $ ChartMetrics h
+
+  pure ()
