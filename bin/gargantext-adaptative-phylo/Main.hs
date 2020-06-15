@@ -167,10 +167,22 @@ main = do
 
             printIOMsg "End of reconstruction, start the export"
 
-            let dot = toPhyloExport phylo        
+            let dot = toPhyloExport phylo 
+
+            let clq = case (clique config) of
+                        Fis s s' -> "fis_" <> (show s) <> "_" <> (show s')
+                        MaxClique s ->  "clique_" <> (show s)
+
+            let sensibility = case (phyloProximity config) of
+                        Hamming -> undefined
+                        WeightedLogJaccard s -> (show s)                        
 
             let output = (outputPath config) 
                       <> (unpack $ phyloName config)
-                      <> "_V2.dot"
+                      <> "-scale_" <> (show (_qua_granularity $ phyloQuality config))
+                      <> "-level_" <> (show (phyloLevel config))
+                      <> "-" <> clq
+                      <> "-sens_" <> sensibility
+                      <> ".dot"
 
             dotToFile output dot
