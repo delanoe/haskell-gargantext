@@ -121,7 +121,7 @@ databaseParameters fp = do
         Left e     -> panic (pack $ "No ini file error" <> show e)
         Right ini' -> ini'
 
-  let val x = case (lookupValue (pack "django") (pack x) ini'') of
+  let val x = case (lookupValue (pack "database") (pack x) ini'') of
         Left _ -> panic (pack $ "no" <> x)
         Right p' -> unpack p'
 
