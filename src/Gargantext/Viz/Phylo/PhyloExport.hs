@@ -160,7 +160,7 @@ toDotEdge source target lbl edgeType = edge source target
 mergePointers :: [PhyloGroup] -> Map (PhyloGroupId,PhyloGroupId) Double
 mergePointers groups = 
     let toChilds  = fromList $ concat $ map (\g -> map (\(target,w) -> ((getGroupId g,target),w)) $ g ^. phylo_groupPeriodChilds) groups
-        toParents = fromList $ concat $ map (\g -> map (\(target,w) -> ((target,getGroupId g),w)) $ g ^. phylo_groupPeriodParents) groups
+        toParents = fromList $ concat $ map (\g -> map (\(target,w) -> ((getGroupId g,target),w)) $ g ^. phylo_groupPeriodParents) groups
     in  unionWith (\w w' -> max w w') toChilds toParents
 
 
