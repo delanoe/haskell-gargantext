@@ -206,7 +206,9 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
+
                                      in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques 0.001 cooc)) 
+
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 

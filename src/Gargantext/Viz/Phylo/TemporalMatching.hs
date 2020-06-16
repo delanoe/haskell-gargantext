@@ -144,6 +144,13 @@ reduceDiagos :: Map Date Cooc -> Map Int Double
 reduceDiagos diagos = mapKeys (\(k,_) -> k)
                     $ foldl (\acc diago -> unionWith (+) acc diago) empty (elems diagos)
 
+filterPointersByPeriod :: [Pointer] -> [Pointer]
+filterPointersByPeriod pts = 
+  let pts' = sortOn (fst . fst . fst) pts
+      inf  = (fst . fst . fst) $ head' "filterPointersByPeriod" pts'
+      sup  = (fst . fst . fst) $ last' "filterPointersByPeriod" pts'
+   in nub 
+    $ filter (\pt -> ((fst . fst . fst) pt == inf) || ((fst . fst . fst) pt == sup)) pts'
 
 phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc
                    -> Double -> [Pointer] -> (PhyloGroupId,[Int]) -> [Pointer]
@@ -152,7 +159,8 @@ phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) 
           -- | let's find new pointers
           then if null nextPointers
             then []
-            else head' "phyloGroupMatching"
+            else filterPointersByPeriod
+               $ head' "phyloGroupMatching"
                -- | Keep only the best set of pointers grouped by proximity
                $ groupBy (\pt pt' -> snd pt == snd pt')
                $ reverse $ sortOn snd $ head' "pointers" nextPointers
