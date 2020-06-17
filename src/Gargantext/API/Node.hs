@@ -128,7 +128,6 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "table"      :> TableApi
              :<|> "ngrams"     :> TableNgramsApi
 
-             :<|> "update"     :> Update.API
              :<|> "category"   :> CatApi
              :<|> "search"     :> SearchDocsAPI
              :<|> "share"      :> Share.API
@@ -146,6 +145,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "tree"       :> TreeApi
              :<|> "phylo"      :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
+             :<|> "update"     :> Update.API
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -203,7 +203,6 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> tableApi             id'
            :<|> apiNgramsTableCorpus id'
             
-           :<|> Update.api  id'
            :<|> catApi      id'
            :<|> searchDocs  id'
            :<|> Share.api   id'
@@ -220,6 +219,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> phyloAPI   id' uId
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
+           :<|> Update.api  uId id'
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }

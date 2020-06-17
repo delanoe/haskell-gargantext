@@ -22,6 +22,7 @@ module Gargantext.API.Prelude
   )
   where
 
+import Control.Concurrent (threadDelay)
 import Control.Exception (Exception)
 import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
@@ -36,9 +37,9 @@ import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Settings
 import Gargantext.API.Ngrams
 import Gargantext.Core.Types
-import Gargantext.Database.Query.Tree
-import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Prelude
+import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
+import Gargantext.Database.Query.Tree
 import Gargantext.Prelude
 import Servant
 import Servant.Job.Async (HasJobEnv)
@@ -146,3 +147,45 @@ instance HasServerError GargError where
 
 instance HasJoseError GargError where
   _JoseError = _GargJoseError
+
+
+------------------------------------------------------------------------
+-- | Utils
+-- | Simulate logs
+
+simuLogs  :: MonadBase IO m
+         => (ScraperStatus -> m a)
+         -> Int
+         -> m ScraperStatus
+simuLogs logStatus t = do
+  let task = ScraperStatus { _scst_succeeded = Just 0
+                           , _scst_failed    = Just 0
+                           , _scst_remaining = Just 0
+                           , _scst_events    = Just []
+                           }
+  f <- foldM' (\status n -> simuTask logStatus status n t) task $ take t [1..]
+  pure f
+
+
+simuTask :: MonadBase IO m
+         => (ScraperStatus -> m a)
+         -> ScraperStatus
+         -> Int
+         -> Int
+         -> m ScraperStatus
+simuTask logStatus (ScraperStatus s f _r e) n t = do
+  let
+    m = (10 :: Int) ^ (6 :: Int)
+  _ <- liftBase $ threadDelay ( m * 10)
+
+  let status =  ScraperStatus { _scst_succeeded = (+) <$> s <*> Just n
+                              , _scst_failed    = f
+                              , _scst_remaining = (-) <$> Just t <*> s
+                              , _scst_events    = e
+                              }
+  printDebug "status" status
+  _ <- logStatus status
+  pure status
+
+
+

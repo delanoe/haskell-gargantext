@@ -16,17 +16,23 @@ Portability : POSIX
 module Gargantext.API.Node.Update
       where
 
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Data.Aeson
 import Data.Swagger
 import GHC.Generics (Generic)
+import Gargantext.API.Admin.Orchestrator.Types (ScraperStatus(..))
+import Gargantext.API.Node.Corpus.New (AsyncJobs)
+import Gargantext.API.Prelude (GargServer, simuLogs)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
-import Gargantext.Prelude
+import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.))
+import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+
+
+
 
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: Method      }
@@ -89,16 +95,21 @@ instance Arbitrary Charts where
   arbitrary = elements [ minBound .. maxBound ]
 
 ------------------------------------------------------------------------
-api :: HasNodeError err
-    => NodeId
+api :: UserId -> NodeId -> GargServer API
+api uId nId =
+  serveJobsAPI $ 
+    JobFunction (\p logs -> updateNode uId nId p (liftBase . logs))
+
+
+updateNode :: FlowCmdM env err m
+    => UserId
+    -> NodeId
     -> UpdateNodeParams
-    -> Cmd err Int
-api _nId (UpdateNodeParamsList  _meth) = pure 1
-api _nId (UpdateNodeParamsGraph _meth) = pure 1
-api _nId (UpdateNodeParamsTexts _meth) = pure 1
-api _nId (UpdateNodeParamsBoard _meth) = pure 1
+    -> (ScraperStatus -> m ())
+    -> m ScraperStatus
+updateNode _uId _nId _ logStatus = do
+  simuLogs logStatus 100
 
 ------------------------------------------------------------------------
 type API = Summary " Share Node with username"
-         :> ReqBody '[JSON] UpdateNodeParams
-         :> Post    '[JSON] Int
+         :> AsyncJobs ScraperStatus '[JSON] UpdateNodeParams ScraperStatus
