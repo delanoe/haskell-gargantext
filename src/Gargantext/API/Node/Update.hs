@@ -30,7 +30,7 @@ import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: Method      }
-                      | UpdateNodeParamsGraph { methodGraph :: Metric      }
+                      | UpdateNodeParamsGraph { methodGraph :: GraphMetric }
                       | UpdateNodeParamsTexts { methodTexts :: Granularity }
                       | UpdateNodeParamsBoard { methodBoard :: Charts      }
     deriving (Generic)
@@ -40,7 +40,7 @@ data Method = Basic | Advanced | WithModel
     deriving (Generic, Eq, Ord, Enum, Bounded)
 
 ----------------------------------------------------------------------
-data Metric = Order1 | Order2
+data GraphMetric = Order1 | Order2
     deriving (Generic, Eq, Ord, Enum, Bounded)
 
 ----------------------------------------------------------------------
@@ -70,10 +70,10 @@ instance ToSchema  Method
 instance Arbitrary Method where
   arbitrary = elements [ minBound .. maxBound ]
 
-instance FromJSON  Metric
-instance ToJSON    Metric
-instance ToSchema  Metric
-instance Arbitrary Metric where
+instance FromJSON  GraphMetric
+instance ToJSON    GraphMetric
+instance ToSchema  GraphMetric
+instance Arbitrary GraphMetric where
   arbitrary = elements [ minBound .. maxBound ]
 
 instance FromJSON  Granularity
