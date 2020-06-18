@@ -154,38 +154,66 @@ instance HasJoseError GargError where
 -- | Simulate logs
 
 simuLogs  :: MonadBase IO m
-         => (ScraperStatus -> m a)
+         => (ScraperStatus -> m ())
          -> Int
          -> m ScraperStatus
 simuLogs logStatus t = do
+{-
   let task = ScraperStatus { _scst_succeeded = Just 0
                            , _scst_failed    = Just 0
                            , _scst_remaining = Just 0
                            , _scst_events    = Just []
                            }
-  f <- foldM' (\status n -> simuTask logStatus status n t) task $ take t [1..]
-  pure f
+-}
+  -- f <- mapM (\status n -> simuTask logStatus status n t) task $ take t [1,2..]
+  _ <- mapM (\n -> simuTask' logStatus n t) $ take t [1,2..]
+  pure $ ScraperStatus { _scst_succeeded = Just t
+                        , _scst_failed    = Just 0
+                        , _scst_remaining = Just 0
+                        , _scst_events    = Just []
+                        }
 
 
+{-
 simuTask :: MonadBase IO m
-         => (ScraperStatus -> m a)
+         => (ScraperStatus -> m ())
          -> ScraperStatus
          -> Int
          -> Int
          -> m ScraperStatus
-simuTask logStatus (ScraperStatus s f _r e) n t = do
+simuTask logStatus (ScraperStatus _s f _r e) n t = do
   let
     m = (10 :: Int) ^ (6 :: Int)
   _ <- liftBase $ threadDelay ( m * 10)
 
-  let status =  ScraperStatus { _scst_succeeded = (+) <$> s <*> Just n
+  let status =  ScraperStatus { _scst_succeeded = Just n
                               , _scst_failed    = f
-                              , _scst_remaining = (-) <$> Just t <*> s
+                              , _scst_remaining = (-) <$> Just t <*> Just n
                               , _scst_events    = e
                               }
   printDebug "status" status
-  _ <- logStatus status
+  logStatus status
   pure status
+-}
+
+simuTask' :: MonadBase IO m
+          => (ScraperStatus -> m ())
+          -> Int
+          -> Int
+          -> m ()
+simuTask' logStatus cur total = do
+  let
+    m = (10 :: Int) ^ (6 :: Int)
+  _ <- liftBase $ threadDelay ( m * 10)
+
+  let status =  ScraperStatus { _scst_succeeded = Just cur
+                              , _scst_failed    = Just 0
+                              , _scst_remaining = (-) <$> Just total <*> Just cur
+                              , _scst_events    = Just []
+                              }
+  printDebug "status" status
+  logStatus status
+
 
 
 
