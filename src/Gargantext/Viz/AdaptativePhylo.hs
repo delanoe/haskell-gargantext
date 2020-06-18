@@ -21,10 +21,8 @@ in science evolution — the rise and fall of scientific fields. PloS
 one 8, e54847.
 -}
 
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DeriveAnyClass   #-}
 {-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.AdaptativePhylo where
 

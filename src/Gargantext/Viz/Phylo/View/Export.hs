@@ -10,9 +10,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Viz.Phylo.View.Export
   where

@@ -12,12 +12,6 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE BangPatterns               #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE NoImplicitPrelude          #-}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 -- {-# LANGUAGE DuplicateRecordFields #-}

@@ -9,11 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE MonoLocalBinds    #-}
 
 module Gargantext.Database.Action.Learn

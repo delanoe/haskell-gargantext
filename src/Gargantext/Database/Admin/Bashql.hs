@@ -60,9 +60,6 @@ TODO-ACCESS: should the checks be done here or before.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Admin.Bashql () {-( get
                                   , ls

@@ -23,13 +23,6 @@ Node API
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -53,6 +46,9 @@ import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
 import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.API.Node.New
+import qualified Gargantext.API.Node.Share  as Share
+import qualified Gargantext.API.Node.Update as Update
+
 import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
@@ -60,27 +56,29 @@ import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User
-import Gargantext.Database.Query.Tree (treeDB)
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
-import Gargantext.Database.Schema.Node (_node_typename)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Gargantext.Viz.Types
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
+import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
 
 {-
 import qualified Gargantext.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 
+-- | Admin NodesAPI
+-- TODO
 type NodesAPI  = Delete '[JSON] Int
 
 -- | Delete Nodes
@@ -129,11 +127,12 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "children"  :> ChildrenApi a
 
              -- TODO gather it
-             :<|> "table"     :> TableApi
-             :<|> "ngrams"    :> TableNgramsApi
+             :<|> "table"      :> TableApi
+             :<|> "ngrams"     :> TableNgramsApi
 
-             :<|> "category"  :> CatApi
+             :<|> "category"   :> CatApi
              :<|> "search"     :> SearchDocsAPI
+             :<|> "share"      :> Share.API
 
              -- Pairing utilities
              :<|> "pairwith"   :> PairWith
@@ -148,6 +147,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
+             :<|> "update"     :> Update.API
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -198,16 +198,16 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> postNode  uId id'
            :<|> postNodeAsyncAPI  uId id'
            :<|> putNode       id'
-           :<|> deleteNodeApi id'
+           :<|> Action.deleteNode (RootId $ NodeId uId) id'
            :<|> getChildren   id' p
 
            -- TODO gather it
            :<|> tableApi             id'
            :<|> apiNgramsTableCorpus id'
-
+            
            :<|> catApi      id'
-
            :<|> searchDocs  id'
+           :<|> Share.api   id'
            -- Pairing Tools
            :<|> pairWith    id'
            :<|> pairs       id'
@@ -221,12 +221,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> phyloAPI   id' uId
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
-
-    deleteNodeApi id'' = do
-      node' <- getNode id''
-      if _node_typename node' == nodeTypeId NodeUser
-         then panic "not allowed"  -- TODO add proper Right Management Type
-         else deleteNode id''
+           :<|> Update.api  uId id'
 
 scatterApi :: NodeId -> GargServer ScatterAPI
 scatterApi id' =  getScatter id'
@@ -328,11 +323,10 @@ type TreeApi = Summary " Tree API"
              -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
 
 ------------------------------------------------------------------------
-
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
 
 treeAPI :: NodeId -> GargServer TreeAPI
-treeAPI = treeDB
+treeAPI = tree Advanced
 
 ------------------------------------------------------------------------
 -- | Check if the name is less than 255 char

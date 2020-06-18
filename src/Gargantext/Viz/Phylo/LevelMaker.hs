@@ -10,11 +10,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances    #-}
 
 module Gargantext.Viz.Phylo.LevelMaker
   where

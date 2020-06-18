@@ -12,14 +12,6 @@ TODO-SECURITY: Critical
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 
@@ -318,6 +310,7 @@ withDevEnv iniPath k = do
         }
 
 -- | Run Cmd Sugar for the Repl (GHCI)
+
 runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
 runCmdRepl f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
 

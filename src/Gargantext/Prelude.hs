@@ -12,10 +12,6 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
 
-{-# LANGUAGE     FlexibleContexts        #-}
-{-# LANGUAGE     NoImplicitPrelude       #-}
-{-# LANGUAGE     OverloadedStrings       #-}
-{-# LANGUAGE     RankNTypes              #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude
@@ -44,7 +40,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
-                 , pure, (>>=), (=<<), (<*>), (<$>), (>>)
+                 , pure, (>>=), (=<<), (<*>), (<$>), (<&>), (>>)
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, mapM, zip, drop, take, zipWith
@@ -63,6 +59,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , compare
                  , on
                  , panic
+                 , seq
                  )
 
 import Prelude (Enum, Bounded, minBound, maxBound, putStrLn)
@@ -310,5 +307,13 @@ lookup2 :: Ord a
 lookup2 a b m = do
   m' <- lookup a m
   lookup b m'
+
+-----------------------------------------------
+
+foldM' :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
+foldM' _ z [] = return z
+foldM' f z (x:xs) = do
+  z' <- f z x
+  z' `seq` foldM' f z' xs
 
 

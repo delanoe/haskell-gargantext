@@ -12,8 +12,6 @@ group the tokens into extracted terms.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Terms.Multi.Group (group2)
   where

@@ -12,14 +12,8 @@ Async new node feature
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE RankNTypes         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Node.New

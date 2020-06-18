@@ -12,8 +12,6 @@ Mainly reexport functions in @Data.Text.Metrics@
 -}
 
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Metrics
   where

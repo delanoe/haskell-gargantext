@@ -14,7 +14,6 @@ Gargantext's database.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Database ( module Gargantext.Database.Prelude
                         -- , module Gargantext.Database.Bashql
@@ -23,3 +22,6 @@ module Gargantext.Database ( module Gargantext.Database.Prelude
 
 import Gargantext.Database.Prelude (connectGargandb)
 -- import Gargantext.Database.Bashql
+
+
+

@@ -9,10 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Viz.Chart

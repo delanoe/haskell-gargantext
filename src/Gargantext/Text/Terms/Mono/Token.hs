@@ -15,7 +15,6 @@ Source: https://en.wikipedia.org/wiki/Tokenize
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Terms.Mono.Token (tokenize)
   where

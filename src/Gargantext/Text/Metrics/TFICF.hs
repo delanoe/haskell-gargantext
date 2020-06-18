@@ -13,8 +13,6 @@ TFICF is a generalization of [TFIDF](https://en.wikipedia.org/wiki/Tf%E2%80%93id
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Metrics.TFICF ( TFICF
                                      , TficfContext(..)

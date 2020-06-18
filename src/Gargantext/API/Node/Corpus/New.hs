@@ -12,14 +12,8 @@ New corpus means either:
 - new data in existing corpus
 -}
 
-{-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE RankNTypes         #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Node.Corpus.New
@@ -158,18 +152,18 @@ instance ToSchema WithQuery where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wq_")
 
 -------------------------------------------------------
-data WithForm = WithForm
+data NewWithForm = NewWithForm
   { _wf_filetype :: !FileType
   , _wf_data     :: !Text
   , _wf_lang     :: !(Maybe Lang)
   , _wf_name     :: !Text
   } deriving (Eq, Show, Generic)
 
-makeLenses ''WithForm
-instance FromForm WithForm
-instance FromJSON WithForm where
+makeLenses ''NewWithForm
+instance FromForm NewWithForm
+instance FromJSON NewWithForm where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
-instance ToSchema WithForm where
+instance ToSchema NewWithForm where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 
 ------------------------------------------------------------------------
@@ -201,7 +195,7 @@ type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "add"
    :> "form"
    :> "async"
-     :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
+     :> AsyncJobs ScraperStatus '[FormUrlEncoded] NewWithForm ScraperStatus
 
 
 ------------------------------------------------------------------------
@@ -237,10 +231,10 @@ addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
 addToCorpusWithForm :: FlowCmdM env err m
                     => User
                     -> CorpusId
-                    -> WithForm
+                    -> NewWithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToCorpusWithForm user cid (WithForm ft d l _n) logStatus = do
+addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
   let
     parse = case ft of

@@ -8,14 +8,8 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE RankNTypes         #-}
 
 module Gargantext.API.Node.Corpus.Annuaire
       where
@@ -44,17 +38,17 @@ type Api = Summary "New Annuaire endpoint"
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-data WithForm = WithForm
+data AnnuaireWithForm = AnnuaireWithForm
   { _wf_filetype :: !NewFile.FileType
   , _wf_data     :: !Text
   , _wf_lang     :: !(Maybe Lang)
   } deriving (Eq, Show, Generic)
 
-makeLenses ''WithForm
-instance FromForm WithForm
-instance FromJSON WithForm where
+makeLenses ''AnnuaireWithForm
+instance FromForm AnnuaireWithForm
+instance FromJSON AnnuaireWithForm where
   parseJSON = genericParseJSON $ jsonOptions "_wf_"
-instance ToSchema WithForm where
+instance ToSchema AnnuaireWithForm where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 
 ------------------------------------------------------------------------
@@ -68,15 +62,15 @@ type AddWithForm = Summary "Add with FormUrlEncoded to annuaire endpoint"
    :> "add"
    :> "form"
    :> "async"
-   :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithForm ScraperStatus
+   :> AsyncJobs ScraperStatus '[FormUrlEncoded] AnnuaireWithForm ScraperStatus
 
 ------------------------------------------------------------------------
 addToAnnuaireWithForm :: FlowCmdM env err m
                     => AnnuaireId
-                    -> WithForm
+                    -> AnnuaireWithForm
                     -> (ScraperStatus -> m ())
                     -> m ScraperStatus
-addToAnnuaireWithForm _cid (WithForm ft _d _l) logStatus = do
+addToAnnuaireWithForm _cid (AnnuaireWithForm ft _d _l) logStatus = do
 
   printDebug "ft" ft
 

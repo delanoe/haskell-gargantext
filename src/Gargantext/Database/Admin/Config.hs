@@ -13,17 +13,17 @@ Gargantext's database.
 TODO: configure nodes table in Haskell (Config typenames etc.)
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Database.Admin.Config
     where
 
+import Control.Lens     (view)
 import Data.List        (lookup)
 import Data.Maybe       (fromMaybe)
 import Data.Text        (Text,pack)
 import Data.Tuple.Extra (swap)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 
 -- TODO put this in config.ini file
@@ -81,6 +81,9 @@ nodeTypeId n =
 --  Node management
 --  NodeFavorites    -> 15
 
+
+hasNodeType :: forall a. Node a -> NodeType -> Bool
+hasNodeType n nt = (view node_typename n) == (nodeTypeId nt)
 
 --
 -- | Nodes are typed in the database according to a specific ID

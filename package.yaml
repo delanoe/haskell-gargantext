@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.1.4.2'
+version: '0.0.1.5.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -15,6 +15,16 @@ extra-libraries:
 dependencies:
 - extra
 - text
+default-extensions:
+  - DataKinds
+  - DeriveGeneric
+  - FlexibleContexts
+  - FlexibleInstances
+  - GeneralizedNewtypeDeriving
+  - MultiParamTypeClasses
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - RankNTypes
 library:
   source-dirs: src
   ghc-options:

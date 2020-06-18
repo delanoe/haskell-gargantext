@@ -48,13 +48,7 @@ the concatenation of the parameters defined by @shaParameters@.
 
 -}
 ------------------------------------------------------------------------
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE QuasiQuotes          #-}
-{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 ------------------------------------------------------------------------
 module Gargantext.Database.Query.Table.Node.Document.Insert

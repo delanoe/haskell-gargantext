@@ -10,8 +10,6 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
 
 module Gargantext.Core.Flow.Ngrams where

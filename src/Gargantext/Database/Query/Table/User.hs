@@ -14,14 +14,8 @@ Functions to deal with users, database side.
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE TemplateHaskell             #-}
-{-# LANGUAGE FlexibleContexts            #-}
-{-# LANGUAGE FlexibleInstances           #-}
-{-# LANGUAGE MultiParamTypeClasses       #-}
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE Arrows                      #-}
-{-# LANGUAGE NoImplicitPrelude           #-}
-{-# LANGUAGE OverloadedStrings           #-}
-{-# LANGUAGE RankNTypes                  #-}
 
 module Gargantext.Database.Query.Table.User
   ( insertUsers
@@ -66,7 +60,6 @@ insertUsersDemo = do
   insertUsers $ map (\(u,m,h) -> gargUserWith u m h) users
 
 -----------------------------------------------------------------------
-
 gargUserWith :: Username -> Email -> Auth.PasswordHash Auth.Argon2 -> UserWrite
 gargUserWith u m (Auth.PasswordHash p) = UserDB (Nothing) (pgStrictText p)
                          (Nothing) (pgBool True) (pgStrictText u)

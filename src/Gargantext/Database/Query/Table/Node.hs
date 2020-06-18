@@ -13,15 +13,8 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 
@@ -160,6 +153,7 @@ getNodeWith nId _ = do
   case maybeNode of
     Nothing -> nodeError (DoesNotExist nId)
     Just  r -> pure r
+
 
 ------------------------------------------------------------------------
 nodeContactW :: Maybe Name -> Maybe HyperdataContact

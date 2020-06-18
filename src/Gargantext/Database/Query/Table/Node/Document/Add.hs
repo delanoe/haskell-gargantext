@@ -12,14 +12,7 @@ Add Documents/Contact to a Corpus/Annuaire.
 -}
 ------------------------------------------------------------------------
 {-# LANGUAGE DeriveDataTypeable   #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE QuasiQuotes          #-}
-{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 ------------------------------------------------------------------------

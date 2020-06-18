@@ -20,12 +20,6 @@ TODO-ACCESS Critical
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 

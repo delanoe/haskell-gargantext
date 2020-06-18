@@ -9,14 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Query.Table.Node.User

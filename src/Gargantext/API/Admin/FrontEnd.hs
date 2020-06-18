@@ -11,8 +11,6 @@ Loads all static file for the front-end.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE TypeOperators        #-}
 
 ---------------------------------------------------------------------

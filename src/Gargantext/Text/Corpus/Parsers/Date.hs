@@ -14,9 +14,6 @@ import Gargantext.Text.Corpus.Parsers.Date as DGP
 DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Corpus.Parsers.Date (parse, parseRaw, dateSplit, Year, Month, Day) where
 

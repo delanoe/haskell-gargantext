@@ -12,16 +12,8 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE DeriveGeneric          #-}
 {-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Query.Tree.Root
@@ -47,6 +39,16 @@ import Gargantext.Prelude
 import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)
 
+
+getRootId :: User -> Cmd err NodeId
+getRootId u = do
+  maybeRoot <- head <$> getRoot u
+  case maybeRoot of
+    Nothing -> panic "no root id"
+    Just  r -> pure (_node_id r)
+
+getRoot :: User -> Cmd err [Node HyperdataUser]
+getRoot = runOpaQuery . selectRoot
 
 
 getOrMkRoot :: (HasNodeError err)
@@ -123,9 +125,6 @@ mkRoot user = do
            pure rs
          _   -> pure rs
        pure rs
-
-getRoot :: User -> Cmd err [Node HyperdataUser]
-getRoot = runOpaQuery . selectRoot
 
 selectRoot :: User -> Query NodeRead
 selectRoot (UserName username) = proc () -> do

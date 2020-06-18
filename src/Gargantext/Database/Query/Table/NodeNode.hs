@@ -14,14 +14,8 @@ commentary with @some markup@.
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE QuasiQuotes            #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Query.Table.NodeNode
@@ -33,6 +27,7 @@ module Gargantext.Database.Query.Table.NodeNode
   , nodeNodesCategory
   , getNodeNode
   , insertNodeNode
+  , deleteNodeNode
   )
   where
 
@@ -74,9 +69,10 @@ getNodeNode n = runOpaQuery (selectNodeNode $ pgNodeId n)
       restrict -< _nn_node1_id ns .== n'
       returnA -< ns
 
--------------------------
+------------------------------------------------------------------------
 insertNodeNode :: [NodeNode] -> Cmd err Int64
-insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeNodeTable ns' rCount Nothing
+insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
+                          $ Insert nodeNodeTable ns' rCount Nothing
   where
     ns' :: [NodeNodeWrite]
     ns' = map (\(NodeNode n1 n2 x y)
@@ -86,7 +82,17 @@ insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeNodeTable ns' 
                             (pgInt4   <$> y)
               ) ns
 
+------------------------------------------------------------------------
+type Node1_Id = NodeId
+type Node2_Id = NodeId
 
+deleteNodeNode :: Node1_Id -> Node2_Id -> Cmd err Int
+deleteNodeNode n1 n2 = mkCmd $ \conn ->
+  fromIntegral <$> runDelete conn nodeNodeTable
+                 (\(NodeNode n1_id n2_id _ _) -> n1_id .== pgNodeId n1
+                                             .&& n2_id .== pgNodeId n2 )
+
+------------------------------------------------------------------------
 -- | Favorite management
 _nodeNodeCategory :: CorpusId -> DocId -> Int -> Cmd err [Int]
 _nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery (c,cId,dId)

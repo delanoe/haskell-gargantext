@@ -18,14 +18,9 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans    #-}
 
 {-# LANGUAGE ConstraintKinds         #-}
-{-# LANGUAGE RankNTypes              #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE ConstraintKinds         #-}
-{-# LANGUAGE DeriveGeneric           #-}
-{-# LANGUAGE FlexibleContexts        #-}
 {-# LANGUAGE InstanceSigs            #-}
-{-# LANGUAGE NoImplicitPrelude       #-}
-{-# LANGUAGE OverloadedStrings       #-}
 {-# LANGUAGE TemplateHaskell         #-}
 
 module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)

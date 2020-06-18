@@ -9,10 +9,6 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE Arrows            #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Database.Action.Search where
 

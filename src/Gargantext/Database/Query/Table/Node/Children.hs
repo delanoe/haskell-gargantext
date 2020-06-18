@@ -12,9 +12,6 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FlexibleContexts       #-}
-{-# LANGUAGE RankNTypes             #-}
 
 module Gargantext.Database.Query.Table.Node.Children
   where
@@ -22,6 +19,7 @@ module Gargantext.Database.Query.Table.Node.Children
 import Control.Arrow (returnA)
 import Data.Proxy
 import Opaleye
+import Protolude
 
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)

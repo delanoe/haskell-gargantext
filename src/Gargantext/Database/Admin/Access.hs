@@ -10,7 +10,6 @@ Portability : POSIX
 TODO-SECURITY review purpose of this module
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 
 module Gargantext.Database.Admin.Access where

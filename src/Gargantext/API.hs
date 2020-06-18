@@ -29,16 +29,9 @@ Pouillard (who mainly made it).
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 {-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE KindSignatures       #-}
-{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -88,7 +81,6 @@ import qualified Paths_gargantext           as PG -- cabal magic build module
 data Mode = Dev | Mock | Prod 
        deriving (Show, Read, Generic)
 
-
 -- | startGargantext takes as parameters port number and Ini file.
 startGargantext :: Mode -> PortNumber -> FilePath -> IO ()
 startGargantext mode port file = do
@@ -109,7 +101,6 @@ stopGargantext :: HasRepoSaver env => env -> IO ()
 stopGargantext env = do
   T.putStrLn "----- Stopping gargantext -----"
   runReaderT saveRepo env
-
 
 -- | Output generated @swagger.json@ file for the @'TodoAPI'@.
 swaggerWriteJSON :: IO ()

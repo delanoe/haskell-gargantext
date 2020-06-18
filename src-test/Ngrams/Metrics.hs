@@ -14,8 +14,6 @@ commentary with @some markup@.
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE OverloadedStrings    #-}
 
 module Ngrams.Metrics (main) where
 

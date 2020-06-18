@@ -10,11 +10,7 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE Arrows            #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Database.Query.Table.Ngrams

@@ -11,8 +11,6 @@ From text to viz, all the flow of texts in Gargantext.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude           #-}
-{-# LANGUAGE OverloadedStrings           #-}
 
 module Gargantext.Text.Flow
   where
