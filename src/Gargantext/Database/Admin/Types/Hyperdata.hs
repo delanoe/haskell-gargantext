@@ -26,7 +26,8 @@ import Protolude hiding (ByteString)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
-import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..))
+import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)
 import Gargantext.Database.Prelude (fromField')
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Viz.Phylo (Phylo(..))
@@ -217,8 +218,11 @@ instance Arbitrary HyperdataCorpus where
 
 ------------------------------------------------------------------------
 data HyperdataList =
-  HyperdataList { hd_list :: !(Maybe Text)
-                , hd_chart :: !(Maybe (ChartMetrics Histo))
+  HyperdataList { hd_chart :: !(Maybe (ChartMetrics Histo))
+                , hd_list :: !(Maybe Text)
+                , hd_pie :: !(Maybe (ChartMetrics Histo))
+                , hd_scatter :: !(Maybe Metrics)
+                , hd_tree :: !(Maybe (ChartMetrics [MyTree]))
                 } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hd_") ''HyperdataList)
 
