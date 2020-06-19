@@ -16,18 +16,17 @@ module Gargantext.API.Admin.Orchestrator where
 
 import Control.Lens hiding (elements)
 import Data.Aeson
-import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Text
+import Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
+import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Admin.Settings
+import Gargantext.Prelude
 import Servant
 import Servant.Job.Async
 import Servant.Job.Client
 import Servant.Job.Server
 import Servant.Job.Utils (extendBaseUrl)
-
-import Gargantext.Prelude
-import Gargantext.API.Admin.Settings
-import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
+import qualified Data.ByteString.Lazy.Char8 as LBS
 
 callJobScrapy :: (ToJSON e, FromJSON e, FromJSON o, MonadClientJob m)
               => JobServerURL e Schedule o
@@ -44,7 +43,7 @@ callJobScrapy jurl schedule = do
 logConsole :: ToJSON a => a -> IO ()
 logConsole = LBS.putStrLn . encode
 
-callScraper :: MonadClientJob m => URL -> ScraperInput -> m ScraperStatus
+callScraper :: MonadClientJob m => URL -> ScraperInput -> m JobLog
 callScraper url input =
   callJobScrapy jurl $ \cb ->
     Schedule
@@ -64,11 +63,11 @@ callScraper url input =
           ,("callback",     [toUrlPiece cb])]
       }
   where
-    jurl :: JobServerURL ScraperStatus Schedule ScraperStatus
+    jurl :: JobServerURL JobLog Schedule JobLog
     jurl = JobServerURL url Callback
 
 pipeline :: FromJSON e => URL -> ClientEnv -> ScraperInput
-                       -> (e -> IO ()) -> IO ScraperStatus
+                       -> (e -> IO ()) -> IO JobLog
 pipeline scrapyurl client_env input log_status = do
   e <- runJobMLog client_env log_status $ callScraper scrapyurl input
   either (panic . cs . show) pure e -- TODO throwError

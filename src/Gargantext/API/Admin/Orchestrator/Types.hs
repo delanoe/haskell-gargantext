@@ -20,7 +20,6 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
-
 instance Arbitrary a => Arbitrary (JobStatus 'Safe a) where
   arbitrary = panic "TODO"
 
@@ -90,7 +89,9 @@ instance ToJSON ScraperEvent where
 instance FromJSON ScraperEvent where
   parseJSON = genericParseJSON $ jsonOptions "_scev_"
 
-data ScraperStatus = ScraperStatus
+
+
+data JobLog = JobLog
   { _scst_succeeded :: !(Maybe Int)
   , _scst_failed    :: !(Maybe Int)
   , _scst_remaining :: !(Maybe Int)
@@ -98,20 +99,20 @@ data ScraperStatus = ScraperStatus
   }
   deriving (Show, Generic)
 
-instance Arbitrary ScraperStatus where
-  arbitrary = ScraperStatus
+instance Arbitrary JobLog where
+  arbitrary = JobLog
            <$> arbitrary
            <*> arbitrary
            <*> arbitrary
            <*> arbitrary
 
-instance ToJSON ScraperStatus where
+instance ToJSON JobLog where
   toJSON = genericToJSON $ jsonOptions "_scst_"
 
-instance FromJSON ScraperStatus where
+instance FromJSON JobLog where
   parseJSON = genericParseJSON $ jsonOptions "_scst_"
 
-instance ToSchema ScraperStatus -- TODO _scst_ prefix
+instance ToSchema JobLog -- TODO _scst_ prefix
 
 instance ToSchema ScraperInput  -- TODO _scin_ prefix
 instance ToSchema ScraperEvent  -- TODO _scev_ prefix
@@ -122,6 +123,6 @@ instance ToParamSchema Offset -- where
 instance ToParamSchema Limit -- where
   -- toParamSchema = panic "TODO"
 
-type ScrapersEnv = JobEnv ScraperStatus ScraperStatus
+type ScrapersEnv = JobEnv JobLog JobLog
 
-type ScraperAPI  = AsyncJobsAPI ScraperStatus ScraperInput  ScraperStatus
+type ScraperAPI  = AsyncJobsAPI JobLog ScraperInput  JobLog

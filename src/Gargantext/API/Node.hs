@@ -324,5 +324,3 @@ putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         -> Cmd err Int
 putNode n h = fromIntegral <$> updateHyperdata n h
 -------------------------------------------------------------
-
-

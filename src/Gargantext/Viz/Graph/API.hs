@@ -155,7 +155,7 @@ computeGraph cId nt repo = do
 ------------------------------------------------------------
 type GraphAsyncAPI = Summary "Update graph"
                    :> "async"
-                   :> AsyncJobsAPI ScraperStatus () ScraperStatus
+                   :> AsyncJobsAPI JobLog () JobLog
 
 
 graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
@@ -166,16 +166,16 @@ graphAsync u n =
 
 graphAsync' :: UserId
            -> NodeId
-           -> (ScraperStatus -> GargNoServer ())
-           -> GargNoServer ScraperStatus
+           -> (JobLog -> GargNoServer ())
+           -> GargNoServer JobLog
 graphAsync' u n logStatus = do
-  logStatus ScraperStatus { _scst_succeeded = Just 0
+  logStatus JobLog { _scst_succeeded = Just 0
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
   _g <- trace (show u) $ recomputeGraph u n
-  pure  ScraperStatus { _scst_succeeded = Just 1
+  pure  JobLog { _scst_succeeded = Just 1
                       , _scst_failed    = Just 0
                       , _scst_remaining = Just 0
                       , _scst_events    = Just []
