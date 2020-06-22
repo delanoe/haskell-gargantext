@@ -156,10 +156,10 @@ instance HasRepo Env where
 instance HasSettings Env where
   settings = env_settings
 
-instance Servant.Job.Core.HasEnv Env (Job ScraperStatus ScraperStatus) where
+instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
   _env = env_scrapers . Servant.Job.Core._env
 
-instance HasJobEnv Env ScraperStatus ScraperStatus where
+instance HasJobEnv Env JobLog JobLog where
   job_env = env_scrapers
 
 data MockEnv = MockEnv

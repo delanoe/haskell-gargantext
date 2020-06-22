@@ -24,7 +24,7 @@ import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types (ScraperStatus(..))
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude
 import Gargantext.Database.Action.Flow.Types
@@ -68,7 +68,7 @@ postNode uId pId (PostNode nodeName nt) = do
 ------------------------------------------------------------------------
 type PostNodeAsync = Summary "Post Node"
    :> "async"
-   :> AsyncJobs ScraperStatus '[FormUrlEncoded] PostNode ScraperStatus
+   :> AsyncJobs JobLog '[FormUrlEncoded] PostNode JobLog
 
 
 postNodeAsyncAPI :: UserId -> NodeId -> GargServer PostNodeAsync
@@ -81,12 +81,12 @@ postNodeAsync :: FlowCmdM env err m
     => UserId
     -> NodeId
     -> PostNode
-    -> (ScraperStatus -> m ())
-    -> m ScraperStatus
+    -> (JobLog -> m ())
+    -> m JobLog
 postNodeAsync uId nId (PostNode nodeName tn) logStatus = do
 
   printDebug "postNodeAsync" nId
-  logStatus ScraperStatus { _scst_succeeded = Just 1
+  logStatus JobLog { _scst_succeeded = Just 1
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 2
                           , _scst_events    = Just []
@@ -95,7 +95,7 @@ postNodeAsync uId nId (PostNode nodeName tn) logStatus = do
   nodeUser <- getNodeUser (NodeId uId)
 
   -- _ <- threadDelay 1000
-  logStatus ScraperStatus { _scst_succeeded = Just 1
+  logStatus JobLog { _scst_succeeded = Just 1
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 2
                           , _scst_events    = Just []
@@ -104,7 +104,7 @@ postNodeAsync uId nId (PostNode nodeName tn) logStatus = do
   let uId' = nodeUser ^. node_userId
   _ <- mkNodeWithParent tn (Just nId) uId' nodeName
 
-  pure      ScraperStatus { _scst_succeeded = Just 3
+  pure      JobLog { _scst_succeeded = Just 3
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []

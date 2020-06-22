@@ -36,7 +36,7 @@ import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
 
-import Gargantext.API.Admin.Orchestrator.Types (ScraperStatus(..))
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import qualified Gargantext.API.Admin.Orchestrator.Types as T
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.Core (Lang(..){-, allLangs-})
@@ -175,7 +175,7 @@ type AddWithQuery = Summary "Add with Query to corpus endpoint"
    :> "corpus"
      :> Capture "corpus_id" CorpusId
    :> "query"
-     :> AsyncJobs ScraperStatus '[JSON] WithQuery ScraperStatus
+     :> AsyncJobs JobLog '[JSON] WithQuery JobLog
 
 {-
 type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
@@ -186,7 +186,7 @@ type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
      :> MultipartForm Mem (MultipartData Mem)
      :> QueryParam "fileType"  FileType
    :> "async"
-     :> AsyncJobs ScraperStatus '[JSON] () ScraperStatus
+     :> AsyncJobs JobLog '[JSON] () JobLog
 -}
 
 type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
@@ -195,7 +195,7 @@ type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
    :> "add"
    :> "form"
    :> "async"
-     :> AsyncJobs ScraperStatus '[FormUrlEncoded] NewWithForm ScraperStatus
+     :> AsyncJobs JobLog '[FormUrlEncoded] NewWithForm JobLog
 
 
 ------------------------------------------------------------------------
@@ -204,13 +204,13 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        => User
                        -> CorpusId
                        -> WithQuery
-                       -> (ScraperStatus -> m ())
-                       -> m ScraperStatus
+                       -> (JobLog -> m ())
+                       -> m JobLog
 addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   -- TODO ...
-  logStatus ScraperStatus { _scst_succeeded = Just 10
-                          , _scst_failed    = Just 2
-                          , _scst_remaining = Just 138
+  logStatus JobLog { _scst_succeeded = Just 0
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 5
                           , _scst_events    = Just []
                           }
   printDebug "addToCorpusWithQuery" cid
@@ -219,11 +219,18 @@ addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   --      if cid is corpus -> add to corpus
   --      if cid is root   -> create corpus in Private
   txts <- mapM (\db  -> getDataText db     (Multi l) q (Just 10000)) [database2origin dbs]
+
+  logStatus JobLog { _scst_succeeded = Just 2
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
+                          , _scst_events    = Just []
+                          }
+
   cids <- mapM (\txt -> flowDataText u txt (Multi l) cid) txts
   printDebug "corpus id" cids
   -- TODO ...
-  pure      ScraperStatus { _scst_succeeded = Just 137
-                          , _scst_failed    = Just 13
+  pure      JobLog { _scst_succeeded = Just 3
+                          , _scst_failed    = Just 0
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
                           }
@@ -232,10 +239,16 @@ addToCorpusWithForm :: FlowCmdM env err m
                     => User
                     -> CorpusId
                     -> NewWithForm
-                    -> (ScraperStatus -> m ())
-                    -> m ScraperStatus
+                    -> (JobLog -> m ())
+                    -> m JobLog
 addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
+  printDebug "Parsing corpus: " cid
+  logStatus JobLog { _scst_succeeded = Just 0
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 2
+                          , _scst_events    = Just []
+                          }
   let
     parse = case ft of
       CSV_HAL   -> Parser.parseFormat Parser.CsvHal
@@ -243,22 +256,20 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
       WOS       -> Parser.parseFormat Parser.WOS
       PresseRIS -> Parser.parseFormat Parser.RisPresse
 
-  logStatus ScraperStatus { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
-
-  printDebug "Parsing corpus: " cid
-
   -- TODO granularity of the logStatus
   docs <- liftBase $ splitEvery 500
       <$> take 1000000
       <$> parse (cs d)
 
   printDebug "Parsing corpus finished : " cid
-  printDebug "Starting extraction     : " cid
+  logStatus JobLog { _scst_succeeded = Just 1
+                          , _scst_failed    = Just 0
+                          , _scst_remaining = Just 1
+                          , _scst_events    = Just []
+                          }
 
+
+  printDebug "Starting extraction     : " cid
   -- TODO granularity of the logStatus
   _cid' <- flowCorpus user
                      (Right [cid])
@@ -266,8 +277,7 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
                      (map (map toHyperdataDocument) docs)
 
   printDebug "Extraction finished   : " cid
-
-  pure      ScraperStatus { _scst_succeeded = Just 2
+  pure      JobLog { _scst_succeeded = Just 2
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
@@ -278,10 +288,10 @@ addToCorpusWithFile :: FlowCmdM env err m
                     => CorpusId
                     -> MultipartData Mem
                     -> Maybe FileType
-                    -> (ScraperStatus -> m ())
-                    -> m ScraperStatus
+                    -> (JobLog -> m ())
+                    -> m JobLog
 addToCorpusWithFile cid input filetype logStatus = do
-  logStatus ScraperStatus { _scst_succeeded = Just 10
+  logStatus JobLog { _scst_succeeded = Just 10
                           , _scst_failed    = Just 2
                           , _scst_remaining = Just 138
                           , _scst_events    = Just []
@@ -289,7 +299,7 @@ addToCorpusWithFile cid input filetype logStatus = do
   printDebug "addToCorpusWithFile" cid
   _h <- postUpload cid filetype input
 
-  pure      ScraperStatus { _scst_succeeded = Just 137
+  pure      JobLog { _scst_succeeded = Just 137
                           , _scst_failed    = Just 13
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []

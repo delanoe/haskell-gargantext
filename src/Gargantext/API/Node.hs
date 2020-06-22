@@ -119,6 +119,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> PostNodeApi -- TODO move to children POST
              :<|> PostNodeAsync
              :<|> ReqBody '[JSON] a :> Put    '[JSON] Int
+             :<|> "update"     :> Update.API
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
 
@@ -143,7 +144,6 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
-             :<|> "update"     :> Update.API
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -194,6 +194,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> postNode  uId id'
            :<|> postNodeAsyncAPI  uId id'
            :<|> putNode       id'
+           :<|> Update.api  uId id'
            :<|> Action.deleteNode (RootId $ NodeId uId) id'
            :<|> getChildren   id' p
 
@@ -217,7 +218,6 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> phyloAPI   id' uId
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
-           :<|> Update.api  uId id'
 
 scatterApi :: NodeId -> GargServer ScatterAPI
 scatterApi id' = getScatter id'
@@ -316,5 +316,3 @@ putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         -> Cmd err Int
 putNode n h = fromIntegral <$> updateHyperdata n h
 -------------------------------------------------------------
-
-

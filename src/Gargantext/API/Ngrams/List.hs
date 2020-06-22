@@ -93,7 +93,7 @@ type PostAPI = Summary "Update List"
         :> "add"
         :> "form"
         :> "async"
-        :> AsyncJobs ScraperStatus '[FormUrlEncoded] WithFile ScraperStatus
+        :> AsyncJobs JobLog '[FormUrlEncoded] WithFile JobLog
 
 postAsync :: ListId -> GargServer PostAPI
 postAsync lId =
@@ -103,18 +103,18 @@ postAsync lId =
 postAsync' :: FlowCmdM env err m
           => ListId
           -> WithFile
-          -> (ScraperStatus -> m ())
-          -> m ScraperStatus
+          -> (JobLog -> m ())
+          -> m JobLog
 postAsync' l (WithFile _ m _) logStatus = do
 
-  logStatus ScraperStatus { _scst_succeeded = Just 0
+  logStatus JobLog { _scst_succeeded = Just 0
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
   _r <- post l m
 
-  pure ScraperStatus { _scst_succeeded = Just 1
+  pure JobLog { _scst_succeeded = Just 1
                      , _scst_failed    = Just 0
                      , _scst_remaining = Just 0
                      , _scst_events    = Just []

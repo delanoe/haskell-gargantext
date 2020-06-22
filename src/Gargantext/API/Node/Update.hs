@@ -19,18 +19,20 @@ module Gargantext.API.Node.Update
 import Data.Aeson
 import Data.Swagger
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types (ScraperStatus(..))
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
-import Gargantext.API.Prelude (GargServer, simuLogs)
+import Gargantext.API.Prelude (GargServer{-, simuLogs-})
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.))
+import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), Int, pure, (*), printDebug, (^)) -- (-), (^))
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
+import Data.Maybe (Maybe(..))
+import Control.Concurrent (threadDelay)
 
 
 
@@ -95,21 +97,68 @@ instance Arbitrary Charts where
   arbitrary = elements [ minBound .. maxBound ]
 
 ------------------------------------------------------------------------
+
 api :: UserId -> NodeId -> GargServer API
 api uId nId =
-  serveJobsAPI $ 
-    JobFunction (\p logs -> updateNode uId nId p (liftBase . logs))
+  serveJobsAPI $
+    JobFunction (\p log ->
+      let
+        log' x = do
+          printDebug "updateNode" x
+          liftBase $ log x
+      in updateNode uId nId p (liftBase . log')
+      )
 
 
 updateNode :: FlowCmdM env err m
     => UserId
     -> NodeId
     -> UpdateNodeParams
-    -> (ScraperStatus -> m ())
-    -> m ScraperStatus
-updateNode _uId _nId _ logStatus = do
-  simuLogs logStatus 100
+    -> (JobLog -> m ())
+    -> m JobLog
+updateNode uId nId _p logStatus = do
+
+-- Why this does not work ?
+--  simuLogs logStatus 100
+  let
+    m = (10 :: Int) ^ (6 :: Int)
+
+  printDebug "updateNode xxxxxxxxxxxxxxxxxxxx" nId
+  --liftBase $ threadDelay ( m * 10)
+  logStatus $ JobLog { _scst_succeeded = Just 3
+                            , _scst_failed    = Just 0
+                            , _scst_remaining = Just 10
+                            , _scst_events    = Just []
+                            }
+
+{-
+    status t n = do
+      _ <- liftBase $ threadDelay ( m * 1000)
+      let s = JobLog { _scst_succeeded = Just n
+                             , _scst_failed    = Just 0
+                             , _scst_remaining = Just (t - n)
+                             , _scst_events    = Just []
+                             }
+      printDebug "status " s
+      pure s
+-}
+
+  printDebug "updateNode yyyyyyyyyyyyyyyyyyyy" uId
+  --liftBase $ threadDelay ( m * 10)
+  logStatus $ JobLog { _scst_succeeded = Just 6
+                            , _scst_failed    = Just 0
+                            , _scst_remaining = Just 4
+                            , _scst_events    = Just []
+                            }
+
+  printDebug "updateNode zzzzzzzzzzzzzzzzzzzz" nId
+  liftBase $ threadDelay ( m * 10)
+  pure $  JobLog { _scst_succeeded = Just 10
+                            , _scst_failed    = Just 0
+                            , _scst_remaining = Just 0
+                            , _scst_events    = Just []
+                            }
 
 ------------------------------------------------------------------------
-type API = Summary " Share Node with username"
-         :> AsyncJobs ScraperStatus '[JSON] UpdateNodeParams ScraperStatus
+type API = Summary " Update node according to NodeType params"
+         :> AsyncJobs JobLog '[JSON] UpdateNodeParams JobLog

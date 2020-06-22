@@ -62,14 +62,14 @@ type AddWithForm = Summary "Add with FormUrlEncoded to annuaire endpoint"
    :> "add"
    :> "form"
    :> "async"
-   :> AsyncJobs ScraperStatus '[FormUrlEncoded] AnnuaireWithForm ScraperStatus
+   :> AsyncJobs JobLog '[FormUrlEncoded] AnnuaireWithForm JobLog
 
 ------------------------------------------------------------------------
 addToAnnuaireWithForm :: FlowCmdM env err m
                     => AnnuaireId
                     -> AnnuaireWithForm
-                    -> (ScraperStatus -> m ())
-                    -> m ScraperStatus
+                    -> (JobLog -> m ())
+                    -> m JobLog
 addToAnnuaireWithForm _cid (AnnuaireWithForm ft _d _l) logStatus = do
 
   printDebug "ft" ft
@@ -86,7 +86,7 @@ addToAnnuaireWithForm _cid (AnnuaireWithForm ft _d _l) logStatus = do
   --      <$> take 1000000
   --      <$> parse (cs d)
 
-  logStatus ScraperStatus { _scst_succeeded = Just 1
+  logStatus JobLog { _scst_succeeded = Just 1
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 1
                           , _scst_events    = Just []
@@ -98,7 +98,7 @@ addToAnnuaireWithForm _cid (AnnuaireWithForm ft _d _l) logStatus = do
 
   -- printDebug "cid'" cid'
 
-  pure      ScraperStatus { _scst_succeeded = Just 2
+  pure      JobLog { _scst_succeeded = Just 2
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 0
                           , _scst_events    = Just []
