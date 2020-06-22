@@ -152,68 +152,32 @@ instance HasJoseError GargError where
 ------------------------------------------------------------------------
 -- | Utils
 -- | Simulate logs
-
 simuLogs  :: MonadBase IO m
          => (JobLog -> m ())
          -> Int
          -> m JobLog
 simuLogs logStatus t = do
-{-
-  let task = JobLog { _scst_succeeded = Just 0
-                           , _scst_failed    = Just 0
-                           , _scst_remaining = Just 0
-                           , _scst_events    = Just []
-                           }
--}
-  -- f <- mapM (\status n -> simuTask logStatus status n t) task $ take t [1,2..]
-  _ <- mapM (\n -> simuTask' logStatus n t) $ take t [1,2..]
+  _ <- mapM (\n -> simuTask logStatus n t) $ take t [0,1..]
   pure $ JobLog { _scst_succeeded = Just t
-                        , _scst_failed    = Just 0
-                        , _scst_remaining = Just 0
-                        , _scst_events    = Just []
-                        }
+                , _scst_failed    = Just 0
+                , _scst_remaining = Just 0
+                , _scst_events    = Just []
+                }
 
-
-{-
 simuTask :: MonadBase IO m
-         => (JobLog -> m ())
-         -> JobLog
-         -> Int
-         -> Int
-         -> m JobLog
-simuTask logStatus (JobLog _s f _r e) n t = do
-  let
-    m = (10 :: Int) ^ (6 :: Int)
-  _ <- liftBase $ threadDelay ( m * 10)
-
-  let status =  JobLog { _scst_succeeded = Just n
-                              , _scst_failed    = f
-                              , _scst_remaining = (-) <$> Just t <*> Just n
-                              , _scst_events    = e
-                              }
-  printDebug "status" status
-  logStatus status
-  pure status
--}
-
-simuTask' :: MonadBase IO m
           => (JobLog -> m ())
           -> Int
           -> Int
           -> m ()
-simuTask' logStatus cur total = do
-  let
-    m = (10 :: Int) ^ (6 :: Int)
-  _ <- liftBase $ threadDelay ( m * 10)
+simuTask logStatus cur total = do
+  _ <- liftBase $ threadDelay (m*5)
+    where m = (10 :: Int) ^ (6 :: Int)
 
   let status =  JobLog { _scst_succeeded = Just cur
-                              , _scst_failed    = Just 0
-                              , _scst_remaining = (-) <$> Just total <*> Just cur
-                              , _scst_events    = Just []
-                              }
+                       , _scst_failed    = Just 0
+                       , _scst_remaining = (-) <$> Just total <*> Just cur
+                       , _scst_events    = Just []
+                       }
   printDebug "status" status
   logStatus status
-
-
-
 
