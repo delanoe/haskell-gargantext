@@ -34,8 +34,6 @@ import Test.QuickCheck.Arbitrary
 import Data.Maybe (Maybe(..))
 import Control.Concurrent (threadDelay)
 
-
-
 ------------------------------------------------------------------------
 data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: Method      }
                       | UpdateNodeParamsGraph { methodGraph :: GraphMetric }
@@ -61,8 +59,12 @@ data Charts = Sources | Authors | Institutes | Ngrams | All
 
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  UpdateNodeParams
-instance ToJSON    UpdateNodeParams
+instance FromJSON  UpdateNodeParams where
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+
+instance ToJSON    UpdateNodeParams where
+  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+  
 instance ToSchema  UpdateNodeParams
 instance Arbitrary UpdateNodeParams where
   arbitrary = do
@@ -126,10 +128,10 @@ updateNode uId nId _p logStatus = do
   printDebug "updateNode xxxxxxxxxxxxxxxxxxxx" nId
   --liftBase $ threadDelay ( m * 10)
   logStatus $ JobLog { _scst_succeeded = Just 3
-                            , _scst_failed    = Just 0
-                            , _scst_remaining = Just 10
-                            , _scst_events    = Just []
-                            }
+                     , _scst_failed    = Just 0
+                     , _scst_remaining = Just 10
+                     , _scst_events    = Just []
+                     }
 
 {-
     status t n = do
@@ -146,18 +148,18 @@ updateNode uId nId _p logStatus = do
   printDebug "updateNode yyyyyyyyyyyyyyyyyyyy" uId
   --liftBase $ threadDelay ( m * 10)
   logStatus $ JobLog { _scst_succeeded = Just 6
-                            , _scst_failed    = Just 0
-                            , _scst_remaining = Just 4
-                            , _scst_events    = Just []
-                            }
+                     , _scst_failed    = Just 0
+                     , _scst_remaining = Just 4
+                     , _scst_events    = Just []
+                     }
 
   printDebug "updateNode zzzzzzzzzzzzzzzzzzzz" nId
   liftBase $ threadDelay ( m * 10)
   pure $  JobLog { _scst_succeeded = Just 10
-                            , _scst_failed    = Just 0
-                            , _scst_remaining = Just 0
-                            , _scst_events    = Just []
-                            }
+                 , _scst_failed    = Just 0
+                 , _scst_remaining = Just 0
+                 , _scst_events    = Just []
+                 }
 
 ------------------------------------------------------------------------
 type API = Summary " Update node according to NodeType params"
