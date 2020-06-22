@@ -16,8 +16,11 @@ module Gargantext.Viz.Chart
 
 import Data.List (unzip, sortOn)
 import Data.Map (toList)
-import Data.Text (Text)
-import GHC.Generics (Generic)
+import qualified Data.List as List
+import qualified Data.Map as Map
+import Data.Maybe (catMaybes)
+import Servant
+
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node (CorpusId)
@@ -30,26 +33,13 @@ import Gargantext.Prelude
 import Gargantext.Text.Metrics.Count (occurrencesWith)
 
 -- Pie Chart
-import Data.Maybe (catMaybes)
 import Gargantext.API.Ngrams.NTree
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Flow
 import Gargantext.Database.Action.Metrics.NgramsByNode
 import Gargantext.Database.Schema.Ngrams
-import Servant
-import qualified Data.List as List
-import qualified Data.Map as Map
-
-
-data Chart = ChartHisto | ChartScatter | ChartPie
-  deriving (Generic)
-
--- TODO use UTCTime
-data Histo = Histo { histo_dates :: [Text]
-                   , histo_count :: [Int]
-                   }
-  deriving (Generic)
+import Gargantext.Viz.Types
 
 histoData :: CorpusId -> Cmd err Histo
 histoData cId = do

@@ -45,22 +45,24 @@ import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
 import GHC.Generics (Generic)
-import Gargantext.Core.Types
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Join (leftJoin5)
-import Gargantext.Database.Query.Table.Ngrams
-import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Prelude
-import Gargantext.Database.Schema.Node
-import Gargantext.Database.Query.Table.NodeNode
-import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Opaleye
 import Prelude hiding (null, id, map, sum, not, read)
 import Servant.API
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Opaleye.Internal.Unpackspec()
+
+import Gargantext.Core.Types
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Query.Filter
+import Gargantext.Database.Query.Join (leftJoin5)
+import Gargantext.Database.Query.Table.Ngrams
+import Gargantext.Database.Query.Table.NodeNode
+import Gargantext.Database.Query.Table.NodeNodeNgrams
+import Gargantext.Database.Prelude
+import Gargantext.Database.Schema.Node
 
 ------------------------------------------------------------------------
 -- | DocFacet

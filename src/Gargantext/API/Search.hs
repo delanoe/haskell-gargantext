@@ -28,6 +28,7 @@ import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Action.Search
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Servant

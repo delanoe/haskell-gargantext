@@ -24,7 +24,7 @@ import Data.String (String)
 import Data.Text  (Text, unwords, unpack)
 
 import Gargantext.Prelude
-import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
 import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)

@@ -27,19 +27,21 @@ import Data.Aeson
 import Data.Maybe (Maybe(..))
 import Data.Text (Text)
 import GHC.Int (Int64)
+import Opaleye hiding (FromField)
+import Opaleye.Internal.QueryArr (Query)
+import Prelude hiding (null, id, map, sum)
+
 import Gargantext.Core.Types
 import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultCorpus, Hyperdata, HyperData(..))
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..))
-import Opaleye hiding (FromField)
-import Opaleye.Internal.QueryArr (Query)
-import Prelude hiding (null, id, map, sum)
 
 
 queryNodeSearchTable :: Query NodeSearchRead

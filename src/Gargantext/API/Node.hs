@@ -34,13 +34,15 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
-import Data.Time (UTCTime)
 import GHC.Generics (Generic)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
 import Gargantext.API.Prelude
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
-import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Node.New
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
@@ -48,7 +50,7 @@ import qualified Gargantext.API.Node.Update as Update
 import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
-import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
+import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Core.Types.Individu (User(..))
@@ -62,11 +64,7 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Prelude
-import Gargantext.Viz.Chart
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
 
@@ -140,11 +138,11 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
-             :<|> "metrics"    :> ScatterAPI
-             :<|> "chart"      :> ChartApi
-             :<|> "pie"        :> PieApi
-             :<|> "tree"       :> TreeApi
-             :<|> "phylo"      :> PhyloAPI
+             :<|> "metrics"   :> ScatterAPI
+             :<|> "chart"     :> ChartApi
+             :<|> "pie"       :> PieApi
+             :<|> "tree"      :> TreeApi
+             :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
@@ -213,13 +211,29 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> getPair     id'
            :<|> searchPairs id'
 
-           :<|> getScatter id'
-           :<|> getChart   id'
-           :<|> getPie     id'
-           :<|> getTree    id'
+           :<|> scatterApi id'
+           :<|> chartApi   id'
+           :<|> pieApi     id'
+           :<|> treeApi    id'
            :<|> phyloAPI   id' uId
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
+
+scatterApi :: NodeId -> GargServer ScatterAPI
+scatterApi id' = getScatter id'
+            :<|> updateScatter id'
+
+chartApi :: NodeId -> GargServer ChartApi
+chartApi id' = getChart id'
+          :<|> updateChart id'
+
+pieApi :: NodeId -> GargServer PieApi
+pieApi id' = getPie id'
+        :<|> updatePie id'
+
+treeApi :: NodeId -> GargServer TreeApi
+treeApi id' = getTree id'
+         :<|> updateTree id'
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
@@ -284,28 +298,6 @@ pairWith cId aId lId = do
   pure r
 
 ------------------------------------------------------------------------
-type ChartApi = Summary " Chart API"
-              :> QueryParam "from" UTCTime
-              :> QueryParam "to"   UTCTime
-              :> Get '[JSON] (ChartMetrics Histo)
-
-type PieApi = Summary " Chart API"
-           :> QueryParam "from" UTCTime
-           :> QueryParam "to"   UTCTime
-           :> QueryParamR "ngramsType" TabType
-           :> Get '[JSON] (ChartMetrics Histo)
-
-type TreeApi = Summary " Tree API"
-           :> QueryParam "from" UTCTime
-           :> QueryParam "to"   UTCTime
-           :> QueryParamR "ngramsType" TabType
-           :> QueryParamR "listType"   ListType
-           :> Get '[JSON] (ChartMetrics [MyTree])
-
-                -- Depending on the Type of the Node, we could post
-                -- New documents for a corpus
-                -- New map list terms
-             -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
 
 ------------------------------------------------------------------------
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)

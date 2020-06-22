@@ -67,15 +67,17 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField, Action)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
+import qualified Data.ByteString.Lazy.Char8  as DC (pack)
+import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
+import qualified Data.Text                   as DT (pack, unpack, concat, take)
+
 import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (sha)
-import qualified Data.ByteString.Lazy.Char8  as DC (pack)
-import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
-import qualified Data.Text                   as DT (pack, unpack, concat, take)
 
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)

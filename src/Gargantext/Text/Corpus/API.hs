@@ -23,7 +23,7 @@ module Gargantext.Text.Corpus.API
 import Data.Maybe
 import Gargantext.API.Admin.Orchestrator.Types (ExternalAPIs(..), externalAPIs)
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.API.Hal     as HAL
 import qualified Gargantext.Text.Corpus.API.Isidore as ISIDORE

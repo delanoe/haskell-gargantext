@@ -20,13 +20,15 @@ Portability : POSIX
 module Gargantext.Database.Action.Node
   where
 
+import Protolude
+
 import Gargantext.Core.Types (Name)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
-import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------
 -- | TODO mk all others nodes

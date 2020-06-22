@@ -23,20 +23,22 @@ import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
 import Data.Proxy (Proxy(..))
 import Data.Swagger
+import Network.HTTP.Media ((//), (/:))
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import Web.HttpApiData (parseUrlPiece, readTextData)
+
 import Gargantext.API.Prelude
-import Gargantext.Database.Schema.Node (_node_hyperdata)
-import Gargantext.Database.Query.Table.Node (insertNodes, nodePhyloW, getNodeWith)
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
+import Gargantext.Database.Query.Table.Node (insertNodes, nodePhyloW, getNodeWith)
+import Gargantext.Database.Schema.Node (_node_hyperdata)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Main
 import Gargantext.Viz.Phylo.Example
 import Gargantext.Core.Types (TODO(..))
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Web.HttpApiData (parseUrlPiece, readTextData)
-import Network.HTTP.Media ((//), (/:))
 
 ------------------------------------------------------------------------
 type PhyloAPI = Summary "Phylo API"

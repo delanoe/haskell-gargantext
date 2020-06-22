@@ -37,7 +37,7 @@ import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Tuple.Extra (both, first, second)
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Node (HyperdataDocument(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude
 import Gargantext.Text.Corpus.Parsers.CSV (parseHal, parseHal', parseCsv, parseCsv')
 import Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich)

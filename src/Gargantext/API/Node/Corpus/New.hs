@@ -27,15 +27,6 @@ import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
-import qualified Gargantext.API.Admin.Orchestrator.Types as T
-import Gargantext.API.Node.Corpus.New.File
-import Gargantext.Core (Lang(..){-, allLangs-})
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
-import Gargantext.Database.Admin.Types.Node (CorpusId, ToHyperdataDocument(..), UserId)
-import Gargantext.Prelude
 import Servant
 import Servant.Job.Core
 import Servant.Job.Types
@@ -44,6 +35,17 @@ import Servant.Job.Utils (jsonOptions)
 -- import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
+
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
+import qualified Gargantext.API.Admin.Orchestrator.Types as T
+import Gargantext.API.Node.Corpus.New.File
+import Gargantext.Core (Lang(..){-, allLangs-})
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node (CorpusId, UserId)
+import Gargantext.Prelude
 import qualified Gargantext.Text.Corpus.API as API
 import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 
