@@ -171,7 +171,7 @@ simuTask :: MonadBase IO m
           -> m ()
 simuTask logStatus cur total = do
   let m = (10 :: Int) ^ (6 :: Int)
-  _ <- liftBase $ threadDelay (m*5)
+  liftBase $ threadDelay (m*5)
 
   let status =  JobLog { _scst_succeeded = Just cur
                        , _scst_failed    = Just 0
@@ -180,4 +180,3 @@ simuTask logStatus cur total = do
                        }
   printDebug "status" status
   logStatus status
-    where m = (10 :: Int) ^ (6 :: Int)
