@@ -180,4 +180,4 @@ simuTask logStatus cur total = do
                        }
   printDebug "status" status
   logStatus status
-
+    where m = (10 :: Int) ^ (6 :: Int)
