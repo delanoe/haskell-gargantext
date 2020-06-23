@@ -55,6 +55,7 @@ import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
 import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.Node.User
@@ -144,6 +145,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
+             :<|> MoveAPI
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -216,6 +218,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> pieApi     id'
            :<|> treeApi    id'
            :<|> phyloAPI   id' uId
+           :<|> moveNode   (RootId $ NodeId uId) id'
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
 
@@ -271,12 +274,12 @@ catApi = putCat
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
 -- Pairing utilities to move elsewhere
 type PairingApi = Summary " Pairing API"
-              :> QueryParam "view"   TabType
-              -- TODO change TabType -> DocType (CorpusId for pairing)
-              :> QueryParam "offset" Int
-              :> QueryParam "limit"  Int
-              :> QueryParam "order"  OrderBy
-              :> Get '[JSON] [FacetDoc]
+                :> QueryParam "view"   TabType
+                -- TODO change TabType -> DocType (CorpusId for pairing)
+                :> QueryParam "offset" Int
+                :> QueryParam "limit"  Int
+                :> QueryParam "order"  OrderBy
+                :> Get '[JSON] [FacetDoc]
 
 ----------
 type Pairs    = Summary "List of Pairs"
@@ -306,7 +309,7 @@ treeAPI :: NodeId -> GargServer TreeAPI
 treeAPI = tree Advanced
 
 ------------------------------------------------------------------------
--- | Check if the name is less than 255 char
+-- | TODO Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
 
@@ -315,4 +318,16 @@ putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         -> a
         -> Cmd err Int
 putNode n h = fromIntegral <$> updateHyperdata n h
+
+-------------------------------------------------------------
+type MoveAPI  = Summary "Move Node endpoint"
+              :> Capture "parent_id" ParentId
+              :> Put '[JSON] [Int]
+
+moveNode :: User
+         -> NodeId
+         -> ParentId
+         -> Cmd err [Int]
+moveNode _u n p = update (Move n p)
+
 -------------------------------------------------------------
