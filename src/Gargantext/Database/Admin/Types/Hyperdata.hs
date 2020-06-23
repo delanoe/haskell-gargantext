@@ -48,9 +48,9 @@ $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
 
 ------------------------------------------------------------------------
 data CorpusField = MarkdownField { _cf_text :: !Text }
-                  | JsonField { _cf_title :: !Text
-                              , _cf_desc  :: !Text
-                              , _cf_query :: !Text
+                  | JsonField { _cf_title   :: !Text
+                              , _cf_desc    :: !Text
+                              , _cf_query   :: !Text
                               , _cf_authors :: !Text
                               -- , _cf_resources :: ![Resource]
                               }
@@ -218,11 +218,11 @@ instance Arbitrary HyperdataCorpus where
 
 ------------------------------------------------------------------------
 data HyperdataList =
-  HyperdataList { hd_chart :: !(Maybe (ChartMetrics Histo))
-                , hd_list :: !(Maybe Text)
-                , hd_pie :: !(Maybe (ChartMetrics Histo))
+  HyperdataList { hd_chart   :: !(Maybe (ChartMetrics Histo))
+                , hd_list    :: !(Maybe Text)
+                , hd_pie     :: !(Maybe (ChartMetrics Histo))
                 , hd_scatter :: !(Maybe Metrics)
-                , hd_tree :: !(Maybe (ChartMetrics [MyTree]))
+                , hd_tree    :: !(Maybe (ChartMetrics [MyTree]))
                 } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hd_") ''HyperdataList)
 
@@ -312,8 +312,8 @@ instance Hyperdata HyperdataNotebook
 
 
 -- | TODO CLEAN
-data HyperData = HyperdataTexts { hd_preferences :: Maybe Text }
-               | HyperdataList' { hd_preferences :: Maybe Text}
+data HyperData = HyperdataTexts { hd_preferences :: !(Maybe Text)}
+               | HyperdataList' { hd_preferences :: !(Maybe Text)}
   deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "hd_") ''HyperData)
