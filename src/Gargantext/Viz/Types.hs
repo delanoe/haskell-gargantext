@@ -25,8 +25,8 @@ data Chart = ChartHisto | ChartScatter | ChartPie
   deriving (Generic)
 
 -- TODO use UTCTime
-data Histo = Histo { histo_dates :: [Text]
-                   , histo_count :: [Int]
+data Histo = Histo { histo_dates :: ![Text]
+                   , histo_count :: ![Int]
                    }
   deriving (Show, Generic)
 
