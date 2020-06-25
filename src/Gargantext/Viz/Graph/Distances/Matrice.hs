@@ -180,7 +180,9 @@ measureConditional m = run (matProba (dim m) $ map fromIntegral $ use m)
 --
 -- \[P_c=max(\frac{n_i}{n_{ij}},\frac{n_j}{n_{ij}} )\]
 conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
-conditional' m = (run $ ie $ map fromIntegral $ use m, run $ sg $ map fromIntegral $ use m)
+conditional' m = ( run $ ie $ map fromIntegral $ use m
+                 , run $ sg $ map fromIntegral $ use m
+                 )
   where
     ie :: Acc (Matrix Double) -> Acc (Matrix Double)
     ie mat = map (\x -> x / (2*n-1)) $ zipWith (+) (xs mat) (ys mat)
@@ -240,7 +242,9 @@ distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
               $ zipWith (/) (crossProduct m') (total m')
 
     total m'' = replicate (constant (Z :. n :. n)) $ fold (+) 0 $ fold (+) 0 m''
-    n         = dim m
+
+    n :: Dim
+    n = dim m
     
     crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
     cross mat         = zipWith (-) (matSum n mat) (mat)

@@ -22,6 +22,7 @@ import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude (GargServer, simuLogs)
+import Gargantext.Viz.Graph.Distances (GraphMetric)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), {-Int, pure, (*),-} printDebug, {-(^)-}) -- (-), (^))
@@ -45,10 +46,6 @@ data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: Method      }
 
 ----------------------------------------------------------------------
 data Method = Basic | Advanced | WithModel
-    deriving (Generic, Eq, Ord, Enum, Bounded)
-
-----------------------------------------------------------------------
-data GraphMetric = Order1 | Order2
     deriving (Generic, Eq, Ord, Enum, Bounded)
 
 ----------------------------------------------------------------------
@@ -80,12 +77,6 @@ instance FromJSON  Method
 instance ToJSON    Method
 instance ToSchema  Method
 instance Arbitrary Method where
-  arbitrary = elements [ minBound .. maxBound ]
-
-instance FromJSON  GraphMetric
-instance ToJSON    GraphMetric
-instance ToSchema  GraphMetric
-instance Arbitrary GraphMetric where
   arbitrary = elements [ minBound .. maxBound ]
 
 instance FromJSON  Granularity

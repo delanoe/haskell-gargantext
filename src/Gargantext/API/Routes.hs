@@ -77,7 +77,8 @@ type GargAPI' =
           :<|> GargPrivateAPI
 
 
-type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser :> GargPrivateAPI'
+type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
+                    :> GargPrivateAPI'
 
 type GargAdminAPI
               -- Roots endpoint

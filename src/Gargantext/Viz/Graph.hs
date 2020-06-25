@@ -16,27 +16,28 @@ Portability : POSIX
 module Gargantext.Viz.Graph
   where
 
+
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON)
-import qualified Data.Aeson as DA
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 import Data.Swagger
 import Data.Text (Text, pack)
-import qualified Data.Text as T
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import GHC.IO (FilePath)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Test.QuickCheck (elements)
-import qualified Text.Read as T
-
 import Gargantext.Core.Types (ListId)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Viz.Graph.Distances (GraphMetric)
 import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Data.Aeson as DA
+import qualified Data.Text as T
+import qualified Text.Read as T
 
 
 data TypeNode = Terms | Unknown
@@ -88,9 +89,10 @@ instance ToSchema LegendField where
 makeLenses ''LegendField
 ---------------------------------------------------------------
 type Version = Int
-data ListForGraph = ListForGraph { _lfg_listId  :: ListId
-                                 , _lfg_version :: Version
-                 } deriving (Show, Generic)
+data ListForGraph =
+  ListForGraph { _lfg_listId  :: ListId
+               , _lfg_version :: Version
+               } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_lfg_") ''ListForGraph)
 
 instance ToSchema ListForGraph where
@@ -99,12 +101,14 @@ instance ToSchema ListForGraph where
 makeLenses ''ListForGraph
 
 --
-data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the graph
-                                   , _gm_corpusId :: [NodeId]  -- we can map with different corpus
-                                   , _gm_legend   :: [LegendField] -- legend of the Graph
-                                   , _gm_list     :: ListForGraph
-                                   -- , _gm_version  :: Int
-                                   }
+data GraphMetadata =
+  GraphMetadata { _gm_title    :: Text          -- title of the graph
+                , _gm_metric   :: GraphMetric
+                , _gm_corpusId :: [NodeId]      -- we can map with different corpus
+                , _gm_legend   :: [LegendField] -- legend of the Graph
+                , _gm_list     :: ListForGraph
+                -- , _gm_version  :: Int
+                }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
 instance ToSchema GraphMetadata where
@@ -161,8 +165,9 @@ $(deriveJSON (unPrefix "go_") ''GraphV3)
 
 -----------------------------------------------------------
 
-data HyperdataGraph = HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
-                                   } deriving (Show, Generic)
+data HyperdataGraph =
+  HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
+                 } deriving (Show, Generic)
 $(deriveJSON (unPrefix "") ''HyperdataGraph)
 
 instance Hyperdata HyperdataGraph
@@ -175,7 +180,6 @@ instance FromField HyperdataGraph
 instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
-
 
 -----------------------------------------------------------
 

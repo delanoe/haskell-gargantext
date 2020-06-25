@@ -61,6 +61,7 @@ import Data.Set (fromList, toList, isSubsetOf)
 import Data.Graph.Inductive hiding (Graph, neighbors, subgraph, (&))
 import Gargantext.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGraphUfromEdges)
 import Gargantext.Viz.Graph.Tools (cooc2graph', Threshold)
+import Gargantext.Viz.Graph.Distances (Distance)
 import Gargantext.Viz.Graph.Index (createIndices, toIndex)
 type Graph = Graph_Undirected
 type Neighbor = Node
@@ -68,8 +69,8 @@ type Neighbor = Node
 
 -- | getMaxCliques
 -- TODO chose distance order
-getMaxCliques :: Ord a => Threshold -> Map (a, a) Int -> [[a]]
-getMaxCliques t m = map fromIndices $ getMaxCliques' t m'
+getMaxCliques :: Ord a => Distance -> Threshold -> Map (a, a) Int -> [[a]]
+getMaxCliques d t m = map fromIndices $ getMaxCliques' t m'
   where
     m'          = toIndex to m
     (to,from)   = createIndices m
@@ -79,7 +80,7 @@ getMaxCliques t m = map fromIndices $ getMaxCliques' t m'
     getMaxCliques' t' n = maxCliques graph
       where
         graph = mkGraphUfromEdges (Map.keys n')
-        n'    = cooc2graph' t' n
+        n'    = cooc2graph' d t' n
 
 maxCliques :: Graph -> [[Node]]
 maxCliques g = map (\n -> subMaxCliques g (n:ns)) ns & concat & takeMax

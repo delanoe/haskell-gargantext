@@ -44,6 +44,7 @@ import Gargantext.Prelude
 import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.GEXF ()
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
+import Gargantext.Viz.Graph.Distances (Distance(..), GraphMetric(..))
 import Servant
 import Servant.Job.Async
 import Servant.XML
@@ -59,7 +60,8 @@ type GraphAPI   =  Get  '[JSON] Graph
 
 data GraphVersions =
   GraphVersions { gv_graph :: Maybe Int
-                , gv_repo :: Int }
+                , gv_repo :: Int
+                }
    deriving (Show, Generic)
 
 instance ToJSON GraphVersions
@@ -76,15 +78,17 @@ getGraph :: UserId -> NodeId -> GargNoServer Graph
 getGraph _uId nId = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+
   repo <- getRepo
 
   let cId = maybe (panic "[G.V.G.API] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
 
+  -- TODO Distance in Graph params
   g <- case graph of
     Nothing     -> do
-        graph' <- computeGraph cId NgramsTerms repo
+        graph' <- computeGraph cId Conditional NgramsTerms repo
         _      <- updateHyperdata nId (HyperdataGraph $ Just graph')
         pure $ trace "[G.V.G.API] Graph empty, computing" $ graph'
 
@@ -93,8 +97,8 @@ getGraph _uId nId = do
   pure g
 
 
-recomputeGraph :: UserId -> NodeId -> GargNoServer Graph
-recomputeGraph _uId nId = do
+recomputeGraph :: UserId -> NodeId -> Distance -> GargNoServer Graph
+recomputeGraph _uId nId d = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let listVersion = graph ^? _Just
@@ -111,14 +115,14 @@ recomputeGraph _uId nId = do
 
   g <- case graph of
     Nothing     -> do
-      graph' <- computeGraph cId NgramsTerms repo
+      graph' <- computeGraph cId d NgramsTerms repo
       _ <- updateHyperdata nId (HyperdataGraph $ Just graph')
       pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" $ graph'
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
-                       graph'' <- computeGraph cId NgramsTerms repo
+                       graph'' <- computeGraph cId d NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
                        pure $ trace "[G.V.G.API] Graph exists, recomputing" $ graph''
   pure g
@@ -127,17 +131,20 @@ recomputeGraph _uId nId = do
 -- TODO use Database Monad only here ?
 computeGraph :: HasNodeError err
              => CorpusId
+             -> Distance
              -> NgramsType
              -> NgramsRepo
              -> Cmd err Graph
-computeGraph cId nt repo = do
+computeGraph cId d nt repo = do
   lId  <- defaultList cId
 
-  let metadata = GraphMetadata "Title" [cId]
-                                     [ LegendField 1 "#FFF" "Cluster"
-                                     , LegendField 2 "#FFF" "Cluster"
-                                     ]
-                                (ListForGraph lId (repo ^. r_version))
+  let metadata = GraphMetadata "Title"
+                               Order1
+                               [cId]
+                               [ LegendField 1 "#FFF" "Cluster"
+                               , LegendField 2 "#FFF" "Cluster"
+                               ]
+                               (ListForGraph lId (repo ^. r_version))
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   lIds <- selectNodesWithUsername NodeList userMaster
@@ -148,7 +155,7 @@ computeGraph cId nt repo = do
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
-  graph <- liftBase $ cooc2graph 0 myCooc
+  graph <- liftBase $ cooc2graph d 0 myCooc
   let graph' = set graph_metadata (Just metadata) graph
   pure graph'
 
@@ -174,7 +181,7 @@ graphAsync' u n logStatus = do
                           , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
-  _g <- trace (show u) $ recomputeGraph u n
+  _g <- trace (show u) $ recomputeGraph u n Conditional
   pure  JobLog { _scst_succeeded = Just 1
                       , _scst_failed    = Just 0
                       , _scst_remaining = Just 0
@@ -209,7 +216,7 @@ graphVersions _uId nId = do
                        , gv_repo = v }
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
-recomputeVersions uId nId = recomputeGraph uId nId
+recomputeVersions uId nId = recomputeGraph uId nId Conditional
 
 ------------------------------------------------------------
 getGraphGexf :: UserId

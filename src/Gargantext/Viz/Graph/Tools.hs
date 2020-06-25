@@ -38,27 +38,29 @@ import qualified Data.List as List
 type Threshold = Double
 
 
-cooc2graph' :: Ord t => Double
+cooc2graph' :: Ord t => Distance
+                     -> Double
                      -> Map (t, t) Int
                      -> Map (Index, Index) Double
-cooc2graph' threshold myCooc = distanceMap
+cooc2graph' distance threshold myCooc = distanceMap
   where
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
     matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
-    distanceMat = measure Conditional matCooc
+    distanceMat = measure distance matCooc
     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
 
 
-cooc2graph :: Threshold
+cooc2graph :: Distance
+           -> Threshold
            -> (Map (Text, Text) Int)
            -> IO Graph
-cooc2graph threshold myCooc = do
+cooc2graph distance threshold myCooc = do
   let
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
     matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
-    distanceMat = measure Conditional matCooc
+    distanceMat = measure distance matCooc
     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
 
     nodesApprox :: Int
