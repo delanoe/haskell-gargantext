@@ -19,13 +19,16 @@ module Gargantext.API.Node.Update
 import Data.Aeson
 import Data.Swagger
 import GHC.Generics (Generic)
+import Data.Maybe (Maybe(..))
+import Gargantext.API.Admin.Settings (HasSettings)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude (GargServer, simuLogs)
-import Gargantext.Viz.Graph.Distances (GraphMetric)
+import Gargantext.Viz.Graph.Distances (GraphMetric(..), Distance(..))
+import Gargantext.Viz.Graph.API (recomputeGraph)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), {-Int, pure, (*),-} printDebug, {-(^)-}) -- (-), (^))
+import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
@@ -55,6 +58,46 @@ data Granularity = NewNgrams | NewTexts | Both
 ----------------------------------------------------------------------
 data Charts = Sources | Authors | Institutes | Ngrams | All
     deriving (Generic, Eq, Ord, Enum, Bounded)
+
+------------------------------------------------------------------------
+api :: UserId -> NodeId -> GargServer API
+api uId nId =
+  serveJobsAPI $
+    JobFunction (\p log ->
+      let
+        log' x = do
+          printDebug "updateNode" x
+          liftBase $ log x
+      in updateNode uId nId p (liftBase . log')
+      )
+
+updateNode :: (HasSettings env, FlowCmdM env err m)
+    => UserId
+    -> NodeId
+    -> UpdateNodeParams
+    -> (JobLog -> m ())
+    -> m JobLog
+updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
+
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
+
+  _ <- case metric of
+    Order1 -> recomputeGraph uId nId Conditional
+    Order2 -> recomputeGraph uId nId Distributional
+
+  pure  JobLog { _scst_succeeded = Just 2
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
+
+updateNode _uId _nId _p logStatus = do
+  simuLogs logStatus 10
 
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
@@ -91,24 +134,4 @@ instance ToSchema  Charts
 instance Arbitrary Charts where
   arbitrary = elements [ minBound .. maxBound ]
 
-------------------------------------------------------------------------
-api :: UserId -> NodeId -> GargServer API
-api uId nId =
-  serveJobsAPI $
-    JobFunction (\p log ->
-      let
-        log' x = do
-          printDebug "updateNode" x
-          liftBase $ log x
-      in updateNode uId nId p (liftBase . log')
-      )
-
-updateNode :: FlowCmdM env err m
-    => UserId
-    -> NodeId
-    -> UpdateNodeParams
-    -> (JobLog -> m ())
-    -> m JobLog
-updateNode _uId _nId _p logStatus = do
-  simuLogs logStatus 10
 ------------------------------------------------------------------------
