@@ -31,7 +31,7 @@ import Gargantext.Prelude
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Text.List.CSV (csvGraphTermList)
+import Gargantext.Text.List.CSV (csvMapTermList)
 import Gargantext.Text.Terms.WithList
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.LevelMaker
@@ -191,7 +191,7 @@ main = do
     P.Left err -> putStrLn err
     P.Right conf -> do
 
-      termList <- csvGraphTermList (listPath conf)
+      termList <- csvMapTermList (listPath conf)
 
       corpus <- parse (corpusType conf) (limit conf) (corpusPath conf) termList
 

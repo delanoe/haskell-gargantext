@@ -49,7 +49,7 @@ flowPhylo :: FlowCmdM env err m
 flowPhylo cId = do
 
   list       <- defaultList cId
-  termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms GraphTerm
+  termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms MapTerm
 
   docs' <- catMaybes
           <$> map (\h -> (,) <$> _hyperdataDocument_publication_year h

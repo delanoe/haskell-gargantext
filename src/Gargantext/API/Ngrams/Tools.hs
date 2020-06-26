@@ -79,9 +79,9 @@ filterListWithRoot :: ListType -> Map Text (ListType, Maybe Text)
                       -> Map Text (Maybe RootTerm)
 filterListWithRoot lt m = Map.fromList
                     $ map (\(t,(_,r)) -> (t,r))
-                    $ filter isGraphTerm (Map.toList m)
+                    $ filter isMapTerm (Map.toList m)
   where
-    isGraphTerm (_t,(l, maybeRoot)) = case maybeRoot of
+    isMapTerm (_t,(l, maybeRoot)) = case maybeRoot of
       Nothing -> l == lt
       Just  r -> case Map.lookup r m of
         Nothing -> panic $ "Garg.API.Ngrams.Tools: filterWithRoot, unknown key: " <> r

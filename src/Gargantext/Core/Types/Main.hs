@@ -53,7 +53,7 @@ type HashId   = Text
 
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
-data ListType  =  StopTerm | CandidateTerm | GraphTerm
+data ListType  =  StopTerm | CandidateTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
@@ -71,7 +71,7 @@ type ListTypeId = Int
 listTypeId :: ListType -> ListTypeId
 listTypeId StopTerm      = 0
 listTypeId CandidateTerm = 1
-listTypeId GraphTerm     = 2
+listTypeId MapTerm     = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
 fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]

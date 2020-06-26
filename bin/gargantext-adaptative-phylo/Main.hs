@@ -28,7 +28,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
 import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
-import Gargantext.Text.List.CSV (csvGraphTermList)
+import Gargantext.Text.List.CSV (csvMapTermList)
 import Gargantext.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloMaker  (toPhylo)
@@ -144,7 +144,7 @@ main = do
         Right config -> do
 
             printIOMsg "Parse the corpus"
-            mapList <- csvGraphTermList (listPath config)
+            mapList <- csvMapTermList (listPath config)
             corpus  <- fileToDocs (corpusParser config) (corpusPath config) mapList
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 

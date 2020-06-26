@@ -235,7 +235,7 @@ updatePie' cId maybeListId tabType _maybeLimit = do
                      , hd_scatter = hds
                      , hd_tree = hdt }) = node ^. node_hyperdata
 
-  p <- pieData cId (ngramsTypeFromTabType tabType) GraphTerm
+  p <- pieData cId (ngramsTypeFromTabType tabType) MapTerm
   _ <- updateHyperdata listId $ HyperdataList hdc hdl (Just $ ChartMetrics p) hds hdt
 
   pure $ ChartMetrics p

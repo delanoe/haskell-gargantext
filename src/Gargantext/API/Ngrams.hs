@@ -260,7 +260,7 @@ mkNgramsElement ngrams list rp children =
 
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams =
-  mkNgramsElement ngrams (fromMaybe GraphTerm mayList) Nothing mempty
+  mkNgramsElement ngrams (fromMaybe MapTerm mayList) Nothing mempty
 
 instance ToSchema NgramsElement where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ne_")
@@ -348,16 +348,16 @@ toNgramsElement ns = map toNgramsElement' ns
 
 mockTable :: NgramsTable
 mockTable = NgramsTable
-  [ mkNgramsElement "animal"  GraphTerm      Nothing       (mSetFromList ["dog", "cat"])
-  , mkNgramsElement "cat"     GraphTerm     (rp "animal")  mempty
+  [ mkNgramsElement "animal"  MapTerm      Nothing       (mSetFromList ["dog", "cat"])
+  , mkNgramsElement "cat"     MapTerm     (rp "animal")  mempty
   , mkNgramsElement "cats"    StopTerm       Nothing       mempty
-  , mkNgramsElement "dog"     GraphTerm     (rp "animal")  (mSetFromList ["dogs"])
+  , mkNgramsElement "dog"     MapTerm     (rp "animal")  (mSetFromList ["dogs"])
   , mkNgramsElement "dogs"    StopTerm      (rp "dog")     mempty
-  , mkNgramsElement "fox"     GraphTerm      Nothing       mempty
+  , mkNgramsElement "fox"     MapTerm      Nothing       mempty
   , mkNgramsElement "object"  CandidateTerm  Nothing       mempty
   , mkNgramsElement "nothing" StopTerm       Nothing       mempty
-  , mkNgramsElement "organic" GraphTerm      Nothing       (mSetFromList ["flower"])
-  , mkNgramsElement "flower"  GraphTerm     (rp "organic") mempty
+  , mkNgramsElement "organic" MapTerm      Nothing       (mSetFromList ["flower"])
+  , mkNgramsElement "flower"  MapTerm     (rp "organic") mempty
   , mkNgramsElement "moon"    CandidateTerm  Nothing       mempty
   , mkNgramsElement "sky"     StopTerm       Nothing       mempty
   ]
@@ -695,8 +695,8 @@ ngramsIdPatch = fromList $ catMaybes $ reverse [ replace (1::NgramsId) (Just $ n
 
 {-
 -- TODO: Replace.old is ignored which means that if the current list
--- `GraphTerm` and that the patch is `Replace CandidateTerm StopTerm` then
--- the list is going to be `StopTerm` while it should keep `GraphTerm`.
+-- `MapTerm` and that the patch is `Replace CandidateTerm StopTerm` then
+-- the list is going to be `StopTerm` while it should keep `MapTerm`.
 -- However this should not happen in non conflicting situations.
 mkListsUpdate :: NgramsType -> NgramsTablePatch -> [(NgramsTypeId, NgramsTerm, ListTypeId)]
 mkListsUpdate nt patches =

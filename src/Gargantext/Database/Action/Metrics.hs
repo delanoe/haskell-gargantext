@@ -73,6 +73,6 @@ getNgrams cId maybeListId tabType = do
 
   lists <- mapTermListRoot [lId] (ngramsTypeFromTabType tabType) <$> getRepo
   let maybeSyn = Map.unions $ map (\t -> filterListWithRoot t lists)
-                             [GraphTerm, StopTerm, CandidateTerm]
+                             [MapTerm, StopTerm, CandidateTerm]
   pure (lists, maybeSyn)
 

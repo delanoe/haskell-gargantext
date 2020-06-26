@@ -148,7 +148,7 @@ computeGraph cId d nt repo = do
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
 
   lIds <- selectNodesWithUsername NodeList userMaster
-  let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] nt repo
+  let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
   myCooc <- Map.filter (>1)
          <$> getCoocByNgrams (Diagonal True)

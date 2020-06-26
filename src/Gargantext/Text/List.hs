@@ -79,7 +79,7 @@ buildNgramsOthersList uCid groupIt nt = do
     graphTerms = List.take listSize all'
     candiTerms = List.drop listSize all'
 
-  pure $ Map.unionsWith (<>) [ toElements GraphTerm     graphTerms
+  pure $ Map.unionsWith (<>) [ toElements MapTerm     graphTerms
                              , toElements CandidateTerm candiTerms
                              ]
     where
@@ -122,7 +122,7 @@ buildNgramsTermsList' uCid groupIt stop gls is = do
           $ map toNgramsElement
           $ map (\t -> (StopTerm     , toList' t)) s
          <> map (\t -> (CandidateTerm, toList' t)) c
-         <> map (\t -> (GraphTerm    , toList' t)) m
+         <> map (\t -> (MapTerm    , toList' t)) m
 
   pure $ Map.fromList [(NgramsTerms, ngs')]
 -}
@@ -151,7 +151,7 @@ buildNgramsTermsList l n m s uCid mCid = do
 
     termList = 
           -- (toTermList a b ((isStopTerm s) . fst) candidatesHead)
-                (map (toGargList ((isStopTerm s) .fst) GraphTerm)     candidatesHead)
+                (map (toGargList ((isStopTerm s) .fst) MapTerm)     candidatesHead)
              <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
 
     ngs = List.concat $ map toNgramsElement termList
@@ -167,7 +167,7 @@ toTermList :: Int
 toTermList _ _ _ [] = []
 toTermList a b stop ns =  -- trace ("computing toTermList") $
                       map (toGargList stop CandidateTerm) xs
-                   <> map (toGargList stop GraphTerm)     ys
+                   <> map (toGargList stop MapTerm)     ys
                    <> toTermList a b stop zs
     where
       xs = take a ns

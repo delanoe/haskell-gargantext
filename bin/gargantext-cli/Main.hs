@@ -53,7 +53,7 @@ import Gargantext.Text.Terms
 import Gargantext.Text.Context
 import Gargantext.Text.Terms.WithList
 import Gargantext.Text.Corpus.Parsers.CSV (readFile, csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Text.List.CSV (csvGraphTermList)
+import Gargantext.Text.List.CSV (csvMapTermList)
 import Gargantext.Text.Terms (terms)
 import Gargantext.Text.Metrics.Count (coocOnContexts, Coocs)
 
@@ -103,7 +103,7 @@ main = do
                            <$> readFile corpusFile
 
   -- termListMap :: [Text]
-  termList <- csvGraphTermList termListFile
+  termList <- csvMapTermList termListFile
 
   putStrLn $ show $ length termList
 

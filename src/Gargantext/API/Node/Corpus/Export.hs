@@ -137,7 +137,7 @@ getNodeNgrams cId lId' nt repo = do
     Just  l -> pure l
 
   lIds <- selectNodesWithUsername NodeList userMaster
-  let ngs = filterListWithRoot GraphTerm $ mapTermListRoot [lId] nt repo
+  let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
   r <- getNgramsByNodeOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
   pure r
 
