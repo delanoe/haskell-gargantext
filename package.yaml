@@ -34,6 +34,7 @@ library:
   - -Wunused-binds
   - -Wunused-imports
   - -Werror
+  - -freduction-depth=300
   exposed-modules:
   - Gargantext
   - Gargantext.API

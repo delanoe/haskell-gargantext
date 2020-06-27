@@ -82,15 +82,13 @@ getGraph _uId nId = do
                   identity
                   $ nodeGraph ^. node_parentId
 
-  g <- case graph of
+  case graph of
     Nothing     -> do
         graph' <- computeGraph cId NgramsTerms repo
         _      <- updateHyperdata nId (HyperdataGraph $ Just graph')
-        pure $ trace "[G.V.G.API] Graph empty, computing" $ graph'
+        pure $ trace "[G.V.G.API] Graph empty, computing" graph'
 
-    Just graph' -> pure $ trace "[G.V.G.API] Graph exists, returning" $ graph'
-
-  pure g
+    Just graph' -> pure $ trace "[G.V.G.API] Graph exists, returning" graph'
 
 
 recomputeGraph :: UserId -> NodeId -> GargNoServer Graph
@@ -109,19 +107,18 @@ recomputeGraph _uId nId = do
                   identity
                   $ nodeGraph ^. node_parentId
 
-  g <- case graph of
+  case graph of
     Nothing     -> do
       graph' <- computeGraph cId NgramsTerms repo
       _ <- updateHyperdata nId (HyperdataGraph $ Just graph')
-      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" $ graph'
+      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" graph'
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
                        graph'' <- computeGraph cId NgramsTerms repo
                        _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
-                       pure $ trace "[G.V.G.API] Graph exists, recomputing" $ graph''
-  pure g
+                       pure $ trace "[G.V.G.API] Graph exists, recomputing" graph''
 
 
 -- TODO use Database Monad only here ?
@@ -209,7 +206,7 @@ graphVersions _uId nId = do
                        , gv_repo = v }
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
-recomputeVersions uId nId = recomputeGraph uId nId
+recomputeVersions = recomputeGraph
 
 ------------------------------------------------------------
 getGraphGexf :: UserId
@@ -217,7 +214,7 @@ getGraphGexf :: UserId
              -> GargNoServer (Headers '[Servant.Header "Content-Disposition" Text] Graph)
 getGraphGexf uId nId = do
   graph <- getGraph uId nId
-  pure $ addHeader (concat [ "attachment; filename=graph.gexf" ]) graph
+  pure $ addHeader "attachment; filename=graph.gexf" graph
 
 
 
