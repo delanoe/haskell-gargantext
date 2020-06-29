@@ -41,7 +41,7 @@ import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
 import Gargantext.Database.Query.Tree.Root (getRoot)
 import Gargantext.Database.Schema.Node (NodePoly(_node_id)) 
 import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId, ListId, DocId)
-import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool)
+import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
 import Gargantext.Prelude hiding (reverse)
 import Gargantext.Database.Query.Table.User
 import Servant
@@ -90,7 +90,7 @@ makeTokenForUser uid = do
   either joseError (pure . toStrict . decodeUtf8) e
   -- TODO not sure about the encoding...
 
-checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err)
+checkAuthRequest :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env)
                  => Username
                  -> GargPassword
                  -> Cmd' env err CheckAuth
@@ -109,7 +109,7 @@ checkAuthRequest u (GargPassword p) = do
               token <- makeTokenForUser uid
               pure $ Valid token uid
 
-auth :: (HasSettings env, HasConnectionPool env, HasJoseError err)
+auth :: (HasSettings env, HasConnectionPool env, HasJoseError err, HasConfig env)
      => AuthRequest -> Cmd' env err AuthResponse
 auth (AuthRequest u p) = do
   checkAuthRequest' <- checkAuthRequest u p

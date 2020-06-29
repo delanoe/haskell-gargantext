@@ -35,8 +35,9 @@ import GHC.Enum
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Prelude (databaseParameters, HasConnectionPool(..), Cmd', runCmd)
+import Gargantext.Database.Prelude (databaseParameters, HasConnectionPool(..), Cmd', runCmd, HasConfig(..))
 import Gargantext.Prelude
+
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Prelude (Bounded(), fail)
@@ -53,7 +54,7 @@ import System.Log.FastLogger
 import Web.HttpApiData (parseUrlPiece)
 import qualified Data.ByteString.Lazy as L
 import qualified Servant.Job.Core
-
+import Gargantext.Config (GargConfig(), readConfig, defaultConfig)
 
 type PortNumber = Int
 
@@ -75,6 +76,7 @@ data Settings = Settings
     , _sendLoginEmails :: SendEmailType
     , _scrapydUrl      :: BaseUrl
     , _fileFolder      :: FilePath
+    , _config          :: GargConfig
     }
 
 makeLenses ''Settings
@@ -86,7 +88,7 @@ devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
   jwkExists <- doesFileExist jwkFile
   when (not jwkExists) $ writeKey jwkFile
-  jwk <- readKey jwkFile
+  jwk       <- readKey jwkFile
   pure $ Settings
     { _allowedOrigin = "http://localhost:8008"
     , _allowedHost = "localhost:3000"
@@ -98,6 +100,7 @@ devSettings jwkFile = do
     , _fileFolder = "data"
     , _cookieSettings = defaultCookieSettings { cookieXsrfSetting = Just xsrfCookieSetting } -- TODO-SECURITY tune
     , _jwtSettings = defaultJWTSettings jwk -- TODO-SECURITY tune
+    , _config      = defaultConfig
     }
   where
     xsrfCookieSetting = defaultXsrfCookieSettings { xsrfExcludeGet = True }
@@ -136,10 +139,14 @@ data Env = Env
   , _env_manager  :: !Manager
   , _env_self_url :: !BaseUrl
   , _env_scrapers :: !ScrapersEnv
+  , _env_gargConfig :: !GargConfig
   }
   deriving (Generic)
 
 makeLenses ''Env
+
+instance HasConfig Env where
+  hasConfig = env_gargConfig
 
 instance HasConnectionPool Env where
   connPool = env_pool
@@ -191,7 +198,7 @@ mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
 mkRepoSaver repo_var = mkDebounce settings
   where
     settings = defaultDebounceSettings
-                 { debounceFreq   = 1000000 -- 1 second
+                 { debounceFreq   = let n = 6 :: Int in 10^n  -- 1 second
                  , debounceAction = withMVar repo_var repoSaverAction
                    -- Here this not only `readMVar` but `takeMVar`.
                    -- Namely while repoSaverAction is saving no other change
@@ -238,17 +245,18 @@ devJwkFile = "dev.jwk"
 
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
-  manager <- newTlsManager
-  settings <- devSettings devJwkFile <&> appPort .~ port -- TODO read from 'file'
+  manager     <- newTlsManager
+  settings    <- devSettings devJwkFile <&> appPort .~ port -- TODO read from 'file'
   when (port /= settings ^. appPort) $
     panic "TODO: conflicting settings of port"
 
-  self_url <- parseBaseUrl $ "http://0.0.0.0:" <> show port
-  param    <- databaseParameters file
-  pool     <- newPool param
-  repo     <- readRepoEnv
+  self_url     <- parseBaseUrl $ "http://0.0.0.0:" <> show port
+  param        <- databaseParameters file
+  pool         <- newPool param
+  repo         <- readRepoEnv
   scrapers_env <- newJobEnv defaultSettings manager
-  logger <- newStderrLoggerSet defaultBufSize
+  logger       <- newStderrLoggerSet defaultBufSize
+  config       <- readConfig file
 
   pure $ Env
     { _env_settings   = settings
@@ -258,18 +266,23 @@ newEnv port file = do
     , _env_manager    = manager
     , _env_scrapers   = scrapers_env
     , _env_self_url   = self_url
+    , _env_gargConfig = config
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)
 newPool param = createPool (connect param) close 1 (60*60) 8
 
 data DevEnv = DevEnv
-  { _dev_env_pool :: !(Pool Connection)
-  , _dev_env_repo :: !RepoEnv
+  { _dev_env_pool     :: !(Pool Connection)
+  , _dev_env_repo     :: !RepoEnv
   , _dev_env_settings :: !Settings
+  , _dev_env_config   :: !GargConfig
   }
 
 makeLenses ''DevEnv
+
+instance HasConfig DevEnv where
+  hasConfig = dev_env_config
 
 instance HasConnectionPool DevEnv where
   connPool = dev_env_pool
@@ -303,10 +316,12 @@ withDevEnv iniPath k = do
       pool  <- newPool param
       repo  <- readRepoEnv
       setts <- devSettings devJwkFile
+      config <- readConfig iniPath
       pure $ DevEnv
         { _dev_env_pool = pool
         , _dev_env_repo = repo
         , _dev_env_settings = setts
+        , _dev_env_config   = config
         }
 
 -- | Run Cmd Sugar for the Repl (GHCI)

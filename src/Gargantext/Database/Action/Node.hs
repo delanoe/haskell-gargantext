@@ -20,19 +20,22 @@ Portability : POSIX
 module Gargantext.Database.Action.Node
   where
 
-import Protolude
-
 import Gargantext.Core.Types (Name)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.User
-import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Error
+import Gargantext.Database.Query.Table.Node.User
+import Gargantext.Prelude
+import Gargantext.Prelude.Utils (sha)
+import Gargantext.Database.Prelude
+import Control.Lens (view)
+import Gargantext.Config (GargConfig(..))
 
 ------------------------------------------------------------------------
 -- | TODO mk all others nodes
-mkNodeWithParent :: HasNodeError err
+mkNodeWithParent :: (HasNodeError err)
                  => NodeType
                  -> Maybe ParentId
                  -> UserId
@@ -90,6 +93,23 @@ mkNodeWithParent NodeGraph (Just i) uId _name =
    insertNodesWithParentR (Just i) [node NodeGraph "Graph" hd Nothing uId]
     where
       hd = arbitraryGraph
+
+mkNodeWithParent NodeFrameWrite (Just i) uId name = do
+  config <- view hasConfig
+  let
+    u = _gc_frame_write_url config
+    s = _gc_secretkey config
+    hd = HyperdataFrame u (sha $ s <> (cs $ show i))
+  insertNodesWithParentR (Just i) [node NodeFrameWrite name hd Nothing uId]
+
+mkNodeWithParent NodeFrameCalc (Just i) uId name = do
+  config <- view hasConfig
+  let
+    u = _gc_frame_calc_url config
+    s = _gc_secretkey config
+    hd = HyperdataFrame u (sha $ s <> (cs $ show i))
+
+  insertNodesWithParentR (Just i) [node NodeFrameCalc name hd Nothing uId]
 
 mkNodeWithParent _ _ _ _       = nodeError NotImplYet
 

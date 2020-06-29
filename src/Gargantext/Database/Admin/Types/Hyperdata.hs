@@ -195,6 +195,16 @@ $(makeLenses ''HyperdataCorpus)
 instance Hyperdata HyperdataCorpus
 
 ------------------------------------------------------------------------
+data HyperdataFrame =
+  HyperdataFrame { base :: !Text 
+                 , frame_id :: !Text
+                 }
+    deriving (Generic)
+$(deriveJSON (unPrefix "") ''HyperdataFrame)
+$(makeLenses ''HyperdataFrame)
+
+instance Hyperdata HyperdataFrame
+
 ------------------------------------------------------------------------
 docExample :: ByteString
 docExample = "{\"doi\":\"sdfds\",\"publication_day\":6,\"language_iso2\":\"en\",\"publication_minute\":0,\"publication_month\":7,\"language_iso3\":\"eng\",\"publication_second\":0,\"authors\":\"Nils Hovdenak, Kjell Haram\",\"publication_year\":2012,\"publication_date\":\"2012-07-06 00:00:00+00:00\",\"language_name\":\"English\",\"realdate_full_\":\"2012 01 12\",\"source\":\"European journal of obstetrics, gynecology, and reproductive biology\",\"abstract\":\"The literature was searched for publications on minerals and vitamins during pregnancy and the possible influence of supplements on pregnancy outcome.\",\"title\":\"Influence of mineral and vitamin supplements on pregnancy outcome.\",\"publication_hour\":0}"

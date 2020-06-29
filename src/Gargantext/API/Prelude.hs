@@ -83,6 +83,7 @@ type GargServerC env err m =
     , HasRepo      env
     , HasSettings  env
     , HasJobEnv    env JobLog JobLog
+    , HasConfig    env
     )
 
 type GargServerT env err m api = GargServerC env err m => ServerT api m
@@ -96,9 +97,10 @@ type GargServerM env err = ReaderT env (ExceptT err IO)
 
 type EnvC env =
   ( HasConnectionPool env
-  , HasRepo env
-  , HasSettings env
-  , HasJobEnv env JobLog JobLog
+  , HasRepo           env
+  , HasSettings       env
+  , HasJobEnv         env JobLog JobLog
+  , HasConfig         env
   )
 
 -------------------------------------------------------------------

@@ -13,7 +13,6 @@ Portability : POSIX
 
 module Gargantext.Database.Prelude where
 
-
 import Control.Exception
 import Control.Lens (Getter, view)
 import Control.Monad.Error.Class -- (MonadError(..), Error)
@@ -35,6 +34,7 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
+import Gargantext.Config (GargConfig())
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
@@ -52,6 +52,13 @@ class HasConnectionPool env where
 instance HasConnectionPool (Pool Connection) where
   connPool = identity
 
+class HasConfig env where
+  hasConfig :: Getter env GargConfig
+
+instance HasConfig GargConfig where
+  hasConfig = identity
+
+-------------------------------------------------------
 type CmdM' env err m =
   ( MonadReader env m
   , MonadError err m
@@ -61,6 +68,7 @@ type CmdM' env err m =
 type CmdM env err m =
   ( CmdM' env err m
   , HasConnectionPool env
+  , HasConfig         env
   )
 
 type Cmd' env err a = forall m. CmdM' env err m => m a
@@ -99,7 +107,7 @@ runPGSQuery' :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
 runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
 
 runPGSQuery :: (MonadError err m, MonadReader env m, MonadBaseControl IO m,
-                PGS.FromRow r, PGS.ToRow q, HasConnectionPool env)
+                PGS.FromRow r, PGS.ToRow q, HasConnectionPool env, HasConfig env)
                 => PGS.Query -> q -> m [r]
 runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
   where

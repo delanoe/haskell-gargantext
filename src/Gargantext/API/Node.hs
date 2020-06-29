@@ -35,39 +35,37 @@ import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
-import Gargantext.API.Prelude
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Node.New
-import qualified Gargantext.API.Node.Share  as Share
-import qualified Gargantext.API.Node.Update as Update
-
+import Gargantext.API.Prelude
 import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
+import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
-import Gargantext.Database.Query.Table.Node.Children (getChildren)
-import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Query.Table.Node.User
-import Gargantext.Database.Query.Tree (tree, TreeMode(..))
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
+import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Children (getChildren)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Query.Table.NodeNode
+import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
-import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import qualified Gargantext.API.Node.Share  as Share
+import qualified Gargantext.API.Node.Update as Update
 import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
+import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
 {-
 import qualified Gargantext.Text.List.Learn as Learn
@@ -313,5 +311,5 @@ moveNode :: User
          -> ParentId
          -> Cmd err [Int]
 moveNode _u n p = update (Move n p)
-
+-------------------------------------------------------------
 -------------------------------------------------------------
