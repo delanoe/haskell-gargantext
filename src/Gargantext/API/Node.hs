@@ -82,7 +82,7 @@ type NodesAPI  = Delete '[JSON] Int
 -- Be careful: really delete nodes
 -- Access by admin only
 nodesAPI :: [NodeId] -> GargServer NodesAPI
-nodesAPI ids = deleteNodes ids
+nodesAPI = deleteNodes
 
 ------------------------------------------------------------------------
 -- | TODO-ACCESS: access by admin only.
@@ -221,22 +221,6 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> moveNode   (RootId $ NodeId uId) id'
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
-
-scatterApi :: NodeId -> GargServer ScatterAPI
-scatterApi id' = getScatter id'
-            :<|> updateScatter id'
-
-chartApi :: NodeId -> GargServer ChartApi
-chartApi id' = getChart id'
-          :<|> updateChart id'
-
-pieApi :: NodeId -> GargServer PieApi
-pieApi id' = getPie id'
-        :<|> updatePie id'
-
-treeApi :: NodeId -> GargServer TreeApi
-treeApi id' = getTree id'
-         :<|> updateTree id'
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
