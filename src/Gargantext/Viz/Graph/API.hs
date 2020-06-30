@@ -150,8 +150,9 @@ computeGraph cId d nt repo = do
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
+  -- TODO split diagonal
   myCooc <- Map.filter (>1)
-         <$> getCoocByNgrams (Diagonal True)
+         <$> getCoocByNgrams (Diagonal False)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 

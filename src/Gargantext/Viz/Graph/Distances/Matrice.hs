@@ -88,13 +88,19 @@ dim m = n
 
 -- | Sum of a Matrix by Column
 --
--- >>> run $ matSum 3 (use $ matrix 3 [1..])
+-- >>> run $ matSumCol 3 (use $ matrix 3 [1..])
 -- Matrix (Z :. 3 :. 3)
 --   [ 12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0]
-matSum :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-matSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
+matSumCol :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+matSumCol r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
+
+matSumCol' :: Matrix Double -> Matrix Double
+matSumCol' m = run $ matSumCol n m'
+  where
+    n  = dim m
+    m' = use m
 
 
 -- | Proba computes de probability matrix: all cells divided by thee sum of its column
@@ -106,7 +112,7 @@ matSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose m
 --       0.3333333333333333,  0.3333333333333333,  0.3333333333333333,
 --       0.5833333333333334,  0.5333333333333333,                 0.5]
 matProba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-matProba r mat = zipWith (/) mat (matSum r mat)
+matProba r mat = zipWith (/) mat (matSumCol r mat)
 
 -- | Diagonal of the matrix
 --
@@ -164,7 +170,9 @@ matFilter t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
 -- interactions of 2 terms in the corpus.
 measureConditional :: Matrix Int -> Matrix Double
 --measureConditional m = run (matMiniMax $ matProba (dim m) $ map fromIntegral $ use m)
-measureConditional m = run (matProba (dim m) $ map fromIntegral $ use m)
+measureConditional m = run $ matProba (dim m)
+                           $ map fromIntegral
+                           $ use m
 
 
 -- *** Conditional distance (advanced)
@@ -196,9 +204,9 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
     r = dim m
 
     xs :: Acc (Matrix Double) -> Acc (Matrix Double)
-    xs mat = zipWith (-) (matSum r $ matProba r mat) (matProba r mat)
+    xs mat = zipWith (-) (matSumCol r $ matProba r mat) (matProba r mat)
     ys :: Acc (Matrix Double) -> Acc (Matrix Double)
-    ys mat = zipWith (-) (matSum r $ transpose $ matProba r mat) (matProba r mat)
+    ys mat = zipWith (-) (matSumCol r $ transpose $ matProba r mat) (matProba r mat)
 
 -----------------------------------------------------------------------
 -- ** Distributional Distance
@@ -206,11 +214,11 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 -- | Distributional Distance Measure
 --
 -- Distributional measure is a relative measure which depends on the
--- selected list, it represents structural equivalence.
+-- selected list, it represents structural equivalence of mutual information.
 --
 -- The distributional measure P(c) of @i@ and @j@ terms is: \[
 -- S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik},
--- MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}}^{}} \]
+-- MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}>0}^{}} \]
 --
 -- Mutual information
 -- \[S_{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\]
@@ -228,26 +236,43 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 distributional :: Matrix Int -> Matrix Double
-distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
+distributional m = run $ matMiniMax
+                       $ ri
+                       $ map fromIntegral  -- ^ from Int to Double
+                       $ use m             -- ^ push matrix in Accelerate type
   where
-    
     -- filter  m = zipWith (\a b -> max a b) m (transpose m)
-    
+
+    ri :: Acc (Matrix Double) -> Acc (Matrix Double)
     ri mat = zipWith (/) mat1 mat2
       where
-        mat1 = matSum n $ zipWith min (s_mi mat) (s_mi $ transpose mat)
-        mat2 = matSum n mat
-    
-    s_mi    m'  = zipWith (\a b -> log (a/b))  m'
-              $ zipWith (/) (crossProduct m') (total m')
+        mat1 = matSumCol n $ zipWith min (s_mi mat) (s_mi $ transpose mat)
+        mat2 = matSumCol n mat
 
-    total m'' = replicate (constant (Z :. n :. n)) $ fold (+) 0 $ fold (+) 0 m''
+    s_mi :: Acc (Matrix Double) -> Acc (Matrix Double)
+    s_mi m' = zipWith (\a b -> log (a/b))  m'
+            $ zipWith (/) (crossProduct m') (total m')
+
+    total :: Acc (Matrix Double) -> Acc (Matrix Double)
+    total = replicate (constant (Z :. n :. n)) . sum . sum
 
     n :: Dim
     n = dim m
-    
+
+    crossProduct :: Acc (Matrix Double) -> Acc (Matrix Double)
     crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
-    cross mat         = zipWith (-) (matSum n mat) (mat)
+    cross :: Acc (Matrix Double) -> Acc (Matrix Double)
+    cross mat         = zipWith (-) (matSumCol n mat) (mat)
+
+-- | cross
+{-
+cross :: Matrix Double -> Matrix Double
+cross mat = run $ zipWith (-) (matSumCol n mat') (mat')
+  where
+    mat' = use mat
+    n = dim mat
+-}
+
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------

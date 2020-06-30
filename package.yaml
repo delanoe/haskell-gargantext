@@ -6,15 +6,15 @@ category: Data
 author: Gargantext Team
 maintainer: team@gargantext.org
 copyright:
-    - ! 'Copyright: (c) 2017-2018: see git logs and README'
-license: BSD3
+    - ! 'Copyright: (c) 2017-Present: see git logs and README'
+license: AGPL-3
 homepage: https://gargantext.org
 ghc-options: -Wall
 extra-libraries:
-- gfortran
+  - gfortran
 dependencies:
-- extra
-- text
+  - extra
+  - text
 default-extensions:
   - DataKinds
   - DeriveGeneric
@@ -57,6 +57,7 @@ library:
   - Gargantext.Text
   - Gargantext.Text.Context
   - Gargantext.Text.Corpus.Parsers
+  - Gargantext.Text.Corpus.Parsers.Date.Parsec
   - Gargantext.Text.Corpus.API
   - Gargantext.Text.Corpus.Parsers.CSV
   - Gargantext.Text.Examples
@@ -362,36 +363,58 @@ executables:
 
 
 tests:
-#   garg-test:
-#     main: Main.hs
-#     source-dirs: src-test
-#     ghc-options:
-#     - -threaded
-#     - -rtsopts
-#     - -with-rtsopts=-N
-#     dependencies:
-#     - base
-#     - gargantext
-#     - hspec
-#     - QuickCheck
-#     - quickcheck-instances 
-#     - time
-#     - parsec
-#     - duckling
-#     - text
-  garg-doctest:
-    main: Main.hs
-    source-dirs: src-doctest
-    ghc-options:
-    - -O2
-    - -Wcompat
-    - -Wmissing-signatures
-    - -rtsopts
-    - -threaded
-    - -with-rtsopts=-N
-    dependencies:
-    - doctest
-    - Glob
-    - QuickCheck
-    - base
-    - gargantext
+   garg-test:
+     main: Main.hs
+     source-dirs: src-test
+     default-extensions:
+     - DataKinds
+     - DeriveGeneric
+     - FlexibleContexts
+     - FlexibleInstances
+     - GeneralizedNewtypeDeriving
+     - MultiParamTypeClasses
+     - NoImplicitPrelude
+     - OverloadedStrings
+     - RankNTypes
+     ghc-options:
+     - -threaded
+     - -rtsopts
+     - -with-rtsopts=-N
+     dependencies:
+     - base
+     - gargantext
+     - hspec
+     - QuickCheck
+     - quickcheck-instances
+     - time
+     - parsec
+     - duckling
+     - text
+#  garg-doctest:
+#    main: Main.hs
+#    source-dirs: src-doctest
+#    ghc-options:
+#    - -O2
+#    - -Wcompat
+#    - -Wmissing-signatures
+#    - -rtsopts
+#    - -threaded
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - doctest
+#    - Glob
+#    - QuickCheck
+#    - base
+#    - gargantext
+#    default-extensions:
+#    - DataKinds
+#    - DeriveGeneric
+#    - FlexibleContexts
+#    - FlexibleInstances
+#    - GeneralizedNewtypeDeriving
+#    - MultiParamTypeClasses
+#    - NoImplicitPrelude
+#    - OverloadedStrings
+#    - RankNTypes
+#
+
