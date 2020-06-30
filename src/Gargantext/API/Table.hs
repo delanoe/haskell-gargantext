@@ -36,7 +36,12 @@ import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 import Gargantext.API.Ngrams (TabType(..))
+import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (Offset, Limit, TableResult(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, OrderBy(..), runViewAuthorsDoc)
@@ -45,13 +50,13 @@ import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
 
-type TableApi = Summary " Table API"
+type TableApi = Summary "Table API"
+              :> QueryParam "tabType" TabType
+              :> Get    '[JSON] FacetTableResult
+            :<|> Summary "Table API (POST)"
               :> ReqBody '[JSON] TableQuery
               :> Post    '[JSON] FacetTableResult
 
@@ -74,9 +79,18 @@ instance Arbitrary TableQuery where
   arbitrary = elements [TableQuery 0 10 DateAsc Docs "electrodes"]
 
 
-tableApi :: NodeId -> TableQuery -> Cmd err FacetTableResult
-tableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
-tableApi cId (TableQuery o l order ft q) = case ft of
+tableApi :: NodeId -> GargServer TableApi
+tableApi id' = getTableApi id'
+          :<|> postTableApi id'
+
+
+getTableApi :: NodeId -> Maybe TabType -> Cmd err FacetTableResult
+getTableApi cId tabType = getTable cId tabType Nothing Nothing Nothing
+
+
+postTableApi :: NodeId -> TableQuery -> Cmd err FacetTableResult
+postTableApi cId (TableQuery o l order ft "") = getTable cId (Just ft) (Just o) (Just l) (Just order)
+postTableApi cId (TableQuery o l order ft q) = case ft of
       Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
       Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
