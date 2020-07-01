@@ -34,13 +34,14 @@ Implementation use Accelerate library which enables GPU and CPU computation:
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns        #-}
 
 module Gargantext.Viz.Graph.Distances.Matrice
   where
 
+import Debug.Trace (trace)
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
-
 import qualified Gargantext.Prelude as P
 
 
@@ -85,6 +86,10 @@ dim m = n
     -- indexTail (arrayShape m)
 
 -----------------------------------------------------------------------
+-- TODO move to Utils
+runExp :: Elt e => Exp e -> e
+runExp e = indexArray (run (unit e)) Z
+-----------------------------------------------------------------------
 
 -- | Sum of a Matrix by Column
 --
@@ -119,7 +124,9 @@ matProba r mat = zipWith (/) mat (matSumCol r mat)
 -- >>> run $ diag (use $ matrix 3 ([1..] :: [Int]))
 -- Vector (Z :. 3) [1,5,9]
 diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
-diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
+diag m = backpermute (indexTail (shape m))
+                     (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int))))
+                     m
 
 -- | Divide by the Diagonal of the matrix
 --
@@ -151,8 +158,8 @@ matMiniMax m = map (\x -> ifThenElse (x > miniMax') x 0) (transpose m)
 --   [ 0.0, 0.0, 7.0,
 --     0.0, 0.0, 8.0,
 --     0.0, 6.0, 9.0]
-matFilter :: Double -> Acc (Matrix Double) -> Acc (Matrix Double)
-matFilter t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
+filter' :: Double -> Acc (Matrix Double) -> Acc (Matrix Double)
+filter' t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
 
 -----------------------------------------------------------------------
 -- * Measures of proximity
@@ -236,42 +243,96 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 distributional :: Matrix Int -> Matrix Double
-distributional m = run $ matMiniMax
-                       $ ri
+distributional m = run -- $ matMiniMax
+                       -- $ ri
+                       -- $ myMin 
+                       $ filter' 0
+                       $ s_mi
+--                       $ diag2null
                        $ map fromIntegral  -- ^ from Int to Double
                        $ use m             -- ^ push matrix in Accelerate type
   where
     -- filter  m = zipWith (\a b -> max a b) m (transpose m)
 
     ri :: Acc (Matrix Double) -> Acc (Matrix Double)
-    ri mat = zipWith (/) mat1 mat2
+    ri mat = mat1 -- zipWith (/) mat1 mat2
       where
-        mat1 = matSumCol n $ zipWith min (s_mi mat) (s_mi $ transpose mat)
-        mat2 = matSumCol n mat
+        mat1 = matSumCol n $ zipWith min'  (myMin mat) (myMin $ transpose mat)
+        mat2 = total mat
 
     s_mi :: Acc (Matrix Double) -> Acc (Matrix Double)
     s_mi m' = zipWith (\a b -> log (a/b))  m'
-            $ zipWith (/) (crossProduct m') (total m')
+            $ zipWith (/) (crossProduct n m') (total m')
 
     total :: Acc (Matrix Double) -> Acc (Matrix Double)
     total = replicate (constant (Z :. n :. n)) . sum . sum
+    
+    min' x y
+      | runExp (x > y && x /= 0) = x
+      | P.otherwise              = y
+
+    myMin :: Acc (Matrix Double) -> Acc (Matrix Double)
+    myMin = replicate (constant (Z :. n :. All)) . minimum
 
     n :: Dim
     n = dim m
 
-    crossProduct :: Acc (Matrix Double) -> Acc (Matrix Double)
-    crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
-    cross :: Acc (Matrix Double) -> Acc (Matrix Double)
-    cross mat         = zipWith (-) (matSumCol n mat) (mat)
+-- run $ (identityMatrix (DAA.constant (10::Int)) :: DAA.Acc (DAA.Matrix Int)) Matrix (Z :. 10 :. 10)
+identityMatrix :: Num a => Exp Int -> Acc (Matrix a)
+identityMatrix n =
+        let zeros = fill (index2 n n) 0
+            ones  = fill (index1 n)   1
+        in
+        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+
+
+eyeMatrix :: Num a => (Matrix a) -> Acc (Matrix a)
+eyeMatrix m =
+        let zeros = fill (index2 n n) 1
+            ones  = fill (index1 n)   0
+            n     = constant $ dim m
+        in
+        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+
+diag2null :: Num a => (Matrix a) -> Acc (Matrix a)
+diag2null m' = zipWith (*) m eye
+  where
+    m   = use m'
+    eye = eyeMatrix m'
+
+
+
+crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+crossProduct n m = trace (P.show (run m',run m'')) $ zipWith (*) m' m''
+  where
+    m'  = cross n m
+    m'' = cross n (transpose m)
+
+crossT :: Matrix Double -> Matrix Double
+crossT  = run . transpose . use
+
+crossProduct' :: Matrix Double -> Matrix Double
+crossProduct' m = run $ crossProduct n m'
+  where
+    n  = dim m
+    m' = use m
+
+runWith :: (Arrays c, Elt a1)
+        => (Dim -> Acc (Matrix a1) -> a2 -> Acc c)
+        -> Matrix a1
+        -> a2
+        -> c
+runWith f m = run . f (dim m) (use m)
 
 -- | cross
-{-
-cross :: Matrix Double -> Matrix Double
-cross mat = run $ zipWith (-) (matSumCol n mat') (mat')
+cross :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+cross n mat = zipWith (-) (matSumCol n mat) (mat)
+
+cross' :: Matrix Double -> Matrix Double
+cross' mat = run $ cross n mat'
   where
     mat' = use mat
     n = dim mat
--}
 
 
 -----------------------------------------------------------------------
