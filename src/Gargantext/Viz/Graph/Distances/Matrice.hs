@@ -17,14 +17,6 @@ Implementation use Accelerate library which enables GPU and CPU computation:
     [Accelerating Haskell Array Codes with Multicore GPUs][CKLM+11].
     In _DAMP '11: Declarative Aspects of Multicore Programming_, ACM, 2011.
 
-  * Trevor L. McDonell, Manuel M. T. Chakravarty, Gabriele Keller, and Ben Lippmeier.
-    [Optimising Purely Functional GPU Programs][MCKL13].
-    In _ICFP '13: The 18th ACM SIGPLAN International Conference on Functional Programming_, ACM, 2013.
-
-  * Robert Clifton-Everest, Trevor L. McDonell, Manuel M. T. Chakravarty, and Gabriele Keller.
-    [Embedding Foreign Code][CMCK14].
-    In _PADL '14: The 16th International Symposium on Practical Aspects of Declarative Languages_, Springer-Verlag, LNCS, 2014.
-
   * Trevor L. McDonell, Manuel M. T. Chakravarty, Vinod Grover, and Ryan R. Newton.
     [Type-safe Runtime Code Generation: Accelerate to LLVM][MCGN15].
     In _Haskell '15: The 8th ACM SIGPLAN Symposium on Haskell_, ACM, 2015.
@@ -50,8 +42,8 @@ import qualified Gargantext.Prelude as P
 --
 -- >>> vector 3
 -- Vector (Z :. 3) [0,1,2]
-vector :: Int -> (Array (Z :. Int) Int)
-vector n = fromList (Z :. n) [0..n]
+vector :: Elt c => Int -> [c] -> (Array (Z :. Int) c)
+vector n l = fromList (Z :. n) l
 
 -- | Define a matrix
 --
@@ -248,7 +240,7 @@ distributional m = run -- $ matMiniMax
                        -- $ myMin 
                        $ filter' 0
                        $ s_mi
---                       $ diag2null
+                       $ diag2null n
                        $ map fromIntegral  -- ^ from Int to Double
                        $ use m             -- ^ push matrix in Accelerate type
   where
@@ -286,20 +278,19 @@ identityMatrix n =
         permute const zeros (\(unindex1 -> i) -> index2 i i) ones
 
 
-eyeMatrix :: Num a => (Matrix a) -> Acc (Matrix a)
-eyeMatrix m =
+eyeMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+eyeMatrix n' m =
         let zeros = fill (index2 n n) 1
             ones  = fill (index1 n)   0
-            n     = constant $ dim m
+            n = constant n'
         in
         permute const zeros (\(unindex1 -> i) -> index2 i i) ones
 
-diag2null :: Num a => (Matrix a) -> Acc (Matrix a)
-diag2null m' = zipWith (*) m eye
-  where
-    m   = use m'
-    eye = eyeMatrix m'
 
+diag2null :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+diag2null n m = zipWith (*) m eye
+  where
+    eye = eyeMatrix n m
 
 
 crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
