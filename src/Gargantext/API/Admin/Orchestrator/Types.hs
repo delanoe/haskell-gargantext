@@ -32,8 +32,8 @@ data ExternalAPIs = All
                   | HAL
                   | IsTex
                   | Isidore
-                  -- | IsidoreAuth
   deriving (Show, Eq, Enum, Bounded, Generic)
+                  -- | IsidoreAuth
 
 
 -- | Main Instances

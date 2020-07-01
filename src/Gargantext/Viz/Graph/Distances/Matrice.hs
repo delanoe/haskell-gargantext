@@ -245,15 +245,16 @@ distributional m = run -- $ matMiniMax
   where
     -- filter  m = zipWith (\a b -> max a b) m (transpose m)
 
+{-
     ri :: Acc (Matrix Double) -> Acc (Matrix Double)
     ri mat = mat1 -- zipWith (/) mat1 mat2
       where
         mat1 = matSumCol n $ zipWith min'  (myMin mat) (myMin $ transpose mat)
         mat2 = total mat
-
     myMin :: Acc (Matrix Double) -> Acc (Matrix Double)
     myMin = replicate (constant (Z :. n :. All)) . minimum
 
+-}
 
     -- TODO fix NaN
     -- Quali TEST: OK
@@ -279,7 +280,7 @@ identityMatrix n =
 
 
 eyeMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-eyeMatrix n' m =
+eyeMatrix n' _m =
         let ones = fill (index2 n n) 1
             zeros  = fill (index1 n)   0
             n = constant n'
@@ -288,18 +289,18 @@ eyeMatrix n' m =
 
 
 selfMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-selfMatrix n' m =
+selfMatrix n' _m =
         let zeros = fill (index2 n n) 0
             ones  = fill (index2 n n) 1
             n = constant n'
         in
-        permute const ones ( lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+        permute const ones ( lift1 ( \(Z :. (i :: Exp Int) :. (_j:: Exp Int))
                                                 -> -- ifThenElse (i /= j)
                                                      --         (Z :. i :. j)
                                                               (Z :. i :. i)
                                     )) zeros
 
-
+selfMatrix' :: (Elt a, P.Num (Exp a)) => Array DIM2 a -> Matrix a
 selfMatrix' m' = run $ selfMatrix n m
   where
     n = dim m'
