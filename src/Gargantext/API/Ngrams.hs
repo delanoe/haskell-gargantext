@@ -1216,14 +1216,23 @@ type RecomputeScoresNgramsApiGet = Summary " Recompute scores for ngrams table"
                        :> QueryParamR "list"        ListId
                        :> "recompute" :> Post '[JSON] Int
 
+type TableNgramsApiGetVersion = Summary " Table Ngrams API Get Version"
+                      :> QueryParamR "ngramsType"  TabType
+                      :> QueryParamR "list"        ListId
+                      :> Get    '[JSON] Version
+
 type TableNgramsApi =  TableNgramsApiGet
                   :<|> TableNgramsApiPut
                   :<|> TableNgramsApiPost
                   :<|> RecomputeScoresNgramsApiGet
+                  :<|> "version" :> TableNgramsApiGetVersion
 
 getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
-               => NodeId -> TabType
-               -> ListId -> Limit -> Maybe Offset
+               => NodeId
+               -> TabType
+               -> ListId
+               -> Limit
+               -> Maybe Offset
                -> Maybe ListType
                -> Maybe MinSize -> Maybe MaxSize
                -> Maybe OrderBy
@@ -1233,6 +1242,16 @@ getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize o
   getTableNgrams NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
     where
       searchQuery = maybe (const True) isInfixOf mt
+
+getTableNgramsVersion :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
+               => NodeId
+               -> TabType
+               -> ListId
+               -> m Version
+getTableNgramsVersion nId tabType listId = do
+  -- TODO: limit?
+  Versioned { _v_version = v } <- getTableNgramsCorpus nId tabType listId 100000 Nothing Nothing Nothing Nothing Nothing Nothing
+  pure v
 
 -- | Text search is deactivated for now for ngrams by doc only
 getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
@@ -1263,6 +1282,7 @@ apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
                        :<|> tableNgramsPut
                        :<|> tableNgramsPost
                        :<|> scoresRecomputeTableNgrams cId
+                       :<|> getTableNgramsVersion cId
 
 apiNgramsTableDoc :: ( RepoCmdM env err m
                      , HasNodeError err
@@ -1275,6 +1295,7 @@ apiNgramsTableDoc dId =  getTableNgramsDoc dId
                     :<|> tableNgramsPut
                     :<|> tableNgramsPost
                     :<|> scoresRecomputeTableNgrams dId
+                    :<|> getTableNgramsVersion dId
                     -- > add new ngrams in database (TODO AD)
                     -- > index all the corpus accordingly (TODO AD)
 
