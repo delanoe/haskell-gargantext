@@ -148,7 +148,7 @@ data TabType   = Docs   | Trash   | MoreFav | MoreTrash
   deriving (Generic, Enum, Bounded, Show)
 
 instance FromHttpApiData TabType
-  where
+   where
     parseUrlPiece "Docs"       = pure Docs
     parseUrlPiece "Trash"      = pure Trash
     parseUrlPiece "MoreFav"    = pure MoreFav

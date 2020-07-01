@@ -40,6 +40,7 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
+import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams (TabType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (Offset, Limit, TableResult(..))
@@ -55,10 +56,14 @@ import Gargantext.Prelude
 
 type TableApi = Summary "Table API"
               :> QueryParam "tabType" TabType
-              :> Get    '[JSON] FacetTableResult
+              :> Get    '[JSON] (HashedResponse FacetTableResult)
             :<|> Summary "Table API (POST)"
               :> ReqBody '[JSON] TableQuery
               :> Post    '[JSON] FacetTableResult
+            :<|> "md5" :>
+                   Summary "Table md5"
+                :> QueryParam "tabType" TabType
+                :> Get '[JSON] Text
 
 data TableQuery = TableQuery
   { tq_offset  :: Int
@@ -82,10 +87,13 @@ instance Arbitrary TableQuery where
 tableApi :: NodeId -> GargServer TableApi
 tableApi id' = getTableApi id'
           :<|> postTableApi id'
+          :<|> getTableMd5Api id'
 
 
-getTableApi :: NodeId -> Maybe TabType -> Cmd err FacetTableResult
-getTableApi cId tabType = getTable cId tabType Nothing Nothing Nothing
+getTableApi :: NodeId -> Maybe TabType -> Cmd err (HashedResponse FacetTableResult)
+getTableApi cId tabType = do
+  t <- getTable cId tabType Nothing Nothing Nothing
+  pure $ constructHashedResponse t
 
 
 postTableApi :: NodeId -> TableQuery -> Cmd err FacetTableResult
@@ -94,6 +102,11 @@ postTableApi cId (TableQuery o l order ft q) = case ft of
       Docs  -> searchInCorpus' cId False [q] (Just o) (Just l) (Just order)
       Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
+
+getTableMd5Api :: NodeId -> Maybe TabType -> Cmd err Text
+getTableMd5Api cId tabType = do
+  HashedResponse { md5 = md5' } <- getTableApi cId tabType
+  pure md5'
 
 searchInCorpus' :: CorpusId
                 -> Bool
