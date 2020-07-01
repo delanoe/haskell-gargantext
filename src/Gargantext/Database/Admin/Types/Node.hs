@@ -250,14 +250,18 @@ data NodeType = NodeUser
               | NodeDashboard  | NodeChart    | NodeNoteBook
               | NodeList       | NodeListModel
               | NodeListCooc
-  deriving (Show, Read, Eq, Generic, Bounded, Enum)
-
 
 {-
               -- | Metrics
               -- | NodeOccurrences
               -- | Classification
 -}
+
+              -- Optional Nodes
+              | NodeFrameWrite | NodeFrameCalc
+
+  deriving (Show, Read, Eq, Generic, Bounded, Enum)
+
 
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]
@@ -272,6 +276,8 @@ instance FromHttpApiData NodeType
 instance ToParamSchema NodeType
 instance ToSchema      NodeType
 
+instance Arbitrary NodeType where
+  arbitrary = elements allNodeTypes
 
 ------------------------------------------------------------------------
 -- Instances

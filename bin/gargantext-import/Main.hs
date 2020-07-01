@@ -27,7 +27,7 @@ import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire, 
 import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Types.Hyperdata (toHyperdataDocument)
 import Gargantext.Database.Admin.Types.Node (CorpusId)
-import Gargantext.Database.Prelude (Cmd, )
+import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
 import Gargantext.Text.Corpus.Parsers (FileFormat(..))
 import Prelude (read)

@@ -66,6 +66,9 @@ nodeTypeId n =
     NodeDashboard   -> 71
     NodeNoteBook    -> 88
 
+    NodeFrameWrite  -> 991
+    NodeFrameCalc   -> 992
+
 --  Cooccurrences -> 9
 --
 --  Specclusion  -> 11

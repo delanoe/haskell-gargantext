@@ -123,7 +123,7 @@ import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ng
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
-import Gargantext.Database.Prelude (fromField', HasConnectionPool)
+import Gargantext.Database.Prelude (fromField', HasConnectionPool, HasConfig)
 import Gargantext.Prelude
 import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
 import Servant hiding (Patch)
@@ -1030,7 +1030,7 @@ getTime' = liftBase $ getTime ProcessCPUTime
 
 
 getTableNgrams :: forall env err m.
-                  (RepoCmdM env err m, HasNodeError err, HasConnectionPool env)
+                  (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeType -> NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -1132,7 +1132,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
   pure tableMap3
 
 
-scoresRecomputeTableNgrams :: forall env err m. (RepoCmdM env err m, HasNodeError err, HasConnectionPool env) => NodeId -> TabType -> ListId -> m Int
+scoresRecomputeTableNgrams :: forall env err m. (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env) => NodeId -> TabType -> ListId -> m Int
 scoresRecomputeTableNgrams nId tabType listId = do
   tableMap <- getNgramsTableMap listId ngramsType
   _ <- tableMap & v_data %%~ setScores
@@ -1221,7 +1221,7 @@ type TableNgramsApi =  TableNgramsApiGet
                   :<|> TableNgramsApiPost
                   :<|> RecomputeScoresNgramsApiGet
 
-getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env)
+getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -1235,7 +1235,7 @@ getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize o
       searchQuery = maybe (const True) isInfixOf mt
 
 -- | Text search is deactivated for now for ngrams by doc only
-getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env)
+getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => DocId -> TabType
                -> ListId -> Limit -> Maybe Offset
                -> Maybe ListType
@@ -1256,6 +1256,7 @@ apiNgramsTableCorpus :: ( RepoCmdM env err m
                         , HasNodeError err
                         , HasInvalidError err
                         , HasConnectionPool env
+                        , HasConfig         env
                         )
                      => NodeId -> ServerT TableNgramsApi m
 apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
@@ -1267,6 +1268,7 @@ apiNgramsTableDoc :: ( RepoCmdM env err m
                      , HasNodeError err
                      , HasInvalidError err
                      , HasConnectionPool env
+                     , HasConfig         env
                      )
                   => DocId -> ServerT TableNgramsApi m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId

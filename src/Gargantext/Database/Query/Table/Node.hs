@@ -167,6 +167,8 @@ nodeContactW maybeName maybeContact aId =
 defaultFolder :: HyperdataCorpus
 defaultFolder = defaultCorpus
 
+
+
 nodeFolderW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
 nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
   where
