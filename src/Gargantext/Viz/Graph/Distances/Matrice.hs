@@ -240,7 +240,6 @@ distributional m = run -- $ matMiniMax
                        -- $ myMin 
                        $ filter' 0
                        $ s_mi
-                       $ diag2null n
                        $ map fromIntegral  -- ^ from Int to Double
                        $ use m             -- ^ push matrix in Accelerate type
   where
@@ -252,19 +251,20 @@ distributional m = run -- $ matMiniMax
         mat1 = matSumCol n $ zipWith min'  (myMin mat) (myMin $ transpose mat)
         mat2 = total mat
 
+    myMin :: Acc (Matrix Double) -> Acc (Matrix Double)
+    myMin = replicate (constant (Z :. n :. All)) . minimum
+
+
+    -- TODO fix NaN
+    -- Quali TEST: OK
     s_mi :: Acc (Matrix Double) -> Acc (Matrix Double)
-    s_mi m' = zipWith (\a b -> log (a/b))  m'
+    s_mi m' = zipWith (\x y -> log (x / y)) (diagNull n m')
             $ zipWith (/) (crossProduct n m') (total m')
+            -- crossProduct n m'
+
 
     total :: Acc (Matrix Double) -> Acc (Matrix Double)
     total = replicate (constant (Z :. n :. n)) . sum . sum
-    
-    min' x y
-      | runExp (x > y && x /= 0) = x
-      | P.otherwise              = y
-
-    myMin :: Acc (Matrix Double) -> Acc (Matrix Double)
-    myMin = replicate (constant (Z :. n :. All)) . minimum
 
     n :: Dim
     n = dim m
@@ -280,19 +280,39 @@ identityMatrix n =
 
 eyeMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
 eyeMatrix n' m =
-        let zeros = fill (index2 n n) 1
-            ones  = fill (index1 n)   0
+        let ones = fill (index2 n n) 1
+            zeros  = fill (index1 n)   0
             n = constant n'
         in
-        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
 
 
-diag2null :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-diag2null n m = zipWith (*) m eye
+selfMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+selfMatrix n' m =
+        let zeros = fill (index2 n n) 0
+            ones  = fill (index2 n n) 1
+            n = constant n'
+        in
+        permute const ones ( lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+                                                -> -- ifThenElse (i /= j)
+                                                     --         (Z :. i :. j)
+                                                              (Z :. i :. i)
+                                    )) zeros
+
+
+selfMatrix' m' = run $ selfMatrix n m
+  where
+    n = dim m'
+    m = use m'
+
+-------------------------------------------------
+diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+diagNull n m = zipWith (*) m eye
   where
     eye = eyeMatrix n m
 
 
+-------------------------------------------------
 crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 crossProduct n m = trace (P.show (run m',run m'')) $ zipWith (*) m' m''
   where
@@ -317,7 +337,7 @@ runWith f m = run . f (dim m) (use m)
 
 -- | cross
 cross :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-cross n mat = zipWith (-) (matSumCol n mat) (mat)
+cross n mat = diagNull n (matSumCol n $ diagNull n mat)
 
 cross' :: Matrix Double -> Matrix Double
 cross' mat = run $ cross n mat'
