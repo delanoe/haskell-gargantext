@@ -18,18 +18,15 @@ module Gargantext.Viz.Graph.Distances.Distributional
   where
 
 import Data.Matrix hiding (identity)
-
 import qualified Data.Map as M
-
 import Data.Vector (Vector)
 import qualified Data.Vector as V
-
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.Utils
 
 
-distributional :: (Floating a, Ord a) => Matrix a -> [((Int, Int), a)]
-distributional m = filter (\((x,y), d) -> foldl' (&&) True (conditions x y d) ) distriList
+distributional' :: (Floating a, Ord a) => Matrix a -> [((Int, Int), a)]
+distributional' m = filter (\((x,y), d) -> foldl' (&&) True (conditions x y d) ) distriList
   where
     conditions x y d  =  [ (x /= y)
                          , (d > miniMax')
@@ -50,7 +47,6 @@ ri m = matrix c r doRi
     sumMin x y mi' = V.sum $ V.map (\(a,b) -> min a b )
                            $ V.zip (ax Col x y mi') (ax Row x y mi')
     (c,r) = (nOf Col m, nOf Row m)
-
 
 mi :: (Ord a, Floating a) => Matrix a -> Matrix a
 mi m = matrix c r createMat

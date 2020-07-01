@@ -56,6 +56,7 @@ cooc2graph :: Distance
            -> (Map (Text, Text) Int)
            -> IO Graph
 cooc2graph distance threshold myCooc = do
+  printDebug "cooc2graph" distance
   let
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc

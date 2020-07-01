@@ -27,6 +27,7 @@ import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
 data Distance = Conditional | Distributional
+  deriving (Show)
 
 measure :: Distance -> Matrix Int -> Matrix Double
 measure Conditional    = measureConditional

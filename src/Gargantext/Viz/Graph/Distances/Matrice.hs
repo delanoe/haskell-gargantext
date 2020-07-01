@@ -17,14 +17,6 @@ Implementation use Accelerate library which enables GPU and CPU computation:
     [Accelerating Haskell Array Codes with Multicore GPUs][CKLM+11].
     In _DAMP '11: Declarative Aspects of Multicore Programming_, ACM, 2011.
 
-  * Trevor L. McDonell, Manuel M. T. Chakravarty, Gabriele Keller, and Ben Lippmeier.
-    [Optimising Purely Functional GPU Programs][MCKL13].
-    In _ICFP '13: The 18th ACM SIGPLAN International Conference on Functional Programming_, ACM, 2013.
-
-  * Robert Clifton-Everest, Trevor L. McDonell, Manuel M. T. Chakravarty, and Gabriele Keller.
-    [Embedding Foreign Code][CMCK14].
-    In _PADL '14: The 16th International Symposium on Practical Aspects of Declarative Languages_, Springer-Verlag, LNCS, 2014.
-
   * Trevor L. McDonell, Manuel M. T. Chakravarty, Vinod Grover, and Ryan R. Newton.
     [Type-safe Runtime Code Generation: Accelerate to LLVM][MCGN15].
     In _Haskell '15: The 8th ACM SIGPLAN Symposium on Haskell_, ACM, 2015.
@@ -34,13 +26,14 @@ Implementation use Accelerate library which enables GPU and CPU computation:
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns        #-}
 
 module Gargantext.Viz.Graph.Distances.Matrice
   where
 
+import Debug.Trace (trace)
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
-
 import qualified Gargantext.Prelude as P
 
 
@@ -49,8 +42,8 @@ import qualified Gargantext.Prelude as P
 --
 -- >>> vector 3
 -- Vector (Z :. 3) [0,1,2]
-vector :: Int -> (Array (Z :. Int) Int)
-vector n = fromList (Z :. n) [0..n]
+vector :: Elt c => Int -> [c] -> (Array (Z :. Int) c)
+vector n l = fromList (Z :. n) l
 
 -- | Define a matrix
 --
@@ -85,16 +78,26 @@ dim m = n
     -- indexTail (arrayShape m)
 
 -----------------------------------------------------------------------
+-- TODO move to Utils
+runExp :: Elt e => Exp e -> e
+runExp e = indexArray (run (unit e)) Z
+-----------------------------------------------------------------------
 
 -- | Sum of a Matrix by Column
 --
--- >>> run $ matSum 3 (use $ matrix 3 [1..])
+-- >>> run $ matSumCol 3 (use $ matrix 3 [1..])
 -- Matrix (Z :. 3 :. 3)
 --   [ 12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0]
-matSum :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-matSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
+matSumCol :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+matSumCol r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
+
+matSumCol' :: Matrix Double -> Matrix Double
+matSumCol' m = run $ matSumCol n m'
+  where
+    n  = dim m
+    m' = use m
 
 
 -- | Proba computes de probability matrix: all cells divided by thee sum of its column
@@ -106,14 +109,16 @@ matSum r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose m
 --       0.3333333333333333,  0.3333333333333333,  0.3333333333333333,
 --       0.5833333333333334,  0.5333333333333333,                 0.5]
 matProba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-matProba r mat = zipWith (/) mat (matSum r mat)
+matProba r mat = zipWith (/) mat (matSumCol r mat)
 
 -- | Diagonal of the matrix
 --
 -- >>> run $ diag (use $ matrix 3 ([1..] :: [Int]))
 -- Vector (Z :. 3) [1,5,9]
 diag :: Elt e => Acc (Matrix e) -> Acc (Vector e)
-diag m = backpermute (indexTail (shape m)) (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int)))) m
+diag m = backpermute (indexTail (shape m))
+                     (lift1 (\(Z :. x) -> (Z :. x :. (x :: Exp Int))))
+                     m
 
 -- | Divide by the Diagonal of the matrix
 --
@@ -145,8 +150,8 @@ matMiniMax m = map (\x -> ifThenElse (x > miniMax') x 0) (transpose m)
 --   [ 0.0, 0.0, 7.0,
 --     0.0, 0.0, 8.0,
 --     0.0, 6.0, 9.0]
-matFilter :: Double -> Acc (Matrix Double) -> Acc (Matrix Double)
-matFilter t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
+filter' :: Double -> Acc (Matrix Double) -> Acc (Matrix Double)
+filter' t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
 
 -----------------------------------------------------------------------
 -- * Measures of proximity
@@ -164,7 +169,9 @@ matFilter t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
 -- interactions of 2 terms in the corpus.
 measureConditional :: Matrix Int -> Matrix Double
 --measureConditional m = run (matMiniMax $ matProba (dim m) $ map fromIntegral $ use m)
-measureConditional m = run (matProba (dim m) $ map fromIntegral $ use m)
+measureConditional m = run $ matProba (dim m)
+                           $ map fromIntegral
+                           $ use m
 
 
 -- *** Conditional distance (advanced)
@@ -196,9 +203,9 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
     r = dim m
 
     xs :: Acc (Matrix Double) -> Acc (Matrix Double)
-    xs mat = zipWith (-) (matSum r $ matProba r mat) (matProba r mat)
+    xs mat = zipWith (-) (matSumCol r $ matProba r mat) (matProba r mat)
     ys :: Acc (Matrix Double) -> Acc (Matrix Double)
-    ys mat = zipWith (-) (matSum r $ transpose $ matProba r mat) (matProba r mat)
+    ys mat = zipWith (-) (matSumCol r $ transpose $ matProba r mat) (matProba r mat)
 
 -----------------------------------------------------------------------
 -- ** Distributional Distance
@@ -206,11 +213,11 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 -- | Distributional Distance Measure
 --
 -- Distributional measure is a relative measure which depends on the
--- selected list, it represents structural equivalence.
+-- selected list, it represents structural equivalence of mutual information.
 --
 -- The distributional measure P(c) of @i@ and @j@ terms is: \[
 -- S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik},
--- MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}}^{}} \]
+-- MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}>0}^{}} \]
 --
 -- Mutual information
 -- \[S_{MI}({i},{j}) = \log(\frac{C{ij}}{E{ij}})\]
@@ -228,26 +235,116 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 distributional :: Matrix Int -> Matrix Double
-distributional m = run $ matMiniMax $ ri (map fromIntegral $ use m)
+distributional m = run -- $ matMiniMax
+                       -- $ ri
+                       -- $ myMin 
+                       $ filter' 0
+                       $ s_mi
+                       $ map fromIntegral  -- ^ from Int to Double
+                       $ use m             -- ^ push matrix in Accelerate type
   where
-    
     -- filter  m = zipWith (\a b -> max a b) m (transpose m)
-    
-    ri mat = zipWith (/) mat1 mat2
-      where
-        mat1 = matSum n $ zipWith min (s_mi mat) (s_mi $ transpose mat)
-        mat2 = matSum n mat
-    
-    s_mi    m'  = zipWith (\a b -> log (a/b))  m'
-              $ zipWith (/) (crossProduct m') (total m')
 
-    total m'' = replicate (constant (Z :. n :. n)) $ fold (+) 0 $ fold (+) 0 m''
+    ri :: Acc (Matrix Double) -> Acc (Matrix Double)
+    ri mat = mat1 -- zipWith (/) mat1 mat2
+      where
+        mat1 = matSumCol n $ zipWith min'  (myMin mat) (myMin $ transpose mat)
+        mat2 = total mat
+
+    myMin :: Acc (Matrix Double) -> Acc (Matrix Double)
+    myMin = replicate (constant (Z :. n :. All)) . minimum
+
+
+    -- TODO fix NaN
+    -- Quali TEST: OK
+    s_mi :: Acc (Matrix Double) -> Acc (Matrix Double)
+    s_mi m' = zipWith (\x y -> log (x / y)) (diagNull n m')
+            $ zipWith (/) (crossProduct n m') (total m')
+            -- crossProduct n m'
+
+
+    total :: Acc (Matrix Double) -> Acc (Matrix Double)
+    total = replicate (constant (Z :. n :. n)) . sum . sum
 
     n :: Dim
     n = dim m
-    
-    crossProduct m''' = zipWith (*) (cross m'''  ) (cross (transpose m'''))
-    cross mat         = zipWith (-) (matSum n mat) (mat)
+
+-- run $ (identityMatrix (DAA.constant (10::Int)) :: DAA.Acc (DAA.Matrix Int)) Matrix (Z :. 10 :. 10)
+identityMatrix :: Num a => Exp Int -> Acc (Matrix a)
+identityMatrix n =
+        let zeros = fill (index2 n n) 0
+            ones  = fill (index1 n)   1
+        in
+        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+
+
+eyeMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+eyeMatrix n' m =
+        let ones = fill (index2 n n) 1
+            zeros  = fill (index1 n)   0
+            n = constant n'
+        in
+        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
+
+
+selfMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+selfMatrix n' m =
+        let zeros = fill (index2 n n) 0
+            ones  = fill (index2 n n) 1
+            n = constant n'
+        in
+        permute const ones ( lift1 ( \(Z :. (i :: Exp Int) :. (j:: Exp Int))
+                                                -> -- ifThenElse (i /= j)
+                                                     --         (Z :. i :. j)
+                                                              (Z :. i :. i)
+                                    )) zeros
+
+
+selfMatrix' m' = run $ selfMatrix n m
+  where
+    n = dim m'
+    m = use m'
+
+-------------------------------------------------
+diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+diagNull n m = zipWith (*) m eye
+  where
+    eye = eyeMatrix n m
+
+
+-------------------------------------------------
+crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+crossProduct n m = trace (P.show (run m',run m'')) $ zipWith (*) m' m''
+  where
+    m'  = cross n m
+    m'' = cross n (transpose m)
+
+crossT :: Matrix Double -> Matrix Double
+crossT  = run . transpose . use
+
+crossProduct' :: Matrix Double -> Matrix Double
+crossProduct' m = run $ crossProduct n m'
+  where
+    n  = dim m
+    m' = use m
+
+runWith :: (Arrays c, Elt a1)
+        => (Dim -> Acc (Matrix a1) -> a2 -> Acc c)
+        -> Matrix a1
+        -> a2
+        -> c
+runWith f m = run . f (dim m) (use m)
+
+-- | cross
+cross :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+cross n mat = diagNull n (matSumCol n $ diagNull n mat)
+
+cross' :: Matrix Double -> Matrix Double
+cross' mat = run $ cross n mat'
+  where
+    mat' = use mat
+    n = dim mat
+
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
