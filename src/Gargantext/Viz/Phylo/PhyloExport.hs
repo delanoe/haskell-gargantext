@@ -171,12 +171,12 @@ exportToDot phylo export =
          <> "##########################") $
     digraph ((Str . fromStrict) $ (phyloName $ getConfig phylo)) $ do 
 
-        -- | 1) init the dot graph
+        {- 1) init the dot graph -}
         graphAttrs ( [ Label (toDotLabel $ (phyloName $ getConfig phylo))]
                   <> [ FontSize 30, LabelLoc VTop, NodeSep 1, RankSep [1], Rank SameRank, Splines SplineEdges, Overlap ScaleOverlaps
                      , Ratio FillRatio
                      , Style [SItem Filled []],Color [toWColor White]]
-                  -- | home made attributes
+                  {-- home made attributes -}
                   <> [(toAttr (fromStrict "phyloFoundations") $ pack $ show (length $ Vector.toList $ getRoots phylo))
                      ,(toAttr (fromStrict "phyloTerms") $ pack $ show (length $ nub $ concat $ map (\g -> g ^. phylo_groupNgrams) $ export ^. export_groups))
                      ,(toAttr (fromStrict "phyloDocs") $ pack $ show (sum $ elems $ phylo ^. phylo_timeDocs))
@@ -185,36 +185,36 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
                      ])
 
-
+{-
  -- toAttr (fromStrict k) $ (pack . unwords) $ map show v
 
-        -- | 2) create a layer for the branches labels
+        --  2) create a layer for the branches labels -}
         subgraph (Str "Branches peaks") $ do 
 
             graphAttrs [Rank SameRank]
-
-            -- | 3) group the branches by hierarchy
+{-
+            --  3) group the branches by hierarchy
             -- mapM (\branches -> 
             --         subgraph (Str "Branches clade") $ do
             --             graphAttrs [Rank SameRank]
 
-            --             -- | 4) create a node for each branch
+            --             --  4) create a node for each branch
             --             mapM branchToDotNode branches
             --     ) $ elems $ fromListWith (++) $ map (\b -> ((init . snd) $ b ^. branch_id,[b])) $ export ^. export_branches
-
+-}
             mapM (\b -> branchToDotNode b (fromJust $ elemIndex b (export ^. export_branches))) $ export ^. export_branches
 
-        -- | 5) create a layer for each period
+        {--  5) create a layer for each period -}
         _ <- mapM (\period ->
                 subgraph ((Str . fromStrict . Text.pack) $ ("Period" <> show (fst period) <> show (snd period))) $ do 
                     graphAttrs [Rank SameRank]
                     periodToDotNode period
 
-                    -- | 6) create a node for each group 
+                    {--  6) create a node for each group -}
                     mapM (\g -> groupToDotNode (getRoots phylo) g (toBid g (export ^. export_branches))) (filter (\g -> g ^. phylo_groupPeriod == period) $ export ^. export_groups)
             ) $ getPeriodIds phylo
 
-        -- | 7) create the edges between a branch and its first groups
+        {--  7) create the edges between a branch and its first groups -}
         _ <- mapM (\(bId,groups) ->
                 mapM (\g -> toDotEdge (branchIdToDotId bId) (groupIdToDotId $ getGroupId g) "" BranchToGroup) groups 
              )
@@ -224,29 +224,27 @@ exportToDot phylo export =
                            $ sortOn (fst . _phylo_groupPeriod) groups) 
            $ fromListWith (++) $ map (\g -> (g ^. phylo_groupBranchId,[g])) $ export ^. export_groups
 
-        -- | 8) create the edges between the groups
+        {-  8) create the edges between the groups -}
         _ <- mapM (\((k,k'),_) -> 
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToGroup
             ) $ (toList . mergePointers) $ export ^. export_groups
 
-        -- | 7) create the edges between the periods 
+        {-  7) create the edges between the periods -}
         _ <- mapM (\(prd,prd') ->
                 toDotEdge (periodIdToDotId prd) (periodIdToDotId prd') "" PeriodToPeriod
             ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ getPeriodIds phylo
 
-        -- | 8) create the edges between the branches 
+        {-  8) create the edges between the branches 
         -- _ <- mapM (\(bId,bId') ->
         --         toDotEdge (branchIdToDotId bId) (branchIdToDotId bId') 
         --         (Text.pack $ show(branchIdsToProximity bId bId' 
         --                             (getThresholdInit $ phyloProximity $ getConfig phylo)
         --                             (getThresholdStep $ phyloProximity $ getConfig phylo))) BranchToBranch
         --     ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ map _branch_id $ export ^. export_branches
+        -}
 
 
         graphAttrs [Rank SameRank]
-
-
-        
 
 
 ----------------
@@ -439,13 +437,13 @@ toDynamics n parents g m =
     let prd = g ^. phylo_groupPeriod
         end = last' "dynamics" (sort $ map snd $ elems m)
     in  if (((snd prd) == (snd $ m ! n)) && (snd prd /= end))
-            -- | decrease
+            {- decrease -}
             then 2
         else if ((fst prd) == (fst $ m ! n))
-            -- | recombination
+            {- recombination -}
             then 0
         else if isNew
-            -- | emergence
+            {- emergence -}
             then 1
         else 3
     where

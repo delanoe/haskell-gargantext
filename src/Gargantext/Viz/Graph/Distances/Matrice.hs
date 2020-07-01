@@ -235,13 +235,16 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 distributional :: Matrix Int -> Matrix Double
-distributional m = run -- $ matMiniMax
+distributional m = run {- -- $ matMiniMax
                        -- $ ri
-                       -- $ myMin 
+                       -- $ myMin
+                       -}
                        $ filter' 0
                        $ s_mi
-                       $ map fromIntegral  -- ^ from Int to Double
-                       $ use m             -- ^ push matrix in Accelerate type
+                       $ map fromIntegral
+                          {- from Int to Double -}
+                       $ use m
+                          {- push matrix in Accelerate type -}
   where
     -- filter  m = zipWith (\a b -> max a b) m (transpose m)
 

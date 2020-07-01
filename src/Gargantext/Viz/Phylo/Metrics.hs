@@ -90,13 +90,13 @@ findDynamics n pv pn m =
         bid = fromJust $ (pn ^. pn_bid)
         end = last' "dynamics" (sort $ map snd $ elems m)
     in  if (((snd prd) == (snd $ m ! n)) && (snd prd /= end))
-            -- | emergence
+            -- emergence
             then 2
         else if ((fst prd) == (fst $ m ! n))
-            -- | recombination
+            -- recombination
             then 0
         else if (not $ sharedWithParents (fst prd) bid n pv)
-            -- | decrease
+            -- decrease
             then 1
         else 3
 
@@ -175,9 +175,3 @@ hamming f1 f2 = fromIntegral $ max ((size inter) - (size f1)) ((size inter) - (s
     inter :: Map (Int, Int) Double
     inter = intersection f1 f2 
     --------------------------------------
-
-
-
-
-
-

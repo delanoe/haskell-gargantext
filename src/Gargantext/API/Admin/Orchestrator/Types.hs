@@ -27,13 +27,13 @@ instance Arbitrary a => Arbitrary (JobOutput a) where
   arbitrary = JobOutput <$> arbitrary
 
 -- | Main Types
+-- TODO IsidoreAuth
 data ExternalAPIs = All
                   | PubMed
                   | HAL
                   | IsTex
                   | Isidore
   deriving (Show, Eq, Enum, Bounded, Generic)
-                  -- | IsidoreAuth
 
 
 -- | Main Instances

@@ -73,12 +73,12 @@ subst (src, dst) x | sim src x = dst
                    | otherwise = x
 ------------------------------------------------------------------------
 
+-- | TODO: Show Instance only used for debugging
 type Entropy e =
   ( Fractional e
   , Floating e
   , P.RealFloat e
   , Show e
-  -- ^ TODO: only used for debugging
   )
 ------------------------------------------------------------------------
 -- | Example and tests for development
