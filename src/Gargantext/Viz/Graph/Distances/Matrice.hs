@@ -10,7 +10,6 @@ Portability : POSIX
 This module aims at implementig distances of terms context by context is
 the same referential of corpus.
 
-
 Implementation use Accelerate library which enables GPU and CPU computation:
 
   * Manuel M. T. Chakravarty, Gabriele Keller, Sean Lee, Trevor L. McDonell, and Vinod Grover.
@@ -321,7 +320,7 @@ crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 crossProduct n m = trace (P.show (run m',run m'')) $ zipWith (*) m' m''
   where
     m'  = cross n m
-    m'' = cross n (transpose m)
+    m'' = transpose $ cross n m
 
 crossT :: Matrix Double -> Matrix Double
 crossT  = run . transpose . use
@@ -448,7 +447,23 @@ p_ m = zipWith (/) m (n_ m)
 -- * For Tests (to be removed)
 -- | Test perfermance with this matrix
 -- TODO : add this in a benchmark folder
-distriTest :: Matrix Double
-distriTest = distributional $ matrix 100 [1..]
+distriTest :: Int -> Matrix Double
+distriTest n = distributional (matrix n theMatrix)
+  where
+    theMatrix | (P.==) n 3 =  [ 1, 1, 2
+                              , 1, 2, 3
+                              , 2, 3, 4
+                              ]
+              | P.otherwise = [ 1, 1
+                              , 1, 2
+                              ]
+
+
+    theResult | (P.==) n 2 = let r = 1.6094379124341003 in [ 0, r, r, 0]
+              | P.otherwise = [ 1, 1 ]
+
+
+
+
 -----------------------------------------------------------------------
 
