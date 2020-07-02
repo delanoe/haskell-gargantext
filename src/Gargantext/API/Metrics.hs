@@ -19,15 +19,12 @@ module Gargantext.API.Metrics
     where
 
 import Control.Lens
-import Data.Aeson
-import qualified Data.Digest.Pure.MD5 as DPMD5
-import Data.Swagger
 import Data.Time (UTCTime)
-import GHC.Generics (Generic)
 import Protolude
 import Servant
 import qualified Data.Map as Map
 
+import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.NTree
 import Gargantext.API.Prelude (GargServer)
@@ -45,18 +42,6 @@ import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Types
-
-data HashedResponse a = HashedResponse { md5 :: Text, value :: a }
-  deriving (Generic)
-
-instance ToSchema a => ToSchema (HashedResponse a)
-instance ToJSON a => ToJSON (HashedResponse a) where
-  toJSON = genericToJSON defaultOptions
-
-constructHashedResponse :: ToJSON a => a -> HashedResponse a
-constructHashedResponse chart = HashedResponse { md5 = md5', value = chart }
-  where
-    md5' = show $ DPMD5.md5 $ encode chart
 
 -------------------------------------------------------------
 -- | Scatter metrics API

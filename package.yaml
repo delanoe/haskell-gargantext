@@ -38,6 +38,7 @@ library:
   exposed-modules:
   - Gargantext
   - Gargantext.API
+  - Gargantext.API.HashedResponse
   - Gargantext.API.Node
   - Gargantext.API.Admin.Settings
   - Gargantext.API.Prelude
