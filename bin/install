@@ -1,1 +1,3 @@
-stack install --profile
+#!/bin/bash
+
+stack install --profile # --test --haddock

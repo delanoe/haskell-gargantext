@@ -38,6 +38,7 @@ data NodeError = NoListFound
                | NotImplYet
                | ManyNodeUsers
                | DoesNotExist NodeId
+               | NeedsConfiguration
 
 instance Show NodeError
   where
@@ -53,7 +54,8 @@ instance Show NodeError
     show NotImplYet    = "Not implemented yet"
     show ManyParents   = "Too many parents"
     show ManyNodeUsers = "Many userNode/user"
-    show (DoesNotExist n) = "Node does not exist" <> show n
+    show (DoesNotExist n)   = "Node does not exist" <> show n
+    show NeedsConfiguration = "Needs configuration"
 
 class HasNodeError e where
   _NodeError :: Prism' e NodeError
