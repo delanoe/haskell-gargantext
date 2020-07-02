@@ -15,7 +15,7 @@ Portability : POSIX
 
 module Gargantext.Viz.Phylo.TemporalMatching where
 
-import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, union, dropWhile, partition, or, sort, (!!))
+import Data.List (concat, splitAt, tail, sortOn, (++), intersect, null, inits, groupBy, scanl, nub, nubBy, union, dropWhile, partition, or, sort, (!!))
 import Data.Map  (Map, fromList, elems, restrictKeys, unionWith, findWithDefault, keys, (!), (!?), filterWithKey, singleton, empty, mapKeys, adjust)
 
 import Gargantext.Prelude
@@ -139,18 +139,25 @@ makePairs' (egoId, egoNgrams) candidates periods oldPointers fil thr prox docs d
 filterPointers :: Proximity -> Double -> [Pointer] -> [Pointer]
 filterPointers proxi thr pts = filter (\(_,w) -> filterProximity proxi thr w) pts
 
+filterPointers' :: Proximity -> Double -> [(Pointer,[Int])] -> [(Pointer,[Int])]
+filterPointers' proxi thr pts = filter (\((_,w),_) -> filterProximity proxi thr w) pts
+
 
 reduceDiagos :: Map Date Cooc -> Map Int Double
 reduceDiagos diagos = mapKeys (\(k,_) -> k)
                     $ foldl (\acc diago -> unionWith (+) acc diago) empty (elems diagos)
 
-filterPointersByPeriod :: [Pointer] -> [Pointer]
-filterPointersByPeriod pts = 
-  let pts' = sortOn (fst . fst . fst) pts
-      inf  = (fst . fst . fst) $ head' "filterPointersByPeriod" pts'
-      sup  = (fst . fst . fst) $ last' "filterPointersByPeriod" pts'
-   in nub 
-    $ filter (\pt -> ((fst . fst . fst) pt == inf) || ((fst . fst . fst) pt == sup)) pts'
+filterPointersByPeriod :: Filiation -> [(Pointer,[Int])] -> [Pointer]
+filterPointersByPeriod fil pts = 
+  let pts' = sortOn (fst . fst . fst . fst) pts
+      inf  = (fst . fst . fst . fst) $ head' "filterPointersByPeriod" pts'
+      sup  = (fst . fst . fst . fst) $ last' "filterPointersByPeriod" pts'
+   in map fst
+    $ nubBy (\pt pt' -> snd pt == snd pt')
+    $ filter (\pt -> ((fst . fst . fst . fst) pt == inf) || ((fst . fst . fst . fst) pt == sup)) 
+    $ case fil of
+        ToParents -> reverse pts'
+        ToChilds  -> pts'
 
 phyloGroupMatching :: [[(PhyloGroupId,[Int])]] -> Filiation -> Proximity -> Map Date Double -> Map Date Cooc
                    -> Double -> [Pointer] -> (PhyloGroupId,[Int]) -> [Pointer]
@@ -159,15 +166,15 @@ phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) 
           -- | let's find new pointers
           then if null nextPointers
             then []
-            else filterPointersByPeriod
+            else filterPointersByPeriod fil
                $ head' "phyloGroupMatching"
                -- | Keep only the best set of pointers grouped by proximity
-               $ groupBy (\pt pt' -> snd pt == snd pt')
-               $ reverse $ sortOn snd $ head' "pointers" nextPointers
+               $ groupBy (\pt pt' -> (snd . fst) pt == (snd . fst) pt')
+               $ reverse $ sortOn (snd . fst) $ head' "pointers" nextPointers
                -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
           else oldPointers
     where
-        nextPointers :: [[Pointer]]
+        nextPointers :: [[(Pointer,[Int])]]
         nextPointers = take 1
                  $ dropWhile (null)
                  -- | for each time frame, process the proximity on relevant pairs of targeted groups
@@ -178,14 +185,14 @@ phyloGroupMatching candidates fil proxi docs diagos thr oldPointers (id,ngrams) 
                                         $ filterDiago diagos ([(fst . fst) id] ++ periods)
                                         -- | important resize nbdocs et diago dans le make pairs
                                 pairs = makePairs' (id,ngrams) (concat groups) periods oldPointers fil thr proxi docs diagos
-                            in acc ++ ( filterPointers proxi thr 
+                            in acc ++ ( filterPointers' proxi thr 
                                         $ concat
                                         $ map (\(c,c') ->
                                             -- | process the proximity between the current group and a pair of candidates 
                                             let proximity = toProximity nbdocs diago proxi ngrams (snd c) (snd c')
-                                            in if (c == c')
-                                               then [(fst c,proximity)]
-                                               else [(fst c,proximity),(fst c',proximity)] ) pairs )) []
+                                            in if ((c == c') || (snd c == snd c')) 
+                                               then [((fst c,proximity),snd c)]
+                                               else [((fst c,proximity),snd c),((fst c',proximity),snd c')] ) pairs )) []
                  $ inits candidates -- | groups from [[1900],[1900,1901],[1900,1901,1902],...] 
 
 
