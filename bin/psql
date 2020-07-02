@@ -1,0 +1,4 @@
+#!/bin/bash
+
+psql postgresql://gargantua:C8kdcUrAQy66U@localhost/gargandbV5
+
