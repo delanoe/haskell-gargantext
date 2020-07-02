@@ -26,6 +26,7 @@ module Gargantext.Prelude
   , sortWith
   , module Prelude
   , MonadBase(..)
+  , Typeable
   )
   where
 
@@ -36,6 +37,7 @@ import GHC.Real (round)
 import Data.Map (Map, lookup)
 import Data.Maybe (isJust, fromJust, maybe)
 import Data.Text (Text)
+import Data.Typeable (Typeable)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float

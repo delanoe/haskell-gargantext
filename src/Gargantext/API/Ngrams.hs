@@ -116,7 +116,7 @@ import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Gargantext.Core.Types (TODO)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
@@ -200,7 +200,7 @@ instance (Ord a, FromJSON a) => FromJSON (MSet a) where
 
 instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
   -- TODO
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
+  declareNamedSchema _ = wellNamedSchema "" (Proxy :: Proxy TODO)
 
 ------------------------------------------------------------------------
 type NgramsTerm = Text
@@ -492,7 +492,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (PatchMSet a) where
 
 instance ToSchema a => ToSchema (PatchMSet a) where
   -- TODO
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
+  declareNamedSchema _ = wellNamedSchema "" (Proxy :: Proxy TODO)
 
 type instance Patched (PatchMSet a) = MSet a
 
@@ -665,8 +665,8 @@ data Versioned a = Versioned
   deriving (Generic, Show, Eq)
 deriveJSON (unPrefix "_v_") ''Versioned
 makeLenses ''Versioned
-instance ToSchema a => ToSchema (Versioned a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_v_")
+instance (Typeable a, ToSchema a) => ToSchema (Versioned a) where
+  declareNamedSchema = wellNamedSchema "_v_"
 instance Arbitrary a => Arbitrary (Versioned a) where
   arbitrary = Versioned 1 <$> arbitrary -- TODO 1 is constant so far
 

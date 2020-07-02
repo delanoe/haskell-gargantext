@@ -26,7 +26,7 @@ import Data.Monoid ((<>))
 import Data.Swagger
 import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
 import Gargantext.Prelude
 import Prelude (Enum, Bounded, minBound, maxBound)
@@ -98,8 +98,8 @@ data Tree a = TreeN { _tn_node :: a, _tn_children :: [Tree a] }
 
 $(deriveJSON (unPrefix "_tn_") ''Tree)
 
-instance ToSchema a => ToSchema (Tree a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_tn_")
+instance (Typeable a, ToSchema a) => ToSchema (Tree a) where
+  declareNamedSchema = wellNamedSchema "_tn_"
 
 instance Arbitrary (Tree NodeTree) where
   arbitrary = elements [userTree, userTree]

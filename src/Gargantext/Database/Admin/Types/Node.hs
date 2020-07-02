@@ -29,6 +29,7 @@ import Data.Eq (Eq)
 import Data.Swagger
 import Data.Text (Text, unpack)
 import Data.Time (UTCTime)
+import Data.Typeable (Typeable)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
@@ -43,7 +44,7 @@ import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
 import Text.Show (Show())
 
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Prelude (fromField')
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
@@ -60,37 +61,37 @@ type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId
 
 ------------------------------------------------------------------------
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePoly NodeId NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
+  declareNamedSchema = wellNamedSchema "_node_"
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePoly NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
+  declareNamedSchema = wellNamedSchema "_node_"
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata (Maybe TSVector)
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
+  declareNamedSchema = wellNamedSchema "_ns_"
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata (Maybe TSVector)
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
+  declareNamedSchema = wellNamedSchema "_ns_"
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
