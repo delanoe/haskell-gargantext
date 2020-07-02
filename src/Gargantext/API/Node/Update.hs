@@ -81,7 +81,7 @@ updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 1
                    , _scst_failed    = Just 0
-                   , _scst_remaining = Just 2
+                   , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
 

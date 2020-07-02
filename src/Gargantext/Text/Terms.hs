@@ -175,6 +175,6 @@ newTries n t = buildTries n (fmap toToken $ uniText t)
 uniText :: Text -> [[Text]]
 uniText = map (List.filter (not . isPunctuation))
         . map tokenize
-        . sentences       -- | TODO get sentences according to lang
+        . sentences       -- TODO get sentences according to lang
         . Text.toLower
 

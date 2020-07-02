@@ -15,6 +15,7 @@ commentary with @some markup@.
 
 module Ngrams.Lang where
 
+{-
 import Gargantext.Prelude (IO())
 
 import Gargantext.Core (Lang(..))
@@ -24,4 +25,4 @@ import qualified Ngrams.Lang.En as En
 ngramsExtractionTest :: Lang -> IO ()
 ngramsExtractionTest FR = Fr.ngramsExtractionTest
 ngramsExtractionTest EN = En.ngramsExtractionTest
-
+-}

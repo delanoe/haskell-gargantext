@@ -15,6 +15,7 @@ commentary with @some markup@.
 
 module Ngrams.Lang.Occurrences where
 
+{-
 import Test.Hspec
 
 import Data.Either (Either(Right))
@@ -59,4 +60,4 @@ parsersTest = hspec $ do
 --  describe "Parser for nodes" $ do
 --    it "returns the result of one parsing after space" $ do
 --      occOfCorpus 249509 "sciences" `shouldReturn` 7
-
+-}

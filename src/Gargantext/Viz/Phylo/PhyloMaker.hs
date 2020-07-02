@@ -115,7 +115,7 @@ cliqueToGroup fis pId lvl idx fdt coocs =
                    (fis ^. phyloClique_support)
                    ngrams
                    (ngramsToCooc ngrams coocs)
-                   (1,[0]) -- | branchid (lvl,[path in the branching tree])
+                   (1,[0]) --  branchid (lvl,[path in the branching tree])
                    (fromList [("breaks",[0]),("seaLevels",[0])])
                    [] [] [] []
 
@@ -142,24 +142,24 @@ toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of
 ---------------------------
 
 
--- | To apply a filter with the possibility of keeping some periods non empty (keep : True|False)
+--  To apply a filter with the possibility of keeping some periods non empty (keep : True|False)
 filterClique :: Bool -> Int -> (Int -> [PhyloClique] -> [PhyloClique]) -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
 filterClique keep thr f m = case keep of
   False -> map (\l -> f thr l) m
   True  -> map (\l -> keepFilled (f) thr l) m
 
 
--- | To filter Fis with small Support
+--  To filter Fis with small Support
 filterCliqueBySupport :: Int -> [PhyloClique] -> [PhyloClique]
 filterCliqueBySupport thr l = filter (\clq -> (clq ^. phyloClique_support) >= thr) l
 
 
--- | To filter Fis with small Clique size
+--  To filter Fis with small Clique size
 filterCliqueBySize :: Int -> [PhyloClique] -> [PhyloClique]
 filterCliqueBySize thr l = filter (\clq -> (size $ clq ^. phyloClique_nodes) >= thr) l
 
 
--- | To filter nested Fis
+--  To filter nested Fis
 filterCliqueByNested :: Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
 filterCliqueByNested m = 
   let clq  = map (\l -> 
@@ -173,16 +173,16 @@ filterCliqueByNested m =
   in  fromList $ zip (keys m) clq' 
 
 
--- | To transform a time map of docs innto a time map of Fis with some filters
+--  To transform a time map of docs innto a time map of Fis with some filters
 toPhyloClique :: Phylo -> Map (Date, Date) [Document] -> Map (Date,Date) [PhyloClique]
 toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of 
     Fis s s' -> -- traceFis "Filtered Fis"
                 filterCliqueByNested 
-                -- $ traceFis "Filtered by clique size"
+                {- \$ traceFis "Filtered by clique size" -}
                 $ filterClique True s' (filterCliqueBySize)
-                -- $ traceFis "Filtered by support"
+                {- \$ traceFis "Filtered by support" -}
                 $ filterClique True s (filterCliqueBySupport)
-                -- $ traceFis "Unfiltered Fis" 
+                {- \$ traceFis "Unfiltered Fis" -}
                 phyloClique
     MaxClique _ -> undefined
     where
@@ -204,7 +204,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
 --------------------
 
 
--- | To transform the docs into a time map of coocurency matrix 
+--  To transform the docs into a time map of coocurency matrix 
 docsToTimeScaleCooc :: [Document] -> Vector Ngrams -> Map Date Cooc
 docsToTimeScaleCooc docs fdt = 
     let mCooc  = fromListWith sumCooc
@@ -221,7 +221,7 @@ docsToTimeScaleCooc docs fdt =
 -- | to Phylo Base | --
 -----------------------
 
--- | To group a list of Documents by fixed periods
+--  To group a list of Documents by fixed periods
 groupDocsByPeriod' :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
 groupDocsByPeriod' f pds docs = 
   let docs'    = groupBy (\d d' -> f d == f d') $ sortOn f docs
@@ -237,7 +237,7 @@ groupDocsByPeriod' f pds docs =
 
 
 
--- | To group a list of Documents by fixed periods
+--  To group a list of Documents by fixed periods
 groupDocsByPeriod :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
 groupDocsByPeriod _ _   [] = panic "[ERR][Viz.Phylo.PhyloMaker] Empty [Documents] can not have any periods"
 groupDocsByPeriod f pds es = 
@@ -265,7 +265,7 @@ docsToTermFreq docs fdt =
    in map (/sumFreqs) freqs
 
 
--- | To count the number of docs by unit of time
+--  To count the number of docs by unit of time
 docsToTimeScaleNb :: [Document] -> Map Date Double
 docsToTimeScaleNb docs = 
     let docs' = fromListWith (+) $ map (\d -> (date d,1)) docs
@@ -279,7 +279,7 @@ initPhyloLevels lvlMax pId =
     fromList $ map (\lvl -> ((pId,lvl),PhyloLevel pId lvl empty)) [1..lvlMax]
 
 
--- | To init the basic elements of a Phylo
+--  To init the basic elements of a Phylo
 toPhyloBase :: [Document] -> TermList -> Config -> Phylo
 toPhyloBase docs lst conf = 
     let foundations  = PhyloFoundations (Vector.fromList $ nub $ concat $ map text docs) lst
