@@ -11,7 +11,7 @@ import Protolude
 import Test.QuickCheck.Arbitrary
 
 import Gargantext.Core.Types (ListType(..))
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 
 ----------------------------------------------------------------------------
 
@@ -48,8 +48,8 @@ deriveJSON (unPrefix "m_") ''Metric
 data ChartMetrics a = ChartMetrics { chartMetrics_data :: a }
   deriving (Generic, Show)
 
-instance (ToSchema a) => ToSchema (ChartMetrics a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "chartMetrics_")
+instance (Typeable a, ToSchema a) => ToSchema (ChartMetrics a) where
+  declareNamedSchema = wellNamedSchema "chartMetrics_"
 instance (Arbitrary a) => Arbitrary (ChartMetrics a)
   where
     arbitrary = ChartMetrics <$> arbitrary

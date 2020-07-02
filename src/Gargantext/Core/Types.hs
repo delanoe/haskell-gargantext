@@ -34,13 +34,13 @@ import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set, empty)
 import Data.Swagger (ToParamSchema)
-import Data.Swagger (ToSchema(..), genericDeclareNamedSchema)
+import Data.Swagger (ToSchema(..))
 import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
@@ -150,8 +150,8 @@ data TableResult a = TableResult { tr_count :: Int
 
 $(deriveJSON (unPrefix "tr_") ''TableResult)
 
-instance ToSchema a => ToSchema (TableResult a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tr_")
+instance (Typeable a, ToSchema a) => ToSchema (TableResult a) where
+  declareNamedSchema = wellNamedSchema "tr_"
 
 instance Arbitrary a => Arbitrary (TableResult a) where
   arbitrary = TableResult <$> arbitrary <*> arbitrary

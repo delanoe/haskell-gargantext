@@ -29,7 +29,7 @@ import Test.QuickCheck.Arbitrary
 import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)
 import Gargantext.Database.Prelude (fromField')
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Viz.Phylo (Phylo(..))
 import Gargantext.Viz.Types (Histo(..))
 
@@ -179,9 +179,9 @@ $(makeLenses ''HyperdataField)
 defaultHyperdataField :: HyperdataField CorpusField
 defaultHyperdataField = HyperdataField Markdown "name" defaultCorpusField
 
-instance (ToSchema a) => ToSchema (HyperdataField a) where
+instance (Typeable a, ToSchema a) => ToSchema (HyperdataField a) where
   declareNamedSchema =
-    genericDeclareNamedSchema (unPrefixSwagger "_hf_")
+    wellNamedSchema "_hf_"
     -- & mapped.schema.description ?~ "HyperdataField"
     -- & mapped.schema.example ?~ toJSON defaultHyperdataField
 

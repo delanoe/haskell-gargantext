@@ -12,7 +12,10 @@ commentary with @some markup@.
 -}
 
 
-module Gargantext.Core.Utils.Prefix where
+module Gargantext.Core.Utils.Prefix
+  ( module Gargantext.Core.Utils.Prefix
+  , wellNamedSchema
+  ) where
 
 import Prelude
 
@@ -22,6 +25,7 @@ import Data.Aeson.Types (Parser)
 import Data.Char (toLower)
 import Data.Monoid ((<>))
 import Data.Swagger.SchemaOptions (SchemaOptions, fromAesonOptions)
+import Servant.Job.Utils (wellNamedSchema)
 import Text.Read (Read(..),readMaybe)
 
 
