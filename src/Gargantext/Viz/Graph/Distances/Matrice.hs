@@ -142,6 +142,8 @@ matMiniMax m = map (\x -> ifThenElse (x > miniMax') x 0) (transpose m)
   where
     miniMax' = (the $ minimum $ maximum m)
 
+
+
 -- | Filters the matrix with a constant
 --
 -- >>> run $ matFilter 5 $ use $ matrix 3 [1..]
@@ -150,7 +152,12 @@ matMiniMax m = map (\x -> ifThenElse (x > miniMax') x 0) (transpose m)
 --     0.0, 0.0, 8.0,
 --     0.0, 6.0, 9.0]
 filter' :: Double -> Acc (Matrix Double) -> Acc (Matrix Double)
-filter' t m = map (\x -> ifThenElse (x > (constant t)) x 0) (transpose m)
+filter' t m = filterWith t 0 m
+
+filterWith :: Double -> Double -> Acc (Matrix Double) -> Acc (Matrix Double)
+filterWith t v m = map (\x -> ifThenElse (x > (constant t)) x (constant v)) (transpose m)
+
+
 
 -----------------------------------------------------------------------
 -- * Measures of proximity
@@ -234,10 +241,10 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 distributional :: Matrix Int -> Matrix Double
-distributional m = run {- -- $ matMiniMax
-                       -- $ ri
-                       -- $ myMin
-                       -}
+distributional m = run -- $ matMiniMax
+                      --  $ diagNull n
+                       $ ri
+                       $ filterWith 0 100
                        $ filter' 0
                        $ s_mi
                        $ map fromIntegral
@@ -245,18 +252,16 @@ distributional m = run {- -- $ matMiniMax
                        $ use m
                           {- push matrix in Accelerate type -}
   where
-    -- filter  m = zipWith (\a b -> max a b) m (transpose m)
 
-{-
     ri :: Acc (Matrix Double) -> Acc (Matrix Double)
     ri mat = mat1 -- zipWith (/) mat1 mat2
       where
-        mat1 = matSumCol n $ zipWith min'  (myMin mat) (myMin $ transpose mat)
+        mat1 = matSumCol n $ zipWith min (myMin mat) (myMin $ filterWith 0 100 $ diagNull n $ transpose mat)
         mat2 = total mat
+
     myMin :: Acc (Matrix Double) -> Acc (Matrix Double)
     myMin = replicate (constant (Z :. n :. All)) . minimum
 
--}
 
     -- TODO fix NaN
     -- Quali TEST: OK
@@ -281,17 +286,42 @@ identityMatrix n =
         permute const zeros (\(unindex1 -> i) -> index2 i i) ones
 
 
-eyeMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-eyeMatrix n' _m =
-        let ones = fill (index2 n n) 1
+eyeMatrix :: Num a => Dim -> Acc (Matrix a)
+eyeMatrix n' =
+        let ones   = fill (index2 n n) 1
             zeros  = fill (index1 n)   0
             n = constant n'
         in
         permute const ones (\(unindex1 -> i) -> index2 i i) zeros
 
+-- | TODO use Lenses
+data Direction = MatCol (Exp Int) | MatRow (Exp Int) | Diag
 
-selfMatrix :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-selfMatrix n' _m =
+nullOf :: Num a => Dim -> Direction -> Acc (Matrix a)
+nullOf n' dir =
+        let ones   = fill (index2 n n) 1
+            zeros  = fill (index2 n n) 0
+            n = constant n'
+        in
+        permute const ones -- (\(unindex2 -> i) -> let Exp (x,y) = i in index2 x y)
+
+                           ( lift1 ( \(Z :. (i :: Exp Int) :. (_j:: Exp Int))
+                                                -> case dir of 
+                                                     MatCol m -> (Z :. i :. m)
+                                                     MatRow m -> (Z :. m :. i)
+                                                     Diag     -> (Z :. i :. i)
+
+                                    ))
+                           zeros
+
+nullOfWithDiag :: Num a => Dim -> Direction -> Acc (Matrix a)
+nullOfWithDiag n dir = zipWith (*) (nullOf n dir) (nullOf n Diag)
+
+
+
+{- | WIP fun with indexes
+selfMatrix :: Num a => Dim -> Acc (Matrix a)
+selfMatrix n' =
         let zeros = fill (index2 n n) 0
             ones  = fill (index2 n n) 1
             n = constant n'
@@ -303,24 +333,24 @@ selfMatrix n' _m =
                                     )) zeros
 
 selfMatrix' :: (Elt a, P.Num (Exp a)) => Array DIM2 a -> Matrix a
-selfMatrix' m' = run $ selfMatrix n m
+selfMatrix' m' = run $ selfMatrix n
   where
     n = dim m'
     m = use m'
-
+-}
 -------------------------------------------------
 diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
 diagNull n m = zipWith (*) m eye
   where
-    eye = eyeMatrix n m
-
+    eye = eyeMatrix n
 
 -------------------------------------------------
 crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-crossProduct n m = trace (P.show (run m',run m'')) $ zipWith (*) m' m''
+crossProduct n m = {-trace (P.show (run m',run m'')) $-} zipWith (*) m' m''
   where
     m'  = cross n m
     m'' = transpose $ cross n m
+
 
 crossT :: Matrix Double -> Matrix Double
 crossT  = run . transpose . use
@@ -450,14 +480,20 @@ p_ m = zipWith (/) m (n_ m)
 distriTest :: Int -> Matrix Double
 distriTest n = distributional (matrix n theMatrix)
   where
-    theMatrix | (P.==) n 3 =  [ 1, 1, 2
+    theMatrix | (P.==) n 2 = [ 1, 1
+                             , 1, 2
+                             ]
+ 
+              | (P.==) n 3 =  [ 1, 1, 2
                               , 1, 2, 3
                               , 2, 3, 4
                               ]
-              | P.otherwise = [ 1, 1
-                              , 1, 2
+              | (P.==) n 4 =  [ 1, 1, 2, 3
+                              , 1, 2, 3, 4
+                              , 2, 3, 4, 5
+                              , 3, 4, 5, 6
                               ]
-
+              | P.otherwise = P.undefined
 
     theResult | (P.==) n 2 = let r = 1.6094379124341003 in [ 0, r, r, 0]
               | P.otherwise = [ 1, 1 ]
