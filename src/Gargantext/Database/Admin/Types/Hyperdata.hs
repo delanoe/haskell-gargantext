@@ -233,6 +233,7 @@ data HyperdataList =
                 , hd_pie     :: !(Maybe (ChartMetrics Histo))
                 , hd_scatter :: !(Maybe Metrics)
                 , hd_tree    :: !(Maybe (ChartMetrics [MyTree]))
+                , hd_last_modified :: !(Maybe Text)
                 } deriving (Show, Generic)
 $(deriveJSON (unPrefix "hd_") ''HyperdataList)
 

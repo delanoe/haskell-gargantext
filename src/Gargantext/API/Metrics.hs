@@ -49,42 +49,42 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
                   :> QueryParam  "limit"      Int
-                  :> Get '[JSON] (HashedResponse Metrics)
+                  :> Header "If-Modified-Since" Text
+                  :> Get (Headers '[Servant.Header "Last-Modified"] Text Metrics)
               :<|> Summary "Scatter update"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
                   :> QueryParam  "limit"      Int
                   :> Post '[JSON] ()
-              :<|> "md5" :>
-                     Summary "Scatter MD5"
-                  :> QueryParam  "list"       ListId
-                  :> QueryParamR "ngramsType" TabType
-                  :> Get '[JSON] Text
 
 scatterApi :: NodeId -> GargServer ScatterAPI
 scatterApi id' = getScatter id'
             :<|> updateScatter id'
-            :<|> getScatterMD5 id'
 
 getScatter :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
   -> Maybe Limit
-  -> m (HashedResponse Metrics)
-getScatter cId maybeListId tabType _maybeLimit = do
+  -> Maybe Text
+  -> m Metrics
+getScatter cId maybeListId tabType _maybeLimit mLMSent = do
   listId <- case maybeListId of
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_scatter = mChart } = node ^. node_hyperdata
+  let HyperdataList { hd_scatter = mChart, hd_last_modified = mLM } = node ^. node_hyperdata
 
-  chart <- case mChart of
-    Just chart -> pure chart
-    Nothing    -> do
+  (chart, lastModified) <- case mLM of
+    Nothing -> do
       updateScatter' cId maybeListId tabType Nothing
+    Just lastModified ->
+      case mChart of
+        Nothing    -> do
+          updateScatter' cId maybeListId tabType Nothing
+        Just chart -> pure chart
 
-  pure $ constructHashedResponse chart
+  pure $ addHeader lastModified chart
 
 updateScatter :: FlowCmdM env err m =>
   CorpusId

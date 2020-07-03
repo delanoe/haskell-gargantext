@@ -121,3 +121,19 @@ Then you can log in with `user1:1resu`.
 
 stack --docker exec gargantext-cli -- CorpusFromGarg.csv ListFromGarg.csv Ouput.json
 
+
+Haskell fused-effects-profile
+https://www.simplehaskell.org/
+## REPL tips
+
+Some tips to use the Haskell REPL.
+
+### Query database for node
+
+``` haskell
+:set -XFlexibleContexts
+:m + Data.Aeson
+:m + Data.Proxy
+let getN n = getNode n  :: Cmd GargError (Gargantext.Core.Types.Node Value)
+runCmdRepl $ getN <id>
+```
