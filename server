@@ -1,1 +1,1 @@
-~/.local/bin/gargantext-server --ini gargantext.ini --run Dev +RTS -p
+~/.local/bin/gargantext-server --ini gargantext.ini --run Dev +RTS # -p
