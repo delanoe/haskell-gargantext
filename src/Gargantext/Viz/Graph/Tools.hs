@@ -60,7 +60,9 @@ cooc2graph distance threshold myCooc = do
   let
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
-    matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
+    matCooc = map2mat 0 (Map.size ti)
+            $ Map.filterWithKey (\(a,b) _ -> a /= b) 
+            $ Map.filter (> 1) myCooc'
     distanceMat = measure distance matCooc
     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
 

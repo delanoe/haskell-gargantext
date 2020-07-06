@@ -116,8 +116,8 @@ instance ToSchema GraphMetadata where
 makeLenses ''GraphMetadata
 
 
-data Graph = Graph { _graph_nodes :: [Node]
-                   , _graph_edges :: [Edge]
+data Graph = Graph { _graph_nodes    :: [Node]
+                   , _graph_edges    :: [Edge]
                    , _graph_metadata :: Maybe GraphMetadata
                    }
   deriving (Show, Generic)
