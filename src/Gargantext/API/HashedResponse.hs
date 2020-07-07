@@ -6,7 +6,9 @@ import qualified Data.Digest.Pure.MD5 as DPMD5
 import GHC.Generics (Generic)
 import Protolude
 
-data HashedResponse a = HashedResponse { md5 :: Text, value :: a }
+type MD5 = Text
+
+data HashedResponse a = HashedResponse { md5 :: MD5, value :: a }
   deriving (Generic)
 
 instance ToSchema a => ToSchema (HashedResponse a)

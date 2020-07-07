@@ -59,7 +59,7 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
                      Summary "Scatter MD5"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
-                  :> Get '[JSON] Text
+                  :> Get '[JSON] MD5
 
 scatterApi :: NodeId -> GargServer ScatterAPI
 scatterApi id' = getScatter id'
@@ -115,11 +115,8 @@ updateScatter' cId maybeListId tabType maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_chart = hdc
-                    , hd_list = hdl
-                    , hd_pie = hdp
-                    , hd_tree = hdt } = node ^. node_hyperdata
-  _ <- updateHyperdata listId $ HyperdataList hdc hdl hdp (Just $ Metrics metrics) hdt
+  let hl = node ^. node_hyperdata
+  _ <- updateHyperdata listId $ hl { hd_scatter = Just $ Metrics metrics }
 
   pure $ Metrics metrics
 
@@ -127,7 +124,7 @@ getScatterMD5 :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
-  -> m Text
+  -> m MD5
 getScatterMD5 cId maybeListId tabType = do
   HashedResponse { md5 = md5' } <- getScatter cId maybeListId tabType Nothing
   pure md5'
@@ -150,7 +147,7 @@ type ChartApi = Summary " Chart API"
                      Summary "Chart MD5"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
-                  :> Get '[JSON] Text
+                  :> Get '[JSON] MD5
 
 chartApi :: NodeId -> GargServer ChartApi
 chartApi id' = getChart id'
@@ -200,12 +197,9 @@ updateChart' cId maybeListId _tabType _maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_list = hdl
-                    , hd_pie = hdp
-                    , hd_scatter = hds
-                    , hd_tree = hdt } = node ^. node_hyperdata
+  let hl = node ^. node_hyperdata
   h <- histoData cId
-  _ <- updateHyperdata listId $ HyperdataList (Just $ ChartMetrics h) hdl hdp hds hdt
+  _ <- updateHyperdata listId $ hl { hd_chart = Just $ ChartMetrics h }
 
   pure $ ChartMetrics h
 
@@ -214,7 +208,7 @@ getChartMD5 :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
-  -> m Text
+  -> m MD5
 getChartMD5 cId maybeListId tabType = do
   HashedResponse { md5 = md5' } <- getChart cId Nothing Nothing maybeListId tabType
   pure md5'
@@ -235,7 +229,7 @@ type PieApi = Summary "Pie Chart"
                      Summary "Pie MD5"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
-                  :> Get '[JSON] Text
+                  :> Get '[JSON] MD5
 
 pieApi :: NodeId -> GargServer PieApi
 pieApi id' = getPie id'
@@ -284,13 +278,10 @@ updatePie' cId maybeListId tabType _maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_chart = hdc
-                    , hd_list = hdl
-                    , hd_scatter = hds
-                    , hd_tree = hdt } = node ^. node_hyperdata
+  let hl = node ^. node_hyperdata
 
   p <- pieData cId (ngramsTypeFromTabType tabType) MapTerm
-  _ <- updateHyperdata listId $ HyperdataList hdc hdl (Just $ ChartMetrics p) hds hdt
+  _ <- updateHyperdata listId $ hl { hd_pie = Just $ ChartMetrics p }
 
   pure $ ChartMetrics p
 
@@ -298,7 +289,7 @@ getPieMD5 :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
-  -> m Text
+  -> m MD5
 getPieMD5 cId maybeListId tabType = do
   HashedResponse { md5 = md5' } <- getPie cId Nothing Nothing maybeListId tabType
   pure md5'
@@ -322,7 +313,7 @@ type TreeApi = Summary " Tree API"
               :> QueryParam  "list"       ListId
               :> QueryParamR "ngramsType" TabType
               :> QueryParamR "listType"   ListType
-              :> Get '[JSON] Text
+              :> Get '[JSON] MD5
 
                 -- Depending on the Type of the Node, we could post
                 -- New documents for a corpus
@@ -379,12 +370,9 @@ updateTree' cId maybeListId tabType listType = do
     Nothing  -> defaultList cId
 
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_chart = hdc
-                    , hd_list = hdl
-                    , hd_scatter = hds
-                    , hd_pie = hdp } = node ^. node_hyperdata
+  let hl = node ^. node_hyperdata
   t <- treeData cId (ngramsTypeFromTabType tabType) listType
-  _ <- updateHyperdata listId $ HyperdataList hdc hdl hdp hds (Just $ ChartMetrics t)
+  _ <- updateHyperdata listId $ hl { hd_tree = Just $ ChartMetrics t }
 
   pure $ ChartMetrics t
 
@@ -393,7 +381,7 @@ getTreeMD5 :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> ListType
-  -> m Text
+  -> m MD5
 getTreeMD5 cId maybeListId tabType listType = do
   HashedResponse { md5 = md5' } <- getTree cId Nothing Nothing maybeListId tabType listType
   pure md5'
