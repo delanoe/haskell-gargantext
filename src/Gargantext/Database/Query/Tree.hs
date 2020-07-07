@@ -88,20 +88,21 @@ tree_advanced :: HasTreeError err
        -> [NodeType]
        -> Cmd err (Tree NodeTree)
 tree_advanced r nodeTypes = do
-  mainRoot    <- dbTree r nodeTypes
-  sharedRoots <- findShared r nodeTypes
-  toTree      $ toTreeParent (mainRoot <> sharedRoots)
+  mainRoot    <- dbTree     r nodeTypes
+  sharedRoots <- findShared r NodeFolderShared nodeTypes
+  publicRoots <- findShared r NodeFolderPublic nodeTypes
+  toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
 
 ------------------------------------------------------------------------
 -- | Collaborative Nodes in the Tree
-findShared :: RootId -> [NodeType] -> Cmd err [DbTreeNode]
-findShared r nt = do
+findShared :: RootId -> NodeType -> [NodeType] -> Cmd err [DbTreeNode]
+findShared r nt nts = do
   folderSharedId <- maybe (panic "no folder found") identity
                 <$> head
-                <$> findNodesId r [NodeFolderShared]
-  folders <- getNodeNode folderSharedId
-  nodesSharedId <- mapM (\child -> sharedTree folderSharedId child nt)
-                   $ map _nn_node2_id folders
+                <$> findNodesId r [nt]
+  folders       <- getNodeNode folderSharedId
+  nodesSharedId <- mapM (\child -> sharedTree folderSharedId child nts)
+                 $ map _nn_node2_id folders
   pure $ concat nodesSharedId
 
 sharedTree :: ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]

@@ -25,7 +25,7 @@ import Gargantext.Prelude hiding (reverse)
 import qualified Gargantext.Core.Auth as Auth
 
 -- FIXME UserName used twice
-data User = UserDBId UserId | UserName Text | RootId NodeId
+data User = UserDBId UserId | UserName Text | RootId NodeId | UserPublic
   deriving (Eq)
 
 type Username = Text

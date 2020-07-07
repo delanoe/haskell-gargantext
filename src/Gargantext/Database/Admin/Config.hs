@@ -84,11 +84,10 @@ nodeTypeId n =
 --  Node management
 --  NodeFavorites    -> 15
 
-
 hasNodeType :: forall a. Node a -> NodeType -> Bool
 hasNodeType n nt = (view node_typename n) == (nodeTypeId nt)
 
---
+
 -- | Nodes are typed in the database according to a specific ID
 --
 nodeTypeInv :: [(NodeTypeId, NodeType)]

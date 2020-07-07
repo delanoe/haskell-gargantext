@@ -50,7 +50,7 @@ import Gargantext.Viz.Graph.API
 import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Node.Corpus.Export    as Export
 import qualified Gargantext.API.Node.Corpus.New       as New
-import qualified Gargantext.API.Ngrams.List      as List
+import qualified Gargantext.API.Ngrams.List           as List
 
 
 
@@ -147,7 +147,7 @@ type GargPrivateAPI' =
                           :> TreeAPI
 
            -- :<|> New.Upload
-           :<|> New.AddWithForm
+           :<|> New.AddWithForm 
            :<|> New.AddWithQuery
 
            -- :<|> "annuaire" :> Annuaire.AddWithForm
@@ -224,8 +224,8 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
           <$> PathNode <*> treeAPI
      -- TODO access
-     :<|> addCorpusWithForm  (UserDBId uid)
-     :<|> addCorpusWithQuery (RootId   (NodeId uid))
+     :<|> addCorpusWithForm  (RootId (NodeId uid))
+     :<|> addCorpusWithQuery (RootId (NodeId uid))
 
      -- :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY

@@ -147,4 +147,4 @@ selectRoot (RootId nid) =
     restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< _node_id   row   .== (pgNodeId nid)
     returnA  -< row
-
+selectRoot UserPublic = panic "No root for Public"

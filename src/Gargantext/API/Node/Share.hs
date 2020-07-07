@@ -31,7 +31,8 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
-data ShareNode = ShareNode { username :: Text }
+data ShareNode = ShareTeam   { username :: Text }
+               | SharePublic { rights   :: Text}
   deriving (Generic)
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
@@ -39,8 +40,8 @@ instance FromJSON  ShareNode
 instance ToJSON    ShareNode
 instance ToSchema  ShareNode
 instance Arbitrary ShareNode where
-  arbitrary = elements [ ShareNode "user1"
-                       , ShareNode "user2"
+  arbitrary = elements [ ShareTeam "user1"
+                       , SharePublic "public"
                        ]
 ------------------------------------------------------------------------
 -- TODO permission
@@ -48,8 +49,10 @@ api :: HasNodeError err
     => NodeId
     -> ShareNode
     -> Cmd err Int
-api nId (ShareNode user) =
-  fromIntegral <$> shareNodeWith nId (UserName user)
+api nId (ShareTeam user) =
+  fromIntegral <$> shareNodeWith nId NodeFolderShared (UserName user)
+api nId (SharePublic _rights) =
+  fromIntegral <$> shareNodeWith nId NodeFolderPublic UserPublic
 
 ------------------------------------------------------------------------
 type API = Summary " Share Node with username"

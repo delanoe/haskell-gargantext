@@ -31,24 +31,36 @@ import Gargantext.Prelude
 ------------------------------------------------------------------------
 shareNodeWith :: HasNodeError err
               => NodeId
+              -> NodeType
               -> User
               -> Cmd err Int64
-shareNodeWith n u = do
+shareNodeWith n nt u = do
   nodeToCheck <- getNode   n
-  userIdCheck <- getUserId u
-  if not (hasNodeType nodeToCheck NodeTeam)
-    then panic "Can share node Team only"
-    else if (view node_userId nodeToCheck == userIdCheck)
-     then panic "Can share to others only"
-     else do 
-       folderSharedId  <- getFolderSharedId u
-       insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
-------------------------------------------------------------------------
+  case nt of
+    NodeFolderShared -> do
+      userIdCheck <- getUserId u
+      if not (hasNodeType nodeToCheck NodeTeam)
+        then panic "Can share node Team only"
+        else
+          if (view node_userId nodeToCheck == userIdCheck)
+            then panic "Can share to others only"
+            else do 
+              folderSharedId  <- getFolderId u NodeFolderShared
+              insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
 
-getFolderSharedId :: User -> Cmd err NodeId
-getFolderSharedId u = do
+    NodeFolderPublic -> if not (hasNodeType nodeToCheck NodeGraph)
+                          then panic "Can share node graph only"
+                          else do
+                            folderId  <- getFolderId (UserDBId $ view node_userId nodeToCheck) NodeFolderPublic
+                            insertNodeNode [NodeNode folderId n Nothing Nothing]
+
+    _ -> panic "shareNodeWith not implemented with this NodeType"
+
+------------------------------------------------------------------------
+getFolderId :: User -> NodeType -> Cmd err NodeId
+getFolderId u nt = do
   rootId <- getRootId u
-  s <- getNodesWith rootId HyperdataAny (Just NodeFolderShared) Nothing Nothing
+  s <- getNodesWith rootId HyperdataAny (Just nt) Nothing Nothing
   case head s of
     Nothing -> panic "No folder shared found"
     Just  f -> pure (_node_id f)
@@ -57,7 +69,12 @@ type TeamId = NodeId
 
 delFolderTeam :: User -> TeamId -> Cmd err Int
 delFolderTeam u nId = do
-  folderSharedId <- getFolderSharedId u
+  folderSharedId <- getFolderId u NodeFolderShared
   deleteNodeNode folderSharedId nId
+
+unPublish :: User -> NodeId -> Cmd err Int
+unPublish  u nId = do
+  folderId <- getFolderId u NodeFolderPublic
+  deleteNodeNode folderId nId
 
 
