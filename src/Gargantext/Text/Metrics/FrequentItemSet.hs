@@ -11,7 +11,6 @@ Domain Specific Language to manage Frequent Item Set (FIS)
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Metrics.FrequentItemSet
   ( Fis, Size(..)

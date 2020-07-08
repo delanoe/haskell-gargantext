@@ -12,34 +12,28 @@ Count API part of Gargantext.
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE RankNTypes         #-}
 
 module Gargantext.API.Search
       where
 
-import GHC.Generics (Generic)
-import Data.Time (UTCTime)
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
 import Data.Text (Text)
-import Servant
-import Test.QuickCheck.Arbitrary
-import Test.QuickCheck (elements)
--- import Control.Applicative ((<*>))
-import Gargantext.API.Types (GargServer)
-import Gargantext.Prelude
+import Data.Time (UTCTime)
+import GHC.Generics (Generic)
+import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.TextSearch
-import Gargantext.Database.Facet
+import Gargantext.Database.Query.Facet
+import Gargantext.Database.Action.Search
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Prelude
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
 
 -----------------------------------------------------------------------
 data SearchQuery = SearchQuery

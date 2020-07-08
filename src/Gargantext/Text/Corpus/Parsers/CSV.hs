@@ -11,29 +11,27 @@ CSV parser for Gargantext corpus files.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Text.Corpus.Parsers.CSV where
 
 import Control.Applicative
+import qualified Data.ByteString      as BS
+import qualified Data.ByteString.Lazy as BL
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
 import Data.Text (Text, pack, length, intercalate)
 import Data.Time.Segment (jour)
+import qualified Data.Vector          as V
 import Data.Vector (Vector)
 import GHC.IO (FilePath)
 import GHC.Real (round)
 import GHC.Word (Word8)
-import Gargantext.Database.Types.Node -- (HyperdataDocument(..))
+
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Prelude hiding (length)
 import Gargantext.Text
 import Gargantext.Text.Context
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString      as BS
-import qualified Data.Vector          as V
 
 ---------------------------------------------------------------
 headerCsvGargV3 :: Header

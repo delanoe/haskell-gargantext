@@ -9,33 +9,28 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.Text.List
   where
 
-import Data.Either (partitionEithers, Either(..))
--- import Debug.Trace (trace)
+-- import Data.Either (partitionEithers, Either(..))
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
-import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
+-- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, NodeId)
-import Gargantext.Database.Metrics.NgramsByNode (getTficf', sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
+import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-import Gargantext.Database.Utils (Cmd)
-import Gargantext.Text.List.Learn (Model(..))
-import Gargantext.Text.Metrics (takeScored)
 import Gargantext.Prelude
---import Gargantext.Text.Terms (TermType(..))
+import Gargantext.Text.List.Learn (Model(..))
+-- import Gargantext.Text.Metrics (takeScored)
 import qualified Data.Char as Char
 import qualified Data.List as List
-import qualified Data.Map as Map
-import qualified Data.Set as Set
+import qualified Data.Map  as Map
+import qualified Data.Set  as Set
 import qualified Data.Text as Text
 
 
@@ -45,11 +40,11 @@ data NgramsListBuilder = BuilderStepO { stemSize :: Int
                                       }
                        | BuilderStep1 { withModel :: Model }
                        | BuilderStepN { withModel :: Model }
-                       | Tficf { nlb_lang :: Lang
-                               , nlb_group1 :: Int
-                               , nlb_group2 :: Int
-                               , nlb_stopSize :: StopSize
-                               , nlb_userCorpusId :: UserCorpusId
+                       | Tficf { nlb_lang           :: Lang
+                               , nlb_group1         :: Int
+                               , nlb_group2         :: Int
+                               , nlb_stopSize       :: StopSize
+                               , nlb_userCorpusId   :: UserCorpusId
                                , nlb_masterCorpusId :: MasterCorpusId
                                }
 
@@ -57,7 +52,12 @@ data NgramsListBuilder = BuilderStepO { stemSize :: Int
 data StopSize = StopSize {unStopSize :: Int}
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
-buildNgramsLists :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
+buildNgramsLists :: Lang
+                 -> Int
+                 -> Int
+                 -> StopSize
+                 -> UserCorpusId
+                 -> MasterCorpusId
                  -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsLists l n m s uCid mCid = do
   ngTerms     <- buildNgramsTermsList l n m s uCid mCid
@@ -65,31 +65,38 @@ buildNgramsLists l n m s uCid mCid = do
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
 
-buildNgramsOthersList :: UserCorpusId -> (Text -> Text) -> NgramsType
+buildNgramsOthersList :: UserCorpusId
+                      -> (Text -> Text)
+                      -> NgramsType
                       -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsOthersList uCid groupIt nt = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
   let
     listSize = 9
-    all' = List.reverse $ List.sortOn (Set.size . snd . snd) $ Map.toList ngs
+    all'     = List.reverse $ List.sortOn (Set.size . snd . snd) $ Map.toList ngs
+
     graphTerms = List.take listSize all'
     candiTerms = List.drop listSize all'
-  pure $ Map.unionsWith (<>) [ toElements GraphTerm     graphTerms
-                             , toElements CandidateTerm candiTerms]
-    where
-      toElements nType x = Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
-                            | (t,_ns) <- x
-                            ]
-                        )
-                      ]
 
---{-
+  pure $ Map.unionsWith (<>) [ toElements MapTerm     graphTerms
+                             , toElements CandidateTerm candiTerms
+                             ]
+    where
+      toElements nType x =
+        Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
+                           | (t,_ns) <- x
+                           ]
+                     )]
+
+{-
 buildNgramsTermsList' :: UserCorpusId
                       -> (Text -> Text)
-                      -> ((Text, (Set Text, Set NodeId)) -> Bool) -> Int -> Int
+                      -> ((Text, (Set Text, Set NodeId)) -> Bool)
+                      -> Int
+                      -> Int
                       -> Cmd err (Map NgramsType [NgramsElement])
---}
+
 buildNgramsTermsList' uCid groupIt stop gls is = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid NgramsTerms
   
@@ -113,28 +120,61 @@ buildNgramsTermsList' uCid groupIt stop gls is = do
 
   let ngs' = List.concat
           $ map toNgramsElement
-          $ map (\t -> (StopTerm, toList' t)) s
+          $ map (\t -> (StopTerm     , toList' t)) s
          <> map (\t -> (CandidateTerm, toList' t)) c
-         <> map (\t -> (GraphTerm, toList' t)) m
+         <> map (\t -> (MapTerm    , toList' t)) m
 
   pure $ Map.fromList [(NgramsTerms, ngs')]
+-}
 
 
-buildNgramsTermsList :: Lang -> Int -> Int -> StopSize -> UserCorpusId -> MasterCorpusId
+
+
+buildNgramsTermsList :: Lang
+                     -> Int
+                     -> Int
+                     -> StopSize
+                     -> UserCorpusId
+                     -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
-  candidates   <- sortTficf <$> getTficf' uCid mCid NgramsTerms (ngramsGroup l n m)
+  candidates <- sortTficf Down <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
+
   let
-    candidatesSize = 2000
-    a = 10
-    b = 10
+    candidatesSize = 400
+{-
+    a = 50
+    b = 50
+-}
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
-    termList = (toTermList a b ((isStopTerm s) . fst) candidatesHead)
-             <> (map (toList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
-  let ngs = List.concat $ map toNgramsElement termList
+
+    termList = 
+          -- (toTermList a b ((isStopTerm s) . fst) candidatesHead)
+                (map (toGargList ((isStopTerm s) .fst) MapTerm)     candidatesHead)
+             <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
+
+    ngs = List.concat $ map toNgramsElement termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
+
+
+toTermList :: Int
+           -> Int
+           -> (a -> Bool)
+           -> [a]
+           -> [(ListType, a)]
+toTermList _ _ _ [] = []
+toTermList a b stop ns =  -- trace ("computing toTermList") $
+                      map (toGargList stop CandidateTerm) xs
+                   <> map (toGargList stop MapTerm)     ys
+                   <> toTermList a b stop zs
+    where
+      xs = take a ns
+      xz = drop a ns
+
+      ys = take b xz
+      zs = drop b xz
 
 
 toNgramsElement :: (ListType, (Text, (Double, Set Text))) -> [NgramsElement]
@@ -153,24 +193,11 @@ toNgramsElement (listType, (_stem, (_score, setNgrams))) =
                             ) children
 
 
-toList :: (b -> Bool) -> ListType -> b -> (ListType, b)
-toList stop l n = case stop n of
+toGargList :: (b -> Bool) -> ListType -> b -> (ListType, b)
+toGargList stop l n = case stop n of
     True  -> (StopTerm, n)
     False -> (l, n)
 
-
-toTermList :: Int -> Int -> (a -> Bool) -> [a] -> [(ListType, a)]
-toTermList _ _ _ [] = []
-toTermList a b stop ns =  -- trace ("computing toTermList") $
-                      map (toList stop CandidateTerm) xs
-                   <> map (toList stop GraphTerm)     ys
-                   <> toTermList a b stop zs
-    where
-      xs = take a ns
-      ta = drop a ns
-      
-      ys = take b ta
-      zs = drop b ta
 
 
 isStopTerm :: StopSize -> Text -> Bool

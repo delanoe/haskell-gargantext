@@ -10,7 +10,6 @@ Main FGL funs/types to ease portability with IGraph.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ConstraintKinds   #-}
 
 module Gargantext.Viz.Graph.FGL where

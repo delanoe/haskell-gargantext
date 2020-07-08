@@ -9,34 +9,26 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-#  OPTIONS_GHC -fno-warn-orphans  #-}
 
 {-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Gargantext.Database.Schema.NodeNodeNgrams
   where
 
 import Prelude
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Control.Lens.TH (makeLenses)
-import Gargantext.Database.Utils (Cmd, mkCmd)
-import Gargantext.Database.Schema.Ngrams (NgramsTypeId, pgNgramsTypeId, NgramsId)
-import Gargantext.Database.Schema.Node (pgNodeId)
-import Gargantext.Database.Types.Node
-import Opaleye
+import Gargantext.Database.Schema.Prelude
+import Gargantext.Database.Schema.Ngrams (NgramsTypeId, NgramsId)
+import Gargantext.Database.Admin.Types.Node
 
 data NodeNodeNgramsPoly n1 n2 ngrams_id ngt w
-   = NodeNodeNgrams { _nnng_node1_id   :: n1
-                    , _nnng_node2_id   :: n2
-                    , _nnng_ngrams_id  :: ngrams_id
-                    , _nnng_ngramsType :: ngt
-                    , _nnng_weight     :: w
+   = NodeNodeNgrams { _nnng_node1_id   :: !n1
+                    , _nnng_node2_id   :: !n2
+                    , _nnng_ngrams_id  :: !ngrams_id
+                    , _nnng_ngramsType :: !ngt
+                    , _nnng_weight     :: !w
                     } deriving (Show)
 
 type NodeNodeNgramsWrite =
@@ -77,30 +69,4 @@ nodeNodeNgramsTable  = Table "node_node_ngrams"
                                , _nnng_weight     = required "weight"
                                }
                           )
-
-------------------------------------------------
-
-queryNodeNodeNgramsTable :: Query NodeNodeNgramsRead
-queryNodeNodeNgramsTable = queryTable nodeNodeNgramsTable
-
--- | Insert utils
-insertNodeNodeNgrams :: [NodeNodeNgrams] -> Cmd err Int
-insertNodeNodeNgrams = insertNodeNodeNgramsW
-                     . map (\(NodeNodeNgrams n1 n2 ng nt w) ->
-                              NodeNodeNgrams (pgNodeId n1)
-                                             (pgNodeId n2)
-                                             (pgInt4   ng)
-                                             (pgNgramsTypeId nt)
-                                             (pgDouble w)
-                                                  )
-
-insertNodeNodeNgramsW :: [NodeNodeNgramsWrite] -> Cmd err Int
-insertNodeNodeNgramsW nnnw =
-  mkCmd $ \c -> fromIntegral <$> runInsert_ c insertNothing
-    where
-      insertNothing = (Insert { iTable = nodeNodeNgramsTable
-                              , iRows  = nnnw
-                              , iReturning = rCount
-                              , iOnConflict = (Just DoNothing)
-      })
 

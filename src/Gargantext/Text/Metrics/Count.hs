@@ -22,8 +22,6 @@ Source : https://en.wikipedia.org/wiki/Type%E2%80%93token_distinction#Occurrence
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Metrics.Count
   where

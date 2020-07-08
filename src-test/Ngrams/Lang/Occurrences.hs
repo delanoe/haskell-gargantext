@@ -11,12 +11,11 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
-{-# LANGUAGE NoImplicitPrelude   #-}
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Ngrams.Lang.Occurrences where
 
+{-
 import Test.Hspec
 
 import Data.Either (Either(Right))
@@ -61,4 +60,4 @@ parsersTest = hspec $ do
 --  describe "Parser for nodes" $ do
 --    it "returns the result of one parsing after space" $ do
 --      occOfCorpus 249509 "sciences" `shouldReturn` 7
-
+-}

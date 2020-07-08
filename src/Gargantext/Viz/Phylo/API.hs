@@ -11,15 +11,8 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE RankNTypes         #-}
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE OverloadedStrings  #-}   -- allows to write Text literals
 {-# LANGUAGE OverloadedLists    #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.API
   where
@@ -28,22 +21,24 @@ import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
+import Data.Proxy (Proxy(..))
 import Data.Swagger
-import Gargantext.API.Types
-import Gargantext.Database.Types.Node (PhyloId, ListId, CorpusId)
-import Gargantext.Database.Schema.Node (insertNodes, nodePhyloW, getNodePhylo)
-import Gargantext.Database.Types.Node -- (NodePhylo(..))
+import Network.HTTP.Media ((//), (/:))
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+import Web.HttpApiData (parseUrlPiece, readTextData)
+
+import Gargantext.API.Prelude
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
+import Gargantext.Database.Query.Table.Node (insertNodes, nodePhyloW, getNodeWith)
+import Gargantext.Database.Schema.Node (_node_hyperdata)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Main
 import Gargantext.Viz.Phylo.Example
 import Gargantext.Core.Types (TODO(..))
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Web.HttpApiData (parseUrlPiece, readTextData)
-import Control.Monad.IO.Class (liftIO)
-import Network.HTTP.Media ((//), (/:))
 
 ------------------------------------------------------------------------
 type PhyloAPI = Summary "Phylo API"
@@ -102,13 +97,13 @@ type GetPhylo =  QueryParam "listId"      ListId
 getPhylo :: PhyloId -> GargServer GetPhylo
 --getPhylo phId _lId l msb _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
 getPhylo phId _lId l msb  = do
-  phNode     <- getNodePhylo phId
+  phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
   let
     level = maybe 2 identity l
     branc = maybe 2 identity msb
     maybePhylo = hyperdataPhylo_data $ _node_hyperdata phNode
 
-  p <- liftIO $ viewPhylo2Svg $ viewPhylo level branc  $ maybe phyloFromQuery identity maybePhylo
+  p <- liftBase $ viewPhylo2Svg $ viewPhylo level branc  $ maybe phyloFromQuery identity maybePhylo
   pure (SVG p)
 ------------------------------------------------------------------------
 type PostPhylo =  QueryParam "listId" ListId

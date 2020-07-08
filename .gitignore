@@ -23,6 +23,8 @@ doc
 deps
 _darcs
 *.pdf
+*.sql
+*.ini
 
 # Runtime
 

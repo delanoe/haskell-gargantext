@@ -13,8 +13,6 @@ Références:
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Viz.Graph.Proxemy
   where

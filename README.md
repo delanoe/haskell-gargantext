@@ -65,6 +65,17 @@ Initialization schema should be loaded automatically (from `devops/postgres/sche
 
 #### Gargantext
 
+##### Fix the passwords
+
+Change the passwords in gargantext.ini_toModify then move it:
+
+mv gargantext.ini_toModify gargantext.ini
+
+(.gitignore avoids adding this file to the repository by mistake)
+
+
+##### Run Gargantext
+
 Users have to be created first (`user1` is created as instance):
 
 ``` sh
@@ -72,7 +83,14 @@ stack install
 ~/.local/bin/gargantext-init "gargantext.ini"
 ```
 
-For Docker env, run:
+For Docker env, first create the appropriate image:
+
+``` sh
+cd devops/docker
+docker build -t fpco/stack-build:lts-14.27-garg .
+```
+
+then run:
 
 ``` sh
 stack --docker run gargantext-init -- gargantext.ini

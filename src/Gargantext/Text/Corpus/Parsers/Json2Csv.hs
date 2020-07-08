@@ -12,9 +12,6 @@ Json parser to export towoard CSV GargV3 format.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Text.Corpus.Parsers.Json2Csv (json2csv, readPatents)

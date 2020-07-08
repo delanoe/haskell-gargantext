@@ -13,8 +13,7 @@ Starting from this model, a specific Gargantext engine will be made
 (using more metrics scores/features).
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Gargantext.Text.Search where
 

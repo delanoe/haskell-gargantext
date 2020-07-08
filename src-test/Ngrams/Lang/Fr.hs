@@ -11,18 +11,19 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NoImplicitPrelude   #-}
 
 module Ngrams.Lang.Fr where
 
+{-
 import Test.Hspec
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
+-- TODO this import is not used anymore
 import Gargantext.Text.Ngrams.PosTagging.Parser (extractNgrams, selectNgrams)
-
+-- use instead
+-
 ngramsExtractionTest :: IO ()
 ngramsExtractionTest = hspec $ do
     describe "Behavioral tests: ngrams extraction in French Language" $ do
@@ -63,4 +64,4 @@ ngramsExtractionTest = hspec $ do
             let textFr1 = "L'heure d'arrivée des coureurs dépend de la météo du jour."
             testFr1 <- map (selectNgrams FR) <$> (extractNgrams FR) textFr1
             testFr1 `shouldBe` [[("heure d' arrivée des coureurs","NC","O"),("météo du jour","NC","O")]]
-
+-}

@@ -5,14 +5,14 @@ if git --version;
 then 
   echo "git installed, ok"
 else
-  sudo apt update && sudo apt install git
+  sudo apt update && sudo apt install -y git
 fi
 
 sudo apt update
-sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql nginx libpq-dev libigraph0-dev
+sudo apt install -y liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql nginx libpq-dev libigraph0-dev
 
 # Phylo management
-sudo apt install graphviz
+sudo apt install -y graphviz
 
-sudo apt install postgresql-server-dev-11
+sudo apt install -y postgresql-server-dev-11
 

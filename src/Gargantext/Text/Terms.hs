@@ -28,43 +28,47 @@ compute graph
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE ConstrainedClassMethods #-}
 
 module Gargantext.Text.Terms
   where
 
 import Control.Lens
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Text (Text)
 import Data.Traversable
 import GHC.Base (String)
-
-import Gargantext.Prelude
+import GHC.Generics (Generic)
 import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Text.Terms.Multi (multiterms)
-import Gargantext.Text.Terms.Mono  (monoTerms)
-import Gargantext.Text.Terms.Mono.Stem (stem)
-
-import qualified Data.Set  as Set
-import qualified Data.List as List
-import qualified Data.Text as Text
-import Gargantext.Text (sentences)
-import Gargantext.Text.Terms.Mono.Token.En (tokenize)
+import Gargantext.Core.Flow.Types
+import Gargantext.Prelude
+import Gargantext.Text (sentences, HasText(..))
 import Gargantext.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
+import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
+import Gargantext.Text.Terms.Mono  (monoTerms)
+import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Text.Terms.Mono.Stem (stem)
+import Gargantext.Text.Terms.Mono.Token.En (tokenize)
+import Gargantext.Text.Terms.Multi (multiterms)
+import qualified Data.List as List
+import qualified Data.Set  as Set
+import qualified Data.Text as Text
 
 data TermType lang
-  = Mono      { _tt_lang :: lang }
-  | Multi     { _tt_lang :: lang }
-  | MonoMulti { _tt_lang :: lang }
-  | Unsupervised { _tt_lang  :: lang
-                 , _tt_windoSize  :: Int
-                 , _tt_ngramsSize :: Int
-                 , _tt_model :: Maybe (Tries Token ())
-  }
-makeLenses ''TermType
+  = Mono      { _tt_lang :: !lang }
+  | Multi     { _tt_lang :: !lang }
+  | MonoMulti { _tt_lang :: !lang }
+  | Unsupervised { _tt_lang  :: !lang
+                 , _tt_windowSize :: !Int
+                 , _tt_ngramsSize :: !Int
+                 , _tt_model      :: !(Maybe (Tries Token ()))
+                 }
+  deriving Generic
 
+makeLenses ''TermType
 --group :: [Text] -> [Text]
 --group = undefined
 
@@ -83,7 +87,45 @@ extractTerms (Unsupervised l n s m) xs = mapM (terms (Unsupervised l n s (Just m
 
 extractTerms termTypeLang xs = mapM (terms termTypeLang) xs
 
+
 ------------------------------------------------------------------------
+withLang :: HasText a
+         => TermType Lang
+         -> [DocumentWithId a]
+         -> TermType Lang
+withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
+  where
+    m' = case m of
+      Nothing -> -- trace ("buildTries here" :: String)
+               Just $ buildTries n ( fmap toToken
+                                   $ uniText
+                                   $ Text.intercalate " . "
+                                   $ List.concat
+                                   $ map hasText ns
+                                   )
+      just_m -> just_m
+withLang l _ = l
+------------------------------------------------------------------------
+
+
+class ExtractNgramsT h
+  where
+    extractNgramsT :: HasText h
+                   => TermType Lang
+                   -> h
+                   -> Cmd err (Map Ngrams (Map NgramsType Int))
+
+filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
+                     -> Map Ngrams (Map NgramsType Int)
+filterNgramsT s ms = Map.fromList $ map (\a -> filter' s a) $ Map.toList ms
+  where
+    filter' s' (ng@(Ngrams t n),y) = case (Text.length t) < s' of
+          True  -> (ng,y)
+          False -> (Ngrams (Text.take s' t) n , y)
+
+
+-- =======================================================
+
 -- | Terms from Text
 -- Mono : mono terms
 -- Multi : multi terms
@@ -133,6 +175,6 @@ newTries n t = buildTries n (fmap toToken $ uniText t)
 uniText :: Text -> [[Text]]
 uniText = map (List.filter (not . isPunctuation))
         . map tokenize
-        . sentences       -- | TODO get sentences according to lang
+        . sentences       -- TODO get sentences according to lang
         . Text.toLower
 

@@ -13,15 +13,13 @@ CSV parser for Gargantext corpus files.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.List.Learn
   where
 
 import Control.Monad.Reader (MonadReader)
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Gargantext.API.Settings
+-- TODO remvoe this deps
+import Gargantext.API.Admin.Settings
 import Data.Map (Map)
 import Data.Maybe (maybe)
 import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
@@ -87,18 +85,18 @@ type Tests = Map ListType [Vec.Vector Double]
 type Score = Double
 type Param = Double
 
-grid :: (MonadReader env m, MonadIO m, HasSettings env)
+grid :: (MonadReader env m, MonadBase IO m, HasSettings env)
      => Param -> Param -> Train -> [Tests] -> m (Maybe Model)
 grid _ _ _ []  = panic "Gargantext.Text.List.Learn.grid : empty test data"
 grid s e tr te = do
   let
-    grid' :: (MonadReader env m, MonadIO m, HasSettings env)
+    grid' :: (MonadReader env m, MonadBase IO m, HasSettings env)
           => Double -> Double
           -> Train
           -> [Tests]
           -> m (Score, Model)
     grid' x y tr' te' = do
-      model'' <- liftIO $ trainList x y tr'
+      model'' <- liftBase $ trainList x y tr'
       
       let
         model' = ModelSVM model'' (Just x) (Just y)
@@ -117,7 +115,7 @@ grid s e tr te = do
                              $ map (\(k,vs) -> zip (repeat k) vs)
                              $ Map.toList t
         
-          res' <- liftIO $ predictList m toGuess
+          res' <- liftBase $ predictList m toGuess
           pure $ score'' $ score' $ List.zip res res' 
       
       score <- mapM (getScore model') te'
