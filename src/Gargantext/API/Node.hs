@@ -145,7 +145,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
              :<|> "move"      :> MoveAPI
-             :<|> "unpublish" :> Post '[JSON] Int
+             :<|> "unpublish" :> Put '[JSON] Int
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
