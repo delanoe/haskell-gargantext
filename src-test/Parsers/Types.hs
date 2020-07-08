@@ -13,7 +13,6 @@ commentary with @some markup@.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE NoImplicitPrelude    #-}
 {-# LANGUAGE StandaloneDeriving   #-}
 
 module Parsers.Types where

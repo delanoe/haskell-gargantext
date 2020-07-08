@@ -9,52 +9,37 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE FlexibleContexts  #-}
 
 module Gargantext.Viz.Chart
   where
 
-
-import Data.Text (Text)
 import Data.List (unzip, sortOn)
 import Data.Map (toList)
-import GHC.Generics (Generic)
-import Gargantext.Prelude
-import Gargantext.Database.Config
-import Gargantext.Database.Schema.NodeNode (selectDocsDates)
-import Gargantext.Database.Utils
-import Gargantext.Database.Types.Node (CorpusId)
-import Gargantext.Database.Node.Select
-import Gargantext.Text.Metrics.Count (occurrencesWith)
-import Gargantext.Core.Types.Main
-
--- Pie Chart
-import Data.Maybe (catMaybes)
-import qualified Data.Map as Map
 import qualified Data.List as List
-import Gargantext.API.Ngrams.Tools
-import Gargantext.API.Ngrams.NTree
-import Gargantext.Database.Metrics.NgramsByNode
-import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node
-import Gargantext.Core.Types
-import Gargantext.Database.Flow
-
+import qualified Data.Map as Map
+import Data.Maybe (catMaybes)
 import Servant
 
+import Gargantext.Core.Types.Main
+import Gargantext.Database.Admin.Config
+import Gargantext.Database.Admin.Types.Node (CorpusId)
+import Gargantext.Database.Prelude
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Select
+import Gargantext.Database.Query.Table.NodeNode (selectDocsDates)
+import Gargantext.Database.Schema.Node
+import Gargantext.Prelude
+import Gargantext.Text.Metrics.Count (occurrencesWith)
 
-data Chart = ChartHisto | ChartScatter | ChartPie
-  deriving (Generic)
-
--- TODO use UTCTime
-data Histo = Histo { histo_dates :: [Text]
-                   , histo_count :: [Int]
-                   }
-  deriving (Generic)
+-- Pie Chart
+import Gargantext.API.Ngrams.NTree
+import Gargantext.API.Ngrams.Tools
+import Gargantext.Core.Types
+import Gargantext.Database.Action.Flow
+import Gargantext.Database.Action.Metrics.NgramsByNode
+import Gargantext.Database.Schema.Ngrams
+import Gargantext.Viz.Types
 
 histoData :: CorpusId -> Cmd err Histo
 histoData cId = do

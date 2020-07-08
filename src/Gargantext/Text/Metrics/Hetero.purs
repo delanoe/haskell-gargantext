@@ -13,22 +13,18 @@ commentary with @some markup@.
 
 module Gargantext.Text.Hetero where
 
-import GHC.Real as R
-import Data.Set as S
-import Data.Map as M
 import Data.List.Split as S
+import Data.Map as M
+import Data.Set as S
 import Database.PostgreSQL.Simple as PGS
-import Opaleye.PGTypes (PGInt4)
-import Opaleye.Internal.Column (Column)
-
-import Gargantext.Database.Gargandb
-import Gargantext.Database.Private
---import Gargantext.Utils.Chronos
-
-import Gargantext.Text.Words (cleanText)
-import Gargantext.Text.Count (occurrences)
-
+import GHC.Real as R
+import Gargantext.Database.Admin.Gargandb
+import Gargantext.Database.Admin.Private
 import Gargantext.Database.Simple
+import Gargantext.Text.Count (occurrences)
+import Gargantext.Text.Words (cleanText)
+import Opaleye.Internal.Column (Column)
+import Opaleye.PGTypes (PGInt4)
 
 --main = do
 --    t <- getTextquery

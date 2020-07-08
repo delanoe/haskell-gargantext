@@ -11,9 +11,6 @@ CSV parser for Gargantext corpus files.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
 
 module Gargantext.Text.List.CSV where
 
@@ -38,8 +35,8 @@ import Gargantext.Text.Context
 
 ------------------------------------------------------------------------
 
-csvGraphTermList :: FilePath -> IO TermList
-csvGraphTermList fp = csv2list CsvMap <$> snd <$>  fromCsvListFile fp
+csvMapTermList :: FilePath -> IO TermList
+csvMapTermList fp = csv2list CsvMap <$> snd <$>  fromCsvListFile fp
 
 csv2list :: CsvListType -> Vector CsvList -> TermList
 csv2list lt vs = V.toList $ V.map (\(CsvList _ label forms)

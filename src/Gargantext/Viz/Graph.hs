@@ -10,25 +10,29 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE DeriveGeneric     #-}
+
+{-# LANGUAGE TemplateHaskell       #-}
 
 module Gargantext.Viz.Graph
   where
 
+
 import Control.Lens (makeLenses)
-import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 import Data.Swagger
 import Data.Text (Text, pack)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import GHC.Generics (Generic)
 import GHC.IO (FilePath)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core.Types (ListId)
-import Gargantext.Database.Types.Node (NodeId, Hyperdata)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Viz.Graph.Distances (GraphMetric)
+import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Aeson as DA
@@ -85,9 +89,10 @@ instance ToSchema LegendField where
 makeLenses ''LegendField
 ---------------------------------------------------------------
 type Version = Int
-data ListForGraph = ListForGraph { _lfg_listId  :: ListId
-                                 , _lfg_version :: Version
-                 } deriving (Show, Generic)
+data ListForGraph =
+  ListForGraph { _lfg_listId  :: ListId
+               , _lfg_version :: Version
+               } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_lfg_") ''ListForGraph)
 
 instance ToSchema ListForGraph where
@@ -96,12 +101,14 @@ instance ToSchema ListForGraph where
 makeLenses ''ListForGraph
 
 --
-data GraphMetadata = GraphMetadata { _gm_title    :: Text   -- title of the graph
-                                   , _gm_corpusId :: [NodeId]  -- we can map with different corpus
-                                   , _gm_legend   :: [LegendField] -- legend of the Graph
-                                   , _gm_list     :: ListForGraph
-                                   -- , _gm_version  :: Int
-                                   }
+data GraphMetadata =
+  GraphMetadata { _gm_title    :: Text          -- title of the graph
+                , _gm_metric   :: GraphMetric
+                , _gm_corpusId :: [NodeId]      -- we can map with different corpus
+                , _gm_legend   :: [LegendField] -- legend of the Graph
+                , _gm_list     :: ListForGraph
+                -- , _gm_version  :: Int
+                }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
 instance ToSchema GraphMetadata where
@@ -109,8 +116,8 @@ instance ToSchema GraphMetadata where
 makeLenses ''GraphMetadata
 
 
-data Graph = Graph { _graph_nodes :: [Node]
-                   , _graph_edges :: [Edge]
+data Graph = Graph { _graph_nodes    :: [Node]
+                   , _graph_edges    :: [Edge]
                    , _graph_metadata :: Maybe GraphMetadata
                    }
   deriving (Show, Generic)
@@ -158,13 +165,21 @@ $(deriveJSON (unPrefix "go_") ''GraphV3)
 
 -----------------------------------------------------------
 
-data HyperdataGraph = HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
-                                   } deriving (Show, Generic)
+data HyperdataGraph =
+  HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
+                 } deriving (Show, Generic)
 $(deriveJSON (unPrefix "") ''HyperdataGraph)
 
 instance Hyperdata HyperdataGraph
 makeLenses ''HyperdataGraph
 
+instance FromField HyperdataGraph
+  where
+    fromField = fromField'
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 -----------------------------------------------------------
 
@@ -189,7 +204,7 @@ graphV3ToGraphWithFiles g1 g2 = do
 
   DBL.writeFile g2 (DA.encode $ graphV3ToGraph newGraph)
 
-readGraphFromJson :: MonadIO m => FilePath -> m (Maybe Graph)
+readGraphFromJson :: MonadBase IO m => FilePath -> m (Maybe Graph)
 readGraphFromJson fp = do
-  graph <- liftIO $ DBL.readFile fp
+  graph <- liftBase $ DBL.readFile fp
   pure $ DA.decode graph

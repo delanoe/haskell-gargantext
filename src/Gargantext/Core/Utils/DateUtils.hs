@@ -8,7 +8,6 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Core.Utils.DateUtils where
 

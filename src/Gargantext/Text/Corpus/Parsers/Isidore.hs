@@ -15,9 +15,7 @@ TODO:
 -}
 
 
-{-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings   #-}
 
 module Gargantext.Text.Corpus.Parsers.Isidore where
 
@@ -27,9 +25,9 @@ import Data.RDF hiding (triple, Query)
 import Data.Text hiding (groupBy, map)
 import Database.HSparql.Connection
 import Database.HSparql.QueryGenerator
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import Gargantext.Prelude
 import Gargantext.Core (Lang)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Prelude
 import Network.Wreq (getWith, Response, defaults, header, param, responseStatus, responseBody)
 import Prelude (String)
 

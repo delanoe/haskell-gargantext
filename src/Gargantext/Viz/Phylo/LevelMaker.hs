@@ -10,11 +10,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances    #-}
 
 module Gargantext.Viz.Phylo.LevelMaker
   where
@@ -211,7 +207,7 @@ toNthLevel lvlMax prox clus p
   | otherwise     = toNthLevel lvlMax prox clus
                   $ traceBranches (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
-                  -- $ transposePeriodLinks (lvl + 1)
+                  -- \$ transposePeriodLinks (lvl + 1)
                   $ traceTranspose (lvl + 1) Descendant
                   $ transposeLinks (lvl + 1) Descendant
                   $ traceTranspose (lvl + 1) Ascendant
@@ -234,15 +230,15 @@ toNthLevel lvlMax prox clus p
 toPhylo1 :: Cluster -> Proximity -> Map (Date, Date) [Document] -> Phylo -> Phylo
 toPhylo1 clus prox d p = case clus of
   Fis (FisParams k s t) -> traceBranches 1 
-                       -- $ reLinkPhyloBranches 1 
-                       -- $ traceBranches 1 
+                       -- \$ reLinkPhyloBranches 1 
+                       -- \$ traceBranches 1 
                        $ setPhyloBranches 1
                        $ traceTempoMatching Descendant 1
                        $ interTempoMatching Descendant 1 prox
                        $ traceTempoMatching Ascendant 1
                        $ interTempoMatching Ascendant 1 prox
                        $ tracePhyloN 1
-                       -- $ setLevelLinks (0,1)
+                       -- \$ setLevelLinks (0,1)
                        $ addPhyloLevel 1 (getPhyloFis phyloFis)
                        $ trace (show (size $ getPhyloFis phyloFis) <> " Fis created") $ phyloFis
     where

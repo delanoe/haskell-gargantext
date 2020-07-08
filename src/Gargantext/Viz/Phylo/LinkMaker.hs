@@ -10,9 +10,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Viz.Phylo.LinkMaker
   where
@@ -129,15 +126,15 @@ phyloGroupMatching :: [PhyloPeriodId] -> PhyloGroup -> Phylo -> [Pointer]
 phyloGroupMatching periods g p = case pointers of
   Nothing  -> []
   Just pts -> head' "phyloGroupMatching"  
-            -- | Keep only the best set of pointers grouped by proximity
+            -- Keep only the best set of pointers grouped by proximity
             $ groupBy (\pt pt' -> snd pt == snd pt') 
             $ reverse $ sortOn snd pts
-            -- | Find the first time frame where at leats one pointer satisfies the proximity threshold
+            -- Find the first time frame where at leats one pointer satisfies the proximity threshold
   where
     --------------------------------------
     pointers :: Maybe [Pointer]
     pointers = find (not . null)
-             -- | For each time frame, process the Proximity on relevant pairs of targeted groups
+             -- For each time frame, process the Proximity on relevant pairs of targeted groups
              $ scanl (\acc frame -> 
                  let pairs = makePairs frame g p
                  in  acc ++ ( filter (\(_,proxi) -> filterProximity proxi (getPhyloProximity p))
@@ -148,7 +145,7 @@ phyloGroupMatching periods g p = case pointers of
                                   if (t == t')
                                     then [(getGroupId t,proxi)]
                                     else [(getGroupId t,proxi),(getGroupId t',proxi)] ) pairs ) ) []
-             -- | [[1900],[1900,1901],[1900,1901,1902],...] | length max => + 5 years
+             -- [[1900],[1900,1901],[1900,1901,1902],...] | length max => + 5 years
              $ inits periods
     --------------------------------------           
 
@@ -221,8 +218,6 @@ interTempoMatching fil lvl _ p = updateGroups fil lvl (Map.fromList pointers) p
 
 ------------------------------------------------------------------------
 -- | Make links from Period to Period after level 1
-
-
 listToTuple :: (a -> b) -> [a] -> [(b,a)]
 listToTuple f l = map (\x -> (f x, x)) l
 

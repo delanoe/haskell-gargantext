@@ -27,7 +27,6 @@ list quality in time.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Gargantext.Text.Terms.Multi.RAKE (multiterms_rake, select, hardStopList)
   where

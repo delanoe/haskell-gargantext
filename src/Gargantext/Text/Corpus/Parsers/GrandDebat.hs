@@ -7,29 +7,37 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-TODO: create a separate Lib.
+_flowCorpusDebat :: FlowCmdM env err m
+                 => User -> Either CorpusName [CorpusId]
+                 -> Limit -> FilePath
+                 -> m CorpusId
+_flowCorpusDebat u n l fp = do
+  docs <- liftBase ( splitEvery 500
+                 <$> take l
+                 <$> readFile' fp
+                 :: IO [[GD.GrandDebatReference ]]
+                 )
+  flowCorpus u n (Multi FR) (map (map toHyperdataDocument) docs)
+
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 module Gargantext.Text.Corpus.Parsers.GrandDebat
   where
 
 import Data.Aeson (ToJSON, FromJSON)
-import Data.Maybe (Maybe())
-import Data.Text (Text)
-import GHC.Generics (Generic)
-import Gargantext.Core (Lang(..))
-import Gargantext.Database.Types.Node
-import Gargantext.Prelude
-import Gargantext.Prelude.Utils
 import qualified Data.ByteString.Lazy as DBL
 import qualified Data.JsonStream.Parser as P
+import Data.Maybe (Maybe())
+import Data.Text (Text)
 import qualified Data.Text as Text
+import GHC.Generics (Generic)
+
+import Gargantext.Core (Lang(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), ToHyperdataDocument, toHyperdataDocument)
+import Gargantext.Prelude
+import Gargantext.Prelude.Utils
 
 
 data GrandDebatReference = GrandDebatReference

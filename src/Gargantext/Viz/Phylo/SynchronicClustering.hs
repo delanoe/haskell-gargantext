@@ -8,10 +8,6 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.SynchronicClustering where
 
@@ -33,7 +29,7 @@ import qualified Data.Map as Map
 
 -------------------------
 -- | New Level Maker | --
--------------------------  
+-------------------------
 
 
 mergeGroups :: [Cooc] -> PhyloGroupId -> Map PhyloGroupId PhyloGroupId -> [PhyloGroup] -> PhyloGroup
@@ -70,26 +66,26 @@ toNextLevel' phylo groups =
         newGroups = concat $ groupsToBranches
                   $ fromList $ map (\g -> (getGroupId g, g))
                   $ foldlWithKey (\acc id groups' ->
-                        -- | 4) create the parent group
+                        --  4) create the parent group
                         let parent = mergeGroups (elems $ restrictKeys (phylo ^. phylo_timeCooc) $ periodsToYears [(fst . fst) id]) id oldGroups groups'
                         in  acc ++ [parent]) []
-                  -- | 3) group the current groups by parentId
+                  --  3) group the current groups by parentId
                   $ fromListWith (++) $ map (\g -> (getLevelParentId g, [g])) groups
 
         newPeriods = fromListWith (++) $ map (\g -> (g ^. phylo_groupPeriod, [g])) newGroups
     in  traceSynchronyEnd 
       $ over ( phylo_periods . traverse . phylo_periodLevels . traverse
-             -- | 6) update each period at curLvl + 1
+             --  6) update each period at curLvl + 1
              . filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == (curLvl + 1)))
-             -- | 7) by adding the parents
+             --  7) by adding the parents
              (\phyloLvl -> 
                 if member (phyloLvl ^. phylo_levelPeriod) newPeriods
                     then phyloLvl & phylo_levelGroups
                             .~ fromList (map (\g -> (getGroupId g, g)) $ newPeriods ! (phyloLvl ^. phylo_levelPeriod))
                     else phyloLvl)
-      -- | 2) add the curLvl + 1 phyloLevel to the phylo
+      --  2) add the curLvl + 1 phyloLevel to the phylo
       $ addPhyloLevel (curLvl + 1)
-      -- | 1) update the current groups (with level parent pointers) in the phylo
+      --  1) update the current groups (with level parent pointers) in the phylo
       $ updatePhyloGroups curLvl (fromList $ map (\g -> (getGroupId g, g)) groups) phylo 
 
 --------------------
@@ -146,19 +142,19 @@ toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1),
 
 reduceGroups :: Proximity -> Synchrony -> Map Date Double -> Map Date Cooc -> [PhyloGroup] -> [PhyloGroup]
 reduceGroups prox sync docs diagos branch =
-    -- | 1) reduce a branch as a set of periods & groups
+    --  1) reduce a branch as a set of periods & groups
     let periods = fromListWith (++)
                  $ map (\g -> (g ^. phylo_groupPeriod,[g])) branch
     in  (concat . concat . elems)
       $ mapWithKey (\prd groups -> 
-            -- | 2) for each period, transform the groups as a proximity graph filtered by a threshold
+            --  2) for each period, transform the groups as a proximity graph filtered by a threshold
             let diago = reduceDiagos $ filterDiago diagos [prd]
                 edges = groupsToEdges prox sync ((sum . elems) $ restrictKeys docs $ periodsToYears [prd]) diago groups
              in map (\comp -> 
-                    -- | 4) add to each groups their futur level parent group
+                    --  4) add to each groups their futur level parent group
                     let parentId = toParentId (head' "parentId" comp)
                     in  map (\g -> g & phylo_groupLevelParents %~ (++ [(parentId,1)]) ) comp )
-                -- |3) reduce the graph a a set of related components
+                -- 3) reduce the graph a a set of related components
               $ toRelatedComponents groups edges) periods 
 
 

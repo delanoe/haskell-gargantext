@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Prompt
+git tag
+echo "Which version ?"
+read VERSION
+echo "Change to: ${VERSION}"
+
+#################################################################
+# Haskell
+#################################################################
+YAML="package.yaml"
+sed -i "s/version:.*/version: \'$VERSION\'/" $YAML
+git add -u 
+git commit -m "[VERSION] +1 to ${VERSION}"
+git tag $VERSION
+
+#################################################################
+# Purescript
+#################################################################
+JSON="purescript-gargantext/package.json"
+sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" $JSON
+cd purescript-gargantext
+git add -u
+git commit -m "[VERSION] +1 to ${VERSION}"
+git tag $VERSION
+cd ..
+

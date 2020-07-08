@@ -11,8 +11,6 @@ Motivation and definition of the @Conditional@ distance.
 -}
 
 {-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE Strict            #-}
 module Gargantext.Viz.Graph.Distances.Conditional
   where
@@ -99,7 +97,7 @@ conditional m = filterMat (threshold m') m'
 --  | Top specific or generic
     sg = opWith (-) xs ys
 --  sg = ( xs - ys) / (2 * (x.shape[0] - 1))
-    
+
     nodes_kept :: [Int]
     nodes_kept = take k' $ S.toList
                          $ foldl' (\s (n1,n2) -> insert [n1,n2] s) S.empty
@@ -111,7 +109,7 @@ conditional m = filterMat (threshold m') m'
     insert as s = foldl' (\s' a -> S.insert a s') s as
     k' = 2*k
     k = 10
-    
+
     dico_nodes :: Map Int Int
     dico_nodes     = M.fromList $ zip ([1..] :: [Int]) nodes_kept
     --dico_nodes_rev = M.fromList $ zip nodes_kept [1..]
@@ -120,12 +118,13 @@ conditional m = filterMat (threshold m') m'
                 (length nodes_kept) 
                 (\(i,j) -> getElem ((M.!) dico_nodes i) ((M.!) dico_nodes j) x')
 
-    threshold m'' = V.minimum $ V.map (\cId -> V.maximum $ getCol cId m'') (V.enumFromTo 1 (nOf Col m''))
-    
+    threshold m'' = V.minimum
+                  $ V.map (\cId -> V.maximum $ getCol cId m'')
+                          (V.enumFromTo 1 (nOf Col m'')      )
+
     filterMat t m''  = mapAll (\x -> filter' t x) m''
       where
         filter' t' x = case (x >= t') of
                         True  -> x
                         False -> 0
-
 ------------------------------------------------------------------------

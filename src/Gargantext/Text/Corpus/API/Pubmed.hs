@@ -9,18 +9,17 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Corpus.API.Pubmed
     where
 
 import Data.Maybe
 import Data.Text (Text)
+import qualified Data.Text as Text
+
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
-import qualified Data.Text as Text
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 
 import qualified PUBMED as PubMed
 import qualified PUBMED.Parser as PubMedDoc

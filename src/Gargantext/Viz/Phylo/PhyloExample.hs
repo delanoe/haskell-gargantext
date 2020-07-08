@@ -12,10 +12,6 @@ Portability : POSIX
 -- | French without accents
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.PhyloExample where
 

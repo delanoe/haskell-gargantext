@@ -1,18 +1,30 @@
 name: gargantext
-version: '0.0.0.4'
+version: '0.0.1.6.8'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
 author: Gargantext Team
 maintainer: team@gargantext.org
 copyright:
-    - ! 'Copyright: (c) 2017-2018: see git logs and README'
-license: BSD3
+    - ! 'Copyright: (c) 2017-Present: see git logs and README'
+license: AGPL-3
 homepage: https://gargantext.org
 ghc-options: -Wall
+extra-libraries:
+  - gfortran
 dependencies:
-- extra
-- text
+  - extra
+  - text
+default-extensions:
+  - DataKinds
+  - DeriveGeneric
+  - FlexibleContexts
+  - FlexibleInstances
+  - GeneralizedNewtypeDeriving
+  - MultiParamTypeClasses
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - RankNTypes
 library:
   source-dirs: src
   ghc-options:
@@ -22,35 +34,32 @@ library:
   - -Wunused-binds
   - -Wunused-imports
   - -Werror
+  - -freduction-depth=300
   exposed-modules:
   - Gargantext
   - Gargantext.API
-  - Gargantext.API.Auth
-  - Gargantext.API.Count
-  - Gargantext.API.FrontEnd
-  - Gargantext.API.Ngrams
+  - Gargantext.API.HashedResponse
   - Gargantext.API.Node
-    #  - Gargantext.API.Orchestrator
-  - Gargantext.API.Search
-  - Gargantext.API.Settings
-  - Gargantext.API.Types
+  - Gargantext.API.Admin.Settings
+  - Gargantext.API.Prelude
   - Gargantext.Core
   - Gargantext.Core.Types
+  - Gargantext.Core.Types.Individu
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
-  - Gargantext.Database
-  - Gargantext.Database.Init
-  - Gargantext.Database.Config
-  - Gargantext.Database.Flow
-  - Gargantext.Database.Schema.Node
-  - Gargantext.Database.Tree
-  - Gargantext.Database.Types.Node
-  - Gargantext.Database.Utils
-  - Gargantext.Database.Schema.User
+  - Gargantext.Database.Action.Flow
+  - Gargantext.Database.Query.Table.User
+  - Gargantext.Database.Query.Table.Node
+  - Gargantext.Database.Prelude
+  - Gargantext.Database.Admin.Trigger.Init
+  - Gargantext.Database.Admin.Config
+  - Gargantext.Database.Admin.Types.Hyperdata
+  - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
   - Gargantext.Text
   - Gargantext.Text.Context
   - Gargantext.Text.Corpus.Parsers
+  - Gargantext.Text.Corpus.Parsers.Date.Parsec
   - Gargantext.Text.Corpus.API
   - Gargantext.Text.Corpus.Parsers.CSV
   - Gargantext.Text.Examples
@@ -81,14 +90,20 @@ library:
   - Gargantext.Viz.Phylo.LevelMaker
   - Gargantext.Viz.Phylo.View.Export
   - Gargantext.Viz.Phylo.View.ViewMaker
+  - Gargantext.Viz.Types
   dependencies:
-  - array
+  - HSvm
+  - KMP
+  - MonadRandom
   - QuickCheck
+  - SHA
+  - Unique
   - accelerate
   - aeson
   - aeson-lens
   - aeson-pretty
-  - argon2
+  - password
+  - array
   - async
   - attoparsec
   - auto-update
@@ -101,53 +116,51 @@ library:
   - bytestring
   - case-insensitive
   - cassava
-  #- charsetdetect-ae  # detect charset
+  - cereal     # (IGraph)
   - clock
   - clustering-louvain
   - conduit
   - conduit-extra
   - containers
   - contravariant
-  - crawlerPubMed
-  - crawlerIsidore
   - crawlerHAL
   - crawlerISTEX
+  - crawlerIsidore
+  - crawlerPubMed
   - data-time-segment
   - deepseq
   - directory
   - duckling
   - exceptions
-  - filepath
-  - formatting
-  - fullstop
+  - fast-logger
   - fclabels
   - fgl
-  - fast-logger
   - filelock
+  - filepath
+  - formatting
   - full-text-search
+  - fullstop
   - graphviz
   - haskell-igraph
+  - hlcm
+  - hsparql
+  - hstatistics
+  - http-api-data
   - http-client
   - http-client-tls
   - http-conduit
   - http-media
-  - http-api-data
   - http-types
-  - hsparql
-  - hstatistics
-  - HSvm
   - hxt
-  - hlcm
   - ini
   - insert-ordered-containers
   - jose
-    #  - kmeans-vector
   - json-stream
-  - KMP
   - lens
   - located-base
   - logging-effect
   - matrix
+  - monad-control
   - monad-logger
   - mtl
   - natural-transformation
@@ -166,36 +179,34 @@ library:
   - profunctors
   - protolude
   - pureMD5
-  - random-shuffle
-  - MonadRandom
-  - SHA
-  - simple-reflect
-  - cereal     # (IGraph)
-  - singletons # (IGraph)
   - quickcheck-instances
-  - random
   - rake
-  - regex-compat
-  - resourcet
+  - random
+  - random-shuffle
   - rdf4h
+  - regex-compat
+  - resource-pool
+  - resourcet
   - safe
   - semigroups
+  - serialise
   - servant
   - servant-auth
   - servant-auth-server >= 0.4.4.0
   - servant-auth-swagger
   - servant-blaze
+  - servant-cassava
   - servant-client
-  - servant-flatten
   - servant-job
   - servant-mock
   - servant-multipart
   - servant-server
+  - servant-static-th
   - servant-swagger
   - servant-swagger-ui
-  - servant-static-th
-  - servant-cassava
-  - serialise
+  - servant-xml
+  - simple-reflect
+  - singletons # (IGraph)
   - split
   - stemmer
   - string-conversions
@@ -209,7 +220,6 @@ library:
   - transformers
   - transformers-base
   - unordered-containers
-  - Unique
   - uuid
   - validity
   - vector
@@ -220,9 +230,12 @@ library:
   - wreq
   - xml-conduit
   - xml-types
+  - xmlbf
   - yaml
   - zip
   - zlib
+    #  - kmeans-vector
+  #- charsetdetect-ae  # detect charset
 #  - utc
 #  API external connections
 
@@ -237,6 +250,7 @@ executables:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
+    - -fprof-auto
     dependencies:
       - base
       - containers
@@ -351,36 +365,58 @@ executables:
 
 
 tests:
-#   garg-test:
-#     main: Main.hs
-#     source-dirs: src-test
-#     ghc-options:
-#     - -threaded
-#     - -rtsopts
-#     - -with-rtsopts=-N
-#     dependencies:
-#     - base
-#     - gargantext
-#     - hspec
-#     - QuickCheck
-#     - quickcheck-instances 
-#     - time
-#     - parsec
-#     - duckling
-#     - text
-  garg-doctest:
-    main: Main.hs
-    source-dirs: src-doctest
-    ghc-options:
-    - -O2
-    - -Wcompat
-    - -Wmissing-signatures
-    - -rtsopts
-    - -threaded
-    - -with-rtsopts=-N
-    dependencies:
-    - doctest
-    - Glob
-    - QuickCheck
-    - base
-    - gargantext
+   garg-test:
+     main: Main.hs
+     source-dirs: src-test
+     default-extensions:
+     - DataKinds
+     - DeriveGeneric
+     - FlexibleContexts
+     - FlexibleInstances
+     - GeneralizedNewtypeDeriving
+     - MultiParamTypeClasses
+     - NoImplicitPrelude
+     - OverloadedStrings
+     - RankNTypes
+     ghc-options:
+     - -threaded
+     - -rtsopts
+     - -with-rtsopts=-N
+     dependencies:
+     - base
+     - gargantext
+     - hspec
+     - QuickCheck
+     - quickcheck-instances
+     - time
+     - parsec
+     - duckling
+     - text
+#  garg-doctest:
+#    main: Main.hs
+#    source-dirs: src-doctest
+#    ghc-options:
+#    - -O2
+#    - -Wcompat
+#    - -Wmissing-signatures
+#    - -rtsopts
+#    - -threaded
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - doctest
+#    - Glob
+#    - QuickCheck
+#    - base
+#    - gargantext
+#    default-extensions:
+#    - DataKinds
+#    - DeriveGeneric
+#    - FlexibleContexts
+#    - FlexibleInstances
+#    - GeneralizedNewtypeDeriving
+#    - MultiParamTypeClasses
+#    - NoImplicitPrelude
+#    - OverloadedStrings
+#    - RankNTypes
+#
+

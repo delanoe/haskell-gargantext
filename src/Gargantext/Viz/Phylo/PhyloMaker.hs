@@ -8,10 +8,6 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Gargantext.Viz.Phylo.PhyloMaker where
 
@@ -27,6 +23,7 @@ import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Text.Context (TermList)
 import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Gargantext.Viz.Graph.MaxClique (getMaxCliques)
+import Gargantext.Viz.Graph.Distances (Distance(Conditional))
 
 import Control.DeepSeq (NFData)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
@@ -116,7 +113,7 @@ cliqueToGroup fis pId lvl idx coocs = PhyloGroup pId lvl idx ""
                    (fis ^. phyloClique_support)
                    (fis ^. phyloClique_nodes)
                    (ngramsToCooc (fis ^. phyloClique_nodes) coocs)
-                   (1,[0]) -- | branchid (lvl,[path in the branching tree])
+                   (1,[0]) -- branchid (lvl,[path in the branching tree])
                    (fromList [("breaks",[0]),("seaLevels",[0])])
                    [] [] [] [] []
 
@@ -144,24 +141,24 @@ toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of
 ---------------------------
 
 
--- | To apply a filter with the possibility of keeping some periods non empty (keep : True|False)
+--  To apply a filter with the possibility of keeping some periods non empty (keep : True|False)
 filterClique :: Bool -> Int -> (Int -> [PhyloClique] -> [PhyloClique]) -> Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
 filterClique keep thr f m = case keep of
   False -> map (\l -> f thr l) m
   True  -> map (\l -> keepFilled (f) thr l) m
 
 
--- | To filter Fis with small Support
+--  To filter Fis with small Support
 filterCliqueBySupport :: Int -> [PhyloClique] -> [PhyloClique]
 filterCliqueBySupport thr l = filter (\clq -> (clq ^. phyloClique_support) >= thr) l
 
 
--- | To filter Fis with small Clique size
+--  To filter Fis with small Clique size
 filterCliqueBySize :: Int -> [PhyloClique] -> [PhyloClique]
 filterCliqueBySize thr l = filter (\clq -> (length $ clq ^. phyloClique_nodes) >= thr) l
 
 
--- | To filter nested Fis
+--  To filter nested Fis
 filterCliqueByNested :: Map (Date, Date) [PhyloClique] -> Map (Date, Date) [PhyloClique]
 filterCliqueByNested m = 
   let clq  = map (\l -> 
@@ -180,11 +177,11 @@ toPhyloClique :: Phylo -> Map (Date, Date) [Document] -> Map (Date,Date) [PhyloC
 toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of 
     Fis s s'    -> -- traceFis "Filtered Fis"
                    filterCliqueByNested 
-                  -- $ traceFis "Filtered by clique size"
+                 {- \$ traceFis "Filtered by clique size" -}
                  $ filterClique True s' (filterCliqueBySize)
-                 -- $ traceFis "Filtered by support"
+                 {- \$ traceFis "Filtered by support" -}
                  $ filterClique True s (filterCliqueBySupport)
-                 -- $ traceFis "Unfiltered Fis" 
+                 {- \$ traceFis "Unfiltered Fis" -}
                  phyloClique
     MaxClique s -> filterClique True s (filterCliqueBySize)
                  phyloClique
@@ -205,7 +202,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques 0.001 cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.001 cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 
@@ -219,7 +216,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
 --------------------
 
 
--- | To transform the docs into a time map of coocurency matrix 
+--  To transform the docs into a time map of coocurency matrix 
 docsToTimeScaleCooc :: [Document] -> Vector Ngrams -> Map Date Cooc
 docsToTimeScaleCooc docs fdt = 
     let mCooc  = fromListWith sumCooc
@@ -246,7 +243,7 @@ groupDocsByPeriodRec f prds docs acc =
          in groupDocsByPeriodRec f (tail prds) (snd docs') (insert prd (fst docs') acc)
 
 
--- | To group a list of Documents by fixed periods
+--  To group a list of Documents by fixed periods
 groupDocsByPeriod' :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
 groupDocsByPeriod' f pds docs = 
   let docs'    = groupBy (\d d' -> f d == f d') $ sortOn f docs
@@ -262,7 +259,7 @@ groupDocsByPeriod' f pds docs =
 
 
 
--- | To group a list of Documents by fixed periods
+--  To group a list of Documents by fixed periods
 groupDocsByPeriod :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
 groupDocsByPeriod _ _   [] = panic "[ERR][Viz.Phylo.PhyloMaker] Empty [Documents] can not have any periods"
 groupDocsByPeriod f pds es = 
@@ -290,7 +287,7 @@ docsToTermFreq docs fdt =
    in map (/sumFreqs) freqs
 
 
--- | To count the number of docs by unit of time
+--  To count the number of docs by unit of time
 docsToTimeScaleNb :: [Document] -> Map Date Double
 docsToTimeScaleNb docs = 
     let docs' = fromListWith (+) $ map (\d -> (date d,1)) docs
@@ -304,7 +301,7 @@ initPhyloLevels lvlMax pId =
     fromList $ map (\lvl -> ((pId,lvl),PhyloLevel pId lvl empty)) [1..lvlMax]
 
 
--- | To init the basic elements of a Phylo
+--  To init the basic elements of a Phylo
 toPhyloBase :: [Document] -> TermList -> Config -> Phylo
 toPhyloBase docs lst conf = 
     let foundations  = PhyloFoundations (Vector.fromList $ nub $ concat $ map text docs) lst

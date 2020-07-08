@@ -11,9 +11,7 @@ Format Converter.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PackageImports    #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Convert (risPress2csvWrite)
     where

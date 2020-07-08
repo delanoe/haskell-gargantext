@@ -9,22 +9,20 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Corpus.API.Hal
     where
 
 import Data.Maybe
 import Data.Text (Text, pack, intercalate)
-import Gargantext.Prelude
-import Gargantext.Core (Lang(..))
-import qualified Gargantext.Text.Corpus.Parsers.Date as Date
-import Gargantext.Database.Types.Node (HyperdataDocument(..))
 
+import Gargantext.Core (Lang(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
+import Gargantext.Prelude
+import qualified Gargantext.Text.Corpus.Parsers.Date as Date
 import qualified HAL            as HAL
-import qualified HAL.Doc.Corpus as HAL
 import qualified HAL.Client     as HAL
+import qualified HAL.Doc.Corpus as HAL
 
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q ml = do

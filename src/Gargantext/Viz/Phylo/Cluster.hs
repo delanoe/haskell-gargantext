@@ -10,15 +10,13 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.Viz.Phylo.Cluster
   where
 import Control.Parallel.Strategies
 import Data.Graph.Clustering.Louvain.CplusPlus
+import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 import Data.List        (null,concat,sort,intersect,(++), elemIndex, groupBy, nub, union, (\\), (!!))
 import Data.Map         (Map, fromList, mapKeys)
 import Data.Tuple       (fst)

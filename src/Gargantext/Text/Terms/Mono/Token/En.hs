@@ -10,8 +10,6 @@ Portability : POSIX
 First inspired from https://bitbucket.org/gchrupala/lingo/overview
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Terms.Mono.Token.En
     ( EitherList(..)

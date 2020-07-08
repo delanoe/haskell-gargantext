@@ -9,10 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Core
   where

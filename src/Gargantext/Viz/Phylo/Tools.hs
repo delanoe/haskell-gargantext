@@ -10,10 +10,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE ViewPatterns      #-}
 
 module Gargantext.Viz.Phylo.Tools

@@ -11,8 +11,6 @@ Presse RIS format parser for Europresse Database.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Gargantext.Text.Corpus.Parsers.RIS.Presse (presseEnrich) where
 

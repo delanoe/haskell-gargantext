@@ -19,8 +19,6 @@ Phylomemy was first described in Chavalarias, D., Cointet, J.-P., 2013. Phylomem
 .
 -}
 
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Core.Types.Phylo where

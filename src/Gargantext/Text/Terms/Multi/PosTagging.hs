@@ -19,10 +19,6 @@ words as nouns, verbs, adjectives, adverbs, etc.
 Source: https://en.wikipedia.org/wiki/Part-of-speech_tagging
 -}
 
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
@@ -48,8 +44,6 @@ import Gargantext.Prelude
 
 import Network.HTTP.Simple
 
-import Control.Monad.Catch      (MonadThrow)
-import Control.Monad.IO.Class  (MonadIO)
 import Data.String.Conversions (ConvertibleStrings)
 
 ------------------------------------------------------------------------
@@ -116,9 +110,10 @@ $(deriveJSON (unPrefix "_") ''PosSentences)
 -- 
 
 
-corenlp' :: ( MonadThrow m, MonadIO m, FromJSON a
+
+corenlp' :: ( FromJSON a
             , ConvertibleStrings p ByteString) =>
-            Lang -> p -> m (Response a)
+            Lang -> p -> IO (Response a)
 corenlp' lang txt = do
     let properties = case lang of
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"

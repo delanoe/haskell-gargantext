@@ -11,7 +11,6 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Parsers.Date where
 
@@ -29,7 +28,7 @@ import Duckling.Time.Types (toRFC3339)
 
 -----------------------------------------------------------
 import Gargantext.Prelude
-import Gargantext.Text.Parsers.Date (fromRFC3339)
+import Gargantext.Text.Corpus.Parsers.Date.Parsec (fromRFC3339)
 import Parsers.Types
 -----------------------------------------------------------
 
