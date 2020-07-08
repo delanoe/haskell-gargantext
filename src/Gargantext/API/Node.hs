@@ -46,6 +46,7 @@ import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
+import Gargantext.Database.Action.Share (unPublish)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
@@ -144,6 +145,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
              :<|> "move"      :> MoveAPI
+             :<|> "unpublish" :> Post '[JSON] Int
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -219,6 +221,8 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> moveNode   (RootId $ NodeId uId) id'
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
+           :<|> unPublish (RootId $ NodeId uId) id'
+
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }

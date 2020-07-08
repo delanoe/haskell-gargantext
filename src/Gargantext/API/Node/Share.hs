@@ -36,8 +36,10 @@ data ShareNode = ShareTeam   { username :: Text }
   deriving (Generic)
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  ShareNode
-instance ToJSON    ShareNode
+instance FromJSON  ShareNode where
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+instance ToJSON    ShareNode where
+  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
 instance ToSchema  ShareNode
 instance Arbitrary ShareNode where
   arbitrary = elements [ ShareTeam "user1"
@@ -58,4 +60,8 @@ api nId (SharePublic _rights) =
 type API = Summary " Share Node with username"
          :> ReqBody '[JSON] ShareNode
          :> Post    '[JSON] Int
+
+
+
+
 

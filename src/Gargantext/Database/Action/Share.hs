@@ -65,6 +65,7 @@ getFolderId u nt = do
     Nothing -> panic "No folder shared found"
     Just  f -> pure (_node_id f)
 
+------------------------------------------------------------------------
 type TeamId = NodeId
 
 delFolderTeam :: User -> TeamId -> Cmd err Int
@@ -76,5 +77,4 @@ unPublish :: User -> NodeId -> Cmd err Int
 unPublish  u nId = do
   folderId <- getFolderId u NodeFolderPublic
   deleteNodeNode folderId nId
-
 
