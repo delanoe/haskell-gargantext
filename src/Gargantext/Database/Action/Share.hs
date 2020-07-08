@@ -21,7 +21,7 @@ import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node (getNode, getNodesWith)
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError, msg)
 import Gargantext.Database.Query.Table.NodeNode (insertNodeNode, deleteNodeNode)
 import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Schema.Node
@@ -40,40 +40,40 @@ shareNodeWith n nt u = do
     NodeFolderShared -> do
       userIdCheck <- getUserId u
       if not (hasNodeType nodeToCheck NodeTeam)
-        then panic "Can share node Team only"
+        then msg "Can share node Team only"
         else
           if (view node_userId nodeToCheck == userIdCheck)
-            then panic "Can share to others only"
+            then msg "Can share to others only"
             else do 
               folderSharedId  <- getFolderId u NodeFolderShared
               insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
 
     NodeFolderPublic -> if not (hasNodeType nodeToCheck NodeGraph)
-                          then panic "Can share node graph only"
+                          then msg "Can share node graph only"
                           else do
                             folderId  <- getFolderId (UserDBId $ view node_userId nodeToCheck) NodeFolderPublic
                             insertNodeNode [NodeNode folderId n Nothing Nothing]
 
-    _ -> panic "shareNodeWith not implemented with this NodeType"
+    _ -> msg "shareNodeWith not implemented with this NodeType"
 
 ------------------------------------------------------------------------
-getFolderId :: User -> NodeType -> Cmd err NodeId
+getFolderId :: HasNodeError err => User -> NodeType -> Cmd err NodeId
 getFolderId u nt = do
   rootId <- getRootId u
   s <- getNodesWith rootId HyperdataAny (Just nt) Nothing Nothing
   case head s of
-    Nothing -> panic "No folder shared found"
+    Nothing -> msg "No folder shared found"
     Just  f -> pure (_node_id f)
 
 ------------------------------------------------------------------------
 type TeamId = NodeId
 
-delFolderTeam :: User -> TeamId -> Cmd err Int
+delFolderTeam :: HasNodeError err => User -> TeamId -> Cmd err Int
 delFolderTeam u nId = do
   folderSharedId <- getFolderId u NodeFolderShared
   deleteNodeNode folderSharedId nId
 
-unPublish :: User -> NodeId -> Cmd err Int
+unPublish :: HasNodeError err => User -> NodeId -> Cmd err Int
 unPublish  u nId = do
   folderId <- getFolderId u NodeFolderPublic
   deleteNodeNode folderId nId
