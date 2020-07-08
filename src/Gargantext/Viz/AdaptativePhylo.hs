@@ -143,7 +143,7 @@ defaultConfig =
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
             , phyloProximity = WeightedLogJaccard 10
-            , seaElevation   = Constante 0.6 1
+            , seaElevation   = Constante 0.1 0.1
             , phyloSynchrony = ByProximityThreshold 0.5 10 SiblingBranches MergeAllGroups
             , phyloQuality   = Quality 100 1
             , timeUnit       = Year 3 1 5
@@ -326,6 +326,7 @@ data PhyloGroup =
                  , _phylo_groupLevelChilds   :: [Pointer]
                  , _phylo_groupPeriodParents :: [Pointer]
                  , _phylo_groupPeriodChilds  :: [Pointer]
+                 , _phylo_groupAncestors     :: [Pointer]
                  }
                  deriving (Generic, Show, Eq, NFData)
 
@@ -352,24 +353,13 @@ data PhyloClique = PhyloClique
   , _phyloClique_period  :: (Date,Date)
   } deriving (Generic,NFData,Show,Eq)
 
-
-------------------------
--- | Phylo Ancestor | --
-------------------------
-
-data PhyloAncestor = PhyloAncestor
-  { _phyloAncestor_id   :: Int
-  , _phyloAncestor_ngrams :: [Int]
-  , _phyloAncestor_groups :: [PhyloGroupId]
-  } deriving (Generic,NFData,Show,Eq)
-
 ----------------
 -- | Export | --
 ----------------
 
 type DotId = TextLazy.Text
 
-data EdgeType = GroupToGroup | BranchToGroup | BranchToBranch | PeriodToPeriod deriving (Show,Generic,Eq)
+data EdgeType = GroupToGroup | BranchToGroup | BranchToBranch | GroupToAncestor | PeriodToPeriod deriving (Show,Generic,Eq)
 
 data Filter = ByBranchSize { _branch_size :: Double } deriving (Show,Generic,Eq)
 
@@ -405,7 +395,6 @@ data PhyloExport =
       PhyloExport
       { _export_groups    :: [PhyloGroup]
       , _export_branches  :: [PhyloBranch]
-      , _export_ancestors :: [PhyloAncestor]
       } deriving (Generic, Show)
 
 ----------------

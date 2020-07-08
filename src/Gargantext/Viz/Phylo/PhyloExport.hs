@@ -18,15 +18,17 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloExport where
 
 import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
-import Data.List ((++), sort, nub, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, unwords, nubBy, inits, elemIndex)
+import Data.List ((++), sort, nub, null, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
 import Data.Vector (Vector)
 
 import Prelude (writeFile)
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
+import Gargantext.Viz.Phylo.TemporalMatching (filterDocs, filterDiago, reduceDiagos, toProximity, getNextPeriods)
 
-import Control.Lens
+import Control.Lens hiding (Level)
+import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Data.GraphViz hiding (DotGraph, Order)
 import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Attributes.Complete hiding (EdgeType, Order) 
@@ -35,7 +37,6 @@ import Data.Text.Lazy (fromStrict, pack, unpack)
 import System.FilePath
 import Debug.Trace (trace)
 
-import qualified Data.Map as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 import qualified Data.Text.Lazy as Lazy
@@ -148,13 +149,15 @@ groupToDotNode fdt g bId =
 toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
-        GroupToGroup   -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True
+        GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True
                           , Label (StrLabel $ fromStrict lbl)] <> [toAttr "edgeType" "link" ]
-        BranchToGroup  -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])
+        BranchToGroup   -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])
                           , Label (StrLabel $ fromStrict lbl)] <> [toAttr "edgeType" "branchLink" ]
-        BranchToBranch -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])
+        BranchToBranch  -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])
                           , Label (StrLabel $ fromStrict lbl)]
-        PeriodToPeriod -> [ Width 5, Color [toWColor Black]])
+        GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)])
+                          , Label (StrLabel $ fromStrict lbl), PenWidth 4] <> [toAttr "edgeType" "ancestorLink" ]                          
+        PeriodToPeriod  -> [ Width 5, Color [toWColor Black]])
 
 
 mergePointers :: [PhyloGroup] -> Map (PhyloGroupId,PhyloGroupId) Double
@@ -162,6 +165,11 @@ mergePointers groups =
     let toChilds  = fromList $ concat $ map (\g -> map (\(target,w) -> ((getGroupId g,target),w)) $ g ^. phylo_groupPeriodChilds) groups
         toParents = fromList $ concat $ map (\g -> map (\(target,w) -> ((target,getGroupId g),w)) $ g ^. phylo_groupPeriodParents) groups
     in  unionWith (\w w' -> max w w') toChilds toParents
+
+mergeAncestors :: [PhyloGroup] -> [((PhyloGroupId,PhyloGroupId), Double)]
+mergeAncestors groups = concat
+                      $ map (\g -> map (\(target,w) -> ((getGroupId g,target),w)) $ g ^. phylo_groupAncestors) 
+                      $ filter (\g -> (not . null) $ g ^. phylo_groupAncestors) groups
 
 
 toBid :: PhyloGroup -> [PhyloBranch] -> Int
@@ -235,7 +243,11 @@ exportToDot phylo export =
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToGroup
             ) $ (toList . mergePointers) $ export ^. export_groups
 
-        -- | 7) create the edges between the periods 
+        _ <- mapM (\((k,k'),_) -> 
+                toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToAncestor
+          ) $ mergeAncestors $ export ^. export_groups
+
+        -- | 10) create the edges between the periods 
         _ <- mapM (\(prd,prd') ->
                 toDotEdge (periodIdToDotId prd) (periodIdToDotId prd') "" PeriodToPeriod
             ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ getPeriodIds phylo
@@ -261,9 +273,9 @@ exportToDot phylo export =
 
 filterByBranchSize :: Double -> PhyloExport -> PhyloExport
 filterByBranchSize thr export = 
-    let branches' = partition (\b -> head' "filter" ((b ^. branch_meta) ! "size") >= thr) $ export ^. export_branches
-    in  export & export_branches .~ (fst branches')
-               & export_groups %~ (filter (\g -> not $ elem  (g ^. phylo_groupBranchId) (map _branch_id $ snd branches')))
+    let splited  = partition (\b -> head' "filter" ((b ^. branch_meta) ! "size") >= thr) $ export ^. export_branches
+     in export & export_branches .~ (fst splited)
+               & export_groups %~ (filter (\g -> not $ elem  (g ^. phylo_groupBranchId) (map _branch_id $ snd splited)))
 
 
 processFilters :: [Filter] -> Quality -> PhyloExport -> PhyloExport
@@ -481,22 +493,77 @@ processDynamics groups =
 -- | horizon | --
 -----------------
 
-horizonToAncestors :: Double -> Phylo -> [PhyloAncestor]
-horizonToAncestors delta phylo = 
-  let horizon = Map.toList $ Map.filter (\v -> v > delta) $ phylo ^. phylo_horizon
-      ct0 = fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevelPeriods 1 (take 1 (getPeriodIds phylo)) phylo
-      aDelta = toRelatedComponents
-                  (elems ct0)
-                  (map (\((g,g'),v) -> ((ct0 ! g,ct0 ! g'),v)) horizon)
-   in map (\(id,groups) -> toAncestor id groups) $ zip [1..] aDelta
-  where 
-    -- | note : possible bug if we sync clus more than once
-    -- | horizon is calculated at level 1, ancestors have to be related to the last level
-    toAncestor :: Int -> [PhyloGroup] -> PhyloAncestor
-    toAncestor id groups = PhyloAncestor id 
-                              (foldl' (\acc g -> union acc (g ^. phylo_groupNgrams)) [] groups) 
-                              (concat $ map (\g -> map fst (g ^. phylo_groupLevelParents)) groups) 
+getGroupThr :: Double -> PhyloGroup -> Double
+getGroupThr step g = 
+    let seaLvl = (g ^. phylo_groupMeta) ! "seaLevels"
+        breaks = (g ^. phylo_groupMeta) ! "breaks"
+     in (last' "export" (take (round $ (last' "export" breaks) + 1) seaLvl)) - step
 
+toAncestor :: Double -> Map Int Double -> Proximity -> Double -> [PhyloGroup] -> PhyloGroup -> PhyloGroup
+toAncestor nbDocs diago proximity step candidates ego =
+  let curr = ego ^. phylo_groupAncestors 
+   in ego & phylo_groupAncestors .~ (curr ++ (map (\(g,w) -> (getGroupId g,w))
+         $ filter (\(g,w) -> (w > 0) && (w >= (min (getGroupThr step ego) (getGroupThr step g))))
+         $ map (\g -> (g, toProximity nbDocs diago proximity (ego ^. phylo_groupNgrams) (g ^. phylo_groupNgrams) (g ^. phylo_groupNgrams))) 
+         $ filter (\g -> g ^. phylo_groupBranchId /= ego ^. phylo_groupBranchId ) candidates))
+
+
+headsToAncestors :: Double -> Map Int Double -> Proximity -> Double -> [PhyloGroup] -> [PhyloGroup] -> [PhyloGroup]
+headsToAncestors nbDocs diago proximity step heads acc =
+  if (null heads)
+    then acc
+    else 
+      let ego    = head' "headsToAncestors" heads
+          heads' = tail' "headsToAncestors" heads
+       in headsToAncestors nbDocs diago proximity step heads' (acc ++ [toAncestor nbDocs diago proximity step heads' ego])
+
+
+toHorizon :: Phylo -> Phylo
+toHorizon phylo = 
+  let phyloAncestor = updatePhyloGroups 
+                    level 
+                    (fromList $ map (\g -> (getGroupId g, g)) 
+                              $ concat 
+                              $ tracePhyloAncestors newGroups) phylo
+      reBranched = fromList $ map (\g -> (getGroupId g, g)) $ concat
+                 $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevel level phyloAncestor
+   in updatePhyloGroups level reBranched phylo
+  where
+    -- | 1) for each periods 
+    periods :: [PhyloPeriodId]
+    periods = getPeriodIds phylo
+    -- --
+    level :: Level
+    level = getLastLevel phylo
+    -- --
+    frame :: Int
+    frame = getTimeFrame $ timeUnit $ getConfig phylo
+    -- | 2) find ancestors between groups without parents
+    mapGroups :: [[PhyloGroup]]
+    mapGroups = map (\prd -> 
+      let groups  = getGroupsFromLevelPeriods level [prd] phylo
+          childs  = getPreviousChildIds level frame prd periods phylo     
+          heads   = filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
+          noHeads = groups \\ heads 
+          nbDocs  = sum $ elems  $ filterDocs  (phylo ^. phylo_timeDocs) [prd]
+          diago   = reduceDiagos $ filterDiago (phylo ^. phylo_timeCooc) [prd]
+          proximity = (phyloProximity $ getConfig phylo)
+          step = case getSeaElevation phylo of
+            Constante  _ s -> s 
+            Adaptative _ -> undefined
+       -- in headsToAncestors nbDocs diago proximity heads groups []
+       in map (\ego -> toAncestor nbDocs diago proximity step noHeads ego) 
+        $ headsToAncestors nbDocs diago proximity step heads []
+      ) periods
+    -- | 3) process this task concurrently
+    newGroups :: [[PhyloGroup]]
+    newGroups = mapGroups `using` parList rdeepseq 
+    --------------------------------------
+
+getPreviousChildIds :: Level -> Int -> PhyloPeriodId -> [PhyloPeriodId] -> Phylo -> [PhyloGroupId]
+getPreviousChildIds lvl frame curr prds phylo = 
+    concat $ map ((map fst) . _phylo_groupPeriodChilds)
+           $ getGroupsFromLevelPeriods lvl (getNextPeriods ToParents frame curr prds) phylo
 
 ---------------------
 -- | phyloExport | --
@@ -510,7 +577,7 @@ toPhyloExport phylo = exportToDot phylo
                     $ processMetrics  export           
     where
         export :: PhyloExport
-        export = PhyloExport groups branches (horizonToAncestors 0 phylo)     
+        export = PhyloExport groups branches     
         --------------------------------------
         branches :: [PhyloBranch]
         branches = map (\g -> 
@@ -533,12 +600,18 @@ toPhyloExport phylo = exportToDot phylo
         groups = traceExportGroups
                $ processDynamics
                $ getGroupsFromLevel (phyloLevel $ getConfig phylo)
-               $ tracePhyloInfo phylo
+               $ tracePhyloInfo 
+               $ toHorizon phylo
 
 
 traceExportBranches :: [PhyloBranch] -> [PhyloBranch]
 traceExportBranches branches = trace ("\n"
   <> "-- | Export " <> show(length branches) <> " branches") branches
+
+tracePhyloAncestors :: [[PhyloGroup]] -> [[PhyloGroup]]
+tracePhyloAncestors groups = trace ("\n" 
+  <> "-- | Found " <> show(length $ concat $ map _phylo_groupAncestors $ concat groups) <> " ancestors"
+  ) groups
 
 tracePhyloInfo :: Phylo -> Phylo
 tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with β = "

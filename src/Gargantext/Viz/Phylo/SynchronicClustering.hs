@@ -21,57 +21,19 @@ import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, reduceDiagos)
 import Gargantext.Viz.Phylo.PhyloExport (processDynamics)
 
-import Data.List ((++), null, intersect, nub, concat, sort, sortOn, all, groupBy, group, maximum)
+import Data.List ((++), null, intersect, nub, concat, sort, sortOn, all, groupBy)
 import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
-import Data.Text (Text)
 
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 -- import Debug.Trace (trace)
 
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 
 
 -------------------------
 -- | New Level Maker | --
--------------------------
-
-mergeBranchIds :: [[Int]] -> [Int]
-mergeBranchIds ids = (head' "mergeBranchIds" . sort . mostFreq') ids
-  where
-    -- | 2) find the most Up Left ids in the hierarchy of similarity
-    -- mostUpLeft :: [[Int]] -> [[Int]]
-    -- mostUpLeft ids' = 
-    --      let groupIds = (map (\gIds -> (length $ head' "gIds" gIds, head' "gIds" gIds)) . groupBy (\id id' -> length id == length id') . sortOn length) ids'
-    --          inf = (fst . minimum) groupIds
-    --      in map snd $ filter (\gIds -> fst gIds == inf) groupIds
-    -- | 1) find the most frequent ids
-    mostFreq' :: [[Int]] -> [[Int]]
-    mostFreq' ids' = 
-       let groupIds = (map (\gIds -> (length gIds, head' "gIds" gIds)) . group . sort) ids'
-           sup = (fst . maximum) groupIds
-        in map snd $ filter (\gIds -> fst gIds == sup) groupIds
-
-
-mergeMeta :: [Int] -> [PhyloGroup] -> Map Text [Double]
-mergeMeta bId groups = 
-  let ego = head' "mergeMeta" $ filter (\g -> (snd (g ^. phylo_groupBranchId)) == bId) groups  
-   in fromList [("breaks",(ego ^. phylo_groupMeta) ! "breaks"),("seaLevels",(ego ^. phylo_groupMeta) ! "seaLevels")]     
-
-
-groupsToBranches' :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
-groupsToBranches' groups =
-    -- | run the related component algorithm
-    let egos  = map (\g -> [getGroupId g] 
-                        ++ (map fst $ g ^. phylo_groupPeriodParents)
-                        ++ (map fst $ g ^. phylo_groupPeriodChilds) ) $ elems groups
-        graph = relatedComponents egos
-    -- | update each group's branch id
-    in map (\ids ->
-        let groups' = elems $ restrictKeys groups (Set.fromList ids)
-            bId = mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) groups'
-         in map (\g -> g & phylo_groupBranchId %~ (\(lvl,_) -> (lvl,bId))) groups') graph
+-------------------------  
 
 
 mergeGroups :: [Cooc] -> PhyloGroupId -> Map PhyloGroupId PhyloGroupId -> [PhyloGroup] -> PhyloGroup
@@ -84,6 +46,7 @@ mergeGroups coocs id mapIds childs =
                   (mergeMeta bId childs) [] (map (\g -> (getGroupId g, 1)) childs)
                   (updatePointers $ concat $ map _phylo_groupPeriodParents childs)
                   (updatePointers $ concat $ map _phylo_groupPeriodChilds  childs)
+                  []
     where
         --------------------
         bId :: [Int]
@@ -104,7 +67,7 @@ toNextLevel' :: Phylo -> [PhyloGroup] -> Phylo
 toNextLevel' phylo groups =
     let curLvl = getLastLevel phylo
         oldGroups = fromList $ map (\g -> (getGroupId g, getLevelParentId g)) groups
-        newGroups = concat $ groupsToBranches'
+        newGroups = concat $ groupsToBranches
                   $ fromList $ map (\g -> (getGroupId g, g))
                   $ foldlWithKey (\acc id groups' ->
                         -- | 4) create the parent group

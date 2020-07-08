@@ -17,9 +17,9 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, maximum, group)
 import Data.Set (Set, disjoint)
-import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty)
+import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.String (String)
 import Data.Text (Text, unwords)
 
@@ -257,22 +257,19 @@ ngramsToCooc ngrams coocs =
 --------------------
 
 getGroupId :: PhyloGroup -> PhyloGroupId 
-getGroupId group = ((group ^. phylo_groupPeriod, group ^. phylo_groupLevel), group ^. phylo_groupIndex)
+getGroupId g = ((g ^. phylo_groupPeriod, g ^. phylo_groupLevel), g ^. phylo_groupIndex)
 
 idToPrd :: PhyloGroupId -> PhyloPeriodId
 idToPrd id = (fst . fst) id
-
-getGroupThr :: PhyloGroup -> Double
-getGroupThr group = last' "getGroupThr" ((group ^. phylo_groupMeta) ! "breaks")
 
 groupByField :: Ord a => (PhyloGroup -> a) -> [PhyloGroup] ->  Map a [PhyloGroup]
 groupByField toField groups = fromListWith (++) $ map (\g -> (toField g, [g])) groups
 
 getPeriodPointers :: Filiation -> PhyloGroup -> [Pointer]
-getPeriodPointers fil group = 
+getPeriodPointers fil g = 
     case fil of 
-        ToChilds  -> group ^. phylo_groupPeriodChilds
-        ToParents -> group ^. phylo_groupPeriodParents
+        ToChilds  -> g ^. phylo_groupPeriodChilds
+        ToParents -> g ^. phylo_groupPeriodParents
 
 filterProximity :: Proximity -> Double -> Double -> Bool
 filterProximity proximity thr local = 
@@ -291,14 +288,14 @@ getProximityName proximity =
 ---------------
 
 addPointers :: Filiation -> PointerType -> [Pointer] -> PhyloGroup -> PhyloGroup
-addPointers fil pty pointers group = 
+addPointers fil pty pointers g = 
     case pty of 
         TemporalPointer -> case fil of 
-                                ToChilds  -> group & phylo_groupPeriodChilds  .~ pointers
-                                ToParents -> group & phylo_groupPeriodParents .~ pointers
+                                ToChilds  -> g & phylo_groupPeriodChilds  .~ pointers
+                                ToParents -> g & phylo_groupPeriodParents .~ pointers
         LevelPointer    -> case fil of 
-                                ToChilds  -> group & phylo_groupLevelChilds   .~ pointers
-                                ToParents -> group & phylo_groupLevelParents  .~ pointers
+                                ToChilds  -> g & phylo_groupLevelChilds   .~ pointers
+                                ToParents -> g & phylo_groupLevelParents  .~ pointers
 
 
 getPeriodIds :: Phylo -> [(Date,Date)]
@@ -375,12 +372,12 @@ updatePhyloGroups lvl m phylo =
          .  filtered (\phyloLvl -> phyloLvl ^. phylo_levelLevel == lvl)
          . phylo_levelGroups
          .  traverse 
-         ) (\group -> 
-                let id = getGroupId group
+         ) (\g -> 
+                let id = getGroupId g
                 in 
                     if member id m 
                     then m ! id
-                    else group ) phylo
+                    else g ) phylo
 
 
 traceToPhylo :: Level -> Phylo -> Phylo
@@ -392,6 +389,43 @@ traceToPhylo lvl phylo =
 --------------------
 -- | Clustering | --
 --------------------
+
+mergeBranchIds :: [[Int]] -> [Int]
+mergeBranchIds ids = (head' "mergeBranchIds" . sort . mostFreq') ids
+  where
+    -- | 2) find the most Up Left ids in the hierarchy of similarity
+    -- mostUpLeft :: [[Int]] -> [[Int]]
+    -- mostUpLeft ids' = 
+    --      let groupIds = (map (\gIds -> (length $ head' "gIds" gIds, head' "gIds" gIds)) . groupBy (\id id' -> length id == length id') . sortOn length) ids'
+    --          inf = (fst . minimum) groupIds
+    --      in map snd $ filter (\gIds -> fst gIds == inf) groupIds
+    -- | 1) find the most frequent ids
+    mostFreq' :: [[Int]] -> [[Int]]
+    mostFreq' ids' = 
+       let groupIds = (map (\gIds -> (length gIds, head' "gIds" gIds)) . group . sort) ids'
+           sup = (fst . maximum) groupIds
+        in map snd $ filter (\gIds -> fst gIds == sup) groupIds
+
+
+mergeMeta :: [Int] -> [PhyloGroup] -> Map Text [Double]
+mergeMeta bId groups = 
+  let ego = head' "mergeMeta" $ filter (\g -> (snd (g ^. phylo_groupBranchId)) == bId) groups  
+   in fromList [("breaks",(ego ^. phylo_groupMeta) ! "breaks"),("seaLevels",(ego ^. phylo_groupMeta) ! "seaLevels")]   
+
+
+groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
+groupsToBranches groups =
+    -- | run the related component algorithm
+    let egos  = map (\g -> [getGroupId g] 
+                        ++ (map fst $ g ^. phylo_groupPeriodParents)
+                        ++ (map fst $ g ^. phylo_groupPeriodChilds)
+                        ++ (map fst $ g ^. phylo_groupAncestors)) $ elems groups
+        graph = relatedComponents egos
+    -- | update each group's branch id
+    in map (\ids ->
+        let groups' = elems $ restrictKeys groups (Set.fromList ids)
+            bId = mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) groups'
+         in map (\g -> g & phylo_groupBranchId %~ (\(lvl,_) -> (lvl,bId))) groups') graph
 
 relatedComponents :: Ord a => [[a]] -> [[a]]
 relatedComponents graph = foldl' (\acc groups ->

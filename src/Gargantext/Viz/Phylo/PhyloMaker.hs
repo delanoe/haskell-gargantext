@@ -36,7 +36,6 @@ import Control.Lens hiding (Level)
 import qualified Data.Vector as Vector
 import qualified Data.Set as Set
 
-
 ------------------
 -- | To Phylo | --
 ------------------
@@ -119,7 +118,7 @@ cliqueToGroup fis pId lvl idx coocs = PhyloGroup pId lvl idx ""
                    (ngramsToCooc (fis ^. phyloClique_nodes) coocs)
                    (1,[0]) -- | branchid (lvl,[path in the branching tree])
                    (fromList [("breaks",[0]),("seaLevels",[0])])
-                   [] [] [] []
+                   [] [] [] [] []
 
 
 toPhylo1 :: [Document] -> Phylo -> Phylo

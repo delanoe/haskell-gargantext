@@ -137,9 +137,9 @@ actants = [ "Cleopatre"   , "Ptolemee", "Ptolemee-XIII", "Ptolemee-XIV", "Ptolem
 
 corpus :: [(Date, Text)]
 corpus = sortOn fst [ 
-  (-101,"La tutelle de sa mère lui étant difficile à endurer, en septembre 101 av. J.-C., Ptolemee-X la fait assassiner et peut enfin régner presque seul puisqu'il partage le pouvoir avec son épouse Berenice-III Cléopâtre Philopator."),
+  (-101,"La tutelle Cesar Caesar-III  de sa mère lui étant difficile à endurer, en septembre 101 av. J.-C., Ptolemee-X la fait assassiner et peut enfin régner presque seul puisqu'il partage le pouvoir avec son épouse Berenice-III Cléopâtre Philopator."),
   (-99,"Caesar-III est questeur en 99 av. J.-C. ou 98 av. J.-C., et préteur en 92 av. J.-C.."),
-  (-100,"Caius Julius Caesar-IV — dit Jules Cesar — naît vers 100 av. J.-C., il est le fils de Caius Julius Caesar-III et de Aurelia-Cotta"),
+  (-100,"Caius Julius Caesar-IV — dit Jules Cesar Ptolemee-X — naît vers 100 av. J.-C., il est le fils de Caius Julius Caesar-III et de Aurelia-Cotta"),
   (-85,"Caesar-III meurt à Pisae de cause naturelle en 85 av. J.-C. : selon Pline l'Ancien, il décède brusquement en mettant ses chaussures"),
   (-53,"Aurelia-Cotta décède peu de temps avant le meurtre de Clodius Pulcher, vers 53 av. J.-C."),
   (-51,"Cleopatre règne sur l’egypte entre 51 et 30 av. J.-C. avec ses frères-epoux Ptolemee-XIII et Ptolemee-XIV, puis aux côtes du general romain Marc-Antoine. Elle est celèbre pour avoir ete la compagne de Jules Cesar puis d'Antoine, avec lesquels elle a eu plusieurs enfants. Partie prenante dans la guerre civile opposant Antoine à Octave, elle est vaincue à la bataille d'Actium en 31 av. J.-C. Sa defaite va permettre aux Romains de mener à bien la conquête de l’egypte, evenement qui marquera la fin de l'epoque hellenistique."), 

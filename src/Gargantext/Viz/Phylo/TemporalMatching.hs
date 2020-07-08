@@ -345,8 +345,8 @@ toPhyloQuality beta freq branches =
 ------------------------------------
 
 
-groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
-groupsToBranches groups =
+groupsToBranches' :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
+groupsToBranches' groups =
     -- | run the related component algorithm
     let egos = groupBy (\gs gs' -> (fst $ fst $ head' "egos" gs) == (fst $ fst $ head' "egos" gs'))
              $ sortOn  (\gs -> fst $ fst $ head' "egos" gs)
@@ -413,7 +413,7 @@ breakBranches proximity beta frequency minBranch thr depth elevation frame docs 
     --------------------------------------
     ego' :: ([[PhyloGroup]],[[PhyloGroup]])
     ego' = 
-      let branches  = groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+      let branches  = groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
                     $ matchGroupsToGroups frame periods proximity thr docs coocs (fst ego)
           branches' = branches `using` parList rdeepseq
        in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) >= minBranch) 
@@ -470,7 +470,7 @@ constanteTemporalMatching start step phylo = updatePhyloGroups 1
     -- | here we suppose that all the groups of level 1 are part of the same big branch
     groups :: [([PhyloGroup],Bool)]
     groups = map (\b -> (b,(length $ nub $ map _phylo_groupPeriod b) >= (_qua_minBranch $ phyloQuality $ getConfig phylo))) 
-           $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+           $ groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
            $ matchGroupsToGroups (getTimeFrame $ timeUnit $ getConfig phylo) 
                          (getPeriodIds phylo) (phyloProximity $ getConfig phylo) 
                          start 
@@ -569,7 +569,7 @@ adaptativeBreakBranches proxiConf depth elevation groupsProxi beta frequency min
     --------------------------------------
     ego' :: ([[PhyloGroup]],[[PhyloGroup]])
     ego' = 
-      let branches  = groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+      let branches  = groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
                     $ matchGroupsToGroups frame periods proxiConf thr docs coocs (fst ego)
           branches' = branches `using` parList rdeepseq
        in partition (\b -> (length $ nub $ map _phylo_groupPeriod b) > minBranch)
@@ -627,7 +627,7 @@ adaptativeTemporalMatching elevation phylo = updatePhyloGroups 1
     -- | here we suppose that all the groups of level 1 are part of the same big branch
     groups :: [([PhyloGroup],(Bool,[Double]))]
     groups = map (\b -> (b,((length $ nub $ map _phylo_groupPeriod b) >= (_qua_minBranch $ phyloQuality $ getConfig phylo),[thr])))
-           $ groupsToBranches $ fromList $ map (\g -> (getGroupId g, g))
+           $ groupsToBranches' $ fromList $ map (\g -> (getGroupId g, g))
            $ matchGroupsToGroups (getTimeFrame $ timeUnit $ getConfig phylo) 
                          (getPeriodIds phylo) (phyloProximity $ getConfig phylo) 
                          thr
