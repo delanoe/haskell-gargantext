@@ -21,10 +21,12 @@ import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Share (shareNodeWith, ShareNodeWith(..))
+import Gargantext.Database.Action.Share (ShareNodeWith(..))
+import Gargantext.Database.Action.Share as DB (shareNodeWith, unPublish)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.API.Prelude
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
@@ -52,16 +54,19 @@ api :: HasNodeError err
     -> ShareNodeParams
     -> Cmd err Int
 api nId (ShareTeamParams user) =
-  fromIntegral <$> shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId 
+  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId 
 api nId2 (SharePublicParams nId1) =
-  fromIntegral <$> shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId1) nId2
+  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId1) nId2
 
 ------------------------------------------------------------------------
 type API = Summary " Share Node with username"
          :> ReqBody '[JSON] ShareNodeParams
          :> Post    '[JSON] Int
 
+------------------------------------------------------------------------
+type Unpublish = Summary " Unpublish Node"
+               :> Capture "node_id" NodeId
+               :> Put '[JSON] Int
 
-
-
-
+unPublish :: NodeId -> GargServer Unpublish
+unPublish n = DB.unPublish n

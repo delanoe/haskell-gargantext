@@ -87,8 +87,9 @@ delFolderTeam u nId = do
   folderSharedId <- getFolderId u NodeFolderShared
   deleteNodeNode folderSharedId nId
 
-unPublish :: HasNodeError err => User -> NodeId -> Cmd err Int
-unPublish  u nId = do
-  folderId <- getFolderId u NodeFolderPublic
-  deleteNodeNode folderId nId
+
+unPublish :: HasNodeError err
+          => ParentId -> NodeId
+          -> Cmd err Int
+unPublish p n = deleteNodeNode p n
 
