@@ -9,13 +9,14 @@ Portability : POSIX
 
 -}
 
+
 module Gargantext.Database.Action.Share
   where
 
 import Control.Lens (view)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow.Utils (getUserId)
-import Gargantext.Database.Admin.Config (hasNodeType)
+import Gargantext.Database.Admin.Config (hasNodeType, isInNodeTypes)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAny(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
@@ -28,33 +29,46 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
 import Gargantext.Prelude
 
+-- | TODO move in Config of Gargantext
+publicNodeTypes :: [NodeType]
+publicNodeTypes = [NodeDashboard, NodeGraph, NodePhylo]
+
+------------------------------------------------------------------------
+
+data ShareNodeWith = ShareNodeWith_User { snwu_nodetype :: NodeType
+                                        , snwu_user    :: User }
+                   | ShareNodeWith_Node { snwn_nodetype :: NodeType
+                                        , snwn_node_id :: NodeId
+                                        }
+
 ------------------------------------------------------------------------
 shareNodeWith :: HasNodeError err
-              => NodeId
-              -> NodeType
-              -> User
+              => ShareNodeWith
+              -> NodeId
               -> Cmd err Int64
-shareNodeWith n nt u = do
+shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
   nodeToCheck <- getNode   n
-  case nt of
-    NodeFolderShared -> do
-      userIdCheck <- getUserId u
-      if not (hasNodeType nodeToCheck NodeTeam)
-        then msg "Can share node Team only"
-        else
-          if (view node_userId nodeToCheck == userIdCheck)
-            then msg "Can share to others only"
-            else do 
-              folderSharedId  <- getFolderId u NodeFolderShared
-              insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
+  userIdCheck <- getUserId u
+  if not (hasNodeType nodeToCheck NodeTeam)
+    then msg "Can share node Team only"
+    else
+      if (view node_userId nodeToCheck == userIdCheck)
+        then msg "Can share to others only"
+        else do
+          folderSharedId  <- getFolderId u NodeFolderShared
+          insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
 
-    NodeFolderPublic -> if not (hasNodeType nodeToCheck NodeGraph)
-                          then msg "Can share node graph only"
-                          else do
-                            folderId  <- getFolderId (UserDBId $ view node_userId nodeToCheck) NodeFolderPublic
-                            insertNodeNode [NodeNode folderId n Nothing Nothing]
+shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
+  nodeToCheck <- getNode n
+  if not (isInNodeTypes nodeToCheck publicNodeTypes)
+    then msg $ "Can share this nodesTypes only: " <> (cs $ show publicNodeTypes)
+    else do
+      folderToCheck <- getNode nId
+      if hasNodeType folderToCheck NodeFolderPublic
+         then insertNodeNode [NodeNode nId n Nothing Nothing]
+         else msg "Can share NodeWith NodeFolderPublic only"
 
-    _ -> msg "shareNodeWith not implemented with this NodeType"
+shareNodeWith _ _ = msg "shareNodeWith not implemented for this NodeType"
 
 ------------------------------------------------------------------------
 getFolderId :: HasNodeError err => User -> NodeType -> Cmd err NodeId

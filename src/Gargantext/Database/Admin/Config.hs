@@ -87,6 +87,8 @@ nodeTypeId n =
 hasNodeType :: forall a. Node a -> NodeType -> Bool
 hasNodeType n nt = (view node_typename n) == (nodeTypeId nt)
 
+isInNodeTypes :: forall a. Node a -> [NodeType] -> Bool
+isInNodeTypes n ts = elem (view node_typename n) (map nodeTypeId ts)
 
 -- | Nodes are typed in the database according to a specific ID
 --
