@@ -95,26 +95,35 @@ tree_advanced r nodeTypes = do
 
 ------------------------------------------------------------------------
 -- | Collaborative Nodes in the Tree
-findShared :: RootId -> NodeType -> [NodeType] -> UpdateTree err -> Cmd err [DbTreeNode]
+findShared :: HasTreeError err
+           => RootId -> NodeType -> [NodeType] -> UpdateTree err
+           -> Cmd err [DbTreeNode]
 findShared r nt nts fun = do
-  folderSharedId <- maybe (panic "no folder found") identity
-                <$> head
-                <$> findNodesId r [nt]
-  folders       <- getNodeNode folderSharedId
-  nodesSharedId <- mapM (\child -> fun folderSharedId child nts)
+  foldersSharedId <- findNodesId r [nt]
+  trees       <- mapM (updateTree nts fun) foldersSharedId
+  pure $ concat trees
+
+
+updateTree :: HasTreeError err
+           => [NodeType] -> UpdateTree err -> RootId
+           -> Cmd err [DbTreeNode]
+updateTree nts fun r = do
+  folders       <- getNodeNode r
+  nodesSharedId <- mapM (fun r nts)
                  $ map _nn_node2_id folders
   pure $ concat nodesSharedId
 
-type UpdateTree err = ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]
+
+type UpdateTree err = ParentId -> [NodeType] -> NodeId -> Cmd err [DbTreeNode]
  
-sharedTreeUpdate :: ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]
-sharedTreeUpdate p n nt = dbTree n nt
+sharedTreeUpdate :: HasTreeError err => UpdateTree err
+sharedTreeUpdate p nt n = dbTree n nt
                <&> map (\n' -> if _dt_nodeId n' == n
                                   then set dt_parentId (Just p) n'
                                   else n')
 
-publicTreeUpdate :: ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]
-publicTreeUpdate p n nt = dbTree n nt
+publicTreeUpdate :: HasTreeError err => UpdateTree err
+publicTreeUpdate p nt n = dbTree n nt
                <&> map (\n' -> if _dt_nodeId n' == n
                                 -- && (fromNodeTypeId $ _dt_typeId n') /= NodeFolderPublic
                                   then set dt_parentId (Just p) n'
