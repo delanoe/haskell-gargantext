@@ -95,20 +95,16 @@ mkNodeWithParent NodeGraph (Just i) uId name =
     where
       hd = arbitraryGraph
 
-mkNodeWithParent NodeDashboard (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeDashboard name hd Nothing uId]
-    where
-      hd = arbitraryDashboard
-
-
-
 mkNodeWithParent NodeFrameWrite i u n =
   mkNodeWithParent_ConfigureHyperdata NodeFrameWrite i u n
 
 mkNodeWithParent NodeFrameCalc i u n =
   mkNodeWithParent_ConfigureHyperdata NodeFrameCalc i u n
 
-mkNodeWithParent _ _ _ _       = nodeError NotImplYet
+mkNodeWithParent n (Just i) uId name =
+   insertNodesWithParentR (Just i) [node NodeDashboard name (hasDefaultData n) Nothing uId]
+
+-- mkNodeWithParent _ _ _ _       = nodeError NotImplYet
 
 
 -- | Sugar to create a node, get his NodeId and update his Hyperdata after

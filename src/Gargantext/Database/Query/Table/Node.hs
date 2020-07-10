@@ -228,17 +228,19 @@ class HasDefault a where
 
 instance HasDefault NodeType where
   hasDefaultData nt = case nt of
-      NodeTexts    -> HyperdataTexts (Just "Preferences")
-      NodeList     -> HyperdataList' (Just "Preferences")
-      NodeListCooc -> HyperdataList' (Just "Preferences")
-      _         -> undefined
+      NodeTexts     -> HyperdataTexts (Just "Preferences")
+      NodeList      -> HyperdataList' (Just "Preferences")
+      NodeListCooc  -> HyperdataList' (Just "Preferences")
+      -- NodeFolder    -> defaultFolder
+      NodeDashboard -> arbitraryDashboard
+      _             -> panic "HasDefaultData undefined"
       --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
 
   hasDefaultName nt = case nt of
       NodeTexts -> "Texts"
       NodeList  -> "Lists"
       NodeListCooc -> "Cooc"
-      _         -> undefined
+      _         -> panic "HasDefaultName undefined"
 
 ------------------------------------------------------------------------
 nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
@@ -287,7 +289,7 @@ nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
     graph = maybe arbitraryPhylo identity maybePhylo
 
 ------------------------------------------------------------------------
-arbitraryDashboard :: HyperdataDashboard
+arbitraryDashboard :: HyperData 
 arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
 ------------------------------------------------------------------------
 
@@ -446,7 +448,7 @@ mkNode nt p u = insertNodesR [nodeDefault nt p u]
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
   where
-    nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite
+    nodeDashboardW :: Maybe Name -> Maybe HyperData -> ParentId -> UserId -> NodeWrite
     nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
       where
         name = maybe "Board" identity maybeName

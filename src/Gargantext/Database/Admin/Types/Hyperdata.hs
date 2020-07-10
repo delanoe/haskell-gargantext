@@ -296,13 +296,6 @@ $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 instance Hyperdata HyperdataResource
 
 ------------------------------------------------------------------------
-data HyperdataDashboard = HyperdataDashboard { hyperdataDashboard_preferences   :: !(Maybe Text)
-                                             , hyperdataDashboard_charts        :: ![Chart]
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
-
-instance Hyperdata HyperdataDashboard
-
 ------------------------------------------------------------------------
 -- TODO add the Graph Structure here
 data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: !(Maybe Text)
@@ -324,6 +317,9 @@ instance Hyperdata HyperdataNotebook
 -- | TODO CLEAN
 data HyperData = HyperdataTexts { hd_preferences :: !(Maybe Text)}
                | HyperdataList' { hd_preferences :: !(Maybe Text)}
+               | HyperdataDashboard { hd_preferences   :: !(Maybe Text)
+                                    , hd_charts        :: ![Chart]
+                                    }
   deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "hd_") ''HyperData)
