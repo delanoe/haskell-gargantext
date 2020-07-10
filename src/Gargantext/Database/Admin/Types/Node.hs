@@ -280,6 +280,8 @@ instance ToSchema      NodeType
 instance Arbitrary NodeType where
   arbitrary = elements allNodeTypes
 
+
+
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
@@ -309,7 +311,4 @@ instance QueryRunnerColumnDefault PGInt4 NodeId
 instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
-
 
