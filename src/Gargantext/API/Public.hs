@@ -9,26 +9,33 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Gargantext.API.Public
       where
 
+import Control.Lens ((^?), (^.), _Just)
+import Data.Maybe (maybe, catMaybes)
+import Data.Tuple (snd)
 import Data.Text (Text)
-import Data.List (replicate)
+import Data.List (replicate, null)
 import Data.Aeson
 import Data.Swagger
 import GHC.Generics (Generic)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Prelude
--- import Gargantext.Database.Admin.Types.Node
--- import Gargantext.Database.Query.Table.NodeNode (selectPublicNodes)
--- import Gargantext.Database.Schema.Node (NodePoly(..))
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.NodeNode (selectPublicNodes)
+import Gargantext.Core.Utils.DateUtils (utc2year)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Schema.Node -- (NodePoly(..))
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
 type API = Summary " Public API"
@@ -36,16 +43,37 @@ type API = Summary " Public API"
 
 api :: HasNodeError err
     => Cmd err [PublicData]
-api = do
-  pure $ replicate 6 defaultPublicData
+api = catMaybes <$> map toPublicData <$> filterPublicDatas <$> selectPublic
 
-{-
-toPublicData :: (Node HyperdataFolder, Maybe Int) -> Maybe PublicData
-toPublicData (n, mn) = Just $ PublicData t a i u d db au
+
+selectPublic :: HasNodeError err
+             => Cmd err [( Node HyperdataFolder, Maybe Int)] 
+selectPublic = selectPublicNodes
+
+  -- | For tests only
+  -- pure $ replicate 6 defaultPublicData
+
+filterPublicDatas :: [( Node HyperdataFolder, Maybe Int)] -> [(Node HyperdataFolder, [NodeId])]
+filterPublicDatas datas = map (\(n,mi) -> let mi' = NodeId <$> mi in
+                                              ( _node_id n, (n, maybe [] (:[]) mi' ))
+                              ) datas
+                        & Map.fromListWith (\(n1,i1) (_n2,i2) -> (n1, i1 <> i2))
+                        & Map.filter (not . null . snd)
+                        & Map.elems
+
+
+toPublicData :: (Node HyperdataFolder, [NodeId]) -> Maybe PublicData
+toPublicData (n , _mn) = PublicData <$> (hd ^? (_Just . hf_data . cf_title))
+                                   <*> (hd ^? (_Just . hf_data . cf_desc))
+                                   <*> Just "images/Gargantextuel-212x300.jpg"
+                                   <*> Just "https://.."
+                                   <*> Just (cs $ show $ utc2year (n^.node_date))
+                                   <*> (hd ^? (_Just . hf_data . cf_query))
+                                   <*> (hd ^? (_Just . hf_data . cf_authors))
   where
-    d = _node_date n
-    t = _node_name n
--}
+    hd = head
+       $ filter (\(HyperdataField cd _ _) -> cd == JSON)
+       $ n^. (node_hyperdata . hc_fields)
 
 
 data PublicData = PublicData

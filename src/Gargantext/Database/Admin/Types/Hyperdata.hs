@@ -35,7 +35,7 @@ import Gargantext.Viz.Types (Histo(..))
 
 
 data CodeType = JSON | Markdown | Haskell
-  deriving (Generic)
+  deriving (Generic, Eq)
 instance ToJSON CodeType
 instance FromJSON CodeType
 instance ToSchema CodeType
@@ -56,6 +56,12 @@ data CorpusField = MarkdownField { _cf_text :: !Text }
                               }
                   | HaskellField { _cf_haskell :: !Text }
                   deriving (Generic)
+
+isField :: CodeType -> CorpusField -> Bool
+isField Markdown (MarkdownField   _) = True
+isField JSON     (JsonField _ _ _ _) = True
+isField Haskell  (HaskellField    _) = True
+isField _ _                          = False
 
 $(deriveJSON (unPrefix "_cf_") ''CorpusField)
 $(makeLenses ''CorpusField)
@@ -194,6 +200,7 @@ $(makeLenses ''HyperdataCorpus)
 
 instance Hyperdata HyperdataCorpus
 
+type HyperdataFolder = HyperdataCorpus
 ------------------------------------------------------------------------
 data HyperdataFrame =
   HyperdataFrame { base :: !Text 
