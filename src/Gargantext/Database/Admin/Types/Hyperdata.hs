@@ -305,32 +305,23 @@ instance Hyperdata HyperdataResource
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- TODO add the Graph Structure here
-data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: !(Maybe Text)
-                                     , hyperdataPhylo_data          :: !(Maybe Phylo)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
-
-instance Hyperdata HyperdataPhylo
 
 ------------------------------------------------------------------------
--- | TODO FEATURE: Notebook saved in the node
-data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
-
-instance Hyperdata HyperdataNotebook
-
-
 -- | TODO CLEAN
+-- | TODO FEATURE: Notebook saved in the node
 data HyperData = HyperdataTexts { hd_preferences :: !(Maybe Text)}
                | HyperdataList' { hd_preferences :: !(Maybe Text)}
-               | HyperdataDashboard { hd_preferences   :: !(Maybe Text)
-                                    , hd_charts        :: ![Chart]
+               | HyperdataDashboard { hd_preferences :: !(Maybe Text)
+                                    , hd_charts      :: ![Chart]
                                     }
+               | HyperdataNotebook { hd_preferences :: !(Maybe Text)}
+               | HyperdataPhylo    { hd_preferences :: !(Maybe Text)
+                                   , hd_data        :: !(Maybe Phylo)
+                                   }
+
   deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "hd_") ''HyperData)
-
 instance Hyperdata HyperData
 
 ------------------------------------------------------------------------
@@ -398,10 +389,6 @@ instance FromField HyperdataListModel
   where
     fromField = fromField'
 
-instance FromField HyperdataPhylo
-  where
-    fromField = fromField'
-
 instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
@@ -437,10 +424,6 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 

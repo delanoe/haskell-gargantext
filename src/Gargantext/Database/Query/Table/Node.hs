@@ -240,6 +240,7 @@ instance HasDefault NodeType where
       NodeTexts -> "Texts"
       NodeList  -> "Lists"
       NodeListCooc -> "Cooc"
+      NodePhylo    -> "Phylo"
       _         -> panic "HasDefaultName undefined"
 
 ------------------------------------------------------------------------
@@ -277,16 +278,6 @@ mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 
 insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
 insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
-
-------------------------------------------------------------------------
-arbitraryPhylo :: HyperdataPhylo
-arbitraryPhylo = HyperdataPhylo Nothing Nothing
-
-nodePhyloW :: Maybe Name -> Maybe HyperdataPhylo -> ParentId -> UserId -> NodeWrite
-nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
-  where
-    name = maybe "Phylo" identity maybeName
-    graph = maybe arbitraryPhylo identity maybePhylo
 
 ------------------------------------------------------------------------
 arbitraryDashboard :: HyperData 
@@ -453,10 +444,6 @@ mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
       where
         name = maybe "Board" identity maybeName
         dashboard = maybe arbitraryDashboard identity maybeDashboard
-
-
-mkPhylo :: ParentId -> UserId -> Cmd err [NodeId]
-mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
