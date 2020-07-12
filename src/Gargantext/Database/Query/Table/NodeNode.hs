@@ -28,6 +28,7 @@ module Gargantext.Database.Query.Table.NodeNode
   , getNodeNode
   , insertNodeNode
   , deleteNodeNode
+  , selectPublicNodes
   )
   where
 
@@ -152,4 +153,22 @@ joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
   where
     cond :: (NodeRead, NodeNodeRead) -> Column PGBool
     cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
+
+joinOn1 :: O.Query (NodeRead, NodeNodeReadNull)
+joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
+  where
+    cond :: (NodeRead, NodeNodeRead) -> Column PGBool
+    cond (n, nn) = nn^.nn_node1_id .== n^.node_id
+
+
+------------------------------------------------------------------------
+selectPublicNodes :: (Hyperdata a, QueryRunnerColumnDefault PGJsonb a)
+                  => Cmd err [(Node a, Maybe Int)]
+selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
+
+queryWithType :: NodeType -> O.Query (NodeRead, Column (Nullable PGInt4))
+queryWithType nt = proc () -> do
+  (n, nn) <- joinOn1 -< ()
+  restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId nt)
+  returnA  -<  (n, nn^.nn_node2_id)
 

@@ -228,17 +228,20 @@ class HasDefault a where
 
 instance HasDefault NodeType where
   hasDefaultData nt = case nt of
-      NodeTexts    -> HyperdataTexts (Just "Preferences")
-      NodeList     -> HyperdataList' (Just "Preferences")
-      NodeListCooc -> HyperdataList' (Just "Preferences")
-      _         -> undefined
+      NodeTexts     -> HyperdataTexts (Just "Preferences")
+      NodeList      -> HyperdataList' (Just "Preferences")
+      NodeListCooc  -> HyperdataList' (Just "Preferences")
+      -- NodeFolder    -> defaultFolder
+      NodeDashboard -> arbitraryDashboard
+      _             -> panic "HasDefaultData undefined"
       --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
 
   hasDefaultName nt = case nt of
       NodeTexts -> "Texts"
       NodeList  -> "Lists"
       NodeListCooc -> "Cooc"
-      _         -> undefined
+      NodePhylo    -> "Phylo"
+      _         -> panic "HasDefaultName undefined"
 
 ------------------------------------------------------------------------
 nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
@@ -277,17 +280,7 @@ insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
 insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
 
 ------------------------------------------------------------------------
-arbitraryPhylo :: HyperdataPhylo
-arbitraryPhylo = HyperdataPhylo Nothing Nothing
-
-nodePhyloW :: Maybe Name -> Maybe HyperdataPhylo -> ParentId -> UserId -> NodeWrite
-nodePhyloW maybeName maybePhylo pId = node NodePhylo name graph (Just pId)
-  where
-    name = maybe "Phylo" identity maybeName
-    graph = maybe arbitraryPhylo identity maybePhylo
-
-------------------------------------------------------------------------
-arbitraryDashboard :: HyperdataDashboard
+arbitraryDashboard :: HyperData 
 arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
 ------------------------------------------------------------------------
 
@@ -446,15 +439,11 @@ mkNode nt p u = insertNodesR [nodeDefault nt p u]
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
   where
-    nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite
+    nodeDashboardW :: Maybe Name -> Maybe HyperData -> ParentId -> UserId -> NodeWrite
     nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
       where
         name = maybe "Board" identity maybeName
         dashboard = maybe arbitraryDashboard identity maybeDashboard
-
-
-mkPhylo :: ParentId -> UserId -> Cmd err [NodeId]
-mkPhylo p u = insertNodesR [nodePhyloW Nothing Nothing p u]
 
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)

@@ -201,8 +201,7 @@ withAccessM uId (PathNodeNode cId docId) m = do
 
 withAccess :: forall env err m api.
               (GargServerC env err m, HasServer api '[]) =>
-              Proxy api -> Proxy m ->
-              UserId -> PathId ->
+              Proxy api -> Proxy m -> UserId -> PathId ->
               ServerT api m -> ServerT api m
 withAccess p _ uId id = hoistServer p f
   where

@@ -234,10 +234,6 @@ instance ToSchema Resource where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "resource_")
 
 ------------------------------------------------------------------------
-
-
-
-------------------------------------------------------------------------
 -- | Then a Node can be either a Folder or a Corpus or a Document
 data NodeType = NodeUser
               | NodeFolderPrivate
@@ -280,6 +276,8 @@ instance ToSchema      NodeType
 instance Arbitrary NodeType where
   arbitrary = elements allNodeTypes
 
+
+
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
@@ -309,7 +307,5 @@ instance QueryRunnerColumnDefault PGInt4 NodeId
 instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
 
 

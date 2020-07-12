@@ -35,7 +35,7 @@ import Gargantext.Viz.Types (Histo(..))
 
 
 data CodeType = JSON | Markdown | Haskell
-  deriving (Generic)
+  deriving (Generic, Eq)
 instance ToJSON CodeType
 instance FromJSON CodeType
 instance ToSchema CodeType
@@ -56,6 +56,12 @@ data CorpusField = MarkdownField { _cf_text :: !Text }
                               }
                   | HaskellField { _cf_haskell :: !Text }
                   deriving (Generic)
+
+isField :: CodeType -> CorpusField -> Bool
+isField Markdown (MarkdownField   _) = True
+isField JSON     (JsonField _ _ _ _) = True
+isField Haskell  (HaskellField    _) = True
+isField _ _                          = False
 
 $(deriveJSON (unPrefix "_cf_") ''CorpusField)
 $(makeLenses ''CorpusField)
@@ -194,6 +200,7 @@ $(makeLenses ''HyperdataCorpus)
 
 instance Hyperdata HyperdataCorpus
 
+type HyperdataFolder = HyperdataCorpus
 ------------------------------------------------------------------------
 data HyperdataFrame =
   HyperdataFrame { base :: !Text 
@@ -296,38 +303,25 @@ $(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
 instance Hyperdata HyperdataResource
 
 ------------------------------------------------------------------------
-data HyperdataDashboard = HyperdataDashboard { hyperdataDashboard_preferences   :: !(Maybe Text)
-                                             , hyperdataDashboard_charts        :: ![Chart]
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataDashboard_") ''HyperdataDashboard)
-
-instance Hyperdata HyperdataDashboard
-
 ------------------------------------------------------------------------
 -- TODO add the Graph Structure here
-data HyperdataPhylo = HyperdataPhylo { hyperdataPhylo_preferences   :: !(Maybe Text)
-                                     , hyperdataPhylo_data          :: !(Maybe Phylo)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataPhylo_") ''HyperdataPhylo)
-
-instance Hyperdata HyperdataPhylo
 
 ------------------------------------------------------------------------
--- | TODO FEATURE: Notebook saved in the node
-data HyperdataNotebook = HyperdataNotebook { hyperdataNotebook_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataNotebook_") ''HyperdataNotebook)
-
-instance Hyperdata HyperdataNotebook
-
-
 -- | TODO CLEAN
+-- | TODO FEATURE: Notebook saved in the node
 data HyperData = HyperdataTexts { hd_preferences :: !(Maybe Text)}
                | HyperdataList' { hd_preferences :: !(Maybe Text)}
+               | HyperdataDashboard { hd_preferences :: !(Maybe Text)
+                                    , hd_charts      :: ![Chart]
+                                    }
+               | HyperdataNotebook { hd_preferences :: !(Maybe Text)}
+               | HyperdataPhylo    { hd_preferences :: !(Maybe Text)
+                                   , hd_data        :: !(Maybe Phylo)
+                                   }
+
   deriving (Show, Generic)
 
 $(deriveJSON (unPrefix "hd_") ''HyperData)
-
 instance Hyperdata HyperData
 
 ------------------------------------------------------------------------
@@ -395,10 +389,6 @@ instance FromField HyperdataListModel
   where
     fromField = fromField'
 
-instance FromField HyperdataPhylo
-  where
-    fromField = fromField'
-
 instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
@@ -434,10 +424,6 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 

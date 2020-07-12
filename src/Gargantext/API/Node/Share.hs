@@ -20,8 +20,10 @@ import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Share (shareNodeWith)
+import Gargantext.Database.Action.Share (ShareNodeWith(..))
+import Gargantext.Database.Action.Share as DB (shareNodeWith, unPublish)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
@@ -31,37 +33,40 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
-data ShareNode = ShareTeam   { username :: Text }
-               | SharePublic { rights   :: Text}
+data ShareNodeParams = ShareTeamParams   { username :: Text  }
+                     | SharePublicParams { node_id  :: NodeId}
   deriving (Generic)
 ------------------------------------------------------------------------
 -- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  ShareNode where
+instance FromJSON  ShareNodeParams where
   parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-instance ToJSON    ShareNode where
+instance ToJSON    ShareNodeParams where
   toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-instance ToSchema  ShareNode
-instance Arbitrary ShareNode where
-  arbitrary = elements [ ShareTeam "user1"
-                       , SharePublic "public"
+instance ToSchema  ShareNodeParams
+instance Arbitrary ShareNodeParams where
+  arbitrary = elements [ ShareTeamParams "user1"
+                       , SharePublicParams (NodeId 1)
                        ]
 ------------------------------------------------------------------------
 -- TODO permission
 api :: HasNodeError err
     => NodeId
-    -> ShareNode
+    -> ShareNodeParams
     -> Cmd err Int
-api nId (ShareTeam user) =
-  fromIntegral <$> shareNodeWith nId NodeFolderShared (UserName user)
-api nId (SharePublic _rights) =
-  fromIntegral <$> shareNodeWith nId NodeFolderPublic UserPublic
+api nId (ShareTeamParams user) =
+  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId 
+api nId2 (SharePublicParams nId1) =
+  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId1) nId2
 
 ------------------------------------------------------------------------
 type API = Summary " Share Node with username"
-         :> ReqBody '[JSON] ShareNode
+         :> ReqBody '[JSON] ShareNodeParams
          :> Post    '[JSON] Int
 
+------------------------------------------------------------------------
+type Unpublish = Summary " Unpublish Node"
+               :> Capture "node_id" NodeId
+               :> Put '[JSON] Int
 
-
-
-
+unPublish :: NodeId -> GargServer Unpublish
+unPublish n = DB.unPublish n
