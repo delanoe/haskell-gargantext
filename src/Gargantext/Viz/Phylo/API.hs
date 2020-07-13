@@ -17,28 +17,27 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.API
   where
 
-import Data.String.Conversions
---import Control.Monad.Reader (ask)
-import qualified Data.ByteString as DB
-import qualified Data.ByteString.Lazy as DBL
+import Control.Lens ((^?), _Just)
 import Data.Proxy (Proxy(..))
+import Data.String.Conversions
 import Data.Swagger
+import Gargantext.API.Prelude
+import Gargantext.Core.Types (TODO(..))
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
+import Gargantext.Database.Query.Table.Node (insertNodes, node, getNodeWith)
+import Gargantext.Database.Schema.Node (node_hyperdata)
+import Gargantext.Prelude
+import Gargantext.Viz.Phylo
+import Gargantext.Viz.Phylo.Example
+import Gargantext.Viz.Phylo.Main
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Web.HttpApiData (parseUrlPiece, readTextData)
-
-import Gargantext.API.Prelude
-import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
-import Gargantext.Database.Query.Table.Node (insertNodes, node, getNodeWith)
-import Gargantext.Database.Schema.Node (_node_hyperdata)
-import Gargantext.Prelude
-import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Main
-import Gargantext.Viz.Phylo.Example
-import Gargantext.Core.Types (TODO(..))
+import qualified Data.ByteString as DB
+import qualified Data.ByteString.Lazy as DBL
 
 ------------------------------------------------------------------------
 type PhyloAPI = Summary "Phylo API"
@@ -100,7 +99,7 @@ getPhylo phId _lId l msb  = do
   let
     level = maybe 2 identity l
     branc = maybe 2 identity msb
-    maybePhylo = hd_data $ _node_hyperdata phNode
+    maybePhylo = phNode ^? ( node_hyperdata . hd_data . _Just)
 
   p <- liftBase $ viewPhylo2Svg
                 $ viewPhylo level branc

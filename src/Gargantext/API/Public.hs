@@ -47,13 +47,13 @@ api = catMaybes <$> map toPublicData <$> filterPublicDatas <$> selectPublic
 
 
 selectPublic :: HasNodeError err
-             => Cmd err [( Node HyperdataFolder, Maybe Int)] 
+             => Cmd err [( Node HyperData, Maybe Int)] 
 selectPublic = selectPublicNodes
 
   -- | For tests only
   -- pure $ replicate 6 defaultPublicData
 
-filterPublicDatas :: [( Node HyperdataFolder, Maybe Int)] -> [(Node HyperdataFolder, [NodeId])]
+filterPublicDatas :: [( Node HyperData, Maybe Int)] -> [(Node HyperData, [NodeId])]
 filterPublicDatas datas = map (\(n,mi) -> let mi' = NodeId <$> mi in
                                               ( _node_id n, (n, maybe [] (:[]) mi' ))
                               ) datas
@@ -62,7 +62,7 @@ filterPublicDatas datas = map (\(n,mi) -> let mi' = NodeId <$> mi in
                         & Map.elems
 
 
-toPublicData :: (Node HyperdataFolder, [NodeId]) -> Maybe PublicData
+toPublicData :: (Node HyperData, [NodeId]) -> Maybe PublicData
 toPublicData (n , _mn) = PublicData <$> (hd ^? (_Just . hf_data . cf_title))
                                    <*> (hd ^? (_Just . hf_data . cf_desc))
                                    <*> Just "images/Gargantextuel-212x300.jpg"
@@ -73,7 +73,7 @@ toPublicData (n , _mn) = PublicData <$> (hd ^? (_Just . hf_data . cf_title))
   where
     hd = head
        $ filter (\(HyperdataField cd _ _) -> cd == JSON)
-       $ n^. (node_hyperdata . hc_fields)
+       $ n^. (node_hyperdata . hd_fields)
 
 
 data PublicData = PublicData

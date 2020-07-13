@@ -99,7 +99,7 @@ type GargPrivateAPI' =
            -- Corpus endpoints
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "corpus_id" CorpusId
-                           :> NodeAPI HyperdataCorpus
+                           :> NodeAPI HyperData
 
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "node1_id" NodeId
@@ -205,7 +205,7 @@ serverPrivateGargAPI' :: AuthenticatedUser -> GargServer GargPrivateAPI'
 serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
        =  serverGargAdminAPI
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAny)      uid
-     :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
+     :<|> nodeAPI     (Proxy :: Proxy HyperData)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> Export.getCorpus   -- uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid

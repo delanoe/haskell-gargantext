@@ -27,7 +27,7 @@ import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Trigger.Init (initTriggers)
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperData)
 import Gargantext.Database.Admin.Types.Node (CorpusId, RootId, ListId)
 import Gargantext.Database.Prelude (Cmd, )
 import Gargantext.Prelude
@@ -48,7 +48,7 @@ main = do
   let
     initMaster :: Cmd GargError (UserId, RootId, CorpusId, ListId)
     initMaster = do
-      (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
+      (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) (Nothing :: Maybe HyperData)
       masterListId <- getOrMkList masterCorpusId masterUserId
       _triggers <- initTriggers masterListId
       pure (masterUserId, masterRootId, masterCorpusId, masterListId)

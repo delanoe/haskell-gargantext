@@ -126,7 +126,7 @@ getDataText (InternalOrigin _) _la q _li = do
   (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
                                            (UserName userMaster)
                                            (Left "")
-                                           (Nothing :: Maybe HyperdataCorpus)
+                                           (Nothing :: Maybe HyperData)
   ids <-  map fst <$> searchInDatabase cId (stemIt q)
   pure $ DataOld ids
 
@@ -139,7 +139,7 @@ flowDataText :: FlowCmdM env err m
              -> m CorpusId
 flowDataText u (DataOld ids) tt cid = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids
   where
-    corpusType = (Nothing :: Maybe HyperdataCorpus)
+    corpusType = (Nothing :: Maybe HyperData)
 flowDataText u (DataNew txt) tt cid = flowCorpus u (Right [cid]) tt txt
 
 ------------------------------------------------------------------------
@@ -177,7 +177,7 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
            -> TermType Lang
            -> [[a]]
            -> m CorpusId
-flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
+flowCorpus = flow (Nothing :: Maybe HyperData)
 
 
 flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)

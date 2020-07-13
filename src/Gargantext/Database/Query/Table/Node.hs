@@ -117,10 +117,10 @@ getDocumentsV3WithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocume
 getDocumentsWithParentId :: NodeId -> Cmd err [Node HyperdataDocument]
 getDocumentsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)
 
-getListsModelWithParentId :: NodeId -> Cmd err [Node HyperdataListModel]
+getListsModelWithParentId :: NodeId -> Cmd err [Node HyperData]
 getListsModelWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeListModel)
 
-getCorporaWithParentId :: NodeId -> Cmd err [Node HyperdataCorpus]
+getCorporaWithParentId :: NodeId -> Cmd err [Node HyperData]
 getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 
 ------------------------------------------------------------------------
@@ -164,18 +164,18 @@ nodeContactW maybeName maybeContact aId =
       name    = maybe "Contact" identity maybeName
       contact = maybe arbitraryHyperdataContact identity maybeContact
 ------------------------------------------------------------------------
-defaultFolder :: HyperdataCorpus
+defaultFolder :: HyperData
 defaultFolder = defaultCorpus
 
 
 
-nodeFolderW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
+nodeFolderW :: Maybe Name -> Maybe HyperData -> ParentId -> UserId -> NodeWrite
 nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
   where
     name   = maybe "Folder" identity maybeName
     folder = maybe defaultFolder identity maybeFolder
 ------------------------------------------------------------------------
-nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
+nodeCorpusW :: Maybe Name -> Maybe HyperData -> ParentId -> UserId -> NodeWrite
 nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
   where
     name   = maybe "Corpus" identity maybeName
@@ -251,6 +251,7 @@ nodeDefault nt parent = node nt name hyper (Just parent)
     hyper = (hasDefaultData nt)
 
 ------------------------------------------------------------------------
+{-
 arbitraryListModel :: HyperdataListModel
 arbitraryListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
 
@@ -262,7 +263,7 @@ nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just
   where
     name = maybe "List Model" identity maybeName
     list = maybe arbitraryListModel identity maybeListModel
-
+-}
 ------------------------------------------------------------------------
 arbitraryGraph :: HyperdataGraph
 arbitraryGraph = HyperdataGraph Nothing
@@ -403,7 +404,7 @@ class MkCorpus a
   where
     mk :: Maybe Name -> Maybe a -> ParentId -> UserId -> Cmd err [NodeId]
 
-instance MkCorpus HyperdataCorpus
+instance MkCorpus HyperData
   where
     mk n h p u = insertNodesR [nodeCorpusW n h p u]
 
