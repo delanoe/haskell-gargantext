@@ -41,7 +41,7 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
-import Gargantext.Viz.Graph (HyperdataGraph(..))
+import Gargantext.Viz.Graph (HyperdataGraph(..), defaultHyperdataGraph)
 
 
 queryNodeSearchTable :: Query NodeSearchRead
@@ -181,79 +181,20 @@ nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
     name   = maybe "Corpus" identity maybeName
     corpus = maybe defaultCorpus identity maybeCorpus
                    --------------------------
-defaultDocument :: HyperdataDocument
-defaultDocument = hyperdataDocument
 
 nodeDocumentW :: Maybe Name -> Maybe HyperdataDocument -> CorpusId -> UserId -> NodeWrite
 nodeDocumentW maybeName maybeDocument cId = node NodeDocument name doc (Just cId)
   where
     name = maybe "Document" identity maybeName
-    doc  = maybe defaultDocument identity maybeDocument
+    doc  = maybe defaultHyperdataDocument identity maybeDocument
 ------------------------------------------------------------------------
-defaultAnnuaire :: HyperdataAnnuaire
-defaultAnnuaire = HyperdataAnnuaire (Just "Title") (Just "Description")
-
 nodeAnnuaireW :: Maybe Name -> Maybe HyperdataAnnuaire -> ParentId -> UserId -> NodeWrite
 nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Just pId)
   where
     name     = maybe "Annuaire" identity maybeName
-    annuaire = maybe defaultAnnuaire identity maybeAnnuaire
+    annuaire = maybe defaultHyperdataAnnuaire identity maybeAnnuaire
 
 ------------------------------------------------------------------------
-
-{-
-class IsNodeDb a where
-  data Node'' a :: *
-  data Hyper  a :: *
-
-instance IsNodeDb NodeType where
-  data 
-
-instance HasHyperdata NodeType where
-  data Hyper NodeType = HyperList   HyperdataList
-                      | HyperCorpus HyperdataCorpus
-
-  hasHyperdata nt = case nt of
-    NodeList   -> HyperList $ HyperdataList (Just "list")
-
-  unHyper h = case h of
-    HyperList h' -> h'
-
---}
-
-
-class HasDefault a where
-  hasDefaultData :: a -> HyperData
-  hasDefaultName :: a -> Text
-
-instance HasDefault NodeType where
-  hasDefaultData nt = case nt of
-      NodeTexts     -> HyperdataTexts (Just "Preferences")
-      NodeList      -> HyperdataList' (Just "Preferences")
-      NodeListCooc  -> HyperdataList' (Just "Preferences")
-      -- NodeFolder    -> defaultFolder
-      NodeDashboard -> arbitraryDashboard
-      _             -> panic "HasDefaultData undefined"
-      --NodeAnnuaire -> HyperdataAnnuaire (Just "Title") (Just "Description")
-
-  hasDefaultName nt = case nt of
-      NodeTexts -> "Texts"
-      NodeList  -> "Lists"
-      NodeListCooc -> "Cooc"
-      NodePhylo    -> "Phylo"
-      _         -> panic "HasDefaultName undefined"
-
-------------------------------------------------------------------------
-nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
-nodeDefault nt parent = node nt name hyper (Just parent)
-  where
-    name  = (hasDefaultName nt)
-    hyper = (hasDefaultData nt)
-
-------------------------------------------------------------------------
-arbitraryListModel :: HyperdataListModel
-arbitraryListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
-
 mkListModelNode :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
 mkListModelNode p u = insertNodesR [nodeListModelW Nothing Nothing p u]
 
@@ -261,17 +202,14 @@ nodeListModelW :: Maybe Name -> Maybe HyperdataListModel -> ParentId -> UserId -
 nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just pId)
   where
     name = maybe "List Model" identity maybeName
-    list = maybe arbitraryListModel identity maybeListModel
+    list = maybe defaultHyperdataListModel identity maybeListModel
 
 ------------------------------------------------------------------------
-arbitraryGraph :: HyperdataGraph
-arbitraryGraph = HyperdataGraph Nothing
-
 nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite
 nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
   where
     name = maybe "Graph" identity maybeName
-    graph = maybe arbitraryGraph identity maybeGraph
+    graph = maybe defaultHyperdataGraph identity maybeGraph
 
 mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
 mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
@@ -279,11 +217,18 @@ mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
 insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
 
-------------------------------------------------------------------------
-arbitraryDashboard :: HyperData 
-arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
-------------------------------------------------------------------------
 
+------------------------------------------------------------------------
+nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
+nodeDefault NodeList      parentId = node NodeList      "List"   defaultHyperdataList      (Just parentId)
+nodeDefault NodeCorpus    parentId = node NodeCorpus    "Corpus" defaultHyperdataCorpus    (Just parentId)
+nodeDefault NodeDocument  parentId = node NodeDocument  "Doc"    defaultHyperdataDocument  (Just parentId)
+nodeDefault NodeTexts     parentId = node NodeTexts     "Texts"  defaultHyperdataTexts     (Just parentId)
+nodeDefault NodeListModel parentId = node NodeListModel "Model"  defaultHyperdataListModel (Just parentId)
+nodeDefault nt _ = panic $ "G.D.Q.T.Node.nodeDefault " <> (cs $ show nt)
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a)
      => NodeType
      -> Name
@@ -316,19 +261,6 @@ insertNodesWithParent pid ns = insertNodes (set node_parentId (pgNodeId <$> pid)
 insertNodesWithParentR :: Maybe ParentId -> [NodeWrite] -> Cmd err [NodeId]
 insertNodesWithParentR pid ns = insertNodesR (set node_parentId (pgNodeId <$> pid) <$> ns)
 ------------------------------------------------------------------------
--- TODO Hierachy of Nodes
--- post and get same types Node' and update if changes
-
-{- TODO semantic to achieve
-post c uid pid [ Node' NodeCorpus "name" "{}" []
-               , Node' NodeFolder "name" "{}" [Node' NodeCorpus "test 2" "" [ Node' NodeDocument "title" "metaData" []
-                                                                    , Node' NodeDocument "title" "jsonData" []
-                                                                    ]
-                                          ]
-               ]
--}
-------------------------------------------------------------------------
-
 -- TODO
 -- currently this function removes the child relation
 -- needs a Temporary type between Node' and NodeWriteT
@@ -352,41 +284,6 @@ mkNodeR :: [NodeWrite] -> Cmd err [NodeId]
 mkNodeR ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns (rReturning _node_id) Nothing
 
 ------------------------------------------------------------------------
-
-{-
-data NewNode = NewNode { _newNodeId :: NodeId
-                       , _newNodeChildren :: [NodeId] }
-
-postNode :: HasNodeError err
-         => UserId
-         -> Maybe ParentId
-         -> Node'
-         -> Cmd err NewNode
-
-postNode uid pid (Node' nt txt v []) = do
-  pids <- mkNodeR [node2table uid pid (Node' nt txt v [])]
-  case pids of
-    [pid'] -> pure $ NewNode pid' []
-    _ -> nodeError ManyParents
-
-postNode uid pid (Node' NodeCorpus txt v ns) = do
-  NewNode pid' _ <- postNode uid pid (Node' NodeCorpus txt v [])
-  pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
-  pure $ NewNode pid' pids
-
-postNode uid pid (Node' NodeAnnuaire txt v ns) = do
-  NewNode pid' _ <- postNode uid pid (Node' NodeAnnuaire txt v [])
-  pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
-  pure $ NewNode pid' pids
-
-postNode uid pid (Node' NodeDashboard txt v ns) = do
-  NewNode pid' _ <- postNode uid pid (Node' NodeDashboard txt v [])
-  pids  <- mkNodeR (concat $ map (\n -> [childWith uid pid' n]) ns)
-  pure $ NewNode pid' pids
-
-postNode _ _ (Node' _ _ _ _) = nodeError NotImplYet
--}
-
 childWith :: UserId -> ParentId -> Node' -> NodeWrite
 childWith uId pId (Node' NodeDocument txt v []) = node2table uId (Just pId) (Node' NodeDocument txt v [])
 childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Node' NodeContact txt v [])
@@ -439,11 +336,14 @@ mkNode nt p u = insertNodesR [nodeDefault nt p u]
 mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
 mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
   where
-    nodeDashboardW :: Maybe Name -> Maybe HyperData -> ParentId -> UserId -> NodeWrite
+    nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite
     nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
       where
         name = maybe "Board" identity maybeName
         dashboard = maybe arbitraryDashboard identity maybeDashboard
+        arbitraryDashboard :: HyperdataDashboard 
+        arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
+
 
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)

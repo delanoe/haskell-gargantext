@@ -14,6 +14,7 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata
   ( module Gargantext.Database.Admin.Types.Hyperdata.Corpus
   , module Gargantext.Database.Admin.Types.Hyperdata.Document
+  , module Gargantext.Database.Admin.Types.Hyperdata.List
   , module Gargantext.Database.Admin.Types.Hyperdata.Prelude
   )
   where
@@ -21,3 +22,7 @@ module Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude (Hyperdata)
 import Gargantext.Database.Admin.Types.Hyperdata.Corpus
 import Gargantext.Database.Admin.Types.Hyperdata.Document
+import Gargantext.Database.Admin.Types.Hyperdata.List
+
+
+

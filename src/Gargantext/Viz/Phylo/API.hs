@@ -96,11 +96,11 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- Fix Filter parameters
 getPhylo :: PhyloId -> GargServer GetPhylo
 getPhylo phId _lId l msb  = do
-  phNode     <- getNodeWith phId (Proxy :: Proxy HyperData)
+  phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
   let
     level = maybe 2 identity l
     branc = maybe 2 identity msb
-    maybePhylo = hd_data $ _node_hyperdata phNode
+    maybePhylo = hp_data $ _node_hyperdata phNode
 
   p <- liftBase $ viewPhylo2Svg
                 $ viewPhylo level branc

@@ -170,6 +170,10 @@ data HyperdataGraph =
                  } deriving (Show, Generic)
 $(deriveJSON (unPrefix "") ''HyperdataGraph)
 
+defaultHyperdataGraph :: HyperdataGraph 
+defaultHyperdataGraph = HyperdataGraph Nothing
+
+
 instance Hyperdata HyperdataGraph
 makeLenses ''HyperdataGraph
 

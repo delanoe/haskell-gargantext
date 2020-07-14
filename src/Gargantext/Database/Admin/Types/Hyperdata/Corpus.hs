@@ -23,12 +23,9 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.Corpus
   where
 
-import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
-import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)
 import Gargantext.Viz.Phylo (Phylo(..))
-import Gargantext.Viz.Types (Histo(..))
-import Protolude hiding (ByteString)
 
 
 data CodeType = JSON | Markdown | Haskell
@@ -68,16 +65,6 @@ instance ToSchema CorpusField where
     & mapped.schema.example ?~ toJSON defaultCorpusField
 
 ------------------------------------------------------------------------
-data Chart =
-    CDocsHistogram
-  | CAuthorsPie
-  | CInstitutesTree
-  | CTermsMetrics
-  deriving (Generic, Show, Eq)
-instance ToJSON Chart
-instance FromJSON Chart
-instance ToSchema Chart
-
 ------------------------------------------------------------------------
 
 data HyperdataField a =
@@ -107,6 +94,7 @@ $(makeLenses ''HyperdataCorpus)
 instance Hyperdata HyperdataCorpus
 
 type HyperdataFolder = HyperdataCorpus
+
 ------------------------------------------------------------------------
 data HyperdataFrame =
   HyperdataFrame { base :: !Text 
@@ -133,21 +121,18 @@ hyperdataCorpus = case decode corpusExample of
   Just hp -> hp
   Nothing -> defaultCorpus
 
+defaultHyperdataCorpus :: HyperdataCorpus
+defaultHyperdataCorpus = defaultCorpus
+
+defaultHyperdataFolder :: HyperdataFolder
+defaultHyperdataFolder = defaultHyperdataCorpus
+
+
+
 instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO
 
 ------------------------------------------------------------------------
-data HyperdataList =
-  HyperdataList { hd_chart   :: !(Maybe (ChartMetrics Histo))
-                , hd_list    :: !(Maybe Text)
-                , hd_pie     :: !(Maybe (ChartMetrics Histo))
-                , hd_scatter :: !(Maybe Metrics)
-                , hd_tree    :: !(Maybe (ChartMetrics [MyTree]))
-                } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hd_") ''HyperdataList)
-
-instance Hyperdata HyperdataList
-
 ------------------------------------------------------------------------
 data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: !(Maybe Text)
                                            , hyperdataAnnuaire_desc         :: !(Maybe Text)
@@ -156,11 +141,11 @@ $(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
 
 instance Hyperdata HyperdataAnnuaire
 
-hyperdataAnnuaire :: HyperdataAnnuaire
-hyperdataAnnuaire = HyperdataAnnuaire (Just "Annuaire Title") (Just "Annuaire Description")
+defaultHyperdataAnnuaire :: HyperdataAnnuaire
+defaultHyperdataAnnuaire = HyperdataAnnuaire (Just "Title") (Just "Description")
 
 instance Arbitrary HyperdataAnnuaire where
-    arbitrary = pure hyperdataAnnuaire -- TODO
+  arbitrary = pure defaultHyperdataAnnuaire -- TODO
 
 ------------------------------------------------------------------------
 newtype HyperdataAny = HyperdataAny Object
@@ -170,34 +155,6 @@ instance Hyperdata HyperdataAny
 
 instance Arbitrary HyperdataAny where
     arbitrary = pure $ HyperdataAny mempty -- TODO produce arbitrary objects
-------------------------------------------------------------------------
-
-{-
-instance Arbitrary HyperdataList' where
-  arbitrary = elements [HyperdataList' (Just "from list A")]
--}
-
-                      ----
-data HyperdataListModel =
-  HyperdataListModel { _hlm_params  :: !(Int, Int)
-                     , _hlm_path    :: !Text
-                     , _hlm_score   :: !(Maybe Double)
-                     } deriving (Show, Generic)
-
-instance Hyperdata HyperdataListModel
-instance Arbitrary HyperdataListModel where
-  arbitrary = elements [HyperdataListModel (100,100) "models/example.model" Nothing]
-
-$(deriveJSON (unPrefix "_hlm_") ''HyperdataListModel)
-$(makeLenses ''HyperdataListModel)
-
-------------------------------------------------------------------------
-data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
-
-instance Hyperdata HyperdataScore
-
 ------------------------------------------------------------------------
 data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: !(Maybe Text)
                                    } deriving (Show, Generic)
@@ -212,20 +169,58 @@ instance Hyperdata HyperdataResource
 ------------------------------------------------------------------------
 -- | TODO CLEAN
 -- | TODO FEATURE: Notebook saved in the node
-data HyperData = HyperdataTexts { hd_preferences :: !(Maybe Text)}
-               | HyperdataList' { hd_preferences :: !(Maybe Text)}
-               | HyperdataDashboard { hd_preferences :: !(Maybe Text)
-                                    , hd_charts      :: ![Chart]
-                                    }
-               | HyperdataNotebook { hd_preferences :: !(Maybe Text)}
-               | HyperdataPhylo    { hd_preferences :: !(Maybe Text)
-                                   , hd_data        :: !(Maybe Phylo)
-                                   }
-
+data HyperdataTexts =
+  HyperdataTexts { ht_preferences :: !(Maybe Text)}
   deriving (Show, Generic)
 
-$(deriveJSON (unPrefix "hd_") ''HyperData)
-instance Hyperdata HyperData
+instance Hyperdata HyperdataTexts
+instance ToJSON HyperdataTexts
+instance FromJSON HyperdataTexts
+
+defaultHyperdataTexts :: HyperdataTexts
+defaultHyperdataTexts = HyperdataTexts Nothing
+
+data HyperdataDashboard =
+  HyperdataDashboard { hda_preferences :: !(Maybe Text)
+                     , hda_charts      :: ![Chart]
+                     }
+  deriving (Show, Generic)
+
+instance Hyperdata HyperdataDashboard
+instance ToJSON    HyperdataDashboard
+instance FromJSON  HyperdataDashboard
+
+
+
+data HyperdataNotebook =
+  HyperdataNotebook { hn_preferences :: !(Maybe Text)}
+  deriving (Show, Generic)
+
+data HyperdataPhylo =
+  HyperdataPhylo    { hp_preferences :: !(Maybe Text)
+                    , hp_data        :: !(Maybe Phylo)
+                    }
+  deriving (Show, Generic)
+
+instance Hyperdata HyperdataPhylo
+instance ToJSON    HyperdataPhylo
+instance FromJSON  HyperdataPhylo
+
+defaultHyperdataPhylo :: HyperdataPhylo
+defaultHyperdataPhylo = HyperdataPhylo Nothing Nothing
+
+instance FromField HyperdataPhylo where
+    fromField = fromField'
+
+instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance ToSchema HyperdataPhylo where
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "hp_") proxy
+    & mapped.schema.description ?~ "Phylo"
+    & mapped.schema.example ?~ toJSON defaultHyperdataPhylo
 
 ------------------------------------------------------------------------
 -- Instances
@@ -241,7 +236,7 @@ instance ToSchema HyperdataAnnuaire where
   declareNamedSchema proxy =
     genericDeclareNamedSchema (unPrefixSwagger "hyperdataAnnuaire_") proxy
     & mapped.schema.description ?~ "an annuaire"
-    & mapped.schema.example ?~ toJSON hyperdataAnnuaire
+    & mapped.schema.example ?~ toJSON defaultHyperdataAnnuaire
 
 instance ToSchema HyperdataAny where
   declareNamedSchema proxy =
@@ -258,19 +253,7 @@ instance FromField HyperdataCorpus
   where
     fromField = fromField'
 
-instance FromField HyperData
-  where
-    fromField = fromField'
-
-instance FromField HyperdataListModel
-  where
-    fromField = fromField'
-
 instance FromField HyperdataAnnuaire
-  where
-    fromField = fromField'
-
-instance FromField HyperdataList
   where
     fromField = fromField'
 
@@ -280,19 +263,7 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataAny
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataList
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperData
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
 instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
