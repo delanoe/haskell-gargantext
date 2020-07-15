@@ -24,19 +24,19 @@ module Gargantext.Database.Query.Table.Node
 import Control.Arrow (returnA)
 import Control.Lens (set, view)
 import Data.Aeson
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Text (Text)
 import GHC.Int (Int64)
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node (NodeType(..))
+import Gargantext.Database.Admin.Types.Hyperdata.Default
+import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultName)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
-import Gargantext.Viz.Graph (HyperdataGraph(..), defaultHyperdataGraph)
 import Opaleye hiding (FromField)
 import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
@@ -162,16 +162,6 @@ nodeContactW maybeName maybeContact aId =
       name    = maybe "Contact" identity maybeName
       contact = maybe arbitraryHyperdataContact identity maybeContact
 ------------------------------------------------------------------------
-defaultFolder :: HyperdataFolder
-defaultFolder = defaultHyperdataFolder
-
-
-nodeFolderW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
-nodeFolderW maybeName maybeFolder pid = node NodeFolder name folder (Just pid)
-  where
-    name   = maybe "Folder" identity maybeName
-    folder = maybe defaultFolder identity maybeFolder
-------------------------------------------------------------------------
 nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
 nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
   where
@@ -185,65 +175,19 @@ nodeDocumentW maybeName maybeDocument cId = node NodeDocument name doc (Just cId
     name = maybe "Document" identity maybeName
     doc  = maybe defaultHyperdataDocument identity maybeDocument
 ------------------------------------------------------------------------
-nodeAnnuaireW :: Maybe Name -> Maybe HyperdataAnnuaire -> ParentId -> UserId -> NodeWrite
-nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Just pId)
+-- | Sugar to insert Node with NodeType in Database
+insertDefaultNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
+insertDefaultNode nt p u = insertNode nt Nothing Nothing p u
+
+insertNode :: NodeType -> Maybe Name -> Maybe DefaultHyperdata -> ParentId -> UserId -> Cmd err [NodeId]
+insertNode nt n h p u = insertNodesR [nodeW nt n h p u]
+
+nodeW :: NodeType -> Maybe Name -> Maybe DefaultHyperdata -> ParentId -> UserId -> NodeWrite
+nodeW nt n h p u = node nt n' h' (Just p) u
   where
-    name     = maybe "Annuaire" identity maybeName
-    annuaire = maybe defaultHyperdataAnnuaire identity maybeAnnuaire
+    n' = fromMaybe (defaultName nt) n
+    h' = maybe     (defaultHyperdata nt) identity h
 
-------------------------------------------------------------------------
-mkModelNode :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
-mkModelNode p u = insertNodesR [nodeModelW Nothing Nothing p u]
-
-nodeModelW :: Maybe Name -> Maybe HyperdataModel -> ParentId -> UserId -> NodeWrite
-nodeModelW maybeName maybeModel pId = node NodeModel name list (Just pId)
-  where
-    name = maybe "List Model" identity maybeName
-    list = maybe defaultHyperdataModel identity maybeModel
-
-------------------------------------------------------------------------
-nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite
-nodeGraphW maybeName maybeGraph pId = node NodeGraph name graph (Just pId)
-  where
-    name = maybe "Graph" identity maybeName
-    graph = maybe defaultHyperdataGraph identity maybeGraph
-
-mkGraph :: ParentId -> UserId -> Cmd err [GraphId]
-mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
-
-insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
-insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
-
-------------------------------------------------------------------------
-nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
-nodeDefault NodeUser      parentId = node NodeUser     "User"   defaultHyperdataUser     (Just parentId)
-nodeDefault NodeContact   parentId = node NodeContact  "Contact" defaultHyperdataContact   (Just parentId)
-
-nodeDefault NodeCorpus    parentId = node NodeCorpus   "Corpus" defaultHyperdataCorpus   (Just parentId)
-nodeDefault NodeCorpusV3  parentId = node NodeCorpus   "Corpus" defaultHyperdataCorpus   (Just parentId)
-nodeDefault NodeAnnuaire  parentId = node NodeAnnuaire "Annuaire" defaultHyperdataAnnuaire   (Just parentId)
-
-nodeDefault NodeDocument  parentId = node NodeDocument "Doc"    defaultHyperdataDocument (Just parentId)
-nodeDefault NodeTexts     parentId = node NodeTexts    "Texts"  defaultHyperdataTexts    (Just parentId)
-nodeDefault NodeList      parentId = node NodeList     "List"   defaultHyperdataList     (Just parentId)
-nodeDefault NodeListCooc  parentId = node NodeListCooc "List"   defaultHyperdataListCooc (Just parentId)
-nodeDefault NodeModel     parentId = node NodeModel    "Model"  defaultHyperdataModel    (Just parentId)
-
-nodeDefault NodeFolder    parentId = node NodeFolder   "Folder" defaultHyperdataFolder   (Just parentId)
-nodeDefault NodeFolderPrivate parentId = node NodeFolderPrivate  "Private Folder" defaultHyperdataFolderPrivate   (Just parentId)
-nodeDefault NodeFolderShared  parentId = node NodeFolderShared   "Shared Folder"  defaultHyperdataFolderShared   (Just parentId)
-nodeDefault NodeTeam          parentId = node NodeFolder  "Folder" defaultHyperdataFolder  (Just parentId)
-nodeDefault NodeFolderPublic  parentId = node NodeFolderPublic   "Public Folder"  defaultHyperdataFolderPublic   (Just parentId)
-
-nodeDefault NodeGraph         parentId = node NodeGraph   "Graph"  defaultHyperdataGraph   (Just parentId)
-nodeDefault NodePhylo         parentId = node NodePhylo   "Phylo"  defaultHyperdataPhylo   (Just parentId)
-nodeDefault NodeDashboard     parentId = node NodeDashboard   "Dashboard"  defaultHyperdataDashboard   (Just parentId)
-
-nodeDefault NodeFrameWrite   parentId = node NodeFrameWrite "Frame Write"  defaultHyperdataFrame   (Just parentId)
-nodeDefault NodeFrameCalc    parentId = node NodeFrameCalc "Frame Calc"  defaultHyperdataFrame   (Just parentId)
--- nodeDefault nt _ = panic $ "G.D.Q.T.Node.nodeDefault " <> (cs $ show nt)
-
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 node :: (ToJSON a, Hyperdata a)
      => NodeType
@@ -318,12 +262,14 @@ class MkCorpus a
 
 instance MkCorpus HyperdataCorpus
   where
-    mk n h p u = insertNodesR [nodeCorpusW n h p u]
+    mk n Nothing  p u = insertNode NodeCorpus n Nothing p u
+    mk n (Just h) p u = insertNode NodeCorpus n (Just $ DefaultCorpus h) p u
 
 
 instance MkCorpus HyperdataAnnuaire
   where
-    mk n h p u = insertNodesR [nodeAnnuaireW n h p u]
+    mk n Nothing  p u = insertNode NodeCorpus   n Nothing p u
+    mk n (Just h) p u = insertNode NodeAnnuaire n (Just $ DefaultAnnuaire h) p u
 
 
 getOrMkList :: HasNodeError err
@@ -333,38 +279,14 @@ getOrMkList :: HasNodeError err
 getOrMkList pId uId =
   maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
     where
-      mkList' pId uId = maybe (nodeError MkNode) pure . headMay =<< mkNode NodeList pId uId
-
-mkList :: HasNodeError err
-            => ParentId
-            -> UserId
-            -> Cmd err [ListId]
-mkList pId uId = mkNode NodeList pId uId
+      mkList' pId uId = maybe (nodeError MkNode) pure . headMay =<< insertDefaultNode NodeList pId uId
 
 -- | TODO remove defaultList
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
 defaultList cId =
   maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
 
-mkNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
-mkNode nt p u = insertNodesR [nodeDefault nt p u]
-
-mkDashboard :: ParentId -> UserId -> Cmd err [NodeId]
-mkDashboard p u = insertNodesR [nodeDashboardW Nothing Nothing p u]
-  where
-    nodeDashboardW :: Maybe Name -> Maybe HyperdataDashboard -> ParentId -> UserId -> NodeWrite
-    nodeDashboardW maybeName maybeDashboard pId = node NodeDashboard name dashboard (Just pId)
-      where
-        name = maybe "Board" identity maybeName
-        dashboard = maybe arbitraryDashboard identity maybeDashboard
-        arbitraryDashboard :: HyperdataDashboard 
-        arbitraryDashboard = HyperdataDashboard (Just "Preferences") []
-
 
 getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
-
--- import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
--- updateNodeUser_fake :: NodeId -> Cmd err Int64
--- updateNodeUser_fake n = updateHyperdata n fake_HyperdataUser
 

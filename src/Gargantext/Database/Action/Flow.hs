@@ -202,11 +202,11 @@ flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   listId <- getOrMkList userCorpusId userId
-  _cooc  <- mkNode NodeListCooc listId userId
+  _cooc  <- insertDefaultNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
-  _tId <- mkNode NodeTexts userCorpusId userId
+  _tId <- insertDefaultNode NodeTexts userCorpusId userId
   -- printDebug "Node Text Id" tId
 
   -- User List Flow
@@ -217,8 +217,8 @@ flowCorpusUser l user corpusName ctype ids = do
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
   -- User Graph Flow
-  _ <- mkDashboard userCorpusId userId
-  _ <- mkGraph  userCorpusId userId
+  _ <- insertDefaultNode NodeDashboard userCorpusId userId
+  _ <- insertDefaultNode NodeGraph     userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
 
   -- Annuaire Flow
@@ -272,7 +272,7 @@ insertMasterDocs c lang hs  =  do
                        ]
 
   _ <- Doc.add masterCorpusId ids'
-  _cooc <- mkNode NodeListCooc lId masterUserId
+  _cooc <- insertDefaultNode NodeListCooc lId masterUserId
   -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
 

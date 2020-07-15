@@ -89,7 +89,7 @@ getOrMk_RootWithCorpus user cName c = do
                     c' <- mk (Just $ fromLeft "Default" cName) c rootId userId
                     _tId <- case head c' of
                               Nothing -> pure [0]
-                              Just c'' -> mkNode NodeTexts c'' userId
+                              Just c'' -> insertDefaultNode NodeTexts c'' userId
                     pure c'
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')

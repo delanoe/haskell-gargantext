@@ -133,14 +133,18 @@ mkNodeWithParent_ConfigureHyperdata' :: (HasNodeError err)
                                     -> Name
                                     -> Cmd err [NodeId]
 mkNodeWithParent_ConfigureHyperdata' nt (Just i) uId name = do
-  maybeNodeId <- insertNodesWithParentR (Just i) [node nt name defaultFolder Nothing uId]
+  maybeNodeId <- case nt of
+     NodeFrameWrite -> insertNode NodeFrameWrite (Just name) Nothing i uId
+     NodeFrameCalc  -> insertNode NodeFrameCalc  (Just name) Nothing i uId
+     _              -> nodeError NeedsConfiguration
+
   case maybeNodeId of
     []  -> nodeError (DoesNotExist i)
     [n] -> do
       config <- view hasConfig
       u <- case nt of
             NodeFrameWrite -> pure $ _gc_frame_write_url config
-            NodeFrameCalc  -> pure $ _gc_frame_calc_url config
+            NodeFrameCalc  -> pure $ _gc_frame_calc_url  config
             _              -> nodeError NeedsConfiguration
       let
         s = _gc_secretkey config

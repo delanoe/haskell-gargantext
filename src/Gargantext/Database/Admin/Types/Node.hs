@@ -263,6 +263,34 @@ data NodeType = NodeUser
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]
 
+defaultName :: NodeType -> Text
+defaultName NodeUser       = "User"
+defaultName NodeContact    = "Contact"
+
+defaultName NodeCorpus     = "Corpus"
+defaultName NodeCorpusV3   = "Corpus"
+defaultName NodeAnnuaire   = "Annuaire"
+
+defaultName NodeDocument   = "Doc"
+defaultName NodeTexts      = "Texts"
+defaultName NodeList       = "List"
+defaultName NodeListCooc   = "List"
+defaultName NodeModel      = "Model"
+
+defaultName NodeFolder     = "Folder"
+defaultName NodeFolderPrivate = "Private Folder"
+defaultName NodeFolderShared  = "Shared Folder"
+defaultName NodeTeam          = "Folder"
+defaultName NodeFolderPublic  = "Public Folder"
+
+defaultName NodeGraph         = "Graph"
+defaultName NodePhylo         = "Phylo"
+defaultName NodeDashboard     = "Dashboard"
+
+defaultName NodeFrameWrite    = "Frame Write"
+defaultName NodeFrameCalc     = "Frame Calc"
+
+
 instance FromJSON NodeType
 instance ToJSON NodeType
 
