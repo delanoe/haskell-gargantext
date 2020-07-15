@@ -32,7 +32,7 @@ class UniqId a
 
 instance UniqId HyperdataDocument
   where
-    uniqId = hyperdataDocument_uniqId
+    uniqId = hd_uniqId
 
 instance UniqId HyperdataContact
   where

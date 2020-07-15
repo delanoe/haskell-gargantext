@@ -119,8 +119,8 @@ instance InsertDb HyperdataDocument
     insertDb' u p h = [ toField $ nodeTypeId NodeDocument
                       , toField u
                       , toField p
-                      , toField $ maybe "No Title" (DT.take 255)  (_hyperdataDocument_title h)
-                      , toField $ _hyperdataDocument_publication_date h -- TODO USE UTCTime
+                      , toField $ maybe "No Title" (DT.take 255)  (_hd_title h)
+                      , toField $ _hd_publication_date h -- TODO USE UTCTime
                       , (toField . toJSON) h
                       ]
 
@@ -202,17 +202,17 @@ instance AddUniqId HyperdataDocument
     addUniqId = addUniqIdsDoc
       where
         addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
-        addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just shaBdd)
-                          $ set hyperdataDocument_uniqId    (Just shaUni) doc
+        addUniqIdsDoc doc = set hd_uniqIdBdd (Just shaBdd)
+                          $ set hd_uniqId    (Just shaUni) doc
           where
             shaUni = sha $ DT.concat $ map ($ doc) shaParametersDoc
-            shaBdd = sha $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hyperdataDocument_bdd d))] <> shaParametersDoc)
+            shaBdd = sha $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hd_bdd d))] <> shaParametersDoc)
 
         shaParametersDoc :: [(HyperdataDocument -> Text)]
-        shaParametersDoc = [ \d -> maybeText (_hyperdataDocument_title    d)
-                            , \d -> maybeText (_hyperdataDocument_abstract d)
-                            , \d -> maybeText (_hyperdataDocument_source   d)
-                            , \d -> maybeText (_hyperdataDocument_publication_date   d)
+        shaParametersDoc = [ \d -> maybeText (_hd_title    d)
+                            , \d -> maybeText (_hd_abstract d)
+                            , \d -> maybeText (_hd_source   d)
+                            , \d -> maybeText (_hd_publication_date   d)
                             ]
 
     ---------------------------------------------------------------------------

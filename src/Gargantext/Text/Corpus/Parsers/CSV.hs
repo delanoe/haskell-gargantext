@@ -169,13 +169,13 @@ instance ToNamedRecord CsvDoc where
                ]
 
 hyperdataDocument2csvDoc :: HyperdataDocument -> CsvDoc
-hyperdataDocument2csvDoc h = CsvDoc (m $ _hyperdataDocument_title h)
-                                    (m $ _hyperdataDocument_source h)
-                                    (mI $ _hyperdataDocument_publication_year h)
-                                    (mI $ _hyperdataDocument_publication_month h)
-                                    (mI $ _hyperdataDocument_publication_day   h)
-                                    (m $ _hyperdataDocument_abstract h)
-                                    (m $ _hyperdataDocument_authors h)
+hyperdataDocument2csvDoc h = CsvDoc (m  $ _hd_title h)
+                                    (m  $ _hd_source h)
+                                    (mI $ _hd_publication_year h)
+                                    (mI $ _hd_publication_month h)
+                                    (mI $ _hd_publication_day   h)
+                                    (m  $ _hd_abstract h)
+                                    (m  $ _hd_authors h)
 
   where
     m = maybe "" identity

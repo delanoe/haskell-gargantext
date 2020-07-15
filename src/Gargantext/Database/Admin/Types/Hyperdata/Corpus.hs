@@ -57,7 +57,6 @@ instance ToSchema CorpusField where
     & mapped.schema.description ?~ "CorpusField"
     & mapped.schema.example ?~ toJSON defaultCorpusField
 
-
 ------------------------------------------------------------------------
 data HyperdataField a =
   HyperdataField { _hf_type :: !CodeType
@@ -89,84 +88,57 @@ instance (Typeable a, ToSchema a) => ToSchema (HyperdataField a) where
 data HyperdataCorpus =
   HyperdataCorpus { _hc_fields :: ![HyperdataField CorpusField] }
     deriving (Generic)
-------------------------------------------------------------------------
--- Instances
-------------------------------------------------------------------------
-instance Hyperdata HyperdataCorpus
-$(deriveJSON (unPrefix "_hc_") ''HyperdataCorpus)
-$(makeLenses ''HyperdataCorpus)
-
-
-
-------------------------------------------------------------------------
-data HyperdataFrame =
-  HyperdataFrame { base :: !Text 
-                 , frame_id :: !Text
-                 }
-    deriving (Generic)
-$(deriveJSON (unPrefix "") ''HyperdataFrame)
-$(makeLenses ''HyperdataFrame)
-
-instance Hyperdata HyperdataFrame
-
-------------------------------------------------------------------------
-corpusExample :: ByteString
-corpusExample = "" -- TODO
-
-defaultCorpus :: HyperdataCorpus
-defaultCorpus = HyperdataCorpus [
-    HyperdataField JSON "Mandatory fields" (JsonField "Title" "Descr" "Bool query" "Authors")
-  , HyperdataField Markdown "Optional Text" (MarkdownField "# title\n## subtitle")
-  ]
-
-hyperdataCorpus :: HyperdataCorpus
-hyperdataCorpus = case decode corpusExample of
-  Just hp -> hp
-  Nothing -> defaultCorpus
 
 defaultHyperdataCorpus :: HyperdataCorpus
-defaultHyperdataCorpus = defaultCorpus
-
-instance Arbitrary HyperdataCorpus where
-    arbitrary = pure hyperdataCorpus -- TODO
+defaultHyperdataCorpus =
+  HyperdataCorpus [ HyperdataField JSON
+                                   "Mandatory fields"
+                                   (JsonField "Title" "Descr" "Bool query" "Authors")
+                  , HyperdataField Markdown
+                                   "Optional Text"
+                                   (MarkdownField "# title\n## subtitle")
+                  ]
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-data HyperdataAnnuaire = HyperdataAnnuaire { hyperdataAnnuaire_title        :: !(Maybe Text)
-                                           , hyperdataAnnuaire_desc         :: !(Maybe Text)
+-- | Annuaire and Corpus should be the same
+data HyperdataAnnuaire = HyperdataAnnuaire { _ha_title        :: !(Maybe Text)
+                                           , _ha_desc         :: !(Maybe Text)
                                            } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataAnnuaire_") ''HyperdataAnnuaire)
-
-instance Hyperdata HyperdataAnnuaire
 
 defaultHyperdataAnnuaire :: HyperdataAnnuaire
 defaultHyperdataAnnuaire = HyperdataAnnuaire (Just "Title") (Just "Description")
 
-instance Arbitrary HyperdataAnnuaire where
-  arbitrary = pure defaultHyperdataAnnuaire -- TODO
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
-data HyperdataNotebook =
-  HyperdataNotebook { hn_preferences :: !(Maybe Text)}
-  deriving (Show, Generic)
-
-
 ------------------------------------------------------------------------
 -- Instances
+------------------------------------------------------------------------
+instance Hyperdata HyperdataCorpus
+instance Hyperdata HyperdataAnnuaire
+
+$(makeLenses ''HyperdataCorpus)
+$(makeLenses ''HyperdataAnnuaire)
+
+$(deriveJSON (unPrefix "_hc_") ''HyperdataCorpus)
+$(deriveJSON (unPrefix "_ha_") ''HyperdataAnnuaire)
+
 ------------------------------------------------------------------------
 instance ToSchema HyperdataCorpus where
   declareNamedSchema proxy =
     genericDeclareNamedSchema (unPrefixSwagger "_hc_") proxy
-    & mapped.schema.description ?~ "Corpus"
-    & mapped.schema.example ?~ toJSON hyperdataCorpus
+    & mapped.schema.description ?~ "Corpus Hyperdata"
+    & mapped.schema.example ?~ toJSON defaultHyperdataCorpus
 
 instance ToSchema HyperdataAnnuaire where
   declareNamedSchema proxy =
-    genericDeclareNamedSchema (unPrefixSwagger "hyperdataAnnuaire_") proxy
-    & mapped.schema.description ?~ "an annuaire"
+    genericDeclareNamedSchema (unPrefixSwagger "_ha_") proxy
+    & mapped.schema.description ?~ "Annuaire Hyperdata"
     & mapped.schema.example ?~ toJSON defaultHyperdataAnnuaire
+------------------------------------------------------------------------
+instance Arbitrary HyperdataCorpus where
+    arbitrary = pure defaultHyperdataCorpus
 
+instance Arbitrary HyperdataAnnuaire where
+  arbitrary = pure defaultHyperdataAnnuaire
 ------------------------------------------------------------------------
 instance FromField HyperdataCorpus
   where
@@ -175,7 +147,6 @@ instance FromField HyperdataCorpus
 instance FromField HyperdataAnnuaire
   where
     fromField = fromField'
-
 ------------------------------------------------------------------------
 instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
   where

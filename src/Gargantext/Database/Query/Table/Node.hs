@@ -164,9 +164,8 @@ nodeContactW maybeName maybeContact aId =
       name    = maybe "Contact" identity maybeName
       contact = maybe arbitraryHyperdataContact identity maybeContact
 ------------------------------------------------------------------------
-defaultFolder :: HyperdataCorpus
-defaultFolder = defaultCorpus
-
+defaultFolder :: HyperdataFolder
+defaultFolder = defaultHyperdataFolder
 
 
 nodeFolderW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
@@ -179,7 +178,7 @@ nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> Node
 nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
   where
     name   = maybe "Corpus" identity maybeName
-    corpus = maybe defaultCorpus identity maybeCorpus
+    corpus = maybe defaultHyperdataCorpus identity maybeCorpus
                    --------------------------
 
 nodeDocumentW :: Maybe Name -> Maybe HyperdataDocument -> CorpusId -> UserId -> NodeWrite

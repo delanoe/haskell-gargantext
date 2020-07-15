@@ -132,11 +132,11 @@ csvToCorpus limit csv = DV.toList
 -- | To transform a Wos nfile into a readable corpus
 wosToCorpus :: Limit -> CorpusPath -> IO ([(Int,Text)])
 wosToCorpus limit path = DL.take limit
-                         . map (\d -> ((fromJust $_hyperdataDocument_publication_year d)
-                                    ,(fromJust $_hyperdataDocument_title d) <> " " <> (fromJust $_hyperdataDocument_abstract d)))
-                         . filter (\d -> (isJust $_hyperdataDocument_publication_year d)
-                                      && (isJust $_hyperdataDocument_title d)
-                                      && (isJust $_hyperdataDocument_abstract d))
+                         . map (\d -> ((fromJust $_hd_publication_year d)
+                                    ,(fromJust $_hd_title d) <> " " <> (fromJust $_hd_abstract d)))
+                         . filter (\d -> (isJust $_hd_publication_year d)
+                                      && (isJust $_hd_title d)
+                                      && (isJust $_hd_abstract d))
                          . concat
                          <$> mapConcurrently (\idx -> parseFile WOS (path <> show(idx) <> ".txt")) [1..20]
 

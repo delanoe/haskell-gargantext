@@ -76,8 +76,8 @@ fav2bool ft = if (==) ft IsFav then True else False
 text :: FacetDoc -> Text
 text (FacetDoc _ _ _ h _ _)  = title <> "" <> Text.take 100 abstr
   where
-    title = maybe "" identity (_hyperdataDocument_title    h)
-    abstr = maybe "" identity (_hyperdataDocument_abstract h)
+    title = maybe "" identity (_hd_title    h)
+    abstr = maybe "" identity (_hd_abstract h)
 
 ---------------------------------------------------------------------------
 

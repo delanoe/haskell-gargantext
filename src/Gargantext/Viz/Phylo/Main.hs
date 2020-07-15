@@ -52,8 +52,8 @@ flowPhylo cId = do
   termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms MapTerm
 
   docs' <- catMaybes
-          <$> map (\h -> (,) <$> _hyperdataDocument_publication_year h
-                             <*> _hyperdataDocument_abstract h
+          <$> map (\h -> (,) <$> _hd_publication_year h
+                             <*> _hd_abstract h
                   )
           <$> selectDocs cId
 

@@ -25,25 +25,25 @@ import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 
 
 ------------------------------------------------------------------------
-data HyperdataDocument = HyperdataDocument { _hyperdataDocument_bdd                :: !(Maybe Text)
-                                           , _hyperdataDocument_doi                :: !(Maybe Text)
-                                           , _hyperdataDocument_url                :: !(Maybe Text)
-                                           , _hyperdataDocument_uniqId             :: !(Maybe Text)
-                                           , _hyperdataDocument_uniqIdBdd          :: !(Maybe Text)
-                                           , _hyperdataDocument_page               :: !(Maybe Int)
-                                           , _hyperdataDocument_title              :: !(Maybe Text)
-                                           , _hyperdataDocument_authors            :: !(Maybe Text)
-                                           , _hyperdataDocument_institutes         :: !(Maybe Text)
-                                           , _hyperdataDocument_source             :: !(Maybe Text)
-                                           , _hyperdataDocument_abstract           :: !(Maybe Text)
-                                           , _hyperdataDocument_publication_date   :: !(Maybe Text)
-                                           , _hyperdataDocument_publication_year   :: !(Maybe Int)
-                                           , _hyperdataDocument_publication_month  :: !(Maybe Int)
-                                           , _hyperdataDocument_publication_day    :: !(Maybe Int)
-                                           , _hyperdataDocument_publication_hour   :: !(Maybe Int)
-                                           , _hyperdataDocument_publication_minute :: !(Maybe Int)
-                                           , _hyperdataDocument_publication_second :: !(Maybe Int)
-                                           , _hyperdataDocument_language_iso2      :: !(Maybe Text)
+data HyperdataDocument = HyperdataDocument { _hd_bdd                :: !(Maybe Text)
+                                           , _hd_doi                :: !(Maybe Text)
+                                           , _hd_url                :: !(Maybe Text)
+                                           , _hd_uniqId             :: !(Maybe Text)
+                                           , _hd_uniqIdBdd          :: !(Maybe Text)
+                                           , _hd_page               :: !(Maybe Int)
+                                           , _hd_title              :: !(Maybe Text)
+                                           , _hd_authors            :: !(Maybe Text)
+                                           , _hd_institutes         :: !(Maybe Text)
+                                           , _hd_source             :: !(Maybe Text)
+                                           , _hd_abstract           :: !(Maybe Text)
+                                           , _hd_publication_date   :: !(Maybe Text)
+                                           , _hd_publication_year   :: !(Maybe Int)
+                                           , _hd_publication_month  :: !(Maybe Int)
+                                           , _hd_publication_day    :: !(Maybe Int)
+                                           , _hd_publication_hour   :: !(Maybe Int)
+                                           , _hd_publication_minute :: !(Maybe Int)
+                                           , _hd_publication_second :: !(Maybe Int)
+                                           , _hd_language_iso2      :: !(Maybe Text)
                                            } deriving (Show, Generic)
 
 
@@ -68,23 +68,23 @@ data StatusV3  = StatusV3 { statusV3_error  :: !(Maybe Text)
 $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
 
 ------------------------------------------------------------------------
-data HyperdataDocumentV3 = HyperdataDocumentV3 { hyperdataDocumentV3_publication_day    :: !(Maybe Int)
-                                               , hyperdataDocumentV3_language_iso2      :: !(Maybe Text)
-                                               , hyperdataDocumentV3_publication_second :: !(Maybe Int)
-                                               , hyperdataDocumentV3_publication_minute :: !(Maybe Int)
-                                               , hyperdataDocumentV3_publication_month  :: !(Maybe Int)
-                                               , hyperdataDocumentV3_publication_hour   :: !(Maybe Int)
-                                               , hyperdataDocumentV3_error              :: !(Maybe Text)
-                                               , hyperdataDocumentV3_language_iso3      :: !(Maybe Text)
-                                               , hyperdataDocumentV3_authors            :: !(Maybe Text)
-                                               , hyperdataDocumentV3_publication_year   :: !(Maybe Int)
-                                               , hyperdataDocumentV3_publication_date   :: !(Maybe Text)
-                                               , hyperdataDocumentV3_language_name      :: !(Maybe Text)
-                                               , hyperdataDocumentV3_statuses           :: !(Maybe [StatusV3])
-                                               , hyperdataDocumentV3_realdate_full_     :: !(Maybe Text)
-                                               , hyperdataDocumentV3_source             :: !(Maybe Text)
-                                               , hyperdataDocumentV3_abstract           :: !(Maybe Text)
-                                               , hyperdataDocumentV3_title              :: !(Maybe Text)
+data HyperdataDocumentV3 = HyperdataDocumentV3 { _hdv3_publication_day    :: !(Maybe Int)
+                                               , _hdv3_language_iso2      :: !(Maybe Text)
+                                               , _hdv3_publication_second :: !(Maybe Int)
+                                               , _hdv3_publication_minute :: !(Maybe Int)
+                                               , _hdv3_publication_month  :: !(Maybe Int)
+                                               , _hdv3_publication_hour   :: !(Maybe Int)
+                                               , _hdv3_error              :: !(Maybe Text)
+                                               , _hdv3_language_iso3      :: !(Maybe Text)
+                                               , _hdv3_authors            :: !(Maybe Text)
+                                               , _hdv3_publication_year   :: !(Maybe Int)
+                                               , _hdv3_publication_date   :: !(Maybe Text)
+                                               , _hdv3_language_name      :: !(Maybe Text)
+                                               , _hdv3_statuses           :: !(Maybe [StatusV3])
+                                               , _hdv3_realdate_full_     :: !(Maybe Text)
+                                               , _hdv3_source             :: !(Maybe Text)
+                                               , _hdv3_abstract           :: !(Maybe Text)
+                                               , _hdv3_title              :: !(Maybe Text)
                                                } deriving (Show, Generic)
 
 
@@ -100,11 +100,11 @@ instance ToHyperdataDocument HyperdataDocument
 
 ------------------------------------------------------------------------
 instance Eq HyperdataDocument where
-  (==) h1 h2 = (==) (_hyperdataDocument_uniqId h1) (_hyperdataDocument_uniqId h2)
+  (==) h1 h2 = (==) (_hd_uniqId h1) (_hd_uniqId h2)
 
 ------------------------------------------------------------------------
 instance Ord HyperdataDocument where
-  compare h1 h2 = compare (_hyperdataDocument_publication_date h1) (_hyperdataDocument_publication_date h2)
+  compare h1 h2 = compare (_hd_publication_date h1) (_hd_publication_date h2)
 ------------------------------------------------------------------------
 instance Arbitrary HyperdataDocument where
     arbitrary = elements arbitraryHyperdataDocuments
@@ -132,14 +132,14 @@ instance Hyperdata HyperdataDocument
 instance Hyperdata HyperdataDocumentV3
 ------------------------------------------------------------------------
 $(makeLenses ''HyperdataDocument)
--- $(makeLenses ''HyperdataDocumentV3)
+$(makeLenses ''HyperdataDocumentV3)
 
-$(deriveJSON (unPrefix "_hyperdataDocument_") ''HyperdataDocument)
-$(deriveJSON (unPrefix "hyperdataDocumentV3_") ''HyperdataDocumentV3)
+$(deriveJSON (unPrefix "_hd_") ''HyperdataDocument)
+$(deriveJSON (unPrefix "_hdv3_") ''HyperdataDocumentV3)
 
 instance ToSchema HyperdataDocument where
   declareNamedSchema proxy =
-    genericDeclareNamedSchema (unPrefixSwagger "_hyperdataDocument_") proxy
+    genericDeclareNamedSchema (unPrefixSwagger "_hd_") proxy
     & mapped.schema.description ?~ "Document Hyperdata"
     & mapped.schema.example ?~ toJSON defaultHyperdataDocument
 

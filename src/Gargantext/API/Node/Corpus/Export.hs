@@ -118,7 +118,7 @@ getCorpus cId lId nt' = do
                              ) ns ngs
           where
             ng_hash b   = sha $ List.foldl (\x y -> x<>y) "" $ List.sort $ Set.toList b
-            d_hash  a b = sha $ (fromMaybe "" (_hyperdataDocument_uniqId $ _node_hyperdata a))
+            d_hash  a b = sha $ (fromMaybe "" (_hd_uniqId $ _node_hyperdata a))
                              <> (ng_hash b)
 
   pure $ Corpus (Map.elems r) (sha $ List.foldl (\a b -> a<>b) ""

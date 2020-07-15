@@ -123,7 +123,7 @@ nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
 selectDocsDates :: CorpusId -> Cmd err [Text]
 selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
                    <$> catMaybes
-                   <$> map (view hyperdataDocument_publication_date)
+                   <$> map (view hd_publication_date)
                    <$> selectDocs cId
 
 selectDocs :: CorpusId -> Cmd err [HyperdataDocument]

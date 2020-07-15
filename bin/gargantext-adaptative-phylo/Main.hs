@@ -89,16 +89,16 @@ wosToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
 wosToCorpus limit path = do 
       files <- getFilesFromPath path
       take limit
-        <$> map (\d -> let date' = fromJust $ _hyperdataDocument_publication_year d
-                           title = fromJust $ _hyperdataDocument_title d
-                           abstr = if (isJust $ _hyperdataDocument_abstract d)
-                                   then fromJust $ _hyperdataDocument_abstract d
+        <$> map (\d -> let date' = fromJust $ _hd_publication_year d
+                           title = fromJust $ _hd_title d
+                           abstr = if (isJust $ _hd_abstract d)
+                                   then fromJust $ _hd_abstract d
                                    else ""
                         in (date', title <> " " <> abstr)) 
         <$> concat 
         <$> mapConcurrently (\file -> 
-              filter (\d -> (isJust $ _hyperdataDocument_publication_year d)
-                         && (isJust $ _hyperdataDocument_title d))
+              filter (\d -> (isJust $ _hd_publication_year d)
+                         && (isJust $ _hd_title d))
                 <$> parseFile WOS (path <> file) ) files
 
 

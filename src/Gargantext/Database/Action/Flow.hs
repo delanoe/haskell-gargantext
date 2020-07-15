@@ -347,8 +347,8 @@ instance ExtractNgramsT HyperdataContact
 
 instance HasText HyperdataDocument
   where
-    hasText h = catMaybes [ _hyperdataDocument_title    h
-                          , _hyperdataDocument_abstract h
+    hasText h = catMaybes [ _hd_title    h
+                          , _hd_abstract h
                           ]
 
 instance ExtractNgramsT HyperdataDocument
@@ -364,15 +364,15 @@ instance ExtractNgramsT HyperdataDocument
         extractNgramsT' lang' doc = do
           let source    = text2ngrams
                         $ maybe "Nothing" identity
-                        $ _hyperdataDocument_source doc
+                        $ _hd_source doc
 
               institutes = map text2ngrams
                          $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))
-                         $ _hyperdataDocument_institutes doc
+                         $ _hd_institutes doc
 
               authors    = map text2ngrams
                          $ maybe ["Nothing"] (splitOn ", ")
-                         $ _hyperdataDocument_authors doc
+                         $ _hd_authors doc
 
           terms' <- map text2ngrams
                  <$> map (intercalate " " . _terms_label)
