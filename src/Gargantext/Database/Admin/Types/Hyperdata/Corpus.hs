@@ -25,7 +25,6 @@ module Gargantext.Database.Admin.Types.Hyperdata.Corpus
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
-import Gargantext.Viz.Phylo (Phylo(..))
 
 
 data CodeType = JSON | Markdown | Haskell
@@ -127,8 +126,6 @@ defaultHyperdataCorpus = defaultCorpus
 defaultHyperdataFolder :: HyperdataFolder
 defaultHyperdataFolder = defaultHyperdataCorpus
 
-
-
 instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO
 
@@ -148,84 +145,15 @@ instance Arbitrary HyperdataAnnuaire where
   arbitrary = pure defaultHyperdataAnnuaire -- TODO
 
 ------------------------------------------------------------------------
-newtype HyperdataAny = HyperdataAny Object
-  deriving (Show, Generic, ToJSON, FromJSON)
-
-instance Hyperdata HyperdataAny
-
-instance Arbitrary HyperdataAny where
-    arbitrary = pure $ HyperdataAny mempty -- TODO produce arbitrary objects
 ------------------------------------------------------------------------
-data HyperdataResource = HyperdataResource { hyperdataResource_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataResource_") ''HyperdataResource)
-
-instance Hyperdata HyperdataResource
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
--- TODO add the Graph Structure here
-
-------------------------------------------------------------------------
--- | TODO CLEAN
--- | TODO FEATURE: Notebook saved in the node
-data HyperdataTexts =
-  HyperdataTexts { ht_preferences :: !(Maybe Text)}
-  deriving (Show, Generic)
-
-instance Hyperdata HyperdataTexts
-instance ToJSON HyperdataTexts
-instance FromJSON HyperdataTexts
-
-defaultHyperdataTexts :: HyperdataTexts
-defaultHyperdataTexts = HyperdataTexts Nothing
-
-data HyperdataDashboard =
-  HyperdataDashboard { hda_preferences :: !(Maybe Text)
-                     , hda_charts      :: ![Chart]
-                     }
-  deriving (Show, Generic)
-
-instance Hyperdata HyperdataDashboard
-instance ToJSON    HyperdataDashboard
-instance FromJSON  HyperdataDashboard
-
-
-
 data HyperdataNotebook =
   HyperdataNotebook { hn_preferences :: !(Maybe Text)}
   deriving (Show, Generic)
 
-data HyperdataPhylo =
-  HyperdataPhylo    { hp_preferences :: !(Maybe Text)
-                    , hp_data        :: !(Maybe Phylo)
-                    }
-  deriving (Show, Generic)
-
-instance Hyperdata HyperdataPhylo
-instance ToJSON    HyperdataPhylo
-instance FromJSON  HyperdataPhylo
-
-defaultHyperdataPhylo :: HyperdataPhylo
-defaultHyperdataPhylo = HyperdataPhylo Nothing Nothing
-
-instance FromField HyperdataPhylo where
-    fromField = fromField'
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-instance ToSchema HyperdataPhylo where
-  declareNamedSchema proxy =
-    genericDeclareNamedSchema (unPrefixSwagger "hp_") proxy
-    & mapped.schema.description ?~ "Phylo"
-    & mapped.schema.example ?~ toJSON defaultHyperdataPhylo
 
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
-
 instance ToSchema HyperdataCorpus where
   declareNamedSchema proxy =
     genericDeclareNamedSchema (unPrefixSwagger "_hc_") proxy
@@ -238,17 +166,7 @@ instance ToSchema HyperdataAnnuaire where
     & mapped.schema.description ?~ "an annuaire"
     & mapped.schema.example ?~ toJSON defaultHyperdataAnnuaire
 
-instance ToSchema HyperdataAny where
-  declareNamedSchema proxy =
-    pure $ genericNameSchema defaultSchemaOptions proxy mempty
-             & schema.description ?~ "a node"
-             & schema.example ?~ emptyObject -- TODO
-
 ------------------------------------------------------------------------
-
-instance FromField HyperdataAny where
-    fromField = fromField'
-
 instance FromField HyperdataCorpus
   where
     fromField = fromField'
@@ -258,11 +176,6 @@ instance FromField HyperdataAnnuaire
     fromField = fromField'
 
 ------------------------------------------------------------------------
-
-instance QueryRunnerColumnDefault PGJsonb HyperdataAny
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
 instance QueryRunnerColumnDefault PGJsonb HyperdataCorpus
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
