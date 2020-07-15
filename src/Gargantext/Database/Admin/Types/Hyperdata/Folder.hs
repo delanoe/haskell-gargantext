@@ -28,3 +28,23 @@ type HyperdataFolder = HyperdataCorpus
 
 defaultHyperdataFolder :: HyperdataFolder
 defaultHyperdataFolder = defaultHyperdataCorpus
+------------------------------------------------------------------------
+
+type HyperdataFolderPrivate = HyperdataFolder
+
+defaultHyperdataFolderPrivate :: HyperdataFolderPrivate
+defaultHyperdataFolderPrivate = defaultHyperdataFolder
+
+
+type HyperdataFolderShared = HyperdataFolder
+
+defaultHyperdataFolderShared :: HyperdataFolderShared
+defaultHyperdataFolderShared = defaultHyperdataFolder
+
+type HyperdataFolderPublic = HyperdataFolder
+
+defaultHyperdataFolderPublic :: HyperdataFolderPublic
+defaultHyperdataFolderPublic = defaultHyperdataFolder
+
+
+

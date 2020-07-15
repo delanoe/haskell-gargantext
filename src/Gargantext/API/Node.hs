@@ -47,6 +47,7 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Query.Table.Node
@@ -54,7 +55,6 @@ import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude

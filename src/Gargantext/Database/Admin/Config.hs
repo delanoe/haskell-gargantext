@@ -62,9 +62,9 @@ nodeTypeId n =
 --    NodeOccurrences -> 10
     NodeGraph       -> 9
     NodePhylo       -> 90
-    NodeChart       -> 7
+--    NodeChart       -> 7
     NodeDashboard   -> 71
-    NodeNoteBook    -> 88
+--    NodeNoteBook    -> 88
 
     NodeFrameWrite  -> 991
     NodeFrameCalc   -> 992

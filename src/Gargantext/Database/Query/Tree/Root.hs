@@ -27,7 +27,7 @@ import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.User (HyperdataUser)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)

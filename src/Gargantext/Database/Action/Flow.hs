@@ -66,7 +66,6 @@ import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
 import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchInDatabase)

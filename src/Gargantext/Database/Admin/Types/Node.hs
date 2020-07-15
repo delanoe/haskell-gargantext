@@ -244,7 +244,7 @@ data NodeType = NodeUser
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
-              | NodeDashboard  | NodeChart    | NodeNoteBook
+              | NodeDashboard  -- | NodeChart    | NodeNoteBook
               | NodeList       | NodeModel
               | NodeListCooc
 

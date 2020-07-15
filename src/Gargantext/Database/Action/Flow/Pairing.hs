@@ -26,7 +26,7 @@ import Gargantext.Database.Action.Flow.Utils
 import Gargantext.Database.Admin.Types.Node (AnnuaireId, CorpusId, ListId{-, DocId, ContactId-})
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
-import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..))
+import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)

@@ -26,7 +26,6 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Viz.Graph (defaultHyperdataGraph)
 import Gargantext.Prelude
@@ -47,7 +46,7 @@ mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
 
 ------------------------------------------------------------------------
 mkNodeWithParent NodeUser Nothing uId name =
-  insertNodesWithParentR Nothing [node NodeUser name fake_HyperdataUser Nothing uId]
+  insertNodesWithParentR Nothing [node NodeUser name defaultHyperdataUser Nothing uId]
 
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 ------------------------------------------------------------------------

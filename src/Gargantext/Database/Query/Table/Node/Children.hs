@@ -11,26 +11,24 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
-{-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE Arrows                      #-}
 
 module Gargantext.Database.Query.Table.Node.Children
   where
 
 import Control.Arrow (returnA)
 import Data.Proxy
-import Opaleye
-import Protolude
-
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument, HyperdataContact)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
+import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.NodeNode
-import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
-import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
+import Opaleye
+import Protolude
 
 getAllDocuments :: ParentId -> Cmd err (TableResult (Node HyperdataDocument))
 getAllDocuments pId = getAllChildren pId (Proxy :: Proxy HyperdataDocument)

@@ -39,7 +39,6 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
-import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
 import Servant

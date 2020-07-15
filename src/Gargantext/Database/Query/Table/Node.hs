@@ -27,21 +27,19 @@ import Data.Aeson
 import Data.Maybe (Maybe(..))
 import Data.Text (Text)
 import GHC.Int (Int64)
-import Opaleye hiding (FromField)
-import Opaleye.Internal.QueryArr (Query)
-import Prelude hiding (null, id, map, sum)
-
 import Gargantext.Core.Types
-import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact(..), arbitraryHyperdataContact)
+import Gargantext.Database.Query.Filter (limit', offset')
+import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
 import Gargantext.Viz.Graph (HyperdataGraph(..), defaultHyperdataGraph)
+import Opaleye hiding (FromField)
+import Opaleye.Internal.QueryArr (Query)
+import Prelude hiding (null, id, map, sum)
 
 
 queryNodeSearchTable :: Query NodeSearchRead
@@ -216,15 +214,34 @@ mkGraph p u = insertNodesR [nodeGraphW Nothing Nothing p u]
 insertGraph :: ParentId -> UserId -> HyperdataGraph -> Cmd err [GraphId]
 insertGraph p u h = insertNodesR [nodeGraphW Nothing (Just h) p u]
 
-
 ------------------------------------------------------------------------
 nodeDefault :: NodeType -> ParentId -> UserId -> NodeWrite
-nodeDefault NodeList      parentId = node NodeList      "List"   defaultHyperdataList      (Just parentId)
-nodeDefault NodeCorpus    parentId = node NodeCorpus    "Corpus" defaultHyperdataCorpus    (Just parentId)
-nodeDefault NodeDocument  parentId = node NodeDocument  "Doc"    defaultHyperdataDocument  (Just parentId)
-nodeDefault NodeTexts     parentId = node NodeTexts     "Texts"  defaultHyperdataTexts     (Just parentId)
-nodeDefault NodeModel parentId = node NodeModel "Model"  defaultHyperdataModel (Just parentId)
-nodeDefault nt _ = panic $ "G.D.Q.T.Node.nodeDefault " <> (cs $ show nt)
+nodeDefault NodeUser      parentId = node NodeUser     "User"   defaultHyperdataUser     (Just parentId)
+nodeDefault NodeContact   parentId = node NodeContact  "Contact" defaultHyperdataContact   (Just parentId)
+
+nodeDefault NodeCorpus    parentId = node NodeCorpus   "Corpus" defaultHyperdataCorpus   (Just parentId)
+nodeDefault NodeCorpusV3  parentId = node NodeCorpus   "Corpus" defaultHyperdataCorpus   (Just parentId)
+nodeDefault NodeAnnuaire  parentId = node NodeAnnuaire "Annuaire" defaultHyperdataAnnuaire   (Just parentId)
+
+nodeDefault NodeDocument  parentId = node NodeDocument "Doc"    defaultHyperdataDocument (Just parentId)
+nodeDefault NodeTexts     parentId = node NodeTexts    "Texts"  defaultHyperdataTexts    (Just parentId)
+nodeDefault NodeList      parentId = node NodeList     "List"   defaultHyperdataList     (Just parentId)
+nodeDefault NodeListCooc  parentId = node NodeListCooc "List"   defaultHyperdataListCooc (Just parentId)
+nodeDefault NodeModel     parentId = node NodeModel    "Model"  defaultHyperdataModel    (Just parentId)
+
+nodeDefault NodeFolder    parentId = node NodeFolder   "Folder" defaultHyperdataFolder   (Just parentId)
+nodeDefault NodeFolderPrivate parentId = node NodeFolderPrivate  "Private Folder" defaultHyperdataFolderPrivate   (Just parentId)
+nodeDefault NodeFolderShared  parentId = node NodeFolderShared   "Shared Folder"  defaultHyperdataFolderShared   (Just parentId)
+nodeDefault NodeTeam          parentId = node NodeFolder  "Folder" defaultHyperdataFolder  (Just parentId)
+nodeDefault NodeFolderPublic  parentId = node NodeFolderPublic   "Public Folder"  defaultHyperdataFolderPublic   (Just parentId)
+
+nodeDefault NodeGraph         parentId = node NodeGraph   "Graph"  defaultHyperdataGraph   (Just parentId)
+nodeDefault NodePhylo         parentId = node NodePhylo   "Phylo"  defaultHyperdataPhylo   (Just parentId)
+nodeDefault NodeDashboard     parentId = node NodeDashboard   "Dashboard"  defaultHyperdataDashboard   (Just parentId)
+
+nodeDefault NodeFrameWrite   parentId = node NodeFrameWrite "Frame Write"  defaultHyperdataFrame   (Just parentId)
+nodeDefault NodeFrameCalc    parentId = node NodeFrameCalc "Frame Calc"  defaultHyperdataFrame   (Just parentId)
+-- nodeDefault nt _ = panic $ "G.D.Q.T.Node.nodeDefault " <> (cs $ show nt)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

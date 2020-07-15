@@ -38,10 +38,14 @@ defaultHyperdataFrame = HyperdataFrame "" ""
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
+-- | Specific Gargantext instance
 instance Hyperdata HyperdataFrame
-$(makeLenses ''HyperdataFrame)
+makeLenses ''HyperdataFrame
+
+-- | All Json instances
 $(deriveJSON (unPrefix "_hf_") ''HyperdataFrame)
 
+-- | Arbitrary instances for tests
 instance Arbitrary HyperdataFrame where
   arbitrary = pure defaultHyperdataFrame
 

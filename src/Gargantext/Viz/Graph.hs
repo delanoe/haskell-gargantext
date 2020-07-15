@@ -18,21 +18,14 @@ module Gargantext.Viz.Graph
 
 
 import Control.Lens (makeLenses)
-import Data.Aeson.TH (deriveJSON)
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
-import Data.Swagger
 import Data.Text (Text, pack)
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
-import GHC.Generics (Generic)
 import GHC.IO (FilePath)
 import Gargantext.Core.Types (ListId)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
+import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Viz.Graph.Distances (GraphMetric)
-import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
-import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Aeson as DA
@@ -43,7 +36,8 @@ import qualified Text.Read as T
 data TypeNode = Terms | Unknown
   deriving (Show, Generic)
 
-$(deriveJSON (unPrefix "") ''TypeNode)
+instance ToJSON TypeNode
+instance FromJSON TypeNode
 instance ToSchema TypeNode
 
 data Attributes = Attributes { clust_default :: Int }
@@ -72,7 +66,9 @@ data Edge = Edge { edge_source :: Text
                  , edge_id     :: Text
                  }
   deriving (Show, Generic)
+
 $(deriveJSON (unPrefix "edge_") ''Edge)
+
 instance ToSchema Edge where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "edge_")
 
@@ -163,8 +159,8 @@ data GraphV3 = GraphV3 { go_links :: [EdgeV3]
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "go_") ''GraphV3)
 
------------------------------------------------------------
 
+-----------------------------------------------------------
 data HyperdataGraph =
   HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
                  } deriving (Show, Generic)
@@ -186,7 +182,6 @@ instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 -----------------------------------------------------------
-
 graphV3ToGraph :: GraphV3 -> Graph
 graphV3ToGraph (GraphV3 links nodes) = Graph (map nodeV32node nodes) (zipWith linkV32edge [1..] links) Nothing
   where
