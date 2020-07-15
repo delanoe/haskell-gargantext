@@ -77,7 +77,7 @@ getScatter cId maybeListId tabType _maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_scatter = mChart } = node ^. node_hyperdata
+  let HyperdataList { _hl_scatter = mChart } = node ^. node_hyperdata
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -115,10 +115,10 @@ updateScatter' cId maybeListId tabType maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_chart = hdc
-                    , hd_list = hdl
-                    , hd_pie = hdp
-                    , hd_tree = hdt } = node ^. node_hyperdata
+  let HyperdataList { _hl_chart = hdc
+                    , _hl_list = hdl
+                    , _hl_pie = hdp
+                    , _hl_tree = hdt } = node ^. node_hyperdata
   _ <- updateHyperdata listId $ HyperdataList hdc hdl hdp (Just $ Metrics metrics) hdt
 
   pure $ Metrics metrics
@@ -170,7 +170,7 @@ getChart cId _start _end maybeListId tabType = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_chart = mChart } = node ^. node_hyperdata
+  let HyperdataList { _hl_chart = mChart } = node ^. node_hyperdata
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -200,10 +200,10 @@ updateChart' cId maybeListId _tabType _maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_list = hdl
-                    , hd_pie = hdp
-                    , hd_scatter = hds
-                    , hd_tree = hdt } = node ^. node_hyperdata
+  let HyperdataList { _hl_list = hdl
+                    , _hl_pie = hdp
+                    , _hl_scatter = hds
+                    , _hl_tree = hdt } = node ^. node_hyperdata
   h <- histoData cId
   _ <- updateHyperdata listId $ HyperdataList (Just $ ChartMetrics h) hdl hdp hds hdt
 
@@ -254,7 +254,7 @@ getPie cId _start _end maybeListId tabType = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_pie = mChart } = node ^. node_hyperdata
+  let HyperdataList { _hl_pie = mChart } = node ^. node_hyperdata
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -284,10 +284,10 @@ updatePie' cId maybeListId tabType _maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_chart = hdc
-                    , hd_list = hdl
-                    , hd_scatter = hds
-                    , hd_tree = hdt } = node ^. node_hyperdata
+  let HyperdataList { _hl_chart = hdc
+                    , _hl_list = hdl
+                    , _hl_scatter = hds
+                    , _hl_tree = hdt } = node ^. node_hyperdata
 
   p <- pieData cId (ngramsTypeFromTabType tabType) MapTerm
   _ <- updateHyperdata listId $ HyperdataList hdc hdl (Just $ ChartMetrics p) hds hdt
@@ -348,7 +348,7 @@ getTree cId _start _end maybeListId tabType listType = do
     Nothing  -> defaultList cId
 
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_tree = mChart } = node ^. node_hyperdata
+  let HyperdataList { _hl_tree = mChart } = node ^. node_hyperdata
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -379,10 +379,10 @@ updateTree' cId maybeListId tabType listType = do
     Nothing  -> defaultList cId
 
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { hd_chart = hdc
-                    , hd_list = hdl
-                    , hd_scatter = hds
-                    , hd_pie = hdp } = node ^. node_hyperdata
+  let HyperdataList { _hl_chart = hdc
+                    , _hl_list = hdl
+                    , _hl_scatter = hds
+                    , _hl_pie = hdp } = node ^. node_hyperdata
   t <- treeData cId (ngramsTypeFromTabType tabType) listType
   _ <- updateHyperdata listId $ HyperdataList hdc hdl hdp hds (Just $ ChartMetrics t)
 

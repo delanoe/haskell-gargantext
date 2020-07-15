@@ -56,7 +56,7 @@ nodeTypeId n =
 ----  Lists
     NodeList      -> 5
     NodeListCooc  -> 50
-    NodeListModel -> 52
+    NodeModel -> 52
 
 ----  Scores
 --    NodeOccurrences -> 10

@@ -117,8 +117,8 @@ getDocumentsV3WithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocume
 getDocumentsWithParentId :: NodeId -> Cmd err [Node HyperdataDocument]
 getDocumentsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)
 
-getListsModelWithParentId :: NodeId -> Cmd err [Node HyperdataListModel]
-getListsModelWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeListModel)
+getListsModelWithParentId :: NodeId -> Cmd err [Node HyperdataModel]
+getListsModelWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeModel)
 
 getCorporaWithParentId :: NodeId -> Cmd err [Node HyperdataCorpus]
 getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
@@ -195,14 +195,14 @@ nodeAnnuaireW maybeName maybeAnnuaire pId = node NodeAnnuaire name annuaire (Jus
     annuaire = maybe defaultHyperdataAnnuaire identity maybeAnnuaire
 
 ------------------------------------------------------------------------
-mkListModelNode :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
-mkListModelNode p u = insertNodesR [nodeListModelW Nothing Nothing p u]
+mkModelNode :: HasNodeError err => ParentId -> UserId -> Cmd err [NodeId]
+mkModelNode p u = insertNodesR [nodeModelW Nothing Nothing p u]
 
-nodeListModelW :: Maybe Name -> Maybe HyperdataListModel -> ParentId -> UserId -> NodeWrite
-nodeListModelW maybeName maybeListModel pId = node NodeListModel name list (Just pId)
+nodeModelW :: Maybe Name -> Maybe HyperdataModel -> ParentId -> UserId -> NodeWrite
+nodeModelW maybeName maybeModel pId = node NodeModel name list (Just pId)
   where
     name = maybe "List Model" identity maybeName
-    list = maybe defaultHyperdataListModel identity maybeListModel
+    list = maybe defaultHyperdataModel identity maybeModel
 
 ------------------------------------------------------------------------
 nodeGraphW :: Maybe Name -> Maybe HyperdataGraph -> ParentId -> UserId -> NodeWrite
@@ -224,7 +224,7 @@ nodeDefault NodeList      parentId = node NodeList      "List"   defaultHyperdat
 nodeDefault NodeCorpus    parentId = node NodeCorpus    "Corpus" defaultHyperdataCorpus    (Just parentId)
 nodeDefault NodeDocument  parentId = node NodeDocument  "Doc"    defaultHyperdataDocument  (Just parentId)
 nodeDefault NodeTexts     parentId = node NodeTexts     "Texts"  defaultHyperdataTexts     (Just parentId)
-nodeDefault NodeListModel parentId = node NodeListModel "Model"  defaultHyperdataListModel (Just parentId)
+nodeDefault NodeModel parentId = node NodeModel "Model"  defaultHyperdataModel (Just parentId)
 nodeDefault nt _ = panic $ "G.D.Q.T.Node.nodeDefault " <> (cs $ show nt)
 
 ------------------------------------------------------------------------

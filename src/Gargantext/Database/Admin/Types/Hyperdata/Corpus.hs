@@ -9,16 +9,14 @@ Portability : POSIX
 
 -}
 
-
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE TemplateHaskell   #-}
-
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Admin.Types.Hyperdata.Corpus
   where
@@ -34,28 +32,24 @@ instance FromJSON CodeType
 instance ToSchema CodeType
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
-data CorpusField = MarkdownField { _cf_text :: !Text }
-                  | JsonField { _cf_title   :: !Text
-                              , _cf_desc    :: !Text
-                              , _cf_query   :: !Text
-                              , _cf_authors :: !Text
-                              -- , _cf_resources :: ![Resource]
-                              }
+data CorpusField = MarkdownField { _cf_text    :: !Text }
                   | HaskellField { _cf_haskell :: !Text }
+                  | JsonField    { _cf_title   :: !Text
+                                 , _cf_desc    :: !Text
+                                 , _cf_query   :: !Text
+                                 , _cf_authors :: !Text
+                                 -- , _cf_resources :: ![Resource]
+                                 }
                   deriving (Generic)
 
-isField :: CodeType -> CorpusField -> Bool
-isField Markdown (MarkdownField   _) = True
-isField JSON     (JsonField _ _ _ _) = True
-isField Haskell  (HaskellField    _) = True
-isField _ _                          = False
-
-$(deriveJSON (unPrefix "_cf_") ''CorpusField)
-$(makeLenses ''CorpusField)
-
 defaultCorpusField :: CorpusField
-defaultCorpusField = MarkdownField "# title"
+defaultCorpusField = MarkdownField "# Title"
+
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
+$(makeLenses ''CorpusField)
+$(deriveJSON (unPrefix "_cf_") ''CorpusField)
 
 instance ToSchema CorpusField where
   declareNamedSchema proxy =
@@ -63,36 +57,46 @@ instance ToSchema CorpusField where
     & mapped.schema.description ?~ "CorpusField"
     & mapped.schema.example ?~ toJSON defaultCorpusField
 
-------------------------------------------------------------------------
-------------------------------------------------------------------------
 
+------------------------------------------------------------------------
 data HyperdataField a =
   HyperdataField { _hf_type :: !CodeType
                  , _hf_name :: !Text
                  , _hf_data :: !a
                  } deriving (Generic)
-$(deriveJSON (unPrefix "_hf_") ''HyperdataField)
-$(makeLenses ''HyperdataField)
-
 defaultHyperdataField :: HyperdataField CorpusField
 defaultHyperdataField = HyperdataField Markdown "name" defaultCorpusField
 
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
+$(makeLenses ''HyperdataField)
+$(deriveJSON (unPrefix "_hf_") ''HyperdataField)
+
 instance (Typeable a, ToSchema a) => ToSchema (HyperdataField a) where
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "_hf_") proxy
+    & mapped.schema.description ?~ "Hyperdata Field"
+    & mapped.schema.example ?~ toJSON defaultCorpusField
+{-
   declareNamedSchema =
     wellNamedSchema "_hf_"
     -- & mapped.schema.description ?~ "HyperdataField"
     -- & mapped.schema.example ?~ toJSON defaultHyperdataField
+-}
 
 ------------------------------------------------------------------------
 data HyperdataCorpus =
   HyperdataCorpus { _hc_fields :: ![HyperdataField CorpusField] }
     deriving (Generic)
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
+instance Hyperdata HyperdataCorpus
 $(deriveJSON (unPrefix "_hc_") ''HyperdataCorpus)
 $(makeLenses ''HyperdataCorpus)
 
-instance Hyperdata HyperdataCorpus
 
-type HyperdataFolder = HyperdataCorpus
 
 ------------------------------------------------------------------------
 data HyperdataFrame =
@@ -122,9 +126,6 @@ hyperdataCorpus = case decode corpusExample of
 
 defaultHyperdataCorpus :: HyperdataCorpus
 defaultHyperdataCorpus = defaultCorpus
-
-defaultHyperdataFolder :: HyperdataFolder
-defaultHyperdataFolder = defaultHyperdataCorpus
 
 instance Arbitrary HyperdataCorpus where
     arbitrary = pure hyperdataCorpus -- TODO

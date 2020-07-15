@@ -16,7 +16,9 @@ module Gargantext.Database.Admin.Types.Hyperdata
   , module Gargantext.Database.Admin.Types.Hyperdata.Corpus
   , module Gargantext.Database.Admin.Types.Hyperdata.Dashboard
   , module Gargantext.Database.Admin.Types.Hyperdata.Document
+  , module Gargantext.Database.Admin.Types.Hyperdata.Folder
   , module Gargantext.Database.Admin.Types.Hyperdata.List
+  , module Gargantext.Database.Admin.Types.Hyperdata.Model
   , module Gargantext.Database.Admin.Types.Hyperdata.Prelude
   , module Gargantext.Database.Admin.Types.Hyperdata.Texts
   , module Gargantext.Database.Admin.Types.Hyperdata.Phylo
@@ -27,7 +29,9 @@ import Gargantext.Database.Admin.Types.Hyperdata.Any
 import Gargantext.Database.Admin.Types.Hyperdata.Corpus
 import Gargantext.Database.Admin.Types.Hyperdata.Dashboard
 import Gargantext.Database.Admin.Types.Hyperdata.Document
+import Gargantext.Database.Admin.Types.Hyperdata.Folder
 import Gargantext.Database.Admin.Types.Hyperdata.List
+import Gargantext.Database.Admin.Types.Hyperdata.Model
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude (Hyperdata)
 import Gargantext.Database.Admin.Types.Hyperdata.Texts
 import Gargantext.Database.Admin.Types.Hyperdata.Phylo

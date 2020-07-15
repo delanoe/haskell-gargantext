@@ -9,16 +9,14 @@ Portability : POSIX
 
 -}
 
-
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE TemplateHaskell   #-}
-
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Admin.Types.Hyperdata.Any
   where
@@ -41,8 +39,8 @@ instance Arbitrary HyperdataAny where
 instance ToSchema HyperdataAny where
   declareNamedSchema proxy =
     pure $ genericNameSchema defaultSchemaOptions proxy mempty
-             & schema.description ?~ "a node"
-             & schema.example ?~ emptyObject -- TODO
+         & schema.description ?~ "Hyperdata of any node (Json Value)"
+         & schema.example ?~ emptyObject -- TODO
 
 instance FromField HyperdataAny where
     fromField = fromField'

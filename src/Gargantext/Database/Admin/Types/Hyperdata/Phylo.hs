@@ -53,11 +53,9 @@ instance ToSchema HyperdataPhylo where
     & mapped.schema.description ?~ "Phylo Hyperdata"
     & mapped.schema.example ?~ toJSON defaultHyperdataPhylo
 
-
 instance FromField HyperdataPhylo where
     fromField = fromField'
 
 instance QueryRunnerColumnDefault PGJsonb HyperdataPhylo
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
-

@@ -9,15 +9,14 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE TemplateHaskell   #-}
-
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Admin.Types.Hyperdata.Document where
 
@@ -29,7 +28,6 @@ data StatusV3  = StatusV3 { statusV3_error  :: !(Maybe Text)
                           , statusV3_action :: !(Maybe Text)
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
-
 
 
 ------------------------------------------------------------------------
@@ -99,7 +97,7 @@ instance Hyperdata HyperdataDocumentV3
 instance ToSchema HyperdataDocument where
   declareNamedSchema proxy =
     genericDeclareNamedSchema (unPrefixSwagger "_hyperdataDocument_") proxy
-    & mapped.schema.description ?~ "a document"
+    & mapped.schema.description ?~ "Document Hyperdata"
     & mapped.schema.example ?~ toJSON defaultHyperdataDocument
 ------------------------------------------------------------------------
 instance FromField HyperdataDocument
@@ -112,6 +110,10 @@ instance FromField HyperdataDocumentV3
 
 instance ToField HyperdataDocument where
   toField = toJSONField
+
+instance ToField HyperdataDocumentV3 where
+  toField = toJSONField
+
 ------------------------------------------------------------------------
 instance QueryRunnerColumnDefault PGJsonb HyperdataDocument
   where

@@ -30,60 +30,37 @@ import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)
 
 ------------------------------------------------------------------------
 data HyperdataList =
-  HyperdataList { hd_chart   :: !(Maybe (ChartMetrics Histo))
-                , hd_list    :: !(Maybe Text)
-                , hd_pie     :: !(Maybe (ChartMetrics Histo))
-                , hd_scatter :: !(Maybe Metrics)
-                , hd_tree    :: !(Maybe (ChartMetrics [MyTree]))
+  HyperdataList { _hl_chart   :: !(Maybe (ChartMetrics Histo))
+                , _hl_list    :: !(Maybe Text)
+                , _hl_pie     :: !(Maybe (ChartMetrics Histo))
+                , _hl_scatter :: !(Maybe Metrics)
+                , _hl_tree    :: !(Maybe (ChartMetrics [MyTree]))
                 } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hd_") ''HyperdataList)
-
-instance Hyperdata HyperdataList
 
 defaultHyperdataList :: HyperdataList
 defaultHyperdataList = HyperdataList Nothing Nothing Nothing Nothing Nothing
 
-                      ----
-data HyperdataListModel =
-  HyperdataListModel { _hlm_params  :: !(Int, Int)
-                     , _hlm_path    :: !Text
-                     , _hlm_score   :: !(Maybe Double)
-                     } deriving (Show, Generic)
-
-instance Hyperdata HyperdataListModel
-instance Arbitrary HyperdataListModel where
-  arbitrary = elements [HyperdataListModel (100,100) "models/example.model" Nothing]
-
-$(deriveJSON (unPrefix "_hlm_") ''HyperdataListModel)
-$(makeLenses ''HyperdataListModel)
-
-defaultHyperdataListModel :: HyperdataListModel
-defaultHyperdataListModel = HyperdataListModel (400,500) "data/models/test.model" (Just 0.83)
-
-
-------------------------------------------------------------------------
-data HyperdataScore = HyperdataScore { hyperdataScore_preferences   :: !(Maybe Text)
-                                   } deriving (Show, Generic)
-$(deriveJSON (unPrefix "hyperdataScore_") ''HyperdataScore)
-
-instance Hyperdata HyperdataScore
-
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
+instance Hyperdata HyperdataList
+$(makeLenses ''HyperdataList)
+$(deriveJSON (unPrefix "_hl_") ''HyperdataList)
+
+instance Arbitrary HyperdataList where
+  arbitrary = pure defaultHyperdataList
+
 instance FromField HyperdataList
   where
     fromField = fromField'
 
-instance FromField HyperdataListModel
-  where
-    fromField = fromField'
-------------------------------------------------------------------------
 instance QueryRunnerColumnDefault PGJsonb HyperdataList
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
-instance QueryRunnerColumnDefault PGJsonb HyperdataListModel
-  where
-    queryRunnerColumnDefault = fieldQueryRunnerColumn
-
+instance ToSchema HyperdataList where
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema (unPrefixSwagger "_hl_") proxy
+    & mapped.schema.description ?~ "List Hyperdata"
+    & mapped.schema.example ?~ toJSON defaultHyperdataList
+------------------------------------------------------------------------

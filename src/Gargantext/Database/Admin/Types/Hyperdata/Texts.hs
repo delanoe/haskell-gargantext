@@ -47,10 +47,9 @@ instance Arbitrary HyperdataTexts where
 
 instance ToSchema HyperdataTexts where
   declareNamedSchema proxy =
-    -- genericDeclareNamedSchema (unPrefixSwagger "_ht_") proxy
-    pure $ genericNameSchema defaultSchemaOptions proxy mempty
-    & schema.description ?~ "Texts Hyperdata"
-    & schema.example     ?~ toJSON defaultHyperdataTexts
+    genericDeclareNamedSchema (unPrefixSwagger "_ht_") proxy
+    & mapped.schema.description ?~ "Texts Hyperdata"
+    & mapped.schema.example ?~ toJSON defaultHyperdataTexts
 
 instance FromField HyperdataTexts where
     fromField = fromField'

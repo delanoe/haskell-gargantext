@@ -245,7 +245,7 @@ data NodeType = NodeUser
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
               | NodeDashboard  | NodeChart    | NodeNoteBook
-              | NodeList       | NodeListModel
+              | NodeList       | NodeModel
               | NodeListCooc
 
 {-
