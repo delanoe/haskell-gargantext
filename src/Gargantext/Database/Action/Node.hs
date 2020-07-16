@@ -28,7 +28,7 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
+import Gargantext.Prelude.Utils (hash)
 import Gargantext.Database.Prelude
 import Control.Lens (view)
 import Gargantext.Config (GargConfig(..))
@@ -99,7 +99,7 @@ mkNodeWithParent_ConfigureHyperdata' nt (Just i) uId name = do
             _              -> nodeError NeedsConfiguration
       let
         s = _gc_secretkey config
-        hd = HyperdataFrame u (sha $ s <> (cs $ show n))
+        hd = HyperdataFrame u (hash $ s <> (cs $ show n))
       _ <- updateHyperdata n hd
       pure [n]
     (_:_:_)  -> nodeError MkNode

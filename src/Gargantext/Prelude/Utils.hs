@@ -9,10 +9,12 @@ Portability : POSIX
 
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 module Gargantext.Prelude.Utils
   where
 
+import Prelude (String)
 import Data.Set (Set)
 import Data.List (foldl)
 import Control.Lens (view)
@@ -41,24 +43,28 @@ shuffle ns = SRS.shuffleM ns
 -- TODO use newtype
 type Hash = Text
 
--- | API to hash text
+-- | Class to make hashes
+class IsHashable a where
+  hash :: a -> Hash
+
+-- | Main API to hash text
 -- using sha256 for now
-hash :: Text -> Hash
-hash = sha
+instance IsHashable Char.ByteString where
+  hash = Text.pack
+        . SHA.showDigest
+        . SHA.sha256
 
--- | Sugar fun to sha256 Text
-sha :: Text -> Hash
-sha = Text.pack
-     . SHA.showDigest
-     . SHA.sha256
-     . Char.pack
-     . Text.unpack
+instance IsHashable String where
+  hash = hash . Char.pack
 
-hashFromList :: [Hash] -> Hash
-hashFromList = hashFromSet . Set.fromList
+instance IsHashable Text where
+  hash = hash . Text.unpack
 
-hashFromSet :: Set Hash -> Hash
-hashFromSet = sha . foldl (<>) "" . Set.toList
+instance IsHashable (Set Hash) where
+  hash = hash . foldl (<>) "" . Set.toList
+
+instance IsHashable [Hash] where
+  hash = hash . Set.fromList
 
 --------------------------------------------------------------------------
 data NodeToHash = NodeToHash { nodeType :: NodeType
@@ -85,14 +91,14 @@ writeFile :: (MonadReader env m, MonadBase IO m, HasSettings env, SaveFile a)
          => a -> m FilePath
 writeFile a = do
   dataPath <- view (settings . fileFolder) <$> ask
-  (fp,fn)  <- liftBase $ (toPath 3) . sha . Text.pack . show <$> newStdGen
-  
+  (fp,fn)  <- liftBase $ (toPath 3) . hash . show <$> newStdGen
+
   let foldPath = dataPath <> "/" <> fp
       filePath = foldPath <> "/" <> fn
-  
+
   _ <- liftBase $ createDirectoryIfMissing True foldPath
   _ <- liftBase $ saveFile' filePath a
-  
+
   pure filePath
 
 

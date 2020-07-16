@@ -72,10 +72,8 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
-import qualified Data.ByteString.Lazy.Char8  as DC (pack)
-import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
-import qualified Data.Text                   as DT (pack, unpack, concat, take)
+import Gargantext.Prelude.Utils (hash)
+import qualified Data.Text                   as DT (pack, concat, take)
 
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
@@ -203,8 +201,8 @@ instance AddUniqId HyperdataDocument
         addUniqIdsDoc doc = set hd_uniqIdBdd (Just shaBdd)
                           $ set hd_uniqId    (Just shaUni) doc
           where
-            shaUni = sha $ DT.concat $ map ($ doc) shaParametersDoc
-            shaBdd = sha $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hd_bdd d))] <> shaParametersDoc)
+            shaUni = hash $ DT.concat $ map ($ doc) shaParametersDoc
+            shaBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hd_bdd d))] <> shaParametersDoc)
 
         shaParametersDoc :: [(HyperdataDocument -> Text)]
         shaParametersDoc = [ \d -> maybeText (_hd_title    d)
@@ -225,11 +223,8 @@ addUniqIdsContact :: HyperdataContact -> HyperdataContact
 addUniqIdsContact hc = set (hc_uniqIdBdd) (Just shaBdd)
                      $ set (hc_uniqId   ) (Just shaUni) hc
   where
-    shaUni = uniqId $ DT.concat $ map ($ hc) shaParametersContact
-    shaBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybeText (view hc_bdd d)] <> shaParametersContact)
-
-    uniqId :: Text -> Text
-    uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
+    shaUni = hash $ DT.concat $ map ($ hc) shaParametersContact
+    shaBdd = hash $ DT.concat $ map ($ hc) ([\d -> maybeText (view hc_bdd d)] <> shaParametersContact)
 
     -- | TODO add more shaparameters
     shaParametersContact :: [(HyperdataContact -> Text)]
