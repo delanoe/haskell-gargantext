@@ -154,27 +154,6 @@ getNodeWith nId _ = do
 
 
 ------------------------------------------------------------------------
-nodeContactW :: Maybe Name -> Maybe HyperdataContact
-             -> AnnuaireId -> UserId -> NodeWrite
-nodeContactW maybeName maybeContact aId = 
-  node NodeContact name contact (Just aId)
-    where
-      name    = maybe "Contact" identity maybeName
-      contact = maybe arbitraryHyperdataContact identity maybeContact
-------------------------------------------------------------------------
-nodeCorpusW :: Maybe Name -> Maybe HyperdataCorpus -> ParentId -> UserId -> NodeWrite
-nodeCorpusW maybeName maybeCorpus pId = node NodeCorpus name corpus (Just pId)
-  where
-    name   = maybe "Corpus" identity maybeName
-    corpus = maybe defaultHyperdataCorpus identity maybeCorpus
-                   --------------------------
-
-nodeDocumentW :: Maybe Name -> Maybe HyperdataDocument -> CorpusId -> UserId -> NodeWrite
-nodeDocumentW maybeName maybeDocument cId = node NodeDocument name doc (Just cId)
-  where
-    name = maybe "Document" identity maybeName
-    doc  = maybe defaultHyperdataDocument identity maybeDocument
-------------------------------------------------------------------------
 -- | Sugar to insert Node with NodeType in Database
 insertDefaultNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
 insertDefaultNode nt p u = insertNode nt Nothing Nothing p u
