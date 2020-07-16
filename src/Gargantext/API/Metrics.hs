@@ -20,28 +20,28 @@ module Gargantext.API.Metrics
 
 import Control.Lens
 import Data.Time (UTCTime)
-import Protolude
-import Servant
-import qualified Data.Map as Map
-
+import Data.Text (Text)
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.NTree
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (CorpusId, Limit, ListId, ListType(..))
 import Gargantext.Database.Action.Flow
-import qualified Gargantext.Database.Action.Metrics as Metrics
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataList(..))
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metric(..), Metrics(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node (defaultList, getNodeWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node (node_hyperdata)
+import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Types
+import Servant
+import qualified Data.Map as Map
+import qualified Gargantext.Database.Action.Metrics as Metrics
 
 -------------------------------------------------------------
 -- | Scatter metrics API
@@ -55,8 +55,8 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
                   :> QueryParamR "ngramsType" TabType
                   :> QueryParam  "limit"      Int
                   :> Post '[JSON] ()
-              :<|> "md5" :>
-                     Summary "Scatter MD5"
+              :<|> "hash" :>
+                     Summary "Scatter Hash"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
                   :> Get '[JSON] Text
@@ -64,7 +64,7 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
 scatterApi :: NodeId -> GargServer ScatterAPI
 scatterApi id' = getScatter id'
             :<|> updateScatter id'
-            :<|> getScatterMD5 id'
+            :<|> getScatterHash id'
 
 getScatter :: FlowCmdM env err m =>
   CorpusId
@@ -123,14 +123,13 @@ updateScatter' cId maybeListId tabType maybeLimit = do
 
   pure $ Metrics metrics
 
-getScatterMD5 :: FlowCmdM env err m =>
+getScatterHash :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
   -> m Text
-getScatterMD5 cId maybeListId tabType = do
-  HashedResponse { md5 = md5' } <- getScatter cId maybeListId tabType Nothing
-  pure md5'
+getScatterHash cId maybeListId tabType =
+  hash <$> getScatter cId maybeListId tabType Nothing
 
 
 -------------------------------------------------------------
@@ -146,8 +145,8 @@ type ChartApi = Summary " Chart API"
                 :> QueryParamR "ngramsType" TabType
                 :> QueryParam  "limit"      Int
                 :> Post '[JSON] ()
-              :<|> "md5" :>
-                     Summary "Chart MD5"
+              :<|> "hash" :>
+                     Summary "Chart Hash"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
                   :> Get '[JSON] Text
@@ -155,7 +154,7 @@ type ChartApi = Summary " Chart API"
 chartApi :: NodeId -> GargServer ChartApi
 chartApi id' = getChart id'
           :<|> updateChart id'
-          :<|> getChartMD5 id'
+          :<|> getChartHash id'
                
 -- TODO add start / end
 getChart :: FlowCmdM env err m =>
@@ -210,14 +209,14 @@ updateChart' cId maybeListId _tabType _maybeLimit = do
   pure $ ChartMetrics h
 
 
-getChartMD5 :: FlowCmdM env err m =>
+getChartHash :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
   -> m Text
-getChartMD5 cId maybeListId tabType = do
-  HashedResponse { md5 = md5' } <- getChart cId Nothing Nothing maybeListId tabType
-  pure md5'
+getChartHash cId maybeListId tabType =
+  hash <$> getChart cId Nothing Nothing maybeListId tabType
+
 -------------------------------------------------------------
 -- | Pie metrics API
 type PieApi = Summary "Pie Chart"
@@ -231,8 +230,8 @@ type PieApi = Summary "Pie Chart"
                 :> QueryParamR "ngramsType" TabType
                 :> QueryParam  "limit"      Int
                 :> Post '[JSON] ()
-              :<|> "md5" :>
-                     Summary "Pie MD5"
+              :<|> "hash" :>
+                     Summary "Pie Hash"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
                   :> Get '[JSON] Text
@@ -240,7 +239,7 @@ type PieApi = Summary "Pie Chart"
 pieApi :: NodeId -> GargServer PieApi
 pieApi id' = getPie id'
         :<|> updatePie id'
-        :<|> getPieMD5 id'
+        :<|> getPieHash id'
 
 getPie :: FlowCmdM env err m
        => CorpusId
@@ -294,14 +293,14 @@ updatePie' cId maybeListId tabType _maybeLimit = do
 
   pure $ ChartMetrics p
 
-getPieMD5 :: FlowCmdM env err m =>
+getPieHash :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
   -> m Text
-getPieMD5 cId maybeListId tabType = do
-  HashedResponse { md5 = md5' } <- getPie cId Nothing Nothing maybeListId tabType
-  pure md5'
+getPieHash cId maybeListId tabType =
+  hash <$> getPie cId Nothing Nothing maybeListId tabType
+
 -------------------------------------------------------------
 -- | Tree metrics API
 
@@ -317,8 +316,8 @@ type TreeApi = Summary " Tree API"
                 :> QueryParamR "ngramsType" TabType
                 :> QueryParamR "listType"   ListType
                 :> Post '[JSON] ()
-          :<|> "md5" :>
-                  Summary "Tree MD5"
+          :<|> "hash" :>
+                  Summary "Tree Hash"
               :> QueryParam  "list"       ListId
               :> QueryParamR "ngramsType" TabType
               :> QueryParamR "listType"   ListType
@@ -332,7 +331,7 @@ type TreeApi = Summary " Tree API"
 treeApi :: NodeId -> GargServer TreeApi
 treeApi id' = getTree id'
          :<|> updateTree id'
-         :<|> getTreeMD5 id'
+         :<|> getTreeHash id'
 
 getTree :: FlowCmdM env err m
         => CorpusId
@@ -388,12 +387,11 @@ updateTree' cId maybeListId tabType listType = do
 
   pure $ ChartMetrics t
 
-getTreeMD5 :: FlowCmdM env err m =>
+getTreeHash :: FlowCmdM env err m =>
   CorpusId
   -> Maybe ListId
   -> TabType
   -> ListType
   -> m Text
-getTreeMD5 cId maybeListId tabType listType = do
-  HashedResponse { md5 = md5' } <- getTree cId Nothing Nothing maybeListId tabType listType
-  pure md5'
+getTreeHash cId maybeListId tabType listType =
+  hash <$> getTree cId Nothing Nothing maybeListId tabType listType
