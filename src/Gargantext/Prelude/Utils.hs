@@ -13,6 +13,8 @@ Portability : POSIX
 module Gargantext.Prelude.Utils
   where
 
+import Data.Set (Set)
+import Data.List (foldl)
 import Control.Lens (view)
 import Control.Monad.Random.Class (MonadRandom)
 import Control.Monad.Reader (MonadReader)
@@ -26,6 +28,7 @@ import System.Directory (createDirectoryIfMissing)
 import System.Random (newStdGen)
 import qualified Data.ByteString.Lazy.Char8  as Char
 import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
+import qualified Data.Set                    as Set
 import qualified Data.Text                   as Text
 import qualified System.Random.Shuffle as SRS
 
@@ -34,12 +37,28 @@ shuffle :: MonadRandom m => [a] -> m [a]
 shuffle ns = SRS.shuffleM ns 
 
 --------------------------------------------------------------------------
-sha :: Text -> Text
+-- | Use this datatype to keep traceability of hashes
+-- TODO use newtype
+type Hash = Text
+
+-- | API to hash text
+-- using sha256 for now
+hash :: Text -> Hash
+hash = sha
+
+-- | Sugar fun to sha256 Text
+sha :: Text -> Hash
 sha = Text.pack
      . SHA.showDigest
      . SHA.sha256
      . Char.pack
      . Text.unpack
+
+hashFromList :: [Hash] -> Hash
+hashFromList = hashFromSet . Set.fromList
+
+hashFromSet :: Set Hash -> Hash
+hashFromSet = sha . foldl (<>) "" . Set.toList
 
 --------------------------------------------------------------------------
 data NodeToHash = NodeToHash { nodeType :: NodeType
