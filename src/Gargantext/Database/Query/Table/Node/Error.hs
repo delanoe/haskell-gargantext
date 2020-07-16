@@ -63,6 +63,11 @@ instance Show NodeError
 class HasNodeError e where
   _NodeError :: Prism' e NodeError
 
+errorMsg :: ( MonadError e m
+            , HasNodeError e)
+          => Text -> m a
+errorMsg = msg
+
 msg :: ( MonadError e m
               , HasNodeError e)
           => Text -> m a

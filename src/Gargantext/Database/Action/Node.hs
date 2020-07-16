@@ -27,7 +27,6 @@ import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Viz.Graph (defaultHyperdataGraph)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils (sha)
 import Gargantext.Database.Prelude
@@ -50,63 +49,14 @@ mkNodeWithParent NodeUser Nothing uId name =
 
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 ------------------------------------------------------------------------
-mkNodeWithParent NodeFolder (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
-    where
-      hd = defaultHyperdataFolder
-
-mkNodeWithParent NodeFolderPrivate (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderPrivate "Private" hd Nothing uId]
-    where
-      hd = defaultHyperdataFolder
-
-mkNodeWithParent NodeFolderShared (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderShared "Shared" hd Nothing uId]
-    where
-      hd = defaultHyperdataFolder
-
-mkNodeWithParent NodeFolderPublic (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderPublic "Public" hd Nothing uId]
-    where
-      hd = defaultHyperdataFolder
-
-mkNodeWithParent NodeTeam (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeTeam name hd Nothing uId]
-    where
-      hd = defaultHyperdataFolder
-------------------------------------------------------------------------
-mkNodeWithParent NodeCorpus (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeCorpus name hd Nothing uId]
-    where
-      hd = defaultHyperdataCorpus
-
-mkNodeWithParent NodeAnnuaire (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeAnnuaire name hd Nothing uId]
-    where
-      hd = defaultHyperdataAnnuaire
-
-mkNodeWithParent NodeList (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeList name hd Nothing uId]
-    where
-      hd = defaultHyperdataAnnuaire
-
-mkNodeWithParent NodeGraph (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeGraph name hd Nothing uId]
-    where
-      hd = defaultHyperdataGraph
-
 mkNodeWithParent NodeFrameWrite i u n =
   mkNodeWithParent_ConfigureHyperdata NodeFrameWrite i u n
 
 mkNodeWithParent NodeFrameCalc i u n =
   mkNodeWithParent_ConfigureHyperdata NodeFrameCalc i u n
 
-{-
-mkNodeWithParent n (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeDashboard name (hasDefaultData n) Nothing uId]
--}
-
-mkNodeWithParent _ _ _ _       = nodeError NotImplYet
+mkNodeWithParent nt (Just pId) uId name  = insertNode nt (Just name) Nothing pId uId
+-- mkNodeWithParent _ _ _ _ = errorMsg "[G.D.A.Node.mkNodeWithParent] nees parent"
 
 
 -- | Sugar to create a node, get his NodeId and update his Hyperdata after
