@@ -58,20 +58,15 @@ instance Show NodeError
     show ManyNodeUsers = "Many userNode/user"
     show (DoesNotExist n)   = "Node does not exist" <> show n
     show NeedsConfiguration = "Needs configuration"
-    show (NodeError e)   = "NodeError: " <> cs e
+    show (NodeError e)      = "NodeError: " <> cs e
 
 class HasNodeError e where
   _NodeError :: Prism' e NodeError
 
-errorMsg :: ( MonadError e m
+errorWith :: ( MonadError e m
             , HasNodeError e)
           => Text -> m a
-errorMsg = msg
-
-msg :: ( MonadError e m
-              , HasNodeError e)
-          => Text -> m a
-msg x = nodeError (NodeError x)
+errorWith x = nodeError (NodeError x)
 
 nodeError :: ( MonadError e m
              , HasNodeError e)

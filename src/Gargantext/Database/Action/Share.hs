@@ -22,7 +22,7 @@ import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node (getNode, getNodesWith)
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError, msg)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError, errorWith)
 import Gargantext.Database.Query.Table.NodeNode (insertNodeNode, deleteNodeNode)
 import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Schema.Node
@@ -50,10 +50,10 @@ shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
   nodeToCheck <- getNode   n
   userIdCheck <- getUserId u
   if not (hasNodeType nodeToCheck NodeTeam)
-    then msg "Can share node Team only"
+    then errorWith "[G.D.A.S.shareNodeWith] Can share node Team only"
     else
       if (view node_userId nodeToCheck == userIdCheck)
-        then msg "Can share to others only"
+        then errorWith "[G.D.A.S.shareNodeWith] Can share to others only"
         else do
           folderSharedId  <- getFolderId u NodeFolderShared
           insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
@@ -61,14 +61,15 @@ shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
 shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
   nodeToCheck <- getNode n
   if not (isInNodeTypes nodeToCheck publicNodeTypes)
-    then msg $ "Can share this nodesTypes only: " <> (cs $ show publicNodeTypes)
+    then errorWith $ "[G.D.A.S.shareNodeWith] Can share this nodesTypes only: "
+                   <> (cs $ show publicNodeTypes)
     else do
       folderToCheck <- getNode nId
       if hasNodeType folderToCheck NodeFolderPublic
          then insertNodeNode [NodeNode nId n Nothing Nothing]
-         else msg "Can share NodeWith NodeFolderPublic only"
+         else errorWith "[G.D.A.S.shareNodeWith] Can share NodeWith NodeFolderPublic only"
 
-shareNodeWith _ _ = msg "shareNodeWith not implemented for this NodeType"
+shareNodeWith _ _ = errorWith "[G.D.A.S.shareNodeWith] Not implemented for this NodeType"
 
 ------------------------------------------------------------------------
 getFolderId :: HasNodeError err => User -> NodeType -> Cmd err NodeId
@@ -76,7 +77,7 @@ getFolderId u nt = do
   rootId <- getRootId u
   s <- getNodesWith rootId HyperdataAny (Just nt) Nothing Nothing
   case head s of
-    Nothing -> msg "No folder shared found"
+    Nothing -> errorWith "[G.D.A.S.getFolderId] No folder shared found"
     Just  f -> pure (_node_id f)
 
 ------------------------------------------------------------------------

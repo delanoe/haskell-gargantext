@@ -44,6 +44,7 @@ mkNodeWithParent :: (HasNodeError err)
 mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
 
 ------------------------------------------------------------------------
+-- | MkNode, insert and eventually configure Hyperdata
 mkNodeWithParent NodeUser Nothing uId name =
   insertNodesWithParentR Nothing [node NodeUser name defaultHyperdataUser Nothing uId]
 
@@ -56,10 +57,10 @@ mkNodeWithParent NodeFrameCalc i u n =
   mkNodeWithParent_ConfigureHyperdata NodeFrameCalc i u n
 
 mkNodeWithParent nt (Just pId) uId name  = insertNode nt (Just name) Nothing pId uId
--- mkNodeWithParent _ _ _ _ = errorMsg "[G.D.A.Node.mkNodeWithParent] nees parent"
+-- mkNodeWithParent _ _ _ _ = errorWith "[G.D.A.Node.mkNodeWithParent] nees parent"
 
 
--- | Sugar to create a node, get his NodeId and update his Hyperdata after
+-- | Sugar to create a node, get its NodeId and update its Hyperdata after
 mkNodeWithParent_ConfigureHyperdata :: (HasNodeError err)
                                     => NodeType
                                     -> Maybe ParentId
