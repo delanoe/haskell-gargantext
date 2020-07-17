@@ -54,7 +54,7 @@ instance IsHashable Char.ByteString where
         . SHA.showDigest
         . SHA.sha256
 
-instance IsHashable String where
+instance {-# OVERLAPPING #-} IsHashable String where
   hash = hash . Char.pack
 
 instance IsHashable Text where
@@ -63,8 +63,8 @@ instance IsHashable Text where
 instance IsHashable (Set Hash) where
   hash = hash . foldl (<>) "" . Set.toList
 
-instance IsHashable [Hash] where
-  hash = hash . Set.fromList
+instance {-# OVERLAPPABLE #-} IsHashable a => IsHashable [a] where
+  hash = hash . Set.fromList . map hash
 
 --------------------------------------------------------------------------
 data NodeToHash = NodeToHash { nodeType :: NodeType
