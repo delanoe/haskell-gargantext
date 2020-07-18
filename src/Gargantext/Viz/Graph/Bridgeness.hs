@@ -13,11 +13,6 @@ filters inter-communities links.
 TODO rewrite Bridgeness with "equivalence structurale" metrics (Confluence)
 
 TODO use Map LouvainNodeId (Map LouvainNodeId)
-
-
-
-
-
 -}
 
 
@@ -26,16 +21,13 @@ module Gargantext.Viz.Graph.Bridgeness (bridgeness)
 
 import Data.Ord (Down(..))
 import Gargantext.Prelude
-import Data.Map (Map, fromListWith, lookup, fromList, toList, mapWithKey, elems)
+import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import qualified Data.Map as DM
 import Data.Maybe (catMaybes)
 import Data.List (concat, sortOn)
 import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
+import Gargantext.Viz.Graph.Louvain (LouvainNodeId, CommunityId, nodeId2comId)
 
-
--- TODO mv in Louvain Lib
-type LouvainNodeId = Int
-type CommunityId   = Int
 
 type Bridgeness = Double
 
@@ -49,11 +41,6 @@ bridgeness b ns = DM.fromList
                 . DM.elems
                 . filterComs b
                 . groupEdges (nodeId2comId ns)
-
-
-nodeId2comId :: [LouvainNode] -> Map LouvainNodeId CommunityId
-nodeId2comId ns = fromList [(nId,cId) | LouvainNode nId cId <- ns]
-
 
 groupEdges :: Map  LouvainNodeId CommunityId
            -> Map (LouvainNodeId, LouvainNodeId) Double
@@ -84,4 +71,3 @@ filterComs _b m = DM.filter (\n -> length n > 0) $ mapWithKey filter' m
             a'= fromIntegral $ length a
             t :: Double
             t = fromIntegral $ length $ concat $ elems m
-

@@ -82,7 +82,8 @@ cooc2graph distance threshold myCooc = do
 
   let
     -- bridgeness' = distanceMap
-    bridgeness' = trace ("Rivers: " <> show rivers) $ bridgeness rivers partitions distanceMap
+    bridgeness' = trace ("Rivers: " <> show rivers)
+                $ bridgeness rivers partitions distanceMap
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
   pure $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions

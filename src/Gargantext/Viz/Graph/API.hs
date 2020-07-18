@@ -135,15 +135,6 @@ computeGraph :: HasNodeError err
 computeGraph cId d nt repo = do
   lId  <- defaultList cId
 
-  let metadata = GraphMetadata "Title"
-                               Order1
-                               [cId]
-                               [ LegendField 1 "#FFF" "Cluster"
-                               , LegendField 2 "#FFF" "Cluster"
-                               ]
-                               (ListForGraph lId (repo ^. r_version))
-                         -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
@@ -154,8 +145,21 @@ computeGraph cId d nt repo = do
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
 
   graph <- liftBase $ cooc2graph d 0 myCooc
-  let graph' = set graph_metadata (Just metadata) graph
-  pure graph'
+
+
+  let metadata = GraphMetadata "Title"
+                               Order1
+                               [cId]
+                               [ LegendField 1 "#FFF" "Cluster1"
+                               , LegendField 2 "#FFF" "Cluster2"
+                               , LegendField 3 "#FFF" "Cluster3"
+                               , LegendField 4 "#FFF" "Cluster4"
+                               ]
+                               (ListForGraph lId (repo ^. r_version))
+                         -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
+
+  pure $ set graph_metadata (Just metadata) graph
+
 
 ------------------------------------------------------------
 type GraphAsyncAPI = Summary "Update graph"

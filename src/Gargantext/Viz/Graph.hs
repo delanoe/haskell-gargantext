@@ -190,7 +190,11 @@ graphV3ToGraph (GraphV3 links nodes) = Graph (map nodeV32node nodes) (zipWith li
                 = Node no_s' Terms (cs $ show no_id') no_lb' 0 0 (Attributes cl')
 
     linkV32edge :: Int -> EdgeV3 -> Edge
-    linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') = Edge (cs $ show eo_s') (cs $ show eo_t') ((T.read $ T.unpack eo_w') :: Double) 0.5 (cs $ show n)
+    linkV32edge n (EdgeV3 eo_s' eo_t' eo_w') = Edge (cs $ show eo_s')
+                                                    (cs $ show eo_t')
+                                                    ((T.read $ T.unpack eo_w') :: Double)
+                                                    0.5
+                                                    (cs $ show n)
 
 
 graphV3ToGraphWithFiles :: FilePath -> FilePath -> IO ()

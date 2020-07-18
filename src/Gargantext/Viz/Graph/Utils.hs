@@ -64,3 +64,7 @@ toListsWithIndex m = concat' $ zip [1..] $ map (\c -> zip [1..] c) $ toLists m
     concat' xs = L.concat $ map (\(x, ys) -> map (\(y, a) -> ((x,y), a)) ys ) xs
 
 
+
+
+
+

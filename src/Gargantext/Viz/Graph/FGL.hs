@@ -63,7 +63,6 @@ ecount = fromIntegral . List.length . List.nub . edges
 
 ------------------------------------------------------------------
 -- | Main sugared functions
-
 mkGraphUfromEdges :: [(Int, Int)] -> Graph_Undirected
 mkGraphUfromEdges es = mkGraph ns es
   where
