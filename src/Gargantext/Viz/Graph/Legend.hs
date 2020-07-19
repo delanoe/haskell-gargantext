@@ -13,6 +13,7 @@ Portability : POSIX
 module Gargantext.Viz.Graph.Legend
   where
 
+{-
 import Data.Ord (Down(..))
 import Gargantext.Prelude
 import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
@@ -23,7 +24,6 @@ import Gargantext.Viz.Graph.Louvain (LouvainNodeId, CommunityId, comId2nodeId)
 
 
 
-{-
 
 [LouvainNode] -> Map CommunityId LouvainNodeId
 [(CommunityId, [LouvainNodeId])]

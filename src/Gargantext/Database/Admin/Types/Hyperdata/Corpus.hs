@@ -25,7 +25,7 @@ import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 
 
-data CodeType = JSON | Markdown | Haskell
+data CodeType = JSON | Markdown | Haskell | Python
   deriving (Generic, Eq)
 instance ToJSON CodeType
 instance FromJSON CodeType
@@ -33,8 +33,9 @@ instance ToSchema CodeType
 
 ------------------------------------------------------------------------
 data CorpusField = MarkdownField { _cf_text    :: !Text }
-                  | HaskellField { _cf_haskell :: !Text }
-                  | JsonField    { _cf_title   :: !Text
+                 | HaskellField { _cf_haskell :: !Text }
+                 | PythonField  { _cf_python  :: !Text }
+                 | JsonField    { _cf_title   :: !Text
                                  , _cf_desc    :: !Text
                                  , _cf_query   :: !Text
                                  , _cf_authors :: !Text
