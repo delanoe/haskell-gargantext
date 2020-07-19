@@ -72,8 +72,6 @@ CREATE TABLE public.node_nodengrams_nodengrams (
 );
 ALTER TABLE public.node_nodengrams_nodengrams OWNER TO gargantua;
 
-
-
 --------------------------------------------------------------
 --------------------------------------------------------------
 --
