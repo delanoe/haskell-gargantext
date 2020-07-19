@@ -7,6 +7,30 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+# Spécifications for pairing
+
+database:
+
+add NodeType Community (instead of texts, contacts)
+
+nodes_nodes
+corpusId_communitId
+
+get defaultList Id of each (for now)
+
+corpusId_docId
+listId_ngramsId (authors)
+
+listId_docId_ngramsId
+listId_contactId_ngramsId'
+
+if isSame ngramsId ngramsId'
+ then
+   insert listId_docId_contactId
+ else
+   nothing
+
+
 -}
 
 {-# LANGUAGE QuasiQuotes       #-}

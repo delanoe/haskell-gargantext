@@ -72,6 +72,8 @@ CREATE TABLE public.node_nodengrams_nodengrams (
 );
 ALTER TABLE public.node_nodengrams_nodengrams OWNER TO gargantua;
 
+
+
 --------------------------------------------------------------
 --------------------------------------------------------------
 --
@@ -88,13 +90,22 @@ ALTER TABLE public.node_nodengrams_nodengrams OWNER TO gargantua;
 ---------------------------------------------------------------
 -- TODO nodes_nodes(node1_id int, node2_id int, edge_type int , weight real)
 CREATE TABLE public.nodes_nodes (
+    id INTEGER NOT NULL,
     node1_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     node2_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     score REAL,
     category INTEGER,
-    PRIMARY KEY (node1_id,node2_id)
+    PRIMARY KEY (id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
+
+CREATE TABLE public.nodesnodes_nodesnodes (
+    nn1_id INTEGER NOT NULL REFERENCES public.nodes_nodes(id) ON DELETE CASCADE,
+    nn2_id INTEGER NOT NULL REFERENCES public.nodes_nodes(id) ON DELETE CASCADE,
+    weight double precision,
+    PRIMARY KEY (nn1_id,nn2_id)
+);
+ALTER TABLE public.nodesnodes_nodesnodes OWNER TO gargantua;
 
 ---------------------------------------------------------------
 CREATE TABLE public.node_node_ngrams (
@@ -106,7 +117,6 @@ weight double precision,
 PRIMARY KEY (node1_id, node2_id, ngrams_id, ngrams_type)
 );
 ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
-
 
 CREATE TABLE public.node_node_ngrams2 (
 node_id         INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
