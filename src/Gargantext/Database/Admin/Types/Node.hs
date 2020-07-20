@@ -156,7 +156,8 @@ instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
 
 type ParentId = NodeId
-type CorpusId = NodeId
+type CorpusId    = NodeId
+type CommunityId = NodeId
 type ListId   = NodeId
 type DocumentId = NodeId
 type DocId      = NodeId

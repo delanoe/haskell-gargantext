@@ -38,7 +38,7 @@ if isSame ngramsId ngramsId'
 -- {-# LANGUAGE Arrows #-}
 
 module Gargantext.Database.Action.Flow.Pairing
-  (pairing)
+  -- (pairing)
     where
 
 import Data.Set (Set)
@@ -49,11 +49,12 @@ import Data.Text (Text, toLower)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Database.Action.Flow.Utils
-import Gargantext.Database.Admin.Types.Node (AnnuaireId, CorpusId, ListId{-, DocId, ContactId-})
+import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
+import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
-import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
 import qualified Data.Map  as DM
@@ -154,38 +155,52 @@ getNgramsTindexed corpusId ngramsType' = fromList
 ------------------------------------------------------------------------
 
 
--- resultPairing ::
+finalPairing :: CorpusId    -> ListId
+             -> CommunityId -> ListId
+             -> Map ContactId (Set DocId)
+finalPairing = undefined
 
+
+-- savePairing
+-- insert ContactId_DocId as NodeNode
+-- then each ContactId could become a corpus with its DocIds
+
+-- searchPairing
+
+------------------------------------------------------------------------
 type ContactName = Text
 type DocAuthor   = Text
 
 data ToProject = ContactName | DocAuthor
+instance Ord ToProject
+instance Eq  ToProject
 
 type Projected  = Text
-
-
 type Projection a = Map a Projected
 
 
 projection :: Set ToProject -> (ToProject -> Projected) -> Projection ToProject
-projection = undefined
+projection ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
 
-align :: Projection ContactName      -> Projection DocAuthor
-      -> Map ContactName [ContactId] -> Map DocAuthor [DocId]
+align :: Projection ContactName          -> Projection DocAuthor
+      -> Map ContactName (Set ContactId) -> Map DocAuthor (Set DocId)
       -> Map ContactId (Set DocId)
 align = undefined
-
--- insert ContactId_DocId as NodeNode
--- then each ContactId could become a corpus with its DocIds
 
 
 ------------------------------------------------------------------------
 
+
+
 getNgramsContactId :: AnnuaireId
-                   -> ListId
-                   -- -> ContactType
-                   -> Cmd err (Map Text [Int])
-getNgramsContactId = undefined
+                   -> Cmd err (Map Text (Set NodeId))
+getNgramsContactId aId = do
+  contacts <- getAllContacts aId
+  pure $ fromListWith (<>)
+       $ catMaybes
+       $ map (\contact -> (,) <$> contact^.(node_hyperdata . hc_who . _Just . cw_lastName)
+                              <*> Just ( Set.singleton (contact^.node_id))
+              ) (tr_docs contacts)
 
 -- | TODO
 -- filter Trash / map Authors
@@ -193,10 +208,10 @@ getNgramsContactId = undefined
 getNgramsDocId :: CorpusId
                   -> ListId
                   -> NgramsType
-                  -> Cmd err (Map Text [Int])
+                  -> Cmd err (Map Text (Set Int))
 getNgramsDocId corpusId listId ngramsType
   = fromListWith (<>)
-  <$> map (\(t,nId) -> (t,[nId]))
+  <$> map (\(t,nId) -> (t, Set.singleton nId))
   <$> selectNgramsDocId corpusId listId ngramsType
 
 selectNgramsDocId :: CorpusId

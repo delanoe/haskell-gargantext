@@ -30,10 +30,13 @@ import Gargantext.Database.Schema.Node
 import Opaleye
 import Protolude
 
+
+-- TODO getAllTableDocuments
 getAllDocuments :: ParentId -> Cmd err (TableResult (Node HyperdataDocument))
 getAllDocuments pId = getAllChildren pId (Proxy :: Proxy HyperdataDocument)
                                          (Just NodeDocument)
 
+-- TODO getAllTableContacts
 getAllContacts :: ParentId -> Cmd err (TableResult (Node HyperdataContact))
 getAllContacts pId = getAllChildren pId (Proxy :: Proxy HyperdataContact)
                                         (Just NodeContact)

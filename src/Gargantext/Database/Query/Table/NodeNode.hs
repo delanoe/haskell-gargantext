@@ -71,6 +71,30 @@ getNodeNode n = runOpaQuery (selectNodeNode $ pgNodeId n)
       returnA -< ns
 
 ------------------------------------------------------------------------
+-- TODO (refactor with Children)
+{-
+getNodeNodeWith :: NodeId -> proxy a -> Maybe NodeType -> Cmd err [a]
+getNodeNodeWith pId _ maybeNodeType = runOpaQuery query
+  where
+    query = selectChildren pId maybeNodeType
+
+    selectChildren :: ParentId
+                   -> Maybe NodeType
+                   -> Query NodeRead
+    selectChildren parentId maybeNodeType = proc () -> do
+        row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
+        (NodeNode _ n1id n2id _ _) <- queryNodeNodeTable -< ()
+
+        let nodeType = maybe 0 nodeTypeId maybeNodeType
+        restrict -< typeName  .== pgInt4 nodeType
+
+        restrict -< (.||) (parent_id .== (pgNodeId parentId))
+                          ( (.&&) (n1id .== pgNodeId parentId)
+                                  (n2id .== nId))
+        returnA -< row
+-}
+
+------------------------------------------------------------------------
 insertNodeNode :: [NodeNode] -> Cmd err Int64
 insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
                           $ Insert nodeNodeTable ns' rCount Nothing
