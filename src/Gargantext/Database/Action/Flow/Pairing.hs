@@ -21,8 +21,9 @@ get defaultList Id of each (for now)
 corpusId_docId
 listId_ngramsId (authors)
 
-listId_docId_ngramsId
-listId_contactId_ngramsId'
+listId_docId_[ngrams]
+listId_contactId_[ngramsId']
+
 
 if isSame ngramsId ngramsId'
  then
@@ -40,8 +41,9 @@ module Gargantext.Database.Action.Flow.Pairing
   (pairing)
     where
 
+import Data.Set (Set)
 import Control.Lens (_Just, (^.))
-import Data.Map (Map, fromList)
+import Data.Map (Map, fromList, fromListWith)
 import Data.Maybe (catMaybes)
 import Data.Text (Text, toLower)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
@@ -56,6 +58,7 @@ import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
 import qualified Data.Map  as DM
 import qualified Data.Text as DT
+import qualified Data.Set  as Set
 
 -- TODO mv this type in Types Main
 type Terms = Text
@@ -74,22 +77,16 @@ pairing :: CorpusId   -- (CorpusId,   ListId) -- Pair (Either CorpusId AnnuaireI
         -> ListId
         -> Cmd err Int
 pairing cId aId lId = do
-  contacts' <- getAllContacts aId
+  contacts'       <- getAllContacts aId
   let contactsMap = pairingPolicyToMap toLower
                   $ toMaps extractNgramsT (tr_docs contacts')
 
-  ngramsMap' <- getNgramsTindexed cId Authors
+  ngramsMap'    <- getNgramsTindexed cId Authors
   let ngramsMap = pairingPolicyToMap lastName ngramsMap'
 
   let indexedNgrams = pairMaps contactsMap ngramsMap
 
   insertDocNgrams lId indexedNgrams
-
-lastName :: Terms -> Terms
-lastName texte = DT.toLower
-               $ maybe texte (\x -> if DT.length x > 3 then x else texte) (lastName' texte)
-  where
-    lastName' = lastMay . DT.splitOn " "
 
 -- TODO: this method is dangerous (maybe equalities of the result are
 -- not taken into account emergency demo plan...)
@@ -97,6 +94,14 @@ pairingPolicyToMap :: (Terms -> Terms)
                    -> Map (NgramsT Ngrams) a
                    -> Map (NgramsT Ngrams) a
 pairingPolicyToMap f = DM.mapKeys (pairingPolicy f)
+
+lastName :: Terms -> Terms
+lastName texte = DT.toLower
+               $ maybe texte (\x -> if DT.length x > 3 then x else texte)
+                             (lastName' texte)
+  where
+    lastName' = lastMay . DT.splitOn " "
+
 
 pairingPolicy :: (Terms -> Terms)
               -> NgramsT Ngrams
@@ -145,6 +150,75 @@ getNgramsTindexed corpusId ngramsType' = fromList
                         AND occ.node2_id = nn.node2_id
                       GROUP BY n.id;
                      |]
+
+------------------------------------------------------------------------
+
+
+-- resultPairing ::
+
+type ContactName = Text
+type DocAuthor   = Text
+
+data ToProject = ContactName | DocAuthor
+
+type Projected  = Text
+
+
+type Projection a = Map a Projected
+
+
+projection :: Set ToProject -> (ToProject -> Projected) -> Projection ToProject
+projection = undefined
+
+align :: Projection ContactName      -> Projection DocAuthor
+      -> Map ContactName [ContactId] -> Map DocAuthor [DocId]
+      -> Map ContactId (Set DocId)
+align = undefined
+
+-- insert ContactId_DocId as NodeNode
+-- then each ContactId could become a corpus with its DocIds
+
+
+------------------------------------------------------------------------
+
+getNgramsContactId :: AnnuaireId
+                   -> ListId
+                   -- -> ContactType
+                   -> Cmd err (Map Text [Int])
+getNgramsContactId = undefined
+
+-- | TODO
+-- filter Trash / map Authors
+-- Indexing all ngramsType like Authors
+getNgramsDocId :: CorpusId
+                  -> ListId
+                  -> NgramsType
+                  -> Cmd err (Map Text [Int])
+getNgramsDocId corpusId listId ngramsType
+  = fromListWith (<>)
+  <$> map (\(t,nId) -> (t,[nId]))
+  <$> selectNgramsDocId corpusId listId ngramsType
+
+selectNgramsDocId :: CorpusId
+                   -> ListId
+                   -> NgramsType
+                   -> Cmd err [(Text, Int)]
+selectNgramsDocId corpusId' listId' ngramsType' =
+ runPGSQuery selectQuery (corpusId', listId', ngramsTypeId ngramsType')
+   where
+     selectQuery = [sql| SELECT ng.terms,nnng.node2_id from ngrams ng
+                    JOIN node_node_ngrams nnng ON nnng.ngrams_id = ng.id
+                    JOIN nodes_nodes      nn   ON nn.node2_id    = nnng.node2_id
+
+                    WHERE nn.node1_id = ?
+                      AND nnng.node1_id    = ?
+                      AND nnng.ngrams_type = ?
+                    ;
+                   |]
+
+
+
+
 
 {- | TODO more typed SQL queries
 selectNgramsTindexed :: CorpusId -> NgramsType -> Query NgramsRead
