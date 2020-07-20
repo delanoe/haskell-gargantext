@@ -2,13 +2,13 @@ module Gargantext.API.HashedResponse where
 
 import Data.Aeson
 import Data.Swagger
-import qualified Data.Digest.Pure.MD5 as DPMD5
+import Data.Text (Text)
+
+import Gargantext.Prelude
+import qualified Gargantext.Prelude.Utils as Crypto (hash)
 import GHC.Generics (Generic)
-import Protolude
 
-type MD5 = Text
-
-data HashedResponse a = HashedResponse { md5 :: MD5, value :: a }
+data HashedResponse a = HashedResponse { hash :: Text, value :: a }
   deriving (Generic)
 
 instance ToSchema a => ToSchema (HashedResponse a)
@@ -16,6 +16,4 @@ instance ToJSON a => ToJSON (HashedResponse a) where
   toJSON = genericToJSON defaultOptions
 
 constructHashedResponse :: ToJSON a => a -> HashedResponse a
-constructHashedResponse v = HashedResponse { md5 = md5', value = v }
-  where
-    md5' = show $ DPMD5.md5 $ encode v
+constructHashedResponse v = HashedResponse { hash = Crypto.hash $ encode v, value = v }

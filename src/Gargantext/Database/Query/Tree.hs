@@ -40,7 +40,7 @@ import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId)
+import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId, fromNodeTypeId)
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType, DocId, allNodeTypes)
 import Gargantext.Database.Admin.Types.Node -- (pgNodeId, NodeType(..))
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
@@ -88,27 +88,48 @@ tree_advanced :: HasTreeError err
        -> [NodeType]
        -> Cmd err (Tree NodeTree)
 tree_advanced r nodeTypes = do
-  mainRoot    <- dbTree r nodeTypes
-  sharedRoots <- findShared r nodeTypes
-  toTree      $ toTreeParent (mainRoot <> sharedRoots)
+  mainRoot    <- dbTree     r nodeTypes
+  sharedRoots <- findShared r NodeFolderShared nodeTypes sharedTreeUpdate
+  publicRoots <- findShared r NodeFolderPublic nodeTypes publicTreeUpdate
+  toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
 
 ------------------------------------------------------------------------
 -- | Collaborative Nodes in the Tree
-findShared :: RootId -> [NodeType] -> Cmd err [DbTreeNode]
-findShared r nt = do
-  folderSharedId <- maybe (panic "no folder found") identity
-                <$> head
-                <$> findNodesId r [NodeFolderShared]
-  folders <- getNodeNode folderSharedId
-  nodesSharedId <- mapM (\child -> sharedTree folderSharedId child nt)
-                   $ map _nn_node2_id folders
+findShared :: HasTreeError err
+           => RootId -> NodeType -> [NodeType] -> UpdateTree err
+           -> Cmd err [DbTreeNode]
+findShared r nt nts fun = do
+  foldersSharedId <- findNodesId r [nt]
+  trees       <- mapM (updateTree nts fun) foldersSharedId
+  pure $ concat trees
+
+
+updateTree :: HasTreeError err
+           => [NodeType] -> UpdateTree err -> RootId
+           -> Cmd err [DbTreeNode]
+updateTree nts fun r = do
+  folders       <- getNodeNode r
+  nodesSharedId <- mapM (fun r nts)
+                 $ map _nn_node2_id folders
   pure $ concat nodesSharedId
 
-sharedTree :: ParentId -> NodeId -> [NodeType] -> Cmd err [DbTreeNode]
-sharedTree p n nt = dbTree n nt
-               <&> map (\n' -> if _dt_nodeId n' == n 
+
+type UpdateTree err = ParentId -> [NodeType] -> NodeId -> Cmd err [DbTreeNode]
+ 
+sharedTreeUpdate :: HasTreeError err => UpdateTree err
+sharedTreeUpdate p nt n = dbTree n nt
+               <&> map (\n' -> if _dt_nodeId n' == n
                                   then set dt_parentId (Just p) n'
                                   else n')
+
+publicTreeUpdate :: HasTreeError err => UpdateTree err
+publicTreeUpdate p nt n = dbTree n nt
+               <&> map (\n' -> if _dt_nodeId n' == n
+                                -- && (fromNodeTypeId $ _dt_typeId n') /= NodeFolderPublic
+                                  then set dt_parentId (Just p) n'
+                                  else n')
+
+
 
 -- | findNodesId returns all nodes matching nodeType but the root (Nodeuser)
 findNodesId :: RootId -> [NodeType] -> Cmd err [NodeId]

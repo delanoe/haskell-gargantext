@@ -27,7 +27,7 @@ import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.User (HyperdataUser)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
@@ -89,7 +89,7 @@ getOrMk_RootWithCorpus user cName c = do
                     c' <- mk (Just $ fromLeft "Default" cName) c rootId userId
                     _tId <- case head c' of
                               Nothing -> pure [0]
-                              Just c'' -> mkNode NodeTexts c'' userId
+                              Just c'' -> insertDefaultNode NodeTexts c'' userId
                     pure c'
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
@@ -147,4 +147,4 @@ selectRoot (RootId nid) =
     restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< _node_id   row   .== (pgNodeId nid)
     returnA  -< row
-
+selectRoot UserPublic = panic "No root for Public"

@@ -22,7 +22,6 @@ import Gargantext.Text (HasText(..))
 import Gargantext.Core.Types.Main (HashId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..))
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Prelude
 
@@ -32,7 +31,7 @@ class UniqId a
 
 instance UniqId HyperdataDocument
   where
-    uniqId = hyperdataDocument_uniqId
+    uniqId = hd_uniqId
 
 instance UniqId HyperdataContact
   where

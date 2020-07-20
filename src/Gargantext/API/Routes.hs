@@ -24,34 +24,33 @@ Portability : POSIX
 module Gargantext.API.Routes
       where
 ---------------------------------------------------------------------
+
 import Control.Concurrent (threadDelay)
 import Data.Text (Text)
 import Data.Validity
-import Servant
-import Servant.Auth as SA
-import Servant.Auth.Swagger ()
-import Servant.Job.Async
-import Servant.Swagger.UI
-
 import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
-import Gargantext.API.Prelude
 import Gargantext.API.Count  (CountAPI, count, Query)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
+import Gargantext.API.Prelude
 import Gargantext.API.Search (SearchPairsAPI, searchPairs)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph.API
+import Servant
+import Servant.Auth as SA
+import Servant.Auth.Swagger ()
+import Servant.Job.Async
+import Servant.Swagger.UI
+import qualified Gargantext.API.Ngrams.List           as List
 import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Node.Corpus.Export    as Export
 import qualified Gargantext.API.Node.Corpus.New       as New
-import qualified Gargantext.API.Ngrams.List      as List
-
+import qualified Gargantext.API.Public                as Public
 
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
@@ -75,6 +74,7 @@ type GargAPI' =
                    -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
           :<|> GargPrivateAPI
+          :<|> "public" :> Public.API
 
 
 type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
@@ -147,7 +147,7 @@ type GargPrivateAPI' =
                           :> TreeAPI
 
            -- :<|> New.Upload
-           :<|> New.AddWithForm
+           :<|> New.AddWithForm 
            :<|> New.AddWithQuery
 
            -- :<|> "annuaire" :> Annuaire.AddWithForm
@@ -224,8 +224,8 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> withAccess (Proxy :: Proxy TreeAPI)        Proxy uid
           <$> PathNode <*> treeAPI
      -- TODO access
-     :<|> addCorpusWithForm  (UserDBId uid)
-     :<|> addCorpusWithQuery (RootId   (NodeId uid))
+     :<|> addCorpusWithForm  (RootId (NodeId uid))
+     :<|> addCorpusWithQuery (RootId (NodeId uid))
 
      -- :<|> addAnnuaireWithForm
      -- :<|> New.api  uid -- TODO-SECURITY

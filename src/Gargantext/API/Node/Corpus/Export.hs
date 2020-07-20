@@ -48,7 +48,7 @@ import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
 import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
+import Gargantext.Prelude.Utils (hash)
 
 
 -- Corpus Export
@@ -97,6 +97,7 @@ type API = Summary "Corpus Export"
             :> Get '[JSON] Corpus
 
 --------------------------------------------------
+-- | Hashes are ordered by Set
 getCorpus :: CorpusId
           -> Maybe ListId
           -> Maybe NgramsType
@@ -114,15 +115,14 @@ getCorpus cId lId nt' = do
   repo <- getRepo
   ngs  <- getNodeNgrams cId lId nt repo
   let  -- uniqId is hash computed already for each document imported in database
-    r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (ng_hash b)) (d_hash a b)
+    r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (hash b)) (d_hash a b)
                              ) ns ngs
           where
-            ng_hash b   = sha $ List.foldl (\x y -> x<>y) "" $ List.sort $ Set.toList b
-            d_hash  a b = sha $ (fromMaybe "" (_hyperdataDocument_uniqId $ _node_hyperdata a))
-                             <> (ng_hash b)
-
-  pure $ Corpus (Map.elems r) (sha $ List.foldl (\a b -> a<>b) ""
-                                   $ List.map _d_hash $ Map.elems r
+            d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _node_hyperdata a)
+                                       , hash b
+                                       ]
+  pure $ Corpus (Map.elems r) (hash $ List.map _d_hash
+                                            $ Map.elems r
                               )
 
 getNodeNgrams :: HasNodeError err

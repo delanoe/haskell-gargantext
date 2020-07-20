@@ -67,17 +67,13 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField, Action)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
-import qualified Data.ByteString.Lazy.Char8  as DC (pack)
-import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
-import qualified Data.Text                   as DT (pack, unpack, concat, take)
-
-import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
+import Gargantext.Prelude.Utils (hash)
+import qualified Data.Text                   as DT (pack, concat, take)
 
 -- TODO : the import of Document constructor below does not work
 -- import Gargantext.Database.Types.Node (Document)
@@ -119,8 +115,8 @@ instance InsertDb HyperdataDocument
     insertDb' u p h = [ toField $ nodeTypeId NodeDocument
                       , toField u
                       , toField p
-                      , toField $ maybe "No Title" (DT.take 255)  (_hyperdataDocument_title h)
-                      , toField $ _hyperdataDocument_publication_date h -- TODO USE UTCTime
+                      , toField $ maybe "No Title" (DT.take 255)  (_hd_title h)
+                      , toField $ _hd_publication_date h -- TODO USE UTCTime
                       , (toField . toJSON) h
                       ]
 
@@ -202,17 +198,17 @@ instance AddUniqId HyperdataDocument
     addUniqId = addUniqIdsDoc
       where
         addUniqIdsDoc :: HyperdataDocument -> HyperdataDocument
-        addUniqIdsDoc doc = set hyperdataDocument_uniqIdBdd (Just shaBdd)
-                          $ set hyperdataDocument_uniqId    (Just shaUni) doc
+        addUniqIdsDoc doc = set hd_uniqIdBdd (Just shaBdd)
+                          $ set hd_uniqId    (Just shaUni) doc
           where
-            shaUni = sha $ DT.concat $ map ($ doc) shaParametersDoc
-            shaBdd = sha $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hyperdataDocument_bdd d))] <> shaParametersDoc)
+            shaUni = hash $ DT.concat $ map ($ doc) shaParametersDoc
+            shaBdd = hash $ DT.concat $ map ($ doc) ([(\d -> maybeText (_hd_bdd d))] <> shaParametersDoc)
 
         shaParametersDoc :: [(HyperdataDocument -> Text)]
-        shaParametersDoc = [ \d -> maybeText (_hyperdataDocument_title    d)
-                            , \d -> maybeText (_hyperdataDocument_abstract d)
-                            , \d -> maybeText (_hyperdataDocument_source   d)
-                            , \d -> maybeText (_hyperdataDocument_publication_date   d)
+        shaParametersDoc = [ \d -> maybeText (_hd_title    d)
+                            , \d -> maybeText (_hd_abstract d)
+                            , \d -> maybeText (_hd_source   d)
+                            , \d -> maybeText (_hd_publication_date   d)
                             ]
 
     ---------------------------------------------------------------------------
@@ -227,11 +223,8 @@ addUniqIdsContact :: HyperdataContact -> HyperdataContact
 addUniqIdsContact hc = set (hc_uniqIdBdd) (Just shaBdd)
                      $ set (hc_uniqId   ) (Just shaUni) hc
   where
-    shaUni = uniqId $ DT.concat $ map ($ hc) shaParametersContact
-    shaBdd = uniqId $ DT.concat $ map ($ hc) ([\d -> maybeText (view hc_bdd d)] <> shaParametersContact)
-
-    uniqId :: Text -> Text
-    uniqId = DT.pack . SHA.showDigest . SHA.sha256 . DC.pack . DT.unpack
+    shaUni = hash $ DT.concat $ map ($ hc) shaParametersContact
+    shaBdd = hash $ DT.concat $ map ($ hc) ([\d -> maybeText (view hc_bdd d)] <> shaParametersContact)
 
     -- | TODO add more shaparameters
     shaParametersContact :: [(HyperdataContact -> Text)]

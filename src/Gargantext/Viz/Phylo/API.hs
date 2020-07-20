@@ -17,6 +17,7 @@ Portability : POSIX
 module Gargantext.Viz.Phylo.API
   where
 
+import Control.Lens ((^.))
 import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
@@ -32,8 +33,8 @@ import Web.HttpApiData (parseUrlPiece, readTextData)
 import Gargantext.API.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (PhyloId, ListId, CorpusId, UserId, NodeId(..))
-import Gargantext.Database.Query.Table.Node (insertNodes, nodePhyloW, getNodeWith)
-import Gargantext.Database.Schema.Node (_node_hyperdata)
+import Gargantext.Database.Query.Table.Node (insertNodes, node, getNodeWith)
+import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Main
@@ -95,15 +96,16 @@ type GetPhylo =  QueryParam "listId"      ListId
 -- Add real text processing
 -- Fix Filter parameters
 getPhylo :: PhyloId -> GargServer GetPhylo
---getPhylo phId _lId l msb _f _b _l' _ms _x _y _z _ts _s _o _e _d _b' = do
 getPhylo phId _lId l msb  = do
   phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
   let
     level = maybe 2 identity l
     branc = maybe 2 identity msb
-    maybePhylo = hyperdataPhylo_data $ _node_hyperdata phNode
+    maybePhylo = phNode ^. (node_hyperdata . hp_data)
 
-  p <- liftBase $ viewPhylo2Svg $ viewPhylo level branc  $ maybe phyloFromQuery identity maybePhylo
+  p <- liftBase $ viewPhylo2Svg
+                $ viewPhylo level branc
+                $ maybe phyloFromQuery identity maybePhylo
   pure (SVG p)
 ------------------------------------------------------------------------
 type PostPhylo =  QueryParam "listId" ListId
@@ -119,7 +121,7 @@ postPhylo n userId _lId = do
     -- _sft = Just (Software "Gargantext" "4")
     -- _prm = initPhyloParam vrs sft (Just q)
   phy  <- flowPhylo n
-  pId <- insertNodes [nodePhyloW (Just "Phylo") (Just $ HyperdataPhylo Nothing (Just phy)) n userId]
+  pId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just n) userId]
   pure $ NodeId (fromIntegral pId)
 
 ------------------------------------------------------------------------

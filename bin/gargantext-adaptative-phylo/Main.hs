@@ -89,16 +89,16 @@ wosToCorpus :: Int -> FilePath -> IO ([(Int,Text)])
 wosToCorpus limit path = do 
       files <- getFilesFromPath path
       take limit
-        <$> map (\d -> let date' = fromJust $ _hyperdataDocument_publication_year d
-                           title = fromJust $ _hyperdataDocument_title d
-                           abstr = if (isJust $ _hyperdataDocument_abstract d)
-                                   then fromJust $ _hyperdataDocument_abstract d
+        <$> map (\d -> let date' = fromJust $ _hd_publication_year d
+                           title = fromJust $ _hd_title d
+                           abstr = if (isJust $ _hd_abstract d)
+                                   then fromJust $ _hd_abstract d
                                    else ""
                         in (date', title <> " " <> abstr)) 
         <$> concat 
         <$> mapConcurrently (\file -> 
-              filter (\d -> (isJust $ _hyperdataDocument_publication_year d)
-                         && (isJust $ _hyperdataDocument_title d))
+              filter (\d -> (isJust $ _hd_publication_year d)
+                         && (isJust $ _hd_title d))
                 <$> parseFile WOS (path <> file) ) files
 
 
@@ -162,10 +162,22 @@ main = do
 
             printIOMsg "End of reconstruction, start the export"
 
-            let dot = toPhyloExport phylo        
+            let dot = toPhyloExport phylo 
+
+            let clq = case (clique config) of
+                        Fis s s' -> "fis_" <> (show s) <> "_" <> (show s')
+                        MaxClique s ->  "clique_" <> (show s)
+
+            let sensibility = case (phyloProximity config) of
+                        Hamming -> undefined
+                        WeightedLogJaccard s -> (show s)                        
 
             let output = (outputPath config) 
                       <> (unpack $ phyloName config)
-                      <> "_V2.dot"
+                      <> "-scale_" <> (show (_qua_granularity $ phyloQuality config))
+                      <> "-level_" <> (show (phyloLevel config))
+                      <> "-" <> clq
+                      <> "-sens_" <> sensibility
+                      <> ".dot"
 
             dotToFile output dot

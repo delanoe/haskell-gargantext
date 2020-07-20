@@ -26,9 +26,9 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Query.Table.Node.User
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
+import Gargantext.Prelude.Utils (hash)
 import Gargantext.Database.Prelude
 import Control.Lens (view)
 import Gargantext.Config (GargConfig(..))
@@ -44,72 +44,64 @@ mkNodeWithParent :: (HasNodeError err)
 mkNodeWithParent NodeUser (Just _) _   _    = nodeError UserNoParent
 
 ------------------------------------------------------------------------
+-- | MkNode, insert and eventually configure Hyperdata
 mkNodeWithParent NodeUser Nothing uId name =
-  insertNodesWithParentR Nothing [node NodeUser name fake_HyperdataUser Nothing uId]
+  insertNodesWithParentR Nothing [node NodeUser name defaultHyperdataUser Nothing uId]
 
 mkNodeWithParent _ Nothing _ _ = nodeError HasParent
 ------------------------------------------------------------------------
-mkNodeWithParent NodeFolder (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeFolder name hd Nothing uId]
-    where
-      hd = defaultFolder
+mkNodeWithParent NodeFrameWrite i u n =
+  mkNodeWithParent_ConfigureHyperdata NodeFrameWrite i u n
 
-mkNodeWithParent NodeFolderPrivate (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderPrivate "Private" hd Nothing uId]
-    where
-      hd = defaultFolder
+mkNodeWithParent NodeFrameCalc i u n =
+  mkNodeWithParent_ConfigureHyperdata NodeFrameCalc i u n
 
-mkNodeWithParent NodeFolderShared (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderShared "Shared" hd Nothing uId]
-    where
-      hd = defaultFolder
+mkNodeWithParent nt (Just pId) uId name  = insertNode nt (Just name) Nothing pId uId
+-- mkNodeWithParent _ _ _ _ = errorWith "[G.D.A.Node.mkNodeWithParent] nees parent"
 
-mkNodeWithParent NodeFolderPublic (Just i) uId _ =
-   insertNodesWithParentR (Just i) [node NodeFolderPublic "Public" hd Nothing uId]
-    where
-      hd = defaultFolder
 
-mkNodeWithParent NodeTeam (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeTeam name hd Nothing uId]
-    where
-      hd = defaultFolder
-------------------------------------------------------------------------
-mkNodeWithParent NodeCorpus (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeCorpus name hd Nothing uId]
-    where
-      hd = defaultCorpus
+-- | Sugar to create a node, get its NodeId and update its Hyperdata after
+mkNodeWithParent_ConfigureHyperdata :: (HasNodeError err)
+                                    => NodeType
+                                    -> Maybe ParentId
+                                    -> UserId
+                                    -> Name
+                                    -> Cmd err [NodeId]
+mkNodeWithParent_ConfigureHyperdata NodeFrameWrite (Just i) uId name =
+  mkNodeWithParent_ConfigureHyperdata' NodeFrameWrite (Just i) uId name
 
-mkNodeWithParent NodeAnnuaire (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeAnnuaire name hd Nothing uId]
-    where
-      hd = defaultAnnuaire
+mkNodeWithParent_ConfigureHyperdata NodeFrameCalc (Just i) uId name =
+  mkNodeWithParent_ConfigureHyperdata' NodeFrameCalc (Just i) uId name
 
-mkNodeWithParent NodeList (Just i) uId name =
-   insertNodesWithParentR (Just i) [node NodeList name hd Nothing uId]
-    where
-      hd = defaultAnnuaire
+mkNodeWithParent_ConfigureHyperdata    _ _ _ _ = nodeError NotImplYet
 
-mkNodeWithParent NodeGraph (Just i) uId _name =
-   insertNodesWithParentR (Just i) [node NodeGraph "Graph" hd Nothing uId]
-    where
-      hd = arbitraryGraph
 
-mkNodeWithParent NodeFrameWrite (Just i) uId name = do
-  config <- view hasConfig
-  let
-    u = _gc_frame_write_url config
-    s = _gc_secretkey config
-    hd = HyperdataFrame u (sha $ s <> (cs $ show i))
-  insertNodesWithParentR (Just i) [node NodeFrameWrite name hd Nothing uId]
+-- | Function not exposed
+mkNodeWithParent_ConfigureHyperdata' :: (HasNodeError err)
+                                    => NodeType
+                                    -> Maybe ParentId
+                                    -> UserId
+                                    -> Name
+                                    -> Cmd err [NodeId]
+mkNodeWithParent_ConfigureHyperdata' nt (Just i) uId name = do
+  maybeNodeId <- case nt of
+     NodeFrameWrite -> insertNode NodeFrameWrite (Just name) Nothing i uId
+     NodeFrameCalc  -> insertNode NodeFrameCalc  (Just name) Nothing i uId
+     _              -> nodeError NeedsConfiguration
 
-mkNodeWithParent NodeFrameCalc (Just i) uId name = do
-  config <- view hasConfig
-  let
-    u = _gc_frame_calc_url config
-    s = _gc_secretkey config
-    hd = HyperdataFrame u (sha $ s <> (cs $ show i))
-
-  insertNodesWithParentR (Just i) [node NodeFrameCalc name hd Nothing uId]
-
-mkNodeWithParent _ _ _ _       = nodeError NotImplYet
+  case maybeNodeId of
+    []  -> nodeError (DoesNotExist i)
+    [n] -> do
+      config <- view hasConfig
+      u <- case nt of
+            NodeFrameWrite -> pure $ _gc_frame_write_url config
+            NodeFrameCalc  -> pure $ _gc_frame_calc_url  config
+            _              -> nodeError NeedsConfiguration
+      let
+        s = _gc_secretkey config
+        hd = HyperdataFrame u (hash $ s <> (cs $ show n))
+      _ <- updateHyperdata n hd
+      pure [n]
+    (_:_:_)  -> nodeError MkNode
+mkNodeWithParent_ConfigureHyperdata' _ _ _ _ = nodeError HasParent
 

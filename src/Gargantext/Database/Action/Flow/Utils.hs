@@ -40,7 +40,8 @@ getUserId (UserName u  ) = do
   case muser of
     Just user -> pure $ userLight_id user
     Nothing   -> nodeError NoUserFound
-
+getUserId UserPublic = nodeError NoUserFound
+ 
 
 toMaps :: Hyperdata a
        => (a -> Map (NgramsT Ngrams) Int)

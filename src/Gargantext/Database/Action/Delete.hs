@@ -29,7 +29,8 @@ import Gargantext.Prelude
 import qualified Gargantext.Database.Query.Table.Node as N (getNode, deleteNode)
 import Gargantext.Database.Action.Share (delFolderTeam)
 
-deleteNode :: HasNodeError err 
+------------------------------------------------------------------------
+deleteNode :: HasNodeError err
            => User
            -> NodeId
            -> Cmd err Int
@@ -44,5 +45,6 @@ deleteNode u nodeId = do
                    then N.deleteNode    nodeId
                    else delFolderTeam u nodeId
              else N.deleteNode nodeId
+
 
 

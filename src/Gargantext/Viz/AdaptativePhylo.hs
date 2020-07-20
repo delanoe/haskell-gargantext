@@ -31,7 +31,6 @@ import Data.Aeson.TH (deriveJSON)
 import Data.Text   (Text, pack)
 import Data.Vector (Vector)
 import Data.Map (Map)
-import Data.Set (Set)
 
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
@@ -144,11 +143,11 @@ defaultConfig =
             , phyloName      = pack "Default Phylo"
             , phyloLevel     = 2
             , phyloProximity = WeightedLogJaccard 10
-            , seaElevation   = Constante 0 0.1
+            , seaElevation   = Constante 0.6 1
             , phyloSynchrony = ByProximityThreshold 0.5 10 SiblingBranches MergeAllGroups
-            , phyloQuality   = Quality 0.6 1
+            , phyloQuality   = Quality 100 1
             , timeUnit       = Year 3 1 5
-            , clique         = Fis 1 5
+            , clique         = MaxClique 0
             , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
             , exportSort     = ByHierarchy
             , exportFilter   = [ByBranchSize 2]  
@@ -267,6 +266,7 @@ data Phylo =
            , _phylo_timeCooc    :: !(Map Date Cooc)
            , _phylo_timeDocs    :: !(Map Date Double)
            , _phylo_termFreq    :: !(Map Int Double)
+           , _phylo_horizon     :: !(Map (PhyloGroupId,PhyloGroupId) Double)           
            , _phylo_groupsProxi :: !(Map (PhyloGroupId,PhyloGroupId) Double)
            , _phylo_param       :: PhyloParam
            , _phylo_periods     :: Map PhyloPeriodId PhyloPeriod
@@ -347,11 +347,21 @@ data PointerType = TemporalPointer | LevelPointer deriving (Generic, Show)
 type Support  = Int
 
 data PhyloClique = PhyloClique
-  { _phyloClique_nodes   :: Set Ngrams
+  { _phyloClique_nodes   :: [Int]
   , _phyloClique_support :: Support
   , _phyloClique_period  :: (Date,Date)
   } deriving (Generic,NFData,Show,Eq)
 
+
+------------------------
+-- | Phylo Ancestor | --
+------------------------
+
+data PhyloAncestor = PhyloAncestor
+  { _phyloAncestor_id   :: Int
+  , _phyloAncestor_ngrams :: [Int]
+  , _phyloAncestor_groups :: [PhyloGroupId]
+  } deriving (Generic,NFData,Show,Eq)
 
 ----------------
 -- | Export | --
@@ -393,8 +403,9 @@ data PhyloBranch =
 
 data PhyloExport =
       PhyloExport
-      { _export_groups   :: [PhyloGroup]
-      , _export_branches :: [PhyloBranch]
+      { _export_groups    :: [PhyloGroup]
+      , _export_branches  :: [PhyloBranch]
+      , _export_ancestors :: [PhyloAncestor]
       } deriving (Generic, Show)
 
 ----------------

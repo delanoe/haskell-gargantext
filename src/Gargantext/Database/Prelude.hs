@@ -1,6 +1,6 @@
 {-|
 Module      : Gargantext.Database.Prelude
-Description : 
+Description : Specific Prelude for Database management
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org

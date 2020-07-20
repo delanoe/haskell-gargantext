@@ -30,7 +30,7 @@ import Gargantext.API.Ngrams (TODO)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
+import Gargantext.Prelude.Utils (hash)
 import Servant
 import Servant.Multipart
 import Servant.Swagger (HasSwagger(toSwagger))
@@ -107,6 +107,6 @@ postUpload _ (Just fileType) multipartData = do
     --pure $ cs content
   -- is <- inputs multipartData
 
-  pure $ map (sha . cs) is
+  pure $ map hash is
 
 -------------------------------------------------------------------

@@ -56,15 +56,15 @@ nodeTypeId n =
 ----  Lists
     NodeList      -> 5
     NodeListCooc  -> 50
-    NodeListModel -> 52
+    NodeModel -> 52
 
 ----  Scores
 --    NodeOccurrences -> 10
     NodeGraph       -> 9
     NodePhylo       -> 90
-    NodeChart       -> 7
+--    NodeChart       -> 7
     NodeDashboard   -> 71
-    NodeNoteBook    -> 88
+--    NodeNoteBook    -> 88
 
     NodeFrameWrite  -> 991
     NodeFrameCalc   -> 992
@@ -84,11 +84,12 @@ nodeTypeId n =
 --  Node management
 --  NodeFavorites    -> 15
 
-
 hasNodeType :: forall a. Node a -> NodeType -> Bool
 hasNodeType n nt = (view node_typename n) == (nodeTypeId nt)
 
---
+isInNodeTypes :: forall a. Node a -> [NodeType] -> Bool
+isInNodeTypes n ts = elem (view node_typename n) (map nodeTypeId ts)
+
 -- | Nodes are typed in the database according to a specific ID
 --
 nodeTypeInv :: [(NodeTypeId, NodeType)]

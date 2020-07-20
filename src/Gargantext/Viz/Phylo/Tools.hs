@@ -112,7 +112,6 @@ listToEqualCombi l = [(x,y) | x <- l, y <- l, x == y]
 listToPairs :: Eq a => [a] -> [(a,a)]
 listToPairs l = (listToEqualCombi l) ++ (listToUnDirectedCombi l)
 
-
 -- | To get all combinations of a list and apply a function to the resulting list of pairs
 listToDirectedCombiWith :: Eq a => forall b. (a -> b) -> [a] -> [(b,b)]
 listToDirectedCombiWith f l = [(f x,f y) | x <- l, y <- l, x /= y]

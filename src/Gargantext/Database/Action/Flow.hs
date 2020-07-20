@@ -66,7 +66,6 @@ import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
 import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..), ContactWho(..))
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchInDatabase)
@@ -203,11 +202,11 @@ flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   listId <- getOrMkList userCorpusId userId
-  _cooc  <- mkNode NodeListCooc listId userId
+  _cooc  <- insertDefaultNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
-  _tId <- mkNode NodeTexts userCorpusId userId
+  _tId <- insertDefaultNode NodeTexts userCorpusId userId
   -- printDebug "Node Text Id" tId
 
   -- User List Flow
@@ -218,8 +217,8 @@ flowCorpusUser l user corpusName ctype ids = do
   -- _ <- insertOccsUpdates userCorpusId mastListId
   -- printDebug "userListId" userListId
   -- User Graph Flow
-  _ <- mkDashboard userCorpusId userId
-  _ <- mkGraph  userCorpusId userId
+  _ <- insertDefaultNode NodeDashboard userCorpusId userId
+  _ <- insertDefaultNode NodeGraph     userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
 
   -- Annuaire Flow
@@ -273,7 +272,7 @@ insertMasterDocs c lang hs  =  do
                        ]
 
   _ <- Doc.add masterCorpusId ids'
-  _cooc <- mkNode NodeListCooc lId masterUserId
+  _cooc <- insertDefaultNode NodeListCooc lId masterUserId
   -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
 
@@ -347,8 +346,8 @@ instance ExtractNgramsT HyperdataContact
 
 instance HasText HyperdataDocument
   where
-    hasText h = catMaybes [ _hyperdataDocument_title    h
-                          , _hyperdataDocument_abstract h
+    hasText h = catMaybes [ _hd_title    h
+                          , _hd_abstract h
                           ]
 
 instance ExtractNgramsT HyperdataDocument
@@ -364,15 +363,15 @@ instance ExtractNgramsT HyperdataDocument
         extractNgramsT' lang' doc = do
           let source    = text2ngrams
                         $ maybe "Nothing" identity
-                        $ _hyperdataDocument_source doc
+                        $ _hd_source doc
 
               institutes = map text2ngrams
                          $ maybe ["Nothing"] (map toSchoolName . (splitOn ", "))
-                         $ _hyperdataDocument_institutes doc
+                         $ _hd_institutes doc
 
               authors    = map text2ngrams
                          $ maybe ["Nothing"] (splitOn ", ")
-                         $ _hyperdataDocument_authors doc
+                         $ _hd_authors doc
 
           terms' <- map text2ngrams
                  <$> map (intercalate " " . _terms_label)

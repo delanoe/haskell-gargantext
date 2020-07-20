@@ -44,6 +44,7 @@ import Data.Swagger
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
+import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import Opaleye
 import Prelude hiding (null, id, map, sum, not, read)
@@ -53,7 +54,7 @@ import Test.QuickCheck.Arbitrary
 import qualified Opaleye.Internal.Unpackspec()
 
 import Gargantext.Core.Types
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Filter
@@ -105,8 +106,8 @@ data Pair i l = Pair {_p_id    :: i
 $(deriveJSON (unPrefix "_p_") ''Pair)
 $(makeAdaptorAndInstance "pPair" ''Pair)
 
-instance (ToSchema i, ToSchema l) => ToSchema (Pair i l) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_p_")
+instance (Typeable i, Typeable l, ToSchema i, ToSchema l) => ToSchema (Pair i l) where
+  declareNamedSchema = wellNamedSchema "_p_"
 instance (Arbitrary i, Arbitrary l) => Arbitrary (Pair i l) where
   arbitrary = Pair <$> arbitrary <*> arbitrary
 
@@ -125,8 +126,13 @@ instance ( ToSchema id
          , ToSchema hyperdata
          , ToSchema score
          , ToSchema pair
+         , Typeable id
+         , Typeable date
+         , Typeable hyperdata
+         , Typeable score
+         , Typeable pair
          ) => ToSchema (FacetPaired id date hyperdata score pair) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_fp_")
+  declareNamedSchema = wellNamedSchema "_fp_"
 
 instance ( Arbitrary id
          , Arbitrary date

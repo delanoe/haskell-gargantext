@@ -47,6 +47,7 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Query.Table.Node
@@ -54,7 +55,6 @@ import Gargantext.Database.Query.Table.Node.Children (getChildren)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
@@ -144,6 +144,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
              :<|> "move"      :> MoveAPI
+             :<|> "unpublish" :> Share.Unpublish
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -219,6 +220,8 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> moveNode   (RootId $ NodeId uId) id'
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
+           :<|> Share.unPublish id'
+
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }

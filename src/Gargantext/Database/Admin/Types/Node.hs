@@ -29,6 +29,7 @@ import Data.Eq (Eq)
 import Data.Swagger
 import Data.Text (Text, unpack)
 import Data.Time (UTCTime)
+import Data.Typeable (Typeable)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
@@ -43,7 +44,7 @@ import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
 import Text.Show (Show())
 
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Prelude (fromField')
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
@@ -60,37 +61,37 @@ type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId
 
 ------------------------------------------------------------------------
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePoly NodeId NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
+  declareNamedSchema = wellNamedSchema "_node_"
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePoly NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
+  declareNamedSchema = wellNamedSchema "_node_"
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata (Maybe TSVector)
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
+  declareNamedSchema = wellNamedSchema "_ns_"
 
-instance ToSchema hyperdata =>
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata (Maybe TSVector)
                   ) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ns_")
+  declareNamedSchema = wellNamedSchema "_ns_"
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
@@ -233,10 +234,6 @@ instance ToSchema Resource where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "resource_")
 
 ------------------------------------------------------------------------
-
-
-
-------------------------------------------------------------------------
 -- | Then a Node can be either a Folder or a Corpus or a Document
 data NodeType = NodeUser
               | NodeFolderPrivate
@@ -247,8 +244,8 @@ data NodeType = NodeUser
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
-              | NodeDashboard  | NodeChart    | NodeNoteBook
-              | NodeList       | NodeListModel
+              | NodeDashboard  -- | NodeChart    | NodeNoteBook
+              | NodeList       | NodeModel
               | NodeListCooc
 
 {-
@@ -266,6 +263,34 @@ data NodeType = NodeUser
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]
 
+defaultName :: NodeType -> Text
+defaultName NodeUser       = "User"
+defaultName NodeContact    = "Contact"
+
+defaultName NodeCorpus     = "Corpus"
+defaultName NodeCorpusV3   = "Corpus"
+defaultName NodeAnnuaire   = "Annuaire"
+
+defaultName NodeDocument   = "Doc"
+defaultName NodeTexts      = "Texts"
+defaultName NodeList       = "List"
+defaultName NodeListCooc   = "List"
+defaultName NodeModel      = "Model"
+
+defaultName NodeFolder     = "Folder"
+defaultName NodeFolderPrivate = "Private Folder"
+defaultName NodeFolderShared  = "Shared Folder"
+defaultName NodeTeam          = "Folder"
+defaultName NodeFolderPublic  = "Public Folder"
+
+defaultName NodeGraph         = "Graph"
+defaultName NodePhylo         = "Phylo"
+defaultName NodeDashboard     = "Dashboard"
+
+defaultName NodeFrameWrite    = "Frame Write"
+defaultName NodeFrameCalc     = "Frame Calc"
+
+
 instance FromJSON NodeType
 instance ToJSON NodeType
 
@@ -278,6 +303,8 @@ instance ToSchema      NodeType
 
 instance Arbitrary NodeType where
   arbitrary = elements allNodeTypes
+
+
 
 ------------------------------------------------------------------------
 -- Instances
@@ -308,7 +335,5 @@ instance QueryRunnerColumnDefault PGInt4 NodeId
 instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
 
 

@@ -19,7 +19,7 @@ import Data.Vector (Vector)
 import Prelude (writeFile)
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
-import Gargantext.Viz.Phylo.PhyloTools 
+import Gargantext.Viz.Phylo.PhyloTools
 
 import Control.Lens
 import Data.GraphViz hiding (DotGraph, Order)
@@ -30,6 +30,7 @@ import Data.Text.Lazy (fromStrict, pack, unpack)
 import System.FilePath
 import Debug.Trace (trace)
 
+import qualified Data.Map as Map
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 import qualified Data.Text.Lazy as Lazy
@@ -469,6 +470,27 @@ processDynamics groups =
                                             $ (g ^. phylo_groupNgrams))) [] groups
 
 
+-----------------
+-- | horizon | --
+-----------------
+
+horizonToAncestors :: Double -> Phylo -> [PhyloAncestor]
+horizonToAncestors delta phylo = 
+  let horizon = Map.toList $ Map.filter (\v -> v > delta) $ phylo ^. phylo_horizon
+      ct0 = fromList $ map (\g -> (getGroupId g, g)) $ getGroupsFromLevelPeriods 1 (take 1 (getPeriodIds phylo)) phylo
+      aDelta = toRelatedComponents
+                  (elems ct0)
+                  (map (\((g,g'),v) -> ((ct0 ! g,ct0 ! g'),v)) horizon)
+   in map (\(id,groups) -> toAncestor id groups) $ zip [1..] aDelta
+  where 
+    -- | note : possible bug if we sync clus more than once
+    -- | horizon is calculated at level 1, ancestors have to be related to the last level
+    toAncestor :: Int -> [PhyloGroup] -> PhyloAncestor
+    toAncestor id groups = PhyloAncestor id 
+                              (foldl' (\acc g -> union acc (g ^. phylo_groupNgrams)) [] groups) 
+                              (concat $ map (\g -> map fst (g ^. phylo_groupLevelParents)) groups) 
+
+
 ---------------------
 -- | phyloExport | --
 ---------------------   
@@ -481,7 +503,7 @@ toPhyloExport phylo = exportToDot phylo
                     $ processMetrics  export           
     where
         export :: PhyloExport
-        export = PhyloExport groups branches      
+        export = PhyloExport groups branches (horizonToAncestors 0 phylo)     
         --------------------------------------
         branches :: [PhyloBranch]
         branches = map (\g -> 

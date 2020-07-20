@@ -173,14 +173,6 @@ groupsToEdges prox sync nbDocs diago groups =
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
                 _ -> undefined  
 
-
-
-toRelatedComponents :: [PhyloGroup] -> [((PhyloGroup,PhyloGroup),Double)] -> [[PhyloGroup]]
-toRelatedComponents nodes edges = 
-  let ref = fromList $ map (\g -> (getGroupId g, g)) nodes
-      clusters = relatedComponents $ ((map (\((g,g'),_) -> [getGroupId g, getGroupId g']) edges) ++ (map (\g -> [getGroupId g]) nodes)) 
-   in map (\cluster -> map (\gId -> ref ! gId) cluster) clusters 
-
 toParentId :: PhyloGroup -> PhyloGroupId
 toParentId child = ((child ^. phylo_groupPeriod, child ^. phylo_groupLevel + 1), child ^. phylo_groupIndex) 
 
@@ -229,10 +221,6 @@ synchronicClustering phylo =
         newBranches' = newBranches `using` parList rdeepseq
      in toNextLevel' phylo $ concat newBranches'
 
-
-----------------
--- | probes | --
-----------------
 
 -- synchronicDistance :: Phylo -> Level -> String
 -- synchronicDistance phylo lvl = 

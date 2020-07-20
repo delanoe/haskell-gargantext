@@ -20,7 +20,7 @@ import Codec.Serialise
 import Data.Maybe (Maybe, catMaybes)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact, ContactWho, ContactWhere, ContactTouch, ContactMetaData)
+import Gargantext.Database.Admin.Types.Hyperdata.Contact
 import Gargantext.Prelude
 import System.IO (FilePath)
 import qualified Data.ByteString.Lazy as BSL
