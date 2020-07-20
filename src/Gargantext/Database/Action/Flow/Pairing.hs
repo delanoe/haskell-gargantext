@@ -44,7 +44,7 @@ module Gargantext.Database.Action.Flow.Pairing
 import Data.Set (Set)
 import Control.Lens (_Just, (^.))
 import Data.Map (Map, fromList, fromListWith)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text, toLower)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types (TableResult(..))
@@ -58,6 +58,7 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
 import qualified Data.Map  as DM
+import qualified Data.Map  as Map
 import qualified Data.Text as DT
 import qualified Data.Set  as Set
 
@@ -155,12 +156,6 @@ getNgramsTindexed corpusId ngramsType' = fromList
 ------------------------------------------------------------------------
 
 
-finalPairing :: CorpusId    -> ListId
-             -> CommunityId -> ListId
-             -> Map ContactId (Set DocId)
-finalPairing = undefined
-
-
 -- savePairing
 -- insert ContactId_DocId as NodeNode
 -- then each ContactId could become a corpus with its DocIds
@@ -170,22 +165,70 @@ finalPairing = undefined
 ------------------------------------------------------------------------
 type ContactName = Text
 type DocAuthor   = Text
+type Projected   = Text
 
-data ToProject = ContactName | DocAuthor
-instance Ord ToProject
-instance Eq  ToProject
+projectionFrom :: Set ContactName -> (ContactName -> Projected) -> Map ContactName Projected
+projectionFrom ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
 
-type Projected  = Text
-type Projection a = Map a Projected
+projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> Map Projected (Set DocAuthor)
+projectionTo ss f = fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)
+
+align :: Map ContactName Projected
+      -> Map Projected (Set DocAuthor)
+      -> Map DocAuthor (Set DocId)
+      -> Map ContactName (Set DocId)
+align mc ma md = fromListWith (<>)
+               $ map (\c -> (c, getProjection md $ testProjection c mc ma))
+               $ Map.keys mc
+  where
+    getProjection :: Map DocAuthor (Set DocId) -> Set DocAuthor -> Set DocId
+    getProjection ma sa =
+      if Set.null sa
+         then Set.empty
+         else Set.unions $ sets ma
+           where
+             sets ma'= Set.map (\s -> lookup s ma') sa
+             lookup s' ma'= fromMaybe Set.empty (Map.lookup s' ma')
+
+    testProjection :: ContactName
+                   -> Map ContactName Projected
+                   -> Map Projected (Set DocAuthor)
+                   -> Set DocAuthor
+    testProjection cn' mc' ma' = case Map.lookup cn' mc' of
+      Nothing -> Set.empty
+      Just  c -> case Map.lookup c ma' of
+        Nothing -> Set.empty
+        Just  a -> a
 
 
-projection :: Set ToProject -> (ToProject -> Projected) -> Projection ToProject
-projection ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
+fusion :: Map ContactName (Set ContactId)
+       -> Map ContactName (Set DocId)
+       -> Map ContactId   (Set DocId)
+fusion mc md = undefined
+{- fromListWith (<>)
+       $ catMaybes
+       $ map (\c -> case Map.lookup c mc of
+             Nothing -> Nothing
+             Just  x -> map (\
 
-align :: Projection ContactName          -> Projection DocAuthor
-      -> Map ContactName (Set ContactId) -> Map DocAuthor (Set DocId)
-      -> Map ContactId (Set DocId)
-align = undefined
+       $ toList mc
+-}
+
+finalPairing :: AnnuaireId
+             -> (CorpusId, ListId, NgramsType)
+             -> (ContactName -> Projected)
+             -> (DocAuthor   -> Projected)
+             -> Cmd err (Map ContactId (Set DocId))
+finalPairing aId (cId, lId, ngt) fc fa = do
+  mc <- getNgramsContactId aId
+  md <- getNgramsDocId cId lId ngt
+
+  let
+    contactNameProjected = projectionFrom (Set.fromList $ Map.keys mc) fc
+    authorDocProjected   = projectionTo   (Set.fromList $ Map.keys md) fa
+
+  pure $ fusion mc $ align contactNameProjected authorDocProjected md
+
 
 
 ------------------------------------------------------------------------
@@ -193,7 +236,7 @@ align = undefined
 
 
 getNgramsContactId :: AnnuaireId
-                   -> Cmd err (Map Text (Set NodeId))
+                   -> Cmd err (Map ContactName (Set NodeId))
 getNgramsContactId aId = do
   contacts <- getAllContacts aId
   pure $ fromListWith (<>)
@@ -208,10 +251,10 @@ getNgramsContactId aId = do
 getNgramsDocId :: CorpusId
                   -> ListId
                   -> NgramsType
-                  -> Cmd err (Map Text (Set Int))
+                  -> Cmd err (Map DocAuthor (Set NodeId))
 getNgramsDocId corpusId listId ngramsType
   = fromListWith (<>)
-  <$> map (\(t,nId) -> (t, Set.singleton nId))
+  <$> map (\(t,nId) -> (t, Set.singleton (NodeId nId)))
   <$> selectNgramsDocId corpusId listId ngramsType
 
 selectNgramsDocId :: CorpusId
