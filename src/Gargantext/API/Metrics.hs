@@ -19,8 +19,11 @@ module Gargantext.API.Metrics
     where
 
 import Control.Lens
+import qualified Data.Map as Map
 import Data.Time (UTCTime)
 import Data.Text (Text)
+import Servant
+
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.NTree
@@ -39,8 +42,6 @@ import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Types
-import Servant
-import qualified Data.Map as Map
 import qualified Gargantext.Database.Action.Metrics as Metrics
 
 -------------------------------------------------------------
@@ -49,7 +50,8 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
                   :> QueryParam  "limit"      Int
-                  :> Get '[JSON] (HashedResponse Metrics)
+                  :> Header "X-Hash" Text
+                  :> Get '[JSON] (Headers '[Header "X-Hash" Text] (HashedResponse Metrics))
               :<|> Summary "Scatter update"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
@@ -71,8 +73,9 @@ getScatter :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> Maybe Limit
-  -> m (HashedResponse Metrics)
-getScatter cId maybeListId tabType _maybeLimit = do
+  -> Maybe Text
+  -> m (Headers '[Header "X-Hash" Text] (HashedResponse Metrics))
+getScatter cId maybeListId tabType _maybeLimit mhHash = do
   listId <- case maybeListId of
     Just lid -> pure lid
     Nothing  -> defaultList cId
@@ -84,7 +87,16 @@ getScatter cId maybeListId tabType _maybeLimit = do
     Nothing    -> do
       updateScatter' cId maybeListId tabType Nothing
 
-  pure $ constructHashedResponse chart
+  let r = constructHashedResponse chart
+
+  -- TODO send 304 if hashes equal, 200 with response otherwise
+  if mhHash == (Just $ hash r) then
+    throwError $ ServantErr { errHTTPCode = 304
+                            , errReasonPhrase = "Hashes match"
+                            , errBody = ""
+                            , errHeaders = []}
+  else
+    pure $ addHeader (hash r) r
 
 updateScatter :: FlowCmdM env err m =>
   CorpusId
@@ -126,7 +138,8 @@ getScatterHash :: FlowCmdM env err m =>
   -> TabType
   -> m Text
 getScatterHash cId maybeListId tabType = do
-  hash <$> getScatter cId maybeListId tabType Nothing
+  r <- getScatter cId maybeListId tabType Nothing Nothing
+  pure $ hash $ getResponse r
 
 
 -------------------------------------------------------------
