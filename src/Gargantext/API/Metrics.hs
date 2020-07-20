@@ -23,6 +23,7 @@ import qualified Data.Map as Map
 import Data.Time (UTCTime)
 import Data.Text (Text)
 import Servant
+import Servant.Server.Internal.ServerError (ServerError(..))
 
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams
@@ -91,7 +92,7 @@ getScatter cId maybeListId tabType _maybeLimit mhHash = do
 
   -- TODO send 304 if hashes equal, 200 with response otherwise
   if mhHash == (Just $ hash r) then
-    throwError $ ServantErr { errHTTPCode = 304
+    throwError $ ServerError { errHTTPCode = 304
                             , errReasonPhrase = "Hashes match"
                             , errBody = ""
                             , errHeaders = []}
