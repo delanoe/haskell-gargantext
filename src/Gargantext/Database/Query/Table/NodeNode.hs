@@ -100,9 +100,8 @@ insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
                           $ Insert nodeNodeTable ns' rCount Nothing
   where
     ns' :: [NodeNodeWrite]
-    ns' = map (\(NodeNode n n1 n2 x y)
-                -> NodeNode (pgInt4   <$> n)
-                            (pgNodeId n1)
+    ns' = map (\(NodeNode n1 n2 x y)
+                -> NodeNode (pgNodeId n1)
                             (pgNodeId n2)
                             (pgDouble <$> x)
                             (pgInt4   <$> y)
@@ -115,7 +114,7 @@ type Node2_Id = NodeId
 deleteNodeNode :: Node1_Id -> Node2_Id -> Cmd err Int
 deleteNodeNode n1 n2 = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeNodeTable
-                 (\(NodeNode _ n1_id n2_id _ _) -> n1_id .== pgNodeId n1
+                 (\(NodeNode n1_id n2_id _ _) -> n1_id .== pgNodeId n1
                                              .&& n2_id .== pgNodeId n2 )
 
 ------------------------------------------------------------------------

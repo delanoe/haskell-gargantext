@@ -56,7 +56,7 @@ shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
         then errorWith "[G.D.A.S.shareNodeWith] Can share to others only"
         else do
           folderSharedId  <- getFolderId u NodeFolderShared
-          insertNodeNode [NodeNode Nothing folderSharedId n Nothing Nothing]
+          insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
 
 shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
   nodeToCheck <- getNode n
@@ -66,7 +66,7 @@ shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
     else do
       folderToCheck <- getNode nId
       if hasNodeType folderToCheck NodeFolderPublic
-         then insertNodeNode [NodeNode Nothing nId n Nothing Nothing]
+         then insertNodeNode [NodeNode nId n Nothing Nothing]
          else errorWith "[G.D.A.S.shareNodeWith] Can share NodeWith NodeFolderPublic only"
 
 shareNodeWith _ _ = errorWith "[G.D.A.S.shareNodeWith] Not implemented for this NodeType"

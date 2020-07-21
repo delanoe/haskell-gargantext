@@ -23,6 +23,7 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text, toLower)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types (TableResult(..))
+import Gargantext.Database
 import Gargantext.Database.Action.Flow.Utils
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
@@ -32,6 +33,7 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
+import qualified Data.List as List
 import qualified Data.Map  as DM
 import qualified Data.Map  as Map
 import qualified Data.Text as DT
@@ -40,51 +42,13 @@ import qualified Data.Set  as Set
 -- TODO mv this type in Types Main
 type Terms = Text
 
+
+
 {-
-pairing'' :: (CorpusId, CorpusId) -> (DocId -> DocId)
-pairing'' = undefined
-
-pairing' :: (CorpusId, AnnuaireId) -> (DocId -> ContactId)
-pairing' = undefined
--}
-
--- | TODO : add paring policy as parameter
-pairing :: CorpusId   -- (CorpusId,   ListId) -- Pair (Either CorpusId AnnuaireId) ListId
-        -> AnnuaireId -- (AnnuaireId, ListId) -- Pair (Either CorpusId AnnuaireId) ListId
-        -> ListId
-        -> Cmd err Int
-pairing cId aId lId = do
-  contacts'       <- getAllContacts aId
-  let contactsMap = pairingPolicyToMap toLower
-                  $ toMaps extractNgramsT (tr_docs contacts')
-
-  ngramsMap'    <- getNgramsTindexed cId Authors
-  let ngramsMap = pairingPolicyToMap lastName ngramsMap'
-
-  let indexedNgrams = pairMaps contactsMap ngramsMap
-
-  insertDocNgrams lId indexedNgrams
-
--- TODO: this method is dangerous (maybe equalities of the result are
--- not taken into account emergency demo plan...)
-pairingPolicyToMap :: (Terms -> Terms)
-                   -> Map (NgramsT Ngrams) a
-                   -> Map (NgramsT Ngrams) a
-pairingPolicyToMap f = DM.mapKeys (pairingPolicy f)
-
-
 pairingPolicy :: (Terms -> Terms)
               -> NgramsT Ngrams
               -> NgramsT Ngrams
 pairingPolicy f (NgramsT nt (Ngrams ng _)) = (NgramsT nt (Ngrams (f ng) 1))
-
--- | TODO : use Occurrences in place of Int
-extractNgramsT :: HyperdataContact
-               -> Map (NgramsT Ngrams) Int
-extractNgramsT contact = fromList [(NgramsT Authors    a' , 1)| a' <- authors    ]
-  where
-    authors    = map text2ngrams
-               $ catMaybes [ contact^.(hc_who . _Just . cw_lastName) ]
 
 
 pairMaps :: Map (NgramsT Ngrams) a
@@ -96,39 +60,45 @@ pairMaps m1 m2 =
     | (k@(NgramsT nt ng),n2i) <- DM.toList m1
     , Just nId <- [DM.lookup k m2]
     ]
+-}
 
 -----------------------------------------------------------------------
-getNgramsTindexed :: CorpusId
-                  -> NgramsType
-                  -> Cmd err (Map (NgramsT Ngrams) NgramsId)
-getNgramsTindexed corpusId ngramsType' = fromList
-    <$> map (\(ngramsId',t,n) -> (NgramsT ngramsType' (Ngrams t n),ngramsId'))
-    <$> selectNgramsTindexed corpusId ngramsType'
-  where
-    selectNgramsTindexed :: CorpusId
-                         -> NgramsType
-                         -> Cmd err [(NgramsId, Terms, Int)]
-    selectNgramsTindexed corpusId' ngramsType'' = runPGSQuery selectQuery (corpusId', ngramsTypeId ngramsType'')
-      where
-        selectQuery = [sql| SELECT n.id,n.terms,n.n from ngrams n
-                      JOIN node_node_ngrams occ ON occ.ngrams_id = n.id
-                      -- JOIN node_node_ngrams2 occ ON occ.ngrams_id = n.id
-                      JOIN nodes_nodes      nn  ON nn.node2_id   = occ.node2_id
 
-                      WHERE nn.node1_id     = ?
-                        AND occ.ngrams_type = ?
-                        AND occ.node2_id = nn.node2_id
-                      GROUP BY n.id;
-                     |]
-
-------------------------------------------------------------------------
+pairing :: AnnuaireId -> CorpusId -> ListId -> Cmd err Int
+pairing a c l = do
+  dataPaired <- dataPairing a (c,l,Authors) lastName toLower
+  r <- insertDB $ prepareInsert dataPaired
+  pure (fromIntegral r)
 
 
--- savePairing
--- insert ContactId_DocId as NodeNode
--- then each ContactId could become a corpus with its DocIds
+dataPairing :: AnnuaireId
+             -> (CorpusId, ListId, NgramsType)
+             -> (ContactName -> Projected)
+             -> (DocAuthor   -> Projected)
+             -> Cmd err (Map ContactId (Set DocId))
+dataPairing aId (cId, lId, ngt) fc fa = do
+  mc <- getNgramsContactId aId
+  md <- getNgramsDocId cId lId ngt
 
--- searchPairing
+  let
+    from = projectionFrom (Set.fromList $ Map.keys mc) fc
+    to   = projectionTo   (Set.fromList $ Map.keys md) fa
+
+  pure $ fusion mc $ align from to md
+
+
+
+prepareInsert :: Map ContactId (Set DocId) -> [NodeNode]
+prepareInsert m =  map (\(n1,n2) -> NodeNode n1 n2 Nothing Nothing)
+                $ List.concat
+                $ map (\(contactId, setDocIds)
+                        -> map (\setDocId
+                                 -> (contactId, setDocId)
+                               ) $ Set.toList setDocIds
+                       )
+                $ Map.toList m
+
+
 
 ------------------------------------------------------------------------
 type ContactName = Text
@@ -140,9 +110,8 @@ projectionFrom ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
 
 projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> Map Projected (Set DocAuthor)
 projectionTo ss f = fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)
+
 ------------------------------------------------------------------------
-
-
 lastName :: Terms -> Terms
 lastName texte = DT.toLower
                $ maybe texte (\x -> if DT.length x > 3 then x else texte)
@@ -151,13 +120,7 @@ lastName texte = DT.toLower
     lastName' = lastMay . DT.splitOn " "
 
 
-
-
-
-
 ------------------------------------------------------------------------
-
-
 align :: Map ContactName Projected
       -> Map Projected (Set DocAuthor)
       -> Map DocAuthor (Set DocId)
@@ -198,24 +161,6 @@ fusion mc md = undefined
 
        $ toList mc
 -}
-
-finalPairing :: AnnuaireId
-             -> (CorpusId, ListId, NgramsType)
-             -> (ContactName -> Projected)
-             -> (DocAuthor   -> Projected)
-             -> Cmd err (Map ContactId (Set DocId))
-finalPairing aId (cId, lId, ngt) fc fa = do
-  mc <- getNgramsContactId aId
-  md <- getNgramsDocId cId lId ngt
-
-  let
-    from = projectionFrom (Set.fromList $ Map.keys mc) fc
-    to   = projectionTo   (Set.fromList $ Map.keys md) fa
-
-  pure $ fusion mc $ align from to md
-
-
-
 ------------------------------------------------------------------------
 
 getNgramsContactId :: AnnuaireId

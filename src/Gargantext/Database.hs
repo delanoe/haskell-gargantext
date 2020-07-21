@@ -16,6 +16,7 @@ Gargantext's database.
 
 
 module Gargantext.Database ( module Gargantext.Database.Prelude
+                           , module Gargantext.Database.Schema.NodeNode
                            , insertDB
                         -- , module Gargantext.Database.Bashql
                            )
@@ -24,10 +25,10 @@ module Gargantext.Database ( module Gargantext.Database.Prelude
 import Gargantext.Prelude
 import Gargantext.Database.Prelude -- (connectGargandb)
 
-import Gargantext.Database.Schema.Node
-import Gargantext.Database.Query.Table.Node
+-- import Gargantext.Database.Schema.Node
+-- import Gargantext.Database.Query.Table.Node
 
-import Gargantext.Database.Schema.NodeNode
+import Gargantext.Database.Schema.NodeNode -- (NodeNode(..))
 import Gargantext.Database.Query.Table.NodeNode
 
 
