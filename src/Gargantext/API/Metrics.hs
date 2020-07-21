@@ -23,7 +23,6 @@ import qualified Data.Map as Map
 import Data.Time (UTCTime)
 import Data.Text (Text)
 import Servant
-import Servant.Server.Internal.ServerError (ServerError(..))
 
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams
@@ -51,8 +50,7 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
                   :> QueryParam  "limit"      Int
-                  :> Header "X-Hash" Text
-                  :> Get '[JSON] (Headers '[Header "X-Hash" Text] (HashedResponse Metrics))
+                  :> Get '[JSON] (HashedResponse Metrics)
               :<|> Summary "Scatter update"
                   :> QueryParam  "list"       ListId
                   :> QueryParamR "ngramsType" TabType
@@ -74,9 +72,8 @@ getScatter :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> Maybe Limit
-  -> Maybe Text
-  -> m (Headers '[Header "X-Hash" Text] (HashedResponse Metrics))
-getScatter cId maybeListId tabType _maybeLimit mhHash = do
+  -> m (HashedResponse Metrics)
+getScatter cId maybeListId tabType _maybeLimit = do
   listId <- case maybeListId of
     Just lid -> pure lid
     Nothing  -> defaultList cId
@@ -88,16 +85,7 @@ getScatter cId maybeListId tabType _maybeLimit mhHash = do
     Nothing    -> do
       updateScatter' cId maybeListId tabType Nothing
 
-  let r = constructHashedResponse chart
-
-  -- TODO send 304 if hashes equal, 200 with response otherwise
-  if mhHash == (Just $ hash r) then
-    throwError $ ServerError { errHTTPCode = 304
-                            , errReasonPhrase = "Hashes match"
-                            , errBody = ""
-                            , errHeaders = []}
-  else
-    pure $ addHeader (hash r) r
+  pure $ constructHashedResponse chart
 
 updateScatter :: FlowCmdM env err m =>
   CorpusId
@@ -139,8 +127,7 @@ getScatterHash :: FlowCmdM env err m =>
   -> TabType
   -> m Text
 getScatterHash cId maybeListId tabType = do
-  r <- getScatter cId maybeListId tabType Nothing Nothing
-  pure $ hash $ getResponse r
+  hash <$> getScatter cId maybeListId tabType Nothing
 
 
 -------------------------------------------------------------
