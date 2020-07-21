@@ -22,7 +22,7 @@ import Data.Map (Map, fromList, fromListWith)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text, toLower)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import Gargantext.Core.Types (TableResult(..))
+import Gargantext.Core.Types (TableResult(..), Term)
 import Gargantext.Database
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
@@ -37,31 +37,8 @@ import qualified Data.Map  as Map
 import qualified Data.Text as DT
 import qualified Data.Set  as Set
 
--- TODO mv this type in Types Main
-type Terms = Text
-
-
-
-{-
-pairingPolicy :: (Terms -> Terms)
-              -> NgramsT Ngrams
-              -> NgramsT Ngrams
-pairingPolicy f (NgramsT nt (Ngrams ng _)) = (NgramsT nt (Ngrams (f ng) 1))
-
-
-pairMaps :: Map (NgramsT Ngrams) a
-         -> Map (NgramsT Ngrams) NgramsId
-         -> Map NgramsIndexed (Map NgramsType a)
-pairMaps m1 m2 =
-  DM.fromList
-    [ (NgramsIndexed ng nId, DM.singleton nt n2i)
-    | (k@(NgramsT nt ng),n2i) <- DM.toList m1
-    , Just nId <- [DM.lookup k m2]
-    ]
--}
 
 -----------------------------------------------------------------------
-
 pairing :: AnnuaireId -> CorpusId -> ListId -> Cmd err Int
 pairing a c l = do
   dataPaired <- dataPairing a (c,l,Authors) lastName toLower
@@ -95,8 +72,6 @@ prepareInsert m =  map (\(n1,n2) -> NodeNode n1 n2 Nothing Nothing)
                        )
                 $ Map.toList m
 
-
-
 ------------------------------------------------------------------------
 type ContactName = Text
 type DocAuthor   = Text
@@ -109,7 +84,7 @@ projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> Map Projected (Set 
 projectionTo ss f = fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)
 
 ------------------------------------------------------------------------
-lastName :: Terms -> Terms
+lastName :: Term -> Term
 lastName texte = DT.toLower
                $ maybe texte (\x -> if DT.length x > 3 then x else texte)
                              (lastName' texte)
