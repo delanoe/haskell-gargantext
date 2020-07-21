@@ -24,7 +24,6 @@ import Data.Text (Text, toLower)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Database
-import Gargantext.Database.Action.Flow.Utils
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
@@ -34,7 +33,6 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
 import qualified Data.List as List
-import qualified Data.Map  as DM
 import qualified Data.Map  as Map
 import qualified Data.Text as DT
 import qualified Data.Set  as Set
@@ -151,7 +149,7 @@ align mc ma md = fromListWith (<>)
 fusion :: Map ContactName (Set ContactId)
        -> Map ContactName (Set DocId)
        -> Map ContactId   (Set DocId)
-fusion mc md = undefined
+fusion _mc _md = undefined
 {- fromListWith (<>)
        $ catMaybes
        $ map (\c -> case Map.lookup c mc of
@@ -179,10 +177,10 @@ getNgramsDocId :: CorpusId
                   -> ListId
                   -> NgramsType
                   -> Cmd err (Map DocAuthor (Set NodeId))
-getNgramsDocId corpusId listId ngramsType
+getNgramsDocId corpusId listId nt
   = fromListWith (<>)
   <$> map (\(t,nId) -> (t, Set.singleton (NodeId nId)))
-  <$> selectNgramsDocId corpusId listId ngramsType
+  <$> selectNgramsDocId corpusId listId nt
 
 
 selectNgramsDocId :: CorpusId

@@ -15,32 +15,28 @@ module Gargantext.Database.Action.Search where
 import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Aeson
-import Data.List (intersperse, take, drop)
-import Data.Map.Strict hiding (map, drop, take)
+import Data.List (intersperse)
 import Data.Maybe
 import Data.String (IsString(..))
 import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
-import Opaleye hiding (Query, Order)
-import qualified Opaleye as O hiding (Order)
-
 import Gargantext.Core.Types
-import Gargantext.Database.Query.Filter
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
+import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
-import Gargantext.Database.Query.Join (leftJoin6, leftJoin5)
+import Gargantext.Database.Query.Filter
+import Gargantext.Database.Query.Join (leftJoin5)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.NodeNode
-import Gargantext.Database.Query.Table.NodeNodeNgrams
-import Gargantext.Database.Query.Table.Ngrams
-import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
+import Opaleye hiding (Query, Order)
+import qualified Opaleye as O hiding (Order)
 
 ------------------------------------------------------------------------
 searchDocInDatabase :: ParentId
@@ -129,7 +125,7 @@ selectContactViaDoc
   -> Text
   -> O.Query FacetPairedReadNull
 selectContactViaDoc cId aId q = proc () -> do
-  (doc, (corpus_doc, (contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
+  (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
   restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
   restrict -< (doc^.ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
   restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)

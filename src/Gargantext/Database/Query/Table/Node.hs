@@ -190,7 +190,8 @@ node nodeType name hyperData parentId userId =
 insertNodes :: [NodeWrite] -> Cmd err Int64
 insertNodes ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns rCount Nothing
 
--- insertNodes' :: [Node a] -> Cmd err Int64
+{-
+insertNodes' :: [Node a] -> Cmd err Int64
 insertNodes' ns = mkCmd $ \conn -> runInsert_ conn
                         $ Insert nodeTable ns' rCount Nothing
   where
@@ -204,7 +205,7 @@ insertNodes' ns = mkCmd $ \conn -> runInsert_ conn
                         (pgUTCTime         <$> d)
                         (pgJSONB $ cs $ encode h)
               ) ns
-
+-}
 
 insertNodesR :: [NodeWrite] -> Cmd err [NodeId]
 insertNodesR ns = mkCmd $ \conn ->
