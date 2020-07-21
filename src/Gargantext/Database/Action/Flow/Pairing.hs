@@ -67,8 +67,7 @@ pairMaps m1 m2 =
 pairing :: AnnuaireId -> CorpusId -> ListId -> Cmd err Int
 pairing a c l = do
   dataPaired <- dataPairing a (c,l,Authors) lastName toLower
-  r <- insertDB $ prepareInsert dataPaired
-  pure (fromIntegral r)
+  insertDB $ prepareInsert dataPaired
 
 
 dataPairing :: AnnuaireId

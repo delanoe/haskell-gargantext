@@ -150,6 +150,12 @@ instance FromField HyperdataContact where
 instance QueryRunnerColumnDefault PGJsonb HyperdataContact   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+
+instance QueryRunnerColumnDefault (Nullable PGJsonb) HyperdataContact where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
+
 -- | All lenses
 makeLenses ''ContactWho
 makeLenses ''ContactWhere

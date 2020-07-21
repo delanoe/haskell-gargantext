@@ -14,6 +14,7 @@ module Gargantext.Database.Action.Share
   where
 
 import Control.Lens (view)
+import Gargantext.Database
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Admin.Config (hasNodeType, isInNodeTypes)
@@ -45,7 +46,7 @@ data ShareNodeWith = ShareNodeWith_User { snwu_nodetype :: NodeType
 shareNodeWith :: HasNodeError err
               => ShareNodeWith
               -> NodeId
-              -> Cmd err Int64
+              -> Cmd err Int
 shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
   nodeToCheck <- getNode   n
   userIdCheck <- getUserId u
@@ -56,7 +57,7 @@ shareNodeWith (ShareNodeWith_User NodeFolderShared u) n = do
         then errorWith "[G.D.A.S.shareNodeWith] Can share to others only"
         else do
           folderSharedId  <- getFolderId u NodeFolderShared
-          insertNodeNode [NodeNode folderSharedId n Nothing Nothing]
+          insertDB ([NodeNode folderSharedId n Nothing Nothing]:: [NodeNode])
 
 shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
   nodeToCheck <- getNode n
@@ -66,7 +67,7 @@ shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId) n = do
     else do
       folderToCheck <- getNode nId
       if hasNodeType folderToCheck NodeFolderPublic
-         then insertNodeNode [NodeNode nId n Nothing Nothing]
+         then insertDB ([NodeNode nId n Nothing Nothing] :: [NodeNode])
          else errorWith "[G.D.A.S.shareNodeWith] Can share NodeWith NodeFolderPublic only"
 
 shareNodeWith _ _ = errorWith "[G.D.A.S.shareNodeWith] Not implemented for this NodeType"

@@ -95,9 +95,9 @@ getNodeNodeWith pId _ maybeNodeType = runOpaQuery query
 -}
 
 ------------------------------------------------------------------------
-insertNodeNode :: [NodeNode] -> Cmd err Int64
-insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
-                          $ Insert nodeNodeTable ns' rCount Nothing
+insertNodeNode :: [NodeNode] -> Cmd err Int
+insertNodeNode ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn
+                          $ Insert nodeNodeTable ns' rCount Nothing)
   where
     ns' :: [NodeNodeWrite]
     ns' = map (\(NodeNode n1 n2 x y)
@@ -106,6 +106,8 @@ insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
                             (pgDouble <$> x)
                             (pgInt4   <$> y)
               ) ns
+
+
 
 ------------------------------------------------------------------------
 type Node1_Id = NodeId

@@ -45,7 +45,6 @@ import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
 
 -------------------------------------------------------
-
 class HasConnectionPool env where
   connPool :: Getter env (Pool Connection)
 

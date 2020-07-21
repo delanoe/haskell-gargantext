@@ -28,7 +28,7 @@ import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Action.Search
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Servant
@@ -60,7 +60,7 @@ instance ToSchema SearchDocResults where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sdr_")
 
 data SearchPairedResults =
-     SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataDocument Int [Pair Int Text]] }
+     SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataContact Int] }
   deriving (Generic)
 $(deriveJSON (unPrefix "spr_") ''SearchPairedResults)
 
@@ -89,12 +89,12 @@ searchDocs nId (SearchQuery q) o l order =
 -----------------------------------------------------------------------
 type SearchPairsAPI = Summary ""
                     :> "list"
-                    :> Capture "list" ListId
+                    :> Capture "annuaire" AnnuaireId
                     :> SearchAPI SearchPairedResults
 searchPairs :: NodeId -> GargServer SearchPairsAPI
 
-searchPairs pId lId (SearchQuery q) o l order =
-  SearchPairedResults <$> searchInCorpusWithContacts pId lId q o l order
+searchPairs pId aId (SearchQuery q) o l order =
+  SearchPairedResults <$> searchInCorpusWithContacts pId aId q o l order
 
 -----------------------------------------------------------------------
 

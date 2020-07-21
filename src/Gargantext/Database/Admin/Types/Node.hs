@@ -337,4 +337,7 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+instance (QueryRunnerColumnDefault (Nullable O.PGTimestamptz) UTCTime)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 

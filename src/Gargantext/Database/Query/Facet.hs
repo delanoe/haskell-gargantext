@@ -29,6 +29,7 @@ module Gargantext.Database.Query.Facet
   , FacetDocRead
   , FacetPaired(..)
   , FacetPairedRead
+  , FacetPairedReadNull
   , OrderBy(..)
   )
   where
@@ -111,12 +112,11 @@ instance (Typeable i, Typeable l, ToSchema i, ToSchema l) => ToSchema (Pair i l)
 instance (Arbitrary i, Arbitrary l) => Arbitrary (Pair i l) where
   arbitrary = Pair <$> arbitrary <*> arbitrary
 
-data FacetPaired id date hyperdata score pair =
+data FacetPaired id date hyperdata score =
   FacetPaired {_fp_id        :: id
               ,_fp_date      :: date
               ,_fp_hyperdata :: hyperdata
               ,_fp_score     :: score
-              ,_fp_pair      :: pair
   } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_fp_") ''FacetPaired)
 $(makeAdaptorAndInstance "pFacetPaired" ''FacetPaired)
@@ -125,30 +125,31 @@ instance ( ToSchema id
          , ToSchema date
          , ToSchema hyperdata
          , ToSchema score
-         , ToSchema pair
          , Typeable id
          , Typeable date
          , Typeable hyperdata
          , Typeable score
-         , Typeable pair
-         ) => ToSchema (FacetPaired id date hyperdata score pair) where
+         ) => ToSchema (FacetPaired id date hyperdata score) where
   declareNamedSchema = wellNamedSchema "_fp_"
 
 instance ( Arbitrary id
          , Arbitrary date
          , Arbitrary hyperdata
          , Arbitrary score
-         , Arbitrary pair
-         ) => Arbitrary (FacetPaired id date hyperdata score pair) where
-  arbitrary = FacetPaired <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+         ) => Arbitrary (FacetPaired id date hyperdata score) where
+  arbitrary = FacetPaired <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 type FacetPairedRead = FacetPaired (Column PGInt4       )
                                    (Column PGTimestamptz)
                                    (Column PGJsonb      )
                                    (Column PGInt4       )
-                                   ( Column (Nullable PGInt4)
-                                   , Column (Nullable PGText)
-                                   )
+
+type FacetPairedReadNull = FacetPaired (Column (Nullable PGInt4)       )
+                                       (Column (Nullable PGTimestamptz))
+                                       (Column (Nullable PGJsonb)      )
+                                       (Column (Nullable PGInt4)       )
+
+
 
 -- | JSON instance
 $(deriveJSON (unPrefix "facetDoc_") ''Facet)

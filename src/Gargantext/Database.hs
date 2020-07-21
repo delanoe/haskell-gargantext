@@ -33,10 +33,16 @@ import Gargantext.Database.Query.Table.NodeNode
 
 
 class InsertDB a where
-  insertDB :: a -> Cmd err Int64
+  insertDB :: a -> Cmd err Int
+
+{-
+class DeleteDB a where
+  deleteDB :: a -> Cmd err Int
+-}
 
 instance InsertDB [NodeNode] where
   insertDB = insertNodeNode
+
 
 {-
 instance InsertDB [Node a] where
