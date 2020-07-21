@@ -136,8 +136,6 @@ selectContactViaDoc cId aId q = proc () -> do
                           (contact^.node_hyperdata)
                           (toNullable $ pgInt4 0)
 
-
-
 queryContactViaDoc :: O.Query ( NodeSearchRead
                               , ( NodeNodeReadNull
                                 , ( NodeNodeReadNull

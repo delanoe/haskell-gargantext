@@ -9,8 +9,8 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE QuasiQuotes       #-}
--- {-# LANGUAGE Arrows #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE Arrows      #-}
 
 module Gargantext.Database.Action.Flow.Pairing
   -- (pairing)
@@ -26,9 +26,11 @@ import Gargantext.Core.Types (TableResult(..), Term)
 import Gargantext.Database
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
-import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery)
+import Gargantext.Database.Query.Prelude (leftJoin2, returnA, queryNodeNodeTable)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
+import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Safe (lastMay)
@@ -36,6 +38,28 @@ import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Text as DT
 import qualified Data.Set  as Set
+import Opaleye
+
+
+-- | isPairedWith
+-- All NodeAnnuaire paired with a Corpus of NodeId nId:
+-- isPairedWith NodeAnnuaire corpusId
+isPairedWith :: NodeType -> NodeId -> Cmd err [NodeId]
+isPairedWith nt nId = runOpaQuery (selectQuery nt nId)
+  where
+    selectQuery :: NodeType -> NodeId -> Query (Column PGInt4)
+    selectQuery nt' nId' = proc () -> do
+      (node, node_node) <- queryJoin -< ()
+      restrict -< (node^.node_typename)    .== (pgInt4 $ nodeTypeId nt')
+      restrict -< (node_node^.nn_node1_id) .== (toNullable $ pgNodeId nId')
+      returnA  -<  node^.node_id
+
+    queryJoin :: Query (NodeRead, NodeNodeReadNull)
+    queryJoin = leftJoin2 queryNodeTable queryNodeNodeTable cond
+      where
+        cond (node, node_node) = node^.node_id .== node_node^. nn_node2_id
+
+
 
 
 -----------------------------------------------------------------------
@@ -170,4 +194,3 @@ selectNgramsDocId corpusId' listId' ngramsType' =
                       AND nnng.ngrams_type = ?
                     ;
                    |]
-

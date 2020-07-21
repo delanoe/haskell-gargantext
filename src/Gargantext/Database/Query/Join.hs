@@ -22,7 +22,15 @@ Multiple Join functions with Opaleye.
 
 ------------------------------------------------------------------------
 
-module Gargantext.Database.Query.Join
+module Gargantext.Database.Query.Join ( leftJoin2
+                                      , leftJoin3
+                                      , leftJoin4
+                                      , leftJoin5
+                                      , leftJoin6
+                                      , leftJoin7
+                                      , leftJoin8
+                                      , leftJoin9
+                                      )
   where
 
 import Control.Applicative ((<*>))
@@ -33,17 +41,24 @@ import Opaleye
 import Opaleye.Internal.Join (NullMaker(..))
 import qualified Opaleye.Internal.Unpackspec()
 
---leftJoin3 :: Query columnsL1 -> Query columnsR -> Query columnsL
---     -> ((columnsL1, columnsR) -> Column PGBool)
---     -> ((columnsL, (columnsL1, nullableColumnsR1)) -> Column PGBool)
---     -> Query (columnsL, nullableColumnsR)
---leftJoin3 q1 q2 q3 cond12 cond23 = leftJoin q3 (leftJoin q1 q2 cond12) cond23
-join3 :: Query columnsA -> Query columnsB -> Query columnsC 
-      -> ((columnsA, columnsB, columnsC) -> Column PGBool) 
-      -> Query (columnsA, columnsB, columnsC)
-join3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
+------------------------------------------------------------------------
+leftJoin2 :: (Default Unpackspec fieldsL fieldsL,
+              Default Unpackspec fieldsR fieldsR,
+              Default NullMaker fieldsR nullableFieldsR) =>
+             Select fieldsL
+             -> Select fieldsR
+             -> ((fieldsL, fieldsR) -> Column PGBool)
+             -> Select (fieldsL, nullableFieldsR)
+leftJoin2 = leftJoin
 
 ------------------------------------------------------------------------
+-- | LeftJoin3 in two ways to write it
+_leftJoin3 :: Query columnsA -> Query columnsB -> Query columnsC
+      -> ((columnsA, columnsB, columnsC) -> Column PGBool) 
+      -> Query (columnsA, columnsB, columnsC)
+_leftJoin3 q1 q2 q3 cond = ((,,) <$> q1 <*> q2 <*> q3) >>> keepWhen cond
+
+
 leftJoin3
   :: (Default Unpackspec fieldsL1 fieldsL1,
       Default Unpackspec fieldsL2 fieldsL2,
