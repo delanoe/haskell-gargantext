@@ -59,7 +59,7 @@ selectNgramsByDoc lIds dId nt = runOpaQuery (query lIds dId nt)
 _postNgrams :: CorpusId -> DocId -> [Text] -> Cmd err Int
 _postNgrams = undefined
 
-_dbGetNgramsDb :: Cmd err [NgramsDb]
+_dbGetNgramsDb :: Cmd err [NgramsDB]
 _dbGetNgramsDb = runOpaQuery queryNgramsTable
 
 

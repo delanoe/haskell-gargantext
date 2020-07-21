@@ -7,31 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-# Spécifications for pairing
-
-database:
-
-add NodeType Community (instead of texts, contacts)
-
-nodes_nodes
-corpusId_communitId
-
-get defaultList Id of each (for now)
-
-corpusId_docId
-listId_ngramsId (authors)
-
-listId_docId_[ngrams]
-listId_contactId_[ngramsId']
-
-
-if isSame ngramsId ngramsId'
- then
-   insert listId_docId_contactId
- else
-   nothing
-
-
 -}
 
 {-# LANGUAGE QuasiQuotes       #-}
@@ -96,13 +71,6 @@ pairingPolicyToMap :: (Terms -> Terms)
                    -> Map (NgramsT Ngrams) a
                    -> Map (NgramsT Ngrams) a
 pairingPolicyToMap f = DM.mapKeys (pairingPolicy f)
-
-lastName :: Terms -> Terms
-lastName texte = DT.toLower
-               $ maybe texte (\x -> if DT.length x > 3 then x else texte)
-                             (lastName' texte)
-  where
-    lastName' = lastMay . DT.splitOn " "
 
 
 pairingPolicy :: (Terms -> Terms)
@@ -172,6 +140,23 @@ projectionFrom ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
 
 projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> Map Projected (Set DocAuthor)
 projectionTo ss f = fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)
+------------------------------------------------------------------------
+
+
+lastName :: Terms -> Terms
+lastName texte = DT.toLower
+               $ maybe texte (\x -> if DT.length x > 3 then x else texte)
+                             (lastName' texte)
+  where
+    lastName' = lastMay . DT.splitOn " "
+
+
+
+
+
+
+------------------------------------------------------------------------
+
 
 align :: Map ContactName Projected
       -> Map Projected (Set DocAuthor)
@@ -182,13 +167,13 @@ align mc ma md = fromListWith (<>)
                $ Map.keys mc
   where
     getProjection :: Map DocAuthor (Set DocId) -> Set DocAuthor -> Set DocId
-    getProjection ma sa =
-      if Set.null sa
+    getProjection ma' sa' =
+      if Set.null sa'
          then Set.empty
-         else Set.unions $ sets ma
+         else Set.unions $ sets ma' sa'
            where
-             sets ma'= Set.map (\s -> lookup s ma') sa
-             lookup s' ma'= fromMaybe Set.empty (Map.lookup s' ma')
+             sets ma'' sa'' = Set.map (\s -> lookup s ma'') sa''
+             lookup s' ma''= fromMaybe Set.empty (Map.lookup s' ma'')
 
     testProjection :: ContactName
                    -> Map ContactName Projected
@@ -224,16 +209,14 @@ finalPairing aId (cId, lId, ngt) fc fa = do
   md <- getNgramsDocId cId lId ngt
 
   let
-    contactNameProjected = projectionFrom (Set.fromList $ Map.keys mc) fc
-    authorDocProjected   = projectionTo   (Set.fromList $ Map.keys md) fa
+    from = projectionFrom (Set.fromList $ Map.keys mc) fc
+    to   = projectionTo   (Set.fromList $ Map.keys md) fa
 
-  pure $ fusion mc $ align contactNameProjected authorDocProjected md
+  pure $ fusion mc $ align from to md
 
 
 
 ------------------------------------------------------------------------
-
-
 
 getNgramsContactId :: AnnuaireId
                    -> Cmd err (Map ContactName (Set NodeId))
@@ -257,6 +240,7 @@ getNgramsDocId corpusId listId ngramsType
   <$> map (\(t,nId) -> (t, Set.singleton (NodeId nId)))
   <$> selectNgramsDocId corpusId listId ngramsType
 
+
 selectNgramsDocId :: CorpusId
                    -> ListId
                    -> NgramsType
@@ -274,21 +258,3 @@ selectNgramsDocId corpusId' listId' ngramsType' =
                     ;
                    |]
 
-
-
-
-
-{- | TODO more typed SQL queries
-selectNgramsTindexed :: CorpusId -> NgramsType -> Query NgramsRead
-selectNgramsTindexed corpusId ngramsType = proc () -> do
-    nodeNode   <- queryNodeNodeTable     -< ()
-    nodeNgrams <- queryNodesNgramsTable  -< ()
-    ngrams     <- queryNgramsTable       -< ()
-
-    restrict -< node1_id nodeNode .== pgInt4 corpusId
-    restrict -< node2_id nodeNode .== node_id nodeNgrams
-    restrict -< ngrams_id ngrams  .== node_ngrams nodeNgrams
-
-    result <- aggregate groupBy (ngrams_id ngrams)
-    returnA -< result
---}
