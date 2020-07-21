@@ -145,19 +145,15 @@ align mc ma md = fromListWith (<>)
         Nothing -> Set.empty
         Just  a -> a
 
-
 fusion :: Map ContactName (Set ContactId)
        -> Map ContactName (Set DocId)
        -> Map ContactId   (Set DocId)
-fusion _mc _md = undefined
-{- fromListWith (<>)
-       $ catMaybes
-       $ map (\c -> case Map.lookup c mc of
-             Nothing -> Nothing
-             Just  x -> map (\
-
-       $ toList mc
--}
+fusion mc md = Map.fromListWith (<>)
+             $ catMaybes
+             $ [ (,) <$> Just cId <*> Map.lookup cn md
+                      | (cn, setContactId) <- Map.toList mc
+                      , cId <- Set.toList setContactId
+               ]
 ------------------------------------------------------------------------
 
 getNgramsContactId :: AnnuaireId
