@@ -208,6 +208,11 @@ library:
   - servant-xml
   - simple-reflect
   - singletons # (IGraph)
+
+    # for mail
+  - smtp-mail
+  - mime-mail
+
   - split
   - stemmer
   - string-conversions

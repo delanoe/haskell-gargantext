@@ -4,8 +4,17 @@ MASTER_USER = gargantua
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY      = PASSWORD_TO_CHANGE
 
+# Frames
 FRAME_WRITE_URL = URL_TO_CHANGE
 FRAME_CALC_URL  = URL_TO_CHANGE
+
+[network]
+# Emails From address (sent by smtp)
+MAIL = username@gargantext.org
+HOST = localhost
+# if remote smtp host
+# HOST_USER     = user
+# HOST_password = password
 
 [database]
 # PostgreSQL access
@@ -14,7 +23,8 @@ DB_PORT = 5432
 DB_NAME = gargandbV5
 DB_USER = gargantua
 DB_PASS = PASSWORD_TO_CHANGE
-# Logs
+
+[logs]
 LOG_FILE = /var/log/gargantext/backend.log
 LOG_LEVEL = DEBUG
 LOG_FORMATTER = verbose

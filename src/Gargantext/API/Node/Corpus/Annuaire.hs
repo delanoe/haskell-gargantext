@@ -74,30 +74,11 @@ addToAnnuaireWithForm _cid (AnnuaireWithForm ft _d _l) logStatus = do
 
   printDebug "ft" ft
 
-  -- let
-    -- parse = case ft of
-    --   CSV_HAL   -> Parser.parseFormat Parser.CsvHal
-    --   CSV       -> Parser.parseFormat Parser.CsvGargV3
-    --   WOS       -> Parser.parseFormat Parser.WOS
-    --   PresseRIS -> Parser.parseFormat Parser.RisPresse
-
-  -- docs <- liftBase
-  --       $ splitEvery 500
-  --      <$> take 1000000
-  --      <$> parse (cs d)
-
   logStatus JobLog { _scst_succeeded = Just 1
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 1
                           , _scst_events    = Just []
                           }
-  -- cid' <- flowCorpus "user1"
-  --                    (Right [cid])
-  --                    (Multi $ fromMaybe EN l)
-  --                    (map (map toHyperdataDocument) docs)
-
-  -- printDebug "cid'" cid'
-
   pure      JobLog { _scst_succeeded = Just 2
                           , _scst_failed    = Just 0
                           , _scst_remaining = Just 0

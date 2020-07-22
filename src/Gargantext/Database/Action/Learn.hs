@@ -34,9 +34,9 @@ data FavOrTrash = IsFav | IsTrash
 
 moreLike :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
          -> FavOrTrash -> Cmd err [FacetDoc]
-moreLike cId o l order ft = do
+moreLike cId o _l order ft = do
   priors <- getPriors ft cId
-  moreLikeWith cId o l order ft priors
+  moreLikeWith cId o (Just 3) order ft priors
 
 ---------------------------------------------------------------------------
 getPriors :: FavOrTrash -> CorpusId -> Cmd err (Events Bool)
