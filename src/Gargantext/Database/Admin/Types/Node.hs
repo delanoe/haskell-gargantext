@@ -242,6 +242,8 @@ data NodeType = NodeUser
               | NodeFolderPublic
               | NodeFolder
 
+              -- | NodeAnalysis | NodeCommunity
+
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
