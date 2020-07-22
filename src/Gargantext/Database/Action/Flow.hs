@@ -106,10 +106,8 @@ allDataOrigins = map InternalOrigin API.externalAPIs
               <> map ExternalOrigin API.externalAPIs
 
 ---------------
-
 data DataText = DataOld ![NodeId]
               | DataNew ![[HyperdataDocument]]
-
 
 -- TODO use the split parameter in config file
 getDataText :: FlowCmdM env err m

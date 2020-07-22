@@ -39,18 +39,18 @@ userArbitrary = "user1"
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId n =
   case n of
-    NodeUser      -> 1
-    NodeFolder    -> 2
+    NodeUser          -> 1
+    NodeFolder        -> 2
     NodeFolderPrivate -> 20
     NodeFolderShared  -> 21
     NodeTeam          -> 210
     NodeFolderPublic  -> 22
-    NodeCorpusV3  -> 3
-    NodeCorpus    -> 30
-    NodeAnnuaire  -> 31
-    NodeTexts     -> 40
-    NodeDocument  -> 4
-    NodeContact   -> 41
+    NodeCorpusV3      -> 3
+    NodeCorpus        -> 30
+    NodeAnnuaire      -> 31
+    NodeTexts         -> 40
+    NodeDocument      -> 4
+    NodeContact       -> 41
   --NodeSwap   -> 19
 
 ----  Lists
