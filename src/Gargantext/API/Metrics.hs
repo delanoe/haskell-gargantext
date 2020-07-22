@@ -19,8 +19,11 @@ module Gargantext.API.Metrics
     where
 
 import Control.Lens
+import qualified Data.Map as Map
 import Data.Time (UTCTime)
 import Data.Text (Text)
+import Servant
+
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.NTree
@@ -39,8 +42,6 @@ import Gargantext.Prelude
 import Gargantext.Text.Metrics (Scored(..))
 import Gargantext.Viz.Chart
 import Gargantext.Viz.Types
-import Servant
-import qualified Data.Map as Map
 import qualified Gargantext.Database.Action.Metrics as Metrics
 
 -------------------------------------------------------------
@@ -115,11 +116,8 @@ updateScatter' cId maybeListId tabType maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { _hl_chart = hdc
-                    , _hl_list = hdl
-                    , _hl_pie = hdp
-                    , _hl_tree = hdt } = node ^. node_hyperdata
-  _ <- updateHyperdata listId $ HyperdataList hdc hdl hdp (Just $ Metrics metrics) hdt
+  let hl = node ^. node_hyperdata
+  _ <- updateHyperdata listId $ hl { _hl_scatter = Just $ Metrics metrics }
 
   pure $ Metrics metrics
 
@@ -128,7 +126,7 @@ getScatterHash :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> m Text
-getScatterHash cId maybeListId tabType =
+getScatterHash cId maybeListId tabType = do
   hash <$> getScatter cId maybeListId tabType Nothing
 
 
@@ -199,12 +197,9 @@ updateChart' cId maybeListId _tabType _maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { _hl_list = hdl
-                    , _hl_pie = hdp
-                    , _hl_scatter = hds
-                    , _hl_tree = hdt } = node ^. node_hyperdata
+  let hl = node ^. node_hyperdata
   h <- histoData cId
-  _ <- updateHyperdata listId $ HyperdataList (Just $ ChartMetrics h) hdl hdp hds hdt
+  _ <- updateHyperdata listId $ hl { _hl_chart = Just $ ChartMetrics h }
 
   pure $ ChartMetrics h
 
@@ -214,9 +209,9 @@ getChartHash :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> m Text
-getChartHash cId maybeListId tabType =
+getChartHash cId maybeListId tabType = do
   hash <$> getChart cId Nothing Nothing maybeListId tabType
-
+ 
 -------------------------------------------------------------
 -- | Pie metrics API
 type PieApi = Summary "Pie Chart"
@@ -283,13 +278,10 @@ updatePie' cId maybeListId tabType _maybeLimit = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { _hl_chart = hdc
-                    , _hl_list = hdl
-                    , _hl_scatter = hds
-                    , _hl_tree = hdt } = node ^. node_hyperdata
+  let hl = node ^. node_hyperdata
 
   p <- pieData cId (ngramsTypeFromTabType tabType) MapTerm
-  _ <- updateHyperdata listId $ HyperdataList hdc hdl (Just $ ChartMetrics p) hds hdt
+  _ <- updateHyperdata listId $ hl { _hl_pie = Just $ ChartMetrics p }
 
   pure $ ChartMetrics p
 
@@ -298,7 +290,7 @@ getPieHash :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> m Text
-getPieHash cId maybeListId tabType =
+getPieHash cId maybeListId tabType = do
   hash <$> getPie cId Nothing Nothing maybeListId tabType
 
 -------------------------------------------------------------
@@ -378,12 +370,9 @@ updateTree' cId maybeListId tabType listType = do
     Nothing  -> defaultList cId
 
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { _hl_chart = hdc
-                    , _hl_list = hdl
-                    , _hl_scatter = hds
-                    , _hl_pie = hdp } = node ^. node_hyperdata
+  let hl = node ^. node_hyperdata
   t <- treeData cId (ngramsTypeFromTabType tabType) listType
-  _ <- updateHyperdata listId $ HyperdataList hdc hdl hdp hds (Just $ ChartMetrics t)
+  _ <- updateHyperdata listId $ hl { _hl_tree = Just $ ChartMetrics t }
 
   pure $ ChartMetrics t
 
@@ -393,5 +382,5 @@ getTreeHash :: FlowCmdM env err m =>
   -> TabType
   -> ListType
   -> m Text
-getTreeHash cId maybeListId tabType listType =
+getTreeHash cId maybeListId tabType listType = do
   hash <$> getTree cId Nothing Nothing maybeListId tabType listType

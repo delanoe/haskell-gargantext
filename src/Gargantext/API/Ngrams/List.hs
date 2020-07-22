@@ -56,8 +56,8 @@ instance ToJSON a => MimeRender HTML a where
 
 ------------------------------------------------------------------------
 
-get :: RepoCmdM env err m
-        => ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
+get :: RepoCmdM env err m =>
+       ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 get lId = do
   lst <- get' lId
   let (NodeId id) = lId
@@ -108,17 +108,17 @@ postAsync' :: FlowCmdM env err m
 postAsync' l (WithFile _ m _) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 0
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
   _r <- post l m
 
   pure JobLog { _scst_succeeded = Just 1
-                     , _scst_failed    = Just 0
-                     , _scst_remaining = Just 0
-                     , _scst_events    = Just []
-                     }
+              , _scst_failed    = Just 0
+              , _scst_remaining = Just 0
+              , _scst_events    = Just []
+              }
 
 data WithFile = WithFile
   { _wf_filetype :: !FileType
