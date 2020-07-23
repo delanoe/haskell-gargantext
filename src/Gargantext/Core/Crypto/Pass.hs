@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Pass
+Module      : Gargantext.Core.Crypto.Pass
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : Public Domain
@@ -16,16 +16,16 @@ https://zuttobenkyou.wordpress.com/2011/12/23/simple-password-generation-with-ha
 -}
 
 
-module Gargantext.Core.Pass
+module Gargantext.Core.Crypto.Pass
       where
 
+-- import Data.List (nub)
 -- import System.Environment (getArgs)
 -- import System.IO (hSetEcho)
 import Control.Monad.State
 import Crypto.Random (cprgGenerate)
 import Crypto.Random.AESCtr
 import Data.Binary (decode)
-import Data.List (nub)
 import Prelude
 import qualified Data.ByteString.Lazy as B
 
@@ -74,14 +74,14 @@ aesRandomInt = do
     put aesState'
     return (decode $ B.fromChunks [bs])
 
--- gargPass :: Int -> IO String
-gargPass len = do
-  let as = ["alphanumeric","punctuation"]
-  let as' = filter (\c -> elem c keysAll) . nub $ unwords as
+gargPass :: IO (Int, AESRNG)
+gargPass = do
+  -- let as = ["alphanumeric","punctuation"]
+  -- let as' = filter (\c -> elem c keysAll) . nub $ unwords as
   aesState <- makeSystem -- gather entropy from the system to use as the initial seed
   --_ <- runStateT (showRandomKey len as') aesState -- enter loop
   -- return ()
-  (p,pass) <- runStateT aesRandomInt aesState -- enter loop
+  pass <- runStateT aesRandomInt aesState -- enter loop
   pure pass
 
 {- 

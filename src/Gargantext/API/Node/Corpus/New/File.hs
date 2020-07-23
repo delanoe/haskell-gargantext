@@ -30,7 +30,7 @@ import Gargantext.API.Ngrams (TODO)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (hash)
+import Gargantext.Core.Crypto.Hash (hash)
 import Servant
 import Servant.Multipart
 import Servant.Swagger (HasSwagger(toSwagger))

@@ -5,7 +5,7 @@ import Data.Swagger
 import Data.Text (Text)
 
 import Gargantext.Prelude
-import qualified Gargantext.Prelude.Utils as Crypto (hash)
+import qualified Gargantext.Core.Crypto.Hash as Crypto (hash)
 import GHC.Generics (Generic)
 
 data HashedResponse a = HashedResponse { hash :: Text, value :: a }

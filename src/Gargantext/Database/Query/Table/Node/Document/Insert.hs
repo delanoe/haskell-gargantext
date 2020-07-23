@@ -72,7 +72,7 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (hash)
+import Gargantext.Core.Crypto.Hash (hash)
 import qualified Data.Text                   as DT (pack, concat, take)
 
 -- TODO : the import of Document constructor below does not work
