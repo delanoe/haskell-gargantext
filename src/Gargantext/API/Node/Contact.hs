@@ -9,9 +9,16 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeOperators      #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
+{-# LANGUAGE ConstraintKinds      #-}
+{-# LANGUAGE KindSignatures       #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 
 module Gargantext.API.Node.Contact
       where
@@ -24,13 +31,14 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.API.Node
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (flow)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..))
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..), HyperdataContact)
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (($), liftBase, (.), printDebug, pure)
@@ -41,9 +49,17 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
-type API = Summary " Add Contact to Annuaire"
-         :> AsyncJobs JobLog '[JSON] AddContactParams JobLog
+type API = "contact" :> Summary "Contact endpoint"
+            :> API_Async
+          :<|> Capture "contact_id" NodeId
+            :> NodeNodeAPI HyperdataContact
 
+
+api :: UserId -> CorpusId -> GargServer API
+api uid cid =  (api_async   (RootId (NodeId uid)) cid)
+          :<|> (nodeNodeAPI (Proxy :: Proxy HyperdataContact) uid cid)
+
+type API_Async = AsyncJobs JobLog '[JSON] AddContactParams JobLog
 ------------------------------------------------------------------------
 data AddContactParams = AddContactParams         { firstname :: !Text, lastname :: !Text }
                       | AddContactParamsAdvanced { firstname :: !Text
@@ -53,8 +69,8 @@ data AddContactParams = AddContactParams         { firstname :: !Text, lastname 
     deriving (Generic)
 
 ----------------------------------------------------------------------
-api :: User -> NodeId -> GargServer API
-api u nId =
+api_async :: User -> NodeId -> GargServer API_Async
+api_async u nId =
   serveJobsAPI $
     JobFunction (\p log ->
       let
