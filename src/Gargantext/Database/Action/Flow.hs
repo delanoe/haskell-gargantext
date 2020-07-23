@@ -27,6 +27,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   ( FlowCmdM
   , getDataText
   , flowDataText
+  , flow
 
   , flowCorpusFile
   , flowCorpus

@@ -41,10 +41,10 @@ type API = Summary " Update node according to NodeType params"
          :> AsyncJobs JobLog '[JSON] UpdateNodeParams JobLog
 
 ------------------------------------------------------------------------
-data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: Method      }
-                      | UpdateNodeParamsGraph { methodGraph :: GraphMetric }
-                      | UpdateNodeParamsTexts { methodTexts :: Granularity }
-                      | UpdateNodeParamsBoard { methodBoard :: Charts      }
+data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
+                      | UpdateNodeParamsGraph { methodGraph :: !GraphMetric }
+                      | UpdateNodeParamsTexts { methodTexts :: !Granularity }
+                      | UpdateNodeParamsBoard { methodBoard :: !Charts      }
     deriving (Generic)
 
 ----------------------------------------------------------------------
