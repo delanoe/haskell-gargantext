@@ -71,7 +71,7 @@ isPairedWith nt nId = runOpaQuery (selectQuery nt nId)
 -----------------------------------------------------------------------
 pairing :: AnnuaireId -> CorpusId -> ListId -> GargNoServer Int
 pairing a c l = do
-  dataPaired <- dataPairing a (c,l,Authors) lastName namePolicy
+  dataPaired <- dataPairing a (c,l,Authors) lastName lastName
   insertDB $ prepareInsert dataPaired
 
 
