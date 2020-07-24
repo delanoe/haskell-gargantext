@@ -16,35 +16,34 @@ module Gargantext.Database.Action.Flow.Pairing
   -- (pairing)
     where
 
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
-import Debug.Trace (trace)
-import Data.Set (Set)
 import Control.Lens (_Just, (^.))
 import Data.Map (Map, fromList, fromListWith)
 import Data.Maybe (catMaybes, fromMaybe)
-import Data.Text (Text, toLower)
-import Gargantext.Core.Types (TableResult(..), Term)
-import Gargantext.Database
-import Gargantext.Core.Types.Main
+import Data.Set (Set)
+import Data.Text (Text)
+import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Prelude (GargNoServer)
+import Gargantext.Core.Types (TableResult(..), Term)
+import Gargantext.Core.Types.Main
+import Gargantext.Database
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Admin.Config
+import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runOpaQuery)
 import Gargantext.Database.Query.Prelude (leftJoin2, returnA, queryNodeNodeTable)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
-import Gargantext.API.Ngrams.Tools
 import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
-import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
+import Opaleye
 import Safe (lastMay)
 import qualified Data.List as List
 import qualified Data.Map  as Map
-import qualified Data.Text as DT
 import qualified Data.Set  as Set
-import Opaleye
+import qualified Data.Text as DT
 
 
 -- | isPairedWith
@@ -71,7 +70,7 @@ isPairedWith nt nId = runOpaQuery (selectQuery nt nId)
 -----------------------------------------------------------------------
 pairing :: AnnuaireId -> CorpusId -> ListId -> GargNoServer Int
 pairing a c l = do
-  dataPaired <- dataPairing a (c,l,Authors) lastName lastName
+  dataPaired <- dataPairing a (c,l,Authors) takeName takeName
   insertDB $ prepareInsert dataPaired
 
 
@@ -115,12 +114,8 @@ projectionFrom ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
 projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> Map Projected (Set DocAuthor)
 projectionTo ss f = fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)
 ------------------------------------------------------------------------
-namePolicy :: Term -> Term
-namePolicy x = trace (show x) $ toLower x
-
-
-lastName :: Term -> Term
-lastName texte = DT.toLower texte'
+takeName :: Term -> Term
+takeName texte = DT.toLower texte'
   where
     texte' = maybe texte (\x -> if DT.length x > 3 then x else texte)
                            (lastName' texte)
