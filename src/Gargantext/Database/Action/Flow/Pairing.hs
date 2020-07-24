@@ -16,19 +16,25 @@ module Gargantext.Database.Action.Flow.Pairing
   -- (pairing)
     where
 
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Debug.Trace (trace)
 import Data.Set (Set)
 import Control.Lens (_Just, (^.))
 import Data.Map (Map, fromList, fromListWith)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text, toLower)
-import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core.Types (TableResult(..), Term)
 import Gargantext.Database
+import Gargantext.Core.Types.Main
+import Gargantext.API.Prelude (GargNoServer)
+import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
-import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery)
+import Gargantext.Database.Prelude (Cmd, runOpaQuery)
 import Gargantext.Database.Query.Prelude (leftJoin2, returnA, queryNodeNodeTable)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
+import Gargantext.API.Ngrams.Tools
+import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Schema.Node
@@ -63,9 +69,9 @@ isPairedWith nt nId = runOpaQuery (selectQuery nt nId)
 
 
 -----------------------------------------------------------------------
-pairing :: AnnuaireId -> CorpusId -> ListId -> Cmd err Int
+pairing :: AnnuaireId -> CorpusId -> ListId -> GargNoServer Int
 pairing a c l = do
-  dataPaired <- dataPairing a (c,l,Authors) lastName toLower
+  dataPaired <- dataPairing a (c,l,Authors) lastName namePolicy
   insertDB $ prepareInsert dataPaired
 
 
@@ -73,11 +79,13 @@ dataPairing :: AnnuaireId
              -> (CorpusId, ListId, NgramsType)
              -> (ContactName -> Projected)
              -> (DocAuthor   -> Projected)
-             -> Cmd err (Map ContactId (Set DocId))
+             -> GargNoServer (Map ContactId (Set DocId))
 dataPairing aId (cId, lId, ngt) fc fa = do
   mc <- getNgramsContactId aId
   md <- getNgramsDocId cId lId ngt
 
+  printDebug "ngramsContactId" mc
+  printDebug "ngramsDocId"     md
   let
     from = projectionFrom (Set.fromList $ Map.keys mc) fc
     to   = projectionTo   (Set.fromList $ Map.keys md) fa
@@ -106,13 +114,16 @@ projectionFrom ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
 
 projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> Map Projected (Set DocAuthor)
 projectionTo ss f = fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)
-
 ------------------------------------------------------------------------
+namePolicy :: Term -> Term
+namePolicy x = trace (show x) $ toLower x
+
+
 lastName :: Term -> Term
-lastName texte = DT.toLower
-               $ maybe texte (\x -> if DT.length x > 3 then x else texte)
-                             (lastName' texte)
+lastName texte = DT.toLower texte'
   where
+    texte' = maybe texte (\x -> if DT.length x > 3 then x else texte)
+                           (lastName' texte)
     lastName' = lastMay . DT.splitOn " "
 
 
@@ -165,32 +176,15 @@ getNgramsContactId aId = do
                               <*> Just ( Set.singleton (contact^.node_id))
               ) (tr_docs contacts)
 
--- | TODO
--- filter Trash / map Authors
--- Indexing all ngramsType like Authors
+
 getNgramsDocId :: CorpusId
-                  -> ListId
-                  -> NgramsType
-                  -> Cmd err (Map DocAuthor (Set NodeId))
-getNgramsDocId corpusId listId nt
-  = fromListWith (<>)
-  <$> map (\(t,nId) -> (t, Set.singleton (NodeId nId)))
-  <$> selectNgramsDocId corpusId listId nt
+                -> ListId
+                -> NgramsType
+                -> GargNoServer (Map DocAuthor (Set NodeId))
+getNgramsDocId cId lId nt = do
+  repo <- getRepo
+  lIds <- selectNodesWithUsername NodeList userMaster
+  let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
-
-selectNgramsDocId :: CorpusId
-                   -> ListId
-                   -> NgramsType
-                   -> Cmd err [(Text, Int)]
-selectNgramsDocId corpusId' listId' ngramsType' =
- runPGSQuery selectQuery (corpusId', listId', ngramsTypeId ngramsType')
-   where
-     selectQuery = [sql| SELECT ng.terms,nnng.node2_id from ngrams ng
-                    JOIN node_node_ngrams nnng ON nnng.ngrams_id = ng.id
-                    JOIN nodes_nodes      nn   ON nn.node2_id    = nnng.node2_id
-
-                    WHERE nn.node1_id = ?
-                      AND nnng.node1_id    = ?
-                      AND nnng.ngrams_type = ?
-                    ;
-                   |]
+  groupNodesByNgrams ngs
+    <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)

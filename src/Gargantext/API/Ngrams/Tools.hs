@@ -67,16 +67,19 @@ getTermsWith f ls ngt lt = Map.fromListWith (<>)
       Nothing -> (f'' t, [])
       Just  r -> (f'' r, map f'' [t])
 
-mapTermListRoot :: [ListId] -> NgramsType
-                -> NgramsRepo -> Map Text (ListType, (Maybe Text))
+mapTermListRoot :: [ListId]
+                -> NgramsType
+                -> NgramsRepo
+                -> Map Text (ListType, (Maybe Text))
 mapTermListRoot nodeIds ngramsType repo =
   Map.fromList [ (t, (_nre_list nre, _nre_root nre))
                | (t, nre) <- Map.toList ngrams
                ]
   where ngrams = listNgramsFromRepo nodeIds ngramsType repo
 
-filterListWithRoot :: ListType -> Map Text (ListType, Maybe Text)
-                      -> Map Text (Maybe RootTerm)
+filterListWithRoot :: ListType
+                   -> Map Text (ListType, Maybe Text)
+                   -> Map Text (Maybe RootTerm)
 filterListWithRoot lt m = Map.fromList
                     $ map (\(t,(_,r)) -> (t,r))
                     $ filter isMapTerm (Map.toList m)
