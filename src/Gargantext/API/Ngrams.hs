@@ -77,6 +77,7 @@ module Gargantext.API.Ngrams
 
   -- Internals
   , getNgramsTableMap
+  , dumpJsonTableMap
   , tableNgramsPull
   , tableNgramsPut
 
@@ -98,22 +99,40 @@ import Control.Monad.State
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
-import Data.Either(Either(Left))
-import Data.Either.Extra (maybeToEither)
+import qualified Data.Aeson.Text as DAT
+import Data.Either (Either(Left))
 import Data.Foldable
+import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
+import qualified Data.List as List
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict.Patch as PM
 import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Ord (Down(..))
 import Data.Patch.Class (Replace, replace, Action(act), Applicable(..), Composable(..), Transformable(..), PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace, ours)
 import Data.Set (Set)
+import qualified Data.Set as S
+import qualified Data.Set as Set
 import Data.Swagger hiding (version, patch)
-import Data.Text (Text, isInfixOf, count)
+import Data.Text (Text, count, isInfixOf, unpack)
+import Data.Text.Lazy.IO as DTL
 import Data.Validity
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Formatting (hprint, int, (%))
 import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
+import Servant hiding (Patch)
+import System.Clock (getTime, TimeSpec, Clock(..))
+import System.FileLock (FileLock)
+import System.IO (stderr)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
+import Prelude (error)
+import Protolude (maybeToEither)
+import Gargantext.Prelude
+
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
@@ -124,20 +143,6 @@ import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (fromField', HasConnectionPool, HasConfig)
-import Gargantext.Prelude
-import Prelude (Enum, Bounded, Semigroup(..), minBound, maxBound {-, round-}, error)
-import Servant hiding (Patch)
-import System.Clock (getTime, TimeSpec, Clock(..))
-import System.FileLock (FileLock)
-import System.IO (stderr)
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
-import qualified Data.List as List
-import qualified Data.Map.Strict as Map
-import qualified Data.Map.Strict.Patch as PM
-import qualified Data.Set as S
-import qualified Data.Set as Set
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -893,31 +898,32 @@ putListNgrams :: RepoCmdM env err m
               -> TableNgrams.NgramsType
               -> [NgramsElement] -> m ()
 putListNgrams _ _ [] = pure ()
-putListNgrams listId ngramsType nes = putListNgrams' listId ngramsType m
+putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
   where
     m = Map.fromList $ map (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) nes
 
 putListNgrams' :: RepoCmdM env err m
-               => ListId
+               => NodeId
                -> TableNgrams.NgramsType
                -> Map NgramsTerm NgramsRepoElement
                -> m ()
-putListNgrams' listId ngramsType ns = do
-  -- printDebug "putListNgrams" (length nes)
+putListNgrams' nodeId ngramsType ns = do
+  printDebug "[putLictNgrams'] nodeId" nodeId
+  printDebug "[putLictNgrams'] ngramsType" ngramsType
+  printDebug "[putListNgrams'] ns" ns
   var <- view repoVar
-  liftBase $ modifyMVar_ var $
-    pure . ( r_state
-           . at ngramsType %~
-             (Just .
-               (at listId %~
-                 ( Just
-                 . (<> ns)
-                 . something
+  liftBase $ modifyMVar_ var $ \r -> do
+    pure $ r & r_version +~ 1
+             & r_state . at ngramsType %~
+               (Just .
+                 (at nodeId %~
+                   ( Just
+                   . (<> ns)
+                   . something
+                   )
                  )
+                 . something
                )
-               . something
-             )
-           )
   saveRepo
 
 
@@ -927,8 +933,8 @@ tableNgramsPost :: RepoCmdM env err m
                 -> NodeId
                 -> Maybe ListType
                 -> [NgramsTerm] -> m ()
-tableNgramsPost tabType listId mayList =
-  putListNgrams listId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
+tableNgramsPost tabType nodeId mayList =
+  putListNgrams nodeId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
 
 currentVersion :: RepoCmdM env err m
                => m Version
@@ -978,8 +984,8 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
           q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
           (p', q') = transformWith ngramsStatePatchConflictResolution p q
           r' = r & r_version +~ 1
-                & r_state   %~ act p'
-                & r_history %~ (p' :)
+                 & r_state   %~ act p'
+                 & r_history %~ (p' :)
           q'_table = q' ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
         {-
         -- Ideally we would like to check these properties. However:
@@ -1008,7 +1014,7 @@ mergeNgramsElement _neOld neNew = neNew
   -}
 
 getNgramsTableMap :: RepoCmdM env err m
-                  => ListId
+                  => NodeId
                   -> TableNgrams.NgramsType
                   -> m (Versioned NgramsTableMap)
 getNgramsTableMap nodeId ngramsType = do
@@ -1016,6 +1022,16 @@ getNgramsTableMap nodeId ngramsType = do
   repo <- liftBase $ readMVar v
   pure $ Versioned (repo ^. r_version)
                    (repo ^. r_state . at ngramsType . _Just . at nodeId . _Just)
+
+dumpJsonTableMap :: RepoCmdM env err m
+                 => Text
+                 -> NodeId
+                 -> TableNgrams.NgramsType
+                 -> m ()
+dumpJsonTableMap fpath nodeId ngramsType = do
+  m <- getNgramsTableMap nodeId ngramsType
+  liftBase $ DTL.writeFile (unpack fpath) (DAT.encodeToLazyText m)
+  pure ()
 
 type MinSize = Int
 type MaxSize = Int
