@@ -115,30 +115,11 @@ searchInCorpusWithContacts cId aId q o l _order =
   runOpaQuery $ limit'   l
               $ offset'  o
               $ orderBy ( desc _fp_score)
-              $ group cId aId
+              $ selectGroup cId aId
               $ intercalate " | "
               $ map stemIt q
 
--- TODO group by
 selectContactViaDoc
-  :: CorpusId
-  -> AnnuaireId
-  -> Text
-  -> Select FacetPairedReadNull
-selectContactViaDoc cId aId q = proc () -> do
-  (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
-  restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
-  restrict -< (doc^.ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
-  restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
-  restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
-  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
-  returnA  -< FacetPaired (contact^.node_id)
-                          (contact^.node_date)
-                          (contact^.node_hyperdata)
-                          (toNullable $ pgInt4 1)
-
-
-selectContactViaDoc'
   :: CorpusId
   -> AnnuaireId
   -> Text
@@ -148,7 +129,7 @@ selectContactViaDoc'
               , Column (Nullable PGJsonb)
               , Column (Nullable PGInt4)
               )
-selectContactViaDoc' cId aId q = proc () -> do
+selectContactViaDoc cId aId q = proc () -> do
   (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
   restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
   restrict -< (doc^.ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
@@ -161,13 +142,13 @@ selectContactViaDoc' cId aId q = proc () -> do
               , toNullable $ pgInt4 1
               )
 
-group :: NodeId
+selectGroup :: NodeId
       -> NodeId
       -> Text
      -> Select FacetPairedReadNull
-group cId aId q = proc () -> do
+selectGroup cId aId q = proc () -> do
   (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
-                            (selectContactViaDoc' cId aId q) -< ()
+                            (selectContactViaDoc cId aId q) -< ()
   returnA -< FacetPaired a b c d
 
 
