@@ -276,7 +276,7 @@ pairs cId = do
 
 type PairWith = Summary "Pair a Corpus with an Annuaire"
               :> "annuaire" :> Capture "annuaire_id" AnnuaireId
-              :> "list"     :> Capture "list_id"     ListId
+              :> QueryParam "list_id"     ListId
               :> Post '[JSON] Int
 
 pairWith :: CorpusId -> GargServer PairWith

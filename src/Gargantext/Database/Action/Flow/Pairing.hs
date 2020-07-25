@@ -35,6 +35,7 @@ import Gargantext.Database.Prelude (Cmd, runOpaQuery)
 import Gargantext.Database.Query.Prelude (leftJoin2, returnA, queryNodeNodeTable)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
 import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
+import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
@@ -65,11 +66,12 @@ isPairedWith nt nId = runOpaQuery (selectQuery nt nId)
         cond (node, node_node) = node^.node_id .== node_node^. nn_node2_id
 
 
-
-
 -----------------------------------------------------------------------
-pairing :: AnnuaireId -> CorpusId -> ListId -> GargNoServer Int
-pairing a c l = do
+pairing :: AnnuaireId -> CorpusId -> Maybe ListId -> GargNoServer Int
+pairing a c l' = do
+  l <- case l' of
+    Nothing -> defaultList c
+    Just l'' -> pure l''
   dataPaired <- dataPairing a (c,l,Authors) takeName takeName
   insertDB $ prepareInsert dataPaired
 

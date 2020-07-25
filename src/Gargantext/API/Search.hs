@@ -49,27 +49,6 @@ instance Arbitrary SearchQuery where
   arbitrary = elements [SearchQuery ["electrodes"]]
 
 -----------------------------------------------------------------------
-data SearchDocResults = SearchDocResults { sdr_results :: [FacetDoc]}
-  deriving (Generic)
-$(deriveJSON (unPrefix "sdr_") ''SearchDocResults)
-
-instance Arbitrary SearchDocResults where
-  arbitrary = SearchDocResults <$> arbitrary
-
-instance ToSchema SearchDocResults where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sdr_")
-
-data SearchPairedResults =
-     SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataContact Int] }
-  deriving (Generic)
-$(deriveJSON (unPrefix "spr_") ''SearchPairedResults)
-
-instance Arbitrary SearchPairedResults where
-  arbitrary = SearchPairedResults <$> arbitrary
-
-instance ToSchema SearchPairedResults where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "spr_")
-
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanSearch? or is it part of CanGetNode
 -- TODO-EVENTS: No event, this is a read-only query.
@@ -86,15 +65,37 @@ searchDocs nId (SearchQuery q) o l order =
   SearchDocResults <$> searchInCorpus nId False q o l order
   --SearchResults <$> searchInCorpusWithContacts nId q o l order
 
+data SearchDocResults = SearchDocResults { sdr_results :: [FacetDoc]}
+  deriving (Generic)
+$(deriveJSON (unPrefix "sdr_") ''SearchDocResults)
+
+instance Arbitrary SearchDocResults where
+  arbitrary = SearchDocResults <$> arbitrary
+
+instance ToSchema SearchDocResults where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sdr_")
+
+
+
 -----------------------------------------------------------------------
 type SearchPairsAPI = Summary ""
                     :> "list"
                     :> Capture "annuaire" AnnuaireId
                     :> SearchAPI SearchPairedResults
 searchPairs :: NodeId -> GargServer SearchPairsAPI
-
 searchPairs pId aId (SearchQuery q) o l order =
   SearchPairedResults <$> searchInCorpusWithContacts pId aId q o l order
 
+
+data SearchPairedResults =
+     SearchPairedResults { spr_results :: [FacetPaired Int UTCTime HyperdataContact Int] }
+  deriving (Generic)
+$(deriveJSON (unPrefix "spr_") ''SearchPairedResults)
+
+instance Arbitrary SearchPairedResults where
+  arbitrary = SearchPairedResults <$> arbitrary
+
+instance ToSchema SearchPairedResults where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "spr_")
 -----------------------------------------------------------------------
 
