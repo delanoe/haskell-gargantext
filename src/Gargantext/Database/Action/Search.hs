@@ -36,6 +36,7 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
 import Opaleye hiding (Query, Order)
+import Data.Profunctor.Product (p4)
 import qualified Opaleye as O hiding (Order)
 
 ------------------------------------------------------------------------
@@ -113,17 +114,17 @@ searchInCorpusWithContacts
 searchInCorpusWithContacts cId aId q o l _order =
   runOpaQuery $ limit'   l
               $ offset'  o
-              -- $ orderBy ( o l order
-              $ selectContactViaDoc cId aId
+              $ orderBy ( desc _fp_score)
+              $ group cId aId
               $ intercalate " | "
               $ map stemIt q
 
-
+-- TODO group by
 selectContactViaDoc
   :: CorpusId
   -> AnnuaireId
   -> Text
-  -> O.Query FacetPairedReadNull
+  -> Select FacetPairedReadNull
 selectContactViaDoc cId aId q = proc () -> do
   (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
   restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
@@ -134,7 +135,47 @@ selectContactViaDoc cId aId q = proc () -> do
   returnA  -< FacetPaired (contact^.node_id)
                           (contact^.node_date)
                           (contact^.node_hyperdata)
-                          (toNullable $ pgInt4 0)
+                          (toNullable $ pgInt4 1)
+
+
+selectContactViaDoc'
+  :: CorpusId
+  -> AnnuaireId
+  -> Text
+  -> QueryArr ()
+              ( Column (Nullable PGInt4)
+              , Column (Nullable PGTimestamptz)
+              , Column (Nullable PGJsonb)
+              , Column (Nullable PGInt4)
+              )
+selectContactViaDoc' cId aId q = proc () -> do
+  (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
+  restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
+  restrict -< (doc^.ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
+  restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
+  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
+  returnA  -< ( contact^.node_id
+              , contact^.node_date
+              , contact^.node_hyperdata
+              , toNullable $ pgInt4 1
+              )
+
+group :: NodeId
+      -> NodeId
+      -> Text
+     -> Select FacetPairedReadNull
+group cId aId q = proc () -> do
+  (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
+                            (selectContactViaDoc' cId aId q) -< ()
+  returnA -< FacetPaired a b c d
+
+
+
+
+
+
+
 
 queryContactViaDoc :: O.Query ( NodeSearchRead
                               , ( NodeNodeReadNull

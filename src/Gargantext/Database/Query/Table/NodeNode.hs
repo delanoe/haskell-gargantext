@@ -97,7 +97,7 @@ getNodeNodeWith pId _ maybeNodeType = runOpaQuery query
 ------------------------------------------------------------------------
 insertNodeNode :: [NodeNode] -> Cmd err Int
 insertNodeNode ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn
-                          $ Insert nodeNodeTable ns' rCount Nothing)
+                          $ Insert nodeNodeTable ns' rCount (Just DoNothing))
   where
     ns' :: [NodeNodeWrite]
     ns' = map (\(NodeNode n1 n2 x y)

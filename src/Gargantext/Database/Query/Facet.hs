@@ -30,6 +30,7 @@ module Gargantext.Database.Query.Facet
   , FacetPaired(..)
   , FacetPairedRead
   , FacetPairedReadNull
+  , FacetPairedReadNullAgg
   , OrderBy(..)
   )
   where
@@ -121,6 +122,8 @@ data FacetPaired id date hyperdata score =
 $(deriveJSON (unPrefix "_fp_") ''FacetPaired)
 $(makeAdaptorAndInstance "pFacetPaired" ''FacetPaired)
 
+
+
 instance ( ToSchema id
          , ToSchema date
          , ToSchema hyperdata
@@ -148,6 +151,21 @@ type FacetPairedReadNull = FacetPaired (Column (Nullable PGInt4)       )
                                        (Column (Nullable PGTimestamptz))
                                        (Column (Nullable PGJsonb)      )
                                        (Column (Nullable PGInt4)       )
+
+type FacetPairedReadNullAgg = FacetPaired (Aggregator (Column (Nullable PGInt4)       )
+                                                      (Column (Nullable PGInt4)       ) 
+                                          )
+                                          (Aggregator (Column (Nullable PGTimestamptz))
+                                                      (Column (Nullable PGTimestamptz))
+
+                                          )
+                                          (Aggregator (Column (Nullable PGJsonb)      )
+                                                      (Column (Nullable PGJsonb)      )
+                                          )
+                                          (Aggregator (Column (Nullable PGInt4)       )
+                                                      (Column (Nullable PGInt4)       )
+                                          )
+
 
 
 
