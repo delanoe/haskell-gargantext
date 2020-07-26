@@ -31,6 +31,7 @@ module Gargantext.API.Node
   where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.TH (deriveJSON)
 import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
@@ -45,9 +46,10 @@ import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Query.Table.Node
@@ -227,12 +229,6 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
 
--- TODO unPrefix "r_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  RenameNode
-instance ToJSON    RenameNode
-instance ToSchema  RenameNode
-instance Arbitrary RenameNode where
-  arbitrary = elements [RenameNode "test"]
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 type CatApi =  Summary " To Categorize NodeNodes: 0 for delete, 1/null neutral, 2 favorite"
@@ -315,4 +311,12 @@ moveNode :: User
          -> Cmd err [Int]
 moveNode _u n p = update (Move n p)
 -------------------------------------------------------------
+
+
+$(deriveJSON (unPrefix "r_"       ) ''RenameNode )
+instance ToSchema  RenameNode
+instance Arbitrary RenameNode where
+  arbitrary = elements [RenameNode "test"]
+
+
 -------------------------------------------------------------
