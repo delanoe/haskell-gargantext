@@ -29,8 +29,6 @@ import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 
 --------------------------------------------------------------------------------
-
-
 data HyperdataContact =
      HyperdataContact { _hc_bdd    :: Maybe Text           -- ID of Database source
                       , _hc_who    :: Maybe ContactWho

@@ -19,15 +19,16 @@ Count API part of Gargantext.
 module Gargantext.API.Search
       where
 
-import Data.Aeson.TH (deriveJSON)
+import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Prelude (GargServer)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Action.Search
+import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
@@ -39,32 +40,48 @@ import Test.QuickCheck.Arbitrary
 data SearchType = SearchDoc | SearchContact
   deriving (Generic)
 
-$(deriveJSON (unPrefix "") ''SearchType)
+
+instance FromJSON  SearchType where
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+
+instance ToJSON  SearchType where
+  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+ 
 instance ToSchema SearchType
 instance Arbitrary SearchType where
   arbitrary = elements [SearchDoc, SearchContact]
 
 -----------------------------------------------------------------------
-data SearchQuery = SearchQuery
-  { sq_query :: [Text]
-  , sq_type  :: SearchType
-  } deriving (Generic)
+data SearchQuery =
+  SearchQuery { query    :: ![Text]
+              , expected :: !SearchType
+              } deriving (Generic)
 
-$(deriveJSON (unPrefix "sq_") ''SearchQuery)
+instance FromJSON  SearchQuery where
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
 
+instance ToJSON  SearchQuery where
+  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+ 
 instance ToSchema SearchQuery where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sq_")
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 instance Arbitrary SearchQuery where
   arbitrary = elements [SearchQuery ["electrodes"] SearchDoc]
 -----------------------------------------------------------------------
 
-data SearchResult = SearchResultDoc     { sr_result :: [FacetDoc]}
-                  | SearchResultContact { sr_results :: [FacetPaired Int UTCTime HyperdataContact Int] }             | SearchNoResult      { sr_message :: Text }
+data SearchResult = SearchResultDoc     { docs     :: ![FacetDoc]}
+                  | SearchResultContact { contacts :: ![FacetPaired Int UTCTime HyperdataContact Int] }
+                  | SearchNoResult      { message  :: !Text }
 
   deriving (Generic)
-$(deriveJSON (unPrefix "sr_") ''SearchResult)
 
+instance FromJSON  SearchResult where
+  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+
+instance ToJSON  SearchResult where
+  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+ 
 instance Arbitrary SearchResult where
   arbitrary = do
     srd <- SearchResultDoc     <$> arbitrary
@@ -88,7 +105,10 @@ type API results = Summary "Search endpoint"
 api :: NodeId -> GargServer (API SearchResult)
 api nId (SearchQuery q SearchDoc) o l order =
   SearchResultDoc <$> searchInCorpus nId False q o l order
-api nId (SearchQuery q SearchContact) o l order =
-  -- SearchPairedResults <$> searchInCorpusWithContacts pId aId q o l order
-  pure $ SearchNoResult "Need Implementation"
+api nId (SearchQuery q SearchContact) o l order = do
+  aIds <- isPairedWith NodeAnnuaire nId
+  -- TODO if paired with several corpus
+  case head aIds of
+    Nothing  -> pure $ SearchNoResult "[G.A.Search] pair corpus with an Annuaire"
+    Just aId -> SearchResultContact <$> searchInCorpusWithContacts nId aId q o l order
 -----------------------------------------------------------------------

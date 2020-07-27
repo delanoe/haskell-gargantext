@@ -75,23 +75,23 @@ import Gargantext.Database.Schema.Node
 --instance FromJSON Facet
 --instance ToJSON   Facet
 
-type Favorite = Int
+type Category = Int
 type Title    = Text
 
 -- TODO remove Title
-type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Favorite) (Maybe Double)
+type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double)
 -- type FacetSources = FacetDoc
 -- type FacetAuthors = FacetDoc
 -- type FacetTerms   = FacetDoc
 
 
-data Facet id created title hyperdata favorite ngramCount = 
+data Facet id created title hyperdata category ngramCount =
      FacetDoc { facetDoc_id         :: id
               , facetDoc_created    :: created
               , facetDoc_title      :: title
               , facetDoc_hyperdata  :: hyperdata
-              , facetDoc_favorite   :: favorite
-              , facetDoc_ngramCount :: ngramCount
+              , facetDoc_category   :: category
+              , facetDoc_score      :: ngramCount
               } deriving (Show, Generic)
 {- | TODO after demo
 data Facet id date hyperdata score = 
@@ -318,8 +318,8 @@ orderWith (Just DateDesc)  = desc facetDoc_created
 orderWith (Just TitleAsc)  = asc  facetDoc_title
 orderWith (Just TitleDesc) = desc facetDoc_title
 
-orderWith (Just ScoreAsc)  = asc  facetDoc_favorite
-orderWith (Just ScoreDesc) = desc facetDoc_favorite
+orderWith (Just ScoreAsc)  = asc  facetDoc_category
+orderWith (Just ScoreDesc) = desc facetDoc_category
 
 orderWith (Just SourceAsc)  = asc  facetDoc_source
 orderWith (Just SourceDesc) = desc facetDoc_source
