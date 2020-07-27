@@ -65,7 +65,6 @@ isPairedWith nt nId = runOpaQuery (selectQuery nt nId)
       where
         cond (node, node_node) = node^.node_id .== node_node^. nn_node2_id
 
-
 -----------------------------------------------------------------------
 pairing :: AnnuaireId -> CorpusId -> Maybe ListId -> GargNoServer Int
 pairing a c l' = do

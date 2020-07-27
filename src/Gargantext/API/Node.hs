@@ -41,7 +41,6 @@ import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Node.New
 import Gargantext.API.Prelude
-import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Individu (User(..))
@@ -66,6 +65,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
+import qualified Gargantext.API.Search as Search
 import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
@@ -129,14 +129,13 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "ngrams"     :> TableNgramsApi
 
              :<|> "category"   :> CatApi
-             :<|> "search"     :> SearchDocsAPI
+             :<|> "search"     :> (Search.API Search.SearchResult)
              :<|> "share"      :> Share.API
 
              -- Pairing utilities
              :<|> "pairwith"   :> PairWith
              :<|> "pairs"      :> Pairs
              :<|> "pairing"    :> PairingApi
-             :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
              :<|> "metrics"   :> ScatterAPI
@@ -206,13 +205,12 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> apiNgramsTableCorpus id'
             
            :<|> catApi      id'
-           :<|> searchDocs  id'
+           :<|> Search.api  id'
            :<|> Share.api   id'
            -- Pairing Tools
            :<|> pairWith    id'
            :<|> pairs       id'
            :<|> getPair     id'
-           :<|> searchPairs id'
 
            :<|> scatterApi id'
            :<|> chartApi   id'
