@@ -54,6 +54,15 @@ defaultHyperdataContact = HyperdataContact (Just "bdd")
                                          (Just "DO NOT expose this")
                                          (Just "DO NOT expose this")
 
+hyperdataContact :: FirstName -> LastName -> HyperdataContact
+hyperdataContact fn ln = HyperdataContact Nothing
+                                          (Just (contactWho fn ln))
+                                          []
+                                          Nothing
+                                          Nothing
+                                          Nothing
+                                          Nothing
+                                          Nothing
 
 -- TOD0 contact metadata (Type is too flat)
 data ContactMetaData =
@@ -78,12 +87,20 @@ data ContactWho =
                 , _cw_freetags :: [Text]
   } deriving (Eq, Show, Generic)
 
+type FirstName = Text
+type LastName  = Text
+
 defaultContactWho :: ContactWho
-defaultContactWho = ContactWho (Just "123123")
-                             (Just "First Name")
-                             (Just "Last Name")
-                             ["keyword A"]
-                             ["freetag A"]
+defaultContactWho = contactWho "Pierre" "Dupont"
+
+contactWho :: FirstName -> LastName -> ContactWho
+contactWho fn ln = ContactWho Nothing
+                             (Just fn)
+                             (Just ln)
+                             []
+                             []
+
+
 
 data ContactWhere =
      ContactWhere { _cw_organization :: [Text]
@@ -149,6 +166,12 @@ instance FromField HyperdataContact where
 -- | Database (Opaleye instance)
 instance QueryRunnerColumnDefault PGJsonb HyperdataContact   where
   queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
+instance QueryRunnerColumnDefault (Nullable PGJsonb) HyperdataContact where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+
 
 -- | All lenses
 makeLenses ''ContactWho

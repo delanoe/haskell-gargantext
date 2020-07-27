@@ -7,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -51,7 +50,7 @@ import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Node.Corpus.Export    as Export
 import qualified Gargantext.API.Node.Corpus.New       as New
 import qualified Gargantext.API.Public                as Public
-
+import qualified Gargantext.API.Node.Contact          as Contact
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
@@ -116,9 +115,7 @@ type GargPrivateAPI' =
 
            :<|> "annuaire" :> Summary "Contact endpoint"
                            :> Capture "annuaire_id" NodeId
-                           :> "contact"
-                           :> Capture "contact_id" NodeId
-                           :> NodeNodeAPI HyperdataContact
+                           :> Contact.API
 
            -- Document endpoint
            :<|> "document" :> Summary "Document endpoint"
@@ -208,7 +205,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> Export.getCorpus   -- uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
-     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)  uid
+     :<|> Contact.api uid
 
      :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid
           <$> PathNode <*> apiNgramsTableDoc
@@ -245,7 +242,6 @@ waitAPI n = do
   _ <- liftBase $ threadDelay ( m * n)
   pure $ "Waited: " <> (cs $ show n)
 ----------------------------------------
-
 
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =

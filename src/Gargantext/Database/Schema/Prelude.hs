@@ -37,7 +37,7 @@ import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger hiding (required, in_)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Opaleye hiding (FromField)
+import Opaleye hiding (FromField, readOnly)
 import Opaleye.Internal.QueryArr (Query)
 import Test.QuickCheck.Arbitrary
 

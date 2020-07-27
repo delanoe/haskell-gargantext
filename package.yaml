@@ -208,6 +208,16 @@ library:
   - servant-xml
   - simple-reflect
   - singletons # (IGraph)
+
+    # for mail
+  - smtp-mail
+  - mime-mail
+
+    # for password generation
+  - cprng-aes
+  - binary
+  - crypto-random
+
   - split
   - stemmer
   - string-conversions

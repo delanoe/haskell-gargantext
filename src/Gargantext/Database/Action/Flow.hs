@@ -27,6 +27,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   ( FlowCmdM
   , getDataText
   , flowDataText
+  , flow
 
   , flowCorpusFile
   , flowCorpus
@@ -68,7 +69,7 @@ import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
-import Gargantext.Database.Action.Search (searchInDatabase)
+import Gargantext.Database.Action.Search (searchDocInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -106,10 +107,8 @@ allDataOrigins = map InternalOrigin API.externalAPIs
               <> map ExternalOrigin API.externalAPIs
 
 ---------------
-
 data DataText = DataOld ![NodeId]
               | DataNew ![[HyperdataDocument]]
-
 
 -- TODO use the split parameter in config file
 getDataText :: FlowCmdM env err m
@@ -126,7 +125,7 @@ getDataText (InternalOrigin _) _la q _li = do
                                            (UserName userMaster)
                                            (Left "")
                                            (Nothing :: Maybe HyperdataCorpus)
-  ids <-  map fst <$> searchInDatabase cId (stemIt q)
+  ids <-  map fst <$> searchDocInDatabase cId (stemIt q)
   pure $ DataOld ids
 
 -------------------------------------------------------------------------------

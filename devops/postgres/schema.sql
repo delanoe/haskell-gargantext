@@ -92,9 +92,10 @@ CREATE TABLE public.nodes_nodes (
     node2_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     score REAL,
     category INTEGER,
-    PRIMARY KEY (node1_id,node2_id)
+    PRIMARY KEY (node1_id, node2_id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
+
 
 ---------------------------------------------------------------
 CREATE TABLE public.node_node_ngrams (
@@ -106,7 +107,6 @@ weight double precision,
 PRIMARY KEY (node1_id, node2_id, ngrams_id, ngrams_type)
 );
 ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
-
 
 CREATE TABLE public.node_node_ngrams2 (
 node_id         INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,

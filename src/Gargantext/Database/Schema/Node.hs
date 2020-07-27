@@ -25,7 +25,6 @@ import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------
 -- Main polymorphic Node definition
-
 data NodePoly id
               typename
               userId
@@ -53,7 +52,6 @@ $(makeLenses ''NodePoly)
 $(makeAdaptorAndInstance "pNode"   ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
 
-------------------------------------------------------------------------
 nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
                                       , _node_typename   = required "typename"

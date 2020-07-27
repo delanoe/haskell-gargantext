@@ -156,7 +156,8 @@ instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
 
 type ParentId = NodeId
-type CorpusId = NodeId
+type CorpusId    = NodeId
+type CommunityId = NodeId
 type ListId   = NodeId
 type DocumentId = NodeId
 type DocId      = NodeId
@@ -240,6 +241,8 @@ data NodeType = NodeUser
               | NodeFolderShared | NodeTeam
               | NodeFolderPublic
               | NodeFolder
+
+              -- | NodeAnalysis | NodeCommunity
 
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
@@ -336,4 +339,7 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+instance (QueryRunnerColumnDefault (Nullable O.PGTimestamptz) UTCTime)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 

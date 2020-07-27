@@ -55,7 +55,6 @@ instance ToJSON a => MimeRender HTML a where
   mimeRender _ = encode
 
 ------------------------------------------------------------------------
-
 get :: RepoCmdM env err m =>
        ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 get lId = do
@@ -74,7 +73,6 @@ get' lId = fromList
        <$> mapM (getNgramsTableMap lId) ngramsTypes
 
 ------------------------------------------------------------------------
-
 -- TODO : purge list
 post :: FlowCmdM env err m
     => ListId
@@ -88,7 +86,6 @@ post l m  = do
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
 type PostAPI = Summary "Update List"
         :> "add"
         :> "form"

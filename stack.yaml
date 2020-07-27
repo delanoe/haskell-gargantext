@@ -53,7 +53,7 @@ extra-deps:
 - git: https://github.com/np/patches-map
   commit: 8c6f38c4844ead53e664cf9c82ba461715dbe445
 - git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
-  commit: 53385de076be09f728a1b58c035a18e9ff9bcfd6
+  commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - Unique-0.4.7.6@sha256:a1ff411f4d68c756e01e8d532fbe8e57f1ac77f2cc0ee8a999770be2bca185c5,2723
@@ -85,5 +85,5 @@ extra-deps:
 - ghc-byteorder-4.11.0.0.10@sha256:5ee4a907279bfec27b0f9de7b8fba4cecfd34395a0235a7784494de70ad4e98f,1535
   # Matrix Computation
 - accelerate-1.2.0.1
-
+- smtp-mail-0.2.0.0@sha256:b91c81f6dbb41a9ceee8c443385118684ecec55006b77f7d3c0e49cffd2468cf,1211
 

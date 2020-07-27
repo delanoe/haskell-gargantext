@@ -292,9 +292,6 @@ deviation = sqrt . variance
 movingAverage :: (Eq b, Fractional b) => Int -> [b] -> [b]
 movingAverage steps xs = map mean $ chunkAlong steps 1 xs
 
-ma :: [Double] -> [Double]
-ma = movingAverage 3
-
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 --- Map in Map = Map2
