@@ -36,61 +36,6 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 
------------------------------------------------------------------------
-data SearchType = SearchDoc | SearchContact
-  deriving (Generic)
-
-
-instance FromJSON  SearchType where
-  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
-instance ToJSON  SearchType where
-  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
- 
-instance ToSchema SearchType
-instance Arbitrary SearchType where
-  arbitrary = elements [SearchDoc, SearchContact]
-
------------------------------------------------------------------------
-data SearchQuery =
-  SearchQuery { query    :: ![Text]
-              , expected :: !SearchType
-              } deriving (Generic)
-
-instance FromJSON  SearchQuery where
-  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
-instance ToJSON  SearchQuery where
-  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
- 
-instance ToSchema SearchQuery where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
-
-instance Arbitrary SearchQuery where
-  arbitrary = elements [SearchQuery ["electrodes"] SearchDoc]
------------------------------------------------------------------------
-
-data SearchResult = SearchResultDoc     { docs     :: ![FacetDoc]}
-                  | SearchResultContact { contacts :: ![FacetPaired Int UTCTime HyperdataContact Int] }
-                  | SearchNoResult      { message  :: !Text }
-
-  deriving (Generic)
-
-instance FromJSON  SearchResult where
-  parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
-
-instance ToJSON  SearchResult where
-  toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
- 
-instance Arbitrary SearchResult where
-  arbitrary = do
-    srd <- SearchResultDoc     <$> arbitrary
-    src <- SearchResultContact <$> arbitrary
-    srn <- pure $ SearchNoResult "No result because.."
-    elements [srd, src, srn]
-
-instance ToSchema SearchResult where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sr_")
 
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanSearch? or is it part of CanGetNode
@@ -112,3 +57,82 @@ api nId (SearchQuery q SearchContact) o l order = do
     Nothing  -> pure $ SearchNoResult "[G.A.Search] pair corpus with an Annuaire"
     Just aId -> SearchResultContact <$> searchInCorpusWithContacts nId aId q o l order
 -----------------------------------------------------------------------
+-----------------------------------------------------------------------
+-- | Main Types
+-----------------------------------------------------------------------
+data SearchType = SearchDoc | SearchContact
+  deriving (Generic)
+
+instance FromJSON  SearchType
+{- 
+  where
+    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+-}
+
+instance ToJSON  SearchType
+{- 
+  where
+    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+-}
+
+instance ToSchema SearchType
+instance Arbitrary SearchType where
+  arbitrary = elements [SearchDoc, SearchContact]
+
+-----------------------------------------------------------------------
+data SearchQuery =
+  SearchQuery { query    :: ![Text]
+              , expected :: !SearchType
+              } deriving (Generic)
+
+instance FromJSON  SearchQuery
+{-
+  where
+    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+-}
+
+instance ToJSON  SearchQuery
+{-
+  where
+    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+-}
+
+instance ToSchema SearchQuery
+{-
+  where
+    declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
+-}
+
+instance Arbitrary SearchQuery where
+  arbitrary = elements [SearchQuery ["electrodes"] SearchDoc]
+-----------------------------------------------------------------------
+
+data SearchResult = SearchResultDoc     { docs     :: ![FacetDoc]}
+                  | SearchResultContact { contacts :: ![FacetPaired Int UTCTime HyperdataContact Int] }
+                  | SearchNoResult      { message  :: !Text }
+
+  deriving (Generic)
+
+instance FromJSON  SearchResult
+{-
+  where
+    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+-}
+
+instance ToJSON  SearchResult
+{-
+  where
+    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+-}
+ 
+instance Arbitrary SearchResult where
+  arbitrary = do
+    srd <- SearchResultDoc     <$> arbitrary
+    src <- SearchResultContact <$> arbitrary
+    srn <- pure $ SearchNoResult "No result because.."
+    elements [srd, src, srn]
+
+instance ToSchema SearchResult where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sr_")
+
+
