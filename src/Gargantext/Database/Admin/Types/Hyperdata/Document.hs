@@ -145,7 +145,7 @@ instance FromJSON HyperdataDocument
   where
     parseJSON = genericParseJSON
             ( defaultOptions { sumEncoding = ObjectWithSingleField 
-                            , fieldLabelModifier = unCapitalize . dropPrefix "_hd"
+                            , fieldLabelModifier = unCapitalize . dropPrefix "_hd_"
                             , omitNothingFields = True
                             }
             )
@@ -154,7 +154,7 @@ instance ToJSON HyperdataDocument
   where
     toJSON = genericToJSON
            ( defaultOptions { sumEncoding = ObjectWithSingleField 
-                            , fieldLabelModifier = unCapitalize . dropPrefix "_hd"
+                            , fieldLabelModifier = unCapitalize . dropPrefix "_hd_"
                             , omitNothingFields = True
                             }
            )

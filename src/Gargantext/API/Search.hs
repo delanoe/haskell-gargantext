@@ -220,7 +220,7 @@ instance FromJSON  HyperdataRow
               ( defaultOptions
                 { sumEncoding = ObjectWithSingleField
                 , fieldLabelModifier = unCapitalize . dropPrefix "_hr_"
-                , omitNothingFields = True
+                , omitNothingFields = False
                 }
               )
 
@@ -230,7 +230,7 @@ instance ToJSON  HyperdataRow
                ( defaultOptions
                 { sumEncoding = ObjectWithSingleField
                 , fieldLabelModifier = unCapitalize . dropPrefix "_hr_"
-                , omitNothingFields = True
+                , omitNothingFields = False
                 }
               )
 
