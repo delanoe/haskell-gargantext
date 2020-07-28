@@ -20,16 +20,17 @@ module Gargantext.API.Search
       where
 
 import Data.Aeson
-import Data.Swagger
+import Data.Maybe (fromMaybe)
+import Data.Swagger hiding (fieldLabelModifier)
 import Data.Text (Text)
--- import Data.Time (UTCTime)
+import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Prelude (GargServer)
-import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
+import Gargantext.Core.Utils.Prefix (unPrefixSwagger, unCapitalize, dropPrefix)
 import Gargantext.Database.Query.Facet
--- import Gargantext.Database.Action.Search
--- import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
--- import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact)
+import Gargantext.Database.Action.Search
+import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact, HyperdataDocument(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Servant
@@ -47,23 +48,17 @@ type API results = Summary "Search endpoint"
                  :> QueryParam "order"  OrderBy
                  :> Post '[JSON] results
 -----------------------------------------------------------------------
-api :: NodeId -> GargServer (API Int) -- SearchResult)
-api _ _ _ _ _ = undefined
-
-{-
-
 api :: NodeId -> GargServer (API SearchResult)
 api nId (SearchQuery q SearchDoc) o l order =
-  SearchResultDoc <$> searchInCorpus nId False q o l order
+  SearchResult <$> SearchResultDoc <$> map toRow <$> searchInCorpus nId False q o l order
 api nId (SearchQuery q SearchContact) o l order = do
-  undefined
-  {- aIds <- isPairedWith NodeAnnuaire nId
+  aIds <- isPairedWith NodeAnnuaire nId
   -- TODO if paired with several corpus
   case head aIds of
-    Nothing  -> pure $ SearchNoResult "[G.A.Search] pair corpus with an Annuaire"
-    Just aId -> SearchResultContact <$> searchInCorpusWithContacts nId aId q o l order
-  -}
--}
+    Nothing  -> pure $ SearchResult $ SearchNoResult "[G.A.Search] pair corpus with an Annuaire"
+    Just aId -> SearchResult <$> SearchResultContact <$> searchInCorpusWithContacts nId aId q o l order
+api _ _ _ _ _ = undefined
+
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 -- | Main Types
@@ -110,32 +105,161 @@ instance Arbitrary SearchQuery where
   -- arbitrary = elements [SearchQuery "electrodes" 1 ] --SearchDoc]
 -----------------------------------------------------------------------
 
-data SearchResult = SearchResultDoc     { docs     :: ![FacetDoc]}
---                   | SearchResultContact { contacts :: ![FacetPaired Int UTCTime HyperdataContact Int] }
---                  | SearchNoResult      { message  :: !Text }
+data SearchResult =
+  SearchResult { result :: !SearchResultTypes
+              }
+  | SearchResultErr !Text
+    deriving (Generic)
+
+instance FromJSON  SearchResult
+  where
+    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+
+instance ToJSON  SearchResult
+  where
+    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+
+instance ToSchema SearchResult
+{-
+  where
+    declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
+-}
+
+instance Arbitrary SearchResult where
+  arbitrary = SearchResult <$> arbitrary
+
+
+data SearchResultTypes = SearchResultDoc { docs     :: ![Row]}
+                  | SearchResultContact  { contacts :: ![FacetPaired Int UTCTime HyperdataContact Int] }
+                  | SearchNoResult      { message  :: !Text }
 
   deriving (Generic)
 
-instance FromJSON  SearchResult
-{-
+instance FromJSON  SearchResultTypes
   where
     parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
--}
 
-instance ToJSON  SearchResult
-{-
+instance ToJSON  SearchResultTypes
   where
     toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
--}
  
-instance Arbitrary SearchResult where
+instance Arbitrary SearchResultTypes where
   arbitrary = do
     srd <- SearchResultDoc     <$> arbitrary
- --    src <- SearchResultContact <$> arbitrary
- --   srn <- pure $ SearchNoResult "No result because.."
-    elements [srd] -- , src, srn]
+    src <- SearchResultContact <$> arbitrary
+    srn <- pure $ SearchNoResult "No result because.."
+    elements [srd, src, srn]
 
-instance ToSchema SearchResult where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sr_")
+instance ToSchema SearchResultTypes where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
+
+--------------------------------------------------------------------
+
+data Row =
+  Document { id         :: !NodeId
+           , created    :: !UTCTime
+           , title      :: !Text
+           , hyperdata  :: !HyperdataRow
+           , category   :: !Int
+           , score      :: !Int
+           }
+  | Contact  { c_id       :: !Int
+           , c_created    :: !Text
+           , c_hyperdata  :: !HyperdataContact
+           , c_score      :: !Int
+           }
+  deriving (Generic)
+
+instance FromJSON  Row
+  where
+    parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+
+instance ToJSON  Row
+  where
+    toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
+ 
+instance Arbitrary Row where
+  arbitrary = arbitrary
+
+instance ToSchema Row where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
+
+toRow :: FacetDoc -> Row
+toRow (FacetDoc nId utc t h mc md) = Document nId utc t (toHyperdataRow h) (fromMaybe 0 mc) (round $ fromMaybe 0 md)
+
+--------------------------------------------------------------------
+
+data HyperdataRow =
+  HyperdataRowDocument { _hr_bdd                :: !Text
+                       , _hr_doi                :: !Text
+                       , _hr_url                :: !Text
+                       , _hr_uniqId             :: !Text
+                       , _hr_uniqIdBdd          :: !Text
+                       , _hr_page               :: !Int
+                       , _hr_title              :: !Text
+                       , _hr_authors            :: !Text
+                       , _hr_institutes         :: !Text
+                       , _hr_source             :: !Text
+                       , _hr_abstract           :: !Text
+                       , _hr_publication_date   :: !Text
+                       , _hr_publication_year   :: !Int
+                       , _hr_publication_month  :: !Int
+                       , _hr_publication_day    :: !Int
+                       , _hr_publication_hour   :: !Int
+                       , _hr_publication_minute :: !Int
+                       , _hr_publication_second :: !Int
+                       , _hr_language_iso2      :: !Text
+                       }
+  | HyperdataRowContact { _hr_name :: !Text }
+  deriving (Generic)
+
+instance FromJSON  HyperdataRow
+  where
+    parseJSON = genericParseJSON
+              ( defaultOptions
+                { sumEncoding = ObjectWithSingleField
+                , fieldLabelModifier = unCapitalize . dropPrefix "_hr_"
+                , omitNothingFields = True
+                }
+              )
+
+instance ToJSON  HyperdataRow
+  where
+    toJSON = genericToJSON
+               ( defaultOptions
+                { sumEncoding = ObjectWithSingleField
+                , fieldLabelModifier = unCapitalize . dropPrefix "_hr_"
+                , omitNothingFields = True
+                }
+              )
+
+instance Arbitrary HyperdataRow where
+  arbitrary = arbitrary
+
+instance ToSchema HyperdataRow where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_hr_")
+
+toHyperdataRow :: HyperdataDocument -> HyperdataRow
+toHyperdataRow (HyperdataDocument b d u ui ub p t a i s abs pd py pm pda ph pmin psec l) =
+  HyperdataRowDocument
+    (fromMaybe "" b)
+    (fromMaybe "" d)
+    (fromMaybe "" u)
+    (fromMaybe "" ui)
+    (fromMaybe "" ub)
+    (fromMaybe 0 p)
+    (fromMaybe "Title" t)
+    (fromMaybe "" a)
+    (fromMaybe "" i)
+    (fromMaybe "" s)
+    (fromMaybe "" abs)
+    (fromMaybe "" pd)
+    (fromMaybe 2020 py)
+    (fromMaybe 1 pm)
+    (fromMaybe 1 pda)
+    (fromMaybe 1 ph)
+    (fromMaybe 1 pmin)
+    (fromMaybe 1 psec)
+    (fromMaybe "EN" l)
 

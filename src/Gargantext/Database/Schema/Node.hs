@@ -156,16 +156,17 @@ $(deriveJSON (unPrefix "_ns_")     ''NodePolySearch)
 $(makeLenses ''NodePolySearch)
 
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
-nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
-                                      , _ns_typename   = required "typename"
-                                      , _ns_userId     = required "user_id"
+nodeTableSearch = Table "nodes" ( pNodeSearch
+                                   NodeSearch { _ns_id         = optional "id"
+                                              , _ns_typename   = required "typename"
+                                              , _ns_userId     = required "user_id"
 
-                                      , _ns_parentId   = required "parent_id"
-                                      , _ns_name       = required "name"
-                                      , _ns_date       = optional "date"
+                                              , _ns_parentId   = required "parent_id"
+                                              , _ns_name       = required "name"
+                                              , _ns_date       = optional "date"
 
-                                      , _ns_hyperdata  = required "hyperdata"
-                                      , _ns_search     = optional "search"
-                                      }
-                            )
+                                              , _ns_hyperdata  = required "hyperdata"
+                                              , _ns_search     = optional "search"
+                                              }
+                                )
 ------------------------------------------------------------------------
