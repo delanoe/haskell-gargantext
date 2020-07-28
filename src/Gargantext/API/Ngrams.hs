@@ -505,13 +505,13 @@ instance ToSchema a => ToSchema (Replace a) where
     -- TODO Keep constructor is not supported here.
     aSchema <- declareSchemaRef (Proxy :: Proxy a)
     return $ NamedSchema (Just "Replace") $ mempty
-      & type_ ?~ SwaggerObject
-      & properties .~
-          InsOrdHashMap.fromList
-          [ ("old", aSchema)
-          , ("new", aSchema)
-          ]
-      & required .~ [ "old", "new" ]
+            & type_ ?~ SwaggerObject
+            & properties .~
+                InsOrdHashMap.fromList
+                [ ("old", aSchema)
+                , ("new", aSchema)
+                ]
+            & required .~ [ "old", "new" ]
 
 data NgramsPatch =
      NgramsPatch { _patch_children :: PatchMSet NgramsTerm

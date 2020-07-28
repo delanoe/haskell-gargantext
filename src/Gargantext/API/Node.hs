@@ -129,7 +129,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "ngrams"     :> TableNgramsApi
 
              :<|> "category"   :> CatApi
-             :<|> "search"     :> (Search.API Search.SearchResult)
+             :<|> "search"     :> (Search.API Int) -- Search.SearchResult)
              :<|> "share"      :> Share.API
 
              -- Pairing utilities

@@ -22,14 +22,14 @@ module Gargantext.API.Search
 import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
-import Data.Time (UTCTime)
+-- import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Query.Facet
-import Gargantext.Database.Action.Search
-import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact)
+-- import Gargantext.Database.Action.Search
+-- import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
+-- import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Servant
@@ -47,15 +47,23 @@ type API results = Summary "Search endpoint"
                  :> QueryParam "order"  OrderBy
                  :> Post '[JSON] results
 -----------------------------------------------------------------------
+api :: NodeId -> GargServer (API Int) -- SearchResult)
+api _ _ _ _ _ = undefined
+
+{-
+
 api :: NodeId -> GargServer (API SearchResult)
 api nId (SearchQuery q SearchDoc) o l order =
   SearchResultDoc <$> searchInCorpus nId False q o l order
 api nId (SearchQuery q SearchContact) o l order = do
-  aIds <- isPairedWith NodeAnnuaire nId
+  undefined
+  {- aIds <- isPairedWith NodeAnnuaire nId
   -- TODO if paired with several corpus
   case head aIds of
     Nothing  -> pure $ SearchNoResult "[G.A.Search] pair corpus with an Annuaire"
     Just aId -> SearchResultContact <$> searchInCorpusWithContacts nId aId q o l order
+  -}
+-}
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------
 -- | Main Types
@@ -64,16 +72,12 @@ data SearchType = SearchDoc | SearchContact
   deriving (Generic)
 
 instance FromJSON  SearchType
-{- 
   where
     parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
--}
 
 instance ToJSON  SearchType
-{- 
   where
     toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
--}
 
 instance ToSchema SearchType
 instance Arbitrary SearchType where
@@ -83,19 +87,17 @@ instance Arbitrary SearchType where
 data SearchQuery =
   SearchQuery { query    :: ![Text]
               , expected :: !SearchType
-              } deriving (Generic)
+              }
+  | SearchQueryErr !Text
+    deriving (Generic)
 
 instance FromJSON  SearchQuery
-{-
   where
     parseJSON = genericParseJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
--}
 
 instance ToJSON  SearchQuery
-{-
   where
     toJSON = genericToJSON (defaultOptions { sumEncoding = ObjectWithSingleField })
--}
 
 instance ToSchema SearchQuery
 {-
@@ -105,11 +107,12 @@ instance ToSchema SearchQuery
 
 instance Arbitrary SearchQuery where
   arbitrary = elements [SearchQuery ["electrodes"] SearchDoc]
+  -- arbitrary = elements [SearchQuery "electrodes" 1 ] --SearchDoc]
 -----------------------------------------------------------------------
 
 data SearchResult = SearchResultDoc     { docs     :: ![FacetDoc]}
-                  | SearchResultContact { contacts :: ![FacetPaired Int UTCTime HyperdataContact Int] }
-                  | SearchNoResult      { message  :: !Text }
+--                   | SearchResultContact { contacts :: ![FacetPaired Int UTCTime HyperdataContact Int] }
+--                  | SearchNoResult      { message  :: !Text }
 
   deriving (Generic)
 
@@ -128,9 +131,9 @@ instance ToJSON  SearchResult
 instance Arbitrary SearchResult where
   arbitrary = do
     srd <- SearchResultDoc     <$> arbitrary
-    src <- SearchResultContact <$> arbitrary
-    srn <- pure $ SearchNoResult "No result because.."
-    elements [srd, src, srn]
+ --    src <- SearchResultContact <$> arbitrary
+ --   srn <- pure $ SearchNoResult "No result because.."
+    elements [srd] -- , src, srn]
 
 instance ToSchema SearchResult where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "sr_")
