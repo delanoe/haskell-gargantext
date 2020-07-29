@@ -279,7 +279,6 @@ pairWith cId aId lId = do
   _ <- insertNodeNode [ NodeNode cId aId Nothing Nothing]
   pure r
 
-------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)

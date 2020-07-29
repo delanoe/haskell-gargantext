@@ -36,6 +36,7 @@ import Gargantext.Database.Query.Prelude (leftJoin2, returnA, queryNodeNodeTable
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
 import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Query.Table.Node (defaultList)
+import Gargantext.Database.Query.Table.NodeNode (insertNodeNode)
 import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
@@ -50,8 +51,8 @@ import qualified Data.Text as DT
 -- | isPairedWith
 -- All NodeAnnuaire paired with a Corpus of NodeId nId:
 -- isPairedWith NodeAnnuaire corpusId
-isPairedWith :: NodeType -> NodeId -> Cmd err [NodeId]
-isPairedWith nt nId = runOpaQuery (selectQuery nt nId)
+isPairedWith :: NodeId -> NodeType -> Cmd err [NodeId]
+isPairedWith nId nt = runOpaQuery (selectQuery nt nId)
   where
     selectQuery :: NodeType -> NodeId -> Query (Column PGInt4)
     selectQuery nt' nId' = proc () -> do
@@ -72,7 +73,9 @@ pairing a c l' = do
     Nothing -> defaultList c
     Just l'' -> pure l''
   dataPaired <- dataPairing a (c,l,Authors) takeName takeName
-  insertDB $ prepareInsert dataPaired
+  r <- insertDB $ prepareInsert dataPaired
+  _ <- insertNodeNode [ NodeNode c a Nothing Nothing]
+  pure r
 
 
 dataPairing :: AnnuaireId
