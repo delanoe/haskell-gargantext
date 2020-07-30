@@ -21,7 +21,8 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mS
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, sortTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Text.Metrics.TFICF (sortTficf)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
@@ -197,7 +198,6 @@ toGargList :: (b -> Bool) -> ListType -> b -> (ListType, b)
 toGargList stop l n = case stop n of
     True  -> (StopTerm, n)
     False -> (l, n)
-
 
 
 isStopTerm :: StopSize -> Text -> Bool
