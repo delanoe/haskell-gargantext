@@ -75,7 +75,6 @@ data Settings = Settings
     , _cookieSettings  :: CookieSettings
     , _sendLoginEmails :: SendEmailType
     , _scrapydUrl      :: BaseUrl
-    , _fileFolder      :: FilePath
     , _config          :: GargConfig
     }
 
@@ -97,7 +96,6 @@ devSettings jwkFile = do
 --    , _dbServer = "localhost"
     , _sendLoginEmails = LogEmailToConsole
     , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
-    , _fileFolder = "data"
     , _cookieSettings = defaultCookieSettings { cookieXsrfSetting = Just xsrfCookieSetting } -- TODO-SECURITY tune
     , _jwtSettings = defaultJWTSettings jwk -- TODO-SECURITY tune
     , _config      = defaultConfig
