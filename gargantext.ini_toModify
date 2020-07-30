@@ -8,6 +8,9 @@ SECRET_KEY      = PASSWORD_TO_CHANGE
 FRAME_WRITE_URL = URL_TO_CHANGE
 FRAME_CALC_URL  = URL_TO_CHANGE
 
+FRAME_SEARX_URL  = URL_TO_CHANGE
+FRAME_ISTEX_URL  = URL_TO_CHANGE
+
 [network]
 # Emails From address (sent by smtp)
 MAIL = username@gargantext.org
