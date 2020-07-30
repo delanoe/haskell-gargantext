@@ -41,6 +41,14 @@ data NodeToHash = NodeToHash { nodeType :: NodeType
 type FolderPath = FilePath
 type FileName   = FilePath
 
+-- | toPath example of use:
+-- toPath 2 "gargantexthello"
+-- ("ga/rg","antexthello")
+-- 
+-- toPath 3 "gargantexthello"
+-- ("gar/gan","texthello")
+
+
 toPath :: Int -> Text -> (FolderPath,FileName)
 toPath n x = (Text.unpack $ Text.intercalate "/" [x1,x2], Text.unpack xs)
   where
