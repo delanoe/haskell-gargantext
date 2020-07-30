@@ -53,6 +53,8 @@ data DefaultHyperdata =
   | DefaultFrameWrite    HyperdataFrame
   | DefaultFrameCalc     HyperdataFrame
 
+  | DefaultFile          HyperdataFile
+
 instance Hyperdata DefaultHyperdata
 
 instance ToJSON DefaultHyperdata where
@@ -82,6 +84,8 @@ instance ToJSON DefaultHyperdata where
   toJSON (DefaultFrameWrite x) = toJSON x
   toJSON (DefaultFrameCalc  x) = toJSON x
 
+  toJSON (DefaultFile x) = toJSON x
+
 
 defaultHyperdata :: NodeType -> DefaultHyperdata
 defaultHyperdata NodeUser           = DefaultUser    defaultHyperdataUser
@@ -109,3 +113,5 @@ defaultHyperdata NodeDashboard      = DefaultDashboard defaultHyperdataDashboard
 
 defaultHyperdata NodeFrameWrite     = DefaultFrameWrite defaultHyperdataFrame
 defaultHyperdata NodeFrameCalc      = DefaultFrameCalc  defaultHyperdataFrame
+
+defaultHyperdata NodeFile           = DefaultFile defaultHyperdataFile

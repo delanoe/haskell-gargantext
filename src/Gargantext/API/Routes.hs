@@ -144,7 +144,8 @@ type GargPrivateAPI' =
                           :> TreeAPI
 
            -- :<|> New.Upload
-           :<|> New.AddWithForm 
+           :<|> New.AddWithForm
+           :<|> New.AddWithFile
            :<|> New.AddWithQuery
 
            -- :<|> "annuaire" :> Annuaire.AddWithForm
@@ -222,6 +223,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
           <$> PathNode <*> treeAPI
      -- TODO access
      :<|> addCorpusWithForm  (RootId (NodeId uid))
+     :<|> addCorpusWithFile  (RootId (NodeId uid))
      :<|> addCorpusWithQuery (RootId (NodeId uid))
 
      -- :<|> addAnnuaireWithForm
@@ -270,6 +272,16 @@ addCorpusWithForm user cid =
           printDebug "addToCorpusWithForm" x
           liftBase $ log x
       in New.addToCorpusWithForm user cid i log')
+
+addCorpusWithFile :: User -> GargServer New.AddWithFile
+addCorpusWithFile user cid =
+  serveJobsAPI $
+    JobFunction (\i log ->
+      let
+        log' x = do
+          printDebug "addToCorpusWithFile" x
+          liftBase $ log x
+      in New.addToCorpusWithFile user cid i log')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =

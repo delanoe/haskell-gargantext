@@ -166,6 +166,20 @@ instance FromJSON NewWithForm where
 instance ToSchema NewWithForm where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 
+-------------------------------------------------------
+data NewWithFile = NewWithFile
+  { _wfi_data     :: !Text
+  , _wfi_lang     :: !(Maybe Lang)
+  , _wfi_name     :: !Text
+  } deriving (Eq, Show, Generic)
+
+makeLenses ''NewWithFile
+instance FromForm NewWithFile
+instance FromJSON NewWithFile where
+  parseJSON = genericParseJSON $ jsonOptions "_wfi_"
+instance ToSchema NewWithFile where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wfi_")
+
 ------------------------------------------------------------------------
 type AsyncJobs event ctI input output =
   AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output
@@ -189,14 +203,6 @@ type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
      :> AsyncJobs JobLog '[JSON] () JobLog
 -}
 
-type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
-   :> "corpus"
-     :> Capture "corpus_id" CorpusId
-   :> "add"
-   :> "form"
-   :> "async"
-     :> AsyncJobs JobLog '[FormUrlEncoded] NewWithForm JobLog
-
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
@@ -209,10 +215,10 @@ addToCorpusWithQuery :: FlowCmdM env err m
 addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   -- TODO ...
   logStatus JobLog { _scst_succeeded = Just 0
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 5
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 5
+                   , _scst_events    = Just []
+                   }
   printDebug "addToCorpusWithQuery" (cid, dbs)
   -- TODO add cid
   -- TODO if cid is folder -> create Corpus
@@ -221,19 +227,28 @@ addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   txts <- mapM (\db  -> getDataText db     (Multi l) q Nothing) [database2origin dbs]
 
   logStatus JobLog { _scst_succeeded = Just 2
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
 
   cids <- mapM (\txt -> flowDataText u txt (Multi l) cid) txts
   printDebug "corpus id" cids
   -- TODO ...
   pure      JobLog { _scst_succeeded = Just 3
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 0
+                   , _scst_events    = Just []
+                   }
+
+
+type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
+   :> "corpus"
+     :> Capture "corpus_id" CorpusId
+   :> "add"
+   :> "form"
+   :> "async"
+     :> AsyncJobs JobLog '[FormUrlEncoded] NewWithForm JobLog
 
 addToCorpusWithForm :: FlowCmdM env err m
                     => User
@@ -243,12 +258,13 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> m JobLog
 addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
-  printDebug "Parsing corpus: " cid
+  printDebug "[addToCorpusWithForm] Parsing corpus: " cid
+  printDebug "[addToCorpusWithForm] fileType" ft
   logStatus JobLog { _scst_succeeded = Just 0
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 2
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
   let
     parse = case ft of
       CSV_HAL   -> Parser.parseFormat Parser.CsvHal
@@ -263,10 +279,10 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
   printDebug "Parsing corpus finished : " cid
   logStatus JobLog { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
 
 
   printDebug "Starting extraction     : " cid
@@ -278,10 +294,10 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
   printDebug "Extraction finished   : " cid
   pure      JobLog { _scst_succeeded = Just 2
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 0
+                   , _scst_events    = Just []
+                   }
 
 {-
 addToCorpusWithFile :: FlowCmdM env err m
@@ -307,3 +323,33 @@ addToCorpusWithFile cid input filetype logStatus = do
 -}
 
 
+
+type AddWithFile = Summary "Add with FileUrlEncoded to corpus endpoint"
+   :> "corpus"
+     :> Capture "corpus_id" CorpusId
+   :> "add"
+   :> "file"
+   :> "async"
+     :> AsyncJobs JobLog '[FormUrlEncoded] NewWithFile JobLog
+
+addToCorpusWithFile :: FlowCmdM env err m
+                    => User
+                    -> CorpusId
+                    -> NewWithFile
+                    -> (JobLog -> m ())
+                    -> m JobLog
+addToCorpusWithFile _user cid (NewWithFile _d _l _n) logStatus = do
+
+  printDebug "[addToCorpusWithForm] Uploading file to corpus: " cid
+  logStatus JobLog { _scst_succeeded = Just 0
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  printDebug "File upload to corpus finished: " cid
+  pure $ JobLog { _scst_succeeded = Just 1
+                , _scst_failed    = Just 0
+                , _scst_remaining = Just 0
+                , _scst_events    = Just []
+                }

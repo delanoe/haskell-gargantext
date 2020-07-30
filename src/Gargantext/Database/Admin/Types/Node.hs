@@ -259,6 +259,7 @@ data NodeType = NodeUser
 
               -- Optional Nodes
               | NodeFrameWrite | NodeFrameCalc
+              | NodeFile
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
@@ -292,6 +293,8 @@ defaultName NodeDashboard     = "Dashboard"
 
 defaultName NodeFrameWrite    = "Frame Write"
 defaultName NodeFrameCalc     = "Frame Calc"
+
+defaultName NodeFile          = "File"
 
 
 instance FromJSON NodeType

@@ -36,6 +36,10 @@ import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
@@ -60,9 +64,6 @@ import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
 import qualified Gargantext.API.Search as Search

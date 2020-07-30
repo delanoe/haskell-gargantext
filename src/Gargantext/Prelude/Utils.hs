@@ -55,7 +55,7 @@ class ReadFile a where
 
 
 writeFile :: (MonadReader env m, MonadBase IO m, HasSettings env, SaveFile a)
-         => a -> m FilePath
+          => a -> m FilePath
 writeFile a = do
   dataPath <- view (settings . fileFolder) <$> ask
   (fp,fn)  <- liftBase $ (toPath 3) . hash . show <$> newStdGen

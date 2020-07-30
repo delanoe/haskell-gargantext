@@ -87,25 +87,25 @@ postNodeAsync uId nId (PostNode nodeName tn) logStatus = do
 
   printDebug "postNodeAsync" nId
   logStatus JobLog { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 2
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
 
   nodeUser <- getNodeUser (NodeId uId)
 
   -- _ <- threadDelay 1000
   logStatus JobLog { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 2
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
 
   let uId' = nodeUser ^. node_userId
   _ <- mkNodeWithParent tn (Just nId) uId' nodeName
 
   pure      JobLog { _scst_succeeded = Just 3
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 0
+                   , _scst_events    = Just []
+                   }
