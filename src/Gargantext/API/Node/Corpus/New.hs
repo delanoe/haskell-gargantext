@@ -26,6 +26,7 @@ import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
+import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import Servant
 import Servant.Job.Core
@@ -38,6 +39,7 @@ import Web.FormUrlEncoded          (FromForm)
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import qualified Gargantext.API.Admin.Orchestrator.Types as T
+import Gargantext.API.Admin.Settings (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Types.Individu (User(..))
@@ -46,6 +48,7 @@ import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowD
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (CorpusId, UserId)
 import Gargantext.Prelude
+import qualified Gargantext.Prelude.Utils as GPU
 import qualified Gargantext.Text.Corpus.API as API
 import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 
@@ -179,6 +182,12 @@ instance FromJSON NewWithFile where
   parseJSON = genericParseJSON $ jsonOptions "_wfi_"
 instance ToSchema NewWithFile where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wfi_")
+
+instance GPU.SaveFile NewWithFile where
+  saveFile' fp (NewWithFile d _ _) = TIO.writeFile fp d
+
+--instance GPU.ReadFile NewWithFile where
+--  readFile' = TIO.readFile
 
 ------------------------------------------------------------------------
 type AsyncJobs event ctI input output =
@@ -332,13 +341,13 @@ type AddWithFile = Summary "Add with FileUrlEncoded to corpus endpoint"
    :> "async"
      :> AsyncJobs JobLog '[FormUrlEncoded] NewWithFile JobLog
 
-addToCorpusWithFile :: FlowCmdM env err m
+addToCorpusWithFile :: (HasSettings env, FlowCmdM env err m)
                     => User
                     -> CorpusId
                     -> NewWithFile
                     -> (JobLog -> m ())
                     -> m JobLog
-addToCorpusWithFile _user cid (NewWithFile _d _l _n) logStatus = do
+addToCorpusWithFile _user cid nwf@(NewWithFile _d _l _n) logStatus = do
 
   printDebug "[addToCorpusWithForm] Uploading file to corpus: " cid
   logStatus JobLog { _scst_succeeded = Just 0
@@ -346,6 +355,9 @@ addToCorpusWithFile _user cid (NewWithFile _d _l _n) logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
+
+  fp <- GPU.writeFile nwf
+  printDebug "File saved as: " fp
 
   printDebug "File upload to corpus finished: " cid
   pure $ JobLog { _scst_succeeded = Just 1
