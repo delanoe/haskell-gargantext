@@ -26,6 +26,7 @@ import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import Servant
@@ -37,6 +38,8 @@ import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
 
+import Gargantext.Prelude
+
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import qualified Gargantext.API.Admin.Orchestrator.Types as T
 import Gargantext.API.Admin.Settings (HasSettings)
@@ -45,9 +48,13 @@ import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
+import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node (CorpusId, UserId)
-import Gargantext.Prelude
+import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
+import Gargantext.Database.Query.Table.Node (getNodeWith)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Schema.Node (node_hyperdata)
 import qualified Gargantext.Prelude.Utils as GPU
 import qualified Gargantext.Text.Corpus.API as API
 import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
@@ -347,19 +354,32 @@ addToCorpusWithFile :: (HasSettings env, FlowCmdM env err m)
                     -> NewWithFile
                     -> (JobLog -> m ())
                     -> m JobLog
-addToCorpusWithFile _user cid nwf@(NewWithFile _d _l _n) logStatus = do
+addToCorpusWithFile user cid nwf@(NewWithFile _d _l fName) logStatus = do
 
-  printDebug "[addToCorpusWithForm] Uploading file to corpus: " cid
+  printDebug "[addToCorpusWithFile] Uploading file to corpus: " cid
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
 
-  fp <- GPU.writeFile nwf
-  printDebug "File saved as: " fp
+  fPath <- GPU.writeFile nwf
+  printDebug "[addToCorpusWithFile] File saved as: " fPath
 
-  printDebug "File upload to corpus finished: " cid
+  uId <- getUserId user
+  nIds <- mkNodeWithParent NodeFile (Just cid) uId fName
+
+  _ <- case nIds of
+    [nId] -> do
+        node <- getNodeWith nId (Proxy :: Proxy HyperdataFile)
+        let hl = node ^. node_hyperdata
+        _ <- updateHyperdata nId $ hl { _hff_name = fName
+                                      , _hff_path = T.pack fPath }
+
+        printDebug "[addToCorpusWithFile] Created node with id: " nId
+    _     -> pure ()
+
+  printDebug "[addToCorpusWithFile] File upload to corpus finished: " cid
   pure $ JobLog { _scst_succeeded = Just 1
                 , _scst_failed    = Just 0
                 , _scst_remaining = Just 0

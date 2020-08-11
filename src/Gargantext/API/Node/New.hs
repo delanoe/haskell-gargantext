@@ -24,6 +24,12 @@ import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Servant
+import Servant.Job.Async
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
+import Web.FormUrlEncoded          (FromForm)
+
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude
@@ -35,11 +41,6 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.Node.User
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import Servant
-import Servant.Job.Async
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
-import Web.FormUrlEncoded          (FromForm)
 
 ------------------------------------------------------------------------
 data PostNode = PostNode { pn_name     :: Text

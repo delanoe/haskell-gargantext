@@ -27,13 +27,14 @@ import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 ------------------------------------------------------------------------
 data HyperdataFile =
   HyperdataFile { _hff_name     :: !Text
+                , _hff_path     :: !Text
                 , _hff_mime     :: !Text
                 }
     deriving (Generic)
 
 
 defaultHyperdataFile :: HyperdataFile
-defaultHyperdataFile = HyperdataFile "" ""
+defaultHyperdataFile = HyperdataFile "" "" ""
 
 ------------------------------------------------------------------------
 -- Instances
