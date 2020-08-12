@@ -16,7 +16,6 @@ Portability : POSIX
 module Gargantext.Viz.Graph
   where
 
-
 import Control.Lens (makeLenses)
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 import Data.Text (Text, pack)

@@ -1,3 +1,14 @@
+{-|
+Module      : Gargantext.API.HashedResponse
+Description :
+Copyright   : (c) CNRS, 2020-Present
+License     : AGPL + CECILL v3
+Maintainer  : team@gargantext.org
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 module Gargantext.API.HashedResponse where
 
 import Data.Aeson

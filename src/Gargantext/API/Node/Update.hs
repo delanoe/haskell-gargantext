@@ -17,18 +17,20 @@ module Gargantext.API.Node.Update
       where
 
 import Data.Aeson
+import Data.Maybe (Maybe(..))
 import Data.Swagger
 import GHC.Generics (Generic)
-import Data.Maybe (Maybe(..))
-import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.Prelude
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
+import Gargantext.API.Admin.Settings (HasSettings)
 import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude (GargServer, simuLogs)
-import Gargantext.Viz.Graph.Distances (GraphMetric(..), Distance(..))
-import Gargantext.Viz.Graph.API (recomputeGraph)
+import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure)
+import Gargantext.Viz.Graph.API (recomputeGraph)
+import Gargantext.Viz.Graph.Distances (GraphMetric(..), Distance(..))
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
@@ -45,6 +47,7 @@ data UpdateNodeParams = UpdateNodeParamsList  { methodList  :: !Method      }
                       | UpdateNodeParamsGraph { methodGraph :: !GraphMetric }
                       | UpdateNodeParamsTexts { methodTexts :: !Granularity }
                       | UpdateNodeParamsBoard { methodBoard :: !Charts      }
+                      | LinkNodeReq { nodeType :: !NodeType, id :: !NodeId }
     deriving (Generic)
 
 ----------------------------------------------------------------------
@@ -63,11 +66,11 @@ data Charts = Sources | Authors | Institutes | Ngrams | All
 api :: UserId -> NodeId -> GargServer API
 api uId nId =
   serveJobsAPI $
-    JobFunction (\p log ->
+    JobFunction (\p log'' ->
       let
         log' x = do
           printDebug "updateNode" x
-          liftBase $ log x
+          liftBase $ log'' x
       in updateNode uId nId p (liftBase . log')
       )
 
@@ -88,6 +91,24 @@ updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
   _ <- case metric of
     Order1 -> recomputeGraph uId nId Conditional
     Order2 -> recomputeGraph uId nId Distributional
+
+  pure  JobLog { _scst_succeeded = Just 2
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
+
+updateNode _uId nid1 (LinkNodeReq nt nid2) logStatus = do
+  logStatus JobLog { _scst_succeeded = Just 1
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+  _ <- case nt of
+    NodeAnnuaire -> pairing nid2 nid1 Nothing -- defaultList
+    NodeCorpus   -> pairing nid1 nid2 Nothing -- defaultList
+    _            -> panic $ "[G.API.N.Update.updateNode] NodeType not implemented"
+                           <> cs (show nt)
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0

@@ -20,6 +20,7 @@ import Control.Monad.Reader (MonadReader)
 import Control.Monad.Reader (ask)
 import Data.Text (Text)
 import GHC.IO (FilePath)
+import Gargantext.Config
 import Gargantext.API.Admin.Settings
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
 import Gargantext.Prelude
@@ -41,6 +42,14 @@ data NodeToHash = NodeToHash { nodeType :: NodeType
 type FolderPath = FilePath
 type FileName   = FilePath
 
+-- | toPath example of use:
+-- toPath 2 "gargantexthello"
+-- ("ga/rg","antexthello")
+-- 
+-- toPath 3 "gargantexthello"
+-- ("gar/gan","texthello")
+
+
 toPath :: Int -> Text -> (FolderPath,FileName)
 toPath n x = (Text.unpack $ Text.intercalate "/" [x1,x2], Text.unpack xs)
   where
@@ -57,7 +66,7 @@ class ReadFile a where
 writeFile :: (MonadReader env m, MonadBase IO m, HasSettings env, SaveFile a)
          => a -> m FilePath
 writeFile a = do
-  dataPath <- view (settings . fileFolder) <$> ask
+  dataPath <- view (settings . config . gc_datafilepath) <$> ask
   (fp,fn)  <- liftBase $ (toPath 3) . hash . show <$> newStdGen
 
   let foldPath = dataPath <> "/" <> fp
@@ -72,5 +81,5 @@ writeFile a = do
 readFile :: (MonadReader env m, MonadBase IO m, HasSettings env, ReadFile a)
          => FilePath -> m a
 readFile fp = do
-  dataPath <- view (settings . fileFolder) <$> ask
+  dataPath <- view (settings . config . gc_datafilepath) <$> ask
   liftBase $ readFile' $ dataPath <> "/" <> fp

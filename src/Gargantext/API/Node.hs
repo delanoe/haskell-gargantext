@@ -31,6 +31,7 @@ module Gargantext.API.Node
   where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.TH (deriveJSON)
 import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
@@ -40,14 +41,14 @@ import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Node.New
 import Gargantext.API.Prelude
-import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
 import Gargantext.API.Table
 import Gargantext.Core.Types (NodeTableResult)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Database.Action.Flow.Pairing (pairing)
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
 import Gargantext.Database.Query.Table.Node
@@ -64,6 +65,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
+import qualified Gargantext.API.Search as Search
 import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
@@ -127,14 +129,13 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "ngrams"     :> TableNgramsApi
 
              :<|> "category"   :> CatApi
-             :<|> "search"     :> SearchDocsAPI
+             :<|> "search"     :> (Search.API Search.SearchResult)
              :<|> "share"      :> Share.API
 
              -- Pairing utilities
              :<|> "pairwith"   :> PairWith
              :<|> "pairs"      :> Pairs
              :<|> "pairing"    :> PairingApi
-             :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
              :<|> "metrics"   :> ScatterAPI
@@ -204,13 +205,12 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> apiNgramsTableCorpus id'
             
            :<|> catApi      id'
-           :<|> searchDocs  id'
+           :<|> Search.api  id'
            :<|> Share.api   id'
            -- Pairing Tools
            :<|> pairWith    id'
            :<|> pairs       id'
            :<|> getPair     id'
-           :<|> searchPairs id'
 
            :<|> scatterApi id'
            :<|> chartApi   id'
@@ -227,12 +227,6 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
 
--- TODO unPrefix "r_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  RenameNode
-instance ToJSON    RenameNode
-instance ToSchema  RenameNode
-instance Arbitrary RenameNode where
-  arbitrary = elements [RenameNode "test"]
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 type CatApi =  Summary " To Categorize NodeNodes: 0 for delete, 1/null neutral, 2 favorite"
@@ -276,7 +270,7 @@ pairs cId = do
 
 type PairWith = Summary "Pair a Corpus with an Annuaire"
               :> "annuaire" :> Capture "annuaire_id" AnnuaireId
-              :> "list"     :> Capture "list_id"     ListId
+              :> QueryParam "list_id"     ListId
               :> Post '[JSON] Int
 
 pairWith :: CorpusId -> GargServer PairWith
@@ -285,7 +279,6 @@ pairWith cId aId lId = do
   _ <- insertNodeNode [ NodeNode cId aId Nothing Nothing]
   pure r
 
-------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
@@ -315,4 +308,12 @@ moveNode :: User
          -> Cmd err [Int]
 moveNode _u n p = update (Move n p)
 -------------------------------------------------------------
+
+
+$(deriveJSON (unPrefix "r_"       ) ''RenameNode )
+instance ToSchema  RenameNode
+instance Arbitrary RenameNode where
+  arbitrary = elements [RenameNode "test"]
+
+
 -------------------------------------------------------------

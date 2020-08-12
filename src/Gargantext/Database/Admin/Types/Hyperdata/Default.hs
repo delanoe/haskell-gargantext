@@ -109,6 +109,3 @@ defaultHyperdata NodeDashboard      = DefaultDashboard defaultHyperdataDashboard
 
 defaultHyperdata NodeFrameWrite     = DefaultFrameWrite defaultHyperdataFrame
 defaultHyperdata NodeFrameCalc      = DefaultFrameCalc  defaultHyperdataFrame
-
-
-

@@ -19,14 +19,12 @@ module Gargantext.Database.Action.Metrics.NgramsByNode
 import Data.Map.Strict (Map, fromListWith, elems, toList, fromList)
 import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.Set (Set)
-import qualified Data.Ord as DO (Down(..))
 import Data.Text (Text)
 import Data.Tuple.Extra (second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Debug.Trace (trace)
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (Ordering(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
@@ -57,12 +55,6 @@ ngramsGroup l _m _n = Text.intercalate " "
                   . Text.splitOn " "
                   . Text.replace "-" " "
 
-
-sortTficf :: Ordering
-          -> (Map Text (Double, Set Text))
-          -> [   (Text,(Double, Set Text))]
-sortTficf Down = List.sortOn (DO.Down . fst . snd) . toList
-sortTficf Up   = List.sortOn (fst . snd) . toList
 
 
 getTficf :: UserCorpusId

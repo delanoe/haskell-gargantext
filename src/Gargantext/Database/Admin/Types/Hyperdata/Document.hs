@@ -21,6 +21,7 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.Document where
 
 import Gargantext.Prelude
+import Gargantext.Core.Utils.Prefix (unCapitalize, dropPrefix)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 
 
@@ -44,7 +45,8 @@ data HyperdataDocument = HyperdataDocument { _hd_bdd                :: !(Maybe T
                                            , _hd_publication_minute :: !(Maybe Int)
                                            , _hd_publication_second :: !(Maybe Int)
                                            , _hd_language_iso2      :: !(Maybe Text)
-                                           } deriving (Show, Generic)
+                                           }
+  deriving (Show, Generic)
 
 
 defaultHyperdataDocument :: HyperdataDocument
@@ -66,6 +68,7 @@ data StatusV3  = StatusV3 { statusV3_error  :: !(Maybe Text)
                           , statusV3_action :: !(Maybe Text)
                       } deriving (Show, Generic)
 $(deriveJSON (unPrefix "statusV3_") ''StatusV3)
+
 
 ------------------------------------------------------------------------
 data HyperdataDocumentV3 = HyperdataDocumentV3 { _hdv3_publication_day    :: !(Maybe Int)
@@ -132,9 +135,32 @@ instance Hyperdata HyperdataDocument
 instance Hyperdata HyperdataDocumentV3
 ------------------------------------------------------------------------
 $(makeLenses ''HyperdataDocument)
+makePrisms ''HyperdataDocument
+
 $(makeLenses ''HyperdataDocumentV3)
 
-$(deriveJSON (unPrefix "_hd_") ''HyperdataDocument)
+-- $(deriveJSON (unPrefix "_hd_") ''HyperdataDocument)
+
+instance FromJSON HyperdataDocument
+  where
+    parseJSON = genericParseJSON
+            ( defaultOptions { sumEncoding = ObjectWithSingleField 
+                            , fieldLabelModifier = unCapitalize . dropPrefix "_hd_"
+                            , omitNothingFields = True
+                            }
+            )
+
+instance ToJSON HyperdataDocument
+  where
+    toJSON = genericToJSON
+           ( defaultOptions { sumEncoding = ObjectWithSingleField 
+                            , fieldLabelModifier = unCapitalize . dropPrefix "_hd_"
+                            , omitNothingFields = True
+                            }
+           )
+
+
+
 $(deriveJSON (unPrefix "_hdv3_") ''HyperdataDocumentV3)
 
 instance ToSchema HyperdataDocument where

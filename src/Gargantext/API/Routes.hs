@@ -33,7 +33,7 @@ import Gargantext.API.Count  (CountAPI, count, Query)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
 import Gargantext.API.Prelude
-import Gargantext.API.Search (SearchPairsAPI, searchPairs)
+-- import qualified Gargantext.API.Search as Search
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
@@ -129,8 +129,8 @@ type GargPrivateAPI' =
                            :> CountAPI
 
            -- Corpus endpoint --> TODO rename s/search/filter/g
-           :<|> "search"   :> Capture "corpus" NodeId
-                           :> SearchPairsAPI
+           -- :<|> "search"   :> Capture "corpus" NodeId
+           --                 :> (Search.API Search.SearchResult)
 
            -- TODO move to NodeAPI?
            :<|> "graph"    :> Summary "Graph endpoint"
@@ -212,8 +212,8 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
 
      :<|> count -- TODO: undefined
 
-     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid
-          <$> PathNode <*> searchPairs -- TODO: move elsewhere
+     -- :<|> withAccess (Proxy :: Proxy (Search.API Search.SearchResult)) Proxy uid
+     --     <$> PathNode <*> Search.api -- TODO: move elsewhere
 
      :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid
           <$> PathNode <*> graphAPI uid -- TODO: mock
