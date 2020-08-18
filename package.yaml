@@ -40,6 +40,7 @@ library:
   - Gargantext.API
   - Gargantext.API.HashedResponse
   - Gargantext.API.Node
+  - Gargantext.API.Node.File
   - Gargantext.API.Admin.Settings
   - Gargantext.API.Prelude
   - Gargantext.Core
@@ -161,6 +162,7 @@ library:
   - located-base
   - logging-effect
   - matrix
+  - MissingH
   - monad-control
   - monad-logger
   - mtl
@@ -208,6 +210,7 @@ library:
   - servant-xml
   - simple-reflect
   - singletons # (IGraph)
+  - wai-app-static
 
     # for mail
   - smtp-mail

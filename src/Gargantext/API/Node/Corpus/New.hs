@@ -22,12 +22,14 @@ module Gargantext.API.Node.Corpus.New
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base64 as BSB64
 import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
+import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
 import Servant
 import Servant.Job.Core
@@ -178,7 +180,7 @@ instance ToSchema NewWithForm where
 
 -------------------------------------------------------
 data NewWithFile = NewWithFile
-  { _wfi_data     :: !Text
+  { _wfi_b64_data :: !Text
   , _wfi_lang     :: !(Maybe Lang)
   , _wfi_name     :: !Text
   } deriving (Eq, Show, Generic)
@@ -191,7 +193,12 @@ instance ToSchema NewWithFile where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wfi_")
 
 instance GPU.SaveFile NewWithFile where
-  saveFile' fp (NewWithFile d _ _) = TIO.writeFile fp d
+  saveFile' fp (NewWithFile b64d _ _) = do
+    let eDecoded = BSB64.decode $ TE.encodeUtf8 b64d
+    case eDecoded of
+      Left err -> panic $ T.pack $ "Error decoding: " <> err
+      Right decoded -> BS.writeFile fp decoded
+    -- BS.writeFile fp $ BSB64.decodeLenient $ TE.encodeUtf8 b64d
 
 --instance GPU.ReadFile NewWithFile where
 --  readFile' = TIO.readFile

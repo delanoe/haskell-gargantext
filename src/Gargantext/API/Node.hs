@@ -43,6 +43,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
+import Gargantext.API.Node.File
 import Gargantext.API.Node.New
 import Gargantext.API.Prelude
 import Gargantext.API.Table
@@ -148,6 +149,8 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "move"      :> MoveAPI
              :<|> "unpublish" :> Share.Unpublish
 
+             :<|> "file"      :> FileApi
+
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
 type RenameApi = Summary " Rename Node"
@@ -222,6 +225,8 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
            :<|> Share.unPublish id'
+
+           :<|> fileApi uId id'
 
 
 ------------------------------------------------------------------------

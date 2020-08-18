@@ -20,11 +20,16 @@ module Gargantext.Viz.Graph.API
 
 import Control.Lens (set, (^.), _Just, (^?))
 import Data.Aeson
+import qualified Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Swagger
 import Data.Text
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
+import Servant
+import Servant.Job.Async
+import Servant.XML
+
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
@@ -45,10 +50,6 @@ import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.GEXF ()
 import Gargantext.Viz.Graph.Tools -- (cooc2graph)
 import Gargantext.Viz.Graph.Distances (Distance(..), GraphMetric(..))
-import Servant
-import Servant.Job.Async
-import Servant.XML
-import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
 -- | There is no Delete specific API for Graph since it can be deleted
