@@ -10,7 +10,7 @@ SECRET_KEY      = PASSWORD_TO_CHANGE
 DATA_FILEPATH = FILEPATH_TO_CHANGE
 
 # [external]
-# FRAMES
+# FRAMES (i.e. iframe sources used in various places on the frontend)
 FRAME_WRITE_URL = URL_TO_CHANGE
 FRAME_CALC_URL  = URL_TO_CHANGE
 
