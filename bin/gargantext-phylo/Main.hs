@@ -33,11 +33,11 @@ import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
 import Gargantext.Core.Text.List.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList
-import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.LevelMaker
-import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.View.Export
-import Gargantext.Viz.Phylo.View.ViewMaker
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.LevelMaker
+import Gargantext.Core.Viz.Phylo.Tools
+import Gargantext.Core.Viz.Phylo.View.Export
+import Gargantext.Core.Viz.Phylo.View.ViewMaker
 import System.Directory (doesFileExist)
 import System.Environment
 import qualified Data.ByteString.Lazy as L

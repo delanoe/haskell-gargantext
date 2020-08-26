@@ -64,7 +64,7 @@ import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
-import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
+import Gargantext.Core.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
 import qualified Gargantext.API.Search as Search

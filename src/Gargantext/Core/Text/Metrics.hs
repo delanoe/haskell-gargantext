@@ -25,8 +25,8 @@ import Data.Map (Map)
 import Data.List.Extra (sortOn)
 import GHC.Real (round)
 import Gargantext.Prelude
-import Gargantext.Viz.Graph.Distances.Matrice
-import Gargantext.Viz.Graph.Index
+import Gargantext.Core.Viz.Graph.Distances.Matrice
+import Gargantext.Core.Viz.Graph.Index
 import Gargantext.Core.Statistics (pcaReduceTo, Dimension(..))
 import qualified Data.Array.Accelerate as DAA
 import qualified Data.Array.Accelerate.Interpreter as DAA

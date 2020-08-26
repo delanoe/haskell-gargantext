@@ -45,8 +45,8 @@ import Gargantext.Core (Lang(EN))
 import Gargantext.Core.Types (Terms(..), Label)
 import Gargantext.Core.Text.Context (splitBy, SplitContext(Sentences))
 import Gargantext.Core.Text.Metrics.Count (Grouped)
-import Gargantext.Viz.Graph.Distances.Matrice
-import Gargantext.Viz.Graph.Index
+import Gargantext.Core.Viz.Graph.Distances.Matrice
+import Gargantext.Core.Viz.Graph.Index
 
 import qualified Data.Array.Accelerate as DAA
 

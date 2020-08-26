@@ -29,8 +29,8 @@ import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure)
-import Gargantext.Viz.Graph.API (recomputeGraph)
-import Gargantext.Viz.Graph.Distances (GraphMetric(..), Distance(..))
+import Gargantext.Core.Viz.Graph.API (recomputeGraph)
+import Gargantext.Core.Viz.Graph.Distances (GraphMetric(..), Distance(..))
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)

@@ -30,11 +30,11 @@ import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_pub
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Core.Text.List.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
-import Gargantext.Viz.AdaptativePhylo
-import Gargantext.Viz.Phylo.PhyloMaker  (toPhylo)
-import Gargantext.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment)
-import Gargantext.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
--- import Gargantext.Viz.Phylo.SynchronicClustering (synchronicDistance')
+import Gargantext.Core.Viz.AdaptativePhylo
+import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo)
+import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment)
+import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
+-- import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicDistance')
 
 import GHC.IO (FilePath) 
 import Prelude (Either(..))
