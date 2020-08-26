@@ -81,14 +81,14 @@ import Gargantext.Database.Query.Table.NodeNodeNgrams2
 import Gargantext.Ext.IMT (toSchoolName)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
-import Gargantext.Text
+import Gargantext.Core.Text
 import Gargantext.Prelude
-import Gargantext.Text.Corpus.Parsers (parseFile, FileFormat)
-import Gargantext.Text.List (buildNgramsLists,StopSize(..))
-import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Text.Terms
+import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
+import Gargantext.Core.Text.List (buildNgramsLists,StopSize(..))
+import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
+import Gargantext.Core.Text.Terms
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
-import qualified Gargantext.Text.Corpus.API as API
+import qualified Gargantext.Core.Text.Corpus.API as API
 
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
@@ -277,11 +277,7 @@ insertMasterDocs c lang hs  =  do
 
   pure ids'
 
-
 ------------------------------------------------------------------------
-
-
-
 ------------------------------------------------------------------------
 viewUniqId' :: UniqId a
             => a
@@ -307,14 +303,11 @@ mergeData rs = catMaybes . map toDocumentWithId . Map.toList
                      <*> Just hpd
 
 ------------------------------------------------------------------------
-
 instance HasText HyperdataContact
   where
     hasText = undefined
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
 documentIdWithNgrams :: HasNodeError err
                      => (a
                      -> Cmd err (Map Ngrams (Map NgramsType Int)))
@@ -328,8 +321,6 @@ documentIdWithNgrams f = traverse toDocumentIdWithNgrams
 
 
 ------------------------------------------------------------------------
-
-
 instance ExtractNgramsT HyperdataContact
   where
     extractNgramsT l hc = filterNgramsT 255 <$> extract l hc

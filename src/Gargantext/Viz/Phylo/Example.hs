@@ -33,7 +33,7 @@ import Data.Map         (Map,empty)
 import Data.Tuple       (fst)
 import Data.Vector      (Vector)
 import Gargantext.Prelude
-import Gargantext.Text.Context (TermList)
+import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Cluster
 import Gargantext.Viz.Phylo.Aggregates

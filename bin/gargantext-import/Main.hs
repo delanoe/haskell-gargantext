@@ -29,7 +29,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (toHyperdataDocument)
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
-import Gargantext.Text.Corpus.Parsers (FileFormat(..))
+import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..))
 import Prelude (read)
 import System.Environment (getArgs)
 import qualified Data.Text as Text

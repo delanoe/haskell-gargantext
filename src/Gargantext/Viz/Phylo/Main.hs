@@ -33,8 +33,8 @@ import Gargantext.Database.Query.Table.Node(defaultList)
 import Gargantext.Database.Query.Table.NodeNode (selectDocs)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-import Gargantext.Text.Context (TermList)
-import Gargantext.Text.Terms.WithList
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Terms.WithList
 import Gargantext.Viz.Phylo hiding (Svg, Dot)
 import Gargantext.Viz.Phylo.LevelMaker
 import Gargantext.Viz.Phylo.Tools

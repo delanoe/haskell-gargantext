@@ -30,7 +30,7 @@ import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.NodeNode (selectDocsDates)
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import Gargantext.Text.Metrics.Count (occurrencesWith)
+import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 
 -- Pie Chart
 import Gargantext.API.Ngrams.NTree

@@ -39,7 +39,7 @@ import Data.Vector  (Vector)
 import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Prelude
-import Gargantext.Text.Context (TermList)
+import Gargantext.Core.Text.Context (TermList)
 import Prelude (Bounded)
 
 --------------------

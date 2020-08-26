@@ -22,8 +22,8 @@ import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import Gargantext.Prelude
-import Gargantext.Text.Search
-import qualified Gargantext.Text.Corpus.Parsers.CSV as CSV
+import Gargantext.Core.Text.Search
+import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as CSV
 ------------------------------------------------------------------------
 
 type Query = [S.Term]

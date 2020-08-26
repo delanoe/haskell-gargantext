@@ -20,8 +20,8 @@ import Data.Map (Map)
 import Data.Text (Text, toLower)
 
 import Gargantext.Prelude
-import Gargantext.Text.Context (TermList)
-import Gargantext.Text.Terms.Mono (monoTexts)
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Terms.Mono (monoTexts)
 import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.PhyloMaker

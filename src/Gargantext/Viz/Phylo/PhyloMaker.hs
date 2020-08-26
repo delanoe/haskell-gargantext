@@ -20,8 +20,8 @@ import Gargantext.Viz.AdaptativePhylo
 import Gargantext.Viz.Phylo.PhyloTools
 import Gargantext.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, constanteTemporalMatching, getNextPeriods, filterDocs, filterDiago, reduceDiagos, toProximity)
 import Gargantext.Viz.Phylo.SynchronicClustering (synchronicClustering)
-import Gargantext.Text.Context (TermList)
-import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Gargantext.Viz.Graph.MaxClique (getMaxCliques)
 import Gargantext.Viz.Graph.Distances (Distance(Conditional))
 

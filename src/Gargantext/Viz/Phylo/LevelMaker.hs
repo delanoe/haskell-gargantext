@@ -30,7 +30,7 @@ import Gargantext.Viz.Phylo.Cluster
 import Gargantext.Viz.Phylo.BranchMaker
 import Gargantext.Viz.Phylo.LinkMaker
 import Gargantext.Viz.Phylo.Tools
-import Gargantext.Text.Context (TermList)
+import Gargantext.Core.Text.Context (TermList)
 
 import qualified Data.Vector.Storable as VS
 import qualified Data.Set    as Set

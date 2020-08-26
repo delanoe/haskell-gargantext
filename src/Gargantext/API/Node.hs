@@ -72,7 +72,7 @@ import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
 {-
-import qualified Gargantext.Text.List.Learn as Learn
+import qualified Gargantext.Core.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 

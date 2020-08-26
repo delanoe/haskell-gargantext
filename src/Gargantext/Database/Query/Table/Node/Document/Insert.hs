@@ -14,7 +14,7 @@ Enabling "common goods" of text data and respecting privacy.
 Gargantext shares as "common good" the links between context of texts
 and terms / words / ngrams.
 
-Basically a context of text can be defined as a document (see 'Gargantext.Text').
+Basically a context of text can be defined as a document (see 'Gargantext.Core.Text').
 
 Issue to tackle in that module: each global document of Gargantext has
 to be unique, then shared, but how to respect privacy if needed ?

@@ -34,7 +34,7 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import Gargantext.Text.Terms.Mono.Stem.En (stemIt)
+import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Opaleye hiding (Query, Order)
 import Data.Profunctor.Product (p4)
 import qualified Opaleye as O hiding (Order)

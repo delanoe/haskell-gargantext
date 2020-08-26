@@ -34,7 +34,7 @@ import Data.Map (Map)
 
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
-import Gargantext.Text.Context (TermList)
+import Gargantext.Core.Text.Context (TermList)
 
 import GHC.Generics
 import GHC.IO (FilePath)

@@ -16,9 +16,9 @@ module Gargantext.Viz.Phylo.Aggregates
 import Control.Parallel.Strategies
 
 import Gargantext.Prelude hiding  (elem)
-import Gargantext.Text.Context    (TermList)
-import Gargantext.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
-import Gargantext.Text.Terms.Mono (monoTexts)
+import Gargantext.Core.Text.Context    (TermList)
+import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
+import Gargantext.Core.Text.Terms.Mono (monoTexts)
 import Gargantext.Viz.Phylo
 import Gargantext.Viz.Phylo.Tools
 
