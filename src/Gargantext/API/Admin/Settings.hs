@@ -54,7 +54,7 @@ import System.Log.FastLogger
 import Web.HttpApiData (parseUrlPiece)
 import qualified Data.ByteString.Lazy as L
 import qualified Servant.Job.Core
-import Gargantext.Config (GargConfig(), readConfig, defaultConfig)
+import Gargantext.Prelude.Config (GargConfig(), readConfig, defaultConfig)
 
 type PortNumber = Int
 

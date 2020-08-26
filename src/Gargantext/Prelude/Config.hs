@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Config
+Module      : Gargantext.Prelude.Config
 Description : Textmining Collaborative Platform
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -11,7 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE TemplateHaskell     #-}
 
-module Gargantext.Config where
+module Gargantext.Prelude.Config where
 
 import System.IO (FilePath)
 import Data.Ini (readIniFile, lookupValue)

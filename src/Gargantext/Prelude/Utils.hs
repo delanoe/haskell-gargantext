@@ -28,7 +28,7 @@ import System.Random (newStdGen)
 import qualified System.Random.Shuffle as SRS
 
 import Gargantext.API.Admin.Settings
-import Gargantext.Config
+import Gargantext.Prelude.Config
 import Gargantext.Core.Crypto.Hash
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
 import Gargantext.Prelude
