@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Ext.IMTUser
+Module      : Gargantext.Core.Ext.IMTUser
 Description : Interface to get IMT users
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -13,7 +13,7 @@ Here is writtent a common interface.
 -}
 
 
-module Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
+module Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
   where
 
 import Codec.Serialise

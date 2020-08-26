@@ -9,7 +9,7 @@ Portability : POSIX
 -}
 
 
-module Gargantext.Ext.IMT where
+module Gargantext.Core.Ext.IMT where
 
 import Gargantext.Prelude
 import Data.Text (Text, splitOn)

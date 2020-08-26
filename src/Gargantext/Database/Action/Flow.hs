@@ -78,9 +78,9 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
-import Gargantext.Ext.IMT (toSchoolName)
+import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Ext.IMTUser (deserialiseImtUsersFromFile)
+import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Core.Text
 import Gargantext.Prelude
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
