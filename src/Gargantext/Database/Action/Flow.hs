@@ -186,6 +186,7 @@ flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
      -> [[a]]
      -> m CorpusId
 flow c u cn la docs = do
+  -- TODO if public insertMasterDocs else insertUserDocs
   ids <- traverse (insertMasterDocs c la) docs
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
 
@@ -224,6 +225,23 @@ flowCorpusUser l user corpusName ctype ids = do
   -- _ <- mkAnnuaire  rootUserId userId
   pure userCorpusId
 
+-- TODO Type NodeDocumentUnicised
+insertDocs :: ( FlowCmdM env err m
+              , FlowCorpus a
+              )
+              => [a]
+              -> UserId
+              -> CorpusId
+              -> m ([DocId], [DocumentWithId a])
+insertDocs hs uId cId = do
+  let docs = map addUniqId hs
+  ids <- insertDb uId cId docs
+  let
+    ids' = map reId ids
+    documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' docs)
+  _ <- Doc.add cId ids'
+  pure (ids', documentsWithId)
+
 
 insertMasterDocs :: ( FlowCmdM env err m
                     , FlowCorpus a
@@ -235,46 +253,39 @@ insertMasterDocs :: ( FlowCmdM env err m
                  -> m [DocId]
 insertMasterDocs c lang hs  =  do
   (masterUserId, _, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) c
+  (ids', documentsWithId) <- insertDocs hs masterUserId masterCorpusId
 
-  -- TODO Type NodeDocumentUnicised
-  let docs = map addUniqId hs
-  ids <- insertDb masterUserId masterCorpusId docs
-  let
-    ids' = map reId ids
-    documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' docs)
   -- TODO
   -- create a corpus with database name (CSV or PubMed)
   -- add documents to the corpus (create node_node link)
   -- this will enable global database monitoring
 
   -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
-  maps <- mapNodeIdNgrams
+  mapNgramsDocs <- mapNodeIdNgrams
        <$> documentIdWithNgrams (extractNgramsT $ withLang lang documentsWithId) documentsWithId
 
-  terms2id <- insertNgrams $ Map.keys maps
+  terms2id <- insertNgrams $ Map.keys mapNgramsDocs
   -- to be removed
-  let indexedNgrams = Map.mapKeys (indexNgrams terms2id) maps
+  let indexedNgrams = Map.mapKeys (indexNgrams terms2id) mapNgramsDocs
 
   -- new
   lId      <- getOrMkList masterCorpusId masterUserId
   mapCgramsId <- listInsertDb lId toNodeNgramsW'
                 $ map (first _ngramsTerms . second Map.keys)
-                $ Map.toList maps
+                $ Map.toList mapNgramsDocs
   -- insertDocNgrams
   _return <- insertNodeNodeNgrams2
            $ catMaybes [ NodeNodeNgrams2 <$> Just nId
                                          <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
                                          <*> Just (fromIntegral w :: Double)
-                       | (terms'', mapNgramsTypes) <- Map.toList maps
+                       | (terms'', mapNgramsTypes) <- Map.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
                        , (nId, w) <- Map.toList mapNodeIdWeight
                        ]
 
-  _ <- Doc.add masterCorpusId ids'
   _cooc <- insertDefaultNode NodeListCooc lId masterUserId
   -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
-
   pure ids'
 
 ------------------------------------------------------------------------
@@ -318,7 +329,6 @@ documentIdWithNgrams f = traverse toDocumentIdWithNgrams
     toDocumentIdWithNgrams d = do
       e <- f $ documentData         d
       pure   $ DocumentIdWithNgrams d e
-
 
 ------------------------------------------------------------------------
 instance ExtractNgramsT HyperdataContact
