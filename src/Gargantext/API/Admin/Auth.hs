@@ -48,7 +48,7 @@ import Servant
 import Servant.Auth.Server
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Gargantext.Core.Auth as Auth
+import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 ---------------------------------------------------
 

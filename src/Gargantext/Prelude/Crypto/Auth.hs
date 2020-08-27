@@ -10,10 +10,10 @@ Portability : POSIX
 -}
 
 
-module Gargantext.Core.Auth ( createPasswordHash
-                            , checkPassword
-                            , module Data.Password.Argon2
-                            )
+module Gargantext.Prelude.Crypto.Auth ( createPasswordHash
+                               , checkPassword
+                               , module Data.Password.Argon2
+                               )
       where
 
 import Control.Monad.IO.Class (MonadIO)

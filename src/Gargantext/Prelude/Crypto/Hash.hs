@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Crypto.Hash
+Module      : Gargantext.Prelude.Crypto.Hash
 Description : Useful Tools near Prelude of the project
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -11,7 +11,7 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans   #-}
 
-module Gargantext.Core.Crypto.Hash
+module Gargantext.Prelude.Crypto.Hash
   where
 
 import Prelude (String)

@@ -11,7 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Gargantext.Core.Mail
+module Gargantext.Prelude.Mail
   (gargMail)
   where
 

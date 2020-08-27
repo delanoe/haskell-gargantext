@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Crypto.Pass
+Module      : Gargantext.Prelude.Crypto.Pass
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : Public Domain
@@ -16,7 +16,7 @@ https://zuttobenkyou.wordpress.com/2011/12/23/simple-password-generation-with-ha
 -}
 
 
-module Gargantext.Core.Crypto.Pass
+module Gargantext.Prelude.Crypto.Pass
       where
 
 -- import Data.List (nub)
