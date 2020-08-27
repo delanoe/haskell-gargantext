@@ -66,6 +66,8 @@ nodeTypeId n =
     NodeDashboard   -> 71
 --    NodeNoteBook    -> 88
 
+    NodeFile        -> 101
+
     NodeFrameWrite  -> 991
     NodeFrameCalc   -> 992
 

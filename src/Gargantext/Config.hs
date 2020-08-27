@@ -58,7 +58,7 @@ readConfig fp = do
 defaultConfig :: GargConfig
 defaultConfig = GargConfig "gargantua"
                            "secret"
-                           "data/"
+                           "data"
                            "https://frame_write.url"
                            "https://frame_calc.url"
                            "https://frame_searx.url"

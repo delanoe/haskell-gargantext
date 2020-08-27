@@ -14,10 +14,10 @@ module Gargantext.API.HashedResponse where
 import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
+import GHC.Generics (Generic)
 
 import Gargantext.Prelude
 import qualified Gargantext.Core.Crypto.Hash as Crypto (hash)
-import GHC.Generics (Generic)
 
 data HashedResponse a = HashedResponse { hash :: Text, value :: a }
   deriving (Generic)

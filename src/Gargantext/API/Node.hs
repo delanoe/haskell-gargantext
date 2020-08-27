@@ -36,9 +36,14 @@ import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
+import Gargantext.API.Node.File
 import Gargantext.API.Node.New
 import Gargantext.API.Prelude
 import Gargantext.API.Table
@@ -60,9 +65,6 @@ import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
 import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
 import qualified Gargantext.API.Search as Search
@@ -147,6 +149,8 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "move"      :> MoveAPI
              :<|> "unpublish" :> Share.Unpublish
 
+             :<|> "file"      :> FileApi
+
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
 type RenameApi = Summary " Rename Node"
@@ -221,6 +225,8 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            -- :<|> nodeAddAPI id'
            -- :<|> postUpload id'
            :<|> Share.unPublish id'
+
+           :<|> fileApi uId id'
 
 
 ------------------------------------------------------------------------

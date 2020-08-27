@@ -22,10 +22,14 @@ module Gargantext.API.Node.Corpus.New
 import Control.Lens hiding (elements, Empty)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base64 as BSB64
 import Data.Either
 import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
 import Servant
 import Servant.Job.Core
@@ -36,16 +40,24 @@ import Servant.Job.Utils (jsonOptions)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
 
+import Gargantext.Prelude
+
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
 import qualified Gargantext.API.Admin.Orchestrator.Types as T
+import Gargantext.API.Admin.Settings (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
+import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node (CorpusId, UserId)
-import Gargantext.Prelude
+import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
+import Gargantext.Database.Query.Table.Node (getNodeWith)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Schema.Node (node_hyperdata)
+import qualified Gargantext.Prelude.Utils as GPU
 import qualified Gargantext.Text.Corpus.API as API
 import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 
@@ -166,6 +178,31 @@ instance FromJSON NewWithForm where
 instance ToSchema NewWithForm where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wf_")
 
+-------------------------------------------------------
+data NewWithFile = NewWithFile
+  { _wfi_b64_data :: !Text
+  , _wfi_lang     :: !(Maybe Lang)
+  , _wfi_name     :: !Text
+  } deriving (Eq, Show, Generic)
+
+makeLenses ''NewWithFile
+instance FromForm NewWithFile
+instance FromJSON NewWithFile where
+  parseJSON = genericParseJSON $ jsonOptions "_wfi_"
+instance ToSchema NewWithFile where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_wfi_")
+
+instance GPU.SaveFile NewWithFile where
+  saveFile' fp (NewWithFile b64d _ _) = do
+    let eDecoded = BSB64.decode $ TE.encodeUtf8 b64d
+    case eDecoded of
+      Left err -> panic $ T.pack $ "Error decoding: " <> err
+      Right decoded -> BS.writeFile fp decoded
+    -- BS.writeFile fp $ BSB64.decodeLenient $ TE.encodeUtf8 b64d
+
+--instance GPU.ReadFile NewWithFile where
+--  readFile' = TIO.readFile
+
 ------------------------------------------------------------------------
 type AsyncJobs event ctI input output =
   AsyncJobsAPI' 'Unsafe 'Safe ctI '[JSON] Maybe event input output
@@ -189,14 +226,6 @@ type AddWithFile = Summary "Add with MultipartData to corpus endpoint"
      :> AsyncJobs JobLog '[JSON] () JobLog
 -}
 
-type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
-   :> "corpus"
-     :> Capture "corpus_id" CorpusId
-   :> "add"
-   :> "form"
-   :> "async"
-     :> AsyncJobs JobLog '[FormUrlEncoded] NewWithForm JobLog
-
 
 ------------------------------------------------------------------------
 -- TODO WithQuery also has a corpus id
@@ -209,10 +238,10 @@ addToCorpusWithQuery :: FlowCmdM env err m
 addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   -- TODO ...
   logStatus JobLog { _scst_succeeded = Just 0
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 5
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 5
+                   , _scst_events    = Just []
+                   }
   printDebug "addToCorpusWithQuery" (cid, dbs)
   -- TODO add cid
   -- TODO if cid is folder -> create Corpus
@@ -221,19 +250,28 @@ addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   txts <- mapM (\db  -> getDataText db     (Multi l) q Nothing) [database2origin dbs]
 
   logStatus JobLog { _scst_succeeded = Just 2
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
 
   cids <- mapM (\txt -> flowDataText u txt (Multi l) cid) txts
   printDebug "corpus id" cids
   -- TODO ...
   pure      JobLog { _scst_succeeded = Just 3
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 0
+                   , _scst_events    = Just []
+                   }
+
+
+type AddWithForm = Summary "Add with FormUrlEncoded to corpus endpoint"
+   :> "corpus"
+     :> Capture "corpus_id" CorpusId
+   :> "add"
+   :> "form"
+   :> "async"
+     :> AsyncJobs JobLog '[FormUrlEncoded] NewWithForm JobLog
 
 addToCorpusWithForm :: FlowCmdM env err m
                     => User
@@ -243,12 +281,13 @@ addToCorpusWithForm :: FlowCmdM env err m
                     -> m JobLog
 addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
-  printDebug "Parsing corpus: " cid
+  printDebug "[addToCorpusWithForm] Parsing corpus: " cid
+  printDebug "[addToCorpusWithForm] fileType" ft
   logStatus JobLog { _scst_succeeded = Just 0
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 2
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 2
+                   , _scst_events    = Just []
+                   }
   let
     parse = case ft of
       CSV_HAL   -> Parser.parseFormat Parser.CsvHal
@@ -263,10 +302,10 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
   printDebug "Parsing corpus finished : " cid
   logStatus JobLog { _scst_succeeded = Just 1
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
 
 
   printDebug "Starting extraction     : " cid
@@ -278,10 +317,10 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
 
   printDebug "Extraction finished   : " cid
   pure      JobLog { _scst_succeeded = Just 2
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 0
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 0
+                   , _scst_events    = Just []
+                   }
 
 {-
 addToCorpusWithFile :: FlowCmdM env err m
@@ -307,3 +346,49 @@ addToCorpusWithFile cid input filetype logStatus = do
 -}
 
 
+
+type AddWithFile = Summary "Add with FileUrlEncoded to corpus endpoint"
+   :> "corpus"
+     :> Capture "corpus_id" CorpusId
+   :> "add"
+   :> "file"
+   :> "async"
+     :> AsyncJobs JobLog '[FormUrlEncoded] NewWithFile JobLog
+
+addToCorpusWithFile :: (HasSettings env, FlowCmdM env err m)
+                    => User
+                    -> CorpusId
+                    -> NewWithFile
+                    -> (JobLog -> m ())
+                    -> m JobLog
+addToCorpusWithFile user cid nwf@(NewWithFile _d _l fName) logStatus = do
+
+  printDebug "[addToCorpusWithFile] Uploading file to corpus: " cid
+  logStatus JobLog { _scst_succeeded = Just 0
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
+
+  fPath <- GPU.writeFile nwf
+  printDebug "[addToCorpusWithFile] File saved as: " fPath
+
+  uId <- getUserId user
+  nIds <- mkNodeWithParent NodeFile (Just cid) uId fName
+
+  _ <- case nIds of
+    [nId] -> do
+        node <- getNodeWith nId (Proxy :: Proxy HyperdataFile)
+        let hl = node ^. node_hyperdata
+        _ <- updateHyperdata nId $ hl { _hff_name = fName
+                                      , _hff_path = T.pack fPath }
+
+        printDebug "[addToCorpusWithFile] Created node with id: " nId
+    _     -> pure ()
+
+  printDebug "[addToCorpusWithFile] File upload to corpus finished: " cid
+  pure $ JobLog { _scst_succeeded = Just 1
+                , _scst_failed    = Just 0
+                , _scst_remaining = Just 0
+                , _scst_events    = Just []
+                }
