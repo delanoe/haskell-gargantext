@@ -29,10 +29,14 @@ import Data.Maybe (Maybe(..))
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
+import Servant
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
+
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Settings (HasSettings)
 import Gargantext.API.Node
-import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (User(..))
@@ -43,10 +47,6 @@ import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (($), liftBase, (.), printDebug, pure)
 import Gargantext.Text.Terms (TermType(..))
-import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
 type API = "contact" :> Summary "Contact endpoint"
