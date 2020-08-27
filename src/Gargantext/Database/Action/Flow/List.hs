@@ -89,7 +89,7 @@ mapNodeIdNgrams = Map.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap f
   where
     f :: DocumentIdWithNgrams a
       -> Map Ngrams (Map NgramsType (Map NodeId Int))
-    f d = fmap (fmap (Map.singleton nId)) $ document_ngrams d
+    f d = fmap (fmap (Map.singleton nId)) $ documentNgrams d
       where
         nId = documentId $ documentWithId d
 

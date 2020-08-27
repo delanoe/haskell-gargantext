@@ -39,7 +39,7 @@ instance UniqId HyperdataContact
 
 data DocumentIdWithNgrams a = DocumentIdWithNgrams
   { documentWithId  :: !(DocumentWithId a)
-  , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
+  , documentNgrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
 
 data DocumentWithId a = DocumentWithId
