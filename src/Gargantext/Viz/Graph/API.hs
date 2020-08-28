@@ -55,8 +55,8 @@ import Gargantext.Viz.Graph.Distances (Distance(..), GraphMetric(..))
 -- | There is no Delete specific API for Graph since it can be deleted
 -- as simple Node.
 type GraphAPI   =  Get  '[JSON] Graph
+              :<|> "async" :> GraphAsyncAPI
               :<|> "gexf" :> Get '[XML] (Headers '[Servant.Header "Content-Disposition" Text] Graph)
-              :<|> GraphAsyncAPI
               :<|> "versions" :> GraphVersionsAPI
 
 data GraphVersions =
@@ -69,10 +69,10 @@ instance ToJSON GraphVersions
 instance ToSchema GraphVersions
 
 graphAPI :: UserId -> NodeId -> GargServer GraphAPI
-graphAPI u n =  getGraph       u n
-         :<|> getGraphGexf     u n
-         :<|> graphAsync       u n
-         :<|> graphVersionsAPI u n
+graphAPI u n = getGraph         u n
+          :<|> graphAsync       u n
+          :<|> getGraphGexf     u n
+          :<|> graphVersionsAPI u n
 
 ------------------------------------------------------------------------
 getGraph :: UserId -> NodeId -> GargNoServer Graph
@@ -90,8 +90,10 @@ getGraph _uId nId = do
   case graph of
     Nothing     -> do
         graph' <- computeGraph cId Conditional NgramsTerms repo
-        _      <- updateHyperdata nId (HyperdataGraph $ Just graph')
-        pure $ trace "[G.V.G.API] Graph empty, computing" graph'
+        mt     <- defaultGraphMetadata cId "Title" repo
+        let graph'' = set graph_metadata (Just mt) graph'
+        _      <- updateHyperdata nId (HyperdataGraph $ Just graph'')
+        pure $ trace "[G.V.G.API] Graph empty, computing" graph''
 
     Just graph' -> pure $ trace "[G.V.G.API] Graph exists, returning" graph'
 
@@ -100,11 +102,8 @@ recomputeGraph :: UserId -> NodeId -> Distance -> GargNoServer Graph
 recomputeGraph _uId nId d = do
   nodeGraph <- getNodeWith nId HyperdataGraph
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
-  let listVersion = graph ^? _Just
-                            . graph_metadata
-                            . _Just
-                            . gm_list
-                            . lfg_version
+  let graphMetadata = graph ^? _Just . graph_metadata . _Just
+  let listVersion = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
 
   repo <- getRepo
   let v   = repo ^. r_version
@@ -115,15 +114,18 @@ recomputeGraph _uId nId d = do
   case graph of
     Nothing     -> do
       graph' <- computeGraph cId d NgramsTerms repo
-      _ <- updateHyperdata nId (HyperdataGraph $ Just graph')
-      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" graph'
+      mt     <- defaultGraphMetadata cId "Title" repo
+      let graph'' = set graph_metadata (Just mt) graph'
+      _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
+      pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" graph''
 
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
                        graph'' <- computeGraph cId d NgramsTerms repo
-                       _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
-                       pure $ trace "[G.V.G.API] Graph exists, recomputing" graph''
+                       let graph''' = set graph_metadata graphMetadata graph''
+                       _ <- updateHyperdata nId (HyperdataGraph $ Just graph''')
+                       pure $ trace "[G.V.G.API] Graph exists, recomputing" graph'''
 
 
 -- TODO use Database Monad only here ?
@@ -147,49 +149,61 @@ computeGraph cId d nt repo = do
 
   graph <- liftBase $ cooc2graph d 0 myCooc
 
+  pure graph
 
-  let metadata = GraphMetadata "Title"
-                               Order1
-                               [cId]
-                               [ LegendField 1 "#FFF" "Cluster1"
-                               , LegendField 2 "#FFF" "Cluster2"
-                               , LegendField 3 "#FFF" "Cluster3"
-                               , LegendField 4 "#FFF" "Cluster4"
-                               ]
-                               (ListForGraph lId (repo ^. r_version))
+
+defaultGraphMetadata :: HasNodeError err
+                     => CorpusId
+                     -> Text
+                     -> NgramsRepo
+                     -> Cmd err GraphMetadata
+defaultGraphMetadata cId t repo = do
+  lId  <- defaultList cId
+
+  pure $ GraphMetadata {
+      _gm_title = t
+    , _gm_metric = Order1
+    , _gm_corpusId = [cId]
+    , _gm_legend = [
+          LegendField 1 "#FFF" "Cluster1"
+        , LegendField 2 "#FFF" "Cluster2"
+        , LegendField 3 "#FFF" "Cluster3"
+        , LegendField 4 "#FFF" "Cluster4"
+        ]
+      , _gm_list = (ListForGraph lId (repo ^. r_version))
+      , _gm_startForceAtlas = True
+    }
                          -- (map (\n -> LegendField n "#FFFFFF" (pack $ show n)) [1..10])
-
-  pure $ set graph_metadata (Just metadata) graph
 
 
 ------------------------------------------------------------
-type GraphAsyncAPI = Summary "Update graph"
-                   :> "async"
-                   :> AsyncJobsAPI JobLog () JobLog
+type GraphAsyncAPI = Summary "Recompute graph"
+                     :> "recompute"
+                     :> AsyncJobsAPI JobLog () JobLog
 
 
 graphAsync :: UserId -> NodeId -> GargServer GraphAsyncAPI
 graphAsync u n =
   serveJobsAPI $
-    JobFunction (\_ log' -> graphAsync' u n (liftBase . log'))
+    JobFunction (\_ log' -> graphRecompute u n (liftBase . log'))
 
 
-graphAsync' :: UserId
-           -> NodeId
-           -> (JobLog -> GargNoServer ())
-           -> GargNoServer JobLog
-graphAsync' u n logStatus = do
+graphRecompute :: UserId
+               -> NodeId
+               -> (JobLog -> GargNoServer ())
+               -> GargNoServer JobLog
+graphRecompute u n logStatus = do
   logStatus JobLog { _scst_succeeded = Just 0
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
   _g <- trace (show u) $ recomputeGraph u n Conditional
   pure  JobLog { _scst_succeeded = Just 1
-                      , _scst_failed    = Just 0
-                      , _scst_remaining = Just 0
-                      , _scst_events    = Just []
-                      }
+               , _scst_failed    = Just 0
+               , _scst_remaining = Just 0
+               , _scst_events    = Just []
+               }
 
 ------------------------------------------------------------
 type GraphVersionsAPI = Summary "Graph versions"

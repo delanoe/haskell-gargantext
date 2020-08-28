@@ -23,13 +23,14 @@ module Gargantext.Text.Metrics.TFICF ( TFICF
                                      )
   where
 
-import Data.Text (Text)
-import Gargantext.Prelude
-import Data.Set (Set)
-import Gargantext.Core.Types (Ordering(..))
+import qualified Data.List as List
 import Data.Map.Strict (Map, toList)
 import qualified Data.Ord as DO (Down(..))
-import qualified Data.List as List
+import Data.Set (Set)
+import Data.Text
+
+import Gargantext.Prelude
+import Gargantext.Core.Types (Ordering(..))
 
 path :: Text
 path = "[G.T.Metrics.TFICF]"
@@ -49,7 +50,7 @@ tficf :: TficfContext Count Total
 tficf (TficfInfra (Count ic) (Total it) )
       (TficfSupra (Count sc) (Total st) )
             | it >= ic && st >= sc && it <= st = (ic/it) / log (sc/st)
-            | otherwise            = panic $ "[ERR]" <> path <>" Frequency impossible"
+            | otherwise            = panic $ "[ERR]" <> path <> " Frequency impossible"
 tficf _ _ = panic $ "[ERR]" <> path <> "Undefined for these contexts"
 
 

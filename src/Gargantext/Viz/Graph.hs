@@ -97,12 +97,13 @@ makeLenses ''ListForGraph
 
 --
 data GraphMetadata =
-  GraphMetadata { _gm_title    :: Text          -- title of the graph
-                , _gm_metric   :: GraphMetric
-                , _gm_corpusId :: [NodeId]      -- we can map with different corpus
-                , _gm_legend   :: [LegendField] -- legend of the Graph
-                , _gm_list     :: ListForGraph
-                -- , _gm_version  :: Int
+  GraphMetadata { _gm_title            :: Text          -- title of the graph
+                , _gm_metric           :: GraphMetric
+                , _gm_corpusId         :: [NodeId]      -- we can map with different corpus
+                , _gm_legend           :: [LegendField] -- legend of the Graph
+                , _gm_list             :: ListForGraph
+                , _gm_startForceAtlas  :: Bool
+                -- , _gm_version       :: Int
                 }
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "_gm_") ''GraphMetadata)
