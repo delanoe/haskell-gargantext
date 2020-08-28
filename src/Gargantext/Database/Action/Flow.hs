@@ -219,7 +219,6 @@ flowCorpusUser l user corpusName ctype ids = do
   _ <- insertDefaultNode NodeDashboard userCorpusId userId
   _ <- insertDefaultNode NodeGraph     userCorpusId userId
   --_ <- mkPhylo  userCorpusId userId
-
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
   pure userCorpusId

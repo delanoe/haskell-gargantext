@@ -56,11 +56,10 @@ type ScatterAPI = Summary "SepGen IncExc metrics"
                   :> QueryParamR "ngramsType" TabType
                   :> QueryParam  "limit"      Int
                   :> Post '[JSON] ()
-              :<|> "hash" :>
-                     Summary "Scatter Hash"
-                  :> QueryParam  "list"       ListId
-                  :> QueryParamR "ngramsType" TabType
-                  :> Get '[JSON] Text
+              :<|> "hash" :> Summary "Scatter Hash"
+                          :> QueryParam  "list"       ListId
+                          :> QueryParamR "ngramsType" TabType
+                          :> Get '[JSON] Text
 
 scatterApi :: NodeId -> GargServer ScatterAPI
 scatterApi id' = getScatter id'
@@ -138,22 +137,21 @@ type ChartApi = Summary " Chart API"
               :> QueryParam  "list"       ListId
               :> QueryParamR "ngramsType" TabType
               :> Get '[JSON] (HashedResponse (ChartMetrics Histo))
-        :<|> Summary "Chart update"
-                :> QueryParam  "list"       ListId
-                :> QueryParamR "ngramsType" TabType
-                :> QueryParam  "limit"      Int
-                :> Post '[JSON] ()
-              :<|> "hash" :>
-                     Summary "Chart Hash"
-                  :> QueryParam  "list"       ListId
-                  :> QueryParamR "ngramsType" TabType
-                  :> Get '[JSON] Text
+            :<|> Summary "Chart update"
+               :> QueryParam  "list"       ListId
+               :> QueryParamR "ngramsType" TabType
+               :> QueryParam  "limit"      Int
+               :> Post '[JSON] ()
+            :<|> "hash" :> Summary "Chart Hash"
+               :> QueryParam  "list"       ListId
+               :> QueryParamR "ngramsType" TabType
+               :> Get '[JSON] Text
 
 chartApi :: NodeId -> GargServer ChartApi
 chartApi id' = getChart id'
           :<|> updateChart id'
           :<|> getChartHash id'
-               
+
 -- TODO add start / end
 getChart :: FlowCmdM env err m =>
             CorpusId
@@ -220,16 +218,15 @@ type PieApi = Summary "Pie Chart"
            :> QueryParam  "list"       ListId
            :> QueryParamR "ngramsType" TabType
            :> Get '[JSON] (HashedResponse (ChartMetrics Histo))
-        :<|> Summary "Pie Chart update"
-                :> QueryParam  "list"       ListId
-                :> QueryParamR "ngramsType" TabType
-                :> QueryParam  "limit"      Int
-                :> Post '[JSON] ()
-              :<|> "hash" :>
-                     Summary "Pie Hash"
-                  :> QueryParam  "list"       ListId
-                  :> QueryParamR "ngramsType" TabType
-                  :> Get '[JSON] Text
+         :<|> Summary "Pie Chart update"
+             :> QueryParam  "list"       ListId
+             :> QueryParamR "ngramsType" TabType
+             :> QueryParam  "limit"      Int
+             :> Post '[JSON] ()
+         :<|> "hash" :> Summary "Pie Hash"
+                     :> QueryParam  "list"       ListId
+                     :> QueryParamR "ngramsType" TabType
+                     :> Get '[JSON] Text
 
 pieApi :: NodeId -> GargServer PieApi
 pieApi id' = getPie id'
@@ -280,7 +277,7 @@ updatePie' cId maybeListId tabType _maybeLimit = do
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
   let hl = node ^. node_hyperdata
 
-  p <- pieData cId (ngramsTypeFromTabType tabType) MapTerm
+  p <- chartData cId (ngramsTypeFromTabType tabType) MapTerm
   _ <- updateHyperdata listId $ hl { _hl_pie = Just $ ChartMetrics p }
 
   pure $ ChartMetrics p
