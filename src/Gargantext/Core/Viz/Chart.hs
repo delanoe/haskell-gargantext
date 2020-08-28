@@ -19,7 +19,6 @@ import Data.Map (toList)
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes)
-import Servant
 
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Config
@@ -51,10 +50,10 @@ histoData cId = do
   pure (Histo ls css)
 
 
-pieData :: FlowCmdM env err m
+chartData :: FlowCmdM env err m
         => CorpusId -> NgramsType -> ListType
         -> m Histo
-pieData cId nt lt = do
+chartData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt <$> getRepo
@@ -71,8 +70,6 @@ pieData cId nt lt = do
   pure (Histo dates (map round count))
 
 
-
-
 treeData :: FlowCmdM env err m
         => CorpusId -> NgramsType -> ListType
         -> m [MyTree]
@@ -80,32 +77,13 @@ treeData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
   ts <- mapTermListRoot ls nt <$> getRepo
-  
+
   let
     dico = filterListWithRoot lt ts
     terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ Map.toList dico
-  
+
   cs' <- getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
-  
+
   m  <- getListNgrams ls nt
   pure $ toTree lt cs' m
-
-
-treeData' :: FlowCmdM env ServerError m
-        => CorpusId -> NgramsType -> ListType
-        -> m [MyTree]
-treeData' cId nt lt = do
-  ls' <- selectNodesWithUsername NodeList userMaster
-  ls <- map (_node_id) <$> getListsWithParentId cId
-  ts <- mapTermListRoot ls nt <$> getRepo
-  
-  let
-    dico = filterListWithRoot lt ts
-    terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ Map.toList dico
-  
-  cs' <- getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
-  
-  m  <- getListNgrams ls nt
-  pure $ toTree lt cs' m
-
 
