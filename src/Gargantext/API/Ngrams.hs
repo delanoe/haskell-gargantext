@@ -163,11 +163,11 @@ instance FromHttpApiData TabType
 
     parseUrlPiece _            = Left "Unexpected value of TabType"
 
-instance ToParamSchema   TabType
-instance ToJSON    TabType
-instance FromJSON  TabType
-instance ToSchema  TabType
-instance Arbitrary TabType
+instance ToParamSchema TabType
+instance ToJSON        TabType
+instance FromJSON      TabType
+instance ToSchema      TabType
+instance Arbitrary     TabType
   where
     arbitrary = elements [minBound .. maxBound]
 

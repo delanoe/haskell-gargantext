@@ -216,6 +216,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> pairs       id'
            :<|> getPair     id'
 
+           -- VIZ
            :<|> scatterApi id'
            :<|> chartApi   id'
            :<|> pieApi     id'
