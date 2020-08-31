@@ -180,13 +180,13 @@ repoDir :: FilePath
 repoDir = "repos"
 
 repoSnapshot :: FilePath
-repoSnapshot = repoDir <> "/repo.json"
+repoSnapshot = repoDir <> "/repo.cbor"
 
 -- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: Serialise a => a -> IO ()
 repoSaverAction a = do
-  withTempFile "repos" "tmp-repo.json" $ \fp h -> do
+  withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
     printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h
