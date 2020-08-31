@@ -24,7 +24,6 @@ import Gargantext.Core.Viz.Graph.Louvain (LouvainNodeId, CommunityId, comId2node
 
 
 
-
 [LouvainNode] -> Map CommunityId LouvainNodeId
 [(CommunityId, [LouvainNodeId])]
 sort by length LouvainNodeIds
@@ -38,6 +37,8 @@ subgraph with [LouvainNodeId]
 
 Map NodeId Label
 -> map [LouvainNodeId] -> [(CommunityId, take 3 [Label])]
+
+use specGen incExc score to order the labels
 
 take 7 [(CommunityId, take 3 [Label])]
 

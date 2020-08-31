@@ -15,13 +15,14 @@ module Gargantext.Core.Text.List
 
 -- import Data.Either (partitionEithers, Either(..))
 import Data.Map (Map)
-import Data.Set (Set)
+import Data.Set (Set, empty)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode (getTficf, ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Action.Metrics.NgramsByNode ({-ngramsGroup,-} getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Core.Text.Metrics.TFICF (sortTficf)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
@@ -138,8 +139,8 @@ buildNgramsTermsList :: Lang
                      -> UserCorpusId
                      -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsTermsList l n m s uCid mCid = do
-  candidates <- sortTficf Down <$> getTficf uCid mCid NgramsTerms (ngramsGroup l n m)
+buildNgramsTermsList _l _n _m s uCid mCid = do
+  candidates <- sortTficf Down <$> getTficf uCid mCid NgramsTerms
 
   let
     candidatesSize = 400
@@ -150,12 +151,12 @@ buildNgramsTermsList l n m s uCid mCid = do
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
 
-    termList = 
+    termList =
           -- (toTermList a b ((isStopTerm s) . fst) candidatesHead)
-                (map (toGargList ((isStopTerm s) .fst) MapTerm)     candidatesHead)
+                (map (toGargList ((isStopTerm s) .fst) MapTerm)       candidatesHead)
              <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
 
-    ngs = List.concat $ map toNgramsElement termList
+    ngs = List.concat $ map toNgramsElement $ map (\(lt, (t,d)) -> (lt, ((t, (d,empty))))) termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
 

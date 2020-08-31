@@ -29,6 +29,7 @@ module Gargantext.Database.Query.Table.NodeNode
   , insertNodeNode
   , deleteNodeNode
   , selectPublicNodes
+  , selectCountDocs
   )
   where
 
@@ -145,7 +146,20 @@ nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
                   |]
 
 ------------------------------------------------------------------------
--- | TODO use UTCTime fast 
+selectCountDocs :: CorpusId -> Cmd err Int
+selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
+  where
+    queryCountDocs cId' = proc () -> do
+      (n, nn) <- joinInCorpus -< ()
+      restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId')
+      restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
+      restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
+      returnA -< n
+
+
+
+
+-- | TODO use UTCTime fast
 selectDocsDates :: CorpusId -> Cmd err [Text]
 selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
                    <$> catMaybes

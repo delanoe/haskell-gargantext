@@ -25,7 +25,6 @@ module Gargantext.Core.Text.Metrics.TFICF ( TFICF
 
 import Data.Text (Text)
 import Gargantext.Prelude
-import Data.Set (Set)
 import Gargantext.Core.Types (Ordering(..))
 import Data.Map.Strict (Map, toList)
 import qualified Data.Ord as DO (Down(..))
@@ -54,8 +53,8 @@ tficf _ _ = panic $ "[ERR]" <> path <> "Undefined for these contexts"
 
 
 sortTficf :: Ordering
-          -> (Map Text (Double, Set Text))
-          -> [   (Text,(Double, Set Text))]
-sortTficf Down = List.sortOn (DO.Down . fst . snd) . toList
-sortTficf Up   = List.sortOn (fst . snd) . toList
+          -> Map Text Double
+          -> [(Text, Double)]
+sortTficf Down = List.sortOn (DO.Down . snd) . toList
+sortTficf Up   = List.sortOn snd . toList
 
