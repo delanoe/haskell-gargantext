@@ -914,7 +914,7 @@ putListNgrams' nodeId ngramsType ns = do
   var <- view repoVar
   liftBase $ modifyMVar_ var $ \r -> do
     pure $ r & r_version +~ 1
-             & r_history %~ mempty
+             & r_history %~ (mempty :)
              & r_state . at ngramsType %~
                (Just .
                  (at nodeId %~
