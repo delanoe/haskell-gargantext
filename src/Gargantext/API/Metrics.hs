@@ -39,9 +39,9 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Text.Metrics (Scored(..))
-import Gargantext.Viz.Chart
-import Gargantext.Viz.Types
+import Gargantext.Core.Text.Metrics (Scored(..))
+import Gargantext.Core.Viz.Chart
+import Gargantext.Core.Viz.Types
 import qualified Gargantext.Database.Action.Metrics as Metrics
 
 -------------------------------------------------------------

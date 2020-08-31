@@ -58,41 +58,41 @@ library:
   - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
   - Gargantext.Prelude.Utils
-  - Gargantext.Text
-  - Gargantext.Text.Context
-  - Gargantext.Text.Corpus.Parsers
-  - Gargantext.Text.Corpus.Parsers.Date.Parsec
-  - Gargantext.Text.Corpus.API
-  - Gargantext.Text.Corpus.Parsers.CSV
-  - Gargantext.Text.Examples
-  - Gargantext.Text.List.CSV
-  - Gargantext.Text.Metrics
-  - Gargantext.Text.Metrics.TFICF
-  - Gargantext.Text.Metrics.CharByChar
-  - Gargantext.Text.Metrics.Count
-  - Gargantext.Text.Search
-  - Gargantext.Text.Terms
-  - Gargantext.Text.Terms.Mono
-  - Gargantext.Text.Terms.Multi.Lang.En
-  - Gargantext.Text.Terms.Multi.Lang.Fr
-  - Gargantext.Text.Terms.Multi.RAKE
-  - Gargantext.Text.Terms.WithList
-  - Gargantext.Text.Flow
-  - Gargantext.Viz.Graph
-  - Gargantext.Viz.Graph.Distances.Matrice
-  - Gargantext.Viz.Graph.Index
-  - Gargantext.Viz.Phylo
-  - Gargantext.Viz.AdaptativePhylo
-  - Gargantext.Viz.Phylo.PhyloMaker
-  - Gargantext.Viz.Phylo.Tools
-  - Gargantext.Viz.Phylo.PhyloTools
-  - Gargantext.Viz.Phylo.PhyloExport
-  - Gargantext.Viz.Phylo.SynchronicClustering
-  - Gargantext.Viz.Phylo.Example
-  - Gargantext.Viz.Phylo.LevelMaker
-  - Gargantext.Viz.Phylo.View.Export
-  - Gargantext.Viz.Phylo.View.ViewMaker
-  - Gargantext.Viz.Types
+  - Gargantext.Core.Text
+  - Gargantext.Core.Text.Context
+  - Gargantext.Core.Text.Corpus.Parsers
+  - Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
+  - Gargantext.Core.Text.Corpus.API
+  - Gargantext.Core.Text.Corpus.Parsers.CSV
+  - Gargantext.Core.Text.Examples
+  - Gargantext.Core.Text.List.CSV
+  - Gargantext.Core.Text.Metrics
+  - Gargantext.Core.Text.Metrics.TFICF
+  - Gargantext.Core.Text.Metrics.CharByChar
+  - Gargantext.Core.Text.Metrics.Count
+  - Gargantext.Core.Text.Search
+  - Gargantext.Core.Text.Terms
+  - Gargantext.Core.Text.Terms.Mono
+  - Gargantext.Core.Text.Terms.Multi.Lang.En
+  - Gargantext.Core.Text.Terms.Multi.Lang.Fr
+  - Gargantext.Core.Text.Terms.Multi.RAKE
+  - Gargantext.Core.Text.Terms.WithList
+  - Gargantext.Core.Text.Flow
+  - Gargantext.Core.Viz.Graph
+  - Gargantext.Core.Viz.Graph.Distances.Matrice
+  - Gargantext.Core.Viz.Graph.Index
+  - Gargantext.Core.Viz.Phylo
+  - Gargantext.Core.Viz.AdaptativePhylo
+  - Gargantext.Core.Viz.Phylo.PhyloMaker
+  - Gargantext.Core.Viz.Phylo.Tools
+  - Gargantext.Core.Viz.Phylo.PhyloTools
+  - Gargantext.Core.Viz.Phylo.PhyloExport
+  - Gargantext.Core.Viz.Phylo.SynchronicClustering
+  - Gargantext.Core.Viz.Phylo.Example
+  - Gargantext.Core.Viz.Phylo.LevelMaker
+  - Gargantext.Core.Viz.Phylo.View.Export
+  - Gargantext.Core.Viz.Phylo.View.ViewMaker
+  - Gargantext.Core.Viz.Types
   dependencies:
   - HSvm
   - KMP

@@ -28,10 +28,10 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Prelude
-import Gargantext.Core.Crypto.Hash (hash)
+import Gargantext.Prelude.Crypto.Hash (hash)
 import Gargantext.Database.Prelude
 import Control.Lens (view)
-import Gargantext.Config (GargConfig(..))
+import Gargantext.Prelude.Config (GargConfig(..))
 
 ------------------------------------------------------------------------
 -- | TODO mk all others nodes

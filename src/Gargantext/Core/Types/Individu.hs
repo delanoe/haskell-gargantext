@@ -22,7 +22,7 @@ import Data.Swagger
 import Data.Text (Text, pack, reverse)
 import Gargantext.Database.Admin.Types.Node (NodeId, UserId)
 import Gargantext.Prelude hiding (reverse)
-import qualified Gargantext.Core.Auth as Auth
+import qualified Gargantext.Prelude.Crypto.Auth as Auth
 
 -- FIXME UserName used twice
 data User = UserDBId UserId | UserName Text | RootId NodeId | UserPublic

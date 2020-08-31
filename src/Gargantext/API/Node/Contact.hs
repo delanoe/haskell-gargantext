@@ -42,7 +42,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..), Hyperda
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (($), liftBase, (.), printDebug, pure)
-import Gargantext.Text.Terms (TermType(..))
+import Gargantext.Core.Text.Terms (TermType(..))
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)

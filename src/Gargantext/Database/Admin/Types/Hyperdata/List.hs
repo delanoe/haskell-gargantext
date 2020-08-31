@@ -22,7 +22,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.List
   where
 
 import Gargantext.Prelude
-import Gargantext.Viz.Types (Histo(..))
+import Gargantext.Core.Viz.Types (Histo(..))
 import Gargantext.API.Ngrams.NTree (MyTree)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)

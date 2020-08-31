@@ -34,7 +34,7 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
-import Gargantext.Config (GargConfig())
+import Gargantext.Prelude.Config (GargConfig())
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)

@@ -27,7 +27,7 @@ import Gargantext.Database.Admin.Types.Node (ListId, CorpusId)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Prelude
-import Gargantext.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
+import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
 import qualified Data.Map    as Map
 
 getMetrics :: FlowCmdM env err m

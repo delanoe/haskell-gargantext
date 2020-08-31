@@ -14,7 +14,7 @@ Portability : POSIX
 
 module Gargantext.Core.Flow.Ngrams where
 
--- import Gargantext.Text.Terms.WithList (filterWith)
+-- import Gargantext.Core.Text.Terms.WithList (filterWith)
 
 
 
