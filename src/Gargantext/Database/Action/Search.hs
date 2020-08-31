@@ -152,12 +152,6 @@ selectGroup cId aId q = proc () -> do
   returnA -< FacetPaired a b c d
 
 
-
-
-
-
-
-
 queryContactViaDoc :: O.Query ( NodeSearchRead
                               , ( NodeNodeReadNull
                                 , ( NodeNodeReadNull
