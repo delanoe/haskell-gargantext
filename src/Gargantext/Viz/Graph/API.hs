@@ -36,15 +36,17 @@ import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node (node_parentId, node_hyperdata)
+import Gargantext.Database.Schema.Node (node_parentId, node_hyperdata, node_name, node_userId)
 import Gargantext.Prelude
 import Gargantext.Viz.Graph
 import Gargantext.Viz.Graph.GEXF ()
@@ -56,6 +58,9 @@ import Gargantext.Viz.Graph.Distances (Distance(..), GraphMetric(..))
 -- as simple Node.
 type GraphAPI   =  Get  '[JSON] Graph
               :<|> "async" :> GraphAsyncAPI
+              :<|> "clone"
+                   :> ReqBody '[JSON] Graph
+                   :> Post '[JSON] NodeId
               :<|> "gexf" :> Get '[XML] (Headers '[Servant.Header "Content-Disposition" Text] Graph)
               :<|> "versions" :> GraphVersionsAPI
 
@@ -71,6 +76,7 @@ instance ToSchema GraphVersions
 graphAPI :: UserId -> NodeId -> GargServer GraphAPI
 graphAPI u n = getGraph         u n
           :<|> graphAsync       u n
+          :<|> graphClone       u n
           :<|> getGraphGexf     u n
           :<|> graphVersionsAPI u n
 
@@ -234,6 +240,29 @@ graphVersions _uId nId = do
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
 recomputeVersions uId nId = recomputeGraph uId nId Conditional
+
+------------------------------------------------------------
+graphClone :: UserId
+           -> NodeId
+           -> Graph
+           -> GargNoServer NodeId
+graphClone uId pId graph = do
+  let nodeType = NodeGraph
+  nodeUser <- getNodeUser (NodeId uId)
+  nodeParent <- getNodeWith pId HyperdataGraph
+  let uId' = nodeUser ^. node_userId
+  nIds <- mkNodeWithParent nodeType (Just pId) uId' $ nodeParent ^. node_name
+  case nIds of
+    [] -> pure pId
+    (nId:_) -> do
+      -- TODO possibly slow, use async jobs here
+      --graphP <- getGraph uId pId
+      let graphP = graph
+      let graphP' = set (graph_metadata . _Just . gm_startForceAtlas) False graphP
+
+      _ <- updateHyperdata nId (HyperdataGraph $ Just graphP')
+
+      pure nId
 
 ------------------------------------------------------------
 getGraphGexf :: UserId

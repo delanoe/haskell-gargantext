@@ -15,6 +15,7 @@ Portability : POSIX
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 
@@ -26,7 +27,13 @@ import Control.Lens (set, view)
 import Data.Aeson
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Text (Text)
+import qualified Database.PostgreSQL.Simple as DPS
+import Database.PostgreSQL.Simple.SqlQQ (sql)
 import GHC.Int (Int64)
+import Opaleye hiding (FromField)
+import Opaleye.Internal.QueryArr (Query)
+import Prelude hiding (null, id, map, sum)
+
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -37,9 +44,6 @@ import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum, head)
-import Opaleye hiding (FromField)
-import Opaleye.Internal.QueryArr (Query)
-import Prelude hiding (null, id, map, sum)
 
 
 queryNodeSearchTable :: Query NodeSearchRead
@@ -106,6 +110,31 @@ getNodesWithParentId n = runOpaQuery $ selectNodesWithParentID n'
     n' = case n of
       Just n'' -> n''
       Nothing  -> 0
+
+
+-- | Given a node id, find it's closest parent of given type
+-- NOTE: This isn't too optimal: can make successive queries depending on how
+-- deeply nested the child is.
+getClosestParentIdByType :: NodeId
+                         -> NodeType
+                         -> Cmd err (Maybe NodeId)
+getClosestParentIdByType nId nType = do
+  result <- runPGSQuery query (nId, 0 :: Int)
+  case result of
+    [DPS.Only parentId, DPS.Only pTypename] -> do
+      if nodeTypeId nType == pTypename then
+        pure $ Just $ NodeId parentId
+      else
+        getClosestParentIdByType (NodeId parentId) nType
+    _ -> pure Nothing
+  where
+    query :: DPS.Query
+    query = [sql|
+      SELECT n2.id, n2.typename
+        FROM nodes n1
+        JOIN nodes n2 ON n1.parent_id = n2.id
+        WHERE n1.id = ? AND 0 = ?;
+    |]
 
 ------------------------------------------------------------------------
 getDocumentsV3WithParentId :: NodeId -> Cmd err [Node HyperdataDocumentV3]

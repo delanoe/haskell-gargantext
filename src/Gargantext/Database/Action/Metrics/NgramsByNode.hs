@@ -24,6 +24,12 @@ import Data.Tuple.Extra (second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Debug.Trace (trace)
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Data.Text as Text
+import qualified Database.PostgreSQL.Simple as DPS
+
 import Gargantext.Core (Lang(..))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
@@ -32,11 +38,6 @@ import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
 import Gargantext.Text.Metrics.TFICF
 import Gargantext.Text.Terms.Mono.Stem (stem)
-import qualified Data.List as List
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
-import qualified Data.Text as Text
-import qualified Database.PostgreSQL.Simple as DPS
 
 -- | TODO: group with 2 terms only can be
 -- discussed. Main purpose of this is offering

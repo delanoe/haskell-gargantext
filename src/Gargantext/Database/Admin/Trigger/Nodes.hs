@@ -17,11 +17,12 @@ module Gargantext.Database.Admin.Trigger.Nodes
   where
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+import qualified Database.PostgreSQL.Simple as DPS
+
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
-import qualified Database.PostgreSQL.Simple as DPS
 
 
 triggerSearchUpdate :: Cmd err Int64
