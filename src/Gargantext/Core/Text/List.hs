@@ -156,7 +156,7 @@ buildNgramsTermsList _l _n _m s uCid mCid = do
                 (map (toGargList ((isStopTerm s) .fst) MapTerm)       candidatesHead)
              <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
 
-    ngs = List.concat $ map toNgramsElement $ map (\(lt, (t,d)) -> (lt, ((t, (d,empty))))) termList
+    ngs = List.concat $ map toNgramsElement $ map (\(lt, (t,d)) -> (lt, ((t, (d,Set.singleton t))))) termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
 

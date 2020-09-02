@@ -47,7 +47,7 @@ import Control.Lens ((^.), view, _Just, makeLenses)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
 import Data.List (concat)
-import qualified Data.Map  as Map
+import qualified Data.Map as Map
 import Data.Map (Map, lookup)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Monoid
@@ -206,7 +206,7 @@ flowCorpusUser l user corpusName ctype ids = do
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
-  _tId <- insertDefaultNode NodeTexts userCorpusId userId
+  -- tId <- insertDefaultNode NodeTexts userCorpusId userId
   -- printDebug "Node Text Id" tId
 
   -- User List Flow
@@ -233,8 +233,11 @@ insertDocs :: ( FlowCmdM env err m
               -> CorpusId
               -> m ([DocId], [DocumentWithId a])
 insertDocs hs uId cId = do
+  printDebug "hs" (length hs)
   let docs = map addUniqId hs
+  printDebug "docs" (length docs)
   ids <- insertDb uId cId docs
+  printDebug "ids" (length ids)
   let
     ids' = map reId ids
     documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' docs)

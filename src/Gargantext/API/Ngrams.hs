@@ -908,9 +908,9 @@ putListNgrams' :: RepoCmdM env err m
                -> Map NgramsTerm NgramsRepoElement
                -> m ()
 putListNgrams' nodeId ngramsType ns = do
-  printDebug "[putLictNgrams'] nodeId" nodeId
-  printDebug "[putLictNgrams'] ngramsType" ngramsType
-  printDebug "[putListNgrams'] ns" ns
+  -- printDebug "[putLictNgrams'] nodeId" nodeId
+  -- printDebug "[putLictNgrams'] ngramsType" ngramsType
+  -- printDebug "[putListNgrams'] ns" ns
   var <- view repoVar
   liftBase $ modifyMVar_ var $ \r -> do
     pure $ r & r_version +~ 1
