@@ -15,7 +15,7 @@ module Gargantext.Core.Text.List
 
 -- import Data.Either (partitionEithers, Either(..))
 import Data.Map (Map)
-import Data.Set (Set, empty)
+import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
