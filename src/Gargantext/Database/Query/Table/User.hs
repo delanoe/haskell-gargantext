@@ -39,7 +39,7 @@ import Data.Maybe (Maybe)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Core.Types.Individu
-import qualified Gargantext.Core.Auth as Auth
+import qualified Gargantext.Prelude.Crypto.Auth as Auth
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Prelude
 import Gargantext.Prelude

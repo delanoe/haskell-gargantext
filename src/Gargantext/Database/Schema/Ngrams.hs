@@ -142,7 +142,7 @@ fromNgramsTypeId id = lookup id
                                ]
 
 ------------------------------------------------------------------------
--- | TODO put it in Gargantext.Text.Ngrams
+-- | TODO put it in Gargantext.Core.Text.Ngrams
 data Ngrams = Ngrams { _ngramsTerms :: Text
                      , _ngramsSize  :: Int
            } deriving (Generic, Show, Eq, Ord)
@@ -155,7 +155,7 @@ text2ngrams :: Text -> Ngrams
 text2ngrams txt = Ngrams txt $ length $ splitOn " " txt
 
 -------------------------------------------------------------------------
--- | TODO put it in Gargantext.Text.Ngrams
+-- | TODO put it in Gargantext.Core.Text.Ngrams
 -- Named entity are typed ngrams of Terms Ngrams
 data NgramsT a =
   NgramsT { _ngramsType :: NgramsType

@@ -25,16 +25,16 @@ import Data.Text  (Text, unwords, unpack)
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
-import Gargantext.Text.Context (TermList)
-import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
-import Gargantext.Text.List.CSV (csvMapTermList)
-import Gargantext.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
-import Gargantext.Viz.AdaptativePhylo
-import Gargantext.Viz.Phylo.PhyloMaker  (toPhylo)
-import Gargantext.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment)
-import Gargantext.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
--- import Gargantext.Viz.Phylo.SynchronicClustering (synchronicDistance')
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
+import Gargantext.Core.Text.List.CSV (csvMapTermList)
+import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
+import Gargantext.Core.Viz.AdaptativePhylo
+import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo)
+import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment)
+import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
+-- import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicDistance')
 
 import GHC.IO (FilePath) 
 import Prelude (Either(..))
@@ -44,7 +44,7 @@ import Control.Concurrent.Async (mapConcurrently)
 
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.Vector as Vector
-import qualified Gargantext.Text.Corpus.Parsers.CSV as Csv
+import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 
 
 ---------------

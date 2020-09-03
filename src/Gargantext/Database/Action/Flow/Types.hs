@@ -20,8 +20,8 @@ module Gargantext.Database.Action.Flow.Types
     where
 
 import Gargantext.Core.Flow.Types
-import Gargantext.Text
-import Gargantext.Text.Terms
+import Gargantext.Core.Text
+import Gargantext.Core.Text.Terms
 import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Prelude (CmdM)

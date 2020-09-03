@@ -36,8 +36,8 @@ import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
-import Gargantext.Text.Metrics.TFICF
-import Gargantext.Text.Terms.Mono.Stem (stem)
+import Gargantext.Core.Text.Metrics.TFICF
+import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 
 -- | TODO: group with 2 terms only can be
 -- discussed. Main purpose of this is offering
@@ -55,7 +55,6 @@ ngramsGroup l _m _n = Text.intercalate " "
                   -- . (List.filter (\t -> Text.length t > m))
                   . Text.splitOn " "
                   . Text.replace "-" " "
-
 
 
 getTficf :: UserCorpusId

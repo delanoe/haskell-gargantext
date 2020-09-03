@@ -23,7 +23,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.Phylo
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
-import Gargantext.Viz.Phylo (Phylo(..))
+import Gargantext.Core.Viz.Phylo (Phylo(..))
 
 ------------------------------------------------------------------------
 

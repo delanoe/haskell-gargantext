@@ -52,8 +52,8 @@ import Gargantext.Database.Query.Table.Node (getNodeWith)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import qualified Gargantext.Prelude.Utils as GPU
-import qualified Gargantext.Text.Corpus.API as API
-import qualified Gargantext.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
+import qualified Gargantext.Core.Text.Corpus.API as API
+import qualified Gargantext.Core.Text.Corpus.Parsers as Parser (FileFormat(..), parseFormat)
 
 ------------------------------------------------------------------------
 {-

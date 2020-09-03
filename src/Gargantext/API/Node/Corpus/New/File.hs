@@ -26,6 +26,7 @@ import Data.Monoid (mempty)
 import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
+
 import Servant
 import Servant.Multipart
 import Servant.Swagger (HasSwagger(toSwagger))
@@ -37,7 +38,7 @@ import Gargantext.API.Ngrams (TODO)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude
-import Gargantext.Core.Crypto.Hash (hash)
+import Gargantext.Prelude.Crypto.Hash (hash)
 
 -------------------------------------------------------------
 type Hash = Text

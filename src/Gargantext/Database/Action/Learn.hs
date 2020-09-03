@@ -24,7 +24,7 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
-import Gargantext.Text.Learn
+import Gargantext.Core.Text.Learn
 import qualified Data.List as List
 import qualified Data.Text as Text
 

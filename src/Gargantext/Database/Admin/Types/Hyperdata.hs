@@ -26,7 +26,7 @@ module Gargantext.Database.Admin.Types.Hyperdata
   , module Gargantext.Database.Admin.Types.Hyperdata.Texts
   , module Gargantext.Database.Admin.Types.Hyperdata.Phylo
   , module Gargantext.Database.Admin.Types.Hyperdata.User
-  , module Gargantext.Viz.Graph
+  , module Gargantext.Core.Viz.Graph
   )
   where
 
@@ -44,6 +44,6 @@ import Gargantext.Database.Admin.Types.Hyperdata.Prelude (Hyperdata)
 import Gargantext.Database.Admin.Types.Hyperdata.Texts
 import Gargantext.Database.Admin.Types.Hyperdata.Phylo
 import Gargantext.Database.Admin.Types.Hyperdata.User
-import Gargantext.Viz.Graph (HyperdataGraph(..), defaultHyperdataGraph)
+import Gargantext.Core.Viz.Graph (HyperdataGraph(..), defaultHyperdataGraph)
 
 

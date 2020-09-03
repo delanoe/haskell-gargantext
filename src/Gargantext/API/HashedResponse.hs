@@ -17,7 +17,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 
 import Gargantext.Prelude
-import qualified Gargantext.Core.Crypto.Hash as Crypto (hash)
+import qualified Gargantext.Prelude.Crypto.Hash as Crypto (hash)
 
 data HashedResponse a = HashedResponse { hash :: Text, value :: a }
   deriving (Generic)

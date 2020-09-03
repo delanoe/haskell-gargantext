@@ -64,7 +64,7 @@ import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Query.Tree (tree, TreeMode(..))
 import Gargantext.Prelude
-import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
+import Gargantext.Core.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import qualified Gargantext.API.Node.Share  as Share
 import qualified Gargantext.API.Node.Update as Update
 import qualified Gargantext.API.Search as Search
@@ -72,7 +72,7 @@ import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
 import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
 {-
-import qualified Gargantext.Text.List.Learn as Learn
+import qualified Gargantext.Core.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 
