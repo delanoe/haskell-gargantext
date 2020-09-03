@@ -56,10 +56,10 @@ import Gargantext.Viz.Graph.Distances (Distance(..), GraphMetric(..))
 ------------------------------------------------------------------------
 -- | There is no Delete specific API for Graph since it can be deleted
 -- as simple Node.
-type GraphAPI   =  Get  '[JSON] Graph
+type GraphAPI   =  Get  '[JSON] HyperdataGraphAPI
               :<|> "async" :> GraphAsyncAPI
               :<|> "clone"
-                   :> ReqBody '[JSON] Graph
+                   :> ReqBody '[JSON] HyperdataGraphAPI
                    :> Post '[JSON] NodeId
               :<|> "gexf" :> Get '[XML] (Headers '[Servant.Header "Content-Disposition" Text] Graph)
               :<|> "versions" :> GraphVersionsAPI
@@ -81,10 +81,11 @@ graphAPI u n = getGraph         u n
           :<|> graphVersionsAPI u n
 
 ------------------------------------------------------------------------
-getGraph :: UserId -> NodeId -> GargNoServer Graph
+getGraph :: UserId -> NodeId -> GargNoServer HyperdataGraphAPI
 getGraph _uId nId = do
-  nodeGraph <- getNodeWith nId HyperdataGraph
+  nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let camera = nodeGraph ^. node_hyperdata . hyperdataCamera
 
   repo <- getRepo
 
@@ -98,16 +99,19 @@ getGraph _uId nId = do
         graph' <- computeGraph cId Conditional NgramsTerms repo
         mt     <- defaultGraphMetadata cId "Title" repo
         let graph'' = set graph_metadata (Just mt) graph'
-        _      <- updateHyperdata nId (HyperdataGraph $ Just graph'')
-        pure $ trace "[G.V.G.API] Graph empty, computing" graph''
+        let hg = HyperdataGraphAPI graph'' camera
+        _      <- updateHyperdata nId hg
+        pure $ trace "[G.V.G.API] Graph empty, computing" hg
 
-    Just graph' -> pure $ trace "[G.V.G.API] Graph exists, returning" graph'
+    Just graph' -> pure $ trace "[G.V.G.API] Graph exists, returning" $
+        HyperdataGraphAPI graph' camera
 
 
 recomputeGraph :: UserId -> NodeId -> Distance -> GargNoServer Graph
 recomputeGraph _uId nId d = do
-  nodeGraph <- getNodeWith nId HyperdataGraph
+  nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let camera = nodeGraph ^. node_hyperdata . hyperdataCamera
   let graphMetadata = graph ^? _Just . graph_metadata . _Just
   let listVersion = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
 
@@ -122,7 +126,7 @@ recomputeGraph _uId nId d = do
       graph' <- computeGraph cId d NgramsTerms repo
       mt     <- defaultGraphMetadata cId "Title" repo
       let graph'' = set graph_metadata (Just mt) graph'
-      _ <- updateHyperdata nId (HyperdataGraph $ Just graph'')
+      _ <- updateHyperdata nId (HyperdataGraph (Just graph'') camera)
       pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" graph''
 
     Just graph' -> if listVersion == Just v
@@ -130,7 +134,7 @@ recomputeGraph _uId nId d = do
                      else do
                        graph'' <- computeGraph cId d NgramsTerms repo
                        let graph''' = set graph_metadata graphMetadata graph''
-                       _ <- updateHyperdata nId (HyperdataGraph $ Just graph''')
+                       _ <- updateHyperdata nId (HyperdataGraph (Just graph''') camera)
                        pure $ trace "[G.V.G.API] Graph exists, recomputing" graph'''
 
 
@@ -224,7 +228,7 @@ graphVersionsAPI u n =
 
 graphVersions :: UserId -> NodeId -> GargNoServer GraphVersions
 graphVersions _uId nId = do
-  nodeGraph <- getNodeWith nId HyperdataGraph
+  nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let listVersion = graph ^? _Just
                             . graph_metadata
@@ -244,23 +248,22 @@ recomputeVersions uId nId = recomputeGraph uId nId Conditional
 ------------------------------------------------------------
 graphClone :: UserId
            -> NodeId
-           -> Graph
+           -> HyperdataGraphAPI
            -> GargNoServer NodeId
-graphClone uId pId graph = do
+graphClone uId pId (HyperdataGraphAPI { _hyperdataAPIGraph = graph
+                                      , _hyperdataAPICamera = camera }) = do
   let nodeType = NodeGraph
   nodeUser <- getNodeUser (NodeId uId)
-  nodeParent <- getNodeWith pId HyperdataGraph
+  nodeParent <- getNodeWith pId (Proxy :: Proxy HyperdataGraph)
   let uId' = nodeUser ^. node_userId
   nIds <- mkNodeWithParent nodeType (Just pId) uId' $ nodeParent ^. node_name
   case nIds of
     [] -> pure pId
     (nId:_) -> do
-      -- TODO possibly slow, use async jobs here
-      --graphP <- getGraph uId pId
       let graphP = graph
       let graphP' = set (graph_metadata . _Just . gm_startForceAtlas) False graphP
 
-      _ <- updateHyperdata nId (HyperdataGraph $ Just graphP')
+      _ <- updateHyperdata nId (HyperdataGraph (Just graphP') camera)
 
       pure nId
 
@@ -269,8 +272,5 @@ getGraphGexf :: UserId
              -> NodeId
              -> GargNoServer (Headers '[Servant.Header "Content-Disposition" Text] Graph)
 getGraphGexf uId nId = do
-  graph <- getGraph uId nId
+  HyperdataGraphAPI { _hyperdataAPIGraph = graph } <- getGraph uId nId
   pure $ addHeader "attachment; filename=graph.gexf" graph
-
-
-

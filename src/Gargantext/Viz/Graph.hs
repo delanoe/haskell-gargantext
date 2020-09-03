@@ -20,16 +20,17 @@ import Control.Lens (makeLenses)
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
 import Data.Text (Text, pack)
 import GHC.IO (FilePath)
-import Gargantext.Core.Types (ListId)
-import Gargantext.Database.Admin.Types.Hyperdata.Prelude
-import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Viz.Graph.Distances (GraphMetric)
-import Gargantext.Prelude
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Aeson as DA
 import qualified Data.Text as T
 import qualified Text.Read as T
+
+import Gargantext.Core.Types (ListId)
+import Gargantext.Database.Admin.Types.Hyperdata.Prelude
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Viz.Graph.Distances (GraphMetric)
+import Gargantext.Prelude
 
 
 data TypeNode = Terms | Unknown
@@ -123,7 +124,7 @@ makeLenses ''Graph
 instance ToSchema Graph where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_graph_")
 
--- | Intances for the mack
+-- | Intances for the mock
 instance Arbitrary Graph where
   arbitrary = elements $ [defaultGraph]
 
@@ -159,15 +160,28 @@ data GraphV3 = GraphV3 { go_links :: [EdgeV3]
   deriving (Show, Generic)
 $(deriveJSON (unPrefix "go_") ''GraphV3)
 
+-----------------------------------------------------------
+data Camera = Camera { _camera_ratio :: Double
+                     , _camera_x     :: Double
+                     , _camera_y     :: Double }
+  deriving (Show, Generic)
+$(deriveJSON (unPrefix "_camera_") ''Camera)
+makeLenses ''Camera
+
+instance ToSchema Camera where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_camera_")
 
 -----------------------------------------------------------
 data HyperdataGraph =
   HyperdataGraph { _hyperdataGraph :: !(Maybe Graph)
+                 , _hyperdataCamera :: !(Maybe Camera)
                  } deriving (Show, Generic)
-$(deriveJSON (unPrefix "") ''HyperdataGraph)
+$(deriveJSON (unPrefix "_") ''HyperdataGraph)
+instance ToSchema HyperdataGraph where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
 
 defaultHyperdataGraph :: HyperdataGraph 
-defaultHyperdataGraph = HyperdataGraph Nothing
+defaultHyperdataGraph = HyperdataGraph Nothing Nothing
 
 
 instance Hyperdata HyperdataGraph
@@ -180,6 +194,23 @@ instance FromField HyperdataGraph
 instance QueryRunnerColumnDefault PGJsonb HyperdataGraph
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+-----------------------------------------------------------
+-- This type is used to return graph via API
+-- hyperdataGraphAPI field is not a Maybe anymore – graph is always computed
+data HyperdataGraphAPI =
+  HyperdataGraphAPI { _hyperdataAPIGraph  :: Graph
+                    , _hyperdataAPICamera :: !(Maybe Camera)
+                    } deriving (Show, Generic)
+$(deriveJSON (unPrefix "_hyperdataAPI") ''HyperdataGraphAPI)
+instance ToSchema HyperdataGraphAPI where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_hyperdataAPI")
+
+makeLenses ''HyperdataGraphAPI
+
+instance FromField HyperdataGraphAPI
+  where
+    fromField = fromField'
 
 -----------------------------------------------------------
 graphV3ToGraph :: GraphV3 -> Graph
