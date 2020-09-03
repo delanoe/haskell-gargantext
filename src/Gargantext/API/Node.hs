@@ -150,6 +150,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "unpublish" :> Share.Unpublish
 
              :<|> "file"      :> FileApi
+             :<|> "async"     :> FileAsyncApi
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -228,6 +229,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> Share.unPublish id'
 
            :<|> fileApi uId id'
+           :<|> fileAsyncApi uId id'
 
 
 ------------------------------------------------------------------------

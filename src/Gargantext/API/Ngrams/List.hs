@@ -22,7 +22,13 @@ import Data.Map (Map, toList, fromList)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
 import GHC.Generics (Generic)
-import Gargantext.API.Node.Corpus.New
+import Network.HTTP.Media ((//), (/:))
+import Servant
+import Servant.Job.Async
+import Servant.Job.Utils (jsonOptions)
+import Web.FormUrlEncoded (FromForm)
+
+import Gargantext.Prelude
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Ngrams
 import Gargantext.API.Admin.Orchestrator.Types
@@ -31,12 +37,6 @@ import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
-import Gargantext.Prelude
-import Network.HTTP.Media ((//), (/:))
-import Servant
-import Servant.Job.Async
-import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded (FromForm)
 
 ------------------------------------------------------------------------
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))

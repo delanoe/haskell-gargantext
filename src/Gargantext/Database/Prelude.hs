@@ -84,12 +84,14 @@ mkCmd k = do
   withResource pool (liftBase . k)
 
 runCmd :: (HasConnectionPool env)
-       => env -> Cmd' env err a
+       => env
+       -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
 
 runOpaQuery :: Default FromFields fields haskells
-            => Select fields -> Cmd err [haskells]
+            => Select fields
+            -> Cmd err [haskells]
 runOpaQuery q = mkCmd $ \c -> runQuery c q
 
 runCountOpaQuery :: Select a -> Cmd err Int

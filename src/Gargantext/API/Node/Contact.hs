@@ -29,12 +29,12 @@ import Data.Maybe (Maybe(..))
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Settings (HasSettings)
 import Gargantext.API.Node
-import Gargantext.API.Node.Corpus.New (AsyncJobs)
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Text.Terms (TermType(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (flow)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
@@ -42,7 +42,6 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..), Hyperda
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (($), liftBase, (.), printDebug, pure)
-import Gargantext.Core.Text.Terms (TermType(..))
 import Servant
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import Test.QuickCheck (elements)

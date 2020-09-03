@@ -30,8 +30,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import Web.FormUrlEncoded          (FromForm)
 
-import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
-import Gargantext.API.Node.Corpus.New (AsyncJobs)
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Prelude
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Node

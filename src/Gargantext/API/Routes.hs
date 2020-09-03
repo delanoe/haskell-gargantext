@@ -24,6 +24,7 @@ module Gargantext.API.Routes
       where
 ---------------------------------------------------------------------
 
+-- import qualified Gargantext.API.Search as Search
 import Control.Concurrent (threadDelay)
 import Data.Text (Text)
 import Data.Validity
@@ -33,28 +34,26 @@ import Gargantext.API.Count  (CountAPI, count, Query)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
 import Gargantext.API.Node
 import Gargantext.API.Prelude
--- import qualified Gargantext.API.Search as Search
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Viz.Graph.API
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Graph.API
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Swagger ()
 import Servant.Job.Async
 import Servant.Swagger.UI
 import qualified Gargantext.API.Ngrams.List           as List
+import qualified Gargantext.API.Node.Contact          as Contact
 import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Node.Corpus.Export    as Export
 import qualified Gargantext.API.Node.Corpus.New       as New
 import qualified Gargantext.API.Public                as Public
-import qualified Gargantext.API.Node.Contact          as Contact
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
-
 
 type GargAPIVersion = "v1.0"
                    :> Summary "Garg API Version "

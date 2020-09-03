@@ -19,18 +19,19 @@ import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.Core (Lang(..))
-import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM)  -- flowAnnuaire
-import Gargantext.Database.Admin.Types.Node (AnnuaireId)
-import Gargantext.Prelude
 import Servant
 import Servant.Job.Core
 import Servant.Job.Types
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
+
 import qualified Gargantext.API.Node.Corpus.New.File as NewFile
+import Gargantext.API.Admin.Orchestrator.Types hiding (AsyncJobs)
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
+import Gargantext.Database.Action.Flow (FlowCmdM)  -- flowAnnuaire
+import Gargantext.Database.Admin.Types.Node (AnnuaireId)
+import Gargantext.Prelude
 
 
 type Api = Summary "New Annuaire endpoint"
