@@ -155,8 +155,8 @@ queryInsert = [sql|
     , ins AS (
        INSERT INTO nodes (typename,user_id,parent_id,name,date,hyperdata)
        SELECT * FROM input_rows
-       -- ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO NOTHING -- on unique index -- this does not return the ids
-       ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO UPDATE SET user_id=EXCLUDED.user_id  -- on unique index
+       ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO NOTHING -- on unique index -- this does not return the ids
+       -- ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO UPDATE SET user_id=EXCLUDED.user_id  -- on unique index
        RETURNING id,hyperdata
        )
 

@@ -228,22 +228,18 @@ flowCorpusUser l user corpusName ctype ids = do
 insertDocs :: ( FlowCmdM env err m
               , FlowCorpus a
               )
-              => [a]
-              -> UserId
+              => UserId
               -> CorpusId
+              -> [a]
               -> m ([DocId], [DocumentWithId a])
-insertDocs hs uId cId = do
-  printDebug "hs" (length hs)
+insertDocs uId cId hs = do
   let docs = map addUniqId hs
-  printDebug "docs" (length docs)
-  ids <- insertDb uId cId docs
-  printDebug "ids" (length ids)
-  -- printDebug "inserted" (map reUniqId ids)
+  newIds <- insertDb uId cId docs
   let
-    ids' = map reId ids
-    documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' docs)
-  _ <- Doc.add cId ids'
-  pure (ids', documentsWithId)
+    newIds' = map reId newIds
+    documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)
+  _ <- Doc.add cId newIds'
+  pure (newIds', documentsWithId)
 
 
 insertMasterDocs :: ( FlowCmdM env err m
@@ -256,7 +252,7 @@ insertMasterDocs :: ( FlowCmdM env err m
                  -> m [DocId]
 insertMasterDocs c lang hs  =  do
   (masterUserId, _, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) c
-  (ids', documentsWithId) <- insertDocs hs masterUserId masterCorpusId
+  (ids', documentsWithId) <- insertDocs masterUserId masterCorpusId hs
   _ <- Doc.add masterCorpusId ids'
   -- TODO
   -- create a corpus with database name (CSV or PubMed)
