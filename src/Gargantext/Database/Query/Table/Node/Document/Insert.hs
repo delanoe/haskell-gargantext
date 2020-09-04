@@ -57,12 +57,14 @@ module Gargantext.Database.Query.Table.Node.Document.Insert
 import Control.Lens (set, view)
 import Control.Lens.Cons
 import Control.Lens.Prism
-import Data.Aeson (toJSON)
+import Data.Aeson (toJSON{-, ToJSON-})
 import Data.Maybe (maybe)
 import Data.Text (Text)
+-- import Data.ByteString (ByteString)
 import Data.Time.Segment (jour)
 import Database.PostgreSQL.Simple (FromRow, Query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
+-- import Database.PostgreSQL.Simple.ToRow (toRow, ToRow)
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField, Action)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
@@ -70,7 +72,7 @@ import GHC.Generics (Generic)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery{-, formatPGSQuery-})
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (hash)
 import qualified Data.Text                   as DT (pack, concat, take)
@@ -126,7 +128,7 @@ instance InsertDb HyperdataContact
                       , toField u
                       , toField p
                       , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
-                      , toField $ jour 2010 1 1 -- TODO put default date
+                      , toField $ jour 0 1 1 -- TODO put default date
                       , (toField . toJSON) h
                       ]
 
@@ -134,13 +136,13 @@ instance InsertDb HyperdataContact
 --
 -- to print rendered query (Debug purpose) use @formatQuery@ function.
 {-
-insertDocuments_Debug :: (Hyperdata a, ToJSON a, ToRow a) => UserId -> ParentId -> [a] -> Cmd ByteString
+insertDocuments_Debug :: (Hyperdata a, ToJSON a, ToRow a, InsertDb [a])
+                      => UserId -> ParentId -> [a] -> Cmd err ByteString
 insertDocuments_Debug uId pId hs = formatPGSQuery queryInsert (Only $ Values fields inputData)
   where
     fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
-    inputData = prepare uId pId hs
+    inputData = insertDb' uId pId hs
 -}
-
 
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
@@ -153,27 +155,25 @@ queryInsert = [sql|
     , ins AS (
        INSERT INTO nodes (typename,user_id,parent_id,name,date,hyperdata)
        SELECT * FROM input_rows
-       ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO UPDATE SET user_id=EXCLUDED.user_id  -- on unique index
        -- ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO NOTHING -- on unique index -- this does not return the ids
-       -- ON CONFLICT (typename, parent_id, (hyperdata ->> 'uniqId')) DO NOTHING -- on unique index
+       ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO UPDATE SET user_id=EXCLUDED.user_id  -- on unique index
        RETURNING id,hyperdata
        )
 
     SELECT true AS source                     -- true for 'newly inserted'
          , id
-         , hyperdata ->> 'uniqId'  as doi
+         , hyperdata ->> 'uniqIdBdd'  as doi
     FROM   ins
     UNION  ALL
     SELECT false AS source                    -- false for 'not inserted'
          , c.id
-         , hyperdata ->> 'uniqId' as doi
+         , hyperdata ->> 'uniqIdBdd' as doi
     FROM   input_rows
     JOIN   nodes c USING (hyperdata);         -- columns of unique index
            |]
 
 ------------------------------------------------------------------------
 -- * Main Types used
-
 -- ** Return Types
 
 -- | When documents are inserted
@@ -229,12 +229,10 @@ addUniqIdsContact hc = set (hc_uniqIdBdd) (Just shaBdd)
 
     -- | TODO add more shaparameters
     shaParametersContact :: [(HyperdataContact -> Text)]
-    shaParametersContact = [ \d -> maybeText $ view (hc_who . _Just . cw_firstName) d
-                            , \d -> maybeText $ view (hc_who . _Just . cw_lastName ) d
-                            , \d -> maybeText $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
-                            ]
-
-
+    shaParametersContact = [ \d -> maybeText $ view (hc_who . _Just . cw_firstName                ) d
+                           , \d -> maybeText $ view (hc_who . _Just . cw_lastName                 ) d
+                           , \d -> maybeText $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
+                           ]
 
 maybeText :: Maybe Text -> Text
 maybeText = maybe (DT.pack "") identity

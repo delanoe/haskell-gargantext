@@ -206,8 +206,8 @@ flowCorpusUser l user corpusName ctype ids = do
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
-  -- tId <- insertDefaultNode NodeTexts userCorpusId userId
-  -- printDebug "Node Text Id" tId
+  tId <- insertDefaultNode NodeTexts userCorpusId userId
+  printDebug "Node Text Ids:" tId
 
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
@@ -238,6 +238,7 @@ insertDocs hs uId cId = do
   printDebug "docs" (length docs)
   ids <- insertDb uId cId docs
   printDebug "ids" (length ids)
+  -- printDebug "inserted" (map reUniqId ids)
   let
     ids' = map reId ids
     documentsWithId = mergeData (toInserted ids) (Map.fromList $ map viewUniqId' docs)
@@ -256,7 +257,7 @@ insertMasterDocs :: ( FlowCmdM env err m
 insertMasterDocs c lang hs  =  do
   (masterUserId, _, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) c
   (ids', documentsWithId) <- insertDocs hs masterUserId masterCorpusId
-
+  _ <- Doc.add masterCorpusId ids'
   -- TODO
   -- create a corpus with database name (CSV or PubMed)
   -- add documents to the corpus (create node_node link)
@@ -303,7 +304,7 @@ viewUniqId' d = maybe err (\h -> (h,d)) (view uniqId d)
 toInserted :: [ReturnId]
            -> Map HashId ReturnId
 toInserted =
-  Map.fromList . map    (\r ->  (reUniqId r, r)    )
+  Map.fromList . map    (\r -> (reUniqId r, r)     )
                . filter (\r -> reInserted r == True)
 
 mergeData :: Map HashId ReturnId

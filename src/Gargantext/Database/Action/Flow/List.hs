@@ -78,10 +78,6 @@ flowList_Tficf' u m nt f = do
 -}
 
 
-
-
-
-
 -- | TODO check optimization
 mapNodeIdNgrams :: [DocumentIdWithNgrams a]
                 -> Map Ngrams (Map NgramsType (Map NodeId Int))
