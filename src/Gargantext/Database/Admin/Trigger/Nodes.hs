@@ -67,3 +67,4 @@ triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
 
   |]
 
+

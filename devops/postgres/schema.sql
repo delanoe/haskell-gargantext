@@ -23,6 +23,7 @@ ALTER TABLE public.auth_user OWNER TO gargantua;
 -- TODO typename -> type_id
 CREATE TABLE public.nodes (
     id        SERIAL,
+    hash_id   CHARACTER varying(66) DEFAULT ''::character varying NOT NULL,
     typename  INTEGER NOT NULL,
     user_id   INTEGER NOT NULL,
     parent_id INTEGER REFERENCES public.nodes(id) ON DELETE CASCADE ,
@@ -151,9 +152,10 @@ CREATE INDEX        ON public.nodes USING btree (user_id, typename, parent_id);
 CREATE INDEX        ON public.nodes USING btree (id, typename, date ASC);
 CREATE INDEX        ON public.nodes USING btree (id, typename, date DESC);
 CREATE INDEX        ON public.nodes USING btree (typename, id);
-CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
-CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
-CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
+CREATE UNIQUE INDEX ON public.nodes USING btree (hash_id);
+-- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
+-- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
+-- CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 CREATE        INDEX ON public.ngrams USING btree (id, terms);
@@ -187,3 +189,21 @@ CREATE OR REPLACE function node_pos(int, int) returns bigint
 --drop index node_by_pos;
 create index node_by_pos on nodes using btree(node_pos(id,typename));
 
+
+
+-- Trigger to update hash of nodes
+CREATE EXTENSION pgcrypto;
+CREATE OR REPLACE FUNCTION hash_update_nodes()
+RETURNS trigger AS $$
+BEGIN
+    IF tg_op = 'INSERT' OR tg_op = 'UPDATE' THEN
+        IF NEW.hash_id = ''
+          THEN NEW.hash_id = digest(CONCAT(NEW.id, NEW.hyperdata), 'sha256');
+        END IF;
+        RETURN NEW;
+    END IF;
+END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER some_table_hash_update
+BEFORE INSERT OR UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();
