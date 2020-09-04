@@ -115,9 +115,9 @@ mkRoot user = do
        rs <- mkNodeWithParent NodeUser Nothing uid una
        _ <- case rs of
          [r] -> do
-           _ <- mkNodeWithParent NodeFolderPrivate (Just r) uid una
-           _ <- mkNodeWithParent NodeFolderShared  (Just r) uid una
-           _ <- mkNodeWithParent NodeFolderPublic  (Just r) uid una
+           _ <- insertNode NodeFolderPrivate Nothing Nothing r uid
+           _ <- insertNode NodeFolderShared Nothing Nothing r uid
+           _ <- insertNode NodeFolderPublic Nothing Nothing r uid
            pure rs
          _   -> pure rs
        pure rs

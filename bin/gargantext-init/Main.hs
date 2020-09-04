@@ -42,7 +42,7 @@ main = do
 
   let
     mkRoots :: Cmd GargError [(UserId, RootId)]
-    mkRoots = mapM getOrMkRoot $ map UserName ["gargantua", "user1", "user2"]
+    mkRoots = mapM getOrMkRoot $ map UserName ["gargantua", "user1", "user2", "user3"]
     -- TODO create all users roots
 
   let
