@@ -1,7 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-CREATE EXTENSION IF NOT EXISTS tsm_system_rows;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
+CREATE EXTENSION IF NOT EXISTS tsm_system_rows;
+CREATE EXTENSION pgcrypto;
+
+-----------------------------------------------------------------
 CREATE TABLE public.auth_user (
     id SERIAL,
     password     CHARACTER varying(128) NOT NULL,
@@ -191,19 +194,4 @@ create index node_by_pos on nodes using btree(node_pos(id,typename));
 
 
 
--- Trigger to update hash of nodes
-CREATE EXTENSION pgcrypto;
-CREATE OR REPLACE FUNCTION hash_update_nodes()
-RETURNS trigger AS $$
-BEGIN
-    IF tg_op = 'INSERT' OR tg_op = 'UPDATE' THEN
-        IF NEW.hash_id = ''
-          THEN NEW.hash_id = digest(CONCAT(NEW.id, NEW.hyperdata), 'sha256');
-        END IF;
-        RETURN NEW;
-    END IF;
-END
-$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER some_table_hash_update
-BEFORE INSERT OR UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();

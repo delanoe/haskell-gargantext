@@ -67,4 +67,32 @@ triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
 
   |]
 
+triggerUpdateHash :: Cmd err Int64
+triggerUpdateHash = execPGSQuery query ( nodeTypeId NodeDocument
+                                       , nodeTypeId NodeContact
+                                       )
+  where
+    query :: DPS.Query
+    query = [sql|
+
+      CREATE OR REPLACE FUNCTION hash_update_nodes()
+      RETURNS trigger AS $$
+      BEGIN
+          IF tg_op = 'INSERT' OR tg_op = 'UPDATE' THEN
+              IF NEW.hash_id = ''
+                THEN
+                  IF NEW.typename = ? OR NEW.typename = ?
+                    THEN NEW.hash_id = digest(CONCAT(NEW.parent_id, NEW.hyperdata), 'sha256');
+                    ELSE NEW.hash_id = digest(CONCAT(NEW.id, NEW.hyperdata), 'sha256');
+                END IF;
+              END IF;
+              RETURN NEW;
+          END IF;
+      END
+      $$ LANGUAGE plpgsql;
+
+      CREATE TRIGGER some_table_hash_update
+      BEFORE INSERT OR UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();
+  |]
+
 
