@@ -19,15 +19,27 @@ https://zuttobenkyou.wordpress.com/2011/12/23/simple-password-generation-with-ha
 module Gargantext.Prelude.Crypto.Pass
       where
 
--- import Data.List (nub)
+import Data.List (nub)
 -- import System.Environment (getArgs)
 -- import System.IO (hSetEcho)
+import Data.Text (Text)
 import Control.Monad.State
 import Crypto.Random (cprgGenerate)
 import Crypto.Random.AESCtr
 import Data.Binary (decode)
 import Prelude
 import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Internal as DBI
+import Gargantext.Prelude (cs)
+import Data.ByteString as S (ByteString, unpack)
+import Data.ByteString.Char8 as C8 (pack)
+import Data.Char (chr)
+
+strToBS :: String -> S.ByteString
+strToBS = C8.pack
+
+bsToStr :: S.ByteString -> String
+bsToStr = map (chr . fromEnum) . S.unpack
 
 
 keysChar, keysNum, keysPunc, keysCharNum, keysAll, keysHex :: String
@@ -64,7 +76,8 @@ showRandomKey len keysCustom = handleKey =<< liftIO getChar
             . giveKey keysCustom key
             . (\n -> mod n (length (keysAll ++ keysCustom) - 1))
             =<< aesRandomInt
- 
+
+
 aesRandomInt :: StateT AESRNG IO Int
 aesRandomInt = do
     aesState <- get
@@ -74,15 +87,27 @@ aesRandomInt = do
     put aesState'
     return (decode $ B.fromChunks [bs])
 
-gargPass :: IO (Int, AESRNG)
-gargPass = do
-  -- let as = ["alphanumeric","punctuation"]
-  -- let as' = filter (\c -> elem c keysAll) . nub $ unwords as
+printPass :: Int -> IO ()
+printPass len = do
+  let as = ["alphanumeric","punctuation"]
+  let as' = filter (\c -> elem c keysAll) . nub $ unwords as
   aesState <- makeSystem -- gather entropy from the system to use as the initial seed
-  --_ <- runStateT (showRandomKey len as') aesState -- enter loop
-  -- return ()
+  _ <- runStateT (showRandomKey len as') aesState -- enter loop
+  return ()
+
+gargPass :: Int -> IO (Int, AESRNG)
+gargPass len = do
+  let as = ["alphanumeric","punctuation"]
+  let as' = filter (\c -> elem c keysAll) . nub $ unwords as
+  aesState <- makeSystem -- gather entropy from the system to use as the initial seed
   pass <- runStateT aesRandomInt aesState -- enter loop
   pure pass
+
+gargPass' :: IO Text
+gargPass' = do
+  aesState <- makeSystem
+  let (bs, _aesState') = cprgGenerate 15 aesState
+  return (cs $ bsToStr bs)
 
 {- 
 main :: IO ()
