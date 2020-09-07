@@ -3,6 +3,8 @@ flags: {}
 extra-package-dbs: []
 packages:
 - .
+- 'deps/patches-class'
+- 'deps/patches-map'
 #- 'deps/servant-job'
 #- 'deps/clustering-louvain'
 
@@ -42,16 +44,16 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
     #
-- git: https://gitlab.iscpif.fr/gargantext/patches-class
-  commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
+#- git: https://gitlab.iscpif.fr/gargantext/patches-class
+#  commit: 746b4ce0af8f9e600d555ad7e5b2973a940cdad9
   #- git: https://github.com/delanoe/servant-job.git
   #commit: 7a7b7100e6d132adb4c11b25b2128e6309690ac0
 - git: https://github.com/np/servant-job.git
   commit: 6487744c322baaa9229fdabd321a878a5b363c61
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
   commit: 7d74f96dfea8e51fbab1793cc0429b2fe741f73d
-- git: https://github.com/np/patches-map
-  commit: 8c6f38c4844ead53e664cf9c82ba461715dbe445
+#- git: https://github.com/np/patches-map
+#  commit: 8c6f38c4844ead53e664cf9c82ba461715dbe445
 - git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
   commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
 - git: https://github.com/delanoe/hsparql.git
