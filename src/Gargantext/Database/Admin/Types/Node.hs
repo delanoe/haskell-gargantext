@@ -51,10 +51,10 @@ import Gargantext.Prelude
 
 type UserId = Int
 type MasterUserId = UserId
-
+type HashId = Text
 ------------------------------------------------------------------------
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Node json   = NodePoly NodeId HashId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
 
 -- | NodeSearch (queries)
 -- type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
@@ -62,7 +62,7 @@ type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName U
 ------------------------------------------------------------------------
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePoly NodeId NodeTypeId
+         ToSchema (NodePoly NodeId HashId NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata
@@ -70,7 +70,7 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
   declareNamedSchema = wellNamedSchema "_node_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePoly NodeId NodeTypeId
+         ToSchema (NodePoly NodeId HashId NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata
@@ -95,15 +95,16 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
+         ,Arbitrary hashId
          ,Arbitrary nodeTypeId
          ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePoly nodeId nodeTypeId userId nodeParentId
+         ) => Arbitrary (NodePoly nodeId hashId nodeTypeId userId nodeParentId
                                   NodeName UTCTime hyperdata) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary
+                     <*> arbitrary <*> arbitrary
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId

@@ -19,7 +19,6 @@ import Data.Map (Map)
 import Data.Maybe (Maybe)
 -- import Control.Applicative
 import Gargantext.Core.Text (HasText(..))
-import Gargantext.Core.Types.Main (HashId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)

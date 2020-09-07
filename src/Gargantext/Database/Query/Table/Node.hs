@@ -73,7 +73,7 @@ selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node <- (proc () -> do
-      row@(Node _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
+      row@(Node _ _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
       restrict -< parentId' .== (pgNodeId parentId)
 
       let typeId' = maybe 0 nodeTypeId maybeNodeType
@@ -87,12 +87,12 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
 deleteNode :: NodeId -> Cmd err Int
 deleteNode n = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeTable
-                 (\(Node n_id _ _ _ _ _ _) -> n_id .== pgNodeId n)
+                 (\(Node n_id _ _ _ _ _ _ _) -> n_id .== pgNodeId n)
 
 deleteNodes :: [NodeId] -> Cmd err Int
 deleteNodes ns = mkCmd $ \conn ->
   fromIntegral <$> runDelete conn nodeTable
-                   (\(Node n_id _ _ _ _ _ _) -> in_ ((map pgNodeId ns)) n_id)
+                   (\(Node n_id _ _ _ _ _ _ _) -> in_ ((map pgNodeId ns)) n_id)
 
 -- TODO: NodeType should match with `a'
 getNodesWith :: JSONB a => NodeId -> proxy a -> Maybe NodeType
@@ -153,13 +153,13 @@ getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 ------------------------------------------------------------------------
 selectNodesWithParentID :: NodeId -> Query NodeRead
 selectNodesWithParentID n = proc () -> do
-    row@(Node _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
+    row@(Node _ _ _ _ parent_id _ _ _) <- queryNodeTable -< ()
     restrict -< parent_id .== (pgNodeId n)
     returnA -< row
 
 selectNodesWithType :: Column PGInt4 -> Query NodeRead
 selectNodesWithType type_id = proc () -> do
-    row@(Node _ tn _ _ _ _ _) <- queryNodeTable -< ()
+    row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
     restrict -< tn .== type_id
     returnA -< row
 
@@ -205,7 +205,7 @@ node :: (ToJSON a, Hyperdata a)
      -> UserId
      -> NodeWrite
 node nodeType name hyperData parentId userId =
-  Node Nothing
+  Node Nothing Nothing
        (pgInt4 typeId)
        (pgInt4 userId)
        (pgNodeId <$> parentId)
@@ -238,7 +238,7 @@ insertNodes' ns = mkCmd $ \conn -> runInsert_ conn
 
 insertNodesR :: [NodeWrite] -> Cmd err [NodeId]
 insertNodesR ns = mkCmd $ \conn ->
-  runInsert_ conn (Insert nodeTable ns (rReturning (\(Node i _ _ _ _ _ _) -> i)) Nothing)
+  runInsert_ conn (Insert nodeTable ns (rReturning (\(Node i _ _ _ _ _ _ _) -> i)) Nothing)
 
 insertNodesWithParent :: Maybe ParentId -> [NodeWrite] -> Cmd err Int64
 insertNodesWithParent pid ns = insertNodes (set node_parentId (pgNodeId <$> pid) <$> ns)
@@ -251,7 +251,7 @@ insertNodesWithParentR pid ns = insertNodesR (set node_parentId (pgNodeId <$> pi
 -- needs a Temporary type between Node' and NodeWriteT
 
 node2table :: UserId -> Maybe ParentId -> Node' -> NodeWrite
-node2table uid pid (Node' nt txt v []) = Node Nothing (pgInt4 $ nodeTypeId nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
+node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (pgInt4 $ nodeTypeId nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 

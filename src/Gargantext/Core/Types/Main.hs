@@ -49,8 +49,6 @@ instance ToSchema NodeTree where
 
 --data Classification = Favorites | MyClassifcation
 
-type HashId   = Text
-
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
 data ListType  =  StopTerm | CandidateTerm | MapTerm

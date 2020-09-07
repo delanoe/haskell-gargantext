@@ -72,7 +72,7 @@ selectChildren :: ParentId
                -> Maybe NodeType
                -> Query NodeRead
 selectChildren parentId maybeNodeType = proc () -> do
-    row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
+    row@(Node nId _ typeName _ parent_id _ _ _) <- queryNodeTable -< ()
     (NodeNode n1id n2id _ _) <- queryNodeNodeTable -< ()
 
     let nodeType = maybe 0 nodeTypeId maybeNodeType
