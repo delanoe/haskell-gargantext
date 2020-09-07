@@ -192,6 +192,3 @@ CREATE OR REPLACE function node_pos(int, int) returns bigint
 --drop index node_by_pos;
 create index node_by_pos on nodes using btree(node_pos(id,typename));
 
-
-
-
