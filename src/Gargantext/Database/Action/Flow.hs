@@ -235,6 +235,7 @@ insertDocs :: ( FlowCmdM env err m
 insertDocs uId cId hs = do
   let docs = map addUniqId hs
   newIds <- insertDb uId cId docs
+  printDebug "newIds" newIds
   let
     newIds' = map reId newIds
     documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)

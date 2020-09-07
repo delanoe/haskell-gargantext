@@ -114,7 +114,8 @@ class InsertDb a
 
 instance InsertDb HyperdataDocument
   where
-    insertDb' u p h = [ toField $ nodeTypeId NodeDocument
+    insertDb' u p h = [ toField ("" :: Text)
+                      , toField $ nodeTypeId NodeDocument
                       , toField u
                       , toField p
                       , toField $ maybe "No Title" (DT.take 255)  (_hd_title h)
@@ -124,7 +125,8 @@ instance InsertDb HyperdataDocument
 
 instance InsertDb HyperdataContact
   where
-    insertDb' u p h = [ toField $ nodeTypeId NodeContact
+    insertDb' u p h = [ toField ("" :: Text)
+                      , toField $ nodeTypeId NodeContact
                       , toField u
                       , toField p
                       , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
@@ -146,30 +148,29 @@ insertDocuments_Debug uId pId hs = formatPGSQuery queryInsert (Only $ Values fie
 
 -- | Input Tables: types of the tables
 inputSqlTypes :: [Text]
-inputSqlTypes = map DT.pack ["int4","int4","int4","text","date","jsonb"]
+inputSqlTypes = map DT.pack ["text", "int4","int4","int4","text","date","jsonb"]
 
 -- | SQL query to insert documents inside the database
 queryInsert :: Query
 queryInsert = [sql|
-    WITH input_rows(typename,user_id,parent_id,name,date,hyperdata) AS (?)
+    WITH input_rows(hash_id,typename,user_id,parent_id,name,date,hyperdata) AS (?)
     , ins AS (
-       INSERT INTO nodes (typename,user_id,parent_id,name,date,hyperdata)
+       INSERT INTO nodes (hash_id, typename,user_id,parent_id,name,date,hyperdata)
        SELECT * FROM input_rows
-       ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO NOTHING -- on unique index -- this does not return the ids
-       -- ON CONFLICT ((hyperdata ->> 'uniqIdBdd')) DO UPDATE SET user_id=EXCLUDED.user_id  -- on unique index
-       RETURNING id,hyperdata
+       ON CONFLICT (hash_id) DO NOTHING -- on unique index -- this does not return the ids
+       RETURNING id,hash_id
        )
 
     SELECT true AS source                     -- true for 'newly inserted'
          , id
-         , hyperdata ->> 'uniqIdBdd'  as doi
+         , hash_id
     FROM   ins
     UNION  ALL
     SELECT false AS source                    -- false for 'not inserted'
-         , c.id
-         , hyperdata ->> 'uniqIdBdd' as doi
+         , n.id
+         , hash_id
     FROM   input_rows
-    JOIN   nodes c USING (hyperdata);         -- columns of unique index
+    JOIN   nodes n USING (hash_id);         -- columns of unique index
            |]
 
 ------------------------------------------------------------------------
