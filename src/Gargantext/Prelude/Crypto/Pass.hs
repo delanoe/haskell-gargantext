@@ -29,7 +29,6 @@ import Crypto.Random.AESCtr
 import Data.Binary (decode)
 import Prelude
 import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Internal as DBI
 import Gargantext.Prelude (cs)
 import Data.ByteString as S (ByteString, unpack)
 import Data.ByteString.Char8 as C8 (pack)
@@ -95,10 +94,8 @@ printPass len = do
   _ <- runStateT (showRandomKey len as') aesState -- enter loop
   return ()
 
-gargPass :: Int -> IO (Int, AESRNG)
-gargPass len = do
-  let as = ["alphanumeric","punctuation"]
-  let as' = filter (\c -> elem c keysAll) . nub $ unwords as
+gargPass :: IO (Int, AESRNG)
+gargPass = do
   aesState <- makeSystem -- gather entropy from the system to use as the initial seed
   pass <- runStateT aesRandomInt aesState -- enter loop
   pure pass
