@@ -23,10 +23,11 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Prelude
+import Gargantext.Prelude.Crypto.Hash (Hash)
 
 class UniqId a
   where
-    uniqId :: Lens' a (Maybe HashId)
+    uniqId :: Lens' a (Maybe Hash)
 
 instance UniqId HyperdataDocument
   where

@@ -21,7 +21,6 @@ import NLP.FullStop (segment)
 import qualified Data.Text as DT
 
 -----------------------------------------------------------------
-
 class HasText h
   where
     hasText :: h -> [Text]

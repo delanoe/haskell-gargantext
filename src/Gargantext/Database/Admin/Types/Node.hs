@@ -38,6 +38,7 @@ import Servant
 import qualified Opaleye as O
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGTSVector, Nullable, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
+import Gargantext.Prelude.Crypto.Hash (Hash)
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Instances.Text ()
 import Test.QuickCheck.Instances.Time ()
@@ -51,10 +52,9 @@ import Gargantext.Prelude
 
 type UserId = Int
 type MasterUserId = UserId
-type HashId = Text
 ------------------------------------------------------------------------
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId HashId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Node json   = NodePoly NodeId Hash NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
 
 -- | NodeSearch (queries)
 -- type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
@@ -62,7 +62,7 @@ type Node json   = NodePoly NodeId HashId NodeTypeId UserId (Maybe ParentId) Nod
 ------------------------------------------------------------------------
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePoly NodeId HashId NodeTypeId
+         ToSchema (NodePoly NodeId Hash NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata
@@ -70,7 +70,7 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
   declareNamedSchema = wellNamedSchema "_node_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePoly NodeId HashId NodeTypeId
+         ToSchema (NodePoly NodeId Hash NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata
@@ -93,12 +93,12 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
                   ) where
   declareNamedSchema = wellNamedSchema "_ns_"
 
-instance (Arbitrary hyperdata
-         ,Arbitrary nodeId
+instance (Arbitrary nodeId
          ,Arbitrary hashId
          ,Arbitrary nodeTypeId
          ,Arbitrary userId
          ,Arbitrary nodeParentId
+         , Arbitrary hyperdata
          ) => Arbitrary (NodePoly nodeId hashId nodeTypeId userId nodeParentId
                                   NodeName UTCTime hyperdata) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")

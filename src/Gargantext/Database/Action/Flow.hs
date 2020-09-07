@@ -49,10 +49,11 @@ import Data.Either
 import Data.List (concat)
 import qualified Data.Map as Map
 import Data.Map (Map, lookup)
-import Data.Maybe (Maybe(..), catMaybes)
+import Data.Maybe (Maybe(..), catMaybes, fromMaybe)
 import Data.Monoid
 import Data.Swagger
 import Data.Text (splitOn, intercalate)
+import Data.Time.Segment (jour)
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
@@ -70,7 +71,7 @@ import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchDocInDatabase)
-import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
+import Gargantext.Database.Admin.Config (userMaster, corpusMasterName, nodeTypeId)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
@@ -78,17 +79,20 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
+import Gargantext.Database.Schema.Node (NodePoly(..))
 import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Core.Text
 import Gargantext.Prelude
+import Gargantext.Prelude.Crypto.Hash (Hash)
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists,StopSize(..))
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Text.Terms
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Core.Text.Corpus.API as API
+import qualified Data.Text as DT
 
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
@@ -242,6 +246,19 @@ insertDocs uId cId hs = do
   _ <- Doc.add cId newIds'
   pure (newIds', documentsWithId)
 
+{-
+-- TODO Maybe NodeId
+toNode :: Hyperdata a => NodeType -> ParentId -> UserId -> a -> Node a
+toNode NodeDocument p u h = Node 0 "" (nodeTypeId nt) u (Just p) n date h
+  where
+    n    = maybe "No Title" (DT.take 255) (_hd_title h)
+    date  = jour y m d
+    y = maybe 0 fromIntegral $ _hd_publication_year  h
+    m = fromMaybe 1 $ _hd_publication_month h
+    d = fromMaybe 1 $ _hd_publication_day   h
+toNode _ _ _ _ = undefined
+-}
+
 
 insertMasterDocs :: ( FlowCmdM env err m
                     , FlowCorpus a
@@ -254,6 +271,7 @@ insertMasterDocs :: ( FlowCmdM env err m
 insertMasterDocs c lang hs  =  do
   (masterUserId, _, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) c
   (ids', documentsWithId) <- insertDocs masterUserId masterCorpusId hs
+  -- (ids', documentsWithId) <- insertDocs masterUserId masterCorpusId (map (toNode NodeDocument masterCorpusId masterUserId ) hs )
   _ <- Doc.add masterCorpusId ids'
   -- TODO
   -- create a corpus with database name (CSV or PubMed)
@@ -292,20 +310,20 @@ insertMasterDocs c lang hs  =  do
 ------------------------------------------------------------------------
 viewUniqId' :: UniqId a
             => a
-            -> (HashId, a)
+            -> (Hash, a)
 viewUniqId' d = maybe err (\h -> (h,d)) (view uniqId d)
       where
         err = panic "[ERROR] Database.Flow.toInsert"
 
 
 toInserted :: [ReturnId]
-           -> Map HashId ReturnId
+           -> Map Hash ReturnId
 toInserted =
   Map.fromList . map    (\r -> (reUniqId r, r)     )
                . filter (\r -> reInserted r == True)
 
-mergeData :: Map HashId ReturnId
-          -> Map HashId a
+mergeData :: Map Hash ReturnId
+          -> Map Hash a
           -> [DocumentWithId a]
 mergeData rs = catMaybes . map toDocumentWithId . Map.toList
   where
@@ -349,6 +367,16 @@ instance HasText HyperdataDocument
     hasText h = catMaybes [ _hd_title    h
                           , _hd_abstract h
                           ]
+
+instance HasText (Node HyperdataDocument)
+  where
+    hasText n = catMaybes [ _hd_title    h
+                          , _hd_abstract h
+                          ]
+      where
+        h = _node_hyperdata n
+
+
 
 instance ExtractNgramsT HyperdataDocument
   where

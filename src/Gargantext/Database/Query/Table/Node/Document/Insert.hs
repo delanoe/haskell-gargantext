@@ -57,7 +57,7 @@ module Gargantext.Database.Query.Table.Node.Document.Insert
 import Control.Lens (set, view)
 import Control.Lens.Cons
 import Control.Lens.Prism
-import Data.Aeson (toJSON{-, ToJSON-})
+import Data.Aeson (toJSON, encode{-, ToJSON-})
 import Data.Maybe (maybe)
 import Data.Text (Text)
 -- import Data.ByteString (ByteString)
@@ -73,22 +73,11 @@ import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery{-, formatPGSQuery-})
+import Gargantext.Database.Schema.Node (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (hash)
 import qualified Data.Text                   as DT (pack, concat, take)
 
--- TODO : the import of Document constructor below does not work
--- import Gargantext.Database.Types.Node (Document)
---import Gargantext.Database.Types.Node (docExample, hyperdataDocument, HyperdataDocument(..)
---                                  , hyperdataDocument_uniqId
---                                  , hyperdataDocument_title
---                                  , hyperdataDocument_abstract
---                                  , hyperdataDocument_source
---                                  , Node(..), node_typename
---                                            , node_userId
---                                            , node_parentId, node_name, node_hyperdata, hyperdataDocuments
---                                  , NodeTypeId
---                                  )
 {-| To Print result query
 import Data.ByteString.Internal (ByteString)
 import Database.PostgreSQL.Simple (formatQuery)
@@ -133,6 +122,17 @@ instance InsertDb HyperdataContact
                       , toField $ jour 0 1 1 -- TODO put default date
                       , (toField . toJSON) h
                       ]
+
+instance InsertDb (Node HyperdataDocument)
+  where
+    insertDb' _u _p (Node _nid hashId t u p n d h) = [ toField hashId
+                                                     , toField t
+                                                     , toField u
+                                                     , toField p
+                                                     , toField n
+                                                     , toField d
+                                                     , toField h
+                                                     ]
 
 -- | Debug SQL function
 --
@@ -212,6 +212,22 @@ instance AddUniqId HyperdataDocument
                            , \d -> maybeText (_hd_source           d)
                            , \d -> maybeText (_hd_publication_date d)
                            ]
+-- TODO put this elsewhere (fix bin/gargantext-init/Main.hs too)
+secret :: Text
+secret = "Database secret to change"
+
+
+instance AddUniqId (Node HyperdataDocument)
+  where
+    addUniqId (Node nid _ t u p n d h)  = Node nid hashId t u p n d h
+      where
+        hashId = "\\x" <> (hash $ DT.concat params)
+        params = [ secret
+                 , cs $ show $ nodeTypeId NodeDocument
+                 , n
+                 , cs $ show p
+                 , cs $ encode h
+                 ]
 
     ---------------------------------------------------------------------------
 -- * Uniqueness of document definition

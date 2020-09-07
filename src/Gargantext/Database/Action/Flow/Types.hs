@@ -39,5 +39,6 @@ type FlowCorpus a = ( AddUniqId      a
                     , InsertDb       a
                     , ExtractNgramsT a
                     , HasText        a
+                    -- , ToNode         a
                     )
 
