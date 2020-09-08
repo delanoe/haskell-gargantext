@@ -131,3 +131,12 @@ Then you can log in with `user1` / `1resu`.
 stack --docker exec gargantext-cli -- CorpusFromGarg.csv ListFromGarg.csv Ouput.json
 ```
 
+### Analyzing the ngrams table repo
+
+We store the repository in directory `repos` in the [CBOR](https://cbor.io/)
+file format. To decode it to JSON and analyze, say, using
+[jq](https://shapeshed.com/jq-json/), use the following command:
+
+``` sh
+cat repos/repo.cbor.v5 | stack --nix exec gargantext-cbor2json | jq .
+```
