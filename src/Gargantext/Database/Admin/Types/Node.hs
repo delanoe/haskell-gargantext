@@ -36,7 +36,7 @@ import GHC.Generics (Generic)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import qualified Opaleye as O
-import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGTSVector, Nullable, fieldQueryRunnerColumn)
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import Test.QuickCheck.Arbitrary
@@ -54,7 +54,7 @@ type UserId = Int
 type MasterUserId = UserId
 ------------------------------------------------------------------------
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId Hash NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Node json   = NodePoly NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
 
 -- | NodeSearch (queries)
 -- type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
@@ -346,4 +346,9 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
 instance (QueryRunnerColumnDefault (Nullable O.PGTimestamptz) UTCTime)
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
+
+instance QueryRunnerColumnDefault PGText (Maybe Hash)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
+
 

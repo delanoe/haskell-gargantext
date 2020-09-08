@@ -15,6 +15,7 @@ Main exports of Gargantext:
 
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Node.Corpus.Export
   where
@@ -79,6 +80,9 @@ instance ToSchema Document where
 
 instance ToSchema Ngrams where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ng_")
+
+instance (ToSchema a) => ToSchema (Node a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
 
 -------
 instance ToParamSchema Corpus where

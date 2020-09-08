@@ -211,6 +211,7 @@ library:
   - servant-xml
   - simple-reflect
   - singletons # (IGraph)
+  - template-haskell
   - wai-app-static
 
     # for mail

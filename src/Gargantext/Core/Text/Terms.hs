@@ -105,9 +105,8 @@ withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
                                    )
       just_m -> just_m
 withLang l _ = l
+
 ------------------------------------------------------------------------
-
-
 class ExtractNgramsT h
   where
     extractNgramsT :: HasText h

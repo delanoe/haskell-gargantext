@@ -19,6 +19,7 @@ Portability : POSIX
 module Gargantext.Database.Action.Flow.Types
     where
 
+import Data.Aeson (ToJSON)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
 import Gargantext.Core.Text.Terms
@@ -39,6 +40,11 @@ type FlowCorpus a = ( AddUniqId      a
                     , InsertDb       a
                     , ExtractNgramsT a
                     , HasText        a
-                    -- , ToNode         a
+                    , ToNode         a
+                    , ToJSON         a
                     )
 
+type FlowInsertDB a = ( AddUniqId a
+                      , UniqId    a
+                      , InsertDb  a
+                      )

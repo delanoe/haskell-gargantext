@@ -57,8 +57,8 @@ module Gargantext.Database.Query.Table.Node.Document.Insert
 import Control.Lens (set, view)
 import Control.Lens.Cons
 import Control.Lens.Prism
-import Data.Aeson (toJSON, encode{-, ToJSON-})
-import Data.Maybe (maybe)
+import Data.Aeson (toJSON, encode, ToJSON)
+import Data.Maybe (maybe, fromMaybe)
 import Data.Text (Text)
 -- import Data.ByteString (ByteString)
 import Data.Time.Segment (jour)
@@ -66,7 +66,7 @@ import Database.PostgreSQL.Simple (FromRow, Query, Only(..))
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)
 -- import Database.PostgreSQL.Simple.ToRow (toRow, ToRow)
 import Database.PostgreSQL.Simple.SqlQQ
-import Database.PostgreSQL.Simple.ToField (toField, Action)
+import Database.PostgreSQL.Simple.ToField (toField, Action{-, ToField-})
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
 import Gargantext.Database.Admin.Config (nodeTypeId)
@@ -76,7 +76,7 @@ import Gargantext.Database.Prelude (Cmd, runPGSQuery{-, formatPGSQuery-})
 import Gargantext.Database.Schema.Node (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (hash)
-import qualified Data.Text                   as DT (pack, concat, take)
+import qualified Data.Text as DT (pack, concat, take)
 
 {-| To Print result query
 import Data.ByteString.Internal (ByteString)
@@ -123,7 +123,7 @@ instance InsertDb HyperdataContact
                       , (toField . toJSON) h
                       ]
 
-instance InsertDb (Node HyperdataDocument)
+instance ToJSON a => InsertDb (Node a)
   where
     insertDb' _u _p (Node _nid hashId t u p n d h) = [ toField hashId
                                                      , toField t
@@ -131,7 +131,7 @@ instance InsertDb (Node HyperdataDocument)
                                                      , toField p
                                                      , toField n
                                                      , toField d
-                                                     , toField h
+                                                     , (toField . toJSON) h
                                                      ]
 
 -- | Debug SQL function
@@ -217,17 +217,31 @@ secret :: Text
 secret = "Database secret to change"
 
 
-instance AddUniqId (Node HyperdataDocument)
+instance (AddUniqId a, ToJSON a) => AddUniqId (Node a)
   where
-    addUniqId (Node nid _ t u p n d h)  = Node nid hashId t u p n d h
-      where
-        hashId = "\\x" <> (hash $ DT.concat params)
-        params = [ secret
-                 , cs $ show $ nodeTypeId NodeDocument
-                 , n
-                 , cs $ show p
-                 , cs $ encode h
-                 ]
+    addUniqId (Node nid _ t u p n d h) = Node nid hashId t u p n d h
+                              where
+                                hashId = Just $ "\\x" <> (hash $ DT.concat params)
+                                params = [ secret
+                                         , cs $ show $ nodeTypeId NodeDocument
+                                         , n
+                                         , cs $ show p
+                                         , cs $ encode h
+                                         ]
+    {-
+    addUniqId n@(Node nid _ t u p n d h)  =
+      case n of
+        Node HyperdataDocument -> Node nid hashId t u p n d h
+                              where
+                                hashId = "\\x" <> (hash $ DT.concat params)
+                                params = [ secret
+                                         , cs $ show $ nodeTypeId NodeDocument
+                                         , n
+                                         , cs $ show p
+                                         , cs $ encode h
+                                         ]
+       _ -> undefined
+-}
 
     ---------------------------------------------------------------------------
 -- * Uniqueness of document definition
@@ -246,8 +260,8 @@ addUniqIdsContact hc = set (hc_uniqIdBdd) (Just shaBdd)
 
     -- | TODO add more shaparameters
     shaParametersContact :: [(HyperdataContact -> Text)]
-    shaParametersContact = [ \d -> maybeText $ view (hc_who . _Just . cw_firstName                ) d
-                           , \d -> maybeText $ view (hc_who . _Just . cw_lastName                 ) d
+    shaParametersContact = [ \d -> maybeText $ view (hc_who   . _Just . cw_firstName              ) d
+                           , \d -> maybeText $ view (hc_who   . _Just . cw_lastName               ) d
                            , \d -> maybeText $ view (hc_where . _head . cw_touch . _Just . ct_mail) d
                            ]
 
@@ -255,3 +269,23 @@ maybeText :: Maybe Text -> Text
 maybeText = maybe (DT.pack "") identity
 
 ---------------------------------------------------------------------------
+class ToNode a
+  where
+    -- TODO Maybe NodeId
+    toNode :: UserId -> ParentId -> a -> Node a
+
+instance ToNode HyperdataDocument where
+  toNode u p h = Node 0 Nothing (nodeTypeId NodeDocument) u (Just p) n date h
+    where
+      n    = maybe "No Title" (DT.take 255) (_hd_title h)
+      date  = jour y m d
+      y = maybe 0 fromIntegral $ _hd_publication_year  h
+      m = fromMaybe 1 $ _hd_publication_month h
+      d = fromMaybe 1 $ _hd_publication_day   h
+
+-- TODO
+instance ToNode HyperdataContact where
+  toNode = undefined
+
+
+
