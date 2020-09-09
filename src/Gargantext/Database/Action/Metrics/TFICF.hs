@@ -34,8 +34,8 @@ getTficf :: UserCorpusId
          -> NgramsType
          -> Cmd err (Map Text Double)
 getTficf cId mId nt = do
-  mapTextDoubleLocal <- {- Map.filter (> 1) 
-     <$> -} Map.map (fromIntegral . Set.size)
+  mapTextDoubleLocal <- Map.filter (> 1)
+     <$> Map.map (fromIntegral . Set.size)
      <$> getNodesByNgramsUser cId nt
 
   mapTextDoubleGlobal <- Map.map fromIntegral

@@ -141,14 +141,11 @@ buildNgramsTermsList :: Lang
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList _l _n _m s uCid mCid = do
   candidates <- sortTficf Down <$> getTficf uCid mCid NgramsTerms
-  printDebug "candidates" (length candidates)
+  printDebug "head candidates" (List.take 10 $ candidates)
+  printDebug "tail candidates" (List.take 10 $ List.reverse $ candidates)
 
   let
     candidatesSize = 400
-{-
-    a = 50
-    b = 50
--}
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
 
