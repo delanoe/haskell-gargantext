@@ -141,6 +141,7 @@ buildNgramsTermsList :: Lang
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList _l _n _m s uCid mCid = do
   candidates <- sortTficf Down <$> getTficf uCid mCid NgramsTerms
+  printDebug "candidates" (length candidates)
 
   let
     candidatesSize = 400
