@@ -91,47 +91,6 @@ buildNgramsOthersList uCid groupIt nt = do
                            ]
                      )]
 
-{-
-buildNgramsTermsList' :: UserCorpusId
-                      -> (Text -> Text)
-                      -> ((Text, (Set Text, Set NodeId)) -> Bool)
-                      -> Int
-                      -> Int
-                      -> Cmd err (Map NgramsType [NgramsElement])
-
-buildNgramsTermsList' uCid groupIt stop gls is = do
-  ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid NgramsTerms
-  
-  let
-    (stops, candidates) = partitionEithers
-                          $ map (\t -> if stop t then Left t else Right t)
-                          $ Map.toList
-                          $ Map.filter ((\s' -> Set.size s' > 1) . snd) ngs
-
-    (maps, candidates') = takeScored gls is
-                        $ getCoocByNgrams' snd (Diagonal True)
-                        $ Map.fromList candidates
-
-
-    toList' t = (fst t, (fromIntegral $ Set.size $ snd $ snd t, fst $ snd t))
-
-    (s,c,m) = (stops
-       , List.filter (\(k,_) -> List.elem k candidates') candidates
-       , List.filter (\(k,_) -> List.elem k maps) candidates
-       )
-
-  let ngs' = List.concat
-          $ map toNgramsElement
-          $ map (\t -> (StopTerm     , toList' t)) s
-         <> map (\t -> (CandidateTerm, toList' t)) c
-         <> map (\t -> (MapTerm    , toList' t)) m
-
-  pure $ Map.fromList [(NgramsTerms, ngs')]
--}
-
-
-
-
 buildNgramsTermsList :: Lang
                      -> Int
                      -> Int
@@ -149,12 +108,12 @@ buildNgramsTermsList _l _n _m s uCid mCid = do
     candidatesHead = List.take candidatesSize candidates
     candidatesTail = List.drop candidatesSize candidates
 
-    termList =
-          -- (toTermList a b ((isStopTerm s) . fst) candidatesHead)
-                (map (toGargList ((isStopTerm s) .fst) MapTerm)       candidatesHead)
-             <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
+    termList = (map (toGargList ((isStopTerm s) .fst) MapTerm)       candidatesHead)
+            <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
 
-    ngs = List.concat $ map toNgramsElement $ map (\(lt, (t,d)) -> (lt, ((t, (d,Set.singleton t))))) termList
+    ngs = List.concat
+        $ map toNgramsElement
+        $ map (\(lt, (t,d)) -> (lt, ((t, (d,Set.singleton t))))) termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
 
@@ -194,7 +153,7 @@ toNgramsElement (listType, (_stem, (_score, setNgrams))) =
 
 
 toGargList :: (b -> Bool) -> ListType -> b -> (ListType, b)
-toGargList stop l n = case stop n of
+toGargList isStop l n = case isStop n of
     True  -> (StopTerm, n)
     False -> (l, n)
 

@@ -48,7 +48,10 @@ tficf :: TficfContext Count Total
 tficf (TficfInfra (Count ic) (Total it) )
       (TficfSupra (Count sc) (Total st) )
             | it >= ic && st >= sc && it <= st = (it/ic) * log (st/sc)
-            | otherwise            = panic $ "[ERR]" <> path <>" Frequency impossible"
+            | otherwise                        = panic
+                                               $ "[ERR]"
+                                               <> path
+                                               <> " Frequency impossible"
 tficf _ _ = panic $ "[ERR]" <> path <> "Undefined for these contexts"
 
 
