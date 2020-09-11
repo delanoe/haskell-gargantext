@@ -7,7 +7,6 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
@@ -24,39 +23,37 @@ Portability : POSIX
 module Gargantext.API.Routes
       where
 ---------------------------------------------------------------------
+
+-- import qualified Gargantext.API.Search as Search
 import Control.Concurrent (threadDelay)
 import Data.Text (Text)
 import Data.Validity
+import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
+import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
+import Gargantext.API.Count  (CountAPI, count, Query)
+import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
+import Gargantext.API.Node
+import Gargantext.API.Prelude
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Viz.Graph.API
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
+import Gargantext.Prelude
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Swagger ()
 import Servant.Job.Async
 import Servant.Swagger.UI
-
-import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
-import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
-import Gargantext.API.Prelude
-import Gargantext.API.Count  (CountAPI, count, Query)
-import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
-import Gargantext.API.Node
-import Gargantext.API.Search (SearchPairsAPI, searchPairs)
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
-import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
-import Gargantext.Prelude
-import Gargantext.Viz.Graph.API
+import qualified Gargantext.API.Ngrams.List           as List
+import qualified Gargantext.API.Node.Contact          as Contact
 import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
 import qualified Gargantext.API.Node.Corpus.Export    as Export
 import qualified Gargantext.API.Node.Corpus.New       as New
-import qualified Gargantext.API.Ngrams.List           as List
-
-
+import qualified Gargantext.API.Public                as Public
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
-
 
 type GargAPIVersion = "v1.0"
                    :> Summary "Garg API Version "
@@ -75,6 +72,7 @@ type GargAPI' =
                    -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
           :<|> GargPrivateAPI
+          :<|> "public" :> Public.API
 
 
 type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
@@ -116,9 +114,7 @@ type GargPrivateAPI' =
 
            :<|> "annuaire" :> Summary "Contact endpoint"
                            :> Capture "annuaire_id" NodeId
-                           :> "contact"
-                           :> Capture "contact_id" NodeId
-                           :> NodeNodeAPI HyperdataContact
+                           :> Contact.API
 
            -- Document endpoint
            :<|> "document" :> Summary "Document endpoint"
@@ -132,8 +128,8 @@ type GargPrivateAPI' =
                            :> CountAPI
 
            -- Corpus endpoint --> TODO rename s/search/filter/g
-           :<|> "search"   :> Capture "corpus" NodeId
-                           :> SearchPairsAPI
+           -- :<|> "search"   :> Capture "corpus" NodeId
+           --                 :> (Search.API Search.SearchResult)
 
            -- TODO move to NodeAPI?
            :<|> "graph"    :> Summary "Graph endpoint"
@@ -147,7 +143,8 @@ type GargPrivateAPI' =
                           :> TreeAPI
 
            -- :<|> New.Upload
-           :<|> New.AddWithForm 
+           :<|> New.AddWithForm
+           :<|> New.AddWithFile
            :<|> New.AddWithQuery
 
            -- :<|> "annuaire" :> Annuaire.AddWithForm
@@ -208,15 +205,15 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> Export.getCorpus   -- uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
-     :<|> nodeNodeAPI (Proxy :: Proxy HyperdataContact)  uid
+     :<|> Contact.api uid
 
      :<|> withAccess  (Proxy :: Proxy TableNgramsApi) Proxy uid
           <$> PathNode <*> apiNgramsTableDoc
 
      :<|> count -- TODO: undefined
 
-     :<|> withAccess (Proxy :: Proxy SearchPairsAPI) Proxy uid
-          <$> PathNode <*> searchPairs -- TODO: move elsewhere
+     -- :<|> withAccess (Proxy :: Proxy (Search.API Search.SearchResult)) Proxy uid
+     --     <$> PathNode <*> Search.api -- TODO: move elsewhere
 
      :<|> withAccess (Proxy :: Proxy GraphAPI)       Proxy uid
           <$> PathNode <*> graphAPI uid -- TODO: mock
@@ -225,6 +222,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
           <$> PathNode <*> treeAPI
      -- TODO access
      :<|> addCorpusWithForm  (RootId (NodeId uid))
+     :<|> addCorpusWithFile  (RootId (NodeId uid))
      :<|> addCorpusWithQuery (RootId (NodeId uid))
 
      -- :<|> addAnnuaireWithForm
@@ -245,7 +243,6 @@ waitAPI n = do
   _ <- liftBase $ threadDelay ( m * n)
   pure $ "Waited: " <> (cs $ show n)
 ----------------------------------------
-
 
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =
@@ -274,6 +271,16 @@ addCorpusWithForm user cid =
           printDebug "addToCorpusWithForm" x
           liftBase $ log x
       in New.addToCorpusWithForm user cid i log')
+
+addCorpusWithFile :: User -> GargServer New.AddWithFile
+addCorpusWithFile user cid =
+  serveJobsAPI $
+    JobFunction (\i log ->
+      let
+        log' x = do
+          printDebug "addToCorpusWithFile" x
+          liftBase $ log x
+      in New.addToCorpusWithFile user cid i log')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =

@@ -1,7 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-CREATE EXTENSION IF NOT EXISTS tsm_system_rows;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
+CREATE EXTENSION IF NOT EXISTS tsm_system_rows;
+CREATE EXTENSION pgcrypto;
+
+-----------------------------------------------------------------
 CREATE TABLE public.auth_user (
     id SERIAL,
     password     CHARACTER varying(128) NOT NULL,
@@ -23,6 +26,7 @@ ALTER TABLE public.auth_user OWNER TO gargantua;
 -- TODO typename -> type_id
 CREATE TABLE public.nodes (
     id        SERIAL,
+    hash_id   CHARACTER varying(66) DEFAULT ''::character varying NOT NULL,
     typename  INTEGER NOT NULL,
     user_id   INTEGER NOT NULL,
     parent_id INTEGER REFERENCES public.nodes(id) ON DELETE CASCADE ,
@@ -92,9 +96,10 @@ CREATE TABLE public.nodes_nodes (
     node2_id INTEGER NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
     score REAL,
     category INTEGER,
-    PRIMARY KEY (node1_id,node2_id)
+    PRIMARY KEY (node1_id, node2_id)
 );
 ALTER TABLE public.nodes_nodes OWNER TO gargantua;
+
 
 ---------------------------------------------------------------
 CREATE TABLE public.node_node_ngrams (
@@ -106,7 +111,6 @@ weight double precision,
 PRIMARY KEY (node1_id, node2_id, ngrams_id, ngrams_type)
 );
 ALTER TABLE public.node_node_ngrams OWNER TO gargantua;
-
 
 CREATE TABLE public.node_node_ngrams2 (
 node_id         INTEGER NOT NULL REFERENCES public.nodes  (id) ON DELETE CASCADE,
@@ -151,9 +155,10 @@ CREATE INDEX        ON public.nodes USING btree (user_id, typename, parent_id);
 CREATE INDEX        ON public.nodes USING btree (id, typename, date ASC);
 CREATE INDEX        ON public.nodes USING btree (id, typename, date DESC);
 CREATE INDEX        ON public.nodes USING btree (typename, id);
-CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
-CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
-CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
+CREATE UNIQUE INDEX ON public.nodes USING btree (hash_id);
+-- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqId'::text)));
+-- CREATE UNIQUE INDEX ON public.nodes USING btree (((hyperdata ->> 'uniqIdBdd'::text)));
+-- CREATE UNIQUE INDEX ON public.nodes USING btree (typename, parent_id, ((hyperdata ->> 'uniqId'::text)));
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 CREATE        INDEX ON public.ngrams USING btree (id, terms);

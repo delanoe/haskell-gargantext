@@ -24,7 +24,7 @@ import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
-import Gargantext.Text.Learn
+import Gargantext.Core.Text.Learn
 import qualified Data.List as List
 import qualified Data.Text as Text
 
@@ -34,9 +34,9 @@ data FavOrTrash = IsFav | IsTrash
 
 moreLike :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
          -> FavOrTrash -> Cmd err [FacetDoc]
-moreLike cId o l order ft = do
+moreLike cId o _l order ft = do
   priors <- getPriors ft cId
-  moreLikeWith cId o l order ft priors
+  moreLikeWith cId o (Just 3) order ft priors
 
 ---------------------------------------------------------------------------
 getPriors :: FavOrTrash -> CorpusId -> Cmd err (Events Bool)
@@ -76,8 +76,8 @@ fav2bool ft = if (==) ft IsFav then True else False
 text :: FacetDoc -> Text
 text (FacetDoc _ _ _ h _ _)  = title <> "" <> Text.take 100 abstr
   where
-    title = maybe "" identity (_hyperdataDocument_title    h)
-    abstr = maybe "" identity (_hyperdataDocument_abstract h)
+    title = maybe "" identity (_hd_title    h)
+    abstr = maybe "" identity (_hd_abstract h)
 
 ---------------------------------------------------------------------------
 

@@ -17,6 +17,7 @@ import qualified Ngrams.Lang.Occurrences as Occ
 import qualified Ngrams.Metrics as Metrics
 import qualified Parsers.Date as PD
 import qualified Graph.Distance as GD
+import qualified Utils.Crypto as Crypto
 
 main :: IO ()
 main = do
@@ -25,4 +26,5 @@ main = do
 --    Lang.ngramsExtractionTest EN
 --    Metrics.main
     PD.testFromRFC3339
-    GD.test
+--    GD.test
+    Crypto.test

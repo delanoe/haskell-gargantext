@@ -15,6 +15,7 @@ Import a corpus binary.
 
 module Main where
 
+import Data.Text (Text)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
@@ -26,12 +27,15 @@ import Gargantext.Database.Query.Table.Node (getOrMkList)
 import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Trigger.Init (initTriggers)
+import Gargantext.Database.Admin.Trigger.Init (initFirstTriggers, initLastTriggers)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
 import Gargantext.Database.Admin.Types.Node (CorpusId, RootId, ListId)
 import Gargantext.Database.Prelude (Cmd, )
 import Gargantext.Prelude
 import System.Environment (getArgs)
+
+secret :: Text
+secret = "Database secret to change"
 
 main :: IO ()
 main = do
@@ -42,7 +46,7 @@ main = do
 
   let
     mkRoots :: Cmd GargError [(UserId, RootId)]
-    mkRoots = mapM getOrMkRoot $ map UserName ["gargantua", "user1", "user2"]
+    mkRoots = mapM getOrMkRoot $ map UserName ["gargantua", "user1", "user2", "user3"]
     -- TODO create all users roots
 
   let
@@ -50,12 +54,13 @@ main = do
     initMaster = do
       (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
       masterListId <- getOrMkList masterCorpusId masterUserId
-      _triggers <- initTriggers masterListId
+      _triggers <- initLastTriggers masterListId
       pure (masterUserId, masterRootId, masterCorpusId, masterListId)
 
   withDevEnv iniPath $ \env -> do
+    _ <- runCmdDev env (initFirstTriggers secret :: Cmd GargError [Int64])
     _ <- runCmdDev env createUsers
-    _ <- runCmdDev env mkRoots
     x <- runCmdDev env initMaster
+    _ <- runCmdDev env mkRoots
     putStrLn $ show x
     pure ()

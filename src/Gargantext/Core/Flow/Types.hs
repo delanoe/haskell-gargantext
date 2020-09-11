@@ -14,33 +14,36 @@ Portability : POSIX
 
 module Gargantext.Core.Flow.Types where
 
-import Control.Lens (Lens')
+import Control.Lens -- (Lens')
 import Data.Map (Map)
 import Data.Maybe (Maybe)
-
-import Gargantext.Text (HasText(..))
-import Gargantext.Core.Types.Main (HashId)
+import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node.Contact -- (HyperdataContact(..))
+import Gargantext.Database.Schema.Node (node_hash_id)
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Prelude
+import Gargantext.Prelude.Crypto.Hash (Hash)
 
 class UniqId a
   where
-    uniqId :: Lens' a (Maybe HashId)
+    uniqId :: Lens' a (Maybe Hash)
 
 instance UniqId HyperdataDocument
   where
-    uniqId = hyperdataDocument_uniqId
+    uniqId = hd_uniqId
 
 instance UniqId HyperdataContact
   where
     uniqId = hc_uniqId
 
+instance UniqId (Node a)
+  where
+    uniqId = node_hash_id
+
 data DocumentIdWithNgrams a = DocumentIdWithNgrams
   { documentWithId  :: !(DocumentWithId a)
-  , document_ngrams :: !(Map Ngrams (Map NgramsType Int))
+  , documentNgrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
 
 data DocumentWithId a = DocumentWithId

@@ -42,7 +42,7 @@ type NgramsId    = Int
 type NgramsTerms = Text
 type Size        = Int
 
-data NgramsPoly id terms n = NgramsDb { _ngrams_id    :: !id
+data NgramsPoly id terms n = NgramsDB { _ngrams_id    :: !id
                                       , _ngrams_terms :: !terms
                                       , _ngrams_n     :: !n
                                       } deriving (Show)
@@ -59,14 +59,14 @@ type NgramsReadNull = NgramsPoly (Column (Nullable PGInt4))
                                  (Column (Nullable PGText))
                                  (Column (Nullable PGInt4))
 
-type NgramsDb = NgramsPoly Int Text Int
+type NgramsDB = NgramsPoly Int Text Int
 
 $(makeAdaptorAndInstance "pNgramsDb"    ''NgramsPoly)
 makeLenses ''NgramsPoly
 
 
 ngramsTable :: Table NgramsWrite NgramsRead
-ngramsTable = Table "ngrams" (pNgramsDb NgramsDb { _ngrams_id    = optional "id"
+ngramsTable = Table "ngrams" (pNgramsDb NgramsDB { _ngrams_id    = optional "id"
                                                  , _ngrams_terms = required "terms"
                                                  , _ngrams_n     = required "n"
                                                  }
@@ -142,7 +142,7 @@ fromNgramsTypeId id = lookup id
                                ]
 
 ------------------------------------------------------------------------
--- | TODO put it in Gargantext.Text.Ngrams
+-- | TODO put it in Gargantext.Core.Text.Ngrams
 data Ngrams = Ngrams { _ngramsTerms :: Text
                      , _ngramsSize  :: Int
            } deriving (Generic, Show, Eq, Ord)
@@ -155,7 +155,7 @@ text2ngrams :: Text -> Ngrams
 text2ngrams txt = Ngrams txt $ length $ splitOn " " txt
 
 -------------------------------------------------------------------------
--- | TODO put it in Gargantext.Text.Ngrams
+-- | TODO put it in Gargantext.Core.Text.Ngrams
 -- Named entity are typed ngrams of Terms Ngrams
 data NgramsT a =
   NgramsT { _ngramsType :: NgramsType

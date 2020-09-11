@@ -60,8 +60,8 @@ type TableApi = Summary "Table API"
             :<|> Summary "Table API (POST)"
               :> ReqBody '[JSON] TableQuery
               :> Post    '[JSON] FacetTableResult
-            :<|> "md5" :>
-                   Summary "Table md5"
+            :<|> "hash" :>
+                   Summary "Hash Table"
                 :> QueryParam "tabType" TabType
                 :> Get '[JSON] Text
 
@@ -87,7 +87,7 @@ instance Arbitrary TableQuery where
 tableApi :: NodeId -> GargServer TableApi
 tableApi id' = getTableApi id'
           :<|> postTableApi id'
-          :<|> getTableMd5Api id'
+          :<|> getTableHashApi id'
 
 
 getTableApi :: NodeId -> Maybe TabType -> Cmd err (HashedResponse FacetTableResult)
@@ -103,10 +103,10 @@ postTableApi cId (TableQuery o l order ft q) = case ft of
       Trash -> searchInCorpus' cId True [q] (Just o) (Just l) (Just order)
       x     -> panic $ "not implemented in tableApi " <> (cs $ show x)
 
-getTableMd5Api :: NodeId -> Maybe TabType -> Cmd err Text
-getTableMd5Api cId tabType = do
-  HashedResponse { md5 = md5' } <- getTableApi cId tabType
-  pure md5'
+getTableHashApi :: NodeId -> Maybe TabType -> Cmd err Text
+getTableHashApi cId tabType = do
+  HashedResponse { hash = h } <- getTableApi cId tabType
+  pure h
 
 searchInCorpus' :: CorpusId
                 -> Bool

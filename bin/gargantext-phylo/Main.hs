@@ -28,16 +28,16 @@ import GHC.IO (FilePath)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
-import Gargantext.Text.Context (TermList)
-import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
-import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Text.List.CSV (csvMapTermList)
-import Gargantext.Text.Terms.WithList
-import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.LevelMaker
-import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.View.Export
-import Gargantext.Viz.Phylo.View.ViewMaker
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
+import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Core.Text.List.CSV (csvMapTermList)
+import Gargantext.Core.Text.Terms.WithList
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.LevelMaker
+import Gargantext.Core.Viz.Phylo.Tools
+import Gargantext.Core.Viz.Phylo.View.Export
+import Gargantext.Core.Viz.Phylo.View.ViewMaker
 import System.Directory (doesFileExist)
 import System.Environment
 import qualified Data.ByteString.Lazy as L
@@ -45,7 +45,7 @@ import qualified Data.List   as DL
 import qualified Data.Map    as DM
 import qualified Data.Text   as DT
 import qualified Data.Vector as DV
-import qualified Gargantext.Text.Corpus.Parsers.CSV as CSV
+import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as CSV
 import qualified Prelude     as P
 
 
@@ -132,11 +132,11 @@ csvToCorpus limit csv = DV.toList
 -- | To transform a Wos nfile into a readable corpus
 wosToCorpus :: Limit -> CorpusPath -> IO ([(Int,Text)])
 wosToCorpus limit path = DL.take limit
-                         . map (\d -> ((fromJust $_hyperdataDocument_publication_year d)
-                                    ,(fromJust $_hyperdataDocument_title d) <> " " <> (fromJust $_hyperdataDocument_abstract d)))
-                         . filter (\d -> (isJust $_hyperdataDocument_publication_year d)
-                                      && (isJust $_hyperdataDocument_title d)
-                                      && (isJust $_hyperdataDocument_abstract d))
+                         . map (\d -> ((fromJust $_hd_publication_year d)
+                                    ,(fromJust $_hd_title d) <> " " <> (fromJust $_hd_abstract d)))
+                         . filter (\d -> (isJust $_hd_publication_year d)
+                                      && (isJust $_hd_title d)
+                                      && (isJust $_hd_abstract d))
                          . concat
                          <$> mapConcurrently (\idx -> parseFile WOS (path <> show(idx) <> ".txt")) [1..20]
 

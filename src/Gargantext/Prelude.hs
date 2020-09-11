@@ -11,7 +11,7 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
-
+{-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude
@@ -291,9 +291,6 @@ deviation = sqrt . variance
 
 movingAverage :: (Eq b, Fractional b) => Int -> [b] -> [b]
 movingAverage steps xs = map mean $ chunkAlong steps 1 xs
-
-ma :: [Double] -> [Double]
-ma = movingAverage 3
 
 -----------------------------------------------------------------------
 -----------------------------------------------------------------------

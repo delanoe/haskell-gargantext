@@ -15,26 +15,24 @@ Main exports of Gargantext:
 
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Node.Corpus.Export
   where
 
+
 import Data.Aeson.TH (deriveJSON)
-import qualified Data.List as List
-import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Servant
-
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
 import Gargantext.API.Prelude (GargNoServer)
-import Gargantext.Core.Types --
+import Gargantext.Prelude.Crypto.Hash (hash)
+import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
 import Gargantext.Database.Admin.Config (userMaster)
@@ -42,13 +40,16 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
 import Gargantext.Database.Admin.Types.Node (Node, NodeId, ListId, CorpusId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
+import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
 import Gargantext.Database.Query.Table.NodeNode (selectDocNodes)
-import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Schema.Node (_node_id, _node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
+import Servant
+import qualified Data.List as List
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 
 -- Corpus Export
@@ -80,6 +81,9 @@ instance ToSchema Document where
 instance ToSchema Ngrams where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_ng_")
 
+instance (ToSchema a) => ToSchema (Node a) where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_node_")
+
 -------
 instance ToParamSchema Corpus where
   toParamSchema _ = toParamSchema (Proxy :: Proxy TODO)
@@ -97,6 +101,7 @@ type API = Summary "Corpus Export"
             :> Get '[JSON] Corpus
 
 --------------------------------------------------
+-- | Hashes are ordered by Set
 getCorpus :: CorpusId
           -> Maybe ListId
           -> Maybe NgramsType
@@ -114,15 +119,14 @@ getCorpus cId lId nt' = do
   repo <- getRepo
   ngs  <- getNodeNgrams cId lId nt repo
   let  -- uniqId is hash computed already for each document imported in database
-    r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (ng_hash b)) (d_hash a b)
+    r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (hash b)) (d_hash a b)
                              ) ns ngs
           where
-            ng_hash b   = sha $ List.foldl (\x y -> x<>y) "" $ List.sort $ Set.toList b
-            d_hash  a b = sha $ (fromMaybe "" (_hyperdataDocument_uniqId $ _node_hyperdata a))
-                             <> (ng_hash b)
-
-  pure $ Corpus (Map.elems r) (sha $ List.foldl (\a b -> a<>b) ""
-                                   $ List.map _d_hash $ Map.elems r
+            d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _node_hyperdata a)
+                                       , hash b
+                                       ]
+  pure $ Corpus (Map.elems r) (hash $ List.map _d_hash
+                                            $ Map.elems r
                               )
 
 getNodeNgrams :: HasNodeError err
