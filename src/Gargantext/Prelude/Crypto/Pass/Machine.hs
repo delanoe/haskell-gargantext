@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Prelude.Crypto.Pass
+Module      : Gargantext.Prelude.Crypto.Pass.Machine
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : Public Domain
@@ -7,8 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-To avoid weak password, just offer an easy way to make "good" one and
-let user add his own entropy.
+Random Text generator (for machines mainly)
 
 Thanks to 
 https://zuttobenkyou.wordpress.com/2011/12/23/simple-password-generation-with-haskell/
@@ -16,7 +15,7 @@ https://zuttobenkyou.wordpress.com/2011/12/23/simple-password-generation-with-ha
 -}
 
 
-module Gargantext.Prelude.Crypto.Pass
+module Gargantext.Prelude.Crypto.Pass.Machine
       where
 
 import Data.List (nub)
