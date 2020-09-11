@@ -99,17 +99,17 @@ buildNgramsTermsList :: Lang
                      -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList _l _n _m s uCid mCid = do
-  candidates <- sortTficf Down <$> getTficf uCid mCid NgramsTerms
+  candidates <- sortTficf Up <$> getTficf uCid mCid NgramsTerms
   printDebug "head candidates" (List.take 10 $ candidates)
   printDebug "tail candidates" (List.take 10 $ List.reverse $ candidates)
 
   let
-    candidatesSize = 400
-    candidatesHead = List.take candidatesSize candidates
-    candidatesTail = List.drop candidatesSize candidates
+    (candidatesHead, candidatesTail0)    = List.splitAt 3 candidates
+    (candidatesMap, candidatesTailFinal) = List.splitAt 400 candidatesTail0
 
-    termList = (map (toGargList ((isStopTerm s) .fst) MapTerm)       candidatesHead)
-            <> (map (toGargList ((isStopTerm s) .fst) CandidateTerm) candidatesTail)
+    termList = (map (toGargList ((isStopTerm s) . fst) CandidateTerm) candidatesHead)
+            <> (map (toGargList ((isStopTerm s) . fst) MapTerm)       candidatesMap)
+            <> (map (toGargList ((isStopTerm s) . fst) CandidateTerm) candidatesTailFinal)
 
     ngs = List.concat
         $ map toNgramsElement
