@@ -58,6 +58,7 @@ library:
   - Gargantext.Database.Admin.Types.Hyperdata
   - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
+  - Gargantext.Prelude.Crypto.Pass.User
   - Gargantext.Prelude.Utils
   - Gargantext.Core.Text
   - Gargantext.Core.Text.Context
