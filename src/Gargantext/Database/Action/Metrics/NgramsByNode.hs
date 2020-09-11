@@ -66,7 +66,7 @@ countNodesByNgramsWith f m = (total, m')
   where
     total = fromIntegral $ Set.size $ Set.unions $ elems m
     m'    = Map.map ( swap . second (fromIntegral . Set.size))
-                    $ groupNodesByNgramsWith f m
+          $ groupNodesByNgramsWith f m
 
 
 groupNodesByNgramsWith :: (Text -> Text)

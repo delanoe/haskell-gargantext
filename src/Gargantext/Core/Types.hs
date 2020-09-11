@@ -126,10 +126,8 @@ instance Semigroup TokenTag where
 
 instance Monoid TokenTag where
   mempty = TokenTag [] empty Nothing Nothing
-
-  mappend t1 t2 = (<>) t1 t2
-
   mconcat = foldl mappend mempty
+  -- mappend t1 t2 = (<>) t1 t2
 
 
 class HasInvalidError e where

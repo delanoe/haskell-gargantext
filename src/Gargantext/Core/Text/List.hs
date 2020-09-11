@@ -21,7 +21,7 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mS
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode ({-ngramsGroup,-} getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Core.Text.Metrics.TFICF (sortTficf)
 import Gargantext.Database.Prelude (Cmd)
@@ -98,10 +98,10 @@ buildNgramsTermsList :: Lang
                      -> UserCorpusId
                      -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsTermsList _l _n _m s uCid mCid = do
+buildNgramsTermsList l n m s uCid mCid = do
   candidates <- sortTficf Up <$> getTficf uCid mCid NgramsTerms
-  printDebug "head candidates" (List.take 10 $ candidates)
-  printDebug "tail candidates" (List.take 10 $ List.reverse $ candidates)
+  -- printDebug "head candidates" (List.take 10 $ candidates)
+  -- printDebug "tail candidates" (List.take 10 $ List.reverse $ candidates)
 
   let
     (candidatesHead, candidatesTail0)    = List.splitAt 3 candidates
@@ -113,43 +113,47 @@ buildNgramsTermsList _l _n _m s uCid mCid = do
 
     ngs = List.concat
         $ map toNgramsElement
-        $ map (\(lt, (t,d)) -> (lt, ((t, (d,Set.singleton t))))) termList
+        $ groupStems
+        $ map (\(listType, (t,d)) -> ( ngramsGroup l n m t
+                                     , GroupedText listType t d Set.empty
+                                     )
+              ) termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
 
+type Group = Lang -> Int -> Int -> Text -> Text
+type Stem  = Text
+type Label = Text
+data GroupedText = GroupedText { _gt_listType :: ListType
+                               , _gt_label    :: Label
+                               , _gt_score    :: Double
+                               , _gt_group    :: Set Text
+                               }
+groupStems :: [(Stem, GroupedText)] -> [GroupedText]
+groupStems = Map.elems . Map.fromListWith grouping
+  where
+    grouping (GroupedText lt1 label1 score1 group1)
+             (GroupedText lt2 label2 score2 group2)
+             | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr)
+             | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr)
+        where
+          lt = lt1 <> lt2
+          gr = Set.union group1 group2
 
-toTermList :: Int
-           -> Int
-           -> (a -> Bool)
-           -> [a]
-           -> [(ListType, a)]
-toTermList _ _ _ [] = []
-toTermList a b stop ns =  -- trace ("computing toTermList") $
-                      map (toGargList stop CandidateTerm) xs
-                   <> map (toGargList stop MapTerm)     ys
-                   <> toTermList a b stop zs
+toNgramsElement :: GroupedText -> [NgramsElement]
+toNgramsElement (GroupedText listType label _ setNgrams) =
+  [parentElem] <> childrenElems
     where
-      xs = take a ns
-      xz = drop a ns
-
-      ys = take b xz
-      zs = drop b xz
-
-
-toNgramsElement :: (ListType, (Text, (Double, Set Text))) -> [NgramsElement]
-toNgramsElement (listType, (_stem, (_score, setNgrams))) =
-  case Set.toList setNgrams of
-    []                -> []
-    (parent:children) -> [parentElem] <> childrenElems
-      where
-        parentElem    = mkNgramsElement parent
-                                        listType
-                                        Nothing
-                                        (mSetFromList children)
-        childrenElems = map (\t -> mkNgramsElement t listType
-                                                   (Just $ RootParent parent parent)
-                                                   (mSetFromList [])
-                            ) children
+      parent = label
+      children = Set.toList setNgrams
+      parentElem    = mkNgramsElement parent
+                                      listType
+                                      Nothing
+                                      (mSetFromList children)
+      childrenElems = map (\t -> mkNgramsElement t listType
+                                                 (Just $ RootParent parent parent)
+                                                 (mSetFromList [])
+                          ) children
 
 
 toGargList :: (b -> Bool) -> ListType -> b -> (ListType, b)
