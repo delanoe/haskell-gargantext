@@ -93,17 +93,12 @@ printPass len = do
   _ <- runStateT (showRandomKey len as') aesState -- enter loop
   return ()
 
-gargPass :: IO (Int, AESRNG)
-gargPass = do
+gargPassMachine :: IO (Int, AESRNG)
+gargPassMachine = do
   aesState <- makeSystem -- gather entropy from the system to use as the initial seed
   pass <- runStateT aesRandomInt aesState -- enter loop
   pure pass
 
-gargPass' :: IO Text
-gargPass' = do
-  aesState <- makeSystem
-  let (bs, _aesState') = cprgGenerate 15 aesState
-  return (cs $ bsToStr bs)
 
 {- 
 main :: IO ()

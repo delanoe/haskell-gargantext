@@ -7,6 +7,8 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+Easy password manager for User (easy to memorize).
+
 -}
 
 
@@ -17,6 +19,19 @@ import Data.List ((!!))
 import Gargantext.Prelude
 import System.Random
 
+-- TODO add this as parameter to gargantext.ini
+gargPassUser :: (Num a, Enum a) => a -> [b] -> IO [b]
+gargPassUser = gargPassUser' 3333
+
+gargPassUser' :: (Num a, Enum a) => Int -> a -> [b] -> IO [b]
+gargPassUser' threshold size wlist
+  | length wlist > threshold  = generatePassword size wlist
+  | otherwise                 = panic "List to short"
+
+
+generatePassword :: (Num a, Enum a) => a -> [b] -> IO [b]
+generatePassword size wlist = mapM (\_ -> getRandomElement wlist) [1..size]
+
 getRandomIndex :: Foldable t => t a -> IO Int
 getRandomIndex list = randomRIO (0, (length list - 1))
 
@@ -25,6 +40,4 @@ getRandomElement list = do
   index <- (getRandomIndex list)
   pure (list !! index)
 
-generatePassword :: (Num a, Enum a) => a -> [b] -> IO [b]
-generatePassword size wlist = mapM (\_ -> getRandomElement wlist) [1..size]
 
