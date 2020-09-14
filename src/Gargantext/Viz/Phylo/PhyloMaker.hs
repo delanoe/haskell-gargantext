@@ -202,7 +202,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.001 cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0 cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 
@@ -286,6 +286,17 @@ docsToTermFreq docs fdt =
       sumFreqs = sum $ elems freqs
    in map (/sumFreqs) freqs
 
+docsToLastTermFreq :: Int -> [Document] -> Vector Ngrams -> Map Int Double
+docsToLastTermFreq n docs fdt = 
+  let last   = take n $ reverse $ sort $ map date docs
+      nbDocs = fromIntegral $ length $ filter (\d -> elem (date d) last) docs
+      freqs  = map (/(nbDocs))
+             $ fromList
+             $ map (\lst -> (head' "docsToLastTermFreq" lst, fromIntegral $ length lst)) 
+             $ group $ sort $ concat $ map (\d -> nub $ ngramsToIdx (text d) fdt) $ filter (\d -> elem (date d) last) docs
+      sumFreqs = sum $ elems freqs
+   in map (/sumFreqs) freqs  
+
 
 --  To count the number of docs by unit of time
 docsToTimeScaleNb :: [Document] -> Map Date Double
@@ -312,6 +323,7 @@ toPhyloBase docs lst conf =
                (docsToTimeScaleCooc docs (foundations ^. foundations_roots))
                (docsToTimeScaleNb docs)
                (docsToTermFreq docs (foundations ^. foundations_roots))
+               (docsToLastTermFreq (getTimePeriod $ timeUnit conf) docs (foundations ^. foundations_roots))
                empty
                empty
                params

@@ -17,7 +17,7 @@ import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tai
 import Data.Set (Set, disjoint)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.String (String)
-import Data.Text (Text, unwords)
+import Data.Text (Text)
 
 import Gargantext.Prelude
 import Gargantext.Viz.AdaptativePhylo
@@ -31,6 +31,7 @@ import qualified Data.Vector as Vector
 import qualified Data.List as List
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import qualified Data.Text as Text
 
 ------------
 -- | Io | --
@@ -98,8 +99,13 @@ ngramsToIdx ns fdt = map (\n -> fromJust $ elemIndex n fdt) ns
 
 -- | To transform a list of Ngrams Indexes into a Label
 ngramsToLabel :: Vector Ngrams -> [Int] -> Text
-ngramsToLabel ngrams l = unwords $ tail' "ngramsToLabel" $ concat $ map (\n -> ["|",n]) $ ngramsToText ngrams l
+ngramsToLabel ngrams l = Text.unwords $ tail' "ngramsToLabel" $ concat $ map (\n -> ["|",n]) $ ngramsToText ngrams l
 
+idxToLabel :: [Int] -> String
+idxToLabel l = List.unwords $ tail' "idxToLabel" $ concat $ map (\n -> ["|",show n]) l
+
+idxToLabel' :: [Double] -> String
+idxToLabel' l = List.unwords $ tail' "idxToLabel" $ concat $ map (\n -> ["|",show n]) l
 
 -- | To transform a list of Ngrams Indexes into a list of Text
 ngramsToText :: Vector Ngrams -> [Int] -> [Text]
