@@ -19,6 +19,7 @@ Functions to deal with users, database side.
 
 module Gargantext.Database.Query.Table.User
   ( insertUsers
+  , toUserWrite
   , queryUserTable
   , getUser
   , insertUsersDemo
@@ -50,11 +51,6 @@ insertUsers :: [UserWrite] -> Cmd err Int64
 insertUsers us = mkCmd $ \c -> runInsert_ c insert
   where
     insert = Insert userTable us rCount Nothing
-
-insertUsersDemo :: Cmd err Int64
-insertUsersDemo = do
-  users <- liftBase arbitraryUsersHash
-  insertUsers $ map toUserWrite users
 
 -----------------------------------------------------------------------
 toUserWrite :: NewUser HashPassword -> UserWrite
@@ -108,6 +104,13 @@ usersLight = map toUserLight <$> users
 
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
+
+
+----------------------------------------------------------------------
+insertUsersDemo :: Cmd err Int64
+insertUsersDemo = do
+  users <- liftBase arbitraryUsersHash
+  insertUsers $ map toUserWrite users
 
 ----------------------------------------------------------------------
 instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where

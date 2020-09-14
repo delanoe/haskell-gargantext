@@ -60,16 +60,16 @@ arbitraryPassword :: [GargPassword]
 arbitraryPassword = map (\u -> GargPassword (reverse u)) arbitraryUsername
 
 -----------------------------------------------------------
-userHash :: MonadIO m
+toUserHash :: MonadIO m
          =>    NewUser GargPassword
          -> m (NewUser HashPassword)
-userHash (NewUser u m (GargPassword p)) = do
+toUserHash (NewUser u m (GargPassword p)) = do
   h <- Auth.createPasswordHash p
   pure $ NewUser u m h
 
 arbitraryUsersHash :: MonadIO m
                   => m [NewUser HashPassword]
-arbitraryUsersHash = mapM userHash arbitraryUsers
+arbitraryUsersHash = mapM toUserHash arbitraryUsers
 
 arbitraryUsers :: [NewUser GargPassword]
 arbitraryUsers = map (\u -> NewUser u (u <> "@gargantext.org") (GargPassword $ reverse u))
