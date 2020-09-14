@@ -74,6 +74,7 @@ get' lId = fromList
 
 ------------------------------------------------------------------------
 -- TODO : purge list
+-- TODO talk
 post :: FlowCmdM env err m
     => ListId
     -> NgramsList

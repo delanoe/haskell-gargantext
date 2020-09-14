@@ -27,14 +27,12 @@ module Gargantext.API.Ngrams
   ( TableNgramsApi
   , TableNgramsApiGet
   , TableNgramsApiPut
-  , TableNgramsApiPost
 
   , getTableNgrams
   , setListNgrams
-  , rmListNgrams
+  --, rmListNgrams TODO fix before exporting
   , putListNgrams
-  , putListNgrams'
-  , tableNgramsPost
+  --, putListNgrams'
   , apiNgramsTableCorpus
   , apiNgramsTableDoc
 
@@ -100,7 +98,7 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import qualified Data.Aeson.Text as DAT
-import Data.Either (Either(Left))
+import Data.Either (Either(..))
 import Data.Foldable
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import qualified Data.List as List
@@ -110,7 +108,9 @@ import qualified Data.Map.Strict.Patch as PM
 import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Ord (Down(..))
-import Data.Patch.Class (Replace, replace, Action(act), Applicable(..), Composable(..), Transformable(..), PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace, ours)
+import Data.Patch.Class (Replace, replace, Action(act), Group, Applicable(..), Composable(..), Transformable(..),
+                         PairPatch(..), Patched, ConflictResolution, ConflictResolutionReplace, ours,
+                         MaybePatch(Mod), unMod, old, new)
 import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Set as Set
@@ -126,7 +126,7 @@ import Servant hiding (Patch)
 import System.Clock (getTime, TimeSpec, Clock(..))
 import System.FileLock (FileLock)
 import System.IO (stderr)
-import Test.QuickCheck (elements)
+import Test.QuickCheck (elements, frequency)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 import Prelude (error)
@@ -135,7 +135,7 @@ import Gargantext.Prelude
 
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Gargantext.Core.Types (TODO)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
@@ -230,6 +230,10 @@ data NgramsRepoElement = NgramsRepoElement
   deriving (Ord, Eq, Show, Generic)
 
 deriveJSON (unPrefix "_nre_") ''NgramsRepoElement
+-- TODO
+-- if ngrams & not size => size
+-- drop occurrences
+
 makeLenses ''NgramsRepoElement
 
 instance ToSchema NgramsRepoElement where
@@ -455,7 +459,7 @@ type PatchMap = PM.PatchMap
 
 
 newtype PatchMSet a = PatchMSet (PatchMap a AddRem)
-  deriving (Eq, Show, Generic, Validity, Semigroup, Monoid,
+  deriving (Eq, Show, Generic, Validity, Semigroup, Monoid, Group,
             Transformable, Composable)
 
 type ConflictResolutionPatchMSet a = a -> ConflictResolutionReplace (Maybe ())
@@ -518,29 +522,59 @@ instance ToSchema a => ToSchema (Replace a) where
                 ]
             & required .~ [ "old", "new" ]
 
-data NgramsPatch =
-     NgramsPatch { _patch_children :: PatchMSet NgramsTerm
+data NgramsPatch
+   = NgramsPatch { _patch_children :: PatchMSet NgramsTerm
                  , _patch_list     :: Replace ListType   -- TODO Map UserId ListType
                  }
+   | NgramsReplace { _patch_old :: Maybe NgramsRepoElement
+                   , _patch_new :: Maybe NgramsRepoElement
+                   }
       deriving (Eq, Show, Generic)
 
-deriveJSON (unPrefix "_") ''NgramsPatch
+-- The JSON encoding is untagged, this is OK since the field names are disjoints and thus the encoding is unambiguous.
+-- TODO: the empty object should be accepted and treated as mempty.
+deriveJSON (unPrefixUntagged "_") ''NgramsPatch
 makeLenses ''NgramsPatch
 
-instance ToSchema  NgramsPatch where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_")
+-- TODO: This instance is simplified since we should either have the fields children and/or list
+-- or the fields old and/or new.
+instance ToSchema NgramsPatch where
+  declareNamedSchema _ = do
+    childrenSch <- declareSchemaRef (Proxy :: Proxy (PatchMSet NgramsTerm))
+    listSch <- declareSchemaRef (Proxy :: Proxy (Replace ListType))
+    nreSch <- declareSchemaRef (Proxy :: Proxy NgramsRepoElement)
+    return $ NamedSchema (Just "NgramsPatch") $ mempty
+            & type_ ?~ SwaggerObject
+            & properties .~
+                InsOrdHashMap.fromList
+                [ ("children", childrenSch)
+                , ("list",     listSch)
+                , ("old",      nreSch)
+                , ("new",      nreSch)
+                ]
 
 instance Arbitrary NgramsPatch where
-  arbitrary = NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary)
+  arbitrary = frequency [ (9, NgramsPatch <$> arbitrary <*> (replace <$> arbitrary <*> arbitrary))
+                        , (1, NgramsReplace <$> arbitrary <*> arbitrary)
+                        ]
 
 instance Serialise NgramsPatch
 instance Serialise (Replace ListType)
+
 instance Serialise ListType
 
-type NgramsPatchIso = PairPatch (PatchMSet NgramsTerm) (Replace ListType)
+type NgramsPatchIso =
+  MaybePatch NgramsRepoElement (PairPatch (PatchMSet NgramsTerm) (Replace ListType))
 
 _NgramsPatch :: Iso' NgramsPatch NgramsPatchIso
-_NgramsPatch = iso (\(NgramsPatch c l) -> c :*: l) (\(c :*: l) -> NgramsPatch c l)
+_NgramsPatch = iso unwrap wrap
+  where
+    unwrap (NgramsPatch c l) = Mod $ PairPatch (c, l)
+    unwrap (NgramsReplace o n) = replace o n
+    wrap x =
+      case unMod x of
+        Just (PairPatch (c, l)) -> NgramsPatch c l
+        Nothing -> NgramsReplace (x ^? old . _Just) (x ^? new . _Just)
 
 instance Semigroup NgramsPatch where
   p <> q = _NgramsPatch # (p ^. _NgramsPatch <> q ^. _NgramsPatch)
@@ -561,28 +595,30 @@ instance Transformable NgramsPatch where
       (p', q') = transformWith conflict (p ^. _NgramsPatch) (q ^. _NgramsPatch)
 
 type ConflictResolutionNgramsPatch =
-  ( ConflictResolutionPatchMSet NgramsTerm
-  , ConflictResolutionReplace ListType
+  ( ConflictResolutionReplace (Maybe NgramsRepoElement)
+  , ( ConflictResolutionPatchMSet NgramsTerm
+    , ConflictResolutionReplace ListType
+    )
+  , (Bool, Bool)
   )
 type instance ConflictResolution NgramsPatch =
   ConflictResolutionNgramsPatch
 
-type PatchedNgramsPatch = (Set NgramsTerm, ListType)
-  -- ~ Patched NgramsPatchIso
+type PatchedNgramsPatch = Maybe NgramsRepoElement
 type instance Patched NgramsPatch = PatchedNgramsPatch
 
-instance Applicable NgramsPatch (Maybe NgramsRepoElement) where
-  applicable p Nothing   = check (p == mempty) "NgramsPatch should be empty here"
-  applicable p (Just nre) =
-    applicable (p ^. patch_children) (nre ^. nre_children) <>
-    applicable (p ^. patch_list)     (nre ^. nre_list)
+instance Applicable (PairPatch (PatchMSet NgramsTerm) (Replace ListType)) NgramsRepoElement where
+  applicable (PairPatch (c, l)) n = applicable c (n ^. nre_children) <> applicable l (n ^. nre_list)
 
-instance Action NgramsPatch NgramsRepoElement where
-  act p = (nre_children %~ act (p ^. patch_children))
-        . (nre_list     %~ act (p ^. patch_list))
+instance Action (PairPatch (PatchMSet NgramsTerm) (Replace ListType)) NgramsRepoElement where
+  act (PairPatch (c, l)) = (nre_children %~ act c)
+                         . (nre_list     %~ act l)
+
+instance Applicable NgramsPatch (Maybe NgramsRepoElement) where
+  applicable p = applicable (p ^. _NgramsPatch)
 
 instance Action NgramsPatch (Maybe NgramsRepoElement) where
-  act = fmap . act
+  act p = act (p ^. _NgramsPatch)
 
 newtype NgramsTablePatch = NgramsTablePatch (PatchMap NgramsTerm NgramsPatch)
   deriving (Eq, Show, Generic, ToJSON, FromJSON, Semigroup, Monoid, Validity, Transformable)
@@ -598,8 +634,6 @@ instance FromField (PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTable
   where
     fromField = fromField'
 
---instance (Ord k, Action pv (Maybe v)) => Action (PatchMap k pv) (Map k v) where
---
 type instance ConflictResolution NgramsTablePatch =
   NgramsTerm -> ConflictResolutionNgramsPatch
 
@@ -821,7 +855,10 @@ ngramsStatePatchConflictResolution
   -> NgramsTerm
   -> ConflictResolutionNgramsPatch
 ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
-  = (const ours, ours)
+  = (ours, (const ours, ours), (False, False))
+                             -- ^------^------- they mean that Mod has always priority.
+                             --(True, False) <- would mean priority to the left (same as ours).
+
   -- undefined {- TODO think this through -}, listTypeConflictResolution)
 
 -- Current state:
@@ -865,6 +902,7 @@ addListNgrams listId ngramsType nes = do
     m = Map.fromList $ (\n -> (n ^. ne_ngrams, n)) <$> nes
 -}
 
+-- UNSAFE
 rmListNgrams ::  RepoCmdM env err m
               => ListId
               -> TableNgrams.NgramsType
@@ -873,6 +911,7 @@ rmListNgrams l nt = setListNgrams l nt mempty
 
 -- | TODO: incr the Version number
 -- && should use patch
+-- UNSAFE
 setListNgrams ::  RepoCmdM env err m
               => NodeId
               -> TableNgrams.NgramsType
@@ -890,10 +929,12 @@ setListNgrams listId ngramsType ns = do
            )
   saveRepo
 
-
+-- NOTE
+-- This is no longer part of the API.
+-- This function is maintained for its usage in Database.Action.Flow.List.
 -- If the given list of ngrams elements contains ngrams already in
 -- the repo, they will be ignored.
-putListNgrams :: RepoCmdM env err m
+putListNgrams :: (HasInvalidError err, RepoCmdM env err m)
               => NodeId
               -> TableNgrams.NgramsType
               -> [NgramsElement] -> m ()
@@ -902,7 +943,7 @@ putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
   where
     m = Map.fromList $ map (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) nes
 
-putListNgrams' :: RepoCmdM env err m
+putListNgrams' :: (HasInvalidError err, RepoCmdM env err m)
                => NodeId
                -> TableNgrams.NgramsType
                -> Map NgramsTerm NgramsRepoElement
@@ -911,10 +952,26 @@ putListNgrams' nodeId ngramsType ns = do
   -- printDebug "[putLictNgrams'] nodeId" nodeId
   -- printDebug "[putLictNgrams'] ngramsType" ngramsType
   -- printDebug "[putListNgrams'] ns" ns
+
+  let p1 = NgramsTablePatch . PM.fromMap $ NgramsReplace Nothing . Just <$> ns
+      (p0, p0_validity) = PM.singleton nodeId p1
+      (p, p_validity) = PM.singleton ngramsType p0
+  assertValid p0_validity
+  assertValid p_validity
+  {-
+  -- TODO
+  v <- currentVersion
+  q <- commitStatePatch (Versioned v p)
+  assert empty q
+  -- What if another commit comes in between?
+  -- Shall we have a blindCommitStatePatch? It would not ask for a version but just a patch.
+  -- The modifyMVar_ would test the patch with applicable first.
+  -- If valid the rest would be atomic and no merge is required.
+  -}
   var <- view repoVar
   liftBase $ modifyMVar_ var $ \r -> do
     pure $ r & r_version +~ 1
-             & r_history %~ (mempty :)
+             & r_history %~ (p :)
              & r_state . at ngramsType %~
                (Just .
                  (at nodeId %~
@@ -928,15 +985,6 @@ putListNgrams' nodeId ngramsType ns = do
   saveRepo
 
 
--- TODO-ACCESS check
-tableNgramsPost :: RepoCmdM env err m
-                => TabType
-                -> NodeId
-                -> Maybe ListType
-                -> [NgramsTerm] -> m ()
-tableNgramsPost tabType nodeId mayList =
-  putListNgrams nodeId (ngramsTypeFromTabType tabType) . fmap (newNgramsElement mayList)
-
 currentVersion :: RepoCmdM env err m
                => m Version
 currentVersion = do
@@ -944,6 +992,35 @@ currentVersion = do
   r   <- liftBase $ readMVar var
   pure $ r ^. r_version
 
+
+-- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
+commitStatePatch :: RepoCmdM env err m => Versioned NgramsStatePatch -> m (Versioned NgramsStatePatch)
+commitStatePatch (Versioned p_version p) = do
+  var <- view repoVar
+  vq' <- liftBase $ modifyMVar var $ \r -> do
+    let
+      q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
+      (p', q') = transformWith ngramsStatePatchConflictResolution p q
+      r' = r & r_version +~ 1
+              & r_state   %~ act p'
+              & r_history %~ (p' :)
+    {-
+    -- Ideally we would like to check these properties. However:
+    -- * They should be checked only to debug the code. The client data
+    --   should be able to trigger these.
+    -- * What kind of error should they throw (we are in IO here)?
+    -- * Should we keep modifyMVar?
+    -- * Should we throw the validation in an Exception, catch it around
+    --   modifyMVar and throw it back as an Error?
+    assertValid $ transformable p q
+    assertValid $ applicable p' (r ^. r_state)
+    -}
+    pure (r', Versioned (r' ^. r_version) q')
+
+  saveRepo
+  pure vq'
+
+-- This is a special case of tableNgramsPut where the input patch is empty.
 tableNgramsPull :: RepoCmdM env err m
                 => ListId
                 -> TableNgrams.NgramsType
@@ -979,30 +1056,8 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
       assertValid p0_validity
       assertValid p_validity
 
-      var <- view repoVar
-      vq' <- liftBase $ modifyMVar var $ \r -> do
-        let
-          q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
-          (p', q') = transformWith ngramsStatePatchConflictResolution p q
-          r' = r & r_version +~ 1
-                 & r_state   %~ act p'
-                 & r_history %~ (p' :)
-          q'_table = q' ^. _PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just
-        {-
-        -- Ideally we would like to check these properties. However:
-        -- * They should be checked only to debug the code. The client data
-        --   should be able to trigger these.
-        -- * What kind of error should they throw (we are in IO here)?
-        -- * Should we keep modifyMVar?
-        -- * Should we throw the validation in an Exception, catch it around
-        --   modifyMVar and throw it back as an Error?
-        assertValid $ transformable p q
-        assertValid $ applicable p' (r ^. r_state)
-        -}
-        pure (r', Versioned (r' ^. r_version) q'_table)
-
-      saveRepo
-      pure vq'
+      commitStatePatch (Versioned p_version p)
+        <&> v_data %~ (view (_PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just))
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
@@ -1221,13 +1276,6 @@ type TableNgramsApiPut = Summary " Table Ngrams API Change"
                        :> ReqBody '[JSON] (Versioned NgramsTablePatch)
                        :> Put     '[JSON] (Versioned NgramsTablePatch)
 
-type TableNgramsApiPost = Summary " Table Ngrams API Adds new ngrams"
-                       :> QueryParamR "ngramsType" TabType
-                       :> QueryParamR "list"       ListId
-                       :> QueryParam  "listType"   ListType
-                       :> ReqBody '[JSON] [NgramsTerm]
-                       :> Post    '[JSON] ()
-
 type RecomputeScoresNgramsApiGet = Summary " Recompute scores for ngrams table"
                        :> QueryParamR "ngramsType"  TabType
                        :> QueryParamR "list"        ListId
@@ -1240,7 +1288,6 @@ type TableNgramsApiGetVersion = Summary " Table Ngrams API Get Version"
 
 type TableNgramsApi =  TableNgramsApiGet
                   :<|> TableNgramsApiPut
-                  :<|> TableNgramsApiPost
                   :<|> RecomputeScoresNgramsApiGet
                   :<|> "version" :> TableNgramsApiGetVersion
 
@@ -1265,10 +1312,12 @@ getTableNgramsVersion :: (RepoCmdM env err m, HasNodeError err, HasConnectionPoo
                -> TabType
                -> ListId
                -> m Version
-getTableNgramsVersion nId tabType listId = do
+getTableNgramsVersion _nId _tabType _listId = currentVersion
   -- TODO: limit?
-  Versioned { _v_version = v } <- getTableNgramsCorpus nId tabType listId 100000 Nothing Nothing Nothing Nothing Nothing Nothing
-  pure v
+  -- Versioned { _v_version = v } <- getTableNgramsCorpus nId tabType listId 100000 Nothing Nothing Nothing Nothing Nothing Nothing
+  -- This line above looks like a waste of computation to finally get only the version.
+  -- See the comment about listNgramsChangedSince.
+
 
 -- | Text search is deactivated for now for ngrams by doc only
 getTableNgramsDoc :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
@@ -1297,7 +1346,6 @@ apiNgramsTableCorpus :: ( RepoCmdM env err m
                      => NodeId -> ServerT TableNgramsApi m
 apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
                        :<|> tableNgramsPut
-                       :<|> tableNgramsPost
                        :<|> scoresRecomputeTableNgrams cId
                        :<|> getTableNgramsVersion cId
 
@@ -1310,12 +1358,22 @@ apiNgramsTableDoc :: ( RepoCmdM env err m
                   => DocId -> ServerT TableNgramsApi m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId
                     :<|> tableNgramsPut
-                    :<|> tableNgramsPost
                     :<|> scoresRecomputeTableNgrams dId
                     :<|> getTableNgramsVersion dId
-                    -- > add new ngrams in database (TODO AD)
                     -- > index all the corpus accordingly (TODO AD)
 
+-- Did the given list of ngrams changed since the given version?
+-- The returned value is versioned boolean value, meaning that one always retrieve the
+-- latest version.
+-- If the given version is negative then one simply receive the latest version and True.
+-- Using this function is more precise than simply comparing the latest version number
+-- with the local version number. Indeed there might be no change to this particular list
+-- and still the version number has changed because of other lists.
+--
+-- Here the added value is to make a compromise between precision, computation, and bandwidth:
+-- * currentVersion: good computation, good bandwidth, bad precision.
+-- * listNgramsChangedSince: good precision, good bandwidth, bad computation.
+-- * tableNgramsPull: good precision, good bandwidth (if you use the received data!), bad computation.
 listNgramsChangedSince :: RepoCmdM env err m
                        => ListId -> TableNgrams.NgramsType -> Version -> m (Versioned Bool)
 listNgramsChangedSince listId ngramsType version

@@ -20,6 +20,7 @@ module Gargantext.Database.Action.Flow.Types
     where
 
 import Data.Aeson (ToJSON)
+import Gargantext.Core.Types (HasInvalidError)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
 import Gargantext.Core.Text.Terms
@@ -32,6 +33,7 @@ type FlowCmdM env err m =
   ( CmdM     env err m
   , RepoCmdM env err m
   , HasNodeError err
+  , HasInvalidError err
   , HasRepoVar env
   )
 
