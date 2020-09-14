@@ -30,6 +30,12 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devo
 curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/debian/install | sh
 ```
 
+#### Ubuntu
+
+``` sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/ubuntu/install | sh
+```
+
 ### Add dependencies
 
 1. CoreNLP is needed (EN and FR); This dependency will not be needed soon.
