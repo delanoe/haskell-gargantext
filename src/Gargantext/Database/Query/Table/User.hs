@@ -21,7 +21,6 @@ module Gargantext.Database.Query.Table.User
   ( insertUsers
   , queryUserTable
   , getUser
-  , gargUserWith
   , insertUsersDemo
   , selectUsersLightWith
   , userWithUsername
@@ -46,8 +45,6 @@ import Gargantext.Prelude
 import Opaleye
 
 ------------------------------------------------------------------------
-
-
 -- TODO: on conflict, nice message
 insertUsers :: [UserWrite] -> Cmd err Int64
 insertUsers us = mkCmd $ \c -> runInsert_ c insert
@@ -57,17 +54,18 @@ insertUsers us = mkCmd $ \c -> runInsert_ c insert
 insertUsersDemo :: Cmd err Int64
 insertUsersDemo = do
   users <- liftBase arbitraryUsersHash
-  insertUsers $ map (\(u,m,h) -> gargUserWith u m h) users
+  insertUsers $ map toUserWrite users
 
 -----------------------------------------------------------------------
-gargUserWith :: Username -> Email -> Auth.PasswordHash Auth.Argon2 -> UserWrite
-gargUserWith u m (Auth.PasswordHash p) = UserDB (Nothing) (pgStrictText p)
-                         (Nothing) (pgBool True) (pgStrictText u)
-                         (pgStrictText "first_name")
-                         (pgStrictText "last_name")
-                         (pgStrictText m)
-                         (pgBool True) 
-                         (pgBool True) Nothing
+toUserWrite :: NewUser HashPassword -> UserWrite
+toUserWrite (NewUser u m (Auth.PasswordHash p)) = 
+  UserDB (Nothing) (pgStrictText p)
+         (Nothing) (pgBool True) (pgStrictText u)
+         (pgStrictText "first_name")
+         (pgStrictText "last_name")
+         (pgStrictText m)
+         (pgBool True) 
+         (pgBool True) Nothing
 
 ------------------------------------------------------------------
 getUsersWith :: Username -> Cmd err [UserLight]
@@ -101,11 +99,7 @@ userLightWithUsername t xs = userWith userLight_username t xs
 userLightWithId :: Int -> [UserLight] -> Maybe UserLight
 userLightWithId t xs = userWith userLight_id t xs
 
-
-instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
+----------------------------------------------------------------------
 users :: Cmd err [UserDB]
 users = runOpaQuery queryUserTable
 
@@ -115,3 +109,6 @@ usersLight = map toUserLight <$> users
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
 
+----------------------------------------------------------------------
+instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn

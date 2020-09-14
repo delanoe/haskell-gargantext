@@ -97,6 +97,3 @@ queryInsertNgrams = [sql|
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
 
-
-
-
