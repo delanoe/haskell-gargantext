@@ -40,11 +40,11 @@ import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)
 
 
-getRootId :: User -> Cmd err NodeId
+getRootId :: (HasNodeError err) => User -> Cmd err NodeId
 getRootId u = do
   maybeRoot <- head <$> getRoot u
   case maybeRoot of
-    Nothing -> panic "no root id"
+    Nothing -> nodeError $ NodeError "[G.D.Q.T.R.getRootId] No root id"
     Just  r -> pure (_node_id r)
 
 getRoot :: User -> Cmd err [Node HyperdataUser]
@@ -88,7 +88,7 @@ getOrMk_RootWithCorpus user cName c = do
                   else do
                     c' <- mk (Just $ fromLeft "Default" cName) c rootId userId
                     _tId <- case head c' of
-                              Nothing -> pure [0]
+                              Nothing  -> nodeError $ NodeError "[G.D.Q.T.Root.getOrMk...] mk Corpus failed"
                               Just c'' -> insertDefaultNode NodeTexts c'' userId
                     pure c'
 
@@ -143,4 +143,4 @@ selectRoot (RootId nid) =
     restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< _node_id   row   .== (pgNodeId nid)
     returnA  -< row
-selectRoot UserPublic = panic "No root for Public"
+selectRoot UserPublic = panic {-nodeError $ NodeError-}  "[G.D.Q.T.Root.selectRoot] No root for Public"
