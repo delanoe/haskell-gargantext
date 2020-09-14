@@ -14,14 +14,17 @@ Portability : POSIX
 module Gargantext.Database.Action.User
   where
 
+-- import Data.Maybe (catMaybes)
 import Gargantext.Database.Query.Table.User
 import Gargantext.Core.Types.Individu
 import Gargantext.Database.Prelude
 import Gargantext.Prelude
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Prelude.Mail (gargMail)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..), nodeError, NodeError(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot)
 
 
+------------------------------------------------------------------------
 mkUser :: HasNodeError err => NewUser GargPassword -> Cmd err Int64
 mkUser u = mkUsers [u]
 
@@ -30,8 +33,15 @@ mkUsers us = do
   us' <- liftBase    $ mapM toUserHash us
   r   <- insertUsers $ map toUserWrite us'
   _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
+  _   <- liftBase gargMail
   pure r
 
--- | TODO
+------------------------------------------------------------------------
 rmUser :: HasNodeError err => User -> Cmd err Int64
-rmUser = undefined
+rmUser (UserName un) = deleteUsers [un]
+rmUser _ = nodeError NotImplYet
+
+-- TODO
+rmUsers :: HasNodeError err => [User] -> Cmd err Int64
+rmUsers [] = pure 0
+rmUsers _  = undefined

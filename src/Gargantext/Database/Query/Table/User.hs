@@ -20,6 +20,7 @@ Functions to deal with users, database side.
 module Gargantext.Database.Query.Table.User
   ( insertUsers
   , toUserWrite
+  , deleteUsers
   , queryUserTable
   , getUser
   , insertUsersDemo
@@ -51,6 +52,10 @@ insertUsers :: [UserWrite] -> Cmd err Int64
 insertUsers us = mkCmd $ \c -> runInsert_ c insert
   where
     insert = Insert userTable us rCount Nothing
+
+deleteUsers :: [Username] -> Cmd err Int64
+deleteUsers us = mkCmd $ \c -> runDelete c userTable
+    (\user -> in_ (map pgStrictText us) (user_username user))
 
 -----------------------------------------------------------------------
 toUserWrite :: NewUser HashPassword -> UserWrite
