@@ -21,14 +21,12 @@ module Gargantext.Prelude.Crypto.Pass.Machine
 import Data.List (nub)
 -- import System.Environment (getArgs)
 -- import System.IO (hSetEcho)
-import Data.Text (Text)
 import Control.Monad.State
 import Crypto.Random (cprgGenerate)
 import Crypto.Random.AESCtr
 import Data.Binary (decode)
 import Prelude
 import qualified Data.ByteString.Lazy as B
-import Gargantext.Prelude (cs)
 import Data.ByteString as S (ByteString, unpack)
 import Data.ByteString.Char8 as C8 (pack)
 import Data.Char (chr)
