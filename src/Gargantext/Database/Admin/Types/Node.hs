@@ -36,8 +36,9 @@ import GHC.Generics (Generic)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import qualified Opaleye as O
-import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGTSVector, Nullable, fieldQueryRunnerColumn)
+import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
 import Test.QuickCheck (elements)
+import Gargantext.Prelude.Crypto.Hash (Hash)
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Instances.Text ()
 import Test.QuickCheck.Instances.Time ()
@@ -51,18 +52,17 @@ import Gargantext.Prelude
 
 type UserId = Int
 type MasterUserId = UserId
-
 ------------------------------------------------------------------------
 -- | NodePoly indicates that Node has a Polymorphism Type
-type Node json   = NodePoly NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
+type Node json   = NodePoly NodeId (Maybe Hash) NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json
 
 -- | NodeSearch (queries)
-type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
+-- type NodeSearch json   = NodePolySearch NodeId NodeTypeId UserId (Maybe ParentId) NodeName UTCTime json (Maybe TSVector)
 
 ------------------------------------------------------------------------
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePoly NodeId NodeTypeId
+         ToSchema (NodePoly NodeId Hash NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
                             UTCTime hyperdata
@@ -70,7 +70,7 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
   declareNamedSchema = wellNamedSchema "_node_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
-         ToSchema (NodePoly NodeId NodeTypeId
+         ToSchema (NodePoly NodeId Hash NodeTypeId
                             UserId
                             (Maybe ParentId) NodeName
                             UTCTime hyperdata
@@ -93,17 +93,18 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
                   ) where
   declareNamedSchema = wellNamedSchema "_ns_"
 
-instance (Arbitrary hyperdata
-         ,Arbitrary nodeId
+instance (Arbitrary nodeId
+         ,Arbitrary hashId
          ,Arbitrary nodeTypeId
          ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePoly nodeId nodeTypeId userId nodeParentId
+         , Arbitrary hyperdata
+         ) => Arbitrary (NodePoly nodeId hashId nodeTypeId userId nodeParentId
                                   NodeName UTCTime hyperdata) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
                      <*> arbitrary <*> arbitrary <*> arbitrary
-                     <*> arbitrary
+                     <*> arbitrary <*> arbitrary
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
@@ -156,7 +157,8 @@ instance Arbitrary NodeId where
   arbitrary = NodeId <$> arbitrary
 
 type ParentId = NodeId
-type CorpusId = NodeId
+type CorpusId    = NodeId
+type CommunityId = NodeId
 type ListId   = NodeId
 type DocumentId = NodeId
 type DocId      = NodeId
@@ -234,10 +236,6 @@ instance ToSchema Resource where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "resource_")
 
 ------------------------------------------------------------------------
-
-
-
-------------------------------------------------------------------------
 -- | Then a Node can be either a Folder or a Corpus or a Document
 data NodeType = NodeUser
               | NodeFolderPrivate
@@ -245,11 +243,13 @@ data NodeType = NodeUser
               | NodeFolderPublic
               | NodeFolder
 
+              -- | NodeAnalysis | NodeCommunity
+
               | NodeCorpus     | NodeCorpusV3 | NodeTexts | NodeDocument
               | NodeAnnuaire   | NodeContact
               | NodeGraph      | NodePhylo
-              | NodeDashboard  | NodeChart    | NodeNoteBook
-              | NodeList       | NodeListModel
+              | NodeDashboard  -- | NodeChart    | NodeNoteBook
+              | NodeList       | NodeModel
               | NodeListCooc
 
 {-
@@ -260,12 +260,43 @@ data NodeType = NodeUser
 
               -- Optional Nodes
               | NodeFrameWrite | NodeFrameCalc
+              | NodeFile
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
 
 
 allNodeTypes :: [NodeType]
 allNodeTypes = [minBound ..]
+
+defaultName :: NodeType -> Text
+defaultName NodeUser       = "User"
+defaultName NodeContact    = "Contact"
+
+defaultName NodeCorpus     = "Corpus"
+defaultName NodeCorpusV3   = "Corpus"
+defaultName NodeAnnuaire   = "Annuaire"
+
+defaultName NodeDocument   = "Doc"
+defaultName NodeTexts      = "Texts"
+defaultName NodeList       = "List"
+defaultName NodeListCooc   = "List"
+defaultName NodeModel      = "Model"
+
+defaultName NodeFolder     = "Folder"
+defaultName NodeFolderPrivate = "Private Folder"
+defaultName NodeFolderShared  = "Shared Folder"
+defaultName NodeTeam          = "Folder"
+defaultName NodeFolderPublic  = "Public Folder"
+
+defaultName NodeGraph         = "Graph"
+defaultName NodePhylo         = "Phylo"
+defaultName NodeDashboard     = "Dashboard"
+
+defaultName NodeFrameWrite    = "Frame Write"
+defaultName NodeFrameCalc     = "Frame Calc"
+
+defaultName NodeFile          = "File"
+
 
 instance FromJSON NodeType
 instance ToJSON NodeType
@@ -279,6 +310,8 @@ instance ToSchema      NodeType
 
 instance Arbitrary NodeType where
   arbitrary = elements allNodeTypes
+
+
 
 ------------------------------------------------------------------------
 -- Instances
@@ -310,6 +343,12 @@ instance QueryRunnerColumnDefault (Nullable PGInt4) NodeId
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+instance (QueryRunnerColumnDefault (Nullable O.PGTimestamptz) UTCTime)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
+instance QueryRunnerColumnDefault PGText (Maybe Hash)
+  where
+    queryRunnerColumnDefault = fieldQueryRunnerColumn
 
 

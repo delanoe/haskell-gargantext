@@ -16,12 +16,14 @@ Triggers on Nodes table.
 module Gargantext.Database.Admin.Trigger.Nodes
   where
 
+import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+import qualified Database.PostgreSQL.Simple as DPS
+
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
-import qualified Database.PostgreSQL.Simple as DPS
 
 
 triggerSearchUpdate :: Cmd err Int64
@@ -65,4 +67,53 @@ triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
       UPDATE nodes SET hyperdata = hyperdata;
 
   |]
+
+type Secret = Text
+
+triggerUpdateHash :: Secret -> Cmd err Int64
+triggerUpdateHash secret = execPGSQuery query ( nodeTypeId NodeDocument
+                                              , nodeTypeId NodeContact
+                                              , secret
+                                              , secret
+                                              , nodeTypeId NodeDocument
+                                              , nodeTypeId NodeContact
+                                              , secret
+                                              , secret
+                                              )
+  where
+    query :: DPS.Query
+    query = [sql|
+
+      CREATE OR REPLACE FUNCTION hash_insert_nodes()
+      RETURNS trigger AS $$
+      BEGIN
+       IF NEW.hash_id = ''
+         THEN
+           IF NEW.typename = ? OR NEW.typename = ?
+             THEN NEW.hash_id = digest(CONCAT(?, NEW.typename, NEW.name, NEW.parent_id, NEW.hyperdata), 'sha256');
+             ELSE NEW.hash_id = digest(CONCAT(?, NEW.typename, NEW.name, NEW.id, NEW.hyperdata), 'sha256');
+           END IF;
+        END IF;
+        RETURN NEW;
+      END
+      $$ LANGUAGE plpgsql;
+
+
+      CREATE OR REPLACE FUNCTION hash_update_nodes()
+      RETURNS trigger AS $$
+      BEGIN
+        IF NEW.typename = ? OR NEW.typename = ?
+             THEN NEW.hash_id = digest(CONCAT(?, NEW.typename, NEW.name, NEW.parent_id, NEW.hyperdata), 'sha256');
+             ELSE NEW.hash_id = digest(CONCAT(?, NEW.typename, NEW.name, NEW.id, NEW.hyperdata), 'sha256');
+        END IF;
+        RETURN NEW;
+      END
+      $$ LANGUAGE plpgsql;
+
+
+      CREATE TRIGGER nodes_hash_insert BEFORE INSERT ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_insert_nodes();
+      CREATE TRIGGER nodes_hash_update BEFORE UPDATE ON nodes FOR EACH ROW EXECUTE PROCEDURE hash_update_nodes();
+
+  |]
+
 

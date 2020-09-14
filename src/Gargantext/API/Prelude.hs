@@ -33,6 +33,10 @@ import Crypto.JOSE.Error as Jose
 import Data.Aeson.Types
 import Data.Typeable
 import Data.Validity
+import Servant
+import Servant.Job.Async
+import Servant.Job.Core (HasServerError(..), serverError)
+
 import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Admin.Settings
 import Gargantext.API.Ngrams
@@ -41,9 +45,6 @@ import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
 import Gargantext.Database.Query.Tree
 import Gargantext.Prelude
-import Servant
-import Servant.Job.Async (HasJobEnv)
-import Servant.Job.Core (HasServerError(..), serverError)
 
 class HasJoseError e where
   _JoseError :: Prism' e Jose.Error

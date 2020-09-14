@@ -26,17 +26,19 @@ import Data.Monoid (mempty)
 import Data.Swagger
 import Data.Text (Text())
 import GHC.Generics (Generic)
-import Gargantext.API.Ngrams (TODO)
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude -- (Cmd, CmdM)
-import Gargantext.Prelude
-import Gargantext.Prelude.Utils (sha)
+
 import Servant
 import Servant.Multipart
 import Servant.Swagger (HasSwagger(toSwagger))
 import Servant.Swagger.Internal
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
+import Gargantext.API.Ngrams (TODO)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude -- (Cmd, CmdM)
+import Gargantext.Prelude
+import Gargantext.Prelude.Crypto.Hash (hash)
 
 -------------------------------------------------------------
 type Hash = Text
@@ -107,6 +109,6 @@ postUpload _ (Just fileType) multipartData = do
     --pure $ cs content
   -- is <- inputs multipartData
 
-  pure $ map (sha . cs) is
+  pure $ map hash is
 
 -------------------------------------------------------------------

@@ -16,29 +16,27 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Action.Metrics.NgramsByNode
   where
 
-import Data.Map.Strict (Map, fromListWith, elems, toList, fromList)
+import Data.Map.Strict (Map, fromListWith, elems, toList)
 import Data.Map.Strict.Patch (PatchMap, Replace, diff)
 import Data.Set (Set)
-import qualified Data.Ord as DO (Down(..))
 import Data.Text (Text)
 import Data.Tuple.Extra (second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Debug.Trace (trace)
-import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (Ordering(..))
-import Gargantext.Database.Admin.Config (nodeTypeId)
-import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
-import Gargantext.Database.Prelude (Cmd, runPGSQuery)
-import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
-import Gargantext.Prelude
-import Gargantext.Text.Metrics.TFICF
-import Gargantext.Text.Terms.Mono.Stem (stem)
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Database.PostgreSQL.Simple as DPS
+
+import Gargantext.Core (Lang(..))
+import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
+import Gargantext.Prelude
+import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 
 -- | TODO: group with 2 terms only can be
 -- discussed. Main purpose of this is offering
@@ -58,59 +56,6 @@ ngramsGroup l _m _n = Text.intercalate " "
                   . Text.replace "-" " "
 
 
-sortTficf :: Ordering
-          -> (Map Text (Double, Set Text))
-          -> [   (Text,(Double, Set Text))]
-sortTficf Down = List.sortOn (DO.Down . fst . snd) . toList
-sortTficf Up   = List.sortOn (fst . snd) . toList
-
-
-getTficf :: UserCorpusId
-         -> MasterCorpusId
-         -> NgramsType
-         -> (Text -> Text)
-         -> Cmd err (Map Text (Double, Set Text))
-getTficf u m nt f = do
-  u' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsUser   u nt
-  m' <- Map.filter (\s -> Set.size s > 1) <$> getNodesByNgramsMaster u m
-
-  pure $ toTficfData (countNodesByNgramsWith f u')
-                     (countNodesByNgramsWith f m')
-
-{-
-getTficfWith :: UserCorpusId
-             -> MasterCorpusId
-             -> [ListId]
-             -> NgramsType
-             -> Map Text (Maybe Text)
-             -> Cmd err (Map Text (Double, Set Text))
-getTficfWith u m ls nt mtxt = do
-  u' <- getNodesByNgramsOnlyUser   u ls nt (Map.keys mtxt)
-  m' <- getNodesByNgramsMaster     u m
-
-  let f x = case Map.lookup x mtxt of
-        Nothing -> x
-        Just x' -> maybe x identity x'
-
-  pure $ toTficfData (countNodesByNgramsWith f u') (countNodesByNgramsWith f m')
--}
-
-type Context = (Double, Map Text (Double, Set Text))
-type Supra   = Context
-type Infra   = Context
-
-toTficfData :: Infra
-            -> Supra
-            -> Map Text (Double, Set Text)
-toTficfData (ti, mi) (ts, ms) =
-  fromList [ (t, ( tficf (TficfInfra (Count n                              )(Total ti))
-                         (TficfSupra (Count $ maybe 0 fst $ Map.lookup t ms)(Total ts))
-                 , ns
-                 )
-             )
-           | (t, (n,ns)) <- toList mi
-           ]
-
 
 -- | fst is size of Supra Corpus
 --   snd is Texts and size of Occurrences (different docs)
@@ -121,7 +66,7 @@ countNodesByNgramsWith f m = (total, m')
   where
     total = fromIntegral $ Set.size $ Set.unions $ elems m
     m'    = Map.map ( swap . second (fromIntegral . Set.size))
-                    $ groupNodesByNgramsWith f m
+          $ groupNodesByNgramsWith f m
 
 
 groupNodesByNgramsWith :: (Text -> Text)

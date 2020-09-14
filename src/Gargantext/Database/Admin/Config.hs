@@ -39,32 +39,34 @@ userArbitrary = "user1"
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId n =
   case n of
-    NodeUser      -> 1
-    NodeFolder    -> 2
+    NodeUser          -> 1
+    NodeFolder        -> 2
     NodeFolderPrivate -> 20
     NodeFolderShared  -> 21
     NodeTeam          -> 210
     NodeFolderPublic  -> 22
-    NodeCorpusV3  -> 3
-    NodeCorpus    -> 30
-    NodeAnnuaire  -> 31
-    NodeTexts     -> 40
-    NodeDocument  -> 4
-    NodeContact   -> 41
+    NodeCorpusV3      -> 3
+    NodeCorpus        -> 30
+    NodeAnnuaire      -> 31
+    NodeTexts         -> 40
+    NodeDocument      -> 4
+    NodeContact       -> 41
   --NodeSwap   -> 19
 
 ----  Lists
     NodeList      -> 5
     NodeListCooc  -> 50
-    NodeListModel -> 52
+    NodeModel -> 52
 
 ----  Scores
 --    NodeOccurrences -> 10
     NodeGraph       -> 9
     NodePhylo       -> 90
-    NodeChart       -> 7
+--    NodeChart       -> 7
     NodeDashboard   -> 71
-    NodeNoteBook    -> 88
+--    NodeNoteBook    -> 88
+
+    NodeFile        -> 101
 
     NodeFrameWrite  -> 991
     NodeFrameCalc   -> 992
@@ -87,6 +89,8 @@ nodeTypeId n =
 hasNodeType :: forall a. Node a -> NodeType -> Bool
 hasNodeType n nt = (view node_typename n) == (nodeTypeId nt)
 
+isInNodeTypes :: forall a. Node a -> [NodeType] -> Bool
+isInNodeTypes n ts = elem (view node_typename n) (map nodeTypeId ts)
 
 -- | Nodes are typed in the database according to a specific ID
 --

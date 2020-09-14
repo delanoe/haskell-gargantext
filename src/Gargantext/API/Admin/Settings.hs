@@ -54,7 +54,7 @@ import System.Log.FastLogger
 import Web.HttpApiData (parseUrlPiece)
 import qualified Data.ByteString.Lazy as L
 import qualified Servant.Job.Core
-import Gargantext.Config (GargConfig(), readConfig, defaultConfig)
+import Gargantext.Prelude.Config (GargConfig(), readConfig, defaultConfig)
 
 type PortNumber = Int
 
@@ -75,7 +75,6 @@ data Settings = Settings
     , _cookieSettings  :: CookieSettings
     , _sendLoginEmails :: SendEmailType
     , _scrapydUrl      :: BaseUrl
-    , _fileFolder      :: FilePath
     , _config          :: GargConfig
     }
 
@@ -97,7 +96,6 @@ devSettings jwkFile = do
 --    , _dbServer = "localhost"
     , _sendLoginEmails = LogEmailToConsole
     , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
-    , _fileFolder = "data"
     , _cookieSettings = defaultCookieSettings { cookieXsrfSetting = Just xsrfCookieSetting } -- TODO-SECURITY tune
     , _jwtSettings = defaultJWTSettings jwk -- TODO-SECURITY tune
     , _config      = defaultConfig
@@ -182,13 +180,13 @@ repoDir :: FilePath
 repoDir = "repos"
 
 repoSnapshot :: FilePath
-repoSnapshot = repoDir <> "/repo.json"
+repoSnapshot = repoDir <> "/repo.cbor"
 
 -- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
 repoSaverAction :: Serialise a => a -> IO ()
 repoSaverAction a = do
-  withTempFile "repos" "tmp-repo.json" $ \fp h -> do
+  withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
     printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h

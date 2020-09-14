@@ -76,6 +76,7 @@ import System.IO (FilePath)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
 import qualified Paths_gargantext           as PG -- cabal magic build module
+import qualified Gargantext.API.Public      as Public
 
 
 data Mode = Dev | Mock | Prod 
@@ -219,7 +220,7 @@ server :: forall env. EnvC env => env -> IO (Server API)
 server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  schemaUiServer swaggerDoc
-     :<|> hoistServerWithContext 
+     :<|> hoistServerWithContext
             (Proxy :: Proxy GargAPI)
             (Proxy :: Proxy AuthContext)
             transform
@@ -240,6 +241,8 @@ serverGargAPI -- orchestrator
        =  auth
      :<|> gargVersion
      :<|> serverPrivateGargAPI
+     :<|> Public.api
+
   --   :<|> orchestrator
   where
 

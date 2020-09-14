@@ -11,31 +11,32 @@ Portability : POSIX
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
-{-# LANGUAGE Arrows                 #-}
+{-# LANGUAGE Arrows                      #-}
 
 module Gargantext.Database.Query.Table.Node.Children
   where
 
 import Control.Arrow (returnA)
 import Data.Proxy
-import Opaleye
-import Protolude
-
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument, HyperdataContact)
 import Gargantext.Database.Admin.Types.Node (pgNodeId)
-import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument)
+import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.NodeNode
-import Gargantext.Database.Query.Table.Node.Contact (HyperdataContact)
-import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
+import Opaleye
+import Protolude
 
+
+-- TODO getAllTableDocuments
 getAllDocuments :: ParentId -> Cmd err (TableResult (Node HyperdataDocument))
 getAllDocuments pId = getAllChildren pId (Proxy :: Proxy HyperdataDocument)
                                          (Just NodeDocument)
 
+-- TODO getAllTableContacts
 getAllContacts :: ParentId -> Cmd err (TableResult (Node HyperdataContact))
 getAllContacts pId = getAllChildren pId (Proxy :: Proxy HyperdataContact)
                                         (Just NodeContact)
@@ -71,7 +72,7 @@ selectChildren :: ParentId
                -> Maybe NodeType
                -> Query NodeRead
 selectChildren parentId maybeNodeType = proc () -> do
-    row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
+    row@(Node nId _ typeName _ parent_id _ _ _) <- queryNodeTable -< ()
     (NodeNode n1id n2id _ _) <- queryNodeNodeTable -< ()
 
     let nodeType = maybe 0 nodeTypeId maybeNodeType

@@ -19,9 +19,10 @@ Portability : POSIX
 module Gargantext.Database.Action.Flow.Types
     where
 
+import Data.Aeson (ToJSON)
 import Gargantext.Core.Flow.Types
-import Gargantext.Text
-import Gargantext.Text.Terms
+import Gargantext.Core.Text
+import Gargantext.Core.Text.Terms
 import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Prelude (CmdM)
@@ -39,5 +40,11 @@ type FlowCorpus a = ( AddUniqId      a
                     , InsertDb       a
                     , ExtractNgramsT a
                     , HasText        a
+                    , ToNode         a
+                    , ToJSON         a
                     )
 
+type FlowInsertDB a = ( AddUniqId a
+                      , UniqId    a
+                      , InsertDb  a
+                      )

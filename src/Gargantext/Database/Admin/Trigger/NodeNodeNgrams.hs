@@ -17,12 +17,13 @@ module Gargantext.Database.Admin.Trigger.NodeNodeNgrams
   where
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
+import qualified Database.PostgreSQL.Simple as DPS
+
 import Gargantext.Core.Types.Main (listTypeId, ListType(CandidateTerm))
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
-import qualified Database.PostgreSQL.Simple as DPS
 
 triggerCountInsert :: Cmd err Int64
 triggerCountInsert = execPGSQuery query (nodeTypeId NodeDocument, nodeTypeId NodeList)

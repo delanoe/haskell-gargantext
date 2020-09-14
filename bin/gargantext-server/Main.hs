@@ -11,9 +11,10 @@ Script to start gargantext with different modes (Dev, Prod, Mock).
 
 -}
 
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeOperators     #-}
-{-# LANGUAGE Strict             #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE Strict               #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Main where
 

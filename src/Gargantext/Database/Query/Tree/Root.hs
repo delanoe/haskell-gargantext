@@ -27,7 +27,7 @@ import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.User (HyperdataUser)
+import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
@@ -89,15 +89,11 @@ getOrMk_RootWithCorpus user cName c = do
                     c' <- mk (Just $ fromLeft "Default" cName) c rootId userId
                     _tId <- case head c' of
                               Nothing -> pure [0]
-                              Just c'' -> mkNode NodeTexts c'' userId
+                              Just c'' -> insertDefaultNode NodeTexts c'' userId
                     pure c'
 
   corpusId <- maybe (nodeError NoCorpusFound) pure (head corpusId')
   pure (userId, rootId, corpusId)
-
-
-
-
 
 
 mkRoot :: HasNodeError err
@@ -119,9 +115,9 @@ mkRoot user = do
        rs <- mkNodeWithParent NodeUser Nothing uid una
        _ <- case rs of
          [r] -> do
-           _ <- mkNodeWithParent NodeFolderPrivate (Just r) uid una
-           _ <- mkNodeWithParent NodeFolderShared  (Just r) uid una
-           _ <- mkNodeWithParent NodeFolderPublic  (Just r) uid una
+           _ <- insertNode NodeFolderPrivate Nothing Nothing r uid
+           _ <- insertNode NodeFolderShared Nothing Nothing r uid
+           _ <- insertNode NodeFolderPublic Nothing Nothing r uid
            pure rs
          _   -> pure rs
        pure rs

@@ -22,7 +22,13 @@ import Data.Map (Map, toList, fromList)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
 import GHC.Generics (Generic)
-import Gargantext.API.Node.Corpus.New
+import Network.HTTP.Media ((//), (/:))
+import Servant
+import Servant.Job.Async
+import Servant.Job.Utils (jsonOptions)
+import Web.FormUrlEncoded (FromForm)
+
+import Gargantext.Prelude
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Ngrams
 import Gargantext.API.Admin.Orchestrator.Types
@@ -31,12 +37,6 @@ import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
-import Gargantext.Prelude
-import Network.HTTP.Media ((//), (/:))
-import Servant
-import Servant.Job.Async
-import Servant.Job.Utils (jsonOptions)
-import Web.FormUrlEncoded (FromForm)
 
 ------------------------------------------------------------------------
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))
@@ -55,9 +55,8 @@ instance ToJSON a => MimeRender HTML a where
   mimeRender _ = encode
 
 ------------------------------------------------------------------------
-
-get :: RepoCmdM env err m
-        => ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
+get :: RepoCmdM env err m =>
+       ListId -> m (Headers '[Header "Content-Disposition" Text] NgramsList)
 get lId = do
   lst <- get' lId
   let (NodeId id) = lId
@@ -74,7 +73,6 @@ get' lId = fromList
        <$> mapM (getNgramsTableMap lId) ngramsTypes
 
 ------------------------------------------------------------------------
-
 -- TODO : purge list
 post :: FlowCmdM env err m
     => ListId
@@ -88,7 +86,6 @@ post l m  = do
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-
 type PostAPI = Summary "Update List"
         :> "add"
         :> "form"
@@ -108,17 +105,17 @@ postAsync' :: FlowCmdM env err m
 postAsync' l (WithFile _ m _) logStatus = do
 
   logStatus JobLog { _scst_succeeded = Just 0
-                          , _scst_failed    = Just 0
-                          , _scst_remaining = Just 1
-                          , _scst_events    = Just []
-                          }
+                   , _scst_failed    = Just 0
+                   , _scst_remaining = Just 1
+                   , _scst_events    = Just []
+                   }
   _r <- post l m
 
   pure JobLog { _scst_succeeded = Just 1
-                     , _scst_failed    = Just 0
-                     , _scst_remaining = Just 0
-                     , _scst_events    = Just []
-                     }
+              , _scst_failed    = Just 0
+              , _scst_remaining = Just 0
+              , _scst_events    = Just []
+              }
 
 data WithFile = WithFile
   { _wf_filetype :: !FileType

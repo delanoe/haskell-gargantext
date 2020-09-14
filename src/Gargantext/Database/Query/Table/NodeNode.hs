@@ -28,6 +28,8 @@ module Gargantext.Database.Query.Table.NodeNode
   , getNodeNode
   , insertNodeNode
   , deleteNodeNode
+  , selectPublicNodes
+  , selectCountDocs
   )
   where
 
@@ -70,9 +72,33 @@ getNodeNode n = runOpaQuery (selectNodeNode $ pgNodeId n)
       returnA -< ns
 
 ------------------------------------------------------------------------
-insertNodeNode :: [NodeNode] -> Cmd err Int64
-insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
-                          $ Insert nodeNodeTable ns' rCount Nothing
+-- TODO (refactor with Children)
+{-
+getNodeNodeWith :: NodeId -> proxy a -> Maybe NodeType -> Cmd err [a]
+getNodeNodeWith pId _ maybeNodeType = runOpaQuery query
+  where
+    query = selectChildren pId maybeNodeType
+
+    selectChildren :: ParentId
+                   -> Maybe NodeType
+                   -> Query NodeRead
+    selectChildren parentId maybeNodeType = proc () -> do
+        row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
+        (NodeNode _ n1id n2id _ _) <- queryNodeNodeTable -< ()
+
+        let nodeType = maybe 0 nodeTypeId maybeNodeType
+        restrict -< typeName  .== pgInt4 nodeType
+
+        restrict -< (.||) (parent_id .== (pgNodeId parentId))
+                          ( (.&&) (n1id .== pgNodeId parentId)
+                                  (n2id .== nId))
+        returnA -< row
+-}
+
+------------------------------------------------------------------------
+insertNodeNode :: [NodeNode] -> Cmd err Int
+insertNodeNode ns = mkCmd $ \conn -> fromIntegral <$> (runInsert_ conn
+                          $ Insert nodeNodeTable ns' rCount (Just DoNothing))
   where
     ns' :: [NodeNodeWrite]
     ns' = map (\(NodeNode n1 n2 x y)
@@ -81,6 +107,8 @@ insertNodeNode ns = mkCmd $ \conn -> runInsert_ conn
                             (pgDouble <$> x)
                             (pgInt4   <$> y)
               ) ns
+
+
 
 ------------------------------------------------------------------------
 type Node1_Id = NodeId
@@ -118,11 +146,24 @@ nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
                   |]
 
 ------------------------------------------------------------------------
--- | TODO use UTCTime fast 
+selectCountDocs :: CorpusId -> Cmd err Int
+selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
+  where
+    queryCountDocs cId' = proc () -> do
+      (n, nn) <- joinInCorpus -< ()
+      restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId')
+      restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
+      restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId NodeDocument)
+      returnA -< n
+
+
+
+
+-- | TODO use UTCTime fast
 selectDocsDates :: CorpusId -> Cmd err [Text]
 selectDocsDates cId =  map (head' "selectDocsDates" . splitOn "-")
                    <$> catMaybes
-                   <$> map (view hyperdataDocument_publication_date)
+                   <$> map (view hd_publication_date)
                    <$> selectDocs cId
 
 selectDocs :: CorpusId -> Cmd err [HyperdataDocument]
@@ -152,4 +193,22 @@ joinInCorpus = leftJoin queryNodeTable queryNodeNodeTable cond
   where
     cond :: (NodeRead, NodeNodeRead) -> Column PGBool
     cond (n, nn) = nn^.nn_node2_id .== (view node_id n)
+
+joinOn1 :: O.Query (NodeRead, NodeNodeReadNull)
+joinOn1 = leftJoin queryNodeTable queryNodeNodeTable cond
+  where
+    cond :: (NodeRead, NodeNodeRead) -> Column PGBool
+    cond (n, nn) = nn^.nn_node1_id .== n^.node_id
+
+
+------------------------------------------------------------------------
+selectPublicNodes :: (Hyperdata a, QueryRunnerColumnDefault PGJsonb a)
+                  => Cmd err [(Node a, Maybe Int)]
+selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
+
+queryWithType :: NodeType -> O.Query (NodeRead, Column (Nullable PGInt4))
+queryWithType nt = proc () -> do
+  (n, nn) <- joinOn1 -< ()
+  restrict -< n^.node_typename .== (pgInt4 $ nodeTypeId nt)
+  returnA  -<  (n, nn^.nn_node2_id)
 

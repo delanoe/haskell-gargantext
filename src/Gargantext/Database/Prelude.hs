@@ -34,7 +34,7 @@ import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
 import Gargantext.Prelude
-import Gargantext.Config (GargConfig())
+import Gargantext.Prelude.Config (GargConfig())
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
@@ -45,7 +45,6 @@ import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
 
 -------------------------------------------------------
-
 class HasConnectionPool env where
   connPool :: Getter env (Pool Connection)
 
@@ -85,12 +84,14 @@ mkCmd k = do
   withResource pool (liftBase . k)
 
 runCmd :: (HasConnectionPool env)
-       => env -> Cmd' env err a
+       => env
+       -> Cmd' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
 
 runOpaQuery :: Default FromFields fields haskells
-            => Select fields -> Cmd err [haskells]
+            => Select fields
+            -> Cmd err [haskells]
 runOpaQuery q = mkCmd $ \c -> runQuery c q
 
 runCountOpaQuery :: Select a -> Cmd err Int

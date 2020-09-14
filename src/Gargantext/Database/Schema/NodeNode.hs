@@ -54,15 +54,15 @@ $(makeAdaptorAndInstance "pNodeNode" ''NodeNodePoly)
 makeLenses ''NodeNodePoly
 
 nodeNodeTable :: Table NodeNodeWrite NodeNodeRead
-nodeNodeTable  = Table "nodes_nodes" (pNodeNode
-                                NodeNode { _nn_node1_id = required "node1_id"
-                                         , _nn_node2_id = required "node2_id"
-                                         , _nn_score    = optional "score"
-                                         , _nn_category = optional "category"
-                                     }
-                                     )
-
-
+nodeNodeTable  =
+  Table "nodes_nodes"
+         ( pNodeNode
+           NodeNode { _nn_node1_id = required "node1_id"
+                    , _nn_node2_id = required "node2_id"
+                    , _nn_score    = optional "score"
+                    , _nn_category = optional "category"
+                    }
+                )
 
 instance QueryRunnerColumnDefault (Nullable PGInt4)   Int            where
     queryRunnerColumnDefault = fieldQueryRunnerColumn

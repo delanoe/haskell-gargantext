@@ -25,8 +25,8 @@ import Prelude hiding (null, id, map, sum)
 
 ------------------------------------------------------------------------
 -- Main polymorphic Node definition
-
 data NodePoly id
+              hash_id
               typename
               userId
               parentId
@@ -34,6 +34,7 @@ data NodePoly id
               date
               hyperdata  =
      Node { _node_id        :: !id
+          , _node_hash_id   :: !hash_id
           , _node_typename  :: !typename
 
           , _node_userId    :: !userId
@@ -53,9 +54,9 @@ $(makeLenses ''NodePoly)
 $(makeAdaptorAndInstance "pNode"   ''NodePoly)
 $(makeLensesWith abbreviatedFields ''NodePoly)
 
-------------------------------------------------------------------------
 nodeTable :: Table NodeWrite NodeRead
 nodeTable = Table "nodes" (pNode Node { _node_id         = optional "id"
+                                      , _node_hash_id    = optional "hash_id"
                                       , _node_typename   = required "typename"
                                       , _node_userId     = required "user_id"
 
@@ -72,6 +73,7 @@ queryNodeTable :: Query NodeRead
 queryNodeTable = queryTable nodeTable
 ------------------------------------------------------------------------
 type NodeWrite = NodePoly (Maybe (Column PGInt4)      )
+                          (Maybe (Column PGText)      )
                                  (Column PGInt4)
                                  (Column PGInt4)
                           (Maybe (Column PGInt4)      )
@@ -80,6 +82,7 @@ type NodeWrite = NodePoly (Maybe (Column PGInt4)      )
                                  (Column PGJsonb)
 
 type NodeRead = NodePoly (Column PGInt4        )
+                         (Column PGText        )
                          (Column PGInt4        )
                          (Column PGInt4        )
                          (Column PGInt4        )
@@ -88,6 +91,7 @@ type NodeRead = NodePoly (Column PGInt4        )
                          (Column PGJsonb       )
 
 type NodeReadNull = NodePoly (Column (Nullable PGInt4))
+                             (Column (Nullable PGText))
                              (Column (Nullable PGInt4))
                              (Column (Nullable PGInt4))
                              (Column (Nullable PGInt4))
@@ -158,16 +162,17 @@ $(deriveJSON (unPrefix "_ns_")     ''NodePolySearch)
 $(makeLenses ''NodePolySearch)
 
 nodeTableSearch :: Table NodeSearchWrite NodeSearchRead
-nodeTableSearch = Table "nodes" (pNodeSearch NodeSearch { _ns_id         = optional "id"
-                                      , _ns_typename   = required "typename"
-                                      , _ns_userId     = required "user_id"
+nodeTableSearch = Table "nodes" ( pNodeSearch
+                                   NodeSearch { _ns_id         = optional "id"
+                                              , _ns_typename   = required "typename"
+                                              , _ns_userId     = required "user_id"
 
-                                      , _ns_parentId   = required "parent_id"
-                                      , _ns_name       = required "name"
-                                      , _ns_date       = optional "date"
+                                              , _ns_parentId   = required "parent_id"
+                                              , _ns_name       = required "name"
+                                              , _ns_date       = optional "date"
 
-                                      , _ns_hyperdata  = required "hyperdata"
-                                      , _ns_search     = optional "search"
-                                      }
-                            )
+                                              , _ns_hyperdata  = required "hyperdata"
+                                              , _ns_search     = optional "search"
+                                              }
+                                )
 ------------------------------------------------------------------------

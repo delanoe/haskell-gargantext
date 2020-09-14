@@ -30,8 +30,8 @@ updateHyperdata i h = mkCmd $ \c -> runUpdate_ c (updateHyperdataQuery i h)
 updateHyperdataQuery :: ToJSON a => NodeId -> a -> Update Int64
 updateHyperdataQuery i h = Update
    { uTable      = nodeTable
-   , uUpdateWith = updateEasy (\  (Node _ni _nt _nu _np _nn _nd _h)
-                                -> Node _ni _nt _nu _np _nn _nd h'
+   , uUpdateWith = updateEasy (\  (Node _ni _nh _nt _nu _np _nn _nd _h)
+                                -> Node _ni _nh _nt _nu _np _nn _nd h'
                               )
    , uWhere      = (\row -> _node_id row .== pgNodeId i )
    , uReturning  = rCount

@@ -23,6 +23,7 @@ import Data.Either (Either(..))
 import Data.Eq (Eq())
 import Data.Map (fromList, lookup)
 import Data.Monoid ((<>))
+import Data.Semigroup (Semigroup(..))
 import Data.Swagger
 import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
@@ -49,8 +50,6 @@ instance ToSchema NodeTree where
 
 --data Classification = Favorites | MyClassifcation
 
-type HashId   = Text
-
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
 data ListType  =  StopTerm | CandidateTerm | MapTerm
@@ -62,6 +61,15 @@ instance ToSchema ListType
 instance ToParamSchema ListType
 instance Arbitrary ListType where
   arbitrary = elements [minBound..maxBound]
+
+instance Semigroup ListType
+  where
+    MapTerm       <> _             = MapTerm
+    _             <> MapTerm       = MapTerm
+    CandidateTerm <> _             = CandidateTerm
+    _             <> CandidateTerm = CandidateTerm
+    StopTerm      <> StopTerm      = StopTerm
+
 
 instance FromHttpApiData ListType where
   parseUrlPiece = Right . read . unpack
