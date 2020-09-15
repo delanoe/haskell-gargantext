@@ -49,7 +49,7 @@ extra-deps:
 - git: https://github.com/np/servant-job.git
   commit: 6487744c322baaa9229fdabd321a878a5b363c61
 - git: https://github.com/np/patches-map
-  commit: bc69dfe1846193ba76fb31d0dd4a95c820c6abc3
+  commit: d42c37de5046ba22abcb5e21c121d1072126f3cc
 - git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
   commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
 - git: https://github.com/delanoe/hsparql.git
