@@ -204,7 +204,7 @@ flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   listId <- getOrMkList userCorpusId userId
-  _cooc  <- insertDefaultNode NodeListCooc listId userId
+  -- _cooc  <- insertDefaultNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
@@ -286,7 +286,7 @@ insertMasterDocs c lang hs  =  do
                        , (nId, w) <- Map.toList mapNodeIdWeight
                        ]
 
-  _cooc <- insertDefaultNode NodeListCooc lId masterUserId
+  -- _cooc <- insertDefaultNode NodeListCooc lId masterUserId
   -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
   pure ids'
