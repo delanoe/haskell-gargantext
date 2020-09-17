@@ -184,9 +184,10 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        => User
                        -> CorpusId
                        -> WithQuery
+                       -> Maybe Integer
                        -> (JobLog -> m ())
                        -> m JobLog
-addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
+addToCorpusWithQuery u cid (WithQuery q dbs l _nid) maybeLimit logStatus = do
   -- TODO ...
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
@@ -198,7 +199,7 @@ addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   -- TODO if cid is folder -> create Corpus
   --      if cid is corpus -> add to corpus
   --      if cid is root   -> create corpus in Private
-  txts <- mapM (\db  -> getDataText db     (Multi l) q Nothing) [database2origin dbs]
+  txts <- mapM (\db  -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
 
   logStatus JobLog { _scst_succeeded = Just 2
                    , _scst_failed    = Just 0

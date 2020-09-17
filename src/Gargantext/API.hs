@@ -181,9 +181,8 @@ makeMockApp env = do
 
 makeDevMiddleware :: Mode -> IO Middleware
 makeDevMiddleware mode = do
-
-    -- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
-    --logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
+-- logWare <- mkRequestLogger def { destination = RequestLogger.Logger $ env^.logger }
+-- logWare <- mkRequestLogger def { destination = RequestLogger.Logger "/tmp/logs.txt" }
 --    let checkOriginAndHost app req resp = do
 --            blocking <- fireWall req (env ^. menv_firewall)
 --            case blocking  of

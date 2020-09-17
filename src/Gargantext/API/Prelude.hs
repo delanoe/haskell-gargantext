@@ -81,8 +81,8 @@ type GargServerC env err m =
     , HasJoseError     err
     , ToJSON           err -- TODO this is arguable
     , Exception        err
-    , HasRepo      env
-    , HasSettings  env
+    , HasRepo      env  -- TODO rename HasNgramsRepo
+    , HasSettings  env  -- TODO rename HasDbSettings
     , HasJobEnv    env JobLog JobLog
     , HasConfig    env
     )

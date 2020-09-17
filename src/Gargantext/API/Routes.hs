@@ -26,6 +26,7 @@ module Gargantext.API.Routes
 
 -- import qualified Gargantext.API.Search as Search
 import Control.Concurrent (threadDelay)
+-- import Control.Lens (view)
 import Data.Text (Text)
 import Data.Validity
 import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
@@ -36,6 +37,7 @@ import Gargantext.API.Node
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Viz.Graph.API
+-- import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
@@ -245,14 +247,17 @@ waitAPI n = do
 ----------------------------------------
 
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
-addCorpusWithQuery user cid =
+addCorpusWithQuery user cid = do
+  -- TODO gargantext.ini
+  -- _env <- view hasConfig
+  let limit = Just 10000
   serveJobsAPI $
     JobFunction (\q log ->
       let
         log' x = do
           printDebug "addToCorpusWithQuery" x
           liftBase $ log x
-      in New.addToCorpusWithQuery user cid q log'
+      in New.addToCorpusWithQuery user cid q limit log'
       )
 
 {-
