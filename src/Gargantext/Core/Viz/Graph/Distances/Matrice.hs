@@ -245,8 +245,8 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 distributional :: Matrix Int -> Matrix Double
-distributional m = run -- $ matMiniMax
-                       $ diagNull n
+distributional m = -- run {- $ matMiniMax -}
+                   run  $ diagNull n
                        $ rIJ n
                        $ filterWith 0 100
                        $ filter' 0

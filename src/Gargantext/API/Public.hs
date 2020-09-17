@@ -50,7 +50,7 @@ selectPublic :: HasNodeError err
              => Cmd err [( Node HyperdataFolder, Maybe Int)] 
 selectPublic = selectPublicNodes
 
-  -- | For tests only
+  -- For tests only
   -- pure $ replicate 6 defaultPublicData
 
 filterPublicDatas :: [( Node HyperdataFolder, Maybe Int)] -> [(Node HyperdataFolder, [NodeId])]

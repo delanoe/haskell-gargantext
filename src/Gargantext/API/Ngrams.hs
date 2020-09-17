@@ -854,8 +854,8 @@ ngramsStatePatchConflictResolution
   -> ConflictResolutionNgramsPatch
 ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
   = (ours, (const ours, ours), (False, False))
-                             -- ^------^------- they mean that Mod has always priority.
-                             --(True, False) <- would mean priority to the left (same as ours).
+                             -- (False, False) mean here that Mod has always priority.
+                             -- (True, False) <- would mean priority to the left (same as ours).
 
   -- undefined {- TODO think this through -}, listTypeConflictResolution)
 

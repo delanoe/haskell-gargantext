@@ -35,7 +35,7 @@ import qualified Data.Map  as Map
 
 import qualified Data.Vector.Storable as Vec
 
-type GraphListSize = Int
+type MapListSize = Int
 type InclusionSize = Int
 
 {-
@@ -64,8 +64,8 @@ data Scored ts = Scored
 
 localMetrics' :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
 localMetrics' m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [inc,spe]))
-                                       (Map.toList fi)
-                                       scores
+                                         (Map.toList fi)
+                                          scores
   where
     (ti, fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m
@@ -73,8 +73,7 @@ localMetrics' m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [
              $ DAA.run
              $ DAA.zip (DAA.use is) (DAA.use ss)
 
-
--- TODO Code to be remove below
+-- TODO Code to be removed below
 -- TODO in the textflow we end up needing these indices , it might be
 -- better to compute them earlier and pass them around.
 scored' :: Ord t => Map (t,t) Int -> [Scored t]
@@ -87,20 +86,20 @@ scored' m = zipWith (\(_,t) (inc,spe) -> Scored t (inc) (spe)) (Map.toList fi) s
              $ DAA.zip (DAA.use is) (DAA.use ss)
 
 
-takeScored :: Ord t => GraphListSize -> InclusionSize -> Map (t,t) Int -> ([t],[t])
+takeScored :: Ord t => MapListSize -> InclusionSize -> Map (t,t) Int -> ([t],[t])
 takeScored listSize incSize = both (map _scored_terms)
-                            . linearTakes listSize incSize _scored_speGen
-                                                           _scored_incExc
+                            . takeLinear listSize incSize _scored_speGen
+                                                          _scored_incExc
                             . scored
 
 
 -- | Filter Scored data
--- >>> linearTakes 2 3 fst snd $ Prelude.zip ([1..10] :: [Int]) (reverse $ [1..10] :: [Int])
+-- >>> takeLinear 2 3 fst snd $ Prelude.zip ([1..10] :: [Int]) (reverse $ [1..10] :: [Int])
 -- [(3,8),(6,5)]
-linearTakes :: (Ord b1, Ord b2)
-            => GraphListSize -> InclusionSize
+takeLinear :: (Ord b1, Ord b2)
+            => MapListSize -> InclusionSize
             -> (a -> b2) -> (a -> b1) -> [a] -> ([a],[a])
-linearTakes mls incSize speGen incExc = (List.splitAt mls)
+takeLinear mls incSize speGen incExc = (List.splitAt mls)
                       . List.concat
                       . map (take $ round
                                   $ (fromIntegral mls     :: Double)

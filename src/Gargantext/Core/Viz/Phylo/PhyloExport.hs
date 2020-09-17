@@ -247,7 +247,7 @@ exportToDot phylo export =
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToAncestor
           ) $ mergeAncestors $ export ^. export_groups
 
-        -- | 10) create the edges between the periods 
+        -- 10) create the edges between the periods 
         _ <- mapM (\(prd,prd') ->
                 toDotEdge (periodIdToDotId prd) (periodIdToDotId prd') "" PeriodToPeriod
             ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ getPeriodIds phylo

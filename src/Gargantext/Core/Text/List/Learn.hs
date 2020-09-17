@@ -97,7 +97,7 @@ grid s e tr te = do
           -> m (Score, Model)
     grid' x y tr' te' = do
       model'' <- liftBase $ trainList x y tr'
-      
+
       let
         model' = ModelSVM model'' (Just x) (Just y)
 
@@ -114,10 +114,10 @@ grid s e tr te = do
                              $ List.concat
                              $ map (\(k,vs) -> zip (repeat k) vs)
                              $ Map.toList t
-        
+
           res' <- liftBase $ predictList m toGuess
           pure $ score'' $ score' $ List.zip res res' 
-      
+
       score <- mapM (getScore model') te'
       pure (mean score, model')
 
@@ -131,6 +131,3 @@ grid s e tr te = do
   --fp <- saveFile (ModelSVM model')
   --save best result
   pure $ snd <$> r
-
-
-

@@ -48,7 +48,7 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
   (ngs', ngs) <- getNgrams cId maybeListId tabType
   
   let
-    take' Nothing xs  = xs
+    take' Nothing  xs = xs
     take' (Just n) xs = take n xs
 
   lId  <- defaultList cId
