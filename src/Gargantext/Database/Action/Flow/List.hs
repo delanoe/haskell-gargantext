@@ -26,7 +26,7 @@ import Data.Map (Map, toList)
 import Data.Maybe (Maybe(..), catMaybes)
 import Data.Text (Text)
 
-import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)
+import Gargantext.API.Ngrams (NgramsElement(..), NgramsTerm(..), putListNgrams)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Admin.Types.Node
@@ -97,10 +97,10 @@ flowList_DbRepo :: FlowCmdM env err m
 flowList_DbRepo lId ngs = do
   -- printDebug "listId flowList" lId
   mapCgramsId <- listInsertDb lId toNodeNgramsW (Map.toList ngs)
-  let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> parent)
+  let toInsert = catMaybes [ (,) <$> (getCgramsId mapCgramsId ntype <$> (unNgramsTerm <$> parent))
                                  <*>  getCgramsId mapCgramsId ntype ngram
                            | (ntype, ngs') <- Map.toList ngs
-                           , NgramsElement ngram _ _ _ _ parent _ <- ngs'
+                           , NgramsElement (NgramsTerm ngram) _ _ _ _ parent _ <- ngs'
                            ]
   -- Inserting groups of ngrams
   _r <- insert_Node_NodeNgrams_NodeNgrams
@@ -123,7 +123,7 @@ toNodeNgramsW l ngs = List.concat $ map (toNodeNgramsW'' l) ngs
                   -> [NodeNgramsW]
     toNodeNgramsW'' l' (ngrams_type, elms) =
       [ NodeNgrams Nothing l' list_type ngrams_terms' ngrams_type Nothing Nothing Nothing 0 |
-       (NgramsElement ngrams_terms' _size list_type _occ _root _parent _children) <- elms
+       (NgramsElement (NgramsTerm ngrams_terms') _size list_type _occ _root _parent _children) <- elms
       ]
 
 

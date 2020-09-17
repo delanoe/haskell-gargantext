@@ -40,6 +40,8 @@ module Gargantext.API.Ngrams
   , NgramsTablePatch
   , NgramsTableMap
 
+  , NgramsTerm(..)
+
   , NgramsElement(..)
   , mkNgramsElement
   , mergeNgramsElement
@@ -114,11 +116,12 @@ import Data.Patch.Class (Replace, replace, Action(act), Group, Applicable(..), C
 import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Set as Set
+import Data.String (IsString, fromString)
 import Data.Swagger hiding (version, patch)
-import Data.Text (Text, count, isInfixOf, unpack)
+import Data.Text (Text, count, isInfixOf, pack, strip, unpack)
 import Data.Text.Lazy.IO as DTL
 import Data.Validity
-import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField, ResultError(ConversionFailed), returnError)
 import Formatting (hprint, int, (%))
 import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
@@ -208,7 +211,25 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
   declareNamedSchema _ = wellNamedSchema "" (Proxy :: Proxy TODO)
 
 ------------------------------------------------------------------------
-type NgramsTerm = Text
+newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
+  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema)
+
+instance FromJSONKey NgramsTerm where
+  fromJSONKey = FromJSONKeyTextParser $ \t -> pure $ NgramsTerm $ strip t
+
+instance IsString NgramsTerm where
+  fromString s = NgramsTerm $ pack s
+
+instance FromField NgramsTerm
+  where
+    fromField field mb = do
+      v <- fromField field mb
+      case fromJSON v of
+        Success a -> pure $ NgramsTerm $ strip a
+        Error _err -> returnError ConversionFailed field
+                      $ List.intercalate " " [ "cannot parse hyperdata for JSON: "
+                                             , show v
+                                             ]
 
 data RootParent = RootParent
   { _rp_root   :: NgramsTerm
@@ -265,7 +286,7 @@ mkNgramsElement ngrams list rp children =
   NgramsElement ngrams size list 1 (_rp_root <$> rp) (_rp_parent <$> rp) children
   where
     -- TODO review
-    size = 1 + count " " ngrams
+    size = 1 + (count " " $ unNgramsTerm ngrams)
 
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams =
@@ -937,7 +958,8 @@ setListNgrams listId ngramsType ns = do
 putListNgrams :: (HasInvalidError err, RepoCmdM env err m)
               => NodeId
               -> TableNgrams.NgramsType
-              -> [NgramsElement] -> m ()
+              -> [NgramsElement]
+              -> m ()
 putListNgrams _ _ [] = pure ()
 putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
   where
@@ -949,9 +971,9 @@ putListNgrams' :: (HasInvalidError err, RepoCmdM env err m)
                -> Map NgramsTerm NgramsRepoElement
                -> m ()
 putListNgrams' nodeId ngramsType ns = do
-  -- printDebug "[putLictNgrams'] nodeId" nodeId
-  -- printDebug "[putLictNgrams'] ngramsType" ngramsType
-  -- printDebug "[putListNgrams'] ns" ns
+  printDebug "[putListNgrams'] nodeId" nodeId
+  printDebug "[putListNgrams'] ngramsType" ngramsType
+  printDebug "[putListNgrams'] ns" ns
 
   let p1 = NgramsTablePatch . PM.fromMap $ NgramsReplace Nothing . Just <$> ns
       (p0, p0_validity) = PM.singleton nodeId p1
@@ -1002,8 +1024,8 @@ commitStatePatch (Versioned p_version p) = do
       q = mconcat $ take (r ^. r_version - p_version) (r ^. r_history)
       (p', q') = transformWith ngramsStatePatchConflictResolution p q
       r' = r & r_version +~ 1
-              & r_state   %~ act p'
-              & r_history %~ (p' :)
+             & r_state   %~ act p'
+             & r_history %~ (p' :)
     {-
     -- Ideally we would like to check these properties. However:
     -- * They should be checked only to debug the code. The client data
@@ -1040,7 +1062,8 @@ tableNgramsPull listId ngramsType p_version = do
 -- client.
 -- TODO-ACCESS check
 tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
-                 => TabType -> ListId
+                 => TabType
+                 -> ListId
                  -> Versioned NgramsTablePatch
                  -> m (Versioned NgramsTablePatch)
 tableNgramsPut tabType listId (Versioned p_version p_table)
@@ -1157,7 +1180,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores :: forall t. Each t t NgramsElement NgramsElement => Bool -> t -> m t
     setScores False table = pure table
     setScores True  table = do
-      let ngrams_terms = (table ^.. each . ne_ngrams)
+      let ngrams_terms = unNgramsTerm <$> (table ^.. each . ne_ngrams)
       t1 <- getTime'
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
@@ -1174,7 +1197,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
                                             ngrams_terms
       -}
       let
-        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (unNgramsTerm (ne ^. ne_ngrams)) . _Just) occurrences
 
       pure $ table & each %~ setOcc
     ---------------------------------------
@@ -1216,13 +1239,13 @@ scoresRecomputeTableNgrams nId tabType listId = do
 
     setScores :: forall t. Each t t NgramsElement NgramsElement => t -> m t
     setScores table = do
-      let ngrams_terms = (table ^.. each . ne_ngrams)
+      let ngrams_terms = unNgramsTerm <$> (table ^.. each . ne_ngrams)
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
                                             ngramsType
                                             ngrams_terms
       let
-        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (unNgramsTerm (ne ^. ne_ngrams)) . _Just) occurrences
 
       pure $ table & each %~ setOcc
 
@@ -1305,7 +1328,7 @@ getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool
 getTableNgramsCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy mt =
   getTableNgrams NodeCorpus nId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
     where
-      searchQuery = maybe (const True) isInfixOf mt
+      searchQuery (NgramsTerm nt) = maybe (const True) isInfixOf mt nt
 
 getTableNgramsVersion :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeId
@@ -1332,7 +1355,7 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
   ns <- selectNodesWithUsername NodeList userMaster
   let ngramsType = ngramsTypeFromTabType tabType
   ngs <- selectNgramsByDoc (ns <> [listId]) dId ngramsType
-  let searchQuery = flip S.member (S.fromList ngs)
+  let searchQuery (NgramsTerm nt) = flip S.member (S.fromList ngs) nt
   getTableNgrams NodeDocument dId tabType listId limit_ offset listType minSize maxSize orderBy searchQuery
 
 
