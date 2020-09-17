@@ -236,7 +236,7 @@ queryNgramsOccurrencesOnlyByNodeUser' = [sql|
   |]
 
 ------------------------------------------------------------------------
-getNodesByNgramsOnlyUser :: NodeId
+getNodesByNgramsOnlyUser :: CorpusId
                          -> [ListId]
                          -> NgramsType
                          -> [Text]

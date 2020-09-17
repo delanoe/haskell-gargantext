@@ -27,6 +27,7 @@ import Gargantext.Core.Text.Metrics.TFICF (sortTficf)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
+import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Learn (Model(..))
 -- import Gargantext.Core.Text.Metrics (takeScored)
 import qualified Data.Char as Char
@@ -63,7 +64,8 @@ buildNgramsLists :: Lang
                  -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsLists l n m s uCid mCid = do
   ngTerms     <- buildNgramsTermsList l n m s uCid mCid
-  othersTerms <- mapM (buildNgramsOthersList uCid identity) [Authors, Sources, Institutes]
+  othersTerms <- mapM (buildNgramsOthersList uCid identity)
+                      [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
 
@@ -76,7 +78,9 @@ buildNgramsOthersList uCid groupIt nt = do
 
   let
     listSize = 9
-    all'     = List.reverse $ List.sortOn (Set.size . snd . snd) $ Map.toList ngs
+    all'     = List.reverse
+             $ List.sortOn (Set.size . snd . snd)
+             $ Map.toList ngs
 
     graphTerms = List.take listSize all'
     candiTerms = List.drop listSize all'
@@ -104,12 +108,16 @@ buildNgramsTermsList l n m s uCid mCid = do
   -- printDebug "tail candidates" (List.take 10 $ List.reverse $ candidates)
 
   let
+    listSize = 400 :: Double
     (candidatesHead, candidatesTail0)    = List.splitAt 3 candidates
-    (candidatesMap, candidatesTailFinal) = List.splitAt 400 candidatesTail0
+
+    (mono, multi)          = List.partition (\t -> (size . fst) t < 2) candidatesTail0
+    (monoHead , monoTail ) = List.splitAt (round $ 0.60 * listSize) mono
+    (multiHead, multiTail) = List.splitAt (round $ 0.40 * listSize) multi
 
     termList = (map (toGargList ((isStopTerm s) . fst) CandidateTerm) candidatesHead)
-            <> (map (toGargList ((isStopTerm s) . fst) MapTerm)       candidatesMap)
-            <> (map (toGargList ((isStopTerm s) . fst) CandidateTerm) candidatesTailFinal)
+            <> (map (toGargList ((isStopTerm s) . fst) MapTerm)       (monoHead <> multiHead))
+            <> (map (toGargList ((isStopTerm s) . fst) CandidateTerm) (monoTail <> multiTail))
 
     ngs = List.concat
         $ map toNgramsElement

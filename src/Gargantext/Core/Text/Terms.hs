@@ -57,6 +57,7 @@ import qualified Data.List as List
 import qualified Data.Set  as Set
 import qualified Data.Text as Text
 
+
 data TermType lang
   = Mono      { _tt_lang :: !lang }
   | Multi     { _tt_lang :: !lang }

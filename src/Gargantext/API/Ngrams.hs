@@ -115,7 +115,7 @@ import Data.Set (Set)
 import qualified Data.Set as S
 import qualified Data.Set as Set
 import Data.Swagger hiding (version, patch)
-import Data.Text (Text, count, isInfixOf, unpack)
+import Data.Text (Text, isInfixOf, unpack)
 import Data.Text.Lazy.IO as DTL
 import Data.Validity
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
@@ -144,6 +144,7 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (fromField', HasConnectionPool, HasConfig)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
+import qualified Gargantext.Core.Text as GCT
 
 ------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
@@ -262,10 +263,7 @@ mkNgramsElement :: NgramsTerm
                 -> MSet NgramsTerm
                 -> NgramsElement
 mkNgramsElement ngrams list rp children =
-  NgramsElement ngrams size list 1 (_rp_root <$> rp) (_rp_parent <$> rp) children
-  where
-    -- TODO review
-    size = 1 + count " " ngrams
+  NgramsElement ngrams (GCT.size ngrams) list 1 (_rp_root <$> rp) (_rp_parent <$> rp) children
 
 newNgramsElement :: Maybe ListType -> NgramsTerm -> NgramsElement
 newNgramsElement mayList ngrams =

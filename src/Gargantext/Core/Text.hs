@@ -127,3 +127,9 @@ termTests = "It is hard to detect important articles in a specific context. Info
     -- group ngrams
     --ocs  = occ       $ ws
 
+-- | Ngrams size
+size :: Text -> Int
+size t = 1 + DT.count " " t
+
+
+

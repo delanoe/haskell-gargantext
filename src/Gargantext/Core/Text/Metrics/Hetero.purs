@@ -52,12 +52,12 @@ dicoStruct dict_occ = do
 heterogeinity :: [Char] -> IO Integer
 heterogeinity string = do
     let dict_occ = occurrences $ cleanText string
-    
+
     let keys_size = toInteger $ length $ M.keys dict_occ
     let total_occ = sum $ Prelude.map (\(x, y) -> y) $ M.toList dict_occ
-    
+
     return $ div total_occ (fromIntegral keys_size)
-    
+
 
 --computeHeterogeinity
 --  :: Fractional t =>

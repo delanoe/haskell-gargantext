@@ -466,19 +466,19 @@ incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
     -- | Inclusion (i) = Gen(i)+Spec(i)
     inclusionExclusion :: Acc (Matrix Double) -> Acc (Vector Double)
     inclusionExclusion mat = zipWith (+) (pV mat) (pV mat)
-    
+
     -- | Genericity score = Gen(i)- Spec(i)
     specificityGenericity :: Acc (Matrix Double) -> Acc (Vector Double)
     specificityGenericity mat = zipWith (+) (pH mat) (pH mat)
-    
+
     -- | Gen(i)  : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity  of i
     pV :: Acc (Matrix Double) -> Acc (Vector Double)
     pV mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ij mat
-    
+
     -- | Spec(i) : 1/(N-1)*Sum(j!=i, P(j|i)) : Specificity of j
     pH :: Acc (Matrix Double) -> Acc (Vector Double)
     pH mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ji mat
-    
+
     cardN :: Exp Double
     cardN = constant (P.fromIntegral (dim m) :: Double)
 
