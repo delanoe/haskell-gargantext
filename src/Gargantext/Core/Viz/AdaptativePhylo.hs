@@ -262,14 +262,15 @@ type Cooc =  Map (Int,Int) Double
 --  param : the parameters of the phylomemy (with the user's configuration)
 --  periods : the temporal steps of a phylomemy
 data Phylo =
-     Phylo { _phylo_foundations :: PhyloFoundations
-           , _phylo_timeCooc    :: !(Map Date Cooc)
-           , _phylo_timeDocs    :: !(Map Date Double)
-           , _phylo_termFreq    :: !(Map Int Double)
-           , _phylo_horizon     :: !(Map (PhyloGroupId,PhyloGroupId) Double)           
-           , _phylo_groupsProxi :: !(Map (PhyloGroupId,PhyloGroupId) Double)
-           , _phylo_param       :: PhyloParam
-           , _phylo_periods     :: Map PhyloPeriodId PhyloPeriod
+     Phylo { _phylo_foundations  :: PhyloFoundations
+           , _phylo_timeCooc     :: !(Map Date Cooc)
+           , _phylo_timeDocs     :: !(Map Date Double)
+           , _phylo_termFreq     :: !(Map Int Double)
+           , _phylo_lastTermFreq :: !(Map Int Double)           
+           , _phylo_horizon      :: !(Map (PhyloGroupId,PhyloGroupId) Double)           
+           , _phylo_groupsProxi  :: !(Map (PhyloGroupId,PhyloGroupId) Double)
+           , _phylo_param        :: PhyloParam
+           , _phylo_periods      :: Map PhyloPeriodId PhyloPeriod
            }
            deriving (Generic, Show, Eq)
 

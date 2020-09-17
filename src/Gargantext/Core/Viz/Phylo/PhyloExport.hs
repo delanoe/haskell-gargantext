@@ -138,7 +138,11 @@ groupToDotNode fdt g bId =
                          , toAttr "to"   (pack $ show (snd $ g ^. phylo_groupPeriod))
                          , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))
                          , toAttr "bId" (pack $ show bId)
-                         , toAttr "support" (pack $ show (g ^. phylo_groupSupport))])  
+                         , toAttr "support" (pack $ show (g ^. phylo_groupSupport))
+                         , toAttr "label" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
+                         , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
+                         , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))
+                         ])  
 
 
 toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
@@ -192,6 +196,7 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "phyloPeriods") $ pack $ show (length $ elems $ phylo ^. phylo_periods))
                      ,(toAttr (fromStrict "phyloBranches") $ pack $ show (length $ export ^. export_branches))
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
+                     ,(toAttr (fromStrict "phyloTermsFreq") $ pack $ show (toList $ _phylo_lastTermFreq phylo))
                      ])
 
 {-
