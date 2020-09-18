@@ -39,8 +39,6 @@ import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
-import Data.Either(Either(Left))
-import Data.Maybe (Maybe)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger
 import Data.Text (Text)

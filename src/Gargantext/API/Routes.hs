@@ -40,7 +40,6 @@ import Gargantext.Core.Viz.Graph.API
 -- import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Prelude
 import Servant
 import Servant.Auth as SA

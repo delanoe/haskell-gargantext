@@ -26,7 +26,6 @@ import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Data.ByteString (ByteString)
-import Data.Either (either)
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
 import Data.Text
@@ -40,7 +39,6 @@ import Gargantext.Prelude
 
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
-import Prelude (Bounded(), fail)
 import Servant
 import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (BaseUrl, parseBaseUrl)
@@ -51,7 +49,6 @@ import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
-import Web.HttpApiData (parseUrlPiece)
 import qualified Data.ByteString.Lazy as L
 import qualified Servant.Job.Core
 import Gargantext.Prelude.Config (GargConfig(), readConfig, defaultConfig)

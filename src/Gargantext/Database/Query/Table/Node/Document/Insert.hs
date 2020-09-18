@@ -58,7 +58,7 @@ import Control.Lens (set, view)
 import Control.Lens.Cons
 import Control.Lens.Prism
 import Data.Aeson (toJSON, encode, ToJSON)
-import Data.Maybe (maybe, fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 -- import Data.ByteString (ByteString)
 import Data.Time.Segment (jour)

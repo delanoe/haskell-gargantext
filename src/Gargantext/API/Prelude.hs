@@ -26,7 +26,7 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (Exception)
 import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
-import Control.Monad.Error.Class (MonadError(throwError))
+import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT)
 import Crypto.JOSE.Error as Jose

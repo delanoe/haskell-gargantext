@@ -55,7 +55,7 @@ import Data.Maybe (catMaybes)
 import Gargantext.Prelude
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.List (sortOn, nub, concat, length)
+import Data.List (sortOn, nub, concat)
 import Data.Set (Set)
 import Data.Set (fromList, toList, isSubsetOf)
 import Data.Graph.Inductive hiding (Graph, neighbors, subgraph, (&))

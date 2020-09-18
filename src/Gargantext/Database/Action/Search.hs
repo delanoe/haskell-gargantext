@@ -25,7 +25,6 @@ import Database.PostgreSQL.Simple.ToField
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), HyperdataContact(..))
-import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Query.Filter

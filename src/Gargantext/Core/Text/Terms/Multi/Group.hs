@@ -16,8 +16,6 @@ group the tokens into extracted terms.
 module Gargantext.Core.Text.Terms.Multi.Group (group2)
   where
 
-import Data.Maybe (Maybe(Just))
-
 import Gargantext.Core.Types
 import Gargantext.Prelude
 

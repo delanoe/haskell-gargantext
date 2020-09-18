@@ -49,7 +49,7 @@ import Data.Either
 import Data.List (concat)
 import qualified Data.Map as Map
 import Data.Map (Map, lookup)
-import Data.Maybe (Maybe(..), catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
 import Data.Text (splitOn, intercalate)

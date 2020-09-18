@@ -23,7 +23,7 @@ import Control.Monad (mapM_)
 import qualified Data.List as List
 import qualified Data.Map  as Map
 import Data.Map (Map, toList)
-import Data.Maybe (Maybe(..), catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 
 import Gargantext.API.Ngrams (NgramsElement(..), putListNgrams)

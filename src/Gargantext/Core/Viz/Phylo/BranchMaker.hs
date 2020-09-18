@@ -16,9 +16,8 @@ module Gargantext.Core.Viz.Phylo.BranchMaker
 
 import Control.Parallel.Strategies
 import Control.Lens     hiding (both, Level)
-import Data.List        (concat,nub,(++),sortOn,reverse,sort,null,intersect,union,delete)
+import Data.List        (concat,nub,(++),sortOn,sort,null,intersect,union,delete)
 import Data.Map         (Map,(!), fromListWith, elems)
-import Data.Tuple       (fst, snd)
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.Cluster

@@ -63,7 +63,6 @@ import Gargantext.API.Routes
 import Gargantext.Prelude
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
-import Network.Wai (Request, requestHeaders)
 import Network.Wai.Handler.Warp hiding (defaultSettings)
 import Network.Wai.Middleware.Cors
 import Network.Wai.Middleware.RequestLogger

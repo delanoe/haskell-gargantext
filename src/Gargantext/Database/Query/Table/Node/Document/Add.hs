@@ -21,7 +21,6 @@ module Gargantext.Database.Query.Table.Node.Document.Add
 
 import Data.ByteString.Internal (ByteString)
 import Data.Text (Text)
-import Data.Typeable (Typeable)
 import Database.PostgreSQL.Simple (Query, Only(..))
 import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField)

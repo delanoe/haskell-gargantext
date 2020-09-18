@@ -21,19 +21,17 @@ module Gargantext.Database.Query.Table.Ngrams
   )
     where
 
-import Control.Arrow (returnA)
 import Control.Lens ((^.))
 import Data.Text (Text)
 import Data.Map (Map, fromList)
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
+import Data.ByteString.Internal (ByteString)
 import Gargantext.Database.Prelude (runOpaQuery, Cmd)
-import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
-import Gargantext.Prelude
+import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
-import Data.ByteString.Internal (ByteString)
+import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
 queryNgramsTable :: Query NgramsRead

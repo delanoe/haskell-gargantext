@@ -21,7 +21,6 @@ import Control.Monad.Reader (MonadReader)
 -- TODO remvoe this deps
 import Gargantext.API.Admin.Settings
 import Data.Map (Map)
-import Data.Maybe (maybe)
 import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils

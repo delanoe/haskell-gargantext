@@ -17,7 +17,6 @@ module Gargantext.Core.Viz.Phylo.View.Filters
 import Control.Lens     hiding (makeLenses, both, Level)
 import Data.List        (notElem,null,nub,(\\),intersect)
 import Data.Maybe       (isNothing)
-import Data.Tuple       (fst)
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.Tools

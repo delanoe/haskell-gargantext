@@ -27,7 +27,7 @@ module Gargantext.Database.Query.Table.NodeNgrams
 
 import Data.List.Extra (nubOrd)
 import Data.Map (Map)
-import Data.Maybe (Maybe, fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Database.PostgreSQL.Simple (FromRow)
 import Database.PostgreSQL.Simple.FromRow (fromRow, field)

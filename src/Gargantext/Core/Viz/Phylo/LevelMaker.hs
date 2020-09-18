@@ -17,7 +17,7 @@ module Gargantext.Core.Viz.Phylo.LevelMaker
 
 import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sort, concat, nub, zip, last, null)
+import Data.List                    ((++), sort, concat, nub, last, null)
 import Data.Map                     (Map, (!), empty, singleton, size)
 import Data.Text (Text)
 import Data.Tuple.Extra

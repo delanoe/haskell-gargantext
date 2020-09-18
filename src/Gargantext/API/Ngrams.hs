@@ -90,7 +90,6 @@ import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
 import Control.Concurrent
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^..), (^?), (+~), (%~), (.~), (%=), sumOf, at, _Just, Each(..), itraverse_, both, forOf_, (%%~), (?~), mapped)
-import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State

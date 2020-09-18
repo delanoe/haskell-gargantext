@@ -29,7 +29,6 @@ import GHC.Generics (Generic)
 
 import Servant
 import Servant.Multipart
-import Servant.Swagger (HasSwagger(toSwagger))
 import Servant.Swagger.Internal
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)

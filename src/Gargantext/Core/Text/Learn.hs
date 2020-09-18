@@ -22,7 +22,6 @@ module Gargantext.Core.Text.Learn -- (detectLang, detectLangs, stopList)
 import Codec.Serialise
 import qualified Data.List as DL
 
-import Data.Maybe (maybe)
 import Data.Map.Strict (Map, toList)
 import qualified Data.Map.Strict as DM
 

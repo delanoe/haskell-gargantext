@@ -23,7 +23,6 @@ module Gargantext.Core.Text.Metrics
 import Data.Tuple.Extra (both)
 import Data.Map (Map)
 import Data.List.Extra (sortOn)
-import GHC.Real (round)
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Graph.Distances.Matrice
 import Gargantext.Core.Viz.Graph.Index

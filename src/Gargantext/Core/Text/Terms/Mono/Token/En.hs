@@ -27,7 +27,6 @@ module Gargantext.Core.Text.Terms.Mono.Token.En
     )
   where
 
-import Data.Foldable (concatMap)
 import qualified Data.Char as Char
 import Data.Maybe
 import Control.Monad

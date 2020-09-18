@@ -31,7 +31,6 @@ list quality in time.
 module Gargantext.Core.Text.Terms.Multi.RAKE (multiterms_rake, select, hardStopList)
   where
 
-import GHC.Real (round)
 import Data.Text (Text)
 import NLP.RAKE.Text
 

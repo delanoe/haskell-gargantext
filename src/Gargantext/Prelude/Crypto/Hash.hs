@@ -16,7 +16,6 @@ module Gargantext.Prelude.Crypto.Hash
 
 import Prelude (String)
 import Data.Set (Set)
-import Data.List (foldl)
 import Data.Text (Text)
 import Gargantext.Prelude
 import qualified Data.ByteString.Lazy.Char8  as Char

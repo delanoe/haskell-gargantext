@@ -17,7 +17,7 @@ module Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
   where
 
 import Codec.Serialise
-import Data.Maybe (Maybe, catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.Database.Admin.Types.Hyperdata.Contact

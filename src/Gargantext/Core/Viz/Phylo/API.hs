@@ -22,13 +22,12 @@ import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
-import Data.Proxy (Proxy(..))
 import Data.Swagger
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Web.HttpApiData (parseUrlPiece, readTextData)
+import Web.HttpApiData (readTextData)
 
 import Gargantext.API.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata

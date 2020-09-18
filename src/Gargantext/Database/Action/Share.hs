@@ -19,15 +19,12 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Admin.Config (hasNodeType, isInNodeTypes)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAny(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
-import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node (getNode, getNodesWith)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError, errorWith)
 import Gargantext.Database.Query.Table.NodeNode (deleteNodeNode)
 import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Database.Schema.Node
-import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
 import Gargantext.Prelude
 
 -- | TODO move in Config of Gargantext

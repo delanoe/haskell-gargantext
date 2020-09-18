@@ -31,8 +31,6 @@ Next Step benchmark:
 module Gargantext.Database.Schema.Node_NodeNgramsNodeNgrams
   where
 
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Data.Maybe (Maybe)
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Schema.Node()

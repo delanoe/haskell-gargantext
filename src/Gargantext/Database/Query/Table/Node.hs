@@ -25,20 +25,17 @@ module Gargantext.Database.Query.Table.Node
 import Control.Arrow (returnA)
 import Control.Lens (set, view)
 import Data.Aeson
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Database.PostgreSQL.Simple as DPS
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import GHC.Int (Int64)
 import Opaleye hiding (FromField)
-import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Hyperdata.Default
-import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultName)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Query.Table.Node.Error

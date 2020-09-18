@@ -17,7 +17,6 @@ module Gargantext.API.Ngrams.List
 
 import Control.Lens hiding (elements)
 import Data.Aeson
-import Data.List (zip)
 import Data.Map (Map, toList, fromList)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)

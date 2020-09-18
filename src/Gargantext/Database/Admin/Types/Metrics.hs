@@ -5,8 +5,6 @@ module Gargantext.Database.Admin.Types.Metrics where
 
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
-import GHC.Generics (Generic)
-import Data.Text (Text)
 import Protolude
 import Test.QuickCheck.Arbitrary
 

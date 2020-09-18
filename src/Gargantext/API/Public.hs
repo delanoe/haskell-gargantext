@@ -17,8 +17,7 @@ module Gargantext.API.Public
       where
 
 import Control.Lens ((^?), (^.), _Just)
-import Data.Maybe (maybe, catMaybes)
-import Data.Tuple (snd)
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Data.List (replicate, null)
 import Data.Aeson

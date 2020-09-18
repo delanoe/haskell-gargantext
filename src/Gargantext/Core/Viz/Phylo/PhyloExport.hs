@@ -13,7 +13,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.PhyloExport where
 
 import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
-import Data.List ((++), sort, nub, null, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
+import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
 import Data.Vector (Vector)
 
 import Prelude (writeFile)

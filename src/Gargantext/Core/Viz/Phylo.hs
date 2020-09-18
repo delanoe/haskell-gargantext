@@ -31,7 +31,6 @@ import Control.DeepSeq
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON,defaultOptions)
 import Data.Map     (Map)
-import Data.Maybe   (Maybe)
 import Data.Set     (Set)
 import Data.Swagger
 import Data.Text    (Text)
@@ -40,7 +39,6 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context (TermList)
-import Prelude (Bounded)
 
 --------------------
 -- | PhyloParam | --

@@ -34,9 +34,7 @@ module Gargantext.Database.Query.Table.User
   where
 
 import Control.Arrow (returnA)
-import Data.Eq(Eq(..))
 import Data.List (find)
-import Data.Maybe (Maybe)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Core.Types.Individu

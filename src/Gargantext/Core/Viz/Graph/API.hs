@@ -21,7 +21,6 @@ module Gargantext.Core.Viz.Graph.API
 import Control.Lens (set, (^.), _Just, (^?))
 import Data.Aeson
 import qualified Data.Map as Map
-import Data.Maybe (Maybe(..))
 import Data.Swagger
 import Data.Text
 import Debug.Trace (trace)
