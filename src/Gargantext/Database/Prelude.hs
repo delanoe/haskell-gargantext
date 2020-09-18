@@ -30,8 +30,6 @@ import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
-import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig())
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
@@ -40,6 +38,9 @@ import Text.Read (read)
 import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
+
+import Gargantext.Prelude
+import Gargantext.Prelude.Config (GargConfig())
 
 -------------------------------------------------------
 class HasConnectionPool env where

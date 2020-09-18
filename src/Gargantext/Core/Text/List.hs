@@ -17,7 +17,13 @@ module Gargantext.Core.Text.List
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
-import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, RootParent(..), mSetFromList)
+import qualified Data.Char as Char
+import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Set  as Set
+import qualified Data.Text as Text
+
+import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
@@ -26,15 +32,11 @@ import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Core.Text.Metrics.TFICF (sortTficf)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+
 import Gargantext.Prelude
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Learn (Model(..))
 -- import Gargantext.Core.Text.Metrics (takeScored)
-import qualified Data.Char as Char
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Set  as Set
-import qualified Data.Text as Text
 
 
 data NgramsListBuilder = BuilderStepO { stemSize :: Int
@@ -90,8 +92,8 @@ buildNgramsOthersList uCid groupIt nt = do
                              ]
     where
       toElements nType x =
-        Map.fromList [(nt, [ mkNgramsElement t nType Nothing (mSetFromList [])
-                           | (t,_ns) <- x
+        Map.fromList [(nt, [ mkNgramsElement (NgramsTerm t) nType Nothing (mSetFromList [])
+                           | (t, _ns) <- x
                            ]
                      )]
 
@@ -154,14 +156,14 @@ toNgramsElement (GroupedText listType label _ setNgrams) =
     where
       parent = label
       children = Set.toList setNgrams
-      parentElem    = mkNgramsElement parent
+      parentElem    = mkNgramsElement (NgramsTerm parent)
                                       listType
                                       Nothing
-                                      (mSetFromList children)
+                                      (mSetFromList (NgramsTerm <$> children))
       childrenElems = map (\t -> mkNgramsElement t listType
-                                                 (Just $ RootParent parent parent)
+                                                 (Just $ RootParent (NgramsTerm parent) (NgramsTerm parent))
                                                  (mSetFromList [])
-                          ) children
+                          ) (NgramsTerm <$> children)
 
 
 toGargList :: (b -> Bool) -> ListType -> b -> (ListType, b)
