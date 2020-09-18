@@ -13,6 +13,7 @@ Portability : POSIX
 
 module Gargantext.Prelude.Config where
 
+import Prelude (read)
 import System.IO (FilePath)
 import Data.Ini (readIniFile, lookupValue)
 import Data.Either.Extra (Either(Left, Right))
@@ -31,6 +32,8 @@ data GargConfig = GargConfig { _gc_masteruser       :: !Text
 
                              , _gc_frame_searx_url  :: !Text
                              , _gc_frame_istex_url  :: !Text
+
+                             , _gc_max_docs_scrapers :: !Integer
                              }
   deriving (Generic, Show)
 
@@ -40,11 +43,11 @@ readConfig :: FilePath -> IO GargConfig
 readConfig fp = do
   ini         <- readIniFile fp
   let ini'' = case ini of
-        Left e     -> panic (pack $ "No ini file error" <> show e)
+        Left e     -> panic (pack $ "gargantext.ini not found" <> show e)
         Right ini' -> ini'
 
   let val x = case (lookupValue (pack "gargantext") (pack x) ini'') of
-        Left _   -> panic (pack $ "no" <> x)
+        Left _   -> panic (pack $ "ERROR: add " <> x <> " to your gargantext.ini")
         Right p' -> p'
 
   pure $ GargConfig (val "MASTER_USER")
@@ -54,6 +57,7 @@ readConfig fp = do
                     (val "FRAME_CALC_URL")
                     (val "FRAME_SEARX_URL")
                     (val "FRAME_ISTEX_URL")
+                    (read $ cs $ val "MAX_DOCS_SCRAPERS")
 
 defaultConfig :: GargConfig
 defaultConfig = GargConfig "gargantua"
@@ -63,3 +67,4 @@ defaultConfig = GargConfig "gargantua"
                            "https://frame_calc.url"
                            "https://frame_searx.url"
                            "https://frame_istex.url"
+                           1000

@@ -26,7 +26,7 @@ module Gargantext.API.Routes
 
 -- import qualified Gargantext.API.Search as Search
 import Control.Concurrent (threadDelay)
--- import Control.Lens (view)
+import Control.Lens (view)
 import Data.Text (Text)
 import Data.Validity
 import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
@@ -37,10 +37,11 @@ import Gargantext.API.Node
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Viz.Graph.API
--- import Gargantext.Database.Prelude (HasConfig(..))
+import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
+import Gargantext.Prelude.Config (GargConfig(..))
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Swagger ()
@@ -246,17 +247,16 @@ waitAPI n = do
 ----------------------------------------
 
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
-addCorpusWithQuery user cid = do
-  -- TODO gargantext.ini
-  -- _env <- view hasConfig
-  let limit = Just 100
+addCorpusWithQuery user cid =
   serveJobsAPI $
-    JobFunction (\q log ->
-      let
-        log' x = do
-          printDebug "addToCorpusWithQuery" x
-          liftBase $ log x
-      in New.addToCorpusWithQuery user cid q limit log'
+    JobFunction (\q log -> do
+      conf <- view hasConfig
+      let limit = Just $ _gc_max_docs_scrapers conf
+      New.addToCorpusWithQuery user cid q limit (liftBase . log)
+      {- let log' x = do
+        printDebug "addToCorpusWithQuery" x
+        liftBase $ log x
+      -}
       )
 
 {-

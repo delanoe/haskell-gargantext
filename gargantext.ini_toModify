@@ -17,6 +17,8 @@ FRAME_CALC_URL  = URL_TO_CHANGE
 FRAME_SEARX_URL  = URL_TO_CHANGE
 FRAME_ISTEX_URL  = URL_TO_CHANGE
 
+MAX_DOCS_SCRAPERS = 10000
+
 [server]
 # Server config (TODO connect in ReaderMonad)
 ALLOWED_ORIGIN = http://localhost
