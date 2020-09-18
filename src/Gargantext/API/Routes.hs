@@ -249,7 +249,7 @@ addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid = do
   -- TODO gargantext.ini
   -- _env <- view hasConfig
-  let limit = Just 10000
+  let limit = Just 100
   serveJobsAPI $
     JobFunction (\q log ->
       let
