@@ -51,7 +51,7 @@ import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
 import qualified Data.ByteString.Lazy as L
 import qualified Servant.Job.Core
-import Gargantext.Prelude.Config (GargConfig(), readConfig, defaultConfig)
+import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig, defaultConfig)
 
 type PortNumber = Int
 
@@ -171,30 +171,29 @@ data MockEnv = MockEnv
 
 makeLenses ''MockEnv
 
--- | TODO add this path in Settings
+-----------------------------------------------------------------------
+-- | RepoDir FilePath configuration
+type RepoDirFilePath = FilePath
 
-repoDir :: FilePath
-repoDir = "repos"
-
-repoSnapshot :: FilePath
-repoSnapshot = repoDir <> "/repo.cbor"
+repoSnapshot :: RepoDirFilePath -> FilePath
+repoSnapshot repoDir = repoDir <> "/repo.cbor"
 
 -- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
-repoSaverAction :: Serialise a => a -> IO ()
-repoSaverAction a = do
+repoSaverAction :: RepoDirFilePath -> Serialise a => a -> IO ()
+repoSaverAction repoDir a = do
   withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
     printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h
-    renameFile fp repoSnapshot
+    renameFile fp (repoSnapshot repoDir)
 
-mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
-mkRepoSaver repo_var = mkDebounce settings
+mkRepoSaver :: RepoDirFilePath -> MVar NgramsRepo -> IO (IO ())
+mkRepoSaver repoDir repo_var = mkDebounce settings
   where
     settings = defaultDebounceSettings
                  { debounceFreq   = let n = 6 :: Int in 10^n  -- 1 second
-                 , debounceAction = withMVar repo_var repoSaverAction
+                 , debounceAction = withMVar repo_var (repoSaverAction repoDir)
                    -- Here this not only `readMVar` but `takeMVar`.
                    -- Namely while repoSaverAction is saving no other change
                    -- can be made to the MVar.
@@ -205,34 +204,34 @@ mkRepoSaver repo_var = mkDebounce settings
                    -- Add a new MVar just for saving.
                  }
 
-readRepoEnv :: IO RepoEnv
-readRepoEnv = do
+readRepoEnv :: FilePath -> IO RepoEnv
+readRepoEnv repoDir = do
   -- Does file exist ? :: Bool
   _repoDir <- createDirectoryIfMissing True repoDir
 
-  repoFile <- doesFileExist repoSnapshot
+  repoFile <- doesFileExist (repoSnapshot repoDir)
 
   -- Is file not empty ? :: Bool
   repoExists <- if repoFile
-             then (>0) <$> getFileSize repoSnapshot
+             then (>0) <$> getFileSize (repoSnapshot repoDir)
              else pure False
 
-  mlock <- tryLockFile repoSnapshot Exclusive
+  mlock <- tryLockFile (repoSnapshot repoDir) Exclusive
   lock <- maybe (panic "Repo file already locked") pure mlock
 
   mvar <- newMVar =<<
     if repoExists
       then do
         -- e_repo <- eitherDecodeStrict <$> deserialise <$> L.readFile repoSnapshot
-        repo <- deserialise <$> L.readFile repoSnapshot
+        repo <- deserialise <$> L.readFile (repoSnapshot repoDir)
         -- repo   <- either fail pure e_repo
-        let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
-        copyFile repoSnapshot archive
+        let archive = (repoSnapshot repoDir) <> ".v" <> show (repo ^. r_version)
+        copyFile (repoSnapshot repoDir) archive
         pure repo
       else
         pure initRepo
   -- TODO save in DB here
-  saver <- mkRepoSaver mvar
+  saver <- mkRepoSaver repoDir mvar
   pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver, _renv_lock = lock }
 
 devJwkFile :: FilePath
@@ -245,13 +244,13 @@ newEnv port file = do
   when (port /= settings ^. appPort) $
     panic "TODO: conflicting settings of port"
 
+  config       <- readConfig file
   self_url     <- parseBaseUrl $ "http://0.0.0.0:" <> show port
-  param        <- databaseParameters file
-  pool         <- newPool param
-  repo         <- readRepoEnv
+  dbParam      <- databaseParameters file
+  pool         <- newPool dbParam
+  repo         <- readRepoEnv (_gc_repofilepath config)
   scrapers_env <- newJobEnv defaultSettings manager
   logger       <- newStderrLoggerSet defaultBufSize
-  config       <- readConfig file
 
   pure $ Env
     { _env_settings   = settings
@@ -294,24 +293,25 @@ instance HasRepo DevEnv where
 instance HasSettings DevEnv where
   settings = dev_env_settings
 
-cleanEnv :: HasRepo env => env -> IO ()
+cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do
   r <- takeMVar (env ^. repoEnv . renv_var)
-  repoSaverAction r
+  repoSaverAction (env ^. hasConfig . gc_repofilepath) r
   unlockFile (env ^. repoEnv . renv_lock)
 
-withDevEnv :: FilePath -> (DevEnv -> IO a) -> IO a
+type IniPath  = FilePath
+withDevEnv :: IniPath -> (DevEnv -> IO a) -> IO a
 withDevEnv iniPath k = do
   env <- newDevEnv
   k env `finally` cleanEnv env
 
   where
     newDevEnv = do
-      param <- databaseParameters iniPath
-      pool  <- newPool param
-      repo  <- readRepoEnv
-      setts <- devSettings devJwkFile
-      config <- readConfig iniPath
+      config  <- readConfig         iniPath
+      dbParam <- databaseParameters iniPath
+      pool    <- newPool            dbParam
+      repo    <- readRepoEnv        (_gc_repofilepath config)
+      setts   <- devSettings devJwkFile
       pure $ DevEnv
         { _dev_env_pool = pool
         , _dev_env_repo = repo

@@ -9,6 +9,14 @@ SECRET_KEY      = PASSWORD_TO_CHANGE
 # Data path to local files
 DATA_FILEPATH = FILEPATH_TO_CHANGE
 
+# Data path to local files
+DATA_FILEPATH = FILEPATH_TO_CHANGE
+
+# Data path to local files
+REPOS_DIRPATH = FILEPATH_TO_CHANGE
+
+
+
 # [external]
 # FRAMES (i.e. iframe sources used in various places on the frontend)
 FRAME_WRITE_URL = URL_TO_CHANGE

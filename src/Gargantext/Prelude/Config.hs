@@ -23,9 +23,11 @@ import GHC.Generics (Generic)
 import Control.Lens (makeLenses)
 
 
-data GargConfig = GargConfig { _gc_masteruser       :: !Text
-                             , _gc_secretkey        :: !Text
-                             , _gc_datafilepath     :: !FilePath
+data GargConfig = GargConfig { _gc_masteruser   :: !Text
+                             , _gc_secretkey    :: !Text
+
+                             , _gc_datafilepath :: !FilePath
+                             , _gc_repofilepath :: !FilePath
 
                              , _gc_frame_write_url  :: !Text
                              , _gc_frame_calc_url   :: !Text
@@ -53,6 +55,7 @@ readConfig fp = do
   pure $ GargConfig (val "MASTER_USER")
                     (val "SECRET_KEY")
                     (cs $ val "DATA_FILEPATH")
+                    (cs $ val "REPO_FILEPATH")
                     (val "FRAME_WRITE_URL")
                     (val "FRAME_CALC_URL")
                     (val "FRAME_SEARX_URL")
@@ -63,6 +66,7 @@ defaultConfig :: GargConfig
 defaultConfig = GargConfig "gargantua"
                            "secret"
                            "data"
+                           "repos/"
                            "https://frame_write.url"
                            "https://frame_calc.url"
                            "https://frame_searx.url"
