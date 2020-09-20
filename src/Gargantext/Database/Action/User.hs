@@ -24,7 +24,6 @@ import Gargantext.Prelude.Mail (gargMail, GargMail(..))
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..), nodeError, NodeError(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot)
 
-
 ------------------------------------------------------------------------
 mkUser :: HasNodeError err => Text -> NewUser GargPassword -> Cmd err Int64
 mkUser address u = mkUsers address [u]
@@ -36,6 +35,13 @@ mkUsers address us = do
   _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
   _   <- liftBase    $ mapM (mail address) us
   pure r
+------------------------------------------------------------------------
+updateUser :: HasNodeError err => Text -> NewUser GargPassword -> Cmd err Int64
+updateUser address u = do
+  u' <- liftBase   $ toUserHash   u
+  n  <- updateUserDB $ toUserWrite  u'
+  _  <- liftBase   $ mail address u
+  pure n
 
 ------------------------------------------------------------------------
 -- TODO gargantext.ini config
@@ -67,9 +73,6 @@ logInstructions address (NewUser u _ (GargPassword p)) =
           , "-- "
           , "The Gargantext Team (CNRS)"
           ]
-
-------------------------------------------------------------------------
-
 
 ------------------------------------------------------------------------
 rmUser :: HasNodeError err => User -> Cmd err Int64

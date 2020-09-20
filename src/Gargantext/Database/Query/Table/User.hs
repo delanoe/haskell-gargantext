@@ -21,6 +21,7 @@ module Gargantext.Database.Query.Table.User
   ( insertUsers
   , toUserWrite
   , deleteUsers
+  , updateUserDB
   , queryUserTable
   , getUser
   , insertUsersDemo
@@ -54,6 +55,22 @@ insertUsers us = mkCmd $ \c -> runInsert_ c insert
 deleteUsers :: [Username] -> Cmd err Int64
 deleteUsers us = mkCmd $ \c -> runDelete c userTable
     (\user -> in_ (map pgStrictText us) (user_username user))
+
+-- Updates email or password only (for now)
+updateUserDB :: UserWrite -> Cmd err Int64
+updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
+  where
+    updateUserQuery :: UserWrite -> Update Int64
+    updateUserQuery us = Update
+      { uTable      = userTable
+      , uUpdateWith = updateEasy (\ (UserDB _id _p ll su un fn ln _em is ia dj)
+                                  -> UserDB _id p' ll su un fn ln em' is ia dj
+                                 )
+      , uWhere      = (\row -> user_username row .== un')
+      , uReturning  = rCount
+      }
+        where
+          UserDB _ p' _ _ un' _ _ em' _ _ _ = us
 
 -----------------------------------------------------------------------
 toUserWrite :: NewUser HashPassword -> UserWrite
