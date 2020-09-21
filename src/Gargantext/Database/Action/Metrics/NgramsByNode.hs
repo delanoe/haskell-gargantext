@@ -330,7 +330,7 @@ queryNgramsOnlyByNodeUser' = [sql|
   |]
 
 
-getNgramsByDocOnlyUser :: NodeId
+getNgramsByDocOnlyUser :: DocId
                        -> [ListId]
                        -> NgramsType
                        -> [Text]

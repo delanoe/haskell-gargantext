@@ -28,9 +28,10 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, NgramsTerm(..), Ro
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith)
+import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
-import Gargantext.Core.Text.Metrics.TFICF (sortTficf)
+import Gargantext.Database.Query.Table.Node (defaultList)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 
@@ -40,25 +41,26 @@ import Gargantext.Core.Text.List.Learn (Model(..))
 -- import Gargantext.Core.Text.Metrics (takeScored)
 
 
-data NgramsListBuilder = BuilderStepO { stemSize :: Int
-                                      , stemX    :: Int
-                                      , stopSize :: Int
+data NgramsListBuilder = BuilderStepO { stemSize :: !Int
+                                      , stemX    :: !Int
+                                      , stopSize :: !Int
                                       }
-                       | BuilderStep1 { withModel :: Model }
-                       | BuilderStepN { withModel :: Model }
-                       | Tficf { nlb_lang           :: Lang
-                               , nlb_group1         :: Int
-                               , nlb_group2         :: Int
-                               , nlb_stopSize       :: StopSize
-                               , nlb_userCorpusId   :: UserCorpusId
-                               , nlb_masterCorpusId :: MasterCorpusId
+                       | BuilderStep1 { withModel :: !Model }
+                       | BuilderStepN { withModel :: !Model }
+                       | Tficf { nlb_lang           :: !Lang
+                               , nlb_group1         :: !Int
+                               , nlb_group2         :: !Int
+                               , nlb_stopSize       :: !StopSize
+                               , nlb_userCorpusId   :: !UserCorpusId
+                               , nlb_masterCorpusId :: !MasterCorpusId
                                }
 
 
-data StopSize = StopSize {unStopSize :: Int}
+data StopSize = StopSize {unStopSize :: !Int}
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
-buildNgramsLists :: Lang
+buildNgramsLists :: HasNodeError err
+                 => Lang
                  -> Int
                  -> Int
                  -> StopSize
@@ -98,7 +100,9 @@ buildNgramsOthersList uCid groupIt nt = do
                            ]
                      )]
 
-buildNgramsTermsList :: Lang
+-- TODO use ListIds
+buildNgramsTermsList :: HasNodeError err
+                     => Lang
                      -> Int
                      -> Int
                      -> StopSize
@@ -108,8 +112,7 @@ buildNgramsTermsList :: Lang
 buildNgramsTermsList l n m s uCid mCid = do
 
 -- Computing global speGen score
--- TODO sort is not needed, just take the score
-  allTerms <- sortTficf Up <$> getTficf uCid mCid NgramsTerms
+  allTerms <- Map.toList <$> getTficf uCid mCid NgramsTerms
   -- printDebug "head candidates" (List.take 10 $ allTerms)
   -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)
 
@@ -147,8 +150,18 @@ buildNgramsTermsList l n m s uCid mCid = do
                       Set.empty
                       (groupedMonoHead <> groupedMultHead)
 
+  -- TO remove (and remove HasNodeError instance)
+  userListId    <- defaultList uCid
+  masterListId  <- defaultList mCid
+
+  mapTextDocIds <- getNodesByNgramsOnlyUser uCid [userListId, masterListId] NgramsTerms selectedTerms
+    -- groups Set NodeId
+    -- compute cooccurrences
+    -- compute scores
+    -- sort / filter
 
 
+  let
     (mono, multi)          = List.partition (\t -> (size . fst) t < 2) candidateTerms
     (monoHead , monoTail ) = List.splitAt (round $ 0.60 * listSizeGlobal) mono
     (multiHead, multiTail) = List.splitAt (round $ 0.40 * listSizeGlobal) multi
@@ -177,12 +190,12 @@ type Group = Lang -> Int -> Int -> Text -> Text
 type Stem  = Text
 type Label = Text
 data GroupedText score =
-  GroupedText { _gt_listType :: Maybe ListType
-              , _gt_label    :: Label
-              , _gt_score    :: score
-              , _gt_group    :: Set Text
-              , _gt_size     :: Int
-              , _gt_stem     :: Stem
+  GroupedText { _gt_listType :: !(Maybe ListType)
+              , _gt_label    :: !Label
+              , _gt_score    :: !score
+              , _gt_group    :: !(Set Text)
+              , _gt_size     :: !Int
+              , _gt_stem     :: !Stem
               }
 
 instance (Eq a) => Eq (GroupedText a) where
