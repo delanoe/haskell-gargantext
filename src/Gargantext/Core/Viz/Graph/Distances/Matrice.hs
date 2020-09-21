@@ -196,7 +196,7 @@ measureConditional m = run $ matProba (dim m)
 -- in the corpus and _[n_{ij}\] the number of its occurrences we get:
 --
 -- \[P_c=max(\frac{n_i}{n_{ij}},\frac{n_j}{n_{ij}} )\]
-conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
+conditional' :: Matrix Int -> (Matrix GenericityInclusion, Matrix SpecificityExclusion)
 conditional' m = ( run $ ie $ map fromIntegral $ use m
                  , run $ sg $ map fromIntegral $ use m
                  )
@@ -450,15 +450,15 @@ Jean-Philippe Cointet (CREA, TSV), David Chavalarias (CREA) (Submitted
 on 15 Mar 2008), Networks and Heterogeneous Media 3, 2 (2008) 267 - 276,
 arXiv:0803.2315 [cs.OH]
 -}
-type InclusionExclusion    = Double
-type SpecificityGenericity = Double
+type GenericityInclusion    = Double
+type SpecificityExclusion = Double
 
 data SquareMatrix      = SymetricMatrix | NonSymetricMatrix
 type SymetricMatrix    = Matrix
 type NonSymetricMatrix = Matrix
 
 
-incExcSpeGen :: Matrix Int -> (Vector InclusionExclusion, Vector SpecificityGenericity)
+incExcSpeGen :: Matrix Int -> (Vector GenericityInclusion, Vector SpecificityExclusion)
 incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat

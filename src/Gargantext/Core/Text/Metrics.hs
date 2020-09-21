@@ -57,8 +57,8 @@ scored = map2scored . (pcaReduceTo (Dimension 2)) . scored2map
 -- TODO change type with (x,y)
 data Scored ts = Scored
   { _scored_terms  :: !ts
-  , _scored_incExc :: !InclusionExclusion
-  , _scored_speGen :: !SpecificityGenericity
+  , _scored_incExc :: !GenericityInclusion
+  , _scored_speGen :: !SpecificityExclusion
   } deriving (Show)
 
 localMetrics' :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
@@ -76,7 +76,7 @@ localMetrics' m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [
 -- TODO in the textflow we end up needing these indices , it might be
 -- better to compute them earlier and pass them around.
 scored' :: Ord t => Map (t,t) Int -> [Scored t]
-scored' m = zipWith (\(_,t) (inc,spe) -> Scored t (inc) (spe)) (Map.toList fi) scores
+scored' m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (Map.toList fi) scores
   where
     (ti, fi) = createIndices m
     (is, ss) = incExcSpeGen $ cooc2mat ti m

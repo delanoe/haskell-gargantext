@@ -113,7 +113,7 @@ ex_cooc = cooc <$> ex_terms
 --     0.0,  1.0,  1.0,  0.5,
 --     0.0,  0.0,  1.0,  0.5,
 --     0.0,  0.0,  0.0,  1.0],(Vector (Z :. 4) [0.5833333333333334,0.5833333333333334,0.75,0.5833333333333334],Vector (Z :. 4) [-0.5833333333333334,-0.4166666666666667,0.41666666666666674,0.5833333333333334]))
-ex_cooc_mat :: IO (Map Label Index, Matrix Int, Matrix Double, (DAA.Vector InclusionExclusion, DAA.Vector SpecificityGenericity))
+ex_cooc_mat :: IO (Map Label Index, Matrix Int, Matrix Double, (DAA.Vector GenericityInclusion, DAA.Vector SpecificityExclusion))
 ex_cooc_mat = do
   m <- ex_cooc
   let (ti,_) = createIndices m

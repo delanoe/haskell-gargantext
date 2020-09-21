@@ -140,7 +140,10 @@ buildNgramsTermsList l n m s uCid mCid = do
 
     -- Get Local Scores now for selected grouped ngrams
     selectedTerms = Set.toList $ List.foldl'
-                      (\set (GroupedText _ l _ g _ _) -> Set.union set $ Set.union g $ Set.singleton l)
+                      (\set (GroupedText _ l _ g _ _) -> Set.union set
+                                                       $ Set.union g
+                                                       $ Set.singleton l
+                      )
                       Set.empty
                       (groupedMonoHead <> groupedMultHead)
 
