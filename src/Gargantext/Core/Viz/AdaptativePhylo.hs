@@ -148,7 +148,7 @@ defaultConfig =
             , phyloQuality   = Quality 100 1
             , timeUnit       = Year 3 1 5
             , clique         = MaxClique 0
-            , exportLabel    = [BranchLabel MostInclusive 2, GroupLabel MostEmergentInclusive 2]
+            , exportLabel    = [BranchLabel MostEmergentTfIdf 2, GroupLabel MostEmergentInclusive 2]
             , exportSort     = ByHierarchy
             , exportFilter   = [ByBranchSize 2]  
             }
@@ -368,7 +368,7 @@ data Order = Asc | Desc deriving (Show,Generic,Eq)
 
 data Sort = ByBirthDate { _sort_order :: Order } | ByHierarchy deriving (Show,Generic,Eq)
 
-data Tagger = MostInclusive | MostEmergentInclusive deriving (Show,Generic,Eq)
+data Tagger = MostInclusive | MostEmergentInclusive | MostEmergentTfIdf deriving (Show,Generic,Eq)
 
 data PhyloLabel = 
       BranchLabel

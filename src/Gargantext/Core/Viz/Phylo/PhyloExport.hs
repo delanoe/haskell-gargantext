@@ -12,7 +12,7 @@ Portability : POSIX
 
 module Gargantext.Core.Viz.Phylo.PhyloExport where
 
-import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList)
+import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
 import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
 import Data.Vector (Vector)
 
@@ -395,6 +395,52 @@ processMetrics export = ngramsMetrics
 -- | Taggers | --
 ----------------- 
 
+nk :: Int -> [[Int]] -> Int
+nk n groups = sum
+            $ map (\g -> if (elem n g)
+                          then 1
+                          else 0) groups 
+
+
+tf :: Int -> [[Int]] -> Double
+tf n groups = (fromIntegral $ nk n groups) / (fromIntegral $ length $ concat groups)
+
+
+idf :: Int -> [[Int]] -> Double
+idf n groups = log ((fromIntegral $ length groups) / (fromIntegral $ nk n groups))
+
+
+findTfIdf :: [[Int]] -> [(Int,Double)]
+findTfIdf groups = reverse $ sortOn snd $ map (\n -> (n,(tf n groups) * (idf n groups))) $ sort $ nub $ concat groups
+
+
+findEmergences :: [PhyloGroup] -> Map Int Double -> [(Int,Double)]
+findEmergences groups freq =
+  let ngrams = map _phylo_groupNgrams groups
+      dynamics = map (\g -> (g ^. phylo_groupMeta) ! "dynamics") groups
+      emerging = nubBy (\n1 n2 -> fst n1 == fst n2) 
+               $ concat $ map (\g -> filter (\(_,d) -> d == 0) $ zip (fst g) (snd g)) $ zip ngrams dynamics
+  in reverse $ sortOn snd
+   $ map (\(n,_) -> if (member n freq)
+                      then (n,freq ! n)
+                      else (n,0)) emerging
+
+
+mostEmergentTfIdf :: Int -> Map Int Double -> Vector Ngrams -> PhyloExport -> PhyloExport 
+mostEmergentTfIdf nth freq foundations export = 
+    over ( export_branches
+         .  traverse )
+         (\b -> 
+            let groups = filter (\g -> g ^. phylo_groupBranchId == b ^. branch_id) $ export ^. export_groups
+                tfidf  = findTfIdf (map _phylo_groupNgrams groups)
+                emergences = findEmergences groups freq
+                selected = if (null emergences)
+                            then map fst $ take nth tfidf
+                            else [fst $ head' "mostEmergentTfIdf" emergences] 
+                              ++ (map fst $ take (nth - 1) $ filter (\(n,_) -> n /= (fst $ head' "mostEmergentTfIdf" emergences)) tfidf) 
+            in b & branch_label .~ (ngramsToLabel foundations selected)) export
+
+
 getNthMostMeta :: Int -> [Double] -> [Int] -> [Int]
 getNthMostMeta nth meta ns = map (\(idx,_) -> (ns !! idx))
                            $ take nth
@@ -431,8 +477,8 @@ mostEmergentInclusive nth foundations export =
             in g & phylo_groupLabel .~ lbl ) export
 
 
-processLabels :: [PhyloLabel] -> Vector Ngrams -> PhyloExport -> PhyloExport
-processLabels labels foundations export =
+processLabels :: [PhyloLabel] -> Vector Ngrams -> Map Int Double -> PhyloExport -> PhyloExport
+processLabels labels foundations freq export =
     foldl (\export' label -> 
                 case label of
                     GroupLabel  tagger nth -> 
@@ -442,6 +488,7 @@ processLabels labels foundations export =
                     BranchLabel tagger nth ->
                         case tagger of
                             MostInclusive -> mostInclusive nth foundations export'
+                            MostEmergentTfIdf -> mostEmergentTfIdf nth freq foundations export'
                             _ -> panic "[ERR][Viz.Phylo.PhyloExport] unknown tagger" ) export labels 
 
 
@@ -458,7 +505,7 @@ toDynamics n parents g m =
             {- decrease -}
             then 2
         else if ((fst prd) == (fst $ m ! n))
-            {- recombination -}
+            {- emerging -}
             then 0
         else if isNew
             {- emergence -}
@@ -571,7 +618,7 @@ toPhyloExport :: Phylo -> DotGraph DotId
 toPhyloExport phylo = exportToDot phylo
                     $ processFilters (exportFilter $ getConfig phylo) (phyloQuality $ getConfig phylo)
                     $ processSort    (exportSort   $ getConfig phylo)
-                    $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo)
+                    $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo) (_phylo_lastTermFreq phylo)
                     $ processMetrics  export           
     where
         export :: PhyloExport
