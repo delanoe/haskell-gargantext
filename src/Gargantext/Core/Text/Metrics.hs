@@ -57,8 +57,8 @@ scored = map2scored . (pcaReduceTo (Dimension 2)) . scored2map
 -- TODO change type with (x,y)
 data Scored ts = Scored
   { _scored_terms  :: !ts
-  , _scored_incExc :: !GenericityInclusion
-  , _scored_speGen :: !SpecificityExclusion
+  , _scored_genInc :: !GenericityInclusion
+  , _scored_speExc :: !SpecificityExclusion
   } deriving (Show)
 
 localMetrics' :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
@@ -87,8 +87,8 @@ scored' m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (Map.toList fi) score
 
 takeScored :: Ord t => MapListSize -> InclusionSize -> Map (t,t) Int -> ([t],[t])
 takeScored listSize incSize = both (map _scored_terms)
-                            . takeLinear listSize incSize _scored_speGen
-                                                          _scored_incExc
+                            . takeLinear listSize incSize _scored_genInc
+                                                          _scored_speExc
                             . scored
 
 
