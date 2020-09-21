@@ -14,6 +14,7 @@ module Gargantext.Core.Text.List
   where
 
 -- import Data.Either (partitionEithers, Either(..))
+import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -105,28 +106,66 @@ buildNgramsTermsList :: Lang
                      -> MasterCorpusId
                      -> Cmd err (Map NgramsType [NgramsElement])
 buildNgramsTermsList l n m s uCid mCid = do
-  candidates <- sortTficf Up <$> getTficf uCid mCid NgramsTerms
-  -- printDebug "head candidates" (List.take 10 $ candidates)
-  -- printDebug "tail candidates" (List.take 10 $ List.reverse $ candidates)
 
+-- Computing global speGen score
+-- TODO sort is not needed, just take the score
+  allTerms <- sortTficf Up <$> getTficf uCid mCid NgramsTerms
+  -- printDebug "head candidates" (List.take 10 $ allTerms)
+  -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)
+
+  -- First remove stops terms
+  let 
+    (stopTerms, candidateTerms) = List.partition ((isStopTerm s) . fst) allTerms
+
+  -- Grouping the ngrams and keeping the maximum score for label
+  let grouped = groupStems'
+        $ map (\(t,d) -> let stem = ngramsGroup l n m t
+                          in ( stem
+                             , GroupedText Nothing t d Set.empty (size t) stem
+                             )
+              ) candidateTerms
+
+      (groupedMono, groupedMult) = Map.partition (\gt -> _gt_size gt < 2) grouped
+
+  -- splitting monterms and multiterms to take proportional candidates
   let
-    listSize = 400 :: Double
-    (candidatesHead, candidatesTail0)    = List.splitAt 3 candidates
+    listSizeGlobal = 2000 :: Double -- use % of list if to big, or Int if to small
+    monoSizeGlobal = 0.6  :: Double
+    multSizeGlobal = 1 - monoSizeGlobal
 
-    (mono, multi)          = List.partition (\t -> (size . fst) t < 2) candidatesTail0
-    (monoHead , monoTail ) = List.splitAt (round $ 0.60 * listSize) mono
-    (multiHead, multiTail) = List.splitAt (round $ 0.40 * listSize) multi
+    splitAt n ns = List.splitAt (round $ n * listSizeGlobal) $ List.sort $ Map.elems ns
 
-    termList = (map (toGargList ((isStopTerm s) . fst) CandidateTerm) candidatesHead)
-            <> (map (toGargList ((isStopTerm s) . fst) MapTerm)       (monoHead <> multiHead))
-            <> (map (toGargList ((isStopTerm s) . fst) CandidateTerm) (monoTail <> multiTail))
+    (groupedMonoHead, groupedMonoTail) = splitAt monoSizeGlobal groupedMono
+    (groupedMultHead, groupedMultTail) = splitAt multSizeGlobal groupedMult
+
+    -- Get Local Scores now for selected grouped ngrams
+    selectedTerms = Set.toList $ List.foldl'
+                      (\set (GroupedText _ l _ g _ _) -> Set.union set $ Set.union g $ Set.singleton l)
+                      Set.empty
+                      (groupedMonoHead <> groupedMultHead)
+
+
+
+    (mono, multi)          = List.partition (\t -> (size . fst) t < 2) candidateTerms
+    (monoHead , monoTail ) = List.splitAt (round $ 0.60 * listSizeGlobal) mono
+    (multiHead, multiTail) = List.splitAt (round $ 0.40 * listSizeGlobal) multi
+
+
+  -- Computing local speGen score
+    listSizeLocal  = 350  :: Double
+
+    -- Final Step building the Typed list
+    termList = (map (toGargList $ Just StopTerm) stopTerms)
+            <> (map (toGargList $ Just MapTerm)       (monoHead <> multiHead))
+            <> (map (toGargList $ Just CandidateTerm) (monoTail <> multiTail))
 
     ngs = List.concat
         $ map toNgramsElement
         $ groupStems
-        $ map (\(listType, (t,d)) -> ( ngramsGroup l n m t
-                                     , GroupedText listType t d Set.empty
-                                     )
+        $ map (\(listType, (t,d)) -> let stem = ngramsGroup l n m t
+                                      in ( stem
+                                         , GroupedText listType t d Set.empty (size t) stem
+                                         )
               ) termList
 
   pure $ Map.fromList [(NgramsTerms, ngs)]
@@ -134,42 +173,58 @@ buildNgramsTermsList l n m s uCid mCid = do
 type Group = Lang -> Int -> Int -> Text -> Text
 type Stem  = Text
 type Label = Text
-data GroupedText = GroupedText { _gt_listType :: ListType
-                               , _gt_label    :: Label
-                               , _gt_score    :: Double
-                               , _gt_group    :: Set Text
-                               }
-groupStems :: [(Stem, GroupedText)] -> [GroupedText]
-groupStems = Map.elems . Map.fromListWith grouping
+data GroupedText score =
+  GroupedText { _gt_listType :: Maybe ListType
+              , _gt_label    :: Label
+              , _gt_score    :: score
+              , _gt_group    :: Set Text
+              , _gt_size     :: Int
+              , _gt_stem     :: Stem
+              }
+
+instance (Eq a) => Eq (GroupedText a) where
+  (==) (GroupedText _ _ score1 _ _ _)
+       (GroupedText _ _ score2 _ _ _) = (==) score1 score2
+
+instance (Eq a, Ord a) => Ord (GroupedText a) where
+  compare (GroupedText _ _ score1 _ _ _)
+          (GroupedText _ _ score2 _ _ _) = compare score1 score2
+
+groupStems :: [(Stem, GroupedText Double)] -> [GroupedText Double]
+groupStems = Map.elems . groupStems'
+
+groupStems' :: [(Stem, GroupedText Double)] -> Map Stem (GroupedText Double)
+groupStems' = Map.fromListWith grouping
   where
-    grouping (GroupedText lt1 label1 score1 group1)
-             (GroupedText lt2 label2 score2 group2)
-             | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr)
-             | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr)
+    grouping (GroupedText lt1 label1 score1 group1 s1 stem1)
+             (GroupedText lt2 label2 score2 group2 s2 stem2)
+             | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1
+             | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2
         where
           lt = lt1 <> lt2
           gr = Set.union group1 group2
 
-toNgramsElement :: GroupedText -> [NgramsElement]
-toNgramsElement (GroupedText listType label _ setNgrams) =
+
+
+
+toNgramsElement :: GroupedText Double -> [NgramsElement]
+toNgramsElement (GroupedText listType label _ setNgrams _ _) =
   [parentElem] <> childrenElems
     where
       parent = label
       children = Set.toList setNgrams
       parentElem    = mkNgramsElement (NgramsTerm parent)
-                                      listType
+                                      (fromMaybe CandidateTerm listType)
                                       Nothing
                                       (mSetFromList (NgramsTerm <$> children))
-      childrenElems = map (\t -> mkNgramsElement t listType
+      childrenElems = map (\t -> mkNgramsElement t (fromMaybe CandidateTerm $ listType)
                                                  (Just $ RootParent (NgramsTerm parent) (NgramsTerm parent))
                                                  (mSetFromList [])
                           ) (NgramsTerm <$> children)
 
 
-toGargList :: (b -> Bool) -> ListType -> b -> (ListType, b)
-toGargList isStop l n = case isStop n of
-    True  -> (StopTerm, n)
-    False -> (l, n)
+toGargList :: Maybe ListType -> b -> (Maybe ListType, b)
+toGargList l n = (l,n)
 
 
 isStopTerm :: StopSize -> Text -> Bool
