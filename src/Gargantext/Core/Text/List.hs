@@ -14,9 +14,9 @@ Portability : POSIX
 module Gargantext.Core.Text.List
   where
 
--- import Data.Either (partitionEithers, Either(..))
-import Control.Lens (makeLenses, set)
-import Data.Maybe (fromMaybe)
+import Control.Lens (makeLenses)
+import Data.Maybe (fromMaybe, catMaybes)
+import Data.Ord (Down(..))
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -29,9 +29,9 @@ import qualified Data.Text as Text
 import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId, Ordering(..))
+import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.Metrics (scored')
+import Gargantext.Core.Text.Metrics (scored', Scored(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Query.Table.Node (defaultList)
@@ -117,12 +117,14 @@ buildNgramsTermsList l n m s uCid mCid = do
 
 -- Computing global speGen score
   allTerms <- Map.toList <$> getTficf uCid mCid NgramsTerms
+
   -- printDebug "head candidates" (List.take 10 $ allTerms)
   -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)
 
   -- First remove stops terms
-  let 
-    (stopTerms, candidateTerms) = List.partition ((isStopTerm s) . fst) allTerms
+  let
+    -- stopTerms ignored for now (need to be tagged already)
+    (_stopTerms, candidateTerms) = List.partition ((isStopTerm s) . fst) allTerms
 
   -- Grouping the ngrams and keeping the maximum score for label
   let grouped = groupStems'
@@ -134,22 +136,29 @@ buildNgramsTermsList l n m s uCid mCid = do
 
       (groupedMono, groupedMult) = Map.partition (\gt -> _gt_size gt < 2) grouped
 
+-- printDebug "groupedMult" groupedMult
   -- splitting monterms and multiterms to take proportional candidates
   let
     listSizeGlobal = 2000 :: Double -- use % of list if to big, or Int if to small
-    monoSizeGlobal = 0.6  :: Double
-    multSizeGlobal = 1 - monoSizeGlobal
+    monoSize = 0.4  :: Double
+    multSize = 1 - monoSize
 
-    splitAt n ns = List.splitAt (round $ n * listSizeGlobal) $ List.sort $ Map.elems ns
+    splitAt n' ns = List.splitAt (round $ n' * listSizeGlobal) $ List.sort $ Map.elems ns
+ 
+    (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
+    (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
 
-    (groupedMonoHead, groupedMonoTail) = splitAt monoSizeGlobal groupedMono
-    (groupedMultHead, groupedMultTail) = splitAt multSizeGlobal groupedMult
+  printDebug "groupedMonoHead" (List.length groupedMonoHead)
+  printDebug "groupedMonoTail" (List.length groupedMonoHead)
+  printDebug "groupedMultHead" (List.length groupedMultHead)
+  printDebug "groupedMultTail" (List.length groupedMultTail)
 
+  let
     -- Get Local Scores now for selected grouped ngrams
     selectedTerms = Set.toList $ List.foldl'
-                      (\set (GroupedText _ l _ g _ _ _ ) -> Set.union set
-                                                         $ Set.union g
-                                                         $ Set.singleton l
+                      (\set' (GroupedText _ l' _ g _ _ _ ) -> Set.union set'
+                                                            $ Set.union g
+                                                            $ Set.singleton l'
                       )
                       Set.empty
                       (groupedMonoHead <> groupedMultHead)
@@ -176,50 +185,84 @@ buildNgramsTermsList l n m s uCid mCid = do
                   $ Map.keys mapTextDocIds
 
     -- compute cooccurrences
-    mapCooc = Map.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
+    mapCooc = Map.filter (>2) $ Map.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
                            | (t1, s1) <- mapStemNodeIds
                            , (t2, s2) <- mapStemNodeIds
-                           , t1 /= t2 -- Null Diagonal
                            ]
       where
         mapStemNodeIds = Map.toList $ Map.map (_gt_nodes) contextsAdded
-
-    -- computing scores
-    scores = scored' mapCooc
-    -- dilate scores
-
-
-    -- sort / filter
-
+  -- printDebug "mapCooc" mapCooc
 
   let
-    (mono, multi)          = List.partition (\t -> (size . fst) t < 2) candidateTerms
-    (monoHead , monoTail ) = List.splitAt (round $ 0.60 * listSizeGlobal) mono
-    (multiHead, multiTail) = List.splitAt (round $ 0.40 * listSizeGlobal) multi
+    -- computing scores
+    mapScores f = Map.fromList $ map (\(Scored t g s') -> (t, f (g,s'))) $ scored' mapCooc
 
+    groupsWithScores = catMaybes
+                     $ map (\(stem, g)
+                             -> case Map.lookup stem mapScores' of
+                                 Nothing -> Nothing
+                                 Just s'  -> Just $ g { _gt_score = s'}
+                            ) $ Map.toList contextsAdded
+      where
+        mapScores' = mapScores adapt1 -- identity
+        adapt1 (s1,s2) = (log' 5 s1, log' 2 s2)
+        log' n' x     = 1 + (if x <= 0 then 0 else log $ (10^(n'::Int)) * x)
+        -- adapt2 TOCHECK with DC
+  -- printDebug "groupsWithScores" groupsWithScores
+  let
+    -- sort / partition / split
+      -- filter mono/multi again
+    (monoScored, multScored) = List.partition (\g -> _gt_size g < 2) groupsWithScores
+      -- filter with max score
+    partitionWithMaxScore = List.partition (\g -> let (s1,s2) = _gt_score g in s1 > s2 )
 
-  -- Computing local speGen score
-    listSizeLocal  = 350  :: Double
+    (monoScoredIncl, monoScoredExcl) = partitionWithMaxScore monoScored
+    (multScoredIncl, multScoredExcl) = partitionWithMaxScore multScored
+
+      -- splitAt
+  let
+    listSizeLocal = 1000 :: Double -- use % of list if to big, or Int if to small
+    inclSize = 0.4  :: Double
+    exclSize = 1 - inclSize
+    splitAt' n' = List.splitAt (round $ n' * listSizeLocal)
+
+    (monoScoredInclHead, monoScoredInclTail) = splitAt' (monoSize * inclSize / 2) $ List.sortOn (Down . _gt_score) monoScoredIncl
+    (monoScoredExclHead, monoScoredExclTail) = splitAt' (monoSize * inclSize / 2) $ List.sortOn (Down . _gt_score) monoScoredExcl
+
+    (multScoredInclHead, multScoredInclTail) = splitAt' (multSize * exclSize / 2) $ List.sortOn (Down . _gt_score) multScoredIncl
+    (multScoredExclHead, multScoredExclTail) = splitAt' (multSize * exclSize / 2) $ List.sortOn (Down . _gt_score) multScoredExcl
+
 
     -- Final Step building the Typed list
-    termList = (map (toGargList $ Just StopTerm) stopTerms)
-            <> (map (toGargList $ Just MapTerm)       (monoHead <> multiHead))
-            <> (map (toGargList $ Just CandidateTerm) (monoTail <> multiTail))
+    -- (map (toGargList $ Just StopTerm) stopTerms) -- Removing stops (needs social score)
+    termListHead = 
+             (map (\g -> g { _gt_listType = Just MapTerm} )  (  monoScoredInclHead
+                                                 <> monoScoredExclHead
+                                                 <> multScoredInclHead
+                                                 <> multScoredExclHead
+                                                 )
+               )
+            <> (map (\g -> g { _gt_listType = Just CandidateTerm }) (  monoScoredInclTail
+                                                      <> monoScoredExclTail
+                                                      <> multScoredInclTail
+                                                      <> multScoredExclTail
+                                                      )
+               )
+
+    termListTail = map (\g -> g { _gt_listType = Just CandidateTerm }) ( groupedMonoTail <> groupedMultTail)
+
+--  printDebug "monoScoredInclHead" monoScoredInclHead
+--  printDebug "monoScoredExclHead" monoScoredExclTail
+--
+  printDebug "multScoredInclHead" multScoredInclHead
+  printDebug "multScoredExclTail" multScoredExclTail
 
 
 
-
-
-    ngs = List.concat
-        $ map toNgramsElement
-        $ groupStems
-        $ map (\(listType, (t,d)) -> let stem = ngramsGroup l n m t
-                                      in ( stem
-                                         , GroupedText listType t d Set.empty (size t) stem Set.empty
-                                         )
-              ) termList
-
-  pure $ Map.fromList [(NgramsTerms, ngs)]
+  pure $ Map.fromList [(NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
+                                  <> (List.concat $ map toNgramsElement $ termListTail)
+                       )
+                      ]
 
 groupStems :: [(Stem, GroupedText Double)] -> [GroupedText Double]
 groupStems = Map.elems . groupStems'
@@ -239,7 +282,7 @@ groupStems' = Map.fromListWith grouping
 
 
 
-toNgramsElement :: GroupedText Double -> [NgramsElement]
+toNgramsElement :: GroupedText a -> [NgramsElement]
 toNgramsElement (GroupedText listType label _ setNgrams _ _ _) =
   [parentElem] <> childrenElems
     where
@@ -278,7 +321,8 @@ data GroupedText score =
               , _gt_stem     :: !Stem
               , _gt_nodes    :: !(Set NodeId)
               }
-
+instance Show score => Show (GroupedText score) where
+  show (GroupedText _ l s _ _ _ _) = show l <> ":" <> show s
 
 instance (Eq a) => Eq (GroupedText a) where
   (==) (GroupedText _ _ score1 _ _ _ _)

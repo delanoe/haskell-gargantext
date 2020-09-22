@@ -17,7 +17,6 @@ module Main where
 
 import Data.Text (Text)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
 import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
@@ -29,7 +28,6 @@ import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Trigger.Init (initFirstTriggers, initLastTriggers)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
-import Gargantext.Database.Admin.Types.Node (CorpusId, RootId, ListId)
 import Gargantext.Database.Prelude (Cmd, )
 import Gargantext.Prelude
 import System.Environment (getArgs)

@@ -968,9 +968,9 @@ putListNgrams' :: (HasInvalidError err, RepoCmdM env err m)
                -> Map NgramsTerm NgramsRepoElement
                -> m ()
 putListNgrams' nodeId ngramsType ns = do
-  printDebug "[putListNgrams'] nodeId" nodeId
-  printDebug "[putListNgrams'] ngramsType" ngramsType
-  printDebug "[putListNgrams'] ns" ns
+  -- printDebug "[putListNgrams'] nodeId" nodeId
+  -- printDebug "[putListNgrams'] ngramsType" ngramsType
+  -- printDebug "[putListNgrams'] ns" ns
 
   let p1 = NgramsTablePatch . PM.fromMap $ NgramsReplace Nothing . Just <$> ns
       (p0, p0_validity) = PM.singleton nodeId p1

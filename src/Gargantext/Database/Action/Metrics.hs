@@ -46,7 +46,7 @@ getNgramsCooc :: (FlowCmdM env err m)
                  )
 getNgramsCooc cId maybeListId tabType maybeLimit = do
   (ngs', ngs) <- getNgrams cId maybeListId tabType
-  
+
   let
     take' Nothing  xs = xs
     take' (Just n) xs = take n xs
