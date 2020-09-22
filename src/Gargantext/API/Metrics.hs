@@ -39,7 +39,7 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Core.Text.Metrics (Scored(..))
+import Gargantext.Core.Text.Metrics (Scored(..), {-normalizeGlobal,-} normalizeLocal)
 import Gargantext.Core.Viz.Chart
 import Gargantext.Core.Viz.Types
 import qualified Gargantext.Database.Action.Metrics as Metrics
@@ -106,8 +106,9 @@ updateScatter' cId maybeListId tabType maybeLimit = do
   (ngs', scores) <- Metrics.getMetrics cId maybeListId tabType maybeLimit
 
   let
-    metrics      = map (\(Scored t s1 s2) -> Metric t (log' 5 s1) (log' 2 s2) (listType t ngs')) scores
-    log' n x     = 1 + (if x <= 0 then 0 else log $ (10^(n::Int)) * x)
+    metrics      = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs'))
+                 -- $ normalizeGlobal
+                 $ map normalizeLocal scores
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
 
