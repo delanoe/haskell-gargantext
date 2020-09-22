@@ -31,7 +31,7 @@ import Gargantext.API.Ngrams (NgramsElement, mkNgramsElement, NgramsTerm(..), Ro
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.Metrics (scored', Scored(..))
+import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Query.Table.Node (defaultList)
@@ -195,7 +195,11 @@ buildNgramsTermsList l n m s uCid mCid = do
 
   let
     -- computing scores
-    mapScores f = Map.fromList $ map (\(Scored t g s') -> (t, f (g,s'))) $ scored' mapCooc
+    mapScores f = Map.fromList
+                $ map (\(Scored t g s') -> (t, f (g,s')))
+                $ normalizeGlobal
+                $ map normalizeLocal
+                $ scored' mapCooc
 
     groupsWithScores = catMaybes
                      $ map (\(stem, g)
@@ -204,9 +208,7 @@ buildNgramsTermsList l n m s uCid mCid = do
                                  Just s'  -> Just $ g { _gt_score = s'}
                             ) $ Map.toList contextsAdded
       where
-        mapScores' = mapScores adapt1 -- identity
-        adapt1 (s1,s2) = (log' 5 s1, log' 2 s2)
-        log' n' x     = 1 + (if x <= 0 then 0 else log $ (10^(n'::Int)) * x)
+        mapScores' = mapScores identity
         -- adapt2 TOCHECK with DC
   -- printDebug "groupsWithScores" groupsWithScores
   let

@@ -73,3 +73,28 @@ scored' m = zipWith (\(_,t) (inc,spe) -> Scored t inc spe) (Map.toList fi) score
              $ DAA.zip (DAA.use is) (DAA.use ss)
 
 
+normalizeGlobal :: [Scored a] -> [Scored a]
+normalizeGlobal ss = map (\(Scored t s1 s2)
+                     -> Scored t ((s1 - s1min) / s1max)
+                                 ((s2 - s2min) / s2max)) ss
+  where
+    ss1 = map _scored_genInc ss
+    ss2 = map _scored_speExc ss
+
+    s1min = minimum ss1
+    s1max = maximum ss1
+
+    s2min = minimum ss2
+    s2max = maximum ss2
+
+
+
+normalizeLocal :: Scored a -> Scored a
+normalizeLocal (Scored t s1 s2) = Scored t (log' 5 s1) (log' 2 s2)
+  where
+    log' n' x = 1 + (if x <= 0 then 0 else log $ (10^(n'::Int)) * x)
+
+
+
+
+
