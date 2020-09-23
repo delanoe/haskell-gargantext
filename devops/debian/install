@@ -22,12 +22,12 @@ sudo apt install tmux htop
 
 ########################################################################
 sudo sed -i "s/stretch/buster/g" /etc/apt/sources.list
-sudo apt update
+#sudo apt update
 sudo apt dist-upgrade
 # sudo reboot #recommended
 ########################################################################
 
-sudo apt update
+#sudo apt update
 sudo apt install liblzma-dev libpcre3-dev libblas-dev liblapack-dev pkg-config libgsl-dev libbz2-dev postgresql postgresql-server-dev-11 nginx libigraph0-dev libgfortran-8-dev
 
 sudo apt install git
@@ -37,7 +37,7 @@ sudo apt install git
 
 ########################################################################
 echo "Which user?"
-read USER
+#read USER
 USER="gargantua"
 sudo adduser --disabled-password --gecos "" $USER
 
@@ -53,23 +53,14 @@ sudo su $USER
 stack update
 stack upgrade
 
-git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
+#git clone https://gitlab.iscpif.fr/gargantext/haskell-gargantext.git
 
-cd haskell-gargantext
+#cd haskell-gargantext
 ##########
-git clone https://gitlab.iscpif.fr/gargantext/purescript-gargantext
-cd purescript-gargantext
 
-# as sudoer
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-sudo apt update
-sudo apt install yarn
-# as user
-yarn install && yarn install-ps && yarn build
-
-# temporary bug (help welcome)
-cp src/index.html dist/index.html
+if [[ ! -d "purescript-gargantext" ]]; then
+  ./devops/debian/install-purescript
+fi
 
 #########################################################################
 
@@ -80,21 +71,26 @@ stack setup && stack build && stack install
 # build deps
 
 
-#!/bin/bash
-mkdir deps
-cd deps
+if [[ ! -d "deps" ]]; then
+  mkdir -v deps
+  cd deps
 
-git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain-cplusplus.git
-cd clustering-louvain-cplusplus
-./install
-cd ..
+  if [[ ! -d "clustering-louvain-cplusplus" ]]; then
+    ../devops/debian/install-clustering-louvain
+  fi
 
-sudo apt install default-jdk
-wget https://dl.gargantext.org/coreNLP.tar.bz2
-tar xvjf coreNLP.tar.bz2
-# CoreNLP needs to be started
-# ./startServer.sh
+  sudo apt install default-jdk
+  if [[ ! -f "coreNLP.tar.bz2" ]]; then
+    wget https://dl.gargantext.org/coreNLP.tar.bz2
+  fi
+  if [[ ! -d "home" ]]; then
+    tar xvjf coreNLP.tar.bz2
+  fi
+  # CoreNLP needs to be started
+  # ./startServer.sh
 
+  cd ..
+fi
 
 
 # Specific to our servers
@@ -122,12 +118,7 @@ tar xvjf coreNLP.tar.bz2
 ## POSTGRESQL DATA (as ROOT)
 #######################################################################
 
-PGVersion = 11
-GARGDATA = "/srv/gargantua/gargandata"
-mkdir $GARGDATA
-sudo apt install rsync
-sudo sed -iP "s%^data_directory.*%data_directory = \'$GARGADATA\'%" /etc/postgresql/$PGVersion/main/postgresql.conf
-sudo rsync -av /var/lib/postgresql/$PGVersion/main $GARGDATA
+./devops/debian/install-postgres
 
 # configure the database with script in devops/postgres
 # edit gargantext.ini
