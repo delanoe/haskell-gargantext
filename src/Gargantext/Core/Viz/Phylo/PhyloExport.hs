@@ -139,7 +139,7 @@ groupToDotNode fdt g bId =
                          , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))
                          , toAttr "bId" (pack $ show bId)
                          , toAttr "support" (pack $ show (g ^. phylo_groupSupport))
-                         , toAttr "label" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
+                         , toAttr "lbl" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
                          , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
                          , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))
                          ])  
@@ -148,10 +148,10 @@ groupToDotNode fdt g bId =
 toDotEdge :: DotId -> DotId -> [Char] -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
-        GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True] <> [toAttr "edgeType" "link", toAttr "label" (pack lbl)]
+        GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True] <> [toAttr "edgeType" "link", toAttr "lbl" (pack lbl)]
         BranchToGroup   -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])] <> [toAttr "edgeType" "branchLink" ]
         BranchToBranch  -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])]
-        GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)]), PenWidth 4] <> [toAttr "edgeType" "ancestorLink", toAttr "label" (pack lbl)]                          
+        GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)]), PenWidth 4] <> [toAttr "edgeType" "ancestorLink", toAttr "lbl" (pack lbl)]                          
         PeriodToPeriod  -> [ Width 5, Color [toWColor Black]])
 
 
