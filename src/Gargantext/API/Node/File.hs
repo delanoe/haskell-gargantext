@@ -27,6 +27,7 @@ import Servant.Server.Internal
 import Gargantext.Prelude
 import qualified Gargantext.Prelude.Utils as GPU
 
+import Gargantext.Core.Types (TODO)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Settings (HasSettings)
 import Gargantext.API.Node.Types
@@ -65,7 +66,7 @@ newtype BSResponse = BSResponse BS.ByteString
   deriving (Generic)
 
 instance ToSchema BSResponse  where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy BSResponse)
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 fileDownload :: (HasSettings env, FlowCmdM env err m)
              => UserId
