@@ -107,7 +107,6 @@ updateScatter' cId maybeListId tabType maybeLimit = do
 
   let
     metrics      = map (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs'))
-                 -- $ normalizeGlobal
                  $ map normalizeLocal scores
     listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
