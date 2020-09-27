@@ -13,9 +13,8 @@ Institute of Paris Île-de-France (ISC-PIF) and its partners.
 
 ## Installation
 
-Disclaimer: this project is still on development, this is work in
-progress. Please report and improve this documentation if you encounter
-issues.
+Disclaimer: this project is still in development, this is work in
+progress. Please report and improve this documentation if you encounter issues.
 
 ### Build Core Code
 
@@ -33,8 +32,7 @@ curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devo
 
 ### Add dependencies
 
-1. CoreNLP is needed (EN and FR); This dependency will not be needed
-   soon.
+1. CoreNLP is needed (EN and FR); This dependency will not be needed soon.
 
 ``` sh
 ./devops/install-corenlp
@@ -65,6 +63,18 @@ Initialization schema should be loaded automatically (from `devops/postgres/sche
 
 #### Gargantext
 
+##### Fix the passwords
+
+Change the passwords in gargantext.ini_toModify then move it:
+
+``` sh
+mv gargantext.ini_toModify gargantext.ini
+```
+(`.gitignore` avoids adding this file to the repository by mistake)
+
+
+##### Run Gargantext
+
 Users have to be created first (`user1` is created as instance):
 
 ``` sh
@@ -72,7 +82,14 @@ stack install
 ~/.local/bin/gargantext-init "gargantext.ini"
 ```
 
-For Docker env, run:
+For Docker env, first create the appropriate image:
+
+``` sh
+cd devops/docker
+docker build -t fpco/stack-build:lts-14.27-garg .
+```
+
+then run:
 
 ``` sh
 stack --docker run gargantext-init -- gargantext.ini
@@ -86,6 +103,15 @@ docker run --rm -it -p 9000:9000 cgenie/corenlp-garg
 stack exec gargantext-import -- "corpusCsvHal" "user1" "IMT3" gargantext.ini 10000 ./1000.csv
 ```
 
+### Nix
+
+It is also possible to build everything with [Nix](https://nixos.org/) instead of Docker:
+``` sh
+stack --nix build
+stack --nix exec gargantext-import -- "corpusCsvHal" "user1" "IMT3" gargantext.ini 10000 ./1000.csv
+stack --nix exec gargantext-server -- --ini gargantext.ini --run Prod
+```
+
 ## Use Cases
 
 ### Multi-User with Graphical User Interface (Server Mode)
@@ -94,12 +120,23 @@ stack exec gargantext-import -- "corpusCsvHal" "user1" "IMT3" gargantext.ini 100
 ~/.local/bin/stack --docker exec gargantext-server -- --ini "gargantext.ini" --run Prod
 ```
 
-Then you can log in with `user1:1resu`.
+Then you can log in with `user1` / `1resu`.
 
 
 ### Command Line Mode tools
 
 #### Simple cooccurrences computation and indexation from a list of Ngrams
 
+``` sh
 stack --docker exec gargantext-cli -- CorpusFromGarg.csv ListFromGarg.csv Ouput.json
+```
 
+### Analyzing the ngrams table repo
+
+We store the repository in directory `repos` in the [CBOR](https://cbor.io/)
+file format. To decode it to JSON and analyze, say, using
+[jq](https://shapeshed.com/jq-json/), use the following command:
+
+``` sh
+cat repos/repo.cbor.v5 | stack --nix exec gargantext-cbor2json | jq .
+```

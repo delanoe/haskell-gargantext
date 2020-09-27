@@ -1,0 +1,50 @@
+[gargantext]
+# Needed to instantiate the first users and first data
+MASTER_USER = gargantua
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY      = PASSWORD_TO_CHANGE
+
+
+# Data path to local files
+DATA_FILEPATH = FILEPATH_TO_CHANGE
+
+# [external]
+# FRAMES (i.e. iframe sources used in various places on the frontend)
+FRAME_WRITE_URL = URL_TO_CHANGE
+FRAME_CALC_URL  = URL_TO_CHANGE
+
+FRAME_SEARX_URL  = URL_TO_CHANGE
+FRAME_ISTEX_URL  = URL_TO_CHANGE
+
+[server]
+# Server config (TODO connect in ReaderMonad)
+ALLOWED_ORIGIN = http://localhost
+ALLOWED_ORIGIN_PORT = 8008
+
+ALLOWED_HOST = localhost
+ALLOWED_HOST_PORT = 3000
+
+JWT_SETTINGS = TODO
+
+
+[network]
+# Emails From address (sent by smtp)
+MAIL = username@gargantext.org
+HOST = localhost
+# if remote smtp host
+# HOST_USER     = user
+# HOST_password = password
+
+[database]
+# PostgreSQL access
+DB_HOST = 127.0.0.1
+DB_PORT = 5432
+DB_NAME = gargandbV5
+DB_USER = gargantua
+DB_PASS = PASSWORD_TO_CHANGE
+
+[logs]
+LOG_FILE = /var/log/gargantext/backend.log
+LOG_LEVEL = LevelDebug
+LOG_FORMATTER = verbose

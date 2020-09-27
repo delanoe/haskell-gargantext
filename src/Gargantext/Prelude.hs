@@ -11,10 +11,7 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
-
-{-# LANGUAGE     NoImplicitPrelude       #-}
-{-# LANGUAGE     OverloadedStrings       #-}
-{-# LANGUAGE     RankNTypes              #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude
@@ -28,21 +25,24 @@ module Gargantext.Prelude
   , round
   , sortWith
   , module Prelude
+  , MonadBase(..)
+  , Typeable
   )
   where
 
+import Control.Monad.Base (MonadBase(..))
 import GHC.Exts (sortWith)
 import GHC.Err.Located (undefined)
 import GHC.Real (round)
-import Control.Monad.IO.Class (MonadIO)
+import Data.Map (Map, lookup)
 import Data.Maybe (isJust, fromJust, maybe)
 import Data.Text (Text)
+import Data.Typeable (Typeable)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
-                 , pure, (>>=), (=<<), (<*>), (<$>), (>>)
-                 , putStrLn
+                 , pure, (>>=), (=<<), (<*>), (<$>), (<&>), (>>)
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
                  , reverse, map, mapM, zip, drop, take, zipWith
@@ -52,6 +52,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
                  , Eq, (==), (>=), (<=), (<>), (/=)
                  , (&&), (||), not, any, all
+                 , concatMap
                  , fst, snd, toS
                  , elem, die, mod, div, const, either
                  , curry, uncurry, repeat
@@ -60,18 +61,16 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , compare
                  , on
                  , panic
+                 , seq
                  )
 
-import Prelude (Enum, Bounded, minBound, maxBound)
+import Prelude (Enum, Bounded, minBound, maxBound, putStrLn)
 -- TODO import functions optimized in Utils.Count
 -- import Protolude hiding (head, last, all, any, sum, product, length)
 -- import Gargantext.Utils.Count
 import qualified Data.List     as L hiding (head, sum)
 import qualified Control.Monad as M
-
-import Data.Map (Map)
-import qualified Data.Map as M
-
+import qualified Data.Map      as M
 import Data.Map.Strict (insertWith)
 import qualified Data.Vector as V
 import Safe (headMay, lastMay, initMay, tailMay)
@@ -80,8 +79,8 @@ import Text.Read (Read())
 import Data.String.Conversions (cs)
 
 
-printDebug :: (Show a, MonadIO m) => [Char] -> a -> m ()
-printDebug msg x = putStrLn $ msg <> " " <> show x
+printDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
+printDebug msg x = liftBase . putStrLn $ msg <> " " <> show x
 -- printDebug _ _ = pure ()
 
 
@@ -293,7 +292,27 @@ deviation = sqrt . variance
 movingAverage :: (Eq b, Fractional b) => Int -> [b] -> [b]
 movingAverage steps xs = map mean $ chunkAlong steps 1 xs
 
-ma :: [Double] -> [Double]
-ma = movingAverage 3
-
 -----------------------------------------------------------------------
+-----------------------------------------------------------------------
+--- Map in Map = Map2
+-- To avoid Map (a,a) b
+type Map2 a b = Map a (Map a b)
+
+lookup2 :: Ord a
+        => a
+        -> a
+        -> Map2 a b
+        -> Maybe b
+lookup2 a b m = do
+  m' <- lookup a m
+  lookup b m'
+
+-----------------------------------------------
+
+foldM' :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
+foldM' _ z [] = return z
+foldM' f z (x:xs) = do
+  z' <- f z x
+  z' `seq` foldM' f z' xs
+
+

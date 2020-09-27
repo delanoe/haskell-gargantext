@@ -14,10 +14,8 @@ Inspired from Gabriel Gonzales, "beautiful folds" talk.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes                #-}
 
 module Gargantext.Core.Utils.Count (head, last, all, any, sum, product, length)
     where

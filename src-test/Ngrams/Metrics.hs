@@ -14,11 +14,11 @@ commentary with @some markup@.
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE OverloadedStrings    #-}
 
-module Ngrams.Metrics (main) where
+--module Ngrams.Metrics (main) where
+module Ngrams.Metrics  where
 
+{-
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Ratio
@@ -141,3 +141,5 @@ testPair :: (Eq a, Show a)
   -> SpecWith ()
 testPair f a b r = it ("‘" <> T.unpack a <> "’ and ‘" <> T.unpack b <> "’") $
   f a b `shouldBe` r
+
+-}

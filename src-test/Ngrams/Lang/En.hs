@@ -11,12 +11,11 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NoImplicitPrelude   #-}
 
 module Ngrams.Lang.En where
 
+{-
 import Data.List ((!!))
 import Data.Text (Text)
 
@@ -24,8 +23,11 @@ import Test.Hspec
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
-import Gargantext.Text.Ngrams.PosTagging.Parser (extractNgrams, selectNgrams)
 
+-- TODO this import is not used anymore
+import Gargantext.Text.Ngrams.PosTagging.Parser (extractNgrams, selectNgrams)
+-- use instead
+-- import Gargantext.Text.Terms (extractNgramsT)
 
 ngramsExtractionTest :: IO ()
 ngramsExtractionTest = hspec $ do
@@ -45,4 +47,4 @@ ngramsExtractionTest = hspec $ do
             t2 <- map (selectNgrams EN) <$> extractNgrams EN t
             t2 `shouldBe` [[("Donald Trump","NNP","PERSON"),("president of the United-States of America","NN","LOCATION")]]
 
-
+-}

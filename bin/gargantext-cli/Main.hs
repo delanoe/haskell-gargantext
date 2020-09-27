@@ -11,11 +11,6 @@ Main specifications to index a corpus with a term list
 
  -}
 
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE Strict             #-}
@@ -54,13 +49,13 @@ import Prelude ((>>))
 import Gargantext.Prelude
 import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Text.Terms
-import Gargantext.Text.Context
-import Gargantext.Text.Terms.WithList
-import Gargantext.Text.Corpus.Parsers.CSV (readFile, csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Text.List.CSV (csvGraphTermList)
-import Gargantext.Text.Terms (terms)
-import Gargantext.Text.Metrics.Count (coocOnContexts, Coocs)
+import Gargantext.Core.Text.Terms
+import Gargantext.Core.Text.Context
+import Gargantext.Core.Text.Terms.WithList
+import Gargantext.Core.Text.Corpus.Parsers.CSV (readFile, csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Core.Text.List.CSV (csvMapTermList)
+import Gargantext.Core.Text.Terms (terms)
+import Gargantext.Core.Text.Metrics.Count (coocOnContexts, Coocs)
 
 ------------------------------------------------------------------------
 -- OUTPUT format
@@ -108,7 +103,7 @@ main = do
                            <$> readFile corpusFile
 
   -- termListMap :: [Text]
-  termList <- csvGraphTermList termListFile
+  termList <- csvMapTermList termListFile
 
   putStrLn $ show $ length termList
 

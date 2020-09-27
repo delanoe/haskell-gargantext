@@ -12,23 +12,20 @@ commentary with @some markup@.
 -}
 
 ------------------------------------------------------------------------
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE TemplateHaskell      #-}
 
 module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
-                             , module Gargantext.Database.Types.Node
+                             , module Gargantext.Database.Admin.Types.Node
                              , Term, Terms(..)
                              , TokenTag(..), POS(..), NER(..)
                              , Label, Stems
                              , HasInvalidError(..), assertValid
                              , Name
-                             , TableResult(..)
-                             , NodeTableResult
+                             , TableResult(..), NodeTableResult
+                             , Ordering(..)
                              , TODO(..)
                              ) where
 
---import qualified Data.Set as S
 import Control.Lens (Prism', (#))
 import Control.Monad.Error.Class (MonadError, throwError)
 import Data.Aeson
@@ -37,16 +34,18 @@ import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set, empty)
 import Data.Swagger (ToParamSchema)
-import Data.Swagger (ToSchema(..), genericDeclareNamedSchema)
+import Data.Swagger (ToSchema(..))
 import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
 import Gargantext.Core.Types.Main
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Types.Node
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
+------------------------------------------------------------------------
+data Ordering = Down | Up
 ------------------------------------------------------------------------
 type Name = Text
 type Term  = Text
@@ -127,10 +126,8 @@ instance Semigroup TokenTag where
 
 instance Monoid TokenTag where
   mempty = TokenTag [] empty Nothing Nothing
-
-  mappend t1 t2 = (<>) t1 t2
-
   mconcat = foldl mappend mempty
+  -- mappend t1 t2 = (<>) t1 t2
 
 
 class HasInvalidError e where
@@ -138,8 +135,11 @@ class HasInvalidError e where
 
 assertValid :: (MonadError e m, HasInvalidError e) => Validation -> m ()
 assertValid v = when (not $ validationIsValid v) $ throwError $ _InvalidError # v
--- assertValid :: MonadIO m => Validation -> m ()
+-- assertValid :: MonadBase IO m => Validation -> m ()
 -- assertValid v = when (not $ validationIsValid v) $ fail $ show v
+
+-- | NodeTableResult (Table computations)
+type NodeTableResult a = TableResult (Node a)
 
 
 data TableResult a = TableResult { tr_count :: Int
@@ -148,13 +148,12 @@ data TableResult a = TableResult { tr_count :: Int
 
 $(deriveJSON (unPrefix "tr_") ''TableResult)
 
-instance ToSchema a => ToSchema (TableResult a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "tr_")
+instance (Typeable a, ToSchema a) => ToSchema (TableResult a) where
+  declareNamedSchema = wellNamedSchema "tr_"
 
 instance Arbitrary a => Arbitrary (TableResult a) where
   arbitrary = TableResult <$> arbitrary <*> arbitrary
 
-type NodeTableResult a = TableResult (Node a)
 
 -- TO BE removed
 data TODO = TODO
@@ -162,6 +161,8 @@ data TODO = TODO
 
 instance ToSchema TODO where
 instance ToParamSchema TODO where
+
+----------------------------------------------------------------------------
 
 
 

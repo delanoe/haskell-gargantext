@@ -10,49 +10,48 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
 
 module Gargantext.Core.Flow.Types where
 
-import Control.Lens (Lens')
+import Control.Lens -- (Lens')
 import Data.Map (Map)
-import Data.Text (Text)
-import Gargantext.Text.Terms (TermType)
-import Gargantext.Core (Lang)
+import Data.Maybe (Maybe)
+import Gargantext.Core.Text (HasText(..))
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Schema.Node (node_hash_id)
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
-import Gargantext.Core.Types.Main (HashId)
-import Gargantext.Database.Types.Node -- (HyperdataDocument(..))
-import Gargantext.Database.Node.Contact -- (HyperdataContact(..))
-import Gargantext.Database.Node.Document.Insert (AddUniqId, InsertDb)
-import Gargantext.Database.Utils (Cmd)
-
-type FlowCorpus a = ( AddUniqId      a
-                    , UniqId         a
-                    , InsertDb       a
-                    , ExtractNgramsT a
-                    , HasText        a
-                    )
+import Gargantext.Prelude
+import Gargantext.Prelude.Crypto.Hash (Hash)
 
 class UniqId a
   where
-    uniqId :: Lens' a (Maybe HashId)
-
-class ExtractNgramsT h
-  where
-    extractNgramsT :: HasText h
-                   => TermType Lang
-                   -> h
-                   -> Cmd err (Map Ngrams (Map NgramsType Int))
-
-class HasText h
-  where
-    hasText :: h -> [Text]
+    uniqId :: Lens' a (Maybe Hash)
 
 instance UniqId HyperdataDocument
   where
-    uniqId = hyperdataDocument_uniqId
+    uniqId = hd_uniqId
 
 instance UniqId HyperdataContact
   where
     uniqId = hc_uniqId
+
+instance UniqId (Node a)
+  where
+    uniqId = node_hash_id
+
+data DocumentIdWithNgrams a = DocumentIdWithNgrams
+  { documentWithId  :: !(DocumentWithId a)
+  , documentNgrams :: !(Map Ngrams (Map NgramsType Int))
+  } deriving (Show)
+
+data DocumentWithId a = DocumentWithId
+  { documentId   :: !NodeId
+  , documentData :: !a
+  } deriving (Show)
+
+instance HasText a => HasText (DocumentWithId a)
+  where
+    hasText (DocumentWithId _ a) = hasText a
+

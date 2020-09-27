@@ -11,33 +11,28 @@ Import a corpus binary.
 
  -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE Strict            #-}
 
 module Main where
 
-import Data.Either
-import Prelude (read)
 import Control.Exception (finally)
-import Gargantext.Prelude
-import Gargantext.Database.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire)
-import Gargantext.Text.Corpus.Parsers (FileFormat(..))
-import Gargantext.Database.Utils (Cmd, )
-import Gargantext.Database.Types.Node (CorpusId, toHyperdataDocument)
-import Gargantext.Database.Schema.User (insertUsersDemo)
-import Gargantext.Text.Terms (TermType(..))
-import Gargantext.Core (Lang(..))
-import Gargantext.API.Types (GargError)
-import Gargantext.API.Node () -- instances
-import Gargantext.API.Settings (withDevEnv, runCmdDev, DevEnv)
-import System.Environment (getArgs)
---import Gargantext.Text.Corpus.Parsers.GrandDebat (readFile, GrandDebatReference(..))
+import Data.Either
 import Data.Text (Text)
+import Gargantext.API.Node () -- instances
+import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev, DevEnv)
+import Gargantext.API.Prelude (GargError)
+import Gargantext.Core (Lang(..))
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire, TermType(..))
+import Gargantext.Database.Query.Table.User (insertUsersDemo)
+import Gargantext.Database.Admin.Types.Hyperdata (toHyperdataDocument)
+import Gargantext.Database.Admin.Types.Node (CorpusId)
+import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Prelude
+import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..))
+import Prelude (read)
+import System.Environment (getArgs)
 import qualified Data.Text as Text
-import Control.Monad.IO.Class (liftIO)
 
 main :: IO ()
 main = do
@@ -53,14 +48,13 @@ main = do
     tt = (Multi EN)
     format = CsvGargV3 -- CsvHal --WOS
     corpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpus = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
+    corpus = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt  format corpusPath
 
     corpusCsvHal :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    corpusCsvHal = flowCorpusFile (cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath
+    corpusCsvHal = flowCorpusFile (UserName $ cs user) (Left (cs name :: Text)) (read limit :: Int) tt CsvHal corpusPath
 
     annuaire :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
-    annuaire = flowAnnuaire (cs user) (Left "Annuaire") (Multi EN) corpusPath
-
+    annuaire = flowAnnuaire (UserName $ cs user) (Left "Annuaire") (Multi EN) corpusPath
 
   {-
   let debatCorpus :: forall m. FlowCmdM DevEnv GargError m => m CorpusId
@@ -86,7 +80,6 @@ main = do
           then runCmdDev env corpusCsvHal
           else pure 0 --(cs "false")
  
-
     _ <- if fun == "annuaire"
             then runCmdDev env annuaire
             else pure 0

@@ -12,10 +12,10 @@ Here is a longer description of this module, containing some
 commentary with @some markup@.
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
 
 module Ngrams.Lang where
 
+{-
 import Gargantext.Prelude (IO())
 
 import Gargantext.Core (Lang(..))
@@ -25,4 +25,4 @@ import qualified Ngrams.Lang.En as En
 ngramsExtractionTest :: Lang -> IO ()
 ngramsExtractionTest FR = Fr.ngramsExtractionTest
 ngramsExtractionTest EN = En.ngramsExtractionTest
-
+-}

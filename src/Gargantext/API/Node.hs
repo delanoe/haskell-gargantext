@@ -23,13 +23,6 @@ Node API
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE NoImplicitPrelude    #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -37,54 +30,61 @@ Node API
 module Gargantext.API.Node
   where
 
-import Control.Lens ((^.))
-import Control.Monad ((>>))
-import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.TH (deriveJSON)
 import Data.Maybe
 import Data.Swagger
 import Data.Text (Text())
-import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import Gargantext.API.Auth (withAccess, PathId(..))
-import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus, QueryParamR)
-import Gargantext.API.Ngrams.NTree (MyTree)
-import Gargantext.API.Search (SearchDocsAPI, searchDocs, SearchPairsAPI, searchPairs)
-import Gargantext.API.Table
-import Gargantext.API.Types
-import Gargantext.Core.Types (NodeTableResult)
-import Gargantext.Core.Types.Main (Tree, NodeTree, ListType)
-import Gargantext.Database.Config (nodeTypeId)
-import Gargantext.Database.Flow.Pairing (pairing)
-import Gargantext.Database.Facet (FacetDoc, OrderBy(..))
-import Gargantext.Database.Node.Children (getChildren)
-import Gargantext.Database.Schema.Node ( getNodesWithParentId, getNodeWith, getNode, deleteNode, deleteNodes, mkNodeWithParent, JSONB, HasNodeError(..))
-import Gargantext.Database.Schema.NodeNode -- (nodeNodesCategory, insertNodeNode, NodeNode(..))
-import Gargantext.Database.Node.UpdateOpaleye (updateHyperdata)
-import Gargantext.Database.Tree (treeDB)
-import Gargantext.Database.Types.Node
-import Gargantext.Database.Utils -- (Cmd, CmdM)
-import Gargantext.Prelude
-import Gargantext.Viz.Chart
-import Gargantext.Viz.Phylo.API (PhyloAPI, phyloAPI)
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import qualified Gargantext.Database.Node.Update as U (update, Update(..))
+
+import Gargantext.API.Admin.Auth (withAccess, PathId(..))
+import Gargantext.API.Metrics
+import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
+import Gargantext.API.Node.File
+import Gargantext.API.Node.New
+import Gargantext.API.Prelude
+import Gargantext.API.Table
+import Gargantext.Core.Types (NodeTableResult)
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Types.Main (Tree, NodeTree)
+import Gargantext.Core.Utils.Prefix (unPrefix)
+import Gargantext.Database.Action.Flow.Pairing (pairing)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude -- (Cmd, CmdM)
+import Gargantext.Database.Query.Facet (FacetDoc, OrderBy(..))
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Children (getChildren)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Database.Query.Table.Node.Update (Update(..), update)
+import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Query.Table.NodeNode
+import Gargantext.Database.Query.Tree (tree, TreeMode(..))
+import Gargantext.Prelude
+import Gargantext.Core.Viz.Phylo.API (PhyloAPI, phyloAPI)
+import qualified Gargantext.API.Node.Share  as Share
+import qualified Gargantext.API.Node.Update as Update
+import qualified Gargantext.API.Search as Search
+import qualified Gargantext.Database.Action.Delete as Action (deleteNode)
+import qualified Gargantext.Database.Query.Table.Node.Update as U (update, Update(..))
 
 {-
-import qualified Gargantext.Text.List.Learn as Learn
+import qualified Gargantext.Core.Text.List.Learn as Learn
 import qualified Data.Vector as Vec
 --}
 
+-- | Admin NodesAPI
+-- TODO
 type NodesAPI  = Delete '[JSON] Int
 
 -- | Delete Nodes
 -- Be careful: really delete nodes
 -- Access by admin only
 nodesAPI :: [NodeId] -> GargServer NodesAPI
-nodesAPI ids = deleteNodes ids
+nodesAPI = deleteNodes
 
 ------------------------------------------------------------------------
 -- | TODO-ACCESS: access by admin only.
@@ -94,13 +94,13 @@ nodesAPI ids = deleteNodes ids
 -- TODO-EVENTS:
 --   PutNode ?
 -- TODO needs design discussion.
-type Roots =  Get    '[JSON] [Node HyperdataAny]
+type Roots =  Get    '[JSON] [Node HyperdataUser]
          :<|> Put    '[JSON] Int -- TODO
 
 -- | TODO: access by admin only
 roots :: GargServer Roots
-roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
-   :<|> pure (panic "not implemented yet") -- TODO use patch map to update what we need
+roots = getNodesWithParentId Nothing
+    :<|> pure (panic "not implemented yet") -- TODO use patch map to update what we need
 
 -------------------------------------------------------------------
 -- | Node API Types management
@@ -120,30 +120,37 @@ roots = (liftIO (putStrLn ( "/user" :: Text)) >> getNodesWithParentId 0 Nothing)
 type NodeAPI a = Get '[JSON] (Node a)
              :<|> "rename" :> RenameApi
              :<|> PostNodeApi -- TODO move to children POST
+             :<|> PostNodeAsync
              :<|> ReqBody '[JSON] a :> Put    '[JSON] Int
+             :<|> "update"     :> Update.API
              :<|> Delete '[JSON] Int
              :<|> "children"  :> ChildrenApi a
 
              -- TODO gather it
-             :<|> "table"     :> TableApi
-             :<|> "ngrams"    :> TableNgramsApi
+             :<|> "table"      :> TableApi
+             :<|> "ngrams"     :> TableNgramsApi
 
-             :<|> "category"  :> CatApi
-             :<|> "search"     :> SearchDocsAPI
+             :<|> "category"   :> CatApi
+             :<|> "search"     :> (Search.API Search.SearchResult)
+             :<|> "share"      :> Share.API
 
              -- Pairing utilities
              :<|> "pairwith"   :> PairWith
              :<|> "pairs"      :> Pairs
              :<|> "pairing"    :> PairingApi
-             :<|> "searchPair" :> SearchPairsAPI
 
              -- VIZ
-             :<|> "metrics" :> ScatterAPI
+             :<|> "metrics"   :> ScatterAPI
              :<|> "chart"     :> ChartApi
              :<|> "pie"       :> PieApi
              :<|> "tree"      :> TreeApi
              :<|> "phylo"     :> PhyloAPI
              -- :<|> "add"       :> NodeAddAPI
+             :<|> "move"      :> MoveAPI
+             :<|> "unpublish" :> Share.Unpublish
+
+             :<|> "file"      :> FileApi
+             :<|> "async"     :> FileAsyncApi
 
 -- TODO-ACCESS: check userId CanRenameNode nodeId
 -- TODO-EVENTS: NodeRenamed RenameNode or re-use some more general NodeEdited...
@@ -178,66 +185,58 @@ nodeNodeAPI p uId cId nId = withAccess (Proxy :: Proxy (NodeNodeAPI a)) Proxy uI
 
 ------------------------------------------------------------------------
 -- TODO: make the NodeId type indexed by `a`, then we no longer need the proxy.
-nodeAPI :: forall proxy a. (JSONB a, FromJSON a, ToJSON a) => proxy a -> UserId -> NodeId -> GargServer (NodeAPI a)
-nodeAPI p uId id = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id) nodeAPI'
+nodeAPI :: forall proxy a.
+       ( JSONB a
+       , FromJSON a
+       , ToJSON a
+       ) => proxy a
+         -> UserId
+         -> NodeId
+         -> GargServer (NodeAPI a)
+nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode id') nodeAPI'
   where
     nodeAPI' :: GargServer (NodeAPI a)
-    nodeAPI' =  getNodeWith   id p
-           :<|> rename        id
-           :<|> postNode  uId id
-           :<|> putNode       id
-           :<|> deleteNodeApi id
-           :<|> getChildren   id p
+    nodeAPI' =  getNodeWith   id' p
+           :<|> rename        id'
+           :<|> postNode  uId id'
+           :<|> postNodeAsyncAPI  uId id'
+           :<|> putNode       id'
+           :<|> Update.api  uId id'
+           :<|> Action.deleteNode (RootId $ NodeId uId) id'
+           :<|> getChildren   id' p
 
            -- TODO gather it
-           :<|> tableApi             id
-           :<|> apiNgramsTableCorpus id
-
-           :<|> catApi      id
-
-           :<|> searchDocs  id
+           :<|> tableApi             id'
+           :<|> apiNgramsTableCorpus id'
+            
+           :<|> catApi      id'
+           :<|> Search.api  id'
+           :<|> Share.api   id'
            -- Pairing Tools
-           :<|> pairWith    id
-           :<|> pairs       id
-           :<|> getPair     id
-           :<|> searchPairs id
+           :<|> pairWith    id'
+           :<|> pairs       id'
+           :<|> getPair     id'
 
-           :<|> getScatter id
-           :<|> getChart   id
-           :<|> getPie     id
-           :<|> getTree    id
-           :<|> phyloAPI   id uId
-           -- :<|> nodeAddAPI id
-           -- :<|> postUpload id
+           -- VIZ
+           :<|> scatterApi id'
+           :<|> chartApi   id'
+           :<|> pieApi     id'
+           :<|> treeApi    id'
+           :<|> phyloAPI   id' uId
+           :<|> moveNode   (RootId $ NodeId uId) id'
+           -- :<|> nodeAddAPI id'
+           -- :<|> postUpload id'
+           :<|> Share.unPublish id'
 
-    deleteNodeApi id' = do
-      node <- getNode id'
-      if _node_typename node == nodeTypeId NodeUser
-         then panic "not allowed"  -- TODO add proper Right Management Type
-         else deleteNode id'
+           :<|> fileApi uId id'
+           :<|> fileAsyncApi uId id'
+
 
 ------------------------------------------------------------------------
 data RenameNode = RenameNode { r_name :: Text }
   deriving (Generic)
 
--- TODO unPrefix "r_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  RenameNode
-instance ToJSON    RenameNode
-instance ToSchema  RenameNode
-instance Arbitrary RenameNode where
-  arbitrary = elements [RenameNode "test"]
 ------------------------------------------------------------------------
-data PostNode = PostNode { pn_name :: Text
-                         , pn_typename :: NodeType}
-  deriving (Generic)
-
--- TODO unPrefix "pn_" FromJSON, ToJSON, ToSchema, adapt frontend.
-instance FromJSON  PostNode
-instance ToJSON    PostNode
-instance ToSchema  PostNode
-instance Arbitrary PostNode where
-  arbitrary = elements [PostNode "Node test" NodeCorpus]
-
 ------------------------------------------------------------------------
 type CatApi =  Summary " To Categorize NodeNodes: 0 for delete, 1/null neutral, 2 favorite"
             :> ReqBody '[JSON] NodesToCategory
@@ -263,12 +262,12 @@ catApi = putCat
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
 -- Pairing utilities to move elsewhere
 type PairingApi = Summary " Pairing API"
-              :> QueryParam "view"   TabType
-              -- TODO change TabType -> DocType (CorpusId for pairing)
-              :> QueryParam "offset" Int
-              :> QueryParam "limit"  Int
-              :> QueryParam "order"  OrderBy
-              :> Get '[JSON] [FacetDoc]
+                :> QueryParam "view"   TabType
+                -- TODO change TabType -> DocType (CorpusId for pairing)
+                :> QueryParam "offset" Int
+                :> QueryParam "limit"  Int
+                :> QueryParam "order"  OrderBy
+                :> Get '[JSON] [FacetDoc]
 
 ----------
 type Pairs    = Summary "List of Pairs"
@@ -280,7 +279,7 @@ pairs cId = do
 
 type PairWith = Summary "Pair a Corpus with an Annuaire"
               :> "annuaire" :> Capture "annuaire_id" AnnuaireId
-              :> "list"     :> Capture "list_id"     ListId
+              :> QueryParam "list_id"     ListId
               :> Post '[JSON] Int
 
 pairWith :: CorpusId -> GargServer PairWith
@@ -289,85 +288,41 @@ pairWith cId aId lId = do
   _ <- insertNodeNode [ NodeNode cId aId Nothing Nothing]
   pure r
 
-------------------------------------------------------------------------
-type ChartApi = Summary " Chart API"
-              :> QueryParam "from" UTCTime
-              :> QueryParam "to"   UTCTime
-              :> Get '[JSON] (ChartMetrics Histo)
-
-type PieApi = Summary " Chart API"
-           :> QueryParam "from" UTCTime
-           :> QueryParam "to"   UTCTime
-           :> QueryParamR "ngramsType" TabType
-           :> Get '[JSON] (ChartMetrics Histo)
-
-type TreeApi = Summary " Tree API"
-           :> QueryParam "from" UTCTime
-           :> QueryParam "to"   UTCTime
-           :> QueryParamR "ngramsType" TabType
-           :> QueryParamR "listType"   ListType
-           :> Get '[JSON] (ChartMetrics [MyTree])
-
-                -- Depending on the Type of the Node, we could post
-                -- New documents for a corpus
-                -- New map list terms
-             -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
 
 ------------------------------------------------------------------------
-
-{-
-NOTE: These instances are not necessary. However, these messages could be part
-      of a display function for NodeError/TreeError.
-instance HasNodeError ServantErr where
-  _NodeError = prism' mk (const Nothing) -- panic "HasNodeError ServantErr: not a prism")
-    where
-      e = "Gargantext NodeError: "
-      mk NoListFound   = err404 { errBody = e <> "No list found"         }
-      mk NoRootFound   = err404 { errBody = e <> "No Root found"         }
-      mk NoCorpusFound = err404 { errBody = e <> "No Corpus found"       }
-      mk NoUserFound   = err404 { errBody = e <> "No User found"         }
-
-      mk MkNode        = err500 { errBody = e <> "Cannot mk node"        }
-      mk NegativeId    = err500 { errBody = e <> "Node with negative Id" }
-      mk UserNoParent  = err500 { errBody = e <> "Should not have parent"}
-      mk HasParent     = err500 { errBody = e <> "NodeType has parent"   }
-      mk NotImplYet    = err500 { errBody = e <> "Not implemented yet"   }
-      mk ManyParents   = err500 { errBody = e <> "Too many parents"      }
-      mk ManyNodeUsers = err500 { errBody = e <> "Many userNode/user"    }
-
-instance HasTreeError ServantErr where
-  _TreeError = prism' mk (const Nothing) -- panic "HasTreeError ServantErr: not a prism")
-    where
-      e = "TreeError: "
-      mk NoRoot       = err404 { errBody = e <> "Root node not found"           }
-      mk EmptyRoot    = err500 { errBody = e <> "Root node should not be empty" }
-      mk TooManyRoots = err500 { errBody = e <> "Too many root nodes"           }
--}
-
-type TreeAPI   = Get '[JSON] (Tree NodeTree)
+type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
 
 treeAPI :: NodeId -> GargServer TreeAPI
-treeAPI = treeDB
+treeAPI = tree Advanced
 
 ------------------------------------------------------------------------
--- | Check if the name is less than 255 char
+-- | TODO Check if the name is less than 255 char
 rename :: NodeId -> RenameNode -> Cmd err [Int]
 rename nId (RenameNode name') = U.update (U.Rename nId name')
-
-postNode :: HasNodeError err
-         => UserId
-         -> NodeId
-         -> PostNode
-         -> Cmd err [NodeId]
-postNode uId pId (PostNode nodeName nt) = do
-  nodeUser <- getNodeWith (NodeId uId) HyperdataUser
-  let uId' = nodeUser ^. node_userId
-  mkNodeWithParent nt (Just pId) uId' nodeName
 
 putNode :: forall err a. (HasNodeError err, JSONB a, ToJSON a)
         => NodeId
         -> a
         -> Cmd err Int
 putNode n h = fromIntegral <$> updateHyperdata n h
+
+-------------------------------------------------------------
+type MoveAPI  = Summary "Move Node endpoint"
+              :> Capture "parent_id" ParentId
+              :> Put '[JSON] [Int]
+
+moveNode :: User
+         -> NodeId
+         -> ParentId
+         -> Cmd err [Int]
+moveNode _u n p = update (Move n p)
 -------------------------------------------------------------
 
+
+$(deriveJSON (unPrefix "r_"       ) ''RenameNode )
+instance ToSchema  RenameNode
+instance Arbitrary RenameNode where
+  arbitrary = elements [RenameNode "test"]
+
+
+-------------------------------------------------------------

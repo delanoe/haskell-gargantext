@@ -14,59 +14,60 @@ Functions to deal with users, database side.
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE TemplateHaskell             #-}
-{-# LANGUAGE FlexibleInstances           #-}
-{-# LANGUAGE MultiParamTypeClasses       #-}
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE Arrows                      #-}
-{-# LANGUAGE NoImplicitPrelude           #-}
-{-# LANGUAGE OverloadedStrings           #-}
-{-# LANGUAGE RankNTypes                  #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Gargantext.Database.Schema.User where
 
-import Control.Arrow (returnA)
-import Control.Lens.TH (makeLensesWith, abbreviatedFields)
-import Data.Eq(Eq(..))
-import Data.List (find)
 import Data.Maybe (Maybe)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Show(Show(..))
-import Gargantext.Core.Types.Individu (Username, arbitraryUsername)
-import Gargantext.Database.Utils
 import Gargantext.Prelude
-import Opaleye
+import GHC.Generics (Generic)
+import Database.PostgreSQL.Simple.FromField (FromField, fromField)
+import Data.Aeson.TH (deriveJSON)
+import Gargantext.Database.Prelude (fromField')
+import Gargantext.Core.Utils.Prefix (unPrefix)
+
+-- FIXME PLZ : the import below leads to an error, why ?
+-- import Gargantext.Database.Schema.Prelude hiding (makeLensesWith, abbreviatedFields, makeAdaptorAndInstance)
+
+-- When FIXED : Imports to remove:
+import Control.Lens.TH (makeLensesWith, abbreviatedFields)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Opaleye hiding (FromField)
 
 ------------------------------------------------------------------------
+data UserLight = UserLight { userLight_id       :: !Int
+                           , userLight_username :: !Text
+                           , userLight_email    :: !Text
+                           , userLight_password :: !Text
+                           } deriving (Show, Generic)
 
-------------------------------------------------------------------------
-type UserId = Int
+toUserLight :: UserDB -> UserLight
+toUserLight (UserDB id p _ _ u _ _ e _ _ _ ) = UserLight id u e p
 
-data UserLight = UserLight { userLight_id   :: Int
-                           , userLight_username :: Text
-                           , userLight_email    :: Text
-                           } deriving (Show)
-
-toUserLight :: User -> UserLight
-toUserLight (User id _ _ _ u _ _ e _ _ _ ) = UserLight id u e
 
 data UserPoly id pass llogin suser
               uname fname lname
-              mail staff active djoined = User { user_id          :: id
-                                               , user_password    :: pass
-                                               , user_lastLogin   :: llogin
-                                               , user_isSuperUser :: suser
+              mail staff active djoined =
+    UserDB { user_id          :: !id
+           , user_password    :: !pass
+           , user_lastLogin   :: !llogin
+           , user_isSuperUser :: !suser
 
-                                               , user_username    :: uname
-                                               , user_firstName   :: fname
-                                               , user_lastName    :: lname
-                                               , user_email       :: mail
+           , user_username    :: !uname
+           , user_firstName   :: !fname
+           , user_lastName    :: !lname
+           , user_email       :: !mail
 
-                                               , user_isStaff     :: staff
-                                               , user_isActive    :: active
-                                               , user_dateJoined  :: djoined
-                                               } deriving (Show)
+           , user_isStaff     :: !staff
+           , user_isActive    :: !active
+           , user_dateJoined  :: !djoined
+           } deriving (Show, Generic)
+
 
 type UserWrite = UserPoly (Maybe (Column PGInt4))        (Column PGText)
                           (Maybe (Column PGTimestamptz)) (Column PGBool)
@@ -89,90 +90,32 @@ type UserReadNull = UserPoly     (Column (Nullable PGInt4))         (Column (Nul
                                  (Column (Nullable PGBool))         (Column (Nullable PGBool))
                                  (Column (Nullable PGTimestamptz))
 
+type UserDB = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
 
-
-
-type User = UserPoly Int Text (Maybe UTCTime) Bool Text Text Text Text Bool Bool UTCTime
-
-$(makeAdaptorAndInstance "pUser"     ''UserPoly)
+$(makeAdaptorAndInstance "pUserDB"   ''UserPoly)
 $(makeLensesWith abbreviatedFields   ''UserPoly)
 
-
 userTable :: Table UserWrite UserRead
-userTable = Table "auth_user" (pUser User { user_id      = optional "id"
-                                          , user_password    = required "password"
-                                          , user_lastLogin   = optional "last_login"
-                                          , user_isSuperUser = required "is_superuser"
-                                          , user_username    = required "username"
-                                          , user_firstName   = required "first_name"
-                                          , user_lastName    = required "last_name"
-                                          , user_email       = required "email"
-                                          , user_isStaff     = required "is_staff"
-                                          , user_isActive    = required "is_active"
-                                          , user_dateJoined  = optional "date_joined"
-                                          }
-                              )
+userTable = Table "auth_user"
+  (pUserDB UserDB { user_id      = optional "id"
+                  , user_password    = required "password"
+                  , user_lastLogin   = optional "last_login"
+                  , user_isSuperUser = required "is_superuser"
+                  , user_username    = required "username"
+                  , user_firstName   = required "first_name"
+                  , user_lastName    = required "last_name"
+                  , user_email       = required "email"
+                  , user_isStaff     = required "is_staff"
+                  , user_isActive    = required "is_active"
+                  , user_dateJoined  = optional "date_joined"
+                  }
+      )
 
--- TODO: on conflict, nice message
-insertUsers :: [UserWrite] -> Cmd err Int64
-insertUsers us = mkCmd $ \c -> runInsert_ c insert
-  where
-    insert = Insert userTable us rCount Nothing
+instance FromField UserLight where
+  fromField = fromField'
 
+instance FromField UserDB where
+  fromField = fromField'
 
-gargantextUser :: Username -> UserWrite
-gargantextUser u = User (Nothing) (pgStrictText "password")
-                         (Nothing) (pgBool True) (pgStrictText u)
-                         (pgStrictText "first_name")
-                         (pgStrictText "last_name")
-                         (pgStrictText "e@mail")
-                         (pgBool True) (pgBool True) (Nothing)
-
-insertUsersDemo :: Cmd err Int64
-insertUsersDemo = insertUsers $ map (\u -> gargantextUser u) arbitraryUsername
-
-
-------------------------------------------------------------------
-queryUserTable :: Query UserRead
-queryUserTable = queryTable userTable
-
-selectUsersLight :: Query UserRead
-selectUsersLight = proc () -> do
-      row@(User i _p _ll _is _un _fn _ln _m _iff _ive _dj) <- queryUserTable -< ()
-      restrict -< i .== 1
-      --returnA -< User i p ll is un fn ln m iff ive dj
-      returnA -< row
-------------------------------------------------------------------
--- | Select User with some parameters
--- Not optimized version
-userWith :: (Eq a1, Foldable t) => (a -> a1) -> a1 -> t a -> Maybe a
-userWith f t xs = find (\x -> f x == t) xs
-
--- | Select User with Username
-userWithUsername :: Text -> [User] -> Maybe User
-userWithUsername t xs = userWith user_username t xs
-
-userWithId :: Int -> [User] -> Maybe User
-userWithId t xs = userWith user_id t xs
-
-userLightWithUsername :: Text -> [UserLight] -> Maybe UserLight
-userLightWithUsername t xs = userWith userLight_username t xs
-
-userLightWithId :: Int -> [UserLight] -> Maybe UserLight
-userLightWithId t xs = userWith userLight_id t xs
-
-
-instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
-users :: Cmd err [User]
-users = runOpaQuery queryUserTable
-
-usersLight :: Cmd err [UserLight]
-usersLight = map toUserLight <$> users
-
-getUser :: Username -> Cmd err (Maybe UserLight)
-getUser u = userLightWithUsername u <$> usersLight
-
-
+$(deriveJSON (unPrefix "userLight_") ''UserLight)
+$(deriveJSON (unPrefix "user_") ''UserPoly)

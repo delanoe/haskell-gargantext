@@ -9,69 +9,51 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE     NoImplicitPrelude       #-}
-{-# LANGUAGE     OverloadedStrings       #-}
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 module Gargantext.Prelude.Utils
   where
 
+import Control.Exception
 import Control.Lens (view)
-import Control.Monad.Reader (MonadReader)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Reader (ask, MonadReader)
 import Control.Monad.Random.Class (MonadRandom)
 import Data.Text (Text)
-import Control.Monad.Reader (ask)
+import qualified Data.Text             as Text
 import GHC.IO (FilePath)
-import Gargantext.Prelude
-import Gargantext.API.Settings
+import System.Directory (createDirectoryIfMissing)
+import qualified System.Directory as SD
+import System.IO.Error
 import System.Random (newStdGen)
 import qualified System.Random.Shuffle as SRS
-import System.Directory (createDirectoryIfMissing)
-import qualified Data.ByteString.Lazy.Char8  as Char
-import qualified Data.Digest.Pure.SHA        as SHA (sha256, showDigest)
-import qualified Data.Text                   as Text
-import Gargantext.Database.Types.Node (NodeId, NodeType)
-import Data.ByteString (ByteString)
-import Crypto.Argon2 as Crypto
-import Data.Either
-import Data.ByteString.Base64.URL as URL
+
+import Gargantext.API.Admin.Settings
+import Gargantext.Prelude.Config
+import Gargantext.Prelude.Crypto.Hash
+import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
+import Gargantext.Prelude
 
 --------------------------------------------------------------------------
 shuffle :: MonadRandom m => [a] -> m [a]
 shuffle ns = SRS.shuffleM ns 
 
 --------------------------------------------------------------------------
-sha :: Text -> Text
-sha = Text.pack
-     . SHA.showDigest
-     . SHA.sha256
-     . Char.pack
-     . Text.unpack
-
---------------------------------------------------------------------------
 data NodeToHash = NodeToHash { nodeType :: NodeType
                              , nodeId   :: NodeId
                              }
 
-secret_key :: ByteString
-secret_key = "WRV5ymit8s~ge6%08dLR7Q!gBcpb1MY%7e67db2206"
-
-type SecretKey = ByteString
-
 type FolderPath = FilePath
 type FileName   = FilePath
 
-hashNode :: SecretKey -> NodeToHash -> ByteString
-hashNode sk (NodeToHash nt ni) = case hashResult of
-    Left  e -> panic (cs $ show e)
-    Right h -> URL.encode h
-  where
-    hashResult = Crypto.hash Crypto.defaultHashOptions
-                  sk
-                  (cs $ show nt <> show ni)
+-- | toPath example of use:
+-- toPath 2 "gargantexthello"
+-- ("ga/rg","antexthello")
+-- 
+-- toPath 3 "gargantexthello"
+-- ("gar/gan","texthello")
 
 
-toPath :: Int -> Text -> (FolderPath,FileName)
+toPath :: Int -> Text -> (FolderPath, FileName)
 toPath n x = (Text.unpack $ Text.intercalate "/" [x1,x2], Text.unpack xs)
   where
     (x1,x') = Text.splitAt n x
@@ -84,23 +66,42 @@ class ReadFile a where
   readFile' :: FilePath -> IO a
 
 
-writeFile :: (MonadReader env m, MonadIO m, HasSettings env, SaveFile a)
-         => a -> m FilePath
+folderFilePath :: (MonadReader env m, MonadBase IO m) => m (FolderPath, FileName)
+folderFilePath = do
+  (foldPath, fileName)  <- liftBase $ (toPath 3) . hash . show <$> newStdGen
+
+  pure (foldPath, fileName)
+
+
+writeFile :: (MonadReader env m, MonadBase IO m, HasSettings env, SaveFile a)
+          => a -> m FilePath
 writeFile a = do
-  dataPath <- view (settings . fileFolder) <$> ask
-  (fp,fn)  <- liftIO $ (toPath 3) . sha . Text.pack . show <$> newStdGen
-  
-  let foldPath = dataPath <> "/" <> fp
-      filePath = foldPath <> "/" <> fn
-  
-  _ <- liftIO $ createDirectoryIfMissing True foldPath
-  _ <- liftIO $ saveFile' filePath a
-  
+  dataPath <- view (settings . config . gc_datafilepath) <$> ask
+
+  (foldPath, fileName) <- folderFilePath
+
+  let filePath = foldPath <> "/" <> fileName
+      dataFoldPath = dataPath <> "/" <> foldPath
+      dataFileName = dataPath <> "/" <> filePath
+
+  _ <- liftBase $ createDirectoryIfMissing True dataFoldPath
+  _ <- liftBase $ saveFile' dataFileName a
+
   pure filePath
 
 
-readFile :: (MonadReader env m, MonadIO m, HasSettings env, ReadFile a)
+readFile :: (MonadReader env m, MonadBase IO m, HasSettings env, ReadFile a)
          => FilePath -> m a
 readFile fp = do
-  dataPath <- view (settings . fileFolder) <$> ask
-  liftIO $ readFile' $ dataPath <> "/" <> fp
+  dataPath <- view (settings . config . gc_datafilepath) <$> ask
+  liftBase $ readFile' $ dataPath <> "/" <> fp
+
+removeFile :: (MonadReader env m, MonadBase IO m, HasSettings env)
+           => FilePath -> m ()
+removeFile fp = do
+  dataPath <- view (settings . config . gc_datafilepath) <$> ask
+  liftBase $ SD.removeFile (dataPath <> "/" <> fp) `catch` handleExists
+    where
+      handleExists e
+        | isDoesNotExistError e = return ()
+        | otherwise = throwIO e

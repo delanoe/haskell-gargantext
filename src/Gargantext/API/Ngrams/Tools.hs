@@ -9,9 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 
 module Gargantext.API.Ngrams.Tools
   where
@@ -30,13 +27,12 @@ import Gargantext.Prelude
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
-
 type RootTerm = Text
 
 getRepo :: RepoCmdM env err m => m NgramsRepo
 getRepo = do
   v <- view repoVar
-  liftIO $ readMVar v
+  liftBase $ readMVar v
 
 listNgramsFromRepo :: [ListId] -> NgramsType
                    -> NgramsRepo -> Map Text NgramsRepoElement
@@ -71,21 +67,24 @@ getTermsWith f ls ngt lt = Map.fromListWith (<>)
       Nothing -> (f'' t, [])
       Just  r -> (f'' r, map f'' [t])
 
-mapTermListRoot :: [ListId] -> NgramsType
-                -> NgramsRepo -> Map Text (ListType, (Maybe Text))
+mapTermListRoot :: [ListId]
+                -> NgramsType
+                -> NgramsRepo
+                -> Map Text (ListType, (Maybe Text))
 mapTermListRoot nodeIds ngramsType repo =
   Map.fromList [ (t, (_nre_list nre, _nre_root nre))
                | (t, nre) <- Map.toList ngrams
                ]
   where ngrams = listNgramsFromRepo nodeIds ngramsType repo
 
-filterListWithRoot :: ListType -> Map Text (ListType, Maybe Text)
-                      -> Map Text (Maybe RootTerm)
+filterListWithRoot :: ListType
+                   -> Map Text (ListType, Maybe Text)
+                   -> Map Text (Maybe RootTerm)
 filterListWithRoot lt m = Map.fromList
                     $ map (\(t,(_,r)) -> (t,r))
-                    $ filter isGraphTerm (Map.toList m)
+                    $ filter isMapTerm (Map.toList m)
   where
-    isGraphTerm (_t,(l, maybeRoot)) = case maybeRoot of
+    isMapTerm (_t,(l, maybeRoot)) = case maybeRoot of
       Nothing -> l == lt
       Just  r -> case Map.lookup r m of
         Nothing -> panic $ "Garg.API.Ngrams.Tools: filterWithRoot, unknown key: " <> r

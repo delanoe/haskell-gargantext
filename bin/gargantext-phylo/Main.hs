@@ -11,53 +11,42 @@ Phylo binaries
 
  -}
 
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE Strict             #-}
 
 module Main where
 
-import System.Directory (doesFileExist) 
-
+import Control.Concurrent.Async as CCA (mapConcurrently)
+import Control.Monad (mapM)
 import Data.Aeson
-import Data.Text (Text, unwords, unlines)
 import Data.List ((++),concat)
+import Data.Maybe
+import Data.Text (Text, unwords, unlines)
 import GHC.Generics
 import GHC.IO (FilePath)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
-import Gargantext.Text.List.CSV (csvGraphTermList)
-import Gargantext.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
-import qualified Gargantext.Text.Corpus.Parsers.CSV as CSV
-import Gargantext.Text.Corpus.Parsers (FileFormat(..),parseFile)
-import Gargantext.Text.Terms.WithList
-import Gargantext.Text.Context (TermList)
-
-import Control.Monad (mapM)
-
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
+import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
+import Gargantext.Core.Text.List.CSV (csvMapTermList)
+import Gargantext.Core.Text.Terms.WithList
+import Gargantext.Core.Viz.Phylo
+import Gargantext.Core.Viz.Phylo.LevelMaker
+import Gargantext.Core.Viz.Phylo.Tools
+import Gargantext.Core.Viz.Phylo.View.Export
+import Gargantext.Core.Viz.Phylo.View.ViewMaker
+import System.Directory (doesFileExist)
 import System.Environment
-
-import Gargantext.Viz.Phylo
-import Gargantext.Viz.Phylo.Tools
-import Gargantext.Viz.Phylo.LevelMaker
-import Gargantext.Viz.Phylo.View.Export
-import Gargantext.Viz.Phylo.View.ViewMaker
-
-import Gargantext.Database.Types.Node
-import Data.Maybe
-
-import Control.Concurrent.Async as CCA (mapConcurrently)
-
-import qualified Data.Map    as DM
-import qualified Data.Vector as DV
-import qualified Data.List   as DL
-import qualified Data.Text   as DT
-import qualified Prelude     as P
 import qualified Data.ByteString.Lazy as L
+import qualified Data.List   as DL
+import qualified Data.Map    as DM
+import qualified Data.Text   as DT
+import qualified Data.Vector as DV
+import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as CSV
+import qualified Prelude     as P
 
 
 --------------
@@ -123,7 +112,10 @@ filterTerms patterns (y,d) = (y,termsInText patterns d)
   where
     --------------------------------------
     termsInText :: Patterns -> Text -> [Text]
-    termsInText pats txt = DL.nub $ DL.concat $ map (map unwords) $ extractTermsWithList pats txt
+    termsInText pats txt = DL.nub
+                         $ DL.concat
+                         $ map (map unwords)
+                         $ extractTermsWithList pats txt
     --------------------------------------
 
 
@@ -140,11 +132,11 @@ csvToCorpus limit csv = DV.toList
 -- | To transform a Wos nfile into a readable corpus
 wosToCorpus :: Limit -> CorpusPath -> IO ([(Int,Text)])
 wosToCorpus limit path = DL.take limit
-                         . map (\d -> ((fromJust $_hyperdataDocument_publication_year d)
-                                    ,(fromJust $_hyperdataDocument_title d) <> " " <> (fromJust $_hyperdataDocument_abstract d)))
-                         . filter (\d -> (isJust $_hyperdataDocument_publication_year d)
-                                      && (isJust $_hyperdataDocument_title d)
-                                      && (isJust $_hyperdataDocument_abstract d))
+                         . map (\d -> ((fromJust $_hd_publication_year d)
+                                    ,(fromJust $_hd_title d) <> " " <> (fromJust $_hd_abstract d)))
+                         . filter (\d -> (isJust $_hd_publication_year d)
+                                      && (isJust $_hd_title d)
+                                      && (isJust $_hd_abstract d))
                          . concat
                          <$> mapConcurrently (\idx -> parseFile WOS (path <> show(idx) <> ".txt")) [1..20]
 
@@ -199,7 +191,7 @@ main = do
     P.Left err -> putStrLn err
     P.Right conf -> do
 
-      termList <- csvGraphTermList (listPath conf)
+      termList <- csvMapTermList (listPath conf)
 
       corpus <- parse (corpusType conf) (limit conf) (corpusPath conf) termList
 

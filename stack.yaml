@@ -4,16 +4,16 @@ extra-package-dbs: []
 packages:
 - .
 #- 'deps/servant-job'
+#- 'deps/clustering-louvain'
 
 docker:
   enable: false
-  repo: 'fpco/stack-build:lts-14.6-garg'
+  repo: 'fpco/stack-build:lts-14.27-garg'
   run-args:
     - '--publish=8008:8008'
 
 nix:
   enable: false
-  #packages: [gmp]
   add-gc-roots: true
   shell-file: build-shell.nix
 
@@ -47,18 +47,17 @@ extra-deps:
   #- git: https://github.com/delanoe/servant-job.git
   #commit: 7a7b7100e6d132adb4c11b25b2128e6309690ac0
 - git: https://github.com/np/servant-job.git
-  commit: 4016c76398a56e1a352a45b3ee9d698dd0dd2597
+  commit: 6487744c322baaa9229fdabd321a878a5b363c61
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
-  commit: e5814cbfa71f43b0a453efb65f476240d7d51a53
+  commit: 7d74f96dfea8e51fbab1793cc0429b2fe741f73d
 - git: https://github.com/np/patches-map
   commit: 8c6f38c4844ead53e664cf9c82ba461715dbe445
 - git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
-  commit: 53385de076be09f728a1b58c035a18e9ff9bcfd6
+  commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - Unique-0.4.7.6@sha256:a1ff411f4d68c756e01e8d532fbe8e57f1ac77f2cc0ee8a999770be2bca185c5,2723
 - KMP-0.1.0.2
-- accelerate-1.2.0.1
 - aeson-lens-0.5.0.0
 - deepseq-th-0.1.0.4
 - duckling-0.1.3.0
@@ -75,9 +74,16 @@ extra-deps:
 - servant-flatten-0.2
   #- servant-multipart-0.11.2
 - servant-server-0.16
+- servant-xml-1.0.1.4
 - stemmer-0.5.2
 - time-units-1.0.0
 - validity-0.9.0.0 # patches-{map,class}
 - directory-1.3.1.5
 - process-1.6.5.1@sha256:77a9afeb676357f67fe5cf1ad79aca0745fb6f7fb96b786d510af08f622643f6,2468
-- argon2-1.3.0.1@sha256:e7771caf255929453c7cebfed0809617c51428d1c1b22f207c80b8711b792d78,4592
+- password-2.0.1.1
+- base64-0.4.2@sha256:e9523e18bdadc3cab9dc32dfe3ac09c718fe792076326d6d353437b8b255cb5b,2888
+- ghc-byteorder-4.11.0.0.10@sha256:5ee4a907279bfec27b0f9de7b8fba4cecfd34395a0235a7784494de70ad4e98f,1535
+  # Matrix Computation
+- accelerate-1.2.0.1
+- smtp-mail-0.2.0.0@sha256:b91c81f6dbb41a9ceee8c443385118684ecec55006b77f7d3c0e49cffd2468cf,1211
+

@@ -11,36 +11,32 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 -----------------------------------------------------------------------
 module Gargantext.Core.Types.Main where
 ------------------------------------------------------------------------
 
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
-import Data.Map (fromList, lookup)
 import Data.Either (Either(..))
 import Data.Eq (Eq())
+import Data.Map (fromList, lookup)
 import Data.Monoid ((<>))
-import Data.Text (Text, unpack)
+import Data.Semigroup (Semigroup(..))
 import Data.Swagger
-
-import Gargantext.Database.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Prelude
-
+import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
+import Gargantext.Database.Admin.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
+import Gargantext.Prelude
+import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant.API (FromHttpApiData(..))
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Text.Read (read)
 
+type CorpusName = Text
 ------------------------------------------------------------------------
 data NodeTree = NodeTree { _nt_name :: Text
                          , _nt_type :: NodeType
@@ -54,11 +50,9 @@ instance ToSchema NodeTree where
 
 --data Classification = Favorites | MyClassifcation
 
-type HashId   = Text
-
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
-data ListType  =  StopTerm | CandidateTerm | GraphTerm
+data ListType  =  StopTerm | CandidateTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
@@ -68,6 +62,15 @@ instance ToParamSchema ListType
 instance Arbitrary ListType where
   arbitrary = elements [minBound..maxBound]
 
+instance Semigroup ListType
+  where
+    MapTerm       <> _             = MapTerm
+    _             <> MapTerm       = MapTerm
+    CandidateTerm <> _             = CandidateTerm
+    _             <> CandidateTerm = CandidateTerm
+    StopTerm      <> StopTerm      = StopTerm
+
+
 instance FromHttpApiData ListType where
   parseUrlPiece = Right . read . unpack
 
@@ -76,7 +79,7 @@ type ListTypeId = Int
 listTypeId :: ListType -> ListTypeId
 listTypeId StopTerm      = 0
 listTypeId CandidateTerm = 1
-listTypeId GraphTerm       = 2
+listTypeId MapTerm     = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
 fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]
@@ -97,14 +100,14 @@ type Offset   = Int
 type IsTrash  = Bool
 
 ------------------------------------------------------------------------
--- All the Database is structred like a hierarchical Tree
+-- All the Database is structured as a hierarchical Tree
 data Tree a = TreeN { _tn_node :: a, _tn_children :: [Tree a] }
   deriving (Show, Read, Eq, Generic, Ord)
 
 $(deriveJSON (unPrefix "_tn_") ''Tree)
 
-instance ToSchema a => ToSchema (Tree a) where
-  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_tn_")
+instance (Typeable a, ToSchema a) => ToSchema (Tree a) where
+  declareNamedSchema = wellNamedSchema "_tn_"
 
 instance Arbitrary (Tree NodeTree) where
   arbitrary = elements [userTree, userTree]
