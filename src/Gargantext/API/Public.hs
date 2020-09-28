@@ -41,8 +41,11 @@ type API = Summary " Public API"
          :> Get '[JSON] [PublicData]
 
 api :: HasNodeError err
-    => Cmd err [PublicData]
-api = catMaybes <$> map toPublicData <$> filterPublicDatas <$> selectPublic
+    => Text -> Cmd err [PublicData]
+api base = catMaybes
+   <$> map (toPublicData base)
+   <$> filterPublicDatas
+   <$> selectPublic
 
 
 selectPublic :: HasNodeError err
@@ -52,20 +55,24 @@ selectPublic = selectPublicNodes
   -- For tests only
   -- pure $ replicate 6 defaultPublicData
 
-filterPublicDatas :: [( Node HyperdataFolder, Maybe Int)] -> [(Node HyperdataFolder, [NodeId])]
-filterPublicDatas datas = map (\(n,mi) -> let mi' = NodeId <$> mi in
-                                              ( _node_id n, (n, maybe [] (:[]) mi' ))
-                              ) datas
-                        & Map.fromListWith (\(n1,i1) (_n2,i2) -> (n1, i1 <> i2))
-                        & Map.filter (not . null . snd)
-                        & Map.elems
+filterPublicDatas :: [(Node HyperdataFolder, Maybe Int)]
+                  -> [(Node HyperdataFolder, [NodeId])]
+filterPublicDatas datas =
+  map (\(n,mi) ->
+          let mi' = NodeId <$> mi in
+                  ( _node_id n, (n, maybe [] (:[]) mi' ))
+      ) datas
+      & Map.fromListWith (\(n1,i1) (_n2,i2) -> (n1, i1 <> i2))
+      & Map.filter (not . null . snd)
+      & Map.elems
 
-
-toPublicData :: (Node HyperdataFolder, [NodeId]) -> Maybe PublicData
-toPublicData (n , _mn) = PublicData <$> (hd ^? (_Just . hf_data . cf_title))
-                                   <*> (hd ^? (_Just . hf_data . cf_desc))
-                                   <*> Just "images/Gargantextuel-212x300.jpg"
-                                   <*> Just "https://.."
+-- http://localhost:8008/api/v1.0/node/23543/file/download<Paste>
+-- http://localhost:8000/images/Gargantextuel-212x300.jpg
+toPublicData :: Text -> (Node HyperdataFolder, [NodeId]) -> Maybe PublicData
+toPublicData base (n , mn) = PublicData <$> (hd ^? (_Just . hf_data . cf_title))
+                                   <*> (hd ^? (_Just . hf_data . cf_desc ))
+                                   <*> (Just $ url' mn) -- "images/Gargantextuel-212x300.jpg"
+                                   <*> (Just $ url' mn)
                                    <*> Just (cs $ show $ utc2year (n^.node_date))
                                    <*> (hd ^? (_Just . hf_data . cf_query))
                                    <*> (hd ^? (_Just . hf_data . cf_authors))
@@ -73,6 +80,11 @@ toPublicData (n , _mn) = PublicData <$> (hd ^? (_Just . hf_data . cf_title))
     hd = head
        $ filter (\(HyperdataField cd _ _) -> cd == JSON)
        $ n^. (node_hyperdata . hc_fields)
+    url' :: [NodeId] -> Text 
+    url' mn' = base 
+           <>   "/node/" 
+           <> (cs $ show $ (maybe 0 unNodeId $ head mn'))
+           <> "/file/download"
 
 
 data PublicData = PublicData

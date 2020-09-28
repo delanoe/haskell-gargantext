@@ -54,6 +54,7 @@ import Data.Version (showVersion)
 import GHC.Base (Applicative)
 import GHC.Generics (D1, Meta (..), Rep, Generic)
 import GHC.TypeLits (AppendSymbol, Symbol)
+import Gargantext.Prelude.Config (gc_url)
 import Gargantext.API.Admin.Auth (AuthContext, auth)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import Gargantext.API.Admin.Settings
@@ -86,7 +87,10 @@ startGargantext :: Mode -> PortNumber -> FilePath -> IO ()
 startGargantext mode port file = do
   env <- newEnv port file
   portRouteInfo port
-  app <- makeApp env
+    
+  let baseUrl = env ^. env_gargConfig . gc_url
+  app <- makeApp env baseUrl
+
   mid <- makeDevMiddleware mode
   run port (mid app) `finally` stopGargantext env
 
@@ -214,19 +218,21 @@ makeDevMiddleware mode = do
 -- | API Global
 ---------------------------------------------------------------------
 -- | Server declarations
-server :: forall env. EnvC env => env -> IO (Server API)
-server env = do
+server :: forall env. EnvC env => env -> Text -> IO (Server API)
+server env baseUrl = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  schemaUiServer swaggerDoc
      :<|> hoistServerWithContext
             (Proxy :: Proxy GargAPI)
             (Proxy :: Proxy AuthContext)
             transform
-            serverGargAPI
+            (serverGargAPI baseUrl)
      :<|> frontEndServer
   where
     transform :: forall a. GargServerM env GargError a -> Handler a
     transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
+
+
 
 showAsServantErr :: GargError -> ServerError
 showAsServantErr (GargServerError err) = err
@@ -234,16 +240,15 @@ showAsServantErr a = err500 { errBody = BL8.pack $ show a }
 
 ---------------------------
 
-serverGargAPI :: GargServerT env err (GargServerM env err) GargAPI
-serverGargAPI -- orchestrator
+serverGargAPI :: Text -> GargServerT env err (GargServerM env err) GargAPI
+serverGargAPI baseUrl -- orchestrator
        =  auth
      :<|> gargVersion
      :<|> serverPrivateGargAPI
-     :<|> Public.api
-
+     :<|> (Public.api baseUrl)
+     
   --   :<|> orchestrator
   where
-
     gargVersion :: GargServer GargVersion
     gargVersion = pure (cs $ showVersion PG.version)
 
@@ -265,8 +270,8 @@ serverGargAdminAPI =  roots
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy
 ---------------------------------------------------------------------
-makeApp :: EnvC env => env -> IO Application
-makeApp env = serveWithContext api cfg <$> server env
+makeApp :: EnvC env => env -> Text -> IO Application
+makeApp env baseUrl = serveWithContext api cfg <$> server env baseUrl
   where
     cfg :: Servant.Context AuthContext
     cfg = env ^. settings . jwtSettings

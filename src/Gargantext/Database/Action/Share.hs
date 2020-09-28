@@ -29,7 +29,7 @@ import Gargantext.Prelude
 
 -- | TODO move in Config of Gargantext
 publicNodeTypes :: [NodeType]
-publicNodeTypes = [NodeDashboard, NodeGraph, NodePhylo]
+publicNodeTypes = [NodeDashboard, NodeGraph, NodePhylo, NodeFile]
 
 ------------------------------------------------------------------------
 
