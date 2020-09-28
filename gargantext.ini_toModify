@@ -12,7 +12,7 @@ DATA_FILEPATH = FILEPATH_TO_CHANGE
 # Data path to local files
 DATA_FILEPATH = FILEPATH_TO_CHANGE
 
-# Data path to local files
+# Data path to local files (do not use quotes)
 REPO_FILEPATH = FILEPATH_TO_CHANGE
 
 
