@@ -246,7 +246,7 @@ serverGargAPI baseUrl -- orchestrator
      :<|> gargVersion
      :<|> serverPrivateGargAPI
      :<|> (Public.api baseUrl)
-     
+
   --   :<|> orchestrator
   where
     gargVersion :: GargServer GargVersion

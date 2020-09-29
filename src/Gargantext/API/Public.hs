@@ -16,6 +16,7 @@ Portability : POSIX
 module Gargantext.API.Public
       where
 
+import Data.Set (Set)
 import Control.Lens ((^?), (^.), _Just)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
@@ -23,6 +24,8 @@ import Data.List (replicate, null)
 import Data.Aeson
 import Data.Swagger
 import GHC.Generics (Generic)
+import Gargantext.API.Prelude
+import Gargantext.API.Node.File
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Prelude
 import Gargantext.Database.Admin.Types.Node
@@ -34,22 +37,44 @@ import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+
+import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 ------------------------------------------------------------------------
-type API = Summary " Public API"
+type API =  API_Home
+       -- :<|> API_Node
+
+api :: Text -> GargServer API
+api baseUrl = (api_home baseUrl)
+          -- :<|> api_node
+-------------------------------------------------------------------------
+type API_Home = Summary " Public API"
          :> Get '[JSON] [PublicData]
 
-api :: HasNodeError err
-    => Text -> Cmd err [PublicData]
-api base = catMaybes
-   <$> map (toPublicData base)
+api_home :: Text -> GargServer API_Home
+api_home baseUrl = catMaybes
+   <$> map (toPublicData baseUrl)
    <$> filterPublicDatas
    <$> selectPublic
 
+-------------------------------------------------------------------------
+type API_Node = Summary " Public Node API"
+              :> FileApi
+
+api_node :: UserId -> NodeId -> GargServer FileApi
+api_node uid nId = do
+  pubNodes <- publicNodes
+  case Set.member nId pubNodes of
+    False -> panic "Not allowed" -- TODO throwErr
+    True  -> fileApi uid nId
+
+-------------------------------------------------------------------------
+
 
 selectPublic :: HasNodeError err
-             => Cmd err [( Node HyperdataFolder, Maybe Int)] 
+             => Cmd err [( Node HyperdataFolder, Maybe Int)]
 selectPublic = selectPublicNodes
 
   -- For tests only
@@ -65,6 +90,15 @@ filterPublicDatas datas =
       & Map.fromListWith (\(n1,i1) (_n2,i2) -> (n1, i1 <> i2))
       & Map.filter (not . null . snd)
       & Map.elems
+
+publicNodes :: HasNodeError err
+            => Cmd err (Set NodeId)
+publicNodes = do
+  candidates <- filterPublicDatas <$> selectPublicNodes
+  pure $ Set.fromList
+       $ List.concat
+       $ map (\(n, ns) -> (_node_id n) : ns) candidates
+
 
 -- http://localhost:8008/api/v1.0/node/23543/file/download<Paste>
 -- http://localhost:8000/images/Gargantextuel-212x300.jpg

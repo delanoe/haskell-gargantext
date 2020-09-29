@@ -74,7 +74,7 @@ type GargAPI' =
                    -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
           :<|> GargPrivateAPI
-          :<|> "public" :> Public.API
+          :<|> "public"      :> Public.API
 
 
 type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
