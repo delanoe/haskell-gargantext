@@ -44,13 +44,14 @@ import qualified Data.Set as Set
 
 ------------------------------------------------------------------------
 type API =  API_Home
-       -- :<|> API_Node
+       :<|> API_Node
 
 api :: Text -> GargServer API
 api baseUrl = (api_home baseUrl)
-          -- :<|> api_node
+          :<|> api_node
+
 -------------------------------------------------------------------------
-type API_Home = Summary " Public API"
+type API_Home = Summary " Public Home API"
          :> Get '[JSON] [PublicData]
 
 api_home :: Text -> GargServer API_Home
@@ -61,14 +62,16 @@ api_home baseUrl = catMaybes
 
 -------------------------------------------------------------------------
 type API_Node = Summary " Public Node API"
-              :> FileApi
+              :> Capture "node" NodeId
+              :> "file" :> FileApi
 
-api_node :: UserId -> NodeId -> GargServer FileApi
-api_node uid nId = do
+api_node :: NodeId -> GargServer FileApi
+api_node nId = do
   pubNodes <- publicNodes
+  -- TODO optimize with SQL
   case Set.member nId pubNodes of
     False -> panic "Not allowed" -- TODO throwErr
-    True  -> fileApi uid nId
+    True  -> fileApi 0 nId
 
 -------------------------------------------------------------------------
 
@@ -116,7 +119,7 @@ toPublicData base (n , mn) = PublicData <$> (hd ^? (_Just . hf_data . cf_title))
        $ n^. (node_hyperdata . hc_fields)
     url' :: [NodeId] -> Text 
     url' mn' = base 
-           <>   "/node/" 
+           <>   "/public/"
            <> (cs $ show $ (maybe 0 unNodeId $ head mn'))
            <> "/file/download"
 
