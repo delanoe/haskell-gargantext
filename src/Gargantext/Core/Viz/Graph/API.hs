@@ -30,7 +30,7 @@ import Servant.Job.Async
 import Servant.XML
 
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams (NgramsRepo, r_version)
+import Gargantext.API.Ngrams.Types (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Main
