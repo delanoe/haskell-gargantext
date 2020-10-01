@@ -21,7 +21,6 @@ add get
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE TypeFamilies      #-}
-{-# OPTIONS -fno-warn-orphans #-}
 
 module Gargantext.API.Ngrams
   ( TableNgramsApi
@@ -44,7 +43,6 @@ module Gargantext.API.Ngrams
 
   , NgramsElement(..)
   , mkNgramsElement
-  , mergeNgramsElement
 
   , RootParent(..)
 
@@ -120,10 +118,12 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Prelude (error)
 import Gargantext.Prelude
 
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
 import Gargantext.Core.Types (TODO)
-import Gargantext.Core.Viz.Graph.API (graphRecompute)
+import Gargantext.Core.Viz.Graph.API (recomputeGraph)
+import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
@@ -132,6 +132,8 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
+import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Schema.Node (NodePoly(..))
 
 {-
 -- TODO sequences of modifications (Patchs)
@@ -389,7 +391,12 @@ tableNgramsPull listId ngramsType p_version = do
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
-tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
+tableNgramsPut :: (HasNodeError err,
+                   HasInvalidError err,
+                   HasConfig env,
+                   HasConnectionPool env,
+                   HasSettings env,
+                   RepoCmdM env err m)
                  => TabType
                  -> ListId
                  -> Versioned NgramsTablePatch
@@ -410,15 +417,13 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
       ret <- commitStatePatch (Versioned p_version p)
         <&> v_data %~ (view (_PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just))
 
-      node <- getNodeWith ListId
+      node <- getNode listId
       let nId = _node_id node
           uId = _node_userId node
-      recomputeGraph uId nId Conditional
+      _ <- recomputeGraph uId nId Conditional
 
       pure ret
-
-mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
-mergeNgramsElement _neOld neNew = neNew
+     
   {-
   { _ne_list        :: ListType
   If we merge the parents/children we can potentially create cycles!
@@ -589,7 +594,6 @@ scoresRecomputeTableNgrams nId tabType listId = do
 -- APIs
 
 -- TODO: find a better place for the code above, All APIs stay here
-type QueryParamR = QueryParam' '[Required, Strict]
 
 data OrderBy = TermAsc | TermDesc | ScoreAsc | ScoreDesc
              deriving (Generic, Enum, Bounded, Read, Show)
@@ -700,6 +704,7 @@ apiNgramsTableCorpus :: ( RepoCmdM env err m
                         , HasInvalidError err
                         , HasConnectionPool env
                         , HasConfig         env
+                        , HasSettings       env
                         )
                      => NodeId -> ServerT TableNgramsApi m
 apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
@@ -712,6 +717,7 @@ apiNgramsTableDoc :: ( RepoCmdM env err m
                      , HasInvalidError err
                      , HasConnectionPool env
                      , HasConfig         env
+                     , HasSettings       env
                      )
                   => DocId -> ServerT TableNgramsApi m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId

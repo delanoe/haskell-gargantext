@@ -33,22 +33,23 @@ import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import GHC.Generics (Generic)
-import Gargantext.API.Admin.Settings
-import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC)
-import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..), arbitraryUsername, arbitraryPassword)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
-import Gargantext.Database.Query.Tree.Root (getRoot)
-import Gargantext.Database.Schema.Node (NodePoly(_node_id)) 
-import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId, ListId, DocId)
-import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
-import Gargantext.Prelude hiding (reverse)
-import Gargantext.Database.Query.Table.User
 import Servant
 import Servant.Auth.Server
 import Test.QuickCheck (elements, oneof)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Gargantext.Prelude.Crypto.Auth as Auth
+
+import Gargantext.API.Admin.Types
+import Gargantext.API.Prelude (HasJoseError(..), joseError, HasServerError, GargServerC)
+import Gargantext.Core.Types.Individu (User(..), Username, GargPassword(..), arbitraryUsername, arbitraryPassword)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Database.Query.Tree (isDescendantOf, isIn)
+import Gargantext.Database.Query.Tree.Root (getRoot)
+import Gargantext.Database.Schema.Node (NodePoly(_node_id))
+import Gargantext.Database.Admin.Types.Node (NodeId(..), UserId, ListId, DocId)
+import Gargantext.Database.Prelude (Cmd', CmdM, HasConnectionPool, HasConfig)
+import Gargantext.Prelude hiding (reverse)
+import Gargantext.Database.Query.Table.User
 
 ---------------------------------------------------
 

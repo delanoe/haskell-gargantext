@@ -19,17 +19,18 @@ module Gargantext.Core.Text.List.Learn
 
 import Control.Monad.Reader (MonadReader)
 -- TODO remvoe this deps
-import Gargantext.API.Admin.Settings
-import Data.Map (Map)
-import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
-import Gargantext.Prelude
-import Gargantext.Prelude.Utils
-import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
+import Data.Map (Map)
 import qualified Data.Map    as Map
 import qualified Data.SVM    as SVM
 import qualified Data.Vector as Vec
+
+import Gargantext.API.Admin.Types
+import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
+import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
+import Gargantext.Prelude
+import Gargantext.Prelude.Utils
 
 ------------------------------------------------------------------------
 train :: Double -> Double -> SVM.Problem -> IO SVM.Model

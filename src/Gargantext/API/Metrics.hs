@@ -25,7 +25,8 @@ import Data.Text (Text)
 import Servant
 
 import Gargantext.API.HashedResponse
-import Gargantext.API.Ngrams
+import Gargantext.API.Ngrams (ngramsTypeFromTabType)
+import Gargantext.API.Ngrams.Types
 import Gargantext.API.Ngrams.NTree
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (CorpusId, Limit, ListId, ListType(..))

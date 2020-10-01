@@ -25,24 +25,15 @@ import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
-import Data.ByteString (ByteString)
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
 import Data.Text
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
-import GHC.Enum
-import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Prelude (databaseParameters, HasConnectionPool(..), Cmd', runCmd, HasConfig(..))
-import Gargantext.Prelude
-
-import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Servant
-import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
-import Servant.Client (BaseUrl, parseBaseUrl)
-import Servant.Job.Async (newJobEnv, defaultSettings, HasJobEnv(..), Job)
+import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
+import Servant.Client (parseBaseUrl)
+import Servant.Job.Async (newJobEnv, defaultSettings)
 import System.Directory
 import System.Environment (lookupEnv)
 import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
@@ -50,35 +41,13 @@ import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
 import qualified Data.ByteString.Lazy as L
-import qualified Servant.Job.Core
+
+import Gargantext.API.Admin.Types
+import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
+import Gargantext.API.Ngrams (saveRepo)
+import Gargantext.Database.Prelude (databaseParameters, Cmd', runCmd, HasConfig(..))
+import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig, defaultConfig)
-
-type PortNumber = Int
-
-data SendEmailType = SendEmailViaAws
-                   | LogEmailToConsole
-                   | WriteEmailToFile
-    deriving (Show, Read, Enum, Bounded, Generic)
-
-
-data Settings = Settings
-    { _allowedOrigin   :: ByteString   -- allowed origin for CORS
-    , _allowedHost     :: ByteString   -- allowed host for CORS
-    , _appPort         :: PortNumber
-    , _logLevelLimit   :: LogLevel -- log level from the monad-logger package
---    , _dbServer        :: Text
---    ^ this is not used yet
-    , _jwtSettings     :: JWTSettings
-    , _cookieSettings  :: CookieSettings
-    , _sendLoginEmails :: SendEmailType
-    , _scrapydUrl      :: BaseUrl
-    , _config          :: GargConfig
-    }
-
-makeLenses ''Settings
-
-class HasSettings env where
-  settings :: Getter env Settings
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -123,53 +92,6 @@ optSetting name d = do
 --             <*> reqSetting "DB_SERVER"
 --             <*> (parseJwk <$> reqSetting "JWT_SECRET")
 --             <*> optSetting "SEND_EMAIL" SendEmailViaAws
-
-data FireWall = FireWall { unFireWall :: Bool }
-
-data Env = Env
-  { _env_settings :: !Settings
-  , _env_logger   :: !LoggerSet
-  , _env_pool     :: !(Pool Connection)
-  , _env_repo     :: !RepoEnv
-  , _env_manager  :: !Manager
-  , _env_self_url :: !BaseUrl
-  , _env_scrapers :: !ScrapersEnv
-  , _env_gargConfig :: !GargConfig
-  }
-  deriving (Generic)
-
-makeLenses ''Env
-
-instance HasConfig Env where
-  hasConfig = env_gargConfig
-
-instance HasConnectionPool Env where
-  connPool = env_pool
-
-instance HasRepoVar Env where
-  repoVar = repoEnv . repoVar
-
-instance HasRepoSaver Env where
-  repoSaver = repoEnv . repoSaver
-
-instance HasRepo Env where
-  repoEnv = env_repo
-
-instance HasSettings Env where
-  settings = env_settings
-
-instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
-  _env = env_scrapers . Servant.Job.Core._env
-
-instance HasJobEnv Env JobLog JobLog where
-  job_env = env_scrapers
-
-data MockEnv = MockEnv
-  { _menv_firewall :: !FireWall
-  }
-  deriving (Generic)
-
-makeLenses ''MockEnv
 
 -----------------------------------------------------------------------
 -- | RepoDir FilePath configuration
@@ -265,33 +187,6 @@ newEnv port file = do
 
 newPool :: ConnectInfo -> IO (Pool Connection)
 newPool param = createPool (connect param) close 1 (60*60) 8
-
-data DevEnv = DevEnv
-  { _dev_env_pool     :: !(Pool Connection)
-  , _dev_env_repo     :: !RepoEnv
-  , _dev_env_settings :: !Settings
-  , _dev_env_config   :: !GargConfig
-  }
-
-makeLenses ''DevEnv
-
-instance HasConfig DevEnv where
-  hasConfig = dev_env_config
-
-instance HasConnectionPool DevEnv where
-  connPool = dev_env_pool
-
-instance HasRepoVar DevEnv where
-  repoVar = repoEnv . repoVar
-
-instance HasRepoSaver DevEnv where
-  repoSaver = repoEnv . repoSaver
-
-instance HasRepo DevEnv where
-  repoEnv = dev_env_repo
-
-instance HasSettings DevEnv where
-  settings = dev_env_settings
 
 cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do

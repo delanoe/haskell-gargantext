@@ -9,8 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans   #-}
-
 module Gargantext.Prelude.Utils
   where
 
@@ -27,7 +25,7 @@ import System.IO.Error
 import System.Random (newStdGen)
 import qualified System.Random.Shuffle as SRS
 
-import Gargantext.API.Admin.Settings
+import Gargantext.API.Admin.Types
 import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Hash
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)

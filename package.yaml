@@ -38,11 +38,14 @@ library:
   exposed-modules:
   - Gargantext
   - Gargantext.API
+  - Gargantext.API.Dev
   - Gargantext.API.HashedResponse
   - Gargantext.API.Node
   - Gargantext.API.Node.File
   - Gargantext.API.Ngrams
+  - Gargantext.API.Ngrams.Types
   - Gargantext.API.Admin.Settings
+  - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
   - Gargantext.Core
   - Gargantext.Core.Types

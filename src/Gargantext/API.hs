@@ -54,14 +54,6 @@ import Data.Version (showVersion)
 import GHC.Base (Applicative)
 import GHC.Generics (D1, Meta (..), Rep, Generic)
 import GHC.TypeLits (AppendSymbol, Symbol)
-import Gargantext.Prelude.Config (gc_url)
-import Gargantext.API.Admin.Auth (AuthContext, auth)
-import Gargantext.API.Admin.FrontEnd (frontEndServer)
-import Gargantext.API.Admin.Settings
-import Gargantext.API.Ngrams (HasRepoSaver(..), saveRepo)
-import Gargantext.API.Prelude
-import Gargantext.API.Routes
-import Gargantext.Prelude
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
 import Network.Wai.Handler.Warp hiding (defaultSettings)
@@ -76,7 +68,18 @@ import System.IO (FilePath)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
 import qualified Paths_gargantext           as PG -- cabal magic build module
+
 import qualified Gargantext.API.Public      as Public
+
+import Gargantext.Prelude.Config (gc_url)
+import Gargantext.API.Admin.Auth (AuthContext, auth)
+import Gargantext.API.Admin.FrontEnd (frontEndServer)
+import Gargantext.API.Admin.Settings (newEnv)
+import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, env_gargConfig, jwtSettings, settings)
+import Gargantext.API.Ngrams (HasRepoSaver(..), saveRepo)
+import Gargantext.API.Prelude
+import Gargantext.API.Routes
+import Gargantext.Prelude
 
 
 data Mode = Dev | Mock | Prod 

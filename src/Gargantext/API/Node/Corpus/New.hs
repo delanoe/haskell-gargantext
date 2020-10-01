@@ -37,7 +37,7 @@ import Gargantext.Prelude
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import qualified Gargantext.API.Admin.Orchestrator.Types as T
-import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})

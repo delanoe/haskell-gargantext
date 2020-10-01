@@ -23,10 +23,13 @@ import Data.Set (Set)
 import Data.Text (Text)
 import Data.Validity
 
-import Gargantext.API.Ngrams
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
+
+mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
+mergeNgramsElement _neOld neNew = neNew
 
 type RootTerm = Text
 

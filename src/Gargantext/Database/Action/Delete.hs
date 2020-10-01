@@ -21,7 +21,7 @@ import Control.Lens     (view, (^.))
 import Data.Text
 import Servant
 
-import Gargantext.API.Admin.Settings
+import Gargantext.API.Admin.Types
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow.Utils (getUserId)
 import Gargantext.Database.Action.Share (delFolderTeam)

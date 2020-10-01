@@ -38,8 +38,8 @@ import Servant.Job.Async
 import Servant.Job.Core (HasServerError(..), serverError)
 
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Admin.Settings
-import Gargantext.API.Ngrams
+import Gargantext.API.Admin.Types
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
@@ -103,10 +103,6 @@ type EnvC env =
   , HasJobEnv         env JobLog JobLog
   , HasConfig         env
   )
-
--------------------------------------------------------------------
-runCmdReplEasy :: Cmd' DevEnv GargError a -> IO a
-runCmdReplEasy f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
 
 -------------------------------------------------------------------
 -- | This Type is needed to prepare the function before the GargServer

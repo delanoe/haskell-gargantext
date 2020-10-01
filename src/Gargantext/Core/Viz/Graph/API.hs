@@ -10,8 +10,6 @@ Portability : POSIX
 -}
 
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators     #-}
 

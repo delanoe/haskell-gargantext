@@ -27,15 +27,16 @@ import Servant.Job.Async
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
 
-import Gargantext.Prelude
-import Gargantext.API.Node.Corpus.New.File (FileType(..))
-import Gargantext.API.Ngrams
 import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
+import Gargantext.API.Ngrams.Types (NgramsTableMap, RepoCmdM, Versioned(..))
+import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))

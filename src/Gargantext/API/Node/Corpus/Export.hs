@@ -28,7 +28,7 @@ import Data.Set (Set)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Ngrams
+import Gargantext.API.Ngrams.Types
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
 import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Prelude.Crypto.Hash (hash)

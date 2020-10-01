@@ -29,7 +29,7 @@ import qualified Gargantext.Prelude.Utils as GPU
 
 import Gargantext.Core.Types (TODO)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Types
 import Gargantext.API.Prelude
 import Gargantext.Database.Action.Flow.Types

@@ -712,6 +712,9 @@ type RepoCmdM   env err m =
   )
 
 
+type QueryParamR = QueryParam' '[Required, Strict]
+
+
 -- Instances
 instance Arbitrary NgramsRepoElement where
   arbitrary = elements $ map ngramsElementToRepo ns

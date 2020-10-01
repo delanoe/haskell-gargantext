@@ -17,16 +17,17 @@ module Gargantext.API.Admin.Orchestrator where
 import Control.Lens hiding (elements)
 import Data.Aeson
 import Data.Text
-import Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
-import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Admin.Settings
-import Gargantext.Prelude
 import Servant
 import Servant.Job.Async
 import Servant.Job.Client
 import Servant.Job.Server
 import Servant.Job.Utils (extendBaseUrl)
 import qualified Data.ByteString.Lazy.Char8 as LBS
+
+import Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
+import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Admin.Types
+import Gargantext.Prelude
 
 callJobScrapy :: (ToJSON e, FromJSON e, FromJSON o, MonadClientJob m)
               => JobServerURL e Schedule o

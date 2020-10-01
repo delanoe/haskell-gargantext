@@ -29,7 +29,7 @@ import Test.QuickCheck
 
 import Gargantext.Prelude
 
-import Gargantext.API.Ngrams
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 
