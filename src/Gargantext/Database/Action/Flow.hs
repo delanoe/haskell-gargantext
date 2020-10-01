@@ -32,6 +32,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , flowCorpusFile
   , flowCorpus
   , flowAnnuaire
+  , insertMasterDocs
 
   , getOrMkRoot
   , getOrMk_RootWithCorpus
@@ -226,25 +227,6 @@ flowCorpusUser l user corpusName ctype ids = do
   -- _ <- mkAnnuaire  rootUserId userId
   pure userCorpusId
 
--- TODO Type NodeDocumentUnicised
-insertDocs :: ( FlowCmdM env err m
-              -- , FlowCorpus a
-              , FlowInsertDB a
-              )
-              => UserId
-              -> CorpusId
-              -> [a]
-              -> m ([DocId], [DocumentWithId a])
-insertDocs uId cId hs = do
-  let docs = map addUniqId hs
-  newIds <- insertDb uId cId docs
-  -- printDebug "newIds" newIds
-  let
-    newIds' = map reId newIds
-    documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)
-  _ <- Doc.add cId newIds'
-  pure (newIds', documentsWithId)
-
 
 insertMasterDocs :: ( FlowCmdM env err m
                     , FlowCorpus a
@@ -292,6 +274,27 @@ insertMasterDocs c lang hs  =  do
   pure ids'
 
 ------------------------------------------------------------------------
+-- TODO Type NodeDocumentUnicised
+insertDocs :: ( FlowCmdM env err m
+              -- , FlowCorpus a
+              , FlowInsertDB a
+              )
+              => UserId
+              -> CorpusId
+              -> [a]
+              -> m ([DocId], [DocumentWithId a])
+insertDocs uId cId hs = do
+  let docs = map addUniqId hs
+  newIds <- insertDb uId cId docs
+  -- printDebug "newIds" newIds
+  let
+    newIds' = map reId newIds
+    documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)
+  _ <- Doc.add cId newIds'
+  pure (newIds', documentsWithId)
+
+
+
 ------------------------------------------------------------------------
 viewUniqId' :: UniqId a
             => a

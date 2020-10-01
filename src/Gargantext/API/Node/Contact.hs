@@ -100,8 +100,6 @@ addContact u nId (AddContactParams fn ln) logStatus = do
                , _scst_remaining = Just 0
                , _scst_events    = Just []
                }
-
-
 addContact _uId _nId _p logStatus = do
   simuLogs logStatus 10
 

@@ -283,9 +283,11 @@ instance ToNode HyperdataDocument where
       m = fromMaybe 1 $ _hd_publication_month h
       d = fromMaybe 1 $ _hd_publication_day   h
 
--- TODO
+-- TODO better Node
 instance ToNode HyperdataContact where
-  toNode = undefined
+  toNode u p h = Node 0 Nothing (nodeTypeId NodeContact) u (Just p) "Contact" date h
+    where
+      date  = jour 2020 01 01
 
 
 
