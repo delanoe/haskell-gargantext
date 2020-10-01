@@ -358,17 +358,17 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
           pure ()
         Just cId -> do
           printDebug "[tableNgramsPut] updating scatter cId" cId
-          _ <- Metrics.updateScatter cId Nothing tabType Nothing
+          _ <- Metrics.updateScatter cId (Just listId) tabType Nothing
           printDebug "[tableNgramsPut] updating chart cId" cId
-          _ <- Metrics.updateChart cId Nothing tabType Nothing
+          _ <- Metrics.updateChart cId (Just listId) tabType Nothing
           printDebug "[tableNgramsPut] updating pie cId" cId
-          _ <- Metrics.updatePie cId Nothing tabType Nothing
+          _ <- Metrics.updatePie cId (Just listId) tabType Nothing
           printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
-          _ <- Metrics.updateTree cId Nothing tabType StopTerm
+          _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
           printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
-          _ <- Metrics.updateTree cId Nothing tabType CandidateTerm
+          _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
           printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
-          _ <- Metrics.updateTree cId Nothing tabType MapTerm
+          _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
           pure ()
 
       pure ret
