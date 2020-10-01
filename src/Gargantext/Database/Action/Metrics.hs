@@ -16,11 +16,13 @@ module Gargantext.Database.Action.Metrics
   where
 
 import Data.Map (Map)
+import qualified Data.Map    as Map
 import Data.Text (Text)
-import Gargantext.API.Ngrams (TabType(..), ngramsTypeFromTabType)
+
+import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
 import Gargantext.Core.Types (ListType(..), Limit, NodeType(..))
-import Gargantext.Database.Action.Flow (FlowCmdM)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser{-, getTficfWith-})
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Node (ListId, CorpusId)
@@ -28,7 +30,6 @@ import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Prelude
 import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScored-})
-import qualified Data.Map    as Map
 
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit

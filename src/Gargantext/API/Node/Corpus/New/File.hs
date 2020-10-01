@@ -33,7 +33,7 @@ import Servant.Swagger.Internal
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
-import Gargantext.API.Ngrams (TODO)
+import Gargantext.Core.Types (TODO)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
 import Gargantext.Prelude

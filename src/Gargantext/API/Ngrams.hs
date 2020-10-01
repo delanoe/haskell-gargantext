@@ -30,8 +30,6 @@ module Gargantext.API.Ngrams
   , getTableNgrams
   , setListNgrams
   --, rmListNgrams TODO fix before exporting
-  , putListNgrams
-  --, putListNgrams'
   , apiNgramsTableCorpus
   , apiNgramsTableDoc
 
@@ -64,7 +62,6 @@ module Gargantext.API.Ngrams
   , renv_lock
 
   , TabType(..)
-  , ngramsTypeFromTabType
 
   , HasRepoVar(..)
   , HasRepoSaver(..)
@@ -119,9 +116,10 @@ import Prelude (error)
 import Gargantext.Prelude
 
 import Gargantext.API.Admin.Types (HasSettings)
+import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, assertValid)
-import Gargantext.Core.Types (TODO)
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, TODO, assertValid)
+import Gargantext.Core.Utils (something)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
 import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
@@ -180,17 +178,6 @@ mkChildrenGroups addOrRem nt patches =
   ]
 -}
 
-ngramsTypeFromTabType :: TabType -> TableNgrams.NgramsType
-ngramsTypeFromTabType tabType =
-  let lieu = "Garg.API.Ngrams: " :: Text in
-    case tabType of
-      Sources    -> TableNgrams.Sources
-      Authors    -> TableNgrams.Authors
-      Institutes -> TableNgrams.Institutes
-      Terms      -> TableNgrams.NgramsTerms
-      _          -> panic $ lieu <> "No Ngrams for this tab"
-      -- TODO: This `panic` would disapear with custom NgramsType.
-
 ------------------------------------------------------------------------
 
 saveRepo :: ( MonadReader env m, MonadBase IO m, HasRepoSaver env )
@@ -219,10 +206,6 @@ ngramsStatePatchConflictResolution _ngramsType _nodeId _ngramsTerm
 insertNewOnly :: a -> Maybe b -> a
 insertNewOnly m = maybe m (const $ error "insertNewOnly: impossible")
   -- TODO error handling
-
-something :: Monoid a => Maybe a -> a
-something Nothing  = mempty
-something (Just a) = a
 
 {- unused
 -- TODO refactor with putListNgrams
@@ -278,62 +261,6 @@ setListNgrams listId ngramsType ns = do
                . something
              )
            )
-  saveRepo
-
--- NOTE
--- This is no longer part of the API.
--- This function is maintained for its usage in Database.Action.Flow.List.
--- If the given list of ngrams elements contains ngrams already in
--- the repo, they will be ignored.
-putListNgrams :: (HasInvalidError err, RepoCmdM env err m)
-              => NodeId
-              -> TableNgrams.NgramsType
-              -> [NgramsElement]
-              -> m ()
-putListNgrams _ _ [] = pure ()
-putListNgrams nodeId ngramsType nes = putListNgrams' nodeId ngramsType m
-  where
-    m = Map.fromList $ map (\n -> (n ^. ne_ngrams, ngramsElementToRepo n)) nes
-
-putListNgrams' :: (HasInvalidError err, RepoCmdM env err m)
-               => NodeId
-               -> TableNgrams.NgramsType
-               -> Map NgramsTerm NgramsRepoElement
-               -> m ()
-putListNgrams' nodeId ngramsType ns = do
-  -- printDebug "[putListNgrams'] nodeId" nodeId
-  -- printDebug "[putListNgrams'] ngramsType" ngramsType
-  -- printDebug "[putListNgrams'] ns" ns
-
-  let p1 = NgramsTablePatch . PM.fromMap $ NgramsReplace Nothing . Just <$> ns
-      (p0, p0_validity) = PM.singleton nodeId p1
-      (p, p_validity) = PM.singleton ngramsType p0
-  assertValid p0_validity
-  assertValid p_validity
-  {-
-  -- TODO
-  v <- currentVersion
-  q <- commitStatePatch (Versioned v p)
-  assert empty q
-  -- What if another commit comes in between?
-  -- Shall we have a blindCommitStatePatch? It would not ask for a version but just a patch.
-  -- The modifyMVar_ would test the patch with applicable first.
-  -- If valid the rest would be atomic and no merge is required.
-  -}
-  var <- view repoVar
-  liftBase $ modifyMVar_ var $ \r -> do
-    pure $ r & r_version +~ 1
-             & r_history %~ (p :)
-             & r_state . at ngramsType %~
-               (Just .
-                 (at nodeId %~
-                   ( Just
-                   . (<> ns)
-                   . something
-                   )
-                 )
-                 . something
-               )
   saveRepo
 
 
@@ -420,7 +347,29 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
       node <- getNode listId
       let nId = _node_id node
           uId = _node_userId node
+          mCId = _node_parentId node
+      printDebug "[tableNgramsPut] updating graph with nId" nId
+      printDebug "[tableNgramsPut] updating graph with uId" uId
       _ <- recomputeGraph uId nId Conditional
+
+      _ <- case mCId of
+        Nothing -> do
+          printDebug "[tableNgramsPut] can't update charts, no parent, nId" nId
+          pure ()
+        Just cId -> do
+          printDebug "[tableNgramsPut] updating scatter cId" cId
+          _ <- Metrics.updateScatter cId Nothing tabType Nothing
+          printDebug "[tableNgramsPut] updating chart cId" cId
+          _ <- Metrics.updateChart cId Nothing tabType Nothing
+          printDebug "[tableNgramsPut] updating pie cId" cId
+          _ <- Metrics.updatePie cId Nothing tabType Nothing
+          printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
+          _ <- Metrics.updateTree cId Nothing tabType StopTerm
+          printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
+          _ <- Metrics.updateTree cId Nothing tabType CandidateTerm
+          printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
+          _ <- Metrics.updateTree cId Nothing tabType MapTerm
+          pure ()
 
       pure ret
      
