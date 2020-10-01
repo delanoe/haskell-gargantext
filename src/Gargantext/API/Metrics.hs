@@ -93,6 +93,10 @@ updateScatter :: FlowCmdM env err m =>
   -> Maybe Limit
   -> m ()
 updateScatter cId maybeListId tabType maybeLimit = do
+  printDebug "[updateScatter] cId" cId
+  printDebug "[updateScatter] maybeListId" maybeListId
+  printDebug "[updateScatter] tabType" tabType
+  printDebug "[updateScatter] maybeLimit" maybeLimit
   _ <- updateScatter' cId maybeListId tabType maybeLimit
   pure ()
 
@@ -181,6 +185,10 @@ updateChart :: HasNodeError err =>
   -> Maybe Limit
   -> Cmd err ()
 updateChart cId maybeListId tabType maybeLimit = do
+  printDebug "[updateChart] cId" cId
+  printDebug "[updateChart] maybeListId" maybeListId
+  printDebug "[updateChart] tabType" tabType
+  printDebug "[updateChart] maybeLimit" maybeLimit
   _ <- updateChart' cId maybeListId tabType maybeLimit
   pure ()
 
@@ -261,6 +269,10 @@ updatePie :: FlowCmdM env err m =>
   -> Maybe Limit
   -> m ()
 updatePie cId maybeListId tabType maybeLimit = do
+  printDebug "[updatePie] cId" cId
+  printDebug "[updatePie] maybeListId" maybeListId
+  printDebug "[updatePie] tabType" tabType
+  printDebug "[updatePie] maybeLimit" maybeLimit
   _ <- updatePie' cId maybeListId tabType maybeLimit
   pure ()
 
@@ -352,6 +364,10 @@ updateTree :: FlowCmdM env err m =>
   -> ListType
   -> m ()
 updateTree cId maybeListId tabType listType = do
+  printDebug "[updateTree] cId" cId
+  printDebug "[updateTree] maybeListId" maybeListId
+  printDebug "[updateTree] tabType" tabType
+  printDebug "[updateTree] listType" listType
   _ <- updateTree' cId maybeListId tabType listType
   pure ()
 
