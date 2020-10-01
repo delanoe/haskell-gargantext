@@ -120,8 +120,8 @@ import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, TODO, assertValid)
 import Gargantext.Core.Utils (something)
-import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
+-- import Gargantext.Core.Viz.Graph.API (recomputeGraph)
+-- import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
@@ -346,29 +346,50 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
 
       node <- getNode listId
       let nId = _node_id node
-          uId = _node_userId node
+          _uId = _node_userId node
           mCId = _node_parentId node
-      printDebug "[tableNgramsPut] updating graph with nId" nId
-      printDebug "[tableNgramsPut] updating graph with uId" uId
-      _ <- recomputeGraph uId nId Conditional
+      -- printDebug "[tableNgramsPut] updating graph with nId" nId
+      -- printDebug "[tableNgramsPut] updating graph with uId" uId
+      -- _ <- recomputeGraph uId nId Conditional
+
+      printDebug "[tableNgramsPut] tabType" tabType
+      printDebug "[tableNgramsPut] listId" listId
 
       _ <- case mCId of
         Nothing -> do
           printDebug "[tableNgramsPut] can't update charts, no parent, nId" nId
           pure ()
         Just cId -> do
-          printDebug "[tableNgramsPut] updating scatter cId" cId
-          _ <- Metrics.updateScatter cId (Just listId) tabType Nothing
-          printDebug "[tableNgramsPut] updating chart cId" cId
-          _ <- Metrics.updateChart cId (Just listId) tabType Nothing
-          printDebug "[tableNgramsPut] updating pie cId" cId
-          _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-          printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
-          _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
-          printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
-          _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
-          printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
-          _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
+          case tabType of
+            Authors -> do
+              -- printDebug "[tableNgramsPut] Authors, updating Pie, cId" cId
+              _ <- Metrics.updatePie cId (Just listId) tabType Nothing
+              pure ()
+            Institutes -> do
+              -- printDebug "[tableNgramsPut] Institutes, updating Tree, cId" cId
+              -- printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
+              _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
+              -- printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
+              _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
+              -- printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
+              _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
+              pure ()
+            Sources -> do
+              -- printDebug "[tableNgramsPut] Sources, updating chart, cId" cId
+              _ <- Metrics.updateChart cId (Just listId) tabType Nothing
+              pure ()
+            Terms -> do
+              -- printDebug "[tableNgramsPut] Terms, updating Metrics (Histo), cId" cId
+              _ <- Metrics.updateChart cId (Just listId) tabType Nothing
+              _ <- Metrics.updatePie cId (Just listId) tabType Nothing
+              _ <- Metrics.updateScatter cId (Just listId) tabType Nothing
+              _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
+              _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
+              _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
+              pure ()
+            _ -> do
+              printDebug "[tableNgramsPut] no update for tabType = " tabType
+              pure ()
           pure ()
 
       pure ret
