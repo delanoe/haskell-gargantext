@@ -20,11 +20,12 @@ module Gargantext.Database.Action.Flow.Types
     where
 
 import Data.Aeson (ToJSON)
+
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (HasInvalidError)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
 import Gargantext.Core.Text.Terms
-import Gargantext.API.Ngrams (HasRepoVar, RepoCmdM)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node.Document.Insert

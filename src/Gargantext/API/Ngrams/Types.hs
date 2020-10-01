@@ -725,3 +725,15 @@ instance Arbitrary NgramsRepoElement where
 instance FromHttpApiData (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
   where
     parseUrlPiece x = maybeToEither x (decode $ cs x)
+
+
+ngramsTypeFromTabType :: TabType -> TableNgrams.NgramsType
+ngramsTypeFromTabType tabType =
+  let lieu = "Garg.API.Ngrams: " :: Text in
+    case tabType of
+      Sources    -> TableNgrams.Sources
+      Authors    -> TableNgrams.Authors
+      Institutes -> TableNgrams.Institutes
+      Terms      -> TableNgrams.NgramsTerms
+      _          -> panic $ lieu <> "No Ngrams for this tab"
+      -- TODO: This `panic` would disapear with custom NgramsType.

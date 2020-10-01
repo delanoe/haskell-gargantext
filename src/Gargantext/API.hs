@@ -76,7 +76,8 @@ import Gargantext.API.Admin.Auth (AuthContext, auth)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, env_gargConfig, jwtSettings, settings)
-import Gargantext.API.Ngrams (HasRepoSaver(..), saveRepo)
+import Gargantext.API.Ngrams (saveRepo)
+import Gargantext.API.Ngrams.Types (HasRepoSaver(..))
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
 import Gargantext.Prelude

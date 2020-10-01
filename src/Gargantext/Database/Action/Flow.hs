@@ -15,7 +15,7 @@ Portability : POSIX
 -- TODO-EVENTS: InsertedNodes
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans    #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
@@ -60,36 +60,36 @@ import GHC.Generics (Generic)
 import System.FilePath (FilePath)
 
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Ext.IMT (toSchoolName)
+import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Core.Flow.Types
+import Gargantext.Core.Text
+import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
+import Gargantext.Core.Text.List (buildNgramsLists,StopSize(..))
+import Gargantext.Core.Text.Terms
+import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (Terms(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
+import Gargantext.Database.Action.Search (searchDocInDatabase)
+import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
-import Gargantext.Database.Action.Search (searchDocInDatabase)
-import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
-import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
-import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
+import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node (NodePoly(..))
-import Gargantext.Core.Ext.IMT (toSchoolName)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
-import Gargantext.Core.Text
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
-import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
-import Gargantext.Core.Text.List (buildNgramsLists,StopSize(..))
-import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Core.Text.Terms
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Core.Text.Corpus.API as API
 

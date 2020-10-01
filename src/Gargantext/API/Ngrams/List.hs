@@ -33,7 +33,7 @@ import Gargantext.API.Ngrams.Types (NgramsTableMap, RepoCmdM, Versioned(..))
 import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
 import Gargantext.Prelude

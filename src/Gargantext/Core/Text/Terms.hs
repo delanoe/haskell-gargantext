@@ -39,23 +39,24 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import Data.Traversable
-import GHC.Base (String)
-import GHC.Generics (Generic)
-import Gargantext.Core
-import Gargantext.Core.Types
-import Gargantext.Core.Flow.Types
-import Gargantext.Prelude
-import Gargantext.Core.Text (sentences, HasText(..))
-import Gargantext.Core.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
-import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
-import Gargantext.Core.Text.Terms.Mono  (monoTerms)
-import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Core.Text.Terms.Mono.Stem (stem)
-import Gargantext.Core.Text.Terms.Mono.Token.En (tokenize)
-import Gargantext.Core.Text.Terms.Multi (multiterms)
 import qualified Data.List as List
 import qualified Data.Set  as Set
 import qualified Data.Text as Text
+import GHC.Base (String)
+import GHC.Generics (Generic)
+
+import Gargantext.Core
+import Gargantext.Core.Flow.Types
+import Gargantext.Core.Text (sentences, HasText(..))
+import Gargantext.Core.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
+import Gargantext.Core.Text.Terms.Mono  (monoTerms)
+import Gargantext.Core.Text.Terms.Mono.Stem (stem)
+import Gargantext.Core.Text.Terms.Mono.Token.En (tokenize)
+import Gargantext.Core.Text.Terms.Multi (multiterms)
+import Gargantext.Core.Types
+import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
+import Gargantext.Prelude
 
 
 data TermType lang

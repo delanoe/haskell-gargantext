@@ -29,7 +29,7 @@ import qualified Gargantext.API.Node.Corpus.New.File as NewFile
 import Gargantext.API.Admin.Orchestrator.Types hiding (AsyncJobs)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM)  -- flowAnnuaire
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)  -- flowAnnuaire
 import Gargantext.Database.Admin.Types.Node (AnnuaireId)
 import Gargantext.Prelude
 

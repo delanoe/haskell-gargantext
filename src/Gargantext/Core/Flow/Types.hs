@@ -16,6 +16,7 @@ module Gargantext.Core.Flow.Types where
 
 import Control.Lens -- (Lens')
 import Data.Map (Map)
+
 import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node

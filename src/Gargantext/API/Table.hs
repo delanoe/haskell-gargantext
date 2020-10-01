@@ -41,7 +41,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 import Gargantext.API.HashedResponse
-import Gargantext.API.Ngrams (TabType(..))
+import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (Offset, Limit, TableResult(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
