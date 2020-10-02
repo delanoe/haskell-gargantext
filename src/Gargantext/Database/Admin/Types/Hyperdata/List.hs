@@ -21,23 +21,39 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.List
   where
 
+import Data.Map (Map)
+import qualified Data.Map as Map
+
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Types (Histo(..))
 import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.API.Ngrams.Types (TabType)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)
 
 ------------------------------------------------------------------------
 data HyperdataList =
-  HyperdataList { _hl_chart   :: !(Maybe (ChartMetrics Histo))
+  HyperdataList { _hl_chart   :: !(Map TabType (ChartMetrics Histo))
                 , _hl_list    :: !(Maybe Text)
-                , _hl_pie     :: !(Maybe (ChartMetrics Histo))
-                , _hl_scatter :: !(Maybe Metrics)
-                , _hl_tree    :: !(Maybe (ChartMetrics [MyTree]))
+                , _hl_pie     :: !(Map TabType (ChartMetrics Histo))
+                , _hl_scatter :: !(Map TabType Metrics)
+                , _hl_tree    :: !(Map TabType (ChartMetrics [MyTree]))
                 } deriving (Show, Generic)
+  -- HyperdataList { _hl_chart   :: !(Maybe (ChartMetrics Histo))
+  --               , _hl_list    :: !(Maybe Text)
+  --               , _hl_pie     :: !(Maybe (ChartMetrics Histo))
+  --               , _hl_scatter :: !(Maybe Metrics)
+  --               , _hl_tree    :: !(Maybe (ChartMetrics [MyTree]))
+  --               } deriving (Show, Generic)
 
 defaultHyperdataList :: HyperdataList
-defaultHyperdataList = HyperdataList Nothing Nothing Nothing Nothing Nothing
+defaultHyperdataList = HyperdataList {
+    _hl_chart   = Map.empty
+  , _hl_list    = Nothing
+  , _hl_pie     = Map.empty
+  , _hl_scatter = Map.empty
+  , _hl_tree    = Map.empty
+  }
 
 data HyperdataListCooc =
   HyperdataListCooc { _hlc_preferences :: !Text }
