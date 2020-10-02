@@ -59,7 +59,7 @@ import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 data TabType   = Docs   | Trash   | MoreFav | MoreTrash
                | Terms  | Sources | Authors | Institutes
                | Contacts
-  deriving (Generic, Enum, Bounded, Show)
+  deriving (Bounded, Enum, Eq, Generic, Ord, Show)
 
 instance FromHttpApiData TabType
    where
@@ -76,7 +76,6 @@ instance FromHttpApiData TabType
     parseUrlPiece "Contacts"   = pure Contacts
 
     parseUrlPiece _            = Left "Unexpected value of TabType"
-
 instance ToParamSchema TabType
 instance ToJSON        TabType
 instance FromJSON      TabType
@@ -84,6 +83,10 @@ instance ToSchema      TabType
 instance Arbitrary     TabType
   where
     arbitrary = elements [minBound .. maxBound]
+instance FromJSONKey TabType where
+  fromJSONKey = genericFromJSONKey defaultJSONKeyOptions
+instance ToJSONKey TabType where
+  toJSONKey = genericToJSONKey defaultJSONKeyOptions
 
 newtype MSet a = MSet (Map a ())
   deriving (Eq, Ord, Show, Generic, Arbitrary, Semigroup, Monoid)
