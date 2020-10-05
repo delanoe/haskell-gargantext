@@ -48,3 +48,15 @@ updateNodesWithType nt p f = do
   mapM (\n -> updateHyperdata (_node_id n) (f $ _node_hyperdata n)) ns
 
 
+-- | In case the Hyperdata Types are not compatible
+updateNodesWithType_ :: ( HasNodeError err
+                       , JSONB a
+                       , ToJSON a
+                       ) => NodeType -> a -> Cmd err [Int64]
+updateNodesWithType_ nt h = do
+  ns <- getNodesIdWithType nt
+  mapM (\n -> updateHyperdata n h) ns
+
+
+
+

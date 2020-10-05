@@ -160,12 +160,23 @@ selectNodesWithParentID n = proc () -> do
 -- runCmdReplEasy  (getNodesWithType NodeList (Proxy :: Proxy HyperdataList))
 getNodesWithType :: (HasNodeError err, JSONB a) => NodeType -> proxy a -> Cmd err [Node a]
 getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
+  where
+    selectNodesWithType :: NodeType -> Query NodeRead
+    selectNodesWithType nt = proc () -> do
+        row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
+        restrict -< tn .== (pgInt4 $ nodeTypeId nt)
+        returnA -< row
 
-selectNodesWithType :: NodeType -> Query NodeRead
-selectNodesWithType nt = proc () -> do
+getNodesIdWithType :: HasNodeError err => NodeType -> Cmd err [NodeId]
+getNodesIdWithType nt = do
+  ns <- runOpaQuery $ selectNodesIdWithType nt
+  pure (map NodeId ns)
+
+selectNodesIdWithType :: NodeType -> Query (Column PGInt4)
+selectNodesIdWithType nt = proc () -> do
     row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
     restrict -< tn .== (pgInt4 $ nodeTypeId nt)
-    returnA -< row
+    returnA -< _node_id row
 
 ------------------------------------------------------------------------
 

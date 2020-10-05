@@ -33,10 +33,9 @@ main = do
 
   let
     updateNodes :: Cmd GargError [Int64]
-    updateNodes = updateNodesWithType
+    updateNodes = updateNodesWithType_
                     NodeList
-                    (Proxy :: Proxy HyperdataList)
-                    (\_ -> defaultHyperdataList)
+                    defaultHyperdataList
 
   withDevEnv iniPath $ \env -> do
     x <- runCmdDev env updateNodes
