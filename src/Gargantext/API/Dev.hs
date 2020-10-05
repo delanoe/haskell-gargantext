@@ -9,5 +9,5 @@ import Gargantext.Database.Prelude
 import Gargantext.Prelude
 
 -------------------------------------------------------------------
-runCmdReplEasy :: Cmd' DevEnv GargError a -> IO a
+runCmdReplEasy :: Cmd'' DevEnv GargError a -> IO a
 runCmdReplEasy f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f

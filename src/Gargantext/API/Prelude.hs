@@ -87,10 +87,11 @@ type GargServerC env err m =
     , HasConfig    env
     )
 
-type GargServerT env err m api = GargServerC env err m => ServerT api m
 
 type GargServer api =
   forall env err m. GargServerT env err m api
+
+type GargServerT env err m api = GargServerC env err m => ServerT api m
 
 -- This is the concrete monad. It needs to be used as little as possible,
 -- instead, prefer GargServer, GargServerT, GargServerC.
@@ -106,6 +107,9 @@ type EnvC env =
 
 -------------------------------------------------------------------
 -- | This Type is needed to prepare the function before the GargServer
+type GargNoServer t =
+  forall env err m. GargNoServer' env err m => m t
+
 type GargNoServer' env err m =
   ( CmdM           env err m
   , HasRepo        env
@@ -113,8 +117,6 @@ type GargNoServer' env err m =
   , HasNodeError       err
   )
 
-type GargNoServer t =
-  forall env err m. GargNoServer' env err m => m t
 -------------------------------------------------------------------
 
 data GargError

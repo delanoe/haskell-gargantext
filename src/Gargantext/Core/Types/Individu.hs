@@ -49,6 +49,7 @@ data NewUser a = NewUser { _nu_username :: Username
                          , _nu_email    :: Email
                          , _nu_password :: a
                          }
+  deriving (Show)
 
 arbitraryUsername :: [Username]
 arbitraryUsername = ["gargantua"] <> users

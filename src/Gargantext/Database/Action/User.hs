@@ -15,28 +15,54 @@ module Gargantext.Database.Action.User
   where
 
 -- import Data.Maybe (catMaybes)
-import Data.Text (Text, unlines)
+import Data.Text (Text, unlines, splitOn)
 import Gargantext.Database.Query.Table.User
 import Gargantext.Core.Types.Individu
 import Gargantext.Database.Prelude
+import Control.Monad.Random
 import Gargantext.Prelude
 import Gargantext.Prelude.Mail (gargMail, GargMail(..))
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..), nodeError, NodeError(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot)
+import Gargantext.Prelude.Crypto.Pass.User (gargPass)
+
+type EmailAddress = Text
 
 ------------------------------------------------------------------------
-mkUser :: HasNodeError err => Text -> NewUser GargPassword -> Cmd err Int64
-mkUser address u = mkUsers address [u]
+newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err) => Text -> [Text] -> m Int64
+newUsers address us = do
+  us' <- mapM newUserQuick us
+  newUsers' address us'
+------------------------------------------------------------------------
+newUserQuick :: (MonadRandom m) => Text -> m (NewUser GargPassword)
+newUserQuick n = do
+  pass <- gargPass
+  let (u,_m) = guessUserName n
+  pure (NewUser u n (GargPassword pass))
 
-mkUsers :: HasNodeError err => Text -> [NewUser GargPassword] -> Cmd err Int64
-mkUsers address us = do
+-- | TODO better check for invalid email adress
+guessUserName :: Text -> (Text,Text)
+guessUserName n = case splitOn "@" n of
+    [u',m'] -> if m' /= "" then (u',m')
+                           else panic "Email Invalid"
+    _  -> panic "Email invalid"
+
+------------------------------------------------------------------------
+newUser' :: HasNodeError err
+        => Text -> NewUser GargPassword -> Cmd err Int64
+newUser' address u = newUsers' address [u]
+
+newUsers' :: HasNodeError err
+         => Text -> [NewUser GargPassword] -> Cmd err Int64
+newUsers' address us = do
   us' <- liftBase    $ mapM toUserHash us
   r   <- insertUsers $ map toUserWrite us'
   _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
   _   <- liftBase    $ mapM (mail Invitation address) us
   pure r
 ------------------------------------------------------------------------
-updateUser :: HasNodeError err => Text -> NewUser GargPassword -> Cmd err Int64
+updateUser :: HasNodeError err
+           => Text -> NewUser GargPassword -> Cmd err Int64
 updateUser address u = do
   u' <- liftBase   $ toUserHash   u
   n  <- updateUserDB $ toUserWrite  u'
@@ -66,9 +92,9 @@ logInstructions address (NewUser u _ (GargPassword p)) =
   unlines [ "Hello"
           , "You have been invited to test the new GarganText platform!"
           , ""
-          , "You can log on to: "  <> address
-          , "Your login is: "      <> u
-          , "Your password is: "   <> p
+          , "You can log in to: " <> address
+          , "Your username is: "  <> u
+          , "Your password is: "  <> p
           , ""
           , "Please read the full terms of use on:"
           , "https://gitlab.iscpif.fr/humanities/tofu/tree/master"
@@ -88,9 +114,9 @@ updateInstructions address (NewUser u _ (GargPassword p)) =
   unlines [ "Hello"
           , "Your account have been updated on the GarganText platform!"
           , ""
-          , "You can log on to: "  <> address
-          , "Your login is: "      <> u
-          , "Your password is: "   <> p
+          , "You can log in to: " <> address
+          , "Your username is: "  <> u
+          , "Your password is: "  <> p
           , ""
           , "As reminder, please read the full terms of use on:"
           , "https://gitlab.iscpif.fr/humanities/tofu/tree/master"
@@ -104,7 +130,6 @@ updateInstructions address (NewUser u _ (GargPassword p)) =
           , "-- "
           , "The Gargantext Team (CNRS)"
           ]
-
 
 
 ------------------------------------------------------------------------

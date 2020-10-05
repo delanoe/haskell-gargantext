@@ -18,6 +18,7 @@ import Control.Lens (Getter, view)
 import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Monad.Except
 import Control.Monad.Reader
+import Control.Monad.Random
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.ByteString.Char8 (hPutStrLn)
@@ -58,21 +59,36 @@ instance HasConfig GargConfig where
 -------------------------------------------------------
 type JSONB = QueryRunnerColumnDefault PGJsonb
 -------------------------------------------------------
+
+type CmdM'' env err m =
+  ( MonadReader     env     m
+  , MonadError          err m
+  , MonadBaseControl IO     m
+  , MonadRandom             m
+  )
+
 type CmdM' env err m =
-  ( MonadReader env m
-  , MonadError err m
-  , MonadBaseControl IO m
+  ( MonadReader     env     m
+  , MonadError          err m
+  , MonadBaseControl IO     m
+  -- , MonadRandom             m
   )
 
 type CmdM env err m =
-  ( CmdM' env err m
+  ( CmdM'             env err m
   , HasConnectionPool env
   , HasConfig         env
   )
 
-type Cmd' env err a = forall m. CmdM' env err m => m a
+type Cmd'' env err a = forall m.     CmdM'' env err m => m a
+type Cmd' env err a = forall m.     CmdM' env err m => m a
+type Cmd      err a = forall m env. CmdM  env err m => m a
 
-type Cmd err a = forall m env. CmdM env err m => m a
+
+
+
+
+
 
 fromInt64ToInt :: Int64 -> Int
 fromInt64ToInt = fromIntegral
@@ -85,7 +101,7 @@ mkCmd k = do
 
 runCmd :: (HasConnectionPool env)
        => env
-       -> Cmd' env err a
+       -> Cmd'' env err a
        -> IO (Either err a)
 runCmd env m = runExceptT $ runReaderT m env
 
@@ -107,9 +123,10 @@ formatPGSQuery q a = mkCmd $ \conn -> PGS.formatQuery conn q a
 runPGSQuery' :: (PGS.ToRow a, PGS.FromRow b) => PGS.Query -> a -> Cmd err [b]
 runPGSQuery' q a = mkCmd $ \conn -> PGS.query conn q a
 
-runPGSQuery :: (MonadError err m, MonadReader env m, MonadBaseControl IO m,
-                PGS.FromRow r, PGS.ToRow q, HasConnectionPool env, HasConfig env)
-                => PGS.Query -> q -> m [r]
+runPGSQuery :: ( CmdM env err m
+               , PGS.FromRow r, PGS.ToRow q
+               )
+               => PGS.Query -> q -> m [r]
 runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
   where
     printError c (SomeException e) = do

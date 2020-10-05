@@ -13,10 +13,8 @@ import Codec.Serialise (Serialise())
 import Control.Category ((>>>))
 import Control.Concurrent
 import Control.Lens (makeLenses, makePrisms, Getter, Iso', iso, from, (.~), (?=), (#), to, folded, {-withIndex, ifolded,-} view, use, (^.), (^?), (%~), (.~), (%=), at, _Just, Each(..), itraverse_, both, forOf_, (?~))
-import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
@@ -51,7 +49,7 @@ import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), NodeId)
 import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Prelude (fromField')
+import Gargantext.Database.Prelude (fromField', CmdM')
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -710,9 +708,7 @@ instance HasRepoSaver RepoEnv where
   repoSaver = renv_saver
 
 type RepoCmdM   env err m =
-  ( MonadReader env     m
-  , MonadError      err m
-  , MonadBaseControl IO m
+  ( CmdM' env err m
   , HasRepo     env
   )
 
