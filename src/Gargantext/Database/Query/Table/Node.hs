@@ -99,7 +99,7 @@ getNodesWith parentId _ nodeType maybeOffset maybeLimit =
 
 -- TODO: Why is the second parameter ignored?
 -- TODO: Why not use getNodesWith?
-getNodesWithParentId :: (Hyperdata a, QueryRunnerColumnDefault PGJsonb a)
+getNodesWithParentId :: (Hyperdata a, JSONB a)
                      => Maybe NodeId
                      -> Cmd err [Node a]
 getNodesWithParentId n = runOpaQuery $ selectNodesWithParentID n'
@@ -154,13 +154,20 @@ selectNodesWithParentID n = proc () -> do
     restrict -< parent_id .== (pgNodeId n)
     returnA -< row
 
-selectNodesWithType :: Column PGInt4 -> Query NodeRead
-selectNodesWithType type_id = proc () -> do
+
+------------------------------------------------------------------------
+-- | Example of use:
+-- runCmdReplEasy  (getNodesWithType NodeList (Proxy :: Proxy HyperdataList))
+getNodesWithType :: (HasNodeError err, JSONB a) => NodeType -> proxy a -> Cmd err [Node a]
+getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
+
+selectNodesWithType :: NodeType -> Query NodeRead
+selectNodesWithType nt = proc () -> do
     row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
-    restrict -< tn .== type_id
+    restrict -< tn .== (pgInt4 $ nodeTypeId nt)
     returnA -< row
 
-type JSONB = QueryRunnerColumnDefault PGJsonb
+------------------------------------------------------------------------
 
 
 getNode :: HasNodeError err => NodeId -> Cmd err (Node Value)

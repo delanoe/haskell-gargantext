@@ -15,13 +15,14 @@ Portability : POSIX
 module Gargantext.Database.Query.Table.Node.UpdateOpaleye
   where
 
-
 import Opaleye
 import Data.Aeson (encode, ToJSON)
 import Gargantext.Prelude
-import Gargantext.Database.Schema.Node 
+import Gargantext.Database.Schema.Node
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude (Cmd, mkCmd)
+import Gargantext.Database.Prelude (Cmd, mkCmd, JSONB)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Error
 
 updateHyperdata :: ToJSON a => NodeId -> a -> Cmd err Int64
 updateHyperdata i h = mkCmd $ \c -> runUpdate_ c (updateHyperdataQuery i h)
@@ -36,4 +37,14 @@ updateHyperdataQuery i h = Update
    , uReturning  = rCount
    }
     where h' =  (pgJSONB $ cs $ encode $ h)
+
+----------------------------------------------------------------------------------
+updateNodesWithType :: ( HasNodeError err
+                       , JSONB a
+                       , ToJSON a
+                       ) => NodeType -> proxy a -> (a -> a) -> Cmd err [Int64]
+updateNodesWithType nt p f = do
+  ns <- getNodesWithType nt p
+  mapM (\n -> updateHyperdata (_node_id n) (f $ _node_hyperdata n)) ns
+
 

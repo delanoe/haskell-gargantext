@@ -30,7 +30,7 @@ import Test.QuickCheck.Arbitrary
 
 import Gargantext.API.Prelude
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node (JSONB{-, getNodeWith-})
+import Gargantext.Database.Prelude (JSONB{-, getNodeWith-})
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------

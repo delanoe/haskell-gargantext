@@ -76,6 +76,7 @@ instance FromHttpApiData TabType
     parseUrlPiece "Contacts"   = pure Contacts
 
     parseUrlPiece _            = Left "Unexpected value of TabType"
+
 instance ToParamSchema TabType
 instance ToJSON        TabType
 instance FromJSON      TabType
@@ -83,6 +84,7 @@ instance ToSchema      TabType
 instance Arbitrary     TabType
   where
     arbitrary = elements [minBound .. maxBound]
+
 instance FromJSONKey TabType where
   fromJSONKey = genericFromJSONKey defaultJSONKeyOptions
 instance ToJSONKey TabType where

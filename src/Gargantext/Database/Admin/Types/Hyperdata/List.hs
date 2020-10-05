@@ -23,7 +23,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.List
 
 import Data.Map (Map)
 import qualified Data.Map as Map
-
+import Control.Applicative
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Types (Histo(..))
 import Gargantext.API.Ngrams.NTree (MyTree)
@@ -47,14 +47,24 @@ data HyperdataList =
   --               } deriving (Show, Generic)
 
 defaultHyperdataList :: HyperdataList
-defaultHyperdataList = HyperdataList {
-    _hl_chart   = Map.empty
-  , _hl_list    = Nothing
-  , _hl_pie     = Map.empty
-  , _hl_scatter = Map.empty
-  , _hl_tree    = Map.empty
-  }
+defaultHyperdataList =
+  HyperdataList { _hl_chart   = Map.empty
+                , _hl_list    = Nothing
+                , _hl_pie     = Map.empty
+                , _hl_scatter = Map.empty
+                , _hl_tree    = Map.empty
+                }
 
+------------------------------------------------------------------------
+-- Instances
+------------------------------------------------------------------------
+instance Hyperdata HyperdataList
+
+$(makeLenses ''HyperdataList)
+$(deriveJSON (unPrefix "_hl_") ''HyperdataList)
+
+
+------------------------------------------------------------------------
 data HyperdataListCooc =
   HyperdataListCooc { _hlc_preferences :: !Text }
   deriving (Generic)
@@ -62,16 +72,14 @@ data HyperdataListCooc =
 defaultHyperdataListCooc :: HyperdataListCooc
 defaultHyperdataListCooc = HyperdataListCooc ""
 
-------------------------------------------------------------------------
--- Instances
-------------------------------------------------------------------------
-instance Hyperdata HyperdataList
-instance Hyperdata HyperdataListCooc
 
-$(makeLenses ''HyperdataList)
+instance Hyperdata HyperdataListCooc
 $(makeLenses ''HyperdataListCooc)
-$(deriveJSON (unPrefix "_hl_") ''HyperdataList)
 $(deriveJSON (unPrefix "_hlc_") ''HyperdataListCooc)
+
+
+
+
 
 instance Arbitrary HyperdataList where
   arbitrary = pure defaultHyperdataList

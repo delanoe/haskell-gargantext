@@ -30,7 +30,7 @@ import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
-import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery)
+import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery, PGJsonb, QueryRunnerColumnDefault)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
 import System.IO (stderr)
@@ -55,6 +55,8 @@ class HasConfig env where
 instance HasConfig GargConfig where
   hasConfig = identity
 
+-------------------------------------------------------
+type JSONB = QueryRunnerColumnDefault PGJsonb
 -------------------------------------------------------
 type CmdM' env err m =
   ( MonadReader env m

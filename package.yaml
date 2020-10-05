@@ -55,6 +55,7 @@ library:
   - Gargantext.Database.Action.Flow
   - Gargantext.Database.Query.Table.User
   - Gargantext.Database.Query.Table.Node
+  - Gargantext.Database.Query.Table.Node.UpdateOpaleye
   - Gargantext.Database.Prelude
   - Gargantext.Database.Admin.Trigger.Init
   - Gargantext.Database.Admin.Config
@@ -373,6 +374,19 @@ executables:
   gargantext-init:
     main: Main.hs
     source-dirs: bin/gargantext-init
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - gargantext
+      - base
+
+  gargantext-upgrade:
+    main: Main.hs
+    source-dirs: bin/gargantext-upgrade
     ghc-options:
     - -threaded
     - -rtsopts
