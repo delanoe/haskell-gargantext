@@ -29,6 +29,8 @@ module Gargantext.Database.Query.Tree
   , dt_nodeId
   , dt_typeId
   , findShared
+  , findNodes
+  , NodeMode(..)
   )
   where
 
@@ -62,7 +64,7 @@ instance Eq DbTreeNode where
 
 ------------------------------------------------------------------------
 
-data TreeMode = Basic | Advanced
+data TreeMode = TreeBasic | TreeAdvanced
 
 -- | Returns the Tree of Nodes in Database
 tree :: HasTreeError err
@@ -70,8 +72,8 @@ tree :: HasTreeError err
      -> RootId
      -> [NodeType]
      -> Cmd err (Tree NodeTree)
-tree Basic    = tree_basic
-tree Advanced = tree_advanced
+tree TreeBasic    = tree_basic
+tree TreeAdvanced = tree_advanced
 
 -- | Tree basic returns the Tree of Nodes in Database
 -- (without shared folders)
@@ -91,10 +93,22 @@ tree_advanced :: HasTreeError err
               -> [NodeType]
               -> Cmd err (Tree NodeTree)
 tree_advanced r nodeTypes = do
-  mainRoot    <- dbTree     r nodeTypes
-  sharedRoots <- findShared r NodeFolderShared nodeTypes sharedTreeUpdate
-  publicRoots <- findShared r NodeFolderPublic nodeTypes publicTreeUpdate
+  mainRoot    <- findNodes Private r nodeTypes
+  sharedRoots <- findNodes Shared  r nodeTypes
+  publicRoots <- findNodes Public  r nodeTypes
   toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
+
+------------------------------------------------------------------------
+data NodeMode = Private | Shared | Public
+
+findNodes :: HasTreeError err
+          => NodeMode
+          -> RootId -> [NodeType]
+          -> Cmd err [DbTreeNode]
+findNodes Private r nt = dbTree r nt
+findNodes Shared  r nt = findShared r NodeFolderShared nt sharedTreeUpdate
+findNodes Public  r nt = findShared r NodeFolderPublic nt publicTreeUpdate
+
 
 ------------------------------------------------------------------------
 -- | Collaborative Nodes in the Tree

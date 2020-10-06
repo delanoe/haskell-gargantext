@@ -42,9 +42,10 @@ getUserId UserPublic = nodeError NoUserFound
 -- | Username = Text
 -- UserName is User
 -- that is confusing, we should change this
+type Username = Text
 getUsername :: HasNodeError err
             => User
-            -> Cmd err Text
+            -> Cmd err Username
 getUsername (UserName u) = pure u
 getUsername (UserDBId i) = do
   users <- getUsersWithId i
