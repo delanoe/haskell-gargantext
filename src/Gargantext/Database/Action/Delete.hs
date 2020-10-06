@@ -23,7 +23,7 @@ import Servant
 
 import Gargantext.API.Admin.Types
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Action.Share (delFolderTeam)
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata.File

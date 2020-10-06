@@ -16,7 +16,7 @@ module Gargantext.Database.Action.Share
 import Control.Lens (view)
 import Gargantext.Database
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Admin.Config (hasNodeType, isInNodeTypes)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAny(..))
 import Gargantext.Database.Admin.Types.Node

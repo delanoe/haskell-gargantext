@@ -19,21 +19,21 @@ Portability : POSIX
 module Gargantext.Database.Query.Tree.Root
   where
 
-import Data.Either (Either, fromLeft, fromRight)
 import Control.Arrow (returnA)
-import Gargantext.Core.Types.Main (CorpusName)
+import Data.Either (Either, fromLeft, fromRight)
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Types.Main (CorpusName)
+import Gargantext.Database.Action.Node
+import Gargantext.Database.Action.User (getUserId, getUsername)
 import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
-import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
-import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (Cmd, runOpaQuery)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Error
+import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
-import Gargantext.Database.Action.Node
-import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
-import Gargantext.Database.Prelude (Cmd, runOpaQuery)
 import Gargantext.Prelude
 import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)
@@ -48,7 +48,6 @@ getRootId u = do
 
 getRoot :: User -> Cmd err [Node HyperdataUser]
 getRoot = runOpaQuery . selectRoot
-
 
 getOrMkRoot :: (HasNodeError err)
             => User
@@ -106,7 +105,7 @@ mkRoot user = do
   uid <- getUserId user
 
   -- TODO ? Which name for user Node ?
-  let una = "username"
+  una <- getUsername user
 
   case uid > 0 of
      False -> nodeError NegativeId

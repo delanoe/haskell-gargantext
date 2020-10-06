@@ -6,139 +6,56 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
+
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 module Gargantext.Database.Action.User
-  where
+    where
 
-import Control.Lens (view)
-import Control.Monad.Random
-import Data.Text (Text, unlines, splitOn)
-import Gargantext.Core.Types.Individu
-import Gargantext.Prelude.Config
-import Gargantext.Database.Action.Flow (getOrMkRoot)
-import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..), nodeError, NodeError(..))
+import Data.Text (Text)
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.User
+import Gargantext.Database.Query.Table.Node.Error
+import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
-import Gargantext.Prelude.Crypto.Pass.User (gargPass)
-import Gargantext.Prelude.Mail (gargMail, GargMail(..))
-
-type EmailAddress = Text
-------------------------------------------------------------------------
-newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err)
-         => [EmailAddress] -> m Int64
-newUsers us = do
-  us'  <- mapM newUserQuick us
-  conf <- view hasConfig
-  newUsers' (_gc_url conf) us'
-------------------------------------------------------------------------
-newUserQuick :: (MonadRandom m)
-             => Text -> m (NewUser GargPassword)
-newUserQuick n = do
-  pass <- gargPass
-  let (u,_m) = guessUserName n
-  pure (NewUser u n (GargPassword pass))
-
-guessUserName :: Text -> (Text,Text)
-guessUserName n = case splitOn "@" n of
-    [u',m'] -> if m' /= "" then (u',m')
-                           else panic "Email Invalid"
-    _  -> panic "Email invalid"
-------------------------------------------------------------------------
-newUser' :: HasNodeError err
-        => Text -> NewUser GargPassword -> Cmd err Int64
-newUser' address u = newUsers' address [u]
-
-newUsers' :: HasNodeError err
-         => Text -> [NewUser GargPassword] -> Cmd err Int64
-newUsers' address us = do
-  us' <- liftBase    $ mapM toUserHash us
-  r   <- insertUsers $ map toUserWrite us'
-  _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
-  _   <- liftBase    $ mapM (mail Invitation address) us
-  pure r
-------------------------------------------------------------------------
-updateUser :: HasNodeError err
-           => Text -> NewUser GargPassword -> Cmd err Int64
-updateUser address u = do
-  u' <- liftBase   $ toUserHash   u
-  n  <- updateUserDB $ toUserWrite  u'
-  _  <- liftBase   $ mail Update address u
-  pure n
 
 ------------------------------------------------------------------------
-data Mail = Invitation
-          | Update
-
-
--- TODO gargantext.ini config
-mail :: Mail -> Text -> NewUser GargPassword -> IO ()
-mail mtype address nu@(NewUser u m _) = gargMail (GargMail m (Just u) subject body)
-  where
-    subject = "[Your Garg Account]"
-    body    = bodyWith mtype address nu
-
-bodyWith :: Mail -> Text -> NewUser GargPassword -> Text
-bodyWith Invitation add nu = logInstructions    add nu
-bodyWith Update     add nu = updateInstructions add nu
-
-
--- TODO put this in a configurable file (path in gargantext.ini)
-logInstructions :: Text -> NewUser GargPassword -> Text
-logInstructions address (NewUser u _ (GargPassword p)) =
-  unlines [ "Hello"
-          , "You have been invited to test the new GarganText platform!"
-          , ""
-          , "You can log in to: " <> address
-          , "Your username is: "  <> u
-          , "Your password is: "  <> p
-          , ""
-          , "Please read the full terms of use on:"
-          , "https://gitlab.iscpif.fr/humanities/tofu/tree/master"
-          , ""
-          , "Your feedback will be valuable for further development"
-          , "of the platform, do not hesitate to contact us and"
-          , "to contribute on our forum:"
-          , "     https://discourse.iscpif.fr/c/gargantext"
-          , ""
-          , "With our best regards,"
-          , "-- "
-          , "The Gargantext Team (CNRS)"
-          ]
-
-updateInstructions :: Text -> NewUser GargPassword -> Text
-updateInstructions address (NewUser u _ (GargPassword p)) =
-  unlines [ "Hello"
-          , "Your account have been updated on the GarganText platform!"
-          , ""
-          , "You can log in to: " <> address
-          , "Your username is: "  <> u
-          , "Your password is: "  <> p
-          , ""
-          , "As reminder, please read the full terms of use on:"
-          , "https://gitlab.iscpif.fr/humanities/tofu/tree/master"
-          , ""
-          , "Your feedback is always valuable for further development"
-          , "of the platform, do not hesitate to contact us and"
-          , "to contribute on our forum:"
-          , "     https://discourse.iscpif.fr/c/gargantext"
-          , ""
-          , "With our best regards,"
-          , "-- "
-          , "The Gargantext Team (CNRS)"
-          ]
-
+getUserId :: HasNodeError err
+          => User
+          -> Cmd err UserId
+getUserId (UserDBId uid) = pure uid
+getUserId (RootId   rid) = do
+  n <- getNode rid
+  pure $ _node_userId n
+getUserId (UserName u  ) = do
+  muser <- getUser u
+  case muser of
+    Just user -> pure $ userLight_id user
+    Nothing   -> nodeError NoUserFound
+getUserId UserPublic = nodeError NoUserFound
 
 ------------------------------------------------------------------------
-rmUser :: HasNodeError err => User -> Cmd err Int64
-rmUser (UserName un) = deleteUsers [un]
-rmUser _ = nodeError NotImplYet
+-- | Username = Text
+-- UserName is User
+-- that is confusing, we should change this
+getUsername :: HasNodeError err
+            => User
+            -> Cmd err Text
+getUsername (UserName u) = pure u
+getUsername (UserDBId i) = do
+  users <- getUsersWithId i
+  case head users of
+    Just u  -> pure $ userLight_username u
+    Nothing -> nodeError $ NodeError "G.D.A.U.getUserName: User not found with that id"
+getUsername (RootId   rid) = do
+  n <- getNode rid
+  getUsername (UserDBId $ _node_userId n)
+getUsername UserPublic = pure "UserPublic"
 
--- TODO
-rmUsers :: HasNodeError err => [User] -> Cmd err Int64
-rmUsers [] = pure 0
-rmUsers _  = undefined
+--------------------------------------------------------------------------
+-- getRootId is in Gargantext.Database.Query.Tree.Root
+

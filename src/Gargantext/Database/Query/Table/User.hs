@@ -30,6 +30,7 @@ module Gargantext.Database.Query.Table.User
   , userWithId
   , userLightWithId
   , getUsersWith
+  , getUsersWithId
   , module Gargantext.Database.Schema.User
   )
   where
@@ -92,6 +93,19 @@ selectUsersLightWith u = proc () -> do
       row      <- queryUserTable -< ()
       restrict -< user_username row .== pgStrictText u
       returnA  -< row
+
+----------------------------------------------------------
+
+getUsersWithId :: Int -> Cmd err [UserLight]
+getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
+  where
+    selectUsersLightWithId :: Int -> Query UserRead
+    selectUsersLightWithId i = proc () -> do
+          row      <- queryUserTable -< ()
+          restrict -< user_id row .== pgInt4 i
+          returnA  -< row
+
+
 
 queryUserTable :: Query UserRead
 queryUserTable = queryTable userTable

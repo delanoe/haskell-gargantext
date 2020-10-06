@@ -16,32 +16,14 @@ module Gargantext.Database.Action.Flow.Utils
 import Data.Map (Map)
 import qualified Data.Map as DM
 
-import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
 import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.User
-import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 
-getUserId :: HasNodeError err
-          => User
-          -> Cmd err UserId
-getUserId (UserDBId uid) = pure uid
-getUserId (RootId   rid) = do
-  n <- getNode rid
-  pure $ _node_userId n
-getUserId (UserName u  ) = do
-  muser <- getUser u
-  case muser of
-    Just user -> pure $ userLight_id user
-    Nothing   -> nodeError NoUserFound
-getUserId UserPublic = nodeError NoUserFound
- 
 
 toMaps :: Hyperdata a
        => (a -> Map (NgramsT Ngrams) Int)

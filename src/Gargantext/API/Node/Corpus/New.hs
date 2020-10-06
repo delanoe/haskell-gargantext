@@ -44,7 +44,7 @@ import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
-import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
