@@ -139,23 +139,19 @@ groupToDotNode fdt g bId =
                          , toAttr "branchId" (pack $ unwords (init $ map show $ snd $ g ^. phylo_groupBranchId))
                          , toAttr "bId" (pack $ show bId)
                          , toAttr "support" (pack $ show (g ^. phylo_groupSupport))
-                         , toAttr "label" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
+                         , toAttr "lbl" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
                          , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
                          , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))
                          ])  
 
 
-toDotEdge :: DotId -> DotId -> Text.Text -> EdgeType -> Dot DotId
+toDotEdge :: DotId -> DotId -> [Char] -> EdgeType -> Dot DotId
 toDotEdge source target lbl edgeType = edge source target
     (case edgeType of
-        GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True
-                          , Label (StrLabel $ fromStrict lbl)] <> [toAttr "edgeType" "link" ]
-        BranchToGroup   -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])
-                          , Label (StrLabel $ fromStrict lbl)] <> [toAttr "edgeType" "branchLink" ]
-        BranchToBranch  -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])
-                          , Label (StrLabel $ fromStrict lbl)]
-        GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)])
-                          , Label (StrLabel $ fromStrict lbl), PenWidth 4] <> [toAttr "edgeType" "ancestorLink" ]                          
+        GroupToGroup    -> [ Width 3, penWidth 4, Color [toWColor Black], Constraint True] <> [toAttr "edgeType" "link", toAttr "lbl" (pack lbl)]
+        BranchToGroup   -> [ Width 3, Color [toWColor Black], ArrowHead (AType [(ArrMod FilledArrow RightSide,DotArrow)])] <> [toAttr "edgeType" "branchLink" ]
+        BranchToBranch  -> [ Width 2, Color [toWColor Black], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,DotArrow)])]
+        GroupToAncestor -> [ Width 3, Color [toWColor Red], Style [SItem Dashed []], ArrowHead (AType [(ArrMod FilledArrow BothSides,NoArrow)]), PenWidth 4] <> [toAttr "edgeType" "ancestorLink", toAttr "lbl" (pack lbl)]                          
         PeriodToPeriod  -> [ Width 5, Color [toWColor Black]])
 
 
@@ -239,12 +235,12 @@ exportToDot phylo export =
            $ fromListWith (++) $ map (\g -> (g ^. phylo_groupBranchId,[g])) $ export ^. export_groups
 
         {-  8) create the edges between the groups -}
-        _ <- mapM (\((k,k'),_) -> 
-                toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToGroup
+        _ <- mapM (\((k,k'),v) -> 
+                toDotEdge (groupIdToDotId k) (groupIdToDotId k') (show v) GroupToGroup
             ) $ (toList . mergePointers) $ export ^. export_groups
 
-        _ <- mapM (\((k,k'),_) -> 
-                toDotEdge (groupIdToDotId k) (groupIdToDotId k') "" GroupToAncestor
+        _ <- mapM (\((k,k'),v) -> 
+                toDotEdge (groupIdToDotId k) (groupIdToDotId k') (show v) GroupToAncestor
           ) $ mergeAncestors $ export ^. export_groups
 
         -- 10) create the edges between the periods 
@@ -296,17 +292,31 @@ branchToIso branches =
               $ zip branches 
               $ ([0] ++ (map (\(b,b') -> 
                                  let idx = length $ commonPrefix (b ^. branch_canonId) (b' ^. branch_canonId) []
-                                  in (b' ^. branch_seaLevel) !! (idx - 1)
+                                     lmin = min (length $ b ^. branch_seaLevel)  (length $ b' ^. branch_seaLevel) 
+                                  in 
+                                    if ((idx - 1) > ((length $ b' ^. branch_seaLevel) - 1))
+                                      then (b' ^. branch_seaLevel) !! (lmin - 1)
+                                      else (b' ^. branch_seaLevel) !! (idx - 1)
                                  ) $ listToSeq branches))
      in map (\(x,b) -> b & branch_x .~ x)
       $ zip steps branches
+
+branchToIso' :: Double -> Double -> [PhyloBranch] -> [PhyloBranch]
+branchToIso' start step branches = 
+  let bx = map (\l -> (sum l) + ((fromIntegral $ length l) * 0.5))
+         $ inits
+         $ ([0] ++ (map (\(b,b') -> 
+                      let root = fromIntegral $ length $ commonPrefix (snd $ b ^. branch_id) (snd $ b' ^. branch_id) []
+                      in 1 - start - step * root) $ listToSeq branches))
+  in map (\(x,b) -> b & branch_x .~ x)
+   $ zip bx branches
 
 
 sortByHierarchy :: Int -> [PhyloBranch] -> [PhyloBranch]
 sortByHierarchy depth branches =
     if (length branches == 1)
-        then branchToIso branches
-        else branchToIso $ concat 
+        then branches
+        else concat 
            $ map (\branches' ->
                     let partitions = partition (\b -> depth + 1 == ((length . snd) $ b ^. branch_id)) branches'
                     in  (sortOn (\b -> (b ^. branch_meta) ! "birth") (fst partitions))
@@ -323,10 +333,11 @@ sortByBirthDate order export =
                     Desc -> reverse branches
     in  export & export_branches .~ branches'
 
-processSort :: Sort -> PhyloExport -> PhyloExport
-processSort sort' export = case sort' of
+processSort :: Sort -> SeaElevation -> PhyloExport -> PhyloExport
+processSort sort' elev export = case sort' of
     ByBirthDate o -> sortByBirthDate o export 
-    ByHierarchy   -> export & export_branches .~ sortByHierarchy 0 (export ^. export_branches)
+    ByHierarchy   -> export & export_branches .~ (branchToIso' (_cons_start elev) (_cons_step elev) 
+                       $ sortByHierarchy 0 (export ^. export_branches))
 
 
 -----------------
@@ -617,7 +628,7 @@ getPreviousChildIds lvl frame curr prds phylo =
 toPhyloExport :: Phylo -> DotGraph DotId
 toPhyloExport phylo = exportToDot phylo
                     $ processFilters (exportFilter $ getConfig phylo) (phyloQuality $ getConfig phylo)
-                    $ processSort    (exportSort   $ getConfig phylo)
+                    $ processSort    (exportSort   $ getConfig phylo) (getSeaElevation phylo)
                     $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo) (_phylo_lastTermFreq phylo)
                     $ processMetrics  export           
     where
