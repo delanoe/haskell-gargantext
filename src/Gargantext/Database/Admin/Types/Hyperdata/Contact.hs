@@ -119,8 +119,8 @@ data ContactWhere =
   } deriving (Eq, Show, Generic)
 
 defaultContactWhere :: ContactWhere
-defaultContactWhere = ContactWhere ["Organization A"]
-                                 ["Organization B"]
+defaultContactWhere = ContactWhere ["Organization X"]
+                                 ["Lab Z"]
                                  (Just "Role")
                                  (Just "Office")
                                  (Just "Country")
