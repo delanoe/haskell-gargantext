@@ -1,7 +1,10 @@
 [gargantext]
 
-# API url for server
-URL = http://localhost:8008/api/v1.0
+# Main url serving the FrontEnd
+URL = http://localhost
+
+# Main API url serving the BackEnd
+URL_BACKEND_API = http://localhost:8008/api/v1.0
 
 # Needed to instantiate the first users and first data
 MASTER_USER = gargantua

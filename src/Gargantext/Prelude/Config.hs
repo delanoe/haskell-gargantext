@@ -23,13 +23,14 @@ import GHC.Generics (Generic)
 import Control.Lens (makeLenses)
 
 
-data GargConfig = GargConfig { _gc_url          :: !Text
+data GargConfig = GargConfig { _gc_url              :: !Text
+                             , _gc_url_backend_api  :: !Text
 
-                             , _gc_masteruser   :: !Text
-                             , _gc_secretkey    :: !Text
+                             , _gc_masteruser       :: !Text
+                             , _gc_secretkey        :: !Text
 
-                             , _gc_datafilepath :: !FilePath
-                             , _gc_repofilepath :: !FilePath
+                             , _gc_datafilepath     :: !FilePath
+                             , _gc_repofilepath     :: !FilePath
 
                              , _gc_frame_write_url  :: !Text
                              , _gc_frame_calc_url   :: !Text
@@ -55,6 +56,7 @@ readConfig fp = do
         Right p' -> p'
 
   pure $ GargConfig (val "URL")
+                    (val "URL_BACKEND_API")
                     (val "MASTER_USER")
                     (val "SECRET_KEY")
                     (cs $ val "DATA_FILEPATH")
@@ -66,7 +68,8 @@ readConfig fp = do
                     (read $ cs $ val "MAX_DOCS_SCRAPERS")
 
 defaultConfig :: GargConfig
-defaultConfig = GargConfig "https://gargantext.org"
+defaultConfig = GargConfig "https://localhost"
+                           "https://localhost:8008/api/v1.0"
                            "gargantua"
                            "secret"
                            "data"

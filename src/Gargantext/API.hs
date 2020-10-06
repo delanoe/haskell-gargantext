@@ -71,7 +71,7 @@ import qualified Paths_gargantext           as PG -- cabal magic build module
 
 import qualified Gargantext.API.Public      as Public
 
-import Gargantext.Prelude.Config (gc_url)
+import Gargantext.Prelude.Config (gc_url_backend_api)
 import Gargantext.API.Admin.Auth (AuthContext, auth)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import Gargantext.API.Admin.Settings (newEnv)
@@ -92,7 +92,7 @@ startGargantext mode port file = do
   env <- newEnv port file
   portRouteInfo port
     
-  let baseUrl = env ^. env_gargConfig . gc_url
+  let baseUrl = env ^. env_gargConfig . gc_url_backend_api
   app <- makeApp env baseUrl
 
   mid <- makeDevMiddleware mode

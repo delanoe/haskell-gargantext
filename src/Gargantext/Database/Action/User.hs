@@ -14,39 +14,40 @@ Portability : POSIX
 module Gargantext.Database.Action.User
   where
 
--- import Data.Maybe (catMaybes)
-import Data.Text (Text, unlines, splitOn)
-import Gargantext.Database.Query.Table.User
-import Gargantext.Core.Types.Individu
-import Gargantext.Database.Prelude
+import Control.Lens (view)
 import Control.Monad.Random
-import Gargantext.Prelude
-import Gargantext.Prelude.Mail (gargMail, GargMail(..))
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..), nodeError, NodeError(..))
+import Data.Text (Text, unlines, splitOn)
+import Gargantext.Core.Types.Individu
+import Gargantext.Prelude.Config
 import Gargantext.Database.Action.Flow (getOrMkRoot)
+import Gargantext.Database.Prelude
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..), nodeError, NodeError(..))
+import Gargantext.Database.Query.Table.User
+import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
+import Gargantext.Prelude.Mail (gargMail, GargMail(..))
 
 type EmailAddress = Text
-
 ------------------------------------------------------------------------
-newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err) => Text -> [Text] -> m Int64
-newUsers address us = do
-  us' <- mapM newUserQuick us
-  newUsers' address us'
+newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err)
+         => [EmailAddress] -> m Int64
+newUsers us = do
+  us'  <- mapM newUserQuick us
+  conf <- view hasConfig
+  newUsers' (_gc_url conf) us'
 ------------------------------------------------------------------------
-newUserQuick :: (MonadRandom m) => Text -> m (NewUser GargPassword)
+newUserQuick :: (MonadRandom m)
+             => Text -> m (NewUser GargPassword)
 newUserQuick n = do
   pass <- gargPass
   let (u,_m) = guessUserName n
   pure (NewUser u n (GargPassword pass))
 
--- | TODO better check for invalid email adress
 guessUserName :: Text -> (Text,Text)
 guessUserName n = case splitOn "@" n of
     [u',m'] -> if m' /= "" then (u',m')
                            else panic "Email Invalid"
     _  -> panic "Email invalid"
-
 ------------------------------------------------------------------------
 newUser' :: HasNodeError err
         => Text -> NewUser GargPassword -> Cmd err Int64
