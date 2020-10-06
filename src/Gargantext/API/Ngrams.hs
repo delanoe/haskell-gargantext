@@ -116,7 +116,7 @@ import Prelude (error)
 import Gargantext.Prelude
 
 import Gargantext.API.Admin.Types (HasSettings)
--- import qualified Gargantext.API.Metrics as Metrics
+import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, TODO, assertValid)
 import Gargantext.Core.Utils (something)
@@ -130,8 +130,8 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
--- import Gargantext.Database.Query.Table.Node (getNode)
--- import Gargantext.Database.Schema.Node (NodePoly(..))
+import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)
 
 {-
 -- TODO sequences of modifications (Patchs)
@@ -344,11 +344,10 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
       ret <- commitStatePatch (Versioned p_version p)
         <&> v_data %~ (view (_PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just))
 
-{-
       node <- getNode listId
-      let nId = _node_id node
-          _uId = _node_userId node
-          mCId = _node_parentId node
+      let nId = node ^. node_id
+          _uId = node ^. node_userId
+          mCId = node ^. node_parentId
       -- printDebug "[tableNgramsPut] updating graph with nId" nId
       -- printDebug "[tableNgramsPut] updating graph with uId" uId
       -- _ <- recomputeGraph uId nId Conditional
@@ -392,7 +391,6 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
               printDebug "[tableNgramsPut] no update for tabType = " tabType
               pure ()
           pure ()
--}
       pure ret
      
   {-

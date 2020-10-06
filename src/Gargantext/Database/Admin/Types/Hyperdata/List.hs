@@ -24,6 +24,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Applicative
+
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Types (Histo(..))
 import Gargantext.API.Ngrams.NTree (MyTree)
