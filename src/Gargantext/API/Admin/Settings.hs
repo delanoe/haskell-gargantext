@@ -110,6 +110,9 @@ repoSaverAction repoDir a = do
     hClose h
     renameFile fp (repoSnapshot repoDir)
 
+-- The use of mkDebounce makes sure that repoSaverAction is not called too often.
+-- If repoSaverAction start taking more time than the debounceFreq then it should
+-- be increased.
 mkRepoSaver :: RepoDirFilePath -> MVar NgramsRepo -> IO (IO ())
 mkRepoSaver repoDir repo_var = mkDebounce settings
   where
