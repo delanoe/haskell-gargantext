@@ -55,7 +55,7 @@ import Gargantext.Core.Text.Terms.Mono.Token.En (tokenize)
 import Gargantext.Core.Text.Terms.Multi (multiterms)
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
+import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..), ngramsTerms, text2ngrams)
 import Gargantext.Prelude
 
 
@@ -118,11 +118,11 @@ class ExtractNgramsT h
 
 filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
                      -> Map Ngrams (Map NgramsType Int)
-filterNgramsT s ms = Map.fromList $ map (\a -> filter' s a) $ Map.toList ms
+filterNgramsT s ms = Map.fromList $ map filter' $ Map.toList ms
   where
-    filter' s' (ng@(Ngrams t n),y) = case (Text.length t) < s' of
-          True  -> (ng,y)
-          False -> (Ngrams (Text.take s' t) n , y)
+    filter' (ng,y)
+      | Text.length (ng ^. ngramsTerms) < s = (ng,y)
+      | otherwise                           = (text2ngrams (Text.take s (ng ^. ngramsTerms)), y)
 
 
 -- =======================================================
