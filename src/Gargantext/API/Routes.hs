@@ -17,7 +17,6 @@ Portability : POSIX
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 ---------------------------------------------------------------------
 module Gargantext.API.Routes

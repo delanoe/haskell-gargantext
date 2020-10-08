@@ -26,15 +26,7 @@ Pouillard (who mainly made it).
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 ---------------------------------------------------------------------
 module Gargantext.API
@@ -42,42 +34,32 @@ module Gargantext.API
 ---------------------------------------------------------------------
 import Control.Exception (finally)
 import Control.Lens
-import Control.Monad.Except (withExceptT)
 import Control.Monad.Reader (runReaderT)
 import Data.List (lookup)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Validity
-import Data.Version (showVersion)
 import GHC.Base (Applicative)
-import GHC.Generics (D1, Meta (..), Rep, Generic)
-import GHC.TypeLits (AppendSymbol, Symbol)
+import GHC.Generics (Generic)
 import Network.HTTP.Types hiding (Query)
 import Network.Wai
 import Network.Wai.Handler.Warp hiding (defaultSettings)
 import Network.Wai.Middleware.Cors
 import Network.Wai.Middleware.RequestLogger
 import Servant
-import Servant.Auth.Server (AuthResult(..))
-import Servant.Swagger.UI (swaggerSchemaUIServer)
 import System.IO (FilePath)
-import qualified Data.ByteString.Lazy.Char8 as BL8
-import qualified Data.Text.IO               as T
-import qualified Paths_gargantext           as PG -- cabal magic build module
-
-import qualified Gargantext.API.Public      as Public
+import Data.Text.IO (putStrLn)
 
 import Gargantext.Prelude.Config (gc_url_backend_api)
-import Gargantext.API.Admin.Auth (AuthContext, auth)
-import Gargantext.API.Admin.FrontEnd (frontEndServer)
+import Gargantext.API.Admin.Auth (AuthContext)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, env_gargConfig, jwtSettings, settings)
 import Gargantext.API.Ngrams (saveRepo)
 import Gargantext.API.Ngrams.Types (HasRepoSaver(..))
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
-import Gargantext.API.Swagger (swaggerDoc)
-import Gargantext.Prelude
+import Gargantext.API.Server (server)
+import Gargantext.Prelude hiding (putStrLn)
 
 
 data Mode = Dev | Mock | Prod 
@@ -97,14 +79,14 @@ startGargantext mode port file = do
 
 portRouteInfo :: PortNumber -> IO ()
 portRouteInfo port = do
-  T.putStrLn "      ----Main Routes-----      "
-  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
-  T.putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
+  putStrLn "      ----Main Routes-----      "
+  putStrLn $ "http://localhost:" <> toUrlPiece port <> "/index.html"
+  putStrLn $ "http://localhost:" <> toUrlPiece port <> "/swagger-ui"
 
 -- TODO clean this Monad condition (more generic) ?
 stopGargantext :: HasRepoSaver env => env -> IO ()
 stopGargantext env = do
-  T.putStrLn "----- Stopping gargantext -----"
+  putStrLn "----- Stopping gargantext -----"
   runReaderT saveRepo env
 
 {-
@@ -200,45 +182,8 @@ makeDevMiddleware mode = do
 ---------------------------------------------------------------------
 -- | API Global
 ---------------------------------------------------------------------
--- | Server declarations
-server :: forall env. EnvC env => env -> Text -> IO (Server API)
-server env baseUrl = do
-  -- orchestrator <- scrapyOrchestrator env
-  pure $  swaggerSchemaUIServer swaggerDoc
-     :<|> hoistServerWithContext
-            (Proxy :: Proxy GargAPI)
-            (Proxy :: Proxy AuthContext)
-            transform
-            (serverGargAPI baseUrl)
-     :<|> frontEndServer
-  where
-    transform :: forall a. GargServerM env GargError a -> Handler a
-    transform = Handler . withExceptT showAsServantErr . (`runReaderT` env)
-
-
-
-showAsServantErr :: GargError -> ServerError
-showAsServantErr (GargServerError err) = err
-showAsServantErr a = err500 { errBody = BL8.pack $ show a }
 
 ---------------------------
-
-serverGargAPI :: Text -> GargServerT env err (GargServerM env err) GargAPI
-serverGargAPI baseUrl -- orchestrator
-       =  auth
-     :<|> gargVersion
-     :<|> serverPrivateGargAPI
-     :<|> (Public.api baseUrl)
-
-  --   :<|> orchestrator
-  where
-    gargVersion :: GargServer GargVersion
-    gargVersion = pure (cs $ showVersion PG.version)
-
-    serverPrivateGargAPI :: GargServerT env err (GargServerM env err) GargPrivateAPI
-    serverPrivateGargAPI (Authenticated auser) = serverPrivateGargAPI' auser
-    serverPrivateGargAPI _                     = throwAll' (_ServerError # err401)
--- Here throwAll' requires a concrete type for the monad.
 
 
 -- TODO-SECURITY admin only: withAdmin
@@ -272,6 +217,9 @@ apiGarg :: Proxy GargAPI
 apiGarg  = Proxy
 ---------------------------------------------------------------------
 
+{- UNUSED
+--import GHC.Generics (D1, Meta (..), Rep, Generic)
+--import GHC.TypeLits (AppendSymbol, Symbol)
 ---------------------------------------------------------------------
 -- Type Family for the Documentation
 type family TypeName (x :: *) :: Symbol where
@@ -283,5 +231,4 @@ type family GenericTypeName t (r :: *) :: Symbol where
     GenericTypeName t (D1 ('MetaData name mod pkg nt) f x) = name
 
 type Desc t n = Description (AppendSymbol (TypeName t) (AppendSymbol " | " n))
-
-
+-}

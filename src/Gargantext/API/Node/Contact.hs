@@ -17,7 +17,6 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 
 module Gargantext.API.Node.Contact

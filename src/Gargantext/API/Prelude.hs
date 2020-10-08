@@ -9,11 +9,8 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.API.Prelude
   ( module Gargantext.API.Prelude
@@ -52,58 +49,39 @@ class HasJoseError e where
 joseError :: (MonadError e m, HasJoseError e) => Jose.Error -> m a
 joseError = throwError . (_JoseError #)
 
-class ThrowAll' e a | a -> e where
-  -- | 'throwAll' is a convenience function to throw errors across an entire
-  -- sub-API
-  --
-  --
-  -- > throwAll err400 :: Handler a :<|> Handler b :<|> Handler c
-  -- >    == throwError err400 :<|> throwError err400 :<|> err400
-  throwAll' :: e -> a
-
-instance (ThrowAll' e a, ThrowAll' e b) => ThrowAll' e (a :<|> b) where
-  throwAll' e = throwAll' e :<|> throwAll' e
-
--- Really this shouldn't be necessary - ((->) a) should be an instance of
--- MonadError, no?
-instance {-# OVERLAPPING #-} ThrowAll' e b => ThrowAll' e (a -> b) where
-  throwAll' e = const $ throwAll' e
-
-instance {-# OVERLAPPABLE #-} (MonadError e m) => ThrowAll' e (m a) where
-  throwAll' = throwError
-
-type GargServerC env err m =
-    ( CmdM         env err m
-    , HasNodeError     err
-    , HasInvalidError  err
-    , HasTreeError     err
-    , HasServerError   err
-    , HasJoseError     err
-    , ToJSON           err -- TODO this is arguable
-    , Exception        err
-    , HasRepo      env  -- TODO rename HasNgramsRepo
-    , HasSettings  env  -- TODO rename HasDbSettings
-    , HasJobEnv    env JobLog JobLog
-    , HasConfig    env
-    )
-
-
-type GargServer api =
-  forall env err m. GargServerT env err m api
-
-type GargServerT env err m api = GargServerC env err m => ServerT api m
-
--- This is the concrete monad. It needs to be used as little as possible,
--- instead, prefer GargServer, GargServerT, GargServerC.
-type GargServerM env err = ReaderT env (ExceptT err IO)
-
 type EnvC env =
   ( HasConnectionPool env
-  , HasRepo           env
-  , HasSettings       env
+  , HasRepo           env  -- TODO rename HasNgramsRepo
+  , HasSettings       env  -- TODO rename HasDbSettings
   , HasJobEnv         env JobLog JobLog
   , HasConfig         env
   )
+
+type ErrC err =
+  ( HasNodeError     err
+  , HasInvalidError  err
+  , HasTreeError     err
+  , HasServerError   err
+  , HasJoseError     err
+  , ToJSON           err -- TODO this is arguable
+  , Exception        err
+  )
+
+type GargServerC env err m =
+  ( CmdM' env err m
+  , EnvC  env
+  , ErrC      err
+  )
+
+type GargServerT env err m api = GargServerC env err m => ServerT api m
+
+type GargServer api = forall env err m. GargServerT env err m api
+
+-- This is the concrete monad. It needs to be used as little as possible.
+type GargM env err = ReaderT env (ExceptT err IO)
+-- This is the server type using GargM. It needs to be used as little as possible.
+-- Instead, prefer GargServer, GargServerT.
+type GargServerM env err api = (EnvC env, ErrC err) => ServerT api (GargM env err)
 
 -------------------------------------------------------------------
 -- | This Type is needed to prepare the function before the GargServer
