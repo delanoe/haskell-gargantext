@@ -44,9 +44,7 @@ import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Except (withExceptT)
 import Control.Monad.Reader (runReaderT)
-import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.List (lookup)
-import Data.Swagger
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Validity
@@ -61,9 +59,7 @@ import Network.Wai.Middleware.Cors
 import Network.Wai.Middleware.RequestLogger
 import Servant
 import Servant.Auth.Server (AuthResult(..))
-import Servant.Auth.Swagger ()
-import Servant.Swagger
-import Servant.Swagger.UI
+import Servant.Swagger.UI (swaggerSchemaUIServer)
 import System.IO (FilePath)
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Text.IO               as T
@@ -80,6 +76,7 @@ import Gargantext.API.Ngrams (saveRepo)
 import Gargantext.API.Ngrams.Types (HasRepoSaver(..))
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
+import Gargantext.API.Swagger (swaggerDoc)
 import Gargantext.Prelude
 
 
@@ -109,24 +106,6 @@ stopGargantext :: HasRepoSaver env => env -> IO ()
 stopGargantext env = do
   T.putStrLn "----- Stopping gargantext -----"
   runReaderT saveRepo env
-
--- | Output generated @swagger.json@ file for the @'TodoAPI'@.
-swaggerWriteJSON :: IO ()
-swaggerWriteJSON = BL8.writeFile "swagger.json" (encodePretty swaggerDoc)
-
--- | Swagger Specifications
-swaggerDoc :: Swagger
-swaggerDoc = toSwagger (Proxy :: Proxy GargAPI)
-  & info.title       .~ "Gargantext"
-  & info.version     .~ (cs $ showVersion PG.version)
-  -- & info.base_url     ?~ (URL "http://gargantext.org/")
-  & info.description ?~ "REST API specifications"
-  -- & tags             .~ Set.fromList [Tag "Garg" (Just "Main perations") Nothing]
-  & applyTagsFor (subOperations (Proxy :: Proxy GargAPI)(Proxy :: Proxy GargAPI)) 
-                 ["Gargantext" & description ?~ "Main operations"]
-  & info.license     ?~ ("AGPLV3 (English) and CECILL (French)" & url ?~ URL urlLicence )
-    where
-        urlLicence = "https://gitlab.iscpif.fr/gargantext/haskell-gargantext/blob/master/LICENSE"
 
 {-
 startGargantextMock :: PortNumber -> IO ()
@@ -225,7 +204,7 @@ makeDevMiddleware mode = do
 server :: forall env. EnvC env => env -> Text -> IO (Server API)
 server env baseUrl = do
   -- orchestrator <- scrapyOrchestrator env
-  pure $  schemaUiServer swaggerDoc
+  pure $  swaggerSchemaUIServer swaggerDoc
      :<|> hoistServerWithContext
             (Proxy :: Proxy GargAPI)
             (Proxy :: Proxy AuthContext)
@@ -292,9 +271,6 @@ api  = Proxy
 apiGarg :: Proxy GargAPI
 apiGarg  = Proxy
 ---------------------------------------------------------------------
-schemaUiServer :: (Server api ~ Handler Swagger)
-        => Swagger -> Server (SwaggerSchemaUI' dir api)
-schemaUiServer = swaggerSchemaUIServer
 
 ---------------------------------------------------------------------
 -- Type Family for the Documentation
