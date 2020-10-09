@@ -24,6 +24,7 @@ import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Prelude
 
 -- filterList imports
+import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -37,19 +38,39 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 
-{-
 flowSocialList :: ( RepoCmdM env err m
                         , CmdM     env err m
                         , HasNodeError err
                         , HasTreeError err
                         )
-                     => NodeMode -> User -> NgramsType -> Set Text
-                     -> m (Map (Maybe ListType) (Set Text))
-flowSocialList mode user nt ngrams' = do
+                     => User -> NgramsType -> Set Text
+                     -> m (Map ListType (Set Text))
+flowSocialList user nt ngrams' = do
   privateMapList <- flowSocialListByMode Private user nt ngrams'
-  sharedMapList  <- flowSocialListByMode Shared  user nt (fromMaybe Set.empty $
-  -- TODO publicMapList
--}
+  sharedMapList  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateMapList)
+   -- TODO publicMapList
+
+  pure $ Map.fromList [ (MapTerm,  termsByList MapTerm privateMapList
+                                     <> termsByList MapTerm sharedMapList
+                        )
+                      , (StopTerm, termsByList StopTerm privateMapList
+                                     <> termsByList StopTerm sharedMapList
+                        )
+                      , (CandidateTerm, termsByList CandidateTerm sharedMapList)
+                      ]
+
+
+termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
+termsByList CandidateTerm m =
+  fromMaybe Set.empty
+          $ (<>) <$> Map.lookup Nothing              m
+                 <*> Map.lookup (Just CandidateTerm) m
+termsByList l m =
+  fromMaybe Set.empty $ Map.lookup (Just l) m
+
+
+
+
 
 flowSocialListByMode :: ( RepoCmdM env err m
                         , CmdM     env err m
