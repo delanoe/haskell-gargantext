@@ -148,12 +148,11 @@ deriveJSON (unPrefix "_rp_") ''RootParent
 makeLenses ''RootParent
 
 data NgramsRepoElement = NgramsRepoElement
-  { _nre_size        :: Int
-  , _nre_list        :: ListType
---, _nre_root_parent :: Maybe RootParent
-  , _nre_root        :: Maybe NgramsTerm
-  , _nre_parent      :: Maybe NgramsTerm
-  , _nre_children    :: MSet NgramsTerm
+  { _nre_size        :: !Int
+  , _nre_list        :: !ListType
+  , _nre_root        :: !(Maybe NgramsTerm)
+  , _nre_parent      :: !(Maybe NgramsTerm)
+  , _nre_children    :: !(MSet NgramsTerm)
   }
   deriving (Ord, Eq, Show, Generic)
 
@@ -408,11 +407,11 @@ instance ToSchema a => ToSchema (Replace a) where
             & required .~ [ "old", "new" ]
 
 data NgramsPatch
-   = NgramsPatch { _patch_children :: PatchMSet NgramsTerm
-                 , _patch_list     :: Replace ListType   -- TODO Map UserId ListType
+   = NgramsPatch { _patch_children :: !(PatchMSet NgramsTerm)
+                 , _patch_list     :: !(Replace ListType)   -- TODO Map UserId ListType
                  }
-   | NgramsReplace { _patch_old :: Maybe NgramsRepoElement
-                   , _patch_new :: Maybe NgramsRepoElement
+   | NgramsReplace { _patch_old :: !(Maybe NgramsRepoElement)
+                   , _patch_new :: !(Maybe NgramsRepoElement)
                    }
       deriving (Eq, Show, Generic)
 
@@ -639,9 +638,9 @@ instance Arbitrary a => Arbitrary (Versioned a) where
 
 ------------------------------------------------------------------------
 data Repo s p = Repo
-  { _r_version :: Version
-  , _r_state   :: s
-  , _r_history :: [p]
+  { _r_version :: !Version
+  , _r_state   :: !s
+  , _r_history :: ![p]
     -- first patch in the list is the most recent
   }
   deriving (Generic)
