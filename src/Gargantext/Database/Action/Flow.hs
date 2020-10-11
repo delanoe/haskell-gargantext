@@ -79,19 +79,19 @@ import Gargantext.Database.Action.Search (searchDocInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
+import Gargantext.Database.Prelude
+import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
-import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
-import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
-import Gargantext.Database.Prelude
+import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Schema.Node (NodePoly(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
-import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Core.Text.Corpus.API as API
+import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
@@ -132,12 +132,13 @@ getDataText (InternalOrigin _) _la q _li = do
   pure $ DataOld ids
 
 -------------------------------------------------------------------------------
-flowDataText :: FlowCmdM env err m
-             => User
-             -> DataText
-             -> TermType Lang
-             -> CorpusId
-             -> m CorpusId
+flowDataText :: ( FlowCmdM env err m
+                )
+                => User
+                -> DataText
+                -> TermType Lang
+                -> CorpusId
+                -> m CorpusId
 flowDataText u (DataOld ids) tt cid = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
@@ -145,7 +146,7 @@ flowDataText u (DataNew txt) tt cid = flowCorpus u (Right [cid]) tt txt
 
 ------------------------------------------------------------------------
 -- TODO use proxy
-flowAnnuaire :: FlowCmdM env err m
+flowAnnuaire :: (FlowCmdM env err m)
              => User
              -> Either CorpusName [CorpusId]
              -> (TermType Lang)
@@ -156,7 +157,7 @@ flowAnnuaire u n l filePath = do
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
 ------------------------------------------------------------------------
-flowCorpusFile :: FlowCmdM env err m
+flowCorpusFile :: (FlowCmdM env err m)
            => User
            -> Either CorpusName [CorpusId]
            -> Limit -- Limit the number of docs (for dev purpose)
@@ -181,20 +182,25 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
 
-flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
-     => Maybe c
-     -> User
-     -> Either CorpusName [CorpusId]
-     -> TermType Lang
-     -> [[a]]
-     -> m CorpusId
+flow :: ( FlowCmdM env err m
+        , FlowCorpus a
+        , MkCorpus c
+        )
+        => Maybe c
+        -> User
+        -> Either CorpusName [CorpusId]
+        -> TermType Lang
+        -> [[a]]
+        -> m CorpusId
 flow c u cn la docs = do
   -- TODO if public insertMasterDocs else insertUserDocs
   ids <- traverse (insertMasterDocs c la) docs
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
 
 ------------------------------------------------------------------------
-flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
+flowCorpusUser :: ( FlowCmdM env err m
+                  , MkCorpus c
+                  )
                => Lang
                -> User
                -> Either CorpusName [CorpusId]
@@ -214,7 +220,7 @@ flowCorpusUser l user corpusName ctype ids = do
 
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
-  ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
+  ngs         <- buildNgramsLists user l 2 3 (StopSize 3) userCorpusId masterCorpusId
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId

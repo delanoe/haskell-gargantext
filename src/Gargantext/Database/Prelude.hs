@@ -81,11 +81,8 @@ type CmdM env err m =
   )
 
 type Cmd'' env err a = forall m.     CmdM'' env err m => m a
-type Cmd' env err a = forall m.     CmdM' env err m => m a
-type Cmd      err a = forall m env. CmdM  env err m => m a
-
-
-
+type Cmd'  env err a = forall m.     CmdM'  env err m => m a
+type Cmd       err a = forall m env. CmdM   env err m => m a
 
 
 

@@ -6,8 +6,6 @@ License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
-
-
 -}
 
 module Gargantext.Core.Text.List.Social
@@ -28,7 +26,6 @@ import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
-import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.Tools -- (getListNgrams)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types.Main
@@ -39,12 +36,12 @@ import qualified Data.Set as Set
 
 
 flowSocialList :: ( RepoCmdM env err m
-                        , CmdM     env err m
-                        , HasNodeError err
-                        , HasTreeError err
-                        )
-                     => User -> NgramsType -> Set Text
-                     -> m (Map ListType (Set Text))
+                  , CmdM     env err m
+                  , HasNodeError err
+                  , HasTreeError err
+                  )
+                  => User -> NgramsType -> Set Text
+                  -> m (Map ListType (Set Text))
 flowSocialList user nt ngrams' = do
   privateMapList <- flowSocialListByMode Private user nt ngrams'
   sharedMapList  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateMapList)

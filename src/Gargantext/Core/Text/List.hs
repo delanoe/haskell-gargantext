@@ -14,6 +14,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List
   where
 
+
 import Control.Lens (makeLenses)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
@@ -26,23 +27,25 @@ import qualified Data.Map  as Map
 import qualified Data.Set  as Set
 import qualified Data.Text as Text
 
-import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
+import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
-import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
-import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
-import Gargantext.Database.Action.Metrics.TFICF (getTficf)
-import Gargantext.Database.Query.Table.Node (defaultList)
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
-import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-
-import Gargantext.Prelude
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Learn (Model(..))
--- import Gargantext.Core.Text.Metrics (takeScored)
+import Gargantext.Core.Text.List.Social (flowSocialList)
+import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
+import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
+import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.TFICF (getTficf)
+import Gargantext.API.Ngrams.Types (RepoCmdM)
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Prelude (Cmd, CmdM)
+import Gargantext.Database.Query.Table.Node (defaultList)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
+import Gargantext.Database.Query.Tree.Error (HasTreeError)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Prelude
 
 
 data NgramsListBuilder = BuilderStepO { stemSize :: !Int
@@ -63,26 +66,37 @@ data NgramsListBuilder = BuilderStepO { stemSize :: !Int
 data StopSize = StopSize {unStopSize :: !Int}
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
-buildNgramsLists :: HasNodeError err
-                 => Lang
+buildNgramsLists :: ( RepoCmdM env err m
+                    , CmdM     env err m
+                    , HasTreeError err
+                    , HasNodeError err
+                    )
+                 => User
+                 -> Lang
                  -> Int
                  -> Int
                  -> StopSize
                  -> UserCorpusId
                  -> MasterCorpusId
-                 -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsLists l n m s uCid mCid = do
-  ngTerms     <- buildNgramsTermsList l n m s uCid mCid
-  othersTerms <- mapM (buildNgramsOthersList uCid identity)
+                 -> m (Map NgramsType [NgramsElement])
+buildNgramsLists user l n m s uCid mCid = do
+  ngTerms     <- buildNgramsTermsList user l n m s uCid mCid
+  othersTerms <- mapM (buildNgramsOthersList user uCid identity)
                       [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
 
-buildNgramsOthersList :: UserCorpusId
+buildNgramsOthersList :: (--  RepoCmdM env err m
+                        -- , CmdM     env err m
+                         HasNodeError err
+                        -- , HasTreeError err
+                        )
+                        => User
+                      -> UserCorpusId
                       -> (Text -> Text)
                       -> NgramsType
                       -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsOthersList uCid groupIt nt = do
+buildNgramsOthersList user uCid groupIt nt = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
   let
@@ -105,15 +119,20 @@ buildNgramsOthersList uCid groupIt nt = do
                      )]
 
 -- TODO use ListIds
-buildNgramsTermsList :: HasNodeError err
-                     => Lang
-                     -> Int
-                     -> Int
-                     -> StopSize
-                     -> UserCorpusId
-                     -> MasterCorpusId
-                     -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsTermsList l n m s uCid mCid = do
+buildNgramsTermsList :: ( HasNodeError err
+                        , CmdM     env err m
+                        , RepoCmdM env err m
+                        , HasTreeError err
+                        )
+                        => User
+                        -> Lang
+                        -> Int
+                        -> Int
+                        -> StopSize
+                        -> UserCorpusId
+                        -> MasterCorpusId
+                        -> m (Map NgramsType [NgramsElement])
+buildNgramsTermsList user l n m s uCid mCid = do
 
 -- Computing global speGen score
   allTerms <- Map.toList <$> getTficf uCid mCid NgramsTerms
@@ -122,6 +141,8 @@ buildNgramsTermsList l n m s uCid mCid = do
   -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)
 
   -- First remove stops terms
+  mapSocialList <- flowSocialList user NgramsTerms (Set.fromList $ map fst allTerms)
+
   let
     -- stopTerms ignored for now (need to be tagged already)
     (_stopTerms, candidateTerms) = List.partition ((isStopTerm s) . fst) allTerms

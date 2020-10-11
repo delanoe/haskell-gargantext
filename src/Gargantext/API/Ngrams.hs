@@ -131,6 +131,7 @@ import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import Gargantext.Database.Query.Table.Node (getNode)
+import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)
 
 {-
@@ -318,12 +319,14 @@ tableNgramsPull listId ngramsType p_version = do
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
-tableNgramsPut :: (HasNodeError err,
-                   HasInvalidError err,
-                   HasConfig env,
-                   HasConnectionPool env,
-                   HasSettings env,
-                   RepoCmdM env err m)
+tableNgramsPut :: ( HasNodeError err
+                  , HasTreeError err
+                  , HasInvalidError err
+                  , HasConfig env
+                  , HasConnectionPool env
+                  , HasSettings env
+                  , RepoCmdM env err m
+                  )
                  => TabType
                  -> ListId
                  -> Versioned NgramsTablePatch
@@ -668,9 +671,10 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
 
 
 
-apiNgramsTableCorpus :: ( RepoCmdM env err m
-                        , HasNodeError err
-                        , HasInvalidError err
+apiNgramsTableCorpus :: ( RepoCmdM          env err m
+                        , HasNodeError          err
+                        , HasTreeError          err
+                        , HasInvalidError       err
                         , HasConnectionPool env
                         , HasConfig         env
                         , HasSettings       env
@@ -681,9 +685,10 @@ apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
                        :<|> scoresRecomputeTableNgrams cId
                        :<|> getTableNgramsVersion cId
 
-apiNgramsTableDoc :: ( RepoCmdM env err m
-                     , HasNodeError err
-                     , HasInvalidError err
+apiNgramsTableDoc :: ( RepoCmdM          env err m
+                     , HasNodeError          err
+                     , HasTreeError          err
+                     , HasInvalidError       err
                      , HasConnectionPool env
                      , HasConfig         env
                      , HasSettings       env
