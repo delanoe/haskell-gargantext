@@ -21,6 +21,7 @@ Portability : POSIX
 module Gargantext.Database.Query.Facet
   ( runViewAuthorsDoc
   , runViewDocuments
+  , runCountDocuments
   , filterWith
 
   , Pair(..)
@@ -280,6 +281,11 @@ runViewDocuments cId t o l order =
     runOpaQuery $ filterWith o l order $ viewDocuments cId t ntId
   where
     ntId = nodeTypeId NodeDocument
+
+runCountDocuments :: CorpusId -> IsTrash -> Cmd err Int
+runCountDocuments cId t  =
+  runCountOpaQuery $ viewDocuments cId t $ nodeTypeId NodeDocument
+
 
 viewDocuments :: CorpusId -> IsTrash -> NodeTypeId -> Query FacetDocRead
 viewDocuments cId t ntId = proc () -> do
