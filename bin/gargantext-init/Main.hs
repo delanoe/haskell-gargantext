@@ -17,7 +17,7 @@ module Main where
 
 import Data.Text (Text)
 import Data.Either (Either(..))
-import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
+import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
 import Gargantext.Core.Types.Individu (User(..))

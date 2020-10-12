@@ -15,13 +15,13 @@ Portability : POSIX
 
 module Main where
 
-import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
+import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.Database.Action.User.New (newUsers)
 import Gargantext.Database.Prelude (Cmd'')
 import Gargantext.Prelude
 import System.Environment (getArgs)
-import Gargantext.API.Admin.Types (DevEnv)
+import Gargantext.API.Admin.EnvTypes (DevEnv)
 
 main :: IO ()
 main = do

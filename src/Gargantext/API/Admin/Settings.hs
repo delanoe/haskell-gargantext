@@ -21,31 +21,27 @@ module Gargantext.API.Admin.Settings
 import Codec.Serialise (Serialise(), serialise, deserialise)
 import Control.Concurrent
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
-import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
-import Data.Text
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
 import Network.HTTP.Client.TLS (newTlsManager)
-import Servant
 import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
 import Servant.Client (parseBaseUrl)
 import Servant.Job.Async (newJobEnv, defaultSettings)
 import System.Directory
-import System.Environment (lookupEnv)
 import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
 import qualified Data.ByteString.Lazy as L
 
+import Gargantext.API.Admin.EnvTypes
 import Gargantext.API.Admin.Types
 import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
-import Gargantext.API.Ngrams (saveRepo)
-import Gargantext.Database.Prelude (databaseParameters, Cmd', Cmd'', runCmd, HasConfig(..))
+import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)
 
@@ -68,7 +64,8 @@ devSettings jwkFile = do
   where
     xsrfCookieSetting = defaultXsrfCookieSettings { xsrfExcludeGet = True }
 
-
+{- NOT USED YET
+import System.Environment (lookupEnv)
 
 reqSetting :: FromHttpApiData a => Text -> IO a
 reqSetting name = do
@@ -82,15 +79,16 @@ optSetting name d = do
         Nothing -> pure d
         Just e -> pure $ either (panic $ "Unable to parse " <> name) identity $ parseUrlPiece $ pack e
 
---settingsFromEnvironment :: IO Settings
---settingsFromEnvironment =
---    Settings <$> (encodeUtf8 <$> reqSetting "ALLOWED_ORIGIN")
---             <*> (encodeUtf8 <$> reqSetting "ALLOWED_HOST")
---             <*> optSetting "PORT" 3000
---             <*> (parseLogLevel <$> optSetting "LOG_LEVEL" "warn")
---             <*> reqSetting "DB_SERVER"
---             <*> (parseJwk <$> reqSetting "JWT_SECRET")
---             <*> optSetting "SEND_EMAIL" SendEmailViaAws
+settingsFromEnvironment :: IO Settings
+settingsFromEnvironment =
+    Settings <$> (encodeUtf8 <$> reqSetting "ALLOWED_ORIGIN")
+             <*> (encodeUtf8 <$> reqSetting "ALLOWED_HOST")
+             <*> optSetting "PORT" 3000
+             <*> (parseLogLevel <$> optSetting "LOG_LEVEL" "warn")
+             <*> reqSetting "DB_SERVER"
+             <*> (parseJwk <$> reqSetting "JWT_SECRET")
+             <*> optSetting "SEND_EMAIL" SendEmailViaAws
+-}
 
 -----------------------------------------------------------------------
 -- | RepoDir FilePath configuration
@@ -197,48 +195,3 @@ cleanEnv env = do
   unlockFile (env ^. repoEnv . renv_lock)
 
 type IniPath  = FilePath
-withDevEnv :: IniPath -> (DevEnv -> IO a) -> IO a
-withDevEnv iniPath k = do
-  env <- newDevEnv
-  k env `finally` cleanEnv env
-
-  where
-    newDevEnv = do
-      config  <- readConfig         iniPath
-      dbParam <- databaseParameters iniPath
-      pool    <- newPool            dbParam
-      repo    <- readRepoEnv        (_gc_repofilepath config)
-      setts   <- devSettings devJwkFile
-      pure $ DevEnv
-        { _dev_env_pool = pool
-        , _dev_env_repo = repo
-        , _dev_env_settings = setts
-        , _dev_env_config   = config
-        }
-
--- | Run Cmd Sugar for the Repl (GHCI)
-
-runCmdRepl :: Show err => Cmd'' DevEnv err a -> IO a
-runCmdRepl f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
-
-runCmdReplServantErr :: Cmd'' DevEnv ServerError a -> IO a
-runCmdReplServantErr = runCmdRepl
-
--- Use only for dev
--- In particular this writes the repo file after running
--- the command.
--- This function is constrained to the DevEnv rather than
--- using HasConnectionPool and HasRepoVar.
-runCmdDev :: Show err => DevEnv -> Cmd'' DevEnv err a -> IO a
-runCmdDev env f =
-  (either (fail . show) pure =<< runCmd env f)
-    `finally`
-  runReaderT saveRepo env
-
--- Use only for dev
-runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
-runCmdDevNoErr = runCmdDev
-
--- Use only for dev
-runCmdDevServantErr :: DevEnv -> Cmd' DevEnv ServerError a -> IO a
-runCmdDevServantErr = runCmdDev

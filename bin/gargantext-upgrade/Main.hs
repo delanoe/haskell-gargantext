@@ -15,7 +15,7 @@ Import a corpus binary.
 
 module Main where
 
-import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
+import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
 import Gargantext.Database.Admin.Types.Node

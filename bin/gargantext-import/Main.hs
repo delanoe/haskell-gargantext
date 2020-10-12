@@ -22,8 +22,8 @@ import Prelude (read)
 import System.Environment (getArgs)
 import qualified Data.Text as Text
 
-import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
-import Gargantext.API.Admin.Types (DevEnv(..))
+import Gargantext.API.Dev (withDevEnv, runCmdDev)
+import Gargantext.API.Admin.EnvTypes (DevEnv(..))
 import Gargantext.API.Node () -- instances
 import Gargantext.API.Prelude (GargError)
 import Gargantext.Core (Lang(..))

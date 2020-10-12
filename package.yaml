@@ -45,6 +45,7 @@ library:
   - Gargantext.API.Ngrams
   - Gargantext.API.Ngrams.Types
   - Gargantext.API.Admin.Settings
+  - Gargantext.API.Admin.EnvTypes
   - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
   - Gargantext.Core
