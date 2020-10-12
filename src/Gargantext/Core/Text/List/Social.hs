@@ -43,29 +43,28 @@ flowSocialList :: ( RepoCmdM env err m
                   => User -> NgramsType -> Set Text
                   -> m (Map ListType (Set Text))
 flowSocialList user nt ngrams' = do
-  privateMapList <- flowSocialListByMode Private user nt ngrams'
-  sharedMapList  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateMapList)
+  privateLists <- flowSocialListByMode Private user nt ngrams'
+  printDebug "* privateLists *: \n" privateLists
+  sharedLists  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateLists)
+  printDebug "* socialLists *: \n" sharedLists
    -- TODO publicMapList
 
-  pure $ Map.fromList [ (MapTerm,  termsByList MapTerm privateMapList
-                                     <> termsByList MapTerm sharedMapList
+  pure $ Map.fromList [ (MapTerm, termsByList MapTerm privateLists
+                               <> termsByList MapTerm sharedLists
                         )
-                      , (StopTerm, termsByList StopTerm privateMapList
-                                     <> termsByList StopTerm sharedMapList
+                      , (StopTerm, termsByList StopTerm privateLists
+                                <> termsByList StopTerm sharedLists
                         )
-                      , (CandidateTerm, termsByList CandidateTerm sharedMapList)
+                      , (CandidateTerm, termsByList CandidateTerm sharedLists)
                       ]
 
 
 termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
-termsByList CandidateTerm m =
-  fromMaybe Set.empty
-          $ (<>) <$> Map.lookup Nothing              m
-                 <*> Map.lookup (Just CandidateTerm) m
+termsByList CandidateTerm m = Set.unions
+                          $ map (\lt -> fromMaybe Set.empty $ Map.lookup lt m)
+                          [ Nothing, Just CandidateTerm ]
 termsByList l m =
   fromMaybe Set.empty $ Map.lookup (Just l) m
-
-
 
 
 
@@ -78,8 +77,12 @@ flowSocialListByMode :: ( RepoCmdM env err m
                      -> m (Map (Maybe ListType) (Set Text))
 flowSocialListByMode mode user nt ngrams' = do
   listIds <- findListsId mode user
-  counts  <- countFilterList ngrams' nt listIds Map.empty
-  pure $ toSocialList counts ngrams'
+  case listIds of
+    [] -> pure $ Map.fromList [(Nothing, ngrams')]
+    _  -> do
+      counts  <- countFilterList ngrams' nt listIds Map.empty
+      printDebug "flowSocialListByMode counts" counts
+      pure     $ toSocialList counts ngrams'
 
 ---------------------------------------------------------------------------
 -- TODO: maybe use social groups too
@@ -121,23 +124,33 @@ countFilterList' :: RepoCmdM env err m
         -> m (Map Text (Map ListType Int))
 countFilterList' st nt ls input = do
   ml <- toMapTextListType <$> getListNgrams ls nt
+  printDebug "countFilterList'" ml
   pure $ Set.foldl' (\m t -> countList t ml m) input st
 
 ---------------------------------------------------------------------------
+-- FIXME children have to herit the ListType of the parent
 toMapTextListType :: Map Text NgramsRepoElement -> Map Text ListType
-toMapTextListType = Map.fromListWith (<>)
-              . List.concat
-              . (map toList)
-              . Map.toList
+toMapTextListType m = Map.fromListWith (<>)
+              $ List.concat
+              $ (map (toList m))
+              $ Map.toList m
 
-toList :: (Text, NgramsRepoElement) -> [(Text, ListType)]
-toList (t, NgramsRepoElement _ lt root parent (MSet children)) =
-     List.zip terms (List.cycle [lt])
+listOf :: Map Text NgramsRepoElement -> NgramsRepoElement -> ListType
+listOf m ng = case _nre_parent ng of
+  Nothing -> _nre_list ng
+  Just  p -> case Map.lookup (unNgramsTerm p) m of
+    Nothing  -> CandidateTerm -- Should Not happen
+    Just ng' -> listOf m ng'
+
+toList :: Map Text NgramsRepoElement -> (Text, NgramsRepoElement) -> [(Text, ListType)]
+toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
+     List.zip terms (List.cycle [lt'])
       where
         terms =  [t]
-              <> maybe [] (\n -> [unNgramsTerm n]) root
-              <> maybe [] (\n -> [unNgramsTerm n]) parent
+              -- <> maybe [] (\n -> [unNgramsTerm n]) root
+              -- <> maybe [] (\n -> [unNgramsTerm n]) parent
               <> (map unNgramsTerm $ Map.keys children)
+        lt'   = listOf m nre
 
 ---------------------------------------------------------------------------
 countList :: Text
@@ -162,12 +175,17 @@ findListsId :: (HasNodeError err, HasTreeError err)
             => NodeMode -> User -> Cmd err [NodeId]
 findListsId mode u = do
   r <- getRootId u
-  map _dt_nodeId <$> filter (\n -> _dt_typeId n == nodeTypeId NodeList)
-                 <$> findNodes' mode r
+  ns <- map _dt_nodeId <$> filter (\n -> _dt_typeId n == nodeTypeId NodeList)
+                       <$> findNodes' mode r
+  printDebug "findListsIds" ns
+  pure ns
+
+commonNodes:: [NodeType]
+commonNodes = [NodeFolder, NodeCorpus, NodeList]
 
 findNodes' :: HasTreeError err
           => NodeMode -> RootId
           -> Cmd err [DbTreeNode]
-findNodes' Private r = findNodes Private r [NodeFolderPrivate, NodeCorpus, NodeList]
-findNodes' Shared  r = findNodes Shared  r [NodeFolderShared , NodeCorpus, NodeList]
-findNodes' Public  r = findNodes Public  r [NodeFolderPublic , NodeCorpus, NodeList]
+findNodes' Private r = findNodes Private r $ [NodeFolderPrivate] <> commonNodes
+findNodes' Shared  r = findNodes Shared  r $ [NodeFolderShared ] <> commonNodes
+findNodes' Public  r = findNodes Public  r $ [NodeFolderPublic ] <> commonNodes
