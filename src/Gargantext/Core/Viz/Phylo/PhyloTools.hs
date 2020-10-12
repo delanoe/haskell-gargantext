@@ -69,6 +69,12 @@ truncate' x n = (fromIntegral $ (floor (x * t) :: Int)) / t
         t :: Double
         t = 10 ^n
 
+getInMap :: Int -> Map Int Double -> Double
+getInMap k m = 
+    if (member k m)
+        then m ! k
+        else 0
+
 roundToStr :: (PrintfArg a, Floating a) => Int -> a -> String
 roundToStr = printf "%0.*f"
 
