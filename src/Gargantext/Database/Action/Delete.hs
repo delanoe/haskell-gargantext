@@ -21,7 +21,6 @@ import Control.Lens     (view, (^.))
 import Data.Text
 import Servant
 
-import Gargantext.API.Admin.Types
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Action.Share (delFolderTeam)
@@ -38,7 +37,7 @@ import qualified Gargantext.Prelude.Utils as GPU
 
 ------------------------------------------------------------------------
 
-deleteNode :: (HasConfig env, HasConnectionPool env, HasNodeError err, HasSettings env)
+deleteNode :: (HasConfig env, HasConnectionPool env, HasNodeError err)
            => User
            -> NodeId
            -> Cmd' env err Int

@@ -67,6 +67,7 @@ readConfig fp = do
                     (val "FRAME_ISTEX_URL")
                     (read $ cs $ val "MAX_DOCS_SCRAPERS")
 
+{- UNUSED
 defaultConfig :: GargConfig
 defaultConfig = GargConfig "https://localhost"
                            "https://localhost:8008/api/v1.0"
@@ -79,3 +80,4 @@ defaultConfig = GargConfig "https://localhost"
                            "https://frame_searx.url"
                            "https://frame_istex.url"
                            1000
+-}

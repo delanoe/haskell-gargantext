@@ -40,7 +40,7 @@ import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig(..))
+import Gargantext.Prelude.Config (gc_max_docs_scrapers)
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Swagger ()
@@ -249,9 +249,8 @@ addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =
   serveJobsAPI $
     JobFunction (\q log -> do
-      conf <- view hasConfig
-      let limit = Just $ _gc_max_docs_scrapers conf
-      New.addToCorpusWithQuery user cid q limit (liftBase . log)
+      limit <- view $ config . gc_max_docs_scrapers
+      New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log)
       {- let log' x = do
         printDebug "addToCorpusWithQuery" x
         liftBase $ log x

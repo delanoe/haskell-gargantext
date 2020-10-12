@@ -36,7 +36,6 @@ import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Reader (runReaderT)
 import Data.List (lookup)
-import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Validity
 import GHC.Base (Applicative)
@@ -50,10 +49,9 @@ import Servant
 import System.IO (FilePath)
 import Data.Text.IO (putStrLn)
 
-import Gargantext.Prelude.Config (gc_url_backend_api)
 import Gargantext.API.Admin.Auth (AuthContext)
 import Gargantext.API.Admin.Settings (newEnv)
-import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, env_gargConfig, jwtSettings, settings)
+import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
 import Gargantext.API.Ngrams (saveRepo)
 import Gargantext.API.Ngrams.Types (HasRepoSaver(..))
 import Gargantext.API.Prelude
@@ -70,10 +68,7 @@ startGargantext :: Mode -> PortNumber -> FilePath -> IO ()
 startGargantext mode port file = do
   env <- newEnv port file
   portRouteInfo port
-    
-  let baseUrl = env ^. env_gargConfig . gc_url_backend_api
-  app <- makeApp env baseUrl
-
+  app <- makeApp env
   mid <- makeDevMiddleware mode
   run port (mid app) `finally` stopGargantext env
 
@@ -198,8 +193,8 @@ serverGargAdminAPI =  roots
 --gargMock :: Server GargAPI
 --gargMock = mock apiGarg Proxy
 ---------------------------------------------------------------------
-makeApp :: EnvC env => env -> Text -> IO Application
-makeApp env baseUrl = serveWithContext api cfg <$> server env baseUrl
+makeApp :: EnvC env => env -> IO Application
+makeApp env = serveWithContext api cfg <$> server env
   where
     cfg :: Servant.Context AuthContext
     cfg = env ^. settings . jwtSettings

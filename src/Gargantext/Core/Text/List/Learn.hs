@@ -17,8 +17,6 @@ CSV parser for Gargantext corpus files.
 module Gargantext.Core.Text.List.Learn
   where
 
-import Control.Monad.Reader (MonadReader)
--- TODO remvoe this deps
 import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
 import Data.Map (Map)
@@ -26,7 +24,6 @@ import qualified Data.Map    as Map
 import qualified Data.SVM    as SVM
 import qualified Data.Vector as Vec
 
-import Gargantext.API.Admin.Types
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
 import Gargantext.Prelude
@@ -85,12 +82,12 @@ type Tests = Map ListType [Vec.Vector Double]
 type Score = Double
 type Param = Double
 
-grid :: (MonadReader env m, MonadBase IO m, HasSettings env)
+grid :: (MonadBase IO m)
      => Param -> Param -> Train -> [Tests] -> m (Maybe Model)
 grid _ _ _ []  = panic "Gargantext.Core.Text.List.Learn.grid : empty test data"
 grid s e tr te = do
   let
-    grid' :: (MonadReader env m, MonadBase IO m, HasSettings env)
+    grid' :: (MonadBase IO m)
           => Double -> Double
           -> Train
           -> [Tests]

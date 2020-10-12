@@ -51,10 +51,10 @@ instance HasConnectionPool (Pool Connection) where
   connPool = identity
 
 class HasConfig env where
-  hasConfig :: Getter env GargConfig
+  config :: Getter env GargConfig
 
 instance HasConfig GargConfig where
-  hasConfig = identity
+  config = identity
 
 -------------------------------------------------------
 type JSONB = QueryRunnerColumnDefault PGJsonb

@@ -43,7 +43,6 @@ data Settings = Settings
     , _cookieSettings  :: CookieSettings
     , _sendLoginEmails :: SendEmailType
     , _scrapydUrl      :: BaseUrl
-    , _config          :: GargConfig
     }
 
 makeLenses ''Settings
@@ -62,14 +61,14 @@ data Env = Env
   , _env_manager  :: !Manager
   , _env_self_url :: !BaseUrl
   , _env_scrapers :: !ScrapersEnv
-  , _env_gargConfig :: !GargConfig
+  , _env_config   :: !GargConfig
   }
   deriving (Generic)
 
 makeLenses ''Env
 
 instance HasConfig Env where
-  hasConfig = env_gargConfig
+  config = env_config
 
 instance HasConnectionPool Env where
   connPool = env_pool
@@ -110,7 +109,7 @@ data DevEnv = DevEnv
 makeLenses ''DevEnv
 
 instance HasConfig DevEnv where
-  hasConfig = dev_env_config
+  config = dev_env_config
 
 instance HasConnectionPool DevEnv where
   connPool = dev_env_pool

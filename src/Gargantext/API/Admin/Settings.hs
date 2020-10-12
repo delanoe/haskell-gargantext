@@ -47,7 +47,7 @@ import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_vers
 import Gargantext.API.Ngrams (saveRepo)
 import Gargantext.Database.Prelude (databaseParameters, Cmd', Cmd'', runCmd, HasConfig(..))
 import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig, defaultConfig)
+import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -64,7 +64,6 @@ devSettings jwkFile = do
     , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
     , _cookieSettings = defaultCookieSettings { cookieXsrfSetting = Just xsrfCookieSetting } -- TODO-SECURITY tune
     , _jwtSettings = defaultJWTSettings jwk -- TODO-SECURITY tune
-    , _config      = defaultConfig
     }
   where
     xsrfCookieSetting = defaultXsrfCookieSettings { xsrfExcludeGet = True }
@@ -178,14 +177,14 @@ newEnv port file = do
   logger       <- newStderrLoggerSet defaultBufSize
 
   pure $ Env
-    { _env_settings   = settings
-    , _env_logger     = logger
-    , _env_pool       = pool
-    , _env_repo       = repo
-    , _env_manager    = manager
-    , _env_scrapers   = scrapers_env
-    , _env_self_url   = self_url
-    , _env_gargConfig = config
+    { _env_settings = settings
+    , _env_logger   = logger
+    , _env_pool     = pool
+    , _env_repo     = repo
+    , _env_manager  = manager
+    , _env_scrapers = scrapers_env
+    , _env_self_url = self_url
+    , _env_config   = config
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)
@@ -194,7 +193,7 @@ newPool param = createPool (connect param) close 1 (60*60) 8
 cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do
   r <- takeMVar (env ^. repoEnv . renv_var)
-  repoSaverAction (env ^. hasConfig . gc_repofilepath) r
+  repoSaverAction (env ^. config . gc_repofilepath) r
   unlockFile (env ^. repoEnv . renv_lock)
 
 type IniPath  = FilePath

@@ -13,6 +13,7 @@ Portability : POSIX
 ---------------------------------------------------------------------
 module Gargantext.API.Server where
 ---------------------------------------------------------------------
+import Control.Lens ((^.))
 import Control.Monad.Except (withExceptT)
 import Control.Monad.Reader (runReaderT)
 import Data.Text (Text)
@@ -31,6 +32,8 @@ import Gargantext.API.Routes
 import Gargantext.API.Swagger (swaggerDoc)
 import Gargantext.API.ThrowAll (serverPrivateGargAPI)
 import Gargantext.Prelude
+import Gargantext.Prelude.Config (gc_url_backend_api)
+import Gargantext.Database.Prelude (config)
 
 
 serverGargAPI :: Text -> GargServerM env err GargAPI
@@ -46,15 +49,15 @@ serverGargAPI baseUrl -- orchestrator
     gargVersion = pure (cs $ showVersion PG.version)
 
 -- | Server declarations
-server :: forall env. EnvC env => env -> Text -> IO (Server API)
-server env baseUrl = do
+server :: forall env. EnvC env => env -> IO (Server API)
+server env = do
   -- orchestrator <- scrapyOrchestrator env
   pure $  swaggerSchemaUIServer swaggerDoc
      :<|> hoistServerWithContext
             (Proxy :: Proxy GargAPI)
             (Proxy :: Proxy AuthContext)
             transform
-            (serverGargAPI baseUrl)
+            (serverGargAPI (env ^. config . gc_url_backend_api))
      :<|> frontEndServer
   where
     transform :: forall a. GargM env GargError a -> Handler a

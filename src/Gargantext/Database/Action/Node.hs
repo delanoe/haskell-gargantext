@@ -91,13 +91,13 @@ mkNodeWithParent_ConfigureHyperdata' nt (Just i) uId name = do
   case maybeNodeId of
     []  -> nodeError (DoesNotExist i)
     [n] -> do
-      config <- view hasConfig
+      cfg <- view config
       u <- case nt of
-            NodeFrameWrite -> pure $ _gc_frame_write_url config
-            NodeFrameCalc  -> pure $ _gc_frame_calc_url  config
+            NodeFrameWrite -> pure $ _gc_frame_write_url cfg
+            NodeFrameCalc  -> pure $ _gc_frame_calc_url  cfg
             _              -> nodeError NeedsConfiguration
       let
-        s = _gc_secretkey config
+        s = _gc_secretkey cfg
         hd = HyperdataFrame u (hash $ s <> (cs $ show n))
       _ <- updateHyperdata n hd
       pure [n]

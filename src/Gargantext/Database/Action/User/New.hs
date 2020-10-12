@@ -34,9 +34,9 @@ type EmailAddress = Text
 newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err)
          => [EmailAddress] -> m Int64
 newUsers us = do
-  us'  <- mapM newUserQuick us
-  conf <- view hasConfig
-  newUsers' (_gc_url conf) us'
+  us' <- mapM newUserQuick us
+  url <- view $ config . gc_url
+  newUsers' url us'
 ------------------------------------------------------------------------
 newUserQuick :: (MonadRandom m)
              => Text -> m (NewUser GargPassword)
