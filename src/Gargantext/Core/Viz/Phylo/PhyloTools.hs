@@ -19,6 +19,8 @@ import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithK
 import Data.String (String)
 import Data.Text (Text)
 
+import Prelude (floor)
+
 import Gargantext.Prelude
 import Gargantext.Core.Viz.AdaptativePhylo
 import Text.Printf
@@ -56,6 +58,16 @@ printIOComment cmt =
 -- | Misc | --
 --------------
 
+-- truncate' :: Double -> Int -> Double
+-- truncate' x n = (fromIntegral (floor (x * t))) / t
+--     where t = 10^n
+
+truncate' :: Double -> Int -> Double
+truncate' x n = (fromIntegral $ (floor (x * t) :: Int)) / t
+    where 
+        --------------
+        t :: Double
+        t = 10 ^n
 
 roundToStr :: (PrintfArg a, Floating a) => Int -> a -> String
 roundToStr = printf "%0.*f"
