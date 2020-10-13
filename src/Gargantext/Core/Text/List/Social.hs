@@ -25,15 +25,15 @@ import Gargantext.Prelude
 import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Data.Set (Set)
+import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Gargantext.API.Ngrams.Tools -- (getListNgrams)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Schema.Ngrams
-import qualified Data.List as List
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-
+import qualified Data.List  as List
+import qualified Data.Map   as Map
+import qualified Data.Set   as Set
 
 flowSocialList :: ( RepoCmdM env err m
                   , CmdM     env err m
@@ -44,20 +44,39 @@ flowSocialList :: ( RepoCmdM env err m
                   -> m (Map ListType (Set Text))
 flowSocialList user nt ngrams' = do
   privateLists <- flowSocialListByMode Private user nt ngrams'
-  -- printDebug "* privateLists *: \n" privateLists
+  printDebug "* privateLists *: \n" privateLists
+  -- here preference to privateLists (discutable)
   sharedLists  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateLists)
-  -- printDebug "* socialLists *: \n" sharedLists
+  printDebug "* sharedLists *: \n" sharedLists
    -- TODO publicMapList
 
-  pure $ Map.fromList [ (MapTerm, termsByList MapTerm privateLists
-                               <> termsByList MapTerm sharedLists
-                        )
-                      , (StopTerm, termsByList StopTerm privateLists
-                                <> termsByList StopTerm sharedLists
-                        )
-                      , (CandidateTerm, termsByList CandidateTerm sharedLists)
-                      ]
+  let result = unions [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
+                , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
+                ]
+  printDebug "* socialLists *: results \n" sharedLists
+  pure result
 
+
+------------------------------------------------------------------------
+unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
+      => [Map a (Set b)] -> Map a (Set b)
+unions = foldl' union Map.empty
+
+union :: (Ord a, Semigroup a, Semigroup b, Ord b)
+      => Map a (Set b) -> Map a (Set b) -> Map a (Set b)
+union m1 m2 = invertBack $ Map.unionWith (<>) (invert m1) (invert m2)
+
+invert :: (Ord b, Semigroup a) => Map a (Set b) -> Map b a
+invert = Map.unionsWith (<>)
+       . (map (\(k,ss) -> Map.fromSet (\_ -> k) ss))
+       . Map.toList
+
+invertBack :: (Ord a, Ord b) => Map b a -> Map a (Set b)
+invertBack = Map.fromListWith (<>)
+           . (map (\(b,a) -> (a, Set.singleton b)))
+           .  Map.toList
+
+------------------------------------------------------------------------
 
 termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
 termsByList CandidateTerm m = Set.unions
@@ -65,7 +84,6 @@ termsByList CandidateTerm m = Set.unions
                           [ Nothing, Just CandidateTerm ]
 termsByList l m =
   fromMaybe Set.empty $ Map.lookup (Just l) m
-
 
 
 flowSocialListByMode :: ( RepoCmdM env err m
@@ -81,8 +99,10 @@ flowSocialListByMode mode user nt ngrams' = do
     [] -> pure $ Map.fromList [(Nothing, ngrams')]
     _  -> do
       counts  <- countFilterList ngrams' nt listIds Map.empty
-      -- printDebug "flowSocialListByMode counts" counts
-      pure     $ toSocialList counts ngrams'
+      printDebug "flowSocialListByMode counts" counts
+      let r = toSocialList counts ngrams'
+      printDebug "flowSocialListByMode r" r
+      pure r
 
 ---------------------------------------------------------------------------
 -- TODO: maybe use social groups too
@@ -106,6 +126,16 @@ toSocialList1 m t = case Map.lookup t m of
   Just  m' -> ( (fst . fst) <$> Map.maxViewWithKey m'
               , Set.singleton t
               )
+
+toSocialList1_testIsTrue :: Bool
+toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
+  where
+    result = toSocialList1 (Map.fromList [(token, m)]) token
+    token  = "token"
+    m = Map.fromList [ (CandidateTerm, 1)
+                     , (MapTerm      , 2)
+                     , (StopTerm     , 3)
+                     ]
 
 ---------------------------------------------------------------------------
 -- | [ListId] does not merge the lists (it is for Master and User lists
@@ -131,9 +161,9 @@ countFilterList' st nt ls input = do
 -- FIXME children have to herit the ListType of the parent
 toMapTextListType :: Map Text NgramsRepoElement -> Map Text ListType
 toMapTextListType m = Map.fromListWith (<>)
-              $ List.concat
-              $ (map (toList m))
-              $ Map.toList m
+                    $  List.concat
+                    $ (map (toList m))
+                    $  Map.toList m
 
 toList :: Map Text NgramsRepoElement -> (Text, NgramsRepoElement) -> [(Text, ListType)]
 toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
