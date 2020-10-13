@@ -171,7 +171,7 @@ getChart cId _start _end maybeListId tabType = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { _hl_chart = chartMap } = node ^. node_hyperdata
+  let chartMap = node ^. node_hyperdata ^. hl_chart
       mChart = Map.lookup tabType chartMap
 
   chart <- case mChart of
@@ -257,7 +257,7 @@ getPie cId _start _end maybeListId tabType = do
     Just lid -> pure lid
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { _hl_pie = pieMap } = node ^. node_hyperdata
+  let pieMap = node ^. node_hyperdata ^. hl_pie
       mChart = Map.lookup tabType pieMap
 
   chart <- case mChart of
@@ -354,7 +354,7 @@ getTree cId _start _end maybeListId tabType listType = do
     Nothing  -> defaultList cId
 
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let HyperdataList { _hl_tree = treeMap } = node ^. node_hyperdata
+  let treeMap = node ^. node_hyperdata ^. hl_tree
       mChart = Map.lookup tabType treeMap
 
   chart <- case mChart of
