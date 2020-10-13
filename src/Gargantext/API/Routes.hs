@@ -47,12 +47,13 @@ import Servant.Auth as SA
 import Servant.Auth.Swagger ()
 import Servant.Job.Async
 import Servant.Swagger.UI
-import qualified Gargantext.API.Ngrams.List           as List
-import qualified Gargantext.API.Node.Contact          as Contact
-import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
-import qualified Gargantext.API.Node.Corpus.Export    as Export
-import qualified Gargantext.API.Node.Corpus.New       as New
-import qualified Gargantext.API.Public                as Public
+import qualified Gargantext.API.Ngrams.List              as List
+import qualified Gargantext.API.Node.Contact             as Contact
+import qualified Gargantext.API.Node.Corpus.Annuaire     as Annuaire
+import qualified Gargantext.API.Node.Corpus.Export       as Export
+import qualified Gargantext.API.Node.Corpus.Export.Types as Export
+import qualified Gargantext.API.Node.Corpus.New          as New
+import qualified Gargantext.API.Public                   as Public
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'

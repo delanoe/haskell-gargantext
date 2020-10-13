@@ -73,6 +73,14 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
   declareNamedSchema = wellNamedSchema "_node_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
+         ToSchema (NodePoly NodeId (Maybe Hash) NodeTypeId
+                            UserId
+                            (Maybe ParentId) NodeName
+                            UTCTime hyperdata
+                  ) where
+  declareNamedSchema = wellNamedSchema "_node_"
+
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
