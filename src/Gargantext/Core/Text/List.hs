@@ -151,7 +151,7 @@ buildNgramsTermsList user l n m _s uCid mCid = do
     -- stopTerms ignored for now (need to be tagged already)
     (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
 
-  printDebug "stopTerms" stopTerms
+  printDebug "\n * stopTerms * \n" stopTerms
 
   -- Grouping the ngrams and keeping the maximum score for label
   let grouped = groupStems'
@@ -286,13 +286,15 @@ buildNgramsTermsList user l n m _s uCid mCid = do
   printDebug "multScoredInclHead" multScoredInclHead
   printDebug "multScoredExclTail" multScoredExclTail
 
-  pure $ Map.unionsWith (<>)
+  let result = Map.unionsWith (<>)
        [ Map.fromList [(
                         NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
                                   <> (List.concat $ map toNgramsElement $ termListTail)
                       )]
        , toElements NgramsTerms StopTerm stopTerms
        ]
+  -- printDebug "\n result \n" r
+  pure result
 
 groupStems :: [(Stem, GroupedText Double)] -> [GroupedText Double]
 groupStems = Map.elems . groupStems'

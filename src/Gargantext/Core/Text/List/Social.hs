@@ -44,37 +44,41 @@ flowSocialList :: ( RepoCmdM env err m
                   -> m (Map ListType (Set Text))
 flowSocialList user nt ngrams' = do
   privateLists <- flowSocialListByMode Private user nt ngrams'
-  printDebug "* privateLists *: \n" privateLists
+  -- printDebug "* privateLists *: \n" privateLists
   -- here preference to privateLists (discutable)
   sharedLists  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateLists)
-  printDebug "* sharedLists *: \n" sharedLists
+  -- printDebug "* sharedLists *: \n" sharedLists
    -- TODO publicMapList
 
   let result = unions [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
-                , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
-                ]
-  printDebug "* socialLists *: results \n" sharedLists
+                      , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
+                      ]
+  printDebug "* socialLists *: results \n" result
   pure result
 
 
 ------------------------------------------------------------------------
 unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
       => [Map a (Set b)] -> Map a (Set b)
-unions = foldl' union Map.empty
+unions = invertBack . Map.unionsWith (<>) . map invertForw
 
-union :: (Ord a, Semigroup a, Semigroup b, Ord b)
-      => Map a (Set b) -> Map a (Set b) -> Map a (Set b)
-union m1 m2 = invertBack $ Map.unionWith (<>) (invert m1) (invert m2)
-
-invert :: (Ord b, Semigroup a) => Map a (Set b) -> Map b a
-invert = Map.unionsWith (<>)
-       . (map (\(k,ss) -> Map.fromSet (\_ -> k) ss))
-       . Map.toList
+invertForw :: (Ord b, Semigroup a) => Map a (Set b) -> Map b a
+invertForw = Map.unionsWith (<>)
+           . (map (\(k,sets) -> Map.fromSet (\_ -> k) sets))
+           . Map.toList
 
 invertBack :: (Ord a, Ord b) => Map b a -> Map a (Set b)
 invertBack = Map.fromListWith (<>)
            . (map (\(b,a) -> (a, Set.singleton b)))
            .  Map.toList
+
+unions_test :: Map ListType (Set Text)
+unions_test = unions [m1, m2]
+  where
+    m1 = Map.fromList [ (StopTerm, Set.singleton "Candidate")]
+    m2 = Map.fromList [ (CandidateTerm, Set.singleton "Candidate")
+                      , (MapTerm, Set.singleton "Candidate")
+                      ]
 
 ------------------------------------------------------------------------
 
@@ -99,9 +103,9 @@ flowSocialListByMode mode user nt ngrams' = do
     [] -> pure $ Map.fromList [(Nothing, ngrams')]
     _  -> do
       counts  <- countFilterList ngrams' nt listIds Map.empty
-      printDebug "flowSocialListByMode counts" counts
+      -- printDebug "flowSocialListByMode counts" counts
       let r = toSocialList counts ngrams'
-      printDebug "flowSocialListByMode r" r
+      -- printDebug "flowSocialListByMode r" r
       pure r
 
 ---------------------------------------------------------------------------
@@ -180,7 +184,7 @@ listOf m ng = case _nre_parent ng of
   Nothing -> _nre_list ng
   Just  p -> case Map.lookup (unNgramsTerm p) m of
     Just ng' -> listOf m ng'
-    Nothing  -> CandidateTerm -- Should Not happen
+    Nothing  -> panic "CandidateTerm -- Should Not happen"
 
 ---------------------------------------------------------------------------
 countList :: Text
@@ -195,10 +199,13 @@ countList t m input = case Map.lookup t m of
       addList (Just lm) = Just $ addCount l lm
 
 addCount :: ListType -> Map ListType Int -> Map ListType Int
-addCount l m = Map.alter plus l  m
+addCount l m = Map.alter (plus l) l  m
   where
-    plus Nothing  = Just 1
-    plus (Just x) = Just $ x + 1
+    plus CandidateTerm Nothing  = Just 1
+    plus CandidateTerm (Just x) = Just $ x + 1
+
+    plus _ Nothing              = Just 3
+    plus _ (Just x)             = Just $ x + 3
 
 ------------------------------------------------------------------------
 findListsId :: (HasNodeError err, HasTreeError err)
@@ -210,8 +217,6 @@ findListsId mode u = do
   -- printDebug "findListsIds" ns
   pure ns
 
-commonNodes:: [NodeType]
-commonNodes = [NodeFolder, NodeCorpus, NodeList]
 
 findNodes' :: HasTreeError err
           => NodeMode -> RootId
@@ -219,3 +224,9 @@ findNodes' :: HasTreeError err
 findNodes' Private r = findNodes Private r $ [NodeFolderPrivate] <> commonNodes
 findNodes' Shared  r = findNodes Shared  r $ [NodeFolderShared ] <> commonNodes
 findNodes' Public  r = findNodes Public  r $ [NodeFolderPublic ] <> commonNodes
+
+commonNodes:: [NodeType]
+commonNodes = [NodeFolder, NodeCorpus, NodeList]
+
+
+

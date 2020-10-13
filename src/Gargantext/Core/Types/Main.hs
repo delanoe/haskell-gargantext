@@ -49,7 +49,8 @@ instance ToSchema NodeTree where
 
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
-data ListType  =  CandidateTerm | StopTerm | MapTerm
+-- data ListType  =  CandidateTerm | StopTerm | MapTerm
+data ListType  =  StopTerm | CandidateTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
@@ -61,11 +62,11 @@ instance Arbitrary ListType where
 
 instance Semigroup ListType
   where
-    MapTerm       <> _             = MapTerm
-    _             <> MapTerm       = MapTerm
-    StopTerm      <> CandidateTerm = StopTerm
-    CandidateTerm <> StopTerm      = StopTerm
-    _             <> _             = CandidateTerm
+    MapTerm  <> _             = MapTerm
+    _        <> MapTerm       = MapTerm
+    StopTerm <> _             = StopTerm
+    _        <> StopTerm      = StopTerm
+    _        <> _             = CandidateTerm
 
 
 instance FromHttpApiData ListType where
