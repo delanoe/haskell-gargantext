@@ -170,14 +170,25 @@ main = do
 
             let sensibility = case (phyloProximity config) of
                         Hamming -> undefined
-                        WeightedLogJaccard s -> (show s)                        
+                        WeightedLogJaccard s -> (show s)    
+
+            let sync = case (phyloSynchrony config) of
+                        ByProximityThreshold t _ _ _ -> (show t)
+                        ByProximityDistribution _ _ -> undefined
+
+            -- to be improved
+            -- let br_length = case (take 1 $ exportFilter config) of
+            --             ByBranchSize t -> (show t)
+                        
 
             let output = (outputPath config) 
                       <> (unpack $ phyloName config)
-                      <> "-scale_" <> (show (_qua_granularity $ phyloQuality config))
-                      <> "-level_" <> (show (phyloLevel config))
                       <> "-" <> clq
-                      <> "-sens_" <> sensibility
+                      <> "-level_" <> (show (phyloLevel config))
+                      <> "-sens_" <> sensibility                      
+                      -- <> "-lenght_" <> br_length                                            
+                      <> "-scale_" <> (show (_qua_granularity $ phyloQuality config))
+                      <> "-sync_" <> sync                                                                  
                       <> ".dot"
 
             dotToFile output dot
