@@ -44,9 +44,9 @@ flowSocialList :: ( RepoCmdM env err m
                   -> m (Map ListType (Set Text))
 flowSocialList user nt ngrams' = do
   privateLists <- flowSocialListByMode Private user nt ngrams'
-  printDebug "* privateLists *: \n" privateLists
+  -- printDebug "* privateLists *: \n" privateLists
   sharedLists  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateLists)
-  printDebug "* socialLists *: \n" sharedLists
+  -- printDebug "* socialLists *: \n" sharedLists
    -- TODO publicMapList
 
   pure $ Map.fromList [ (MapTerm, termsByList MapTerm privateLists
@@ -81,7 +81,7 @@ flowSocialListByMode mode user nt ngrams' = do
     [] -> pure $ Map.fromList [(Nothing, ngrams')]
     _  -> do
       counts  <- countFilterList ngrams' nt listIds Map.empty
-      printDebug "flowSocialListByMode counts" counts
+      -- printDebug "flowSocialListByMode counts" counts
       pure     $ toSocialList counts ngrams'
 
 ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ countFilterList' :: RepoCmdM env err m
         -> m (Map Text (Map ListType Int))
 countFilterList' st nt ls input = do
   ml <- toMapTextListType <$> getListNgrams ls nt
-  printDebug "countFilterList'" ml
+  -- printDebug "countFilterList'" ml
   pure $ Set.foldl' (\m t -> countList t ml m) input st
 
 ---------------------------------------------------------------------------
@@ -135,13 +135,6 @@ toMapTextListType m = Map.fromListWith (<>)
               $ (map (toList m))
               $ Map.toList m
 
-listOf :: Map Text NgramsRepoElement -> NgramsRepoElement -> ListType
-listOf m ng = case _nre_parent ng of
-  Nothing -> _nre_list ng
-  Just  p -> case Map.lookup (unNgramsTerm p) m of
-    Nothing  -> CandidateTerm -- Should Not happen
-    Just ng' -> listOf m ng'
-
 toList :: Map Text NgramsRepoElement -> (Text, NgramsRepoElement) -> [(Text, ListType)]
 toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
      List.zip terms (List.cycle [lt'])
@@ -151,6 +144,13 @@ toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
               -- <> maybe [] (\n -> [unNgramsTerm n]) parent
               <> (map unNgramsTerm $ Map.keys children)
         lt'   = listOf m nre
+
+listOf :: Map Text NgramsRepoElement -> NgramsRepoElement -> ListType
+listOf m ng = case _nre_parent ng of
+  Nothing -> _nre_list ng
+  Just  p -> case Map.lookup (unNgramsTerm p) m of
+    Just ng' -> listOf m ng'
+    Nothing  -> CandidateTerm -- Should Not happen
 
 ---------------------------------------------------------------------------
 countList :: Text
@@ -177,7 +177,7 @@ findListsId mode u = do
   r <- getRootId u
   ns <- map _dt_nodeId <$> filter (\n -> _dt_typeId n == nodeTypeId NodeList)
                        <$> findNodes' mode r
-  printDebug "findListsIds" ns
+  -- printDebug "findListsIds" ns
   pure ns
 
 commonNodes:: [NodeType]

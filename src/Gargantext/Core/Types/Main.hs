@@ -63,9 +63,9 @@ instance Semigroup ListType
   where
     MapTerm       <> _             = MapTerm
     _             <> MapTerm       = MapTerm
-    CandidateTerm <> _             = CandidateTerm
-    _             <> CandidateTerm = CandidateTerm
-    StopTerm      <> StopTerm      = StopTerm
+    StopTerm      <> CandidateTerm = StopTerm
+    CandidateTerm <> StopTerm      = StopTerm
+    _             <> _             = CandidateTerm
 
 
 instance FromHttpApiData ListType where
