@@ -126,7 +126,7 @@ getTable :: NodeId -> Maybe TabType
          -> Maybe OrderBy -> Cmd err FacetTableResult
 getTable cId ft o l order = do
   docs      <- getTable' cId ft o l order
-  docsCount <- runCountDocuments cId (if ft == Just Trash then True else False)
+  docsCount <- runCountDocuments cId (ft == Just Trash)
   pure $ TableResult { tr_docs = docs, tr_count = docsCount }
 
 getTable' :: NodeId -> Maybe TabType
