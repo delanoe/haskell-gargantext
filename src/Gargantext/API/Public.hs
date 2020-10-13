@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 

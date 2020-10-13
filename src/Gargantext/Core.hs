@@ -9,8 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell    #-}
-
 module Gargantext.Core
   where
 

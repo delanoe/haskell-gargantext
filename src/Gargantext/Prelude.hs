@@ -11,7 +11,6 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude

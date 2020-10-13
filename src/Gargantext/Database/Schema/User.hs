@@ -13,7 +13,6 @@ Functions to deal with users, database side.
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
-{-# LANGUAGE TemplateHaskell             #-}
 {-# LANGUAGE FunctionalDependencies      #-}
 {-# LANGUAGE Arrows                      #-}
 {-# LANGUAGE TemplateHaskell            #-}
