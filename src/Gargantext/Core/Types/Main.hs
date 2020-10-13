@@ -49,7 +49,7 @@ instance ToSchema NodeTree where
 
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
-data ListType  =  StopTerm | CandidateTerm | MapTerm
+data ListType  =  CandidateTerm | StopTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
