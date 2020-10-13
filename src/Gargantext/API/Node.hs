@@ -40,7 +40,8 @@ import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
-import Gargantext.API.Admin.Auth (withAccess, PathId(..))
+import Gargantext.API.Admin.Auth.Types (PathId(..))
+import Gargantext.API.Admin.Auth (withAccess)
 import Gargantext.API.Metrics
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableCorpus)
 import Gargantext.API.Ngrams.Types (TabType(..))

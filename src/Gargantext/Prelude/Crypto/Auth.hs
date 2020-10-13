@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Admin.Auth.Check
+Module      : Gargantext.Prelude.Crypto.Auth
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3

@@ -49,7 +49,7 @@ import Servant
 import System.IO (FilePath)
 import Data.Text.IO (putStrLn)
 
-import Gargantext.API.Admin.Auth (AuthContext)
+import Gargantext.API.Admin.Auth.Types (AuthContext)
 import Gargantext.API.Admin.Settings (newEnv)
 import Gargantext.API.Admin.Types (FireWall(..), PortNumber, cookieSettings, jwtSettings, settings)
 import Gargantext.API.Ngrams (saveRepo)

@@ -25,7 +25,8 @@ import qualified Paths_gargantext           as PG -- cabal magic build module
 
 import qualified Gargantext.API.Public      as Public
 
-import Gargantext.API.Admin.Auth (AuthContext, auth)
+import Gargantext.API.Admin.Auth.Types (AuthContext)
+import Gargantext.API.Admin.Auth (auth)
 import Gargantext.API.Admin.FrontEnd (frontEndServer)
 import Gargantext.API.Prelude
 import Gargantext.API.Routes
