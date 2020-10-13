@@ -376,7 +376,7 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
               pure ()
             Sources -> do
               -- printDebug "[tableNgramsPut] Sources, updating chart, cId" cId
-              _ <- Metrics.updateChart cId (Just listId) tabType Nothing
+              _ <- Metrics.updatePie cId (Just listId) tabType Nothing
               pure ()
             Terms -> do
               -- printDebug "[tableNgramsPut] Terms, updating Metrics (Histo), cId" cId
