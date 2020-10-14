@@ -16,11 +16,24 @@ module Gargantext.Core.Text.Types
 
 import Control.Lens (makeLenses)
 import Data.Set (Set)
+import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Prelude
+import qualified Data.Set as Set
+import qualified Data.Map as Map
+import qualified Data.List as List
+
+------------------------------------------------------------------------------
+hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
+hasListType m (GroupedText _ label _ g _ _ _) =
+  List.foldl' (<>) Nothing
+  $ map (\t -> Map.lookup t m)
+  $ Set.toList
+  $ Set.insert label g
+
 
 ------------------------------------------------------------------------------
 type Group = Lang -> Int -> Int -> Text -> Text
