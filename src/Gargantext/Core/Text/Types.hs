@@ -14,7 +14,7 @@ Portability : POSIX
 module Gargantext.Core.Text.Types
   where
 
-import Control.Lens (makeLenses)
+import Control.Lens (makeLenses, set)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
@@ -25,15 +25,6 @@ import Gargantext.Prelude
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified Data.List as List
-
-------------------------------------------------------------------------------
-hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
-hasListType m (GroupedText _ label _ g _ _ _) =
-  List.foldl' (<>) Nothing
-  $ map (\t -> Map.lookup t m)
-  $ Set.toList
-  $ Set.insert label g
-
 
 ------------------------------------------------------------------------------
 type Group = Lang -> Int -> Int -> Text -> Text
@@ -59,7 +50,23 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
   compare (GroupedText _ _ score1 _ _ _ _)
           (GroupedText _ _ score2 _ _ _ _) = compare score1 score2
 
-
-
 -- Lenses Instances
 makeLenses 'GroupedText
+
+------------------------------------------------------------------------------
+addListType :: Map Text ListType -> GroupedText a -> GroupedText a
+addListType m g = set gt_listType lt g
+  where
+    lt = hasListType m g
+
+hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
+hasListType m (GroupedText _ label _ g _ _ _) =
+  List.foldl' (<>) Nothing
+  $ map (\t -> Map.lookup t m)
+  $ Set.toList
+  $ Set.insert label g
+
+
+
+
+

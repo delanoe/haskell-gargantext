@@ -15,6 +15,7 @@ module Gargantext.Core.Text.List
   where
 
 
+import Control.Lens ((^.))
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
 import Data.Map (Map)
@@ -31,7 +32,7 @@ import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social (flowSocialList)
+import Gargantext.Core.Text.List.Social (flowSocialList, invertForw)
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Core.Text.Types
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
@@ -142,14 +143,15 @@ buildNgramsTermsList user l n m _s uCid mCid = do
 
   printDebug "\n * socialLists * \n" socialLists
 
+{-
   let
     _socialMap  = fromMaybe Set.empty $ Map.lookup MapTerm       socialLists
     _socialCand = fromMaybe Set.empty $ Map.lookup CandidateTerm socialLists
     socialStop  = fromMaybe Set.empty $ Map.lookup StopTerm      socialLists
     -- stopTerms ignored for now (need to be tagged already)
-    (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
+    -- (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
+-}
 
-  printDebug "\n * stopTerms * \n" stopTerms
 
   -- Grouping the ngrams and keeping the maximum score for label
   let grouped = groupStems'
@@ -157,10 +159,13 @@ buildNgramsTermsList user l n m _s uCid mCid = do
                           in ( stem
                              , GroupedText Nothing t d Set.empty (size t) stem Set.empty
                              )
-              ) candidateTerms
+              ) allTerms
 
-      (groupedMono, groupedMult) = Map.partition (\gt -> _gt_size gt < 2) grouped
+      groupedWithList = map (addListType (invertForw socialLists)) grouped
+      (stopTerms, candidateTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
+      (groupedMono, groupedMult)  = Map.partition (\gt -> _gt_size gt < 2) candidateTerms
 
+  -- printDebug "\n * stopTerms * \n" stopTerms
 -- printDebug "groupedMult" groupedMult
   -- splitting monterms and multiterms to take proportional candidates
   let
@@ -288,8 +293,8 @@ buildNgramsTermsList user l n m _s uCid mCid = do
        [ Map.fromList [(
                         NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
                                   <> (List.concat $ map toNgramsElement $ termListTail)
+                                  <> (List.concat $ map toNgramsElement $ stopTerms)
                       )]
-       , toElements NgramsTerms StopTerm stopTerms
        ]
   -- printDebug "\n result \n" r
   pure result
