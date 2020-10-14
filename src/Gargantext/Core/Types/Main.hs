@@ -74,10 +74,11 @@ instance FromHttpApiData ListType where
 
 type ListTypeId = Int
 
+-- FIXME Candidate: 0 and Stop : 1
 listTypeId :: ListType -> ListTypeId
 listTypeId StopTerm      = 0
 listTypeId CandidateTerm = 1
-listTypeId MapTerm     = 2
+listTypeId MapTerm       = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
 fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]

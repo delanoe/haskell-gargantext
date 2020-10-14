@@ -15,11 +15,9 @@ module Gargantext.Core.Text.List
   where
 
 
-import Control.Lens (makeLenses)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
 import Data.Map (Map)
-import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Char as Char
 import qualified Data.List as List
@@ -29,17 +27,17 @@ import qualified Data.Text as Text
 
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
+import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Learn (Model(..))
 import Gargantext.Core.Text.List.Social (flowSocialList)
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
+import Gargantext.Core.Text.Types
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
-import Gargantext.API.Ngrams.Types (RepoCmdM)
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (Cmd, CmdM)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
@@ -339,32 +337,4 @@ isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
   where
     isStopChar c = not (c `elem` ("- /()%" :: [Char]) || Char.isAlpha c)
 
-
 ------------------------------------------------------------------------------
-type Group = Lang -> Int -> Int -> Text -> Text
-type Stem  = Text
-type Label = Text
-data GroupedText score =
-  GroupedText { _gt_listType :: !(Maybe ListType)
-              , _gt_label    :: !Label
-              , _gt_score    :: !score
-              , _gt_group    :: !(Set Text)
-              , _gt_size     :: !Int
-              , _gt_stem     :: !Stem
-              , _gt_nodes    :: !(Set NodeId)
-              }
-instance Show score => Show (GroupedText score) where
-  show (GroupedText _ l s _ _ _ _) = show l <> ":" <> show s
-
-instance (Eq a) => Eq (GroupedText a) where
-  (==) (GroupedText _ _ score1 _ _ _ _)
-       (GroupedText _ _ score2 _ _ _ _) = (==) score1 score2
-
-instance (Eq a, Ord a) => Ord (GroupedText a) where
-  compare (GroupedText _ _ score1 _ _ _ _)
-          (GroupedText _ _ score2 _ _ _ _) = compare score1 score2
-
-
-
--- Lenses Instances
-makeLenses 'GroupedText
