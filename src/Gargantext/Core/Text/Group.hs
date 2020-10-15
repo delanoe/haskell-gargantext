@@ -51,13 +51,16 @@ data StopSize = StopSize {unStopSize :: !Int}
 -- a first grouping option to user and get some
 -- enriched data to better learn and improve that algo
 
+data GroupParams = GroupParams { unGroupParams_lang  :: !Lang
+                               , unGroupParams_len   :: !Int
+                               , unGroupParams_limit :: !Int
+                               , unGroupParams_stopSize :: !StopSize
+                               }
 
-ngramsGroup :: Lang
-            -> Int
-            -> Int
+ngramsGroup :: GroupParams
             -> Text
             -> Text
-ngramsGroup l _m _n = Text.intercalate " "
+ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
                   . map (stem l)
                   -- . take n
                   . List.sort

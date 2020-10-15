@@ -66,7 +66,7 @@ import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
-import Gargantext.Core.Text.Group (StopSize(..))
+import Gargantext.Core.Text.Group (StopSize(..), GroupParams(..))
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (Terms(..))
@@ -221,7 +221,7 @@ flowCorpusUser l user corpusName ctype ids = do
 
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
-  ngs         <- buildNgramsLists user l 2 3 (StopSize 3) userCorpusId masterCorpusId
+  ngs         <- buildNgramsLists user (GroupParams l 2 3 (StopSize 3)) userCorpusId masterCorpusId
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId

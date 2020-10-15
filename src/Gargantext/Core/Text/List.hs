@@ -29,7 +29,6 @@ import qualified Data.Text as Text
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
-import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Social (flowSocialList, invertForw)
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
@@ -53,15 +52,12 @@ buildNgramsLists :: ( RepoCmdM env err m
                     , HasNodeError err
                     )
                  => User
-                 -> Lang
-                 -> Int
-                 -> Int
-                 -> StopSize
+                 -> GroupParams
                  -> UserCorpusId
                  -> MasterCorpusId
                  -> m (Map NgramsType [NgramsElement])
-buildNgramsLists user l n m s uCid mCid = do
-  ngTerms     <- buildNgramsTermsList user l n m s uCid mCid
+buildNgramsLists user gp uCid mCid = do
+  ngTerms     <- buildNgramsTermsList user gp uCid mCid
   othersTerms <- mapM (buildNgramsOthersList user uCid identity)
                       [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
@@ -105,14 +101,11 @@ buildNgramsTermsList :: ( HasNodeError err
                         , HasTreeError err
                         )
                         => User
-                        -> Lang
-                        -> Int
-                        -> Int
-                        -> StopSize
+                        -> GroupParams
                         -> UserCorpusId
                         -> MasterCorpusId
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user l n m _s uCid mCid = do
+buildNgramsTermsList user groupParams uCid mCid = do
 
 -- Computing global speGen score
   allTerms <- Map.toList <$> getTficf uCid mCid NgramsTerms
@@ -137,7 +130,7 @@ buildNgramsTermsList user l n m _s uCid mCid = do
 
   -- Grouping the ngrams and keeping the maximum score for label
   let grouped = groupStems'
-        $ map (\(t,d) -> let stem = ngramsGroup l n m t
+        $ map (\(t,d) -> let stem = ngramsGroup groupParams t
                           in ( stem
                              , GroupedText Nothing t d Set.empty (size t) stem Set.empty
                              )
@@ -186,7 +179,7 @@ buildNgramsTermsList user l n m _s uCid mCid = do
                 $ groupedMonoHead <> groupedMultHead
 
     -- grouping with Set NodeId
-    contextsAdded = foldl' (\mapGroups' k -> let k' = ngramsGroup l n m k
+    contextsAdded = foldl' (\mapGroups' k -> let k' = ngramsGroup groupParams k
                                     in case Map.lookup k' mapGroups'  of
                                       Nothing -> mapGroups'
                                       Just g  -> case Map.lookup k mapTextDocIds of
