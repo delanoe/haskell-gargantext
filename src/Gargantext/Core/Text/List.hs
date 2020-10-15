@@ -15,7 +15,7 @@ module Gargantext.Core.Text.List
   where
 
 
-import Control.Lens ((^.))
+import Control.Lens ((^.), set)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
 import Data.Map (Map)
@@ -37,7 +37,7 @@ import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
-import Gargantext.Database.Prelude (Cmd, CmdM)
+import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Tree.Error (HasTreeError)
@@ -57,22 +57,22 @@ buildNgramsLists :: ( RepoCmdM env err m
                  -> MasterCorpusId
                  -> m (Map NgramsType [NgramsElement])
 buildNgramsLists user gp uCid mCid = do
-  ngTerms     <- buildNgramsTermsList user gp uCid mCid
+  ngTerms     <- buildNgramsTermsList user uCid mCid gp
   othersTerms <- mapM (buildNgramsOthersList user uCid identity)
                       [Authors, Sources, Institutes]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
 
-buildNgramsOthersList :: (--  RepoCmdM env err m
-                        -- , CmdM     env err m
-                         HasNodeError err
-                        -- , HasTreeError err
+buildNgramsOthersList ::( HasNodeError err
+                        , CmdM     env err m
+                        , RepoCmdM env err m
+                        , HasTreeError err
                         )
                         => User
-                      -> UserCorpusId
-                      -> (Text -> Text)
-                      -> NgramsType
-                      -> Cmd err (Map NgramsType [NgramsElement])
+                        -> UserCorpusId
+                        -> (Text -> Text)
+                        -> NgramsType
+                        -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList _user uCid groupIt nt = do
   ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
@@ -101,11 +101,11 @@ buildNgramsTermsList :: ( HasNodeError err
                         , HasTreeError err
                         )
                         => User
-                        -> GroupParams
                         -> UserCorpusId
                         -> MasterCorpusId
+                        -> GroupParams
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user groupParams uCid mCid = do
+buildNgramsTermsList user uCid mCid groupParams = do
 
 -- Computing global speGen score
   allTerms <- Map.toList <$> getTficf uCid mCid NgramsTerms
@@ -115,17 +115,7 @@ buildNgramsTermsList user groupParams uCid mCid = do
 
   -- First remove stops terms
   socialLists <- flowSocialList user NgramsTerms (Set.fromList $ map fst allTerms)
-
-  printDebug "\n * socialLists * \n" socialLists
-
-{-
-  let
-    _socialMap  = fromMaybe Set.empty $ Map.lookup MapTerm       socialLists
-    _socialCand = fromMaybe Set.empty $ Map.lookup CandidateTerm socialLists
-    socialStop  = fromMaybe Set.empty $ Map.lookup StopTerm      socialLists
-    -- stopTerms ignored for now (need to be tagged already)
-    -- (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
--}
+  -- printDebug "\n * socialLists * \n" socialLists
 
 
   -- Grouping the ngrams and keeping the maximum score for label
@@ -138,10 +128,9 @@ buildNgramsTermsList user groupParams uCid mCid = do
 
       groupedWithList = map (addListType (invertForw socialLists)) grouped
       (stopTerms, candidateTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
-      (groupedMono, groupedMult)  = Map.partition (\gt -> _gt_size gt < 2) candidateTerms
+      (groupedMono, groupedMult)  = Map.partition (\gt -> gt ^.  gt_size < 2) candidateTerms
 
   -- printDebug "\n * stopTerms * \n" stopTerms
--- printDebug "groupedMult" groupedMult
   -- splitting monterms and multiterms to take proportional candidates
   let
     listSizeGlobal = 2000 :: Double -- use % of list if to big, or Int if to small
@@ -162,8 +151,7 @@ buildNgramsTermsList user groupParams uCid mCid = do
     -- Get Local Scores now for selected grouped ngrams
     selectedTerms = Set.toList $ List.foldl'
                       (\set' (GroupedText _ l' _ g _ _ _ ) -> Set.union set'
-                                                            $ Set.union g
-                                                            $ Set.singleton l'
+                                                            $ Set.insert l' g
                       )
                       Set.empty
                       (groupedMonoHead <> groupedMultHead)
@@ -241,22 +229,22 @@ buildNgramsTermsList user groupParams uCid mCid = do
 
 
     -- Final Step building the Typed list
-    -- (map (toGargList $ Just StopTerm) stopTerms) -- Removing stops (needs social score)
-    termListHead =
-             (map (\g -> g { _gt_listType = Just MapTerm} )  (  monoScoredInclHead
-                                                 <> monoScoredExclHead
-                                                 <> multScoredInclHead
-                                                 <> multScoredExclHead
-                                                 )
-               )
-            <> (map (\g -> g { _gt_listType = Just CandidateTerm }) (  monoScoredInclTail
-                                                      <> monoScoredExclTail
-                                                      <> multScoredInclTail
-                                                      <> multScoredExclTail
-                                                      )
-               )
+    termListHead = maps <> cands
+      where
 
-    termListTail = map (\g -> g { _gt_listType = Just CandidateTerm }) ( groupedMonoTail <> groupedMultTail)
+        maps = set gt_listType (Just MapTerm)
+            <$> monoScoredInclHead
+             <> monoScoredExclHead
+             <> multScoredInclHead
+             <> multScoredExclHead
+
+        cands = set gt_listType (Just CandidateTerm)
+              <$> monoScoredInclTail
+               <> monoScoredExclTail
+               <> multScoredInclTail
+               <> multScoredExclTail
+
+    termListTail = map (set gt_listType (Just CandidateTerm)) ( groupedMonoTail <> groupedMultTail)
 
 --  printDebug "monoScoredInclHead" monoScoredInclHead
 --  printDebug "monoScoredExclHead" monoScoredExclTail
