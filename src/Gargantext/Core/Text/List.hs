@@ -31,13 +31,12 @@ import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(.
 import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
-import Gargantext.Core.Text.List.Learn (Model(..))
 import Gargantext.Core.Text.List.Social (flowSocialList, invertForw)
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
-import Gargantext.Core.Text.Types
+import Gargantext.Core.Text.Group
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Prelude (Cmd, CmdM)
 import Gargantext.Database.Query.Table.Node (defaultList)
@@ -46,23 +45,6 @@ import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 
-
-data NgramsListBuilder = BuilderStepO { stemSize :: !Int
-                                      , stemX    :: !Int
-                                      , stopSize :: !Int
-                                      }
-                       | BuilderStep1 { withModel :: !Model }
-                       | BuilderStepN { withModel :: !Model }
-                       | Tficf { nlb_lang           :: !Lang
-                               , nlb_group1         :: !Int
-                               , nlb_group2         :: !Int
-                               , nlb_stopSize       :: !StopSize
-                               , nlb_userCorpusId   :: !UserCorpusId
-                               , nlb_masterCorpusId :: !MasterCorpusId
-                               }
-
-
-data StopSize = StopSize {unStopSize :: !Int}
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
 buildNgramsLists :: ( RepoCmdM env err m

@@ -36,24 +36,6 @@ import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
-import Gargantext.Core.Text.Terms.Mono.Stem (stem)
-
--- | TODO: group with 2 terms only can be
--- discussed. Main purpose of this is offering
--- a first grouping option to user and get some
--- enriched data to better learn and improve that algo
-ngramsGroup :: Lang
-            -> Int
-            -> Int
-            -> Text
-            -> Text
-ngramsGroup l _m _n = Text.intercalate " "
-                  . map (stem l)
-                  -- . take n
-                  . List.sort
-                  -- . (List.filter (\t -> Text.length t > m))
-                  . Text.splitOn " "
-                  . Text.replace "-" " "
 
 
 

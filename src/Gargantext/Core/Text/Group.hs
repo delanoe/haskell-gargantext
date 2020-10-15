@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Text.Types
+Module      : Gargantext.Core.Text.Group
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -11,7 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Gargantext.Core.Text.Types
+module Gargantext.Core.Text.Group
   where
 
 import Control.Lens (makeLenses, set)
@@ -21,10 +21,49 @@ import Data.Text (Text)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Core.Text.List.Learn (Model(..))
+import Gargantext.Core.Types (MasterCorpusId, UserCorpusId)
+import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
-import qualified Data.Set as Set
-import qualified Data.Map as Map
+import qualified Data.Set  as Set
+import qualified Data.Map  as Map
 import qualified Data.List as List
+import qualified Data.Text as Text
+
+data NgramsListBuilder = BuilderStepO { stemSize :: !Int
+                                      , stemX    :: !Int
+                                      , stopSize :: !StopSize
+                                      }
+                       | BuilderStep1 { withModel :: !Model }
+                       | BuilderStepN { withModel :: !Model }
+                       | Tficf { nlb_lang           :: !Lang
+                               , nlb_group1         :: !Int
+                               , nlb_group2         :: !Int
+                               , nlb_stopSize       :: !StopSize
+                               , nlb_userCorpusId   :: !UserCorpusId
+                               , nlb_masterCorpusId :: !MasterCorpusId
+                               }
+
+data StopSize = StopSize {unStopSize :: !Int}
+
+-- | TODO: group with 2 terms only can be
+-- discussed. Main purpose of this is offering
+-- a first grouping option to user and get some
+-- enriched data to better learn and improve that algo
+
+
+ngramsGroup :: Lang
+            -> Int
+            -> Int
+            -> Text
+            -> Text
+ngramsGroup l _m _n = Text.intercalate " "
+                  . map (stem l)
+                  -- . take n
+                  . List.sort
+                  -- . (List.filter (\t -> Text.length t > m))
+                  . Text.splitOn " "
+                  . Text.replace "-" " "
 
 ------------------------------------------------------------------------------
 type Group = Lang -> Int -> Int -> Text -> Text
