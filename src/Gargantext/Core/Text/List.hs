@@ -57,11 +57,12 @@ buildNgramsLists :: ( RepoCmdM env err m
                  -> m (Map NgramsType [NgramsElement])
 buildNgramsLists user gp uCid mCid = do
   ngTerms     <- buildNgramsTermsList user uCid mCid gp
-  othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
-                      [(Authors, 5), (Sources, 7), (Institutes, 9)]
-  pure $ Map.unions $ othersTerms <> [ngTerms]
+  {- othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
+                      [(Authors, MapListSize 5), (Sources, MapListSize 7), (Institutes, MapListSize 9)]
+                      -}
+  pure $ Map.unions $ {-othersTerms <>-} [ngTerms]
 
-type MapListSize = Int
+data MapListSize = MapListSize Int
 
 buildNgramsOthersList ::( HasNodeError err
                         , CmdM     env err m
@@ -73,15 +74,16 @@ buildNgramsOthersList ::( HasNodeError err
                         -> (Text -> Text)
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsOthersList user uCid groupIt (nt, mapListSize) = do
+buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
+
   ngs         <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
   let 
     grouped = toGroupedText groupIt (Set.size . snd) fst snd (Map.toList ngs)
 
-  socialLists <- flowSocialList user NgramsTerms (Set.fromList $ Map.keys ngs)
+  socialLists <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
 
-  let 
+  let
     groupedWithList = map (addListType (invertForw socialLists)) grouped
     (stopTerms, tailTerms  )  = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
     (graphTerms, tailTerms')  = Map.partition (\t -> t ^. gt_listType == Just MapTerm) tailTerms
