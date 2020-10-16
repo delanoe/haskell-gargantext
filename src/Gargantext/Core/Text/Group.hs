@@ -19,6 +19,7 @@ import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Learn (Model(..))
@@ -29,6 +30,7 @@ import qualified Data.Set  as Set
 import qualified Data.Map  as Map
 import qualified Data.List as List
 import qualified Data.Text as Text
+
 
 data NgramsListBuilder = BuilderStepO { stemSize :: !Int
                                       , stemX    :: !Int
@@ -56,10 +58,12 @@ data GroupParams = GroupParams { unGroupParams_lang  :: !Lang
                                , unGroupParams_limit :: !Int
                                , unGroupParams_stopSize :: !StopSize
                                }
+                   | GroupIdentity
 
 ngramsGroup :: GroupParams
             -> Text
             -> Text
+ngramsGroup GroupIdentity  = identity
 ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
                   . map (stem l)
                   -- . take n
@@ -67,6 +71,42 @@ ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
                   -- . (List.filter (\t -> Text.length t > m))
                   . Text.splitOn " "
                   . Text.replace "-" " "
+
+------------------------------------------------------------------------------
+toGroupedText :: Ord b
+              => (Text -> Text)
+              -> (a -> b)
+              -> (a -> Set Text)
+              -> (a -> Set NodeId)
+              -> [(Text,a)]
+              -> Map Stem (GroupedText b)
+toGroupedText fun_stem fun_score fun_texts fun_nodeIds from = groupStems' $ map group from
+  where
+    group (t,d) = let t' = fun_stem t
+                   in (t', GroupedText
+                              Nothing
+                              t
+                              (fun_score d)
+                              (fun_texts d)
+                              (size t)
+                              t'
+                              (fun_nodeIds d)
+                       )
+
+groupStems :: [(Stem, GroupedText Double)] -> [GroupedText Double]
+groupStems = Map.elems . groupStems'
+
+groupStems' :: Ord a => [(Stem, GroupedText a)] -> Map Stem (GroupedText a)
+groupStems' = Map.fromListWith grouping
+  where
+    grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
+             (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
+             | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
+             | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
+        where
+          lt = lt1 <> lt2
+          gr    = Set.union group1 group2
+          nodes = Set.union nodes1 nodes2
 
 ------------------------------------------------------------------------------
 type Group = Lang -> Int -> Int -> Text -> Text

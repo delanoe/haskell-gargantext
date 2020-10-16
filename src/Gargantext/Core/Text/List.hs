@@ -29,7 +29,6 @@ import qualified Data.Text as Text
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
-import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Social (flowSocialList, invertForw)
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Core.Text.Group
@@ -58,10 +57,11 @@ buildNgramsLists :: ( RepoCmdM env err m
                  -> m (Map NgramsType [NgramsElement])
 buildNgramsLists user gp uCid mCid = do
   ngTerms     <- buildNgramsTermsList user uCid mCid gp
-  othersTerms <- mapM (buildNgramsOthersList user uCid identity)
-                      [Authors, Sources, Institutes]
+  othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
+                      [(Authors, 5), (Sources, 7), (Institutes, 9)]
   pure $ Map.unions $ othersTerms <> [ngTerms]
 
+type MapListSize = Int
 
 buildNgramsOthersList ::( HasNodeError err
                         , CmdM     env err m
@@ -71,21 +71,34 @@ buildNgramsOthersList ::( HasNodeError err
                         => User
                         -> UserCorpusId
                         -> (Text -> Text)
-                        -> NgramsType
+                        -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsOthersList _user uCid groupIt nt = do
-  ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
+buildNgramsOthersList user uCid groupIt (nt, mapListSize) = do
+  ngs         <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
-  let
-    listSize = 9
-    all'     = List.sortOn (Down . Set.size . snd . snd)
-             $ Map.toList ngs
+  let 
+    grouped = toGroupedText groupIt (Set.size . snd) fst snd (Map.toList ngs)
 
-    (graphTerms, candiTerms) = List.splitAt listSize all'
+  socialLists <- flowSocialList user NgramsTerms (Set.fromList $ Map.keys ngs)
 
-  pure $ Map.unionsWith (<>) [ toElements nt MapTerm       graphTerms
-                             , toElements nt CandidateTerm candiTerms
-                             ]
+  let 
+    groupedWithList = map (addListType (invertForw socialLists)) grouped
+    (stopTerms, tailTerms  )  = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
+    (graphTerms, tailTerms')  = Map.partition (\t -> t ^. gt_listType == Just MapTerm) tailTerms
+
+    listSize = mapListSize - (List.length graphTerms)
+    (graphTerms', candiTerms) = List.splitAt listSize $ List.sortOn (Down . _gt_score) $ Map.elems tailTerms'
+
+  let result = Map.unionsWith (<>)
+       [ Map.fromList [(
+                        NgramsTerms, (List.concat $ map toNgramsElement $ stopTerms)
+                                  <> (List.concat $ map toNgramsElement $ graphTerms)
+                                  <> (List.concat $ map toNgramsElement $ graphTerms')
+                                  <> (List.concat $ map toNgramsElement $ candiTerms)
+                      )]
+       ]
+  pure result
+
 
 toElements :: Ord k => k -> ListType -> [(Text, b)] -> Map k [NgramsElement]
 toElements nType lType x =
@@ -119,16 +132,12 @@ buildNgramsTermsList user uCid mCid groupParams = do
 
 
   -- Grouping the ngrams and keeping the maximum score for label
-  let grouped = groupStems'
-        $ map (\(t,d) -> let stem = ngramsGroup groupParams t
-                          in ( stem
-                             , GroupedText Nothing t d Set.empty (size t) stem Set.empty
-                             )
-              ) allTerms
+  let grouped = toGroupedText (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) allTerms
 
       groupedWithList = map (addListType (invertForw socialLists)) grouped
+
       (stopTerms, candidateTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
-      (groupedMono, groupedMult)  = Map.partition (\gt -> gt ^.  gt_size < 2) candidateTerms
+      (groupedMono, groupedMult)  = Map.partition (\t -> t ^. gt_size                  < 2) candidateTerms
 
   -- printDebug "\n * stopTerms * \n" stopTerms
   -- splitting monterms and multiterms to take proportional candidates
@@ -138,7 +147,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
     multSize = 1 - monoSize
 
     splitAt n' ns = List.splitAt (round $ n' * listSizeGlobal) $ List.sort $ Map.elems ns
- 
+
     (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
     (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
 
@@ -163,7 +172,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
   mapTextDocIds <- getNodesByNgramsOnlyUser uCid [userListId, masterListId] NgramsTerms selectedTerms
   let
     mapGroups   = Map.fromList
-                $ map (\g -> (_gt_stem g, g))
+                $ map (\g -> (g ^. gt_stem, g))
                 $ groupedMonoHead <> groupedMultHead
 
     -- grouping with Set NodeId
@@ -231,7 +240,6 @@ buildNgramsTermsList user uCid mCid groupParams = do
     -- Final Step building the Typed list
     termListHead = maps <> cands
       where
-
         maps = set gt_listType (Just MapTerm)
             <$> monoScoredInclHead
              <> monoScoredExclHead
@@ -261,22 +269,6 @@ buildNgramsTermsList user uCid mCid groupParams = do
        ]
   -- printDebug "\n result \n" r
   pure result
-
-groupStems :: [(Stem, GroupedText Double)] -> [GroupedText Double]
-groupStems = Map.elems . groupStems'
-
-groupStems' :: [(Stem, GroupedText Double)] -> Map Stem (GroupedText Double)
-groupStems' = Map.fromListWith grouping
-  where
-    grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
-             (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
-             | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
-             | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
-        where
-          lt = lt1 <> lt2
-          gr    = Set.union group1 group2
-          nodes = Set.union nodes1 nodes2
-
 
 
 
