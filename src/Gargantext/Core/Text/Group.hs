@@ -120,9 +120,11 @@ data GroupedText score =
               , _gt_size     :: !Int
               , _gt_stem     :: !Stem
               , _gt_nodes    :: !(Set NodeId)
-              }
+              } deriving Show
+{-
 instance Show score => Show (GroupedText score) where
-  show (GroupedText _ l s _ _ _ _) = show l <> ":" <> show s
+  show (GroupedText lt l s _ _ _ _) = show l <> " : " <> show lt <> " : " <> show s
+-}
 
 instance (Eq a) => Eq (GroupedText a) where
   (==) (GroupedText _ _ score1 _ _ _ _)
@@ -137,16 +139,14 @@ makeLenses 'GroupedText
 
 ------------------------------------------------------------------------------
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
-addListType m g = set gt_listType lt g
+addListType m g = set gt_listType (hasListType m g) g
   where
-    lt = hasListType m g
-
-hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
-hasListType m (GroupedText _ label _ g _ _ _) =
-  List.foldl' (<>) Nothing
-  $ map (\t -> Map.lookup t m)
-  $ Set.toList
-  $ Set.insert label g
+    hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
+    hasListType m' (GroupedText _ label _ g' _ _ _) =
+      List.foldl' (<>) Nothing
+      $ map (\t -> Map.lookup t m')
+      $ Set.toList
+      $ Set.insert label g'
 
 
 

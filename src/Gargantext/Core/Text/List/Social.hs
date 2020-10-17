@@ -53,7 +53,7 @@ flowSocialList user nt ngrams' = do
   let result = unions [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
                       , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
                       ]
-  printDebug "* socialLists *: results \n" result
+  -- printDebug "* socialLists *: results \n" result
   pure result
 
 

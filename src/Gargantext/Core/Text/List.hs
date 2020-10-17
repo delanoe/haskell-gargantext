@@ -57,10 +57,14 @@ buildNgramsLists :: ( RepoCmdM env err m
                  -> m (Map NgramsType [NgramsElement])
 buildNgramsLists user gp uCid mCid = do
   ngTerms     <- buildNgramsTermsList user uCid mCid gp
-  {- othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
-                      [(Authors, MapListSize 5), (Sources, MapListSize 7), (Institutes, MapListSize 9)]
-                      -}
-  pure $ Map.unions $ {-othersTerms <>-} [ngTerms]
+  othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
+                      [ (Authors, MapListSize 9)
+                      , (Sources, MapListSize 9)
+                      , (Institutes, MapListSize 9)
+                      ]
+
+  pure $ Map.unions $ [ngTerms] <> othersTerms
+
 
 data MapListSize = MapListSize Int
 
@@ -76,38 +80,26 @@ buildNgramsOthersList ::( HasNodeError err
                         -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
 
-  ngs         <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
+  ngs  <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
   let 
-    grouped = toGroupedText groupIt (Set.size . snd) fst snd (Map.toList ngs)
+    grouped = toGroupedText groupIt (Set.size . snd) fst snd (Map.toList $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b)) $ ngs)
 
   socialLists <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
 
   let
     groupedWithList = map (addListType (invertForw socialLists)) grouped
-    (stopTerms, tailTerms  )  = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
-    (graphTerms, tailTerms')  = Map.partition (\t -> t ^. gt_listType == Just MapTerm) tailTerms
+    (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
+    (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm) tailTerms
 
-    listSize = mapListSize - (List.length graphTerms)
-    (graphTerms', candiTerms) = List.splitAt listSize $ List.sortOn (Down . _gt_score) $ Map.elems tailTerms'
+    listSize = mapListSize - (List.length mapTerms)
+    (mapTerms', candiTerms) = List.splitAt listSize $ List.sortOn (Down . _gt_score) $ Map.elems tailTerms'
 
-  let result = Map.unionsWith (<>)
-       [ Map.fromList [(
-                        NgramsTerms, (List.concat $ map toNgramsElement $ stopTerms)
-                                  <> (List.concat $ map toNgramsElement $ graphTerms)
-                                  <> (List.concat $ map toNgramsElement $ graphTerms')
-                                  <> (List.concat $ map toNgramsElement $ candiTerms)
+  pure $ Map.fromList [( nt, (List.concat $ map toNgramsElement stopTerms)
+                                 <> (List.concat $ map toNgramsElement mapTerms)
+                                 <> (List.concat $ map toNgramsElement $ map (set gt_listType (Just MapTerm)) mapTerms')
+                                 <> (List.concat $ map toNgramsElement $ map (set gt_listType (Just CandidateTerm)) candiTerms)
                       )]
-       ]
-  pure result
-
-
-toElements :: Ord k => k -> ListType -> [(Text, b)] -> Map k [NgramsElement]
-toElements nType lType x =
-  Map.fromList [(nType, [ mkNgramsElement (NgramsTerm t) lType Nothing (mSetFromList [])
-                        | (t, _ns) <- x
-                        ]
-               )]
 
 -- TODO use ListIds
 buildNgramsTermsList :: ( HasNodeError err
@@ -153,10 +145,10 @@ buildNgramsTermsList user uCid mCid groupParams = do
     (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
     (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
 
-  printDebug "groupedMonoHead" (List.length groupedMonoHead)
-  printDebug "groupedMonoTail" (List.length groupedMonoHead)
-  printDebug "groupedMultHead" (List.length groupedMultHead)
-  printDebug "groupedMultTail" (List.length groupedMultTail)
+  -- printDebug "groupedMonoHead" (List.length groupedMonoHead)
+  -- printDebug "groupedMonoTail" (List.length groupedMonoHead)
+  -- printDebug "groupedMultHead" (List.length groupedMultHead)
+  -- printDebug "groupedMultTail" (List.length groupedMultTail)
 
   let
     -- Get Local Scores now for selected grouped ngrams
@@ -172,6 +164,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
   masterListId  <- defaultList mCid
 
   mapTextDocIds <- getNodesByNgramsOnlyUser uCid [userListId, masterListId] NgramsTerms selectedTerms
+
   let
     mapGroups   = Map.fromList
                 $ map (\g -> (g ^. gt_stem, g))
@@ -189,7 +182,8 @@ buildNgramsTermsList user uCid mCid groupParams = do
                   $ Map.keys mapTextDocIds
 
     -- compute cooccurrences
-    mapCooc = Map.filter (>2) $ Map.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
+    mapCooc = Map.filter (>2)
+            $ Map.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
                            | (t1, s1) <- mapStemNodeIds
                            , (t2, s2) <- mapStemNodeIds
                            ]
@@ -249,24 +243,23 @@ buildNgramsTermsList user uCid mCid groupParams = do
              <> multScoredExclHead
 
         cands = set gt_listType (Just CandidateTerm)
-              <$> monoScoredInclTail
-               <> monoScoredExclTail
-               <> multScoredInclTail
-               <> multScoredExclTail
+             <$> monoScoredInclTail
+              <> monoScoredExclTail
+              <> multScoredInclTail
+              <> multScoredExclTail
 
     termListTail = map (set gt_listType (Just CandidateTerm)) ( groupedMonoTail <> groupedMultTail)
 
 --  printDebug "monoScoredInclHead" monoScoredInclHead
 --  printDebug "monoScoredExclHead" monoScoredExclTail
 --
-  printDebug "multScoredInclHead" multScoredInclHead
-  printDebug "multScoredExclTail" multScoredExclTail
+--  printDebug "multScoredInclHead" multScoredInclHead
+--  printDebug "multScoredExclTail" multScoredExclTail
 
   let result = Map.unionsWith (<>)
-       [ Map.fromList [(
-                        NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
-                                  <> (List.concat $ map toNgramsElement $ termListTail)
-                                  <> (List.concat $ map toNgramsElement $ stopTerms)
+       [ Map.fromList [( NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
+                                   <> (List.concat $ map toNgramsElement $ termListTail)
+                                   <> (List.concat $ map toNgramsElement $ stopTerms)
                       )]
        ]
   -- printDebug "\n result \n" r
