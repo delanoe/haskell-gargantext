@@ -20,10 +20,9 @@ import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
-import Gargantext.Core.Types (ListType(..))
+import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Types (MasterCorpusId, UserCorpusId)
+-- import Gargantext.Core.Text.List.Learn (Model(..))
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -31,7 +30,7 @@ import qualified Data.Map  as Map
 import qualified Data.List as List
 import qualified Data.Text as Text
 
-
+{-
 data NgramsListBuilder = BuilderStepO { stemSize :: !Int
                                       , stemX    :: !Int
                                       , stopSize :: !StopSize
@@ -45,6 +44,7 @@ data NgramsListBuilder = BuilderStepO { stemSize :: !Int
                                , nlb_userCorpusId   :: !UserCorpusId
                                , nlb_masterCorpusId :: !MasterCorpusId
                                }
+-}
 
 data StopSize = StopSize {unStopSize :: !Int}
 
@@ -52,13 +52,12 @@ data StopSize = StopSize {unStopSize :: !Int}
 -- discussed. Main purpose of this is offering
 -- a first grouping option to user and get some
 -- enriched data to better learn and improve that algo
-
 data GroupParams = GroupParams { unGroupParams_lang  :: !Lang
                                , unGroupParams_len   :: !Int
                                , unGroupParams_limit :: !Int
                                , unGroupParams_stopSize :: !StopSize
                                }
-                   | GroupIdentity
+                 | GroupIdentity
 
 ngramsGroup :: GroupParams
             -> Text
@@ -72,7 +71,7 @@ ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
                   . Text.splitOn " "
                   . Text.replace "-" " "
 
-------------------------------------------------------------------------------
+------------------------------------------------------------------------
 toGroupedText :: Ord b
               => (Text -> Text)
               -> (a -> b)
@@ -108,7 +107,7 @@ groupStems' = Map.fromListWith grouping
           gr    = Set.union group1 group2
           nodes = Set.union nodes1 nodes2
 
-------------------------------------------------------------------------------
+------------------------------------------------------------------------
 type Group = Lang -> Int -> Int -> Text -> Text
 type Stem  = Text
 type Label = Text
@@ -137,18 +136,15 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
 -- Lenses Instances
 makeLenses 'GroupedText
 
-------------------------------------------------------------------------------
+------------------------------------------------------------------------
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
 addListType m g = set gt_listType (hasListType m g) g
   where
     hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
     hasListType m' (GroupedText _ label _ g' _ _ _) =
-      List.foldl' (<>) Nothing
+        List.foldl' (<>) Nothing
       $ map (\t -> Map.lookup t m')
       $ Set.toList
       $ Set.insert label g'
-
-
-
 
 
