@@ -76,13 +76,12 @@ invertBack = Map.fromListWith (<>)
 unions_test :: Map ListType (Set Text)
 unions_test = unions [m1, m2]
   where
-    m1 = Map.fromList [ (StopTerm, Set.singleton "Candidate")]
+    m1 = Map.fromList [ (StopTerm     , Set.singleton "Candidate")]
     m2 = Map.fromList [ (CandidateTerm, Set.singleton "Candidate")
-                      , (MapTerm, Set.singleton "Candidate")
+                      , (MapTerm      , Set.singleton "Candidate")
                       ]
 
 ------------------------------------------------------------------------
-
 termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
 termsByList CandidateTerm m = Set.unions
                           $ map (\lt -> fromMaybe Set.empty $ Map.lookup lt m)
@@ -171,7 +170,26 @@ toMapTextListType m = Map.fromListWith (<>)
                     $ Map.toList m
 
 ----------------------
+-- | Tools to inherit groupings
+----------------------
 type Parent = Text
+
+parentUnionsMerge :: (Ord a, Ord b, Num c) 
+             => [Map a (Map b c)]
+             ->  Map a (Map b c)
+parentUnionsMerge = Map.unionsWith (Map.unionWith (+))
+
+-- This Parent union is specific
+-- [Private, Shared, Public]
+-- means the following preferences:
+-- Private > Shared > Public
+-- if data have not been tagged privately, then use others tags
+-- This unions behavior takes first key only and ignore others
+parentUnionsExcl :: Ord a
+                 => [Map a b]
+                 -> Map a b
+parentUnionsExcl = Map.unions
+
 
 hasParent :: Text
           -> Map Text (Map Parent Int)
@@ -192,27 +210,31 @@ toMapTextParent ts = foldl' (toMapTextParent' ts)
                     -> Map Text (Map Parent Int)
                     -> Map Text NgramsRepoElement
                     -> Map Text (Map Parent Int)
-    toMapTextParent' ts' to from = Set.foldl' (toMapTextParent'' from) to ts'
+    toMapTextParent' ts' to from = Set.foldl' (toMapTextParent'' ts' from) to ts'
 
 
-    toMapTextParent'' :: Map Text NgramsRepoElement
+    toMapTextParent'' :: Set Text
+                      -> Map Text NgramsRepoElement
                       -> Map Text (Map Parent Int)
                       -> Text
                       -> Map Text (Map Parent Int)
-    toMapTextParent'' from to t = case Map.lookup t from of
+    toMapTextParent'' ss from to t = case Map.lookup t from of
       Nothing  -> to
       Just nre -> case _nre_parent nre of
-        Just (NgramsTerm p')  -> Map.alter (addParent p') t to
+        Just (NgramsTerm p')  -> if Set.member p' ss
+                                    then Map.alter (addParent p') t to
+                                    else to
           where
             addParent p'' Nothing   = Just $ addCountParent p'' Map.empty
             addParent p'' (Just ps) = Just $ addCountParent p'' ps
-        _ -> to
 
-addCountParent :: Parent -> Map Parent Int -> Map Parent Int
-addCountParent p m = Map.alter addCount p m
-  where
-    addCount Nothing  = Just 1
-    addCount (Just n) = Just $ n + 1
+            addCountParent :: Parent -> Map Parent Int -> Map Parent Int
+            addCountParent p m = Map.alter addCount p m
+              where
+                addCount Nothing  = Just 1
+                addCount (Just n) = Just $ n + 1
+
+        _ -> to
 
 
 ------------------------------------------------------------------------

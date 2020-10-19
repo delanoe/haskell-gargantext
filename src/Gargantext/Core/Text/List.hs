@@ -88,7 +88,7 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   socialLists <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
 
   let
-    groupedWithList = map (addListType (invertForw socialLists)) grouped
+    groupedWithList        = map (addListType (invertForw socialLists)) grouped
     (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
     (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm) tailTerms
 

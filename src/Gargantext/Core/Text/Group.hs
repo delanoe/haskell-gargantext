@@ -72,6 +72,12 @@ ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
                   . Text.replace "-" " "
 
 ------------------------------------------------------------------------
+mergeMapParent :: Map Text (GroupedText b)
+               -> Map Text (Map Text Int)
+               -> Map Text (GroupedText b)
+mergeMapParent = undefined
+
+------------------------------------------------------------------------
 toGroupedText :: Ord b
               => (Text -> Text)
               -> (a -> b)
@@ -115,15 +121,15 @@ data GroupedText score =
   GroupedText { _gt_listType :: !(Maybe ListType)
               , _gt_label    :: !Label
               , _gt_score    :: !score
-              , _gt_group    :: !(Set Text)
+              , _gt_children :: !(Set Text)
               , _gt_size     :: !Int
               , _gt_stem     :: !Stem
               , _gt_nodes    :: !(Set NodeId)
-              } deriving Show
-{-
+              } {-deriving Show--}
+--{-
 instance Show score => Show (GroupedText score) where
   show (GroupedText lt l s _ _ _ _) = show l <> " : " <> show lt <> " : " <> show s
--}
+--}
 
 instance (Eq a) => Eq (GroupedText a) where
   (==) (GroupedText _ _ score1 _ _ _ _)
