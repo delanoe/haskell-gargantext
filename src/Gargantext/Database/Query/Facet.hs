@@ -42,13 +42,11 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger
-import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
-import Data.Typeable (Typeable)
-import GHC.Generics (Generic)
 import Opaleye
-import Prelude hiding (null, id, map, sum, not, read)
+import Protolude hiding (null, map, sum, not)
 import Servant.API
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
@@ -276,19 +274,32 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsT
 ------------------------------------------------------------------------
 
 -- TODO-SECURITY check
-runViewDocuments :: CorpusId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
-runViewDocuments cId t o l order =
-    runOpaQuery $ filterWith o l order $ viewDocuments cId t ntId
+runViewDocuments :: CorpusId
+                 -> IsTrash
+                 -> Maybe Offset
+                 -> Maybe Limit
+                 -> Maybe OrderBy
+                 -> Maybe Text
+                 -> Cmd err [FacetDoc]
+runViewDocuments cId t o l order query = do
+    runOpaQuery $ filterWith o l order sqlQuery
   where
     ntId = nodeTypeId NodeDocument
+    sqlQuery = viewDocuments cId t ntId query
 
-runCountDocuments :: CorpusId -> IsTrash -> Cmd err Int
-runCountDocuments cId t  =
-  runCountOpaQuery $ viewDocuments cId t $ nodeTypeId NodeDocument
+runCountDocuments :: CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
+runCountDocuments cId t mQuery = do
+  runCountOpaQuery sqlQuery
+  where
+    sqlQuery = viewDocuments cId t (nodeTypeId NodeDocument) mQuery
 
 
-viewDocuments :: CorpusId -> IsTrash -> NodeTypeId -> Query FacetDocRead
-viewDocuments cId t ntId = proc () -> do
+viewDocuments :: CorpusId
+              -> IsTrash
+              -> NodeTypeId
+              -> Maybe Text
+              -> Query FacetDocRead
+viewDocuments cId t ntId mQuery = proc () -> do
   n  <- queryNodeTable     -< ()
   nn <- queryNodeNodeTable -< ()
   restrict -< n^.node_id       .== nn^.nn_node2_id
@@ -296,6 +307,11 @@ viewDocuments cId t ntId = proc () -> do
   restrict -< n^.node_typename .== (pgInt4 ntId)
   restrict -< if t then nn^.nn_category .== (pgInt4 0)
                    else nn^.nn_category .>= (pgInt4 1)
+                       
+  let query = (fromMaybe "" mQuery)
+      iLikeQuery = T.intercalate "" ["%", query, "%"]
+  restrict -< (n^.node_name) `ilike` (pgStrictText iLikeQuery)
+ 
   returnA  -< FacetDoc (_node_id        n)
                        (_node_date      n)
                        (_node_name      n)
@@ -305,7 +321,7 @@ viewDocuments cId t ntId = proc () -> do
 
 ------------------------------------------------------------------------
 filterWith :: (PGOrd date, PGOrd title, PGOrd score, hyperdata ~ Column SqlJsonb) =>
-     Maybe Gargantext.Core.Types.Offset
+        Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
      -> Select (Facet id (Column date) (Column title) hyperdata (Column score) ngramCount)
