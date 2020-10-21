@@ -195,9 +195,13 @@ toPhylo q c termList fis = toNthLevel (getNthLevel q) (getInterTemporalMatching 
     phyloDocs = groupDocsByPeriod date (getPhyloPeriods phyloBase) c
     --------------------------------------
     phyloBase :: Phylo
-    phyloBase = tracePhyloBase 
-              $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c termList fis
-    --------------------------------------       
+    phyloBase = tracePhyloBase
+              $ toPhyloBase q init c termList fis
+      where
+        init = initPhyloParam (Just defaultPhyloVersion)
+                              (Just defaultSoftware    )
+                              (Just q                  )
+    ---------------------------------------
 
 
 -- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks
@@ -205,17 +209,16 @@ toNthLevel :: Level -> Proximity -> Cluster -> Phylo -> Phylo
 toNthLevel lvlMax prox clus p
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax prox clus
-                  $ traceBranches (lvl + 1)
+                  $ traceBranches    (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
                   -- \$ transposePeriodLinks (lvl + 1)
-                  $ traceTranspose (lvl + 1) Descendant
-                  $ transposeLinks (lvl + 1) Descendant
-                  $ traceTranspose (lvl + 1) Ascendant
-                  $ transposeLinks (lvl + 1) Ascendant
-                  $ tracePhyloN (lvl + 1)
-                  $ setLevelLinks (lvl, lvl + 1)
-                  $ addPhyloLevel (lvl + 1)
-                    (clusters) p
+                  $ traceTranspose   (lvl + 1) Descendant
+                  $ transposeLinks   (lvl + 1) Descendant
+                  $ traceTranspose   (lvl + 1) Ascendant
+                  $ transposeLinks   (lvl + 1) Ascendant
+                  $ tracePhyloN      (lvl + 1)
+                  $ setLevelLinks    (lvl, lvl + 1)
+                  $ addPhyloLevel    (lvl + 1) (clusters) p
   where
     --------------------------------------
     clusters :: Map (Date,Date) [PhyloCluster]
