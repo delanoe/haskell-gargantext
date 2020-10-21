@@ -144,8 +144,8 @@ cliqueToGroup prd lvl idx lbl fis cooc' root = PhyloGroup ((prd, lvl), idx) lbl 
 -- | To transform a Cluster into a Phylogroup
 clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster]-> Phylo-> PhyloGroup
 clusterToGroup prd lvl idx lbl groups _m p =
-    PhyloGroup ((prd, lvl), idx) lbl ngrams 
-      (getNgramsMeta cooc ngrams) 
+    PhyloGroup ((prd, lvl), idx) lbl ngrams
+      (getNgramsMeta cooc ngrams)
       -- empty
       empty
       Nothing
@@ -158,8 +158,8 @@ clusterToGroup prd lvl idx lbl groups _m p =
         --------------------------------------
         childs :: [Pointer]
         childs = map (\g -> (getGroupId g, 1)) groups
-        ascLink = concat $ map getGroupPeriodParents groups 
-        desLink = concat $ map getGroupPeriodChilds  groups        
+        ascLink = concat $ map getGroupPeriodParents groups
+        desLink = concat $ map getGroupPeriodChilds  groups
         --------------------------------------
         ngrams :: [Int]
         ngrams = (sort . nub . concat) $ map getGroupNgrams groups
