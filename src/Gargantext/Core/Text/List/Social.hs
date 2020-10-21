@@ -57,7 +57,6 @@ flowSocialList user nt ngrams' = do
   -- printDebug "* socialLists *: results \n" result
   pure result
 
-
 ------------------------------------------------------------------------
 unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
       => [Map a (Set b)] -> Map a (Set b)

@@ -63,7 +63,8 @@ ngramsGroup :: GroupParams
             -> Text
             -> Text
 ngramsGroup GroupIdentity  = identity
-ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
+ngramsGroup (GroupParams l _m _n _) = 
+                    Text.intercalate " "
                   . map (stem l)
                   -- . take n
                   . List.sort
@@ -79,10 +80,10 @@ mergeMapParent = undefined
 
 ------------------------------------------------------------------------
 toGroupedText :: Ord b
-              => (Text -> Text)
-              -> (a -> b)
-              -> (a -> Set Text)
-              -> (a -> Set NodeId)
+              => (Text -> Text      )
+              -> (a    -> b         )
+              -> (a    -> Set Text  )
+              -> (a    -> Set NodeId)
               -> [(Text,a)]
               -> Map Stem (GroupedText b)
 toGroupedText fun_stem fun_score fun_texts fun_nodeIds from = groupStems' $ map group from
@@ -152,5 +153,3 @@ addListType m g = set gt_listType (hasListType m g) g
       $ map (\t -> Map.lookup t m')
       $ Set.toList
       $ Set.insert label g'
-
-

@@ -58,8 +58,8 @@ buildNgramsLists :: ( RepoCmdM env err m
 buildNgramsLists user gp uCid mCid = do
   ngTerms     <- buildNgramsTermsList user uCid mCid gp
   othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
-                      [ (Authors, MapListSize 9)
-                      , (Sources, MapListSize 9)
+                      [ (Authors   , MapListSize 9)
+                      , (Sources   , MapListSize 9)
                       , (Institutes, MapListSize 9)
                       ]
 
@@ -83,7 +83,8 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   ngs  <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
   let 
-    grouped = toGroupedText groupIt (Set.size . snd) fst snd (Map.toList $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b)) $ ngs)
+    grouped = toGroupedText groupIt (Set.size . snd) fst snd
+              (Map.toList $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b)) $ ngs)
 
   socialLists <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
 
