@@ -44,7 +44,6 @@ import Numeric.Statistics (percentile)
 -- | PhyloLevelMaker | --
 -------------------------
 
-
 -- | A typeClass for polymorphic PhyloLevel functions
 class PhyloLevelMaker aggregate
     where
@@ -105,11 +104,15 @@ instance PhyloLevelMaker Document
 addPhyloLevel' :: PhyloLevelMaker a => Level -> Map (Date, Date) [a] -> Phylo -> Phylo
 addPhyloLevel' lvl m p = alterPhyloPeriods
                         (\period -> let pId = _phylo_periodId period
-                                    in  over (phylo_periodLevels)
+                                    in  over phylo_periodLevels
                                         (\phyloLevels ->
                                             let groups = toPhyloGroups lvl pId (m ! pId) m p
-                                            in trace (show (length groups) <> " groups for " <> show (pId) ) $ phyloLevels ++ [PhyloLevel (pId, lvl) groups]
-                                        ) period) p
+                                            in trace (show (length groups)
+                                               <> " groups for "
+                                               <> show (pId) )
+                                               $ phyloLevels ++ [PhyloLevel (pId, lvl) groups]
+                                        ) period
+                        ) p
 
 
 ----------------------
@@ -118,7 +121,14 @@ addPhyloLevel' lvl m p = alterPhyloPeriods
 
 
 -- | To transform a Clique into a PhyloGroup
-cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Map Date (Map (Int,Int) Double) -> Vector Ngrams -> PhyloGroup
+cliqueToGroup :: PhyloPeriodId
+              -> Level
+              -> Int
+              -> Text
+              -> PhyloFis
+              -> Map Date (Map (Int,Int) Double)
+              -> Vector Ngrams
+              -> PhyloGroup
 cliqueToGroup prd lvl idx lbl fis cooc' root = PhyloGroup ((prd, lvl), idx) lbl ngrams 
     (getNgramsMeta cooc ngrams)
     -- empty
@@ -142,7 +152,14 @@ cliqueToGroup prd lvl idx lbl fis cooc' root = PhyloGroup ((prd, lvl), idx) lbl 
 
 
 -- | To transform a Cluster into a Phylogroup
-clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster]-> Phylo-> PhyloGroup
+clusterToGroup :: PhyloPeriodId
+               -> Level
+               -> Int
+               -> Text
+               -> PhyloCluster 
+               -> Map (Date,Date) [PhyloCluster]
+               -> Phylo
+               -> PhyloGroup
 clusterToGroup prd lvl idx lbl groups _m p =
     PhyloGroup ((prd, lvl), idx) lbl ngrams
       (getNgramsMeta cooc ngrams)
@@ -154,7 +171,9 @@ clusterToGroup prd lvl idx lbl groups _m p =
       where
         --------------------------------------
         cooc :: Map (Int, Int) Double
-        cooc = getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p)
+        cooc = getMiniCooc (listToFullCombi ngrams)
+                           (periodsToYears [prd]  )
+                           (getPhyloCooc    p     )
         --------------------------------------
         childs :: [Pointer]
         childs = map (\g -> (getGroupId g, 1)) groups

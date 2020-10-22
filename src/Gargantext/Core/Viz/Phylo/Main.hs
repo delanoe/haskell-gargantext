@@ -121,7 +121,3 @@ writePhylo fp phview = runGraphviz (viewToDot phview) Svg fp
 viewPhylo2Svg :: PhyloView -> IO DB.ByteString
 viewPhylo2Svg p = graphvizWithHandle Dot (viewToDot p) Svg DB.hGetContents
 
-
-
-
-
