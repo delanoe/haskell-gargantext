@@ -601,8 +601,10 @@ toHorizon phylo =
     mapGroups :: [[PhyloGroup]]
     mapGroups = map (\prd -> 
       let groups  = getGroupsFromLevelPeriods level [prd] phylo
-          childs  = getPreviousChildIds level frame prd periods phylo     
-          heads   = filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
+          childs  = getPreviousChildIds level frame prd periods phylo 
+              -- maybe add a better filter for non isolated  ancestors
+          heads   = filter (\g -> (not . null) $ (g ^. phylo_groupPeriodChilds))
+                  $ filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
           noHeads = groups \\ heads 
           nbDocs  = sum $ elems  $ filterDocs  (phylo ^. phylo_timeDocs) [prd]
           diago   = reduceDiagos $ filterDiago (phylo ^. phylo_timeCooc) [prd]
