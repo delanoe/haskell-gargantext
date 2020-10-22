@@ -202,7 +202,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.01 cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.001 cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 
@@ -290,7 +290,8 @@ docsToLastTermFreq :: Int -> [Document] -> Vector Ngrams -> Map Int Double
 docsToLastTermFreq n docs fdt = 
   let last   = take n $ reverse $ sort $ map date docs
       nbDocs = fromIntegral $ length $ filter (\d -> elem (date d) last) docs
-      freqs  = map (/(nbDocs))
+      freqs  = map (\x -> truncate' (x/nbDocs) 4)
+             -- $ map (/(nbDocs))
              $ fromList
              $ map (\lst -> (head' "docsToLastTermFreq" lst, fromIntegral $ length lst)) 
              $ group $ sort $ concat $ map (\d -> nub $ ngramsToIdx (text d) fdt) $ filter (\d -> elem (date d) last) docs
