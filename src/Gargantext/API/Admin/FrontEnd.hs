@@ -17,7 +17,6 @@ Loads all static file for the front-end.
 module Gargantext.API.Admin.FrontEnd where
 
 import Servant
-import Servant.Server.StaticFiles (serveDirectoryFileServer)
 
 type FrontEndAPI = Raw
 

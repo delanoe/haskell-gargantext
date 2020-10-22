@@ -47,7 +47,6 @@ import Gargantext.Core.Types
 import Gargantext.Database.Schema.NodeNode
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Admin.Types.Node (CorpusId, DocId, pgNodeId)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude

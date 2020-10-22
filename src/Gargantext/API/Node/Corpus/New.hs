@@ -37,14 +37,14 @@ import Gargantext.Prelude
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import qualified Gargantext.API.Admin.Orchestrator.Types as T
-import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
-import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node (CorpusId, NodeType(..), UserId)
@@ -184,9 +184,10 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        => User
                        -> CorpusId
                        -> WithQuery
+                       -> Maybe Integer
                        -> (JobLog -> m ())
                        -> m JobLog
-addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
+addToCorpusWithQuery u cid (WithQuery q dbs l _nid) maybeLimit logStatus = do
   -- TODO ...
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
@@ -198,7 +199,7 @@ addToCorpusWithQuery u cid (WithQuery q dbs l _nid) logStatus = do
   -- TODO if cid is folder -> create Corpus
   --      if cid is corpus -> add to corpus
   --      if cid is root   -> create corpus in Private
-  txts <- mapM (\db  -> getDataText db     (Multi l) q Nothing) [database2origin dbs]
+  txts <- mapM (\db  -> getDataText db (Multi l) q maybeLimit) [database2origin dbs]
 
   logStatus JobLog { _scst_succeeded = Just 2
                    , _scst_failed    = Just 0

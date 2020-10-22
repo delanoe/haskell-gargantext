@@ -25,20 +25,17 @@ module Gargantext.Database.Query.Table.Node
 import Control.Arrow (returnA)
 import Control.Lens (set, view)
 import Data.Aeson
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Database.PostgreSQL.Simple as DPS
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import GHC.Int (Int64)
 import Opaleye hiding (FromField)
-import Opaleye.Internal.QueryArr (Query)
 import Prelude hiding (null, id, map, sum)
 
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Hyperdata.Default
-import Gargantext.Database.Admin.Types.Node (NodeType(..), defaultName)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter (limit', offset')
 import Gargantext.Database.Query.Table.Node.Error
@@ -102,7 +99,7 @@ getNodesWith parentId _ nodeType maybeOffset maybeLimit =
 
 -- TODO: Why is the second parameter ignored?
 -- TODO: Why not use getNodesWith?
-getNodesWithParentId :: (Hyperdata a, QueryRunnerColumnDefault PGJsonb a)
+getNodesWithParentId :: (Hyperdata a, JSONB a)
                      => Maybe NodeId
                      -> Cmd err [Node a]
 getNodesWithParentId n = runOpaQuery $ selectNodesWithParentID n'
@@ -157,13 +154,31 @@ selectNodesWithParentID n = proc () -> do
     restrict -< parent_id .== (pgNodeId n)
     returnA -< row
 
-selectNodesWithType :: Column PGInt4 -> Query NodeRead
-selectNodesWithType type_id = proc () -> do
-    row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
-    restrict -< tn .== type_id
-    returnA -< row
 
-type JSONB = QueryRunnerColumnDefault PGJsonb
+------------------------------------------------------------------------
+-- | Example of use:
+-- runCmdReplEasy  (getNodesWithType NodeList (Proxy :: Proxy HyperdataList))
+getNodesWithType :: (HasNodeError err, JSONB a) => NodeType -> proxy a -> Cmd err [Node a]
+getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
+  where
+    selectNodesWithType :: NodeType -> Query NodeRead
+    selectNodesWithType nt = proc () -> do
+        row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
+        restrict -< tn .== (pgInt4 $ nodeTypeId nt)
+        returnA -< row
+
+getNodesIdWithType :: HasNodeError err => NodeType -> Cmd err [NodeId]
+getNodesIdWithType nt = do
+  ns <- runOpaQuery $ selectNodesIdWithType nt
+  pure (map NodeId ns)
+
+selectNodesIdWithType :: NodeType -> Query (Column PGInt4)
+selectNodesIdWithType nt = proc () -> do
+    row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
+    restrict -< tn .== (pgInt4 $ nodeTypeId nt)
+    returnA -< _node_id row
+
+------------------------------------------------------------------------
 
 
 getNode :: HasNodeError err => NodeId -> Cmd err (Node Value)

@@ -17,7 +17,6 @@ Portability : POSIX
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 ---------------------------------------------------------------------
 module Gargantext.API.Routes
@@ -26,6 +25,7 @@ module Gargantext.API.Routes
 
 -- import qualified Gargantext.API.Search as Search
 import Control.Concurrent (threadDelay)
+import Control.Lens (view)
 import Data.Text (Text)
 import Data.Validity
 import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
@@ -36,10 +36,11 @@ import Gargantext.API.Node
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Viz.Graph.API
+import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Types.Node (NodeId, CorpusId, AnnuaireId)
 import Gargantext.Prelude
+import Gargantext.Prelude.Config (gc_max_docs_scrapers)
 import Servant
 import Servant.Auth as SA
 import Servant.Auth.Swagger ()
@@ -72,7 +73,7 @@ type GargAPI' =
                    -- TODO-ACCESS here we want to request a particular header for
            -- auth and capabilities.
           :<|> GargPrivateAPI
-          :<|> "public" :> Public.API
+          :<|> "public"      :> Public.API
 
 
 type GargPrivateAPI = SA.Auth '[SA.JWT, SA.Cookie] AuthenticatedUser
@@ -247,12 +248,13 @@ waitAPI n = do
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =
   serveJobsAPI $
-    JobFunction (\q log ->
-      let
-        log' x = do
-          printDebug "addToCorpusWithQuery" x
-          liftBase $ log x
-      in New.addToCorpusWithQuery user cid q log'
+    JobFunction (\q log -> do
+      limit <- view $ config . gc_max_docs_scrapers
+      New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log)
+      {- let log' x = do
+        printDebug "addToCorpusWithQuery" x
+        liftBase $ log x
+      -}
       )
 
 {-

@@ -20,9 +20,7 @@ module Gargantext.Core.Types.Main where
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
-import Data.Eq (Eq())
 import Data.Map (fromList, lookup)
-import Data.Monoid ((<>))
 import Data.Semigroup (Semigroup(..))
 import Data.Swagger
 import Data.Text (Text, unpack)
@@ -30,7 +28,6 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
 import Gargantext.Prelude
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant.API (FromHttpApiData(..))
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -52,6 +49,7 @@ instance ToSchema NodeTree where
 
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
+-- data ListType  =  CandidateTerm | StopTerm | MapTerm
 data ListType  =  StopTerm | CandidateTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
@@ -64,11 +62,11 @@ instance Arbitrary ListType where
 
 instance Semigroup ListType
   where
-    MapTerm       <> _             = MapTerm
-    _             <> MapTerm       = MapTerm
-    CandidateTerm <> _             = CandidateTerm
-    _             <> CandidateTerm = CandidateTerm
-    StopTerm      <> StopTerm      = StopTerm
+    MapTerm  <> _             = MapTerm
+    _        <> MapTerm       = MapTerm
+    StopTerm <> _             = StopTerm
+    _        <> StopTerm      = StopTerm
+    _        <> _             = CandidateTerm
 
 
 instance FromHttpApiData ListType where
@@ -76,10 +74,11 @@ instance FromHttpApiData ListType where
 
 type ListTypeId = Int
 
+-- FIXME Candidate: 0 and Stop : 1
 listTypeId :: ListType -> ListTypeId
 listTypeId StopTerm      = 0
 listTypeId CandidateTerm = 1
-listTypeId MapTerm     = 2
+listTypeId MapTerm       = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
 fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]

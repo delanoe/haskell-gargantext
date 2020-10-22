@@ -17,7 +17,7 @@ import Gargantext.Core.Viz.Phylo.PhyloTools
 import Gargantext.Core.Viz.Phylo.TemporalMatching (weightedLogJaccard', filterDiago, reduceDiagos)
 import Gargantext.Core.Viz.Phylo.PhyloExport (processDynamics)
 
-import Data.List ((++), null, intersect, nub, concat, sort, sortOn, all, groupBy)
+import Data.List ((++), null, intersect, nub, concat, sort, sortOn, groupBy)
 import Data.Map  (Map, fromList, fromListWith, foldlWithKey, (!), insert, empty, restrictKeys, elems, mapWithKey, member)
 
 import Control.Lens hiding (Level)

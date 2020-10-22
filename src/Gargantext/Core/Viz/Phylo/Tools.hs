@@ -16,7 +16,7 @@ module Gargantext.Core.Viz.Phylo.Tools
   where
 
 import Control.Lens         hiding (both, Level, Empty)
-import Data.List            (filter, intersect, (++), sort, null, tail, last, tails, delete, nub, sortOn, nubBy, concat)
+import Data.List            (intersect, (++), sort, null, tail, last, tails, delete, nub, sortOn, nubBy, concat)
 import Data.Maybe           (mapMaybe,fromMaybe)
 import Data.Map             (Map, mapKeys, member, (!), restrictKeys, elems, empty, filterWithKey, unionWith)
 import Data.Set             (Set)

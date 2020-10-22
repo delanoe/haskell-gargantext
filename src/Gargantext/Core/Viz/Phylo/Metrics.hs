@@ -19,7 +19,7 @@ import Gargantext.Core.Viz.Phylo.Tools
 
 import Control.Lens hiding (Level)
 
-import Data.List ((\\), sortOn, concat, nub, take, union, intersect, null, (++), sort)
+import Data.List ((\\), sortOn, concat, nub, union, intersect, null, (++), sort)
 import Data.Map  (Map, (!), toList, size, insert, unionWith, intersection, intersectionWith, filterWithKey, elems, fromList, findWithDefault, fromListWith)
 import Data.Text (Text)
 

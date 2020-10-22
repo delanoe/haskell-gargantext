@@ -22,8 +22,9 @@ module Gargantext.Database.Schema.NodesNgramsRepo
   where
 
 import Data.Map.Strict.Patch (PatchMap)
+
 import Gargantext.Database.Schema.Prelude
-import Gargantext.API.Ngrams (NgramsStatePatch, NgramsTablePatch)
+import Gargantext.API.Ngrams.Types (NgramsStatePatch, NgramsTablePatch)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Prelude

@@ -17,20 +17,17 @@ CSV parser for Gargantext corpus files.
 module Gargantext.Core.Text.List.Learn
   where
 
-import Control.Monad.Reader (MonadReader)
--- TODO remvoe this deps
-import Gargantext.API.Admin.Settings
-import Data.Map (Map)
-import Data.Maybe (maybe)
-import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
-import Gargantext.Prelude
-import Gargantext.Prelude.Utils
-import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 import qualified Data.IntMap as IntMap
 import qualified Data.List   as List
+import Data.Map (Map)
 import qualified Data.Map    as Map
 import qualified Data.SVM    as SVM
 import qualified Data.Vector as Vec
+
+import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
+import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
+import Gargantext.Prelude
+import Gargantext.Prelude.Utils
 
 ------------------------------------------------------------------------
 train :: Double -> Double -> SVM.Problem -> IO SVM.Model
@@ -85,19 +82,19 @@ type Tests = Map ListType [Vec.Vector Double]
 type Score = Double
 type Param = Double
 
-grid :: (MonadReader env m, MonadBase IO m, HasSettings env)
+grid :: (MonadBase IO m)
      => Param -> Param -> Train -> [Tests] -> m (Maybe Model)
 grid _ _ _ []  = panic "Gargantext.Core.Text.List.Learn.grid : empty test data"
 grid s e tr te = do
   let
-    grid' :: (MonadReader env m, MonadBase IO m, HasSettings env)
+    grid' :: (MonadBase IO m)
           => Double -> Double
           -> Train
           -> [Tests]
           -> m (Score, Model)
     grid' x y tr' te' = do
       model'' <- liftBase $ trainList x y tr'
-      
+
       let
         model' = ModelSVM model'' (Just x) (Just y)
 
@@ -114,10 +111,10 @@ grid s e tr te = do
                              $ List.concat
                              $ map (\(k,vs) -> zip (repeat k) vs)
                              $ Map.toList t
-        
+
           res' <- liftBase $ predictList m toGuess
           pure $ score'' $ score' $ List.zip res res' 
-      
+
       score <- mapM (getScore model') te'
       pure (mean score, model')
 
@@ -131,6 +128,3 @@ grid s e tr te = do
   --fp <- saveFile (ModelSVM model')
   --save best result
   pure $ snd <$> r
-
-
-

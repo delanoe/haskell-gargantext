@@ -13,7 +13,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.PhyloTools where
 
 import Data.Vector (Vector, elemIndex)
-import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, maximum, group)
+import Data.List (sort, concat, null, union, (++), tails, sortOn, nub, init, tail, partition, tails, nubBy, group)
 import Data.Set (Set, disjoint)
 import Data.Map (Map, elems, fromList, unionWith, keys, member, (!), filterWithKey, fromListWith, empty, restrictKeys)
 import Data.String (String)
@@ -435,13 +435,13 @@ mergeMeta bId groups =
 
 groupsToBranches :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
 groupsToBranches groups =
-    -- | run the related component algorithm
+    {- run the related component algorithm -}
     let egos  = map (\g -> [getGroupId g] 
                         ++ (map fst $ g ^. phylo_groupPeriodParents)
                         ++ (map fst $ g ^. phylo_groupPeriodChilds)
                         ++ (map fst $ g ^. phylo_groupAncestors)) $ elems groups
         graph = relatedComponents egos
-    -- | update each group's branch id
+    {- update each group's branch id -}
     in map (\ids ->
         let groups' = elems $ restrictKeys groups (Set.fromList ids)
             bId = mergeBranchIds $ map (\g -> snd $ g ^. phylo_groupBranchId) groups'

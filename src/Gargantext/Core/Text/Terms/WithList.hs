@@ -15,7 +15,7 @@ commentary with @some markup@.
 
 module Gargantext.Core.Text.Terms.WithList where
 
-import Data.List (null, concatMap)
+import Data.List (null)
 import Data.Ord
 import Data.Text (Text, concat)
 import Gargantext.Prelude

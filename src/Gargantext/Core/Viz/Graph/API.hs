@@ -10,8 +10,6 @@ Portability : POSIX
 -}
 
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 {-# LANGUAGE OverloadedLists   #-}   -- allows to write Map and HashMap as lists
 {-# LANGUAGE TypeOperators     #-}
 
@@ -21,7 +19,6 @@ module Gargantext.Core.Viz.Graph.API
 import Control.Lens (set, (^.), _Just, (^?))
 import Data.Aeson
 import qualified Data.Map as Map
-import Data.Maybe (Maybe(..))
 import Data.Swagger
 import Data.Text
 import Debug.Trace (trace)
@@ -31,7 +28,7 @@ import Servant.Job.Async
 import Servant.XML
 
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams (NgramsRepo, r_version)
+import Gargantext.API.Ngrams.Types (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Main
@@ -84,7 +81,7 @@ graphAPI u n = getGraph         u n
 getGraph :: UserId -> NodeId -> GargNoServer HyperdataGraphAPI
 getGraph _uId nId = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
-  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
   let camera = nodeGraph ^. node_hyperdata . hyperdataCamera
 
   repo <- getRepo
@@ -100,7 +97,8 @@ getGraph _uId nId = do
         mt     <- defaultGraphMetadata cId "Title" repo
         let graph'' = set graph_metadata (Just mt) graph'
         let hg = HyperdataGraphAPI graph'' camera
-        _      <- updateHyperdata nId hg
+       -- _      <- updateHyperdata nId hg
+        _ <- updateHyperdata nId (HyperdataGraph (Just graph'') camera)
         pure $ trace "[G.V.G.API] Graph empty, computing" hg
 
     Just graph' -> pure $ trace "[G.V.G.API] Graph exists, returning" $
@@ -110,10 +108,10 @@ getGraph _uId nId = do
 recomputeGraph :: UserId -> NodeId -> Distance -> GargNoServer Graph
 recomputeGraph _uId nId d = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
-  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
+  let graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
   let camera = nodeGraph ^. node_hyperdata . hyperdataCamera
   let graphMetadata = graph ^? _Just . graph_metadata . _Just
-  let listVersion = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
+  let listVersion   = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
 
   repo <- getRepo
   let v   = repo ^. r_version
@@ -223,11 +221,11 @@ type GraphVersionsAPI = Summary "Graph versions"
 
 graphVersionsAPI :: UserId -> NodeId -> GargServer GraphVersionsAPI
 graphVersionsAPI u n =
-           graphVersions u n
+           graphVersions n
       :<|> recomputeVersions u n
 
-graphVersions :: UserId -> NodeId -> GargNoServer GraphVersions
-graphVersions _uId nId = do
+graphVersions :: NodeId -> GargNoServer GraphVersions
+graphVersions nId = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
   let listVersion = graph ^? _Just

@@ -22,13 +22,12 @@ import Data.String.Conversions
 --import Control.Monad.Reader (ask)
 import qualified Data.ByteString as DB
 import qualified Data.ByteString.Lazy as DBL
-import Data.Proxy (Proxy(..))
 import Data.Swagger
 import Network.HTTP.Media ((//), (/:))
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import Web.HttpApiData (parseUrlPiece, readTextData)
+import Web.HttpApiData (readTextData)
 
 import Gargantext.API.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -116,11 +115,11 @@ postPhylo :: CorpusId -> UserId -> GargServer PostPhylo
 postPhylo n userId _lId = do
   -- TODO get Reader settings
   -- s <- ask
-  let
+  -- let
     -- _vrs = Just ("1" :: Text)
     -- _sft = Just (Software "Gargantext" "4")
     -- _prm = initPhyloParam vrs sft (Just q)
-  phy  <- flowPhylo n
+  phy <- flowPhylo n
   pId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just n) userId]
   pure $ NodeId (fromIntegral pId)
 
@@ -137,64 +136,25 @@ putPhylo = undefined
 
 
 -- | Instances
-instance Arbitrary PhyloView
-  where
-    arbitrary = elements [phyloView]
-
--- | TODO add phyloGroup ex
-instance Arbitrary PhyloGroup
-  where
-    arbitrary = elements []
-
-instance Arbitrary Phylo
-  where
-    arbitrary = elements [phylo]
-
-instance ToSchema Order
-
-instance ToParamSchema Order
-instance FromHttpApiData Order
-  where
-    parseUrlPiece = readTextData
-
-
-instance ToParamSchema Metric
-instance FromHttpApiData [Metric]
-  where
-    parseUrlPiece = readTextData
-instance FromHttpApiData Metric
-  where
-    parseUrlPiece = readTextData
-
-
+instance Arbitrary Phylo             where arbitrary     = elements [phylo]
+instance Arbitrary PhyloGroup        where arbitrary     = elements []
+instance Arbitrary PhyloView         where arbitrary     = elements [phyloView]
+instance FromHttpApiData DisplayMode where parseUrlPiece = readTextData
+instance FromHttpApiData ExportMode  where parseUrlPiece = readTextData
+instance FromHttpApiData Filiation   where parseUrlPiece = readTextData
+instance FromHttpApiData Metric      where parseUrlPiece = readTextData
+instance FromHttpApiData Order       where parseUrlPiece = readTextData
+instance FromHttpApiData Sort        where parseUrlPiece = readTextData
+instance FromHttpApiData Tagger      where parseUrlPiece = readTextData
+instance FromHttpApiData [Metric]    where parseUrlPiece = readTextData
+instance FromHttpApiData [Tagger]    where parseUrlPiece = readTextData
 instance ToParamSchema   DisplayMode
-instance FromHttpApiData DisplayMode
-  where
-    parseUrlPiece = readTextData
-
-
 instance ToParamSchema   ExportMode
-instance FromHttpApiData ExportMode
-  where
-    parseUrlPiece = readTextData    
-
-
-instance FromHttpApiData Sort
-  where
-    parseUrlPiece = readTextData
-instance ToParamSchema Sort
-
-instance FromHttpApiData [Tagger]
-  where
-    parseUrlPiece = readTextData
-instance FromHttpApiData Tagger
-  where
-    parseUrlPiece = readTextData
-instance ToParamSchema   Tagger
-
-instance FromHttpApiData Filiation
-  where
-    parseUrlPiece = readTextData
 instance ToParamSchema   Filiation
+instance ToParamSchema   Tagger
+instance ToParamSchema Metric
+instance ToParamSchema Order
+instance ToParamSchema Sort
+instance ToSchema Order
 
 

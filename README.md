@@ -21,13 +21,19 @@ progress. Please report and improve this documentation if you encounter issues.
 #### Docker
 
 ``` sh
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/docker/docker-install | sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/docker/docker-install | sh
 ```
 
 #### Debian
 
 ``` sh
-curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/master/devops/debian/install | sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/debian/install | sh
+```
+
+#### Ubuntu
+
+``` sh
+curl -sSL https://gitlab.iscpif.fr/gargantext/haskell-gargantext/raw/dev/devops/ubuntu/install | sh
 ```
 
 ### Add dependencies

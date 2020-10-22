@@ -22,7 +22,6 @@ import Data.Maybe (catMaybes)
 
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Config
-import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Select

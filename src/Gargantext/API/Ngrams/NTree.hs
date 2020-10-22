@@ -14,13 +14,8 @@ Portability : POSIX
 module Gargantext.API.Ngrams.NTree
   where
 
-import Data.Text (Text)
-import Gargantext.Prelude
-import GHC.Generics (Generic)
 import Data.Aeson.TH (deriveJSON)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Core.Types (ListType(..), NodeId)
-import Gargantext.API.Ngrams
+import Data.Text (Text)
 import Data.Tree
 import Data.Maybe (catMaybes)
 import Data.Map (Map)
@@ -29,7 +24,14 @@ import Data.Swagger
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified Data.List as List
+import GHC.Generics (Generic)
 import Test.QuickCheck
+
+import Gargantext.Prelude
+
+import Gargantext.API.Ngrams.Types
+import Gargantext.Core.Types (ListType(..), NodeId)
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 
 type Children = Text
 type Root = Text
@@ -53,19 +55,21 @@ instance Arbitrary MyTree
 toTree :: ListType -> Map Text (Set NodeId) -> Map Text NgramsRepoElement -> [MyTree]
 toTree lt vs m = map toMyTree $ unfoldForest buildNode roots
   where
-    buildNode r = maybe ((r, value r),[]) (\x -> ((r, value r), mSetToList $ _nre_children x)) (Map.lookup r m)
+    buildNode r = maybe ((r, value r),[])
+                        (\x -> ((r, value r), unNgramsTerm <$> (mSetToList $ _nre_children x)))
+                        (Map.lookup r m)
 
     value l = maybe 0 (fromIntegral . Set.size) $ Map.lookup l vs
 
+    rootsCandidates :: [NgramsTerm]
     rootsCandidates = catMaybes
                     $ List.nub
-                    $ map (\(c,c') -> case _nre_root c' of
-                                       Nothing -> Just c
-                                       _ -> _nre_root c' ) (Map.toList m)
+                    $ map (\(c, c') -> case _nre_root c' of
+                                       Nothing -> Just $ NgramsTerm c
+                                       _ -> _nre_root c') (Map.toList m)
 
     roots = map fst
           $ filter (\(_,l) -> l == lt)
           $ catMaybes
-          $ map (\c -> (,) <$> Just c <*> (_nre_list <$> Map.lookup c m)) rootsCandidates
-
-
+          $ map (\c -> (,) <$> Just c <*> (_nre_list <$> Map.lookup c m))
+          $ (unNgramsTerm <$> rootsCandidates)

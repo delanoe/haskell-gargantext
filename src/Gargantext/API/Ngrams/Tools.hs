@@ -17,15 +17,19 @@ import Control.Concurrent
 import Control.Lens (_Just, (^.), at, view)
 import Control.Monad.Reader
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Validity
-import Gargantext.API.Ngrams
+
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
+
+mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
+mergeNgramsElement _neOld neNew = neNew
 
 type RootTerm = Text
 
@@ -36,12 +40,12 @@ getRepo = do
 
 listNgramsFromRepo :: [ListId] -> NgramsType
                    -> NgramsRepo -> Map Text NgramsRepoElement
-listNgramsFromRepo nodeIds ngramsType repo = ngrams
+listNgramsFromRepo nodeIds ngramsType repo = Map.mapKeys unNgramsTerm ngrams
   where
     ngramsMap = repo ^. r_state . at ngramsType . _Just
 
     ngrams    = Map.unionsWith mergeNgramsElement
-              [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
+                [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
 -- TODO-ACCESS: We want to do the security check before entering here.
 --              Add a static capability parameter would be nice.
@@ -72,7 +76,7 @@ mapTermListRoot :: [ListId]
                 -> NgramsRepo
                 -> Map Text (ListType, (Maybe Text))
 mapTermListRoot nodeIds ngramsType repo =
-  Map.fromList [ (t, (_nre_list nre, _nre_root nre))
+  Map.fromList [ (t, (_nre_list nre, unNgramsTerm <$> _nre_root nre))
                | (t, nre) <- Map.toList ngrams
                ]
   where ngrams = listNgramsFromRepo nodeIds ngramsType repo

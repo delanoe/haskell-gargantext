@@ -21,67 +21,29 @@ module Gargantext.API.Admin.Settings
 import Codec.Serialise (Serialise(), serialise, deserialise)
 import Control.Concurrent
 import Control.Debounce (mkDebounce, defaultDebounceSettings, debounceFreq, debounceAction)
-import Control.Exception (finally)
 import Control.Lens
 import Control.Monad.Logger
 import Control.Monad.Reader
-import Data.ByteString (ByteString)
-import Data.Either (either)
 import Data.Maybe (fromMaybe)
 import Data.Pool (Pool, createPool)
-import Data.Text
 import Database.PostgreSQL.Simple (Connection, connect, close, ConnectInfo)
-import GHC.Enum
-import GHC.Generics (Generic)
-import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams (NgramsRepo, HasRepoVar(..), HasRepoSaver(..), HasRepo(..), RepoEnv(..), r_version, saveRepo, initRepo, renv_var, renv_lock)
-import Gargantext.Database.Prelude (databaseParameters, HasConnectionPool(..), Cmd', runCmd, HasConfig(..))
-import Gargantext.Prelude
-
-import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
-import Prelude (Bounded(), fail)
-import Servant
-import Servant.Auth.Server (defaultJWTSettings, JWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
-import Servant.Client (BaseUrl, parseBaseUrl)
-import Servant.Job.Async (newJobEnv, defaultSettings, HasJobEnv(..), Job)
+import Servant.Auth.Server (defaultJWTSettings, CookieSettings(..), XsrfCookieSettings(..), defaultCookieSettings, defaultXsrfCookieSettings, readKey, writeKey)
+import Servant.Client (parseBaseUrl)
+import Servant.Job.Async (newJobEnv, defaultSettings)
 import System.Directory
-import System.Environment (lookupEnv)
 import System.FileLock (tryLockFile, unlockFile, SharedExclusive(Exclusive))
 import System.IO (FilePath, hClose)
 import System.IO.Temp (withTempFile)
 import System.Log.FastLogger
-import Web.HttpApiData (parseUrlPiece)
 import qualified Data.ByteString.Lazy as L
-import qualified Servant.Job.Core
-import Gargantext.Prelude.Config (GargConfig(), readConfig, defaultConfig)
 
-type PortNumber = Int
-
-data SendEmailType = SendEmailViaAws
-                   | LogEmailToConsole
-                   | WriteEmailToFile
-    deriving (Show, Read, Enum, Bounded, Generic)
-
-
-data Settings = Settings
-    { _allowedOrigin   :: ByteString   -- allowed origin for CORS
-    , _allowedHost     :: ByteString   -- allowed host for CORS
-    , _appPort         :: PortNumber
-    , _logLevelLimit   :: LogLevel -- log level from the monad-logger package
---    , _dbServer        :: Text
---    ^ this is not used yet
-    , _jwtSettings     :: JWTSettings
-    , _cookieSettings  :: CookieSettings
-    , _sendLoginEmails :: SendEmailType
-    , _scrapydUrl      :: BaseUrl
-    , _config          :: GargConfig
-    }
-
-makeLenses ''Settings
-
-class HasSettings env where
-  settings :: Getter env Settings
+import Gargantext.API.Admin.EnvTypes
+import Gargantext.API.Admin.Types
+import Gargantext.API.Ngrams.Types (NgramsRepo, HasRepo(..), RepoEnv(..), r_version, initRepo, renv_var, renv_lock)
+import Gargantext.Database.Prelude (databaseParameters, HasConfig(..))
+import Gargantext.Prelude
+import Gargantext.Prelude.Config (GargConfig(..), gc_repofilepath, readConfig)
 
 devSettings :: FilePath -> IO Settings
 devSettings jwkFile = do
@@ -98,12 +60,12 @@ devSettings jwkFile = do
     , _scrapydUrl = fromMaybe (panic "Invalid scrapy URL") $ parseBaseUrl "http://localhost:6800"
     , _cookieSettings = defaultCookieSettings { cookieXsrfSetting = Just xsrfCookieSetting } -- TODO-SECURITY tune
     , _jwtSettings = defaultJWTSettings jwk -- TODO-SECURITY tune
-    , _config      = defaultConfig
     }
   where
     xsrfCookieSetting = defaultXsrfCookieSettings { xsrfExcludeGet = True }
 
-
+{- NOT USED YET
+import System.Environment (lookupEnv)
 
 reqSetting :: FromHttpApiData a => Text -> IO a
 reqSetting name = do
@@ -117,87 +79,43 @@ optSetting name d = do
         Nothing -> pure d
         Just e -> pure $ either (panic $ "Unable to parse " <> name) identity $ parseUrlPiece $ pack e
 
---settingsFromEnvironment :: IO Settings
---settingsFromEnvironment =
---    Settings <$> (encodeUtf8 <$> reqSetting "ALLOWED_ORIGIN")
---             <*> (encodeUtf8 <$> reqSetting "ALLOWED_HOST")
---             <*> optSetting "PORT" 3000
---             <*> (parseLogLevel <$> optSetting "LOG_LEVEL" "warn")
---             <*> reqSetting "DB_SERVER"
---             <*> (parseJwk <$> reqSetting "JWT_SECRET")
---             <*> optSetting "SEND_EMAIL" SendEmailViaAws
+settingsFromEnvironment :: IO Settings
+settingsFromEnvironment =
+    Settings <$> (encodeUtf8 <$> reqSetting "ALLOWED_ORIGIN")
+             <*> (encodeUtf8 <$> reqSetting "ALLOWED_HOST")
+             <*> optSetting "PORT" 3000
+             <*> (parseLogLevel <$> optSetting "LOG_LEVEL" "warn")
+             <*> reqSetting "DB_SERVER"
+             <*> (parseJwk <$> reqSetting "JWT_SECRET")
+             <*> optSetting "SEND_EMAIL" SendEmailViaAws
+-}
 
-data FireWall = FireWall { unFireWall :: Bool }
+-----------------------------------------------------------------------
+-- | RepoDir FilePath configuration
+type RepoDirFilePath = FilePath
 
-data Env = Env
-  { _env_settings :: !Settings
-  , _env_logger   :: !LoggerSet
-  , _env_pool     :: !(Pool Connection)
-  , _env_repo     :: !RepoEnv
-  , _env_manager  :: !Manager
-  , _env_self_url :: !BaseUrl
-  , _env_scrapers :: !ScrapersEnv
-  , _env_gargConfig :: !GargConfig
-  }
-  deriving (Generic)
-
-makeLenses ''Env
-
-instance HasConfig Env where
-  hasConfig = env_gargConfig
-
-instance HasConnectionPool Env where
-  connPool = env_pool
-
-instance HasRepoVar Env where
-  repoVar = repoEnv . repoVar
-
-instance HasRepoSaver Env where
-  repoSaver = repoEnv . repoSaver
-
-instance HasRepo Env where
-  repoEnv = env_repo
-
-instance HasSettings Env where
-  settings = env_settings
-
-instance Servant.Job.Core.HasEnv Env (Job JobLog JobLog) where
-  _env = env_scrapers . Servant.Job.Core._env
-
-instance HasJobEnv Env JobLog JobLog where
-  job_env = env_scrapers
-
-data MockEnv = MockEnv
-  { _menv_firewall :: !FireWall
-  }
-  deriving (Generic)
-
-makeLenses ''MockEnv
-
--- | TODO add this path in Settings
-
-repoDir :: FilePath
-repoDir = "repos"
-
-repoSnapshot :: FilePath
-repoSnapshot = repoDir <> "/repo.cbor"
+repoSnapshot :: RepoDirFilePath -> FilePath
+repoSnapshot repoDir = repoDir <> "/repo.cbor"
 
 -- | TODO add hard coded file in Settings
 -- This assumes we own the lock on repoSnapshot.
-repoSaverAction :: Serialise a => a -> IO ()
-repoSaverAction a = do
+repoSaverAction :: RepoDirFilePath -> Serialise a => a -> IO ()
+repoSaverAction repoDir a = do
   withTempFile "repos" "tmp-repo.cbor" $ \fp h -> do
     printDebug "repoSaverAction" fp
     L.hPut h $ serialise a
     hClose h
-    renameFile fp repoSnapshot
+    renameFile fp (repoSnapshot repoDir)
 
-mkRepoSaver :: MVar NgramsRepo -> IO (IO ())
-mkRepoSaver repo_var = mkDebounce settings
+-- The use of mkDebounce makes sure that repoSaverAction is not called too often.
+-- If repoSaverAction start taking more time than the debounceFreq then it should
+-- be increased.
+mkRepoSaver :: RepoDirFilePath -> MVar NgramsRepo -> IO (IO ())
+mkRepoSaver repoDir repo_var = mkDebounce settings
   where
     settings = defaultDebounceSettings
                  { debounceFreq   = let n = 6 :: Int in 10^n  -- 1 second
-                 , debounceAction = withMVar repo_var repoSaverAction
+                 , debounceAction = withMVar repo_var (repoSaverAction repoDir)
                    -- Here this not only `readMVar` but `takeMVar`.
                    -- Namely while repoSaverAction is saving no other change
                    -- can be made to the MVar.
@@ -208,34 +126,34 @@ mkRepoSaver repo_var = mkDebounce settings
                    -- Add a new MVar just for saving.
                  }
 
-readRepoEnv :: IO RepoEnv
-readRepoEnv = do
+readRepoEnv :: FilePath -> IO RepoEnv
+readRepoEnv repoDir = do
   -- Does file exist ? :: Bool
   _repoDir <- createDirectoryIfMissing True repoDir
 
-  repoFile <- doesFileExist repoSnapshot
+  repoFile <- doesFileExist (repoSnapshot repoDir)
 
   -- Is file not empty ? :: Bool
   repoExists <- if repoFile
-             then (>0) <$> getFileSize repoSnapshot
+             then (>0) <$> getFileSize (repoSnapshot repoDir)
              else pure False
 
-  mlock <- tryLockFile repoSnapshot Exclusive
+  mlock <- tryLockFile (repoSnapshot repoDir) Exclusive
   lock <- maybe (panic "Repo file already locked") pure mlock
 
   mvar <- newMVar =<<
     if repoExists
       then do
         -- e_repo <- eitherDecodeStrict <$> deserialise <$> L.readFile repoSnapshot
-        repo <- deserialise <$> L.readFile repoSnapshot
+        repo <- deserialise <$> L.readFile (repoSnapshot repoDir)
         -- repo   <- either fail pure e_repo
-        let archive = repoSnapshot <> ".v" <> show (repo ^. r_version)
-        copyFile repoSnapshot archive
+        let archive = (repoSnapshot repoDir) <> ".v" <> show (repo ^. r_version)
+        copyFile (repoSnapshot repoDir) archive
         pure repo
       else
         pure initRepo
   -- TODO save in DB here
-  saver <- mkRepoSaver mvar
+  saver <- mkRepoSaver repoDir mvar
   pure $ RepoEnv { _renv_var = mvar, _renv_saver = saver, _renv_lock = lock }
 
 devJwkFile :: FilePath
@@ -248,103 +166,32 @@ newEnv port file = do
   when (port /= settings ^. appPort) $
     panic "TODO: conflicting settings of port"
 
+  config       <- readConfig file
   self_url     <- parseBaseUrl $ "http://0.0.0.0:" <> show port
-  param        <- databaseParameters file
-  pool         <- newPool param
-  repo         <- readRepoEnv
+  dbParam      <- databaseParameters file
+  pool         <- newPool dbParam
+  repo         <- readRepoEnv (_gc_repofilepath config)
   scrapers_env <- newJobEnv defaultSettings manager
   logger       <- newStderrLoggerSet defaultBufSize
-  config       <- readConfig file
 
   pure $ Env
-    { _env_settings   = settings
-    , _env_logger     = logger
-    , _env_pool       = pool
-    , _env_repo       = repo
-    , _env_manager    = manager
-    , _env_scrapers   = scrapers_env
-    , _env_self_url   = self_url
-    , _env_gargConfig = config
+    { _env_settings = settings
+    , _env_logger   = logger
+    , _env_pool     = pool
+    , _env_repo     = repo
+    , _env_manager  = manager
+    , _env_scrapers = scrapers_env
+    , _env_self_url = self_url
+    , _env_config   = config
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)
 newPool param = createPool (connect param) close 1 (60*60) 8
 
-data DevEnv = DevEnv
-  { _dev_env_pool     :: !(Pool Connection)
-  , _dev_env_repo     :: !RepoEnv
-  , _dev_env_settings :: !Settings
-  , _dev_env_config   :: !GargConfig
-  }
-
-makeLenses ''DevEnv
-
-instance HasConfig DevEnv where
-  hasConfig = dev_env_config
-
-instance HasConnectionPool DevEnv where
-  connPool = dev_env_pool
-
-instance HasRepoVar DevEnv where
-  repoVar = repoEnv . repoVar
-
-instance HasRepoSaver DevEnv where
-  repoSaver = repoEnv . repoSaver
-
-instance HasRepo DevEnv where
-  repoEnv = dev_env_repo
-
-instance HasSettings DevEnv where
-  settings = dev_env_settings
-
-cleanEnv :: HasRepo env => env -> IO ()
+cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do
   r <- takeMVar (env ^. repoEnv . renv_var)
-  repoSaverAction r
+  repoSaverAction (env ^. config . gc_repofilepath) r
   unlockFile (env ^. repoEnv . renv_lock)
 
-withDevEnv :: FilePath -> (DevEnv -> IO a) -> IO a
-withDevEnv iniPath k = do
-  env <- newDevEnv
-  k env `finally` cleanEnv env
-
-  where
-    newDevEnv = do
-      param <- databaseParameters iniPath
-      pool  <- newPool param
-      repo  <- readRepoEnv
-      setts <- devSettings devJwkFile
-      config <- readConfig iniPath
-      pure $ DevEnv
-        { _dev_env_pool = pool
-        , _dev_env_repo = repo
-        , _dev_env_settings = setts
-        , _dev_env_config   = config
-        }
-
--- | Run Cmd Sugar for the Repl (GHCI)
-
-runCmdRepl :: Show err => Cmd' DevEnv err a -> IO a
-runCmdRepl f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
-
-runCmdReplServantErr :: Cmd' DevEnv ServerError a -> IO a
-runCmdReplServantErr = runCmdRepl
-
--- Use only for dev
--- In particular this writes the repo file after running
--- the command.
--- This function is constrained to the DevEnv rather than
--- using HasConnectionPool and HasRepoVar.
-runCmdDev :: Show err => DevEnv -> Cmd' DevEnv err a -> IO a
-runCmdDev env f =
-  (either (fail . show) pure =<< runCmd env f)
-    `finally`
-  runReaderT saveRepo env
-
--- Use only for dev
-runCmdDevNoErr :: DevEnv -> Cmd' DevEnv () a -> IO a
-runCmdDevNoErr = runCmdDev
-
--- Use only for dev
-runCmdDevServantErr :: DevEnv -> Cmd' DevEnv ServerError a -> IO a
-runCmdDevServantErr = runCmdDev
+type IniPath  = FilePath

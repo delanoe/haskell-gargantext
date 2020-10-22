@@ -28,7 +28,7 @@ import Data.Set (Set)
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Gargantext.API.Ngrams
+import Gargantext.API.Ngrams.Types
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)
 import Gargantext.API.Prelude (GargNoServer)
 import Gargantext.Prelude.Crypto.Hash (hash)
@@ -37,7 +37,6 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNgramsByNodeOnlyUser)
 import Gargantext.Database.Admin.Config (userMaster)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
-import Gargantext.Database.Admin.Types.Node (Node, NodeId, ListId, CorpusId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)

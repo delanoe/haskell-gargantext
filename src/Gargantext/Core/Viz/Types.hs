@@ -9,8 +9,6 @@ module Gargantext.Core.Viz.Types where
 
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
-import Data.Text (Text)
-import GHC.Generics (Generic)
 import Protolude
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)

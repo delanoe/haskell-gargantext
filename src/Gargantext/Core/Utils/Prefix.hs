@@ -20,13 +20,12 @@ module Gargantext.Core.Utils.Prefix
 import Prelude
 
 import Data.Aeson (Value, defaultOptions, parseJSON)
-import Data.Aeson.TH (Options, fieldLabelModifier, omitNothingFields)
+import Data.Aeson.TH (Options, fieldLabelModifier, omitNothingFields, sumEncoding, SumEncoding(UntaggedValue))
 import Data.Aeson.Types (Parser)
 import Data.Char (toLower)
-import Data.Monoid ((<>))
 import Data.Swagger.SchemaOptions (SchemaOptions, fromAesonOptions)
 import Servant.Job.Utils (wellNamedSchema)
-import Text.Read (Read(..),readMaybe)
+import Text.Read (readMaybe)
 
 
 -- | Aeson Options that remove the prefix from fields
@@ -35,6 +34,10 @@ unPrefix prefix = defaultOptions
   { fieldLabelModifier = unCapitalize . dropPrefix prefix
   , omitNothingFields = True
   }
+
+unPrefixUntagged :: String -> Options
+unPrefixUntagged prefix = (unPrefix prefix)
+  { sumEncoding = UntaggedValue }
 
 unPrefixSwagger :: String -> SchemaOptions
 unPrefixSwagger = fromAesonOptions . unPrefix

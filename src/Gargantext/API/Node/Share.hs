@@ -11,7 +11,6 @@ Portability : POSIX
 
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Gargantext.API.Node.Share
       where
@@ -20,6 +19,10 @@ import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Servant
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
+
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Share (ShareNodeWith(..))
@@ -28,9 +31,6 @@ import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Prelude
-import Servant
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
 data ShareNodeParams = ShareTeamParams   { username :: Text  }

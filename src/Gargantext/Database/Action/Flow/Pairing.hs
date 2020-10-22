@@ -28,10 +28,8 @@ import Gargantext.Core.Types.Main
 import Gargantext.Database
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Admin.Config
-import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata -- (HyperdataContact(..))
 import Gargantext.Database.Admin.Types.Node -- (AnnuaireId, CorpusId, ListId, DocId, ContactId, NodeId)
-import Gargantext.Database.Prelude (Cmd, runOpaQuery)
 import Gargantext.Database.Query.Prelude (leftJoin2, returnA, queryNodeNodeTable)
 import Gargantext.Database.Query.Table.Node.Children (getAllContacts)
 import Gargantext.Database.Query.Table.Node.Select (selectNodesWithUsername)
@@ -41,7 +39,6 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Opaleye
-import Safe (lastMay)
 import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Set  as Set

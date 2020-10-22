@@ -30,6 +30,7 @@ import Gargantext.Core.Viz.Graph.IGraph (mkGraphUfromEdges)
 import Gargantext.Core.Viz.Graph.Proxemy (confluence)
 import GHC.Float (sin, cos)
 import qualified IGraph as Igraph
+import IGraph.Random -- (Gen(..))
 import qualified IGraph.Algorithms.Layout as Layout
 import qualified Data.Vector.Storable as Vec
 import qualified Data.Map  as Map
@@ -200,12 +201,12 @@ getCoord ACP labels m n = to2d $ maybe (panic "Graph.Tools no coordinate") ident
 
 -- | KamadaKawai Layout
 -- TODO TEST: check labels, nodeId and coordinates
-layout :: Map (Int, Int) Double -> Int -> IO (Double, Double)
-layout m n = maybe (panic "") identity <$> Map.lookup n <$> coord
+layout :: Map (Int, Int) Double -> Int -> Gen -> (Double, Double)
+layout m n gen = maybe (panic "") identity $ Map.lookup n $ coord
   where
-    coord :: IO (Map Int (Double,Double))
-    coord = Map.fromList <$> List.zip (Igraph.nodes g) <$> (Layout.getLayout g p)
+    coord :: (Map Int (Double,Double))
+    coord = Map.fromList $ List.zip (Igraph.nodes g) $ (Layout.layout g p gen)
     --p = Layout.defaultLGL
-    p = Layout.defaultKamadaKawai
+    p = Layout.kamadaKawai
     g = mkGraphUfromEdges $ map fst $ List.filter (\e -> snd e > 0) $ Map.toList m
 

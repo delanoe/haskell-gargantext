@@ -25,7 +25,6 @@ import Data.Time.Segment (jour)
 import qualified Data.Vector          as V
 import Data.Vector (Vector)
 import GHC.IO (FilePath)
-import GHC.Real (round)
 import GHC.Word (Word8)
 
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))

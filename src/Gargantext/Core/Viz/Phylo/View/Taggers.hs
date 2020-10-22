@@ -15,9 +15,8 @@ module Gargantext.Core.Viz.Phylo.View.Taggers
   where
 
 import Control.Lens     hiding (makeLenses, both, Level)
-import Data.List        (concat,nub,groupBy,sortOn,sort, (!!), take, union, (\\))
+import Data.List        (concat,nub,groupBy,sortOn,sort, (!!), union, (\\))
 import Data.Text        (Text)
-import Data.Tuple       (fst, snd)
 import Data.Vector      (Vector)
 import Data.Map         (Map, (!), empty, unionWith)
 import Gargantext.Prelude

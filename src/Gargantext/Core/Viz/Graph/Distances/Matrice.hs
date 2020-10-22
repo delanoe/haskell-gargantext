@@ -196,7 +196,7 @@ measureConditional m = run $ matProba (dim m)
 -- in the corpus and _[n_{ij}\] the number of its occurrences we get:
 --
 -- \[P_c=max(\frac{n_i}{n_{ij}},\frac{n_j}{n_{ij}} )\]
-conditional' :: Matrix Int -> (Matrix InclusionExclusion, Matrix SpecificityGenericity)
+conditional' :: Matrix Int -> (Matrix GenericityInclusion, Matrix SpecificityExclusion)
 conditional' m = ( run $ ie $ map fromIntegral $ use m
                  , run $ sg $ map fromIntegral $ use m
                  )
@@ -245,8 +245,8 @@ conditional' m = ( run $ ie $ map fromIntegral $ use m
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 distributional :: Matrix Int -> Matrix Double
-distributional m = run -- $ matMiniMax
-                       $ diagNull n
+distributional m = -- run {- $ matMiniMax -}
+                   run  $ diagNull n
                        $ rIJ n
                        $ filterWith 0 100
                        $ filter' 0
@@ -450,15 +450,15 @@ Jean-Philippe Cointet (CREA, TSV), David Chavalarias (CREA) (Submitted
 on 15 Mar 2008), Networks and Heterogeneous Media 3, 2 (2008) 267 - 276,
 arXiv:0803.2315 [cs.OH]
 -}
-type InclusionExclusion    = Double
-type SpecificityGenericity = Double
+type GenericityInclusion    = Double
+type SpecificityExclusion = Double
 
 data SquareMatrix      = SymetricMatrix | NonSymetricMatrix
 type SymetricMatrix    = Matrix
 type NonSymetricMatrix = Matrix
 
 
-incExcSpeGen :: Matrix Int -> (Vector InclusionExclusion, Vector SpecificityGenericity)
+incExcSpeGen :: Matrix Int -> (Vector GenericityInclusion, Vector SpecificityExclusion)
 incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
   where
     run' fun mat = run $ fun $ map fromIntegral $ use mat
@@ -466,19 +466,19 @@ incExcSpeGen m = (run' inclusionExclusion m, run' specificityGenericity m)
     -- | Inclusion (i) = Gen(i)+Spec(i)
     inclusionExclusion :: Acc (Matrix Double) -> Acc (Vector Double)
     inclusionExclusion mat = zipWith (+) (pV mat) (pV mat)
-    
+
     -- | Genericity score = Gen(i)- Spec(i)
     specificityGenericity :: Acc (Matrix Double) -> Acc (Vector Double)
     specificityGenericity mat = zipWith (+) (pH mat) (pH mat)
-    
+
     -- | Gen(i)  : 1/(N-1)*Sum(j!=i, P(i|j)) : Genericity  of i
     pV :: Acc (Matrix Double) -> Acc (Vector Double)
     pV mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ij mat
-    
+
     -- | Spec(i) : 1/(N-1)*Sum(j!=i, P(j|i)) : Specificity of j
     pH :: Acc (Matrix Double) -> Acc (Vector Double)
     pH mat = map (\x -> (x-1)/(cardN-1)) $ sum $ p_ji mat
-    
+
     cardN :: Exp Double
     cardN = constant (P.fromIntegral (dim m) :: Double)
 

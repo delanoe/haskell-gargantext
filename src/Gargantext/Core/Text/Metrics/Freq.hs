@@ -13,7 +13,6 @@ Portability : POSIX
 module Gargantext.Core.Text.Metrics.Freq where
 
 import Gargantext.Prelude
-import Data.Bool (otherwise)
 import Data.Map (empty, Map, insertWith, toList)
 import qualified Data.List as L
 

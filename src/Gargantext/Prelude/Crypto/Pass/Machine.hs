@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Prelude.Crypto.Pass
+Module      : Gargantext.Prelude.Crypto.Pass.Machine
 Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : Public Domain
@@ -7,8 +7,7 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-To avoid weak password, just offer an easy way to make "good" one and
-let user add his own entropy.
+Random Text generator (for machines mainly)
 
 Thanks to 
 https://zuttobenkyou.wordpress.com/2011/12/23/simple-password-generation-with-haskell/
@@ -16,20 +15,18 @@ https://zuttobenkyou.wordpress.com/2011/12/23/simple-password-generation-with-ha
 -}
 
 
-module Gargantext.Prelude.Crypto.Pass
+module Gargantext.Prelude.Crypto.Pass.Machine
       where
 
 import Data.List (nub)
 -- import System.Environment (getArgs)
 -- import System.IO (hSetEcho)
-import Data.Text (Text)
 import Control.Monad.State
 import Crypto.Random (cprgGenerate)
 import Crypto.Random.AESCtr
 import Data.Binary (decode)
 import Prelude
 import qualified Data.ByteString.Lazy as B
-import Gargantext.Prelude (cs)
 import Data.ByteString as S (ByteString, unpack)
 import Data.ByteString.Char8 as C8 (pack)
 import Data.Char (chr)
@@ -94,17 +91,12 @@ printPass len = do
   _ <- runStateT (showRandomKey len as') aesState -- enter loop
   return ()
 
-gargPass :: IO (Int, AESRNG)
-gargPass = do
+gargPassMachine :: IO (Int, AESRNG)
+gargPassMachine = do
   aesState <- makeSystem -- gather entropy from the system to use as the initial seed
   pass <- runStateT aesRandomInt aesState -- enter loop
   pure pass
 
-gargPass' :: IO Text
-gargPass' = do
-  aesState <- makeSystem
-  let (bs, _aesState') = cprgGenerate 15 aesState
-  return (cs $ bsToStr bs)
 
 {- 
 main :: IO ()

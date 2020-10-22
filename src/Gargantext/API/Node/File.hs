@@ -1,6 +1,7 @@
+{-# OPTIONS_GHC -fno-warn-orphans -fno-warn-unused-matches #-}
+
 {-# LANGUAGE AllowAmbiguousTypes     #-}
 {-# LANGUAGE TypeOperators     #-}
-{-# OPTIONS_GHC -fno-warn-orphans -fno-warn-unused-matches -fno-warn-unused-imports #-}
 
 module Gargantext.API.Node.File where
 
@@ -8,27 +9,19 @@ import Control.Lens ((^.))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.MIME.Types as DMT
-import Data.Monoid (mempty)
 import Data.Swagger
 import Data.Text
-import Data.Text.Encoding
-import qualified Data.Text.IO as TIO
 import GHC.Generics (Generic)
 import qualified Network.HTTP.Media as M
-import Network.Wai.Application.Static
 import Servant
-import Servant.API.Raw (Raw)
 import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-import Servant.Job.Core
-import Servant.Job.Types
-import Servant.Job.Utils (jsonOptions)
-import Servant.Server.Internal
 
 import Gargantext.Prelude
 import qualified Gargantext.Prelude.Utils as GPU
 
+import Gargantext.Core.Types (TODO)
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Types
 import Gargantext.API.Prelude
 import Gargantext.Database.Action.Flow.Types
@@ -65,7 +58,7 @@ newtype BSResponse = BSResponse BS.ByteString
   deriving (Generic)
 
 instance ToSchema BSResponse  where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy BSResponse)
+  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy TODO)
 
 fileDownload :: (HasSettings env, FlowCmdM env err m)
              => UserId

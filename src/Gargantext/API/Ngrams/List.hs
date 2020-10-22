@@ -17,7 +17,6 @@ module Gargantext.API.Ngrams.List
 
 import Control.Lens hiding (elements)
 import Data.Aeson
-import Data.List (zip)
 import Data.Map (Map, toList, fromList)
 import Data.Swagger (ToSchema, declareNamedSchema, genericDeclareNamedSchema)
 import Data.Text (Text, concat, pack)
@@ -28,15 +27,16 @@ import Servant.Job.Async
 import Servant.Job.Utils (jsonOptions)
 import Web.FormUrlEncoded (FromForm)
 
-import Gargantext.Prelude
-import Gargantext.API.Node.Corpus.New.File (FileType(..))
-import Gargantext.API.Ngrams
 import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.API.Ngrams (getNgramsTableMap, setListNgrams)
+import Gargantext.API.Ngrams.Types (NgramsTableMap, RepoCmdM, Versioned(..))
+import Gargantext.API.Node.Corpus.New.File (FileType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger)
-import Gargantext.Database.Action.Flow (FlowCmdM)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Ngrams (NgramsType(..), ngramsTypes)
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 type NgramsList = (Map NgramsType (Versioned NgramsTableMap))
@@ -74,6 +74,7 @@ get' lId = fromList
 
 ------------------------------------------------------------------------
 -- TODO : purge list
+-- TODO talk
 post :: FlowCmdM env err m
     => ListId
     -> NgramsList

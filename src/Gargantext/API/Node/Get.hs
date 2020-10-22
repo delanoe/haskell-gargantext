@@ -18,19 +18,20 @@ Polymorphic Get Node API
 module Gargantext.API.Node.Get
       where
 
--- import Gargantext.API.Admin.Settings (HasSettings)
+-- import Gargantext.API.Admin.Types (HasSettings)
 -- import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 -- import Test.QuickCheck (elements)
 -- import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Data.Aeson
 import Data.Swagger
 import GHC.Generics (Generic)
-import Gargantext.API.Prelude
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node (JSONB{-, getNodeWith-})
-import Gargantext.Prelude
 import Servant
 import Test.QuickCheck.Arbitrary
+
+import Gargantext.API.Prelude
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (JSONB{-, getNodeWith-})
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 type API a = Summary "Polymorphic Get Node Endpoint"

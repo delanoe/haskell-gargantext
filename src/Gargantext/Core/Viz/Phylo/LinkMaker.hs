@@ -16,7 +16,7 @@ module Gargantext.Core.Viz.Phylo.LinkMaker
 
 import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sortOn, null, tail, splitAt, elem, concat, delete, intersect, elemIndex, groupBy, union, inits, scanl, find)
+import Data.List                    ((++), sortOn, null, tail, splitAt, concat, delete, intersect, elemIndex, groupBy, union, inits, scanl, find)
 import Data.Tuple.Extra
 import Data.Map                     (Map, (!), fromListWith, elems, restrictKeys, filterWithKey, keys, unionWith, unions, intersectionWith, member, fromList)
 import Gargantext.Prelude

@@ -9,14 +9,12 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans   #-}
-
 module Gargantext.Prelude.Utils
   where
 
 import Control.Exception
 import Control.Lens (view)
-import Control.Monad.Reader (ask, MonadReader)
+import Control.Monad.Reader (MonadReader)
 import Control.Monad.Random.Class (MonadRandom)
 import Data.Text (Text)
 import qualified Data.Text             as Text
@@ -27,9 +25,9 @@ import System.IO.Error
 import System.Random (newStdGen)
 import qualified System.Random.Shuffle as SRS
 
-import Gargantext.API.Admin.Settings
 import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Hash
+import Gargantext.Database.Prelude (HasConfig(..))
 import Gargantext.Database.Admin.Types.Node (NodeId, NodeType)
 import Gargantext.Prelude
 
@@ -73,10 +71,10 @@ folderFilePath = do
   pure (foldPath, fileName)
 
 
-writeFile :: (MonadReader env m, MonadBase IO m, HasSettings env, SaveFile a)
+writeFile :: (MonadReader env m, MonadBase IO m, HasConfig env, SaveFile a)
           => a -> m FilePath
 writeFile a = do
-  dataPath <- view (settings . config . gc_datafilepath) <$> ask
+  dataPath <- view $ config . gc_datafilepath
 
   (foldPath, fileName) <- folderFilePath
 
@@ -90,16 +88,16 @@ writeFile a = do
   pure filePath
 
 
-readFile :: (MonadReader env m, MonadBase IO m, HasSettings env, ReadFile a)
+readFile :: (MonadReader env m, MonadBase IO m, HasConfig env, ReadFile a)
          => FilePath -> m a
 readFile fp = do
-  dataPath <- view (settings . config . gc_datafilepath) <$> ask
+  dataPath <- view $ config . gc_datafilepath
   liftBase $ readFile' $ dataPath <> "/" <> fp
 
-removeFile :: (MonadReader env m, MonadBase IO m, HasSettings env)
+removeFile :: (MonadReader env m, MonadBase IO m, HasConfig env)
            => FilePath -> m ()
 removeFile fp = do
-  dataPath <- view (settings . config . gc_datafilepath) <$> ask
+  dataPath <- view $ config . gc_datafilepath
   liftBase $ SD.removeFile (dataPath <> "/" <> fp) `catch` handleExists
     where
       handleExists e

@@ -15,8 +15,7 @@ Presse RIS format parser for Europresse Database.
 module Gargantext.Core.Text.Corpus.Parsers.RIS.Presse (presseEnrich) where
 
 import Data.List (lookup)
-import Data.Either (either)
-import Data.Tuple.Extra (first, both, uncurry)
+import Data.Tuple.Extra (first, both)
 import Data.Attoparsec.ByteString (parseOnly)
 import Data.ByteString (ByteString, length)
 import Gargantext.Prelude hiding (takeWhile, take, length)

@@ -35,11 +35,13 @@ import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Terms.WithList
+
 import Gargantext.Core.Viz.Phylo hiding (Svg, Dot)
-import Gargantext.Core.Viz.Phylo.LevelMaker
+import Gargantext.Core.Viz.Phylo.LevelMaker (toPhylo)
 import Gargantext.Core.Viz.Phylo.Tools
 import Gargantext.Core.Viz.Phylo.View.Export
 import Gargantext.Core.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
+
 
 type MinSizeBranch = Int
 
@@ -48,14 +50,14 @@ flowPhylo :: FlowCmdM env err m
           -> m Phylo
 flowPhylo cId = do
 
-  list       <- defaultList cId
+  list     <- defaultList cId
   termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms MapTerm
 
   docs' <- catMaybes
-          <$> map (\h -> (,) <$> _hd_publication_year h
-                             <*> _hd_abstract h
-                  )
-          <$> selectDocs cId
+        <$> map (\h -> (,) <$> _hd_publication_year h
+                           <*> _hd_abstract h
+                )
+        <$> selectDocs cId
 
   let
     patterns = buildPatterns termList
@@ -65,10 +67,13 @@ flowPhylo cId = do
       where
         --------------------------------------
         termsInText :: Patterns -> Text -> [Text]
-        termsInText pats txt = List.nub $ List.concat $ map (map Text.unwords) $ extractTermsWithList pats txt
+        termsInText pats txt = List.nub
+                             $ List.concat
+                             $ map (map Text.unwords)
+                             $ extractTermsWithList pats txt
         --------------------------------------
 
-    docs = map ( (\(y,t) -> Document y t) . filterTerms patterns) docs'
+    docs = map ((\(y,t) -> Document y t) . filterTerms patterns) docs'
 
   --liftBase $ flowPhylo' (List.sortOn date docs) termList l m fp
   pure $ buildPhylo (List.sortOn date docs) termList
@@ -76,9 +81,9 @@ flowPhylo cId = do
 
 -- TODO SortedList Document
 flowPhylo' :: [Document] -> TermList      -- ^Build
-          -> Level      -> MinSizeBranch -- ^View
-          -> FilePath
-          -> IO FilePath
+           -> Level       -> MinSizeBranch -- ^View
+           -> FilePath
+           -> IO FilePath
 flowPhylo' corpus terms l m fp = do
   let
     phylo = buildPhylo corpus terms

@@ -14,9 +14,11 @@ import Gargantext.Core.Text.Corpus.Parsers.Date as DGP
 DGP.parseDateRaw DGP.FR "12 avril 2010" == "2010-04-12T00:00:00.000+00:00"
 -}
 
+{-# LANGUAGE TypeFamilies #-}
 
-module Gargantext.Core.Text.Corpus.Parsers.Date (parse, parseRaw, dateSplit, Year, Month, Day) where
+module Gargantext.Core.Text.Corpus.Parsers.Date {-(parse, parseRaw, dateSplit, Year, Month, Day)-} where
 
+import Data.Aeson (toJSON, Value)
 import Data.HashMap.Strict as HM hiding (map)
 import Data.Text (Text, unpack, splitOn, pack)
 import Data.Time (parseTimeOrError, defaultTimeLocale, toGregorian)
@@ -25,9 +27,8 @@ import Data.Time.LocalTime (utc)
 import Data.Time.LocalTime.TimeZone.Series (zonedTimeToZoneSeriesTime)
 import Duckling.Api (analyze)
 import Duckling.Core (makeLocale, Some(This), Dimension(Time))
-import Duckling.Resolve (fromUTC, Context(Context, referenceTime, locale), DucklingTime(DucklingTime))
-import Duckling.Types (ResolvedToken)
-import Duckling.Types (jsonValue)
+import Duckling.Resolve (fromUTC, Context(Context, referenceTime, locale), DucklingTime(DucklingTime), Options(..))
+import Duckling.Types (ResolvedToken(..), ResolvedVal(..))
 import Gargantext.Core (Lang(FR,EN))
 import Gargantext.Prelude
 import qualified Data.Aeson   as Json
@@ -90,17 +91,27 @@ parserLang _  = panic "not implemented"
 -- parseRaw :: Context -> Text -> SomeErrorHandling Text
 
 -- TODO error handling
-parseRaw :: Lang -> Text -> IO (Text)
-parseRaw lang text = do
-    maybeJson <- map jsonValue <$> parseDateWithDuckling lang text
-    case headMay maybeJson of
-      Just (Json.Object object) -> case HM.lookup "value" object of
-                                     Just (Json.String date) -> pure date
-                                     Just _                  -> panic "ParseRaw ERROR: should be a json String"
-                                     Nothing                 -> panic $ "ParseRaw ERROR: no date found" <> (pack . show) lang <> " " <> text
+parseRaw :: Lang -> Text -> IO Text
+parseRaw lang text = do -- case result
+    maybeResult <- extractValue <$> getTimeValue <$> parseDateWithDuckling lang text (Options True)
+    case maybeResult of
+      Just result -> pure result
+      Nothing     -> panic $ "[G.C.T.C.P.D.parseRaw] ERROR" <> (pack . show) lang <> " " <> text
 
-      _                         -> panic $ "ParseRaw ERROR: type error" <> (pack . show) lang <> " " <> text
 
+getTimeValue :: [ResolvedToken] -> Value
+getTimeValue rt = case head rt of
+  Nothing -> panic "error"
+  Just x  -> case rval x of
+    RVal Time t -> toJSON t
+    _  -> panic "error2"
+
+extractValue :: Value -> Maybe Text
+extractValue (Json.Object object) =
+  case HM.lookup "value" object of
+    Just (Json.String date) -> Just date
+    _                  -> Nothing
+extractValue _ = Nothing
 
 -- | Current Time in DucklingTime format
 -- TODO : get local Time in a more generic way
@@ -112,9 +123,12 @@ localContext :: Lang -> DucklingTime -> Context
 localContext lang dt = Context {referenceTime = dt, locale = makeLocale (parserLang lang) Nothing}
 
 -- | Date parser with Duckling
-parseDateWithDuckling :: Lang -> Text -> IO [ResolvedToken]
-parseDateWithDuckling lang input = do
+parseDateWithDuckling :: Lang -> Text -> Options -> IO [ResolvedToken]
+parseDateWithDuckling lang input options = do
     contxt <- localContext lang <$> utcToDucklingTime <$> getCurrentTime
     --pure $ parseAndResolve (rulesFor (locale ctx) (HashSet.fromList [(This Time)])) input ctx
-    pure $ analyze input contxt $ HashSet.fromList [(This Time)]
+    -- TODO check/test Options False or True
+    pure $ analyze input contxt options $ HashSet.fromList [(This Time)]
+
+
 

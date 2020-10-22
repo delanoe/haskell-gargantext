@@ -14,7 +14,18 @@ commentary with @some markup@.
 
 module Gargantext.Core.Utils ( 
                            -- module Gargantext.Utils.Chronos
-                           module Gargantext.Core.Utils.Prefix
+                             module Gargantext.Core.Utils.Prefix
+                           , something
                           ) where
+
+import Data.Maybe
+import Data.Monoid
+
 -- import Gargantext.Utils.Chronos
 import Gargantext.Core.Utils.Prefix
+
+
+
+something :: Monoid a => Maybe a -> a
+something Nothing  = mempty
+something (Just a) = a
