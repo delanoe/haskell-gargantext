@@ -28,17 +28,17 @@ import Gargantext.Core.Viz.Graph.FGL
 type Length = Int
 type FalseReflexive = Bool
 type NeighborsFilter = Graph_Undirected -> Node -> [Node]
-type We = Bool
+type RmEdge = Bool
 
-confluence :: [(Node,Node)] -> Length -> FalseReflexive -> We -> Map (Node,Node) Double
-confluence ns l fr we = similarity_conf (mkGraphUfromEdges ns) l fr we
+confluence :: [(Node,Node)] -> Length -> FalseReflexive -> RmEdge -> Map (Node,Node) Double
+confluence ns = similarity_conf (mkGraphUfromEdges ns)
 
-similarity_conf :: Graph_Undirected -> Length -> FalseReflexive -> We -> Map (Node,Node) Double
-similarity_conf g l fr we = Map.fromList [ ((x,y), similarity_conf_x_y g (x,y) l fr we)
+similarity_conf :: Graph_Undirected -> Length -> FalseReflexive -> RmEdge -> Map (Node,Node) Double
+similarity_conf g l fr rm = Map.fromList [ ((x,y), similarity_conf_x_y g (x,y) l fr rm)
                                          | x <- nodes g, y <- nodes g, x < y]
 
-similarity_conf_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> We -> Double
-similarity_conf_x_y g (x,y) l r we = similarity
+similarity_conf_x_y :: Graph_Undirected -> (Node,Node) -> Length -> FalseReflexive -> RmEdge -> Double
+similarity_conf_x_y g (x,y) l r rm_e = similarity
   where
     similarity :: Double
     similarity | denominator == 0 = 0
@@ -52,11 +52,11 @@ similarity_conf_x_y g (x,y) l r we = similarity
     xline :: Map Node Double
     xline    = prox_markov g [x] l r filterNeighbors'
       where
-        filterNeighbors' | we == True = filterNeighbors
+        filterNeighbors' | rm_e == True = filterNeighbors
                          | otherwise  = rm_edge_neighbors (x,y)
 
     pair_is_edge :: Bool
-    pair_is_edge | we == True = False
+    pair_is_edge | rm_e == True = False
                  | otherwise  = List.elem y (filterNeighbors g x)
 
     lim_SC :: Double
