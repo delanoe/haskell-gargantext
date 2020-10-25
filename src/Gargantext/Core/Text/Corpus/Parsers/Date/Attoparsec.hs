@@ -17,7 +17,6 @@ module Gargantext.Core.Text.Corpus.Parsers.Date.Attoparsec
 import Control.Applicative ((<*))
 import Data.Attoparsec.ByteString (Parser, take)
 import Data.ByteString (ByteString)
-import Data.Monoid ((<>))
 import Data.Tuple.Extra (first)
 import Gargantext.Prelude hiding (takeWhile, take)
 

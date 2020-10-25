@@ -24,7 +24,6 @@ import Control.Applicative
 import Data.Attoparsec.ByteString (Parser, try, takeTill, take, many1)
 import Data.Attoparsec.ByteString.Char8 (isEndOfLine)
 import Data.ByteString (ByteString, concat)
-import Data.Monoid ((<>))
 import Gargantext.Prelude hiding (takeWhile, take)
 import qualified Data.List as DL
 -------------------------------------------------------------

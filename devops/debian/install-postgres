@@ -1,0 +1,9 @@
+#!/bin/bash
+
+PGVersion=11
+GARGDATA=/srv/gargantua/gargandata
+sudo mkdir -vp ${GARGDATA}
+sudo apt install rsync
+sudo sed -iP "s%^data_directory.*%data_directory = \'${GARGDATA}\'%" /etc/postgresql/${PGVersion}/main/postgresql.conf
+sudo rsync -av /var/lib/postgresql/${PGVersion}/main ${GARGDATA}
+sudo chown -R postgres:postgres ${GARGDATA}

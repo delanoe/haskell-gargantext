@@ -41,11 +41,11 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 import Gargantext.API.HashedResponse
-import Gargantext.API.Ngrams (TabType(..))
+import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (Offset, Limit, TableResult(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, OrderBy(..), runViewAuthorsDoc)
+import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, runCountDocuments, OrderBy(..), runViewAuthorsDoc)
 import Gargantext.Database.Action.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Node
@@ -116,7 +116,7 @@ searchInCorpus' :: CorpusId
                 -> Maybe OrderBy
                 -> Cmd err FacetTableResult
 searchInCorpus' cId t q o l order = do
-  docs <- searchInCorpus cId t q o l order
+  docs          <- searchInCorpus cId t q o l order
   countAllDocs  <- searchCountInCorpus cId t q
   pure $ TableResult { tr_docs = docs, tr_count = countAllDocs }
 
@@ -125,10 +125,9 @@ getTable :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit
          -> Maybe OrderBy -> Cmd err FacetTableResult
 getTable cId ft o l order = do
-  docs <- getTable' cId ft o l order
-  -- TODO: Rewrite to use runCountOpaQuery and avoid (length allDocs)
-  allDocs  <- getTable' cId ft Nothing Nothing Nothing
-  pure $ TableResult { tr_docs = docs, tr_count = length allDocs }
+  docs      <- getTable' cId ft o l order
+  docsCount <- runCountDocuments cId (if ft == Just Trash then True else False)
+  pure $ TableResult { tr_docs = docs, tr_count = docsCount }
 
 getTable' :: NodeId -> Maybe TabType
          -> Maybe Offset  -> Maybe Limit

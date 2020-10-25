@@ -30,6 +30,7 @@ data User = UserDBId UserId | UserName Text | RootId NodeId | UserPublic
 
 type Username = Text
 
+type HashPassword    = Auth.PasswordHash Auth.Argon2
 newtype GargPassword = GargPassword Text
   deriving (Generic)
 
@@ -40,12 +41,15 @@ instance ToJSON GargPassword
 instance FromJSON GargPassword
 
 instance ToSchema GargPassword
-
-type Email    = Text
-
+type Email          = Text
 type UsernameMaster = Username
 type UsernameSimple = Username
 
+data NewUser a = NewUser { _nu_username :: Username
+                         , _nu_email    :: Email
+                         , _nu_password :: a
+                         }
+  deriving (Show)
 
 arbitraryUsername :: [Username]
 arbitraryUsername = ["gargantua"] <> users
@@ -57,19 +61,19 @@ arbitraryPassword :: [GargPassword]
 arbitraryPassword = map (\u -> GargPassword (reverse u)) arbitraryUsername
 
 -----------------------------------------------------------
+toUserHash :: MonadIO m
+         =>    NewUser GargPassword
+         -> m (NewUser HashPassword)
+toUserHash (NewUser u m (GargPassword p)) = do
+  h <- Auth.createPasswordHash p
+  pure $ NewUser u m h
 
 arbitraryUsersHash :: MonadIO m
-                  => m [(Username, Email, Auth.PasswordHash Auth.Argon2)]
-arbitraryUsersHash = mapM userHash arbitraryUsers
+                  => m [NewUser HashPassword]
+arbitraryUsersHash = mapM toUserHash arbitraryUsers
 
-userHash :: MonadIO m
-                  => (Username, Email, GargPassword)
-                  -> m (Username, Email, Auth.PasswordHash Auth.Argon2)
-userHash (u,m,GargPassword p) = do
-  h <- Auth.createPasswordHash p
-  pure (u, m, h)
-
-arbitraryUsers :: [(Username, Email, GargPassword)]
-arbitraryUsers = map (\u -> (u, u <> "@gargantext.org", GargPassword $ reverse u)) arbitraryUsername
+arbitraryUsers :: [NewUser GargPassword]
+arbitraryUsers = map (\u -> NewUser u (u <> "@gargantext.org") (GargPassword $ reverse u))
+                     arbitraryUsername
 
 

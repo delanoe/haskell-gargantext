@@ -9,11 +9,8 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.API.Prelude
   ( module Gargantext.API.Prelude
@@ -26,7 +23,7 @@ import Control.Concurrent (threadDelay)
 import Control.Exception (Exception)
 import Control.Lens (Prism', (#))
 import Control.Lens.TH (makePrisms)
-import Control.Monad.Error.Class (MonadError(throwError))
+import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.Except (ExceptT)
 import Control.Monad.Reader (ReaderT)
 import Crypto.JOSE.Error as Jose
@@ -38,8 +35,8 @@ import Servant.Job.Async
 import Servant.Job.Core (HasServerError(..), serverError)
 
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Admin.Settings
-import Gargantext.API.Ngrams
+import Gargantext.API.Admin.Types
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error (NodeError(..), HasNodeError(..))
@@ -52,64 +49,45 @@ class HasJoseError e where
 joseError :: (MonadError e m, HasJoseError e) => Jose.Error -> m a
 joseError = throwError . (_JoseError #)
 
-class ThrowAll' e a | a -> e where
-  -- | 'throwAll' is a convenience function to throw errors across an entire
-  -- sub-API
-  --
-  --
-  -- > throwAll err400 :: Handler a :<|> Handler b :<|> Handler c
-  -- >    == throwError err400 :<|> throwError err400 :<|> err400
-  throwAll' :: e -> a
-
-instance (ThrowAll' e a, ThrowAll' e b) => ThrowAll' e (a :<|> b) where
-  throwAll' e = throwAll' e :<|> throwAll' e
-
--- Really this shouldn't be necessary - ((->) a) should be an instance of
--- MonadError, no?
-instance {-# OVERLAPPING #-} ThrowAll' e b => ThrowAll' e (a -> b) where
-  throwAll' e = const $ throwAll' e
-
-instance {-# OVERLAPPABLE #-} (MonadError e m) => ThrowAll' e (m a) where
-  throwAll' = throwError
-
-type GargServerC env err m =
-    ( CmdM         env err m
-    , HasNodeError     err
-    , HasInvalidError  err
-    , HasTreeError     err
-    , HasServerError   err
-    , HasJoseError     err
-    , ToJSON           err -- TODO this is arguable
-    , Exception        err
-    , HasRepo      env
-    , HasSettings  env
-    , HasJobEnv    env JobLog JobLog
-    , HasConfig    env
-    )
-
-type GargServerT env err m api = GargServerC env err m => ServerT api m
-
-type GargServer api =
-  forall env err m. GargServerT env err m api
-
--- This is the concrete monad. It needs to be used as little as possible,
--- instead, prefer GargServer, GargServerT, GargServerC.
-type GargServerM env err = ReaderT env (ExceptT err IO)
-
 type EnvC env =
   ( HasConnectionPool env
-  , HasRepo           env
-  , HasSettings       env
+  , HasRepo           env  -- TODO rename HasNgramsRepo
+  , HasSettings       env  -- TODO rename HasDbSettings
   , HasJobEnv         env JobLog JobLog
   , HasConfig         env
   )
 
--------------------------------------------------------------------
-runCmdReplEasy :: Cmd' DevEnv GargError a -> IO a
-runCmdReplEasy f = withDevEnv "gargantext.ini" $ \env -> runCmdDev env f
+type ErrC err =
+  ( HasNodeError     err
+  , HasInvalidError  err
+  , HasTreeError     err
+  , HasServerError   err
+  , HasJoseError     err
+  , ToJSON           err -- TODO this is arguable
+  , Exception        err
+  )
+
+type GargServerC env err m =
+  ( CmdM' env err m
+  , EnvC  env
+  , ErrC      err
+  )
+
+type GargServerT env err m api = GargServerC env err m => ServerT api m
+
+type GargServer api = forall env err m. GargServerT env err m api
+
+-- This is the concrete monad. It needs to be used as little as possible.
+type GargM env err = ReaderT env (ExceptT err IO)
+-- This is the server type using GargM. It needs to be used as little as possible.
+-- Instead, prefer GargServer, GargServerT.
+type GargServerM env err api = (EnvC env, ErrC err) => ServerT api (GargM env err)
 
 -------------------------------------------------------------------
 -- | This Type is needed to prepare the function before the GargServer
+type GargNoServer t =
+  forall env err m. GargNoServer' env err m => m t
+
 type GargNoServer' env err m =
   ( CmdM           env err m
   , HasRepo        env
@@ -117,8 +95,6 @@ type GargNoServer' env err m =
   , HasNodeError       err
   )
 
-type GargNoServer t =
-  forall env err m. GargNoServer' env err m => m t
 -------------------------------------------------------------------
 
 data GargError

@@ -13,16 +13,14 @@ Portability : POSIX
 module Gargantext.Core.Text.Corpus.Parsers.Date.Parsec
   where
 
-import Control.Monad ((=<<))
 import Data.Either (Either)
 import Data.Fixed (Fixed (MkFixed))
-import Data.Foldable (length)
 import Data.String (String)
 import Data.Text (Text, unpack)
 import Data.Time (ZonedTime(..), LocalTime(..), TimeZone(..), TimeOfDay(..))
 import Data.Time.Calendar (Day, fromGregorian)
 import Gargantext.Prelude
-import Prelude (toInteger, div, otherwise, (++))
+import Prelude (toInteger, (++))
 import Text.Parsec.Error (ParseError)
 import Text.Parsec.Prim (Stream, ParsecT)
 import Text.Parsec.String (Parser)

@@ -20,18 +20,15 @@ module Gargantext.Database.Schema.Ngrams
   where
 
 import Codec.Serialise (Serialise())
-import Control.Lens (makeLenses, over)
+import Control.Lens (over)
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
 import Data.Map (Map, fromList, lookup)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Swagger (ToParamSchema, toParamSchema, ToSchema)
-import Data.Text (Text, splitOn, pack)
-import GHC.Generics (Generic)
+import Data.Text (Text, splitOn, pack, strip)
 import Gargantext.Core.Types (TODO(..))
 import Gargantext.Prelude
-import Prelude (Enum, Bounded, minBound, maxBound, Functor)
+import Prelude (Functor)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
 import Text.Read (read)
 import Gargantext.Database.Schema.Prelude
@@ -143,16 +140,18 @@ fromNgramsTypeId id = lookup id
 
 ------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams
-data Ngrams = Ngrams { _ngramsTerms :: Text
-                     , _ngramsSize  :: Int
-           } deriving (Generic, Show, Eq, Ord)
+data Ngrams = UnsafeNgrams { _ngramsTerms :: Text
+                           , _ngramsSize  :: Int
+                           } deriving (Generic, Show, Eq, Ord)
 
 makeLenses ''Ngrams
 instance PGS.ToRow Ngrams where
-  toRow (Ngrams t s) = [toField t, toField s]
+  toRow (UnsafeNgrams t s) = [toField t, toField s]
 
 text2ngrams :: Text -> Ngrams
-text2ngrams txt = Ngrams txt $ length $ splitOn " " txt
+text2ngrams txt = UnsafeNgrams txt' $ length $ splitOn " " txt'
+  where
+    txt' = strip txt
 
 -------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams

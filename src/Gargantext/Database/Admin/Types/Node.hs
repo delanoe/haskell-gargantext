@@ -20,20 +20,16 @@ module Gargantext.Database.Admin.Types.Node
   where
 
 import Codec.Serialise (Serialise())
-import Control.Applicative ((<*>))
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
-import Data.Eq (Eq)
 import Data.Swagger
 import Data.Text (Text, unpack)
 import Data.Time (UTCTime)
-import Data.Typeable (Typeable)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.ToField (ToField, toField)
 import GHC.Generics (Generic)
-import Prelude (Enum, Bounded, minBound, maxBound)
 import Servant
 import qualified Opaleye as O
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGInt4, PGText, PGTSVector, Nullable, fieldQueryRunnerColumn)
@@ -43,7 +39,6 @@ import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Instances.Text ()
 import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
-import Text.Show (Show())
 
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Prelude (fromField')
@@ -128,6 +123,9 @@ pgNodeId = O.pgInt4 . id2int
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
   deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
+
+unNodeId :: NodeId -> Int
+unNodeId (NodeId n) = n
 
 instance Serialise NodeId
 

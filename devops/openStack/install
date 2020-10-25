@@ -1,0 +1,20 @@
+#!/bin/bash
+
+########################################################################
+# Open Stack only: attach volumes
+# attach the volume created (OS interface or API)
+sudo fdisk -l
+sudo fdisk /dev/vdb (n,p,t,83,w)
+sudo mkfs.ext4 /dev/vdb1
+
+sudo blkid
+# copy UUID in fstab (same parameters)
+sudo vim /etc/fstab 
+
+########################################################################
+
+sudo sed -i "s/stretch/buster/g" /etc/apt/sources.list
+sudo apt update
+sudo apt dist-upgrade
+# sudo reboot #recommended
+########################################################################

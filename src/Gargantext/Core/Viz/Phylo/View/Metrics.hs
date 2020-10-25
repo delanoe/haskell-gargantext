@@ -18,7 +18,6 @@ import Control.Lens     hiding (makeLenses, both, Level)
 import Data.List        (last,groupBy,sortOn)
 import Data.Map         (insert)
 import Data.Text        (Text)
-import Data.Tuple       (fst, snd)
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.Tools

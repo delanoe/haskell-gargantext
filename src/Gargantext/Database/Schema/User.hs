@@ -20,10 +20,8 @@ Functions to deal with users, database side.
 
 module Gargantext.Database.Schema.User where
 
-import Data.Maybe (Maybe)
 import Data.Text (Text)
 import Data.Time (UTCTime)
-import GHC.Show(Show(..))
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)

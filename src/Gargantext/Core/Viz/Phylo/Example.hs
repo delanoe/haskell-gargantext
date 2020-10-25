@@ -30,7 +30,6 @@ import Control.Lens hiding (both, Level)
 import Data.Text (Text, toLower)
 import Data.List        ((++))
 import Data.Map         (Map,empty)
-import Data.Tuple       (fst)
 import Data.Vector      (Vector)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context (TermList)

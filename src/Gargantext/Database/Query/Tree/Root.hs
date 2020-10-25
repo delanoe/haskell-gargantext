@@ -19,37 +19,35 @@ Portability : POSIX
 module Gargantext.Database.Query.Tree.Root
   where
 
-import Data.Either (Either, fromLeft, fromRight)
 import Control.Arrow (returnA)
-import Gargantext.Core.Types.Main (CorpusName)
+import Data.Either (Either, fromLeft, fromRight)
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Types.Main (CorpusName)
+import Gargantext.Database.Action.Node
+import Gargantext.Database.Action.User (getUserId, getUsername)
 import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
-import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
-import Gargantext.Database.Action.Flow.Utils (getUserId)
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude (Cmd, runOpaQuery)
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Error
+import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
 import Gargantext.Database.Schema.Node (NodePoly(..), NodeRead)
 import Gargantext.Database.Schema.Node (queryNodeTable)
-import Gargantext.Database.Action.Node
-import Gargantext.Database.Query.Table.User (queryUserTable, UserPoly(..))
-import Gargantext.Database.Admin.Types.Node (Node, NodeType(NodeUser), pgNodeId)
-import Gargantext.Database.Prelude (Cmd, runOpaQuery)
 import Gargantext.Prelude
 import Opaleye (restrict, (.==), Query)
 import Opaleye.PGTypes (pgStrictText, pgInt4)
 
 
-getRootId :: User -> Cmd err NodeId
+getRootId :: (HasNodeError err) => User -> Cmd err NodeId
 getRootId u = do
   maybeRoot <- head <$> getRoot u
   case maybeRoot of
-    Nothing -> panic "no root id"
+    Nothing -> nodeError $ NodeError "[G.D.Q.T.R.getRootId] No root id"
     Just  r -> pure (_node_id r)
 
 getRoot :: User -> Cmd err [Node HyperdataUser]
 getRoot = runOpaQuery . selectRoot
-
 
 getOrMkRoot :: (HasNodeError err)
             => User
@@ -88,7 +86,7 @@ getOrMk_RootWithCorpus user cName c = do
                   else do
                     c' <- mk (Just $ fromLeft "Default" cName) c rootId userId
                     _tId <- case head c' of
-                              Nothing -> pure [0]
+                              Nothing  -> nodeError $ NodeError "[G.D.Q.T.Root.getOrMk...] mk Corpus failed"
                               Just c'' -> insertDefaultNode NodeTexts c'' userId
                     pure c'
 
@@ -107,7 +105,7 @@ mkRoot user = do
   uid <- getUserId user
 
   -- TODO ? Which name for user Node ?
-  let una = "username"
+  una <- getUsername user
 
   case uid > 0 of
      False -> nodeError NegativeId
@@ -143,4 +141,4 @@ selectRoot (RootId nid) =
     restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
     restrict -< _node_id   row   .== (pgNodeId nid)
     returnA  -< row
-selectRoot UserPublic = panic "No root for Public"
+selectRoot UserPublic = panic {-nodeError $ NodeError-}  "[G.D.Q.T.Root.selectRoot] No root for Public"

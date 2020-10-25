@@ -31,7 +31,6 @@ import Control.DeepSeq
 import Control.Lens (makeLenses)
 import Data.Aeson.TH (deriveJSON,defaultOptions)
 import Data.Map     (Map)
-import Data.Maybe   (Maybe)
 import Data.Set     (Set)
 import Data.Swagger
 import Data.Text    (Text)
@@ -40,7 +39,6 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Context (TermList)
-import Prelude (Bounded)
 
 --------------------
 -- | PhyloParam | --
@@ -49,16 +47,16 @@ import Prelude (Bounded)
 
 -- | Global parameters of a Phylo
 data PhyloParam =
-     PhyloParam { _phyloParam_version  :: Text -- Double ?
-                , _phyloParam_software :: Software
-                , _phyloParam_query    :: PhyloQueryBuild
+     PhyloParam { _phyloParam_version  :: !Text -- Double ?
+                , _phyloParam_software :: !Software
+                , _phyloParam_query    :: !PhyloQueryBuild
      } deriving (Generic, Show, Eq)
 
 
 -- | Software parameters
 data Software =
-     Software { _software_name    :: Text
-              , _software_version :: Text
+     Software { _software_name    :: !Text
+              , _software_version :: !Text
      } deriving (Generic, Show, Eq)
 
 
@@ -72,21 +70,21 @@ data Software =
 -- Foundations : vector of all the Ngrams contained in a Phylo (build from a list of actants)
 -- Periods     : list of all the periods of a Phylo
 data Phylo =
-     Phylo { _phylo_duration    :: (Start, End)
-           , _phylo_foundations :: PhyloFoundations
+     Phylo { _phylo_duration    :: !(Start, End)
+           , _phylo_foundations :: !PhyloFoundations
            , _phylo_periods     :: [PhyloPeriod]
-           , _phylo_docsByYears :: Map Date Double
+           , _phylo_docsByYears :: !(Map Date Double)
            , _phylo_cooc        :: !(Map Date (Map (Int,Int) Double))
            , _phylo_fis         :: !(Map (Date,Date) [PhyloFis])
-           , _phylo_param       :: PhyloParam
+           , _phylo_param       :: !PhyloParam
            }
            deriving (Generic, Show, Eq)
 
 
 -- | The foundations of a phylomemy created from a given TermList 
 data PhyloFoundations =
-  PhyloFoundations { _phylo_foundationsRoots :: Vector Ngrams
-                   , _phylo_foundationsTermsList :: TermList
+  PhyloFoundations { _phylo_foundationsRoots :: !(Vector Ngrams)
+                   , _phylo_foundationsTermsList :: !TermList
   } deriving (Generic, Show, Eq)
 
 
@@ -109,8 +107,8 @@ type End     = Date
 -- Period: tuple (start date, end date) of the step of the phylomemy
 -- Levels: levels of granularity
 data PhyloPeriod =
-     PhyloPeriod { _phylo_periodId     :: PhyloPeriodId
-                 , _phylo_periodLevels :: [PhyloLevel]
+     PhyloPeriod { _phylo_periodId     :: !PhyloPeriodId
+                 , _phylo_periodLevels :: ![PhyloLevel]
                  }
                  deriving (Generic, Show, Eq)
 
@@ -127,8 +125,8 @@ data PhyloPeriod =
 -- Level  1: First level of clustering
 -- Level  N: Nth   level of clustering
 data PhyloLevel =
-     PhyloLevel { _phylo_levelId     :: PhyloLevelId
-                , _phylo_levelGroups :: [PhyloGroup]
+     PhyloLevel { _phylo_levelId     :: !PhyloLevelId
+                , _phylo_levelGroups :: ![PhyloGroup]
                 }
                 deriving (Generic, Show, Eq)
 
@@ -146,19 +144,19 @@ data PhyloLevel =
 -- Level  Parents|Childs: weighted link to Parents|Childs (Level Granularity axis)
 -- Pointers are directed link from Self to any PhyloGroup (/= Self ?)
 data PhyloGroup =
-     PhyloGroup { _phylo_groupId            :: PhyloGroupId
-                , _phylo_groupLabel         :: Text
-                , _phylo_groupNgrams        :: [Int]
-                , _phylo_groupNgramsMeta    :: Map Text [Double]
-                , _phylo_groupMeta          :: Map Text Double
-                , _phylo_groupBranchId      :: Maybe PhyloBranchId
+     PhyloGroup { _phylo_groupId            :: !PhyloGroupId
+                , _phylo_groupLabel         :: !Text
+                , _phylo_groupNgrams        :: ![Int]
+                , _phylo_groupNgramsMeta    :: !(Map Text [Double])
+                , _phylo_groupMeta          :: !(Map Text Double)
+                , _phylo_groupBranchId      :: !(Maybe PhyloBranchId)
                 , _phylo_groupCooc          :: !(Map (Int,Int) Double)
 
-                , _phylo_groupPeriodParents :: [Pointer]
-                , _phylo_groupPeriodChilds  :: [Pointer]
+                , _phylo_groupPeriodParents :: ![Pointer]
+                , _phylo_groupPeriodChilds  :: ![Pointer]
 
-                , _phylo_groupLevelParents  :: [Pointer]
-                , _phylo_groupLevelChilds   :: [Pointer]
+                , _phylo_groupLevelParents  :: ![Pointer]
+                , _phylo_groupLevelChilds   :: ![Pointer]
                 }
                 deriving (Generic, NFData, Show, Eq, Ord)
 
@@ -192,8 +190,8 @@ type Ngrams = Text
 
 -- | Document : a piece of Text linked to a Date
 data Document = Document
-      { date :: Date
-      , text :: [Ngrams]
+      { date :: !Date
+      , text :: ![Ngrams]
       } deriving (Show,Generic,NFData)
 
 -- | Clique : Set of ngrams cooccurring in the same Document
@@ -202,9 +200,9 @@ type Clique   = Set Ngrams
 type Support  = Int
 -- | Fis : Frequent Items Set (ie: the association between a Clique and a Support)
 data PhyloFis = PhyloFis
-  { _phyloFis_clique  :: Clique
-  , _phyloFis_support :: Support
-  , _phyloFis_period  :: (Date,Date)
+  { _phyloFis_clique  :: !Clique
+  , _phyloFis_support :: !Support
+  , _phyloFis_period  :: !(Date,Date)
   } deriving (Generic,NFData,Show,Eq)
 
 -- | A list of clustered PhyloGroup
@@ -242,18 +240,18 @@ data Cluster = Fis FisParams
 
 -- | Parameters for Fis clustering
 data FisParams = FisParams
-  { _fis_keepMinorFis :: Bool
-  , _fis_minSupport   :: Support
-  , _fis_minSize      :: Int
+  { _fis_keepMinorFis :: !Bool
+  , _fis_minSupport   :: !Support
+  , _fis_minSize      :: !Int
   } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for RelatedComponents clustering
 data RCParams = RCParams
-  { _rc_proximity :: Proximity } deriving (Generic, Show, Eq, Read)
+  { _rc_proximity :: !Proximity } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Louvain clustering
 data LouvainParams = LouvainParams
-  { _louvain_proximity :: Proximity } deriving (Generic, Show, Eq, Read)
+  { _louvain_proximity :: !Proximity } deriving (Generic, Show, Eq, Read)
 
 
 -------------------
@@ -269,13 +267,13 @@ data Proximity = WeightedLogJaccard WLJParams
 
 -- | Parameters for WeightedLogJaccard proximity
 data WLJParams = WLJParams
-  { _wlj_threshold   :: Double
-  , _wlj_sensibility :: Double
+  { _wlj_threshold   :: !Double
+  , _wlj_sensibility :: !Double
   } deriving (Generic, Show, Eq, Read)
 
 -- | Parameters for Hamming proximity
 data HammingParams = HammingParams
-  { _hamming_threshold :: Double } deriving (Generic, Show, Eq, Read)
+  { _hamming_threshold :: !Double } deriving (Generic, Show, Eq, Read)
 
 
 ----------------
@@ -290,13 +288,13 @@ data Filter = LonelyBranch LBParams
 
 -- | Parameters for LonelyBranch filter
 data LBParams = LBParams
-  { _lb_periodsInf :: Int
-  , _lb_periodsSup :: Int
-  , _lb_minNodes   :: Int } deriving (Generic, Show, Eq)
+  { _lb_periodsInf :: !Int
+  , _lb_periodsSup :: !Int
+  , _lb_minNodes   :: !Int } deriving (Generic, Show, Eq)
 
 -- | Parameters for SizeBranch filter
 data SBParams = SBParams
-  { _sb_minSize :: Int } deriving (Generic, Show, Eq)
+  { _sb_minSize :: !Int } deriving (Generic, Show, Eq)
 
 
 ----------------
@@ -335,30 +333,30 @@ data Order = Asc | Desc  deriving (Generic, Show, Read)
 
 -- | A Phyloquery describes a phylomemic reconstruction
 data PhyloQueryBuild = PhyloQueryBuild
-    { _q_phyloTitle :: Text
-    , _q_phyloDesc  :: Text
+    { _q_phyloTitle :: !Text
+    , _q_phyloDesc  :: !Text
 
     -- Grain and Steps for the PhyloPeriods
-    , _q_periodGrain :: Int
-    , _q_periodSteps :: Int
+    , _q_periodGrain :: !Int
+    , _q_periodSteps :: !Int
 
     -- Clustering method for building the contextual unit of Phylo (ie: level 1)
-    , _q_contextualUnit :: Cluster
-    , _q_contextualUnitMetrics :: [Metric]
-    , _q_contextualUnitFilters :: [Filter]
+    , _q_contextualUnit :: !Cluster
+    , _q_contextualUnitMetrics :: ![Metric]
+    , _q_contextualUnitFilters :: ![Filter]
 
     -- Inter-temporal matching method of the Phylo
-    , _q_interTemporalMatching :: Proximity
-    , _q_interTemporalMatchingFrame :: Int
-    , _q_interTemporalMatchingFrameTh :: Double
+    , _q_interTemporalMatching :: !Proximity
+    , _q_interTemporalMatchingFrame :: !Int
+    , _q_interTemporalMatchingFrameTh :: !Double
 
-    , _q_reBranchThr :: Double
-    , _q_reBranchNth :: Int
+    , _q_reBranchThr :: !Double
+    , _q_reBranchNth :: !Int
 
     -- Last level of reconstruction
-    , _q_nthLevel   :: Level
+    , _q_nthLevel   :: !Level
     -- Clustering method used from level 1 to nthLevel
-    , _q_nthCluster :: Cluster
+    , _q_nthCluster :: !Cluster
     } deriving (Generic, Show, Eq)
 
 -- | To choose the Phylo edge you want to export : --> <-- <--> <=>
@@ -372,42 +370,42 @@ data EdgeType  = PeriodEdge | LevelEdge deriving (Generic, Show, Eq)
 
 -- | A PhyloView is the output type of a Phylo
 data PhyloView = PhyloView
-  { _pv_param       :: PhyloParam
-  , _pv_title       :: Text
-  , _pv_description :: Text
-  , _pv_filiation   :: Filiation
-  , _pv_level       :: Level
-  , _pv_periods     :: [PhyloPeriodId]
-  , _pv_metrics     :: Map Text [Double]
-  , _pv_branches    :: [PhyloBranch]
-  , _pv_nodes       :: [PhyloNode]
-  , _pv_edges       :: [PhyloEdge]
+  { _pv_param       :: !PhyloParam
+  , _pv_title       :: !Text
+  , _pv_description :: !Text
+  , _pv_filiation   :: !Filiation
+  , _pv_level       :: !Level
+  , _pv_periods     :: ![PhyloPeriodId]
+  , _pv_metrics     :: !(Map Text [Double])
+  , _pv_branches    :: ![PhyloBranch]
+  , _pv_nodes       :: ![PhyloNode]
+  , _pv_edges       :: ![PhyloEdge]
   } deriving (Generic, Show)
 
 -- | A phyloview is made of PhyloBranches, edges and nodes
 data PhyloBranch = PhyloBranch
-  { _pb_id      :: PhyloBranchId
-  , _pb_peak    :: Text
-  , _pb_metrics :: Map Text [Double]
+  { _pb_id      :: !PhyloBranchId
+  , _pb_peak    :: !Text
+  , _pb_metrics :: !(Map Text [Double])
   } deriving (Generic, Show)
 
 data PhyloEdge = PhyloEdge
-  { _pe_source :: PhyloGroupId
-  , _pe_target :: PhyloGroupId
-  , _pe_type   :: EdgeType
-  , _pe_weight :: Weight
+  { _pe_source :: !PhyloGroupId
+  , _pe_target :: !PhyloGroupId
+  , _pe_type   :: !EdgeType
+  , _pe_weight :: !Weight
   } deriving (Generic, Show)
 
 data PhyloNode = PhyloNode
-  { _pn_id        :: PhyloGroupId
-  , _pn_bid  :: Maybe PhyloBranchId
-  , _pn_label     :: Text
-  , _pn_idx :: [Int]
-  , _pn_ngrams    :: Maybe [Ngrams]
-  , _pn_metrics      :: Map Text [Double]
-  , _pn_cooc :: Map (Int,Int) Double
-  , _pn_parents :: Maybe [PhyloGroupId]
-  , _pn_childs  :: [PhyloNode]
+  { _pn_id      :: !PhyloGroupId
+  , _pn_bid     :: !(Maybe PhyloBranchId)
+  , _pn_label   :: !Text
+  , _pn_idx     :: ![Int]
+  , _pn_ngrams  :: !(Maybe [Ngrams])
+  , _pn_metrics :: !(Map Text [Double])
+  , _pn_cooc    :: !(Map (Int,Int) Double)
+  , _pn_parents :: !(Maybe [PhyloGroupId])
+  , _pn_childs  :: ![PhyloNode]
   } deriving (Generic, Show)
 
 ------------------------
@@ -422,28 +420,28 @@ data DisplayMode = Flat | Nested
 
 -- | A PhyloQueryView describes a Phylo as an output view
 data PhyloQueryView = PhyloQueryView
-  { _qv_lvl    :: Level
+  { _qv_lvl    :: !Level
 
   -- Does the PhyloGraph contain ascendant, descendant or a complete Filiation ? Complet redondant et merge (avec le max)
-  , _qv_filiation :: Filiation
+  , _qv_filiation :: !Filiation
 
   -- Does the PhyloGraph contain some levelChilds ? How deep must it go ?
-  , _qv_levelChilds      :: Bool
-  , _qv_levelChildsDepth :: Level
+  , _qv_levelChilds      :: !Bool
+  , _qv_levelChildsDepth :: !Level
 
   -- Ordered lists of filters, taggers and metrics to be applied to the PhyloGraph
   -- Firstly the metrics, then the filters and the taggers
-  , _qv_metrics :: [Metric]
-  , _qv_filters :: [Filter]
-  , _qv_taggers :: [Tagger]
+  , _qv_metrics :: ![Metric]
+  , _qv_filters :: ![Filter]
+  , _qv_taggers :: ![Tagger]
 
   -- An asc or desc sort to apply to the PhyloGraph
-  , _qv_sort :: Maybe (Sort,Order)
+  , _qv_sort :: !(Maybe (Sort,Order))
 
   -- A display mode to apply to the PhyloGraph, ie: [Node[Node,Edge],Edge] or [[Node,Node],[Edge,Edge]]
-  , _qv_export  :: ExportMode
-  , _qv_display :: DisplayMode
-  , _qv_verbose :: Bool
+  , _qv_export  :: !ExportMode
+  , _qv_display :: !DisplayMode
+  , _qv_verbose :: !Bool
   }
 
 

@@ -15,7 +15,7 @@ Portability : POSIX
 -- TODO-EVENTS: InsertedNodes
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans    #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
@@ -32,6 +32,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , flowCorpusFile
   , flowCorpus
   , flowAnnuaire
+  , insertMasterDocs
 
   , getOrMkRoot
   , getOrMk_RootWithCorpus
@@ -49,7 +50,7 @@ import Data.Either
 import Data.List (concat)
 import qualified Data.Map as Map
 import Data.Map (Map, lookup)
-import Data.Maybe (Maybe(..), catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
 import Data.Text (splitOn, intercalate)
@@ -59,38 +60,39 @@ import GHC.Generics (Generic)
 import System.FilePath (FilePath)
 
 import Gargantext.Core (Lang(..))
+import Gargantext.Core.Ext.IMT (toSchoolName)
+import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Core.Flow.Types
+import Gargantext.Core.Text
+import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
+import Gargantext.Core.Text.List (buildNgramsLists)
+import Gargantext.Core.Text.Group (StopSize(..), GroupParams(..))
+import Gargantext.Core.Text.Terms
+import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (Terms(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
+import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
-import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
-import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Action.Search (searchDocInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node -- (HyperdataDocument(..), NodeType(..), NodeId, UserId, ListId, CorpusId, RootId, MasterCorpusId, MasterUserId)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Ngrams
+import Gargantext.Database.Query.Table.Node
+import Gargantext.Database.Query.Table.Node.Document.Insert -- (insertDocuments, ReturnId(..), addUniqIdsDoc, addUniqIdsContact, ToDbData(..))
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
+import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Schema.Node (NodePoly(..))
-import Gargantext.Core.Ext.IMT (toSchoolName)
-import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
-import Gargantext.Core.Text
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
-import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
-import Gargantext.Core.Text.List (buildNgramsLists,StopSize(..))
-import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Core.Text.Terms
-import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 import qualified Gargantext.Core.Text.Corpus.API as API
+import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
@@ -131,12 +133,13 @@ getDataText (InternalOrigin _) _la q _li = do
   pure $ DataOld ids
 
 -------------------------------------------------------------------------------
-flowDataText :: FlowCmdM env err m
-             => User
-             -> DataText
-             -> TermType Lang
-             -> CorpusId
-             -> m CorpusId
+flowDataText :: ( FlowCmdM env err m
+                )
+                => User
+                -> DataText
+                -> TermType Lang
+                -> CorpusId
+                -> m CorpusId
 flowDataText u (DataOld ids) tt cid = flowCorpusUser (_tt_lang tt) u (Right [cid]) corpusType ids
   where
     corpusType = (Nothing :: Maybe HyperdataCorpus)
@@ -144,7 +147,7 @@ flowDataText u (DataNew txt) tt cid = flowCorpus u (Right [cid]) tt txt
 
 ------------------------------------------------------------------------
 -- TODO use proxy
-flowAnnuaire :: FlowCmdM env err m
+flowAnnuaire :: (FlowCmdM env err m)
              => User
              -> Either CorpusName [CorpusId]
              -> (TermType Lang)
@@ -155,7 +158,7 @@ flowAnnuaire u n l filePath = do
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
 ------------------------------------------------------------------------
-flowCorpusFile :: FlowCmdM env err m
+flowCorpusFile :: (FlowCmdM env err m)
            => User
            -> Either CorpusName [CorpusId]
            -> Limit -- Limit the number of docs (for dev purpose)
@@ -180,20 +183,25 @@ flowCorpus :: (FlowCmdM env err m, FlowCorpus a)
 flowCorpus = flow (Nothing :: Maybe HyperdataCorpus)
 
 
-flow :: (FlowCmdM env err m, FlowCorpus a, MkCorpus c)
-     => Maybe c
-     -> User
-     -> Either CorpusName [CorpusId]
-     -> TermType Lang
-     -> [[a]]
-     -> m CorpusId
+flow :: ( FlowCmdM env err m
+        , FlowCorpus a
+        , MkCorpus c
+        )
+        => Maybe c
+        -> User
+        -> Either CorpusName [CorpusId]
+        -> TermType Lang
+        -> [[a]]
+        -> m CorpusId
 flow c u cn la docs = do
   -- TODO if public insertMasterDocs else insertUserDocs
   ids <- traverse (insertMasterDocs c la) docs
   flowCorpusUser (la ^. tt_lang) u cn c (concat ids)
 
 ------------------------------------------------------------------------
-flowCorpusUser :: (FlowCmdM env err m, MkCorpus c)
+flowCorpusUser :: ( FlowCmdM env err m
+                  , MkCorpus c
+                  )
                => Lang
                -> User
                -> Either CorpusName [CorpusId]
@@ -204,7 +212,7 @@ flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
   listId <- getOrMkList userCorpusId userId
-  _cooc  <- insertDefaultNode NodeListCooc listId userId
+  -- _cooc  <- insertDefaultNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
@@ -213,7 +221,7 @@ flowCorpusUser l user corpusName ctype ids = do
 
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
-  ngs         <- buildNgramsLists l 2 3 (StopSize 3) userCorpusId masterCorpusId
+  ngs         <- buildNgramsLists user (GroupParams l 2 3 (StopSize 3)) userCorpusId masterCorpusId
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId
@@ -225,25 +233,6 @@ flowCorpusUser l user corpusName ctype ids = do
   -- Annuaire Flow
   -- _ <- mkAnnuaire  rootUserId userId
   pure userCorpusId
-
--- TODO Type NodeDocumentUnicised
-insertDocs :: ( FlowCmdM env err m
-              -- , FlowCorpus a
-              , FlowInsertDB a
-              )
-              => UserId
-              -> CorpusId
-              -> [a]
-              -> m ([DocId], [DocumentWithId a])
-insertDocs uId cId hs = do
-  let docs = map addUniqId hs
-  newIds <- insertDb uId cId docs
-  -- printDebug "newIds" newIds
-  let
-    newIds' = map reId newIds
-    documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)
-  _ <- Doc.add cId newIds'
-  pure (newIds', documentsWithId)
 
 
 insertMasterDocs :: ( FlowCmdM env err m
@@ -286,12 +275,33 @@ insertMasterDocs c lang hs  =  do
                        , (nId, w) <- Map.toList mapNodeIdWeight
                        ]
 
-  _cooc <- insertDefaultNode NodeListCooc lId masterUserId
+  -- _cooc <- insertDefaultNode NodeListCooc lId masterUserId
   -- to be removed
   _   <- insertDocNgrams lId indexedNgrams
   pure ids'
 
 ------------------------------------------------------------------------
+-- TODO Type NodeDocumentUnicised
+insertDocs :: ( FlowCmdM env err m
+              -- , FlowCorpus a
+              , FlowInsertDB a
+              )
+              => UserId
+              -> CorpusId
+              -> [a]
+              -> m ([DocId], [DocumentWithId a])
+insertDocs uId cId hs = do
+  let docs = map addUniqId hs
+  newIds <- insertDb uId cId docs
+  -- printDebug "newIds" newIds
+  let
+    newIds' = map reId newIds
+    documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)
+  _ <- Doc.add cId newIds'
+  pure (newIds', documentsWithId)
+
+
+
 ------------------------------------------------------------------------
 viewUniqId' :: UniqId a
             => a

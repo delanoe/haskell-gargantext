@@ -16,13 +16,10 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph
   where
 
-import Control.Lens (makeLenses)
 import Data.ByteString.Lazy as DBL (readFile, writeFile)
-import Data.Text (Text, pack)
+import Data.Text (pack)
 import GHC.IO (FilePath)
 
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import qualified Data.Aeson as DA
 import qualified Data.Text as T
 import qualified Text.Read as T

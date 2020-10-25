@@ -42,7 +42,6 @@ module Gargantext.Core.Text.Terms.Eleve where
 
 import Control.Lens hiding (levels, children)
 import Control.Monad (forM_)
-import Data.Ord (Ord)
 import qualified Data.List as L
 import Data.Monoid
 import Data.Text (Text)

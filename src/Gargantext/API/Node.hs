@@ -42,7 +42,8 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 import Gargantext.API.Admin.Auth (withAccess, PathId(..))
 import Gargantext.API.Metrics
-import Gargantext.API.Ngrams (TabType(..), TableNgramsApi, apiNgramsTableCorpus)
+import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableCorpus)
+import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.API.Node.File
 import Gargantext.API.Node.New
 import Gargantext.API.Prelude
@@ -293,7 +294,7 @@ pairWith cId aId lId = do
 type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
 
 treeAPI :: NodeId -> GargServer TreeAPI
-treeAPI = tree Advanced
+treeAPI = tree TreeAdvanced
 
 ------------------------------------------------------------------------
 -- | TODO Check if the name is less than 255 char

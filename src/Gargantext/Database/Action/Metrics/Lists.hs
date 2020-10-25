@@ -19,15 +19,16 @@ Portability : POSIX
 module Gargantext.Database.Action.Metrics.Lists
   where
 
-import Gargantext.API.Ngrams (TabType(..))
-import Gargantext.Core.Types -- (NodePoly(..), NodeCorpus, ListId)
-import Gargantext.Database.Action.Flow (FlowCmdM)
-import Gargantext.Prelude hiding (sum, head)
-import Gargantext.Core.Text.Metrics (Scored(..))
 import Prelude hiding (null, id, map, sum)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vec
+
 import qualified Gargantext.Database.Action.Metrics as Metrics
+import Gargantext.API.Ngrams.Types (TabType(..))
+import Gargantext.Core.Types -- (NodePoly(..), NodeCorpus, ListId)
+import Gargantext.Database.Action.Flow.Types (FlowCmdM)
+import Gargantext.Prelude hiding (sum, head)
+import Gargantext.Core.Text.Metrics (Scored(..))
 
 {-
 trainModel :: FlowCmdM env ServantErr m

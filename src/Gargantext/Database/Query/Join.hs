@@ -33,7 +33,6 @@ module Gargantext.Database.Query.Join ( leftJoin2
                                       )
   where
 
-import Control.Applicative ((<*>))
 import Control.Arrow ((>>>))
 import Data.Profunctor.Product.Default
 import Gargantext.Prelude

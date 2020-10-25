@@ -13,10 +13,8 @@ Portability : POSIX
 module Gargantext.Core.Text.Corpus.API.Istex
     where
 
-import Data.Either (either)
 import Data.List (concat)
 import Data.Maybe
-import Data.Maybe (catMaybes)
 import Data.Text (Text, pack)
 
 import Gargantext.Core (Lang(..))

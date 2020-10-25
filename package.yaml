@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.1.8.3'
+version: '0.0.1.91.3'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -38,11 +38,15 @@ library:
   exposed-modules:
   - Gargantext
   - Gargantext.API
+  - Gargantext.API.Dev
   - Gargantext.API.HashedResponse
   - Gargantext.API.Node
   - Gargantext.API.Node.File
   - Gargantext.API.Ngrams
+  - Gargantext.API.Ngrams.Types
   - Gargantext.API.Admin.Settings
+  - Gargantext.API.Admin.EnvTypes
+  - Gargantext.API.Admin.Types
   - Gargantext.API.Prelude
   - Gargantext.Core
   - Gargantext.Core.Types
@@ -50,14 +54,17 @@ library:
   - Gargantext.Core.Types.Main
   - Gargantext.Core.Utils.Prefix
   - Gargantext.Database.Action.Flow
+  - Gargantext.Database.Action.User.New
   - Gargantext.Database.Query.Table.User
   - Gargantext.Database.Query.Table.Node
+  - Gargantext.Database.Query.Table.Node.UpdateOpaleye
   - Gargantext.Database.Prelude
   - Gargantext.Database.Admin.Trigger.Init
   - Gargantext.Database.Admin.Config
   - Gargantext.Database.Admin.Types.Hyperdata
   - Gargantext.Database.Admin.Types.Node
   - Gargantext.Prelude
+  - Gargantext.Prelude.Crypto.Pass.User
   - Gargantext.Prelude.Utils
   - Gargantext.Core.Text
   - Gargantext.Core.Text.Context
@@ -369,6 +376,32 @@ executables:
   gargantext-init:
     main: Main.hs
     source-dirs: bin/gargantext-init
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - gargantext
+      - base
+
+  gargantext-upgrade:
+    main: Main.hs
+    source-dirs: bin/gargantext-upgrade
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    - -Wmissing-signatures
+    dependencies:
+      - gargantext
+      - base
+
+  gargantext-admin:
+    main: Main.hs
+    source-dirs: bin/gargantext-admin
     ghc-options:
     - -threaded
     - -rtsopts

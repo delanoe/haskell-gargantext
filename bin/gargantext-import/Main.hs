@@ -18,8 +18,13 @@ module Main where
 import Control.Exception (finally)
 import Data.Either
 import Data.Text (Text)
+import Prelude (read)
+import System.Environment (getArgs)
+import qualified Data.Text as Text
+
+import Gargantext.API.Dev (withDevEnv, runCmdDev)
+import Gargantext.API.Admin.EnvTypes (DevEnv(..))
 import Gargantext.API.Node () -- instances
-import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev, DevEnv)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (User(..))
@@ -30,9 +35,6 @@ import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Prelude
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..))
-import Prelude (read)
-import System.Environment (getArgs)
-import qualified Data.Text as Text
 
 main :: IO ()
 main = do

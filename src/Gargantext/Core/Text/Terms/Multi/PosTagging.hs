@@ -26,12 +26,10 @@ module Gargantext.Core.Text.Terms.Multi.PosTagging
   where
 
 import GHC.Generics
-import GHC.Show (Show(..))
 
 import Data.ByteString.Lazy.Internal (ByteString)
 import Data.Aeson.TH (deriveJSON)
 import Data.Aeson
-import Data.Maybe (isJust)
 
 import Data.Set (fromList)
 

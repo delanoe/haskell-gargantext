@@ -22,7 +22,7 @@ import Data.GraphViz.Types.Generalised (DotGraph)
 import Data.GraphViz.Types.Monadic
 import Data.List        ((++),unwords,concat,sortOn,nub)
 import Data.Map         (Map,toList,(!))
-import Data.Maybe       (isNothing,fromJust)
+import Data.Maybe       (isNothing)
 import Data.Text.Lazy   (fromStrict, pack, unpack)
 
 import qualified Data.Text as T

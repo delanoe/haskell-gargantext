@@ -17,7 +17,7 @@ module Gargantext.Core.Viz.Phylo.LevelMaker
 
 import Control.Parallel.Strategies
 import Control.Lens                 hiding (both, Level)
-import Data.List                    ((++), sort, concat, nub, zip, last, null)
+import Data.List                    ((++), sort, concat, nub, last, null)
 import Data.Map                     (Map, (!), empty, singleton, size)
 import Data.Text (Text)
 import Data.Tuple.Extra
@@ -43,7 +43,6 @@ import Numeric.Statistics (percentile)
 -------------------------
 -- | PhyloLevelMaker | --
 -------------------------
-
 
 -- | A typeClass for polymorphic PhyloLevel functions
 class PhyloLevelMaker aggregate
@@ -105,11 +104,15 @@ instance PhyloLevelMaker Document
 addPhyloLevel' :: PhyloLevelMaker a => Level -> Map (Date, Date) [a] -> Phylo -> Phylo
 addPhyloLevel' lvl m p = alterPhyloPeriods
                         (\period -> let pId = _phylo_periodId period
-                                    in  over (phylo_periodLevels)
+                                    in  over phylo_periodLevels
                                         (\phyloLevels ->
                                             let groups = toPhyloGroups lvl pId (m ! pId) m p
-                                            in trace (show (length groups) <> " groups for " <> show (pId) ) $ phyloLevels ++ [PhyloLevel (pId, lvl) groups]
-                                        ) period) p
+                                            in trace (show (length groups)
+                                               <> " groups for "
+                                               <> show (pId) )
+                                               $ phyloLevels ++ [PhyloLevel (pId, lvl) groups]
+                                        ) period
+                        ) p
 
 
 ----------------------
@@ -118,7 +121,14 @@ addPhyloLevel' lvl m p = alterPhyloPeriods
 
 
 -- | To transform a Clique into a PhyloGroup
-cliqueToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloFis -> Map Date (Map (Int,Int) Double) -> Vector Ngrams -> PhyloGroup
+cliqueToGroup :: PhyloPeriodId
+              -> Level
+              -> Int
+              -> Text
+              -> PhyloFis
+              -> Map Date (Map (Int,Int) Double)
+              -> Vector Ngrams
+              -> PhyloGroup
 cliqueToGroup prd lvl idx lbl fis cooc' root = PhyloGroup ((prd, lvl), idx) lbl ngrams 
     (getNgramsMeta cooc ngrams)
     -- empty
@@ -142,10 +152,17 @@ cliqueToGroup prd lvl idx lbl fis cooc' root = PhyloGroup ((prd, lvl), idx) lbl 
 
 
 -- | To transform a Cluster into a Phylogroup
-clusterToGroup :: PhyloPeriodId -> Level -> Int -> Text -> PhyloCluster -> Map (Date,Date) [PhyloCluster]-> Phylo-> PhyloGroup
+clusterToGroup :: PhyloPeriodId
+               -> Level
+               -> Int
+               -> Text
+               -> PhyloCluster 
+               -> Map (Date,Date) [PhyloCluster]
+               -> Phylo
+               -> PhyloGroup
 clusterToGroup prd lvl idx lbl groups _m p =
-    PhyloGroup ((prd, lvl), idx) lbl ngrams 
-      (getNgramsMeta cooc ngrams) 
+    PhyloGroup ((prd, lvl), idx) lbl ngrams
+      (getNgramsMeta cooc ngrams)
       -- empty
       empty
       Nothing
@@ -154,12 +171,14 @@ clusterToGroup prd lvl idx lbl groups _m p =
       where
         --------------------------------------
         cooc :: Map (Int, Int) Double
-        cooc = getMiniCooc (listToFullCombi ngrams) (periodsToYears [prd]) (getPhyloCooc p)
+        cooc = getMiniCooc (listToFullCombi ngrams)
+                           (periodsToYears [prd]  )
+                           (getPhyloCooc    p     )
         --------------------------------------
         childs :: [Pointer]
         childs = map (\g -> (getGroupId g, 1)) groups
-        ascLink = concat $ map getGroupPeriodParents groups 
-        desLink = concat $ map getGroupPeriodChilds  groups        
+        ascLink = concat $ map getGroupPeriodParents groups
+        desLink = concat $ map getGroupPeriodChilds  groups
         --------------------------------------
         ngrams :: [Int]
         ngrams = (sort . nub . concat) $ map getGroupNgrams groups
@@ -195,9 +214,13 @@ toPhylo q c termList fis = toNthLevel (getNthLevel q) (getInterTemporalMatching 
     phyloDocs = groupDocsByPeriod date (getPhyloPeriods phyloBase) c
     --------------------------------------
     phyloBase :: Phylo
-    phyloBase = tracePhyloBase 
-              $ toPhyloBase q (initPhyloParam (Just defaultPhyloVersion) (Just defaultSoftware) (Just q)) c termList fis
-    --------------------------------------       
+    phyloBase = tracePhyloBase
+              $ toPhyloBase q init c termList fis
+      where
+        init = initPhyloParam (Just defaultPhyloVersion)
+                              (Just defaultSoftware    )
+                              (Just q                  )
+    ---------------------------------------
 
 
 -- | To incrementally add new Levels to a Phylo by making all the linking and aggregation tasks
@@ -205,17 +228,16 @@ toNthLevel :: Level -> Proximity -> Cluster -> Phylo -> Phylo
 toNthLevel lvlMax prox clus p
   | lvl >= lvlMax = p
   | otherwise     = toNthLevel lvlMax prox clus
-                  $ traceBranches (lvl + 1)
+                  $ traceBranches    (lvl + 1)
                   $ setPhyloBranches (lvl + 1)
                   -- \$ transposePeriodLinks (lvl + 1)
-                  $ traceTranspose (lvl + 1) Descendant
-                  $ transposeLinks (lvl + 1) Descendant
-                  $ traceTranspose (lvl + 1) Ascendant
-                  $ transposeLinks (lvl + 1) Ascendant
-                  $ tracePhyloN (lvl + 1)
-                  $ setLevelLinks (lvl, lvl + 1)
-                  $ addPhyloLevel (lvl + 1)
-                    (clusters) p
+                  $ traceTranspose   (lvl + 1) Descendant
+                  $ transposeLinks   (lvl + 1) Descendant
+                  $ traceTranspose   (lvl + 1) Ascendant
+                  $ transposeLinks   (lvl + 1) Ascendant
+                  $ tracePhyloN      (lvl + 1)
+                  $ setLevelLinks    (lvl, lvl + 1)
+                  $ addPhyloLevel    (lvl + 1) (clusters) p
   where
     --------------------------------------
     clusters :: Map (Date,Date) [PhyloCluster]

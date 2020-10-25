@@ -21,13 +21,11 @@ module Gargantext.API.Count
 
 
 import GHC.Generics (Generic)
-import Prelude (Bounded, Enum, minBound, maxBound)
 
 import Data.Aeson hiding (Error)
 import Data.Aeson.TH (deriveJSON)
-import Data.Eq (Eq())
 import Data.Either
-import Data.List (repeat, permutations)
+import Data.List (permutations)
 import Data.Swagger
 import Data.Text (Text, pack)
 

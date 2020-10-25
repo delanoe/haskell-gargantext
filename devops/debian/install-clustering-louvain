@@ -1,0 +1,6 @@
+#!/bin/bash
+
+git clone https://gitlab.iscpif.fr/gargantext/clustering-louvain-cplusplus.git
+cd clustering-louvain-cplusplus
+./install
+cd ..

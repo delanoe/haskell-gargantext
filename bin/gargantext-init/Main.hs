@@ -17,10 +17,9 @@ module Main where
 
 import Data.Text (Text)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
-import Gargantext.API.Admin.Settings (withDevEnv, runCmdDev)
+import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
-import Gargantext.API.Node () -- instances
+import Gargantext.API.Node () -- instances only
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Query.Table.Node (getOrMkList)
@@ -29,11 +28,11 @@ import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Trigger.Init (initFirstTriggers, initLastTriggers)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
-import Gargantext.Database.Admin.Types.Node (CorpusId, RootId, ListId)
 import Gargantext.Database.Prelude (Cmd, )
 import Gargantext.Prelude
 import System.Environment (getArgs)
 
+-- TODO put this in gargantext.ini
 secret :: Text
 secret = "Database secret to change"
 
@@ -52,9 +51,12 @@ main = do
   let
     initMaster :: Cmd GargError (UserId, RootId, CorpusId, ListId)
     initMaster = do
-      (masterUserId, masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left corpusMasterName) (Nothing :: Maybe HyperdataCorpus)
+      (masterUserId, masterRootId, masterCorpusId)
+                  <- getOrMk_RootWithCorpus (UserName userMaster)
+                                            (Left corpusMasterName)
+                                            (Nothing :: Maybe HyperdataCorpus)
       masterListId <- getOrMkList masterCorpusId masterUserId
-      _triggers <- initLastTriggers masterListId
+      _triggers    <- initLastTriggers masterListId
       pure (masterUserId, masterRootId, masterCorpusId, masterListId)
 
   withDevEnv iniPath $ \env -> do

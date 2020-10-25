@@ -26,7 +26,6 @@ module Gargantext.Core.Types.Phylo where
 import Control.Lens (makeLenses)
 
 import Data.Aeson.TH (deriveJSON)
-import Data.Maybe   (Maybe)
 import Data.Swagger
 import Data.Text    (Text)
 import Data.Time.Clock.POSIX  (POSIXTime)

@@ -17,7 +17,6 @@ Portability : POSIX
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 
 module Gargantext.API.Node.Contact
@@ -29,8 +28,13 @@ import Data.Maybe (Maybe(..))
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Servant
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
+
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core (Lang(..))
@@ -42,10 +46,6 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataAnnuaire(..), Hyperda
 import Gargantext.Database.Admin.Types.Hyperdata.Contact (hyperdataContact)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (($), liftBase, (.), printDebug, pure)
-import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
 type API = "contact" :> Summary "Contact endpoint"
@@ -99,8 +99,6 @@ addContact u nId (AddContactParams fn ln) logStatus = do
                , _scst_remaining = Just 0
                , _scst_events    = Just []
                }
-
-
 addContact _uId _nId _p logStatus = do
   simuLogs logStatus 10
 

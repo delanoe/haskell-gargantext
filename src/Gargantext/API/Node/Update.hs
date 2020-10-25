@@ -20,8 +20,14 @@ import Data.Aeson
 import Data.Maybe (Maybe(..))
 import Data.Swagger
 import GHC.Generics (Generic)
+import Prelude (Enum, Bounded, minBound, maxBound)
+import Servant
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
+import Test.QuickCheck (elements)
+import Test.QuickCheck.Arbitrary
+
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
-import Gargantext.API.Admin.Settings (HasSettings)
+import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
 import Gargantext.Core.Viz.Graph.Distances (GraphMetric(..), Distance(..))
@@ -29,11 +35,6 @@ import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude (Ord, Eq, (<$>), ($), liftBase, (.), printDebug, pure, show, cs, (<>), panic)
-import Prelude (Enum, Bounded, minBound, maxBound)
-import Servant
-import Servant.Job.Async (JobFunction(..), serveJobsAPI)
-import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
 
 ------------------------------------------------------------------------
 type API = Summary " Update node according to NodeType params"

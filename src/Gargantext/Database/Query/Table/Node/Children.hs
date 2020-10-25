@@ -21,10 +21,8 @@ import Data.Proxy
 import Gargantext.Core.Types
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument, HyperdataContact)
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter
-import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.NodeNode
 import Gargantext.Database.Schema.Node
 import Opaleye

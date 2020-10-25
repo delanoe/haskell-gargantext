@@ -17,7 +17,6 @@ module Gargantext.Database.Action.Learn
 
 import Data.Maybe
 import Data.Text (Text)
-import Data.Tuple (snd)
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Admin.Types.Hyperdata

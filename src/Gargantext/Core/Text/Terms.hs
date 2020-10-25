@@ -39,23 +39,25 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import Data.Traversable
-import GHC.Base (String)
-import GHC.Generics (Generic)
-import Gargantext.Core
-import Gargantext.Core.Types
-import Gargantext.Core.Flow.Types
-import Gargantext.Prelude
-import Gargantext.Core.Text (sentences, HasText(..))
-import Gargantext.Core.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
-import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
-import Gargantext.Core.Text.Terms.Mono  (monoTerms)
-import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Core.Text.Terms.Mono.Stem (stem)
-import Gargantext.Core.Text.Terms.Mono.Token.En (tokenize)
-import Gargantext.Core.Text.Terms.Multi (multiterms)
 import qualified Data.List as List
 import qualified Data.Set  as Set
 import qualified Data.Text as Text
+import GHC.Base (String)
+import GHC.Generics (Generic)
+
+import Gargantext.Core
+import Gargantext.Core.Flow.Types
+import Gargantext.Core.Text (sentences, HasText(..))
+import Gargantext.Core.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
+import Gargantext.Core.Text.Terms.Mono  (monoTerms)
+import Gargantext.Core.Text.Terms.Mono.Stem (stem)
+import Gargantext.Core.Text.Terms.Mono.Token.En (tokenize)
+import Gargantext.Core.Text.Terms.Multi (multiterms)
+import Gargantext.Core.Types
+import Gargantext.Database.Prelude (Cmd)
+import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..), ngramsTerms, text2ngrams)
+import Gargantext.Prelude
+
 
 data TermType lang
   = Mono      { _tt_lang :: !lang }
@@ -116,11 +118,11 @@ class ExtractNgramsT h
 
 filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
                      -> Map Ngrams (Map NgramsType Int)
-filterNgramsT s ms = Map.fromList $ map (\a -> filter' s a) $ Map.toList ms
+filterNgramsT s ms = Map.fromList $ map filter' $ Map.toList ms
   where
-    filter' s' (ng@(Ngrams t n),y) = case (Text.length t) < s' of
-          True  -> (ng,y)
-          False -> (Ngrams (Text.take s' t) n , y)
+    filter' (ng,y)
+      | Text.length (ng ^. ngramsTerms) < s = (ng,y)
+      | otherwise                           = (text2ngrams (Text.take s (ng ^. ngramsTerms)), y)
 
 
 -- =======================================================

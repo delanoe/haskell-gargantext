@@ -61,7 +61,7 @@ tagUntil name = matching (/= name)
 -- | Utility function that consumes everything but the tag given
 -- usefull because we have to consume every data.
 manyTagsUntil_ :: MonadThrow m => Name -> ConduitT Event o m ()
-manyTagsUntil_ = many_ . ignoreTreeContent . tagUntil
+manyTagsUntil_ n = many_ (ignoreTree (tagUntil n) ignoreAttrs)
 
 manyTagsUntil_' :: MonadThrow m => Name -> ConduitT Event o m ()
 manyTagsUntil_' = many_ . ignoreEmptyTag . tagUntil

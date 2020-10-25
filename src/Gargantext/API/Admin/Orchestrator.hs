@@ -16,17 +16,14 @@ module Gargantext.API.Admin.Orchestrator where
 
 import Control.Lens hiding (elements)
 import Data.Aeson
-import Data.Text
-import Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
-import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Admin.Settings
-import Gargantext.Prelude
 import Servant
 import Servant.Job.Async
 import Servant.Job.Client
-import Servant.Job.Server
-import Servant.Job.Utils (extendBaseUrl)
 import qualified Data.ByteString.Lazy.Char8 as LBS
+
+import Gargantext.API.Admin.Orchestrator.Scrapy.Schedule
+import Gargantext.API.Admin.Orchestrator.Types
+import Gargantext.Prelude
 
 callJobScrapy :: (ToJSON e, FromJSON e, FromJSON o, MonadClientJob m)
               => JobServerURL e Schedule o
@@ -76,10 +73,20 @@ pipeline scrapyurl client_env input log_status = do
 --  use:
 --  * serveJobsAPI instead of simpleServeJobsAPI
 --  * JobFunction  instead of simpleJobFunction
+-- TODO:
+--  * HasSelfUrl or move self_url to settings
+--  * HasScrapers or move scrapers to settings
+--  * EnvC env
+{- NOT USED YET
+import Data.Text
+import Servant.Job.Server
+import Servant.Job.Utils (extendBaseUrl)
+import Gargantext.API.Admin.Types
 scrapyOrchestrator :: Env -> IO (Server (WithCallbacks ScraperAPI))
 scrapyOrchestrator env = do
   apiWithCallbacksServer (Proxy :: Proxy ScraperAPI)
     defaultSettings (extendBaseUrl ("scraper" :: Text) $ env ^. env_self_url)
     (env ^. env_manager) (LogEvent logConsole) $
     simpleServeJobsAPI (env ^. env_scrapers) .
-      simpleJobFunction . pipeline (URL $ env ^. env_settings . scrapydUrl)
+      simpleJobFunction . pipeline (URL $ env ^. settings . scrapydUrl)
+-}

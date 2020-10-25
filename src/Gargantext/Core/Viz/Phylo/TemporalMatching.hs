@@ -343,7 +343,7 @@ toPhyloQuality beta freq branches =
 
 groupsToBranches' :: Map PhyloGroupId PhyloGroup -> [[PhyloGroup]]
 groupsToBranches' groups =
-    -- | run the related component algorithm
+    {- run the related component algorithm -}
     let egos = groupBy (\gs gs' -> (fst $ fst $ head' "egos" gs) == (fst $ fst $ head' "egos" gs'))
              $ sortOn  (\gs -> fst $ fst $ head' "egos" gs)
              $ map (\group -> [getGroupId group] 

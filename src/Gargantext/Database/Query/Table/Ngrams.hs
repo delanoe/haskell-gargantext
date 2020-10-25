@@ -21,20 +21,19 @@ module Gargantext.Database.Query.Table.Ngrams
   )
     where
 
-import Control.Arrow (returnA)
 import Control.Lens ((^.))
-import Data.Text (Text)
+import Data.ByteString.Internal (ByteString)
 import Data.Map (Map, fromList)
+import Data.Text (Text)
+import qualified Database.PostgreSQL.Simple as PGS
+
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Types.Node (pgNodeId)
 import Gargantext.Database.Prelude (runOpaQuery, Cmd)
-import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
-import Gargantext.Prelude
+import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
-import Data.ByteString.Internal (ByteString)
-import qualified Database.PostgreSQL.Simple as PGS
+import Gargantext.Prelude
 
 queryNgramsTable :: Query NgramsRead
 queryNgramsTable = queryTable ngramsTable
@@ -96,7 +95,5 @@ queryInsertNgrams = [sql|
     FROM   input_rows
     JOIN   ngrams c USING (terms);     -- columns of unique index
            |]
-
-
 
 

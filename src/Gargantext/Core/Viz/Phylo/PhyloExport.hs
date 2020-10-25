@@ -13,7 +13,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.PhyloExport where
 
 import Data.Map (Map, fromList, empty, fromListWith, insert, (!), elems, unionWith, findWithDefault, toList, member)
-import Data.List ((++), sort, nub, null, concat, sortOn, reverse, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
+import Data.List ((++), sort, nub, null, concat, sortOn, groupBy, union, (\\), (!!), init, partition, notElem, unwords, nubBy, inits, elemIndex)
 import Data.Vector (Vector)
 
 import Prelude (writeFile)
@@ -244,7 +244,7 @@ exportToDot phylo export =
                 toDotEdge (groupIdToDotId k) (groupIdToDotId k') (show v) GroupToAncestor
           ) $ mergeAncestors $ export ^. export_groups
 
-        -- | 10) create the edges between the periods 
+        -- 10) create the edges between the periods 
         _ <- mapM (\(prd,prd') ->
                 toDotEdge (periodIdToDotId prd) (periodIdToDotId prd') "" PeriodToPeriod
             ) $ nubBy (\combi combi' -> fst combi == fst combi') $ listToCombi' $ getPeriodIds phylo
@@ -601,8 +601,10 @@ toHorizon phylo =
     mapGroups :: [[PhyloGroup]]
     mapGroups = map (\prd -> 
       let groups  = getGroupsFromLevelPeriods level [prd] phylo
-          childs  = getPreviousChildIds level frame prd periods phylo     
-          heads   = filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
+          childs  = getPreviousChildIds level frame prd periods phylo 
+              -- maybe add a better filter for non isolated  ancestors
+          heads   = filter (\g -> (not . null) $ (g ^. phylo_groupPeriodChilds))
+                  $ filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
           noHeads = groups \\ heads 
           nbDocs  = sum $ elems  $ filterDocs  (phylo ^. phylo_timeDocs) [prd]
           diago   = reduceDiagos $ filterDiago (phylo ^. phylo_timeCooc) [prd]

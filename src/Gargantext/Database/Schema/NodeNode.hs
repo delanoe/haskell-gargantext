@@ -20,7 +20,6 @@ commentary with @some markup@.
 
 module Gargantext.Database.Schema.NodeNode where
 
-import Data.Maybe (Maybe)
 import Gargantext.Core.Types
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Prelude

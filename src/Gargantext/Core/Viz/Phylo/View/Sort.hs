@@ -16,7 +16,6 @@ module Gargantext.Core.Viz.Phylo.View.Sort
 
 import Control.Lens     hiding (makeLenses, both, Level)
 import Data.List        (sortOn)
-import Data.Tuple       (fst, snd)
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.Tools

@@ -19,23 +19,24 @@ Functions to deal with users, database side.
 
 module Gargantext.Database.Query.Table.User
   ( insertUsers
+  , toUserWrite
+  , deleteUsers
+  , updateUserDB
   , queryUserTable
   , getUser
-  , gargUserWith
   , insertUsersDemo
   , selectUsersLightWith
   , userWithUsername
   , userWithId
   , userLightWithId
   , getUsersWith
+  , getUsersWithId
   , module Gargantext.Database.Schema.User
   )
   where
 
 import Control.Arrow (returnA)
-import Data.Eq(Eq(..))
 import Data.List (find)
-import Data.Maybe (Maybe)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Gargantext.Core.Types.Individu
@@ -46,28 +47,42 @@ import Gargantext.Prelude
 import Opaleye
 
 ------------------------------------------------------------------------
-
-
 -- TODO: on conflict, nice message
 insertUsers :: [UserWrite] -> Cmd err Int64
 insertUsers us = mkCmd $ \c -> runInsert_ c insert
   where
     insert = Insert userTable us rCount Nothing
 
-insertUsersDemo :: Cmd err Int64
-insertUsersDemo = do
-  users <- liftBase arbitraryUsersHash
-  insertUsers $ map (\(u,m,h) -> gargUserWith u m h) users
+deleteUsers :: [Username] -> Cmd err Int64
+deleteUsers us = mkCmd $ \c -> runDelete c userTable
+    (\user -> in_ (map pgStrictText us) (user_username user))
+
+-- Updates email or password only (for now)
+updateUserDB :: UserWrite -> Cmd err Int64
+updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
+  where
+    updateUserQuery :: UserWrite -> Update Int64
+    updateUserQuery us = Update
+      { uTable      = userTable
+      , uUpdateWith = updateEasy (\ (UserDB _id _p ll su un fn ln _em is ia dj)
+                                  -> UserDB _id p' ll su un fn ln em' is ia dj
+                                 )
+      , uWhere      = (\row -> user_username row .== un')
+      , uReturning  = rCount
+      }
+        where
+          UserDB _ p' _ _ un' _ _ em' _ _ _ = us
 
 -----------------------------------------------------------------------
-gargUserWith :: Username -> Email -> Auth.PasswordHash Auth.Argon2 -> UserWrite
-gargUserWith u m (Auth.PasswordHash p) = UserDB (Nothing) (pgStrictText p)
-                         (Nothing) (pgBool True) (pgStrictText u)
-                         (pgStrictText "first_name")
-                         (pgStrictText "last_name")
-                         (pgStrictText m)
-                         (pgBool True) 
-                         (pgBool True) Nothing
+toUserWrite :: NewUser HashPassword -> UserWrite
+toUserWrite (NewUser u m (Auth.PasswordHash p)) = 
+  UserDB (Nothing) (pgStrictText p)
+         (Nothing) (pgBool True) (pgStrictText u)
+         (pgStrictText "first_name")
+         (pgStrictText "last_name")
+         (pgStrictText m)
+         (pgBool True) 
+         (pgBool True) Nothing
 
 ------------------------------------------------------------------
 getUsersWith :: Username -> Cmd err [UserLight]
@@ -78,6 +93,19 @@ selectUsersLightWith u = proc () -> do
       row      <- queryUserTable -< ()
       restrict -< user_username row .== pgStrictText u
       returnA  -< row
+
+----------------------------------------------------------
+
+getUsersWithId :: Int -> Cmd err [UserLight]
+getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
+  where
+    selectUsersLightWithId :: Int -> Query UserRead
+    selectUsersLightWithId i = proc () -> do
+          row      <- queryUserTable -< ()
+          restrict -< user_id row .== pgInt4 i
+          returnA  -< row
+
+
 
 queryUserTable :: Query UserRead
 queryUserTable = queryTable userTable
@@ -101,11 +129,7 @@ userLightWithUsername t xs = userWith userLight_username t xs
 userLightWithId :: Int -> [UserLight] -> Maybe UserLight
 userLightWithId t xs = userWith userLight_id t xs
 
-
-instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
-  queryRunnerColumnDefault = fieldQueryRunnerColumn
-
-
+----------------------------------------------------------------------
 users :: Cmd err [UserDB]
 users = runOpaQuery queryUserTable
 
@@ -115,3 +139,13 @@ usersLight = map toUserLight <$> users
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
 
+
+----------------------------------------------------------------------
+insertUsersDemo :: Cmd err Int64
+insertUsersDemo = do
+  users <- liftBase arbitraryUsersHash
+  insertUsers $ map toUserWrite users
+
+----------------------------------------------------------------------
+instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where
+  queryRunnerColumnDefault = fieldQueryRunnerColumn

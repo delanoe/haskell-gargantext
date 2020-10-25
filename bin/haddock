@@ -1,0 +1,7 @@
+#!/bin/bash
+
+#stack haddock --no-haddock-deps --verbose
+
+# if fails, take the command and remove the --hoogle option to get a better message error
+
+/home/alexandre/.stack/setup-exe-cache/x86_64-linux-tinfo6/Cabal-simple_mPHDZzAJ_3.0.1.0_ghc-8.8.4 --builddir=.stack-work/dist/x86_64-linux-tinfo6/Cabal-3.0.1.0 haddock --html --hoogle --html-location=../$pkg-$version/ --haddock-option=--hyperlinked-source --haddock-option=--quickjump

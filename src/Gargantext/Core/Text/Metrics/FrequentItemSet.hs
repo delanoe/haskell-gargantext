@@ -32,7 +32,7 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 import qualified Data.Vector as V
 
-import Data.List (filter, concat, null)
+import Data.List (concat, null)
 import Data.Maybe (catMaybes)
 
 import HLCM

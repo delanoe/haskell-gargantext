@@ -25,8 +25,9 @@ module Gargantext.Database.Admin.Types.Hyperdata.Contact
 
 import Data.Time.Segment (jour)
 import Data.Time (UTCTime)
-import Gargantext.Prelude
+
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
+import Gargantext.Prelude
 
 --------------------------------------------------------------------------------
 data HyperdataContact =
@@ -40,6 +41,7 @@ data HyperdataContact =
                       , _hc_uniqId          :: Maybe Text
 
   } deriving (Eq, Show, Generic)
+
 
 
 defaultHyperdataContact :: HyperdataContact
@@ -117,8 +119,8 @@ data ContactWhere =
   } deriving (Eq, Show, Generic)
 
 defaultContactWhere :: ContactWhere
-defaultContactWhere = ContactWhere ["Organization A"]
-                                 ["Organization B"]
+defaultContactWhere = ContactWhere ["Organization X"]
+                                 ["Lab Z"]
                                  (Just "Role")
                                  (Just "Office")
                                  (Just "Country")
