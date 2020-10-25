@@ -20,10 +20,9 @@ import Data.Map (Map)
 import Data.Text (Text)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
-import Gargantext.Core.Types (ListType(..))
+import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Types (MasterCorpusId, UserCorpusId)
+-- import Gargantext.Core.Text.List.Learn (Model(..))
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -31,7 +30,7 @@ import qualified Data.Map  as Map
 import qualified Data.List as List
 import qualified Data.Text as Text
 
-
+{-
 data NgramsListBuilder = BuilderStepO { stemSize :: !Int
                                       , stemX    :: !Int
                                       , stopSize :: !StopSize
@@ -45,6 +44,7 @@ data NgramsListBuilder = BuilderStepO { stemSize :: !Int
                                , nlb_userCorpusId   :: !UserCorpusId
                                , nlb_masterCorpusId :: !MasterCorpusId
                                }
+-}
 
 data StopSize = StopSize {unStopSize :: !Int}
 
@@ -52,19 +52,19 @@ data StopSize = StopSize {unStopSize :: !Int}
 -- discussed. Main purpose of this is offering
 -- a first grouping option to user and get some
 -- enriched data to better learn and improve that algo
-
 data GroupParams = GroupParams { unGroupParams_lang  :: !Lang
                                , unGroupParams_len   :: !Int
                                , unGroupParams_limit :: !Int
                                , unGroupParams_stopSize :: !StopSize
                                }
-                   | GroupIdentity
+                 | GroupIdentity
 
 ngramsGroup :: GroupParams
             -> Text
             -> Text
 ngramsGroup GroupIdentity  = identity
-ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
+ngramsGroup (GroupParams l _m _n _) = 
+                    Text.intercalate " "
                   . map (stem l)
                   -- . take n
                   . List.sort
@@ -72,12 +72,18 @@ ngramsGroup (GroupParams l _m _n _) = Text.intercalate " "
                   . Text.splitOn " "
                   . Text.replace "-" " "
 
-------------------------------------------------------------------------------
+------------------------------------------------------------------------
+mergeMapParent :: Map Text (GroupedText b)
+               -> Map Text (Map Text Int)
+               -> Map Text (GroupedText b)
+mergeMapParent = undefined
+
+------------------------------------------------------------------------
 toGroupedText :: Ord b
-              => (Text -> Text)
-              -> (a -> b)
-              -> (a -> Set Text)
-              -> (a -> Set NodeId)
+              => (Text -> Text      )
+              -> (a    -> b         )
+              -> (a    -> Set Text  )
+              -> (a    -> Set NodeId)
               -> [(Text,a)]
               -> Map Stem (GroupedText b)
 toGroupedText fun_stem fun_score fun_texts fun_nodeIds from = groupStems' $ map group from
@@ -108,7 +114,7 @@ groupStems' = Map.fromListWith grouping
           gr    = Set.union group1 group2
           nodes = Set.union nodes1 nodes2
 
-------------------------------------------------------------------------------
+------------------------------------------------------------------------
 type Group = Lang -> Int -> Int -> Text -> Text
 type Stem  = Text
 type Label = Text
@@ -116,15 +122,15 @@ data GroupedText score =
   GroupedText { _gt_listType :: !(Maybe ListType)
               , _gt_label    :: !Label
               , _gt_score    :: !score
-              , _gt_group    :: !(Set Text)
+              , _gt_children :: !(Set Text)
               , _gt_size     :: !Int
               , _gt_stem     :: !Stem
               , _gt_nodes    :: !(Set NodeId)
-              } deriving Show
-{-
+              } {-deriving Show--}
+--{-
 instance Show score => Show (GroupedText score) where
   show (GroupedText lt l s _ _ _ _) = show l <> " : " <> show lt <> " : " <> show s
--}
+--}
 
 instance (Eq a) => Eq (GroupedText a) where
   (==) (GroupedText _ _ score1 _ _ _ _)
@@ -137,18 +143,13 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
 -- Lenses Instances
 makeLenses 'GroupedText
 
-------------------------------------------------------------------------------
+------------------------------------------------------------------------
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
 addListType m g = set gt_listType (hasListType m g) g
   where
     hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
     hasListType m' (GroupedText _ label _ g' _ _ _) =
-      List.foldl' (<>) Nothing
+        List.foldl' (<>) Nothing
       $ map (\t -> Map.lookup t m')
       $ Set.toList
       $ Set.insert label g'
-
-
-
-
-

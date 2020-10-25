@@ -35,6 +35,7 @@ import qualified Data.List  as List
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
+------------------------------------------------------------------------
 flowSocialList :: ( RepoCmdM env err m
                   , CmdM     env err m
                   , HasNodeError err
@@ -56,7 +57,6 @@ flowSocialList user nt ngrams' = do
   -- printDebug "* socialLists *: results \n" result
   pure result
 
-
 ------------------------------------------------------------------------
 unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
       => [Map a (Set b)] -> Map a (Set b)
@@ -75,13 +75,12 @@ invertBack = Map.fromListWith (<>)
 unions_test :: Map ListType (Set Text)
 unions_test = unions [m1, m2]
   where
-    m1 = Map.fromList [ (StopTerm, Set.singleton "Candidate")]
+    m1 = Map.fromList [ (StopTerm     , Set.singleton "Candidate")]
     m2 = Map.fromList [ (CandidateTerm, Set.singleton "Candidate")
-                      , (MapTerm, Set.singleton "Candidate")
+                      , (MapTerm      , Set.singleton "Candidate")
                       ]
 
 ------------------------------------------------------------------------
-
 termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
 termsByList CandidateTerm m = Set.unions
                           $ map (\lt -> fromMaybe Set.empty $ Map.lookup lt m)
@@ -108,7 +107,7 @@ flowSocialListByMode mode user nt ngrams' = do
       -- printDebug "flowSocialListByMode r" r
       pure r
 
----------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- TODO: maybe use social groups too
 toSocialList :: Map Text (Map ListType Int)
              -> Set Text
@@ -141,7 +140,7 @@ toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
                      , (StopTerm     , 3)
                      ]
 
----------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- | [ListId] does not merge the lists (it is for Master and User lists
 -- here we need UserList only
 countFilterList :: RepoCmdM env err m
@@ -161,14 +160,83 @@ countFilterList' st nt ls input = do
   -- printDebug "countFilterList'" ml
   pure $ Set.foldl' (\m t -> countList t ml m) input st
 
----------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- FIXME children have to herit the ListType of the parent
 toMapTextListType :: Map Text NgramsRepoElement -> Map Text ListType
 toMapTextListType m = Map.fromListWith (<>)
-                    $  List.concat
-                    $ (map (toList m))
-                    $  Map.toList m
+                    $ List.concat
+                    $ map (toList m)
+                    $ Map.toList m
 
+----------------------
+-- | Tools to inherit groupings
+----------------------
+type Parent = Text
+
+parentUnionsMerge :: (Ord a, Ord b, Num c) 
+             => [Map a (Map b c)]
+             ->  Map a (Map b c)
+parentUnionsMerge = Map.unionsWith (Map.unionWith (+))
+
+-- This Parent union is specific
+-- [Private, Shared, Public]
+-- means the following preferences:
+-- Private > Shared > Public
+-- if data have not been tagged privately, then use others tags
+-- This unions behavior takes first key only and ignore others
+parentUnionsExcl :: Ord a
+                 => [Map a b]
+                 -> Map a b
+parentUnionsExcl = Map.unions
+
+
+hasParent :: Text
+          -> Map Text (Map Parent Int)
+          -> Maybe Parent
+hasParent t m = case Map.lookup t m of
+  Nothing  -> Nothing
+  Just  m' -> (fst . fst) <$> Map.maxViewWithKey m'
+
+
+toMapTextParent :: Set Text
+                ->  Map Text (Map Parent Int)
+                -> [Map Text NgramsRepoElement]
+                -> Map Text (Map Parent Int)
+toMapTextParent ts = foldl' (toMapTextParent' ts)
+  where
+
+    toMapTextParent' :: Set Text
+                    -> Map Text (Map Parent Int)
+                    -> Map Text NgramsRepoElement
+                    -> Map Text (Map Parent Int)
+    toMapTextParent' ts' to from = Set.foldl' (toMapTextParent'' ts' from) to ts'
+
+
+    toMapTextParent'' :: Set Text
+                      -> Map Text NgramsRepoElement
+                      -> Map Text (Map Parent Int)
+                      -> Text
+                      -> Map Text (Map Parent Int)
+    toMapTextParent'' ss from to t = case Map.lookup t from of
+      Nothing  -> to
+      Just nre -> case _nre_parent nre of
+        Just (NgramsTerm p')  -> if Set.member p' ss
+                                    then Map.alter (addParent p') t to
+                                    else to
+          where
+            addParent p'' Nothing   = Just $ addCountParent p'' Map.empty
+            addParent p'' (Just ps) = Just $ addCountParent p'' ps
+
+            addCountParent :: Parent -> Map Parent Int -> Map Parent Int
+            addCountParent p m = Map.alter addCount p m
+              where
+                addCount Nothing  = Just 1
+                addCount (Just n) = Just $ n + 1
+
+        _ -> to
+
+
+------------------------------------------------------------------------
 toList :: Map Text NgramsRepoElement -> (Text, NgramsRepoElement) -> [(Text, ListType)]
 toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
      List.zip terms (List.cycle [lt'])
@@ -184,9 +252,10 @@ listOf m ng = case _nre_parent ng of
   Nothing -> _nre_list ng
   Just  p -> case Map.lookup (unNgramsTerm p) m of
     Just ng' -> listOf m ng'
-    Nothing  -> panic "CandidateTerm -- Should Not happen"
+    Nothing  -> CandidateTerm
+    -- panic "[G.C.T.L.Social.listOf] Nothing: Should Not happen"
 
----------------------------------------------------------------------------
+------------------------------------------------------------------------
 countList :: Text
           -> Map Text ListType
           -> Map Text (Map ListType Int)
@@ -195,11 +264,11 @@ countList t m input = case Map.lookup t m of
   Nothing -> input
   Just l  -> Map.alter addList t input
     where
-      addList Nothing   = Just $ addCount l Map.empty
-      addList (Just lm) = Just $ addCount l lm
+      addList Nothing   = Just $ addCountList l Map.empty
+      addList (Just lm) = Just $ addCountList l lm
 
-addCount :: ListType -> Map ListType Int -> Map ListType Int
-addCount l m = Map.alter (plus l) l  m
+addCountList :: ListType -> Map ListType Int -> Map ListType Int
+addCountList l m = Map.alter (plus l) l  m
   where
     plus CandidateTerm Nothing  = Just 1
     plus CandidateTerm (Just x) = Just $ x + 1
@@ -227,6 +296,4 @@ findNodes' Public  r = findNodes Public  r $ [NodeFolderPublic ] <> commonNodes
 
 commonNodes:: [NodeType]
 commonNodes = [NodeFolder, NodeCorpus, NodeList]
-
-
 

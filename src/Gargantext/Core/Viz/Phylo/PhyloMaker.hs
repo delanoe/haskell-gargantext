@@ -37,6 +37,17 @@ import qualified Data.Set as Set
 -- | To Phylo | --
 ------------------
 
+{-
+-- TODO AD
+data Phylo' = PhyloBase { _phylo'_phyloBase :: Phylo}
+            | PhyloN    { _phylo'_phylo1    :: Phylo}
+
+
+toPhylo' :: Phylo' -> [Document] -> TermList -> Config -> Phylo
+toPhylo' (PhyloN    phylo) = toPhylo' 
+toPhylo' (PhyloBase phylo) = toPhylo 
+-}
+
 
 toPhylo :: [Document] -> TermList -> Config -> Phylo
 toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
@@ -48,9 +59,11 @@ toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFrom
         --------------------------------------
         phylo1 :: Phylo
         phylo1 = toPhylo1 docs phyloBase
+        -- > AD to db here
         --------------------------------------
-        phyloBase :: Phylo 
+        phyloBase :: Phylo
         phyloBase = toPhyloBase docs lst conf
+        -- > AD to db here
         --------------------------------------
 
 
@@ -202,7 +215,7 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.01 cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.001 cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 
@@ -232,9 +245,9 @@ docsToTimeScaleCooc docs fdt =
 -----------------------
 -- | to Phylo Base | --
 -----------------------
-
+-- TODO anoe
 groupDocsByPeriodRec :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc] -> Map (date, date) [doc]
-groupDocsByPeriodRec f prds docs acc = 
+groupDocsByPeriodRec f prds docs acc =
     if ((null prds) || (null docs))
       then acc 
       else 
@@ -245,7 +258,7 @@ groupDocsByPeriodRec f prds docs acc =
 
 --  To group a list of Documents by fixed periods
 groupDocsByPeriod' :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
-groupDocsByPeriod' f pds docs = 
+groupDocsByPeriod' f pds docs =
   let docs'    = groupBy (\d d' -> f d == f d') $ sortOn f docs
       periods  = map (inPeriode f docs') pds
       periods' = periods `using` parList rdeepseq
@@ -262,7 +275,7 @@ groupDocsByPeriod' f pds docs =
 --  To group a list of Documents by fixed periods
 groupDocsByPeriod :: (NFData doc, Ord date, Enum date) => (doc -> date) -> [(date,date)] -> [doc] -> Map (date, date) [doc]
 groupDocsByPeriod _ _   [] = panic "[ERR][Viz.Phylo.PhyloMaker] Empty [Documents] can not have any periods"
-groupDocsByPeriod f pds es = 
+groupDocsByPeriod f pds es =
   let periods  = map (inPeriode f es) pds
       periods' = periods `using` parList rdeepseq
 
