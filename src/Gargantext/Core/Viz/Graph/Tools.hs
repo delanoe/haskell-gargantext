@@ -27,7 +27,7 @@ import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness)
 import Gargantext.Core.Viz.Graph.Distances (Distance(..), measure)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index)
 import Gargantext.Core.Viz.Graph.IGraph (mkGraphUfromEdges)
-import Gargantext.Core.Viz.Graph.Proxemy (confluence)
+import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import GHC.Float (sin, cos)
 import qualified IGraph as Igraph
 import IGraph.Random -- (Gen(..))

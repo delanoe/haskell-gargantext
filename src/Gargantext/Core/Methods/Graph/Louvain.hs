@@ -10,7 +10,7 @@ Portability : POSIX
 -}
 
 
-module Gargantext.Core.Viz.Graph.Louvain
+module Gargantext.Core.Methods.Graph.Louvain
   where
 
 import Gargantext.Prelude

@@ -6,8 +6,9 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-- First written by Bruno Gaume in Python        (see below for details)
-- Then  written by Alexandre Delanoë in Haskell (see below for details)
+- Result of Pyremiel 2019
+  - First written by Bruno Gaume in Python        (see below for details)
+  - Then  written by Alexandre Delanoë in Haskell (see below for details)
 
 # By Bruno Gaume:
 def fast_maximal_cliques(g):

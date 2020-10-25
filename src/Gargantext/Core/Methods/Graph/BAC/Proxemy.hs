@@ -14,7 +14,7 @@ Références:
 -}
 
 
-module Gargantext.Core.Viz.Graph.Proxemy
+module Gargantext.Core.Methods.Graph.BAC.Proxemy
   where
 
 --import Debug.SimpleReflect
