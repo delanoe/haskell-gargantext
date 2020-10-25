@@ -66,6 +66,7 @@ library:
   - Gargantext.Prelude
   - Gargantext.Prelude.Crypto.Pass.User
   - Gargantext.Prelude.Utils
+  - Gargantext.Core.Methods.Distances.Matrice
   - Gargantext.Core.Text
   - Gargantext.Core.Text.Context
   - Gargantext.Core.Text.Corpus.Parsers
@@ -87,7 +88,6 @@ library:
   - Gargantext.Core.Text.Terms.WithList
   - Gargantext.Core.Text.Flow
   - Gargantext.Core.Viz.Graph
-  - Gargantext.Core.Viz.Graph.Distances.Matrice
   - Gargantext.Core.Viz.Graph.Index
   - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.AdaptativePhylo
