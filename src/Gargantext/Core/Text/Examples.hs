@@ -26,29 +26,24 @@ This document defines basic of Text definitions according to Gargantext..
 module Gargantext.Core.Text.Examples
   where
 
-import Data.Ord (Down(..))
-import qualified Data.List as L
-
-import Data.Map (Map)
-import qualified Data.Map  as M
-
-import Data.Text (Text)
-import qualified Data.Text as T
-
-import Data.Tuple.Extra (both)
 import Data.Array.Accelerate (toList, Matrix)
-
-import Gargantext.Prelude
-import Gargantext.Core.Text.Metrics.Count (occurrences, cooc)
-import Gargantext.Core.Text.Terms (TermType(MonoMulti), terms)
+import Data.Map (Map)
+import Data.Ord (Down(..))
+import Data.Text (Text)
+import Data.Tuple.Extra (both)
 import Gargantext.Core (Lang(EN))
-import Gargantext.Core.Types (Terms(..), Label)
+import Gargantext.Core.Methods.Distances.Matrice
 import Gargantext.Core.Text.Context (splitBy, SplitContext(Sentences))
 import Gargantext.Core.Text.Metrics.Count (Grouped)
-import Gargantext.Core.Viz.Graph.Distances.Matrice
+import Gargantext.Core.Text.Metrics.Count (occurrences, cooc)
+import Gargantext.Core.Text.Terms (TermType(MonoMulti), terms)
+import Gargantext.Core.Types (Terms(..), Label)
 import Gargantext.Core.Viz.Graph.Index
-
+import Gargantext.Prelude
 import qualified Data.Array.Accelerate as DAA
+import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Text as Text
 
 -- | Sentences
 -- Let be a list of Texts: ['Data.Text.Text']. Each text in this example is a sentence.
@@ -70,7 +65,7 @@ ex_sentences = [ "There is a table with a glass of wine and a spoon."
 -- >>> T.intercalate (T.pack " ") ex_sentences
 -- "There is a table with a glass of wine and a spoon. I can see the glass on the table. There was only a spoon on that table. The glass just fall from the table, pouring wine everywhere. I wish the glass did not contain wine."
 ex_paragraph :: Text
-ex_paragraph = T.intercalate " " ex_sentences
+ex_paragraph = Text.intercalate " " ex_sentences
 
 -- | Let split sentences by Contexts of text.
 -- More about 'Gargantext.Core.Text.Context'
@@ -88,10 +83,10 @@ ex_terms = mapM (terms (MonoMulti EN)) $ splitBy (Sentences 0) ex_paragraph
 
 -- | Test the Occurrences
 --
--- >>> occurrences <$> L.concat <$> ex_terms
+-- >>> occurrences <$> List.concat <$> ex_terms
 -- fromList [(fromList ["glass"],fromList [(["glass"],4)]),(fromList ["spoon"],fromList [(["spoon"],2)]),(fromList ["tabl"],fromList [(["table"],4)]),(fromList ["wine"],fromList [(["wine"],3)])]
 ex_occ :: IO (Map Grouped (Map Terms Int))
-ex_occ = occurrences <$> L.concat <$> ex_terms
+ex_occ = occurrences <$> List.concat <$> ex_terms
 
 -- | Test the cooccurrences
 -- Use the 'Gargantext.Core.Text.Metrics.Count.cooc' function.
@@ -132,6 +127,6 @@ incExcSpeGen_sorted m = both ordonne (incExcSpeGen $ cooc2mat ti m)
   where
     (ti,fi) = createIndices m
     ordonne x = sortWith (Down . snd)
-              $ zip (map snd $ M.toList fi) (toList x)
+              $ zip (map snd $ Map.toList fi) (toList x)
 
 

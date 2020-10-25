@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Graph.Distances.Conditional
+Module      : Gargantext.Core.Methods.Distances
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -12,7 +12,7 @@ Motivation and definition of the @Conditional@ distance.
 
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE Strict            #-}
-module Gargantext.Core.Viz.Graph.Distances.Conditional
+module Gargantext.Core.Methods.Distances.Conditional
   where
 
 import Data.Matrix hiding (identity)

@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Graph.Distances.Matrix
+Module      : Gargantext.Core.Methods.Distances.Matrice
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -27,7 +27,7 @@ Implementation use Accelerate library which enables GPU and CPU computation:
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns        #-}
 
-module Gargantext.Core.Viz.Graph.Distances.Matrice
+module Gargantext.Core.Methods.Distances.Matrice
   where
 
 import qualified Data.Foldable as P (foldl1)

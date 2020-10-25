@@ -22,8 +22,8 @@ import Gargantext.Core.Viz.Phylo.TemporalMatching (adaptativeTemporalMatching, c
 import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicClustering)
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
-import Gargantext.Core.Viz.Graph.MaxClique (getMaxCliques)
-import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
+import Gargantext.Core.Methods.Graph.MaxClique (getMaxCliques)
+import Gargantext.Core.Methods.Distances (Distance(Conditional))
 
 import Control.DeepSeq (NFData)
 import Control.Parallel.Strategies (parList, rdeepseq, using)

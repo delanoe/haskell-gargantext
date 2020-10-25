@@ -20,7 +20,7 @@ module Gargantext.Core.Text.Metrics
 --import Math.KMeans (kmeans, euclidSq, elements)
 import Data.Map (Map)
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Graph.Distances.Matrice
+import Gargantext.Core.Methods.Distances.Matrice
 import Gargantext.Core.Viz.Graph.Index
 import Gargantext.Core.Statistics (pcaReduceTo, Dimension(..))
 import qualified Data.Array.Accelerate as DAA
