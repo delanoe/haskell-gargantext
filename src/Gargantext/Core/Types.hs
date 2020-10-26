@@ -109,10 +109,10 @@ instance FromJSON NER where
 
 instance ToJSON NER
 
-data TokenTag  = TokenTag { _my_token_word :: [Text]
-                          , _my_token_stem :: Set Text
-                          , _my_token_pos  :: Maybe POS
-                          , _my_token_ner  :: Maybe NER
+data TokenTag  = TokenTag { _my_token_word  :: [Text]
+                          , _my_token_lemma :: Set Text
+                          , _my_token_pos   :: Maybe POS
+                          , _my_token_ner   :: Maybe NER
                           } deriving (Show)
 
 instance Semigroup TokenTag where
