@@ -286,9 +286,9 @@ defaultName NodeFolderShared  = "Shared Folder"
 defaultName NodeTeam          = "Folder"
 defaultName NodeFolderPublic  = "Public Folder"
 
+defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
-defaultName NodeDashboard     = "Dashboard"
 
 defaultName NodeFrameWrite    = "Frame Write"
 defaultName NodeFrameCalc     = "Frame Calc"
