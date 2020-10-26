@@ -275,7 +275,7 @@ defaultName NodeCorpusV3   = "Corpus"
 defaultName NodeAnnuaire   = "Annuaire"
 
 defaultName NodeDocument   = "Doc"
-defaultName NodeTexts      = "Texts"
+defaultName NodeTexts      = "Docs"
 defaultName NodeList       = "List"
 defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
