@@ -50,7 +50,7 @@ import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn, Nullable)
 import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Arbitrary hiding (vector)
 
 ------------------------------------------------------------------------
 -- Only Hyperdata types should be member of this type class.
