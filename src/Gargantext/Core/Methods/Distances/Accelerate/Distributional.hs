@@ -1,17 +1,37 @@
 {-|
 Module      : Gargantext.Core.Methods.Distances.Accelerate.Distributional
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-This module aims at implementig distances of terms context by context is
-the same referential of corpus.
 
-Implementation use Accelerate library which enables GPU and CPU computation
-See Gargantext.Core.Methods.Graph.Accelerate)
+* Distributional Distance metric
+__Definition :__ Distributional metric is a relative metric which depends on the
+selected list, it represents structural equivalence of mutual information.
+
+__Objective :__ We want to compute with matrices processing the similarity between term $i$ and term $j$ :
+ distr(i,j)=$\frac{\Sigma_{k \neq i,j} min(\frac{n_{ik}^2}{n_{ii}n_{kk}},\frac{n_{jk}^2}{n_{jj}n_{kk}})}{\Sigma_{k \neq i}\frac{n_{ik}^2}{ n_{ii}n_{kk}}}$
+
+where $n_{ij}$ is the cooccurrence between term $i$ and term $j$
+
+* For a vector V=[$x_1$ ... $x_n$], we note $|V|_1=\Sigma_ix_i$
+* operator : .* and ./ cell by cell multiplication and division of the matrix
+* operator * is the matrix multiplication
+* Matrice M=[$n_{ij}$]$_{i,j}$
+* opérateur : Diag(M)=[$n_{ii}$]$_i$ (vecteur)
+* Id= identity matrix
+* O=[1]$_{i,j}$ (matrice one)
+* D(M)=Id .* M
+* O * D(M) =[$n_{jj}$]$_{i,j}$
+* D(M) * O =[$n_{ii}$]$_{i,j}$
+* $V_i=[0~0~0~1~0~0~0]'$ en i
+* MI=(M ./ O * D(M)) .* (M / D(M) * O )
+* distr(i,j)=$\frac{|min(V'_i * (MI-D(MI)),V'_j * (MI-D(MI)))|_1}{|V'_i.(MI-D(MI))|_1}$
+
+[Specifications written by David Chavalarias on Garg v4 shared NodeWrite, team Pyremiel 2020]
 
 -}
 
@@ -30,15 +50,31 @@ import Data.Array.Accelerate.Interpreter (run)
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Gargantext.Prelude as P
 
-
--- * Metrics of proximity
 -----------------------------------------------------------------------
--- ** Distributional Distance
+-- * Distributional Distance
+distributional' :: Elt a => Matrix a -> Matrix a
+distributional' _m' = undefined
+{-
+ where
+    m = use m'
+    n = dim m'
+-}
 
--- | Distributional Distance metric
---
--- Distributional metric is a relative metric which depends on the
--- selected list, it represents structural equivalence of mutual information.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 --
 -- The distributional metric P(c) of @i@ and @j@ terms is: \[
 -- S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik},
@@ -59,6 +95,7 @@ import qualified Gargantext.Prelude as P
 -- Total cooccurrences of terms given a map list of size @m@
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
+
 distributional :: Matrix Int -> Matrix Double
 distributional m = -- run {- $ matMiniMax -}
                    run  $ diagNull n

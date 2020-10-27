@@ -296,7 +296,7 @@ cross' :: Matrix Double -> Matrix Double
 cross' mat = run $ cross n mat'
   where
     mat' = use mat
-    n = dim mat
+    n    = dim mat
 
 
 {-

@@ -7,6 +7,8 @@ packages:
 #- 'deps/patches-map'
 #- 'deps/servant-job'
 #- 'deps/clustering-louvain'
+#- 'deps/accelerate'
+#- 'deps/accelerate-utility'
 
 docker:
   enable: false
@@ -20,6 +22,7 @@ nix:
   shell-file: build-shell.nix
 
 allow-newer: true
+
 extra-deps:
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
@@ -62,9 +65,18 @@ extra-deps:
 - git: https://github.com/kaizhang/haskell-igraph.git
   commit: 34553acc4ebdcae7065311dcefb426e0fd58c5a0
 
+  # Accelerate Linear Algebra and specific instances
+  # (UndecidableInstances for newer GHC version)
+- git: https://gitlab.iscpif.fr/anoe/accelerate.git
+  commit: f5c0e0071ec7b6532f9a9cd3eb33d14f340fbcc9
+- git: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
+  commit: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
+- accelerate-arithmetic-1.0.0.1@sha256:555639232aa5cad411e89247b27871d09352b987a754230a288c690b6de6d888,2096
+
 - KMP-0.2.0.0@sha256:6dfbac03ef00ebd9347234732cb86a40f62ab5a80c0cc6bedb8eb51766f7df28,2562
 - Unique-0.4.7.7@sha256:2269d3528271e25d34542e7c24a4e541e27ec33460e1ea00845da95b82eec6fa,2777
-- accelerate-1.2.0.1@sha256:bb1928efe602545df4043692916ed427c959110cbd678d03c3f9c3be25d1ae88,20112
+
+
 - duckling-0.1.6.1@sha256:dab60953f405b45fe93e1e745f8cc83e5166e1788b1f4999cc06382e131153d8,47147
 - fclabels-2.0.4@sha256:efcc20c6c903d0a59e36eb1cb547a7bbbbba93b6e20b84b06e919c350891beb2,4492
 - full-text-search-0.2.1.4@sha256:81f6df3327e5b604f99b15e78635e5d6ca996e504c21d268a6d751d7d131aa36,6032

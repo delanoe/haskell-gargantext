@@ -108,6 +108,7 @@ library:
   - SHA
   - Unique
   - accelerate
+  - accelerate-arithmetic
   - aeson
   - aeson-lens
   - aeson-pretty
