@@ -211,12 +211,16 @@ flowCorpusUser :: ( FlowCmdM env err m
 flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
+  -- NodeTexts is first
+  _tId <- insertDefaultNode NodeTexts userCorpusId userId
+  -- printDebug "NodeTexts: " tId
+
+  -- NodeList is second
   listId <- getOrMkList userCorpusId userId
   -- _cooc  <- insertDefaultNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
-  _tId <- insertDefaultNode NodeTexts userCorpusId userId
   -- printDebug "Node Text Ids:" tId
 
   -- User List Flow
