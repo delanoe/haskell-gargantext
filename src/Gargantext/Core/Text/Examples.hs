@@ -32,7 +32,7 @@ import Data.Ord (Down(..))
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
 import Gargantext.Core (Lang(EN))
-import Gargantext.Core.Methods.Distances.Matrice
+import Gargantext.Core.Methods.Distances.Accelerate.SpeGen
 import Gargantext.Core.Text.Context (splitBy, SplitContext(Sentences))
 import Gargantext.Core.Text.Metrics.Count (Grouped)
 import Gargantext.Core.Text.Metrics.Count (occurrences, cooc)

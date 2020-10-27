@@ -1,6 +1,6 @@
 {-|
-Module      : Gargantext.Core.Methods.Distances
-Description : 
+Module      : Gargantext.Core.Methods.Distances.Distributional
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
