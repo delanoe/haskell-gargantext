@@ -52,15 +52,22 @@ import qualified Gargantext.Prelude as P
 
 -----------------------------------------------------------------------
 -- * Distributional Distance
-distributional' :: Elt a => Matrix a -> Matrix a
-distributional' _m' = undefined
-{-
+distributional'' :: ( P.Num (Exp a)
+                    , P.Fractional (Exp a)
+                    , Elt a
+                    )
+                  => Matrix a -> Matrix a
+distributional'' m' = run $ mi
  where
     m = use m'
     n = dim m'
--}
 
+    d_m = (.*) (matrixIdentity n) m
 
+    o_d_m = (#*#) (matrixOne n) d_m
+    d_m_o = (#*#) d_m  (matrixOne n)
+
+    mi = (.*) ((./) m o_d_m) ((./) m o_d_m)
 
 
 

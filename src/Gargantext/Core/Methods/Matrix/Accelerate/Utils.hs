@@ -33,12 +33,81 @@ module Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Data.Foldable as P (foldl1)
 import Debug.Trace (trace)
 import Data.Array.Accelerate
+import Data.Array.Accelerate.Array.Sugar (Elt(..), Shape(..), Slice(..), (:.))
+import Data.Array.Accelerate.Smart (Exp(..))
 import Data.Array.Accelerate.Interpreter (run)
 import qualified Gargantext.Prelude as P
+import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
 
 -----------------------------------------------------------------------
-runExp :: Elt e => Exp e -> e
-runExp e = indexArray (run (unit e)) Z
+-- | Main operators
+-- Matrix Multiplication
+(#*#) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(#*#) = multiplyMatrixMatrix
+
+
+-- | Matrix cell by cell multiplication
+(.*) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(.*) = zipWith (*)
+
+(./) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(./) = zipWith (/)
+
+
+-----------------------------------------------------------------------
+matrixOne :: Num a => Dim -> Acc (Matrix a)
+matrixOne n' = ones
+  where
+    ones  = fill (index2 n n) 1
+    n     = constant n'
+
+
+matrixIdentity :: Num a => Dim -> Acc (Matrix a)
+matrixIdentity n' =
+        let zeros = fill (index2 n n) 0
+            ones  = fill (index1 n)   1
+            n = constant n'
+        in
+        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+
+
+matrixEye :: Num a => Dim -> Acc (Matrix a)
+matrixEye n' =
+        let ones   = fill (index2 n n) 1
+            zeros  = fill (index1 n)   0
+            n = constant n'
+        in
+        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
+
+
+diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+diagNull n m = zipWith (*) m (matrixEye n)
+
+-----------------------------------------------------------------------
+_runExp :: Elt e => Exp e -> e
+_runExp e = indexArray (run (unit e)) Z
 
 -----------------------------------------------------------------------
 -- | Define a vector
@@ -164,23 +233,10 @@ filterWith' :: (Elt a, Ord a) => Exp a -> Exp a -> Acc (Matrix a) -> Acc (Matrix
 filterWith' t v m = map (\x -> ifThenElse (x > t) x v) m
 
 
-
--- run $ (identityMatrix (DAA.constant (10::Int)) :: DAA.Acc (DAA.Matrix Int)) Matrix (Z :. 10 :. 10)
-identityMatrix :: Num a => Exp Int -> Acc (Matrix a)
-identityMatrix n =
-        let zeros = fill (index2 n n) 0
-            ones  = fill (index1 n)   1
-        in
-        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 
-eyeMatrix :: Num a => Dim -> Acc (Matrix a)
-eyeMatrix n' =
-        let ones   = fill (index2 n n) 1
-            zeros  = fill (index1 n)   0
-            n = constant n'
-        in
-        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
 
 -- | TODO use Lenses
 data Direction = MatCol (Exp Int) | MatRow (Exp Int) | Diag
@@ -259,11 +315,6 @@ selfMatrix' m' = run $ selfMatrix n
     m = use m'
 -}
 -------------------------------------------------
-diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-diagNull n m = zipWith (*) m eye
-  where
-    eye = eyeMatrix n
-
 -------------------------------------------------
 crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 crossProduct n m = {-trace (P.show (run m',run m'')) $-} zipWith (*) m' m''
@@ -312,6 +363,9 @@ p_ m = zipWith (/) m (n_ m)
                                 )
                          ) m
 -}
+
+theMatrix' :: Int -> Matrix Double
+theMatrix' n = run $ map fromIntegral (use $ theMatrix n)
 
 theMatrix :: Int -> Matrix Int
 theMatrix n = matrix n (dataMatrix n)
