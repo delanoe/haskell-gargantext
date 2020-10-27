@@ -75,6 +75,27 @@ import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
      -> Acc (Array ((ix :. Int) :. Int) a)
 (./) = zipWith (/)
 
+(.-) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(.-) = zipWith (-)
+
+(.+) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(.+) = zipWith (+)
 
 -----------------------------------------------------------------------
 matrixOne :: Num a => Dim -> Acc (Matrix a)
@@ -364,11 +385,11 @@ p_ m = zipWith (/) m (n_ m)
                          ) m
 -}
 
-theMatrix' :: Int -> Matrix Double
-theMatrix' n = run $ map fromIntegral (use $ theMatrix n)
+theMatrixDouble :: Int -> Matrix Double
+theMatrixDouble n = run $ map fromIntegral (use $ theMatrixInt n)
 
-theMatrix :: Int -> Matrix Int
-theMatrix n = matrix n (dataMatrix n)
+theMatrixInt :: Int -> Matrix Int
+theMatrixInt n = matrix n (dataMatrix n)
   where
     dataMatrix :: Int -> [Int]
     dataMatrix x | (P.==) x 2 = [ 1, 1

@@ -57,17 +57,22 @@ distributional'' :: ( P.Num (Exp a)
                     , Elt a
                     )
                   => Matrix a -> Matrix a
-distributional'' m' = run $ mi
+distributional'' m' = run $ mi_d_mi
  where
     m = use m'
     n = dim m'
 
-    d_m = (.*) (matrixIdentity n) m
+    d_m   = (.*) (matrixIdentity n) m
 
     o_d_m = (#*#) (matrixOne n) d_m
     d_m_o = (#*#) d_m  (matrixOne n)
 
-    mi = (.*) ((./) m o_d_m) ((./) m o_d_m)
+
+    mi      = (.*) ((./) m o_d_m) ((./) m o_d_m)
+
+    d_mi    = (.*) (matrixIdentity n) mi
+    mi_d_mi = (.-) mi d_mi
+
 
 
 
@@ -151,6 +156,6 @@ rIJ n m = matMiniMax $ divide a b
 -- | Test perfermance with this matrix
 -- TODO : add this in a benchmark folder
 distriTest :: Int -> Matrix Double
-distriTest n = distributional (theMatrix n)
+distriTest n = distributional (theMatrixInt n)
 
 
