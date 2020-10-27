@@ -38,6 +38,7 @@ import Data.Validity
 import Database.PostgreSQL.Simple.FromField (FromField, fromField, ResultError(ConversionFailed), returnError)
 import GHC.Generics (Generic)
 import Servant hiding (Patch)
+import Servant.Job.Utils (jsonOptions)
 import System.FileLock (FileLock)
 import Test.QuickCheck (elements, frequency)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
@@ -46,7 +47,7 @@ import Protolude (maybeToEither)
 import Gargantext.Prelude
 
 import Gargantext.Core.Text (size)
-import Gargantext.Core.Types (ListType(..), NodeId)
+import Gargantext.Core.Types (ListType(..), ListId, NodeId)
 import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Prelude (fromField', CmdM')
@@ -735,3 +736,18 @@ ngramsTypeFromTabType tabType =
       Terms      -> TableNgrams.NgramsTerms
       _          -> panic $ lieu <> "No Ngrams for this tab"
       -- TODO: This `panic` would disapear with custom NgramsType.
+
+----
+-- PUT Async task
+
+data UpdateTableNgrams = UpdateTableNgrams
+  { _utn_tab_type :: !TabType
+  , _utn_list_id  :: !ListId
+  , _utn_patch    :: !(Versioned NgramsTablePatch)
+  } deriving (Eq, Show, Generic)
+
+makeLenses ''UpdateTableNgrams
+instance FromJSON UpdateTableNgrams where
+  parseJSON = genericParseJSON $ jsonOptions "_utn_"
+instance ToSchema UpdateTableNgrams where
+  declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_utn_")
