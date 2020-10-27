@@ -46,10 +46,10 @@ import qualified Gargantext.Prelude as P
 -- Conditional metric is an absolute metric which reflects
 -- interactions of 2 terms in the corpus.
 measureConditional :: Matrix Int -> Matrix Double
---measureConditional m = run (matMiniMax $ matProba (dim m) $ map fromIntegral $ use m)
-measureConditional m = run $ matProba (dim m)
-                           $ map fromIntegral
-                           $ use m
+measureConditional m = run $ zipWith (/) m' (matSumCol d m')
+  where
+    m' = map fromIntegral (use m)
+    d  = dim m
 
 
 -- *** Conditional distance (advanced)

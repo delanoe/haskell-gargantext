@@ -108,7 +108,7 @@ matSumCol' m = run $ matSumCol n m'
 --       0.3333333333333333,  0.3333333333333333,  0.3333333333333333,
 --       0.5833333333333334,  0.5333333333333333,                 0.5]
 matProba :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
-matProba r mat = zipWith (/) mat (matSumCol r mat)
+matProba d mat = zipWith (/) mat (matSumCol d mat)
 
 -- | Diagonal of the matrix
 --
