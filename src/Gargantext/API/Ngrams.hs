@@ -349,14 +349,13 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
       pure ret
 
 
-tableNgramsPutAsync :: ( FlowCmdM env err m
-                        , HasSettings env
-                        )
-                      => UpdateTableNgrams
-                      -> (JobLog -> m ())
-                      -> m JobLog
-tableNgramsPutAsync utn logStatus = do
-      -- let (Versioned p_version p_table) = utn ^. utn_patch
+tableNgramsPostChartsAsync :: ( FlowCmdM env err m
+                              , HasSettings env
+                              )
+                            => UpdateTableNgramsCharts
+                            -> (JobLog -> m ())
+                            -> m JobLog
+tableNgramsPostChartsAsync utn logStatus = do
       let tabType = utn ^. utn_tab_type
       let listId = utn ^. utn_list_id
 
@@ -658,8 +657,9 @@ type TableNgramsApi =  TableNgramsApiGet
 
 type TableNgramsAsyncApi = Summary "Table Ngrams Async API"
                            :> "async"
+                           :> "charts"
                            :> "update"
-                           :> AsyncJobs JobLog '[JSON] UpdateTableNgrams JobLog
+                           :> AsyncJobs JobLog '[JSON] UpdateTableNgramsCharts JobLog
 
 getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeId
@@ -732,9 +732,9 @@ apiNgramsAsync _dId =
     JobFunction (\i l ->
       let
         log' x = do
-          printDebug "tableNgramsPutAsync" x
+          printDebug "tableNgramsPostChartsAsync" x
           liftBase $ l x
-      in tableNgramsPutAsync i log')
+      in tableNgramsPostChartsAsync i log')
 
 -- Did the given list of ngrams changed since the given version?
 -- The returned value is versioned boolean value, meaning that one always retrieve the

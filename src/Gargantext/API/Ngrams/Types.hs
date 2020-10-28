@@ -738,16 +738,15 @@ ngramsTypeFromTabType tabType =
       -- TODO: This `panic` would disapear with custom NgramsType.
 
 ----
--- PUT Async task
+-- Async task
 
-data UpdateTableNgrams = UpdateTableNgrams
+data UpdateTableNgramsCharts = UpdateTableNgramsCharts
   { _utn_tab_type :: !TabType
   , _utn_list_id  :: !ListId
-  , _utn_patch    :: !(Versioned NgramsTablePatch)
   } deriving (Eq, Show, Generic)
 
-makeLenses ''UpdateTableNgrams
-instance FromJSON UpdateTableNgrams where
+makeLenses ''UpdateTableNgramsCharts
+instance FromJSON UpdateTableNgramsCharts where
   parseJSON = genericParseJSON $ jsonOptions "_utn_"
-instance ToSchema UpdateTableNgrams where
+instance ToSchema UpdateTableNgramsCharts where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_utn_")
