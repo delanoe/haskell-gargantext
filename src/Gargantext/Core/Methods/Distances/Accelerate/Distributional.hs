@@ -54,10 +54,11 @@ import qualified Gargantext.Prelude as P
 -- * Distributional Distance
 distributional'' :: ( P.Num (Exp a)
                     , P.Fractional (Exp a)
-                    , Elt a
+                    , P.Ord (Exp a)
+                    , Ord a
                     )
                   => Matrix a -> Matrix a
-distributional'' m' = run $ mi_d_mi
+distributional'' m' = run mi_d_mi
  where
     m = use m'
     n = dim m'
@@ -68,10 +69,25 @@ distributional'' m' = run $ mi_d_mi
     d_m_o = (#*#) d_m  (matrixOne n)
 
 
-    mi      = (.*) ((./) m o_d_m) ((./) m o_d_m)
+    mi      = (.*) ((./) m o_d_m) ((./) m d_m_o)
 
     d_mi    = (.*) (matrixIdentity n) mi
     mi_d_mi = (.-) mi d_mi
+
+    -- WIP (specs describe iteration on vectors, using full matrix version here)
+    d_mi_d_mi = (.*) (matrixIdentity n) mi_d_mi
+
+    min_mi_mj = zipWith min d_mi_d_mi d_mj_d_mj
+      where
+        -- not sure about transpose here
+        -- maybe backpermute j to i cells ?
+        d_mj_d_mj = transpose d_mi_d_mi
+
+    sum_min_mi_mj = matSumCol n min_mi_mj
+    sum_mi        = matSumCol n d_mi_d_mi
+
+    result = zipWith (/) sum_min_mi_mj sum_mi
+
 
 
 

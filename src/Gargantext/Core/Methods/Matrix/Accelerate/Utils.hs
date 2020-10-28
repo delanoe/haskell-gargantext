@@ -64,6 +64,16 @@ import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
      -> Acc (Array ((ix :. Int) :. Int) a)
 (.*) = zipWith (*)
 
+(.**) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(.**) m = (.*) m m
+
+
 (./) :: ( Shape ix
         , Slice ix
         , Elt a
@@ -179,10 +189,10 @@ dim m = n
 --   [ 12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0]
-matSumCol :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+matSumCol :: (Elt a, P.Num (Exp a)) => Dim -> Acc (Matrix a) -> Acc (Matrix a)
 matSumCol r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
 
-matSumCol' :: Matrix Double -> Matrix Double
+matSumCol' :: (Elt a, P.Num (Exp a)) => Matrix a -> Matrix a
 matSumCol' m = run $ matSumCol n m'
   where
     n  = dim m
