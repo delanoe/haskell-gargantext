@@ -125,6 +125,17 @@ buildNgramsTermsList user uCid mCid groupParams = do
   socialLists <- flowSocialList user NgramsTerms (Set.fromList $ map fst allTerms)
   -- printDebug "\n * socialLists * \n" socialLists
 
+  printDebug "\n * socialLists * \n" socialLists
+
+  let
+    socialStop  = fromMaybe Set.empty $ Map.lookup StopTerm      socialLists
+    _socialMap  = fromMaybe Set.empty $ Map.lookup MapTerm       socialLists
+    _socialCand = fromMaybe Set.empty $ Map.lookup CandidateTerm socialLists
+    -- stopTerms ignored for now (need to be tagged already)
+    (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
+    -- (mapTerms,  candidateTerms) = List.partition ((\t -> Set.member t socialMap ) . fst) allTerms
+
+  printDebug "stopTerms" stopTerms
 
   -- Grouping the ngrams and keeping the maximum score for label
   let grouped = toGroupedText (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) allTerms

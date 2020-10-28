@@ -174,8 +174,8 @@ toMapTextListType m = Map.fromListWith (<>)
 type Parent = Text
 
 parentUnionsMerge :: (Ord a, Ord b, Num c) 
-             => [Map a (Map b c)]
-             ->  Map a (Map b c)
+                   => [Map a (Map b c)]
+                   ->  Map a (Map b c)
 parentUnionsMerge = Map.unionsWith (Map.unionWith (+))
 
 -- This Parent union is specific
