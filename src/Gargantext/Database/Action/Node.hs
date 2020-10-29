@@ -22,6 +22,7 @@ module Gargantext.Database.Action.Node
 
 import Gargantext.Core.Types (Name)
 import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Hyperdata.Default
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node
 import Gargantext.Database.Query.Table.Node.Error
@@ -55,6 +56,11 @@ mkNodeWithParent NodeFrameWrite i u n =
 mkNodeWithParent NodeFrameCalc i u n =
   mkNodeWithParent_ConfigureHyperdata NodeFrameCalc i u n
 
+mkNodeWithParent NodeFrameCode i u n =
+  mkNodeWithParent_ConfigureHyperdata NodeFrameCode i u n
+
+
+
 mkNodeWithParent nt (Just pId) uId name  = insertNode nt (Just name) Nothing pId uId
 -- mkNodeWithParent _ _ _ _ = errorWith "[G.D.A.Node.mkNodeWithParent] nees parent"
 
@@ -72,6 +78,9 @@ mkNodeWithParent_ConfigureHyperdata NodeFrameWrite (Just i) uId name =
 mkNodeWithParent_ConfigureHyperdata NodeFrameCalc (Just i) uId name =
   mkNodeWithParent_ConfigureHyperdata' NodeFrameCalc (Just i) uId name
 
+mkNodeWithParent_ConfigureHyperdata NodeFrameCode (Just i) uId name =
+  insertNode NodeFrameCode  (Just "Code") (Just $ DefaultFrameCode $ HyperdataFrame "code" name) i uId
+
 mkNodeWithParent_ConfigureHyperdata    _ _ _ _ = nodeError NotImplYet
 
 
@@ -84,8 +93,8 @@ mkNodeWithParent_ConfigureHyperdata' :: (HasNodeError err)
                                     -> Cmd err [NodeId]
 mkNodeWithParent_ConfigureHyperdata' nt (Just i) uId name = do
   maybeNodeId <- case nt of
-     NodeFrameWrite -> insertNode NodeFrameWrite (Just name) Nothing i uId
-     NodeFrameCalc  -> insertNode NodeFrameCalc  (Just name) Nothing i uId
+     NodeFrameWrite -> insertNode NodeFrameWrite (Just name)   Nothing i uId
+     NodeFrameCalc  -> insertNode NodeFrameCalc  (Just name)   Nothing i uId
      _              -> nodeError NeedsConfiguration
 
   case maybeNodeId of
