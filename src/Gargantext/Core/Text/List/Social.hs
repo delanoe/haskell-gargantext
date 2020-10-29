@@ -83,9 +83,6 @@ flowSocialListByMode listIds nt ngrams' = do
     pure r
 
 
-
-
-
 ------------------------------------------------------------------------
 -- TODO: maybe use social groups too
 -- | TODO what if equality ?
@@ -121,6 +118,18 @@ toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
 
 ------------------------------------------------------------------------
 -- | Tools
+
+------------------------------------------------------------------------
+termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
+termsByList CandidateTerm m = Set.unions
+                          $ map (\lt -> fromMaybe Set.empty $ Map.lookup lt m)
+                          [ Nothing, Just CandidateTerm ]
+termsByList l m =
+  fromMaybe Set.empty $ Map.lookup (Just l) m
+
+------------------------------------------------------------------------
+
+
 unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
       => [Map a (Set b)] -> Map a (Set b)
 unions = invertBack . Map.unionsWith (<>) . map invertForw
