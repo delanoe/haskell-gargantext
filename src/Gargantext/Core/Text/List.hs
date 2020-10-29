@@ -82,6 +82,7 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
 
   ngs  <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
+
   let 
     grouped = toGroupedText groupIt (Set.size . snd) fst snd
               (Map.toList $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b)) $ ngs)
@@ -132,10 +133,10 @@ buildNgramsTermsList user uCid mCid groupParams = do
     _socialMap  = fromMaybe Set.empty $ Map.lookup MapTerm       socialLists
     _socialCand = fromMaybe Set.empty $ Map.lookup CandidateTerm socialLists
     -- stopTerms ignored for now (need to be tagged already)
-    (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
+    -- (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
     -- (mapTerms,  candidateTerms) = List.partition ((\t -> Set.member t socialMap ) . fst) allTerms
 
-  printDebug "stopTerms" stopTerms
+  -- printDebug "stopTerms" stopTerms
 
   -- Grouping the ngrams and keeping the maximum score for label
   let grouped = toGroupedText (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) allTerms
