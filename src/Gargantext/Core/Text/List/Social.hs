@@ -47,20 +47,80 @@ flowSocialList :: ( RepoCmdM env err m
                   => User -> NgramsType -> Set Text
                   -> m (Map ListType (Set Text))
 flowSocialList user nt ngrams' = do
-  privateLists <- flowSocialListByMode Private user nt ngrams'
+  -- Here preference to privateLists (discutable: let user choice)
+  privateListIds <- findListsId Private user
+  privateLists <- flowSocialListByMode privateListIds nt ngrams'
   -- printDebug "* privateLists *: \n" privateLists
-  -- here preference to privateLists (discutable)
-  sharedLists  <- flowSocialListByMode Shared  user nt (termsByList CandidateTerm privateLists)
+
+  sharedListIds <- findListsId Shared user
+  sharedLists  <- flowSocialListByMode sharedListIds nt (termsByList CandidateTerm privateLists)
   -- printDebug "* sharedLists *: \n" sharedLists
-   -- TODO publicMapList
+
+  -- TODO publicMapList:
+  -- Note: if both produce 3 identic repetition => refactor mode
+  -- publicListIds <- findListsId Public user
+  -- publicLists   <- flowSocialListByMode' publicListIds nt (termsByList CandidateTerm privateLists)
 
   let result = unions [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
                       , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
+                      -- , Map.mapKeys (fromMaybe CandidateTerm) publicLists
                       ]
   -- printDebug "* socialLists *: results \n" result
   pure result
 
 ------------------------------------------------------------------------
+flowSocialListByMode :: ( RepoCmdM env err m
+                       , CmdM     env err m
+                       , HasNodeError err
+                       , HasTreeError err
+                       )
+                    => [NodeId]-> NgramsType -> Set Text
+                    -> m (Map (Maybe ListType) (Set Text))
+flowSocialListByMode      [] nt ngrams' = pure $ Map.fromList [(Nothing, ngrams')]
+flowSocialListByMode listIds nt ngrams' = do
+    counts  <- countFilterList ngrams' nt listIds Map.empty
+    let r = toSocialList counts ngrams'
+    pure r
+
+
+
+
+
+------------------------------------------------------------------------
+-- TODO: maybe use social groups too
+-- | TODO what if equality ?
+-- choice depends on Ord instance of ListType
+-- for now : data ListType  =  StopTerm | CandidateTerm | MapTerm
+-- means MapTerm > CandidateTerm > StopTerm in case of equality of counts
+-- (we minimize errors on MapTerms if doubt)
+toSocialList :: Map Text (Map ListType Int)
+             -> Set Text
+             -> Map (Maybe ListType) (Set Text)
+toSocialList m = Map.fromListWith (<>)
+               . Set.toList
+               . Set.map (toSocialList1 m)
+
+toSocialList1 :: Map Text (Map ListType Int)
+             -> Text
+             -> (Maybe ListType, Set Text)
+toSocialList1 m t = case Map.lookup t m of
+  Nothing -> (Nothing, Set.singleton t)
+  Just  m' -> ( (fst . fst) <$> Map.maxViewWithKey m'
+              , Set.singleton t
+              )
+
+toSocialList1_testIsTrue :: Bool
+toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
+  where
+    result = toSocialList1 (Map.fromList [(token, m)]) token
+    token  = "token"
+    m = Map.fromList [ (CandidateTerm, 1)
+                     , (MapTerm      , 2)
+                     , (StopTerm     , 3)
+                     ]
+
+------------------------------------------------------------------------
+-- | Tools
 unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
       => [Map a (Set b)] -> Map a (Set b)
 unions = invertBack . Map.unionsWith (<>) . map invertForw
@@ -82,56 +142,3 @@ unions_test = unions [m1, m2]
     m2 = Map.fromList [ (CandidateTerm, Set.singleton "Candidate")
                       , (MapTerm      , Set.singleton "Candidate")
                       ]
-
-------------------------------------------------------------------------
-flowSocialListByMode :: ( RepoCmdM env err m
-                        , CmdM     env err m
-                        , HasNodeError err
-                        , HasTreeError err
-                        )
-                     => NodeMode -> User -> NgramsType -> Set Text
-                     -> m (Map (Maybe ListType) (Set Text))
-flowSocialListByMode mode user nt ngrams' = do
-  listIds <- findListsId mode user
-  case listIds of
-    [] -> pure $ Map.fromList [(Nothing, ngrams')]
-    _  -> do
-      counts  <- countFilterList ngrams' nt listIds Map.empty
-      -- printDebug "flowSocialListByMode counts" counts
-      let r = toSocialList counts ngrams'
-      -- printDebug "flowSocialListByMode r" r
-      pure r
-
-------------------------------------------------------------------------
--- TODO: maybe use social groups too
-toSocialList :: Map Text (Map ListType Int)
-             -> Set Text
-             -> Map (Maybe ListType) (Set Text)
-toSocialList m = Map.fromListWith (<>)
-               . Set.toList
-               . Set.map (toSocialList1 m)
-
--- | TODO what if equality ?
--- choice depends on Ord instance of ListType
--- for now : data ListType  =  StopTerm | CandidateTerm | MapTerm
--- means MapTerm > CandidateTerm > StopTerm in case of equality of counts
--- (we minimize errors on MapTerms if doubt)
-toSocialList1 :: Map Text (Map ListType Int)
-             -> Text
-             -> (Maybe ListType, Set Text)
-toSocialList1 m t = case Map.lookup t m of
-  Nothing -> (Nothing, Set.singleton t)
-  Just  m' -> ( (fst . fst) <$> Map.maxViewWithKey m'
-              , Set.singleton t
-              )
-
-toSocialList1_testIsTrue :: Bool
-toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
-  where
-    result = toSocialList1 (Map.fromList [(token, m)]) token
-    token  = "token"
-    m = Map.fromList [ (CandidateTerm, 1)
-                     , (MapTerm      , 2)
-                     , (StopTerm     , 3)
-                     ]
-
