@@ -11,30 +11,23 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social
   where
 
--- findList imports
+import Data.Map (Map)
+import Data.Maybe (fromMaybe)
+import Data.Semigroup (Semigroup(..))
+import Data.Set (Set)
+import Data.Text (Text)
+import Gargantext.API.Ngrams.Tools -- (getListNgrams)
+import Gargantext.API.Ngrams.Types
+import Gargantext.Core.Text.List.Social.Find
+import Gargantext.Core.Text.List.Social.ListType
 import Gargantext.Core.Types.Individu
-import Gargantext.Database.Admin.Config
+import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Database.Query.Tree
-import Gargantext.Database.Query.Tree.Root (getRootId)
-import Gargantext.Prelude
-
--- filterList imports
-import Data.Maybe (fromMaybe)
-import Data.Map (Map)
-import Data.Set (Set)
-import Data.Semigroup (Semigroup(..))
-import Data.Text (Text)
-import Gargantext.API.Ngrams.Tools -- (getListNgrams)
-import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types.Main
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Core.Text.List.Social.Find
-import Gargantext.Core.Text.List.Social.Group
-import Gargantext.Core.Text.List.Social.ListType
-import qualified Data.List  as List
+import Gargantext.Prelude
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
@@ -76,8 +69,8 @@ flowSocialListByMode :: ( RepoCmdM env err m
                        )
                     => [NodeId]-> NgramsType -> Set Text
                     -> m (Map (Maybe ListType) (Set Text))
-flowSocialListByMode      [] nt ngrams' = pure $ Map.fromList [(Nothing, ngrams')]
-flowSocialListByMode listIds nt ngrams' = do
+flowSocialListByMode      [] _nt ngrams' = pure $ Map.fromList [(Nothing, ngrams')]
+flowSocialListByMode listIds  nt ngrams' = do
     counts  <- countFilterList ngrams' nt listIds Map.empty
     let r = toSocialList counts ngrams'
     pure r

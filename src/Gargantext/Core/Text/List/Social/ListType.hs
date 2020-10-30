@@ -40,14 +40,14 @@ import qualified Data.Set   as Set
 -- here we need UserList only
 countFilterList :: RepoCmdM env err m
         => Set Text -> NgramsType -> [ListId]
-        -> Map Text (Map ListType Int)
+        ->    Map Text (Map ListType Int)
         -> m (Map Text (Map ListType Int))
 countFilterList st nt ls input =
   foldM' (\m l -> countFilterList' st nt [l] m) input ls
     where
       countFilterList' :: RepoCmdM env err m
               => Set Text -> NgramsType -> [ListId]
-              -> Map Text (Map ListType Int)
+              ->    Map Text (Map ListType Int)
               -> m (Map Text (Map ListType Int))
       countFilterList' st nt ls input = do
         ml <- toMapTextListType <$> getListNgrams ls nt
@@ -60,25 +60,24 @@ toMapTextListType m = Map.fromListWith (<>)
                     $ List.concat
                     $ map (toList m)
                     $ Map.toList m
+  where
+    toList :: Map Text NgramsRepoElement -> (Text, NgramsRepoElement) -> [(Text, ListType)]
+    toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
+         List.zip terms (List.cycle [lt'])
+          where
+            terms =  [t]
+                  -- <> maybe [] (\n -> [unNgramsTerm n]) root
+                  -- <> maybe [] (\n -> [unNgramsTerm n]) parent
+                  <> (map unNgramsTerm $ Map.keys children)
+            lt'   = listOf m nre
 
-------------------------------------------------------------------------
-toList :: Map Text NgramsRepoElement -> (Text, NgramsRepoElement) -> [(Text, ListType)]
-toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
-     List.zip terms (List.cycle [lt'])
-      where
-        terms =  [t]
-              -- <> maybe [] (\n -> [unNgramsTerm n]) root
-              -- <> maybe [] (\n -> [unNgramsTerm n]) parent
-              <> (map unNgramsTerm $ Map.keys children)
-        lt'   = listOf m nre
-
-listOf :: Map Text NgramsRepoElement -> NgramsRepoElement -> ListType
-listOf m ng = case _nre_parent ng of
-  Nothing -> _nre_list ng
-  Just  p -> case Map.lookup (unNgramsTerm p) m of
-    Just ng' -> listOf m ng'
-    Nothing  -> CandidateTerm
-    -- panic "[G.C.T.L.Social.listOf] Nothing: Should Not happen"
+            listOf :: Map Text NgramsRepoElement -> NgramsRepoElement -> ListType
+            listOf m ng = case _nre_parent ng of
+              Nothing -> _nre_list ng
+              Just  p -> case Map.lookup (unNgramsTerm p) m of
+                Just ng' -> listOf m ng'
+                Nothing  -> CandidateTerm
+                -- panic "[G.C.T.L.Social.listOf] Nothing: Should Not happen"
 
 ------------------------------------------------------------------------
 countList :: Text
@@ -89,14 +88,16 @@ countList t m input = case Map.lookup t m of
   Nothing -> input
   Just l  -> Map.alter addList t input
     where
+
       addList Nothing   = Just $ addCountList l Map.empty
       addList (Just lm) = Just $ addCountList l lm
 
-addCountList :: ListType -> Map ListType Int -> Map ListType Int
-addCountList l m = Map.alter (plus l) l  m
-  where
-    plus CandidateTerm Nothing  = Just 1
-    plus CandidateTerm (Just x) = Just $ x + 1
+      addCountList :: ListType -> Map ListType Int -> Map ListType Int
+      addCountList l m = Map.alter (plus l) l  m
+        where
+          plus CandidateTerm Nothing  = Just 1
+          plus CandidateTerm (Just x) = Just $ x + 1
 
-    plus _ Nothing              = Just 3
-    plus _ (Just x)             = Just $ x + 3
+          plus _ Nothing              = Just 3
+          plus _ (Just x)             = Just $ x + 3
+
