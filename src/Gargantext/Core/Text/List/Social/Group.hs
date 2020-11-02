@@ -20,18 +20,12 @@ module Gargantext.Core.Text.List.Social.Group
 
 import Control.Lens
 import Data.Map (Map)
-import Data.Maybe (fromMaybe)
 import Data.Semigroup (Semigroup(..))
 import Data.Set (Set)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types.Individu
 import Gargantext.Core.Types.Main
-import Gargantext.Database.Admin.Config
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Table.Node.Error
 import Gargantext.Prelude
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
@@ -58,7 +52,6 @@ parentUnionsExcl :: Ord a
 parentUnionsExcl = Map.unions
 
 ------------------------------------------------------------------------
-
 type Parent = Text
 
 hasParent :: Text
@@ -68,8 +61,8 @@ hasParent t m = case Map.lookup t m of
   Nothing  -> Nothing
   Just  m' -> (fst . fst) <$> Map.maxViewWithKey m'
 
-------------------------------------------------------------------------
 
+------------------------------------------------------------------------
 data FlowListScores =
   FlowListScores { _flc_parents :: Map Parent   Int
                  , _flc_lists   :: Map ListType Int
@@ -80,13 +73,18 @@ data FlowListScores =
 
 makeLenses ''FlowListScores
 
+instance Semigroup FlowListScores where
+  (<>) (FlowListScores p1 l1) (FlowListScores p2 l2) =
+    FlowListScores (p1 <> p2) (l1 <> l2)
+
 ------------------------------------------------------------------------
--- | toFlowListScores which generate Score from list of Map Text NgramsRepoElement
+-- | toFlowListScores which generate Score from list of Map Text
+--   NgramsRepoElement
 
 toFlowListScores :: Set Text
-                -> Map Text FlowListScores
+                ->  Map Text FlowListScores
                 -> [Map Text NgramsRepoElement]
-                -> Map Text FlowListScores
+                ->  Map Text FlowListScores
 toFlowListScores ts = foldl' (toFlowListScores' ts)
   where
     toFlowListScores' :: Set Text
@@ -111,7 +109,7 @@ toFlowListScores ts = foldl' (toFlowListScores' ts)
 -- | Main addFunctions to FlowListScores
 ------------------------------------------------------------------------
 
--- | Very unseful but nice comment:
+-- | Unseful but nice comment:
 -- "this function looks like an ASCII bird"
 addList :: ListType
         -> Maybe FlowListScores

@@ -20,6 +20,7 @@ import Gargantext.API.Ngrams.Tools -- (getListNgrams)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Find
 import Gargantext.Core.Text.List.Social.ListType
+import Gargantext.Core.Text.List.Social.Group
 import Gargantext.Core.Types.Individu
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Types.Node
@@ -54,10 +55,11 @@ flowSocialList user nt ngrams' = do
   -- publicListIds <- findListsId Public user
   -- publicLists   <- flowSocialListByMode' publicListIds nt (termsByList CandidateTerm privateLists)
 
-  let result = unions [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
-                      , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
-                      -- , Map.mapKeys (fromMaybe CandidateTerm) publicLists
-                      ]
+  let result = parentUnionsExcl
+             [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
+             , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
+             -- , Map.mapKeys (fromMaybe CandidateTerm) publicLists
+             ]
   -- printDebug "* socialLists *: results \n" result
   pure result
 
@@ -75,6 +77,17 @@ flowSocialListByMode listIds  nt ngrams' = do
     let r = toSocialList counts ngrams'
     pure r
 
+
+flowSocialListByMode' :: ( RepoCmdM env err m
+                       , CmdM     env err m
+                       , HasNodeError err
+                       , HasTreeError err
+                       )
+                    => [NodeId]-> NgramsType -> Set Text
+                    -> m (Map Text FlowListScores)
+flowSocialListByMode' ns nt st = do
+  ngramsRepos <- mapM (\l -> getListNgrams [l] nt) ns
+  pure $ toFlowListScores st Map.empty ngramsRepos
 
 ------------------------------------------------------------------------
 -- TODO: maybe use social groups too
@@ -111,7 +124,6 @@ toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
 
 ------------------------------------------------------------------------
 -- | Tools
-
 ------------------------------------------------------------------------
 termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
 termsByList CandidateTerm m = Set.unions
@@ -121,8 +133,6 @@ termsByList l m =
   fromMaybe Set.empty $ Map.lookup (Just l) m
 
 ------------------------------------------------------------------------
-
-
 unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
       => [Map a (Set b)] -> Map a (Set b)
 unions = invertBack . Map.unionsWith (<>) . map invertForw

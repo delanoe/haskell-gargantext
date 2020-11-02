@@ -129,7 +129,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
   printDebug "\n * socialLists * \n" socialLists
 
   let
-    socialStop  = fromMaybe Set.empty $ Map.lookup StopTerm      socialLists
+    _socialStop = fromMaybe Set.empty $ Map.lookup StopTerm      socialLists
     _socialMap  = fromMaybe Set.empty $ Map.lookup MapTerm       socialLists
     _socialCand = fromMaybe Set.empty $ Map.lookup CandidateTerm socialLists
     -- stopTerms ignored for now (need to be tagged already)

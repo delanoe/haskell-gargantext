@@ -50,7 +50,7 @@ instance ToSchema NodeTree where
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
 -- data ListType  =  CandidateTerm | StopTerm | MapTerm
-data ListType  =  StopTerm | CandidateTerm | MapTerm
+data ListType  =  CandidateTerm | StopTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
@@ -81,7 +81,11 @@ listTypeId CandidateTerm = 1
 listTypeId MapTerm       = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
-fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]
+fromListTypeId i = lookup i
+                 $ fromList
+                 [ (listTypeId l, l)
+                 | l <- [StopTerm, CandidateTerm, MapTerm]
+                 ]
 
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal

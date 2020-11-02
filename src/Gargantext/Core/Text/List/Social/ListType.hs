@@ -11,22 +11,11 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social.ListType
   where
 
--- findList imports
-import Gargantext.Core.Types.Individu
-import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Table.Node.Error
-import Gargantext.Database.Query.Tree
-import Gargantext.Database.Query.Tree.Root (getRootId)
-import Gargantext.Prelude
-
--- filterList imports
-import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Data.Set (Set)
-import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
+import Gargantext.Prelude
 import Gargantext.API.Ngrams.Tools -- (getListNgrams)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types.Main
@@ -49,9 +38,9 @@ countFilterList st nt ls input =
               => Set Text -> NgramsType -> [ListId]
               ->    Map Text (Map ListType Int)
               -> m (Map Text (Map ListType Int))
-      countFilterList' st nt ls input = do
-        ml <- toMapTextListType <$> getListNgrams ls nt
-        pure $ Set.foldl' (\m t -> countList t ml m) input st
+      countFilterList' st' nt' ls' input' = do
+        ml <- toMapTextListType <$> getListNgrams ls' nt'
+        pure $ Set.foldl' (\m t -> countList t ml m) input' st'
 
 ------------------------------------------------------------------------
 -- FIXME children have to herit the ListType of the parent
@@ -62,20 +51,20 @@ toMapTextListType m = Map.fromListWith (<>)
                     $ Map.toList m
   where
     toList :: Map Text NgramsRepoElement -> (Text, NgramsRepoElement) -> [(Text, ListType)]
-    toList m (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
+    toList m' (t, nre@(NgramsRepoElement _ _ _ _ (MSet children))) =
          List.zip terms (List.cycle [lt'])
           where
             terms =  [t]
                   -- <> maybe [] (\n -> [unNgramsTerm n]) root
                   -- <> maybe [] (\n -> [unNgramsTerm n]) parent
                   <> (map unNgramsTerm $ Map.keys children)
-            lt'   = listOf m nre
+            lt'   = listOf m' nre
 
             listOf :: Map Text NgramsRepoElement -> NgramsRepoElement -> ListType
-            listOf m ng = case _nre_parent ng of
+            listOf m'' ng = case _nre_parent ng of
               Nothing -> _nre_list ng
-              Just  p -> case Map.lookup (unNgramsTerm p) m of
-                Just ng' -> listOf m ng'
+              Just  p -> case Map.lookup (unNgramsTerm p) m'' of
+                Just ng' -> listOf m'' ng'
                 Nothing  -> CandidateTerm
                 -- panic "[G.C.T.L.Social.listOf] Nothing: Should Not happen"
 
@@ -93,7 +82,7 @@ countList t m input = case Map.lookup t m of
       addList (Just lm) = Just $ addCountList l lm
 
       addCountList :: ListType -> Map ListType Int -> Map ListType Int
-      addCountList l m = Map.alter (plus l) l  m
+      addCountList l' m' = Map.alter (plus l') l'  m'
         where
           plus CandidateTerm Nothing  = Just 1
           plus CandidateTerm (Just x) = Just $ x + 1

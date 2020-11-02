@@ -21,20 +21,6 @@ import Gargantext.Database.Query.Tree
 import Gargantext.Database.Query.Tree.Root (getRootId)
 import Gargantext.Prelude
 
--- filterList imports
-import Data.Maybe (fromMaybe)
-import Data.Map (Map)
-import Data.Set (Set)
-import Data.Semigroup (Semigroup(..))
-import Data.Text (Text)
-import Gargantext.API.Ngrams.Tools -- (getListNgrams)
-import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types.Main
-import Gargantext.Database.Schema.Ngrams
-import qualified Data.List  as List
-import qualified Data.Map   as Map
-import qualified Data.Set   as Set
-
 ------------------------------------------------------------------------
 findListsId :: (HasNodeError err, HasTreeError err)
             => NodeMode -> User -> Cmd err [NodeId]
