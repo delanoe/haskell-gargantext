@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fno-warn-unused-top-binds -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-|
 Module      : Gargantext.API.Ngrams
 Description : Server API
@@ -375,52 +375,53 @@ tableNgramsPostChartsAsync utn logStatus = do
           case tabType of
             Authors -> do
               -- printDebug "[tableNgramsPut] Authors, updating Pie, cId" cId
-              let jl = jobLogInit 1
-              logStatus jl
+              (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
+              logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-              pure $ jobLogSuccess jl
+              logRefSuccess
+
+              getRef
             Institutes -> do
               -- printDebug "[tableNgramsPut] Institutes, updating Tree, cId" cId
               -- printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
-              let jl = jobLogInit 3
-              logStatus jl
+              (logRef, logRefSuccess, getRef) <- runJobLog 3 logStatus
+              logRef
               _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
               -- printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
-              let jl = jobLogSuccess jl
-              logStatus jl
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
               -- printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
-              let jl = jobLogSuccess jl
-              logStatus jl
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
-              pure $ jobLogSuccess jl
+              logRefSuccess
+
+              getRef
             Sources -> do
               -- printDebug "[tableNgramsPut] Sources, updating chart, cId" cId
-              let jl = jobLogInit 1
-              logStatus jl
+              (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
+              logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-              pure $ jobLogSuccess jl
+              logRefSuccess
+
+              getRef
             Terms -> do
               -- printDebug "[tableNgramsPut] Terms, updating Metrics (Histo), cId" cId
-              let jl = jobLogInit 6
-              logStatus jl
+              (logRef, logRefSuccess, getRef) <- runJobLog 6 logStatus
+              logRef
               _ <- Metrics.updateChart cId (Just listId) tabType Nothing
-              let jl = jobLogSuccess jl
-              logStatus jl
+              logRefSuccess
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-              let jl = jobLogSuccess jl
-              logStatus jl
+              logRefSuccess
               _ <- Metrics.updateScatter cId (Just listId) tabType Nothing
-              let jl = jobLogSuccess jl
-              logStatus jl
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
-              let jl = jobLogSuccess jl
-              logStatus jl
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
-              let jl = jobLogSuccess jl
-              logStatus jl
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
-              pure $ jobLogSuccess jl
+              logRefSuccess
+
+              getRef
             _ -> do
               printDebug "[tableNgramsPut] no update for tabType = " tabType
               pure $ jobLogFail $ jobLogInit 1
@@ -729,12 +730,12 @@ apiNgramsTableDoc dId =  getTableNgramsDoc dId
 apiNgramsAsync :: NodeId -> GargServer TableNgramsAsyncApi
 apiNgramsAsync _dId =
   serveJobsAPI $
-    JobFunction (\i l ->
+    JobFunction $ \i log ->
       let
         log' x = do
           printDebug "tableNgramsPostChartsAsync" x
-          liftBase $ l x
-      in tableNgramsPostChartsAsync i log')
+          liftBase $ log x
+      in tableNgramsPostChartsAsync i log'
 
 -- Did the given list of ngrams changed since the given version?
 -- The returned value is versioned boolean value, meaning that one always retrieve the
