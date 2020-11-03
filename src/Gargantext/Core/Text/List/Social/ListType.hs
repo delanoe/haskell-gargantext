@@ -87,6 +87,9 @@ countList t m input = case Map.lookup t m of
           plus CandidateTerm Nothing  = Just 1
           plus CandidateTerm (Just x) = Just $ x + 1
 
-          plus _ Nothing              = Just 3
-          plus _ (Just x)             = Just $ x + 3
+          plus MapTerm Nothing              = Just 2
+          plus MapTerm (Just x)             = Just $ x + 2
+
+          plus StopTerm Nothing              = Just 3
+          plus StopTerm (Just x)             = Just $ x + 3
 

@@ -106,11 +106,9 @@ toFlowListScores ts = foldl' (toFlowListScores' ts)
                   $ Map.alter (addList $ _nre_list nre) t to''
 
 ------------------------------------------------------------------------
--- | Main addFunctions to FlowListScores
-------------------------------------------------------------------------
-
--- | Unseful but nice comment:
--- "this function looks like an ASCII bird"
+-- | Main addFunctions to groupResolution the FlowListScores
+-- Use patch-map library here
+-- diff, transformWith patches simplifies functions below
 addList :: ListType
         -> Maybe FlowListScores
         -> Maybe FlowListScores
@@ -121,16 +119,30 @@ addList l (Just (FlowListScores mapParent mapList)) =
   Just $ FlowListScores mapParent mapList'
     where
       mapList' = addList' l mapList
+-- * Unseful but nice comment:
+-- "the addList function looks like an ASCII bird in a blue sky"
+--      _
+--  ___| | ___   _
+-- / __| |/ / | | |
+-- \__ \   <| |_| |
+-- |___/_|\_\\__, |
+--           |___/
+-- 
+--
+--
 
-
+-- | Concrete function to pass to PatchMap
 addList' :: ListType -> Map ListType Int -> Map ListType Int
 addList' l m = Map.alter (plus l) l  m
   where
     plus CandidateTerm Nothing  = Just 1
     plus CandidateTerm (Just x) = Just $ x + 1
 
-    plus _ Nothing              = Just 3
-    plus _ (Just x)             = Just $ x + 3
+    plus MapTerm Nothing        = Just 2
+    plus MapTerm (Just x)       = Just $ x + 2
+
+    plus StopTerm Nothing       = Just 3
+    plus StopTerm (Just x)      = Just $ x + 3
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

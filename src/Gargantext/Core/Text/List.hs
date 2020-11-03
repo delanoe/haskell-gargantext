@@ -79,9 +79,7 @@ buildNgramsOthersList ::( HasNodeError err
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
-
   ngs  <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
-
 
   let 
     grouped = toGroupedText groupIt (Set.size . snd) fst snd
@@ -265,7 +263,6 @@ buildNgramsTermsList user uCid mCid groupParams = do
 
 --  printDebug "monoScoredInclHead" monoScoredInclHead
 --  printDebug "monoScoredExclHead" monoScoredExclTail
---
 --  printDebug "multScoredInclHead" multScoredInclHead
 --  printDebug "multScoredExclTail" multScoredExclTail
 

@@ -79,12 +79,12 @@ flowSocialListByMode listIds  nt ngrams' = do
 
 
 flowSocialListByMode' :: ( RepoCmdM env err m
-                       , CmdM     env err m
-                       , HasNodeError err
-                       , HasTreeError err
-                       )
-                    => [NodeId]-> NgramsType -> Set Text
-                    -> m (Map Text FlowListScores)
+                         , CmdM     env err m
+                         , HasNodeError err
+                         , HasTreeError err
+                         )
+                      => [NodeId]-> NgramsType -> Set Text
+                      -> m (Map Text FlowListScores)
 flowSocialListByMode' ns nt st = do
   ngramsRepos <- mapM (\l -> getListNgrams [l] nt) ns
   pure $ toFlowListScores st Map.empty ngramsRepos
