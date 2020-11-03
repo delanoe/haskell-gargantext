@@ -1,12 +1,12 @@
 module Gargantext.Prelude.Job where
 
-import Control.Monad.IO.Class (liftIO, MonadIO)
 import Data.IORef
 import Data.Maybe
 
 import Gargantext.Prelude
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..))
+
 
 jobLogInit :: Int -> JobLog
 jobLogInit rem =
@@ -36,18 +36,18 @@ jobLogFail (JobLog { _scst_succeeded = mSucc
          , _scst_failed = (+ 1) <$> mFail
          , _scst_events = evt }
 
-runJobLog :: MonadIO io => Int -> (JobLog -> io ()) -> io (io (), io (), io JobLog)
+runJobLog :: MonadBase IO m => Int -> (JobLog -> m ()) -> m (m (), m (), m JobLog)
 runJobLog num logStatus = do
-  jlRef <- liftIO $ newIORef $ jobLogInit num
+  jlRef <- liftBase $ newIORef $ jobLogInit num
 
   return (logRefF jlRef, logRefSuccessF jlRef, getRefF jlRef)
 
   where
     logRefF ref = do
-      jl <- liftIO $ readIORef ref
+      jl <- liftBase $ readIORef ref
       logStatus jl
     logRefSuccessF ref = do
-      jl <- liftIO $ readIORef ref
-      liftIO $ writeIORef ref $ jobLogSuccess jl
+      jl <- liftBase $ readIORef ref
+      liftBase $ writeIORef ref $ jobLogSuccess jl
     getRefF ref = do
-      liftIO $ readIORef ref
+      liftBase $ readIORef ref

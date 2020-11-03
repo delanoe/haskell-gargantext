@@ -114,7 +114,7 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 import Prelude (error)
-import Gargantext.Prelude
+import Gargantext.Prelude hiding (log)
 
 import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
@@ -133,7 +133,6 @@ import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)
