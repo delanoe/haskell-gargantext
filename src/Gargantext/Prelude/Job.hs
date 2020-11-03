@@ -1,5 +1,6 @@
 module Gargantext.Prelude.Job where
 
+import Control.Monad.IO.Class (liftIO, MonadIO)
 import Data.IORef
 import Data.Maybe
 
@@ -35,17 +36,18 @@ jobLogFail (JobLog { _scst_succeeded = mSucc
          , _scst_failed = (+ 1) <$> mFail
          , _scst_events = evt }
 
-runJobLog :: Int -> (JobLog -> IO ()) -> IO (IO (), IO (), IO JobLog)
+runJobLog :: MonadIO io => Int -> (JobLog -> io ()) -> io (io (), io (), io JobLog)
 runJobLog num logStatus = do
-  jlRef <- newIORef $ jobLogInit num
+  jlRef <- liftIO $ newIORef $ jobLogInit num
 
-  let logRef = do
-    jl <- readIORef jlRef
-    logStatus jl
-  let logRefSuccess = do
-    jl <- readIORef jlRef
-    writeIORef $ jobLogSuccess jl
-  let getRef = do
-    readIORef jlRef
+  return (logRefF jlRef, logRefSuccessF jlRef, getRefF jlRef)
 
-  return (logRef, logRefSuccess, getRef)
+  where
+    logRefF ref = do
+      jl <- liftIO $ readIORef ref
+      logStatus jl
+    logRefSuccessF ref = do
+      jl <- liftIO $ readIORef ref
+      liftIO $ writeIORef ref $ jobLogSuccess jl
+    getRefF ref = do
+      liftIO $ readIORef ref
