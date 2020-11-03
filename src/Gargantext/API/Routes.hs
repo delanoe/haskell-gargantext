@@ -120,7 +120,8 @@ type GargPrivateAPI' =
            -- Document endpoint
            :<|> "document" :> Summary "Document endpoint"
                            :> Capture "doc_id" DocId
-                           :> "ngrams" :> TableNgramsApi
+                           :> "ngrams"
+                           :> TableNgramsApi
 
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
             -- TODO-SECURITY
