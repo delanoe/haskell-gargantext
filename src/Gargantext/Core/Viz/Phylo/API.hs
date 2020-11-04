@@ -17,6 +17,7 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.API
   where
 
+import Data.Maybe (fromMaybe)
 import Control.Lens ((^.))
 import Data.String.Conversions
 --import Control.Monad.Reader (ask)
@@ -98,13 +99,13 @@ getPhylo :: PhyloId -> GargServer GetPhylo
 getPhylo phId _lId l msb  = do
   phNode     <- getNodeWith phId (Proxy :: Proxy HyperdataPhylo)
   let
-    level = maybe 2 identity l
-    branc = maybe 2 identity msb
+    level = fromMaybe 2 l
+    branc = fromMaybe 2 msb
     maybePhylo = phNode ^. (node_hyperdata . hp_data)
 
   p <- liftBase $ viewPhylo2Svg
                 $ viewPhylo level branc
-                $ maybe phyloFromQuery identity maybePhylo
+                $ fromMaybe phyloFromQuery maybePhylo
   pure (SVG p)
 ------------------------------------------------------------------------
 type PostPhylo =  QueryParam "listId" ListId
@@ -112,16 +113,16 @@ type PostPhylo =  QueryParam "listId" ListId
                :> (Post '[JSON] NodeId)
 
 postPhylo :: CorpusId -> UserId -> GargServer PostPhylo
-postPhylo n userId _lId = do
+postPhylo corpusId userId _lId = do
   -- TODO get Reader settings
   -- s <- ask
   -- let
     -- _vrs = Just ("1" :: Text)
     -- _sft = Just (Software "Gargantext" "4")
     -- _prm = initPhyloParam vrs sft (Just q)
-  phy <- flowPhylo n
-  pId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just n) userId]
-  pure $ NodeId (fromIntegral pId)
+  phy <- flowPhylo corpusId -- params
+  phyloId <- insertNodes [node NodePhylo "Phylo" (HyperdataPhylo Nothing (Just phy)) (Just corpusId) userId]
+  pure $ NodeId (fromIntegral phyloId)
 
 ------------------------------------------------------------------------
 -- | DELETE Phylo == delete a node
