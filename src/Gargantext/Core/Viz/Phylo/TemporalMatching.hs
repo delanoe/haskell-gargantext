@@ -333,8 +333,9 @@ toPhyloQuality beta freq branches =
        $ keys freq
   where 
       pys :: Double 
-      pys = sum (elems freq) 
+      pys = sum (elems freq)
 
+-- 1 / nb de foundation
 
 ------------------------------------
 -- | Constant Temporal Matching | --
