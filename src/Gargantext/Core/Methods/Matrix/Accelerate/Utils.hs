@@ -33,8 +33,6 @@ module Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Data.Foldable as P (foldl1)
 import Debug.Trace (trace)
 import Data.Array.Accelerate
-import Data.Array.Accelerate.Array.Sugar (Elt(..), Shape(..), Slice(..), (:.))
-import Data.Array.Accelerate.Smart (Exp(..))
 import Data.Array.Accelerate.Interpreter (run)
 import qualified Gargantext.Prelude as P
 import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
@@ -43,13 +41,13 @@ import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
 -- | Main operators
 -- Matrix Multiplication
 (#*#) :: ( Shape ix
-        , Slice ix
-        , Elt a
-        , P.Num (Exp a)
-        )
-     => Acc (Array ((ix :. Int) :. Int) a)
-     -> Acc (Array ((ix :. Int) :. Int) a)
-     -> Acc (Array ((ix :. Int) :. Int) a)
+         , Slice ix
+         , Elt a
+         , P.Num (Exp a)
+         )
+      => Acc (Array ((ix :. Int) :. Int) a)
+      -> Acc (Array ((ix :. Int) :. Int) a)
+      -> Acc (Array ((ix :. Int) :. Int) a)
 (#*#) = multiplyMatrixMatrix
 
 
@@ -63,15 +61,6 @@ import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
      -> Acc (Array ((ix :. Int) :. Int) a)
      -> Acc (Array ((ix :. Int) :. Int) a)
 (.*) = zipWith (*)
-
-(.**) :: ( Shape ix
-        , Slice ix
-        , Elt a
-        , P.Num (Exp a)
-        )
-     => Acc (Array ((ix :. Int) :. Int) a)
-     -> Acc (Array ((ix :. Int) :. Int) a)
-(.**) m = (.*) m m
 
 
 (./) :: ( Shape ix
@@ -406,14 +395,14 @@ theMatrixInt n = matrix n (dataMatrix n)
                                 , 1, 2
                                 ]
 
-                 | (P.==) x 3 =  [ 1, 1, 2
-                                 , 1, 2, 3
-                                 , 2, 3, 4
+                 | (P.==) x 3 =  [ 7, 4, 0
+                                 , 4, 5, 3
+                                 , 0, 3, 4
                                  ]
-                 | (P.==) x 4 =  [ 1, 1, 2, 3
-                                 , 1, 2, 3, 4
-                                 , 2, 3, 4, 5
-                                 , 3, 4, 5, 6
+                 | (P.==) x 4 =  [ 4, 4, 0, 0
+                                 , 4, 4, 0, 0
+                                 , 0, 0, 3, 3
+                                 , 0, 0, 3, 3
                                  ]
                  | P.otherwise = P.undefined
 

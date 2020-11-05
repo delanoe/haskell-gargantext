@@ -93,7 +93,8 @@ getGraph _uId nId = do
   -- TODO Distance in Graph params
   case graph of
     Nothing     -> do
-        graph' <- computeGraph cId Conditional NgramsTerms repo
+        graph' <- computeGraph cId Distributional NgramsTerms repo
+        -- graph' <- computeGraph cId Conditional NgramsTerms repo
         mt     <- defaultGraphMetadata cId "Title" repo
         let graph'' = set graph_metadata (Just mt) graph'
         let hg = HyperdataGraphAPI graph'' camera
@@ -206,7 +207,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Conditional
+  _g <- trace (show u) $ recomputeGraph u n Distributional -- Conditional
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -241,7 +242,7 @@ graphVersions nId = do
                        , gv_repo = v }
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
-recomputeVersions uId nId = recomputeGraph uId nId Conditional
+recomputeVersions uId nId = recomputeGraph uId nId Distributional -- Conditional
 
 ------------------------------------------------------------
 graphClone :: UserId

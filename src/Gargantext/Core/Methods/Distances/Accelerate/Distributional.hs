@@ -49,56 +49,32 @@ import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Gargantext.Prelude as P
-
+-- import Data.Array.Accelerate.LinearAlgebra (identity) TODO
 -----------------------------------------------------------------------
+
 -- * Distributional Distance
-distributional'' :: ( P.Num (Exp a)
-                    , P.Fractional (Exp a)
-                    , P.Ord (Exp a)
-                    , Ord a
-                    )
-                  => Matrix a -> Matrix a
-distributional'' m' = run mi_d_mi
+distributional :: Matrix Int -> Matrix Double
+distributional m' = run z
  where
-    m = use m'
+    m = map fromIntegral $ use m'
     n = dim m'
 
     d_m   = (.*) (matrixIdentity n) m
 
     o_d_m = (#*#) (matrixOne n) d_m
-    d_m_o = (#*#) d_m  (matrixOne n)
+    d_m_o = transpose o_d_m
 
+    mi    = (.*) ((./) m o_d_m) ((./) m d_m_o)
+    d_mi  = (.*) (matrixIdentity n) mi
 
-    mi      = (.*) ((./) m o_d_m) ((./) m d_m_o)
+    w     = (.-) mi d_mi
 
-    d_mi    = (.*) (matrixIdentity n) mi
-    mi_d_mi = (.-) mi d_mi
+    z     = (#*#) w (matrixOne n)
+    z'    = transpose z
 
-    -- WIP (specs describe iteration on vectors, using full matrix version here)
-    d_mi_d_mi = (.*) (matrixIdentity n) mi_d_mi
+    min_z_z' = zipWith min z z'
 
-    min_mi_mj = zipWith min d_mi_d_mi d_mj_d_mj
-      where
-        -- not sure about transpose here
-        -- maybe backpermute j to i cells ?
-        d_mj_d_mj = transpose d_mi_d_mi
-
-    sum_min_mi_mj = matSumCol n min_mi_mj
-    sum_mi        = matSumCol n d_mi_d_mi
-
-    result = zipWith (/) sum_min_mi_mj sum_mi
-
-
-
-
-
-
-
-
-
-
-
-
+    result = (./) min_z_z' z
 
 
 
@@ -124,8 +100,8 @@ distributional'' m' = run mi_d_mi
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
 
-distributional :: Matrix Int -> Matrix Double
-distributional m = -- run {- $ matMiniMax -}
+distributional'' :: Matrix Int -> Matrix Double
+distributional'' m = -- run {- $ matMiniMax -}
                    run  $ diagNull n
                        $ rIJ n
                        $ filterWith 0 100
