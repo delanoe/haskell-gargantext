@@ -83,11 +83,11 @@ flowSocialListByMode' :: ( RepoCmdM env err m
                          , HasNodeError err
                          , HasTreeError err
                          )
-                      => [NodeId]-> NgramsType -> Set Text
+                      => KeepAllParents -> [NodeId]-> NgramsType -> Set Text
                       -> m (Map Text FlowListScores)
-flowSocialListByMode' ns nt st = do
+flowSocialListByMode' k ns nt st = do
   ngramsRepos <- mapM (\l -> getListNgrams [l] nt) ns
-  pure $ toFlowListScores st Map.empty ngramsRepos
+  pure $ toFlowListScores k st Map.empty ngramsRepos
 
 ------------------------------------------------------------------------
 -- TODO: maybe use social groups too

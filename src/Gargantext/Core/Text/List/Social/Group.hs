@@ -81,28 +81,31 @@ instance Semigroup FlowListScores where
 -- | toFlowListScores which generate Score from list of Map Text
 --   NgramsRepoElement
 
-toFlowListScores :: Set Text
+toFlowListScores :: KeepAllParents
+                -> Set Text
                 ->  Map Text FlowListScores
                 -> [Map Text NgramsRepoElement]
                 ->  Map Text FlowListScores
-toFlowListScores ts = foldl' (toFlowListScores' ts)
+toFlowListScores k ts = foldl' (toFlowListScores' k ts)
   where
-    toFlowListScores' :: Set Text
+    toFlowListScores' :: KeepAllParents
+                     -> Set Text
                      -> Map Text FlowListScores
                      -> Map Text NgramsRepoElement
                      -> Map Text FlowListScores
-    toFlowListScores' ts' to' ngramsRepo =
-      Set.foldl' (toFlowListScores'' ts' ngramsRepo) to' ts'
+    toFlowListScores' k ts' to' ngramsRepo =
+      Set.foldl' (toFlowListScores'' k ts' ngramsRepo) to' ts'
 
-    toFlowListScores'' :: Set Text
-                      -> Map Text NgramsRepoElement
-                      -> Map Text FlowListScores
-                      -> Text
-                      -> Map Text FlowListScores
-    toFlowListScores'' ss ngramsRepo to'' t =
+    toFlowListScores'' :: KeepAllParents
+                       -> Set Text
+                       -> Map Text NgramsRepoElement
+                       -> Map Text FlowListScores
+                       -> Text
+                       -> Map Text FlowListScores
+    toFlowListScores'' k ss ngramsRepo to'' t =
       case Map.lookup t ngramsRepo of
         Nothing  -> to''
-        Just nre -> Map.alter (addParent nre ss)        t
+        Just nre -> Map.alter (addParent k nre ss)        t
                   $ Map.alter (addList $ _nre_list nre) t to''
 
 ------------------------------------------------------------------------
@@ -146,31 +149,36 @@ addList' l m = Map.alter (plus l) l  m
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-addParent :: NgramsRepoElement -> Set Text
+data KeepAllParents = KeepAllParents Bool
+
+addParent :: KeepAllParents -> NgramsRepoElement -> Set Text
           -> Maybe FlowListScores
           -> Maybe FlowListScores
 
-addParent nre ss Nothing  =
+addParent k nre ss Nothing  =
   Just $ FlowListScores mapParent Map.empty
     where
-      mapParent = addParent' (_nre_parent nre) ss Map.empty
+      mapParent = addParent' k (_nre_parent nre) ss Map.empty
 
-addParent nre ss (Just (FlowListScores mapParent mapList)) =
+addParent k nre ss (Just (FlowListScores mapParent mapList)) =
   Just $ FlowListScores mapParent' mapList
     where
-      mapParent' = addParent' (_nre_parent nre) ss mapParent
+      mapParent' = addParent' k (_nre_parent nre) ss mapParent
 
 addParent' :: Num a
-           => Maybe NgramsTerm
+           => KeepAllParents
+           -> Maybe NgramsTerm
            -> Set Text
            -> Map Text a
            -> Map Text a
-addParent' Nothing               _ss mapParent = mapParent
-addParent' (Just (NgramsTerm p')) ss mapParent =
-  if not (Set.member p' ss)
-    then mapParent
-    else Map.alter addCount p' mapParent
-      where
+addParent' _ Nothing               _ss mapParent = mapParent
+addParent' (KeepAllParents k) (Just (NgramsTerm p')) ss mapParent =
+  case k of
+    True  -> Map.alter addCount p' mapParent
+    False -> if not (Set.member p' ss)
+                then mapParent
+                else Map.alter addCount p' mapParent
+  where
         addCount Nothing  = Just 1
         addCount (Just n) = Just $ n + 1
 
