@@ -93,8 +93,8 @@ toFlowListScores k ts = foldl' (toFlowListScores' k ts)
                      -> Map Text FlowListScores
                      -> Map Text NgramsRepoElement
                      -> Map Text FlowListScores
-    toFlowListScores' k ts' to' ngramsRepo =
-      Set.foldl' (toFlowListScores'' k ts' ngramsRepo) to' ts'
+    toFlowListScores' k' ts' to' ngramsRepo =
+      Set.foldl' (toFlowListScores'' k' ts' ngramsRepo) to' ts'
 
     toFlowListScores'' :: KeepAllParents
                        -> Set Text
@@ -102,10 +102,10 @@ toFlowListScores k ts = foldl' (toFlowListScores' k ts)
                        -> Map Text FlowListScores
                        -> Text
                        -> Map Text FlowListScores
-    toFlowListScores'' k ss ngramsRepo to'' t =
+    toFlowListScores'' k'' ss ngramsRepo to'' t =
       case Map.lookup t ngramsRepo of
         Nothing  -> to''
-        Just nre -> Map.alter (addParent k nre ss)        t
+        Just nre -> Map.alter (addParent k'' nre ss)        t
                   $ Map.alter (addList $ _nre_list nre) t to''
 
 ------------------------------------------------------------------------
@@ -175,9 +175,9 @@ addParent' _ Nothing               _ss mapParent = mapParent
 addParent' (KeepAllParents k) (Just (NgramsTerm p')) ss mapParent =
   case k of
     True  -> Map.alter addCount p' mapParent
-    False -> if not (Set.member p' ss)
-                then mapParent
-                else Map.alter addCount p' mapParent
+    False -> case Set.member p' ss of
+               False -> mapParent
+               True  -> Map.alter addCount p' mapParent
   where
         addCount Nothing  = Just 1
         addCount (Just n) = Just $ n + 1
