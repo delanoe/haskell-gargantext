@@ -56,8 +56,8 @@ mkNodeWithParent NodeFrameWrite i u n =
 mkNodeWithParent NodeFrameCalc i u n =
   mkNodeWithParent_ConfigureHyperdata NodeFrameCalc i u n
 
-mkNodeWithParent NodeFrameCode i u n =
-  mkNodeWithParent_ConfigureHyperdata NodeFrameCode i u n
+mkNodeWithParent NodeFrameNotebook i u n =
+  mkNodeWithParent_ConfigureHyperdata NodeFrameNotebook i u n
 
 
 
@@ -78,8 +78,8 @@ mkNodeWithParent_ConfigureHyperdata NodeFrameWrite (Just i) uId name =
 mkNodeWithParent_ConfigureHyperdata NodeFrameCalc (Just i) uId name =
   mkNodeWithParent_ConfigureHyperdata' NodeFrameCalc (Just i) uId name
 
-mkNodeWithParent_ConfigureHyperdata NodeFrameCode (Just i) uId name =
-  insertNode NodeFrameCode  (Just "Code") (Just $ DefaultFrameCode $ HyperdataFrame "code" name) i uId
+mkNodeWithParent_ConfigureHyperdata NodeFrameNotebook (Just i) uId name =
+  insertNode NodeFrameNotebook  (Just "Notebook") (Just $ DefaultFrameCode $ HyperdataFrame "Notebook" name) i uId
 
 mkNodeWithParent_ConfigureHyperdata    _ _ _ _ = nodeError NotImplYet
 
