@@ -83,11 +83,17 @@ flowSocialListByMode' :: ( RepoCmdM env err m
                          , HasNodeError err
                          , HasTreeError err
                          )
-                      => KeepAllParents -> [NodeId]-> NgramsType -> Set Text
+                      => [NodeId]-> NgramsType -> Set Text
                       -> m (Map Text FlowListScores)
-flowSocialListByMode' k ns nt st = do
+flowSocialListByMode' ns nt st = do
   ngramsRepos <- mapM (\l -> getListNgrams [l] nt) ns
-  pure $ toFlowListScores k st Map.empty ngramsRepos
+  pure $ toFlowListScores (keepAllParents nt) st Map.empty ngramsRepos
+
+
+-- | We keep the parents for all ngrams but terms
+keepAllParents :: NgramsType -> KeepAllParents
+keepAllParents NgramsTerms = KeepAllParents False
+keepAllParents _           = KeepAllParents True
 
 ------------------------------------------------------------------------
 -- TODO: maybe use social groups too
