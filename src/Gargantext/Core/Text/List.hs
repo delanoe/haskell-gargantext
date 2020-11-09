@@ -19,6 +19,7 @@ import Control.Lens ((^.), set)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
 import Data.Map (Map)
+import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Char as Char
 import qualified Data.List as List
@@ -30,10 +31,12 @@ import qualified Data.Text as Text
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core.Text.List.Social (flowSocialList, flowSocialList', FlowSocialListPriority(..), invertForw)
+import Gargantext.Core.Text.List.Social.Group (FlowListScores)
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Core.Text.Group
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Prelude (CmdM)
@@ -79,7 +82,17 @@ buildNgramsOthersList ::( HasNodeError err
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
-  ngs  <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
+  ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
+
+  socialLists' :: Map Text FlowListScores 
+    <- flowSocialList' MySelfFirst user nt (Set.fromList $ Map.keys ngs')
+    -- PrivateFirst for first developments since Public NodeMode is not implemented yet
+
+  -- 8< 8< 8< 8< 8< 8< 8<
+  let 
+    ngs  :: Map Text (Set Text, Set NodeId) = groupNodesByNgramsWith groupIt ngs'
+  socialLists  <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
+  -- >8 >8 >8 >8 >8 >8 >8
 
   let
     grouped = toGroupedText groupIt (Set.size . snd) fst snd
@@ -87,9 +100,6 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
             $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b))
             $ ngs
 
-  socialLists <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
-  -- PrivateFirst for first development since Public is not implemented yet
-  socialLists' <- flowSocialList' PrivateFirst user nt (Set.fromList $ Map.keys ngs)
 
   let
     groupedWithList        = map (addListType (invertForw socialLists)) grouped
@@ -125,7 +135,7 @@ buildNgramsTermsList :: ( HasNodeError err
 buildNgramsTermsList user uCid mCid groupParams = do
 
 -- Computing global speGen score
-  allTerms <- Map.toList <$> getTficf uCid mCid NgramsTerms
+  allTerms :: [(Text, Double)] <- Map.toList <$> getTficf uCid mCid NgramsTerms
 
   -- printDebug "head candidates" (List.take 10 $ allTerms)
   -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)

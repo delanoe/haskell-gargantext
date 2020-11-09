@@ -23,6 +23,7 @@ import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
+import Gargantext.Core.Text.List.Social.Group (FlowListScores)
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -86,33 +87,53 @@ toGroupedText :: Ord b
               -> (a    -> Set NodeId)
               -> [(Text,a)]
               -> Map Stem (GroupedText b)
-toGroupedText fun_stem fun_score fun_texts fun_nodeIds from = groupStems' $ map group from
-  where
-    group (t,d) = let t' = fun_stem t
-                   in (t', GroupedText
-                              Nothing
-                              t
-                              (fun_score d)
-                              (fun_texts d)
-                              (size t)
-                              t'
-                              (fun_nodeIds d)
-                       )
+toGroupedText fun_stem fun_score fun_texts fun_nodeIds from =
+  Map.fromListWith grouping $ map group from
+    where
+      group (t,d) = let t' = fun_stem t
+                     in (t', GroupedText
+                                Nothing
+                                t
+                                (fun_score   d)
+                                (fun_texts   d)
+                                (size        t)
+                                t'
+                                (fun_nodeIds d)
+                         )
 
-groupStems' :: Ord a => [(Stem, GroupedText a)] -> Map Stem (GroupedText a)
-groupStems' = Map.fromListWith grouping
-  where
-    grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
-             (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
-             | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
-             | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
-        where
-          lt = lt1 <> lt2
-          gr    = Set.union group1 group2
-          nodes = Set.union nodes1 nodes2
+grouping :: Ord a
+         => GroupedText a
+         -> GroupedText a
+         -> GroupedText a
+grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
+         (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
+         | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
+         | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
+    where
+      lt = lt1 <> lt2
+      gr    = Set.union group1 group2
+      nodes = Set.union nodes1 nodes2
 
 ------------------------------------------------------------------------
-type Group = Lang -> Int -> Int -> Text -> Text
+
+toGroupedText_FlowListScores :: Ord a
+                             => Map Text (Set NodeId)
+                             -> Map Text FlowListScores
+                             -> Map Text (GroupedText a)
+toGroupedText_FlowListScores = undefined
+
+
+
+toGroupedText_FlowListScores' :: Ord a
+                             => Map Text (Set NodeId)
+                             -> Map Text FlowListScores
+                             -> ( [(Text, Set NodeId)]
+                                ,  Map Text (GroupedText a)
+                                )
+toGroupedText_FlowListScores' = undefined
+
+
+------------------------------------------------------------------------
 type Stem  = Text
 type Label = Text
 data GroupedText score =

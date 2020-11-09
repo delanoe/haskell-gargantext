@@ -68,25 +68,24 @@ flowSocialList user nt ngrams' = do
 -- | FlowSocialListPriority
 -- Sociological assumption: either private or others (public) first
 -- This parameter depends on the user choice
-data FlowSocialListPriority = PrivateFirst | OthersFirst
+data FlowSocialListPriority = MySelfFirst | OthersFirst
 
 flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
-flowSocialListPriority PrivateFirst = [Private, Shared{-, Public -}]
-flowSocialListPriority OthersFirst  = reverse $ flowSocialListPriority PrivateFirst
+flowSocialListPriority MySelfFirst = [Private, Shared{-, Public -}]
+flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirst
 
 ------------------------------------------------------------------------
 flowSocialList' :: ( RepoCmdM env err m
-                  , CmdM     env err m
-                  , HasNodeError err
-                  , HasTreeError err
-                  )
-                  => FlowSocialListPriority 
+                   , CmdM     env err m
+                   , HasNodeError err
+                   , HasTreeError err
+                   )
+                  => FlowSocialListPriority
                   -> User -> NgramsType -> Set Text
                   -> m (Map Text FlowListScores)
 flowSocialList' flowPriority user nt ngrams' =
   parentUnionsExcl <$> mapM (flowSocialListByMode' user nt ngrams')
                             (flowSocialListPriority flowPriority)
-
 
 ------------------------------------------------------------------------
 flowSocialListByMode :: ( RepoCmdM env err m
