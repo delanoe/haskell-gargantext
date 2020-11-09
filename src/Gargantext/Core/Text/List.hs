@@ -29,7 +29,7 @@ import qualified Data.Text as Text
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
-import Gargantext.Core.Text.List.Social (flowSocialList, invertForw)
+import Gargantext.Core.Text.List.Social (flowSocialList, flowSocialList', FlowSocialListPriority(..), invertForw)
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Core.Text.Group
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
@@ -88,6 +88,8 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
             $ ngs
 
   socialLists <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
+  -- PrivateFirst for first development since Public is not implemented yet
+  socialLists' <- flowSocialList' PrivateFirst user nt (Set.fromList $ Map.keys ngs)
 
   let
     groupedWithList        = map (addListType (invertForw socialLists)) grouped

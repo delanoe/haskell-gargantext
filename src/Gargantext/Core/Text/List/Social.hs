@@ -64,6 +64,7 @@ flowSocialList user nt ngrams' = do
   pure result
 
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- | FlowSocialListPriority
 -- Sociological assumption: either private or others (public) first
 -- This parameter depends on the user choice
@@ -73,6 +74,7 @@ flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
 flowSocialListPriority PrivateFirst = [Private, Shared{-, Public -}]
 flowSocialListPriority OthersFirst  = reverse $ flowSocialListPriority PrivateFirst
 
+------------------------------------------------------------------------
 flowSocialList' :: ( RepoCmdM env err m
                   , CmdM     env err m
                   , HasNodeError err
@@ -82,7 +84,7 @@ flowSocialList' :: ( RepoCmdM env err m
                   -> User -> NgramsType -> Set Text
                   -> m (Map Text FlowListScores)
 flowSocialList' flowPriority user nt ngrams' =
-  parentUnionsExcl <$> mapM (\m -> flowSocialListByMode' user m nt ngrams')
+  parentUnionsExcl <$> mapM (flowSocialListByMode' user nt ngrams')
                             (flowSocialListPriority flowPriority)
 
 
@@ -106,11 +108,11 @@ flowSocialListByMode' :: ( RepoCmdM env err m
                          , HasNodeError err
                          , HasTreeError err
                          )
-                      => User -> NodeMode -> NgramsType -> Set Text
+                      => User -> NgramsType -> Set Text -> NodeMode 
                       -> m (Map Text FlowListScores)
-flowSocialListByMode' user mode nt st = do
-  listIds <- findListsId user mode
-  flowSocialListByModeWith listIds nt st
+flowSocialListByMode' user nt st mode =
+      findListsId user mode
+  >>= flowSocialListByModeWith nt st
 
 
 flowSocialListByModeWith :: ( RepoCmdM env err m
@@ -118,11 +120,12 @@ flowSocialListByModeWith :: ( RepoCmdM env err m
                          , HasNodeError err
                          , HasTreeError err
                          )
-                      => [NodeId]-> NgramsType -> Set Text
+                      => NgramsType -> Set Text -> [NodeId]
                       -> m (Map Text FlowListScores)
-flowSocialListByModeWith ns nt st = do
-  ngramsRepos <- mapM (\l -> getListNgrams [l] nt) ns
-  pure $ toFlowListScores (keepAllParents nt) st Map.empty ngramsRepos
+flowSocialListByModeWith nt st ns =
+      mapM (\l -> getListNgrams [l] nt) ns
+  >>= pure
+    . toFlowListScores (keepAllParents nt) st Map.empty
 
 
 -- | We keep the parents for all ngrams but terms
