@@ -80,12 +80,11 @@ instance Semigroup FlowListScores where
 ------------------------------------------------------------------------
 -- | toFlowListScores which generate Score from list of Map Text
 --   NgramsRepoElement
-
 toFlowListScores :: KeepAllParents
-                -> Set Text
-                ->  Map Text FlowListScores
-                -> [Map Text NgramsRepoElement]
-                ->  Map Text FlowListScores
+                 -> Set Text
+                 ->  Map Text FlowListScores
+                 -> [Map Text NgramsRepoElement]
+                 ->  Map Text FlowListScores
 toFlowListScores k ts = foldl' (toFlowListScores' k ts)
   where
     toFlowListScores' :: KeepAllParents
@@ -123,16 +122,7 @@ addList l (Just (FlowListScores mapParent mapList)) =
     where
       mapList' = addList' l mapList
 -- * Unseful but nice comment:
--- "the addList function looks like an ASCII bird in a blue sky"
---      _
---  ___| | ___   _
--- / __| |/ / | | |
--- \__ \   <| |_| |
--- |___/_|\_\\__, |
---           |___/
--- 
---
---
+-- "the addList function looks like an ASCII bird"
 
 -- | Concrete function to pass to PatchMap
 addList' :: ListType -> Map ListType Int -> Map ListType Int

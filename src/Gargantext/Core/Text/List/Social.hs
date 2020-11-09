@@ -42,11 +42,11 @@ flowSocialList :: ( RepoCmdM env err m
                   -> m (Map ListType (Set Text))
 flowSocialList user nt ngrams' = do
   -- Here preference to privateLists (discutable: let user choice)
-  privateListIds <- findListsId Private user
+  privateListIds <- findListsId user Private
   privateLists <- flowSocialListByMode privateListIds nt ngrams'
   -- printDebug "* privateLists *: \n" privateLists
 
-  sharedListIds <- findListsId Shared user
+  sharedListIds <- findListsId user Shared
   sharedLists  <- flowSocialListByMode sharedListIds nt (termsByList CandidateTerm privateLists)
   -- printDebug "* sharedLists *: \n" sharedLists
 
@@ -62,6 +62,29 @@ flowSocialList user nt ngrams' = do
              ]
   -- printDebug "* socialLists *: results \n" result
   pure result
+
+------------------------------------------------------------------------
+-- | FlowSocialListPriority
+-- Sociological assumption: either private or others (public) first
+-- This parameter depends on the user choice
+data FlowSocialListPriority = PrivateFirst | OthersFirst
+
+flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
+flowSocialListPriority PrivateFirst = [Private, Shared{-, Public -}]
+flowSocialListPriority OthersFirst  = reverse $ flowSocialListPriority PrivateFirst
+
+flowSocialList' :: ( RepoCmdM env err m
+                  , CmdM     env err m
+                  , HasNodeError err
+                  , HasTreeError err
+                  )
+                  => FlowSocialListPriority 
+                  -> User -> NgramsType -> Set Text
+                  -> m (Map Text FlowListScores)
+flowSocialList' flowPriority user nt ngrams' =
+  parentUnionsExcl <$> mapM (\m -> flowSocialListByMode' user m nt ngrams')
+                            (flowSocialListPriority flowPriority)
+
 
 ------------------------------------------------------------------------
 flowSocialListByMode :: ( RepoCmdM env err m
@@ -83,9 +106,21 @@ flowSocialListByMode' :: ( RepoCmdM env err m
                          , HasNodeError err
                          , HasTreeError err
                          )
+                      => User -> NodeMode -> NgramsType -> Set Text
+                      -> m (Map Text FlowListScores)
+flowSocialListByMode' user mode nt st = do
+  listIds <- findListsId user mode
+  flowSocialListByModeWith listIds nt st
+
+
+flowSocialListByModeWith :: ( RepoCmdM env err m
+                         , CmdM     env err m
+                         , HasNodeError err
+                         , HasTreeError err
+                         )
                       => [NodeId]-> NgramsType -> Set Text
                       -> m (Map Text FlowListScores)
-flowSocialListByMode' ns nt st = do
+flowSocialListByModeWith ns nt st = do
   ngramsRepos <- mapM (\l -> getListNgrams [l] nt) ns
   pure $ toFlowListScores (keepAllParents nt) st Map.empty ngramsRepos
 

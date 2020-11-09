@@ -23,12 +23,11 @@ import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 findListsId :: (HasNodeError err, HasTreeError err)
-            => NodeMode -> User -> Cmd err [NodeId]
-findListsId mode u = do
+            => User -> NodeMode -> Cmd err [NodeId]
+findListsId u mode = do
   r <- getRootId u
   ns <- map _dt_nodeId <$> filter (\n -> _dt_typeId n == nodeTypeId NodeList)
                        <$> findNodes' mode r
-  -- printDebug "findListsIds" ns
   pure ns
 
 

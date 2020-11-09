@@ -99,9 +99,6 @@ toGroupedText fun_stem fun_score fun_texts fun_nodeIds from = groupStems' $ map 
                               (fun_nodeIds d)
                        )
 
-groupStems :: [(Stem, GroupedText Double)] -> [GroupedText Double]
-groupStems = Map.elems . groupStems'
-
 groupStems' :: Ord a => [(Stem, GroupedText a)] -> Map Stem (GroupedText a)
 groupStems' = Map.fromListWith grouping
   where

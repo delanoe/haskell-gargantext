@@ -81,24 +81,32 @@ buildNgramsOthersList ::( HasNodeError err
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   ngs  <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
 
-  let 
+  let
     grouped = toGroupedText groupIt (Set.size . snd) fst snd
-              (Map.toList $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b)) $ ngs)
+            $ Map.toList
+            $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b))
+            $ ngs
 
   socialLists <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
 
   let
     groupedWithList        = map (addListType (invertForw socialLists)) grouped
-    (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
-    (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm) tailTerms
+    (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm)
+                                           groupedWithList
+    (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm)
+                                           tailTerms
 
     listSize = mapListSize - (List.length mapTerms)
-    (mapTerms', candiTerms) = List.splitAt listSize $ List.sortOn (Down . _gt_score) $ Map.elems tailTerms'
+    (mapTerms', candiTerms) = List.splitAt listSize
+                            $ List.sortOn (Down . _gt_score)
+                            $ Map.elems tailTerms'
 
-  pure $ Map.fromList [( nt, (List.concat $ map toNgramsElement stopTerms)
-                                 <> (List.concat $ map toNgramsElement mapTerms)
-                                 <> (List.concat $ map toNgramsElement $ map (set gt_listType (Just MapTerm)) mapTerms')
-                                 <> (List.concat $ map toNgramsElement $ map (set gt_listType (Just CandidateTerm)) candiTerms)
+  pure $ Map.fromList [( nt,  (List.concat $ map toNgramsElement stopTerms)
+                           <> (List.concat $ map toNgramsElement mapTerms )
+                           <> (List.concat $ map toNgramsElement
+                                           $ map (set gt_listType (Just MapTerm      )) mapTerms' )
+                           <> (List.concat $ map toNgramsElement
+                                           $ map (set gt_listType (Just CandidateTerm)) candiTerms)
                       )]
 
 -- TODO use ListIds
