@@ -257,18 +257,21 @@ relevantBranches :: Int -> [[PhyloGroup]] -> [[PhyloGroup]]
 relevantBranches term branches = 
     filter (\groups -> (any (\group -> elem term $ group ^. phylo_groupNgrams) groups)) branches
 
-accuracy :: Int -> [PhyloGroup] -> Double
-accuracy x bk  = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk) 
-               /  (fromIntegral $ length bk))
+accuracy :: Int -> [(Date,Date)] -> [PhyloGroup] -> Double
+accuracy x periods bk  = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk') 
+               /  (fromIntegral $ length bk'))
+  where 
+    bk' :: [PhyloGroup]
+    bk' = filter (\g -> elem (g ^. phylo_groupPeriod) periods) bk
 
 recall :: Int -> [PhyloGroup] -> [[PhyloGroup]] -> Double
 recall x bk bx = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) bk) 
                /  (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) $ concat bx))
 
-fScore :: Double -> Int -> [PhyloGroup] -> [[PhyloGroup]] -> Double
-fScore beta x bk bx = 
+fScore :: Double -> Int -> [(Date,Date)] -> [PhyloGroup] -> [[PhyloGroup]] -> Double
+fScore beta x periods bk bx = 
   let rec = recall x bk bx
-      acc = accuracy x bk
+      acc = accuracy x periods bk
    in ((1 + beta ** 2) * acc * rec)
     / (((beta ** 2) * rec + acc))
 
@@ -284,7 +287,8 @@ toPhyloQuality' beta freq branches =
     else sum 
        $ map (\i -> 
           let bks = relevantBranches i branches
-           in (freq ! i) * (sum $ map (\bk -> ((wk bk) / (sum $ map wk bks)) * (fScore beta i bk bks)) bks))
+              periods = nub $ map _phylo_groupPeriod $ concat bks
+           in (freq ! i) * (sum $ map (\bk -> ((wk bk) / (sum $ map wk bks)) * (fScore beta i periods bk bks)) bks))
        $ keys freq
 
 toRecall :: Map Int Double -> [[PhyloGroup]] -> Double
@@ -311,8 +315,10 @@ toAccuracy freq branches =
        $ map (\x -> 
           let px = freq ! x
               bx = relevantBranches x branches
+              -- | periods containing x
+              periods = nub $ map _phylo_groupPeriod $ concat bx
               wks = sum $ map wk bx 
-           in (px / pys) * (sum $ map (\bk -> ((wk bk) / wks) * (accuracy x bk)) bx))
+           in (px / pys) * (sum $ map (\bk -> ((wk bk) / wks) * (accuracy x periods bk)) bx))
        $ keys freq
   where 
       pys :: Double 
@@ -328,8 +334,10 @@ toPhyloQuality beta freq branches =
        $ map (\x -> 
           let px = freq ! x
               bx = relevantBranches x branches
+              -- | periods containing x
+              periods = nub $ map _phylo_groupPeriod $ concat bx              
               wks = sum $ map wk bx 
-           in (px / pys) * (sum $ map (\bk -> ((wk bk) / wks) * (fScore beta x bk bx)) bx))
+           in (px / pys) * (sum $ map (\bk -> ((wk bk) / wks) * (fScore beta x periods bk bx)) bx))
        $ keys freq
   where 
       pys :: Double 

@@ -18,8 +18,8 @@ module Main where
 
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
-import Data.Maybe (isJust, fromJust)
-import Data.List  (concat, nub, isSuffixOf, take)
+-- import Data.Maybe (isJust, fromJust)
+import Data.List  (concat, nub, isSuffixOf)
 import Data.String (String)
 import Data.Text  (Text, unwords, unpack)
 
