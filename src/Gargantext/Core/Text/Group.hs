@@ -9,9 +9,11 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE FunctionalDependencies #-}
+
 
 module Gargantext.Core.Text.Group
   where
@@ -117,7 +119,7 @@ grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
       nodes = Set.union nodes1 nodes2
 
 ------------------------------------------------------------------------
-toGroupedText_FlowListScores :: ( FlowList a
+toGroupedText_FlowListScores :: ( FlowList a b
                                 , Ord a
                                 )
                              => [a]
@@ -126,8 +128,7 @@ toGroupedText_FlowListScores :: ( FlowList a
 toGroupedText_FlowListScores = undefined
 
 
-toGroupedText_FlowListScores' :: ( FlowList a
-                                 , b ~ GroupFamily a
+toGroupedText_FlowListScores' :: ( FlowList a b
                                  )
                               => [a]
                               -> Map Text FlowListScores
@@ -144,24 +145,19 @@ toGroupedText_FlowListScores' ms mf = foldl' fun_group start ms
     updateWith scores current Nothing  = Just $ createGroupWith scores current
     updateWith scores current (Just x) = Just $ updateGroupWith scores current x
 
-type FlowList a = (HasNgrams a, HasGroup a)
+type FlowList a b = (HasNgrams a, HasGroup a b)
 
 class HasNgrams a where
   hasNgrams :: a -> Text
 
-class HasGroup a where
-  createGroupWith :: (b ~ GroupFamily a) => FlowListScores -> a -> GroupedText b
-  updateGroupWith :: (b ~ GroupFamily a)
-                  => FlowListScores -> a
+class HasGroup a b | a -> b where
+  createGroupWith :: FlowListScores -> a -> GroupedText b
+  updateGroupWith :: FlowListScores -> a
                   -> GroupedText b
                   -> GroupedText b
-
--- | Check if functional dependency is better
-type family GroupFamily a
-type instance GroupFamily (Text, Set NodeId) = Int
 
 ------------------------------------------
-instance HasGroup (Text, Set NodeId) where
+instance HasGroup (Text, Set NodeId) Int where
   createGroupWith fs (t, ns)   = GroupedText (mapMax $ fs ^. flc_lists)
                                              t
                                              (Set.size ns)
