@@ -27,7 +27,7 @@ import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social.Group (FlowListScores(..), flc_lists)
+import Gargantext.Core.Text.List.Social.Group (FlowListScores(..), flc_lists, mapMax)
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -86,11 +86,10 @@ mergeMapParent = undefined
 -}
 
 ------------------------------------------------------------------------
-
 data GroupedTextParams a b =
-  GroupedTextParams { _gt_fun_stem :: Text -> Text
-                    , _gt_fun_score :: a -> b
-                    , _gt_fun_texts :: a -> Set Text
+  GroupedTextParams { _gt_fun_stem    :: Text -> Text
+                    , _gt_fun_score   :: a -> b
+                    , _gt_fun_texts   :: a -> Set Text
                     , _gt_fun_nodeIds :: a -> Set NodeId
                     }
 
@@ -136,7 +135,7 @@ toGroupedText_FlowListScores :: ( FlowList a b
                              -> Map Text (GroupedText b)
 toGroupedText_FlowListScores = undefined
 
-toGroupedText_FlowListScores' :: ( FlowList a b )
+toGroupedText_FlowListScores' :: ( FlowList a b, Ord b)
                               => [a]
                               -> Map Text FlowListScores
                               -> ( [a]
@@ -159,13 +158,8 @@ class HasNgrams a where
 
 class HasGroup a b | a -> b where
   createGroupWith :: FlowListScores -> a -> GroupedText b
-  updateGroupWith :: FlowListScores -> a
-                  -> GroupedText b
-                  -> GroupedText b
+  updateGroupWith :: FlowListScores -> a -> GroupedText b -> GroupedText b
 
-------------------------------------------
-mapMax :: Map a b -> Maybe a
-mapMax m = (fst . fst) <$> Map.maxViewWithKey m
 ------------------------------------------------------------------------
 type Stem  = Text
 type Label = Text
@@ -206,8 +200,9 @@ instance HasGroup (Text, Set NodeId) Int where
   updateGroupWith fs (t, ns) g = set gt_listType (mapMax $ fs ^. flc_lists)
                                $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
 
-
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- | To be removed
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
 addListType m g = set gt_listType (hasListType m g) g
   where

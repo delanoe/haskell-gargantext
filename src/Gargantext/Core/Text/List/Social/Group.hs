@@ -59,9 +59,11 @@ hasParent :: Text
           -> Maybe Parent
 hasParent t m = case Map.lookup t m of
   Nothing  -> Nothing
-  Just  m' -> (fst . fst) <$> Map.maxViewWithKey m'
+  Just  m' -> mapMax m'
 
-
+------------------------------------------------------------------------
+mapMax :: Map a b -> Maybe a
+mapMax m = (fst . fst) <$> Map.maxViewWithKey m
 ------------------------------------------------------------------------
 data FlowListScores =
   FlowListScores { _flc_parents :: Map Parent   Int
