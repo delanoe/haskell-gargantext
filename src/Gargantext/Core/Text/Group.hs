@@ -10,11 +10,13 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE TypeFamilies     #-}
 
 module Gargantext.Core.Text.Group
   where
 
-import Control.Lens (makeLenses, set)
+import Control.Lens (makeLenses, set, (^.))
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
@@ -23,7 +25,7 @@ import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social.Group (FlowListScores)
+import Gargantext.Core.Text.List.Social.Group (FlowListScores(..), flc_lists)
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -115,24 +117,62 @@ grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
       nodes = Set.union nodes1 nodes2
 
 ------------------------------------------------------------------------
-
-toGroupedText_FlowListScores :: Ord a
-                             => Map Text (Set NodeId)
+toGroupedText_FlowListScores :: ( FlowList a
+                                , Ord a
+                                )
+                             => [a]
                              -> Map Text FlowListScores
-                             -> Map Text (GroupedText a)
+                             -> Map Text (GroupedText b)
 toGroupedText_FlowListScores = undefined
 
 
+toGroupedText_FlowListScores' :: ( FlowList a
+                                 , b ~ GroupFamily a
+                                 )
+                              => [a]
+                              -> Map Text FlowListScores
+                              -> ( [a]
+                                 ,  Map Text (GroupedText b)
+                                 )
+toGroupedText_FlowListScores' ms mf = foldl' fun_group start ms
+  where
+    start = ([], Map.empty)
+    fun_group (left, grouped) current =
+      case Map.lookup (hasNgrams current) mf of
+        Just scores -> (left, Map.alter (updateWith scores current) (hasNgrams current) grouped)
+        Nothing     -> (current : left, grouped)
+    updateWith scores current Nothing  = Just $ createGroupWith scores current
+    updateWith scores current (Just x) = Just $ updateGroupWith scores current x
 
-toGroupedText_FlowListScores' :: Ord a
-                             => Map Text (Set NodeId)
-                             -> Map Text FlowListScores
-                             -> ( [(Text, Set NodeId)]
-                                ,  Map Text (GroupedText a)
-                                )
-toGroupedText_FlowListScores' = undefined
+type FlowList a = (HasNgrams a, HasGroup a)
 
+class HasNgrams a where
+  hasNgrams :: a -> Text
 
+class HasGroup a where
+  createGroupWith :: (b ~ GroupFamily a) => FlowListScores -> a -> GroupedText b
+  updateGroupWith :: (b ~ GroupFamily a)
+                  => FlowListScores -> a
+                  -> GroupedText b
+                  -> GroupedText b
+
+-- | Check if functional dependency is better
+type family GroupFamily a
+type instance GroupFamily (Text, Set NodeId) = Int
+
+------------------------------------------
+instance HasGroup (Text, Set NodeId) where
+  createGroupWith fs (t, ns)   = GroupedText (mapMax $ fs ^. flc_lists)
+                                             t
+                                             (Set.size ns)
+                                             Set.empty
+                                             (size t)
+                                             t
+                                             ns
+  updateGroupWith fs (t, ns) g = undefined
+
+mapMax :: Map a b -> Maybe a
+mapMax m = (fst . fst) <$> Map.maxViewWithKey m
 ------------------------------------------------------------------------
 type Stem  = Text
 type Label = Text

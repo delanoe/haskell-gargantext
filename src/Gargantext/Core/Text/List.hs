@@ -84,7 +84,7 @@ buildNgramsOthersList ::( HasNodeError err
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
-  socialLists' :: Map Text FlowListScores 
+  socialLists' :: Map Text FlowListScores
     <- flowSocialList' MySelfFirst user nt (Set.fromList $ Map.keys ngs')
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
