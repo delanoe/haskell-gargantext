@@ -95,7 +95,7 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   -- >8 >8 >8 >8 >8 >8 >8
 
   let
-    grouped = toGroupedText groupIt (Set.size . snd) fst snd
+    grouped = toGroupedText (GroupedTextParams groupIt (Set.size . snd) fst snd)
             $ Map.toList
             $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b))
             $ ngs
@@ -157,7 +157,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
   -- printDebug "stopTerms" stopTerms
 
   -- Grouping the ngrams and keeping the maximum score for label
-  let grouped = toGroupedText (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) allTerms
+  let grouped = toGroupedText (GroupedTextParams (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty)) allTerms
 
       groupedWithList = map (addListType (invertForw socialLists)) grouped
 

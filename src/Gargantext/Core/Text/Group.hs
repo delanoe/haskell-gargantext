@@ -78,31 +78,40 @@ ngramsGroup (GroupParams l _m _n _) =
                   . Text.replace "-" " "
 
 ------------------------------------------------------------------------
+{-
 mergeMapParent :: Map Text (GroupedText b)
                -> Map Text (Map Text Int)
                -> Map Text (GroupedText b)
 mergeMapParent = undefined
+-}
 
 ------------------------------------------------------------------------
+
+data GroupedTextParams a b =
+  GroupedTextParams { _gt_fun_stem :: Text -> Text
+                    , _gt_fun_score :: a -> b
+                    , _gt_fun_texts :: a -> Set Text
+                    , _gt_fun_nodeIds :: a -> Set NodeId
+                    }
+
+makeLenses 'GroupedTextParams
+
 toGroupedText :: Ord b
-              => (Text -> Text      )
-              -> (a    -> b         )
-              -> (a    -> Set Text  )
-              -> (a    -> Set NodeId)
+              => GroupedTextParams a b
               -> [(Text,a)]
               -> Map Stem (GroupedText b)
-toGroupedText fun_stem fun_score fun_texts fun_nodeIds from =
+toGroupedText gparams from =
   Map.fromListWith grouping $ map group from
     where
-      group (t,d) = let t' = fun_stem t
+      group (t,d) = let t' = (gparams ^. gt_fun_stem) t
                      in (t', GroupedText
                                 Nothing
                                 t
-                                (fun_score   d)
-                                (fun_texts   d)
+                                ((gparams ^. gt_fun_score)   d)
+                                ((gparams ^. gt_fun_texts)   d)
                                 (size        t)
                                 t'
-                                (fun_nodeIds d)
+                                ((gparams ^. gt_fun_nodeIds) d)
                          )
 
 grouping :: Ord a
@@ -127,9 +136,7 @@ toGroupedText_FlowListScores :: ( FlowList a b
                              -> Map Text (GroupedText b)
 toGroupedText_FlowListScores = undefined
 
-
-toGroupedText_FlowListScores' :: ( FlowList a b
-                                 )
+toGroupedText_FlowListScores' :: ( FlowList a b )
                               => [a]
                               -> Map Text FlowListScores
                               -> ( [a]
@@ -157,16 +164,6 @@ class HasGroup a b | a -> b where
                   -> GroupedText b
 
 ------------------------------------------
-instance HasGroup (Text, Set NodeId) Int where
-  createGroupWith fs (t, ns)   = GroupedText (mapMax $ fs ^. flc_lists)
-                                             t
-                                             (Set.size ns)
-                                             Set.empty
-                                             (size t)
-                                             t
-                                             ns
-  updateGroupWith fs (t, ns) g = undefined
-
 mapMax :: Map a b -> Maybe a
 mapMax m = (fst . fst) <$> Map.maxViewWithKey m
 ------------------------------------------------------------------------
@@ -196,6 +193,19 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
 
 -- Lenses Instances
 makeLenses 'GroupedText
+
+------------------------------------------------------------------------
+instance HasGroup (Text, Set NodeId) Int where
+  createGroupWith fs (t, ns)   = GroupedText (mapMax $ fs ^. flc_lists)
+                                             t
+                                             (Set.size ns)
+                                             Set.empty
+                                             (size t)
+                                             t
+                                             ns
+  updateGroupWith fs (t, ns) g = set gt_listType (mapMax $ fs ^. flc_lists)
+                               $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
+
 
 ------------------------------------------------------------------------
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
