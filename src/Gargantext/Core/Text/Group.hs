@@ -136,30 +136,29 @@ toGroupedText_FlowListScores :: ( FlowList a b
 toGroupedText_FlowListScores = undefined
 
 toGroupedText_FlowListScores' :: ( FlowList a b, Ord b)
-                              => ( Map Text c
-                                 , Maybe a -> (Text,c) -> a
-                                 , Text -> a -> a
-                                 )
+                              => Map Text c
                               -> Map Text FlowListScores
                               -> ( [a]
                                  ,  Map Text (GroupedText b)
                                  )
-toGroupedText_FlowListScores' (ms', to, with) scores = foldl' fun_group start ms
+toGroupedText_FlowListScores' ms' scores = foldl' fun_group start ms
   where
     start = ([], Map.empty)
-    ms = (to Nothing) <$> Map.toList ms'
+    ms    = map selfParent (Map.toList ms')
 
     fun_group (left, grouped) current =
       case Map.lookup (hasNgrams current) scores of
-        Just scores' -> case keyWithMaxValue $ scores' ^. flc_parents of
-                          Nothing     -> (left, Map.alter (updateWith scores' current) (hasNgrams current) grouped)
-                          Just parent -> fun_group (left, grouped) (with parent current)
+        Just scores' ->
+          case keyWithMaxValue $ scores' ^. flc_parents of
+            Nothing     -> (left, Map.alter (updateWith scores' current) (hasNgrams current) grouped)
+            Just parent -> fun_group (left, grouped) (withParent ms' parent current)
         Nothing     -> (current : left, grouped)
 
     updateWith scores current Nothing  = Just $ createGroupWith scores current
     updateWith scores current (Just x) = Just $ updateGroupWith scores current x
 
-type FlowList a b = (HasNgrams a, HasGroup a b)
+------------------------------------------------------------------------
+type FlowList a b = (HasNgrams a, HasGroup a b, WithParent a)
 
 class HasNgrams a where
   hasNgrams :: a -> Text
@@ -167,6 +166,10 @@ class HasNgrams a where
 class HasGroup a b | a -> b where
   createGroupWith :: FlowListScores -> a -> GroupedText b
   updateGroupWith :: FlowListScores -> a -> GroupedText b -> GroupedText b
+
+class WithParent a where
+  selfParent :: (Text, c) -> a
+  withParent :: Map Text c -> Text -> a -> a
 
 ------------------------------------------------------------------------
 type Stem  = Text
