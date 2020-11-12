@@ -69,7 +69,7 @@ buildNgramsLists user gp uCid mCid = do
   pure $ Map.unions $ [ngTerms] <> othersTerms
 
 
-data MapListSize = MapListSize Int
+data MapListSize = MapListSize { unMapListSize :: !Int }
 
 buildNgramsOthersList ::( HasNodeError err
                         , CmdM     env err m

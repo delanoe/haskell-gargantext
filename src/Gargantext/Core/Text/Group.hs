@@ -27,7 +27,7 @@ import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social.Group (FlowListScores(..), flc_lists, mapMax)
+import Gargantext.Core.Text.List.Social.Group (FlowListScores(..), flc_lists, flc_parents, keyWithMaxValue)
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -136,18 +136,26 @@ toGroupedText_FlowListScores :: ( FlowList a b
 toGroupedText_FlowListScores = undefined
 
 toGroupedText_FlowListScores' :: ( FlowList a b, Ord b)
-                              => [a]
+                              => ( Map Text c
+                                 , Maybe a -> (Text,c) -> a
+                                 , Text -> a -> a
+                                 )
                               -> Map Text FlowListScores
                               -> ( [a]
                                  ,  Map Text (GroupedText b)
                                  )
-toGroupedText_FlowListScores' ms mf = foldl' fun_group start ms
+toGroupedText_FlowListScores' (ms', to, with) scores = foldl' fun_group start ms
   where
     start = ([], Map.empty)
+    ms = (to Nothing) <$> Map.toList ms'
+
     fun_group (left, grouped) current =
-      case Map.lookup (hasNgrams current) mf of
-        Just scores -> (left, Map.alter (updateWith scores current) (hasNgrams current) grouped)
+      case Map.lookup (hasNgrams current) scores of
+        Just scores' -> case keyWithMaxValue $ scores' ^. flc_parents of
+                          Nothing     -> (left, Map.alter (updateWith scores' current) (hasNgrams current) grouped)
+                          Just parent -> fun_group (left, grouped) (with parent current)
         Nothing     -> (current : left, grouped)
+
     updateWith scores current Nothing  = Just $ createGroupWith scores current
     updateWith scores current (Just x) = Just $ updateGroupWith scores current x
 
@@ -169,7 +177,7 @@ data GroupedText score =
               , _gt_score    :: !score
               , _gt_children :: !(Set Text)
               , _gt_size     :: !Int
-              , _gt_stem     :: !Stem
+              , _gt_stem     :: !Stem -- needed ?
               , _gt_nodes    :: !(Set NodeId)
               } {-deriving Show--}
 --{-
@@ -189,18 +197,25 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
 makeLenses 'GroupedText
 
 ------------------------------------------------------------------------
+instance HasNgrams (Text, Set NodeId) where
+  hasNgrams (t, _) = t
+
 instance HasGroup (Text, Set NodeId) Int where
-  createGroupWith fs (t, ns)   = GroupedText (mapMax $ fs ^. flc_lists)
-                                             t
+  createGroupWith fs (t, ns)   = GroupedText (keyWithMaxValue $ fs ^. flc_lists)
+                                             label
                                              (Set.size ns)
-                                             Set.empty
+                                             children
                                              (size t)
                                              t
                                              ns
-  updateGroupWith fs (t, ns) g = set gt_listType (mapMax $ fs ^. flc_lists)
+    where
+      (label, children) =  case keyWithMaxValue $ fs ^. flc_parents of
+                            Nothing -> (t, Set.empty)
+                            Just t' -> (t', Set.singleton t)
+
+  updateGroupWith fs (t, ns) g = set gt_listType (keyWithMaxValue $ fs ^. flc_lists)
                                $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
 
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | To be removed
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
