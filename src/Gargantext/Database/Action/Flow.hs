@@ -66,7 +66,7 @@ import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
-import Gargantext.Core.Text.Group (StopSize(..), GroupParams(..))
+import Gargantext.Core.Text.List.Group (StopSize(..), GroupParams(..))
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (Terms(..))

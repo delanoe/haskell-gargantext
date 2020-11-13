@@ -20,7 +20,7 @@ import Gargantext.API.Ngrams.Tools -- (getListNgrams)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Find
 import Gargantext.Core.Text.List.Social.ListType
-import Gargantext.Core.Text.List.Social.Group
+import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Core.Types.Individu
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Types.Node
@@ -115,12 +115,12 @@ flowSocialListByMode' user nt st mode =
 
 
 flowSocialListByModeWith :: ( RepoCmdM env err m
-                         , CmdM     env err m
-                         , HasNodeError err
-                         , HasTreeError err
-                         )
-                      => NgramsType -> Set Text -> [NodeId]
-                      -> m (Map Text FlowListScores)
+                            , CmdM     env err m
+                            , HasNodeError err
+                            , HasTreeError err
+                            )
+                         => NgramsType -> Set Text -> [NodeId]
+                         -> m (Map Text FlowListScores)
 flowSocialListByModeWith nt st ns =
       mapM (\l -> getListNgrams [l] nt) ns
   >>= pure

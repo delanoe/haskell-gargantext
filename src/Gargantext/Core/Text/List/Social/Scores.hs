@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Text.List.Social.Group
+Module      : Gargantext.Core.Text.List.Social.Scores
 Description :
 Copyright   : (c) CNRS, 2018-Present
 License     : AGPL + CECILL v3
@@ -15,7 +15,7 @@ Portability : POSIX
 {-# LANGUAGE TypeFamilies      #-}
 
 
-module Gargantext.Core.Text.List.Social.Group
+module Gargantext.Core.Text.List.Social.Scores
   where
 
 import Control.Lens

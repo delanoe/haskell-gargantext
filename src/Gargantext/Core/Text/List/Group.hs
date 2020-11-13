@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Text.Group
+Module      : Gargantext.Core.Text.List.Group
 Description : 
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -15,19 +15,20 @@ Portability : POSIX
 {-# LANGUAGE FunctionalDependencies #-}
 
 
-module Gargantext.Core.Text.Group
+module Gargantext.Core.Text.List.Group
   where
 
 import Control.Lens (makeLenses, set, (^.))
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
+import Data.Semigroup (Semigroup, (<>))
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social.Group (FlowListScores(..), flc_lists, flc_parents, keyWithMaxValue)
+import Gargantext.Core.Text.List.Social.Scores (FlowListScores(..), flc_lists, flc_parents, keyWithMaxValue)
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -78,19 +79,12 @@ ngramsGroup (GroupParams l _m _n _) =
                   . Text.replace "-" " "
 
 ------------------------------------------------------------------------
-{-
-mergeMapParent :: Map Text (GroupedText b)
-               -> Map Text (Map Text Int)
-               -> Map Text (GroupedText b)
-mergeMapParent = undefined
--}
-
-------------------------------------------------------------------------
 data GroupedTextParams a b =
   GroupedTextParams { _gt_fun_stem    :: Text -> Text
                     , _gt_fun_score   :: a -> b
                     , _gt_fun_texts   :: a -> Set Text
                     , _gt_fun_nodeIds :: a -> Set NodeId
+                    -- , _gt_fun_size    :: a -> Int
                     }
 
 makeLenses 'GroupedTextParams
@@ -100,7 +94,7 @@ toGroupedText :: Ord b
               -> [(Text,a)]
               -> Map Stem (GroupedText b)
 toGroupedText gparams from =
-  Map.fromListWith grouping $ map group from
+  Map.fromListWith union $ map group from
     where
       group (t,d) = let t' = (gparams ^. gt_fun_stem) t
                      in (t', GroupedText
@@ -113,35 +107,34 @@ toGroupedText gparams from =
                                 ((gparams ^. gt_fun_nodeIds) d)
                          )
 
-grouping :: Ord a
-         => GroupedText a
-         -> GroupedText a
-         -> GroupedText a
-grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
-         (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
-         | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
-         | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
-    where
-      lt = lt1 <> lt2
-      gr    = Set.union group1 group2
-      nodes = Set.union nodes1 nodes2
-
 ------------------------------------------------------------------------
-toGroupedText_FlowListScores :: ( FlowList a b
-                                , Ord a
-                                )
-                             => [a]
-                             -> Map Text FlowListScores
-                             -> Map Text (GroupedText b)
-toGroupedText_FlowListScores = undefined
+------------------------------------------------------------------------
 
-toGroupedText_FlowListScores' :: ( FlowList a b, Ord b)
-                              => Map Text c
-                              -> Map Text FlowListScores
-                              -> ( [a]
-                                 ,  Map Text (GroupedText b)
-                                 )
-toGroupedText_FlowListScores' ms' scores = foldl' fun_group start ms
+toGroupedText' :: ( FlowList a b
+                  , Ord b
+                  )
+               => GroupedTextParams a b
+               -> Map Text FlowListScores
+               -> Map Text a
+               -> Map Stem (GroupedText b)
+toGroupedText' groupParams scores =
+  (groupWithStem groupParams) . (groupWithScores scores)
+
+
+groupWithStem :: ( FlowList a b
+                 , Ord b
+                 )
+              => GroupedTextParams a b
+              -> ([a], Map Text (GroupedText b))
+              -> Map Stem (GroupedText b)
+groupWithStem _ = snd -- TODO 
+
+
+groupWithScores :: (FlowList a b, Ord b)
+                => Map Text FlowListScores
+                -> Map Text c
+                -> ([a],  Map Text (GroupedText b))
+groupWithScores scores ms' = foldl' fun_group start ms
   where
     start = ([], Map.empty)
     ms    = map selfParent (Map.toList ms')
@@ -152,7 +145,7 @@ toGroupedText_FlowListScores' ms' scores = foldl' fun_group start ms
           case keyWithMaxValue $ scores' ^. flc_parents of
             Nothing     -> (left, Map.alter (updateWith scores' current) (hasNgrams current) grouped)
             Just parent -> fun_group (left, grouped) (withParent ms' parent current)
-        Nothing     -> (current : left, grouped)
+        Nothing      -> (current : left, grouped)
 
     updateWith scores current Nothing  = Just $ createGroupWith scores current
     updateWith scores current (Just x) = Just $ updateGroupWith scores current x
@@ -170,6 +163,32 @@ class HasGroup a b | a -> b where
 class WithParent a where
   selfParent :: (Text, c) -> a
   withParent :: Map Text c -> Text -> a -> a
+  union :: a -> a -> a
+
+------------------------------------------------------------------------
+instance Ord a => WithParent (GroupedText a) where
+  union (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
+        (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
+          | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
+          | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
+    where
+      lt = lt1 <> lt2
+      gr    = Set.union group1 group2
+      nodes = Set.union nodes1 nodes2
+
+{-
+  selfParent (t,d) = let t' = (gparams ^. gt_fun_stem) t
+                     in (t', GroupedText
+                                Nothing
+                                t
+                                ((gparams ^. gt_fun_score)   d)
+                                ((gparams ^. gt_fun_texts)   d)
+                                (size        t)
+                                t'
+                                ((gparams ^. gt_fun_nodeIds) d)
+                         )
+-}
+
 
 ------------------------------------------------------------------------
 type Stem  = Text
@@ -196,7 +215,7 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
   compare (GroupedText _ _ score1 _ _ _ _)
           (GroupedText _ _ score2 _ _ _ _) = compare score1 score2
 
--- Lenses Instances
+-- | Lenses Instances
 makeLenses 'GroupedText
 
 ------------------------------------------------------------------------
