@@ -96,7 +96,7 @@ groupedTextWithStem :: Ord b
               -> Map Text a
               -> Map Stem (GroupedText b)
 groupedTextWithStem gparams from =
-  Map.fromListWith union $ map (group gparams) $ Map.toList from
+  Map.fromListWith (<>) $ map (group gparams) $ Map.toList from
     where
       group gparams' (t,d) = let t' = (gparams' ^. gt_fun_stem) t
                      in (t', GroupedText
@@ -110,94 +110,6 @@ groupedTextWithStem gparams from =
                          )
 
 ------------------------------------------------------------------------
-toGroupedText :: ( FlowList a b
-                 , Ord b
-                 )
-              => GroupedTextParams a b
-              -> Map Text FlowListScores
-              -> Map Text c
-              -> Map Stem (GroupedText b)
-toGroupedText groupParams scores =
-  (groupWithStem groupParams) . (groupWithScores scores)
-
-
-groupWithStem :: ( FlowList a b
-                 , Ord b
-                 )
-              => GroupedTextParams a b
-              -> ([a], Map Text (GroupedText b))
-              -> Map Stem (GroupedText b)
-groupWithStem _ = snd -- TODO (just for tests on Others Ngrams which do not need stem)
-
-
-groupWithScores :: (FlowList a b, Ord b)
-                => Map Text FlowListScores
-                -> Map Text c
-                -> ([a],  Map Text (GroupedText b))
-groupWithScores scores ms' = foldl' fun_group start ms
-  where
-    start = ([], Map.empty)
-    ms    = map selfParent $ Map.toList ms'
-
-    fun_group (left, grouped) current =
-      case Map.lookup (hasNgrams current) scores of
-        Just scores' ->
-          case keyWithMaxValue $ scores' ^. flc_parents of
-            Nothing     -> (left, Map.alter (updateWith scores' current) (hasNgrams current) grouped)
-            Just parent -> fun_group (left, grouped) (withParent ms' parent current)
-        Nothing      -> (current : left, grouped)
-
-    updateWith scores current Nothing  = Just $ createGroupWithScores scores current
-    updateWith scores current (Just x) = Just $ updateGroupWithScores scores current x
-
-------------------------------------------------------------------------
-type FlowList a b = (HasNgrams a, HasGroupWithScores a b, WithParent a)
-
-class HasNgrams a where
-  hasNgrams :: a -> Text
-
-class HasGroup a b | a -> b where
-  hasGroup :: a -> GroupedText b
-
-class HasGroupWithStem a b where
-  hasGroupWithStem :: GroupedTextParams a b -> Map Text a -> Map Stem (GroupedText b)
-
-class HasGroupWithScores a b | a -> b where
-  createGroupWithScores :: FlowListScores -> a -> GroupedText b
-  updateGroupWithScores :: FlowListScores -> a -> GroupedText b -> GroupedText b
-
-class WithParent a where
-  selfParent :: (Text, c) -> a
-  withParent :: Map Text c -> Text -> a -> a
-  union      :: a -> a -> a
-
-------------------------------------------------------------------------
-instance Ord a => WithParent (GroupedText a) where
-  union (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
-        (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
-          | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
-          | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
-    where
-      lt = lt1 <> lt2
-      gr    = Set.union group1 group2
-      nodes = Set.union nodes1 nodes2
-
-
-------------------------------------------------------------------------
-data GroupedTextOrigin a =
-  GroupedTextOrigin { _gto_lable :: !Text
-                    , _gto_ngramsType  :: !NgramsType
-                    , _gto_score       :: !a
-                    , _gto_listType    :: !(Maybe ListType)
-                    , _gto_children    :: !(Set Text)
-                    , _gto_nodes       :: !(Set NodeId)
-                    }
-
-data GroupedTextStem a =
-  GroupedTextStem { _gts_origin  :: !(GroupedTextOrigin a)
-                  , _gts_stem    :: !Stem
-                  }
-
 ------------------------------------------------------------------------
 type Stem  = Text
 data GroupedText score =
@@ -225,6 +137,115 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
 -- | Lenses Instances
 makeLenses 'GroupedText
 
+
+------------------------------------------------------------------------
+instance WithParent (Text, Set NodeId) (Text, Set NodeId) where
+  selfParent (t, (_,n)) = (t, n)
+
+instance HasNgrams (Text, Set NodeId) where
+  hasNgrams (t, _) = t
+
+-- instance HasGroupWithScores (Text, Set NodeId) Int where
+createGroupWithScores' fs (t, ns)   = GroupedText (keyWithMaxValue $ fs ^. flc_lists)
+                                           label
+                                           (Set.size ns)
+                                           children
+                                           (size t)
+                                           t
+                                           ns
+  where
+    (label, children) =  case keyWithMaxValue $ fs ^. flc_parents of
+                          Nothing -> (t, Set.empty)
+                          Just t' -> (t', Set.singleton t)
+
+updateGroupWithScores' fs (t, ns) g = set gt_listType (keyWithMaxValue $ fs ^. flc_lists)
+                             $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
+
+------------------------------------------------------------------------
+
+
+
+
+
+toGroupedText :: {-( FlowList c a b
+                  Ord b
+                 )
+              => -} GroupedTextParams a b
+              -> Map Text FlowListScores
+              -> Map Text (Set NodeId)
+              -> Map Stem (GroupedText Int)
+toGroupedText groupParams scores =
+  (groupWithStem groupParams) . (groupWithScores scores)
+
+
+groupWithStem :: {- ( HasNgrams a
+                 , HasGroupWithScores a b
+                 , Semigroup a
+                 ,  Ord b
+                 ) 
+              => -} GroupedTextParams a b
+              -> ([(Text, Set NodeId)], Map Text (GroupedText Int))
+              -> Map Stem (GroupedText Int)
+groupWithStem _ = snd -- TODO (just for tests on Others Ngrams which do not need stem)
+
+withParent' :: Map Text c -> Text -> a -> a
+withParent' = undefined
+
+groupWithScores :: {- Ord b -- (FlowList c a b, Ord b)
+                => -} Map Text FlowListScores
+                -> Map Text (Set NodeId)
+                -> ([(Text, Set NodeId)],  Map Text (GroupedText Int))
+groupWithScores scores ms' = foldl' fun_group start ms
+  where
+    start = ([], Map.empty)
+    ms    = map (\(t, ns) -> (t, ns)) (Map.toList ms')
+
+    fun_group :: ([(Text, Set NodeId)], Map Text (GroupedText Int)) -> (Text, Set NodeId)
+                -> ([(Text, Set NodeId)],  Map Text (GroupedText Int))
+    fun_group (left, grouped) current =
+      case Map.lookup (fst current) scores of
+        Just scores' ->
+          case keyWithMaxValue $ scores' ^. flc_parents of
+            Nothing     -> (left, Map.alter (updateWith scores' current) (fst current) grouped)
+            Just parent -> fun_group (left, grouped) (withParent' ms' parent current)
+        Nothing      -> (current : left, grouped)
+
+    updateWith scores current Nothing  = Just $ createGroupWithScores' scores current
+    updateWith scores current (Just x) = Just $ updateGroupWithScores' scores current x
+
+------------------------------------------------------------------------
+type FlowList c a b = (HasNgrams a, HasGroupWithScores a b, WithParent c a, Semigroup a)
+
+class HasNgrams a where
+  hasNgrams :: a -> Text
+
+class HasGroup a b | a -> b where
+  hasGroup :: a -> GroupedText b
+
+class HasGroupWithStem a b where
+  hasGroupWithStem :: GroupedTextParams a b -> Map Text a -> Map Stem (GroupedText b)
+
+class HasGroupWithScores a b | a -> b where
+  createGroupWithScores :: FlowListScores -> a -> GroupedText b
+  updateGroupWithScores :: FlowListScores -> a -> GroupedText b -> GroupedText b
+
+class WithParent c a | c -> a where
+  selfParent :: (Text, c) -> a
+  withParent :: Map Text c -> Text -> a -> a
+
+
+------------------------------------------------------------------------
+instance Ord a => Semigroup (GroupedText a) where
+  (<>) (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
+        (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
+          | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
+          | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
+    where
+      lt = lt1 <> lt2
+      gr    = Set.union group1 group2
+      nodes = Set.union nodes1 nodes2
+
+
 ------------------------------------------------------------------------
 -- to remove
 -- | These instances seeems useless, just for debug purpose
@@ -235,28 +256,6 @@ instance HasGroupWithScores (Set Text, Set NodeId) Int where
   createGroupWithScores = undefined
   updateGroupWithScores = undefined
 
-instance WithParent (Set Text, Set NodeId) where
-  union = undefined
-
-------------------------------------------------------------------------
-instance HasNgrams (Text, Set NodeId) where
-  hasNgrams (t, _) = t
-
-instance HasGroupWithScores (Text, Set NodeId) Int where
-  createGroupWithScores fs (t, ns)   = GroupedText (keyWithMaxValue $ fs ^. flc_lists)
-                                             label
-                                             (Set.size ns)
-                                             children
-                                             (size t)
-                                             t
-                                             ns
-    where
-      (label, children) =  case keyWithMaxValue $ fs ^. flc_parents of
-                            Nothing -> (t, Set.empty)
-                            Just t' -> (t', Set.singleton t)
-
-  updateGroupWithScores fs (t, ns) g = set gt_listType (keyWithMaxValue $ fs ^. flc_lists)
-                               $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
 
 ------------------------------------------------------------------------
 -- | To be removed
