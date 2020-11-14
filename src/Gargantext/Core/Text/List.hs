@@ -89,6 +89,10 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
     <- flowSocialList' MySelfFirst user nt (Set.fromList $ Map.keys ngs')
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
+  let
+    groupParams = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
+    grouped'    = toGroupedText groupParams socialLists' ngs'
+
   -- 8< 8< 8< 8< 8< 8< 8<
   let 
     ngs  :: Map Text (Set Text, Set NodeId) = groupNodesByNgramsWith groupIt ngs'
@@ -96,8 +100,7 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   -- >8 >8 >8 >8 >8 >8 >8
 
   let
-    grouped = toGroupedText (GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-} ) -- socialLists'
-            $ Map.toList
+    grouped = groupedTextWithStem (GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-} ) -- socialLists'
             $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b))
             $ ngs
 
@@ -136,27 +139,17 @@ buildNgramsTermsList :: ( HasNodeError err
 buildNgramsTermsList user uCid mCid groupParams = do
 
 -- Computing global speGen score
-  allTerms :: [(Text, Double)] <- Map.toList <$> getTficf uCid mCid NgramsTerms
+  allTerms :: Map Text Double <- getTficf uCid mCid NgramsTerms
 
   -- printDebug "head candidates" (List.take 10 $ allTerms)
   -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)
 
   -- First remove stops terms
-  socialLists <- flowSocialList user NgramsTerms (Set.fromList $ map fst allTerms)
+  socialLists <- flowSocialList user NgramsTerms (Set.fromList $ map fst $ Map.toList allTerms)
   -- printDebug "\n * socialLists * \n" socialLists
 
-  let
-    _socialStop = fromMaybe Set.empty $ Map.lookup StopTerm      socialLists
-    _socialMap  = fromMaybe Set.empty $ Map.lookup MapTerm       socialLists
-    _socialCand = fromMaybe Set.empty $ Map.lookup CandidateTerm socialLists
-    -- stopTerms ignored for now (need to be tagged already)
-    -- (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
-    -- (mapTerms,  candidateTerms) = List.partition ((\t -> Set.member t socialMap ) . fst) allTerms
-
-  -- printDebug "stopTerms" stopTerms
-
   -- Grouping the ngrams and keeping the maximum score for label
-  let grouped = toGroupedText ( GroupedTextParams (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) {-(size . _gt_label)-} ) allTerms
+  let grouped = groupedTextWithStem ( GroupedTextParams (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) {-(size . _gt_label)-} ) allTerms
 
       groupedWithList = map (addListType (invertForw socialLists)) grouped
 

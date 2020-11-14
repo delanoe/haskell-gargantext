@@ -18,6 +18,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group
   where
 
+import Data.Maybe (fromMaybe)
 import Control.Lens (makeLenses, set, (^.))
 import Data.Set (Set)
 import Data.Map (Map)
@@ -30,6 +31,7 @@ import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
 import Gargantext.Core.Text.List.Social.Scores (FlowListScores(..), flc_lists, flc_parents, keyWithMaxValue)
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
@@ -89,35 +91,33 @@ data GroupedTextParams a b =
 
 makeLenses 'GroupedTextParams
 
-toGroupedText :: Ord b
+groupedTextWithStem :: Ord b
               => GroupedTextParams a b
-              -> [(Text,a)]
+              -> Map Text a
               -> Map Stem (GroupedText b)
-toGroupedText gparams from =
-  Map.fromListWith union $ map group from
+groupedTextWithStem gparams from =
+  Map.fromListWith union $ map (group gparams) $ Map.toList from
     where
-      group (t,d) = let t' = (gparams ^. gt_fun_stem) t
+      group gparams' (t,d) = let t' = (gparams' ^. gt_fun_stem) t
                      in (t', GroupedText
                                 Nothing
                                 t
-                                ((gparams ^. gt_fun_score)   d)
-                                ((gparams ^. gt_fun_texts)   d)
+                                ((gparams' ^. gt_fun_score)   d)
+                                ((gparams' ^. gt_fun_texts)   d)
                                 (size        t)
                                 t'
-                                ((gparams ^. gt_fun_nodeIds) d)
+                                ((gparams' ^. gt_fun_nodeIds) d)
                          )
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
-
-toGroupedText' :: ( FlowList a b
-                  , Ord b
-                  )
-               => GroupedTextParams a b
-               -> Map Text FlowListScores
-               -> Map Text a
-               -> Map Stem (GroupedText b)
-toGroupedText' groupParams scores =
+toGroupedText :: ( FlowList a b
+                 , Ord b
+                 )
+              => GroupedTextParams a b
+              -> Map Text FlowListScores
+              -> Map Text c
+              -> Map Stem (GroupedText b)
+toGroupedText groupParams scores =
   (groupWithStem groupParams) . (groupWithScores scores)
 
 
@@ -127,7 +127,7 @@ groupWithStem :: ( FlowList a b
               => GroupedTextParams a b
               -> ([a], Map Text (GroupedText b))
               -> Map Stem (GroupedText b)
-groupWithStem _ = snd -- TODO 
+groupWithStem _ = snd -- TODO (just for tests on Others Ngrams which do not need stem)
 
 
 groupWithScores :: (FlowList a b, Ord b)
@@ -137,7 +137,7 @@ groupWithScores :: (FlowList a b, Ord b)
 groupWithScores scores ms' = foldl' fun_group start ms
   where
     start = ([], Map.empty)
-    ms    = map selfParent (Map.toList ms')
+    ms    = map selfParent $ Map.toList ms'
 
     fun_group (left, grouped) current =
       case Map.lookup (hasNgrams current) scores of
@@ -147,23 +147,29 @@ groupWithScores scores ms' = foldl' fun_group start ms
             Just parent -> fun_group (left, grouped) (withParent ms' parent current)
         Nothing      -> (current : left, grouped)
 
-    updateWith scores current Nothing  = Just $ createGroupWith scores current
-    updateWith scores current (Just x) = Just $ updateGroupWith scores current x
+    updateWith scores current Nothing  = Just $ createGroupWithScores scores current
+    updateWith scores current (Just x) = Just $ updateGroupWithScores scores current x
 
 ------------------------------------------------------------------------
-type FlowList a b = (HasNgrams a, HasGroup a b, WithParent a)
+type FlowList a b = (HasNgrams a, HasGroupWithScores a b, WithParent a)
 
 class HasNgrams a where
   hasNgrams :: a -> Text
 
 class HasGroup a b | a -> b where
-  createGroupWith :: FlowListScores -> a -> GroupedText b
-  updateGroupWith :: FlowListScores -> a -> GroupedText b -> GroupedText b
+  hasGroup :: a -> GroupedText b
+
+class HasGroupWithStem a b where
+  hasGroupWithStem :: GroupedTextParams a b -> Map Text a -> Map Stem (GroupedText b)
+
+class HasGroupWithScores a b | a -> b where
+  createGroupWithScores :: FlowListScores -> a -> GroupedText b
+  updateGroupWithScores :: FlowListScores -> a -> GroupedText b -> GroupedText b
 
 class WithParent a where
   selfParent :: (Text, c) -> a
   withParent :: Map Text c -> Text -> a -> a
-  union :: a -> a -> a
+  union      :: a -> a -> a
 
 ------------------------------------------------------------------------
 instance Ord a => WithParent (GroupedText a) where
@@ -176,26 +182,27 @@ instance Ord a => WithParent (GroupedText a) where
       gr    = Set.union group1 group2
       nodes = Set.union nodes1 nodes2
 
-{-
-  selfParent (t,d) = let t' = (gparams ^. gt_fun_stem) t
-                     in (t', GroupedText
-                                Nothing
-                                t
-                                ((gparams ^. gt_fun_score)   d)
-                                ((gparams ^. gt_fun_texts)   d)
-                                (size        t)
-                                t'
-                                ((gparams ^. gt_fun_nodeIds) d)
-                         )
--}
 
+------------------------------------------------------------------------
+data GroupedTextOrigin a =
+  GroupedTextOrigin { _gto_lable :: !Text
+                    , _gto_ngramsType  :: !NgramsType
+                    , _gto_score       :: !a
+                    , _gto_listType    :: !(Maybe ListType)
+                    , _gto_children    :: !(Set Text)
+                    , _gto_nodes       :: !(Set NodeId)
+                    }
+
+data GroupedTextStem a =
+  GroupedTextStem { _gts_origin  :: !(GroupedTextOrigin a)
+                  , _gts_stem    :: !Stem
+                  }
 
 ------------------------------------------------------------------------
 type Stem  = Text
-type Label = Text
 data GroupedText score =
   GroupedText { _gt_listType :: !(Maybe ListType)
-              , _gt_label    :: !Label
+              , _gt_label    :: !Text
               , _gt_score    :: !score
               , _gt_children :: !(Set Text)
               , _gt_size     :: !Int
@@ -219,11 +226,24 @@ instance (Eq a, Ord a) => Ord (GroupedText a) where
 makeLenses 'GroupedText
 
 ------------------------------------------------------------------------
+-- to remove
+-- | These instances seeems useless, just for debug purpose
+instance HasNgrams (Set Text, Set NodeId) where
+  hasNgrams  = fromMaybe "Nothing" . head . Set.elems . fst
+
+instance HasGroupWithScores (Set Text, Set NodeId) Int where
+  createGroupWithScores = undefined
+  updateGroupWithScores = undefined
+
+instance WithParent (Set Text, Set NodeId) where
+  union = undefined
+
+------------------------------------------------------------------------
 instance HasNgrams (Text, Set NodeId) where
   hasNgrams (t, _) = t
 
-instance HasGroup (Text, Set NodeId) Int where
-  createGroupWith fs (t, ns)   = GroupedText (keyWithMaxValue $ fs ^. flc_lists)
+instance HasGroupWithScores (Text, Set NodeId) Int where
+  createGroupWithScores fs (t, ns)   = GroupedText (keyWithMaxValue $ fs ^. flc_lists)
                                              label
                                              (Set.size ns)
                                              children
@@ -235,7 +255,7 @@ instance HasGroup (Text, Set NodeId) Int where
                             Nothing -> (t, Set.empty)
                             Just t' -> (t', Set.singleton t)
 
-  updateGroupWith fs (t, ns) g = set gt_listType (keyWithMaxValue $ fs ^. flc_lists)
+  updateGroupWithScores fs (t, ns) g = set gt_listType (keyWithMaxValue $ fs ^. flc_lists)
                                $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
 
 ------------------------------------------------------------------------
