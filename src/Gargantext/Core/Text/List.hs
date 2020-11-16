@@ -34,6 +34,7 @@ import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Social (flowSocialList, flowSocialList', FlowSocialListPriority(..), invertForw)
 import Gargantext.Core.Text.List.Social.Scores (FlowListScores)
 import Gargantext.Core.Text.List.Group
+import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
