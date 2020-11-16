@@ -53,7 +53,7 @@ import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Context
 import Gargantext.Core.Text.Terms.WithList
 import Gargantext.Core.Text.Corpus.Parsers.CSV (readFile, csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Core.Text.List.CSV (csvMapTermList)
+import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms (terms)
 import Gargantext.Core.Text.Metrics.Count (coocOnContexts, Coocs)
 

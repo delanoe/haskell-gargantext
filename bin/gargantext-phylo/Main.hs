@@ -31,7 +31,7 @@ import Gargantext.Prelude
 import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Core.Text.Corpus.Parsers.CSV (csv_title, csv_abstract, csv_publication_year)
-import Gargantext.Core.Text.List.CSV (csvMapTermList)
+import Gargantext.Core.Text.List.Formats.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.LevelMaker
