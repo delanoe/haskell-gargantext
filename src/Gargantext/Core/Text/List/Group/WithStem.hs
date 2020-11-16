@@ -18,43 +18,24 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithStem
   where
 
-import Data.Maybe (fromMaybe)
-import Control.Lens (makeLenses, set, (^.))
+import Control.Lens (makeLenses, view)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
-import Data.Semigroup (Semigroup, (<>))
+import Data.Semigroup (Semigroup)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
--- import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social.Scores (FlowListScores(..), flc_lists, flc_parents, keyWithMaxValue)
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
 import qualified Data.List as List
 import qualified Data.Text as Text
 
-{-
-data NgramsListBuilder = BuilderStepO { stemSize :: !Int
-                                      , stemX    :: !Int
-                                      , stopSize :: !StopSize
-                                      }
-                       | BuilderStep1 { withModel :: !Model }
-                       | BuilderStepN { withModel :: !Model }
-                       | Tficf { nlb_lang           :: !Lang
-                               , nlb_group1         :: !Int
-                               , nlb_group2         :: !Int
-                               , nlb_stopSize       :: !StopSize
-                               , nlb_userCorpusId   :: !UserCorpusId
-                               , nlb_masterCorpusId :: !MasterCorpusId
-                               }
--}
-
+-- | Main Types
 data StopSize = StopSize {unStopSize :: !Int}
 
 -- | TODO: group with 2 terms only can be
@@ -68,20 +49,7 @@ data GroupParams = GroupParams { unGroupParams_lang  :: !Lang
                                }
                  | GroupIdentity
 
-ngramsGroup :: GroupParams
-            -> Text
-            -> Text
-ngramsGroup GroupIdentity  = identity
-ngramsGroup (GroupParams l _m _n _) = 
-                    Text.intercalate " "
-                  . map (stem l)
-                  -- . take n
-                  . List.sort
-                  -- . (List.filter (\t -> Text.length t > m))
-                  . Text.splitOn " "
-                  . Text.replace "-" " "
 
-------------------------------------------------------------------------
 data GroupedTextParams a b =
   GroupedTextParams { _gt_fun_stem    :: Text -> Text
                     , _gt_fun_score   :: a -> b
@@ -89,28 +57,8 @@ data GroupedTextParams a b =
                     , _gt_fun_nodeIds :: a -> Set NodeId
                     -- , _gt_fun_size    :: a -> Int
                     }
-
 makeLenses 'GroupedTextParams
 
-groupedTextWithStem :: Ord b
-              => GroupedTextParams a b
-              -> Map Text a
-              -> Map Stem (GroupedText b)
-groupedTextWithStem gparams from =
-  Map.fromListWith (<>) $ map (group gparams) $ Map.toList from
-    where
-      group gparams' (t,d) = let t' = (gparams' ^. gt_fun_stem) t
-                     in (t', GroupedText
-                                Nothing
-                                t
-                                ((gparams' ^. gt_fun_score)   d)
-                                ((gparams' ^. gt_fun_texts)   d)
-                                (size        t)
-                                t'
-                                ((gparams' ^. gt_fun_nodeIds) d)
-                         )
-
-------------------------------------------------------------------------
 type Stem  = Text
 data GroupedText score =
   GroupedText { _gt_listType :: !(Maybe ListType)
@@ -157,5 +105,39 @@ groupWithStem :: {- ( HasNgrams a
               -> Map Text (GroupedTextScores (Set NodeId))
               -> Map Stem (GroupedText Int)
 groupWithStem _ = undefined -- TODO (just for tests on Others Ngrams which do not need stem)
+
+
+------------------------------------------------------------------------
+ngramsGroup :: GroupParams
+            -> Text
+            -> Text
+ngramsGroup GroupIdentity  = identity
+ngramsGroup (GroupParams l _m _n _) = 
+                    Text.intercalate " "
+                  . map (stem l)
+                  -- . take n
+                  . List.sort
+                  -- . (List.filter (\t -> Text.length t > m))
+                  . Text.splitOn " "
+                  . Text.replace "-" " "
+
+------------------------------------------------------------------------
+groupedTextWithStem :: Ord b
+              => GroupedTextParams a b
+              -> Map Text a
+              -> Map Stem (GroupedText b)
+groupedTextWithStem gparams from =
+  Map.fromListWith (<>) $ map (group gparams) $ Map.toList from
+    where
+      group gparams' (t,d) = let t' = (view gt_fun_stem gparams') t
+                     in (t', GroupedText
+                                Nothing
+                                t
+                                ((view gt_fun_score gparams')   d)
+                                ((view gt_fun_texts gparams')   d)
+                                (size        t)
+                                t'
+                                ((view gt_fun_nodeIds gparams') d)
+                         )
 
 ------------------------------------------------------------------------
