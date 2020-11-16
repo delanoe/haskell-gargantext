@@ -110,6 +110,7 @@ groupedTextWithStem gparams from =
                          )
 
 ------------------------------------------------------------------------
+
 ------------------------------------------------------------------------
 type Stem  = Text
 data GroupedText score =
@@ -158,15 +159,23 @@ createGroupWithScores' fs (t, ns)   = GroupedText (keyWithMaxValue $ fs ^. flc_l
                           Nothing -> (t, Set.empty)
                           Just t' -> (t', Set.singleton t)
 
-updateGroupWithScores' fs (t, ns) g = set gt_listType (keyWithMaxValue $ fs ^. flc_lists)
-                             $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
+
+
+updateGroupWithScores' :: FlowListScores
+                       -> (a, Set NodeId) -> GroupedText score -> GroupedText score
+updateGroupWithScores' fs (t, ns) g =
+  set gt_listType (keyWithMaxValue $ fs ^. flc_lists)
+  $ set gt_nodes (Set.union ns $ g ^. gt_nodes) g
+
+
+withParent' :: FlowListScores
+            ->  Map Text (Set NodeId)
+            -> Text
+            -> (Text, Set NodeId)
+            -> (Text, Set NodeId)
+withParent' fs m t a = undefined
 
 ------------------------------------------------------------------------
-
-
-
-
-
 toGroupedText :: {-( FlowList c a b
                   Ord b
                  )
@@ -188,9 +197,6 @@ groupWithStem :: {- ( HasNgrams a
               -> Map Stem (GroupedText Int)
 groupWithStem _ = snd -- TODO (just for tests on Others Ngrams which do not need stem)
 
-withParent' :: Map Text c -> Text -> a -> a
-withParent' = undefined
-
 groupWithScores :: {- Ord b -- (FlowList c a b, Ord b)
                 => -} Map Text FlowListScores
                 -> Map Text (Set NodeId)
@@ -198,20 +204,35 @@ groupWithScores :: {- Ord b -- (FlowList c a b, Ord b)
 groupWithScores scores ms' = foldl' fun_group start ms
   where
     start = ([], Map.empty)
-    ms    = map (\(t, ns) -> (t, ns)) (Map.toList ms')
+    ms    = map identity (Map.toList ms')
 
     fun_group :: ([(Text, Set NodeId)], Map Text (GroupedText Int)) -> (Text, Set NodeId)
-                -> ([(Text, Set NodeId)],  Map Text (GroupedText Int))
+              -> ([(Text, Set NodeId)], Map Text (GroupedText Int))
     fun_group (left, grouped) current =
       case Map.lookup (fst current) scores of
         Just scores' ->
           case keyWithMaxValue $ scores' ^. flc_parents of
             Nothing     -> (left, Map.alter (updateWith scores' current) (fst current) grouped)
-            Just parent -> fun_group (left, grouped) (withParent' ms' parent current)
+            Just parent -> fun_group (left, grouped) (withParent' scores' ms' parent current)
         Nothing      -> (current : left, grouped)
 
     updateWith scores current Nothing  = Just $ createGroupWithScores' scores current
     updateWith scores current (Just x) = Just $ updateGroupWithScores' scores current x
+
+-------
+groupWithScores' :: Map Text GroupedWithListScores
+                 -> Map Text (Set NodeId)
+                 -> Map Text (GroupedText Int)
+groupWithScores' scores ms = foldl' (fun_group scores) start (Map.toList ms)
+  where
+    start = ([], Map.empty)
+    fun_group :: Map Text FlowListScores
+              -> ([(Text, GroupedText Int)], Map Text (GroupedText Int))
+              -> (Text, GroupedText Int)
+              -> ([(Text, GroupedText Int)], Map Text (GroupedText Int))
+    fun_group = undefined
+
+
 
 ------------------------------------------------------------------------
 type FlowList c a b = (HasNgrams a, HasGroupWithScores a b, WithParent c a, Semigroup a)

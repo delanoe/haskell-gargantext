@@ -80,6 +80,47 @@ instance Semigroup FlowListScores where
   (<>) (FlowListScores p1 l1) (FlowListScores p2 l2) =
     FlowListScores (p1 <> p2) (l1 <> l2)
 
+
+------------------------------------------------------------------------
+data GroupedWithListScores =
+  GroupedWithListScores { _gwls_children :: !(Set Text)
+                        , _gwls_listType :: !(Maybe ListType)
+                        }
+makeLenses ''GroupedWithListScores
+
+toGroupedWithListScores :: Map Text FlowListScores -> Map Text GroupedWithListScores
+toGroupedWithListScores ms = foldl' (toGroup ms) Map.empty (Map.toList ms)
+  where
+    toGroup :: Map Text FlowListScores
+            -> Map Text GroupedWithListScores
+            -> (Text, FlowListScores)
+            -> Map Text GroupedWithListScores
+    toGroup ms' result (t,fs) = case (keyWithMaxValue $ fs ^. flc_parents) of
+      Nothing     -> Map.alter (addGroupedParent (t,fs)) t  result
+      Just parent -> Map.alter (addGroupedChild  (t,fs)) parent result
+
+
+addGroupedParent :: (Text, FlowListScores) -> Maybe GroupedWithListScores -> Maybe GroupedWithListScores
+addGroupedParent (_,fs) Nothing = Just $ GroupedWithListScores Set.empty list
+  where
+    list = keyWithMaxValue $ fs ^. flc_lists
+
+addGroupedParent (t,fs) (Just g) = Just $ set gwls_listType list
+                                        $ (%~) gwls_children (Set.insert t) g
+  where
+    list     = keyWithMaxValue $ fs ^. flc_lists
+
+
+addGroupedChild :: (Text, FlowListScores) -> Maybe GroupedWithListScores -> Maybe GroupedWithListScores
+addGroupedChild (t,fs) Nothing  = Just $ GroupedWithListScores (Set.singleton t) list
+  where
+    list     = keyWithMaxValue $ fs ^. flc_lists
+
+addGroupedChild (t,fs) (Just g) = Just $ (%~) gwls_listType (<> list)
+                                       $ (%~) gwls_children (Set.insert t) g
+  where
+    list     = keyWithMaxValue $ fs ^. flc_lists
+
 ------------------------------------------------------------------------
 -- | toFlowListScores which generate Score from list of Map Text
 --   NgramsRepoElement
