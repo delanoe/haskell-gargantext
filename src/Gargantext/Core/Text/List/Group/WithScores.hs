@@ -14,8 +14,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithScores
   where
 
-import Data.Maybe (fromMaybe)
-import Control.Lens (makeLenses, set, over, view)
+import Control.Lens (makeLenses, over, view)
 import Data.Semigroup
 import Data.Set (Set)
 import Data.Map (Map)
@@ -27,7 +26,6 @@ import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
-
 
 ------------------------------------------------------------------------
 -- | Main Types
@@ -58,28 +56,31 @@ instance Semigroup a => Semigroup (GroupedTextScores a) where
 groupWithScores :: Map Text FlowListScores
                 -> Map Text (Set NodeId)
                 -> Map Text (GroupedTextScores (Set NodeId))
-groupWithScores scores  = undefined
+groupWithScores scores ms = foldl' (addScore scores) start (Map.toList ms)
+  where
+    start = fromGroupedScores $ fromListScores scores
 
 
 -- | Add scores depending on being either parent or child or orphan
 addScore :: Map Text FlowListScores
+         -> Map Text (GroupedTextScores (Set NodeId))
          -> (Text, Set NodeId)
          -> Map Text (GroupedTextScores (Set NodeId))
-         -> Map Text (GroupedTextScores (Set NodeId))
-addScore scores (t, ns) ms = Map.alter (isParent ns) t ms
+addScore scores ms (t, ns) = Map.alter (isParent ns) t ms
   where
+    -- is parent case
+    isParent ns' (Just (GroupedTextScores l s c)) = let ns'' = ns' <> s in Just (GroupedTextScores l ns'' c)
+
+    -- is either child or orphan case
     isParent ns' Nothing = case Map.lookup t scores of
-      -- check isChild
+      -- is child case
       Just fls -> case keyWithMaxValue $ view fls_parents fls of
-        Just parent -> undefined -- over gts_score (Set.insert ns') <$> Map.lookup parent ms
+        Just parent -> over gts_score (<> ns') <$> Map.lookup parent ms
         Nothing     -> panic "Should not happen"
 
-      -- is Orphan
-      Nothing -> undefined -- GroupedTextScores Nothing ns' Set.empty
-
-    isParent ns' (Just (GroupedTextScores l s c)) = let ns'' = ns' <> s in Just (GroupedTextScores l ns'' c)
+      -- is Orphan case
+      Nothing -> Just $ GroupedTextScores Nothing ns' Set.empty
   
-
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores
                   -> Map Parent (GroupedTextScores (Set NodeId))
