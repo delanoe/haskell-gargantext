@@ -72,7 +72,7 @@ data FlowListScores =
                 -- You can add any score by incrementing this type
                 -- , _flc_score   :: Map Score Int
                  }
-    deriving (Generic)
+    deriving (Show, Generic)
 
 makeLenses ''FlowListScores
 

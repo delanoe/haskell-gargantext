@@ -14,7 +14,6 @@ Portability : POSIX
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-
 module Gargantext.Core.Text.List.Group.WithStem
   where
 
@@ -68,8 +67,8 @@ data GroupedText score =
               , _gt_size     :: !Int
               , _gt_stem     :: !Stem -- needed ?
               , _gt_nodes    :: !(Set NodeId)
-              } {-deriving Show--}
---{-
+              }  deriving Show --}
+{-
 instance Show score => Show (GroupedText score) where
   show (GroupedText lt l s _ _ _ _) = show l <> " : " <> show lt <> " : " <> show s
 --}
@@ -104,8 +103,16 @@ groupWithStem :: {- ( HasNgrams a
               => -} GroupedTextParams a b
               -> Map Text (GroupedTextScores (Set NodeId))
               -> Map Stem (GroupedText Int)
-groupWithStem _ = undefined -- TODO (just for tests on Others Ngrams which do not need stem)
+groupWithStem _ = Map.mapWithKey scores2groupedText
 
+scores2groupedText :: Text -> GroupedTextScores (Set NodeId) -> GroupedText Int
+scores2groupedText t g = GroupedText (view gts_listType g)
+                                     t
+                                     (Set.size $ view gts_score g)
+                                     (Set.delete t $ view gts_children g)
+                                     (size t)
+                                     t
+                                     (view gts_score g)
 
 ------------------------------------------------------------------------
 ngramsGroup :: GroupParams
@@ -139,5 +146,4 @@ groupedTextWithStem gparams from =
                                 t'
                                 ((view gt_fun_nodeIds gparams') d)
                          )
-
 ------------------------------------------------------------------------

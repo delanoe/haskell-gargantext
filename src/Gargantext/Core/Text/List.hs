@@ -90,10 +90,15 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
     <- flowSocialList' MySelfFirst user nt (Set.fromList $ Map.keys ngs')
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
+  -- printDebug "flowSocialList'" socialLists'
+
   let
     groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
     groupedWithList = toGroupedText groupParams socialLists' ngs'
 
+  printDebug "groupedWithList" groupedWithList
+
+  let
     (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
     (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm)  tailTerms
 
