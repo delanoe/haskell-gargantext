@@ -12,26 +12,23 @@ Main specifications to index a corpus with a term list
  -}
 
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE Strict             #-}
 
 module Main where
 
 import Data.ByteString.Lazy (writeFile)
 
-import Data.Maybe (catMaybes)
 import Data.Text (pack)
 import qualified Data.Text as DT
 
 import Data.Tuple.Extra (both)
 import qualified Data.Vector as DV
-import qualified Data.Maybe  as DMaybe
 
 import Control.Monad (zipWithM)
 import Control.Monad.IO.Class
 
 import Data.Map (Map)
-import qualified Data.IntMap as DIM
 import qualified Data.Map    as DM
 
 import GHC.Generics
@@ -44,7 +41,6 @@ import System.IO (hPutStr, hFlush, stderr)
 import System.Environment
 import Control.Concurrent.Async as CCA (mapConcurrently)
 import Control.Concurrent (getNumCapabilities, myThreadId, threadCapability)
-import Prelude ((>>))
 
 import Gargantext.Prelude
 import Gargantext.Core
