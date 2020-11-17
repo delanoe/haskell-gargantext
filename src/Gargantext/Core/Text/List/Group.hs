@@ -18,27 +18,19 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group
   where
 
-import Data.Maybe (fromMaybe)
-import Control.Lens (makeLenses, set, (^.))
+import Control.Lens (set)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
-import Data.Semigroup (Semigroup, (<>))
-import Gargantext.Core (Lang(..))
-import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
--- import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social.Scores (FlowListScores(..), flc_lists, flc_parents, keyWithMaxValue)
+import Gargantext.Core.Text.List.Social.Scores (FlowListScores(..))
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Group.WithScores
-import Gargantext.Core.Text.Terms.Mono.Stem (stem)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
 import qualified Data.List as List
-import qualified Data.Text as Text
 
 ------------------------------------------------------------------------
 toGroupedText :: GroupedTextParams a b

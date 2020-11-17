@@ -14,25 +14,17 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithScores
   where
 
-import Data.Maybe (fromMaybe)
-import Control.Lens (makeLenses, set, (^.), (%~), over, view)
+import Control.Lens (makeLenses, set, over, view)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
-import Data.Semigroup (Semigroup, (<>))
-import Gargantext.Core (Lang(..))
-import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
 import Gargantext.Core.Text.List.Social.Scores
-import Gargantext.Core.Text.Terms.Mono.Stem (stem)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
-import qualified Data.List as List
-import qualified Data.Text as Text
 
 
 ------------------------------------------------------------------------
@@ -66,7 +58,7 @@ groupWithScores scores =
     scoresToGroupedTextScores :: Maybe GroupedWithListScores
                               -> Text -> Set NodeId
                               -> GroupedTextScores (Set NodeId)
-    scoresToGroupedTextScores Nothing  t ns = GroupedTextScores Nothing ns Set.empty
+    scoresToGroupedTextScores Nothing  _ ns = GroupedTextScores Nothing ns Set.empty
     scoresToGroupedTextScores (Just g) t ns = GroupedTextScores list ns (Set.singleton t)
       where
         list = view gwls_listType g
@@ -78,7 +70,7 @@ toGroupedWithListScores ms = foldl' (toGroup ms) Map.empty (Map.toList ms)
             -> Map Text GroupedWithListScores
             -> (Text, FlowListScores)
             -> Map Text GroupedWithListScores
-    toGroup ms' result (t,fs) = case (keyWithMaxValue $ view flc_parents fs) of
+    toGroup _ result (t,fs) = case (keyWithMaxValue $ view flc_parents fs) of
       Nothing     -> Map.alter (addGroupedParent (t,fs)) t  result
       Just parent -> Map.alter (addGroupedChild  (t,fs)) parent result
 

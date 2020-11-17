@@ -9,7 +9,8 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Gargantext.Core.Text.List
   where
@@ -30,7 +31,6 @@ import qualified Data.Text as Text
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
-import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Social (flowSocialList, flowSocialList', FlowSocialListPriority(..), invertForw)
 import Gargantext.Core.Text.List.Social.Scores (FlowListScores)
 import Gargantext.Core.Text.List.Group
@@ -39,7 +39,7 @@ import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, norma
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node (defaultList)
@@ -91,27 +91,11 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
   let
-    groupParams = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
-    grouped'    = toGroupedText groupParams socialLists' ngs'
+    groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
+    groupedWithList = toGroupedText groupParams socialLists' ngs'
 
-  -- 8< 8< 8< 8< 8< 8< 8<
-  let 
-    ngs  :: Map Text (Set Text, Set NodeId) = groupNodesByNgramsWith groupIt ngs'
-  socialLists  <- flowSocialList user nt (Set.fromList $ Map.keys ngs)
-  -- >8 >8 >8 >8 >8 >8 >8
-
-  let
-    grouped = groupedTextWithStem (GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-} ) -- socialLists'
-            $ Map.mapWithKey (\k (a,b) -> (Set.delete k a, b))
-            $ ngs
-
-
-  let
-    groupedWithList        = map (addListType (invertForw socialLists)) grouped
-    (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm)
-                                           groupedWithList
-    (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm)
-                                           tailTerms
+    (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
+    (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm)  tailTerms
 
     listSize = mapListSize - (List.length mapTerms)
     (mapTerms', candiTerms) = List.splitAt listSize
@@ -125,6 +109,7 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
                            <> (List.concat $ map toNgramsElement
                                            $ map (set gt_listType (Just CandidateTerm)) candiTerms)
                       )]
+
 
 -- TODO use ListIds
 buildNgramsTermsList :: ( HasNodeError err
