@@ -67,8 +67,8 @@ keyWithMaxValue m = (fst . fst) <$> Map.maxViewWithKey m
 
 ------------------------------------------------------------------------
 data FlowListScores =
-  FlowListScores { _flc_parents :: Map Parent   Int
-                 , _flc_lists   :: Map ListType Int
+  FlowListScores { _fls_parents   :: Map Parent   Int
+                 , _fls_listType :: Map ListType Int
                 -- You can add any score by incrementing this type
                 -- , _flc_score   :: Map Score Int
                  }
