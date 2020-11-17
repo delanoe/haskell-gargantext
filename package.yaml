@@ -73,7 +73,7 @@ library:
   - Gargantext.Core.Text.Corpus.API
   - Gargantext.Core.Text.Corpus.Parsers.CSV
   - Gargantext.Core.Text.Examples
-  - Gargantext.Core.Text.List.CSV
+  - Gargantext.Core.Text.List.Formats.CSV
   - Gargantext.Core.Text.Metrics
   - Gargantext.Core.Text.Metrics.TFICF
   - Gargantext.Core.Text.Metrics.CharByChar

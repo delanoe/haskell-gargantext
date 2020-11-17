@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Text.List.CSV
+Module      : Gargantext.Core.Text.List.Formats.CSV
 Description : 
 Copyright   : (c) CNRS, 2018-Present
 License     : AGPL + CECILL v3
@@ -12,29 +12,24 @@ CSV parser for Gargantext corpus files.
 -}
 
 
-module Gargantext.Core.Text.List.CSV where
-
-import GHC.IO (FilePath)
+module Gargantext.Core.Text.List.Formats.CSV where
 
 import Control.Applicative
 import Control.Monad (mzero)
-
 import Data.Char (ord)
 import Data.Csv
 import Data.Either (Either(Left, Right))
 import Data.List (null)
 import Data.Text (Text, pack)
-import qualified Data.Text as DT
-import qualified Data.ByteString.Lazy as BL
-
 import Data.Vector (Vector)
+import GHC.IO (FilePath)
+import Gargantext.Core.Text.Context
+import Gargantext.Prelude hiding (length)
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as DT
 import qualified Data.Vector as V
 
-import Gargantext.Prelude hiding (length)
-import Gargantext.Core.Text.Context
-
 ------------------------------------------------------------------------
-
 csvMapTermList :: FilePath -> IO TermList
 csvMapTermList fp = csv2list CsvMap <$> snd <$>  fromCsvListFile fp
 
