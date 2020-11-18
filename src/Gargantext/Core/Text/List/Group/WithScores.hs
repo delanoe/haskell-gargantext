@@ -52,14 +52,30 @@ instance Semigroup a => Semigroup (GroupedTextScores a) where
        (GroupedTextScores l2 s2 c2)
     = GroupedTextScores (l1 <> l2) (s1 <> s2) (c1 <> c2)
 
+------
+data GroupedTextScores' score =
+  GroupedTextScores' { _gts'_listType :: !(Maybe ListType)
+                     , _gts'_score    :: score
+                     , _gts'_children :: !(Set (GroupedTextScores' score))
+                     } deriving (Show, Ord, Eq)
+makeLenses 'GroupedTextScores'
+instance (Semigroup a, Ord a) => Semigroup (GroupedTextScores' a) where
+  (<>) (GroupedTextScores' l1 s1 c1)
+       (GroupedTextScores' l2 s2 c2)
+    = GroupedTextScores' (l1 <> l2) (s1 <> s2) (c1 <> c2)
+
+
 ------------------------------------------------------------------------
 -- | Main function
 groupWithScores :: Map Text FlowListScores
                 -> Map Text (Set NodeId)
                 -> Map Text (GroupedTextScores (Set NodeId))
-groupWithScores scores ms = addScore ms
-                          $ fromGroupedScores
-                          $ fromListScores scores
+groupWithScores scores ms = orphans <> groups
+  where
+    groups = addScore ms
+           $ fromGroupedScores
+           $ fromListScores scores
+    orphans = addIfNotExist scores ms
 
 
 addScore :: Map Text (Set NodeId)
@@ -67,12 +83,26 @@ addScore :: Map Text (Set NodeId)
          -> Map Text (GroupedTextScores (Set NodeId))
 addScore mapNs = Map.mapWithKey scoring
   where
+
     scoring k g = set gts_score ( Set.unions
                                 $ catMaybes
                                 $ map (\n -> Map.lookup n mapNs)
                                 $ [k] <> (Set.toList $ view gts_children g)
                                 ) g
 
+addIfNotExist :: Map Text FlowListScores
+              -> Map Text (Set NodeId)
+              -> Map Text (GroupedTextScores (Set NodeId))
+addIfNotExist mapSocialScores mapScores =
+  foldl' (addIfNotExist' mapSocialScores mapScores) Map.empty $ Map.toList mapScores
+    where
+      addIfNotExist' mss ms m (t,ns) =
+        case Map.lookup t mss of
+          Nothing -> Map.alter (add (t,ns)) t m
+          _       -> m
+
+      add (t,ns) Nothing = Just $ GroupedTextScores Nothing ns Set.empty
+      add _ _            = Nothing -- should not be present
 
 
 ------------------------------------------------------------------------

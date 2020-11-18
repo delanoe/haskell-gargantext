@@ -22,7 +22,7 @@ import Control.Lens (set)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
-import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
+import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Social.Scores (FlowListScores(..))
 import Gargantext.Core.Text.List.Group.WithStem
@@ -92,7 +92,6 @@ toGroupedText_test =
                                                         }
                             )
                            ]
-
 
 ------------------------------------------------------------------------
 -- | To be removed
