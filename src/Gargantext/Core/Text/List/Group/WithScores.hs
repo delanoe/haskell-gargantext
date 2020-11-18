@@ -32,7 +32,7 @@ import qualified Data.Map  as Map
 data GroupedWithListScores =
   GroupedWithListScores { _gwls_children :: !(Set Text)
                         , _gwls_listType :: !(Maybe ListType)
-                        }
+                        } deriving (Show)
 makeLenses ''GroupedWithListScores
 instance Semigroup GroupedWithListScores where
   (<>) (GroupedWithListScores c1 l1)
@@ -44,7 +44,7 @@ data GroupedTextScores score =
   GroupedTextScores { _gts_listType :: !(Maybe ListType)
                     , _gts_score    :: score
                     , _gts_children :: !(Set Text)
-                    }
+                    } deriving (Show)
 makeLenses 'GroupedTextScores
 instance Semigroup a => Semigroup (GroupedTextScores a) where
   (<>) (GroupedTextScores l1 s1 c1)
@@ -72,14 +72,15 @@ addScore scores ms (t, ns) = Map.alter (isParent ns) t ms
     isParent ns' (Just (GroupedTextScores l s c)) = let ns'' = ns' <> s in Just (GroupedTextScores l ns'' c)
 
     -- is either child or orphan case
-    isParent ns' Nothing = case Map.lookup t scores of
+    isParent ns' Nothing = Just $ GroupedTextScores Nothing ns' Set.empty
+{- case Map.lookup t scores of
       -- is child case
       Just fls -> case keyWithMaxValue $ view fls_parents fls of
         Just parent -> over gts_score (<> ns') <$> Map.lookup parent ms
-        Nothing     -> panic "Should not happen"
-
+        Nothing     -> panic "[G.C.T.G.WS.addScore] Should not happen"
       -- is Orphan case
       Nothing -> Just $ GroupedTextScores Nothing ns' Set.empty
+      -}
   
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores

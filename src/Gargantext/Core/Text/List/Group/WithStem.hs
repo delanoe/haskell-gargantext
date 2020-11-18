@@ -26,6 +26,7 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
@@ -67,15 +68,17 @@ data GroupedText score =
               , _gt_size     :: !Int
               , _gt_stem     :: !Stem -- needed ?
               , _gt_nodes    :: !(Set NodeId)
-              }  deriving Show --}
+              }  deriving (Show, Eq) --}
 {-
 instance Show score => Show (GroupedText score) where
   show (GroupedText lt l s _ _ _ _) = show l <> " : " <> show lt <> " : " <> show s
 --}
 
+{-
 instance (Eq a) => Eq (GroupedText a) where
   (==) (GroupedText _ _ score1 _ _ _ _)
        (GroupedText _ _ score2 _ _ _ _) = (==) score1 score2
+-}
 
 instance (Eq a, Ord a) => Ord (GroupedText a) where
   compare (GroupedText _ _ score1 _ _ _ _)
