@@ -42,11 +42,11 @@ toGroupedText groupParams scores =
 
 
 ------------------------------------------------------------------------
-
--- toGroupedText_test :: Bool -- Map Stem (GroupedText Int)
+-- | WIP
+toGroupedText_test :: Bool -- Map Stem (GroupedText Int)
 toGroupedText_test =
   -- fromGroupedScores $ fromListScores from
-  toGroupedText params from datas -- == result
+  toGroupedText params from datas == result
     where
       params = GroupedTextParams identity (Set.size . snd) fst snd
       from :: Map Text FlowListScores
@@ -88,7 +88,7 @@ toGroupedText_test =
                                                         ,_gt_children = Set.fromList ["A. Rahmani","B. Tamain"]
                                                         ,_gt_size = 2
                                                         ,_gt_stem = "T. Reposeur"
-                                                        ,_gt_nodes = Set.fromList [3,4]
+                                                        ,_gt_nodes = Set.fromList [1..6]
                                                         }
                             )
                            ]

@@ -89,12 +89,12 @@ flowSocialList' flowPriority user nt ngrams' =
 
 ------------------------------------------------------------------------
 flowSocialListByMode :: ( RepoCmdM env err m
-                       , CmdM     env err m
-                       , HasNodeError err
-                       , HasTreeError err
-                       )
-                    => [NodeId]-> NgramsType -> Set Text
-                    -> m (Map (Maybe ListType) (Set Text))
+                        , CmdM     env err m
+                        , HasNodeError err
+                        , HasTreeError err
+                        )
+                     => [NodeId]-> NgramsType -> Set Text
+                     -> m (Map (Maybe ListType) (Set Text))
 flowSocialListByMode      [] _nt ngrams' = pure $ Map.fromList [(Nothing, ngrams')]
 flowSocialListByMode listIds  nt ngrams' = do
     counts  <- countFilterList ngrams' nt listIds Map.empty

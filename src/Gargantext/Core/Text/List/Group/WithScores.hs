@@ -94,14 +94,14 @@ addIfNotExist :: Map Text FlowListScores
               -> Map Text (Set NodeId)
               -> Map Text (GroupedTextScores (Set NodeId))
 addIfNotExist mapSocialScores mapScores =
-  foldl' (addIfNotExist' mapSocialScores mapScores) Map.empty $ Map.toList mapScores
+  foldl' (addIfNotExist' mapSocialScores) Map.empty $ Map.toList mapScores
     where
-      addIfNotExist' mss ms m (t,ns) =
+      addIfNotExist' mss m (t,ns) =
         case Map.lookup t mss of
-          Nothing -> Map.alter (add (t,ns)) t m
+          Nothing -> Map.alter (add ns) t m
           _       -> m
 
-      add (t,ns) Nothing = Just $ GroupedTextScores Nothing ns Set.empty
+      add ns' Nothing = Just $ GroupedTextScores Nothing ns' Set.empty
       add _ _            = Nothing -- should not be present
 
 
