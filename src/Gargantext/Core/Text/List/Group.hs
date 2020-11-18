@@ -43,10 +43,10 @@ toGroupedText groupParams scores =
 
 ------------------------------------------------------------------------
 
-toGroupedText_test :: Bool -- Map Stem (GroupedText Int)
+-- toGroupedText_test :: Bool -- Map Stem (GroupedText Int)
 toGroupedText_test =
   -- fromGroupedScores $ fromListScores from
-  toGroupedText params from datas == result
+  toGroupedText params from datas -- == result
     where
       params = GroupedTextParams identity (Set.size . snd) fst snd
       from :: Map Text FlowListScores

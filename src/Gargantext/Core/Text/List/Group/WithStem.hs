@@ -26,7 +26,6 @@ import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude

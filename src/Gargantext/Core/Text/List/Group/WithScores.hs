@@ -14,10 +14,11 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithScores
   where
 
-import Control.Lens (makeLenses, over, view)
+import Control.Lens (makeLenses, view, set)
 import Data.Semigroup
 import Data.Set (Set)
 import Data.Map (Map)
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
@@ -56,32 +57,24 @@ instance Semigroup a => Semigroup (GroupedTextScores a) where
 groupWithScores :: Map Text FlowListScores
                 -> Map Text (Set NodeId)
                 -> Map Text (GroupedTextScores (Set NodeId))
-groupWithScores scores ms = foldl' (addScore scores) start (Map.toList ms)
-  where
-    start = fromGroupedScores $ fromListScores scores
+groupWithScores scores ms = addScore ms
+                          $ fromGroupedScores
+                          $ fromListScores scores
 
 
--- | Add scores depending on being either parent or child or orphan
-addScore :: Map Text FlowListScores
+addScore :: Map Text (Set NodeId)
          -> Map Text (GroupedTextScores (Set NodeId))
-         -> (Text, Set NodeId)
          -> Map Text (GroupedTextScores (Set NodeId))
-addScore scores ms (t, ns) = Map.alter (isParent ns) t ms
+addScore mapNs = Map.mapWithKey scoring
   where
-    -- is parent case
-    isParent ns' (Just (GroupedTextScores l s c)) = let ns'' = ns' <> s in Just (GroupedTextScores l ns'' c)
+    scoring k g = set gts_score ( Set.unions
+                                $ catMaybes
+                                $ map (\n -> Map.lookup n mapNs)
+                                $ [k] <> (Set.toList $ view gts_children g)
+                                ) g
 
-    -- is either child or orphan case
-    isParent ns' Nothing = Just $ GroupedTextScores Nothing ns' Set.empty
-{- case Map.lookup t scores of
-      -- is child case
-      Just fls -> case keyWithMaxValue $ view fls_parents fls of
-        Just parent -> over gts_score (<> ns') <$> Map.lookup parent ms
-        Nothing     -> panic "[G.C.T.G.WS.addScore] Should not happen"
-      -- is Orphan case
-      Nothing -> Just $ GroupedTextScores Nothing ns' Set.empty
-      -}
-  
+
+
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores
                   -> Map Parent (GroupedTextScores (Set NodeId))
