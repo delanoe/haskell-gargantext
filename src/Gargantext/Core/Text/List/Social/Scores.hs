@@ -26,48 +26,15 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types.Main
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Prelude
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
 ------------------------------------------------------------------------
--- | Tools to inherit groupings
-------------------------------------------------------------------------
-
--- | Tools
-parentUnionsMerge :: (Ord a, Ord b, Num c)
-                   => [Map a (Map b c)]
-                   ->  Map a (Map b c)
-parentUnionsMerge = Map.unionsWith (Map.unionWith (+))
-
--- This Parent union is specific
--- [Private, Shared, Public]
--- means the following preferences:
--- Private > Shared > Public
--- if data have not been tagged privately, then use others tags
--- This unions behavior takes first key only and ignore others
-parentUnionsExcl :: Ord a
-                 => [Map a b]
-                 ->  Map a b
-parentUnionsExcl = Map.unions
-
-------------------------------------------------------------------------
-type Parent = Text
-
-hasParent :: Text
-          -> Map Text (Map Parent Int)
-          -> Maybe Parent
-hasParent t m = case Map.lookup t m of
-  Nothing  -> Nothing
-  Just  m' -> keyWithMaxValue m'
-
-------------------------------------------------------------------------
-keyWithMaxValue :: Map a b -> Maybe a
-keyWithMaxValue m = (fst . fst) <$> Map.maxViewWithKey m
-
-------------------------------------------------------------------------
+-- | Datatype definition
 data FlowListScores =
-  FlowListScores { _fls_parents   :: Map Parent   Int
+  FlowListScores { _fls_parents  :: Map Parent   Int
                  , _fls_listType :: Map ListType Int
                 -- You can add any score by incrementing this type
                 -- , _flc_score   :: Map Score Int
@@ -76,29 +43,31 @@ data FlowListScores =
 
 makeLenses ''FlowListScores
 
+-- | Rules to compose 2 datatype FlowListScores
+-- Triangle de Pascal, nombre d'or ou pi ?
 instance Semigroup FlowListScores where
-  (<>) (FlowListScores p1 l1) (FlowListScores p2 l2) =
-    FlowListScores (p1 <> p2) (l1 <> l2)
-
+  (<>) (FlowListScores p1 l1)
+       (FlowListScores p2 l2) =
+        FlowListScores (p1 <> p2)
+                       (l1 <> l2)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
--- | toFlowListScores which generate Score from list of Map Text
---   NgramsRepoElement
+-- | Generates Score from list of Map Text NgramsRepoElement
 toFlowListScores :: KeepAllParents
                  -> Set Text
                  ->  Map Text FlowListScores
                  -> [Map Text NgramsRepoElement]
                  ->  Map Text FlowListScores
-toFlowListScores k ts = foldl' (toFlowListScores' k ts)
+toFlowListScores k st = foldl' (toFlowListScores' k st)
   where
     toFlowListScores' :: KeepAllParents
                      -> Set Text
                      -> Map Text FlowListScores
                      -> Map Text NgramsRepoElement
                      -> Map Text FlowListScores
-    toFlowListScores' k' ts' to' ngramsRepo =
-      Set.foldl' (toFlowListScores'' k' ts' ngramsRepo) to' ts'
+    toFlowListScores' k' st' to' ngramsRepo =
+      Set.foldl' (toFlowListScores'' k' st' ngramsRepo) to' st'
 
     toFlowListScores'' :: KeepAllParents
                        -> Set Text
@@ -106,10 +75,10 @@ toFlowListScores k ts = foldl' (toFlowListScores' k ts)
                        -> Map Text FlowListScores
                        -> Text
                        -> Map Text FlowListScores
-    toFlowListScores'' k'' ss ngramsRepo to'' t =
+    toFlowListScores'' k'' st'' ngramsRepo to'' t =
       case Map.lookup t ngramsRepo of
         Nothing  -> to''
-        Just nre -> Map.alter (addParent k'' nre ss)        t
+        Just nre -> Map.alter (addParent k'' nre st'')        t
                   $ Map.alter (addList $ _nre_list nre) t to''
 
 ------------------------------------------------------------------------

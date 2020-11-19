@@ -23,6 +23,7 @@ import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 -- import Gargantext.Core.Text.List.Learn (Model(..))
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -38,9 +39,11 @@ makeLenses ''GroupedWithListScores
 instance Semigroup GroupedWithListScores where
   (<>) (GroupedWithListScores c1 l1)
        (GroupedWithListScores c2 l2) = 
-        GroupedWithListScores (c1 <> c2) (l1 <> l2)
+        GroupedWithListScores (c1 <> c2)
+                              (l1 <> l2)
 
 ------
+-- To be removed
 data GroupedTextScores score =
   GroupedTextScores { _gts_listType :: !(Maybe ListType)
                     , _gts_score    :: score
@@ -53,6 +56,7 @@ instance Semigroup a => Semigroup (GroupedTextScores a) where
     = GroupedTextScores (l1 <> l2) (s1 <> s2) (c1 <> c2)
 
 ------
+-- | Tree of GroupedTextScores
 data GroupedTextScores' score =
   GroupedTextScores' { _gts'_listType :: !(Maybe ListType)
                      , _gts'_score    :: score
@@ -78,6 +82,7 @@ groupWithScores scores ms = orphans <> groups
     orphans = addIfNotExist scores ms
 
 
+------------------------------------------------------------------------
 addScore :: Map Text (Set NodeId)
          -> Map Text (GroupedTextScores (Set NodeId))
          -> Map Text (GroupedTextScores (Set NodeId))
@@ -102,8 +107,15 @@ addIfNotExist mapSocialScores mapScores =
           _       -> m
 
       add ns' Nothing = Just $ GroupedTextScores Nothing ns' Set.empty
-      add _ _            = Nothing -- should not be present
+      add _ _         = Nothing -- should not be present
 
+------------------------------------------------------------------------
+{-
+toGroupedTextScores' :: Map Parent GroupedWithListScores
+                     -> Map Text (Set NodeId)
+                     -> Map Parent (GroupedTextScores' (Set NodeId))
+toGroupedTextScores' par datas = undefined
+-}
 
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores
