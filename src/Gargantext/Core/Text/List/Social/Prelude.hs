@@ -132,7 +132,7 @@ unions' = invertBack . Map.unionsWith (<>) . map invertForw
 
 invertForw :: (Ord b, Semigroup a) => Map a (Set b) -> Map b a
 invertForw = Map.unionsWith (<>)
-           . (map (\(k,sets) -> Map.fromSet (\_ -> k) sets))
+           . (map (\(k,st) -> Map.fromSet (\_ -> k) st))
            . Map.toList
 
 invertBack :: (Ord a, Ord b) => Map b a -> Map a (Set b)
