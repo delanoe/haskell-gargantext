@@ -13,7 +13,7 @@ module Gargantext.Core.Text.List.Social
 
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
-import Data.Semigroup (Semigroup(..))
+import Data.Monoid (mconcat)
 import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams.Tools -- (getListNgrams)
@@ -34,38 +34,10 @@ import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
 ------------------------------------------------------------------------
-flowSocialList :: ( RepoCmdM env err m
-                  , CmdM     env err m
-                  , HasNodeError err
-                  , HasTreeError err
-                  )
-                  => User -> NgramsType -> Set Text
-                  -> m (Map ListType (Set Text))
-flowSocialList user nt ngrams' = do
-  -- Here preference to privateLists (discutable: let user choice)
-  privateListIds <- findListsId user Private
-  privateLists <- flowSocialListByMode privateListIds nt ngrams'
-  -- printDebug "* privateLists *: \n" privateLists
-
-  sharedListIds <- findListsId user Shared
-  sharedLists  <- flowSocialListByMode sharedListIds nt (termsByList CandidateTerm privateLists)
-  -- printDebug "* sharedLists *: \n" sharedLists
-
-  -- TODO publicMapList:
-  -- Note: if both produce 3 identic repetition => refactor mode
-  -- publicListIds <- findListsId Public user
-  -- publicLists   <- flowSocialListByMode' publicListIds nt (termsByList CandidateTerm privateLists)
-
-  let result = parentUnionsExcl
-             [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
-             , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
-             -- , Map.mapKeys (fromMaybe CandidateTerm) publicLists
-             ]
-  -- printDebug "* socialLists *: results \n" result
-  pure result
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
+-- | Main parameters
+
 -- | FlowSocialListPriority
 -- Sociological assumption: either private or others (public) first
 -- This parameter depends on the user choice
@@ -75,6 +47,13 @@ flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
 flowSocialListPriority MySelfFirst = [Private, Shared{-, Public -}]
 flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirst
 
+
+-- | We keep the parents for all ngrams but terms
+keepAllParents :: NgramsType -> KeepAllParents
+keepAllParents NgramsTerms = KeepAllParents False
+keepAllParents _           = KeepAllParents True
+
+
 ------------------------------------------------------------------------
 flowSocialList' :: ( RepoCmdM env err m
                    , CmdM     env err m
@@ -82,37 +61,27 @@ flowSocialList' :: ( RepoCmdM env err m
                    , HasTreeError err
                    )
                   => FlowSocialListPriority
-                  -> User -> NgramsType -> Set Text
-                  -> m (Map Text FlowListScores)
-flowSocialList' flowPriority user nt ngrams' =
-  parentUnionsExcl <$> mapM (flowSocialListByMode' user nt ngrams')
-                            (flowSocialListPriority flowPriority)
+                  -> User -> NgramsType
+                  -> FlowListCont Text
+                  -> m (FlowListCont Text)
+flowSocialList' flowPriority user nt flc =
+  mconcat <$> mapM (flowSocialListByMode' user nt flc)
+                   (flowSocialListPriority flowPriority)
 
 ------------------------------------------------------------------------
-flowSocialListByMode :: ( RepoCmdM env err m
-                        , CmdM     env err m
-                        , HasNodeError err
-                        , HasTreeError err
-                        )
-                     => [NodeId]-> NgramsType -> Set Text
-                     -> m (Map (Maybe ListType) (Set Text))
-flowSocialListByMode      [] _nt ngrams' = pure $ Map.fromList [(Nothing, ngrams')]
-flowSocialListByMode listIds  nt ngrams' = do
-    counts  <- countFilterList ngrams' nt listIds Map.empty
-    let r = toSocialList counts ngrams'
-    pure r
-
 
 flowSocialListByMode' :: ( RepoCmdM env err m
                          , CmdM     env err m
                          , HasNodeError err
                          , HasTreeError err
                          )
-                      => User -> NgramsType -> Set Text -> NodeMode 
-                      -> m (Map Text FlowListScores)
-flowSocialListByMode' user nt st mode =
+                      => User -> NgramsType
+                      -> FlowListCont Text
+                      -> NodeMode
+                      -> m (FlowListCont Text)
+flowSocialListByMode' user nt flc mode =
       findListsId user mode
-  >>= flowSocialListByModeWith nt st
+  >>= flowSocialListByModeWith nt flc
 
 
 flowSocialListByModeWith :: ( RepoCmdM env err m
@@ -120,20 +89,19 @@ flowSocialListByModeWith :: ( RepoCmdM env err m
                             , HasNodeError err
                             , HasTreeError err
                             )
-                         => NgramsType -> Set Text -> [NodeId]
-                         -> m (Map Text FlowListScores)
-flowSocialListByModeWith nt st ns =
+                         => NgramsType
+                         -> FlowListCont Text
+                         -> [NodeId]
+                         -> m (FlowListCont Text)
+flowSocialListByModeWith nt flc ns =
       mapM (\l -> getListNgrams [l] nt) ns
   >>= pure
-    . toFlowListScores (keepAllParents nt) st Map.empty
+    . toFlowListScores (keepAllParents nt) flc
 
 
--- | We keep the parents for all ngrams but terms
-keepAllParents :: NgramsType -> KeepAllParents
-keepAllParents NgramsTerms = KeepAllParents False
-keepAllParents _           = KeepAllParents True
 
-------------------------------------------------------------------------
+---8<-TODO-ALL BELOW--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<-
+
 -- | Choice depends on Ord instance of ListType
 -- for now : data ListType  =  StopTerm | CandidateTerm | MapTerm
 -- means MapTerm > CandidateTerm > StopTerm in case of equality of counts
@@ -167,3 +135,48 @@ toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
                      ]
 
 
+
+flowSocialList :: ( RepoCmdM env err m
+                  , CmdM     env err m
+                  , HasNodeError err
+                  , HasTreeError err
+                  )
+                  => User -> NgramsType -> Set Text
+                  -> m (Map ListType (Set Text))
+flowSocialList user nt ngrams' = do
+  -- Here preference to privateLists (discutable: let user choice)
+  privateListIds <- findListsId user Private
+  privateLists <- flowSocialListByMode privateListIds nt ngrams'
+  -- printDebug "* privateLists *: \n" privateLists
+
+  sharedListIds <- findListsId user Shared
+  sharedLists  <- flowSocialListByMode sharedListIds nt (termsByList CandidateTerm privateLists)
+  -- printDebug "* sharedLists *: \n" sharedLists
+
+  -- TODO publicMapList:
+  -- Note: if both produce 3 identic repetition => refactor mode
+  -- publicListIds <- findListsId Public user
+  -- publicLists   <- flowSocialListByMode' publicListIds nt (termsByList CandidateTerm privateLists)
+
+  let result = parentUnionsExcl
+             [ Map.mapKeys (fromMaybe CandidateTerm) privateLists
+             , Map.mapKeys (fromMaybe CandidateTerm) sharedLists
+             -- , Map.mapKeys (fromMaybe CandidateTerm) publicLists
+             ]
+  -- printDebug "* socialLists *: results \n" result
+  pure result
+
+
+-- | TODO remove
+flowSocialListByMode :: ( RepoCmdM env err m
+                        , CmdM     env err m
+                        , HasNodeError err
+                        , HasTreeError err
+                        )
+                     => [NodeId]-> NgramsType -> Set Text
+                     -> m (Map (Maybe ListType) (Set Text))
+flowSocialListByMode      [] _nt ngrams' = pure $ Map.fromList [(Nothing, ngrams')]
+flowSocialListByMode listIds  nt ngrams' = do
+    counts  <- countFilterList ngrams' nt listIds Map.empty
+    let r = toSocialList counts ngrams'
+    pure r
