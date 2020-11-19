@@ -19,10 +19,9 @@ module Gargantext.Core.Text.List.Social.Scores
 
 import Control.Lens
 import Data.Map (Map)
-import Data.Semigroup (Semigroup(..))
+import Data.Monoid (mempty)
 import Data.Set (Set)
 import Data.Text (Text)
-import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Text.List.Social.Prelude
@@ -31,65 +30,35 @@ import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
 ------------------------------------------------------------------------
--- | DataType inspired by continuation Monad (but simpler)
-data FlowListCont a =
-  FlowListCont { _flc_scores :: Map a FlowListScores
-               , _flc_cont   :: Set a
-               }
-
--- | Datatype definition
-data FlowListScores =
-  FlowListScores { _fls_parents  :: Map Parent   Int
-                 , _fls_listType :: Map ListType Int
-                -- You can add any score by incrementing this type
-                -- , _flc_score   :: Map Score Int
-                 }
-    deriving (Show, Generic)
-
-------------------------------------------------------------------------
-makeLenses ''FlowListCont
-makeLenses ''FlowListScores
-
--- | Rules to compose 2 datatype FlowListScores
--- About the shape of the Type fun:
--- Triangle de Pascal, nombre d'or ou pi ?
--- Question: how to add a score field and derive such definition
--- without the need to fix it below ?
-instance Semigroup FlowListScores where
-  (<>) (FlowListScores p1 l1)
-       (FlowListScores p2 l2) =
-        FlowListScores (p1 <> p2)
-                       (l1 <> l2)
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
 -- | Generates Score from list of Map Text NgramsRepoElement
 toFlowListScores :: KeepAllParents
-                 -> Set Text
-                 ->  Map Text FlowListScores
+                 ->  FlowListCont Text
                  -> [Map Text NgramsRepoElement]
-                 ->  Map Text FlowListScores
-toFlowListScores k st = foldl' (toFlowListScores' k st)
+                 ->  FlowListCont Text
+toFlowListScores k flc = foldl' (toFlowListScores' k flc) mempty
   where
     toFlowListScores' :: KeepAllParents
-                     -> Set Text
-                     -> Map Text FlowListScores
+                     -> FlowListCont Text
+                     -> FlowListCont Text
                      -> Map Text NgramsRepoElement
-                     -> Map Text FlowListScores
-    toFlowListScores' k' st' to' ngramsRepo =
-      Set.foldl' (toFlowListScores'' k' st' ngramsRepo) to' st'
+                     -> FlowListCont Text
+    toFlowListScores' k' flc flc' ngramsRepo =
+      Set.foldl' (toFlowListScores'' k' ngramsRepo flc) flc' (view flc_cont flc)
+
 
     toFlowListScores'' :: KeepAllParents
-                       -> Set Text
                        -> Map Text NgramsRepoElement
-                       -> Map Text FlowListScores
+                       -> FlowListCont Text
+                       -> FlowListCont Text
                        -> Text
-                       -> Map Text FlowListScores
-    toFlowListScores'' k'' st'' ngramsRepo to'' t =
+                       -> FlowListCont Text
+    toFlowListScores'' k'' ngramsRepo flc to'' t =
       case Map.lookup t ngramsRepo of
-        Nothing  -> to''
-        Just nre -> Map.alter (addParent k'' nre st'')        t
-                  $ Map.alter (addList $ _nre_list nre) t to''
+        Nothing  -> over flc_cont (Set.insert t) to''
+        Just nre -> over flc_scores
+                  ( (Map.alter (addParent k'' nre (view flc_cont flc)) t)
+                  . (Map.alter (addList $ _nre_list nre) t)
+                  ) to''
 
 ------------------------------------------------------------------------
 -- | Main addFunctions to groupResolution the FlowListScores

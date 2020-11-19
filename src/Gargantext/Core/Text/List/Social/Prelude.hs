@@ -18,15 +18,65 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social.Prelude
   where
 
+import Control.Lens
 import Data.Semigroup (Semigroup(..))
+import Data.Monoid
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.Core.Types.Main
 import Gargantext.Prelude
+import GHC.Generics (Generic)
 import qualified Data.Map   as Map
 import qualified Data.Set   as Set
+
+------------------------------------------------------------------------
+type Parent = Text
+------------------------------------------------------------------------
+-- | DataType inspired by continuation Monad (but simpler)
+data FlowListCont a =
+  FlowListCont { _flc_scores :: Map a FlowListScores
+               , _flc_cont   :: Set a
+               }
+
+instance Ord a => Monoid (FlowListCont a) where
+  mempty = FlowListCont Map.empty Set.empty
+
+instance (Eq a, Ord a) => Semigroup (FlowListCont a) where
+  (<>) (FlowListCont m1 s1)
+       (FlowListCont m2 s2)
+          | s1 == Set.empty = FlowListCont m s2
+          | s2 == Set.empty = FlowListCont m s1
+          | otherwise       = FlowListCont m (Set.intersection s1 s2)
+            where
+              m = Map.union m1 m2
+
+
+-- | Datatype definition
+data FlowListScores =
+  FlowListScores { _fls_parents  :: Map Parent   Int
+                 , _fls_listType :: Map ListType Int
+                -- You can add any score by incrementing this type
+                -- , _flc_score   :: Map Score Int
+                 }
+    deriving (Show, Generic)
+
+
+------------------------------------------------------------------------
+makeLenses ''FlowListCont
+makeLenses ''FlowListScores
+
+-- | Rules to compose 2 datatype FlowListScores
+-- About the shape of the Type fun:
+-- Triangle de Pascal, nombre d'or ou pi ?
+-- Question: how to add a score field and derive such definition
+-- without the need to fix it below ?
+instance Semigroup FlowListScores where
+  (<>) (FlowListScores p1 l1)
+       (FlowListScores p2 l2) =
+        FlowListScores (p1 <> p2)
+                       (l1 <> l2)
 
 
 ------------------------------------------------------------------------
@@ -49,8 +99,8 @@ parentUnionsExcl :: Ord a
                  ->  Map a b
 parentUnionsExcl = Map.unions
 
+
 ------------------------------------------------------------------------
-type Parent = Text
 
 hasParent :: Text
           -> Map Text (Map Parent Int)
@@ -76,9 +126,9 @@ termsByList l m =
   fromMaybe Set.empty $ Map.lookup (Just l) m
 
 ------------------------------------------------------------------------
-unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
+unions' :: (Ord a, Semigroup a, Semigroup b, Ord b)
       => [Map a (Set b)] -> Map a (Set b)
-unions = invertBack . Map.unionsWith (<>) . map invertForw
+unions' = invertBack . Map.unionsWith (<>) . map invertForw
 
 invertForw :: (Ord b, Semigroup a) => Map a (Set b) -> Map b a
 invertForw = Map.unionsWith (<>)
@@ -91,7 +141,7 @@ invertBack = Map.fromListWith (<>)
            .  Map.toList
 
 unions_test :: Map ListType (Set Text)
-unions_test = unions [m1, m2]
+unions_test = unions' [m1, m2]
   where
     m1 = Map.fromList [ (StopTerm     , Set.singleton "Candidate")]
     m2 = Map.fromList [ (CandidateTerm, Set.singleton "Candidate")

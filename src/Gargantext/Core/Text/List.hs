@@ -32,7 +32,6 @@ import qualified Data.Text as Text
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core.Text.List.Social
-import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group
 import Gargantext.Core.Text.List.Group.WithStem
@@ -87,15 +86,17 @@ buildNgramsOthersList ::( HasNodeError err
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
-  socialLists' :: Map Text FlowListScores
-    <- flowSocialList' MySelfFirst user nt (Set.fromList $ Map.keys ngs')
+  socialLists' :: FlowListCont Text
+    <- flowSocialList' MySelfFirst user nt (FlowListCont Map.empty $ Set.fromList $ Map.keys ngs')
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
-  printDebug "flowSocialList'" (Map.filter (not . ((==) Map.empty) . view fls_parents) socialLists')
+  printDebug "flowSocialList'"
+               $ Map.filter (not . ((==) Map.empty) . view fls_parents)
+               $ view flc_scores socialLists'
 
   let
     groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
-    groupedWithList = toGroupedText groupParams socialLists' ngs'
+    groupedWithList = toGroupedText groupParams (view flc_scores socialLists') ngs'
 
   printDebug "groupedWithList"
                $ Map.map (\v -> (view gt_label v, view gt_children v))

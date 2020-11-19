@@ -22,9 +22,7 @@ import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
 import Gargantext.Database.Admin.Types.Node (NodeId)
--- import Gargantext.Core.Text.List.Learn (Model(..))
 import Gargantext.Core.Text.List.Social.Prelude
-import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
