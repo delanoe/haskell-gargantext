@@ -35,30 +35,34 @@ toFlowListScores :: KeepAllParents
                  ->  FlowListCont Text
                  -> [Map Text NgramsRepoElement]
                  ->  FlowListCont Text
-toFlowListScores k flc = foldl' (toFlowListScores' k flc) mempty
+toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) mempty
+
   where
-    toFlowListScores' :: KeepAllParents
+
+    toFlowListScores_Level1 :: KeepAllParents
                      -> FlowListCont Text
                      -> FlowListCont Text
                      -> Map Text NgramsRepoElement
                      -> FlowListCont Text
-    toFlowListScores' k' flc flc' ngramsRepo =
-      Set.foldl' (toFlowListScores'' k' ngramsRepo flc) flc' (view flc_cont flc)
+    toFlowListScores_Level1 k' flc_origin' flc_dest ngramsRepo =
+      Set.foldl' (toFlowListScores_Level2 k' ngramsRepo flc_origin')
+                 flc_dest
+                 (view flc_cont flc_origin')
 
 
-    toFlowListScores'' :: KeepAllParents
+    toFlowListScores_Level2 :: KeepAllParents
                        -> Map Text NgramsRepoElement
                        -> FlowListCont Text
                        -> FlowListCont Text
                        -> Text
                        -> FlowListCont Text
-    toFlowListScores'' k'' ngramsRepo flc to'' t =
+    toFlowListScores_Level2 k'' ngramsRepo flc_origin'' flc_dest' t =
       case Map.lookup t ngramsRepo of
-        Nothing  -> over flc_cont (Set.insert t) to''
+        Nothing  -> over flc_cont (Set.insert t) flc_dest'
         Just nre -> over flc_scores
-                  ( (Map.alter (addParent k'' nre (view flc_cont flc)) t)
+                  ( (Map.alter (addParent k'' nre (view flc_cont flc_origin'')) t)
                   . (Map.alter (addList $ _nre_list nre) t)
-                  ) to''
+                  ) flc_dest'
 
 ------------------------------------------------------------------------
 -- | Main addFunctions to groupResolution the FlowListScores
@@ -68,18 +72,17 @@ addList :: ListType
         -> Maybe FlowListScores
         -> Maybe FlowListScores
 addList l Nothing =
-  Just $ FlowListScores Map.empty (addList' l Map.empty)
+  Just $ FlowListScores Map.empty (addListScore l Map.empty)
 
 addList l (Just (FlowListScores mapParent mapList)) =
-  Just $ FlowListScores mapParent mapList'
-    where
-      mapList' = addList' l mapList
+  Just $ FlowListScores mapParent (addListScore l mapList)
+
 -- * Unseful but nice comment:
 -- "the addList function looks like an ASCII bird"
 
 -- | Concrete function to pass to PatchMap
-addList' :: ListType -> Map ListType Int -> Map ListType Int
-addList' l m = Map.alter (plus l) l  m
+addListScore :: ListType -> Map ListType Int -> Map ListType Int
+addListScore l m = Map.alter (plus l) l  m
   where
     plus CandidateTerm Nothing  = Just 1
     plus CandidateTerm (Just x) = Just $ x + 1
@@ -91,7 +94,6 @@ addList' l m = Map.alter (plus l) l  m
     plus StopTerm (Just x)      = Just $ x + 3
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
 data KeepAllParents = KeepAllParents Bool
 
 addParent :: KeepAllParents -> NgramsRepoElement -> Set Text
@@ -101,21 +103,21 @@ addParent :: KeepAllParents -> NgramsRepoElement -> Set Text
 addParent k nre ss Nothing  =
   Just $ FlowListScores mapParent Map.empty
     where
-      mapParent = addParent' k (_nre_parent nre) ss Map.empty
+      mapParent = addParentScore k (_nre_parent nre) ss Map.empty
 
 addParent k nre ss (Just (FlowListScores mapParent mapList)) =
   Just $ FlowListScores mapParent' mapList
     where
-      mapParent' = addParent' k (_nre_parent nre) ss mapParent
+      mapParent' = addParentScore k (_nre_parent nre) ss mapParent
 
-addParent' :: Num a
+addParentScore :: Num a
            => KeepAllParents
            -> Maybe NgramsTerm
            -> Set Text
            -> Map Text a
            -> Map Text a
-addParent' _ Nothing               _ss mapParent = mapParent
-addParent' (KeepAllParents k) (Just (NgramsTerm p')) ss mapParent =
+addParentScore _ Nothing               _ss mapParent = mapParent
+addParentScore (KeepAllParents k) (Just (NgramsTerm p')) ss mapParent =
   case k of
     True  -> Map.alter addCount p' mapParent
     False -> case Set.member p' ss of
