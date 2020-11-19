@@ -14,7 +14,6 @@ Portability : POSIX
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-
 module Gargantext.Core.Text.List.Social.Scores
   where
 
@@ -32,6 +31,12 @@ import qualified Data.Map   as Map
 import qualified Data.Set   as Set
 
 ------------------------------------------------------------------------
+-- | DataType inspired by continuation Monad (but simpler)
+data FlowListCont a =
+  FlowListCont { _flc_scores :: Map a FlowListScores
+               , _flc_cont   :: Set a
+               }
+
 -- | Datatype definition
 data FlowListScores =
   FlowListScores { _fls_parents  :: Map Parent   Int
@@ -41,10 +46,15 @@ data FlowListScores =
                  }
     deriving (Show, Generic)
 
+------------------------------------------------------------------------
+makeLenses ''FlowListCont
 makeLenses ''FlowListScores
 
 -- | Rules to compose 2 datatype FlowListScores
+-- About the shape of the Type fun:
 -- Triangle de Pascal, nombre d'or ou pi ?
+-- Question: how to add a score field and derive such definition
+-- without the need to fix it below ?
 instance Semigroup FlowListScores where
   (<>) (FlowListScores p1 l1)
        (FlowListScores p2 l2) =
@@ -146,4 +156,5 @@ addParent' (KeepAllParents k) (Just (NgramsTerm p')) ss mapParent =
         addCount Nothing  = Just 1
         addCount (Just n) = Just $ n + 1
 
+------------------------------------------------------------------------
 ------------------------------------------------------------------------

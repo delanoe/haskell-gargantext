@@ -134,12 +134,12 @@ keepAllParents NgramsTerms = KeepAllParents False
 keepAllParents _           = KeepAllParents True
 
 ------------------------------------------------------------------------
--- TODO: maybe use social groups too
--- | TODO what if equality ?
--- choice depends on Ord instance of ListType
+-- | Choice depends on Ord instance of ListType
 -- for now : data ListType  =  StopTerm | CandidateTerm | MapTerm
 -- means MapTerm > CandidateTerm > StopTerm in case of equality of counts
 -- (we minimize errors on MapTerms if doubt)
+--  * TODO what if equality ?
+--  * TODO maybe use social groups too
 toSocialList :: Map Text (Map ListType Int)
              -> Set Text
              -> Map (Maybe ListType) (Set Text)
@@ -166,35 +166,4 @@ toSocialList1_testIsTrue = result == (Just MapTerm, Set.singleton token)
                      , (StopTerm     , 3)
                      ]
 
-------------------------------------------------------------------------
--- | Tools
-------------------------------------------------------------------------
-termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
-termsByList CandidateTerm m = Set.unions
-                          $ map (\lt -> fromMaybe Set.empty $ Map.lookup lt m)
-                          [ Nothing, Just CandidateTerm ]
-termsByList l m =
-  fromMaybe Set.empty $ Map.lookup (Just l) m
 
-------------------------------------------------------------------------
-unions :: (Ord a, Semigroup a, Semigroup b, Ord b)
-      => [Map a (Set b)] -> Map a (Set b)
-unions = invertBack . Map.unionsWith (<>) . map invertForw
-
-invertForw :: (Ord b, Semigroup a) => Map a (Set b) -> Map b a
-invertForw = Map.unionsWith (<>)
-           . (map (\(k,sets) -> Map.fromSet (\_ -> k) sets))
-           . Map.toList
-
-invertBack :: (Ord a, Ord b) => Map b a -> Map a (Set b)
-invertBack = Map.fromListWith (<>)
-           . (map (\(b,a) -> (a, Set.singleton b)))
-           .  Map.toList
-
-unions_test :: Map ListType (Set Text)
-unions_test = unions [m1, m2]
-  where
-    m1 = Map.fromList [ (StopTerm     , Set.singleton "Candidate")]
-    m2 = Map.fromList [ (CandidateTerm, Set.singleton "Candidate")
-                      , (MapTerm      , Set.singleton "Candidate")
-                      ]

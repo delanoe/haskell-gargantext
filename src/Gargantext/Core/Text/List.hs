@@ -16,7 +16,7 @@ module Gargantext.Core.Text.List
   where
 
 
-import Control.Lens ((^.), set, view)
+import Control.Lens ((^.), set, view, over)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
 import Data.Map (Map)
@@ -31,8 +31,9 @@ import qualified Data.Text as Text
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
-import Gargantext.Core.Text.List.Social (flowSocialList, flowSocialList', FlowSocialListPriority(..), invertForw)
-import Gargantext.Core.Text.List.Social.Scores -- (FlowListScores)
+import Gargantext.Core.Text.List.Social
+import Gargantext.Core.Text.List.Social.Scores
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
@@ -96,7 +97,10 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
     groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
     groupedWithList = toGroupedText groupParams socialLists' ngs'
 
-  printDebug "groupedWithList" (Map.map (\v -> (view gt_label v, view gt_children v)) $ Map.filter (\v -> (Set.size $ view gt_children v) > 0) groupedWithList)
+  printDebug "groupedWithList"
+               $ Map.map (\v -> (view gt_label v, view gt_children v))
+               $ Map.filter (\v -> (Set.size $ view gt_children v) > 0)
+               $ groupedWithList
 
   let
     (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
@@ -191,7 +195,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
                                           Nothing -> mapGroups'
                                           Just g  -> case Map.lookup k mapTextDocIds of
                                             Nothing -> mapGroups'
-                                            Just ns -> Map.insert k' ( g { _gt_nodes = Set.union ns (_gt_nodes g)}) mapGroups'
+                                            Just ns -> Map.insert k' (over gt_nodes (Set.union ns) g) mapGroups'
                            )
                   mapGroups
                   $ Map.keys mapTextDocIds
