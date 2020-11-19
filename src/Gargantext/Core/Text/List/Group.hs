@@ -40,9 +40,8 @@ toGroupedText :: GroupedTextParams a b
 toGroupedText groupParams scores =
   (groupWithStem groupParams) . (groupWithScores scores)
 
-
 ------------------------------------------------------------------------
--- | WIP
+-- | WIP, put this in test folder
 toGroupedText_test :: Bool -- Map Stem (GroupedText Int)
 toGroupedText_test =
   -- fromGroupedScores $ fromListScores from

@@ -20,6 +20,7 @@ import Gargantext.API.Ngrams.Tools -- (getListNgrams)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Find
 import Gargantext.Core.Text.List.Social.ListType
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Core.Types.Individu
 import Gargantext.Core.Types.Main
