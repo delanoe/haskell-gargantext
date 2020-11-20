@@ -8,13 +8,13 @@ Stability   : experimental
 Portability : POSIX
 -}
 
+------------------------------------------------------------------------
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE TypeFamilies      #-}
-
-
+------------------------------------------------------------------------
 module Gargantext.Core.Text.List.Social.Prelude
   where
 
