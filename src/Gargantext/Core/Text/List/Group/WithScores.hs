@@ -20,28 +20,64 @@ import Data.Set (Set)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Gargantext.Core.Types (ListType(..)) -- (MasterCorpusId, UserCorpusId)
+import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
 
-------------------------------------------------------------------------
--- | Main Types
-data GroupedWithListScores =
-  GroupedWithListScores { _gwls_children :: !(Set Text)
-                        , _gwls_listType :: !(Maybe ListType)
-                        } deriving (Show)
-makeLenses ''GroupedWithListScores
-instance Semigroup GroupedWithListScores where
-  (<>) (GroupedWithListScores c1 l1)
-       (GroupedWithListScores c2 l2) = 
-        GroupedWithListScores (c1 <> c2)
-                              (l1 <> l2)
 
-------
--- To be removed
+------------------------------------------------------------------------
+-- | Main function
+groupWithScores' :: FlowCont Text FlowListScores
+                 -> (Text -> Set NodeId) -- Map Text (Set NodeId)
+                 -> FlowCont Text (GroupedTextScores' (Set NodeId))
+groupWithScores' flc scores = FlowCont  groups orphans
+  where
+    groups  = toGroupedTextScores' $ view flc_scores flc
+    orphans = (view flc_cont flc)
+
+
+toGroupedTextScores' :: Map Text FlowListScores
+                     -> Map Parent (GroupedTextScores' (Set NodeId))
+toGroupedTextScores' = toGroupedScores' . fromListScores'
+
+
+------------------------------------------------------------------------
+fromListScores' :: Map Text FlowListScores
+                -> Map Parent GroupedWithListScores
+fromListScores' = Map.fromListWith (<>) . (map fromScores') . Map.toList
+  where
+    fromScores' :: (Text, FlowListScores) -> (Text, GroupedWithListScores)
+    fromScores' (t, fs) = case (keyWithMaxValue $ view fls_parents fs) of
+      Nothing     -> (t, GroupedWithListScores Set.empty (keyWithMaxValue $ view fls_listType fs))
+          -- Parent case: taking its listType, for now children Set is empty
+
+      Just parent -> (parent, GroupedWithListScores (Set.singleton t) Nothing)
+          -- We ignore the ListType of children for the parents' one
+          -- added after and winner of semigroup actions
+
+
+toGroupedScores' :: Map Parent GroupedWithListScores
+                 -> Map Parent (GroupedTextScores' (Set NodeId))
+toGroupedScores' = undefined -- Map.map (\(GroupedWithListScores c l) -> GroupedTextScores l Set.empty c)
+
+
+
+
+
+
+
+
+
+
+
+
+
+--8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<--
+-- TODO To be removed
 data GroupedTextScores score =
   GroupedTextScores { _gts_listType :: !(Maybe ListType)
                     , _gts_score    :: score
@@ -49,25 +85,12 @@ data GroupedTextScores score =
                     } deriving (Show)
 makeLenses 'GroupedTextScores
 instance Semigroup a => Semigroup (GroupedTextScores a) where
-  (<>) (GroupedTextScores l1 s1 c1)
-       (GroupedTextScores l2 s2 c2)
-    = GroupedTextScores (l1 <> l2) (s1 <> s2) (c1 <> c2)
+  (<>) (GroupedTextScores  l1 s1 c1)
+       (GroupedTextScores  l2 s2 c2)
+      = GroupedTextScores (l1 <> l2)
+                          (s1 <> s2)
+                          (c1 <> c2)
 
-------
--- | Tree of GroupedTextScores
-data GroupedTextScores' score =
-  GroupedTextScores' { _gts'_listType :: !(Maybe ListType)
-                     , _gts'_score    :: score
-                     , _gts'_children :: !(Set (GroupedTextScores' score))
-                     } deriving (Show, Ord, Eq)
-makeLenses 'GroupedTextScores'
-instance (Semigroup a, Ord a) => Semigroup (GroupedTextScores' a) where
-  (<>) (GroupedTextScores' l1 s1 c1)
-       (GroupedTextScores' l2 s2 c2)
-    = GroupedTextScores' (l1 <> l2) (s1 <> s2) (c1 <> c2)
-
-
-------------------------------------------------------------------------
 -- | Main function
 groupWithScores :: Map Text FlowListScores
                 -> Map Text (Set NodeId)
@@ -78,20 +101,6 @@ groupWithScores scores ms = orphans <> groups
            $ fromGroupedScores
            $ fromListScores scores
     orphans = addIfNotExist scores ms
-
-
-{-
-groupWithScores :: Map Text FlowListScores
-                -> Map Text (Set NodeId)
-                -> Map Text (GroupedTextScores (Set NodeId))
-groupWithScores scores ms = orphans <> groups
-  where
-    groups = addScore ms
-           $ fromGroupedScores
-           $ fromListScores scores
-    orphans = addIfNotExist scores ms
--}
-
 
 ------------------------------------------------------------------------
 addScore :: Map Text (Set NodeId)
@@ -121,11 +130,6 @@ addIfNotExist mapSocialScores mapScores =
       add _ _         = Nothing -- should not be present
 
 ------------------------------------------------------------------------
-toGroupedTextScores' :: Map Parent GroupedWithListScores
-                     -- -> Map Text (Set NodeId)
-                     -> Map Parent (GroupedTextScores' (Set NodeId))
-toGroupedTextScores' par = undefined
-
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores
                   -> Map Parent (GroupedTextScores (Set NodeId))
@@ -143,4 +147,7 @@ fromListScores = Map.fromListWith (<>) . (map fromScores') . Map.toList
       Just parent -> (parent, GroupedWithListScores (Set.singleton t) Nothing)
           -- We ignore the ListType of children for the parents' one
           -- added after and winner of semigroup actions
+
+
+--8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<--
 
