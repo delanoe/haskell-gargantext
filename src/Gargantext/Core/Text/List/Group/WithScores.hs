@@ -18,6 +18,7 @@ import Control.Lens (makeLenses, view, set)
 import Data.Semigroup
 import Data.Set (Set)
 import Data.Map (Map)
+import Data.Monoid (mempty)
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..))
@@ -30,21 +31,25 @@ import qualified Data.Map  as Map
 
 
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- | Main function
 groupWithScores' :: FlowCont Text FlowListScores
                  -> (Text -> Set NodeId) -- Map Text (Set NodeId)
                  -> FlowCont Text (GroupedTextScores' (Set NodeId))
-groupWithScores' flc scores = FlowCont  groups orphans
+groupWithScores' flc _scores = FlowCont  groups orphans
   where
     groups  = toGroupedTextScores' $ view flc_scores flc
+    -- parent/child relation is inherited from social lists
+
     orphans = (view flc_cont flc)
+    -- orphans have been filtered already
 
-
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 toGroupedTextScores' :: Map Text FlowListScores
                      -> Map Parent (GroupedTextScores' (Set NodeId))
 toGroupedTextScores' = toGroupedScores' . fromListScores'
-
-
 ------------------------------------------------------------------------
 fromListScores' :: Map Text FlowListScores
                 -> Map Parent GroupedWithListScores
@@ -52,18 +57,22 @@ fromListScores' = Map.fromListWith (<>) . (map fromScores') . Map.toList
   where
     fromScores' :: (Text, FlowListScores) -> (Text, GroupedWithListScores)
     fromScores' (t, fs) = case (keyWithMaxValue $ view fls_parents fs) of
-      Nothing     -> (t, GroupedWithListScores Set.empty (keyWithMaxValue $ view fls_listType fs))
+      Nothing     -> ( t
+                     , set gwls_listType (keyWithMaxValue $ view fls_listType fs) mempty
+                     )
           -- Parent case: taking its listType, for now children Set is empty
 
-      Just parent -> (parent, GroupedWithListScores (Set.singleton t) Nothing)
+      Just parent -> (parent, set gwls_children (Set.singleton t) mempty)
           -- We ignore the ListType of children for the parents' one
           -- added after and winner of semigroup actions
 
 
 toGroupedScores' :: Map Parent GroupedWithListScores
                  -> Map Parent (GroupedTextScores' (Set NodeId))
-toGroupedScores' = undefined -- Map.map (\(GroupedWithListScores c l) -> GroupedTextScores l Set.empty c)
+toGroupedScores' = undefined
+-- Map.map (\(GroupedWithListScores c l) -> GroupedTextScores l Set.empty c)
 
+-- toGroupedTree :: GroupedW
 
 
 
@@ -133,7 +142,7 @@ addIfNotExist mapSocialScores mapScores =
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores
                   -> Map Parent (GroupedTextScores (Set NodeId))
-fromGroupedScores = Map.map (\(GroupedWithListScores c l) -> GroupedTextScores l Set.empty c)
+fromGroupedScores = Map.map (\(GroupedWithListScores l c) -> GroupedTextScores l Set.empty c)
 
 ------------------------------------------------------------------------
 fromListScores :: Map Text FlowListScores -> Map Parent GroupedWithListScores
@@ -141,10 +150,10 @@ fromListScores = Map.fromListWith (<>) . (map fromScores') . Map.toList
   where
     fromScores' :: (Text, FlowListScores) -> (Text, GroupedWithListScores)
     fromScores' (t, fs) = case (keyWithMaxValue $ view fls_parents fs) of
-      Nothing     -> (t, GroupedWithListScores Set.empty (keyWithMaxValue $ view fls_listType fs))
+      Nothing     -> (t, set gwls_listType (keyWithMaxValue $ view fls_listType fs) mempty)
           -- Parent case: taking its listType, for now children Set is empty
  
-      Just parent -> (parent, GroupedWithListScores (Set.singleton t) Nothing)
+      Just parent -> (parent, set gwls_children (Set.singleton t) mempty)
           -- We ignore the ListType of children for the parents' one
           -- added after and winner of semigroup actions
 
