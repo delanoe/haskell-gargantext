@@ -32,18 +32,18 @@ import qualified Data.Set   as Set
 ------------------------------------------------------------------------
 -- | Generates Score from list of Map Text NgramsRepoElement
 toFlowListScores :: KeepAllParents
-                 ->  FlowListCont Text
+                 ->  FlowCont Text FlowListScores
                  -> [Map Text NgramsRepoElement]
-                 ->  FlowListCont Text
+                 ->  FlowCont Text FlowListScores
 toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) mempty
 
   where
 
     toFlowListScores_Level1 :: KeepAllParents
-                     -> FlowListCont Text
-                     -> FlowListCont Text
+                     -> FlowCont Text FlowListScores
+                     -> FlowCont Text FlowListScores
                      -> Map Text NgramsRepoElement
-                     -> FlowListCont Text
+                     -> FlowCont Text FlowListScores
     toFlowListScores_Level1 k' flc_origin' flc_dest ngramsRepo =
       Set.foldl' (toFlowListScores_Level2 k' ngramsRepo flc_origin')
                  flc_dest
@@ -52,10 +52,10 @@ toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) me
 
     toFlowListScores_Level2 :: KeepAllParents
                        -> Map Text NgramsRepoElement
-                       -> FlowListCont Text
-                       -> FlowListCont Text
+                       -> FlowCont Text FlowListScores
+                       -> FlowCont Text FlowListScores
                        -> Text
-                       -> FlowListCont Text
+                       -> FlowCont Text FlowListScores
     toFlowListScores_Level2 k'' ngramsRepo flc_origin'' flc_dest' t =
       case Map.lookup t ngramsRepo of
         Nothing  -> over flc_cont (Set.insert t) flc_dest'

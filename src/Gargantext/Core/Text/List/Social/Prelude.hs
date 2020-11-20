@@ -35,20 +35,20 @@ import qualified Data.Set   as Set
 type Parent = Text
 ------------------------------------------------------------------------
 -- | DataType inspired by continuation Monad (but simpler)
-data FlowListCont a =
-  FlowListCont { _flc_scores :: Map a FlowListScores
+data FlowCont a b =
+  FlowCont { _flc_scores :: Map a b
                , _flc_cont   :: Set a
                }
 
-instance Ord a => Monoid (FlowListCont a) where
-  mempty = FlowListCont Map.empty Set.empty
+instance Ord a => Monoid (FlowCont a b) where
+  mempty = FlowCont Map.empty Set.empty
 
-instance (Eq a, Ord a) => Semigroup (FlowListCont a) where
-  (<>) (FlowListCont m1 s1)
-       (FlowListCont m2 s2)
-          | s1 == Set.empty = FlowListCont m s2
-          | s2 == Set.empty = FlowListCont m s1
-          | otherwise       = FlowListCont m (Set.intersection s1 s2)
+instance (Eq a, Ord a) => Semigroup (FlowCont a b) where
+  (<>) (FlowCont m1 s1)
+       (FlowCont m2 s2)
+          | s1 == Set.empty = FlowCont m s2
+          | s2 == Set.empty = FlowCont m s1
+          | otherwise       = FlowCont m (Set.intersection s1 s2)
             where
               m = Map.union m1 m2
 
@@ -64,7 +64,7 @@ data FlowListScores =
 
 
 ------------------------------------------------------------------------
-makeLenses ''FlowListCont
+makeLenses ''FlowCont
 makeLenses ''FlowListScores
 
 -- | Rules to compose 2 datatype FlowListScores
