@@ -17,36 +17,34 @@ module Gargantext.Core.Text.List
 
 
 import Control.Lens ((^.), set, view, over)
+import Data.Map (Map)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
-import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
-import qualified Data.Char as Char
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Set  as Set
-import qualified Data.Text as Text
-
--- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
-import Gargantext.Core.Text.List.Social
-import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group
 import Gargantext.Core.Text.List.Group.WithStem
+import Gargantext.Core.Text.List.Social
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
+import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
+import qualified Data.Char as Char
+import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Set  as Set
+import qualified Data.Text as Text
 
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
@@ -86,8 +84,8 @@ buildNgramsOthersList ::( HasNodeError err
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
-  socialLists' :: FlowListCont Text
-    <- flowSocialList' MySelfFirst user nt (FlowListCont Map.empty $ Set.fromList $ Map.keys ngs')
+  socialLists' :: FlowCont Text FlowListScores
+    <- flowSocialList' MySelfFirst user nt (FlowCont Map.empty $ Set.fromList $ Map.keys ngs')
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
   printDebug "flowSocialList'"

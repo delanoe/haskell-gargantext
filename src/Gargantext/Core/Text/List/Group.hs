@@ -41,7 +41,7 @@ toGroupedText groupParams scores =
   (groupWithStem groupParams) . (groupWithScores scores)
 
 ------------------------------------------------------------------------
--- | WIP, put this in test folder
+-- | TODO put in test folder
 toGroupedText_test :: Bool -- Map Stem (GroupedText Int)
 toGroupedText_test =
   -- fromGroupedScores $ fromListScores from
@@ -93,7 +93,7 @@ toGroupedText_test =
                            ]
 
 ------------------------------------------------------------------------
--- | To be removed
+-- | TODO To be removed
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
 addListType m g = set gt_listType (hasListType m g) g
   where
