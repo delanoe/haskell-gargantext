@@ -37,8 +37,8 @@ type Parent = Text
 -- | DataType inspired by continuation Monad (but simpler)
 data FlowCont a b =
   FlowCont { _flc_scores :: Map a b
-               , _flc_cont   :: Set a
-               }
+           , _flc_cont   :: Set a
+           }
 
 instance Ord a => Monoid (FlowCont a b) where
   mempty = FlowCont Map.empty Set.empty
@@ -55,8 +55,8 @@ instance (Eq a, Ord a) => Semigroup (FlowCont a b) where
 
 -- | Datatype definition
 data FlowListScores =
-  FlowListScores { _fls_parents  :: Map Parent   Int
-                 , _fls_listType :: Map ListType Int
+  FlowListScores { _fls_listType :: Map ListType Int
+                 , _fls_parents  :: Map Parent   Int
                 -- You can add any score by incrementing this type
                 -- , _flc_score   :: Map Score Int
                  }
@@ -78,6 +78,8 @@ instance Semigroup FlowListScores where
         FlowListScores (p1 <> p2)
                        (l1 <> l2)
 
+instance Monoid FlowListScores where
+  mempty = FlowListScores Map.empty Map.empty
 
 ------------------------------------------------------------------------
 -- | Tools to inherit groupings
