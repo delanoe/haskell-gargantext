@@ -14,18 +14,14 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.Prelude
   where
 
-import Control.Lens (makeLenses, view, set)
+import Control.Lens (makeLenses)
+import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set)
-import Data.Map (Map)
-import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Prelude
-import qualified Data.Set  as Set
-import qualified Data.Map  as Map
+import qualified Data.Set as Set
 
 ------------------------------------------------------------------------
 -- | Group With Scores Main Types
@@ -33,8 +29,8 @@ import qualified Data.Map  as Map
 -- Target : type FlowCont Text GroupedTextScores'
 data GroupedTextScores' score =
   GroupedTextScores' { _gts'_listType :: !(Maybe ListType)
-                     , _gts'_score    :: score
                      , _gts'_children :: !(Set (GroupedTextScores' score))
+                     , _gts'_score    :: score
                      } deriving (Show, Ord, Eq)
 makeLenses 'GroupedTextScores'
 instance (Semigroup a, Ord a) => Semigroup (GroupedTextScores' a) where
@@ -45,8 +41,8 @@ instance (Semigroup a, Ord a) => Semigroup (GroupedTextScores' a) where
 
 -- | Intermediary Type
 data GroupedWithListScores =
-  GroupedWithListScores { _gwls_children :: !(Set Text)
-                        , _gwls_listType :: !(Maybe ListType)
+  GroupedWithListScores { _gwls_listType :: !(Maybe ListType)
+                        , _gwls_children :: !(Set Text)
                         } deriving (Show)
 makeLenses ''GroupedWithListScores
 instance Semigroup GroupedWithListScores where
@@ -55,5 +51,9 @@ instance Semigroup GroupedWithListScores where
         GroupedWithListScores (c1 <> c2)
                               (l1 <> l2)
 
+instance Monoid GroupedWithListScores where
+  mempty = GroupedWithListScores Nothing Set.empty
+
 ------------------------------------------------------------------------
 -- | Group With Stem Main Types
+

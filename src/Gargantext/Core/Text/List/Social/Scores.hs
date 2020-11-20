@@ -72,10 +72,10 @@ addList :: ListType
         -> Maybe FlowListScores
         -> Maybe FlowListScores
 addList l Nothing =
-  Just $ FlowListScores Map.empty (addListScore l Map.empty)
+  Just $ set fls_listType (addListScore l Map.empty) mempty
 
-addList l (Just (FlowListScores mapParent mapList)) =
-  Just $ FlowListScores mapParent (addListScore l mapList)
+addList l (Just fls) =
+  Just $ over fls_listType (addListScore l) fls
 
 -- * Unseful but nice comment:
 -- "the addList function looks like an ASCII bird"
@@ -101,14 +101,12 @@ addParent :: KeepAllParents -> NgramsRepoElement -> Set Text
           -> Maybe FlowListScores
 
 addParent k nre ss Nothing  =
-  Just $ FlowListScores mapParent Map.empty
+  Just $ FlowListScores Map.empty mapParent
     where
-      mapParent = addParentScore k (_nre_parent nre) ss Map.empty
+      mapParent = addParentScore k (view nre_parent nre) ss Map.empty
 
-addParent k nre ss (Just (FlowListScores mapParent mapList)) =
-  Just $ FlowListScores mapParent' mapList
-    where
-      mapParent' = addParentScore k (_nre_parent nre) ss mapParent
+addParent k nre ss (Just fls{-(FlowListScores mapList mapParent)-}) =
+  Just $ over fls_parents (addParentScore k (view nre_parent nre) ss) fls
 
 addParentScore :: Num a
            => KeepAllParents
