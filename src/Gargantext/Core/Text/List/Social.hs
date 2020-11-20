@@ -62,45 +62,44 @@ flowSocialList' :: ( RepoCmdM env err m
                    )
                   => FlowSocialListPriority
                   -> User -> NgramsType
-                  -> FlowListCont Text
-                  -> m (FlowListCont Text)
+                  -> FlowCont Text FlowListScores
+                  -> m (FlowCont Text FlowListScores)
 flowSocialList' flowPriority user nt flc =
   mconcat <$> mapM (flowSocialListByMode' user nt flc)
                    (flowSocialListPriority flowPriority)
+    where
 
-------------------------------------------------------------------------
-
-flowSocialListByMode' :: ( RepoCmdM env err m
-                         , CmdM     env err m
-                         , HasNodeError err
-                         , HasTreeError err
-                         )
-                      => User -> NgramsType
-                      -> FlowListCont Text
-                      -> NodeMode
-                      -> m (FlowListCont Text)
-flowSocialListByMode' user nt flc mode =
-      findListsId user mode
-  >>= flowSocialListByModeWith nt flc
-
-
-flowSocialListByModeWith :: ( RepoCmdM env err m
-                            , CmdM     env err m
-                            , HasNodeError err
-                            , HasTreeError err
-                            )
-                         => NgramsType
-                         -> FlowListCont Text
-                         -> [NodeId]
-                         -> m (FlowListCont Text)
-flowSocialListByModeWith nt flc ns =
-      mapM (\l -> getListNgrams [l] nt) ns
-  >>= pure
-    . toFlowListScores (keepAllParents nt) flc
+      flowSocialListByMode' :: ( RepoCmdM env err m
+                               , CmdM     env err m
+                               , HasNodeError err
+                               , HasTreeError err
+                               )
+                            => User -> NgramsType
+                            -> FlowCont Text FlowListScores
+                            -> NodeMode
+                            -> m (FlowCont Text FlowListScores)
+      flowSocialListByMode' user' nt' flc' mode =
+            findListsId user' mode
+        >>= flowSocialListByModeWith nt' flc'
 
 
+      flowSocialListByModeWith :: ( RepoCmdM env err m
+                                  , CmdM     env err m
+                                  , HasNodeError err
+                                  , HasTreeError err
+                                  )
+                               => NgramsType
+                               -> FlowCont Text FlowListScores
+                               -> [NodeId]
+                               -> m (FlowCont Text FlowListScores)
+      flowSocialListByModeWith nt'' flc'' ns =
+            mapM (\l -> getListNgrams [l] nt'') ns
+        >>= pure
+          . toFlowListScores (keepAllParents nt'') flc''
 
----8<-TODO-ALL BELOW--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<-
+
+
+---8<-TODO-REMOVE ALL BELOW--8<--8<-- 8<-- 8<--8<--8<--
 
 -- | Choice depends on Ord instance of ListType
 -- for now : data ListType  =  StopTerm | CandidateTerm | MapTerm

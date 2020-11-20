@@ -80,6 +80,19 @@ groupWithScores scores ms = orphans <> groups
     orphans = addIfNotExist scores ms
 
 
+{-
+groupWithScores :: Map Text FlowListScores
+                -> Map Text (Set NodeId)
+                -> Map Text (GroupedTextScores (Set NodeId))
+groupWithScores scores ms = orphans <> groups
+  where
+    groups = addScore ms
+           $ fromGroupedScores
+           $ fromListScores scores
+    orphans = addIfNotExist scores ms
+-}
+
+
 ------------------------------------------------------------------------
 addScore :: Map Text (Set NodeId)
          -> Map Text (GroupedTextScores (Set NodeId))
@@ -108,12 +121,10 @@ addIfNotExist mapSocialScores mapScores =
       add _ _         = Nothing -- should not be present
 
 ------------------------------------------------------------------------
-{-
 toGroupedTextScores' :: Map Parent GroupedWithListScores
-                     -> Map Text (Set NodeId)
+                     -- -> Map Text (Set NodeId)
                      -> Map Parent (GroupedTextScores' (Set NodeId))
-toGroupedTextScores' par datas = undefined
--}
+toGroupedTextScores' par = undefined
 
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores
