@@ -25,6 +25,7 @@ import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Social.Prelude (FlowListScores(..))
+import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Prelude
