@@ -34,7 +34,7 @@ module Gargantext.Database.Query.Tree
   )
   where
 
-import Control.Lens ((^..), at, each, _Just, to, set, makeLenses)
+import Control.Lens ({-(^..)-} toListOf, at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
 import Data.Map (Map, fromListWith, lookup)
@@ -174,13 +174,14 @@ toTree m =
               -> Tree NodeTree
       toTree' m' n =
         TreeN (toNodeTree n) $
-          m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
+          -- | Lines below are equal computationally but not semantically
+          -- m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
+          toListOf (at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')) m'
 
       toNodeTree :: DbTreeNode
                  -> NodeTree
-      toNodeTree (DbTreeNode nId tId _ n) = NodeTree n nodeType nId
-        where
-          nodeType = fromNodeTypeId tId
+      toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
+
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
              -> Map (Maybe ParentId) [DbTreeNode]
