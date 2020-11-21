@@ -25,6 +25,7 @@ import Data.Text (Text)
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core.Text.List.Group
+import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Social
 import Gargantext.Core.Text.List.Social.Prelude

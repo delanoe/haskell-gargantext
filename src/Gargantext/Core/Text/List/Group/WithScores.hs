@@ -29,7 +29,6 @@ import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
 
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -50,6 +49,8 @@ groupWithScores' flc _scores = FlowCont  groups orphans
 toGroupedTextScores' :: Map Text FlowListScores
                      -> Map Parent (GroupedTextScores' (Set NodeId))
 toGroupedTextScores' = toGroupedScores' . fromListScores'
+
+
 ------------------------------------------------------------------------
 fromListScores' :: Map Text FlowListScores
                 -> Map Parent GroupedWithListScores
@@ -65,6 +66,17 @@ fromListScores' = Map.fromListWith (<>) . (map fromScores') . Map.toList
       Just parent -> (parent, set gwls_children (Set.singleton t) mempty)
           -- We ignore the ListType of children for the parents' one
           -- added after and winner of semigroup actions
+
+    -- | TODO add score here
+    fromScores'' :: (Text, FlowListScores) -> (Maybe Parent, [GroupedTextScores' (Set NodeId)])
+    fromScores'' (t, fs) = ( maybeParent
+                           , [ set gts'_listType maybeList mempty]
+                           )
+        where
+         maybeParent = keyWithMaxValue $ view fls_parents  fs
+         maybeList   = keyWithMaxValue $ view fls_listType fs
+
+    -- toTree :: [(Maybe Parent, [GroupedWithListScores])] -> Map Parent (
 
 
 toGroupedScores' :: Map Parent GroupedWithListScores
@@ -156,6 +168,5 @@ fromListScores = Map.fromListWith (<>) . (map fromScores') . Map.toList
       Just parent -> (parent, set gwls_children (Set.singleton t) mempty)
           -- We ignore the ListType of children for the parents' one
           -- added after and winner of semigroup actions
-
 
 --8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<--

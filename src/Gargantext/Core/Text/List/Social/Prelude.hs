@@ -116,7 +116,6 @@ keyWithMaxValue :: Map a b -> Maybe a
 keyWithMaxValue m = (fst . fst) <$> Map.maxViewWithKey m
 
 
-
 ------------------------------------------------------------------------
 -- | Tools TODO clean it (some need to be removed)
 ------------------------------------------------------------------------
