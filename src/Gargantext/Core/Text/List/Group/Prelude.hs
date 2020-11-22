@@ -19,18 +19,21 @@ import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set)
 import Data.Text (Text)
+import Data.Map (Map)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Prelude
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 ------------------------------------------------------------------------
 -- | Group With Scores Main Types
 -- Tree of GroupedTextScores
 -- Target : type FlowCont Text GroupedTextScores'
+
 data GroupedTextScores' score =
   GroupedTextScores' { _gts'_listType :: !(Maybe ListType)
-                     , _gts'_children :: !(Set (GroupedTextScores' score))
+                     , _gts'_children :: !(Map Text (GroupedTextScores' score))
                      , _gts'_score    :: score
                      } deriving (Show, Ord, Eq)
 
@@ -43,7 +46,7 @@ instance (Semigroup a, Ord a) => Semigroup (GroupedTextScores' a) where
 
 instance (Ord score, Monoid score)
   => Monoid (GroupedTextScores' score) where
-    mempty = GroupedTextScores' Nothing Set.empty mempty
+    mempty = GroupedTextScores' Nothing Map.empty mempty
 
 makeLenses 'GroupedTextScores'
 
