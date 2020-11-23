@@ -174,7 +174,7 @@ toTree m =
               -> Tree NodeTree
       toTree' m' n =
         TreeN (toNodeTree n) $
-          -- | Lines below are equal computationally but not semantically
+          -- | Lines below are equivalent computationally but not semantically
           -- m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
           toListOf (at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')) m'
 
