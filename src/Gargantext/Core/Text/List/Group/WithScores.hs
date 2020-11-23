@@ -14,12 +14,12 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithScores
   where
 
-import Control.Lens (makeLenses, view, set)
+import Control.Lens (makeLenses, view, set, over)
 import Data.Semigroup
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Monoid (mempty)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
@@ -45,11 +45,53 @@ groupWithScores' flc _scores = FlowCont  groups orphans
     -- orphans have been filtered already
 
 ------------------------------------------------------------------------
+
+
+mapMaybeParent :: (Text -> Set NodeId)
+               -> Map Text FlowListScores
+               -> Map (Maybe Parent) (Map Text (GroupedTextScores' (Set NodeId)))
+mapMaybeParent f = Map.fromListWith (<>) . (map (fromScores'' f)) . Map.toList
+fromScores'' :: (Text -> Set NodeId)
+             -> (Text, FlowListScores)
+             -> (Maybe Parent, Map Text (GroupedTextScores' (Set NodeId)))
+fromScores'' f' (t, fs) = ( maybeParent
+                          , Map.fromList [( t, set gts'_score (f' t)
+                                             $ set gts'_listType maybeList mempty
+                                         )]
+                          )
+    where
+     maybeParent = keyWithMaxValue $ view fls_parents  fs
+     maybeList   = keyWithMaxValue $ view fls_listType fs
+
+toGroupedTree :: Map (Maybe Parent) (Map Text (GroupedTextScores' (Set NodeId)))
+              -> Map Parent (GroupedTextScores' (Set NodeId))
+toGroupedTree m = case Map.lookup Nothing m of
+  Nothing  -> Map.empty
+  Just  m' -> toGroupedTree' m m'
+
+toGroupedTree' :: Map (Maybe Parent) (Map Text (GroupedTextScores' (Set NodeId)))
+               -> (Map Text (GroupedTextScores' (Set NodeId)))
+               -> Map Parent (GroupedTextScores' (Set NodeId))
+toGroupedTree' m notEmpty
+  | notEmpty == Map.empty = Map.empty
+  | otherwise = Map.mapWithKey (addGroup m) notEmpty
+    where
+      addGroup m' k v = over gts'_children ( (toGroupedTree' m')
+                                           . (Map.union (fromMaybe Map.empty
+                                                                 $ Map.lookup (Just k) m'
+                                                        )
+                                             )
+                                           ) v
+
+
+
+
+--8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<--
+-- TODO TO BE REMOVED
 ------------------------------------------------------------------------
 toGroupedTextScores' :: Map Text FlowListScores
                      -> Map Parent (GroupedTextScores' (Set NodeId))
 toGroupedTextScores' = toGroupedScores' . fromListScores'
-
 
 ------------------------------------------------------------------------
 fromListScores' :: Map Text FlowListScores
@@ -67,16 +109,7 @@ fromListScores' = Map.fromListWith (<>) . (map fromScores') . Map.toList
           -- We ignore the ListType of children for the parents' one
           -- added after and winner of semigroup actions
 
-    -- | TODO add score here
-    fromScores'' :: (Text, FlowListScores) -> (Maybe Parent, [GroupedTextScores' (Set NodeId)])
-    fromScores'' (t, fs) = ( maybeParent
-                           , [ set gts'_listType maybeList mempty]
-                           )
-        where
-         maybeParent = keyWithMaxValue $ view fls_parents  fs
-         maybeList   = keyWithMaxValue $ view fls_listType fs
 
-    -- toTree :: [(Maybe Parent, [GroupedWithListScores])] -> Map Parent (
 
 
 toGroupedScores' :: Map Parent GroupedWithListScores
@@ -88,16 +121,6 @@ toGroupedScores' = undefined
 
 
 
-
-
-
-
-
-
-
-
-
---8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<--
 -- TODO To be removed
 data GroupedTextScores score =
   GroupedTextScores { _gts_listType :: !(Maybe ListType)
