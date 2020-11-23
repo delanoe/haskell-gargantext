@@ -26,8 +26,9 @@ import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Prelude
-import qualified Data.Set  as Set
+import qualified Data.List as List
 import qualified Data.Map  as Map
+import qualified Data.Set  as Set
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -44,13 +45,17 @@ groupWithScores' flc scores = FlowCont  groups orphans
             $ view flc_scores flc
 
     -- orphans have been filtered already
-    orphans = (view flc_cont flc)
+    orphans =  toGroupedTree
+            $ toMapMaybeParent scores
+            $ (view flc_cont flc)
 
 ------------------------------------------------------------------------
 toMapMaybeParent :: (Text -> Set NodeId)
                  -> Map Text FlowListScores
                  -> Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
-toMapMaybeParent f = Map.fromListWith (<>) . (map (fromScores'' f)) . Map.toList
+toMapMaybeParent f =  Map.fromListWith (<>)
+                   . (map (fromScores'' f))
+                   .  Map.toList
 
 fromScores'' :: (Text -> Set NodeId)
              -> (Text, FlowListScores)
@@ -78,11 +83,12 @@ toGroupedTree' m notEmpty
   | otherwise = Map.mapWithKey (addGroup m) notEmpty
     where
       addGroup m' k v = over gts'_children ( (toGroupedTree' m')
-                                           . (Map.union (fromMaybe Map.empty
-                                                                 $ Map.lookup (Just k) m'
+                                           . (Map.union ( fromMaybe Map.empty
+                                                        $ Map.lookup (Just k) m'
                                                         )
                                              )
-                                           ) v
+                                           )
+                                           v
 
 
 

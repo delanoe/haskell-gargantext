@@ -13,7 +13,6 @@ Portability : POSIX
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE InstanceSigs           #-}
 
-
 module Gargantext.Core.Text.List.Group.Prelude
   where
 
@@ -33,9 +32,9 @@ import qualified Data.Map  as Map
 import qualified Data.List as List
 
 ------------------------------------------------------------------------
--- | Group With Scores Main Types
--- Tree of GroupedTextScores
--- Target : type FlowCont Text GroupedTextScores'
+-- | Main Types to group With Scores but preserving Tree dependencies
+-- Therefore there is a need of Tree of GroupedTextScores
+-- to target continuation type for the flow (FlowCont Text GroupedTreeScores)
 data GroupedTreeScores score =
   GroupedTreeScores { _gts'_listType :: !(Maybe ListType)
                     , _gts'_children :: !(Map Text (GroupedTreeScores score))
@@ -51,11 +50,12 @@ instance (Semigroup a, Ord a) => Semigroup (GroupedTreeScores a) where
 
 instance (Ord score, Monoid score)
   => Monoid (GroupedTreeScores score) where
-    mempty = GroupedTreeScores Nothing Map.empty mempty
+    mempty = GroupedTreeScores mempty mempty mempty
 
 makeLenses 'GroupedTreeScores
 
 ------------------------------------------------------------------------
+-- | Main Classes
 class ViewListType a where
   viewListType :: a -> Maybe ListType
 
@@ -69,6 +69,7 @@ class ToNgramsElement a where
   toNgramsElement :: a -> [NgramsElement]
 
 ------------------------------------------------------------------------
+-- | Instances declartion for (GroupedTreeScores a)
 instance ViewListType (GroupedTreeScores a) where
   viewListType = view gts'_listType
 
@@ -108,13 +109,10 @@ instance ToNgramsElement (Text, GroupedTreeScores a) where
                                                     $ Map.keys
                                                     $ view gts'_children gts'
                                       )
-
-
           children' = List.concat
                     $ map (childrenWith root (NgramsTerm t') )
                     $ Map.toList
                     $ view gts'_children gts'
-
 
 
 
