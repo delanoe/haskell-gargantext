@@ -37,18 +37,18 @@ type Parent = Text
 -- | DataType inspired by continuation Monad (but simpler)
 data FlowCont a b =
   FlowCont { _flc_scores :: Map a b
-           , _flc_cont   :: Set a
+           , _flc_cont   :: Map a b
            }
 
-instance Ord a => Monoid (FlowCont a b) where
-  mempty = FlowCont Map.empty Set.empty
+instance (Ord a, Eq b) => Monoid (FlowCont a b) where
+  mempty = FlowCont mempty mempty
 
-instance (Eq a, Ord a) => Semigroup (FlowCont a b) where
+instance (Eq a, Ord a, Eq b) => Semigroup (FlowCont a b) where
   (<>) (FlowCont m1 s1)
        (FlowCont m2 s2)
-          | s1 == Set.empty = FlowCont m s2
-          | s2 == Set.empty = FlowCont m s1
-          | otherwise       = FlowCont m (Set.intersection s1 s2)
+          | s1 == mempty = FlowCont m s2
+          | s2 == mempty = FlowCont m s1
+          | otherwise       = FlowCont m (Map.intersection s1 s2)
             where
               m = Map.union m1 m2
 
@@ -60,7 +60,7 @@ data FlowListScores =
                 -- You can add any score by incrementing this type
                 -- , _flc_score   :: Map Score Int
                  }
-    deriving (Show, Generic)
+    deriving (Show, Generic, Eq)
 
 
 ------------------------------------------------------------------------
