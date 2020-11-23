@@ -31,11 +31,11 @@ import Gargantext.Prelude
 import qualified Data.Set  as Set
 import qualified Data.Map  as Map
 import qualified Data.List as List
+
 ------------------------------------------------------------------------
 -- | Group With Scores Main Types
 -- Tree of GroupedTextScores
 -- Target : type FlowCont Text GroupedTextScores'
-
 data GroupedTreeScores score =
   GroupedTreeScores { _gts'_listType :: !(Maybe ListType)
                     , _gts'_children :: !(Map Text (GroupedTreeScores score))
@@ -55,7 +55,7 @@ instance (Ord score, Monoid score)
 
 makeLenses 'GroupedTreeScores
 
----------------------------------------------
+------------------------------------------------------------------------
 class ViewListType a where
   viewListType :: a -> Maybe ListType
 
@@ -68,21 +68,52 @@ class Ord b => ViewScore a b | a -> b where
 class ToNgramsElement a where
   toNgramsElement :: a -> [NgramsElement]
 
----------------------------------------------
+------------------------------------------------------------------------
 instance ViewListType (GroupedTreeScores a) where
   viewListType = view gts'_listType
 
 instance SetListType (GroupedTreeScores a) where
   setListType = set gts'_listType
 
+instance SetListType (Map Text (GroupedTreeScores a)) where
+  setListType lt = Map.map (set gts'_listType lt)
+
 instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
   viewScore = Set.size . (view gts'_score)
 
-instance ToNgramsElement (Map Text (GroupedTreeScores (Set NodeId))) where
-  toNgramsElement = undefined
+instance ToNgramsElement (Map Text (GroupedTreeScores a)) where
+  toNgramsElement = List.concat . (map toNgramsElement) . Map.toList
+
+instance ToNgramsElement (Text, GroupedTreeScores a) where
+  toNgramsElement (t, gts) = parent : children
+    where
+      parent = mkNgramsElement (NgramsTerm t)
+                               (fromMaybe CandidateTerm $ viewListType gts)
+                               Nothing
+                               (mSetFromList $ map NgramsTerm
+                                             $ Map.keys
+                                             $ view gts'_children gts
+                               )
+      children = List.concat
+               $ map (childrenWith (NgramsTerm t) (NgramsTerm t) )
+               $ Map.toList
+               $ view gts'_children gts
+
+      childrenWith root parent' (t', gts') = parent'' : children'
+        where
+          parent''   = mkNgramsElement (NgramsTerm t')
+                                      (fromMaybe CandidateTerm $ viewListType gts')
+                                      (Just $ RootParent root parent')
+                                      (mSetFromList $ map NgramsTerm
+                                                    $ Map.keys
+                                                    $ view gts'_children gts'
+                                      )
 
 
-
+          children' = List.concat
+                    $ map (childrenWith root (NgramsTerm t') )
+                    $ Map.toList
+                    $ view gts'_children gts'
 
 
 

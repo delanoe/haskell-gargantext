@@ -16,12 +16,13 @@ module Gargantext.Core.Text.List
   where
 
 
-import Control.Lens ((^.), set, view, over)
+import Control.Lens ((^.), set, over)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Data.Set (Set)
 import Data.Text (Text)
+import Data.Tuple.Extra (both)
 import Gargantext.API.Ngrams.Types (NgramsElement)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core.Text.List.Group
@@ -97,7 +98,7 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
 
   let
     groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
-    groupedWithList = toGroupedText groupParams (view flc_scores socialLists') ngs'
+    groupedWithList = toGroupedTreeText groupParams socialLists' ngs'
 
 {-
   printDebug "groupedWithList"
@@ -111,9 +112,10 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
     (mapTerms, tailTerms') = Map.partition ((== Just MapTerm)  . viewListType) tailTerms
 
     listSize = mapListSize - (List.length mapTerms)
-    (mapTerms', candiTerms) = List.splitAt listSize
-                            $ List.sortOn (Down . viewScore)
-                            $ Map.elems tailTerms'
+    (mapTerms', candiTerms) = both Map.fromList
+                            $ List.splitAt listSize
+                            $ List.sortOn (Down . viewScore . snd)
+                            $ Map.toList tailTerms'
 
   pure $ Map.fromList [( nt,  (toNgramsElement stopTerms)
                            <> (toNgramsElement mapTerms )
