@@ -40,9 +40,9 @@ data StopSize = StopSize {unStopSize :: !Int}
 -- discussed. Main purpose of this is offering
 -- a first grouping option to user and get some
 -- enriched data to better learn and improve that algo
-data GroupParams = GroupParams { unGroupParams_lang  :: !Lang
-                               , unGroupParams_len   :: !Int
-                               , unGroupParams_limit :: !Int
+data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
+                               , unGroupParams_len      :: !Int
+                               , unGroupParams_limit    :: !Int
                                , unGroupParams_stopSize :: !StopSize
                                }
                  | GroupIdentity

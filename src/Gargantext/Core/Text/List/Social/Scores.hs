@@ -47,7 +47,7 @@ toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) me
     toFlowListScores_Level1 k' flc_origin' flc_dest ngramsRepo =
       Set.foldl' (toFlowListScores_Level2 k' ngramsRepo flc_origin')
                  flc_dest
-                 (view flc_cont flc_origin')
+                 (Set.fromList $ Map.keys $ view flc_cont flc_origin')
 
 
     toFlowListScores_Level2 :: KeepAllParents
@@ -58,9 +58,9 @@ toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) me
                        -> FlowCont Text FlowListScores
     toFlowListScores_Level2 k'' ngramsRepo flc_origin'' flc_dest' t =
       case Map.lookup t ngramsRepo of
-        Nothing  -> over flc_cont (Set.insert t) flc_dest'
+        Nothing  -> over flc_cont (Map.insert t mempty) flc_dest'
         Just nre -> over flc_scores
-                  ( (Map.alter (addParent k'' nre (view flc_cont flc_origin'')) t)
+                  ( (Map.alter (addParent k'' nre (Set.fromList $ Map.keys $ view flc_cont flc_origin'')) t)
                   . (Map.alter (addList $ _nre_list nre) t)
                   ) flc_dest'
 

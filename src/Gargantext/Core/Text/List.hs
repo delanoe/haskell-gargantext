@@ -19,6 +19,7 @@ module Gargantext.Core.Text.List
 import Control.Lens ((^.), set, over)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
+import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
 import Data.Text (Text)
@@ -87,7 +88,11 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
   socialLists' :: FlowCont Text FlowListScores
-    <- flowSocialList' MySelfFirst user nt (FlowCont Map.empty $ Set.fromList $ Map.keys ngs')
+    <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
+                                                      $ Map.fromList
+                                                      $ List.zip (Map.keys ngs') 
+                                                                 (List.cycle [mempty])
+                                           )
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
 {-
