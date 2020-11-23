@@ -48,8 +48,8 @@ groupWithScores' flc scores = FlowCont  groups orphans
 
 ------------------------------------------------------------------------
 toMapMaybeParent :: (Text -> Set NodeId)
-               -> Map Text FlowListScores
-               -> Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
+                 -> Map Text FlowListScores
+                 -> Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
 toMapMaybeParent f = Map.fromListWith (<>) . (map (fromScores'' f)) . Map.toList
 
 fromScores'' :: (Text -> Set NodeId)
@@ -83,7 +83,6 @@ toGroupedTree' m notEmpty
                                                         )
                                              )
                                            ) v
-
 
 
 

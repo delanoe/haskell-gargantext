@@ -89,22 +89,26 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
     <- flowSocialList' MySelfFirst user nt (FlowCont Map.empty $ Set.fromList $ Map.keys ngs')
     -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
+{-
   printDebug "flowSocialList'"
                $ Map.filter (not . ((==) Map.empty) . view fls_parents)
                $ view flc_scores socialLists'
+-}
 
   let
     groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
     groupedWithList = toGroupedText groupParams (view flc_scores socialLists') ngs'
 
+{-
   printDebug "groupedWithList"
                $ Map.map (\v -> (view gt_label v, view gt_children v))
                $ Map.filter (\v -> (Set.size $ view gt_children v) > 0)
                $ groupedWithList
+-}
 
   let
-    (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
-    (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm)  tailTerms
+    (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType) groupedWithList
+    (mapTerms, tailTerms') = Map.partition ((== Just MapTerm)  . viewListType) tailTerms
 
     listSize = mapListSize - (List.length mapTerms)
     (mapTerms', candiTerms) = List.splitAt listSize
@@ -114,9 +118,9 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   pure $ Map.fromList [( nt,  (List.concat $ map toNgramsElement stopTerms)
                            <> (List.concat $ map toNgramsElement mapTerms )
                            <> (List.concat $ map toNgramsElement
-                                           $ map (set gt_listType (Just MapTerm      )) mapTerms' )
+                                           $ map (setListType (Just MapTerm      )) mapTerms' )
                            <> (List.concat $ map toNgramsElement
-                                           $ map (set gt_listType (Just CandidateTerm)) candiTerms)
+                                           $ map (setListType (Just CandidateTerm)) candiTerms)
                       )]
 
 
