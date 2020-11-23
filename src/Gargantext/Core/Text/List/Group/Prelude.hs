@@ -14,7 +14,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.Prelude
   where
 
-import Control.Lens (makeLenses)
+import Control.Lens (makeLenses, view, set)
 import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set)
@@ -50,6 +50,28 @@ instance (Ord score, Monoid score)
 
 makeLenses 'GroupedTreeScores
 
+---------------------------------------------
+class ViewListType a where
+  viewListType :: a -> Maybe ListType
+
+class SetListType a where
+  setListType :: Maybe ListType -> a -> a
+
+class ViewScore a b where
+  viewScore :: a -> b
+
+
+instance ViewListType (GroupedTreeScores a) where
+  viewListType = view gts'_listType
+
+instance SetListType (GroupedTreeScores a) where
+  setListType = set gts'_listType
+
+{-
+instance ViewScore (GroupedTreeScores a) b where
+  viewScore = view gts'_score
+-}
+
 
 -- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
 -- TODO to remove below
@@ -70,8 +92,6 @@ instance Monoid GroupedWithListScores where
 makeLenses ''GroupedWithListScores
 -- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
 
-
-
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | Group With Stem Main Types
@@ -85,6 +105,16 @@ data GroupedText score =
               , _gt_stem     :: !Stem -- needed ?
               , _gt_nodes    :: !(Set NodeId)
               }  deriving (Show, Eq) --}
+
+-- | Lenses Instances
+makeLenses 'GroupedText
+
+instance ViewListType (GroupedText a) where
+  viewListType = view gt_listType
+
+instance SetListType (GroupedText a) where
+  setListType = set gt_listType
+
 {-
 instance Show score => Show (GroupedText score) where
   show (GroupedText lt l s _ _ _ _) = show l <> " : " <> show lt <> " : " <> show s
@@ -110,6 +140,5 @@ instance Ord a => Semigroup (GroupedText a) where
       gr    = Set.union group1 group2
       nodes = Set.union nodes1 nodes2
 
--- | Lenses Instances
-makeLenses 'GroupedText
+
 
