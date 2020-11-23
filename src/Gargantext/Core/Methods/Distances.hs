@@ -11,7 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE Strict            #-}
 
-module Gargantext.Core.Viz.Graph.Distances
+module Gargantext.Core.Methods.Distances
   where
 
 import Data.Aeson
@@ -20,7 +20,8 @@ import Data.Swagger
 import GHC.Generics (Generic)
 import Gargantext.Prelude (Ord, Eq, Int, Double)
 import Gargantext.Prelude (Show)
-import Gargantext.Core.Viz.Graph.Distances.Matrice (measureConditional, distributional)
+import Gargantext.Core.Methods.Distances.Accelerate.Conditional (measureConditional)
+import Gargantext.Core.Methods.Distances.Accelerate.Distributional (distributional)
 import Prelude (Enum, Bounded, minBound, maxBound)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary

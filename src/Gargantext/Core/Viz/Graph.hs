@@ -27,7 +27,7 @@ import qualified Text.Read as T
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Viz.Graph.Distances (GraphMetric)
+import Gargantext.Core.Methods.Distances (GraphMetric)
 import Gargantext.Prelude
 
 

@@ -107,31 +107,35 @@ import Formatting.Clock (timeSpecs)
 import GHC.Generics (Generic)
 import Servant hiding (Patch)
 import System.Clock (getTime, TimeSpec, Clock(..))
+import Servant.Job.Async (JobFunction(..), serveJobsAPI)
 import System.IO (stderr)
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 import Prelude (error)
-import Gargantext.Prelude
+import Gargantext.Prelude hiding (log)
 
+import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import qualified Gargantext.API.Metrics as Metrics
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, HasInvalidError, TODO, assertValid)
+import Gargantext.API.Prelude
+import Gargantext.Core.Types (ListType(..), NodeId, ListId, DocId, Limit, Offset, TODO, assertValid)
 import Gargantext.Core.Utils (something)
 -- import Gargantext.Core.Viz.Graph.API (recomputeGraph)
 -- import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
+import Gargantext.Database.Action.Flow.Types
 import Gargantext.Database.Action.Metrics.NgramsByNode (getOccByNgramsOnlyFast')
-import Gargantext.Database.Query.Table.Node.Select
-import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
 import Gargantext.Database.Admin.Config (userMaster)
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
+import Gargantext.Database.Query.Table.Node.Select
+import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import Gargantext.Database.Query.Table.Node (getNode)
-import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)
+import Gargantext.Prelude.Job
 
 {-
 -- TODO sequences of modifications (Patchs)
@@ -318,13 +322,8 @@ tableNgramsPull listId ngramsType p_version = do
 -- Apply the given patch to the DB and returns the patch to be applied on the
 -- client.
 -- TODO-ACCESS check
-tableNgramsPut :: ( HasNodeError err
-                  , HasTreeError err
-                  , HasInvalidError err
-                  , HasConfig env
-                  , HasConnectionPool env
+tableNgramsPut :: ( FlowCmdM env err m
                   , HasSettings env
-                  , RepoCmdM env err m
                   )
                  => TabType
                  -> ListId
@@ -346,55 +345,87 @@ tableNgramsPut tabType listId (Versioned p_version p_table)
       ret <- commitStatePatch (Versioned p_version p)
         <&> v_data %~ (view (_PatchMap . at ngramsType . _Just . _PatchMap . at listId . _Just))
 
+      pure ret
+
+
+tableNgramsPostChartsAsync :: ( FlowCmdM env err m
+                              , HasNodeError err
+                              , HasSettings env
+                              )
+                            => UpdateTableNgramsCharts
+                            -> (JobLog -> m ())
+                            -> m JobLog
+tableNgramsPostChartsAsync utn logStatus = do
+      let tabType = utn ^. utn_tab_type
+      let listId = utn ^. utn_list_id
+
       node <- getNode listId
       let nId = node ^. node_id
           _uId = node ^. node_userId
           mCId = node ^. node_parentId
-      -- printDebug "[tableNgramsPut] updating graph with nId" nId
-      -- printDebug "[tableNgramsPut] updating graph with uId" uId
-      -- _ <- recomputeGraph uId nId Conditional
 
       printDebug "[tableNgramsPut] tabType" tabType
       printDebug "[tableNgramsPut] listId" listId
 
-      _ <- case mCId of
+      case mCId of
         Nothing -> do
           printDebug "[tableNgramsPut] can't update charts, no parent, nId" nId
-          pure ()
+          pure $ jobLogFail $ jobLogInit 1
         Just cId -> do
           case tabType of
             Authors -> do
               -- printDebug "[tableNgramsPut] Authors, updating Pie, cId" cId
+              (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
+              logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-              pure ()
+              logRefSuccess
+
+              getRef
             Institutes -> do
               -- printDebug "[tableNgramsPut] Institutes, updating Tree, cId" cId
               -- printDebug "[tableNgramsPut] updating tree StopTerm, cId" cId
+              (logRef, logRefSuccess, getRef) <- runJobLog 3 logStatus
+              logRef
               _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
               -- printDebug "[tableNgramsPut] updating tree CandidateTerm, cId" cId
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
               -- printDebug "[tableNgramsPut] updating tree MapTerm, cId" cId
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
-              pure ()
+              logRefSuccess
+
+              getRef
             Sources -> do
               -- printDebug "[tableNgramsPut] Sources, updating chart, cId" cId
+              (logRef, logRefSuccess, getRef) <- runJobLog 1 logStatus
+              logRef
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
-              pure ()
+              logRefSuccess
+
+              getRef
             Terms -> do
               -- printDebug "[tableNgramsPut] Terms, updating Metrics (Histo), cId" cId
+              (logRef, logRefSuccess, getRef) <- runJobLog 6 logStatus
+              logRef
               _ <- Metrics.updateChart cId (Just listId) tabType Nothing
+              logRefSuccess
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
+              logRefSuccess
               _ <- Metrics.updateScatter cId (Just listId) tabType Nothing
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType StopTerm
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
+              logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
-              pure ()
+              logRefSuccess
+
+              getRef
             _ -> do
               printDebug "[tableNgramsPut] no update for tabType = " tabType
-              pure ()
-          pure ()
-      pure ret
-     
+              pure $ jobLogFail $ jobLogInit 1
+
   {-
   { _ne_list        :: ListType
   If we merge the parents/children we can potentially create cycles!
@@ -623,6 +654,13 @@ type TableNgramsApi =  TableNgramsApiGet
                   :<|> TableNgramsApiPut
                   :<|> RecomputeScoresNgramsApiGet
                   :<|> "version" :> TableNgramsApiGetVersion
+                  :<|> TableNgramsAsyncApi
+
+type TableNgramsAsyncApi = Summary "Table Ngrams Async API"
+                           :> "async"
+                           :> "charts"
+                           :> "update"
+                           :> AsyncJobs JobLog '[JSON] UpdateTableNgramsCharts JobLog
 
 getTableNgramsCorpus :: (RepoCmdM env err m, HasNodeError err, HasConnectionPool env, HasConfig env)
                => NodeId
@@ -670,34 +708,34 @@ getTableNgramsDoc dId tabType listId limit_ offset listType minSize maxSize orde
 
 
 
-apiNgramsTableCorpus :: ( RepoCmdM          env err m
-                        , HasNodeError          err
-                        , HasTreeError          err
-                        , HasInvalidError       err
-                        , HasConnectionPool env
-                        , HasConfig         env
-                        , HasSettings       env
+apiNgramsTableCorpus :: ( GargServerC env err m
                         )
                      => NodeId -> ServerT TableNgramsApi m
 apiNgramsTableCorpus cId =  getTableNgramsCorpus cId
                        :<|> tableNgramsPut
                        :<|> scoresRecomputeTableNgrams cId
                        :<|> getTableNgramsVersion cId
+                       :<|> apiNgramsAsync cId
 
-apiNgramsTableDoc :: ( RepoCmdM          env err m
-                     , HasNodeError          err
-                     , HasTreeError          err
-                     , HasInvalidError       err
-                     , HasConnectionPool env
-                     , HasConfig         env
-                     , HasSettings       env
+apiNgramsTableDoc :: ( GargServerC env err m
                      )
                   => DocId -> ServerT TableNgramsApi m
 apiNgramsTableDoc dId =  getTableNgramsDoc dId
                     :<|> tableNgramsPut
                     :<|> scoresRecomputeTableNgrams dId
                     :<|> getTableNgramsVersion dId
+                    :<|> apiNgramsAsync dId
                     -- > index all the corpus accordingly (TODO AD)
+
+apiNgramsAsync :: NodeId -> GargServer TableNgramsAsyncApi
+apiNgramsAsync _dId =
+  serveJobsAPI $
+    JobFunction $ \i log ->
+      let
+        log' x = do
+          printDebug "tableNgramsPostChartsAsync" x
+          liftBase $ log x
+      in tableNgramsPostChartsAsync i log'
 
 -- Did the given list of ngrams changed since the given version?
 -- The returned value is versioned boolean value, meaning that one always retrieve the

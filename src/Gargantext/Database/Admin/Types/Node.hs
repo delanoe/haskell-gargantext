@@ -265,7 +265,7 @@ data NodeType = NodeUser
 -}
 
               -- Optional Nodes
-              | NodeFrameWrite | NodeFrameCalc
+              | NodeFrameWrite | NodeFrameCalc | NodeFrameNotebook
               | NodeFile
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
@@ -283,7 +283,7 @@ defaultName NodeCorpusV3   = "Corpus"
 defaultName NodeAnnuaire   = "Annuaire"
 
 defaultName NodeDocument   = "Doc"
-defaultName NodeTexts      = "Texts"
+defaultName NodeTexts      = "Docs"
 defaultName NodeList       = "List"
 defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
@@ -294,12 +294,13 @@ defaultName NodeFolderShared  = "Shared Folder"
 defaultName NodeTeam          = "Folder"
 defaultName NodeFolderPublic  = "Public Folder"
 
+defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
-defaultName NodeDashboard     = "Dashboard"
 
 defaultName NodeFrameWrite    = "Frame Write"
 defaultName NodeFrameCalc     = "Frame Calc"
+defaultName NodeFrameNotebook     = "Frame Code"
 
 defaultName NodeFile          = "File"
 

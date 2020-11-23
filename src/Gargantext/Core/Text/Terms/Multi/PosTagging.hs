@@ -64,10 +64,10 @@ tokens2tokensTags :: [Token] -> [TokenTag]
 tokens2tokensTags ts = filter' $ map tokenTag ts
 ------------------------------------------------------------------------
 tokenTag :: Token -> TokenTag
-tokenTag (Token _ _ w s _ _ p n _ _) = TokenTag w' s' p n
+tokenTag (Token _ _ w l _ _ p n _ _) = TokenTag w' l' p n
   where
     w' = split w
-    s' = fromList (split s)
+    l' = fromList (split l)
     split = splitOn (pack " ") . toLower
 
 filter' :: [TokenTag] -> [TokenTag]
@@ -76,7 +76,7 @@ filter' xs = filter isNgrams xs
       isNgrams (TokenTag _ _ p n) = isJust p || isJust n
 
 ------------------------------------------------------------------------
-data Sentence  = Sentence { _sentenceIndex :: Int
+data Sentence  = Sentence { _sentenceIndex  :: Int
                           , _sentenceTokens :: [Token]
                           } deriving (Show, Generic)
 
@@ -110,8 +110,9 @@ $(deriveJSON (unPrefix "_") ''PosSentences)
 
 
 corenlp' :: ( FromJSON a
-            , ConvertibleStrings p ByteString) =>
-            Lang -> p -> IO (Response a)
+            , ConvertibleStrings p ByteString
+            )
+          => Lang -> p -> IO (Response a)
 corenlp' lang txt = do
     let properties = case lang of
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
@@ -142,9 +143,9 @@ corenlp lang txt = do
 -- parseWith  _tokenNer     "Hello world of Peter."
 -- [[("``","O"),("Hello","O"),("world","O"),("of","O"),("Peter","PERSON"),(".","O"),("''","O")]]
 tokenWith :: (Token -> t) -> Lang -> Text -> IO [[(Text, t)]]
-tokenWith f lang s = map (map (\t -> (_tokenWord t, f t))) 
+tokenWith f lang s = map (map (\t -> (_tokenWord t, f t)))
                   <$> map _sentenceTokens
-                  <$> _sentences 
+                  <$> _sentences
                   <$> corenlp lang s
 
 

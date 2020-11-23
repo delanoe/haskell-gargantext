@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.1.91.2'
+version: '0.0.1.94.1'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -73,7 +73,7 @@ library:
   - Gargantext.Core.Text.Corpus.API
   - Gargantext.Core.Text.Corpus.Parsers.CSV
   - Gargantext.Core.Text.Examples
-  - Gargantext.Core.Text.List.CSV
+  - Gargantext.Core.Text.List.Formats.CSV
   - Gargantext.Core.Text.Metrics
   - Gargantext.Core.Text.Metrics.TFICF
   - Gargantext.Core.Text.Metrics.CharByChar
@@ -87,7 +87,6 @@ library:
   - Gargantext.Core.Text.Terms.WithList
   - Gargantext.Core.Text.Flow
   - Gargantext.Core.Viz.Graph
-  - Gargantext.Core.Viz.Graph.Distances.Matrice
   - Gargantext.Core.Viz.Graph.Index
   - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.AdaptativePhylo

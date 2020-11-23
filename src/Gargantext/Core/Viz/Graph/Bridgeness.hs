@@ -26,11 +26,10 @@ import qualified Data.Map as DM
 import Data.Maybe (catMaybes)
 import Data.List (concat, sortOn)
 import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
-import Gargantext.Core.Viz.Graph.Louvain (LouvainNodeId, CommunityId, nodeId2comId)
+import Gargantext.Core.Methods.Graph.Louvain (LouvainNodeId, CommunityId, nodeId2comId)
 
 
 type Bridgeness = Double
-
 
 bridgeness :: Bridgeness
            -> [LouvainNode]

@@ -9,13 +9,14 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Gargantext.Core.Text.List
   where
 
 
-import Control.Lens (makeLenses)
+import Control.Lens ((^.), set, view)
 import Data.Maybe (fromMaybe, catMaybes)
 import Data.Ord (Down(..))
 import Data.Map (Map)
@@ -29,41 +30,24 @@ import qualified Data.Text as Text
 
 -- import Gargantext.API.Ngrams.Tools (getCoocByNgrams', Diagonal(..))
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
-import Gargantext.Core (Lang(..))
-import Gargantext.Core.Text (size)
-import Gargantext.Core.Text.List.Learn (Model(..))
-import Gargantext.Core.Text.List.Social (flowSocialList)
+import Gargantext.API.Ngrams.Types (RepoCmdM)
+import Gargantext.Core.Text.List.Social (flowSocialList, flowSocialList', FlowSocialListPriority(..), invertForw)
+import Gargantext.Core.Text.List.Social.Scores -- (FlowListScores)
+import Gargantext.Core.Text.List.Group
+import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.Metrics (scored', Scored(..), normalizeGlobal, normalizeLocal)
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.Metrics.NgramsByNode (ngramsGroup, getNodesByNgramsUser, groupNodesByNgramsWith, getNodesByNgramsOnlyUser)
-import Gargantext.Database.Action.Metrics.TFICF (getTficf)
-import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Database.Prelude (Cmd, CmdM)
+import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
+import Gargantext.Database.Action.Metrics.TFICF (getTficf)
+import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 
-
-data NgramsListBuilder = BuilderStepO { stemSize :: !Int
-                                      , stemX    :: !Int
-                                      , stopSize :: !Int
-                                      }
-                       | BuilderStep1 { withModel :: !Model }
-                       | BuilderStepN { withModel :: !Model }
-                       | Tficf { nlb_lang           :: !Lang
-                               , nlb_group1         :: !Int
-                               , nlb_group2         :: !Int
-                               , nlb_stopSize       :: !StopSize
-                               , nlb_userCorpusId   :: !UserCorpusId
-                               , nlb_masterCorpusId :: !MasterCorpusId
-                               }
-
-
-data StopSize = StopSize {unStopSize :: !Int}
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
 buildNgramsLists :: ( RepoCmdM env err m
@@ -72,50 +56,65 @@ buildNgramsLists :: ( RepoCmdM env err m
                     , HasNodeError err
                     )
                  => User
-                 -> Lang
-                 -> Int
-                 -> Int
-                 -> StopSize
+                 -> GroupParams
                  -> UserCorpusId
                  -> MasterCorpusId
                  -> m (Map NgramsType [NgramsElement])
-buildNgramsLists user l n m s uCid mCid = do
-  ngTerms     <- buildNgramsTermsList user l n m s uCid mCid
-  othersTerms <- mapM (buildNgramsOthersList user uCid identity)
-                      [Authors, Sources, Institutes]
-  pure $ Map.unions $ othersTerms <> [ngTerms]
+buildNgramsLists user gp uCid mCid = do
+  ngTerms     <- buildNgramsTermsList user uCid mCid gp
+  othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
+                      [ (Authors   , MapListSize 9)
+                      , (Sources   , MapListSize 9)
+                      , (Institutes, MapListSize 9)
+                      ]
+
+  pure $ Map.unions $ [ngTerms] <> othersTerms
 
 
-buildNgramsOthersList :: (--  RepoCmdM env err m
-                        -- , CmdM     env err m
-                         HasNodeError err
-                        -- , HasTreeError err
+data MapListSize = MapListSize { unMapListSize :: !Int }
+
+buildNgramsOthersList ::( HasNodeError err
+                        , CmdM     env err m
+                        , RepoCmdM env err m
+                        , HasTreeError err
                         )
                         => User
-                      -> UserCorpusId
-                      -> (Text -> Text)
-                      -> NgramsType
-                      -> Cmd err (Map NgramsType [NgramsElement])
-buildNgramsOthersList _user uCid groupIt nt = do
-  ngs <- groupNodesByNgramsWith groupIt <$> getNodesByNgramsUser uCid nt
+                        -> UserCorpusId
+                        -> (Text -> Text)
+                        -> (NgramsType, MapListSize)
+                        -> m (Map NgramsType [NgramsElement])
+buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
+  ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
+
+  socialLists' :: Map Text FlowListScores
+    <- flowSocialList' MySelfFirst user nt (Set.fromList $ Map.keys ngs')
+    -- PrivateFirst for first developments since Public NodeMode is not implemented yet
+
+  printDebug "flowSocialList'" (Map.filter (not . ((==) Map.empty) . view fls_parents) socialLists')
 
   let
-    listSize = 9
-    all'     = List.sortOn (Down . Set.size . snd . snd)
-             $ Map.toList ngs
+    groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
+    groupedWithList = toGroupedText groupParams socialLists' ngs'
 
-    (graphTerms, candiTerms) = List.splitAt listSize all'
+  printDebug "groupedWithList" (Map.map (\v -> (view gt_label v, view gt_children v)) $ Map.filter (\v -> (Set.size $ view gt_children v) > 0) groupedWithList)
 
-  pure $ Map.unionsWith (<>) [ toElements nt MapTerm       graphTerms
-                             , toElements nt CandidateTerm candiTerms
-                             ]
+  let
+    (stopTerms, tailTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
+    (mapTerms, tailTerms') = Map.partition (\t -> t ^. gt_listType == Just MapTerm)  tailTerms
 
-toElements :: Ord k => k -> ListType -> [(Text, b)] -> Map k [NgramsElement]
-toElements nType lType x =
-  Map.fromList [(nType, [ mkNgramsElement (NgramsTerm t) lType Nothing (mSetFromList [])
-                        | (t, _ns) <- x
-                        ]
-               )]
+    listSize = mapListSize - (List.length mapTerms)
+    (mapTerms', candiTerms) = List.splitAt listSize
+                            $ List.sortOn (Down . _gt_score)
+                            $ Map.elems tailTerms'
+
+  pure $ Map.fromList [( nt,  (List.concat $ map toNgramsElement stopTerms)
+                           <> (List.concat $ map toNgramsElement mapTerms )
+                           <> (List.concat $ map toNgramsElement
+                                           $ map (set gt_listType (Just MapTerm      )) mapTerms' )
+                           <> (List.concat $ map toNgramsElement
+                                           $ map (set gt_listType (Just CandidateTerm)) candiTerms)
+                      )]
+
 
 -- TODO use ListIds
 buildNgramsTermsList :: ( HasNodeError err
@@ -124,68 +123,52 @@ buildNgramsTermsList :: ( HasNodeError err
                         , HasTreeError err
                         )
                         => User
-                        -> Lang
-                        -> Int
-                        -> Int
-                        -> StopSize
                         -> UserCorpusId
                         -> MasterCorpusId
+                        -> GroupParams
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user l n m _s uCid mCid = do
+buildNgramsTermsList user uCid mCid groupParams = do
 
 -- Computing global speGen score
-  allTerms <- Map.toList <$> getTficf uCid mCid NgramsTerms
+  allTerms :: Map Text Double <- getTficf uCid mCid NgramsTerms
 
   -- printDebug "head candidates" (List.take 10 $ allTerms)
   -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)
 
   -- First remove stops terms
-  socialLists <- flowSocialList user NgramsTerms (Set.fromList $ map fst allTerms)
-
-  printDebug "\n * socialLists * \n" socialLists
-
-  let
-    _socialMap  = fromMaybe Set.empty $ Map.lookup MapTerm       socialLists
-    _socialCand = fromMaybe Set.empty $ Map.lookup CandidateTerm socialLists
-    socialStop  = fromMaybe Set.empty $ Map.lookup StopTerm      socialLists
-    -- stopTerms ignored for now (need to be tagged already)
-    (stopTerms, candidateTerms) = List.partition ((\t -> Set.member t socialStop) . fst) allTerms
-
-  printDebug "stopTerms" stopTerms
+  socialLists <- flowSocialList user NgramsTerms (Set.fromList $ map fst $ Map.toList allTerms)
+  -- printDebug "\n * socialLists * \n" socialLists
 
   -- Grouping the ngrams and keeping the maximum score for label
-  let grouped = groupStems'
-        $ map (\(t,d) -> let stem = ngramsGroup l n m t
-                          in ( stem
-                             , GroupedText Nothing t d Set.empty (size t) stem Set.empty
-                             )
-              ) candidateTerms
+  let grouped = groupedTextWithStem ( GroupedTextParams (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) {-(size . _gt_label)-} ) allTerms
 
-      (groupedMono, groupedMult) = Map.partition (\gt -> _gt_size gt < 2) grouped
+      groupedWithList = map (addListType (invertForw socialLists)) grouped
 
--- printDebug "groupedMult" groupedMult
+      (stopTerms, candidateTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
+      (groupedMono, groupedMult)  = Map.partition (\t -> t ^. gt_size                  < 2) candidateTerms
+
+  -- printDebug "\n * stopTerms * \n" stopTerms
   -- splitting monterms and multiterms to take proportional candidates
   let
-    listSizeGlobal = 2000 :: Double -- use % of list if to big, or Int if to small
+    listSizeGlobal = 2000 :: Double -- use % of list if to big, or Int if too small
     monoSize = 0.4  :: Double
     multSize = 1 - monoSize
 
     splitAt n' ns = List.splitAt (round $ n' * listSizeGlobal) $ List.sort $ Map.elems ns
- 
+
     (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
     (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
 
-  printDebug "groupedMonoHead" (List.length groupedMonoHead)
-  printDebug "groupedMonoTail" (List.length groupedMonoHead)
-  printDebug "groupedMultHead" (List.length groupedMultHead)
-  printDebug "groupedMultTail" (List.length groupedMultTail)
+  -- printDebug "groupedMonoHead" (List.length groupedMonoHead)
+  -- printDebug "groupedMonoTail" (List.length groupedMonoHead)
+  -- printDebug "groupedMultHead" (List.length groupedMultHead)
+  -- printDebug "groupedMultTail" (List.length groupedMultTail)
 
   let
     -- Get Local Scores now for selected grouped ngrams
     selectedTerms = Set.toList $ List.foldl'
                       (\set' (GroupedText _ l' _ g _ _ _ ) -> Set.union set'
-                                                            $ Set.union g
-                                                            $ Set.singleton l'
+                                                            $ Set.insert l' g
                       )
                       Set.empty
                       (groupedMonoHead <> groupedMultHead)
@@ -195,26 +178,30 @@ buildNgramsTermsList user l n m _s uCid mCid = do
   masterListId  <- defaultList mCid
 
   mapTextDocIds <- getNodesByNgramsOnlyUser uCid [userListId, masterListId] NgramsTerms selectedTerms
+
   let
     mapGroups   = Map.fromList
-                $ map (\g -> (_gt_stem g, g))
+                $ map (\g -> (g ^. gt_stem, g))
                 $ groupedMonoHead <> groupedMultHead
 
     -- grouping with Set NodeId
-    contextsAdded = foldl' (\mapGroups' k -> let k' = ngramsGroup l n m k
-                                    in case Map.lookup k' mapGroups'  of
-                                      Nothing -> mapGroups'
-                                      Just g  -> case Map.lookup k mapTextDocIds of
-                                                   Nothing -> mapGroups'
-                                                   Just ns -> Map.insert k' ( g { _gt_nodes = Set.union ns (_gt_nodes g)}) mapGroups'
+    contextsAdded = foldl' (\mapGroups' k ->
+                                    let k' = ngramsGroup groupParams k in
+                                        case Map.lookup k' mapGroups'  of
+                                          Nothing -> mapGroups'
+                                          Just g  -> case Map.lookup k mapTextDocIds of
+                                            Nothing -> mapGroups'
+                                            Just ns -> Map.insert k' ( g { _gt_nodes = Set.union ns (_gt_nodes g)}) mapGroups'
                            )
                   mapGroups
                   $ Map.keys mapTextDocIds
 
     -- compute cooccurrences
-    mapCooc = Map.filter (>2) $ Map.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
+    mapCooc = Map.filter (>2)
+            $ Map.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
                            | (t1, s1) <- mapStemNodeIds
                            , (t2, s2) <- mapStemNodeIds
+                           --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
                            ]
       where
         mapStemNodeIds = Map.toList $ Map.map (_gt_nodes) contextsAdded
@@ -263,52 +250,35 @@ buildNgramsTermsList user l n m _s uCid mCid = do
 
 
     -- Final Step building the Typed list
-    -- (map (toGargList $ Just StopTerm) stopTerms) -- Removing stops (needs social score)
-    termListHead =
-             (map (\g -> g { _gt_listType = Just MapTerm} )  (  monoScoredInclHead
-                                                 <> monoScoredExclHead
-                                                 <> multScoredInclHead
-                                                 <> multScoredExclHead
-                                                 )
-               )
-            <> (map (\g -> g { _gt_listType = Just CandidateTerm }) (  monoScoredInclTail
-                                                      <> monoScoredExclTail
-                                                      <> multScoredInclTail
-                                                      <> multScoredExclTail
-                                                      )
-               )
+    termListHead = maps <> cands
+      where
+        maps = set gt_listType (Just MapTerm)
+            <$> monoScoredInclHead
+             <> monoScoredExclHead
+             <> multScoredInclHead
+             <> multScoredExclHead
 
-    termListTail = map (\g -> g { _gt_listType = Just CandidateTerm }) ( groupedMonoTail <> groupedMultTail)
+        cands = set gt_listType (Just CandidateTerm)
+             <$> monoScoredInclTail
+              <> monoScoredExclTail
+              <> multScoredInclTail
+              <> multScoredExclTail
+
+    termListTail = map (set gt_listType (Just CandidateTerm)) ( groupedMonoTail <> groupedMultTail)
 
 --  printDebug "monoScoredInclHead" monoScoredInclHead
 --  printDebug "monoScoredExclHead" monoScoredExclTail
---
-  printDebug "multScoredInclHead" multScoredInclHead
-  printDebug "multScoredExclTail" multScoredExclTail
+--  printDebug "multScoredInclHead" multScoredInclHead
+--  printDebug "multScoredExclTail" multScoredExclTail
 
-  pure $ Map.unionsWith (<>)
-       [ Map.fromList [(
-                        NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
-                                  <> (List.concat $ map toNgramsElement $ termListTail)
+  let result = Map.unionsWith (<>)
+       [ Map.fromList [( NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
+                                   <> (List.concat $ map toNgramsElement $ termListTail)
+                                   <> (List.concat $ map toNgramsElement $ stopTerms)
                       )]
-       , toElements NgramsTerms StopTerm stopTerms
        ]
-
-groupStems :: [(Stem, GroupedText Double)] -> [GroupedText Double]
-groupStems = Map.elems . groupStems'
-
-groupStems' :: [(Stem, GroupedText Double)] -> Map Stem (GroupedText Double)
-groupStems' = Map.fromListWith grouping
-  where
-    grouping (GroupedText lt1 label1 score1 group1 s1 stem1 nodes1)
-             (GroupedText lt2 label2 score2 group2 s2 stem2 nodes2)
-             | score1 >= score2 = GroupedText lt label1 score1 (Set.insert label2 gr) s1 stem1 nodes
-             | otherwise        = GroupedText lt label2 score2 (Set.insert label1 gr) s2 stem2 nodes
-        where
-          lt = lt1 <> lt2
-          gr    = Set.union group1 group2
-          nodes = Set.union nodes1 nodes2
-
+  -- printDebug "\n result \n" r
+  pure result
 
 
 
@@ -337,32 +307,4 @@ isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
   where
     isStopChar c = not (c `elem` ("- /()%" :: [Char]) || Char.isAlpha c)
 
-
 ------------------------------------------------------------------------------
-type Group = Lang -> Int -> Int -> Text -> Text
-type Stem  = Text
-type Label = Text
-data GroupedText score =
-  GroupedText { _gt_listType :: !(Maybe ListType)
-              , _gt_label    :: !Label
-              , _gt_score    :: !score
-              , _gt_group    :: !(Set Text)
-              , _gt_size     :: !Int
-              , _gt_stem     :: !Stem
-              , _gt_nodes    :: !(Set NodeId)
-              }
-instance Show score => Show (GroupedText score) where
-  show (GroupedText _ l s _ _ _ _) = show l <> ":" <> show s
-
-instance (Eq a) => Eq (GroupedText a) where
-  (==) (GroupedText _ _ score1 _ _ _ _)
-       (GroupedText _ _ score2 _ _ _ _) = (==) score1 score2
-
-instance (Eq a, Ord a) => Ord (GroupedText a) where
-  compare (GroupedText _ _ score1 _ _ _ _)
-          (GroupedText _ _ score2 _ _ _ _) = compare score1 score2
-
-
-
--- Lenses Instances
-makeLenses 'GroupedText

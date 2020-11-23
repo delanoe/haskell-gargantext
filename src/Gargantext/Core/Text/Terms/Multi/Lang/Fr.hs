@@ -14,16 +14,16 @@ is ADJectiv in french.
 -}
 
 
-module Gargantext.Core.Text.Terms.Multi.Lang.Fr (group)
+module Gargantext.Core.Text.Terms.Multi.Lang.Fr (groupTokens)
   where
 
 import Gargantext.Prelude
 import Gargantext.Core.Types
 import Gargantext.Core.Text.Terms.Multi.Group (group2)
 
-group :: [TokenTag] -> [TokenTag]
-group [] = []
-group ntags = group2 NP NP
+groupTokens :: [TokenTag] -> [TokenTag]
+groupTokens [] = []
+groupTokens ntags = group2 NP NP
             $ group2 NP VB
             -- group2 NP IN
             -- group2 IN DT

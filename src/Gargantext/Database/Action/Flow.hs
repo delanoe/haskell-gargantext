@@ -64,8 +64,9 @@ import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
+import Gargantext.Core.Text.List.Group.WithStem (StopSize(..), GroupParams(..))
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
-import Gargantext.Core.Text.List (buildNgramsLists,StopSize(..))
+import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
 import Gargantext.Core.Types (Terms(..))
@@ -210,17 +211,21 @@ flowCorpusUser :: ( FlowCmdM env err m
 flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
+  -- NodeTexts is first
+  _tId <- insertDefaultNode NodeTexts userCorpusId userId
+  -- printDebug "NodeTexts: " tId
+
+  -- NodeList is second
   listId <- getOrMkList userCorpusId userId
   -- _cooc  <- insertDefaultNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
-  _tId <- insertDefaultNode NodeTexts userCorpusId userId
   -- printDebug "Node Text Ids:" tId
 
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
-  ngs         <- buildNgramsLists user l 2 3 (StopSize 3) userCorpusId masterCorpusId
+  ngs         <- buildNgramsLists user (GroupParams l 2 3 (StopSize 3)) userCorpusId masterCorpusId
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId

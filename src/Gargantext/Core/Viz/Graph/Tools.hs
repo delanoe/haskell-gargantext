@@ -24,10 +24,10 @@ import Gargantext.Prelude
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness)
-import Gargantext.Core.Viz.Graph.Distances (Distance(..), measure)
+import Gargantext.Core.Methods.Distances (Distance(..), measure)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index)
 import Gargantext.Core.Viz.Graph.IGraph (mkGraphUfromEdges)
-import Gargantext.Core.Viz.Graph.Proxemy (confluence)
+import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import GHC.Float (sin, cos)
 import qualified IGraph as Igraph
 import IGraph.Random -- (Gen(..))
@@ -47,7 +47,7 @@ cooc2graph' distance threshold myCooc = distanceMap
   where
     (ti, _) = createIndices myCooc
     myCooc' = toIndex ti myCooc
-    matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 0) myCooc'
+    matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
     distanceMat = measure distance matCooc
     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
 

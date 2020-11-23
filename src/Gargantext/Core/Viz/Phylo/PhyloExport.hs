@@ -142,6 +142,7 @@ groupToDotNode fdt g bId =
                          , toAttr "lbl" (pack $ show (ngramsToLabel fdt (g ^. phylo_groupNgrams)))
                          , toAttr "foundation" (pack $ show (idxToLabel (g ^. phylo_groupNgrams)))
                          , toAttr "role" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "dynamics")))
+                         , toAttr "frequence" (pack $ show (idxToLabel' ((g ^. phylo_groupMeta) ! "frequence")))
                          ])  
 
 
@@ -192,7 +193,7 @@ exportToDot phylo export =
                      ,(toAttr (fromStrict "phyloPeriods") $ pack $ show (length $ elems $ phylo ^. phylo_periods))
                      ,(toAttr (fromStrict "phyloBranches") $ pack $ show (length $ export ^. export_branches))
                      ,(toAttr (fromStrict "phyloGroups") $ pack $ show (length $ export ^. export_groups))
-                     ,(toAttr (fromStrict "phyloTermsFreq") $ pack $ show (toList $ _phylo_lastTermFreq phylo))
+                     -- ,(toAttr (fromStrict "phyloTermsFreq") $ pack $ show (toList $ _phylo_lastTermFreq phylo))
                      ])
 
 {-
@@ -201,7 +202,7 @@ exportToDot phylo export =
         --  2) create a layer for the branches labels -}
         subgraph (Str "Branches peaks") $ do 
 
-            graphAttrs [Rank SameRank]
+            -- graphAttrs [Rank SameRank]
 {-
             --  3) group the branches by hierarchy
             -- mapM (\branches -> 
@@ -368,8 +369,8 @@ inclusion m l i = ( (sum $ map (\j -> conditional m j i) l)
                   + (sum $ map (\j -> conditional m i j) l)) / (fromIntegral $ (length l) + 1)
 
 
-ngramsMetrics :: PhyloExport -> PhyloExport
-ngramsMetrics export =
+ngramsMetrics :: Phylo -> PhyloExport -> PhyloExport
+ngramsMetrics phylo export =
     over ( export_groups
          .  traverse )
     (\g -> g & phylo_groupMeta %~ insert "genericity" 
@@ -378,6 +379,8 @@ ngramsMetrics export =
                                   (map (\n -> specificity (g ^. phylo_groupCooc) ((g ^. phylo_groupNgrams) \\ [n]) n) $ g ^. phylo_groupNgrams)
              & phylo_groupMeta %~ insert "inclusion" 
                                   (map (\n -> inclusion   (g ^. phylo_groupCooc) ((g ^. phylo_groupNgrams) \\ [n]) n) $ g ^. phylo_groupNgrams)
+             & phylo_groupMeta %~ insert "frequence" 
+                                  (map (\n -> getInMap n (phylo ^. phylo_lastTermFreq)) $ g ^. phylo_groupNgrams)                                  
         ) export
 
 
@@ -397,9 +400,9 @@ branchDating export =
              & branch_meta %~ insert "age"   [fromIntegral age]
              & branch_meta %~ insert "size"  [fromIntegral $ length periods] ) export
 
-processMetrics :: PhyloExport -> PhyloExport
-processMetrics export = ngramsMetrics
-                      $ branchDating export 
+processMetrics :: Phylo -> PhyloExport -> PhyloExport
+processMetrics phylo export = ngramsMetrics phylo
+                            $ branchDating export 
 
 
 -----------------
@@ -598,8 +601,10 @@ toHorizon phylo =
     mapGroups :: [[PhyloGroup]]
     mapGroups = map (\prd -> 
       let groups  = getGroupsFromLevelPeriods level [prd] phylo
-          childs  = getPreviousChildIds level frame prd periods phylo     
-          heads   = filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
+          childs  = getPreviousChildIds level frame prd periods phylo 
+              -- maybe add a better filter for non isolated  ancestors
+          heads   = filter (\g -> (not . null) $ (g ^. phylo_groupPeriodChilds))
+                  $ filter (\g -> null (g ^. phylo_groupPeriodParents) && (notElem (getGroupId g) childs)) groups
           noHeads = groups \\ heads 
           nbDocs  = sum $ elems  $ filterDocs  (phylo ^. phylo_timeDocs) [prd]
           diago   = reduceDiagos $ filterDiago (phylo ^. phylo_timeCooc) [prd]
@@ -630,7 +635,7 @@ toPhyloExport phylo = exportToDot phylo
                     $ processFilters (exportFilter $ getConfig phylo) (phyloQuality $ getConfig phylo)
                     $ processSort    (exportSort   $ getConfig phylo) (getSeaElevation phylo)
                     $ processLabels  (exportLabel  $ getConfig phylo) (getRoots phylo) (_phylo_lastTermFreq phylo)
-                    $ processMetrics  export           
+                    $ processMetrics phylo export           
     where
         export :: PhyloExport
         export = PhyloExport groups branches     

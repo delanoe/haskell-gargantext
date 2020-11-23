@@ -48,7 +48,7 @@ import Gargantext.Prelude
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
 import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
-import Gargantext.Core.Viz.Graph.Distances (Distance(..), GraphMetric(..))
+import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..))
 
 ------------------------------------------------------------------------
 -- | There is no Delete specific API for Graph since it can be deleted

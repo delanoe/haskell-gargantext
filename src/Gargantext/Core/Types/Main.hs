@@ -49,7 +49,8 @@ instance ToSchema NodeTree where
 
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
-data ListType  =  StopTerm | CandidateTerm | MapTerm
+-- data ListType  =  CandidateTerm | StopTerm | MapTerm
+data ListType  =  CandidateTerm | StopTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
@@ -61,11 +62,11 @@ instance Arbitrary ListType where
 
 instance Semigroup ListType
   where
-    MapTerm       <> _             = MapTerm
-    _             <> MapTerm       = MapTerm
-    CandidateTerm <> _             = CandidateTerm
-    _             <> CandidateTerm = CandidateTerm
-    StopTerm      <> StopTerm      = StopTerm
+    MapTerm  <> _             = MapTerm
+    _        <> MapTerm       = MapTerm
+    StopTerm <> _             = StopTerm
+    _        <> StopTerm      = StopTerm
+    _        <> _             = CandidateTerm
 
 
 instance FromHttpApiData ListType where
@@ -73,13 +74,18 @@ instance FromHttpApiData ListType where
 
 type ListTypeId = Int
 
+-- FIXME Candidate: 0 and Stop : 1
 listTypeId :: ListType -> ListTypeId
 listTypeId StopTerm      = 0
 listTypeId CandidateTerm = 1
-listTypeId MapTerm     = 2
+listTypeId MapTerm       = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
-fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]
+fromListTypeId i = lookup i
+                 $ fromList
+                 [ (listTypeId l, l)
+                 | l <- [StopTerm, CandidateTerm, MapTerm]
+                 ]
 
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal
