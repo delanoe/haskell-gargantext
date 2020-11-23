@@ -83,7 +83,7 @@ module Gargantext.API.Ngrams
   where
 
 import Control.Concurrent
-import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), sumOf, at, _Just, Each(..), (%%~), mapped)
+import Control.Lens ((.~), view, (^.), (^..), (+~), (%~), (.~), sumOf, at, _Just, Each(..), (%%~), mapped, ifolded, withIndex)
 import Control.Monad.Reader
 import Data.Aeson hiding ((.=))
 import qualified Data.Aeson.Text as DAT
@@ -275,6 +275,12 @@ currentVersion = do
   r   <- liftBase $ readMVar var
   pure $ r ^. r_version
 
+newNgramsFromNgramsStatePatch :: NgramsStatePatch -> [Ngrams]
+newNgramsFromNgramsStatePatch p =
+  [ text2ngrams (unNgramsTerm n)
+  | (n,np) <- p ^.. _PatchMap . each . _PatchMap . each . _NgramsTablePatch . _PatchMap . ifolded . withIndex
+  , _ <- np ^.. patch_new . _Just
+  ]
 
 -- tableNgramsPut :: (HasInvalidError err, RepoCmdM env err m)
 commitStatePatch :: RepoCmdM env err m => Versioned NgramsStatePatch -> m (Versioned NgramsStatePatch)
