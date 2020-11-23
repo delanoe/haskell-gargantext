@@ -18,13 +18,14 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group
   where
 
-import Control.Lens (set)
+import Control.Lens (set, view)
 import Data.Set (Set)
 import Data.Map (Map)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.List.Social.Prelude (FlowListScores(..))
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Group.WithScores
@@ -40,6 +41,28 @@ toGroupedText :: GroupedTextParams a b
               -> Map Stem (GroupedText Int)
 toGroupedText groupParams scores =
   (groupWithStem groupParams) . (groupWithScores scores)
+
+-- | TODO add group with stemming
+toGroupedTreeText :: GroupedTextParams a b
+              -> FlowCont Text FlowListScores
+              -> Map Text (Set NodeId)
+              -> Map Text (GroupedTreeScores (Set NodeId))
+toGroupedTreeText _groupParams flc scores = view flc_scores flow1
+    where
+      flow1 = groupWithScores' flc scoring
+      scoring t = fromMaybe Set.empty $ Map.lookup t scores
+
+{-
+      flow2 = case flc_cont flow1 == Set.empty of
+        True  -> view flc_scores flow1
+        False -> groupWithStem' groupParams flow1
+
+
+      groupWithStem' :: GroupedTextParams a b
+                     -> FlowCont Text (GroupedTreeScores (Set NodeId))
+                     -> FlowCont Text (GroupedTreeScores (Set NodeId))
+      groupWithStem' _groupParams = identity
+-}
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
