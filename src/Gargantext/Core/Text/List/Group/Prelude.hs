@@ -31,26 +31,28 @@ import qualified Data.Map as Map
 -- Tree of GroupedTextScores
 -- Target : type FlowCont Text GroupedTextScores'
 
-data GroupedTextScores' score =
-  GroupedTextScores' { _gts'_listType :: !(Maybe ListType)
-                     , _gts'_children :: !(Map Text (GroupedTextScores' score))
-                     , _gts'_score    :: score
-                     } deriving (Show, Ord, Eq)
+data GroupedTreeScores score =
+  GroupedTreeScores { _gts'_listType :: !(Maybe ListType)
+                    , _gts'_children :: !(Map Text (GroupedTreeScores score))
+                    , _gts'_score    :: score
+                    } deriving (Show, Ord, Eq)
 
-instance (Semigroup a, Ord a) => Semigroup (GroupedTextScores' a) where
-  (<>) (GroupedTextScores'  l1 s1 c1)
-       (GroupedTextScores'  l2 s2 c2)
-      = GroupedTextScores' (l1 <> l2)
-                           (s1 <> s2)
-                           (c1 <> c2)
+instance (Semigroup a, Ord a) => Semigroup (GroupedTreeScores a) where
+  (<>) (GroupedTreeScores  l1 s1 c1)
+       (GroupedTreeScores  l2 s2 c2)
+      = GroupedTreeScores (l1 <> l2)
+                          (s1 <> s2)
+                          (c1 <> c2)
 
 instance (Ord score, Monoid score)
-  => Monoid (GroupedTextScores' score) where
-    mempty = GroupedTextScores' Nothing Map.empty mempty
+  => Monoid (GroupedTreeScores score) where
+    mempty = GroupedTreeScores Nothing Map.empty mempty
 
-makeLenses 'GroupedTextScores'
+makeLenses 'GroupedTreeScores
 
--- | Intermediary Type
+
+-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
+-- TODO to remove below
 data GroupedWithListScores =
   GroupedWithListScores { _gwls_listType :: !(Maybe ListType)
                         , _gwls_children :: !(Set Text)
@@ -66,6 +68,9 @@ instance Monoid GroupedWithListScores where
   mempty = GroupedWithListScores Nothing Set.empty
 
 makeLenses ''GroupedWithListScores
+-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
+
+
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
