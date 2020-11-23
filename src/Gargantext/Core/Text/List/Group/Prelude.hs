@@ -10,6 +10,9 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE InstanceSigs           #-}
+
 
 module Gargantext.Core.Text.List.Group.Prelude
   where
@@ -19,13 +22,15 @@ import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set)
 import Data.Text (Text)
+import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.Prelude
-import qualified Data.Set as Set
-import qualified Data.Map as Map
-
+import qualified Data.Set  as Set
+import qualified Data.Map  as Map
+import qualified Data.List as List
 ------------------------------------------------------------------------
 -- | Group With Scores Main Types
 -- Tree of GroupedTextScores
@@ -57,20 +62,34 @@ class ViewListType a where
 class SetListType a where
   setListType :: Maybe ListType -> a -> a
 
-class ViewScore a b where
+class Ord b => ViewScore a b | a -> b where
   viewScore :: a -> b
 
+class ToNgramsElement a where
+  toNgramsElement :: a -> [NgramsElement]
 
+---------------------------------------------
 instance ViewListType (GroupedTreeScores a) where
   viewListType = view gts'_listType
 
 instance SetListType (GroupedTreeScores a) where
   setListType = set gts'_listType
 
-{-
-instance ViewScore (GroupedTreeScores a) b where
-  viewScore = view gts'_score
--}
+instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
+  viewScore = Set.size . (view gts'_score)
+
+instance ToNgramsElement (Map Text (GroupedTreeScores (Set NodeId))) where
+  toNgramsElement = undefined
+
+
+
+
+
+
+
+
+
+
 
 
 -- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
@@ -90,7 +109,7 @@ instance Monoid GroupedWithListScores where
   mempty = GroupedWithListScores Nothing Set.empty
 
 makeLenses ''GroupedWithListScores
--- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
+
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -114,6 +133,9 @@ instance ViewListType (GroupedText a) where
 
 instance SetListType (GroupedText a) where
   setListType = set gt_listType
+
+instance Ord a => ViewScore (GroupedText a) a where
+  viewScore = (view gt_score)
 
 {-
 instance Show score => Show (GroupedText score) where
@@ -140,3 +162,32 @@ instance Ord a => Semigroup (GroupedText a) where
       gr    = Set.union group1 group2
       nodes = Set.union nodes1 nodes2
 
+instance SetListType [GroupedText Int] where
+  setListType lt = map (setListType lt)
+
+
+instance ToNgramsElement (Map Stem (GroupedText Int)) where
+  toNgramsElement = List.concat . (map toNgramsElement) . Map.elems
+
+
+instance ToNgramsElement [GroupedText a] where
+  toNgramsElement = List.concat . (map toNgramsElement)
+
+instance ToNgramsElement (GroupedText a) where
+  toNgramsElement :: GroupedText a -> [NgramsElement]
+  toNgramsElement (GroupedText listType label _ setNgrams _ _ _) =
+    [parentElem] <> childrenElems
+      where
+        parent = label
+        children = Set.toList setNgrams
+        parentElem    = mkNgramsElement (NgramsTerm parent)
+                                        (fromMaybe CandidateTerm listType)
+                                        Nothing
+                                        (mSetFromList (NgramsTerm <$> children))
+        childrenElems = map (\t -> mkNgramsElement t (fromMaybe CandidateTerm $ listType)
+                                                   (Just $ RootParent (NgramsTerm parent) (NgramsTerm parent))
+                                                   (mSetFromList [])
+                            ) (NgramsTerm <$> children)
+
+
+-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--

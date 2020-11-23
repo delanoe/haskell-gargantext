@@ -18,11 +18,11 @@ module Gargantext.Core.Text.List
 
 import Control.Lens ((^.), set, view, over)
 import Data.Map (Map)
-import Data.Maybe (fromMaybe, catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Data.Set (Set)
 import Data.Text (Text)
-import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
+import Gargantext.API.Ngrams.Types (NgramsElement)
 import Gargantext.API.Ngrams.Types (RepoCmdM)
 import Gargantext.Core.Text.List.Group
 import Gargantext.Core.Text.List.Group.Prelude
@@ -112,15 +112,13 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
 
     listSize = mapListSize - (List.length mapTerms)
     (mapTerms', candiTerms) = List.splitAt listSize
-                            $ List.sortOn (Down . _gt_score)
+                            $ List.sortOn (Down . viewScore)
                             $ Map.elems tailTerms'
 
-  pure $ Map.fromList [( nt,  (List.concat $ map toNgramsElement stopTerms)
-                           <> (List.concat $ map toNgramsElement mapTerms )
-                           <> (List.concat $ map toNgramsElement
-                                           $ map (setListType (Just MapTerm      )) mapTerms' )
-                           <> (List.concat $ map toNgramsElement
-                                           $ map (setListType (Just CandidateTerm)) candiTerms)
+  pure $ Map.fromList [( nt,  (toNgramsElement stopTerms)
+                           <> (toNgramsElement mapTerms )
+                           <> (toNgramsElement $ setListType (Just MapTerm      ) mapTerms' )
+                           <> (toNgramsElement $ setListType (Just CandidateTerm) candiTerms)
                       )]
 
 
@@ -288,22 +286,6 @@ buildNgramsTermsList user uCid mCid groupParams = do
   -- printDebug "\n result \n" r
   pure result
 
-
-
-toNgramsElement :: GroupedText a -> [NgramsElement]
-toNgramsElement (GroupedText listType label _ setNgrams _ _ _) =
-  [parentElem] <> childrenElems
-    where
-      parent = label
-      children = Set.toList setNgrams
-      parentElem    = mkNgramsElement (NgramsTerm parent)
-                                      (fromMaybe CandidateTerm listType)
-                                      Nothing
-                                      (mSetFromList (NgramsTerm <$> children))
-      childrenElems = map (\t -> mkNgramsElement t (fromMaybe CandidateTerm $ listType)
-                                                 (Just $ RootParent (NgramsTerm parent) (NgramsTerm parent))
-                                                 (mSetFromList [])
-                          ) (NgramsTerm <$> children)
 
 
 toGargList :: Maybe ListType -> b -> (Maybe ListType, b)
