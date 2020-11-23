@@ -35,25 +35,26 @@ import qualified Data.Map  as Map
 -- | Main function
 groupWithScores' :: FlowCont Text FlowListScores
                  -> (Text -> Set NodeId) -- Map Text (Set NodeId)
-                 -> FlowCont Text (GroupedTextScores' (Set NodeId))
-groupWithScores' flc _scores = FlowCont  groups orphans
+                 -> FlowCont Text (GroupedTreeScores (Set NodeId))
+groupWithScores' flc scores = FlowCont  groups orphans
   where
-    groups  = toGroupedTextScores' $ view flc_scores flc
     -- parent/child relation is inherited from social lists
+    groups  = toGroupedTree
+            $ toMapMaybeParent scores
+            $ view flc_scores flc
 
-    orphans = (view flc_cont flc)
     -- orphans have been filtered already
+    orphans = (view flc_cont flc)
 
 ------------------------------------------------------------------------
-
-
-mapMaybeParent :: (Text -> Set NodeId)
+toMapMaybeParent :: (Text -> Set NodeId)
                -> Map Text FlowListScores
-               -> Map (Maybe Parent) (Map Text (GroupedTextScores' (Set NodeId)))
-mapMaybeParent f = Map.fromListWith (<>) . (map (fromScores'' f)) . Map.toList
+               -> Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
+toMapMaybeParent f = Map.fromListWith (<>) . (map (fromScores'' f)) . Map.toList
+
 fromScores'' :: (Text -> Set NodeId)
              -> (Text, FlowListScores)
-             -> (Maybe Parent, Map Text (GroupedTextScores' (Set NodeId)))
+             -> (Maybe Parent, Map Text (GroupedTreeScores (Set NodeId)))
 fromScores'' f' (t, fs) = ( maybeParent
                           , Map.fromList [( t, set gts'_score (f' t)
                                              $ set gts'_listType maybeList mempty
@@ -63,15 +64,15 @@ fromScores'' f' (t, fs) = ( maybeParent
      maybeParent = keyWithMaxValue $ view fls_parents  fs
      maybeList   = keyWithMaxValue $ view fls_listType fs
 
-toGroupedTree :: Map (Maybe Parent) (Map Text (GroupedTextScores' (Set NodeId)))
-              -> Map Parent (GroupedTextScores' (Set NodeId))
+toGroupedTree :: Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
+              -> Map Parent (GroupedTreeScores (Set NodeId))
 toGroupedTree m = case Map.lookup Nothing m of
   Nothing  -> Map.empty
   Just  m' -> toGroupedTree' m m'
 
-toGroupedTree' :: Map (Maybe Parent) (Map Text (GroupedTextScores' (Set NodeId)))
-               -> (Map Text (GroupedTextScores' (Set NodeId)))
-               -> Map Parent (GroupedTextScores' (Set NodeId))
+toGroupedTree' :: Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
+               -> (Map Text (GroupedTreeScores (Set NodeId)))
+               -> Map Parent (GroupedTreeScores (Set NodeId))
 toGroupedTree' m notEmpty
   | notEmpty == Map.empty = Map.empty
   | otherwise = Map.mapWithKey (addGroup m) notEmpty
@@ -88,40 +89,6 @@ toGroupedTree' m notEmpty
 
 --8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<-- -8<--
 -- TODO TO BE REMOVED
-------------------------------------------------------------------------
-toGroupedTextScores' :: Map Text FlowListScores
-                     -> Map Parent (GroupedTextScores' (Set NodeId))
-toGroupedTextScores' = toGroupedScores' . fromListScores'
-
-------------------------------------------------------------------------
-fromListScores' :: Map Text FlowListScores
-                -> Map Parent GroupedWithListScores
-fromListScores' = Map.fromListWith (<>) . (map fromScores') . Map.toList
-  where
-    fromScores' :: (Text, FlowListScores) -> (Text, GroupedWithListScores)
-    fromScores' (t, fs) = case (keyWithMaxValue $ view fls_parents fs) of
-      Nothing     -> ( t
-                     , set gwls_listType (keyWithMaxValue $ view fls_listType fs) mempty
-                     )
-          -- Parent case: taking its listType, for now children Set is empty
-
-      Just parent -> (parent, set gwls_children (Set.singleton t) mempty)
-          -- We ignore the ListType of children for the parents' one
-          -- added after and winner of semigroup actions
-
-
-
-
-toGroupedScores' :: Map Parent GroupedWithListScores
-                 -> Map Parent (GroupedTextScores' (Set NodeId))
-toGroupedScores' = undefined
--- Map.map (\(GroupedWithListScores c l) -> GroupedTextScores l Set.empty c)
-
--- toGroupedTree :: GroupedW
-
-
-
--- TODO To be removed
 data GroupedTextScores score =
   GroupedTextScores { _gts_listType :: !(Maybe ListType)
                     , _gts_score    :: score
