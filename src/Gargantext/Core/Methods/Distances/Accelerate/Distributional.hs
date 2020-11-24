@@ -54,7 +54,7 @@ import qualified Gargantext.Prelude as P
 
 -- * Distributional Distance
 distributional :: Matrix Int -> Matrix Double
-distributional m' = run z
+distributional m' = run result
  where
     m = map fromIntegral $ use m'
     n = dim m'
