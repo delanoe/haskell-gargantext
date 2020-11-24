@@ -16,7 +16,7 @@ module Gargantext.Core.Text.List
   where
 
 
-import Control.Lens ((^.), set, over)
+import Control.Lens ((^.), view, set, over)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
 import Data.Monoid (mempty)
@@ -87,32 +87,29 @@ buildNgramsOthersList ::( HasNodeError err
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
+  -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists' :: FlowCont Text FlowListScores
     <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
                                                       $ Map.fromList
                                                       $ List.zip (Map.keys ngs') 
                                                                  (List.cycle [mempty])
                                            )
-    -- PrivateFirst for first developments since Public NodeMode is not implemented yet
 
 {-
   printDebug "flowSocialList'"
-               $ Map.filter (not . ((==) Map.empty) . view fls_parents)
+               $ Map.filter (not . ((==) Map.empty) . (view fls_parents))
                $ view flc_scores socialLists'
 -}
-
   let
     groupedWithList = toGroupedTreeText groupIt socialLists' ngs'
 
 {-
   printDebug "groupedWithList"
-               $ Map.map (\v -> (view gt_label v, view gt_children v))
-               $ Map.filter (\v -> (Set.size $ view gt_children v) > 0)
-               $ groupedWithList
+              $ view flc_scores groupedWithList
 -}
 
   let
-    (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType) groupedWithList
+    (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType) $ view flc_scores groupedWithList
     (mapTerms, tailTerms') = Map.partition ((== Just MapTerm)  . viewListType) tailTerms
 
     listSize = mapListSize - (List.length mapTerms)
@@ -178,6 +175,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
 
   let
     -- Get Local Scores now for selected grouped ngrams
+    -- TODO HasTerms 
     selectedTerms = Set.toList $ List.foldl'
                       (\set' (GroupedText _ l' _ g _ _ _ ) -> Set.union set'
                                                             $ Set.insert l' g

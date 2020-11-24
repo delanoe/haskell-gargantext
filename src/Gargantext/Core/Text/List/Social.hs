@@ -65,7 +65,7 @@ flowSocialList' :: ( RepoCmdM env err m
                   -> FlowCont Text FlowListScores
                   -> m (FlowCont Text FlowListScores)
 flowSocialList' flowPriority user nt flc =
-  mconcat <$> mapM (flowSocialListByMode' user nt flc)
+  mconcat <$> mapM (flowSocialListByMode'   user nt flc)
                    (flowSocialListPriority flowPriority)
     where
 

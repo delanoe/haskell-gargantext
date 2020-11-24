@@ -26,7 +26,6 @@ import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Prelude
-import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Set  as Set
 
@@ -44,11 +43,10 @@ groupWithScores' flc scores = FlowCont  groups orphans
             $ toMapMaybeParent scores
             $ view flc_scores flc
 
-    -- orphans have been filtered already
-    orphans =  toGroupedTree
+    -- orphans should be filtered already
+    orphans = toGroupedTree
             $ toMapMaybeParent scores
-            $ (view flc_cont flc)
-
+            $ view flc_cont flc
 ------------------------------------------------------------------------
 toMapMaybeParent :: (Text -> Set NodeId)
                  -> Map Text FlowListScores
@@ -89,6 +87,9 @@ toGroupedTree' m notEmpty
                                              )
                                            )
                                            v
+
+
+
 
 
 
