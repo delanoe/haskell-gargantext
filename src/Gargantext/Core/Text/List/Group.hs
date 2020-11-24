@@ -35,6 +35,24 @@ import qualified Data.Map  as Map
 import qualified Data.List as List
 
 ------------------------------------------------------------------------
+-- | TODO add group with stemming
+toGroupedTreeText :: GroupParams
+                  -> FlowCont Text FlowListScores
+                  -> Map Text (Set NodeId)
+                  -> Map Text (GroupedTreeScores (Set NodeId))
+toGroupedTreeText groupParams flc scores = view flc_scores flow2
+    where
+      flow1 = groupWithScores' flc scoring
+      scoring t = fromMaybe Set.empty $ Map.lookup t scores
+
+      flow2 = case (view flc_cont flow1) == Map.empty of
+        True  -> flow1
+        False -> groupWithStem' groupParams flow1
+
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+-- | TODO To be removed
 toGroupedText :: GroupedTextParams a b
               -> Map Text FlowListScores
               -> Map Text (Set NodeId)
@@ -42,31 +60,7 @@ toGroupedText :: GroupedTextParams a b
 toGroupedText groupParams scores =
   (groupWithStem groupParams) . (groupWithScores scores)
 
--- | TODO add group with stemming
-toGroupedTreeText :: GroupedTextParams a b
-              -> FlowCont Text FlowListScores
-              -> Map Text (Set NodeId)
-              -> Map Text (GroupedTreeScores (Set NodeId))
-toGroupedTreeText _groupParams flc scores = view flc_scores flow1
-    where
-      flow1 = groupWithScores' flc scoring
-      scoring t = fromMaybe Set.empty $ Map.lookup t scores
 
-{-
-      flow2 = case flc_cont flow1 == Set.empty of
-        True  -> view flc_scores flow1
-        False -> groupWithStem' groupParams flow1
-
-
-      groupWithStem' :: GroupedTextParams a b
-                     -> FlowCont Text (GroupedTreeScores (Set NodeId))
-                     -> FlowCont Text (GroupedTreeScores (Set NodeId))
-      groupWithStem' _groupParams = identity
--}
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
--- | TODO To be removed
 addListType :: Map Text ListType -> GroupedText a -> GroupedText a
 addListType m g = set gt_listType (hasListType m g) g
   where

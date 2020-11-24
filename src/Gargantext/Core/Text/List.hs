@@ -63,7 +63,7 @@ buildNgramsLists :: ( RepoCmdM env err m
                  -> m (Map NgramsType [NgramsElement])
 buildNgramsLists user gp uCid mCid = do
   ngTerms     <- buildNgramsTermsList user uCid mCid gp
-  othersTerms <- mapM (buildNgramsOthersList user uCid (ngramsGroup GroupIdentity))
+  othersTerms <- mapM (buildNgramsOthersList user uCid GroupIdentity)
                       [ (Authors   , MapListSize 9)
                       , (Sources   , MapListSize 9)
                       , (Institutes, MapListSize 9)
@@ -81,7 +81,7 @@ buildNgramsOthersList ::( HasNodeError err
                         )
                         => User
                         -> UserCorpusId
-                        -> (Text -> Text)
+                        -> GroupParams
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
@@ -102,8 +102,7 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
 -}
 
   let
-    groupParams     = GroupedTextParams groupIt (Set.size . snd) fst snd {-(size . fst)-}
-    groupedWithList = toGroupedTreeText groupParams socialLists' ngs'
+    groupedWithList = toGroupedTreeText groupIt socialLists' ngs'
 
 {-
   printDebug "groupedWithList"
@@ -153,7 +152,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
   -- printDebug "\n * socialLists * \n" socialLists
 
   -- Grouping the ngrams and keeping the maximum score for label
-  let grouped = groupedTextWithStem ( GroupedTextParams (ngramsGroup groupParams) identity (const Set.empty) (const Set.empty) {-(size . _gt_label)-} ) allTerms
+  let grouped = groupedTextWithStem ( GroupedTextParams (groupWith groupParams) identity (const Set.empty) (const Set.empty) {-(size . _gt_label)-} ) allTerms
 
       groupedWithList = map (addListType (invertForw socialLists)) grouped
 
@@ -190,7 +189,10 @@ buildNgramsTermsList user uCid mCid groupParams = do
   userListId    <- defaultList uCid
   masterListId  <- defaultList mCid
 
-  mapTextDocIds <- getNodesByNgramsOnlyUser uCid [userListId, masterListId] NgramsTerms selectedTerms
+  mapTextDocIds <- getNodesByNgramsOnlyUser uCid
+                                            [userListId, masterListId]
+                                            NgramsTerms
+                                            selectedTerms
 
   let
     mapGroups   = Map.fromList
@@ -199,7 +201,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
 
     -- grouping with Set NodeId
     contextsAdded = foldl' (\mapGroups' k ->
-                                    let k' = ngramsGroup groupParams k in
+                                    let k' = groupWith groupParams k in
                                         case Map.lookup k' mapGroups'  of
                                           Nothing -> mapGroups'
                                           Just g  -> case Map.lookup k mapTextDocIds of
