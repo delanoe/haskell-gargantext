@@ -20,6 +20,7 @@ module Gargantext.Core.Text.List.Group.WithStem
 import Control.Lens (makeLenses, view, over)
 import Data.Set (Set)
 import Data.Map (Map)
+import Data.Monoid (mempty)
 import Data.Text (Text)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text (size)
@@ -36,6 +37,7 @@ import qualified Data.Text as Text
 
 -- | Main Types
 data StopSize = StopSize {unStopSize :: !Int}
+  deriving (Eq)
 
 -- | TODO: group with 2 terms only can be
 -- discussed. Main purpose of this is offering
@@ -47,13 +49,18 @@ data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
                                , unGroupParams_stopSize :: !StopSize
                                }
                  | GroupIdentity
-
+  deriving (Eq)
 
 ------------------------------------------------------------------------
 groupWithStem' :: GroupParams
                -> FlowCont Text (GroupedTreeScores (Set NodeId))
                -> FlowCont Text (GroupedTreeScores (Set NodeId))
-groupWithStem' = mergeWith . groupWith
+groupWithStem' g flc
+    | g == GroupIdentity = FlowCont ( (<>)
+                                      (view flc_scores flc)
+                                      (view flc_cont   flc)
+                                    ) Map.empty
+    | otherwise = mergeWith (groupWith g) flc
 
 -- | MergeWith : with stem, we always have an answer
 -- if Maybe lems then we should add it to continuation
@@ -69,7 +76,7 @@ mergeWith fun flc = FlowCont scores Map.empty
         scores' = view flc_scores flc
         cont'   = Map.toList $ view flc_cont flc
 
-    -- TODO inserti at the right place in group hierarchy
+    -- TODO insert at the right place in group hierarchy
     -- adding as child of the parent for now
     alter :: Map Stem Text
           -> Map Text (GroupedTreeScores (Set NodeId))
