@@ -65,6 +65,9 @@ class SetListType a where
 class Ord b => ViewScore a b | a -> b where
   viewScore :: a -> b
 
+class ViewScores a b | a -> b where
+  viewScores :: a -> b
+
 class ToNgramsElement a where
   toNgramsElement :: a -> [NgramsElement]
 
@@ -82,12 +85,29 @@ instance SetListType (GroupedTreeScores a) where
 instance SetListType (Map Text (GroupedTreeScores a)) where
   setListType lt = Map.map (set gts'_listType lt)
 
+                            ------
 instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
-  viewScore = Set.size . (view gts'_score)
+  viewScore = Set.size . viewScores
 
+instance ViewScores (GroupedTreeScores (Set NodeId)) (Set NodeId) where
+  viewScores g = Set.unions $ parent : children
+    where
+      parent   = view gts'_score g
+      children = map viewScores $ Map.elems $ view gts'_children g
+
+                            ------
 instance HasTerms (Map Text (GroupedTreeScores a)) where
-  hasTerms = undefined
+  hasTerms = Set.unions . (map hasTerms) . Map.toList
 
+instance HasTerms (Text, GroupedTreeScores a) where
+  hasTerms (t, g) = Set.singleton t  <> children
+    where
+      children = Set.unions
+               $ map hasTerms
+               $ Map.toList
+               $ view gts'_children g
+
+                            ------
 
 instance ToNgramsElement (Map Text (GroupedTreeScores a)) where
   toNgramsElement = List.concat . (map toNgramsElement) . Map.toList
