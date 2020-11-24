@@ -49,7 +49,9 @@ instance (Eq a, Ord a, Eq b) => Semigroup (FlowCont a b) where
       = FlowCont m s
         where
           m = Map.union        m1 m2
-          s = Map.intersection s1 s2
+          s | s1 == mempty = s2
+            | s2 == mempty = s1
+            | otherwise = Map.intersection s1 s2
 
 makeLenses ''FlowCont
 
