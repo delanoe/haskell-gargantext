@@ -72,7 +72,7 @@ addList :: ListType
         -> Maybe FlowListScores
         -> Maybe FlowListScores
 addList l Nothing =
-  Just $ set fls_listType (addListScore l Map.empty) mempty
+  Just $ set fls_listType (addListScore l mempty) mempty
 
 addList l (Just fls) =
   Just $ over fls_listType (addListScore l) fls
@@ -101,9 +101,9 @@ addParent :: KeepAllParents -> NgramsRepoElement -> Set Text
           -> Maybe FlowListScores
 
 addParent k nre ss Nothing  =
-  Just $ FlowListScores Map.empty mapParent
+  Just $ FlowListScores mempty mapParent
     where
-      mapParent = addParentScore k (view nre_parent nre) ss Map.empty
+      mapParent = addParentScore k (view nre_parent nre) ss mempty
 
 addParent k nre ss (Just fls{-(FlowListScores mapList mapParent)-}) =
   Just $ over fls_parents (addParentScore k (view nre_parent nre) ss) fls

@@ -70,18 +70,18 @@ fromScores'' f' (t, fs) = ( maybeParent
 toGroupedTree :: Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
               -> Map Parent (GroupedTreeScores (Set NodeId))
 toGroupedTree m = case Map.lookup Nothing m of
-  Nothing  -> Map.empty
+  Nothing  -> mempty
   Just  m' -> toGroupedTree' m m'
 
 toGroupedTree' :: Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
                -> (Map Text (GroupedTreeScores (Set NodeId)))
                -> Map Parent (GroupedTreeScores (Set NodeId))
 toGroupedTree' m notEmpty
-  | notEmpty == Map.empty = Map.empty
+  | notEmpty == mempty = mempty
   | otherwise = Map.mapWithKey (addGroup m) notEmpty
     where
       addGroup m' k v = over gts'_children ( (toGroupedTree' m')
-                                           . (Map.union ( fromMaybe Map.empty
+                                           . (Map.union ( fromMaybe mempty
                                                         $ Map.lookup (Just k) m'
                                                         )
                                              )
@@ -136,21 +136,21 @@ addIfNotExist :: Map Text FlowListScores
               -> Map Text (Set NodeId)
               -> Map Text (GroupedTextScores (Set NodeId))
 addIfNotExist mapSocialScores mapScores =
-  foldl' (addIfNotExist' mapSocialScores) Map.empty $ Map.toList mapScores
+  foldl' (addIfNotExist' mapSocialScores) mempty $ Map.toList mapScores
     where
       addIfNotExist' mss m (t,ns) =
         case Map.lookup t mss of
           Nothing -> Map.alter (add ns) t m
           _       -> m
 
-      add ns' Nothing = Just $ GroupedTextScores Nothing ns' Set.empty
+      add ns' Nothing = Just $ GroupedTextScores Nothing ns' mempty
       add _ _         = Nothing -- should not be present
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 fromGroupedScores :: Map Parent GroupedWithListScores
                   -> Map Parent (GroupedTextScores (Set NodeId))
-fromGroupedScores = Map.map (\(GroupedWithListScores l c) -> GroupedTextScores l Set.empty c)
+fromGroupedScores = Map.map (\(GroupedWithListScores l c) -> GroupedTextScores l mempty c)
 
 ------------------------------------------------------------------------
 fromListScores :: Map Text FlowListScores -> Map Parent GroupedWithListScores
