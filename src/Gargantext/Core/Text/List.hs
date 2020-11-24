@@ -16,7 +16,7 @@ module Gargantext.Core.Text.List
   where
 
 
-import Control.Lens ((^.), view, set, over)
+import Control.Lens ((^.), view, over)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
 import Data.Monoid (mempty)
@@ -103,10 +103,8 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
   let
     groupedWithList = toGroupedTreeText groupIt socialLists' ngs'
 
-{-
   printDebug "groupedWithList"
-              $ view flc_scores groupedWithList
--}
+              $ view flc_cont groupedWithList
 
   let
     (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType) $ view flc_scores groupedWithList
