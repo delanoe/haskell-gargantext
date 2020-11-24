@@ -38,7 +38,7 @@ import qualified Data.List as List
 data GroupedTreeScores score =
   GroupedTreeScores { _gts'_listType :: !(Maybe ListType)
                     , _gts'_children :: !(Map Text (GroupedTreeScores score))
-                    , _gts'_score    :: score
+                    , _gts'_score    :: !score
                     } deriving (Show, Ord, Eq)
 
 instance (Semigroup a, Ord a) => Semigroup (GroupedTreeScores a) where
@@ -68,6 +68,9 @@ class Ord b => ViewScore a b | a -> b where
 class ToNgramsElement a where
   toNgramsElement :: a -> [NgramsElement]
 
+class HasTerms a where
+  hasTerms :: a -> Set Text
+
 ------------------------------------------------------------------------
 -- | Instances declartion for (GroupedTreeScores a)
 instance ViewListType (GroupedTreeScores a) where
@@ -81,6 +84,10 @@ instance SetListType (Map Text (GroupedTreeScores a)) where
 
 instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
   viewScore = Set.size . (view gts'_score)
+
+instance HasTerms (Map Text (GroupedTreeScores a)) where
+  hasTerms = undefined
+
 
 instance ToNgramsElement (Map Text (GroupedTreeScores a)) where
   toNgramsElement = List.concat . (map toNgramsElement) . Map.toList

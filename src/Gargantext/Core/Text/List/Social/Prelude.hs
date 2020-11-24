@@ -46,12 +46,12 @@ instance (Ord a, Eq b) => Monoid (FlowCont a b) where
 instance (Eq a, Ord a, Eq b) => Semigroup (FlowCont a b) where
   (<>) (FlowCont m1 s1)
        (FlowCont m2 s2)
-          | s1 == mempty = FlowCont m s2
-          | s2 == mempty = FlowCont m s1
-          | otherwise       = FlowCont m (Map.intersection s1 s2)
-            where
-              m = Map.union m1 m2
+      = FlowCont m s
+        where
+          m = Map.union        m1 m2
+          s = Map.intersection s1 s2
 
+makeLenses ''FlowCont
 
 -- | Datatype definition
 data FlowListScores =
@@ -62,9 +62,6 @@ data FlowListScores =
                  }
     deriving (Show, Generic, Eq)
 
-
-------------------------------------------------------------------------
-makeLenses ''FlowCont
 makeLenses ''FlowListScores
 
 -- | Rules to compose 2 datatype FlowListScores

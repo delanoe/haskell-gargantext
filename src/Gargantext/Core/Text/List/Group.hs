@@ -39,10 +39,11 @@ import qualified Data.List as List
 toGroupedTreeText :: GroupParams
                   -> FlowCont Text FlowListScores
                   -> Map Text (Set NodeId)
-                  -> Map Text (GroupedTreeScores (Set NodeId))
-toGroupedTreeText groupParams flc scores = view flc_scores flow2
+                 -- -> Map Text (GroupedTreeScores (Set NodeId))
+                  -> FlowCont Text (GroupedTreeScores (Set NodeId))
+toGroupedTreeText groupParams flc scores = {-view flc_scores-} flow2
     where
-      flow1 = groupWithScores' flc scoring
+      flow1     = groupWithScores' flc scoring
       scoring t = fromMaybe Set.empty $ Map.lookup t scores
 
       flow2 = case (view flc_cont flow1) == Map.empty of
