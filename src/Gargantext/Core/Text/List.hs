@@ -153,8 +153,9 @@ buildNgramsTermsList user uCid mCid groupParams = do
 
       groupedWithList = map (addListType (invertForw socialLists)) grouped
 
-      (stopTerms, candidateTerms) = Map.partition (\t -> t ^. gt_listType == Just StopTerm) groupedWithList
+      (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType) groupedWithList
       (groupedMono, groupedMult)  = Map.partition (\t -> t ^. gt_size                  < 2) candidateTerms
+      -- (groupedMono, groupedMult)  = Map.partitionWithKey (\t -> t ^. gt_size                  < 2) candidateTerms
 
   -- printDebug "\n * stopTerms * \n" stopTerms
   -- splitting monterms and multiterms to take proportional candidates
@@ -182,6 +183,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
                       )
                       Set.empty
                       (groupedMonoHead <> groupedMultHead)
+    -- selectedTerms = hasTerms (groupedMonoHead <> groupedMultHead)
 
   -- TO remove (and remove HasNodeError instance)
   userListId    <- defaultList uCid
@@ -243,7 +245,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
       -- filter mono/multi again
     (monoScored, multScored) = List.partition (\g -> _gt_size g < 2) groupsWithScores
       -- filter with max score
-    partitionWithMaxScore = List.partition (\g -> let (s1,s2) = _gt_score g in s1 > s2 )
+    partitionWithMaxScore = List.partition (\g -> let (s1,s2) = viewScore g in s1 > s2 )
 
     (monoScoredIncl, monoScoredExcl) = partitionWithMaxScore monoScored
     (multScoredIncl, multScoredExcl) = partitionWithMaxScore multScored
@@ -255,29 +257,29 @@ buildNgramsTermsList user uCid mCid groupParams = do
     exclSize = 1 - inclSize
     splitAt' n' = List.splitAt (round $ n' * listSizeLocal)
 
-    (monoScoredInclHead, monoScoredInclTail) = splitAt' (monoSize * inclSize / 2) $ List.sortOn (Down . _gt_score) monoScoredIncl
-    (monoScoredExclHead, monoScoredExclTail) = splitAt' (monoSize * inclSize / 2) $ List.sortOn (Down . _gt_score) monoScoredExcl
+    (monoScoredInclHead, monoScoredInclTail) = splitAt' (monoSize * inclSize / 2) $ List.sortOn (Down . viewScore) monoScoredIncl
+    (monoScoredExclHead, monoScoredExclTail) = splitAt' (monoSize * inclSize / 2) $ List.sortOn (Down . viewScore) monoScoredExcl
 
-    (multScoredInclHead, multScoredInclTail) = splitAt' (multSize * exclSize / 2) $ List.sortOn (Down . _gt_score) multScoredIncl
-    (multScoredExclHead, multScoredExclTail) = splitAt' (multSize * exclSize / 2) $ List.sortOn (Down . _gt_score) multScoredExcl
+    (multScoredInclHead, multScoredInclTail) = splitAt' (multSize * exclSize / 2) $ List.sortOn (Down . viewScore) multScoredIncl
+    (multScoredExclHead, multScoredExclTail) = splitAt' (multSize * exclSize / 2) $ List.sortOn (Down . viewScore) multScoredExcl
 
 
     -- Final Step building the Typed list
     termListHead = maps <> cands
       where
-        maps = set gt_listType (Just MapTerm)
+        maps = setListType (Just MapTerm)
             <$> monoScoredInclHead
              <> monoScoredExclHead
              <> multScoredInclHead
              <> multScoredExclHead
 
-        cands = set gt_listType (Just CandidateTerm)
+        cands = setListType (Just CandidateTerm)
              <$> monoScoredInclTail
               <> monoScoredExclTail
               <> multScoredInclTail
               <> multScoredExclTail
 
-    termListTail = map (set gt_listType (Just CandidateTerm)) ( groupedMonoTail <> groupedMultTail)
+    termListTail = map (setListType (Just CandidateTerm)) ( groupedMonoTail <> groupedMultTail)
 
 --  printDebug "monoScoredInclHead" monoScoredInclHead
 --  printDebug "monoScoredExclHead" monoScoredExclTail
