@@ -59,7 +59,7 @@ groupWithStem' g flc
     | g == GroupIdentity = FlowCont ( (<>) 
                                       (view flc_scores flc)
                                       (view flc_cont   flc)
-                                    ) Map.empty
+                                    ) mempty
     | otherwise = mergeWith (groupWith g) flc
 
 -- | MergeWith : with stem, we always have an answer
@@ -67,7 +67,7 @@ groupWithStem' g flc
 mergeWith :: (Text -> Text)
           -> FlowCont Text (GroupedTreeScores (Set NodeId))
           -> FlowCont Text (GroupedTreeScores (Set NodeId))
-mergeWith fun flc = FlowCont scores Map.empty
+mergeWith fun flc = FlowCont scores mempty
   where
 
     scores :: Map Text (GroupedTreeScores (Set NodeId))
