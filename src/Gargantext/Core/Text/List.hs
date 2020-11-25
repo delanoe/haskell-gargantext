@@ -153,9 +153,9 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
                $ Map.filter (not . ((==) Map.empty) . (view fls_parents))
                $ view flc_scores socialLists'
 
+-}
   let
     groupedWithList = toGroupedTree groupParams socialLists' allTerms
--}
 
 -- TODO remove
 -- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--

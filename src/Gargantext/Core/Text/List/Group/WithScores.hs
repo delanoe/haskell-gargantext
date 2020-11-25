@@ -19,7 +19,7 @@ import Control.Lens (makeLenses, view, set, over)
 import Data.Semigroup
 import Data.Set (Set)
 import Data.Map (Map)
-import Data.Monoid (mempty)
+import Data.Monoid (Monoid, mempty)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..))
@@ -32,22 +32,11 @@ import qualified Data.Set  as Set
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-class GroupWithScore a where
-  groupWithScores'' :: FlowCont Text FlowListScores
-                    -> (Text -> a) -- Map Text (Set NodeId)
-                    -> FlowCont Text (GroupedTreeScores a)
-
-
-
-------------------------------------------------------------------------
 -- | Main function
-
-instance GroupWithScore (Set NodeId) where
-  groupWithScores'' = groupWithScores'
-
-groupWithScores' :: FlowCont Text FlowListScores
-                 -> (Text -> Set NodeId) -- Map Text (Set NodeId)
-                 -> FlowCont Text (GroupedTreeScores (Set NodeId))
+groupWithScores' :: (Eq a, Ord a, Monoid a)
+                => FlowCont Text FlowListScores
+                -> (Text -> a) -- Map Text (a)
+                -> FlowCont Text (GroupedTreeScores (a))
 groupWithScores' flc scores = FlowCont  groups orphans
   where
     -- parent/child relation is inherited from social lists
@@ -60,16 +49,18 @@ groupWithScores' flc scores = FlowCont  groups orphans
             $ toMapMaybeParent scores
             $ view flc_cont flc
 ------------------------------------------------------------------------
-toMapMaybeParent :: (Text -> Set NodeId)
+toMapMaybeParent :: (Eq a, Ord a, Monoid a)
+                 => (Text -> a)
                  -> Map Text FlowListScores
-                 -> Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
+                 -> Map (Maybe Parent) (Map Text (GroupedTreeScores (a)))
 toMapMaybeParent f =  Map.fromListWith (<>)
                    . (map (fromScores'' f))
                    .  Map.toList
 
-fromScores'' :: (Text -> Set NodeId)
+fromScores'' :: (Eq a, Ord a, Monoid a)
+             => (Text -> a)
              -> (Text, FlowListScores)
-             -> (Maybe Parent, Map Text (GroupedTreeScores (Set NodeId)))
+             -> (Maybe Parent, Map Text (GroupedTreeScores (a)))
 fromScores'' f' (t, fs) = ( maybeParent
                           , Map.fromList [( t, set gts'_score (f' t)
                                              $ set gts'_listType maybeList mempty
@@ -79,15 +70,17 @@ fromScores'' f' (t, fs) = ( maybeParent
      maybeParent = keyWithMaxValue $ view fls_parents  fs
      maybeList   = keyWithMaxValue $ view fls_listType fs
 
-toGroupedTree :: Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
-              -> Map Parent (GroupedTreeScores (Set NodeId))
+toGroupedTree :: Eq a
+              => Map (Maybe Parent) (Map Text (GroupedTreeScores (a)))
+              -> Map Parent (GroupedTreeScores (a))
 toGroupedTree m = case Map.lookup Nothing m of
   Nothing  -> mempty
   Just  m' -> toGroupedTree' m m'
 
-toGroupedTree' :: Map (Maybe Parent) (Map Text (GroupedTreeScores (Set NodeId)))
-               -> (Map Text (GroupedTreeScores (Set NodeId)))
-               -> Map Parent (GroupedTreeScores (Set NodeId))
+
+toGroupedTree' :: Eq a => Map (Maybe Parent) (Map Text (GroupedTreeScores (a)))
+               -> (Map Text (GroupedTreeScores (a)))
+               ->  Map Parent (GroupedTreeScores (a))
 toGroupedTree' m notEmpty
   | notEmpty == mempty = mempty
   | otherwise = Map.mapWithKey (addGroup m) notEmpty

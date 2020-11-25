@@ -35,6 +35,8 @@ import GHC.Err.Located (undefined)
 import GHC.Real (round)
 import Data.Map (Map, lookup)
 import Data.Maybe (isJust, fromJust, maybe)
+import Data.Monoid (Monoid, mempty)
+import Data.Semigroup (Semigroup, (<>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
@@ -306,12 +308,18 @@ lookup2 a b m = do
   m' <- lookup a m
   lookup b m'
 
------------------------------------------------
-
+-----------------------------------------------------------------------
 foldM' :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
 foldM' _ z [] = return z
 foldM' f z (x:xs) = do
   z' <- f z x
   z' `seq` foldM' f z' xs
 
+-----------------------------------------------------------------------
+
+instance Monoid Double where
+  mempty = 0
+
+instance Semigroup Double where
+  (<>) a b = a * b
 
