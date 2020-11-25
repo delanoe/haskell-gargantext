@@ -13,7 +13,7 @@ Portability : POSIX
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE FunctionalDependencies #-}
-
+{-# LANGUAGE InstanceSigs           #-}
 
 module Gargantext.Core.Text.List.Group
   where
@@ -22,6 +22,7 @@ import Control.Lens (set, view)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
+import Data.Monoid (mempty)
 import Data.Text (Text)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
@@ -36,23 +37,50 @@ import qualified Data.List as List
 
 ------------------------------------------------------------------------
 -- | TODO add group with stemming
-toGroupedTreeText :: GroupParams
+
+class ToGroupedTree a b | a -> b where
+  toGroupedTree :: GroupParams
+                -> FlowCont Text FlowListScores
+                -> a
+                -> FlowCont Text (GroupedTreeScores b)
+
+instance ToGroupedTree (Map Text (Set NodeId)) (Set NodeId)
+  where
+    toGroupedTree :: GroupParams
                   -> FlowCont Text FlowListScores
                   -> Map Text (Set NodeId)
                  -- -> Map Text (GroupedTreeScores (Set NodeId))
                   -> FlowCont Text (GroupedTreeScores (Set NodeId))
-toGroupedTreeText groupParams flc scores = {-view flc_scores-} flow2
-    where
-      flow1     = groupWithScores' flc scoring
-      scoring t = fromMaybe Set.empty $ Map.lookup t scores
+    toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
+        where
+          flow1     = groupWithScores'' flc scoring
+          scoring t = fromMaybe Set.empty $ Map.lookup t scores
 
-      flow2 = case (view flc_cont flow1) == Map.empty of
-        True  -> flow1
-        False -> groupWithStem' groupParams flow1
+          flow2 = case (view flc_cont flow1) == Map.empty of
+            True  -> flow1
+            False -> groupWithStem' groupParams flow1
 
+{-
+instance ToGroupedTree (Map Text Double) Double
+  where
+    toGroupedTree :: GroupParams
+                  -> FlowCont Text FlowListScores
+                  -> Map Text Double
+                 -- -> Map Text (GroupedTreeScores (Set NodeId))
+                  -> FlowCont Text (GroupedTreeScores Double)
+    toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
+        where
+          flow1     = groupWithScores'' flc scoring
+          scoring t = fromMaybe mempty $ Map.lookup t scores
+
+          flow2 = case (view flc_cont flow1) == Map.empty of
+            True  -> flow1
+            False -> groupWithStem' groupParams flow1
+-}
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
+-- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
 -- | TODO To be removed
 toGroupedText :: GroupedTextParams a b
               -> Map Text FlowListScores
