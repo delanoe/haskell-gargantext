@@ -10,6 +10,7 @@ Portability : POSIX
 -}
 
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE InstanceSigs           #-}
 
 module Gargantext.Core.Text.List.Group.WithScores
   where
@@ -31,8 +32,19 @@ import qualified Data.Set  as Set
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
+class GroupWithScore a where
+  groupWithScores'' :: FlowCont Text FlowListScores
+                    -> (Text -> a) -- Map Text (Set NodeId)
+                    -> FlowCont Text (GroupedTreeScores a)
+
+
+
 ------------------------------------------------------------------------
 -- | Main function
+
+instance GroupWithScore (Set NodeId) where
+  groupWithScores'' = groupWithScores'
+
 groupWithScores' :: FlowCont Text FlowListScores
                  -> (Text -> Set NodeId) -- Map Text (Set NodeId)
                  -> FlowCont Text (GroupedTreeScores (Set NodeId))

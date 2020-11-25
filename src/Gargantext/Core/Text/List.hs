@@ -61,7 +61,7 @@ buildNgramsLists :: ( RepoCmdM env err m
                  -> MasterCorpusId
                  -> m (Map NgramsType [NgramsElement])
 buildNgramsLists user gp uCid mCid = do
-  ngTerms     <- buildNgramsTermsList user uCid mCid gp
+  ngTerms     <- buildNgramsTermsList user uCid mCid gp (NgramsTerms, MapListSize 350)
   othersTerms <- mapM (buildNgramsOthersList user uCid GroupIdentity)
                       [ (Authors   , MapListSize 9)
                       , (Sources   , MapListSize 9)
@@ -83,14 +83,14 @@ buildNgramsOthersList ::( HasNodeError err
                         -> GroupParams
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
-  ngs'  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
+buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
+  allTerms  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
   -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
   socialLists' :: FlowCont Text FlowListScores
     <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
                                                       $ Map.fromList
-                                                      $ List.zip (Map.keys ngs') 
+                                                      $ List.zip (Map.keys allTerms) 
                                                                  (List.cycle [mempty])
                                            )
 {-
@@ -100,10 +100,12 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
 -}
 
   let
-    groupedWithList = toGroupedTreeText groupIt socialLists' ngs'
+    groupedWithList = toGroupedTree groupParams socialLists' allTerms
 
+{-
   printDebug "groupedWithList"
               $ view flc_cont groupedWithList
+-}
 
   let
     (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType) $ view flc_scores groupedWithList
@@ -132,23 +134,40 @@ buildNgramsTermsList :: ( HasNodeError err
                         -> UserCorpusId
                         -> MasterCorpusId
                         -> GroupParams
+                        -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user uCid mCid groupParams = do
+buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
 
 -- Computing global speGen score
-  allTerms :: Map Text Double <- getTficf uCid mCid NgramsTerms
+  allTerms :: Map Text Double <- getTficf uCid mCid nt
 
-  -- printDebug "head candidates" (List.take 10 $ allTerms)
-  -- printDebug "tail candidates" (List.take 10 $ List.reverse $ allTerms)
+  -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
+  socialLists' :: FlowCont Text FlowListScores
+    <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
+                                                      $ Map.fromList
+                                                      $ List.zip (Map.keys allTerms) 
+                                                                 (List.cycle [mempty])
+                                           )
+{-
+  printDebug "flowSocialList'"
+               $ Map.filter (not . ((==) Map.empty) . (view fls_parents))
+               $ view flc_scores socialLists'
 
+  let
+    groupedWithList = toGroupedTree groupParams socialLists' allTerms
+-}
+
+-- TODO remove
+-- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
   -- First remove stops terms
-  socialLists <- flowSocialList user NgramsTerms (Set.fromList $ map fst $ Map.toList allTerms)
-  -- printDebug "\n * socialLists * \n" socialLists
+  socialLists <- flowSocialList user nt (Set.fromList $ map fst $ Map.toList allTerms)
 
   -- Grouping the ngrams and keeping the maximum score for label
   let grouped = groupedTextWithStem ( GroupedTextParams (groupWith groupParams) identity (const Set.empty) (const Set.empty) {-(size . _gt_label)-} ) allTerms
 
       groupedWithList = map (addListType (invertForw socialLists)) grouped
+-- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
+
 
       (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType) groupedWithList
       (groupedMono, groupedMult)  = Map.partition (\t -> t ^. gt_size < 2) candidateTerms
@@ -188,7 +207,7 @@ buildNgramsTermsList user uCid mCid groupParams = do
 
   mapTextDocIds <- getNodesByNgramsOnlyUser uCid
                                             [userListId, masterListId]
-                                            NgramsTerms
+                                            nt
                                             selectedTerms
 
   let
@@ -284,9 +303,9 @@ buildNgramsTermsList user uCid mCid groupParams = do
 --  printDebug "multScoredExclTail" multScoredExclTail
 
   let result = Map.unionsWith (<>)
-       [ Map.fromList [( NgramsTerms, (List.concat $ map toNgramsElement $ termListHead)
-                                   <> (List.concat $ map toNgramsElement $ termListTail)
-                                   <> (List.concat $ map toNgramsElement $ stopTerms)
+       [ Map.fromList [( nt, (List.concat $ map toNgramsElement $ termListHead)
+                           <> (List.concat $ map toNgramsElement $ termListTail)
+                           <> (List.concat $ map toNgramsElement $ stopTerms)
                       )]
        ]
   -- printDebug "\n result \n" r
