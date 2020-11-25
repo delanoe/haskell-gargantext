@@ -53,14 +53,13 @@ instance ToGroupedTree (Map Text (Set NodeId)) (Set NodeId)
                   -> FlowCont Text (GroupedTreeScores (Set NodeId))
     toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
         where
-          flow1     = groupWithScores'' flc scoring
+          flow1     = groupWithScores' flc scoring
           scoring t = fromMaybe Set.empty $ Map.lookup t scores
 
           flow2 = case (view flc_cont flow1) == Map.empty of
             True  -> flow1
             False -> groupWithStem' groupParams flow1
 
-{-
 instance ToGroupedTree (Map Text Double) Double
   where
     toGroupedTree :: GroupParams
@@ -70,13 +69,12 @@ instance ToGroupedTree (Map Text Double) Double
                   -> FlowCont Text (GroupedTreeScores Double)
     toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
         where
-          flow1     = groupWithScores'' flc scoring
+          flow1     = groupWithScores' flc scoring
           scoring t = fromMaybe mempty $ Map.lookup t scores
 
           flow2 = case (view flc_cont flow1) == Map.empty of
             True  -> flow1
             False -> groupWithStem' groupParams flow1
--}
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
