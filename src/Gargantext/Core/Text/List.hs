@@ -15,7 +15,6 @@ Portability : POSIX
 module Gargantext.Core.Text.List
   where
 
-
 import Control.Lens ((^.), view, over)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
@@ -94,12 +93,12 @@ buildNgramsOthersList user uCid groupIt (nt, MapListSize mapListSize) = do
                                                       $ List.zip (Map.keys ngs') 
                                                                  (List.cycle [mempty])
                                            )
-
 {-
   printDebug "flowSocialList'"
                $ Map.filter (not . ((==) Map.empty) . (view fls_parents))
                $ view flc_scores socialLists'
 -}
+
   let
     groupedWithList = toGroupedTreeText groupIt socialLists' ngs'
 
@@ -152,8 +151,8 @@ buildNgramsTermsList user uCid mCid groupParams = do
       groupedWithList = map (addListType (invertForw socialLists)) grouped
 
       (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType) groupedWithList
-      (groupedMono, groupedMult)  = Map.partition (\t -> t ^. gt_size                  < 2) candidateTerms
-      -- (groupedMono, groupedMult)  = Map.partitionWithKey (\t -> t ^. gt_size                  < 2) candidateTerms
+      (groupedMono, groupedMult)  = Map.partition (\t -> t ^. gt_size < 2) candidateTerms
+      -- (groupedMono, groupedMult)  = Map.partitionWithKey (\t _v -> size t < 2) candidateTerms
 
   -- printDebug "\n * stopTerms * \n" stopTerms
   -- splitting monterms and multiterms to take proportional candidates

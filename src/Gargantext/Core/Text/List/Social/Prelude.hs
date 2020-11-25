@@ -44,14 +44,10 @@ instance (Ord a, Eq b) => Monoid (FlowCont a b) where
   mempty = FlowCont mempty mempty
 
 instance (Eq a, Ord a, Eq b) => Semigroup (FlowCont a b) where
-  (<>) (FlowCont m1 s1)
-       (FlowCont m2 s2)
-      = FlowCont m s
-        where
-          m = Map.union        m1 m2
-          s | s1 == mempty = s2
-            | s2 == mempty = s1
-            | otherwise = Map.intersection s1 s2
+  (<>) (FlowCont  m1    s1)
+       (FlowCont  m2    s2)
+      = FlowCont (m1 <> m2)
+                 (s1 <> s2)
 
 makeLenses ''FlowCont
 
