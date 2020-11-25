@@ -44,7 +44,7 @@ toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) me
                      -> Map Text NgramsRepoElement
                      -> FlowCont Text FlowListScores
     toFlowListScores_Level1 k' flc_origin' flc_dest ngramsRepo =
-      Set.foldl' (toFlowListScores_Level2 k' ngramsRepo flc_origin')
+      Set.foldl' (toFlowListScores_Level2 k' ngramsRepo   flc_origin')
                  flc_dest
                  (Set.fromList $ Map.keys $ view flc_cont flc_origin')
 
@@ -56,9 +56,15 @@ toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) me
                        -> FlowCont Text FlowListScores
     toFlowListScores_Level2 k'' ngramsRepo flc_origin'' flc_dest' t =
       case Map.lookup t ngramsRepo of
-        Nothing  -> over flc_cont (Map.union (Map.singleton t mempty)) flc_dest'
-        Just nre -> over flc_scores
-                  ( (Map.alter (addParent k'' nre (Set.fromList $ Map.keys $ view flc_cont flc_origin'')) t)
+        Nothing  -> over flc_cont (Map.union $ Map.singleton t mempty) flc_dest'
+        Just nre -> over flc_cont (Map.delete t)
+                 $ over flc_scores
+                  ( (Map.alter (addParent k'' nre ( Set.fromList
+                                                  $ Map.keys
+                                                  $ view flc_cont flc_origin''
+                                                  )
+                               ) t
+                    )
                   . (Map.alter (addList $ _nre_list nre) t)
                   ) flc_dest'
 
