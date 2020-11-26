@@ -17,7 +17,6 @@ module Gargantext.Core.Text.List
 
 import Control.Lens hiding (both) -- ((^.), view, over, set, (_1), (_2))
 import Data.Map (Map)
-import Data.Maybe (catMaybes, fromMaybe)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
@@ -43,11 +42,9 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Set  as Set
-import qualified Data.Text as Text
 
 
 {-
@@ -138,6 +135,8 @@ buildNgramsTermsList :: ( HasNodeError err
                         -> m (Map NgramsType [NgramsElement])
 buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
 
+-- | Filter 0 With Double
+
 -- Computing global speGen score
   allTerms :: Map Text Double <- getTficf uCid mCid nt
 
@@ -168,11 +167,14 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
     (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
     (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
 
+-------------------------
+-- Filter 1 With Set NodeId and SpeGen
     selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
 
  -- TO remove (and remove HasNodeError instance)
   userListId    <- defaultList uCid
   masterListId  <- defaultList mCid
+
 
   mapTextDocIds <- getNodesByNgramsOnlyUser uCid
                                             [userListId, masterListId]
@@ -232,27 +234,27 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
     exclSize = 1 - inclSize
 
     splitAt' n' = (both (Map.fromList)) . (List.splitAt (round $ n' * listSizeLocal))
-    sortOn   f  = (List.sortOn (Down . f . _gts'_score . snd)) . Map.toList
+    sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . Map.toList
 
-    monoInc_size = monoSize * inclSize / 2
-    (monoScoredInclHead, monoScoredInclTail) = splitAt' monoInc_size $ (sortOn _scored_genInc) monoScoredIncl
-    (monoScoredExclHead, monoScoredExclTail) = splitAt' monoInc_size $ (sortOn _scored_speExc) monoScoredExcl
+    monoInc_size = splitAt' $ monoSize * inclSize / 2
+    (monoScoredInclHead, monoScoredInclTail) = monoInc_size $ (sortOn scored_genInc) monoScoredIncl
+    (monoScoredExclHead, monoScoredExclTail) = monoInc_size $ (sortOn scored_speExc) monoScoredExcl
 
-    multExc_size = multSize * exclSize / 2
-    (multScoredInclHead, multScoredInclTail) = splitAt' multExc_size $ (sortOn _scored_genInc) multScoredIncl
-    (multScoredExclHead, multScoredExclTail) = splitAt' multExc_size $ (sortOn _scored_speExc) multScoredExcl
+    multExc_size = splitAt' $ multSize * exclSize / 2
+    (multScoredInclHead, multScoredInclTail) = multExc_size $ (sortOn scored_genInc) multScoredIncl
+    (multScoredExclHead, multScoredExclTail) = multExc_size $ (sortOn scored_speExc) multScoredExcl
 
     -- Final Step building the Typed list
     termListHead = maps <> cands
       where
         maps = setListType (Just MapTerm)
-            $ monoScoredInclHead
+            $   monoScoredInclHead
              <> monoScoredExclHead
              <> multScoredInclHead
              <> multScoredExclHead
 
         cands = setListType (Just CandidateTerm)
-             $ monoScoredInclTail
+             $   monoScoredInclTail
               <> monoScoredExclTail
               <> multScoredInclTail
               <> multScoredExclTail
@@ -267,5 +269,3 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
        ]
 
   pure result
-
-------------------------------------------------------------------------------
