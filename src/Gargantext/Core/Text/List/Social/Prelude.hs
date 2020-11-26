@@ -110,36 +110,3 @@ hasParent t m = case Map.lookup t m of
 keyWithMaxValue :: Map a b -> Maybe a
 keyWithMaxValue m = (fst . fst) <$> Map.maxViewWithKey m
 
-
-------------------------------------------------------------------------
--- | Tools TODO clean it (some need to be removed)
-------------------------------------------------------------------------
-termsByList :: ListType -> (Map (Maybe ListType) (Set Text)) -> Set Text
-termsByList CandidateTerm m = Set.unions
-                          $ map (\lt -> fromMaybe Set.empty $ Map.lookup lt m)
-                          [ Nothing, Just CandidateTerm ]
-termsByList l m =
-  fromMaybe Set.empty $ Map.lookup (Just l) m
-
-------------------------------------------------------------------------
-unions' :: (Ord a, Semigroup a, Semigroup b, Ord b)
-      => [Map a (Set b)] -> Map a (Set b)
-unions' = invertBack . Map.unionsWith (<>) . map invertForw
-
-invertForw :: (Ord b, Semigroup a) => Map a (Set b) -> Map b a
-invertForw = Map.unionsWith (<>)
-           . (map (\(k,st) -> Map.fromSet (\_ -> k) st))
-           . Map.toList
-
-invertBack :: (Ord a, Ord b) => Map b a -> Map a (Set b)
-invertBack = Map.fromListWith (<>)
-           . (map (\(b,a) -> (a, Set.singleton b)))
-           .  Map.toList
-
-unions_test :: Map ListType (Set Text)
-unions_test = unions' [m1, m2]
-  where
-    m1 = Map.fromList [ (StopTerm     , Set.singleton "Candidate")]
-    m2 = Map.fromList [ (CandidateTerm, Set.singleton "Candidate")
-                      , (MapTerm      , Set.singleton "Candidate")
-                      ]
