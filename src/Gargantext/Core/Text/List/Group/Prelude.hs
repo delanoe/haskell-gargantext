@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.Prelude
   where
 
-import Control.Lens (makeLenses, view, set)
+import Control.Lens (makeLenses, view, set, over)
 import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set)
@@ -25,6 +25,7 @@ import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_genInc, normalizeGlobal, normalizeLocal)
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.Prelude
 import qualified Data.Set  as Set
@@ -41,7 +42,7 @@ data GroupedTreeScores score =
                     , _gts'_score    :: !score
                     } deriving (Show, Ord, Eq)
 
-instance (Semigroup a, Ord a) => Semigroup (GroupedTreeScores a) where
+instance (Semigroup a) => Semigroup (GroupedTreeScores a) where
   (<>) (GroupedTreeScores  l1 s1 c1)
        (GroupedTreeScores  l2 s2 c2)
       = GroupedTreeScores (l1 <> l2)
@@ -62,12 +63,14 @@ class ViewListType a where
 class SetListType a where
   setListType :: Maybe ListType -> a -> a
 
+------
 class Ord b => ViewScore a b | a -> b where
   viewScore :: a -> b
 
 class ViewScores a b | a -> b where
   viewScores :: a -> b
 
+--------
 class ToNgramsElement a where
   toNgramsElement :: a -> [NgramsElement]
 
@@ -80,12 +83,24 @@ instance ViewListType (GroupedTreeScores a) where
   viewListType = view gts'_listType
 
 instance SetListType (GroupedTreeScores a) where
-  setListType = set gts'_listType
+  setListType lt g = over gts'_children (setListType lt)
+                $ set gts'_listType lt g
 
 instance SetListType (Map Text (GroupedTreeScores a)) where
   setListType lt = Map.map (set gts'_listType lt)
 
                             ------
+
+instance ViewScore (GroupedTreeScores Double) Double where
+  viewScore = viewScores
+
+instance ViewScores (GroupedTreeScores Double) Double where
+  viewScores g = sum $ parent : children
+    where
+      parent   = view gts'_score g
+      children = map viewScores $ Map.elems $ view gts'_children g
+
+
 instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
   viewScore = Set.size . viewScores
 
@@ -94,6 +109,10 @@ instance ViewScores (GroupedTreeScores (Set NodeId)) (Set NodeId) where
     where
       parent   = view gts'_score g
       children = map viewScores $ Map.elems $ view gts'_children g
+
+
+instance ViewScore (GroupedTreeScores (Scored Text)) Double where
+  viewScore = view (gts'_score . scored_genInc)
 
                             ------
 instance HasTerms (Map Text (GroupedTreeScores a)) where
@@ -111,6 +130,7 @@ instance HasTerms (Text, GroupedTreeScores a) where
 
 instance ToNgramsElement (Map Text (GroupedTreeScores a)) where
   toNgramsElement = List.concat . (map toNgramsElement) . Map.toList
+
 
 instance ToNgramsElement (Text, GroupedTreeScores a) where
   toNgramsElement (t, gts) = parent : children
