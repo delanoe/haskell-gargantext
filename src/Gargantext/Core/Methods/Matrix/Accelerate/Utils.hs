@@ -35,21 +35,6 @@ import Debug.Trace (trace)
 import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import qualified Gargantext.Prelude as P
-import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
-
------------------------------------------------------------------------
--- | Main operators
--- Matrix Multiplication
-(#*#) :: ( Shape ix
-         , Slice ix
-         , Elt a
-         , P.Num (Exp a)
-         )
-      => Acc (Array ((ix :. Int) :. Int) a)
-      -> Acc (Array ((ix :. Int) :. Int) a)
-      -> Acc (Array ((ix :. Int) :. Int) a)
-(#*#) = multiplyMatrixMatrix
-
 
 -- | Matrix cell by cell multiplication
 (.*) :: ( Shape ix
@@ -73,6 +58,19 @@ import Data.Array.Accelerate.LinearAlgebra hiding (Matrix, transpose, Vector)
      -> Acc (Array ((ix :. Int) :. Int) a)
      -> Acc (Array ((ix :. Int) :. Int) a)
 (./) = zipWith (/)
+
+-- | Term by term division where divisions by 0 produce 0 rather than NaN. 
+termDivNan :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , Eq a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+termDivNan = zipWith (\i j -> cond ((==) j 0) 0 ((/) i j))
 
 (.-) :: ( Shape ix
         , Slice ix
@@ -399,11 +397,13 @@ theMatrixInt n = matrix n (dataMatrix n)
                                  , 4, 5, 3
                                  , 0, 3, 4
                                  ]
-                 | (P.==) x 4 =  [ 4, 4, 0, 0
-                                 , 4, 4, 0, 0
-                                 , 0, 0, 3, 3
-                                 , 0, 0, 3, 3
+                 | (P.==) x 4 =  [ 4, 1, 2, 1
+                                 , 1, 4, 0, 0
+                                 , 2, 0, 3, 3
+                                 , 1, 0, 3, 3
                                  ]
+
+
                  | P.otherwise = P.undefined
 
 {-

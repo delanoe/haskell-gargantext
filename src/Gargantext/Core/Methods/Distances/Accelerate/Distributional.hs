@@ -49,34 +49,71 @@ import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Gargantext.Prelude as P
--- import Data.Array.Accelerate.LinearAlgebra (identity) TODO
------------------------------------------------------------------------
 
--- * Distributional Distance
+-- | `distributional m` returns the distributional distance between terms each
+-- pair of terms as a matrix.  The argument m is the matrix $[n_{ij}]_{i,j}$
+-- where $n_{ij}$ is the coocccurrence between term $i$ and term $j$.
+--
+-- ## Basic example with Matrix of size 3: 
+--
+-- >>> theMatrixInt 3
+-- Matrix (Z :. 3 :. 3)
+--   [ 7, 4, 0,
+--     4, 5, 3,
+--     0, 3, 4]
+--
+-- >>> distributional $ theMatrixInt 3
+-- Matrix (Z :. 3 :. 3)
+--   [ 1.0, 0.0, 0.9843749999999999,
+--     0.0, 1.0,                0.0,
+--     1.0, 0.0,                1.0]
+--
+-- ## Basic example with Matrix of size 4: 
+--
+-- >>> theMatrixInt 4
+-- Matrix (Z :. 4 :. 4)
+--   [ 4, 1, 2, 1,
+--     1, 4, 0, 0,
+--     2, 0, 3, 3,
+--     1, 0, 3, 3]
+--
+-- >>> distributional $ theMatrixInt 4
+-- Matrix (Z :. 4 :. 4)
+--   [                  1.0,                   0.0, 0.5714285714285715, 0.8421052631578947,
+--                      0.0,                   1.0,                1.0,                1.0,
+--     8.333333333333333e-2,             4.6875e-2,                1.0,               0.25,
+--       0.3333333333333333, 5.7692307692307696e-2,                1.0,                1.0]
+--
 distributional :: Matrix Int -> Matrix Double
 distributional m' = run result
  where
     m = map fromIntegral $ use m'
     n = dim m'
 
-    d_m   = (.*) (matrixIdentity n) m
+    diag_m = diag m
 
-    o_d_m = (#*#) (matrixOne n) d_m
-    d_m_o = transpose o_d_m
+    d_1 = replicate (constant (Z :. n :. All)) diag_m
+    d_2 = replicate (constant (Z :. All :. n)) diag_m
 
-    mi    = (.*) ((./) m o_d_m) ((./) m d_m_o)
-    d_mi  = (.*) (matrixIdentity n) mi
+    mi    = (.*) ((./) m d_1) ((./) m d_2)
 
-    w     = (.-) mi d_mi
+    -- w = (.-) mi d_mi
+    
+    -- The matrix permutations is taken care of below by directly replicating
+    -- the matrix mi, making the matrix w unneccessary and saving one step.
+    w_1 = replicate (constant (Z :. All :. n :. All)) mi
+    w_2 = replicate (constant (Z :. n :. All :. All)) mi
+    w' = zipWith min w_1 w_2
 
-    z     = (#*#) w (matrixOne n)
-    z'    = transpose z
+    -- The matrix ii = [r_{i,j,k}]_{i,j,k} has r_(i,j,k) = 0 if k = i OR k = j 
+    -- and r_(i,j,k) = 1 otherwise (i.e. k /= i AND k /= j). 
+    ii = generate (constant (Z :. n :. n :. n)) 
+        (lift1 (\(Z :. i :. j :. k) -> cond ((&&) ((/=) k i) ((/=) k j)) 1 0))
 
-    min_z_z' = zipWith min z z'
+    z_1 = sum ((.*) w' ii)
+    z_2 = sum ((.*) w_1 ii)
 
-    result = (./) min_z_z' z
-
-
+    result = termDivNan z_1 z_2
 
 
 --
