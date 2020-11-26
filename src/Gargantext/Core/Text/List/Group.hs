@@ -52,15 +52,17 @@ toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
         True  -> flow1
         False -> groupWithStem' groupParams flow1
 
-{-
-DM.foldlWithKey :: (a -> k -> b -> a) -> a -> Map k b -> a
--}
 
 setScoresWith :: (Ord a, Ord b)
               =>  (Text -> (GroupedTreeScores a) -> (GroupedTreeScores b))
               -> Map Text (GroupedTreeScores a)
               -> Map Text (GroupedTreeScores b)
 setScoresWith = Map.mapWithKey
+
+{-
+gts :: (Text -> b) -> Text -> GroupedTreeScores a -> GroupedTreeScores b
+gts f t g = over gts'_children set gts'_score (f t) g
+-}
 
 {-
 Map.foldlWithKey (\k v ->
