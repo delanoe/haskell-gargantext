@@ -17,7 +17,7 @@ module Gargantext.Core.Text.List
 
 import Control.Lens hiding (both) -- ((^.), view, over, set, (_1), (_2))
 import Data.Map (Map)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
 import Data.Set (Set)
@@ -31,7 +31,7 @@ import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Social
 import Gargantext.Core.Text.List.Social.Prelude
-import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_genInc, normalizeGlobal, normalizeLocal)
+import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_genInc, normalizeGlobal, normalizeLocal, scored_terms)
 import Gargantext.Core.Types (ListType(..), MasterCorpusId, UserCorpusId)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getNodesByNgramsOnlyUser)
@@ -48,6 +48,16 @@ import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Set  as Set
 import qualified Data.Text as Text
+
+
+{-
+-- TODO maybe useful for later
+isStopTerm :: StopSize -> Text -> Bool
+isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
+  where
+    isStopChar c = not (c `elem` ("- /()%" :: [Char]) || Char.isAlpha c)
+-}
+
 
 
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
@@ -94,19 +104,8 @@ buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
                                                       $ List.zip (Map.keys allTerms) 
                                                                  (List.cycle [mempty])
                                            )
-{-
-  printDebug "flowSocialList'"
-               $ Map.filter (not . ((==) Map.empty) . (view fls_parents))
-               $ view flc_scores socialLists'
--}
-
   let
     groupedWithList = toGroupedTree groupParams socialLists' allTerms
-
-{-
-  printDebug "groupedWithList"
-              $ view flc_cont groupedWithList
--}
 
   let
     (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType) $ view flc_scores groupedWithList
@@ -149,36 +148,15 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
                                                       $ List.zip (Map.keys allTerms) 
                                                                  (List.cycle [mempty])
                                            )
-{-
-  printDebug "flowSocialList'"
-               $ Map.filter (not . ((==) Map.empty) . (view fls_parents))
-               $ view flc_scores socialLists'
-
--}
   let groupedWithList = toGroupedTree groupParams socialLists' allTerms
-
-{-
--- TODO remove
--- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
-  -- First remove stops terms
-  socialLists <- flowSocialList user nt (Set.fromList $ map fst $ Map.toList allTerms)
-
-  -- Grouping the ngrams and keeping the maximum score for label
-  let grouped = groupedTextWithStem ( GroupedTextParams (groupWith groupParams) identity (const Set.empty) (const Set.empty) {-(size . _gt_label)-} ) allTerms
-
-      groupedWithList = map (addListType (invertForw socialLists)) grouped
--- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
--}
-
       (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList
-      -- (groupedMono, groupedMult)  = Map.partition (\t -> t ^. gt_size < 2) candidateTerms
       (groupedMono, groupedMult)  = Map.partitionWithKey (\t _v -> size t < 2) candidateTerms
 
-  -- printDebug "\n * stopTerms * \n" stopTerms
   -- splitting monterms and multiterms to take proportional candidates
   let
-    listSizeGlobal = 2000 :: Double -- use % of list if to big, or Int if too small
+    -- use % of list if to big, or Int if too small
+    listSizeGlobal = 2000 :: Double
     monoSize = 0.4  :: Double
     multSize = 1 - monoSize
 
@@ -190,24 +168,9 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
     (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
     (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
 
-  -- printDebug "groupedMonoHead" (List.length groupedMonoHead)
-  -- printDebug "groupedMonoTail" (List.length groupedMonoHead)
-  -- printDebug "groupedMultHead" (List.length groupedMultHead)
-  -- printDebug "groupedMultTail" (List.length groupedMultTail)
-
-{-
-  let
-    -- Get Local Scores now for selected grouped ngrams
-    -- TODO HasTerms 
-    selectedTerms = Set.toList $ List.foldl'
-                      (\set' (GroupedText _ l' _ g _ _ _ ) -> Set.union set'
-                                                            $ Set.insert l' g
-                      )
-                      Set.empty  
-                      (groupedMonoHead <> groupedMultHead)
--}
     selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
-  -- TO remove (and remove HasNodeError instance)
+ 
+ -- TO remove (and remove HasNodeError instance)
   userListId    <- defaultList uCid
   masterListId  <- defaultList mCid
 
@@ -216,30 +179,11 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
                                             nt
                                             selectedTerms
 
-  -- TODO
   let
-    groupedTreeScores_SetNodeId = setScoresWith mapTextDocIds (groupedMonoHead <> groupedMultHead)
-
-{-
--- TODO remove
--- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
-  let
-    mapGroups   = Map.fromList
-                $ map (\g -> (g ^. gt_stem, g))
-                $ groupedMonoHead <> groupedMultHead
-
-    -- grouping with Set NodeId
-    contextsAdded = foldl' (\mapGroups' k ->
-                                    let k' = groupWith groupParams k in
-                                        case Map.lookup k' mapGroups'  of
-                                          Nothing -> mapGroups'
-                                          Just g  -> case Map.lookup k mapTextDocIds of
-                                            Nothing -> mapGroups'
-                                            Just ns -> Map.insert k' (over gt_nodes (Set.union ns) g) mapGroups'
-                           )
-                  mapGroups
-                  $ Map.keys mapTextDocIds
--}
+    groupedTreeScores_SetNodeId :: Map Text (GroupedTreeScores (Set NodeId))
+    groupedTreeScores_SetNodeId = undefined
+    -- setScoresWith (\_ _ -> mempty) (groupedMonoHead <> groupedMultHead)
+    -- groupedTreeScores_SetNodeId = setScoresWith ((fromMaybe mempty) . ((flip Map.lookup) mapTextDocIds)) (groupedMonoHead <> groupedMultHead)
 
   -- | Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
@@ -255,43 +199,24 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
   let
     -- computing scores
     mapScores f = Map.fromList
-                $ map (\s@(Scored t g s') -> (t, f s))
+                $ map (\g -> (view scored_terms g, f g))
                 $ normalizeGlobal
                 $ map normalizeLocal
                 $ scored' mapCooc
 
   let
-    -- groupedTreeScores_SpeGen :: GroupedTreeScores (Scored Double)
-    groupedTreeScores_SpeGen = setScoresWith (mapScores identity) (groupedMonoHead <> groupedMultHead)
-
-{-
--- TODO remove
--- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
-    groupsWithScores = catMaybes
-                     $ map (\(stem, g)
-                             -> case Map.lookup stem mapScores' of
-                                 Nothing -> Nothing
-                                 Just s'  -> set gts'_score s' g
-                            ) $ Map.toList $ view flc_scores contextsAdded
-      where
-        mapScores' = mapScores identity
--- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
--- TODO remove
--}
-        -- adapt2 TOCHECK with DC
-  -- printDebug "groupsWithScores" groupsWithScores
--- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
--- TODO remove
---}
+    groupedTreeScores_SpeGen :: Map Text (GroupedTreeScores (Scored Double))
+    groupedTreeScores_SpeGen = undefined
+    -- setScoresWith (\k v -> set gts'_score (Scored "" 0 0) v) (groupedMonoHead <> groupedMultHead)
+    -- groupedTreeScores_SpeGen = setScoresWith (\k v -> set gts'_score (fromMaybe (Scored "" 0 0) $ Map.lookup k (mapScores identity)) v) (groupedMonoHead <> groupedMultHead)
 
   let
     -- sort / partition / split
-      -- filter mono/multi again
+    -- filter mono/multi again
     (monoScored, multScored) = Map.partitionWithKey (\t _v -> size t < 2) groupedTreeScores_SpeGen
     -- (monoScored, multScored) = List.partition (\g -> _gt_size g < 2) groupsWithScores
 
       -- filter with max score
-    -- partitionWithMaxScore = List.partition (\g -> let (s1,s2) = viewScore g in s1 > s2 )
     partitionWithMaxScore = Map.partition (\g -> (view scored_genInc $ view gts'_score g) 
                                                > (view scored_speExc $ view gts'_score g)
                                           )
@@ -299,25 +224,23 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
     (monoScoredIncl, monoScoredExcl) = partitionWithMaxScore monoScored
     (multScoredIncl, multScoredExcl) = partitionWithMaxScore multScored
 
-      -- splitAt
+  -- splitAt
   let
-    listSizeLocal = 1000 :: Double -- use % of list if to big, or Int if to small
+    -- use % of list if to big, or Int if to small
+    listSizeLocal = 1000 :: Double
     inclSize = 0.4  :: Double
     exclSize = 1 - inclSize
 
-    --splitAt' n' = (both (Map.fromListWith (<>))) . (List.splitAt (round $ n' * listSizeLocal)) 
     splitAt' n' = (both (Map.fromList)) . (List.splitAt (round $ n' * listSizeLocal)) 
-    
-    sortOn f = (List.sortOn (Down . f . _gts'_score . snd)) . Map.toList 
-    --sortOn f = (List.sortOn (Down . (gts'_score))) . Map.toList 
-    -- sort = (List.sortOn (Down . viewScore))
+    sortOn   f  = (List.sortOn (Down . f . _gts'_score . snd)) . Map.toList 
 
-    (monoScoredInclHead, monoScoredInclTail) = splitAt' (monoSize * inclSize / 2) $ (sortOn _scored_genInc) monoScoredIncl
-    (monoScoredExclHead, monoScoredExclTail) = splitAt' (monoSize * inclSize / 2) $ (sortOn _scored_speExc) monoScoredExcl
+    monoInc_size = monoSize * inclSize / 2
+    (monoScoredInclHead, monoScoredInclTail) = splitAt' monoInc_size $ (sortOn _scored_genInc) monoScoredIncl
+    (monoScoredExclHead, monoScoredExclTail) = splitAt' monoInc_size $ (sortOn _scored_speExc) monoScoredExcl
 
-    (multScoredInclHead, multScoredInclTail) = splitAt' (multSize * exclSize / 2) $ (sortOn _scored_genInc) multScoredIncl
-    (multScoredExclHead, multScoredExclTail) = splitAt' (multSize * exclSize / 2) $ (sortOn _scored_speExc) multScoredExcl
-
+    multExc_size = multSize * exclSize / 2
+    (multScoredInclHead, multScoredInclTail) = splitAt' multExc_size $ (sortOn _scored_genInc) multScoredIncl
+    (multScoredExclHead, multScoredExclTail) = splitAt' multExc_size $ (sortOn _scored_speExc) multScoredExcl
 
     -- Final Step building the Typed list
     termListHead = maps <> cands
@@ -336,30 +259,13 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
 
     termListTail = (setListType (Just CandidateTerm)) (groupedMonoTail <> groupedMultTail)
 
---  printDebug "monoScoredInclHead" monoScoredInclHead
---  printDebug "monoScoredExclHead" monoScoredExclTail
---  printDebug "multScoredInclHead" multScoredInclHead
---  printDebug "multScoredExclTail" multScoredExclTail
-
   let result = Map.unionsWith (<>)
        [ Map.fromList [( nt, toNgramsElement termListHead
                           <> toNgramsElement termListTail
                           <> toNgramsElement stopTerms
                       )]
        ]
-  -- printDebug "\n result \n" r
 
   pure result
-
-
-
-toGargList :: Maybe ListType -> b -> (Maybe ListType, b)
-toGargList l n = (l,n)
-
-
-isStopTerm :: StopSize -> Text -> Bool
-isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
-  where
-    isStopChar c = not (c `elem` ("- /()%" :: [Char]) || Char.isAlpha c)
 
 ------------------------------------------------------------------------------

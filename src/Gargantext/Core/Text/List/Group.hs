@@ -18,7 +18,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group
   where
 
-import Control.Lens (set, view)
+import Control.Lens (set, view, over)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
@@ -52,30 +52,24 @@ toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
         True  -> flow1
         False -> groupWithStem' groupParams flow1
 
-setScoresWith :: Map Text a
-              -> Map Text (GroupedTreeScores b)
+{-
+DM.foldlWithKey :: (a -> k -> b -> a) -> a -> Map k b -> a
+-}
+
+setScoresWith :: (Ord a, Ord b)
+              =>  (Text -> (GroupedTreeScores a) -> (GroupedTreeScores b))
               -> Map Text (GroupedTreeScores a)
-setScoresWith = undefined
+              -> Map Text (GroupedTreeScores b)
+setScoresWith = Map.mapWithKey
 
+{-
+Map.foldlWithKey (\k v -> 
+                                   {- over gts'_children (setScoresWith fun)
+                                          $ over gts'_score    (fun k)
+                                          -} 
+                                          set gts'_score Set.empty -- (fun k)
+                                          v
+                                   ) mempty m
+-}
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
--- 8<-- 8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--8<--
--- | TODO To be removed
-toGroupedText :: GroupedTextParams a b
-              -> Map Text FlowListScores
-              -> Map Text (Set NodeId)
-              -> Map Stem (GroupedText Int)
-toGroupedText groupParams scores =
-  (groupWithStem groupParams) . (groupWithScores scores)
-
-
-addListType :: Map Text ListType -> GroupedText a -> GroupedText a
-addListType m g = set gt_listType (hasListType m g) g
-  where
-    hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
-    hasListType m' (GroupedText _ label _ g' _ _ _) =
-        List.foldl' (<>) Nothing
-      $ map (\t -> Map.lookup t m')
-      $ Set.toList
-      $ Set.insert label g'
