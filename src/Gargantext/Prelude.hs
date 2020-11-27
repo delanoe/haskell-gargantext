@@ -10,6 +10,7 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
 
 module Gargantext.Prelude

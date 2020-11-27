@@ -22,14 +22,11 @@ import Control.Lens
 import Data.Semigroup (Semigroup(..))
 import Data.Monoid
 import Data.Map (Map)
-import Data.Maybe (fromMaybe)
-import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.Core.Types.Main
 import Gargantext.Prelude
 import GHC.Generics (Generic)
 import qualified Data.Map   as Map
-import qualified Data.Set   as Set
 
 ------------------------------------------------------------------------
 type Parent = Text

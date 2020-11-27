@@ -25,7 +25,7 @@ import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.Metrics (scored', Scored(..), scored_speExc, scored_genInc, normalizeGlobal, normalizeLocal)
+import Gargantext.Core.Text.Metrics (Scored(..), scored_genInc)
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.Prelude
 import qualified Data.Set  as Set

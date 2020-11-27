@@ -20,7 +20,7 @@ module Gargantext.Core.Text.Metrics
 --import Math.KMeans (kmeans, euclidSq, elements)
 import Control.Lens (makeLenses)
 import Data.Map (Map)
-import Data.Semigroup (Semigroup, (<>))
+import Data.Semigroup (Semigroup)
 import Data.Monoid (Monoid, mempty)
 import Gargantext.Prelude
 import Gargantext.Core.Methods.Distances.Accelerate.SpeGen

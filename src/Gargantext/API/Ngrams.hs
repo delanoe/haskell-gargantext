@@ -307,6 +307,10 @@ commitStatePatch (Versioned p_version p) = do
     pure (r', Versioned (r' ^. r_version) q')
 
   saveRepo
+
+  -- Save new ngrams
+  _ <- insertNgrams (newNgramsFromNgramsStatePatch p)
+
   pure vq'
 
 -- This is a special case of tableNgramsPut where the input patch is empty.

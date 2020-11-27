@@ -17,20 +17,17 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithStem
   where
 
-import Control.Lens (makeLenses, view, over)
+import Control.Lens (view, over)
 import Data.Set (Set)
 import Data.Map (Map)
 import Data.Monoid (mempty)
 import Data.Text (Text)
 import Gargantext.Core (Lang(..))
-import Gargantext.Core.Text (size)
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
-import qualified Data.Set  as Set
 import qualified Data.Map  as Map
 import qualified Data.List as List
 import qualified Data.Text as Text

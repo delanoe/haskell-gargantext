@@ -133,7 +133,7 @@ buildNgramsTermsList :: ( HasNodeError err
                         -> GroupParams
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
+buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
 -- | Filter 0 With Double
 
