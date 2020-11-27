@@ -78,6 +78,7 @@ groupWith (GroupParams l _m _n _) =
                   -- . (List.filter (\t -> Text.length t > m))
                   . Text.splitOn " "
                   . Text.replace "-" " "
+
 ------------------------------------------------------------------------
 groupWithStem_SetNodeId :: GroupParams
                -> FlowCont Text (GroupedTreeScores (Set NodeId))
@@ -183,5 +184,45 @@ mergeWith_Double fun flc = FlowCont scores mempty
         parent   = (fun s, s)
         children = List.concat $ map mapStem (Map.toList $ view gts'_children g)
 
+{-
+-- | TODO fixme
+mergeWith_a :: (Text -> Text)
+          -> FlowCont Text (GroupedTreeScores a)
+          -> FlowCont Text (GroupedTreeScores a)
+mergeWith_a fun flc = FlowCont scores mempty
+  where
+
+    scores :: Map Text (GroupedTreeScores a)
+    scores = foldl' (alter (mapStems scores')) scores' cont'
+      where
+        scores' = view flc_scores flc
+        cont'   = Map.toList $ _flc_cont flc
+
+    -- TODO insert at the right place in group hierarchy
+    -- adding as child of the parent for now
+    alter :: Map Stem Text
+          -> Map Text (GroupedTreeScores a)
+          -> (Text, GroupedTreeScores a)
+          -> Map Text (GroupedTreeScores a)
+    alter st target (t,g) = case Map.lookup t st of
+      Nothing -> Map.alter (alter' (t,g)) t  target
+      Just t' -> Map.alter (alter' (t,g)) t' target
+
+    alter' (_t,g) Nothing   = Just g
+    alter' ( t,g) (Just g') = Just $ over gts'_children
+                                   ( Map.union (Map.singleton t g))
+                                   g'
+
+    mapStems :: Map Text (GroupedTreeScores a)
+             -> Map Stem Text
+    mapStems = (Map.fromListWith (<>)) . List.concat . (map mapStem) . Map.toList
+
+    mapStem :: (Text, GroupedTreeScores a)
+            -> [(Stem, Text)]
+    mapStem (s,g) = parent : children
+      where
+        parent   = (fun s, s)
+        children = List.concat $ map mapStem (Map.toList $ view gts'_children g)
+-}
 
 
