@@ -76,19 +76,20 @@ type Category = Int
 type Title    = Text
 
 -- TODO remove Title
-type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double)
+type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double) (Maybe Double)
 -- type FacetSources = FacetDoc
 -- type FacetAuthors = FacetDoc
 -- type FacetTerms   = FacetDoc
 
 
-data Facet id created title hyperdata category ngramCount =
+data Facet id created title hyperdata category ngramCount score =
      FacetDoc { facetDoc_id         :: id
               , facetDoc_created    :: created
               , facetDoc_title      :: title
               , facetDoc_hyperdata  :: hyperdata
               , facetDoc_category   :: category
-              , facetDoc_score      :: ngramCount
+              , facetDoc_ngramCount :: ngramCount
+              , facetDoc_score      :: score
               } deriving (Show, Generic)
 {- | TODO after demo
 data Facet id date hyperdata score = 
@@ -99,8 +100,9 @@ data Facet id date hyperdata score =
               } deriving (Show, Generic)
 -}
 
-data Pair i l = Pair {_p_id    :: i
-                     ,_p_label :: l
+data Pair i l = Pair {
+    _p_id    :: i
+  , _p_label :: l
   } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_p_") ''Pair)
 $(makeAdaptorAndInstance "pPair" ''Pair)
@@ -175,13 +177,14 @@ instance ToSchema FacetDoc where
 
 -- | Mock and Quickcheck instances
 instance Arbitrary FacetDoc where
-    arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp (Just cat) (Just ngramCount)
+    arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp (Just cat) (Just ngramCount) (Just score)
                          | id'  <- [1..10]
                          , year <- [1990..2000]
                          , t    <- ["title", "another title"]
                          , hp   <- arbitraryHyperdataDocuments
                          , cat  <- [0..2]
                          , ngramCount <- [3..100]
+                         , score <- [3..100]
                          ]
 
 -- Facets / Views for the Front End
@@ -194,6 +197,7 @@ type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGText       )
                           (Column PGJsonb      )
                           (Column (Nullable PGInt4)) -- Category
+                          (Column (Nullable PGFloat8)) -- Ngrams Count
                           (Column (Nullable PGFloat8)) -- Score
 
 -----------------------------------------------------------------------
@@ -251,6 +255,7 @@ viewAuthorsDoc cId _ nt = proc () -> do
                        (_node_name      doc)
                        (_node_hyperdata doc)
                        (toNullable $ pgInt4 1)
+                       (toNullable $ pgDouble 1)
                        (toNullable $ pgDouble 1)
 
 queryAuthorsDoc :: Query (NodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))
@@ -318,20 +323,21 @@ viewDocuments cId t ntId mQuery = proc () -> do
                        (_node_hyperdata n)
                        (toNullable $ nn^.nn_category)
                        (toNullable $ nn^.nn_score)
+                       (toNullable $ nn^.nn_score)
 
 ------------------------------------------------------------------------
-filterWith :: (PGOrd date, PGOrd title, PGOrd score, hyperdata ~ Column SqlJsonb) =>
+filterWith :: (PGOrd date, PGOrd title, PGOrd category, PGOrd score, hyperdata ~ Column SqlJsonb) =>
         Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
-     -> Select (Facet id (Column date) (Column title) hyperdata (Column score) ngramCount)
-     -> Select (Facet id (Column date) (Column title) hyperdata (Column score) ngramCount)
+     -> Select (Facet id (Column date) (Column title) hyperdata (Column category) ngramCount (Column score))
+     -> Select (Facet id (Column date) (Column title) hyperdata (Column category) ngramCount (Column score))
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
 orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3)
           => Maybe OrderBy
-          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) score)
+          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) ngramCount score)
 orderWith (Just DateAsc)   = asc  facetDoc_created
 orderWith (Just DateDesc)  = desc facetDoc_created
 
@@ -347,6 +353,6 @@ orderWith (Just SourceDesc) = desc facetDoc_source
 orderWith _                = asc facetDoc_created
 
 facetDoc_source :: PGIsJson a
-                => Facet id created title (Column a) favorite ngramCount
+                => Facet id created title (Column a) favorite ngramCount score
                 -> Column (Nullable PGText)
 facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> pgString "source"

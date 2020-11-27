@@ -191,7 +191,7 @@ class ToRow a where
   toRow :: a -> Row
 
 instance ToRow FacetDoc where
-  toRow (FacetDoc nId utc t h mc md) = Document nId utc t (toHyperdataRow h) (fromMaybe 0 mc) (round $ fromMaybe 0 md)
+  toRow (FacetDoc nId utc t h mc _md sc) = Document nId utc t (toHyperdataRow h) (fromMaybe 0 mc) (round $ fromMaybe 0 sc)
 
 -- | TODO rename FacetPaired
 type FacetContact = FacetPaired Int UTCTime HyperdataContact Int
