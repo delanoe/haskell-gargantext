@@ -18,22 +18,17 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group
   where
 
-import Control.Lens (set, view, over)
-import Data.Set (Set)
+import Control.Lens (view)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid, mempty)
 import Data.Text (Text)
-import Gargantext.Core.Types (ListType(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Prelude
-import qualified Data.Set  as Set
 import qualified Data.Map  as Map
-import qualified Data.List as List
 
 ------------------------------------------------------------------------
 -- | TODO add group with stemming
@@ -60,7 +55,7 @@ setScoresWithMap :: (Ord a, Ord b, Monoid b) => Map Text b
                  -> Map Text (GroupedTreeScores b)
 setScoresWithMap m = setScoresWith (score m)
   where
-    score m t = case Map.lookup t m of
+    score m' t = case Map.lookup t m' of
       Nothing -> mempty
       Just  r -> r
 

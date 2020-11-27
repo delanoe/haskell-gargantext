@@ -15,20 +15,16 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithScores
   where
 
-import Control.Lens (makeLenses, view, set, over)
+import Control.Lens (view, set, over)
 import Data.Semigroup
-import Data.Set (Set)
 import Data.Map (Map)
 import Data.Monoid (Monoid, mempty)
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import Gargantext.Core.Types (ListType(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Prelude
 import qualified Data.Map  as Map
-import qualified Data.Set  as Set
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
