@@ -316,10 +316,23 @@ foldM' f z (x:xs) = do
   z' `seq` foldM' f z' xs
 
 -----------------------------------------------------------------------
-
+-- | Instance for basic numerals
+-- See the difference between Double and (Int Or Integer)
 instance Monoid Double where
-  mempty = 0
+  mempty = 1
 
 instance Semigroup Double where
   (<>) a b = a * b
 
+-----------
+instance Monoid Int where
+  mempty = 0
+
+instance Semigroup Int where
+  (<>) a b = a + b
+----
+instance Monoid Integer where
+  mempty = 0
+
+instance Semigroup Integer where
+  (<>) a b = a + b

@@ -53,25 +53,32 @@ toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
         False -> groupWithStem' groupParams flow1
 
 
+
+------------------------------------------------------------------------
+setScoresWithMap :: (Ord a, Ord b, Monoid b) => Map Text b
+                 -> Map Text (GroupedTreeScores a)
+                 -> Map Text (GroupedTreeScores b)
+setScoresWithMap m = setScoresWith (score m)
+  where
+    score m t = case Map.lookup t m of
+      Nothing -> mempty
+      Just  r -> r
+
 setScoresWith :: (Ord a, Ord b)
-              =>  (Text -> (GroupedTreeScores a) -> (GroupedTreeScores b))
+              => (Text -> b)
               -> Map Text (GroupedTreeScores a)
               -> Map Text (GroupedTreeScores b)
-setScoresWith = Map.mapWithKey
-
 {-
-gts :: (Text -> b) -> Text -> GroupedTreeScores a -> GroupedTreeScores b
-gts f t g = over gts'_children set gts'_score (f t) g
+-- | This Type level lenses solution does not work
+setScoresWith f = Map.mapWithKey (\k v -> over gts'_children (setScoresWith f)
+                                       $  set  gts'_score    (f k) v
+                                 )
 -}
+setScoresWith f = Map.mapWithKey (\k v -> v { _gts'_score    = f k
+                                            , _gts'_children = setScoresWith f
+                                                             $ view gts'_children v
+                                            }
+                                 )
 
-{-
-Map.foldlWithKey (\k v ->
-                                   {- over gts'_children (setScoresWith fun)
-                                          $ over gts'_score    (fun k)
-                                          -}
-                                          set gts'_score Set.empty -- (fun k)
-                                          v
-                                   ) mempty m
--}
 
 ------------------------------------------------------------------------
