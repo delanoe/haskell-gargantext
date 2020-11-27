@@ -144,7 +144,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
   socialLists' :: FlowCont Text FlowListScores
     <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
                                                       $ Map.fromList
-                                                      $ List.zip (Map.keys allTerms)
+                                                      $ List.zip (Map.keys   allTerms)
                                                                  (List.cycle [mempty])
                                            )
   let groupedWithList = toGroupedTree groupParams socialLists' allTerms
@@ -183,9 +183,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
 
   let
     groupedTreeScores_SetNodeId :: Map Text (GroupedTreeScores (Set NodeId))
-    groupedTreeScores_SetNodeId = undefined
-    -- setScoresWith (\_ _ -> mempty) (groupedMonoHead <> groupedMultHead)
-    -- groupedTreeScores_SetNodeId = setScoresWith ((fromMaybe mempty) . ((flip Map.lookup) mapTextDocIds)) (groupedMonoHead <> groupedMultHead)
+    groupedTreeScores_SetNodeId = setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
 
   -- | Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
@@ -207,16 +205,13 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
                 $ scored' mapCooc
 
   let
-    groupedTreeScores_SpeGen :: Map Text (GroupedTreeScores (Scored Double))
-    groupedTreeScores_SpeGen = undefined
-    -- setScoresWith (\k v -> set gts'_score (Scored "" 0 0) v) (groupedMonoHead <> groupedMultHead)
-    -- groupedTreeScores_SpeGen = setScoresWith (\k v -> set gts'_score (fromMaybe (Scored "" 0 0) $ Map.lookup k (mapScores identity)) v) (groupedMonoHead <> groupedMultHead)
+    groupedTreeScores_SpeGen :: Map Text (GroupedTreeScores (Scored Text))
+    groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity) (groupedMonoHead <> groupedMultHead)
 
   let
     -- sort / partition / split
     -- filter mono/multi again
     (monoScored, multScored) = Map.partitionWithKey (\t _v -> size t < 2) groupedTreeScores_SpeGen
-    -- (monoScored, multScored) = List.partition (\g -> _gt_size g < 2) groupsWithScores
 
       -- filter with max score
     partitionWithMaxScore = Map.partition (\g -> (view scored_genInc $ view gts'_score g)
@@ -236,6 +231,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
     splitAt' n' = (both (Map.fromList)) . (List.splitAt (round $ n' * listSizeLocal))
     sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . Map.toList
 
+
     monoInc_size = splitAt' $ monoSize * inclSize / 2
     (monoScoredInclHead, monoScoredInclTail) = monoInc_size $ (sortOn scored_genInc) monoScoredIncl
     (monoScoredExclHead, monoScoredExclTail) = monoInc_size $ (sortOn scored_speExc) monoScoredExcl
@@ -244,20 +240,23 @@ buildNgramsTermsList user uCid mCid groupParams (nt, mapListSize)= do
     (multScoredInclHead, multScoredInclTail) = multExc_size $ (sortOn scored_genInc) multScoredIncl
     (multScoredExclHead, multScoredExclTail) = multExc_size $ (sortOn scored_speExc) multScoredExcl
 
+
+------------------------------------------------------------
+
     -- Final Step building the Typed list
     termListHead = maps <> cands
       where
         maps = setListType (Just MapTerm)
-            $   monoScoredInclHead
-             <> monoScoredExclHead
-             <> multScoredInclHead
-             <> multScoredExclHead
+            $  monoScoredInclHead
+            <> monoScoredExclHead
+            <> multScoredInclHead
+            <> multScoredExclHead
 
         cands = setListType (Just CandidateTerm)
-             $   monoScoredInclTail
-              <> monoScoredExclTail
-              <> multScoredInclTail
-              <> multScoredExclTail
+             $  monoScoredInclTail
+             <> monoScoredExclTail
+             <> multScoredInclTail
+             <> multScoredExclTail
 
     termListTail = (setListType (Just CandidateTerm)) (groupedMonoTail <> groupedMultTail)
 
