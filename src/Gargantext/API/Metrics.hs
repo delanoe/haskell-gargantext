@@ -25,7 +25,7 @@ import Data.Time (UTCTime)
 import Servant
 
 import Gargantext.API.HashedResponse
-import Gargantext.API.Ngrams.NTree
+import Gargantext.API.Ngrams.NgramsTree
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (CorpusId, Limit, ListId, ListType(..))
@@ -317,7 +317,7 @@ type TreeApi = Summary " Tree API"
            :> QueryParam  "list"       ListId
            :> QueryParamR "ngramsType" TabType
            :> QueryParamR "listType"   ListType
-           :> Get '[JSON] (HashedResponse (ChartMetrics [MyTree]))
+           :> Get '[JSON] (HashedResponse (ChartMetrics [NgramsTree]))
         :<|> Summary "Tree Chart update"
                 :> QueryParam  "list"       ListId
                 :> QueryParamR "ngramsType" TabType
@@ -347,7 +347,7 @@ getTree :: FlowCmdM env err m
         -> Maybe ListId
         -> TabType
         -> ListType
-        -> m (HashedResponse (ChartMetrics [MyTree]))
+        -> m (HashedResponse (ChartMetrics [NgramsTree]))
 getTree cId _start _end maybeListId tabType listType = do
   listId <- case maybeListId of
     Just lid -> pure lid
@@ -383,7 +383,7 @@ updateTree' :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> ListType
-  -> m (ChartMetrics [MyTree])
+  -> m (ChartMetrics [NgramsTree])
 updateTree' cId maybeListId tabType listType = do
   listId <- case maybeListId of
     Just lid -> pure lid

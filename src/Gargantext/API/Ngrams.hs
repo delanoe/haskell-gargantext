@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-|
 Module      : Gargantext.API.Ngrams
 Description : Server API
@@ -15,6 +14,8 @@ get ngrams filtered by NgramsType
 add get 
 
 -}
+
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
