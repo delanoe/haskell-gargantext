@@ -31,7 +31,7 @@ import Gargantext.Prelude
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 
 -- Pie Chart
-import Gargantext.API.Ngrams.NTree
+import Gargantext.API.Ngrams.NgramsTree
 import Gargantext.API.Ngrams.Tools
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Flow
@@ -71,7 +71,7 @@ chartData cId nt lt = do
 
 treeData :: FlowCmdM env err m
         => CorpusId -> NgramsType -> ListType
-        -> m [MyTree]
+        -> m [NgramsTree]
 treeData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId

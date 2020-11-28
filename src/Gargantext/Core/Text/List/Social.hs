@@ -13,7 +13,7 @@ module Gargantext.Core.Text.List.Social
 
 import Data.Monoid (mconcat)
 import Data.Text (Text)
-import Gargantext.API.Ngrams.Tools -- (getListNgrams)
+import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Find
 import Gargantext.Core.Text.List.Social.Prelude
@@ -26,7 +26,6 @@ import Gargantext.Database.Query.Tree
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Prelude
 
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | Main parameters
@@ -45,7 +44,6 @@ flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirs
 keepAllParents :: NgramsType -> KeepAllParents
 keepAllParents NgramsTerms = KeepAllParents False
 keepAllParents _           = KeepAllParents True
-
 
 ------------------------------------------------------------------------
 flowSocialList' :: ( RepoCmdM env err m
@@ -89,5 +87,3 @@ flowSocialList' flowPriority user nt flc =
             mapM (\l -> getListNgrams [l] nt'') ns
         >>= pure
           . toFlowListScores (keepAllParents nt'') flc''
-
-

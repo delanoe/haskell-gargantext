@@ -27,7 +27,7 @@ import Control.Applicative
 
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Types (Histo(..))
-import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.API.Ngrams.NgramsTree (NgramsTree)
 import Gargantext.API.Ngrams.Types (TabType)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)
@@ -38,13 +38,13 @@ data HyperdataList =
                 , _hl_list    :: !(Maybe Text)
                 , _hl_pie     :: !(Map TabType (ChartMetrics Histo))
                 , _hl_scatter :: !(Map TabType Metrics)
-                , _hl_tree    :: !(Map TabType (ChartMetrics [MyTree]))
+                , _hl_tree    :: !(Map TabType (ChartMetrics [NgramsTree]))
                 } deriving (Show, Generic)
   -- HyperdataList { _hl_chart   :: !(Maybe (ChartMetrics Histo))
   --               , _hl_list    :: !(Maybe Text)
   --               , _hl_pie     :: !(Maybe (ChartMetrics Histo))
   --               , _hl_scatter :: !(Maybe Metrics)
-  --               , _hl_tree    :: !(Maybe (ChartMetrics [MyTree]))
+  --               , _hl_tree    :: !(Maybe (ChartMetrics [NgramsTree]))
   --               } deriving (Show, Generic)
 
 defaultHyperdataList :: HyperdataList

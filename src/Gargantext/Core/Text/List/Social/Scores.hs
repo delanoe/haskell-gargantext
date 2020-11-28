@@ -39,34 +39,35 @@ toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) me
 
   where
     toFlowListScores_Level1 :: KeepAllParents
-                     -> FlowCont Text FlowListScores
-                     -> FlowCont Text FlowListScores
-                     -> Map Text NgramsRepoElement
-                     -> FlowCont Text FlowListScores
+                            -> FlowCont Text FlowListScores
+                            -> FlowCont Text FlowListScores
+                            -> Map Text NgramsRepoElement
+                            -> FlowCont Text FlowListScores
     toFlowListScores_Level1 k' flc_origin' flc_dest ngramsRepo =
       Set.foldl' (toFlowListScores_Level2 k' ngramsRepo   flc_origin')
                  flc_dest
                  (Set.fromList $ Map.keys $ view flc_cont flc_origin')
 
     toFlowListScores_Level2 :: KeepAllParents
-                       -> Map Text NgramsRepoElement
-                       -> FlowCont Text FlowListScores
-                       -> FlowCont Text FlowListScores
-                       -> Text
-                       -> FlowCont Text FlowListScores
+                            -> Map Text NgramsRepoElement
+                            -> FlowCont Text FlowListScores
+                            -> FlowCont Text FlowListScores
+                            -> Text
+                            -> FlowCont Text FlowListScores
     toFlowListScores_Level2 k'' ngramsRepo flc_origin'' flc_dest' t =
       case Map.lookup t ngramsRepo of
-        Nothing  -> over flc_cont (Map.union $ Map.singleton t mempty) flc_dest'
-        Just nre -> over flc_cont (Map.delete t)
-                 $ over flc_scores
-                  ( (Map.alter (addParent k'' nre ( Set.fromList
-                                                  $ Map.keys
-                                                  $ view flc_cont flc_origin''
-                                                  )
-                               ) t
-                    )
-                  . (Map.alter (addList $ _nre_list nre) t)
-                  ) flc_dest'
+        Nothing  -> over flc_cont   (Map.union $ Map.singleton t mempty) flc_dest'
+        Just nre -> over flc_cont   (Map.delete t)
+                 $  over flc_scores
+                                    ( (Map.alter (addParent k'' nre ( Set.fromList
+                                                                    $ Map.keys
+                                                                    $ view flc_cont flc_origin''
+                                                                    )
+                                                 ) t
+                                      )
+                                    . (Map.alter (addList $ _nre_list nre) t)
+                                    )
+                                    flc_dest'
 
 ------------------------------------------------------------------------
 -- | Main addFunctions to groupResolution the FlowListScores
@@ -118,9 +119,9 @@ addParentScore :: Num a
            -> Set Text
            -> Map Text a
            -> Map Text a
-addParentScore _ Nothing               _ss mapParent = mapParent
-addParentScore (KeepAllParents k) (Just (NgramsTerm p')) ss mapParent =
-  case k of
+addParentScore _ Nothing                                   _ss mapParent = mapParent
+addParentScore (KeepAllParents keep) (Just (NgramsTerm p')) ss mapParent =
+  case keep of
     True  -> Map.alter addCount p' mapParent
     False -> case Set.member p' ss of
                False -> mapParent
