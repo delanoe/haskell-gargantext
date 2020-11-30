@@ -13,94 +13,67 @@ Portability : POSIX
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE FunctionalDependencies #-}
-
+{-# LANGUAGE InstanceSigs           #-}
 
 module Gargantext.Core.Text.List.Group
   where
 
-import Control.Lens (set)
-import Data.Set (Set)
+import Control.Lens (view)
 import Data.Map (Map)
+import Data.Maybe (fromMaybe)
+import Data.Monoid (Monoid, mempty)
 import Data.Text (Text)
-import Gargantext.Core.Types (ListType(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.List.Social.Scores (FlowListScores(..))
+import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Prelude
-import qualified Data.Set  as Set
 import qualified Data.Map  as Map
-import qualified Data.List as List
 
 ------------------------------------------------------------------------
-toGroupedText :: GroupedTextParams a b
-              -> Map Text FlowListScores
-              -> Map Text (Set NodeId)
-              -> Map Stem (GroupedText Int)
-toGroupedText groupParams scores =
-  (groupWithStem groupParams) . (groupWithScores scores)
-
-
-------------------------------------------------------------------------
--- | WIP
-toGroupedText_test :: Bool -- Map Stem (GroupedText Int)
-toGroupedText_test =
-  -- fromGroupedScores $ fromListScores from
-  toGroupedText params from datas == result
+-- | TODO add group with stemming
+toGroupedTree :: (Ord a, Monoid a, GroupWithStem a)
+              => GroupParams
+              -> FlowCont Text FlowListScores
+              -> Map Text a
+             -- -> Map Text (GroupedTreeScores (Set NodeId))
+              -> FlowCont Text (GroupedTreeScores a)
+toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
     where
-      params = GroupedTextParams identity (Set.size . snd) fst snd
-      from :: Map Text FlowListScores
-      from = Map.fromList [("A. Rahmani",FlowListScores {_fls_parents = Map.fromList [("T. Reposeur",1)]
-                                                        ,_fls_listType = Map.fromList [(MapTerm,2)]})
-                           ,("B. Tamain",FlowListScores {_fls_parents = Map.fromList [("T. Reposeur",1)]
-                                                        , _fls_listType = Map.fromList [(MapTerm,2)]})
-                           ]
+      flow1     = groupWithScores' flc scoring
+      scoring t = fromMaybe mempty $ Map.lookup t scores
 
-      datas :: Map Text (Set NodeId)
-      datas = Map.fromList [("A. Rahmani" , Set.fromList [1,2])
-                           ,("T. Reposeur", Set.fromList [3,4])
-                           ,("B. Tamain"  , Set.fromList [5,6])
-                           ]
+      flow2 = case (view flc_cont flow1) == Map.empty of
+        True  -> flow1
+        False -> groupWithStem' groupParams flow1
 
 
-      result :: Map Stem (GroupedText Int)
-      result = Map.fromList [("A. Rahmani",GroupedText {_gt_listType = Nothing
-                                                       ,_gt_label = "A. Rahmani"
-                                                       ,_gt_score = 2
-                                                       ,_gt_children = Set.empty
-                                                       ,_gt_size = 2
-                                                       ,_gt_stem = "A. Rahmani"
-                                                       ,_gt_nodes = Set.fromList [1,2]
-                                                       }
-                              )
-                            ,("B. Tamain",GroupedText {_gt_listType = Nothing
-                                                      , _gt_label = "B. Tamain"
-                                                      , _gt_score = 2
-                                                      , _gt_children = Set.empty
-                                                      , _gt_size = 2
-                                                      , _gt_stem = "B. Tamain"
-                                                      , _gt_nodes = Set.fromList [5,6]
-                                                      }
-                              )
-                            ,("T. Reposeur",GroupedText {_gt_listType = Nothing
-                                                        ,_gt_label = "T. Reposeur"
-                                                        ,_gt_score = 2
-                                                        ,_gt_children = Set.fromList ["A. Rahmani","B. Tamain"]
-                                                        ,_gt_size = 2
-                                                        ,_gt_stem = "T. Reposeur"
-                                                        ,_gt_nodes = Set.fromList [1..6]
-                                                        }
-                            )
-                           ]
 
 ------------------------------------------------------------------------
--- | To be removed
-addListType :: Map Text ListType -> GroupedText a -> GroupedText a
-addListType m g = set gt_listType (hasListType m g) g
+setScoresWithMap :: (Ord a, Ord b, Monoid b) => Map Text b
+                 -> Map Text (GroupedTreeScores a)
+                 -> Map Text (GroupedTreeScores b)
+setScoresWithMap m = setScoresWith (score m)
   where
-    hasListType :: Map Text ListType -> GroupedText a -> Maybe ListType
-    hasListType m' (GroupedText _ label _ g' _ _ _) =
-        List.foldl' (<>) Nothing
-      $ map (\t -> Map.lookup t m')
-      $ Set.toList
-      $ Set.insert label g'
+    score m' t = case Map.lookup t m' of
+      Nothing -> mempty
+      Just  r -> r
+
+setScoresWith :: (Ord a, Ord b)
+              => (Text -> b)
+              -> Map Text (GroupedTreeScores a)
+              -> Map Text (GroupedTreeScores b)
+{-
+-- | This Type level lenses solution does not work
+setScoresWith f = Map.mapWithKey (\k v -> over gts'_children (setScoresWith f)
+                                       $  set  gts'_score    (f k) v
+                                 )
+-}
+setScoresWith f = Map.mapWithKey (\k v -> v { _gts'_score    = f k
+                                            , _gts'_children = setScoresWith f
+                                                             $ view gts'_children v
+                                            }
+                                 )
+
+
+------------------------------------------------------------------------

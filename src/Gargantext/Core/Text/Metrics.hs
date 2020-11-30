@@ -11,14 +11,17 @@ Mainly reexport functions in @Data.Text.Metrics@
 
 -}
 
-{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Gargantext.Core.Text.Metrics
   where
 
 --import Data.Array.Accelerate ((:.)(..), Z(..))
 --import Math.KMeans (kmeans, euclidSq, elements)
+import Control.Lens (makeLenses)
 import Data.Map (Map)
+import Data.Semigroup (Semigroup)
+import Data.Monoid (Monoid, mempty)
 import Gargantext.Prelude
 import Gargantext.Core.Methods.Distances.Accelerate.SpeGen
 import Gargantext.Core.Viz.Graph.Index
@@ -46,8 +49,17 @@ data Scored ts = Scored
   { _scored_terms  :: !ts
   , _scored_genInc :: !GenericityInclusion
   , _scored_speExc :: !SpecificityExclusion
-  } deriving (Show)
+  } deriving (Show, Eq, Ord)
 
+instance Monoid a => Monoid (Scored a) where
+  mempty = Scored mempty mempty mempty
+
+instance Semigroup a => Semigroup (Scored a) where
+  (<>) (Scored a  b  c )
+       (Scored _a' b' c')
+      = Scored (a {-<> a'-})
+               (b <> b')
+               (c <> c')
 
 localMetrics' :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
 localMetrics' m = Map.fromList $ zipWith (\(_,t) (inc,spe) -> (t, Vec.fromList [inc,spe]))
@@ -96,5 +108,5 @@ normalizeLocal (Scored t s1 s2) = Scored t (log' 5 s1) (log' 2 s2)
 
 
 
-
-
+-- | Type Instances
+makeLenses 'Scored
