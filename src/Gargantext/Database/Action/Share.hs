@@ -32,13 +32,12 @@ publicNodeTypes :: [NodeType]
 publicNodeTypes = [NodeDashboard, NodeGraph, NodePhylo, NodeFile]
 
 ------------------------------------------------------------------------
-
 data ShareNodeWith = ShareNodeWith_User { snwu_nodetype :: NodeType
-                                        , snwu_user    :: User }
-                   | ShareNodeWith_Node { snwn_nodetype :: NodeType
-                                        , snwn_node_id :: NodeId
+                                        , snwu_user     :: User
                                         }
-
+                   | ShareNodeWith_Node { snwn_nodetype :: NodeType
+                                        , snwn_node_id  :: NodeId
+                                        }
 ------------------------------------------------------------------------
 shareNodeWith :: HasNodeError err
               => ShareNodeWith
@@ -85,7 +84,6 @@ delFolderTeam :: HasNodeError err => User -> TeamId -> Cmd err Int
 delFolderTeam u nId = do
   folderSharedId <- getFolderId u NodeFolderShared
   deleteNodeNode folderSharedId nId
-
 
 unPublish :: HasNodeError err
           => ParentId -> NodeId

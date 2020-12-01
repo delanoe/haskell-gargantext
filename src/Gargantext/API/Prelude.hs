@@ -68,7 +68,7 @@ type ErrC err =
   )
 
 type GargServerC env err m =
-  ( CmdM' env err m
+  ( CmdRandom env err m
   , EnvC  env
   , ErrC      err
   )
