@@ -26,7 +26,7 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
 import Gargantext.Prelude.Mail (gargMail, GargMail(..))
-
+import qualified Data.List as List
 
 ------------------------------------------------------------------------
 type EmailAddress = Text
@@ -42,14 +42,19 @@ newUserQuick :: (MonadRandom m)
              => Text -> m (NewUser GargPassword)
 newUserQuick n = do
   pass <- gargPass
-  let (u,_m) = guessUserName n
+  let u = case guessUserName n of
+        Just  (u', _m) -> u'
+        Nothing        -> panic "Email invalid"
   pure (NewUser u n (GargPassword pass))
 
-guessUserName :: Text -> (Text,Text)
+isEmail :: Text -> Bool
+isEmail = ((==) 2) . List.length . (splitOn "@")
+
+guessUserName :: Text -> Maybe (Text,Text)
 guessUserName n = case splitOn "@" n of
-    [u',m'] -> if m' /= "" then (u',m')
-                           else panic "Email Invalid"
-    _  -> panic "Email invalid"
+    [u',m'] -> if m' /= "" then Just (u',m')
+                           else Nothing
+    _       -> Nothing
 ------------------------------------------------------------------------
 newUser' :: HasNodeError err
         => Text -> NewUser GargPassword -> Cmd err Int64
@@ -58,18 +63,18 @@ newUser' address u = newUsers' address [u]
 newUsers' :: HasNodeError err
          => Text -> [NewUser GargPassword] -> Cmd err Int64
 newUsers' address us = do
-  us' <- liftBase    $ mapM toUserHash us
-  r   <- insertUsers $ map toUserWrite us'
+  us' <- liftBase         $ mapM toUserHash us
+  r   <- insertUsers      $ map toUserWrite us'
   _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
-  _   <- liftBase    $ mapM (mail Invitation address) us
+  _   <- liftBase         $ mapM (mail Invitation address) us
   pure r
 ------------------------------------------------------------------------
 updateUser :: HasNodeError err
            => Text -> NewUser GargPassword -> Cmd err Int64
 updateUser address u = do
-  u' <- liftBase   $ toUserHash   u
+  u' <- liftBase     $ toUserHash   u
   n  <- updateUserDB $ toUserWrite  u'
-  _  <- liftBase   $ mail Update address u
+  _  <- liftBase     $ mail Update address u
   pure n
 
 ------------------------------------------------------------------------

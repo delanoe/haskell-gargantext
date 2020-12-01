@@ -80,10 +80,17 @@ type CmdM env err m =
   , HasConfig         env
   )
 
+type CmdRandom env err m =
+  ( CmdM'             env err m
+  , HasConnectionPool env
+  , HasConfig         env
+  , MonadRandom             m
+  )
+
 type Cmd'' env err a = forall m.     CmdM'' env err m => m a
 type Cmd'  env err a = forall m.     CmdM'  env err m => m a
 type Cmd       err a = forall m env. CmdM   env err m => m a
-
+type CmdR      err a = forall m env. CmdRandom   env err m => m a
 
 
 

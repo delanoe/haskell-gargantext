@@ -25,6 +25,8 @@ import Test.QuickCheck.Arbitrary
 
 import Gargantext.API.Prelude
 import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Database.Action.User
+import Gargantext.Database.Action.User.New
 import Gargantext.Database.Action.Share (ShareNodeWith(..))
 import Gargantext.Database.Action.Share as DB (shareNodeWith, unPublish)
 import Gargantext.Database.Admin.Types.Node
@@ -52,10 +54,21 @@ instance Arbitrary ShareNodeParams where
 api :: HasNodeError err
     => NodeId
     -> ShareNodeParams
-    -> Cmd err Int
-api nId (ShareTeamParams user) =
+    -> CmdR err Int
+api nId (ShareTeamParams user') = do
+  user <- case guessUserName user' of
+    Nothing    -> pure user'
+    Just (u,_) -> do
+      isRegistered <- getUserId' (UserName u)
+      case isRegistered of
+        Just _  -> pure u
+        Nothing -> do
+          _ <- newUsers [u]
+          pure u
+
   fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId 
 api nId2 (SharePublicParams nId1) =
+
   fromIntegral <$> DB.shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId1) nId2
 
 ------------------------------------------------------------------------
