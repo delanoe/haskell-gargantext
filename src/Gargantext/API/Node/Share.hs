@@ -63,7 +63,7 @@ api nId (ShareTeamParams user') = do
       case isRegistered of
         Just _  -> pure u
         Nothing -> do
-          _ <- newUsers [u]
+          _ <- newUsers [user']
           pure u
 
   fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId 

@@ -31,7 +31,7 @@ getUserId u = do
   maybeUser <- getUserId' u
   case maybeUser of
     Nothing -> nodeError NoUserFound
-    Just u  -> pure u
+    Just u'  -> pure u'
 
 getUserId' :: HasNodeError err
           => User

@@ -44,9 +44,10 @@ newUserQuick n = do
   pass <- gargPass
   let u = case guessUserName n of
         Just  (u', _m) -> u'
-        Nothing        -> panic "Email invalid"
+        Nothing        -> panic "[G.D.A.U.N.newUserQuick]: Email invalid"
   pure (NewUser u n (GargPassword pass))
 
+------------------------------------------------------------------------
 isEmail :: Text -> Bool
 isEmail = ((==) 2) . List.length . (splitOn "@")
 
