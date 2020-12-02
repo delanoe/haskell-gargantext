@@ -51,6 +51,7 @@ instance Arbitrary ShareNodeParams where
                        ]
 ------------------------------------------------------------------------
 -- TODO permission
+-- TODO refactor userId which is used twice
 api :: HasNodeError err
     => NodeId
     -> ShareNodeParams
@@ -66,7 +67,7 @@ api nId (ShareTeamParams user') = do
           _ <- newUsers [user']
           pure u
 
-  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId 
+  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId
 api nId2 (SharePublicParams nId1) =
 
   fromIntegral <$> DB.shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId1) nId2

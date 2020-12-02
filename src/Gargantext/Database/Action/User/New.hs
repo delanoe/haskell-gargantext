@@ -70,12 +70,17 @@ newUsers' address us = do
   _   <- liftBase         $ mapM (mail Invitation address) us
   pure r
 ------------------------------------------------------------------------
+
+data SendEmail = SendEmail Bool
+
 updateUser :: HasNodeError err
-           => Text -> NewUser GargPassword -> Cmd err Int64
-updateUser address u = do
+           => SendEmail -> Text -> NewUser GargPassword -> Cmd err Int64
+updateUser (SendEmail send) address u = do
   u' <- liftBase     $ toUserHash   u
   n  <- updateUserDB $ toUserWrite  u'
-  _  <- liftBase     $ mail Update address u
+  _  <- case send of
+     True  -> liftBase     $ mail Update address u
+     False -> pure ()
   pure n
 
 ------------------------------------------------------------------------
