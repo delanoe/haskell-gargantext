@@ -210,10 +210,10 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            -- TODO gather it
            :<|> tableApi             id'
            :<|> apiNgramsTableCorpus id'
-            
+
            :<|> catApi      id'
            :<|> Search.api  id'
-           :<|> Share.api   id'
+           :<|> Share.api   (RootId $ NodeId uId) id'
            -- Pairing Tools
            :<|> pairWith    id'
            :<|> pairs       id'
