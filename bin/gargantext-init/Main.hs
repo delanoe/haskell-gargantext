@@ -20,10 +20,10 @@ import Data.Either (Either(..))
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
-import Gargantext.Core.Types.Individu (User(..))
+import Gargantext.Core.Types.Individu (User(..), arbitraryNewUsers, NewUser(..), arbitraryUsername, GargPassword(..))
 import Gargantext.Database.Action.Flow (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Query.Table.Node (getOrMkList)
-import Gargantext.Database.Query.Table.User (insertUsersDemo)
+import Gargantext.Database.Query.Table.User (insertNewUsers, )
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Trigger.Init (initFirstTriggers, initLastTriggers)
@@ -31,6 +31,7 @@ import Gargantext.Database.Admin.Types.Hyperdata (HyperdataCorpus)
 import Gargantext.Database.Prelude (Cmd, )
 import Gargantext.Prelude
 import System.Environment (getArgs)
+import Prelude (getLine)
 
 -- TODO put this in gargantext.ini
 secret :: Text
@@ -40,12 +41,21 @@ main :: IO ()
 main = do
   [iniPath] <- getArgs
 
+  putStrLn "Enter master user (gargantua) _password_ :"
+  password  <- getLine
+
+  putStrLn "Enter master user (gargantua) _email_ :"
+  email     <- getLine
+
+
   let createUsers :: Cmd GargError Int64
-      createUsers = insertUsersDemo
+      createUsers = insertNewUsers (NewUser "gargantua" (cs email) (GargPassword $ cs password)
+                                   : arbitraryNewUsers
+                                   )
 
   let
     mkRoots :: Cmd GargError [(UserId, RootId)]
-    mkRoots = mapM getOrMkRoot $ map UserName ["gargantua", "user1", "user2", "user3"]
+    mkRoots = mapM getOrMkRoot $ map UserName ("gargantua" : arbitraryUsername)
     -- TODO create all users roots
 
   let

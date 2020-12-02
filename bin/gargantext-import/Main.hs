@@ -29,7 +29,6 @@ import Gargantext.API.Prelude (GargError)
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpusFile, flowAnnuaire, TermType(..))
-import Gargantext.Database.Query.Table.User (insertUsersDemo)
 import Gargantext.Database.Admin.Types.Hyperdata (toHyperdataDocument)
 import Gargantext.Database.Admin.Types.Node (CorpusId)
 import Gargantext.Database.Prelude (Cmd)
@@ -42,9 +41,6 @@ main = do
 
   --{-
 
-  let createUsers :: Cmd GargError Int64
-      createUsers = insertUsersDemo
-  
   let
     --tt = (Unsupervised EN 6 0 Nothing)
     tt = (Multi EN)
@@ -70,10 +66,6 @@ main = do
   --}
 
   withDevEnv iniPath $ \env -> do
-    _ <- if fun == "users"
-          then runCmdDev env createUsers
-          else pure 0 --(cs "false")
-
     _ <- if fun == "corpus"
           then runCmdDev env corpus
           else pure 0 --(cs "false")
