@@ -18,6 +18,7 @@ module Gargantext.Database.Action.Metrics
 import Data.Map (Map)
 import qualified Data.Map    as Map
 import Data.Text (Text)
+import Data.Vector (Vector)
 
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
@@ -33,7 +34,7 @@ import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScore
 
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
-            -> m (Map Text (ListType, Maybe Text), [Scored Text])
+            -> m (Map Text (ListType, Maybe Text), Vector (Scored Text))
 getMetrics cId maybeListId tabType maybeLimit = do
   (ngs, _, myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit
   pure (ngs, scored myCooc)

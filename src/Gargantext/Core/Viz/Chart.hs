@@ -14,11 +14,12 @@ Portability : POSIX
 module Gargantext.Core.Viz.Chart
   where
 
-import Data.List (unzip, sortOn)
+import Data.List (sortOn)
 import Data.Map (toList)
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes)
+import qualified Data.Vector as V
 
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Config
@@ -42,8 +43,9 @@ import Gargantext.Core.Viz.Types
 histoData :: CorpusId -> Cmd err Histo
 histoData cId = do
   dates <- selectDocsDates cId
-  let (ls, css) = unzip
-                $ sortOn fst
+  let (ls, css) = V.unzip
+                $ V.fromList
+                $ sortOn fst -- TODO Vector.sortOn
                 $ toList
                 $ occurrencesWith identity dates
   pure (Histo ls css)
@@ -65,8 +67,8 @@ chartData cId nt lt = do
 
   (_total,mapTerms) <- countNodesByNgramsWith (group dico)
                     <$> getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
-  let (dates, count) = unzip $ map (\(t,(d,_)) -> (t, d)) $ Map.toList mapTerms
-  pure (Histo dates (map round count))
+  let (dates, count) = V.unzip $ fmap (\(t,(d,_)) -> (t, d)) $ V.fromList $ Map.toList mapTerms
+  pure (Histo (dates) (round <$> count))
 
 
 treeData :: FlowCmdM env err m

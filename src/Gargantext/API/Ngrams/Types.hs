@@ -19,6 +19,7 @@ import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
 import Data.Foldable
+import Data.Hashable (Hashable)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import qualified Data.List as List
 import Data.Map.Strict (Map)
@@ -59,6 +60,9 @@ data TabType   = Docs   | Trash   | MoreFav | MoreTrash
                | Terms  | Sources | Authors | Institutes
                | Contacts
   deriving (Bounded, Enum, Eq, Generic, Ord, Show)
+
+
+instance Hashable TabType
 
 instance FromHttpApiData TabType
    where
