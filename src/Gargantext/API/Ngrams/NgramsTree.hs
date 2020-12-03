@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.API.Ngrams.NTree
+Module      : Gargantext.API.Ngrams.NgramsTree
 Description : Tree of Ngrams
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -11,7 +11,7 @@ Portability : POSIX
 
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Gargantext.API.Ngrams.NTree
+module Gargantext.API.Ngrams.NgramsTree
   where
 
 import Data.Aeson.TH (deriveJSON)
@@ -36,24 +36,25 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 type Children = Text
 type Root = Text
 
-data MyTree = MyTree { mt_label :: Text
-                     , mt_value :: Double
-                     , mt_children :: [MyTree]
-                  } deriving (Generic, Show)
+data NgramsTree = NgramsTree { mt_label :: Text
+                             , mt_value :: Double
+                             , mt_children :: [NgramsTree]
+                             }
+    deriving (Generic, Show)
 
-toMyTree :: Tree (Text,Double) -> MyTree
-toMyTree (Node (l,v) xs) = MyTree l v (map toMyTree xs)
+toNgramsTree :: Tree (Text,Double) -> NgramsTree
+toNgramsTree (Node (l,v) xs) = NgramsTree l v (map toNgramsTree xs)
 
-deriveJSON (unPrefix "mt_") ''MyTree
+deriveJSON (unPrefix "mt_") ''NgramsTree
 
-instance ToSchema MyTree where
+instance ToSchema NgramsTree where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "mt_")
-instance Arbitrary MyTree
+instance Arbitrary NgramsTree
   where
-    arbitrary = MyTree <$> arbitrary <*> arbitrary <*> arbitrary
+    arbitrary = NgramsTree <$> arbitrary <*> arbitrary <*> arbitrary
 
-toTree :: ListType -> Map Text (Set NodeId) -> Map Text NgramsRepoElement -> [MyTree]
-toTree lt vs m = map toMyTree $ unfoldForest buildNode roots
+toTree :: ListType -> Map Text (Set NodeId) -> Map Text NgramsRepoElement -> [NgramsTree]
+toTree lt vs m = map toNgramsTree $ unfoldForest buildNode roots
   where
     buildNode r = maybe ((r, value r),[])
                         (\x -> ((r, value r), unNgramsTerm <$> (mSetToList $ _nre_children x)))

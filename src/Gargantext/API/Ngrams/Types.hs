@@ -50,7 +50,7 @@ import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId)
 import Gargantext.Core.Types (TODO)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixUntagged, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Prelude (fromField', CmdM')
+import Gargantext.Database.Prelude (fromField', CmdM', HasConnectionPool, HasConfig)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
@@ -706,8 +706,10 @@ instance HasRepoSaver RepoEnv where
   repoSaver = renv_saver
 
 type RepoCmdM   env err m =
-  ( CmdM' env err m
-  , HasRepo     env
+  ( CmdM'             env err m
+  , HasRepo           env
+  , HasConnectionPool env
+  , HasConfig         env
   )
 
 

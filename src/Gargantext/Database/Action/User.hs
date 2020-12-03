@@ -27,16 +27,25 @@ import Gargantext.Prelude
 getUserId :: HasNodeError err
           => User
           -> Cmd err UserId
-getUserId (UserDBId uid) = pure uid
-getUserId (RootId   rid) = do
+getUserId u = do
+  maybeUser <- getUserId' u
+  case maybeUser of
+    Nothing -> nodeError NoUserFound
+    Just u'  -> pure u'
+
+getUserId' :: HasNodeError err
+          => User
+          -> Cmd err (Maybe UserId)
+getUserId' (UserDBId uid) = pure (Just uid)
+getUserId' (RootId   rid) = do
   n <- getNode rid
-  pure $ _node_userId n
-getUserId (UserName u  ) = do
+  pure $ Just $ _node_userId n
+getUserId' (UserName u  ) = do
   muser <- getUser u
   case muser of
-    Just user -> pure $ userLight_id user
-    Nothing   -> nodeError NoUserFound
-getUserId UserPublic = nodeError NoUserFound
+    Just user -> pure $ Just $ userLight_id user
+    Nothing   -> pure Nothing
+getUserId' UserPublic = pure Nothing
 
 ------------------------------------------------------------------------
 -- | Username = Text
