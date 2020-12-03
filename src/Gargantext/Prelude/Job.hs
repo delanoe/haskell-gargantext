@@ -48,6 +48,8 @@ runJobLog num logStatus = do
       logStatus jl
     logRefSuccessF ref = do
       jl <- liftBase $ readIORef ref
-      liftBase $ writeIORef ref $ jobLogSuccess jl
+      let jl' = jobLogSuccess jl
+      liftBase $ writeIORef ref jl'
+      logStatus jl'
     getRefF ref = do
       liftBase $ readIORef ref

@@ -419,6 +419,7 @@ tableNgramsPostChartsAsync utn logStatus = do
               -- printDebug "[tableNgramsPut] Terms, updating Metrics (Histo), cId" cId
               (logRef, logRefSuccess, getRef) <- runJobLog 6 logStatus
               logRef
+{-
               _ <- Metrics.updateChart cId (Just listId) tabType Nothing
               logRefSuccess
               _ <- Metrics.updatePie cId (Just listId) tabType Nothing
@@ -430,6 +431,7 @@ tableNgramsPostChartsAsync utn logStatus = do
               _ <- Metrics.updateTree cId (Just listId) tabType CandidateTerm
               logRefSuccess
               _ <- Metrics.updateTree cId (Just listId) tabType MapTerm
+-}
               logRefSuccess
 
               getRef

@@ -98,7 +98,7 @@ buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
   socialLists' :: FlowCont Text FlowListScores
     <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
                                                       $ Map.fromList
-                                                      $ List.zip (Map.keys allTerms) 
+                                                      $ List.zip (Map.keys allTerms)
                                                                  (List.cycle [mempty])
                                            )
   let
@@ -136,7 +136,6 @@ buildNgramsTermsList :: ( HasNodeError err
 buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
 -- | Filter 0 With Double
-
 -- Computing global speGen score
   allTerms :: Map Text Double <- getTficf uCid mCid nt
 
@@ -171,6 +170,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 -- Filter 1 With Set NodeId and SpeGen
     selectedTerms = Set.toList $ hasTerms (groupedMonoHead <> groupedMultHead)
  
+
  -- TO remove (and remove HasNodeError instance)
   userListId    <- defaultList uCid
   masterListId  <- defaultList mCid
@@ -214,7 +214,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     (monoScored, multScored) = Map.partitionWithKey (\t _v -> size t < 2) groupedTreeScores_SpeGen
 
       -- filter with max score
-    partitionWithMaxScore = Map.partition (\g -> (view scored_genInc $ view gts'_score g) 
+    partitionWithMaxScore = Map.partition (\g -> (view scored_genInc $ view gts'_score g)
                                                > (view scored_speExc $ view gts'_score g)
                                           )
 
@@ -228,8 +228,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     inclSize = 0.4  :: Double
     exclSize = 1 - inclSize
 
-    splitAt' n' = (both (Map.fromList)) . (List.splitAt (round $ n' * listSizeLocal)) 
-    sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . Map.toList 
+    splitAt' n' = (both (Map.fromList)) . (List.splitAt (round $ n' * listSizeLocal))
+    sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . Map.toList
 
 
     monoInc_size = splitAt' $ monoSize * inclSize / 2

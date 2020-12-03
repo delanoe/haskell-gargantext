@@ -67,7 +67,7 @@ groupWith :: GroupParams
             -> Text
             -> Text
 groupWith GroupIdentity  = identity
-groupWith (GroupParams l _m _n _) = 
+groupWith (GroupParams l _m _n _) =
                     Text.intercalate " "
                   . map (stem l)
                   -- . take n
@@ -81,7 +81,7 @@ groupWithStem_SetNodeId :: GroupParams
                -> FlowCont Text (GroupedTreeScores (Set NodeId))
                -> FlowCont Text (GroupedTreeScores (Set NodeId))
 groupWithStem_SetNodeId g flc
-    | g == GroupIdentity = FlowCont ( (<>) 
+    | g == GroupIdentity = FlowCont ( (<>)
                                       (view flc_scores flc)
                                       (view flc_cont   flc)
                                     ) mempty
@@ -91,7 +91,7 @@ groupWithStem_Double :: GroupParams
                      -> FlowCont Text (GroupedTreeScores Double)
                      -> FlowCont Text (GroupedTreeScores Double)
 groupWithStem_Double g flc
-    | g == GroupIdentity = FlowCont ( (<>) 
+    | g == GroupIdentity = FlowCont ( (<>)
                                       (view flc_scores flc)
                                       (view flc_cont   flc)
                                     ) mempty

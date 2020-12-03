@@ -24,7 +24,7 @@ module Gargantext.Database.Query.Table.User
   , updateUserDB
   , queryUserTable
   , getUser
-  , insertUsersDemo
+  , insertNewUsers
   , selectUsersLightWith
   , userWithUsername
   , userWithId
@@ -81,7 +81,7 @@ toUserWrite (NewUser u m (Auth.PasswordHash p)) =
          (pgStrictText "first_name")
          (pgStrictText "last_name")
          (pgStrictText m)
-         (pgBool True) 
+         (pgBool True)
          (pgBool True) Nothing
 
 ------------------------------------------------------------------
@@ -141,9 +141,9 @@ getUser u = userLightWithUsername u <$> usersLight
 
 
 ----------------------------------------------------------------------
-insertUsersDemo :: Cmd err Int64
-insertUsersDemo = do
-  users <- liftBase arbitraryUsersHash
+insertNewUsers :: [NewUser GargPassword] -> Cmd err Int64
+insertNewUsers newUsers = do
+  users <- liftBase $ mapM toUserHash newUsers
   insertUsers $ map toUserWrite users
 
 ----------------------------------------------------------------------

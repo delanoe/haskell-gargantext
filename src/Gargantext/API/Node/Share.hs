@@ -19,20 +19,21 @@ import Data.Aeson
 import Data.Swagger
 import Data.Text (Text)
 import GHC.Generics (Generic)
+import Gargantext.API.Prelude
+import Gargantext.Core.Types.Individu (User(..), arbitraryUsername)
+import Gargantext.Database.Action.Share (ShareNodeWith(..))
+import Gargantext.Database.Action.Share as DB (shareNodeWith, unPublish)
+import Gargantext.Database.Action.User
+import Gargantext.Database.Action.User.New
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Prelude
+import Gargantext.Database.Query.Tree (findNodesId)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
-
-import Gargantext.API.Prelude
-import Gargantext.Core.Types.Individu (User(..))
-import Gargantext.Database.Action.User
-import Gargantext.Database.Action.User.New
-import Gargantext.Database.Action.Share (ShareNodeWith(..))
-import Gargantext.Database.Action.Share as DB (shareNodeWith, unPublish)
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
-import Gargantext.Prelude
+import qualified Data.List as List
 
 ------------------------------------------------------------------------
 data ShareNodeParams = ShareTeamParams   { username :: Text  }
@@ -51,23 +52,42 @@ instance Arbitrary ShareNodeParams where
                        ]
 ------------------------------------------------------------------------
 -- TODO permission
+-- TODO refactor userId which is used twice
+-- TODO change return type for better warning/info/success/error handling on the front
 api :: HasNodeError err
-    => NodeId
+    => User
+    -> NodeId
     -> ShareNodeParams
     -> CmdR err Int
-api nId (ShareTeamParams user') = do
+api userInviting nId (ShareTeamParams user') = do
   user <- case guessUserName user' of
     Nothing    -> pure user'
     Just (u,_) -> do
       isRegistered <- getUserId' (UserName u)
       case isRegistered of
-        Just _  -> pure u
+        Just _  -> do
+          printDebug "[G.A.N.Share.api]" ("Team shared with " <> u)
+          pure u
         Nothing -> do
-          _ <- newUsers [u]
+          username' <- getUsername userInviting
+          _ <- case List.elem username' arbitraryUsername of
+            True  -> do
+              printDebug "[G.A.N.Share.api]" ("demo users are not allowed to invite" :: Text)
+              pure ()
+            False -> do
+              children <- findNodesId nId [NodeCorpus]
+              _ <- case List.null children of
+                True -> do
+                  printDebug "[G.A.N.Share.api]" ("Invitation is enabled if you share a corpus at least" :: Text)
+                  pure 0
+                False -> do 
+                  printDebug "[G.A.N.Share.api]" ("Your invitation is sent to: " <> user')
+                  newUsers [user']
+              pure ()
           pure u
 
-  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId 
-api nId2 (SharePublicParams nId1) =
+  fromIntegral <$> DB.shareNodeWith (ShareNodeWith_User NodeFolderShared (UserName user)) nId
+api _uId nId2 (SharePublicParams nId1) =
 
   fromIntegral <$> DB.shareNodeWith (ShareNodeWith_Node NodeFolderPublic nId1) nId2
 
