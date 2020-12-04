@@ -56,7 +56,6 @@ isStopTerm (StopSize n) x = Text.length x < n || any isStopChar (Text.unpack x)
 -}
 
 
-
 -- | TODO improve grouping functions of Authors, Sources, Institutes..
 buildNgramsLists :: ( RepoCmdM env err m
                     , CmdM     env err m
@@ -95,17 +94,20 @@ buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
   allTerms  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
   -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
-  socialLists' :: FlowCont Text FlowListScores
-    <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
+  socialLists :: FlowCont Text FlowListScores
+    <- flowSocialList MySelfFirst user nt ( FlowCont Map.empty
                                                       $ Map.fromList
                                                       $ List.zip (Map.keys allTerms)
                                                                  (List.cycle [mempty])
                                            )
-  let
-    groupedWithList = toGroupedTree groupParams socialLists' allTerms
 
   let
-    (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType) $ view flc_scores groupedWithList
+    groupedWithList = toGroupedTree groupParams socialLists allTerms
+
+  let
+    (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType)
+                           $ view flc_scores groupedWithList
+
     (mapTerms, tailTerms') = Map.partition ((== Just MapTerm)  . viewListType) tailTerms
 
     listSize = mapListSize - (List.length mapTerms)
@@ -140,16 +142,20 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
   allTerms :: Map Text Double <- getTficf uCid mCid nt
 
   -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
-  socialLists' :: FlowCont Text FlowListScores
-    <- flowSocialList' MySelfFirst user nt ( FlowCont Map.empty
+  socialLists :: FlowCont Text FlowListScores
+    <- flowSocialList MySelfFirst user nt ( FlowCont Map.empty
                                                       $ Map.fromList
                                                       $ List.zip (Map.keys   allTerms)
                                                                  (List.cycle [mempty])
                                            )
-  let groupedWithList = toGroupedTree groupParams socialLists' allTerms
+
+  let groupedWithList = toGroupedTree groupParams socialLists allTerms
       (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList
+
       (groupedMono, groupedMult)  = Map.partitionWithKey (\t _v -> size t < 2) candidateTerms
+
+  -- printDebug "stopTerms" stopTerms
 
   -- splitting monterms and multiterms to take proportional candidates
   let
@@ -206,7 +212,10 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
   let
     groupedTreeScores_SpeGen :: Map Text (GroupedTreeScores (Scored Text))
-    groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity) (groupedMonoHead <> groupedMultHead)
+    groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity)
+                                                (  groupedMonoHead
+                                                <> groupedMultHead
+                                                )
 
   let
     -- sort / partition / split
@@ -266,5 +275,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                           <> toNgramsElement stopTerms
                       )]
        ]
+
+  -- printDebug "result" result
 
   pure result

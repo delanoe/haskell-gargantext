@@ -36,7 +36,7 @@ import Gargantext.Prelude
 data FlowSocialListPriority = MySelfFirst | OthersFirst
 
 flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
-flowSocialListPriority MySelfFirst = [Private, Shared{-, Public -}]
+flowSocialListPriority MySelfFirst = [Private{-, Shared, Public -}]
 flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirst
 
 
@@ -46,7 +46,7 @@ keepAllParents NgramsTerms = KeepAllParents False
 keepAllParents _           = KeepAllParents True
 
 ------------------------------------------------------------------------
-flowSocialList' :: ( RepoCmdM env err m
+flowSocialList :: ( RepoCmdM env err m
                    , CmdM     env err m
                    , HasNodeError err
                    , HasTreeError err
@@ -55,7 +55,7 @@ flowSocialList' :: ( RepoCmdM env err m
                   -> User -> NgramsType
                   -> FlowCont Text FlowListScores
                   -> m (FlowCont Text FlowListScores)
-flowSocialList' flowPriority user nt flc =
+flowSocialList flowPriority user nt flc =
   mconcat <$> mapM (flowSocialListByMode'   user nt flc)
                    (flowSocialListPriority flowPriority)
     where

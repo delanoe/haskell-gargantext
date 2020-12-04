@@ -36,6 +36,7 @@ data FlowCont a b =
   FlowCont { _flc_scores :: Map a b
            , _flc_cont   :: Map a b
            }
+    deriving (Show)
 
 instance (Ord a, Eq b) => Monoid (FlowCont a b) where
   mempty = FlowCont mempty mempty

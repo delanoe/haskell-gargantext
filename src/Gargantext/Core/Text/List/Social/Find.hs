@@ -38,7 +38,10 @@ findNodes' :: HasTreeError err
           => RootId
           -> NodeMode
           -> Cmd err [DbTreeNode]
-findNodes' r Private = findNodes r Private $ [NodeFolderPrivate]          <> commonNodes
+findNodes' r Private = do
+  pv <- (findNodes r Private $ [NodeFolderPrivate]          <> commonNodes)
+  sh <- (findNodes' r Shared)
+  pure $ pv <> sh
 findNodes' r Shared  = findNodes r Shared  $ [NodeFolderShared, NodeTeam] <> commonNodes
 findNodes' r Public  = findNodes r Public  $ [NodeFolderPublic ]          <> commonNodes
 
