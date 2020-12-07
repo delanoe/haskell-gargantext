@@ -28,8 +28,11 @@ import qualified PUBMED.Parser as PubMedDoc
 type Query = Text
 type Limit = PubMed.Limit
 
+
+-- | TODO put default pubmed query in gargantext.ini
+-- by default: 10K docs
 get :: Query -> Maybe Limit -> IO [HyperdataDocument]
-get q l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN)) <$> PubMed.getMetadataWith q l
+get q _l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN)) <$> PubMed.getMetadataWith q (Just 10000)
 
 toDoc :: Lang -> PubMedDoc.PubMed -> HyperdataDocument
 toDoc l (PubMedDoc.PubMed (PubMedDoc.PubMedArticle t j as aus)
