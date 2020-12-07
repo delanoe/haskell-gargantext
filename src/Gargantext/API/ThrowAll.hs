@@ -15,10 +15,11 @@ Portability : POSIX
 
 module Gargantext.API.ThrowAll where
 
-import Control.Monad.Error.Class (MonadError(..))
+import Control.Monad.Except (MonadError(..))
 import Control.Lens ((#))
 import Servant
 import Servant.Auth.Server (AuthResult(..))
+
 import Gargantext.Prelude
 import Gargantext.API.Prelude (GargServerM, _ServerError)
 import Gargantext.API.Routes (GargPrivateAPI, serverPrivateGargAPI')

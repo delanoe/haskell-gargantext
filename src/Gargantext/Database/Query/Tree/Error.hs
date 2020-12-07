@@ -15,7 +15,8 @@ module Gargantext.Database.Query.Tree.Error
   where
 
 import Control.Lens (Prism', (#))
-import Control.Monad.Error.Class (MonadError(throwError))
+import Control.Monad.Except (MonadError(throwError))
+
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
@@ -33,7 +34,7 @@ class HasTreeError e where
   _TreeError :: Prism' e TreeError
 
 treeError :: ( MonadError e m
-             , HasTreeError e)
+             , HasTreeError e )
              => TreeError
              -> m a
 treeError te = throwError $ _TreeError # te
