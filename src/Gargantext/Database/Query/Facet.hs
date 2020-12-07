@@ -9,7 +9,7 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE Arrows                    #-}
 {-# LANGUAGE FunctionalDependencies    #-}
@@ -236,14 +236,14 @@ runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAut
 -- TODO add delete ?
 viewAuthorsDoc :: ContactId -> IsTrash -> NodeType -> Query FacetDocRead
 viewAuthorsDoc cId _ nt = proc () -> do
-  (doc,(_,(_,(_,contact)))) <- queryAuthorsDoc      -< ()
+  (doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
 
   {-nn         <- queryNodeNodeTable -< ()
   restrict -< nn_node1_id nn .== _node_id doc
   -- restrict -< nn_delete   nn .== (pgBool t)
   -}
 
-  restrict -< _node_id   contact   .== (toNullable $ pgNodeId cId)
+  restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
   restrict -< _node_typename doc   .== (pgInt4 $ nodeTypeId nt)
 
   returnA  -< FacetDoc (_node_id        doc)
@@ -261,14 +261,14 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsT
                                 .== _nnng_node1_id nodeNgram
 
          cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
-         cond23 (ngrams, (nodeNgram, _)) =  ngrams^.ngrams_id
+         cond23 (ngrams', (nodeNgram, _)) =  ngrams'^.ngrams_id
                                         .== _nnng_ngrams_id nodeNgram
 
          cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams^.ngrams_id .== _nnng_ngrams_id       nodeNgram2
+         cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _nnng_ngrams_id       nodeNgram2
 
          cond45 :: (NodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== _nnng_node1_id         nodeNgram2
+         cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _nnng_node1_id         nodeNgram2'
 
 --}
 ------------------------------------------------------------------------

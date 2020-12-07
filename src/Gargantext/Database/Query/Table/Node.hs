@@ -9,7 +9,7 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                 #-}
@@ -47,9 +47,9 @@ queryNodeSearchTable :: Query NodeSearchRead
 queryNodeSearchTable = queryTable nodeTableSearch
 
 selectNode :: Column PGInt4 -> Query NodeRead
-selectNode id = proc () -> do
+selectNode id' = proc () -> do
     row      <- queryNodeTable -< ()
-    restrict -< _node_id row .== id
+    restrict -< _node_id row .== id'
     returnA  -< row
 
 runGetNodes :: Query NodeRead -> Cmd err [Node HyperdataAny]
@@ -69,7 +69,7 @@ selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
 
 selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
-    node <- (proc () -> do
+    node' <- (proc () -> do
       row@(Node _ _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
       restrict -< parentId' .== (pgNodeId parentId)
 
@@ -79,7 +79,7 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
                      then typeId   .== (pgInt4 (typeId' :: Int))
                      else (pgBool True)
       returnA  -< row ) -< ()
-    returnA -< node
+    returnA -< node'
 
 deleteNode :: NodeId -> Cmd err Int
 deleteNode n = mkCmd $ \conn ->
@@ -162,9 +162,9 @@ getNodesWithType :: (HasNodeError err, JSONB a) => NodeType -> proxy a -> Cmd er
 getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
   where
     selectNodesWithType :: NodeType -> Query NodeRead
-    selectNodesWithType nt = proc () -> do
+    selectNodesWithType nt' = proc () -> do
         row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
-        restrict -< tn .== (pgInt4 $ nodeTypeId nt)
+        restrict -< tn .== (pgInt4 $ nodeTypeId nt')
         returnA -< row
 
 getNodesIdWithType :: HasNodeError err => NodeType -> Cmd err [NodeId]
@@ -319,7 +319,7 @@ getOrMkList :: HasNodeError err
 getOrMkList pId uId =
   maybe (mkList' pId uId) (pure . view node_id) . headMay =<< getListsWithParentId pId
     where
-      mkList' pId uId = maybe (nodeError MkNode) pure . headMay =<< insertDefaultNode NodeList pId uId
+      mkList' pId' uId' = maybe (nodeError MkNode) pure . headMay =<< insertDefaultNode NodeList pId' uId'
 
 -- | TODO remove defaultList
 defaultList :: HasNodeError err => CorpusId -> Cmd err ListId

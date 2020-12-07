@@ -9,7 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE TemplateHaskell   #-}
 

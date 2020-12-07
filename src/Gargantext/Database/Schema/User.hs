@@ -10,7 +10,7 @@ Portability : POSIX
 Functions to deal with users, database side.
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE FunctionalDependencies      #-}

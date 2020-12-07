@@ -10,7 +10,7 @@ Portability : POSIX
 Individu defintions
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 module Gargantext.Core.Types.Individu
   where

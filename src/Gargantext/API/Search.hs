@@ -10,7 +10,7 @@ Portability : POSIX
 Count API part of Gargantext.
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
@@ -258,7 +258,7 @@ class ToHyperdataRow a where
   toHyperdataRow :: a -> HyperdataRow
 
 instance ToHyperdataRow HyperdataDocument where
-  toHyperdataRow (HyperdataDocument b d u ui ub p t a i s abs pd py pm pda ph pmin psec l) =
+  toHyperdataRow (HyperdataDocument b d u ui ub p t a i s abs' pd py pm pda ph pmin psec l) =
     HyperdataRowDocument
       (fromMaybe "" b)
       (fromMaybe "" d)
@@ -270,7 +270,7 @@ instance ToHyperdataRow HyperdataDocument where
       (fromMaybe "" a)
       (fromMaybe "" i)
       (fromMaybe "" s)
-      (fromMaybe "" abs)
+      (fromMaybe "" abs')
       (fromMaybe "" pd)
       (fromMaybe 2020 py)
       (fromMaybe 1 pm)

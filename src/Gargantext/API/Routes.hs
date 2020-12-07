@@ -9,7 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -250,9 +250,9 @@ waitAPI n = do
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =
   serveJobsAPI $
-    JobFunction (\q log -> do
+    JobFunction (\q log' -> do
       limit <- view $ config . gc_max_docs_scrapers
-      New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log)
+      New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log')
       {- let log' x = do
         printDebug "addToCorpusWithQuery" x
         liftBase $ log x
@@ -269,25 +269,25 @@ addWithFile cid i f =
 addCorpusWithForm :: User -> GargServer New.AddWithForm
 addCorpusWithForm user cid =
   serveJobsAPI $
-    JobFunction (\i log ->
+    JobFunction (\i log' ->
       let
-        log' x = do
+        log'' x = do
           printDebug "addToCorpusWithForm" x
-          liftBase $ log x
-      in New.addToCorpusWithForm user cid i log')
+          liftBase $ log' x
+      in New.addToCorpusWithForm user cid i log'')
 
 addCorpusWithFile :: User -> GargServer New.AddWithFile
 addCorpusWithFile user cid =
   serveJobsAPI $
-    JobFunction (\i log ->
+    JobFunction (\i log' ->
       let
-        log' x = do
+        log'' x = do
           printDebug "addToCorpusWithFile" x
-          liftBase $ log x
-      in New.addToCorpusWithFile user cid i log')
+          liftBase $ log' x
+      in New.addToCorpusWithFile user cid i log'')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =
   serveJobsAPI $
-    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
+    JobFunction (\i log' -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log'))
 

@@ -10,7 +10,7 @@ Portability : POSIX
 Count API part of Gargantext.
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}

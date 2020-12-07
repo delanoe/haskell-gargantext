@@ -10,7 +10,7 @@ Portability : POSIX
 TODO-SECURITY: Critical
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
@@ -111,9 +111,9 @@ repoSaverAction repoDir a = do
 -- If repoSaverAction start taking more time than the debounceFreq then it should
 -- be increased.
 mkRepoSaver :: RepoDirFilePath -> MVar NgramsRepo -> IO (IO ())
-mkRepoSaver repoDir repo_var = mkDebounce settings
+mkRepoSaver repoDir repo_var = mkDebounce settings'
   where
-    settings = defaultDebounceSettings
+    settings' = defaultDebounceSettings
                  { debounceFreq   = let n = 6 :: Int in 10^n  -- 1 second
                  , debounceAction = withMVar repo_var (repoSaverAction repoDir)
                    -- Here this not only `readMVar` but `takeMVar`.
@@ -162,27 +162,27 @@ devJwkFile = "dev.jwk"
 newEnv :: PortNumber -> FilePath -> IO Env
 newEnv port file = do
   manager     <- newTlsManager
-  settings    <- devSettings devJwkFile <&> appPort .~ port -- TODO read from 'file'
-  when (port /= settings ^. appPort) $
+  settings'    <- devSettings devJwkFile <&> appPort .~ port -- TODO read from 'file'
+  when (port /= settings' ^. appPort) $
     panic "TODO: conflicting settings of port"
 
-  config       <- readConfig file
+  config'       <- readConfig file
   self_url     <- parseBaseUrl $ "http://0.0.0.0:" <> show port
   dbParam      <- databaseParameters file
   pool         <- newPool dbParam
-  repo         <- readRepoEnv (_gc_repofilepath config)
+  repo         <- readRepoEnv (_gc_repofilepath config')
   scrapers_env <- newJobEnv defaultSettings manager
   logger       <- newStderrLoggerSet defaultBufSize
 
   pure $ Env
-    { _env_settings = settings
+    { _env_settings = settings'
     , _env_logger   = logger
     , _env_pool     = pool
     , _env_repo     = repo
     , _env_manager  = manager
     , _env_scrapers = scrapers_env
     , _env_self_url = self_url
-    , _env_config   = config
+    , _env_config   = config'
     }
 
 newPool :: ConnectInfo -> IO (Pool Connection)
