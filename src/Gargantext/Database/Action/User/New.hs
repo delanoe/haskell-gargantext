@@ -58,16 +58,16 @@ guessUserName n = case splitOn "@" n of
     _       -> Nothing
 ------------------------------------------------------------------------
 newUser' :: HasNodeError err
-        => Text -> NewUser GargPassword -> Cmd err Int64
+        => ServerAdress -> NewUser GargPassword -> Cmd err Int64
 newUser' address u = newUsers' address [u]
 
 newUsers' :: HasNodeError err
-         => Text -> [NewUser GargPassword] -> Cmd err Int64
+         => ServerAdress -> [NewUser GargPassword] -> Cmd err Int64
 newUsers' address us = do
   us' <- liftBase         $ mapM toUserHash us
   r   <- insertUsers      $ map toUserWrite us'
   _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
-  _   <- liftBase         $ mapM (mail Invitation address) us
+  _   <- liftBase         $ mapM (mail address Invitation) us
   pure r
 ------------------------------------------------------------------------
 
@@ -75,75 +75,77 @@ data SendEmail = SendEmail Bool
 
 updateUser :: HasNodeError err
            => SendEmail -> Text -> NewUser GargPassword -> Cmd err Int64
-updateUser (SendEmail send) address u = do
+updateUser (SendEmail send) server u = do
   u' <- liftBase     $ toUserHash   u
   n  <- updateUserDB $ toUserWrite  u'
   _  <- case send of
-     True  -> liftBase     $ mail Update address u
+     True  -> liftBase     $ mail server Update u
      False -> pure ()
   pure n
 
 ------------------------------------------------------------------------
-data Mail = Invitation
-          | Update
+type ServerAdress = Text
+data MailModel = Invitation
+               | Update
 
 
 -- TODO gargantext.ini config
-mail :: Mail -> Text -> NewUser GargPassword -> IO ()
-mail mtype address nu@(NewUser u m _) = gargMail (GargMail m (Just u) subject body)
+mail :: ServerAdress -> MailModel -> NewUser GargPassword -> IO ()
+mail server model user@(NewUser u m _) = gargMail (GargMail m (Just u) subject body)
   where
     subject = "[Your Garg Account]"
-    body    = bodyWith mtype address nu
-
-bodyWith :: Mail -> Text -> NewUser GargPassword -> Text
-bodyWith Invitation add nu = logInstructions    add nu
-bodyWith Update     add nu = updateInstructions add nu
+    body    = emailWith server model user
 
 
--- TODO put this in a configurable file (path in gargantext.ini)
-logInstructions :: Text -> NewUser GargPassword -> Text
-logInstructions address (NewUser u _ (GargPassword p)) =
-  unlines [ "Hello"
-          , "You have been invited to test the new GarganText platform!"
-          , ""
-          , "You can log in to: " <> address
+emailWith :: ServerAdress -> MailModel -> NewUser GargPassword -> Text
+emailWith server model (NewUser u _ (GargPassword p)) = unlines $
+          [ "Hello" ]
+          <> bodyWith model <>
+          [ ""
+          , "You can log in to: " <> server
           , "Your username is: "  <> u
           , "Your password is: "  <> p
           , ""
-          , "Please read the full terms of use on:"
-          , "https://gitlab.iscpif.fr/humanities/tofu/tree/master"
-          , ""
-          , "Your feedback will be valuable for further development"
-          , "of the platform, do not hesitate to contact us and"
-          , "to contribute on our forum:"
-          , "     https://discourse.iscpif.fr/c/gargantext"
-          , ""
-          , "With our best regards,"
+          ]
+          <> email_disclaimer
+          <> email_signature
+
+bodyWith :: MailModel -> [Text]
+bodyWith Invitation = [ "Congratulation, you have been granted a beta user account to test the"
+                      , "new GarganText platform!"
+                      ]
+bodyWith Update     = [ "Your account password have been updated on the GarganText platform!"
+                      ]
+
+email_disclaimer :: [Text]
+email_disclaimer =
+            [ "If you log in you agree with the following terms of use:"
+            , "          https://gitlab.iscpif.fr/humanities/tofu/tree/master"
+            , ""
+            , ""
+            , "/!\\ Please note that this account is opened for beta tester only. Hence"
+            , "we cannot guarantee neither the perenniality nor the stability of the"
+            , "service at this stage. It is therefore advisable to back up important"
+            , "data regularly."
+            , ""
+            , "/!\\ Gargantext is an academic service supported by ISC-PIF partners."
+            , "In case of congestion on this service, access to members of the ISC-PIF"
+            , "partners will be privileged."
+            , ""
+            , "Your feedback will be valuable for further development of the platform,"
+            , "do not hesitate to contact us and to contribute on our forum:"
+            , ""
+            , "     https://discourse.iscpif.fr/c/gargantext"
+            , ""
+            ]
+
+email_signature :: [Text]
+email_signature =
+          [ "With our best regards,"
           , "-- "
           , "The Gargantext Team (CNRS)"
           ]
 
-updateInstructions :: Text -> NewUser GargPassword -> Text
-updateInstructions address (NewUser u _ (GargPassword p)) =
-  unlines [ "Hello"
-          , "Your account have been updated on the GarganText platform!"
-          , ""
-          , "You can log in to: " <> address
-          , "Your username is: "  <> u
-          , "Your password is: "  <> p
-          , ""
-          , "As reminder, please read the full terms of use on:"
-          , "https://gitlab.iscpif.fr/humanities/tofu/tree/master"
-          , ""
-          , "Your feedback is always valuable for further development"
-          , "of the platform, do not hesitate to contact us and"
-          , "to contribute on our forum:"
-          , "     https://discourse.iscpif.fr/c/gargantext"
-          , ""
-          , "With our best regards,"
-          , "-- "
-          , "The Gargantext Team (CNRS)"
-          ]
 
 
 ------------------------------------------------------------------------
