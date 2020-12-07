@@ -32,7 +32,8 @@ type Limit = PubMed.Limit
 -- | TODO put default pubmed query in gargantext.ini
 -- by default: 10K docs
 get :: Query -> Maybe Limit -> IO [HyperdataDocument]
-get q _l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN)) <$> PubMed.getMetadataWith q (Just 10000)
+get q _l = either (\e -> panic $ "CRAWL: PubMed" <> e) (map (toDoc EN))
+        <$> PubMed.getMetadataWith q (Just 10000)
 
 toDoc :: Lang -> PubMedDoc.PubMed -> HyperdataDocument
 toDoc l (PubMedDoc.PubMed (PubMedDoc.PubMedArticle t j as aus)
@@ -45,7 +46,7 @@ toDoc l (PubMedDoc.PubMed (PubMedDoc.PubMedArticle t j as aus)
                                  Nothing
                                  t
                                  (authors aus)
-                                 Nothing
+                                 (institutes aus)
                                  j
                                  (abstract as)
                                  (Just $ Text.pack $ show a)
@@ -60,7 +61,18 @@ toDoc l (PubMedDoc.PubMed (PubMedDoc.PubMedArticle t j as aus)
         authors :: Maybe [PubMedDoc.Author] -> Maybe Text
         authors aus' = case aus' of
             Nothing -> Nothing
-            Just au -> Just $ (Text.intercalate ", ") $ catMaybes $ map PubMedDoc.foreName au
+            Just au -> Just $ (Text.intercalate ", ")
+                            $ catMaybes
+                            $ map (\n -> PubMedDoc.foreName n <> Just " " <> PubMedDoc.lastName n) au
+
+        institutes :: Maybe [PubMedDoc.Author] -> Maybe Text
+        institutes aus' = case aus' of
+            Nothing -> Nothing
+            Just au -> Just $ (Text.intercalate ", ")
+                            $ (map (Text.replace ", " " - "))
+                            $ catMaybes
+                            $ map PubMedDoc.affiliation au
+
 
         abstract :: Maybe [Text] -> Maybe Text
         abstract as' = fmap (Text.intercalate ", ") as'
