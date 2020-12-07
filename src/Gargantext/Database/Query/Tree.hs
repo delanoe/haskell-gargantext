@@ -183,7 +183,7 @@ toTree m =
         Just [n] -> pure $ toTree' m n
         Nothing  -> treeError NoRoot
         Just []  -> treeError EmptyRoot
-        Just r   -> treeError TooManyRoots
+        Just _r  -> treeError TooManyRoots
 
      where
        toTree' :: Map (Maybe ParentId) [DbTreeNode]
