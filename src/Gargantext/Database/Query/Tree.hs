@@ -35,12 +35,16 @@ module Gargantext.Database.Query.Tree
   where
 
 import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
-import Control.Monad.Error.Class (MonadError())
+import Control.Monad.Except (MonadError())
 import Data.List (tail, concat, nub)
 import Data.Map (Map, fromListWith, lookup)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
+
+import Gargantext.Prelude
+
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId, fromNodeTypeId)
 import Gargantext.Database.Admin.Types.Node
@@ -48,7 +52,6 @@ import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Table.NodeNode (getNodeNode)
 import Gargantext.Database.Query.Tree.Error
 import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
-import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 data DbTreeNode = DbTreeNode { _dt_nodeId   :: NodeId
@@ -64,7 +67,7 @@ instance Eq DbTreeNode where
 
 ------------------------------------------------------------------------
 
-data TreeMode = TreeBasic | TreeAdvanced
+data TreeMode = TreeBasic | TreeAdvanced | TreeFirstLevel
 
 -- | Returns the Tree of Nodes in Database
 tree :: HasTreeError err
@@ -74,6 +77,7 @@ tree :: HasTreeError err
      -> Cmd err (Tree NodeTree)
 tree TreeBasic    = tree_basic
 tree TreeAdvanced = tree_advanced
+tree TreeFirstLevel = tree_first_level
 
 -- | Tree basic returns the Tree of Nodes in Database
 -- (without shared folders)
@@ -97,6 +101,17 @@ tree_advanced r nodeTypes = do
   sharedRoots <- findNodes r Shared  nodeTypes
   publicRoots <- findNodes r Public  nodeTypes
   toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
+
+-- | Fetch only first level of tree
+tree_first_level :: HasTreeError err
+                 => RootId
+                 -> [NodeType]
+                 -> Cmd err (Tree NodeTree)
+tree_first_level r nodeTypes = do
+  mainRoot    <- findNodes r Private nodeTypes
+  sharedRoots <- findNodes r Shared  nodeTypes
+  publicRoots <- findNodes r Public  nodeTypes
+  toTree $ toSubtreeParent (mainRoot <> sharedRoots <> publicRoots)
 
 ------------------------------------------------------------------------
 data NodeMode = Private | Shared | Public
@@ -159,7 +174,8 @@ findNodesId r nt = tail
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 toTree :: ( MonadError e m
-          , HasTreeError e)
+          , HasTreeError e
+          , MonadBase IO m )
        => Map (Maybe ParentId) [DbTreeNode]
        -> m (Tree NodeTree)
 toTree m =
@@ -167,26 +183,46 @@ toTree m =
         Just [n] -> pure $ toTree' m n
         Nothing  -> treeError NoRoot
         Just []  -> treeError EmptyRoot
-        Just _   -> treeError TooManyRoots
+        Just r   -> treeError TooManyRoots
 
      where
-      toTree' :: Map (Maybe ParentId) [DbTreeNode]
-              -> DbTreeNode
-              -> Tree NodeTree
-      toTree' m' n =
-        TreeN (toNodeTree n) $
-          -- | Lines below are equivalent computationally but not semantically
-          -- m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
-          toListOf (at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')) m'
+       toTree' :: Map (Maybe ParentId) [DbTreeNode]
+               -> DbTreeNode
+               -> Tree NodeTree
+       toTree' m' n =
+         TreeN (toNodeTree n) $
+           -- | Lines below are equivalent computationally but not semantically
+           -- m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
+           toListOf (at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')) m'
 
-      toNodeTree :: DbTreeNode
-                 -> NodeTree
-      toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
+       toNodeTree :: DbTreeNode
+                  -> NodeTree
+       toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
+
 
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
              -> Map (Maybe ParentId) [DbTreeNode]
 toTreeParent = fromListWith (\a b -> nub $ a <> b) . map (\n -> (_dt_parentId n, [n]))
+------------------------------------------------------------------------
+toSubtreeParent :: [DbTreeNode]
+                -> Map (Maybe ParentId) [DbTreeNode]
+toSubtreeParent ns = fromListWith (\a b -> nub $ a <> b) . map (\n -> (_dt_parentId n, [n])) $ nullifiedParents
+  where
+    nodeIds = Set.fromList $ map (\n -> unNodeId $ _dt_nodeId n) ns
+    nullifiedParents = map nullifyParent ns
+    nullifyParent dt@(DbTreeNode { _dt_parentId = Nothing }) = dt
+    nullifyParent dt@(DbTreeNode { _dt_nodeId = nId
+                                 , _dt_parentId = Just pId
+                                 , _dt_typeId = tId
+                                 , _dt_name = name }) =
+      if Set.member (unNodeId pId) nodeIds then
+        dt
+      else
+        DbTreeNode { _dt_nodeId = nId
+                   , _dt_typeId = tId
+                   , _dt_parentId = Nothing
+                   , _dt_name = name }
 ------------------------------------------------------------------------
 -- | Main DB Tree function
 dbTree :: RootId

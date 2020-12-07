@@ -15,7 +15,7 @@ module Gargantext.Database.Prelude where
 
 import Control.Exception
 import Control.Lens (Getter, view)
-import Control.Monad.Error.Class -- (MonadError(..), Error)
+-- import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.Random

@@ -27,7 +27,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              ) where
 
 import Control.Lens (Prism', (#))
-import Control.Monad.Error.Class (MonadError, throwError)
+import Control.Monad.Except (MonadError(throwError))
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Monoid
@@ -38,11 +38,12 @@ import Data.Swagger (ToSchema(..))
 import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
+
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
 import Gargantext.Prelude
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
 data Ordering = Down | Up

@@ -292,10 +292,15 @@ pairWith cId aId lId = do
 
 
 ------------------------------------------------------------------------
-type TreeAPI   = QueryParams "type" NodeType :> Get '[JSON] (Tree NodeTree)
+type TreeAPI   = QueryParams "type" NodeType
+                  :> Get '[JSON] (Tree NodeTree)
+                  :<|> "first-level"
+                      :> QueryParams "type" NodeType
+                      :> Get '[JSON] (Tree NodeTree)
 
 treeAPI :: NodeId -> GargServer TreeAPI
-treeAPI = tree TreeAdvanced
+treeAPI id = tree TreeAdvanced id
+        :<|> tree TreeFirstLevel id
 
 ------------------------------------------------------------------------
 -- | TODO Check if the name is less than 255 char
