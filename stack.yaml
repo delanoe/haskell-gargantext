@@ -40,7 +40,7 @@ extra-deps:
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
   commit: daeae80365250c4bd539f0a65e271f9aa37f731f
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
-  commit: ef9e638c97788df251f50b71fcdd9551b87f12c5
+  commit: 95e8f01a5d3b404a14a7fc664996569a6fb41ec4
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
     #

@@ -124,6 +124,7 @@ getDataText :: FlowCmdM env err m
 getDataText (ExternalOrigin api) la q li = liftBase $ DataNew
                                   <$> splitEvery 500
                                   <$> API.get api (_tt_lang la) q li
+
 getDataText (InternalOrigin _) _la q _li = do
   (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
                                            (UserName userMaster)

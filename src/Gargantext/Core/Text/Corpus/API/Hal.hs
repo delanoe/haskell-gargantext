@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-
 module Gargantext.Core.Text.Corpus.API.Hal
     where
 
@@ -26,11 +25,11 @@ import qualified HAL.Doc.Corpus as HAL
 
 get :: Lang -> Text -> Maybe Integer -> IO [HyperdataDocument]
 get la q ml = do
-  docs <- HAL.getMetadataWith q (fromIntegral <$> ml)
+  docs <- HAL.getMetadataWith q (Just 0) (fromIntegral <$> ml)
   either (panic . pack . show) (\d -> mapM (toDoc' la) $ HAL._docs d) docs
 
 toDoc' :: Lang -> HAL.Corpus -> IO HyperdataDocument
-toDoc' la (HAL.Corpus i t ab d s aus affs) = do
+toDoc' la (HAL.Corpus i t ab d s aus affs struct_id) = do
   (utctime, (pub_year, pub_month, pub_day)) <- Date.dateSplit la (maybe (Just "2019") Just d)
   pure $ HyperdataDocument (Just "Hal")
                    (Just $ pack $ show i)
@@ -40,7 +39,7 @@ toDoc' la (HAL.Corpus i t ab d s aus affs) = do
                    Nothing
                    (Just $ intercalate " " t)
                    (Just $ foldl (\x y -> x <> ", " <> y) "" aus)
-                   (Just $ foldl (\x y -> x <> ", " <> y) "" affs)
+                   (Just $ foldl (\x y -> x <> ", " <> y) "" $ affs <> map (cs . show) struct_id)
                    (Just $ maybe "Nothing" identity s)
                    (Just $ intercalate " " ab)
                    (fmap (pack . show) utctime)
