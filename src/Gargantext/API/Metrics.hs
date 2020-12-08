@@ -324,17 +324,11 @@ type TreeApi = Summary " Tree API"
                 :> QueryParamR "listType"   ListType
                 :> Post '[JSON] ()
           :<|> "hash" :>
-                  Summary "Tree Hash"
+                 Summary "Tree Hash"
               :> QueryParam  "list"       ListId
               :> QueryParamR "ngramsType" TabType
               :> QueryParamR "listType"   ListType
               :> Get '[JSON] Text
-
-                -- Depending on the Type of the Node, we could post
-                -- New documents for a corpus
-                -- New map list terms
-             -- :<|> "process"  :> MultipartForm MultipartData :> Post '[JSON] Text
-
 treeApi :: NodeId -> GargServer TreeApi
 treeApi id' = getTree id'
          :<|> updateTree id'
