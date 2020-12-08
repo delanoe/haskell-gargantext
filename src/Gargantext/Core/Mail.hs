@@ -20,53 +20,83 @@ import Gargantext.Prelude
 import Gargantext.Prelude.Mail (gargMail, GargMail(..))
 import qualified Data.List as List
 
+-- | Tool to put elsewhere
+isEmail :: Text -> Bool
+isEmail = ((==) 2) . List.length . (splitOn "@")
+
 ------------------------------------------------------------------------
 data SendEmail    = SendEmail Bool
 
 type EmailAddress = Text
+type Name         = Text
 type ServerAdress = Text
-data MailModel = Invitation
-               | Update
 
+data MailModel = Invitation { invitation_user :: NewUser GargPassword }
+               | PassUpdate { passUpdate_user :: NewUser GargPassword }
+               | MailInfo   { mailInfo_username :: Name
+                            , mailInfo_address  :: EmailAddress
+                            }
 ------------------------------------------------------------------------
-isEmail :: Text -> Bool
-isEmail = ((==) 2) . List.length . (splitOn "@")
 ------------------------------------------------------------------------
-
-mail :: ServerAdress -> MailModel -> NewUser GargPassword -> IO ()
-mail server model user@(NewUser u m _) = gargMail (GargMail m (Just u) subject body)
+mail :: ServerAdress -> MailModel -> IO ()
+mail server model = gargMail (GargMail m (Just u) subject body)
   where
-    subject = "[Your Garg Account]"
-    body    = emailWith server model user
+    (m,u)   = email_to         model
+    subject = email_subject    model
+    body    = emailWith server model
+
+------------------------------------------------------------------------
+emailWith :: ServerAdress -> MailModel -> Text
+emailWith server model =
+  unlines $ [ "Hello" ]
+          <> bodyWith server model
+          <> email_disclaimer
+          <> email_signature
+
+------------------------------------------------------------------------
+email_to :: MailModel -> (EmailAddress, Name)
+email_to (Invitation user) = email_to' user
+email_to (PassUpdate user) = email_to' user
+email_to (MailInfo n m)    = (m, n)
+
+email_to' :: NewUser GargPassword -> (EmailAddress, Name)
+email_to' (NewUser u m _) = (u,m)
+
+------------------------------------------------------------------------
+bodyWith :: ServerAdress -> MailModel -> [Text]
+bodyWith server (Invitation u) = [ "Congratulation, you have been granted a beta user account to test the"
+                                 , "new GarganText platform!"
+                                 ] <> (email_credentials server u)
+
+bodyWith server (PassUpdate u) = [ "Your account password have been updated on the GarganText platform!"
+                                 ] <> (email_credentials server u)
+
+bodyWith server (MailInfo _ _) = [ "Your last analysis is over on the server: " <> server]
+
+------------------------------------------------------------------------
+email_subject :: MailModel -> Text
+email_subject (Invitation _) = "[GarganText] Invitation"
+email_subject (PassUpdate _) = "[GarganText] Update"
+email_subject (MailInfo _ _) = "[GarganText] Info"
 
 
-emailWith :: ServerAdress -> MailModel -> NewUser GargPassword -> Text
-emailWith server model (NewUser u _ (GargPassword p)) = unlines $
-          [ "Hello" ]
-          <> bodyWith model <>
+email_credentials :: ServerAdress -> NewUser GargPassword -> [Text]
+email_credentials server (NewUser u _ (GargPassword p)) =
           [ ""
           , "You can log in to: " <> server
           , "Your username is: "  <> u
           , "Your password is: "  <> p
           , ""
           ]
-          <> email_disclaimer
-          <> email_signature
-
-bodyWith :: MailModel -> [Text]
-bodyWith Invitation = [ "Congratulation, you have been granted a beta user account to test the"
-                      , "new GarganText platform!"
-                      ]
-bodyWith Update     = [ "Your account password have been updated on the GarganText platform!"
-                      ]
 
 email_disclaimer :: [Text]
 email_disclaimer =
-            [ "If you log in you agree with the following terms of use:"
+            [ ""
+            , "If you log in you agree with the following terms of use:"
             , "          https://gitlab.iscpif.fr/humanities/tofu/tree/master"
             , ""
             , ""
-            , "/!\\ Please note that this account is opened for beta tester only. Hence"
+            , "/!\\ Please note that your account is opened for beta tester only. Hence"
             , "we cannot guarantee neither the perenniality nor the stability of the"
             , "service at this stage. It is therefore advisable to back up important"
             , "data regularly."

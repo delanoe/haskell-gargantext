@@ -25,7 +25,6 @@ import Gargantext.Database.Query.Table.User
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
-import qualified Data.List as List
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -33,7 +32,7 @@ newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err)
          => [EmailAddress] -> m Int64
 newUsers us = do
   us' <- mapM newUserQuick us
-  url <- view $ config . gc_url
+  url <- view $ hasConfig . gc_url
   newUsers' url us'
 ------------------------------------------------------------------------
 newUserQuick :: (MonadRandom m)
@@ -46,9 +45,6 @@ newUserQuick n = do
   pure (NewUser u n (GargPassword pass))
 
 ------------------------------------------------------------------------
-isEmail :: Text -> Bool
-isEmail = ((==) 2) . List.length . (splitOn "@")
-
 guessUserName :: Text -> Maybe (Text,Text)
 guessUserName n = case splitOn "@" n of
     [u',m'] -> if m' /= "" then Just (u',m')
@@ -65,7 +61,7 @@ newUsers' address us = do
   us' <- liftBase         $ mapM toUserHash us
   r   <- insertUsers      $ map toUserWrite us'
   _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
-  _   <- liftBase         $ mapM (mail address Invitation) us
+  _   <- liftBase         $ mapM (\u -> mail address (Invitation u)) us
   pure r
 ------------------------------------------------------------------------
 
@@ -75,7 +71,7 @@ updateUser (SendEmail send) server u = do
   u' <- liftBase     $ toUserHash   u
   n  <- updateUserDB $ toUserWrite  u'
   _  <- case send of
-     True  -> liftBase     $ mail server Update u
+     True  -> liftBase     $ mail server (PassUpdate u)
      False -> pure ()
   pure n
 

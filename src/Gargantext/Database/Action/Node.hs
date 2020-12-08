@@ -100,7 +100,7 @@ mkNodeWithParent_ConfigureHyperdata' nt (Just i) uId name = do
   case maybeNodeId of
     []  -> nodeError (DoesNotExist i)
     [n] -> do
-      cfg <- view config
+      cfg <- view hasConfig
       u <- case nt of
             NodeFrameWrite -> pure $ _gc_frame_write_url cfg
             NodeFrameCalc  -> pure $ _gc_frame_calc_url  cfg

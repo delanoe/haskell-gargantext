@@ -74,7 +74,7 @@ folderFilePath = do
 writeFile :: (MonadReader env m, MonadBase IO m, HasConfig env, SaveFile a)
           => a -> m FilePath
 writeFile a = do
-  dataPath <- view $ config . gc_datafilepath
+  dataPath <- view $ hasConfig . gc_datafilepath
 
   (foldPath, fileName) <- folderFilePath
 
@@ -91,13 +91,13 @@ writeFile a = do
 readFile :: (MonadReader env m, MonadBase IO m, HasConfig env, ReadFile a)
          => FilePath -> m a
 readFile fp = do
-  dataPath <- view $ config . gc_datafilepath
+  dataPath <- view $ hasConfig . gc_datafilepath
   liftBase $ readFile' $ dataPath <> "/" <> fp
 
 removeFile :: (MonadReader env m, MonadBase IO m, HasConfig env)
            => FilePath -> m ()
 removeFile fp = do
-  dataPath <- view $ config . gc_datafilepath
+  dataPath <- view $ hasConfig . gc_datafilepath
   liftBase $ SD.removeFile (dataPath <> "/" <> fp) `catch` handleExists
     where
       handleExists e

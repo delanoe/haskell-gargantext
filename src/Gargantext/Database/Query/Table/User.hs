@@ -96,6 +96,7 @@ selectUsersLightWith u = proc () -> do
 
 ----------------------------------------------------------
 
+
 getUsersWithId :: Int -> Cmd err [UserLight]
 getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
   where
@@ -138,7 +139,6 @@ usersLight = map toUserLight <$> users
 
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
-
 
 ----------------------------------------------------------------------
 insertNewUsers :: [NewUser GargPassword] -> Cmd err Int64

@@ -41,6 +41,7 @@ import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Node.Corpus.New.File
 import Gargantext.API.Node.Types
 import Gargantext.Core (Lang(..){-, allLangs-})
+import Gargantext.Database.Action.Mail (sendMail)
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow (FlowCmdM, flowCorpus, getDataText, flowDataText, TermType(..), DataOrigin(..){-, allDataOrigins-})
@@ -187,7 +188,7 @@ addToCorpusWithQuery :: FlowCmdM env err m
                        -> Maybe Integer
                        -> (JobLog -> m ())
                        -> m JobLog
-addToCorpusWithQuery u cid (WithQuery q dbs l _nid) maybeLimit logStatus = do
+addToCorpusWithQuery user cid (WithQuery q dbs l _nid) maybeLimit logStatus = do
   -- TODO ...
   logStatus JobLog { _scst_succeeded = Just 0
                    , _scst_failed    = Just 0
@@ -207,8 +208,10 @@ addToCorpusWithQuery u cid (WithQuery q dbs l _nid) maybeLimit logStatus = do
                    , _scst_events    = Just []
                    }
 
-  cids <- mapM (\txt -> flowDataText u txt (Multi l) cid) txts
+  cids <- mapM (\txt -> flowDataText user txt (Multi l) cid) txts
   printDebug "corpus id" cids
+  printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+  sendMail user
   -- TODO ...
   pure      JobLog { _scst_succeeded = Just 3
                    , _scst_failed    = Just 0
@@ -268,6 +271,9 @@ addToCorpusWithForm user cid (NewWithForm ft d l _n) logStatus = do
                      (map (map toHyperdataDocument) docs)
 
   printDebug "Extraction finished   : " cid
+  printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+  sendMail user
+
   pure      JobLog { _scst_succeeded = Just 2
                    , _scst_failed    = Just 0
                    , _scst_remaining = Just 0
@@ -339,6 +345,10 @@ addToCorpusWithFile user cid nwf@(NewWithFile _d _l fName) logStatus = do
     _     -> pure ()
 
   printDebug "[addToCorpusWithFile] File upload to corpus finished: " cid
+
+  printDebug "sending email" ("xxxxxxxxxxxxxxxxxxxxx" :: Text)
+  sendMail user
+
   pure $ JobLog { _scst_succeeded = Just 1
                 , _scst_failed    = Just 0
                 , _scst_remaining = Just 0

@@ -51,10 +51,10 @@ instance HasConnectionPool (Pool Connection) where
   connPool = identity
 
 class HasConfig env where
-  config :: Getter env GargConfig
+  hasConfig :: Getter env GargConfig
 
 instance HasConfig GargConfig where
-  config = identity
+  hasConfig = identity
 
 -------------------------------------------------------
 type JSONB = QueryRunnerColumnDefault PGJsonb
@@ -87,10 +87,10 @@ type CmdRandom env err m =
   , MonadRandom             m
   )
 
-type Cmd'' env err a = forall m.     CmdM'' env err m => m a
-type Cmd'  env err a = forall m.     CmdM'  env err m => m a
-type Cmd       err a = forall m env. CmdM   env err m => m a
-type CmdR      err a = forall m env. CmdRandom   env err m => m a
+type Cmd'' env err a = forall m.     CmdM''    env err m => m a
+type Cmd'  env err a = forall m.     CmdM'     env err m => m a
+type Cmd       err a = forall m env. CmdM      env err m => m a
+type CmdR      err a = forall m env. CmdRandom env err m => m a
 
 
 

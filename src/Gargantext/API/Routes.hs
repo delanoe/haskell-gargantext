@@ -251,7 +251,7 @@ addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =
   serveJobsAPI $
     JobFunction (\q log' -> do
-      limit <- view $ config . gc_max_docs_scrapers
+      limit <- view $ hasConfig . gc_max_docs_scrapers
       New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log')
       {- let log' x = do
         printDebug "addToCorpusWithQuery" x

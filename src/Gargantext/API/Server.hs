@@ -34,7 +34,7 @@ import Gargantext.API.Swagger (swaggerDoc)
 import Gargantext.API.ThrowAll (serverPrivateGargAPI)
 import Gargantext.Prelude
 import Gargantext.Prelude.Config (gc_url_backend_api)
-import Gargantext.Database.Prelude (config)
+import Gargantext.Database.Prelude (hasConfig)
 
 
 serverGargAPI :: Text -> GargServerM env err GargAPI
@@ -58,7 +58,7 @@ server env = do
             (Proxy :: Proxy GargAPI)
             (Proxy :: Proxy AuthContext)
             transform
-            (serverGargAPI (env ^. config . gc_url_backend_api))
+            (serverGargAPI (env ^. hasConfig . gc_url_backend_api))
      :<|> frontEndServer
   where
     transform :: forall a. GargM env GargError a -> Handler a

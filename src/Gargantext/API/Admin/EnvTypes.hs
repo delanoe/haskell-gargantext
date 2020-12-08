@@ -37,7 +37,7 @@ data Env = Env
 makeLenses ''Env
 
 instance HasConfig Env where
-  config = env_config
+  hasConfig = env_config
 
 instance HasConnectionPool Env where
   connPool = env_pool
@@ -78,7 +78,7 @@ data DevEnv = DevEnv
 makeLenses ''DevEnv
 
 instance HasConfig DevEnv where
-  config = dev_env_config
+  hasConfig = dev_env_config
 
 instance HasConnectionPool DevEnv where
   connPool = dev_env_pool

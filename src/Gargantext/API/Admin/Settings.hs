@@ -191,7 +191,7 @@ newPool param = createPool (connect param) close 1 (60*60) 8
 cleanEnv :: (HasConfig env, HasRepo env) => env -> IO ()
 cleanEnv env = do
   r <- takeMVar (env ^. repoEnv . renv_var)
-  repoSaverAction (env ^. config . gc_repofilepath) r
+  repoSaverAction (env ^. hasConfig . gc_repofilepath) r
   unlockFile (env ^. repoEnv . renv_lock)
 
 type IniPath  = FilePath

@@ -24,6 +24,20 @@ import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
+getUserLightWithId :: HasNodeError err => Int -> Cmd err UserLight
+getUserLightWithId i = do
+  candidates <- head <$> getUsersWithId i
+  case candidates of
+    Nothing -> nodeError NoUserFound
+    Just u  -> pure u
+
+getUserLightDB :: HasNodeError err => User -> Cmd err UserLight
+getUserLightDB u = do
+  userId <- getUserId u
+  userLight <- getUserLightWithId userId
+  pure userLight
+
+------------------------------------------------------------------------
 getUserId :: HasNodeError err
           => User
           -> Cmd err UserId
