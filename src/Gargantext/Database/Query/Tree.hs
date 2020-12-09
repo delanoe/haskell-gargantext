@@ -30,6 +30,7 @@ module Gargantext.Database.Query.Tree
   , dt_typeId
   , findShared
   , findNodes
+  , findNodesWithType
   , NodeMode(..)
   )
   where
@@ -38,7 +39,8 @@ import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
 import Control.Monad.Except (MonadError())
 import Data.List (tail, concat, nub)
 import Data.Map (Map, fromListWith, lookup)
-import qualified Data.Set as Set
+import qualified Data.Set  as Set
+import qualified Data.List as List
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
@@ -171,6 +173,14 @@ findNodesId :: RootId -> [NodeType] -> Cmd err [NodeId]
 findNodesId r nt = tail
                 <$> map _dt_nodeId
                 <$> dbTree r nt
+
+findNodesWithType :: RootId -> [NodeType] -> [NodeType] -> Cmd err [DbTreeNode]
+findNodesWithType root target through =
+  filter isInTarget <$> dbTree root through
+    where
+      isInTarget n = List.elem (fromNodeTypeId $ view dt_typeId n)
+                   $ List.nub $ target <> through
+
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 toTree :: ( MonadError e m

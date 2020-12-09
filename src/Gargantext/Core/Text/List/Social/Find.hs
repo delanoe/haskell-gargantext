@@ -31,6 +31,8 @@ findListsId u mode = do
                              <$> findNodes' rootId mode
   pure ns
 
+
+
 -- | TODO not clear enough:
 -- | Shared is for Shared with me but I am not the owner of it
 -- | Private is for all Lists I have created

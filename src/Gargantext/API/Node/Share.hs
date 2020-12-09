@@ -27,7 +27,7 @@ import Gargantext.Database.Action.User
 import Gargantext.Database.Action.User.New
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
-import Gargantext.Database.Query.Tree (findNodesId)
+import Gargantext.Database.Query.Tree (findNodesWithType)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Prelude
 import Servant
@@ -75,7 +75,12 @@ api userInviting nId (ShareTeamParams user') = do
               printDebug "[G.A.N.Share.api]" ("demo users are not allowed to invite" :: Text)
               pure ()
             False -> do
-              children <- findNodesId nId [NodeCorpus]
+              -- TODO better analysis of the composition of what is shared
+              children <- findNodesWithType nId [NodeList] [ NodeFolderShared
+                                                           , NodeTeam
+                                                           , NodeFolder
+                                                           , NodeCorpus
+                                                           ]
               _ <- case List.null children of
                 True -> do
                   printDebug "[G.A.N.Share.api]" ("Invitation is enabled if you share a corpus at least" :: Text)
