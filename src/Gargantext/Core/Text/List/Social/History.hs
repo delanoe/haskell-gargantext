@@ -22,25 +22,6 @@ import qualified Data.Map.Strict as Map
 import qualified Data.List as List
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 
-toMap :: Ord a => PatchMap a b -> Map a b
-toMap = Map.fromList . PatchMap.toList
-
-toMap' :: (Ord a, Ord b) => PatchMap a (PatchMap b c) -> Map a (Map b c)
-toMap' = (Map.map toMap) . toMap
-
--- type NgramsRepo       = Repo NgramsState NgramsStatePatch
--- type NgramsState      = Map      TableNgrams.NgramsType (Map NodeId NgramsTableMap)
--- type NgramsStatePatch = PatchMap TableNgrams.NgramsType (PatchMap NodeId NgramsTablePatch)
--- type NgramsTablePatch = Map NgramsTerm NgramsPatch
-
-
-toMap'' :: NgramsStatePatch
-        -> Map NgramsType
-           (Map ListId
-            (Map NgramsTerm NgramsPatch
-            )
-           )
-toMap'' = undefined
 
 
 history :: Foldable t
@@ -53,7 +34,26 @@ history nt lists = Map.unionsWith (<>)
                  . map (Map.filterWithKey (\k _ -> List.elem k lists))
                  . catMaybes
                  . map (Map.lookup nt)
-                 . map toMap''
+                 . map toMap
                  . view r_history
   where
     cons a = a : []
+
+toMap :: PatchMap NgramsType
+           (PatchMap NodeId
+            (NgramsTablePatch
+            )
+          )
+        -> Map NgramsType
+           (Map ListId
+            (Map NgramsTerm NgramsPatch
+            )
+           )
+toMap = Map.map (Map.map unNgramsTablePatch) . (Map.map toMap') . toMap'
+  where
+    toMap' :: Ord a => PatchMap a b -> Map a b
+    toMap' = Map.fromList . PatchMap.toList
+
+    unNgramsTablePatch :: NgramsTablePatch -> Map NgramsTerm NgramsPatch
+    unNgramsTablePatch (NgramsTablePatch p) = toMap' p
+
