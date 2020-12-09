@@ -47,6 +47,8 @@ listNgramsFromRepo nodeIds ngramsType repo = Map.mapKeys unNgramsTerm ngrams
     ngrams    = Map.unionsWith mergeNgramsElement
                 [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
+
+
 -- TODO-ACCESS: We want to do the security check before entering here.
 --              Add a static capability parameter would be nice.
 --              Ideally this is the access to `repoVar` which needs to

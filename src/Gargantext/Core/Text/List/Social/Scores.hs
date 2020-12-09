@@ -90,7 +90,6 @@ updateScores k t nre setText mtf =
 ------------------------------------------------------------------------
 -- | Main addFunctions to groupResolution the FlowListScores
 -- Use patch-map library here
--- diff, transformWith patches simplifies functions below
 addList :: ListType
         -> Maybe FlowListScores
         -> Maybe FlowListScores
@@ -110,11 +109,11 @@ addListScore l m = Map.alter (plus l) l  m
     plus CandidateTerm Nothing  = Just 1
     plus CandidateTerm (Just x) = Just $ x + 1
 
-    plus MapTerm Nothing        = Just 2
-    plus MapTerm (Just x)       = Just $ x + 2
+    plus MapTerm Nothing        = Just 1
+    plus MapTerm (Just x)       = Just $ x + 1
 
-    plus StopTerm Nothing       = Just 3
-    plus StopTerm (Just x)      = Just $ x + 3
+    plus StopTerm Nothing       = Just 1
+    plus StopTerm (Just x)      = Just $ x + 1
 
 ------------------------------------------------------------------------
 data KeepAllParents = KeepAllParents Bool
