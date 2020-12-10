@@ -12,10 +12,10 @@ module Gargantext.Core.Text.List.Social.History
   where
 
 import Data.Map (Map)
-import Control.Lens (view)
+import Control.Lens hiding (cons)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude
-import Gargantext.Core.Types (ListType(..), ListId, NodeId)
+import Gargantext.Core.Types (ListId, NodeId)
 import qualified Data.Map.Strict.Patch as PatchMap
 import qualified Data.Map.Strict as Map
 import qualified Data.List as List
@@ -26,9 +26,10 @@ userHistory :: [NgramsType]
         -> [ListId]
         -> Repo s NgramsStatePatch
         -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
-userHistory t l r = clean $ history t l r
+userHistory t l = clean . (history t l)
   where
     clean = Map.map (Map.map List.init)
+
 
 
 history :: [NgramsType]
@@ -72,5 +73,4 @@ toMap = Map.map (Map.map unNgramsTablePatch) . (Map.map toMap') . toMap'
 
     unNgramsTablePatch :: NgramsTablePatch -> Map NgramsTerm NgramsPatch
     unNgramsTablePatch (NgramsTablePatch p) = toMap' p
-
 
