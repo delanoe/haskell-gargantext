@@ -24,20 +24,20 @@ import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 
 
 
-history :: Foldable t
-        => NgramsType
-        -> t ListId
+history :: (Foldable t, Foldable h)
+        => t NgramsType
+        -> h ListId
         -> Repo s NgramsStatePatch
-        -> Map ListId [Map NgramsTerm NgramsPatch]
-history nt lists = Map.unionsWith (<>)
-                 . map (Map.map cons)
-                 . map (Map.filterWithKey (\k _ -> List.elem k lists))
-                 . catMaybes
-                 . map (Map.lookup nt)
+        -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
+history types lists = Map.unionsWith (<>)
+                 . map (Map.map (Map.map cons))
+                 . map (Map.map ((Map.filterWithKey (\k _ -> List.elem k lists))))
+                 . map (Map.filterWithKey (\k _ -> List.elem k types))
                  . map toMap
                  . view r_history
   where
-    cons a = a : []
+    cons a = [a]
+
 
 toMap :: PatchMap NgramsType
            (PatchMap NodeId
@@ -56,4 +56,5 @@ toMap = Map.map (Map.map unNgramsTablePatch) . (Map.map toMap') . toMap'
 
     unNgramsTablePatch :: NgramsTablePatch -> Map NgramsTerm NgramsPatch
     unNgramsTablePatch (NgramsTablePatch p) = toMap' p
+
 
