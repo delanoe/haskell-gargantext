@@ -644,7 +644,7 @@ data Repo s p = Repo
   , _r_history :: ![p]
     -- first patch in the list is the most recent
   }
-  deriving (Generic)
+  deriving (Generic, Show)
 
 instance (FromJSON s, FromJSON p) => FromJSON (Repo s p) where
   parseJSON = genericParseJSON $ unPrefix "_r_"

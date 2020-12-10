@@ -11,7 +11,6 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social.History
   where
 
-import Data.Maybe (catMaybes)
 import Data.Map (Map)
 import Control.Lens (view)
 import Gargantext.API.Ngrams.Types
@@ -23,20 +22,37 @@ import qualified Data.List as List
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 
 
-
-history :: (Foldable t, Foldable h)
-        => t NgramsType
-        -> h ListId
+userHistory :: [NgramsType]
+        -> [ListId]
         -> Repo s NgramsStatePatch
         -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
-history types lists = Map.unionsWith (<>)
-                 . map (Map.map (Map.map cons))
-                 . map (Map.map ((Map.filterWithKey (\k _ -> List.elem k lists))))
-                 . map (Map.filterWithKey (\k _ -> List.elem k types))
-                 . map toMap
-                 . view r_history
+userHistory t l r = clean $ history t l r
+  where
+    clean = Map.map (Map.map List.init)
+
+
+history :: [NgramsType]
+        -> [ListId]
+        -> Repo s NgramsStatePatch
+        -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
+history types lists = merge
+                    . map (Map.map ( Map.map cons))
+                    . map (Map.map ((Map.filterWithKey (\k _ -> List.elem k lists))))
+                    . map           (Map.filterWithKey (\k _ -> List.elem k types))
+                    . map toMap
+                    . view r_history
   where
     cons a = [a]
+
+
+merge :: [Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])]
+      ->  Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
+merge = Map.unionsWith merge'
+  where
+    merge' :: Map ListId [Map NgramsTerm NgramsPatch]
+           -> Map ListId [Map NgramsTerm NgramsPatch]
+           -> Map ListId [Map NgramsTerm NgramsPatch]
+    merge' = Map.unionWith (<>)
 
 
 toMap :: PatchMap NgramsType
