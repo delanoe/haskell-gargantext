@@ -36,7 +36,7 @@ module Gargantext.Database.Query.Tree
   where
 
 import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
-import Control.Monad.Except (MonadError())
+import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
 import Data.Map (Map, fromListWith, lookup)
 import qualified Data.Set  as Set
@@ -196,19 +196,18 @@ toTree m =
         Just _r  -> treeError TooManyRoots
 
      where
-       toTree' :: Map (Maybe ParentId) [DbTreeNode]
-               -> DbTreeNode
-               -> Tree NodeTree
-       toTree' m' n =
-         TreeN (toNodeTree n) $
-           -- | Lines below are equivalent computationally but not semantically
-           -- m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
-           toListOf (at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')) m'
+      toTree' :: Map (Maybe ParentId) [DbTreeNode]
+              -> DbTreeNode
+              -> Tree NodeTree
+      toTree' m' n =
+        TreeN (toNodeTree n) $
+          -- | Lines below are equivalent computationally but not semantically
+          -- m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
+          toListOf (at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')) m'
 
-       toNodeTree :: DbTreeNode
-                  -> NodeTree
-       toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
-
+      toNodeTree :: DbTreeNode
+                 -> NodeTree
+      toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
 
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
