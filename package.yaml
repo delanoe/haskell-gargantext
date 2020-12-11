@@ -188,6 +188,7 @@ library:
   - product-profunctors
   - profunctors
   - protolude
+  - pretty-simple
   - pureMD5
   - quickcheck-instances
   - rake

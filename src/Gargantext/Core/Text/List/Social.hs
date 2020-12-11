@@ -11,11 +11,14 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social
   where
 
+import Data.Map (Map)
 import Data.Monoid (mconcat)
 import Data.Text (Text)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Find
+import Gargantext.Core.Text.List.Social.History
+import Gargantext.Core.Text.List.Social.Patch
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Core.Types.Individu
@@ -81,9 +84,41 @@ flowSocialList flowPriority user nt flc =
                                   )
                                => NgramsType
                                -> FlowCont Text FlowListScores
-                               -> [NodeId]
+                               -> [ListId]
                                -> m (FlowCont Text FlowListScores)
       flowSocialListByModeWith nt'' flc'' ns =
             mapM (\l -> getListNgrams [l] nt'') ns
         >>= pure
           . toFlowListScores (keepAllParents nt'') flc''
+
+-----------------------------------------------------------------
+
+
+getHistory :: ( RepoCmdM env err m
+              , CmdM     env err m
+              , HasNodeError err
+              , HasTreeError err
+              )
+           => History
+           -> NgramsType
+           -> [ListId]
+           -> m (Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch]))
+getHistory hist nt listes =
+  history hist [nt] listes  <$> getRepo
+
+
+getHistoryScores :: ( RepoCmdM env err m
+                    , CmdM     env err m
+                    , HasNodeError err
+                    , HasTreeError err
+                    )
+                 => History
+                 -> NgramsType
+                 -> FlowCont Text FlowListScores
+                 -> [ListId]
+                 -> m (FlowCont Text FlowListScores)
+getHistoryScores hist nt fl listes =
+  addScorePatches nt listes fl <$> getHistory hist nt listes
+
+
+

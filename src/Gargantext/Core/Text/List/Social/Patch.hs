@@ -26,23 +26,20 @@ import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Patch.Class as Patch (Replace(..))
 
-{-
-fromList [(NgramsTerms,fromList [(NodeId 189,
--}
 
-addScorePaches :: NgramsType -> [ListId]
+addScorePatches :: NgramsType -> [ListId]
+               -> FlowCont Text FlowListScores
                -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
                -> FlowCont Text FlowListScores
-               -> FlowCont Text FlowListScores
-addScorePaches nt listes repo fl = foldl' (addScorePachesList nt repo) fl listes
+addScorePatches nt listes fl repo = foldl' (addScorePatchesList nt repo) fl listes
 
 
-addScorePachesList :: NgramsType
+addScorePatchesList :: NgramsType
                    -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
                    -> FlowCont Text FlowListScores
                    -> ListId
                    -> FlowCont Text FlowListScores
-addScorePachesList nt repo fl lid = foldl' addScorePatch fl patches
+addScorePatchesList nt repo fl lid = foldl' addScorePatch fl patches
   where
     patches = maybe [] (List.concat . (map Map.toList)) patches'
 
@@ -77,6 +74,17 @@ addScorePatch fl (NgramsTerm t, (NgramsPatch _children (Patch.Replace old_list n
 {-
 [fromList [(NgramsTerm {unNgramsTerm = "approach"},NgramsPatch {_patch_children = PatchMSet (PatchMap (fromList [(NgramsTerm {unNgramsTerm = "order"},Replace {_old = Just (), _new = Nothing})])), _patch_list = Keep})]
 ,fromList [(NgramsTerm {unNgramsTerm = "approach"},NgramsPatch {_patch_children = PatchMSet (PatchMap (fromList [(NgramsTerm {unNgramsTerm = "order"},Replace {_old = Nothing, _new = Just ()})])), _patch_list = Keep})]
+
+
+fromList [(NgramsTerm {unNgramsTerm = "Journals"}
+   ,NgramsReplace { _patch_old = Nothing
+                  , _patch_new = Just (NgramsRepoElement { _nre_size = 1
+                                                         , _nre_list = MapTerm
+                                                         , _nre_root = Nothing
+                                                         , _nre_parent = Nothing, _nre_children = MSet (fromList [(NgramsTerm {unNgramsTerm = "European Journal of Operational Research"},()),(NgramsTerm {unNgramsTerm = "Physical Review C"},())])})})]
+
+,fromList [(NgramsTerm {unNgramsTerm = "NOT FOUND"},NgramsPatch {_patch_children = PatchMSet (PatchMap (fromList [])), _patch_list = Replace {_old = MapTerm, _new = StopTerm}})]])])]
+
 -}
 addScorePatch fl (NgramsTerm t, NgramsPatch children Patch.Keep) = foldl' add fl $ toList children
   where
@@ -107,5 +115,3 @@ score field list n m = (Just mempty <> m)
                . field
                . at list
                %~ (<> Just n)
-
-

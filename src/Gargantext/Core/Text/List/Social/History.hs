@@ -21,13 +21,18 @@ import Gargantext.Prelude
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 
+-- TODO put this in Prelude maybe
 cons :: a -> [a]
 cons a = [a]
 
+------------------------------------------------------------------------
+-- | History control
 data History = User
              | NotUser
              | AllHistory
 
+------------------------------------------------------------------------
+-- | Main Function
 history :: History
         -> [NgramsType]
         -> [ListId]
@@ -44,6 +49,7 @@ history NotUser t l = clean . (history' t l)
 
 history AllHistory t l = history' t l
 
+------------------------------------------------------------------------
 
 history' :: [NgramsType]
         -> [ListId]
