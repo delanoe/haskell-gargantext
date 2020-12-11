@@ -190,24 +190,24 @@ toTree :: ( MonadError e m
        -> m (Tree NodeTree)
 toTree m =
     case lookup Nothing m of
-        Just [n] -> pure $ toTree' m n
-        Nothing  -> treeError NoRoot
-        Just []  -> treeError EmptyRoot
-        Just _r  -> treeError TooManyRoots
+        Just [root] -> pure $ toTree' m root
+        Nothing     -> treeError NoRoot
+        Just []     -> treeError EmptyRoot
+        Just _r     -> treeError TooManyRoots
 
      where
-      toTree' :: Map (Maybe ParentId) [DbTreeNode]
-              -> DbTreeNode
-              -> Tree NodeTree
-      toTree' m' n =
-        TreeN (toNodeTree n) $
-          -- | Lines below are equivalent computationally but not semantically
-          -- m' ^.. at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')
-          toListOf (at (Just $ _dt_nodeId n) . _Just . each . to (toTree' m')) m'
+       toTree' :: Map (Maybe ParentId) [DbTreeNode]
+               -> DbTreeNode
+               -> Tree NodeTree
+       toTree' m' root =
+         TreeN (toNodeTree root) $
+           -- | Lines below are equivalent computationally but not semantically
+           -- m' ^.. at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')
+           toListOf (at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')) m'
 
-      toNodeTree :: DbTreeNode
-                 -> NodeTree
-      toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
+       toNodeTree :: DbTreeNode
+                  -> NodeTree
+       toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
 
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
