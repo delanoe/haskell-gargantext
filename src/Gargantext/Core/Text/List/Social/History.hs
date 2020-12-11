@@ -20,31 +20,41 @@ import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
-import qualified Data.Map.Strict.Patch as PatchMap
 
+cons :: a -> [a]
+cons a = [a]
 
-userHistory :: [NgramsType]
+data History = User
+             | NotUser
+             | AllHistory
+
+history :: History
+        -> [NgramsType]
         -> [ListId]
         -> Repo s NgramsStatePatch
         -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
-userHistory t l = clean . (history t l)
+history User t l = clean . (history' t l)
   where
     clean = Map.map (Map.map List.init)
 
+history NotUser t l = clean . (history' t l)
+  where
+    clean = Map.map (Map.map last)
+    last = (maybe [] cons) . lastMay
+
+history AllHistory t l = history' t l
 
 
-history :: [NgramsType]
+history' :: [NgramsType]
         -> [ListId]
         -> Repo s NgramsStatePatch
         -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
-history types lists = merge
+history' types lists = merge
                     . map (Map.map ( Map.map cons))
                     . map (Map.map ((Map.filterWithKey (\k _ -> List.elem k lists))))
                     . map           (Map.filterWithKey (\k _ -> List.elem k types))
                     . map toMap
                     . view r_history
-  where
-    cons a = [a]
 
 
 merge :: [Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])]
