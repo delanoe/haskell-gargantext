@@ -11,21 +11,50 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social.Patch
   where
 
-import Data.Text (Text)
-import Data.Monoid
 import Control.Lens hiding (cons)
-import Gargantext.Prelude
-import Gargantext.Core.Text.List.Social.Prelude
+import Data.Map (Map)
+import Data.Maybe (fromMaybe, maybe)
+import Data.Monoid
+import Data.Text (Text)
 import Gargantext.API.Ngrams.Types
+import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.Core.Types (ListId)
 import Gargantext.Core.Types.Main (ListType)
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Prelude
+import qualified Data.List as List
+import qualified Data.Map  as Map
 import qualified Data.Patch.Class as Patch (Replace(..))
 
 {-
 fromList [(NgramsTerms,fromList [(NodeId 189,
 -}
 
-addScorePatch :: (NgramsTerm , NgramsPatch)
-              -> FlowCont Text FlowListScores
+addScorePaches :: NgramsType -> [ListId]
+               -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
+               -> FlowCont Text FlowListScores
+               -> FlowCont Text FlowListScores
+addScorePaches nt listes repo fl = foldl' (addScorePachesList nt repo) fl listes
+
+
+addScorePachesList :: NgramsType
+                   -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
+                   -> FlowCont Text FlowListScores
+                   -> ListId
+                   -> FlowCont Text FlowListScores
+addScorePachesList nt repo fl lid = foldl' addScorePatch fl patches
+  where
+    patches = maybe [] (List.concat . (map Map.toList)) patches'
+
+    patches' = do
+      lists      <- Map.lookup nt repo
+      mapPatches <- Map.lookup lid lists
+      pure mapPatches
+
+
+
+addScorePatch :: FlowCont Text FlowListScores
+              -> (NgramsTerm , NgramsPatch)
               -> FlowCont Text FlowListScores
 {- | Case of changing listType only. Patches look like:
 
@@ -41,7 +70,7 @@ Children are not modified in this specific case.
 -- New list get +1 score
 -- Hence others lists lay around 0 score
 -- TODO add children
-addScorePatch (NgramsTerm t, (NgramsPatch _children (Patch.Replace old_list new_list))) fl =
+addScorePatch fl (NgramsTerm t, (NgramsPatch _children (Patch.Replace old_list new_list))) =
   fl & flc_scores . at t %~ (score fls_listType old_list (-1))
      & flc_scores . at t %~ (score fls_listType new_list ( 1))
      
@@ -49,24 +78,26 @@ addScorePatch (NgramsTerm t, (NgramsPatch _children (Patch.Replace old_list new_
 [fromList [(NgramsTerm {unNgramsTerm = "approach"},NgramsPatch {_patch_children = PatchMSet (PatchMap (fromList [(NgramsTerm {unNgramsTerm = "order"},Replace {_old = Just (), _new = Nothing})])), _patch_list = Keep})]
 ,fromList [(NgramsTerm {unNgramsTerm = "approach"},NgramsPatch {_patch_children = PatchMSet (PatchMap (fromList [(NgramsTerm {unNgramsTerm = "order"},Replace {_old = Nothing, _new = Just ()})])), _patch_list = Keep})]
 -}
-addScorePatch (NgramsTerm t, NgramsPatch children Patch.Keep) fl = undefined
-{-
-      addParent = flc_scores . at t %~ (score MapTerm  1)
+addScorePatch fl (NgramsTerm t, NgramsPatch children Patch.Keep) = foldl' add fl $ toList children
+  where
+      add fl' (NgramsTerm t, Patch.Replace Nothing (Just _)) = doLink ( 1) t fl'
+      add fl' (NgramsTerm t, Patch.Replace (Just _) Nothing) = doLink (-1) t fl'
+      add _ _ = panic "addScorePatch: Error should not happen"
+
+      toList :: Ord a => PatchMSet a -> [(a,AddRem)]
+      toList = Map.toList . unPatchMap . unPatchMSet
+
+      doLink n child fl' = fl' & flc_scores . at child %~ (score fls_parents child n)
 
 
-      parent term n m = (Just mempty <> m)
-                     & _Just
-                     . fls_listType
-                     . at list
-                     %~ (<> Just n)
--}
-
-
+-- | TODO
+addScorePatch _ (NgramsTerm _, NgramsReplace _nre Nothing) =
+  panic "[G.C.T.L.S.P.addScorePatch] TODO needs nre"
 
 {- | Inserting a new Ngrams
 fromList [(NgramsTerm {unNgramsTerm = "journal"},NgramsReplace {_patch_old = Nothing, _patch_new = Just (NgramsRepoElement {_nre_size = 1, _nre_list = CandidateTerm, _nre_root = Nothing, _nre_parent = Nothing, _nre_children = MSet (fromList [])})})],f
 -}
-addScorePatch (NgramsTerm t, NgramsReplace _ (Just nre)) fl        =
+addScorePatch fl (NgramsTerm t, NgramsReplace _ (Just nre)) =
   fl & flc_scores . at t %~ (score fls_listType $ nre ^. nre_list) ( 1)
 
 

@@ -19,14 +19,16 @@ module Gargantext.Core.Text.List.Social.Prelude
   where
 
 import Control.Lens
-import Data.Semigroup (Semigroup(..))
-import Data.Monoid
 import Data.Map (Map)
+import Data.Monoid
+import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
+import GHC.Generics (Generic)
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types.Main
 import Gargantext.Prelude
-import GHC.Generics (Generic)
 import qualified Data.Map   as Map
+import qualified Data.Map.Strict.Patch as PatchMap
 
 ------------------------------------------------------------------------
 type Parent = Text
@@ -107,4 +109,13 @@ hasParent t m = case Map.lookup t m of
 ------------------------------------------------------------------------
 keyWithMaxValue :: Map a b -> Maybe a
 keyWithMaxValue m = (fst . fst) <$> Map.maxViewWithKey m
+
+
+------------------------------------------------------------------------
+unPatchMap :: Ord a => PatchMap a b -> Map a b
+unPatchMap = Map.fromList . PatchMap.toList
+
+unNgramsTablePatch :: NgramsTablePatch -> Map NgramsTerm NgramsPatch
+unNgramsTablePatch (NgramsTablePatch p) = unPatchMap p
+
 

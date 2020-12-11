@@ -11,15 +11,16 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social.History
   where
 
-import Data.Map (Map)
 import Control.Lens hiding (cons)
+import Data.Map (Map)
 import Gargantext.API.Ngrams.Types
-import Gargantext.Prelude
-import Gargantext.Core.Types (ListId, NodeId)
-import qualified Data.Map.Strict.Patch as PatchMap
-import qualified Data.Map.Strict as Map
-import qualified Data.List as List
+import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Prelude
+import qualified Data.List as List
+import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict.Patch as PatchMap
 
 
 userHistory :: [NgramsType]
@@ -57,7 +58,7 @@ merge = Map.unionsWith merge'
 
 
 toMap :: PatchMap NgramsType
-           (PatchMap NodeId
+           (PatchMap ListId
             (NgramsTablePatch
             )
           )
@@ -66,11 +67,6 @@ toMap :: PatchMap NgramsType
             (Map NgramsTerm NgramsPatch
             )
            )
-toMap = Map.map (Map.map unNgramsTablePatch) . (Map.map toMap') . toMap'
-  where
-    toMap' :: Ord a => PatchMap a b -> Map a b
-    toMap' = Map.fromList . PatchMap.toList
+toMap = Map.map (Map.map unNgramsTablePatch) . (Map.map unPatchMap) . unPatchMap
 
-    unNgramsTablePatch :: NgramsTablePatch -> Map NgramsTerm NgramsPatch
-    unNgramsTablePatch (NgramsTablePatch p) = toMap' p
 

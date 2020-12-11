@@ -342,10 +342,12 @@ isRem = (== remPatch)
 
 type PatchMap = PM.PatchMap
 
-
 newtype PatchMSet a = PatchMSet (PatchMap a AddRem)
   deriving (Eq, Show, Generic, Validity, Semigroup, Monoid, Group,
             Transformable, Composable)
+
+unPatchMSet :: PatchMSet a -> PatchMap a AddRem
+unPatchMSet (PatchMSet a) = a
 
 type ConflictResolutionPatchMSet a = a -> ConflictResolutionReplace (Maybe ())
 type instance ConflictResolution (PatchMSet a) = ConflictResolutionPatchMSet a
