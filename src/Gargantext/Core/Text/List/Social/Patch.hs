@@ -24,14 +24,12 @@ import qualified Data.Map.Strict.Patch as PatchMap
 import qualified Data.Map.Strict as Map
 import qualified Data.List as List
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
-
-
--- (1,Nothing) & _2 %~ (<> (Just (-1)))
+import Gargantext.API.Ngrams.Types
+import qualified Data.Patch.Class as Patch (Replace(..))
 
 {-
 fromList [(NgramsTerms,fromList [(NodeId 189,
          
-
 fromList [(NgramsTerm {unNgramsTerm = "journal"},NgramsReplace {_patch_old = Nothing, _patch_new = Just (NgramsRepoElement {_nre_size = 1, _nre_list = CandidateTerm, _nre_root = Nothing, _nre_parent = Nothing, _nre_children = MSet (fromList [])})})],f
 
 [fromList [(NgramsTerm {unNgramsTerm = "approach"},NgramsPatch {_patch_children = PatchMSet (PatchMap (fromList [(NgramsTerm {unNgramsTerm = "order"},Replace {_old = Just (), _new = Nothing})])), _patch_list = Keep})]
@@ -41,16 +39,38 @@ fromList [(NgramsTerm {unNgramsTerm = "journal"},NgramsReplace {_patch_old = Not
 ,fromList [(NgramsTerm {unNgramsTerm = "paper"},NgramsPatch {_patch_children = PatchMSet (PatchMap (fromList [])), _patch_list = Replace {_old = MapTerm, _new = StopTerm}})]])])]
 -}
 
-addScorePatch :: Text {--> NgramsPatch-} -> FlowCont Text FlowListScores
-addScorePatch t = fl & flc_scores . at t %~ score
+addScorePatch :: (NgramsTerm , NgramsPatch)
+              -> FlowCont Text FlowListScores
+              -> FlowCont Text FlowListScores
+addScorePatch (NgramsTerm t, (NgramsPatch children (Patch.Replace old_list new_list))) fl =
+  fl & with_old_list
+     & with_new_list
+     -- & addParent
 
-  where
-    fl      = FlowCont mempty mempty
-    score m = (Just mempty <> m)
-            & _Just
-            . fls_listType
-            . at MapTerm
-            %~ (<> Just 1)
+    where
+      -- Old list get -1 score
+      -- New list get +1 score
+      -- Hence others lists lay around 0 score
+      with_old_list   = flc_scores . at t %~ (score old_list (-1))
+      with_new_list   = flc_scores . at t %~ (score new_list ( 1))
+
+      score list n m = (Just mempty <> m)
+                     & _Just
+                     . fls_listType
+                     . at list
+                     %~ (<> Just n)
+
+{-
+      addParent = flc_scores . at t %~ (score MapTerm  1)
+
+
+      parent term n m = (Just mempty <> m)
+                     & _Just
+                     . fls_listType
+                     . at list
+                     %~ (<> Just n)
+-}
+
 
 
 
