@@ -27,9 +27,9 @@ cons a = [a]
 
 ------------------------------------------------------------------------
 -- | History control
-data History = User
-             | NotUser
-             | AllHistory
+data History = History_User
+             | History_NotUser
+             | History_All
 
 ------------------------------------------------------------------------
 -- | Main Function
@@ -38,16 +38,16 @@ history :: History
         -> [ListId]
         -> Repo s NgramsStatePatch
         -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
-history User t l = clean . (history' t l)
+history History_User t l = clean . (history' t l)
   where
     clean = Map.map (Map.map List.init)
 
-history NotUser t l = clean . (history' t l)
+history History_NotUser t l = clean . (history' t l)
   where
     clean = Map.map (Map.map last)
     last = (maybe [] cons) . lastMay
 
-history AllHistory t l = history' t l
+history _ t l = history' t l
 
 ------------------------------------------------------------------------
 
