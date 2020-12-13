@@ -83,8 +83,8 @@ addScorePatch fl (NgramsTerm p, NgramsPatch children' Patch.Keep) =
       -- | Removing a child
       add' fl' (NgramsTerm t, Patch.Replace (Just _) Nothing) = doLink (-1) p t fl'
 
-      -- | Maybe TODO
-      add' _ _ = panic "[G.C.T.L.S.P.addScorePatch] This case should not happen"
+      -- | This case should not happen: does Nothing
+      add' fl' _ = fl'
 
 -- | Inserting a new Ngrams
 addScorePatch fl (NgramsTerm t, NgramsReplace Nothing (Just nre)) =
