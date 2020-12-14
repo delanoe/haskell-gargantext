@@ -17,6 +17,7 @@ module Gargantext.API.Node.Corpus.Export
   where
 
 
+import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
@@ -76,7 +77,7 @@ getNodeNgrams :: HasNodeError err
         -> Maybe ListId
         -> NgramsType
         -> NgramsRepo
-        -> Cmd err (Map NodeId (Set Text))
+        -> Cmd err (HashMap NodeId (Set Text))
 getNodeNgrams cId lId' nt repo = do
   lId <- case lId' of
     Nothing -> defaultList cId

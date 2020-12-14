@@ -124,7 +124,7 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
-  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema)
+  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable)
 
 instance FromJSONKey NgramsTerm where
   fromJSONKey = FromJSONKeyTextParser $ \t -> pure $ NgramsTerm $ strip t
