@@ -107,8 +107,19 @@ hasParent t m = case Map.lookup t m of
   Just  m' -> keyWithMaxValue m'
 
 ------------------------------------------------------------------------
-keyWithMaxValue :: Map a b -> Maybe a
-keyWithMaxValue m = (fst . fst) <$> Map.maxViewWithKey m
+-- | Takes key with max value if and only if value > 0
+-- If value <= 0 alors key is not taken at all
+-- It can happens since some score are non positive (i.e. removing a child)
+-- >>> keyWithMaxValue $ DM.fromList $ zip (['a'..'z'] :: [Char]) ([1,2..]::[Int])
+-- Just 'z'
+-- >>> keyWithMaxValue $ DM.fromList $ zip (['a'..'z'] :: [Char]) ([-1,-2..]::[Int])
+-- Nothing
+keyWithMaxValue :: (Ord b, Num b) => Map a b -> Maybe a
+keyWithMaxValue m = do
+  (k,a) <- fst <$> Map.maxViewWithKey m
+  if a > 0
+    then Just k
+    else Nothing
 
 
 ------------------------------------------------------------------------
