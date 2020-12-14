@@ -18,6 +18,7 @@ module Gargantext.Database.Action.Metrics
 import Data.Map (Map)
 import qualified Data.Map    as Map
 import Data.Text (Text)
+import Data.Vector (Vector)
 
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
@@ -33,7 +34,7 @@ import Gargantext.Core.Text.Metrics (scored, Scored(..), {-localMetrics, toScore
 
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
-            -> m (Map Text (ListType, Maybe Text), [Scored Text])
+            -> m (Map Text (ListType, Maybe Text), Vector (Scored Text))
 getMetrics cId maybeListId tabType maybeLimit = do
   (ngs, _, myCooc) <- getNgramsCooc cId maybeListId tabType maybeLimit
   pure (ngs, scored myCooc)
@@ -43,7 +44,7 @@ getNgramsCooc :: (FlowCmdM env err m)
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit
             -> m ( Map Text (ListType, Maybe Text)
                  , Map Text (Maybe RootTerm)
-                 , Map (Text, Text) Int
+                 , HashMap (Text, Text) Int
                  )
 getNgramsCooc cId maybeListId tabType maybeLimit = do
   (ngs', ngs) <- getNgrams cId maybeListId tabType
@@ -55,10 +56,10 @@ getNgramsCooc cId maybeListId tabType maybeLimit = do
   lId  <- defaultList cId
   lIds <- selectNodesWithUsername NodeList userMaster
 
-  myCooc <- Map.filter (>1) <$> getCoocByNgrams (Diagonal True)
-                            <$> groupNodesByNgrams ngs
-                            <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) (ngramsTypeFromTabType tabType)
-                                                             (take' maybeLimit $ Map.keys ngs)
+  myCooc <- HM.filter (>1) <$> getCoocByNgrams (Diagonal True)
+                           <$> groupNodesByNgrams ngs
+                           <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) (ngramsTypeFromTabType tabType)
+                                                            (take' maybeLimit $ Map.keys ngs)
   pure $ (ngs', ngs, myCooc)
 
 

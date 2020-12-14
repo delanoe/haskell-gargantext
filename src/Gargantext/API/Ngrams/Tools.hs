@@ -9,13 +9,18 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE TypeFamilies #-}
 
 module Gargantext.API.Ngrams.Tools
   where
 
 import Control.Concurrent
-import Control.Lens (_Just, (^.), at, view)
+import Control.Lens (_Just, (^.), at, view, At, Index, IxValue)
 import Control.Monad.Reader
+import Data.Hashable (Hashable)
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HM
+import Gargantext.Data.HashMap.Strict.Utils as HM
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -31,7 +36,7 @@ import Gargantext.Prelude
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
 
-type RootTerm = Text
+type RootTerm = NgramsTerm
 
 getRepo :: RepoCmdM env err m => m NgramsRepo
 getRepo = do
@@ -39,8 +44,8 @@ getRepo = do
   liftBase $ readMVar v
 
 listNgramsFromRepo :: [ListId] -> NgramsType
-                   -> NgramsRepo -> Map Text NgramsRepoElement
-listNgramsFromRepo nodeIds ngramsType repo = Map.mapKeys unNgramsTerm ngrams
+                   -> NgramsRepo -> Map NgramsTerm NgramsRepoElement
+listNgramsFromRepo nodeIds ngramsType repo = ngrams
   where
     ngramsMap = repo ^. r_state . at ngramsType . _Just
 
@@ -55,73 +60,88 @@ listNgramsFromRepo nodeIds ngramsType repo = Map.mapKeys unNgramsTerm ngrams
 --              be properly guarded.
 getListNgrams :: RepoCmdM env err m
               => [ListId] -> NgramsType
-              -> m (Map Text NgramsRepoElement)
+              -> m (Map NgramsTerm NgramsRepoElement)
 getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType <$> getRepo
 
-getTermsWith :: (RepoCmdM env err m, Ord a)
-          => (Text -> a ) -> [ListId]
+getTermsWith :: (RepoCmdM env err m, Eq a, Hashable a)
+          => (NgramsTerm -> a) -> [ListId]
           -> NgramsType -> ListType
-          -> m (Map a [a])
-getTermsWith f ls ngt lt = Map.fromListWith (<>)
-                      <$> map (toTreeWith f)
+          -> m (HashMap a [a])
+getTermsWith f ls ngt lt = HM.fromListWith (<>)
+                      <$> map toTreeWith
                       <$> Map.toList
-                      <$> Map.filter (\f' -> (fst f') == lt)
+                      <$> Map.filter (\f' -> fst f' == lt)
                       <$> mapTermListRoot ls ngt
                       <$> getRepo
   where
-    toTreeWith f'' (t, (_lt, maybeRoot)) = case maybeRoot of
-      Nothing -> (f'' t, [])
-      Just  r -> (f'' r, map f'' [t])
+    toTreeWith (t, (_lt, maybeRoot)) = case maybeRoot of
+      Nothing -> (f t, [])
+      Just  r -> (f r, [f t])
 
 mapTermListRoot :: [ListId]
                 -> NgramsType
                 -> NgramsRepo
-                -> Map Text (ListType, (Maybe Text))
+                -> Map NgramsTerm (ListType, Maybe NgramsTerm)
 mapTermListRoot nodeIds ngramsType repo =
-  Map.fromList [ (t, (_nre_list nre, unNgramsTerm <$> _nre_root nre))
-               | (t, nre) <- Map.toList ngrams
-               ]
-  where ngrams = listNgramsFromRepo nodeIds ngramsType repo
+  (\nre -> (_nre_list nre, _nre_root nre)) <$>
+  listNgramsFromRepo nodeIds ngramsType repo
 
-filterListWithRoot :: ListType
-                   -> Map Text (ListType, Maybe Text)
-                   -> Map Text (Maybe RootTerm)
-filterListWithRoot lt m = Map.fromList
-                    $ map (\(t,(_,r)) -> (t,r))
-                    $ filter isMapTerm (Map.toList m)
+filterListWithRootHashMap :: ListType
+                          -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
+                          -> HashMap NgramsTerm (Maybe RootTerm)
+filterListWithRootHashMap lt m = snd <$> HM.filter isMapTerm m
   where
-    isMapTerm (_t,(l, maybeRoot)) = case maybeRoot of
+    isMapTerm (l, maybeRoot) = case maybeRoot of
       Nothing -> l == lt
-      Just  r -> case Map.lookup r m of
-        Nothing -> panic $ "Garg.API.Ngrams.Tools: filterWithRoot, unknown key: " <> r
+      Just  r -> case HM.lookup r m of
+        Nothing -> panic $ "Garg.API.Ngrams.Tools: filterWithRoot, unknown key: " <> unNgramsTerm r
         Just  (l',_) -> l' == lt
 
-groupNodesByNgrams :: Map Text (Maybe RootTerm)
-                   -> Map Text (Set NodeId)
-                   -> Map Text (Set NodeId)
-groupNodesByNgrams syn occs = Map.fromListWith (<>) occs'
+filterListWithRoot :: ListType
+                   -> Map NgramsTerm (ListType, Maybe NgramsTerm)
+                   -> Map NgramsTerm (Maybe RootTerm)
+filterListWithRoot lt m = snd <$> Map.filter isMapTerm m
   where
-    occs' = map toSyn (Map.toList occs)
-    toSyn (t,ns) = case Map.lookup t syn of
-      Nothing -> panic $ "[Garg.API.Ngrams.Tools.groupNodesByNgrams] unknown key: " <> t
+    isMapTerm (l, maybeRoot) = case maybeRoot of
+      Nothing -> l == lt
+      Just  r -> case Map.lookup r m of
+        Nothing -> panic $ "Garg.API.Ngrams.Tools: filterWithRoot, unknown key: " <> unNgramsTerm r
+        Just  (l',_) -> l' == lt
+
+groupNodesByNgrams :: ( At root_map
+                      , Index root_map ~ NgramsTerm
+                      , IxValue root_map ~ Maybe RootTerm
+                      )
+                   => root_map
+                   -> HashMap NgramsTerm (Set NodeId)
+                   -> HashMap NgramsTerm (Set NodeId)
+groupNodesByNgrams syn occs = HM.fromListWith (<>) occs'
+  where
+    occs' = map toSyn (HM.toList occs)
+    toSyn (t,ns) = case syn ^. at t of
+      Nothing -> panic $ "[Garg.API.Ngrams.Tools.groupNodesByNgrams] unknown key: " <> unNgramsTerm t
       Just  r -> case r of
         Nothing  -> (t, ns)
         Just  r' -> (r',ns)
 
 data Diagonal = Diagonal Bool
 
-getCoocByNgrams :: Diagonal -> Map Text (Set NodeId) -> Map (Text, Text) Int
+getCoocByNgrams :: Diagonal -> HashMap Text (Set NodeId) -> HashMap (Text, Text) Int
 getCoocByNgrams = getCoocByNgrams' identity
 
 
-getCoocByNgrams' :: (Ord a, Ord c) => (b -> Set c) -> Diagonal -> Map a b -> Map (a, a) Int
+getCoocByNgrams' :: (Hashable a, Ord a, Ord c) => (b -> Set c) -> Diagonal -> HashMap a b -> HashMap (a, a) Int
 getCoocByNgrams' f (Diagonal diag) m =
-  Map.fromList [( (t1,t2)
-                , maybe 0 Set.size $ Set.intersection
-                                  <$> (fmap f $ Map.lookup t1 m)
-                                  <*> (fmap f $ Map.lookup t2 m)
-                ) | (t1,t2) <- case diag of
-                                 True   -> [ (x,y) | x <- Map.keys m, y <- Map.keys m, x <= y]
-                                 False  -> listToCombi identity (Map.keys m)
-               ]
+  HM.fromList [( (t1,t2)
+               , maybe 0 Set.size $ Set.intersection
+                                 <$> (fmap f $ HM.lookup t1 m)
+                                 <*> (fmap f $ HM.lookup t2 m)
+               )
+              | (t1,t2) <- if diag then
+                             [ (x,y) | x <- ks, y <- ks, x <= y] -- TODO if we keep a Data.Map here it might be
+                                                                 -- more efficient to enumerate all the y <= x.
+                           else
+                             listToCombi identity ks
+              ]
 
+  where ks = HM.keys m

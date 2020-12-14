@@ -5,6 +5,8 @@ module Gargantext.Database.Admin.Types.Metrics where
 
 import Data.Aeson.TH (deriveJSON)
 import Data.Swagger
+import Data.Vector (Vector)
+import qualified Data.Vector as V
 import Protolude
 import Test.QuickCheck.Arbitrary
 
@@ -13,15 +15,15 @@ import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 
 ----------------------------------------------------------------------------
 
-data Metrics = Metrics
-  { metrics_data :: [Metric]}
+newtype Metrics = Metrics
+  { metrics_data :: Vector Metric}
   deriving (Generic, Show)
 
 instance ToSchema Metrics where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "metrics_")
 instance Arbitrary Metrics
   where
-    arbitrary = Metrics <$> arbitrary
+    arbitrary = (Metrics . V.fromList) <$> arbitrary
 
 data Metric = Metric
   { m_label :: !Text
@@ -43,7 +45,7 @@ deriveJSON (unPrefix "metrics_") ''Metrics
 deriveJSON (unPrefix "m_") ''Metric
 
 
-data ChartMetrics a = ChartMetrics { chartMetrics_data :: a }
+newtype ChartMetrics a = ChartMetrics { chartMetrics_data :: a }
   deriving (Generic, Show)
 
 instance (Typeable a, ToSchema a) => ToSchema (ChartMetrics a) where

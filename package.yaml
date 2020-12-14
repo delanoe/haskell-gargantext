@@ -150,6 +150,7 @@ library:
   - full-text-search
   - fullstop
   - graphviz
+  - hashable
   - haskell-igraph
   - hlcm
   - hsparql

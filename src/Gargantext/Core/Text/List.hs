@@ -188,19 +188,19 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                                             selectedTerms
 
   let
-    groupedTreeScores_SetNodeId :: Map Text (GroupedTreeScores (Set NodeId))
+    groupedTreeScores_SetNodeId :: HashMap Text (GroupedTreeScores (Set NodeId))
     groupedTreeScores_SetNodeId = setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
 
   -- | Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
-  let mapCooc = Map.filter (>2)
-            $ Map.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
+  let mapCooc = HM.filter (>2)
+             $ HM.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
                            | (t1, s1) <- mapStemNodeIds
                            , (t2, s2) <- mapStemNodeIds
                            ]
           where
-            mapStemNodeIds = Map.toList
-                           $ Map.map viewScores
+            mapStemNodeIds = HM.toList
+                           $ HM.map viewScores
                            $ groupedTreeScores_SetNodeId
   let
     -- computing scores
