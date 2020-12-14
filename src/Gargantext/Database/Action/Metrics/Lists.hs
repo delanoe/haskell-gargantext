@@ -56,5 +56,5 @@ getMetrics' cId maybeListId tabType maybeLimit = do
   {-
   _ <- Learn.grid 100 110 metrics' metrics'
   --}
-  pure $ Map.fromListWith (<>) metrics
+  pure $ Map.fromListWith (<>) $ Vec.toList metrics
 
