@@ -65,7 +65,6 @@ Children are not modified in this specific case.
 -- | Old list get -1 score
 -- New list get +1 score
 -- Hence others lists lay around 0 score
--- TODO add children
 addScorePatch fl (NgramsTerm t, (NgramsPatch children' (Patch.Replace old_list new_list))) =
   -- | Adding New Children score
   addScorePatch fl' (NgramsTerm t, NgramsPatch children' Patch.Keep)
@@ -73,27 +72,30 @@ addScorePatch fl (NgramsTerm t, (NgramsPatch children' (Patch.Replace old_list n
       -- | Adding New ListType score
       fl' = fl & flc_scores . at t %~ (score fls_listType old_list (-1))
           & flc_scores . at t %~ (score fls_listType new_list ( 1))
+          & flc_cont   %~ (Map.delete t)
 
 -- | Patching existing Ngrams with children
 addScorePatch fl (NgramsTerm p, NgramsPatch children' Patch.Keep) =
-  foldl' add' fl $ patchMSet_toList children'
+  foldl' addChild fl $ patchMSet_toList children'
     where
       -- | Adding a child
-      add' fl' (NgramsTerm t, Patch.Replace Nothing (Just _)) = doLink ( 1) p t fl'
+      addChild fl' (NgramsTerm t, Patch.Replace Nothing (Just _)) = doLink ( 1) p t fl'
       -- | Removing a child
-      add' fl' (NgramsTerm t, Patch.Replace (Just _) Nothing) = doLink (-1) p t fl'
+      addChild fl' (NgramsTerm t, Patch.Replace (Just _) Nothing) = doLink (-1) p t fl'
 
       -- | This case should not happen: does Nothing
-      add' fl' _ = fl'
+      addChild fl' _ = fl'
 
 -- | Inserting a new Ngrams
 addScorePatch fl (NgramsTerm t, NgramsReplace Nothing (Just nre)) =
   childrenScore 1 t (nre ^. nre_children) 
   $ fl & flc_scores . at t %~ (score fls_listType $ nre ^. nre_list) 1
+       & flc_cont   %~ (Map.delete t)
 
 addScorePatch fl (NgramsTerm t, NgramsReplace (Just old_nre) maybe_new_nre) =
   let fl' = childrenScore (-1) t (old_nre ^. nre_children) 
             $ fl & flc_scores . at t %~ (score fls_listType $ old_nre ^. nre_list) (-1)
+                 & flc_cont   %~ (Map.delete t)
     in case maybe_new_nre of
       Nothing      -> fl'
       Just new_nre -> addScorePatch fl' (NgramsTerm t, NgramsReplace Nothing (Just new_nre))

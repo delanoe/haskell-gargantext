@@ -25,6 +25,7 @@ import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
+import Gargantext.Core.Text.Metrics.Freq (getMaxFromMap)
 import Gargantext.Core.Types.Main
 import Gargantext.Prelude
 import qualified Data.Map   as Map
@@ -96,9 +97,7 @@ parentUnionsExcl :: Ord a
                  ->  Map a b
 parentUnionsExcl = Map.unions
 
-
 ------------------------------------------------------------------------
-
 hasParent :: Text
           -> Map Text (Map Parent Int)
           -> Maybe Parent
@@ -114,12 +113,19 @@ hasParent t m = case Map.lookup t m of
 -- Just 'z'
 -- >>> keyWithMaxValue $ DM.fromList $ zip (['a'..'z'] :: [Char]) ([-1,-2..]::[Int])
 -- Nothing
-keyWithMaxValue :: (Ord b, Num b) => Map a b -> Maybe a
+keyWithMaxValue :: (Ord a, Ord b, Num b) => Map a b -> Maybe a
 keyWithMaxValue m = do
-  (k,a) <- fst <$> Map.maxViewWithKey m
-  if a > 0
-    then Just k
-    else Nothing
+  k <- headMay $ getMaxFromMap m
+  maxValue <- Map.lookup k m
+  if maxValue > 0
+     then pure k
+     else Nothing
+
+
+findMax :: (Ord b, Num b) => Map a b -> Maybe (a,b)
+findMax m = case Map.null m of
+  True  -> Nothing
+  False -> Just $ Map.findMax m
 
 
 ------------------------------------------------------------------------

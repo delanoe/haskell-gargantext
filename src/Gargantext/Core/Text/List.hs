@@ -101,8 +101,17 @@ buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
                                                                  (List.cycle [mempty])
                                            )
 
+  if nt == Authors
+     then printDebug "flowSocialList" socialLists
+     else printDebug "flowSocialList" ""
+
   let
     groupedWithList = toGroupedTree groupParams socialLists allTerms
+
+  if nt == Authors
+     then printDebug "groupedWithList" groupedWithList
+     else printDebug "groupedWithList" ""
+
 
   let
     (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType)
