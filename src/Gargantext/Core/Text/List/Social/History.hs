@@ -21,7 +21,7 @@ import Gargantext.Prelude
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 
--- TODO put this in Prelude maybe
+-- TODO put this in Prelude
 cons :: a -> [a]
 cons a = [a]
 

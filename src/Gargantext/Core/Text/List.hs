@@ -22,8 +22,7 @@ import Data.Ord (Down(..))
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
-import Gargantext.API.Ngrams.Types (NgramsElement)
-import Gargantext.API.Ngrams.Types (RepoCmdM)
+import Gargantext.API.Ngrams.Types (NgramsElement, RepoCmdM, NgramsTerm(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Group
 import Gargantext.Core.Text.List.Group.Prelude
@@ -90,7 +89,7 @@ buildNgramsOthersList ::( HasNodeError err
                         -> GroupParams
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
+buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
   allTerms  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
   -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
@@ -100,9 +99,18 @@ buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
                                                       $ List.zip (Map.keys allTerms)
                                                                  (List.cycle [mempty])
                                            )
-
+{-
+  if nt == Sources -- Authors
+     then printDebug "flowSocialList" socialLists
+     else printDebug "flowSocialList" ""
+-}
   let
-    groupedWithList = toGroupedTree groupParams socialLists allTerms
+    groupedWithList = toGroupedTree {- groupParams -} socialLists allTerms
+{-
+  if nt == Sources -- Authors
+     then printDebug "groupedWithList" groupedWithList
+     else printDebug "groupedWithList" ""
+-}
 
   let
     (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType)
@@ -149,7 +157,9 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                                                                  (List.cycle [mempty])
                                            )
 
-  let groupedWithList = toGroupedTree groupParams socialLists allTerms
+  let socialLists_Stemmed = addScoreStem groupParams (Set.map NgramsTerm $ Map.keysSet allTerms) socialLists
+  printDebug "socialLists_Stemmed" socialLists_Stemmed
+  let groupedWithList = toGroupedTree {- groupParams -} socialLists_Stemmed allTerms
       (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList
 

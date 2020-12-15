@@ -25,28 +25,19 @@ import Data.Monoid (Monoid, mempty)
 import Data.Text (Text)
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group.Prelude
-import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Prelude
 import qualified Data.Map  as Map
 
 ------------------------------------------------------------------------
--- | TODO add group with stemming
-toGroupedTree :: (Ord a, Monoid a, GroupWithStem a)
-              => GroupParams
-              -> FlowCont Text FlowListScores
+toGroupedTree :: (Ord a, Monoid a)
+              => FlowCont Text FlowListScores
               -> Map Text a
-             -- -> Map Text (GroupedTreeScores (Set NodeId))
               -> FlowCont Text (GroupedTreeScores a)
-toGroupedTree groupParams flc scores = {-view flc_scores-} flow2
+toGroupedTree flc scores =
+  groupWithScores' flc scoring
     where
-      flow1     = groupWithScores' flc scoring
       scoring t = fromMaybe mempty $ Map.lookup t scores
-
-      flow2 = case (view flc_cont flow1) == Map.empty of
-        True  -> flow1
-        False -> groupWithStem' groupParams flow1
-
 
 
 ------------------------------------------------------------------------
@@ -74,6 +65,4 @@ setScoresWith f = Map.mapWithKey (\k v -> v { _gts'_score    = f k
                                                              $ view gts'_children v
                                             }
                                  )
-
-
 ------------------------------------------------------------------------
