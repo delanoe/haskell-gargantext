@@ -42,11 +42,12 @@ flowSocialListPriority :: FlowSocialListPriority -> [NodeMode]
 flowSocialListPriority MySelfFirst = [Private{-, Shared, Public -}]
 flowSocialListPriority OthersFirst = reverse $ flowSocialListPriority MySelfFirst
 
-
+{-
 -- | We keep the parents for all ngrams but terms
 keepAllParents :: NgramsType -> KeepAllParents
 keepAllParents NgramsTerms = KeepAllParents False
 keepAllParents _           = KeepAllParents True
+-}
 
 ------------------------------------------------------------------------
 flowSocialList :: ( RepoCmdM env err m

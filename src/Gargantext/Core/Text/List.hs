@@ -22,8 +22,7 @@ import Data.Ord (Down(..))
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (both)
-import Gargantext.API.Ngrams.Types (NgramsElement)
-import Gargantext.API.Ngrams.Types (RepoCmdM)
+import Gargantext.API.Ngrams.Types (NgramsElement, RepoCmdM, NgramsTerm(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Text.List.Group
 import Gargantext.Core.Text.List.Group.Prelude
@@ -106,7 +105,7 @@ buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
      else printDebug "flowSocialList" ""
 -}
   let
-    groupedWithList = toGroupedTree groupParams socialLists allTerms
+    groupedWithList = toGroupedTree {- groupParams -} socialLists allTerms
 {-
   if nt == Sources -- Authors
      then printDebug "groupedWithList" groupedWithList
@@ -158,7 +157,9 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                                                                  (List.cycle [mempty])
                                            )
 
-  let groupedWithList = toGroupedTree groupParams socialLists allTerms
+  let socialLists_Stemmed = addScoreStem groupParams (Set.map NgramsTerm $ Map.keysSet allTerms) socialLists
+  printDebug "socialLists_Stemmed" socialLists_Stemmed
+  let groupedWithList = toGroupedTree {- groupParams -} socialLists_Stemmed allTerms
       (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList
 

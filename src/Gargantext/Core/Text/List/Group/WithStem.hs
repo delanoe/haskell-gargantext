@@ -18,19 +18,33 @@ module Gargantext.Core.Text.List.Group.WithStem
   where
 
 import Control.Lens (view, over)
-import Data.Set (Set)
 import Data.Map (Map)
+import Data.Maybe (catMaybes)
 import Data.Monoid (mempty)
+import Data.Set (Set)
 import Data.Text (Text)
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.Core.Text.List.Social.Patch
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
+import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Prelude
-import qualified Data.Map  as Map
 import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Map.Strict.Patch as PatchMap
+import qualified Data.Patch.Class as Patch (Replace(..))
+import qualified Data.Set  as Set
 import qualified Data.Text as Text
+
+------------------------------------------------------------------------
+addScoreStem :: GroupParams
+             -> Set NgramsTerm
+             -> FlowCont Text FlowListScores
+             -> FlowCont Text FlowListScores
+addScoreStem groupParams ngrams fl = foldl' addScorePatch fl 
+                                   $ stemPatches groupParams ngrams
 
 ------------------------------------------------------------------------
 -- | Main Types
@@ -50,19 +64,6 @@ data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
   deriving (Eq)
 
 ------------------------------------------------------------------------
-class GroupWithStem a where
-  groupWithStem' :: GroupParams
-                -> FlowCont Text (GroupedTreeScores a)
-                -> FlowCont Text (GroupedTreeScores a)
-
--- TODO factorize groupWithStem_*
-instance GroupWithStem (Set NodeId) where
-  groupWithStem' = groupWithStem_SetNodeId
-
-instance GroupWithStem Double where
-  groupWithStem' = groupWithStem_Double
-
-------------------------------------------------------------------------
 groupWith :: GroupParams
             -> Text
             -> Text
@@ -75,8 +76,60 @@ groupWith (GroupParams l _m _n _) =
                   -- . (List.filter (\t -> Text.length t > m))
                   . Text.splitOn " "
                   . Text.replace "-" " "
+--------------------------------------------------------------------
+stemPatches :: GroupParams
+           -> Set NgramsTerm
+           -> [(NgramsTerm, NgramsPatch)]
+stemPatches groupParams = patches
+                        . Map.fromListWith (<>)
+                        . map (\ng@(NgramsTerm t) -> ( groupWith groupParams t
+                                                     , Set.singleton ng)
+                              )
+                        . Set.toList
+
+-- | For now all NgramsTerm which have same stem
+-- are grouped together
+-- Parent is taken arbitrarly for now (TODO use a score like occ)
+patches :: Map Stem (Set NgramsTerm)
+            -> [(NgramsTerm, NgramsPatch)]
+patches = catMaybes . map patch . Map.elems
+
+patch :: Set NgramsTerm
+           -> Maybe (NgramsTerm, NgramsPatch)
+patch s = case Set.size s > 1 of
+  False -> Nothing
+  True  -> do
+    let ngrams = Set.toList s
+    parent   <- headMay ngrams
+    let children = List.tail ngrams
+    pure (parent, toNgramsPatch children)
+    
+toNgramsPatch :: [NgramsTerm] -> NgramsPatch
+toNgramsPatch children = NgramsPatch children' Patch.Keep
+  where
+    children' :: PatchMSet NgramsTerm
+    children' = PatchMSet
+              $ fst
+              $ PatchMap.fromList
+              $ List.zip children (List.cycle [addPatch])
 
 ------------------------------------------------------------------------
+-- 8< - 8< - 8< - 8< - 8< - 8< - 8< - 8< - 8< - 8< - 8< - 8< - 8< - 8< -- 
+-- TODO remove below
+------------------------------------------------------------------------
+class GroupWithStem a where
+  groupWithStem' :: GroupParams
+                -> FlowCont Text (GroupedTreeScores a)
+                -> FlowCont Text (GroupedTreeScores a)
+
+-- TODO factorize groupWithStem_*
+instance GroupWithStem (Set NodeId) where
+  groupWithStem' = groupWithStem_SetNodeId
+
+instance GroupWithStem Double where
+  groupWithStem' = groupWithStem_Double
+
+
 groupWithStem_SetNodeId :: GroupParams
                -> FlowCont Text (GroupedTreeScores (Set NodeId))
                -> FlowCont Text (GroupedTreeScores (Set NodeId))
@@ -221,5 +274,6 @@ mergeWith_a fun flc = FlowCont scores mempty
         parent   = (fun s, s)
         children = List.concat $ map mapStem (Map.toList $ view gts'_children g)
 -}
+
 
 
