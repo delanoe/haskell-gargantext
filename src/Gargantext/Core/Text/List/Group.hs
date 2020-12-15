@@ -25,13 +25,12 @@ import Data.Monoid (Monoid, mempty)
 import Data.Text (Text)
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Group.Prelude
-import Gargantext.Core.Text.List.Group.WithStem
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Prelude
 import qualified Data.Map  as Map
 
 ------------------------------------------------------------------------
-toGroupedTree :: (Ord a, Monoid a, GroupWithStem a)
+toGroupedTree :: (Ord a, Monoid a)
               => FlowCont Text FlowListScores
               -> Map Text a
               -> FlowCont Text (GroupedTreeScores a)
@@ -66,6 +65,4 @@ setScoresWith f = Map.mapWithKey (\k v -> v { _gts'_score    = f k
                                                              $ view gts'_children v
                                             }
                                  )
-
-
 ------------------------------------------------------------------------

@@ -89,7 +89,7 @@ buildNgramsOthersList ::( HasNodeError err
                         -> GroupParams
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
-buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
+buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
   allTerms  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
 
   -- | PrivateFirst for first developments since Public NodeMode is not implemented yet

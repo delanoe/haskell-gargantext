@@ -20,7 +20,6 @@ import Gargantext.Core.Text.List.Social.Find
 import Gargantext.Core.Text.List.Social.History
 import Gargantext.Core.Text.List.Social.Patch
 import Gargantext.Core.Text.List.Social.Prelude
-import Gargantext.Core.Text.List.Social.Scores
 import Gargantext.Core.Types.Individu
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude
