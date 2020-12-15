@@ -38,12 +38,14 @@ groupWithScores' flc scores = FlowCont  groups orphans
     -- parent/child relation is inherited from social lists
     groups  = toGroupedTree
             $ toMapMaybeParent scores
-            $ view flc_scores flc
+            $ (view flc_scores flc <> view flc_cont flc)
 
     -- orphans should be filtered already
-    orphans = toGroupedTree
+    orphans = mempty {- toGroupedTree
             $ toMapMaybeParent scores
             $ view flc_cont flc
+            -}
+
 
 ------------------------------------------------------------------------
 toMapMaybeParent :: (Eq a, Ord a, Monoid a)

@@ -100,18 +100,18 @@ buildNgramsOthersList user uCid groupParams (nt, MapListSize mapListSize) = do
                                                       $ List.zip (Map.keys allTerms)
                                                                  (List.cycle [mempty])
                                            )
-
-  if nt == Authors
+{-
+  if nt == Sources -- Authors
      then printDebug "flowSocialList" socialLists
      else printDebug "flowSocialList" ""
-
+-}
   let
     groupedWithList = toGroupedTree groupParams socialLists allTerms
-
-  if nt == Authors
+{-
+  if nt == Sources -- Authors
      then printDebug "groupedWithList" groupedWithList
      else printDebug "groupedWithList" ""
-
+-}
 
   let
     (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType)
