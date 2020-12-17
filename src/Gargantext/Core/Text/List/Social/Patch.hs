@@ -13,6 +13,8 @@ module Gargantext.Core.Text.List.Social.Patch
 
 import Control.Lens hiding (cons)
 import Data.Map (Map)
+import Data.Hashable (Hashable)
+import Data.HashMap.Strict (HashMap)
 import Data.Monoid
 import Data.Semigroup
 import Data.Text (Text)
@@ -21,25 +23,26 @@ import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Types (ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
+import qualified Data.Map as Map
 import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Patch.Class as Patch (Replace(..))
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Patch.Class    as Patch (Replace(..))
 
 addScorePatches :: NgramsType -> [ListId]
-               -> FlowCont Text FlowListScores
-               -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
-               -> FlowCont Text FlowListScores
+               -> FlowCont NgramsTerm FlowListScores
+               -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
+               -> FlowCont NgramsTerm FlowListScores
 addScorePatches nt listes fl repo = foldl' (addScorePatchesList nt repo) fl listes
 
 
 addScorePatchesList :: NgramsType
-                   -> Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch])
-                   -> FlowCont Text FlowListScores
+                   -> Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch])
+                   -> FlowCont NgramsTerm FlowListScores
                    -> ListId
-                   -> FlowCont Text FlowListScores
+                   -> FlowCont NgramsTerm FlowListScores
 addScorePatchesList nt repo fl lid = foldl' addScorePatch fl patches
   where
-    patches = maybe [] (List.concat . (map Map.toList)) patches'
+    patches = maybe [] (List.concat . (map HashMap.toList)) patches'
 
     patches' = do
       lists      <- Map.lookup nt repo
@@ -48,9 +51,9 @@ addScorePatchesList nt repo fl lid = foldl' addScorePatch fl patches
 
 
 
-addScorePatch :: FlowCont Text FlowListScores
+addScorePatch :: FlowCont NgramsTerm FlowListScores
               -> (NgramsTerm , NgramsPatch)
-              -> FlowCont Text FlowListScores
+              -> FlowCont NgramsTerm FlowListScores
 
 {- | Case of changing listType only. Patches look like:
 
@@ -65,59 +68,59 @@ Children are not modified in this specific case.
 -- | Old list get -1 score
 -- New list get +1 score
 -- Hence others lists lay around 0 score
-addScorePatch fl (NgramsTerm t, (NgramsPatch children' (Patch.Replace old_list new_list))) =
+addScorePatch fl (t, (NgramsPatch children' (Patch.Replace old_list new_list))) =
   -- | Adding New Children score
-  addScorePatch fl' (NgramsTerm t, NgramsPatch children' Patch.Keep)
+  addScorePatch fl' (t, NgramsPatch children' Patch.Keep)
     where
       -- | Adding New ListType score
       fl' = fl & flc_scores . at t %~ (score fls_listType old_list (-1))
           & flc_scores . at t %~ (score fls_listType new_list ( 1))
-          & flc_cont   %~ (Map.delete t)
+          & flc_cont   %~ (HashMap.delete t)
 
 -- | Patching existing Ngrams with children
-addScorePatch fl (NgramsTerm p, NgramsPatch children' Patch.Keep) =
+addScorePatch fl (p, NgramsPatch children' Patch.Keep) =
   foldl' addChild fl $ patchMSet_toList children'
     where
       -- | Adding a child
-      addChild fl' (NgramsTerm t, Patch.Replace Nothing (Just _)) = doLink ( 1) p t fl'
+      addChild fl' (t, Patch.Replace Nothing (Just _)) = doLink ( 1) p t fl'
       -- | Removing a child
-      addChild fl' (NgramsTerm t, Patch.Replace (Just _) Nothing) = doLink (-1) p t fl'
+      addChild fl' (t, Patch.Replace (Just _) Nothing) = doLink (-1) p t fl'
 
       -- | This case should not happen: does Nothing
       addChild fl' _ = fl'
 
 -- | Inserting a new Ngrams
-addScorePatch fl (NgramsTerm t, NgramsReplace Nothing (Just nre)) =
+addScorePatch fl (t, NgramsReplace Nothing (Just nre)) =
   childrenScore 1 t (nre ^. nre_children) 
   $ fl & flc_scores . at t %~ (score fls_listType $ nre ^. nre_list) 1
-       & flc_cont   %~ (Map.delete t)
+       & flc_cont   %~ (HashMap.delete t)
 
-addScorePatch fl (NgramsTerm t, NgramsReplace (Just old_nre) maybe_new_nre) =
+addScorePatch fl (t, NgramsReplace (Just old_nre) maybe_new_nre) =
   let fl' = childrenScore (-1) t (old_nre ^. nre_children) 
             $ fl & flc_scores . at t %~ (score fls_listType $ old_nre ^. nre_list) (-1)
-                 & flc_cont   %~ (Map.delete t)
+                 & flc_cont   %~ (HashMap.delete t)
     in case maybe_new_nre of
       Nothing      -> fl'
-      Just new_nre -> addScorePatch fl' (NgramsTerm t, NgramsReplace Nothing (Just new_nre))
+      Just new_nre -> addScorePatch fl' (t, NgramsReplace Nothing (Just new_nre))
 
-addScorePatch fl (NgramsTerm _, NgramsReplace Nothing Nothing) = fl
+addScorePatch fl (_, NgramsReplace Nothing Nothing) = fl
 
 -------------------------------------------------------------------------------
 -- | Utils
 childrenScore :: Int
-              -> Text
+              -> NgramsTerm
               -> MSet NgramsTerm
-              -> FlowCont Text FlowListScores
-              -> FlowCont Text FlowListScores
+              -> FlowCont NgramsTerm FlowListScores
+              -> FlowCont NgramsTerm FlowListScores
 childrenScore n parent children' fl =
   foldl' add' fl $ unMSet children'
     where
-        add' fl' (NgramsTerm t) = doLink n parent t fl'
+        add' fl' t = doLink n parent t fl'
 
 ------------------------------------------------------------------------
-doLink :: Ord a
+doLink :: (Ord a, Hashable a)
        => Int
-       -> Text
+       -> NgramsTerm
        -> a
        -> FlowCont a FlowListScores
        -> FlowCont a FlowListScores
@@ -134,8 +137,8 @@ score field list n m = (Just mempty <> m)
                      %~ (<> Just n)
 
 ------------------------------------------------------------------------
-patchMSet_toList :: Ord a => PatchMSet a -> [(a,AddRem)]
-patchMSet_toList = Map.toList . unPatchMap . unPatchMSet
+patchMSet_toList :: (Ord a, Hashable a) => PatchMSet a -> [(a,AddRem)]
+patchMSet_toList = HashMap.toList . unPatchMapToHashMap . unPatchMSet
 
 unMSet :: MSet a -> [a]
 unMSet (MSet a) = Map.keys a

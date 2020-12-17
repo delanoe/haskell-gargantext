@@ -19,48 +19,50 @@ module Gargantext.Core.Text.List.Group
   where
 
 import Control.Lens (view)
+import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid, mempty)
 import Data.Text (Text)
-import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithScores
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Prelude
-import qualified Data.Map  as Map
-
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Map            as Map
 ------------------------------------------------------------------------
 toGroupedTree :: (Ord a, Monoid a)
-              => FlowCont Text FlowListScores
-              -> Map Text a
-              -> FlowCont Text (GroupedTreeScores a)
+              => FlowCont NgramsTerm FlowListScores
+              -> HashMap NgramsTerm a
+              -> FlowCont NgramsTerm (GroupedTreeScores a)
 toGroupedTree flc scores =
   groupWithScores' flc scoring
     where
-      scoring t = fromMaybe mempty $ Map.lookup t scores
+      scoring t = fromMaybe mempty $ HashMap.lookup t scores
 
 
 ------------------------------------------------------------------------
-setScoresWithMap :: (Ord a, Ord b, Monoid b) => Map Text b
-                 -> Map Text (GroupedTreeScores a)
-                 -> Map Text (GroupedTreeScores b)
+setScoresWithMap :: (Ord a, Ord b, Monoid b) => HashMap NgramsTerm b
+                 -> HashMap NgramsTerm (GroupedTreeScores a)
+                 -> HashMap NgramsTerm (GroupedTreeScores b)
 setScoresWithMap m = setScoresWith (score m)
   where
-    score m' t = case Map.lookup t m' of
+    score m' t = case HashMap.lookup t m' of
       Nothing -> mempty
       Just  r -> r
 
 setScoresWith :: (Ord a, Ord b)
-              => (Text -> b)
-              -> Map Text (GroupedTreeScores a)
-              -> Map Text (GroupedTreeScores b)
+              => (NgramsTerm -> b)
+              -> HashMap NgramsTerm (GroupedTreeScores a)
+              -> HashMap NgramsTerm (GroupedTreeScores b)
 {-
 -- | This Type level lenses solution does not work
 setScoresWith f = Map.mapWithKey (\k v -> over gts'_children (setScoresWith f)
                                        $  set  gts'_score    (f k) v
                                  )
 -}
-setScoresWith f = Map.mapWithKey (\k v -> v { _gts'_score    = f k
+setScoresWith f = HashMap.mapWithKey (\k v -> v { _gts'_score    = f k
                                             , _gts'_children = setScoresWith f
                                                              $ view gts'_children v
                                             }

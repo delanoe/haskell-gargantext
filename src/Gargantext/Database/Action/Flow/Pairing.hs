@@ -40,11 +40,11 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Opaleye
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Set  as Set
-import qualified Data.Text as DT
-
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List           as List
+import qualified Data.Map            as Map
+import qualified Data.Set            as Set
+import qualified Data.Text           as DT
 
 -- | isPairedWith
 -- All NodeAnnuaire paired with a Corpus of NodeId nId:
@@ -184,4 +184,4 @@ getNgramsDocId cId lId nt = do
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
   groupNodesByNgrams ngs
-    <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
+    <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)

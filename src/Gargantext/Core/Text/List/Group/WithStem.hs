@@ -17,29 +17,29 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithStem
   where
 
+import Data.HashSet (HashSet)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
-import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.List.Group.Prelude
-import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.List.Social.Patch
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
-import qualified Data.List as List
-import qualified Data.Map  as Map
+import qualified Data.HashSet          as Set
+import qualified Data.List             as List
+import qualified Data.Map              as Map
 import qualified Data.Map.Strict.Patch as PatchMap
-import qualified Data.Patch.Class as Patch (Replace(..))
-import qualified Data.Set  as Set
-import qualified Data.Text as Text
+import qualified Data.Patch.Class      as Patch (Replace(..))
+import qualified Data.Text             as Text
 
 ------------------------------------------------------------------------
 addScoreStem :: GroupParams
-             -> Set NgramsTerm
-             -> FlowCont Text FlowListScores
-             -> FlowCont Text FlowListScores
+             -> HashSet NgramsTerm
+             -> FlowCont NgramsTerm FlowListScores
+             -> FlowCont NgramsTerm FlowListScores
 addScoreStem groupParams ngrams fl = foldl' addScorePatch fl 
                                    $ stemPatches groupParams ngrams
 
@@ -62,36 +62,38 @@ data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
 
 ------------------------------------------------------------------------
 groupWith :: GroupParams
-            -> Text
-            -> Text
+            -> NgramsTerm
+            -> NgramsTerm
 groupWith GroupIdentity  = identity
 groupWith (GroupParams l _m _n _) =
-                    Text.intercalate " "
+                    NgramsTerm
+                  . Text.intercalate " "
                   . map (stem l)
                   -- . take n
                   . List.sort
                   -- . (List.filter (\t -> Text.length t > m))
                   . Text.splitOn " "
                   . Text.replace "-" " "
+                  . unNgramsTerm
 --------------------------------------------------------------------
 stemPatches :: GroupParams
-           -> Set NgramsTerm
+           -> HashSet NgramsTerm
            -> [(NgramsTerm, NgramsPatch)]
 stemPatches groupParams = patches
                         . Map.fromListWith (<>)
-                        . map (\ng@(NgramsTerm t) -> ( groupWith groupParams t
-                                                     , Set.singleton ng)
+                        . map (\ng -> ( groupWith groupParams ng
+                                      , Set.singleton ng)
                               )
                         . Set.toList
 
 -- | For now all NgramsTerm which have same stem
 -- are grouped together
 -- Parent is taken arbitrarly for now (TODO use a score like occ)
-patches :: Map Stem (Set NgramsTerm)
+patches :: Map Stem (HashSet NgramsTerm)
             -> [(NgramsTerm, NgramsPatch)]
 patches = catMaybes . map patch . Map.elems
 
-patch :: Set NgramsTerm
+patch :: HashSet NgramsTerm
            -> Maybe (NgramsTerm, NgramsPatch)
 patch s = case Set.size s > 1 of
   False -> Nothing

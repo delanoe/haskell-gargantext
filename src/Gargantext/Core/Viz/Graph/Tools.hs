@@ -13,28 +13,31 @@ Portability : POSIX
 module Gargantext.Core.Viz.Graph.Tools
   where
 
-import Debug.Trace (trace)
-import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 -- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
+import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 import Data.Map (Map)
-import qualified Data.Set as Set
+import Data.HashMap.Strict (HashMap)
 import Data.Text (Text)
-import Gargantext.Prelude
+import Debug.Trace (trace)
+import GHC.Float (sin, cos)
+import Gargantext.API.Ngrams.Types (NgramsTerm(..))
+import Gargantext.Core.Methods.Distances (Distance(..), measure)
+import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness)
-import Gargantext.Core.Methods.Distances (Distance(..), measure)
-import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index)
 import Gargantext.Core.Viz.Graph.IGraph (mkGraphUfromEdges)
-import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
-import GHC.Float (sin, cos)
-import qualified IGraph as Igraph
+import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index)
+import Gargantext.Prelude
 import IGraph.Random -- (Gen(..))
+import qualified Data.List                as List
+import qualified Data.Map                 as Map
+import qualified Data.Set                 as Set
+import qualified Data.Vector.Storable     as Vec
+import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
-import qualified Data.Vector.Storable as Vec
-import qualified Data.Map  as Map
-import qualified Data.List as List
+import qualified Data.HashMap.Strict      as HashMap
 
 type Threshold = Double
 
@@ -54,13 +57,15 @@ cooc2graph' distance threshold myCooc = distanceMap
 
 cooc2graph :: Distance
            -> Threshold
-           -> (Map (Text, Text) Int)
+           -> HashMap (NgramsTerm, NgramsTerm) Int
            -> IO Graph
 cooc2graph distance threshold myCooc = do
   printDebug "cooc2graph" distance
   let
-    (ti, _) = createIndices myCooc
-    myCooc' = toIndex ti myCooc
+    -- TODO remove below
+    theMatrix = Map.fromList $ HashMap.toList myCooc
+    (ti, _) = createIndices theMatrix
+    myCooc' = toIndex ti theMatrix
     matCooc = map2mat 0 (Map.size ti)
             $ Map.filterWithKey (\(a,b) _ -> a /= b) 
             $ Map.filter (> 1) myCooc'
@@ -87,7 +92,7 @@ cooc2graph distance threshold myCooc = do
                 $ bridgeness rivers partitions distanceMap
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
-  pure $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
+  pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti) myCooc' bridgeness' confluence' partitions
 
 
 

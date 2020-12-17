@@ -18,73 +18,74 @@ module Gargantext.Core.Text.List.Social.Scores
   where
 
 import Control.Lens
-import Data.Map (Map)
+import Data.HashMap.Strict (HashMap)
 import Data.Monoid (mempty)
 import Data.Set (Set)
 import Data.Text (Text)
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Types.Main
 import Gargantext.Core.Text.List.Social.Prelude
+import Gargantext.Core.Types.Main
 import Gargantext.Prelude
-import qualified Data.Map   as Map
+import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Set   as Set
 
 ------------------------------------------------------------------------
--- | Generates Score from list of Map Text NgramsRepoElement
+-- | Generates Score from list of HashMap Text NgramsRepoElement
 toFlowListScores :: KeepAllParents
-                 ->  FlowCont Text FlowListScores
-                 -> [Map Text NgramsRepoElement]
-                 ->  FlowCont Text FlowListScores
+                 ->  FlowCont NgramsTerm FlowListScores
+                 -> [HashMap NgramsTerm NgramsRepoElement]
+                 ->  FlowCont NgramsTerm FlowListScores
 toFlowListScores k flc_origin = foldl' (toFlowListScores_Level1 k flc_origin) mempty
 
   where
     toFlowListScores_Level1 :: KeepAllParents
-                            -> FlowCont Text FlowListScores
-                            -> FlowCont Text FlowListScores
-                            -> Map Text NgramsRepoElement
-                            -> FlowCont Text FlowListScores
+                            -> FlowCont NgramsTerm FlowListScores
+                            -> FlowCont NgramsTerm FlowListScores
+                            -> HashMap NgramsTerm NgramsRepoElement
+                            -> FlowCont NgramsTerm FlowListScores
     toFlowListScores_Level1 k' flc_origin' flc_dest ngramsRepo =
       Set.foldl' (toFlowListScores_Level2 k' ngramsRepo   flc_origin')
                  flc_dest
-                 (Set.fromList $ Map.keys $ view flc_cont flc_origin')
+                 (Set.fromList $ HashMap.keys $ view flc_cont flc_origin')
 
     toFlowListScores_Level2 :: KeepAllParents
-                            -> Map Text NgramsRepoElement
-                            -> FlowCont Text FlowListScores
-                            -> FlowCont Text FlowListScores
-                            -> Text
-                            -> FlowCont Text FlowListScores
+                            -> HashMap NgramsTerm NgramsRepoElement
+                            -> FlowCont NgramsTerm FlowListScores
+                            -> FlowCont NgramsTerm FlowListScores
+                            -> NgramsTerm
+                            -> FlowCont NgramsTerm FlowListScores
     toFlowListScores_Level2 k'' ngramsRepo flc_origin'' flc_dest' t =
-      case Map.lookup t ngramsRepo of
-        Nothing  -> over flc_cont   (Map.union $ Map.singleton t mempty) flc_dest'
+      case HashMap.lookup t ngramsRepo of
+        Nothing  -> over flc_cont   (HashMap.union $ HashMap.singleton t mempty) flc_dest'
         Just nre -> updateScoresParent k'' ngramsRepo nre flc_origin''
                   $ updateScores       k'' t nre setText flc_dest'
           where
             setText = Set.fromList
-                    $ Map.keys
+                    $ HashMap.keys
                     $ view flc_cont flc_origin''
 
 
-    updateScoresParent :: KeepAllParents -> Map Text NgramsRepoElement -> NgramsRepoElement
-                 -> FlowCont Text FlowListScores
-                 -> FlowCont Text FlowListScores
-                 -> FlowCont Text FlowListScores
+    updateScoresParent :: KeepAllParents -> HashMap NgramsTerm NgramsRepoElement -> NgramsRepoElement
+                       -> FlowCont NgramsTerm FlowListScores
+                       -> FlowCont NgramsTerm FlowListScores
+                       -> FlowCont NgramsTerm FlowListScores
     updateScoresParent keep@(KeepAllParents k''') ngramsRepo nre flc_origin'' flc_dest'' = case k''' of
                   False -> flc_dest''
                   True  -> case view nre_parent nre of
-                    Nothing                  -> flc_dest''
-                    Just (NgramsTerm parent) -> toFlowListScores_Level2 keep ngramsRepo flc_origin'' flc_dest'' parent
+                    Nothing     -> flc_dest''
+                    Just parent -> toFlowListScores_Level2 keep ngramsRepo flc_origin'' flc_dest'' parent
 
 
 ------------------------------------------------------------------------
 updateScores :: KeepAllParents
-             -> Text -> NgramsRepoElement -> Set Text
-             -> FlowCont Text FlowListScores
-             -> FlowCont Text FlowListScores
+             -> NgramsTerm -> NgramsRepoElement -> Set NgramsTerm
+             -> FlowCont NgramsTerm FlowListScores
+             -> FlowCont NgramsTerm FlowListScores
 updateScores k t nre setText mtf =
-    over flc_cont   ( Map.delete t)
-  $ over flc_scores ((Map.alter (addParent k nre setText  ) t)
-                    .(Map.alter (addList $ view nre_list nre) t)
+    over flc_cont   ( HashMap.delete t)
+  $ over flc_scores ((HashMap.alter (addParent k nre setText  ) t)
+                    .(HashMap.alter (addList $ view nre_list nre) t)
                     ) mtf
 
 ------------------------------------------------------------------------
@@ -103,8 +104,8 @@ addList l (Just fls) =
 -- "the addList function looks like an ASCII bird"
 
 -- | Concrete function to pass to PatchMap
-addListScore :: ListType -> Map ListType Int -> Map ListType Int
-addListScore l m = Map.alter (plus l) l  m
+addListScore :: ListType -> HashMap ListType Int -> HashMap ListType Int
+addListScore l m = HashMap.alter (plus l) l  m
   where
     plus CandidateTerm Nothing  = Just 1
     plus CandidateTerm (Just x) = Just $ x + 1
@@ -118,7 +119,7 @@ addListScore l m = Map.alter (plus l) l  m
 ------------------------------------------------------------------------
 data KeepAllParents = KeepAllParents Bool
 
-addParent :: KeepAllParents -> NgramsRepoElement -> Set Text
+addParent :: KeepAllParents -> NgramsRepoElement -> Set NgramsTerm
           -> Maybe FlowListScores
           -> Maybe FlowListScores
 
@@ -133,16 +134,16 @@ addParent k nre ss (Just fls{-(FlowListScores mapList mapParent)-}) =
 addParentScore :: Num a
            => KeepAllParents
            -> Maybe NgramsTerm
-           -> Set Text
-           -> Map Text a
-           -> Map Text a
+           -> Set NgramsTerm
+           -> HashMap NgramsTerm a
+           -> HashMap NgramsTerm a
 addParentScore _ Nothing                                   _ss mapParent = mapParent
-addParentScore (KeepAllParents keep) (Just (NgramsTerm p')) ss mapParent =
+addParentScore (KeepAllParents keep) (Just p') ss mapParent =
   case keep of
-    True  -> Map.alter addCount p' mapParent
+    True  -> HashMap.alter addCount p' mapParent
     False -> case Set.member p' ss of
                False -> mapParent
-               True  -> Map.alter addCount p' mapParent
+               True  -> HashMap.alter addCount p' mapParent
   where
         addCount Nothing  = Just 1
         addCount (Just n) = Just $ n + 1

@@ -19,7 +19,6 @@ module Gargantext.Database.Action.Metrics.TFICF
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
 import Gargantext.Core.Text.Metrics.TFICF
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getOccByNgramsOnlyFast)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)

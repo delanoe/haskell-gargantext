@@ -20,6 +20,7 @@ module Gargantext.Core.Types.Main where
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
+import Data.Hashable (Hashable)
 import Data.Map (fromList, lookup)
 import Data.Semigroup (Semigroup(..))
 import Data.Swagger
@@ -59,6 +60,7 @@ instance ToSchema ListType
 instance ToParamSchema ListType
 instance Arbitrary ListType where
   arbitrary = elements [minBound..maxBound]
+instance Hashable ListType
 
 instance Semigroup ListType
   where

@@ -17,29 +17,30 @@ module Gargantext.Core.Text.List.Group.Prelude
   where
 
 import Control.Lens (makeLenses, view, set, over)
+import Data.HashMap.Strict (HashMap)
+import Data.Map (Map)
+import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set)
-import Data.Text (Text)
-import Data.Maybe (fromMaybe)
-import Data.Map (Map)
+import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
+import Gargantext.Core.Text.Metrics (Scored(..), scored_genInc)
 import Gargantext.Core.Types (ListType(..))
 import Gargantext.Database.Admin.Types.Node (NodeId)
-import Gargantext.Core.Text.Metrics (Scored(..), scored_genInc)
-import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
 import Gargantext.Prelude
-import qualified Data.Set  as Set
-import qualified Data.Map  as Map
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Set  as Set
 
-type Stem = Text
+type Stem = NgramsTerm
 ------------------------------------------------------------------------
 -- | Main Types to group With Scores but preserving Tree dependencies
 -- Therefore there is a need of Tree of GroupedTextScores
 -- to target continuation type for the flow (FlowCont Text GroupedTreeScores)
 data GroupedTreeScores score =
   GroupedTreeScores { _gts'_listType :: !(Maybe ListType)
-                    , _gts'_children :: !(Map Text (GroupedTreeScores score))
+                    , _gts'_children :: !(HashMap NgramsTerm (GroupedTreeScores score))
                     , _gts'_score    :: !score
                     } deriving (Show, Ord, Eq)
 
@@ -76,7 +77,7 @@ class ToNgramsElement a where
   toNgramsElement :: a -> [NgramsElement]
 
 class HasTerms a where
-  hasTerms :: a -> Set Text
+  hasTerms :: a -> Set NgramsTerm
 
 ------------------------------------------------------------------------
 -- | Instances declartion for (GroupedTreeScores a)
@@ -87,8 +88,8 @@ instance SetListType (GroupedTreeScores a) where
   setListType lt g = over gts'_children (setListType lt)
                 $ set gts'_listType lt g
 
-instance SetListType (Map Text (GroupedTreeScores a)) where
-  setListType lt = Map.map (set gts'_listType lt)
+instance SetListType (HashMap NgramsTerm (GroupedTreeScores a)) where
+  setListType lt = HashMap.map (set gts'_listType lt)
 
                             ------
 
@@ -99,7 +100,7 @@ instance ViewScores (GroupedTreeScores Double) Double where
   viewScores g = sum $ parent : children
     where
       parent   = view gts'_score g
-      children = map viewScores $ Map.elems $ view gts'_children g
+      children = map viewScores $ HashMap.elems $ view gts'_children g
 
 
 instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
@@ -109,57 +110,55 @@ instance ViewScores (GroupedTreeScores (Set NodeId)) (Set NodeId) where
   viewScores g = Set.unions $ parent : children
     where
       parent   = view gts'_score g
-      children = map viewScores $ Map.elems $ view gts'_children g
+      children = map viewScores $ HashMap.elems $ view gts'_children g
 
 
-instance ViewScore (GroupedTreeScores (Scored Text)) Double where
+instance ViewScore (GroupedTreeScores (Scored NgramsTerm)) Double where
   viewScore = view (gts'_score . scored_genInc)
 
                             ------
-instance HasTerms (Map Text (GroupedTreeScores a)) where
-  hasTerms = Set.unions . (map hasTerms) . Map.toList
+instance HasTerms (HashMap NgramsTerm (GroupedTreeScores a)) where
+  hasTerms = Set.unions . (map hasTerms) . HashMap.toList
 
-instance HasTerms (Text, GroupedTreeScores a) where
+instance HasTerms (NgramsTerm, GroupedTreeScores a) where
   hasTerms (t, g) = Set.singleton t  <> children
     where
       children = Set.unions
                $ map hasTerms
-               $ Map.toList
+               $ HashMap.toList
                $ view gts'_children g
 
                             ------
 
-instance ToNgramsElement (Map Text (GroupedTreeScores a)) where
-  toNgramsElement = List.concat . (map toNgramsElement) . Map.toList
+instance ToNgramsElement (HashMap NgramsTerm (GroupedTreeScores a)) where
+  toNgramsElement = List.concat . (map toNgramsElement) . HashMap.toList
 
 
-instance ToNgramsElement (Text, GroupedTreeScores a) where
+instance ToNgramsElement (NgramsTerm, GroupedTreeScores a) where
   toNgramsElement (t, gts) = parent : children
     where
-      parent = mkNgramsElement (NgramsTerm t)
+      parent = mkNgramsElement t
                                (fromMaybe CandidateTerm $ viewListType gts)
                                Nothing
-                               (mSetFromList $ map NgramsTerm
-                                             $ Map.keys
+                               (mSetFromList $ HashMap.keys
                                              $ view gts'_children gts
                                )
       children = List.concat
-               $ map (childrenWith (NgramsTerm t) (NgramsTerm t) )
-               $ Map.toList
+               $ map (childrenWith t t)
+               $ HashMap.toList
                $ view gts'_children gts
 
       childrenWith root parent' (t', gts') = parent'' : children'
         where
-          parent''   = mkNgramsElement (NgramsTerm t')
+          parent''   = mkNgramsElement t'
                                       (fromMaybe CandidateTerm $ viewListType gts')
                                       (Just $ RootParent root parent')
-                                      (mSetFromList $ map NgramsTerm
-                                                    $ Map.keys
+                                      (mSetFromList $ HashMap.keys
                                                     $ view gts'_children gts'
                                       )
           children' = List.concat
-                    $ map (childrenWith root (NgramsTerm t') )
-                    $ Map.toList
+                    $ map (childrenWith root t' )
+                    $ HashMap.toList
                     $ view gts'_children gts'
 
 

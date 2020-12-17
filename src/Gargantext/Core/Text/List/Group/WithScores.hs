@@ -16,23 +16,24 @@ module Gargantext.Core.Text.List.Group.WithScores
   where
 
 import Control.Lens (view, set, over)
-import Data.Semigroup
+import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
-import Data.Monoid (Monoid, mempty)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text)
-import Gargantext.Core.Text.List.Social.Prelude
+import Data.Monoid (Monoid, mempty)
+import Data.Semigroup
+import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Text.List.Group.Prelude
+import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Prelude
-import qualified Data.Map  as Map
+import qualified Data.Map            as Map
+import qualified Data.HashMap.Strict as HashMap
 
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 -- | Main function
 groupWithScores' :: (Eq a, Ord a, Monoid a)
-                => FlowCont Text FlowListScores
-                -> (Text -> a) -- Map Text (a)
-                -> FlowCont Text (GroupedTreeScores a)
+                => FlowCont NgramsTerm FlowListScores
+                -> (NgramsTerm -> a)
+                -> FlowCont NgramsTerm (GroupedTreeScores a)
 groupWithScores' flc scores = FlowCont  groups orphans
   where
     -- parent/child relation is inherited from social lists
@@ -40,28 +41,25 @@ groupWithScores' flc scores = FlowCont  groups orphans
             $ toMapMaybeParent scores
             $ (view flc_scores flc <> view flc_cont flc)
 
-    -- orphans should be filtered already
-    orphans = mempty {- toGroupedTree
-            $ toMapMaybeParent scores
-            $ view flc_cont flc
-            -}
-
+    -- orphans should be filtered already then becomes empty
+    orphans = mempty
+   
 
 ------------------------------------------------------------------------
 toMapMaybeParent :: (Eq a, Ord a, Monoid a)
-                 => (Text -> a)
-                 -> Map Text FlowListScores
-                 -> Map (Maybe Parent) (Map Text (GroupedTreeScores a))
-toMapMaybeParent f =  Map.fromListWith (<>)
+                 => (NgramsTerm -> a)
+                 -> HashMap NgramsTerm FlowListScores
+                 -> HashMap (Maybe Parent) (HashMap NgramsTerm (GroupedTreeScores a))
+toMapMaybeParent f =  HashMap.fromListWith (<>)
                    . (map (fromScores'' f))
-                   .  Map.toList
+                   .  HashMap.toList
 
 fromScores'' :: (Eq a, Ord a, Monoid a)
-             => (Text -> a)
-             -> (Text, FlowListScores)
-             -> (Maybe Parent, Map Text (GroupedTreeScores a))
+             => (NgramsTerm -> a)
+             -> (NgramsTerm, FlowListScores)
+             -> (Maybe Parent, HashMap NgramsTerm (GroupedTreeScores a))
 fromScores'' f' (t, fs) = ( maybeParent
-                          , Map.fromList [( t, set gts'_score (f' t)
+                          , HashMap.fromList [( t, set gts'_score (f' t)
                                              $ set gts'_listType maybeList mempty
                                          )]
                           )
@@ -71,23 +69,23 @@ fromScores'' f' (t, fs) = ( maybeParent
 
 ------------------------------------------------------------------------
 toGroupedTree :: Eq a
-              => Map (Maybe Parent) (Map Text (GroupedTreeScores a))
-              -> Map Parent (GroupedTreeScores a)
-toGroupedTree m = case Map.lookup Nothing m of
+              => HashMap (Maybe Parent) (HashMap NgramsTerm (GroupedTreeScores a))
+              -> HashMap Parent (GroupedTreeScores a)
+toGroupedTree m = case HashMap.lookup Nothing m of
   Nothing  -> mempty
   Just  m' -> toGroupedTree' m m'
 
 
-toGroupedTree' :: Eq a => Map (Maybe Parent) (Map Text (GroupedTreeScores a))
-               -> (Map Text (GroupedTreeScores a))
-               ->  Map Parent (GroupedTreeScores a)
+toGroupedTree' :: Eq a => HashMap (Maybe Parent) (HashMap NgramsTerm (GroupedTreeScores a))
+               -> (HashMap NgramsTerm (GroupedTreeScores a))
+               ->  HashMap Parent (GroupedTreeScores a)
 toGroupedTree' m notEmpty
   | notEmpty == mempty = mempty
-  | otherwise = Map.mapWithKey (addGroup m) notEmpty
+  | otherwise = HashMap.mapWithKey (addGroup m) notEmpty
     where
       addGroup m' k v = over gts'_children ( (toGroupedTree' m')
-                                           . (Map.union ( fromMaybe mempty
-                                                        $ Map.lookup (Just k) m'
+                                           . (HashMap.union ( fromMaybe mempty
+                                                        $ HashMap.lookup (Just k) m'
                                                         )
                                              )
                                            )

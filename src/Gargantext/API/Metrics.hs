@@ -20,16 +20,17 @@ module Gargantext.API.Metrics
 
 import Control.Lens
 import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
 import Data.Text (Text)
 import Data.Time (UTCTime)
-import Servant
-
+import Data.Vector (Vector)
 import Gargantext.API.HashedResponse
 import Gargantext.API.Ngrams.NgramsTree
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Prelude (GargServer)
+import Gargantext.Core.Text.Metrics (Scored(..), {-normalizeGlobal,-} normalizeLocal)
 import Gargantext.Core.Types (CorpusId, Limit, ListId, ListType(..))
+import Gargantext.Core.Viz.Chart
+import Gargantext.Core.Viz.Types
 import Gargantext.Database.Action.Flow
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataList(..), hl_chart, hl_pie, hl_scatter, hl_tree)
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metric(..), Metrics(..))
@@ -40,9 +41,9 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
-import Gargantext.Core.Text.Metrics (Scored(..), {-normalizeGlobal,-} normalizeLocal)
-import Gargantext.Core.Viz.Chart
-import Gargantext.Core.Viz.Types
+import Servant
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Vector         as Vector
 import qualified Gargantext.Database.Action.Metrics as Metrics
 
 -------------------------------------------------------------
@@ -112,7 +113,7 @@ updateScatter' cId maybeListId tabType maybeLimit = do
   (ngs', scores) <- Metrics.getMetrics cId maybeListId tabType maybeLimit
 
   let
-    metrics      = fmap (\(Scored t s1 s2) -> Metric t s1 s2 (listType t ngs'))
+    metrics      = fmap (\(Scored t s1 s2) -> Metric (unNgramsTerm t) s1 s2 (listType t ngs'))
                  $ fmap normalizeLocal scores
     listType t m = maybe (panic errorMsg) fst $ HM.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
@@ -318,7 +319,7 @@ type TreeApi = Summary " Tree API"
            :> QueryParam  "list"       ListId
            :> QueryParamR "ngramsType" TabType
            :> QueryParamR "listType"   ListType
-           :> Get '[JSON] (HashedResponse (ChartMetrics [NgramsTree]))
+           :> Get '[JSON] (HashedResponse (ChartMetrics (Vector NgramsTree)))
         :<|> Summary "Tree Chart update"
                 :> QueryParam  "list"       ListId
                 :> QueryParamR "ngramsType" TabType
@@ -342,7 +343,7 @@ getTree :: FlowCmdM env err m
         -> Maybe ListId
         -> TabType
         -> ListType
-        -> m (HashedResponse (ChartMetrics [NgramsTree]))
+        -> m (HashedResponse (ChartMetrics (Vector NgramsTree)))
 getTree cId _start _end maybeListId tabType listType = do
   listId <- case maybeListId of
     Just lid -> pure lid
@@ -378,15 +379,15 @@ updateTree' :: FlowCmdM env err m =>
   -> Maybe ListId
   -> TabType
   -> ListType
-  -> m (ChartMetrics [NgramsTree])
+  -> m (ChartMetrics (Vector NgramsTree))
 updateTree' cId maybeListId tabType listType = do
   listId <- case maybeListId of
     Just lid -> pure lid
     Nothing  -> defaultList cId
 
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
-  let hl = node ^. node_hyperdata
-      treeMap = hl ^. hl_tree
+  let hl      = node ^. node_hyperdata
+      treeMap = hl  ^. hl_tree
   t <- treeData cId (ngramsTypeFromTabType tabType) listType
   _ <- updateHyperdata listId $ hl { _hl_tree = HM.insert tabType (ChartMetrics t) treeMap }
 

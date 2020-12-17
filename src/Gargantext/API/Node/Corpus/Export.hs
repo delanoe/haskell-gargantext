@@ -42,6 +42,7 @@ import Gargantext.Prelude
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.HashMap.Strict as HashMap
 
 --------------------------------------------------
 -- | Hashes are ordered by Set
@@ -63,13 +64,13 @@ getCorpus cId lId nt' = do
   ngs  <- getNodeNgrams cId lId nt repo
   let  -- uniqId is hash computed already for each document imported in database
     r = Map.intersectionWith (\a b -> Document a (Ngrams (Set.toList b) (hash b)) (d_hash a b)
-                             ) ns ngs
+                             ) ns (Map.map (Set.map unNgramsTerm) ngs)
           where
             d_hash  a b = hash [ fromMaybe "" (_hd_uniqId $ _node_hyperdata a)
-                                       , hash b
-                                       ]
+                               , hash b
+                               ]
   pure $ Corpus (Map.elems r) (hash $ List.map _d_hash
-                                            $ Map.elems r
+                                    $ Map.elems r
                               )
 
 getNodeNgrams :: HasNodeError err
@@ -77,7 +78,7 @@ getNodeNgrams :: HasNodeError err
         -> Maybe ListId
         -> NgramsType
         -> NgramsRepo
-        -> Cmd err (HashMap NodeId (Set Text))
+        -> Cmd err (Map NodeId (Set NgramsTerm))
 getNodeNgrams cId lId' nt repo = do
   lId <- case lId' of
     Nothing -> defaultList cId
@@ -85,7 +86,8 @@ getNodeNgrams cId lId' nt repo = do
 
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
-  r <- getNgramsByNodeOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
+  -- TODO HashMap
+  r <- getNgramsByNodeOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
   pure r
 
 -- TODO

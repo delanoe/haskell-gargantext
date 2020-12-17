@@ -19,17 +19,16 @@ Portability : POSIX
 module Gargantext.Database.Action.Metrics.Lists
   where
 
-import Prelude hiding (null, id, map, sum)
-import qualified Data.Map as Map
-import qualified Data.Vector as Vec
-
-import qualified Gargantext.Database.Action.Metrics as Metrics
-import Gargantext.API.Ngrams.Types (TabType(..))
+import Gargantext.API.Ngrams.Types (TabType(..), NgramsTerm(..))
+import Gargantext.Core.Text.Metrics (Scored(..))
 import Gargantext.Core.Types -- (NodePoly(..), NodeCorpus, ListId)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Prelude hiding (sum, head)
-import Gargantext.Core.Text.Metrics (Scored(..))
-
+import Prelude hiding (null, id, map, sum)
+import qualified Data.Map as Map
+import qualified Data.Vector as Vec
+import qualified Gargantext.Database.Action.Metrics as Metrics
+import qualified Data.HashMap.Strict as HashMap
 {-
 trainModel :: FlowCmdM env ServantErr m
              => Username -> m Score
@@ -50,7 +49,7 @@ getMetrics' cId maybeListId tabType maybeLimit = do
 
   let
     metrics      = map (\(Scored t s1 s2) -> (listType t ngs', [Vec.fromList [s1,s2]])) scores
-    listType t m = maybe (panic errorMsg) fst $ Map.lookup t m
+    listType t m = maybe (panic errorMsg) fst $ HashMap.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
   
   {-

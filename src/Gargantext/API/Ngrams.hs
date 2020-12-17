@@ -535,7 +535,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
     setScores :: forall t. Each t t NgramsElement NgramsElement => Bool -> t -> m t
     setScores False table = pure table
     setScores True  table = do
-      let ngrams_terms = unNgramsTerm <$> (table ^.. each . ne_ngrams)
+      let ngrams_terms = table ^.. each . ne_ngrams
       t1 <- getTime'
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
@@ -552,7 +552,7 @@ getTableNgrams _nType nId tabType listId limit_ offset
                                             ngrams_terms
       -}
       let
-        setOcc ne = ne & ne_occurrences .~ sumOf (at (unNgramsTerm (ne ^. ne_ngrams)) . _Just) occurrences
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
       pure $ table & each %~ setOcc
     ---------------------------------------
@@ -594,13 +594,13 @@ scoresRecomputeTableNgrams nId tabType listId = do
 
     setScores :: forall t. Each t t NgramsElement NgramsElement => t -> m t
     setScores table = do
-      let ngrams_terms = unNgramsTerm <$> (table ^.. each . ne_ngrams)
+      let ngrams_terms = table ^.. each . ne_ngrams
       occurrences <- getOccByNgramsOnlyFast' nId
                                              listId
                                             ngramsType
                                             ngrams_terms
       let
-        setOcc ne = ne & ne_occurrences .~ sumOf (at (unNgramsTerm (ne ^. ne_ngrams)) . _Just) occurrences
+        setOcc ne = ne & ne_occurrences .~ sumOf (at (ne ^. ne_ngrams) . _Just) occurrences
 
       pure $ table & each %~ setOcc
 

@@ -11,6 +11,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Social
   where
 
+import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Monoid (mconcat)
 import Data.Text (Text)
@@ -56,8 +57,8 @@ flowSocialList :: ( RepoCmdM env err m
                    )
                   => FlowSocialListPriority
                   -> User -> NgramsType
-                  -> FlowCont Text FlowListScores
-                  -> m (FlowCont Text FlowListScores)
+                  -> FlowCont NgramsTerm FlowListScores
+                  -> m (FlowCont NgramsTerm FlowListScores)
 flowSocialList flowPriority user nt flc =
   mconcat <$> mapM (flowSocialListByMode'   user nt flc)
                    (flowSocialListPriority flowPriority)
@@ -69,9 +70,9 @@ flowSocialList flowPriority user nt flc =
                                , HasTreeError err
                                )
                             => User -> NgramsType
-                            -> FlowCont Text FlowListScores
+                            -> FlowCont NgramsTerm FlowListScores
                             -> NodeMode
-                            -> m (FlowCont Text FlowListScores)
+                            -> m (FlowCont NgramsTerm FlowListScores)
       flowSocialListByMode' user' nt' flc' mode =
             findListsId user' mode
         >>= flowSocialListByModeWith nt' flc'
@@ -83,9 +84,9 @@ flowSocialList flowPriority user nt flc =
                                   , HasTreeError err
                                   )
                                => NgramsType
-                               -> FlowCont Text FlowListScores
+                               -> FlowCont NgramsTerm FlowListScores
                                -> [ListId]
-                               -> m (FlowCont Text FlowListScores)
+                               -> m (FlowCont NgramsTerm FlowListScores)
       flowSocialListByModeWith nt'' flc'' listes =
         getHistoryScores History_User nt'' flc'' listes
         {-
@@ -101,13 +102,11 @@ getHistoryScores :: ( RepoCmdM env err m
                     )
                  => History
                  -> NgramsType
-                 -> FlowCont Text FlowListScores
+                 -> FlowCont NgramsTerm FlowListScores
                  -> [ListId]
-                 -> m (FlowCont Text FlowListScores)
-getHistoryScores hist nt fl listes = do
-  hist' <- addScorePatches nt listes fl <$> getHistory hist nt listes
-  -- printDebug "hist" hist'
-  pure hist'
+                 -> m (FlowCont NgramsTerm FlowListScores)
+getHistoryScores hist nt fl listes =
+  addScorePatches nt listes fl <$> getHistory hist nt listes
 
 getHistory :: ( RepoCmdM env err m
               , CmdM     env err m
@@ -117,8 +116,7 @@ getHistory :: ( RepoCmdM env err m
            => History
            -> NgramsType
            -> [ListId]
-           -> m (Map NgramsType (Map ListId [Map NgramsTerm NgramsPatch]))
+           -> m (Map NgramsType (Map ListId [HashMap NgramsTerm NgramsPatch]))
 getHistory hist nt listes =
   history hist [nt] listes  <$> getRepo
-
 

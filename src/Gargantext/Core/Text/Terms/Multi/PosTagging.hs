@@ -107,8 +107,6 @@ $(deriveJSON (unPrefix "_") ''PosSentences)
 --             },
 -- 
 
-
-
 corenlp' :: ( FromJSON a
             , ConvertibleStrings p ByteString
             )

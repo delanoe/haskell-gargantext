@@ -47,6 +47,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Protolude (maybeToEither)
 import Gargantext.Prelude
 
+import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId)
 import Gargantext.Core.Types (TODO)
@@ -125,6 +126,12 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
   deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable)
+
+instance IsHashable NgramsTerm where
+  hash (NgramsTerm t) = hash t
+
+instance Monoid NgramsTerm where
+  mempty = NgramsTerm ""
 
 instance FromJSONKey NgramsTerm where
   fromJSONKey = FromJSONKeyTextParser $ \t -> pure $ NgramsTerm $ strip t

@@ -16,10 +16,9 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Action.Metrics.NgramsByNode
   where
 
-
-import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
 --import Data.Map.Strict.Patch (PatchMap, Replace, diff)
+import Data.HashMap.Strict (HashMap)
+import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Tuple.Extra (first, second, swap)
@@ -27,15 +26,16 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Debug.Trace (trace)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
+import Gargantext.Data.HashMap.Strict.Utils as HM
 import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
-import Gargantext.Data.HashMap.Strict.Utils as HM
 import Gargantext.Prelude
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Database.PostgreSQL.Simple as DPS
-
 
 -- | fst is size of Supra Corpus
 --   snd is Texts and size of Occurrences (different docs)
@@ -224,7 +224,7 @@ getNodesByNgramsOnlyUser :: CorpusId
                          -> [NgramsTerm]
                          -> Cmd err (HashMap NgramsTerm (Set NodeId))
 getNodesByNgramsOnlyUser cId ls nt ngs =
-     unionsWith           (<>)
+     HM.unionsWith        (<>)
    . map (HM.fromListWith (<>)
    . map (second Set.singleton))
   <$> mapM (selectNgramsOnlyByNodeUser cId ls nt)
@@ -235,11 +235,12 @@ getNgramsByNodeOnlyUser :: NodeId
                         -> [ListId]
                         -> NgramsType
                         -> [NgramsTerm]
-                        -> Cmd err (HashMap NodeId (Set NgramsTerm))
+                        -> Cmd err (Map NodeId (Set NgramsTerm))
 getNgramsByNodeOnlyUser cId ls nt ngs =
-     unionsWith           (<>)
-   . map (HM.fromListWith (<>)
-   . map (second Set.singleton))
+     Map.unionsWith         (<>)
+   . map ( Map.fromListWith (<>)
+         . map (second Set.singleton)
+         )
    . map (map swap)
   <$> mapM (selectNgramsOnlyByNodeUser cId ls nt)
            (splitEvery 1000 ngs)
@@ -319,7 +320,7 @@ getNgramsByDocOnlyUser :: DocId
                        -> [NgramsTerm]
                        -> Cmd err (HashMap NgramsTerm (Set NodeId))
 getNgramsByDocOnlyUser cId ls nt ngs =
-  unionsWith (<>)
+  HM.unionsWith (<>)
   . map (HM.fromListWith (<>) . map (second Set.singleton))
   <$> mapM (selectNgramsOnlyByDocUser cId ls nt) (splitEvery 1000 ngs)
 

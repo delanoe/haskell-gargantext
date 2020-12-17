@@ -16,6 +16,7 @@ module Gargantext.Core.Text.List
   where
 
 import Control.Lens hiding (both) -- ((^.), view, over, set, (_1), (_2))
+import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
@@ -41,10 +42,11 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import qualified Data.Map  as Map
 import qualified Data.Set  as Set
-
+import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 
 {-
 -- TODO maybe useful for later
@@ -90,13 +92,13 @@ buildNgramsOthersList ::( HasNodeError err
                         -> (NgramsType, MapListSize)
                         -> m (Map NgramsType [NgramsElement])
 buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
-  allTerms  :: Map Text (Set NodeId) <- getNodesByNgramsUser uCid nt
+  allTerms  :: HashMap NgramsTerm (Set NodeId) <- getNodesByNgramsUser uCid nt
 
   -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
-  socialLists :: FlowCont Text FlowListScores
-    <- flowSocialList MySelfFirst user nt ( FlowCont Map.empty
-                                                      $ Map.fromList
-                                                      $ List.zip (Map.keys allTerms)
+  socialLists :: FlowCont NgramsTerm FlowListScores
+    <- flowSocialList MySelfFirst user nt ( FlowCont HashMap.empty
+                                                      $ HashMap.fromList
+                                                      $ List.zip (HashMap.keys allTerms)
                                                                  (List.cycle [mempty])
                                            )
 {-
@@ -113,22 +115,22 @@ buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
 -}
 
   let
-    (stopTerms, tailTerms) = Map.partition ((== Just StopTerm) . viewListType)
+    (stopTerms, tailTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
                            $ view flc_scores groupedWithList
 
-    (mapTerms, tailTerms') = Map.partition ((== Just MapTerm)  . viewListType) tailTerms
+    (mapTerms, tailTerms') = HashMap.partition ((== Just MapTerm)  . viewListType) tailTerms
 
     listSize = mapListSize - (List.length mapTerms)
-    (mapTerms', candiTerms) = both Map.fromList
+    (mapTerms', candiTerms) = both HashMap.fromList
                             $ List.splitAt listSize
                             $ List.sortOn (Down . viewScore . snd)
-                            $ Map.toList tailTerms'
+                            $ HashMap.toList tailTerms'
 
   pure $ Map.fromList [( nt,  (toNgramsElement stopTerms)
-                           <> (toNgramsElement mapTerms )
-                           <> (toNgramsElement $ setListType (Just MapTerm      ) mapTerms' )
-                           <> (toNgramsElement $ setListType (Just CandidateTerm) candiTerms)
-                      )]
+                             <> (toNgramsElement mapTerms )
+                             <> (toNgramsElement $ setListType (Just MapTerm      ) mapTerms' )
+                             <> (toNgramsElement $ setListType (Just CandidateTerm) candiTerms)
+                          )]
 
 
 -- TODO use ListIds
@@ -147,23 +149,23 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
 -- | Filter 0 With Double
 -- Computing global speGen score
-  allTerms :: Map Text Double <- getTficf uCid mCid nt
+  allTerms :: HashMap NgramsTerm Double <- getTficf uCid mCid nt
 
   -- | PrivateFirst for first developments since Public NodeMode is not implemented yet
-  socialLists :: FlowCont Text FlowListScores
-    <- flowSocialList MySelfFirst user nt ( FlowCont Map.empty
-                                                      $ Map.fromList
-                                                      $ List.zip (Map.keys   allTerms)
-                                                                 (List.cycle [mempty])
+  socialLists :: FlowCont NgramsTerm FlowListScores
+    <- flowSocialList MySelfFirst user nt ( FlowCont HashMap.empty
+                                                      $ HashMap.fromList
+                                                      $ List.zip (HashMap.keys   allTerms)
+                                                                 (List.cycle     [mempty])
                                            )
 
-  let socialLists_Stemmed = addScoreStem groupParams (Set.map NgramsTerm $ Map.keysSet allTerms) socialLists
+  let socialLists_Stemmed = addScoreStem groupParams (HashMap.keysSet allTerms) socialLists
   printDebug "socialLists_Stemmed" socialLists_Stemmed
   let groupedWithList = toGroupedTree {- groupParams -} socialLists_Stemmed allTerms
-      (stopTerms, candidateTerms) = Map.partition ((== Just StopTerm) . viewListType)
+      (stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList
 
-      (groupedMono, groupedMult)  = Map.partitionWithKey (\t _v -> size t < 2) candidateTerms
+      (groupedMono, groupedMult)  = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) candidateTerms
 
   -- printDebug "stopTerms" stopTerms
 
@@ -174,10 +176,10 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     monoSize = 0.4  :: Double
     multSize = 1 - monoSize
 
-    splitAt n' ns = both (Map.fromListWith (<>))
+    splitAt n' ns = both (HashMap.fromListWith (<>))
                   $ List.splitAt (round $ n' * listSizeGlobal)
                   $ List.sortOn (viewScore . snd)
-                  $ Map.toList ns
+                  $ HashMap.toList ns
 
     (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
     (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
@@ -198,30 +200,32 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                                             selectedTerms
 
   let
-    groupedTreeScores_SetNodeId :: HashMap Text (GroupedTreeScores (Set NodeId))
+    groupedTreeScores_SetNodeId :: HashMap NgramsTerm (GroupedTreeScores (Set NodeId))
     groupedTreeScores_SetNodeId = setScoresWithMap mapTextDocIds (groupedMonoHead <> groupedMultHead)
 
   -- | Coocurrences computation
   --, t1 >= t2 -- permute byAxis diag  -- since matrix symmetric
-  let mapCooc = HM.filter (>2)
-             $ HM.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
+  let mapCooc = HashMap.filter (>2)
+              $ HashMap.fromList [ ((t1, t2), Set.size $ Set.intersection s1 s2)
                            | (t1, s1) <- mapStemNodeIds
                            , (t2, s2) <- mapStemNodeIds
                            ]
           where
-            mapStemNodeIds = HM.toList
-                           $ HM.map viewScores
+            mapStemNodeIds = HashMap.toList
+                           $ HashMap.map viewScores
                            $ groupedTreeScores_SetNodeId
   let
     -- computing scores
-    mapScores f = Map.fromList
+    mapScores f = HashMap.fromList
                 $ map (\g -> (view scored_terms g, f g))
                 $ normalizeGlobal
                 $ map normalizeLocal
-                $ scored' mapCooc
+                $ scored'
+                $ Map.fromList -- TODO remove this
+                $ HashMap.toList mapCooc
 
   let
-    groupedTreeScores_SpeGen :: Map Text (GroupedTreeScores (Scored Text))
+    groupedTreeScores_SpeGen :: HashMap NgramsTerm (GroupedTreeScores (Scored NgramsTerm))
     groupedTreeScores_SpeGen = setScoresWithMap (mapScores identity)
                                                 (  groupedMonoHead
                                                 <> groupedMultHead
@@ -230,10 +234,10 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
   let
     -- sort / partition / split
     -- filter mono/multi again
-    (monoScored, multScored) = Map.partitionWithKey (\t _v -> size t < 2) groupedTreeScores_SpeGen
+    (monoScored, multScored) = HashMap.partitionWithKey (\(NgramsTerm t) _v -> size t < 2) groupedTreeScores_SpeGen
 
       -- filter with max score
-    partitionWithMaxScore = Map.partition (\g -> (view scored_genInc $ view gts'_score g)
+    partitionWithMaxScore = HashMap.partition (\g -> (view scored_genInc $ view gts'_score g)
                                                > (view scored_speExc $ view gts'_score g)
                                           )
 
@@ -247,8 +251,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     inclSize = 0.4  :: Double
     exclSize = 1 - inclSize
 
-    splitAt' n' = (both (Map.fromList)) . (List.splitAt (round $ n' * listSizeLocal))
-    sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . Map.toList
+    splitAt' n' = (both (HashMap.fromList)) . (List.splitAt (round $ n' * listSizeLocal))
+    sortOn   f  = (List.sortOn (Down . (view (gts'_score . f)) . snd)) . HashMap.toList
 
 
     monoInc_size = splitAt' $ monoSize * inclSize / 2
@@ -259,9 +263,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
     (multScoredInclHead, multScoredInclTail) = multExc_size $ (sortOn scored_genInc) multScoredIncl
     (multScoredExclHead, multScoredExclTail) = multExc_size $ (sortOn scored_speExc) multScoredExcl
 
-
 ------------------------------------------------------------
-
     -- Final Step building the Typed list
     termListHead = maps <> cands
       where

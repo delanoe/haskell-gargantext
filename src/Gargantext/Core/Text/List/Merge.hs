@@ -26,8 +26,8 @@ import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude
 import Data.Map.Strict.Patch hiding (PatchMap)
 
-type List = Map Text NgramsRepoElement
-type Patch = PatchMap Text (Replace (Maybe NgramsRepoElement))
+type List = Map NgramsTerm NgramsRepoElement
+type Patch = PatchMap NgramsTerm (Replace (Maybe NgramsRepoElement))
 
 -- Question: which version of Patching increment is using the FrontEnd ?
 diffList :: Versioned List -> Versioned List -> Versioned Patch

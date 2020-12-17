@@ -45,6 +45,7 @@ instance {-# OVERLAPPING #-} IsHashable String where
 instance IsHashable Text where
   hash = hash . Text.unpack
 
+
 instance IsHashable (Set Hash) where
   hash = hash . foldl (<>) "" . Set.toList
 

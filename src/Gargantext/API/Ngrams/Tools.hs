@@ -17,21 +17,20 @@ module Gargantext.API.Ngrams.Tools
 import Control.Concurrent
 import Control.Lens (_Just, (^.), at, view, At, Index, IxValue)
 import Control.Monad.Reader
-import Data.Hashable (Hashable)
 import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
-import Gargantext.Data.HashMap.Strict.Utils as HM
+import Data.Hashable (Hashable)
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Validity
-
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, ListId)
 import Gargantext.Database.Schema.Ngrams (NgramsType)
 import Gargantext.Prelude
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Gargantext.Data.HashMap.Strict.Utils as HM
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew
@@ -44,12 +43,13 @@ getRepo = do
   liftBase $ readMVar v
 
 listNgramsFromRepo :: [ListId] -> NgramsType
-                   -> NgramsRepo -> Map NgramsTerm NgramsRepoElement
+                   -> NgramsRepo -> HashMap NgramsTerm NgramsRepoElement
 listNgramsFromRepo nodeIds ngramsType repo = ngrams
   where
     ngramsMap = repo ^. r_state . at ngramsType . _Just
 
-    ngrams    = Map.unionsWith mergeNgramsElement
+    -- TODO HashMap linked
+    ngrams    = HM.fromList $ Map.toList $ Map.unionsWith mergeNgramsElement
                 [ ngramsMap ^. at nodeId . _Just | nodeId <- nodeIds ]
 
 
@@ -60,7 +60,7 @@ listNgramsFromRepo nodeIds ngramsType repo = ngrams
 --              be properly guarded.
 getListNgrams :: RepoCmdM env err m
               => [ListId] -> NgramsType
-              -> m (Map NgramsTerm NgramsRepoElement)
+              -> m (HashMap NgramsTerm NgramsRepoElement)
 getListNgrams nodeIds ngramsType = listNgramsFromRepo nodeIds ngramsType <$> getRepo
 
 getTermsWith :: (RepoCmdM env err m, Eq a, Hashable a)
@@ -69,8 +69,8 @@ getTermsWith :: (RepoCmdM env err m, Eq a, Hashable a)
           -> m (HashMap a [a])
 getTermsWith f ls ngt lt = HM.fromListWith (<>)
                       <$> map toTreeWith
-                      <$> Map.toList
-                      <$> Map.filter (\f' -> fst f' == lt)
+                      <$> HM.toList
+                      <$> HM.filter (\f' -> fst f' == lt)
                       <$> mapTermListRoot ls ngt
                       <$> getRepo
   where
@@ -81,10 +81,10 @@ getTermsWith f ls ngt lt = HM.fromListWith (<>)
 mapTermListRoot :: [ListId]
                 -> NgramsType
                 -> NgramsRepo
-                -> Map NgramsTerm (ListType, Maybe NgramsTerm)
+                -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
 mapTermListRoot nodeIds ngramsType repo =
-  (\nre -> (_nre_list nre, _nre_root nre)) <$>
-  listNgramsFromRepo nodeIds ngramsType repo
+      (\nre -> (_nre_list nre, _nre_root nre))
+  <$> listNgramsFromRepo nodeIds ngramsType repo
 
 filterListWithRootHashMap :: ListType
                           -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
@@ -98,13 +98,13 @@ filterListWithRootHashMap lt m = snd <$> HM.filter isMapTerm m
         Just  (l',_) -> l' == lt
 
 filterListWithRoot :: ListType
-                   -> Map NgramsTerm (ListType, Maybe NgramsTerm)
-                   -> Map NgramsTerm (Maybe RootTerm)
-filterListWithRoot lt m = snd <$> Map.filter isMapTerm m
+                   -> HashMap NgramsTerm (ListType, Maybe NgramsTerm)
+                   -> HashMap NgramsTerm (Maybe RootTerm)
+filterListWithRoot lt m = snd <$> HM.filter isMapTerm m
   where
     isMapTerm (l, maybeRoot) = case maybeRoot of
       Nothing -> l == lt
-      Just  r -> case Map.lookup r m of
+      Just  r -> case HM.lookup r m of
         Nothing -> panic $ "Garg.API.Ngrams.Tools: filterWithRoot, unknown key: " <> unNgramsTerm r
         Just  (l',_) -> l' == lt
 
@@ -126,7 +126,7 @@ groupNodesByNgrams syn occs = HM.fromListWith (<>) occs'
 
 data Diagonal = Diagonal Bool
 
-getCoocByNgrams :: Diagonal -> HashMap Text (Set NodeId) -> HashMap (Text, Text) Int
+getCoocByNgrams :: Diagonal -> HashMap NgramsTerm (Set NodeId) -> HashMap (NgramsTerm, NgramsTerm) Int
 getCoocByNgrams = getCoocByNgrams' identity
 
 
