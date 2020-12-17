@@ -19,7 +19,6 @@ module Gargantext.API.Metrics
     where
 
 import Control.Lens
-import Data.HashMap.Strict (HashMap)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Vector (Vector)
@@ -42,8 +41,7 @@ import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
 import Gargantext.Database.Schema.Node (node_hyperdata)
 import Gargantext.Prelude
 import Servant
-import qualified Data.HashMap.Strict as HM
-import qualified Data.Vector         as Vector
+import qualified Data.HashMap.Strict                as HashMap
 import qualified Gargantext.Database.Action.Metrics as Metrics
 
 -------------------------------------------------------------
@@ -80,7 +78,7 @@ getScatter cId maybeListId tabType _maybeLimit = do
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
   let HyperdataList { _hl_scatter = scatterMap } = node ^. node_hyperdata
-      mChart = HM.lookup tabType scatterMap
+      mChart = HashMap.lookup tabType scatterMap
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -115,7 +113,7 @@ updateScatter' cId maybeListId tabType maybeLimit = do
   let
     metrics      = fmap (\(Scored t s1 s2) -> Metric (unNgramsTerm t) s1 s2 (listType t ngs'))
                  $ fmap normalizeLocal scores
-    listType t m = maybe (panic errorMsg) fst $ HM.lookup t m
+    listType t m = maybe (panic errorMsg) fst $ HashMap.lookup t m
     errorMsg     = "API.Node.metrics: key absent"
 
   listId <- case maybeListId of
@@ -124,7 +122,7 @@ updateScatter' cId maybeListId tabType maybeLimit = do
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
   let hl = node ^. node_hyperdata
       scatterMap = hl ^. hl_scatter
-  _ <- updateHyperdata listId $ hl { _hl_scatter = HM.insert tabType (Metrics metrics) scatterMap }
+  _ <- updateHyperdata listId $ hl { _hl_scatter = HashMap.insert tabType (Metrics metrics) scatterMap }
 
   pure $ Metrics metrics
 
@@ -174,7 +172,7 @@ getChart cId _start _end maybeListId tabType = do
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
   let chartMap = node ^. node_hyperdata ^. hl_chart
-      mChart = HM.lookup tabType chartMap
+      mChart = HashMap.lookup tabType chartMap
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -211,7 +209,7 @@ updateChart' cId maybeListId tabType _maybeLimit = do
   let hl = node ^. node_hyperdata
       chartMap = hl ^. hl_chart
   h <- histoData cId
-  _ <- updateHyperdata listId $ hl { _hl_chart = HM.insert tabType (ChartMetrics h) chartMap }
+  _ <- updateHyperdata listId $ hl { _hl_chart = HashMap.insert tabType (ChartMetrics h) chartMap }
 
   pure $ ChartMetrics h
 
@@ -260,7 +258,7 @@ getPie cId _start _end maybeListId tabType = do
     Nothing  -> defaultList cId
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
   let pieMap = node ^. node_hyperdata ^. hl_pie
-      mChart = HM.lookup tabType pieMap
+      mChart = HashMap.lookup tabType pieMap
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -298,7 +296,7 @@ updatePie' cId maybeListId tabType _maybeLimit = do
       pieMap = hl ^. hl_pie
 
   p <- chartData cId (ngramsTypeFromTabType tabType) MapTerm
-  _ <- updateHyperdata listId $ hl { _hl_pie = HM.insert tabType (ChartMetrics p) pieMap }
+  _ <- updateHyperdata listId $ hl { _hl_pie = HashMap.insert tabType (ChartMetrics p) pieMap }
 
   pure $ ChartMetrics p
 
@@ -351,7 +349,7 @@ getTree cId _start _end maybeListId tabType listType = do
 
   node <- getNodeWith listId (Proxy :: Proxy HyperdataList)
   let treeMap = node ^. node_hyperdata ^. hl_tree
-      mChart = HM.lookup tabType treeMap
+      mChart = HashMap.lookup tabType treeMap
 
   chart <- case mChart of
     Just chart -> pure chart
@@ -389,7 +387,7 @@ updateTree' cId maybeListId tabType listType = do
   let hl      = node ^. node_hyperdata
       treeMap = hl  ^. hl_tree
   t <- treeData cId (ngramsTypeFromTabType tabType) listType
-  _ <- updateHyperdata listId $ hl { _hl_tree = HM.insert tabType (ChartMetrics t) treeMap }
+  _ <- updateHyperdata listId $ hl { _hl_tree = HashMap.insert tabType (ChartMetrics t) treeMap }
 
   pure $ ChartMetrics t
 

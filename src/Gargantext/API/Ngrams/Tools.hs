@@ -19,9 +19,7 @@ import Control.Lens (_Just, (^.), at, view, At, Index, IxValue)
 import Control.Monad.Reader
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
-import Data.Map.Strict (Map)
 import Data.Set (Set)
-import Data.Text (Text)
 import Data.Validity
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId, ListId)
@@ -30,7 +28,6 @@ import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
-import qualified Gargantext.Data.HashMap.Strict.Utils as HM
 
 mergeNgramsElement :: NgramsRepoElement -> NgramsRepoElement -> NgramsRepoElement
 mergeNgramsElement _neOld neNew = neNew

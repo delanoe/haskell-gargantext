@@ -16,12 +16,9 @@ Main exports of Gargantext:
 module Gargantext.API.Node.Corpus.Export
   where
 
-
-import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
-import Data.Text (Text)
 import Gargantext.API.Node.Corpus.Export.Types
 import Gargantext.API.Ngrams.Types
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, mapTermListRoot, getRepo)

@@ -21,7 +21,6 @@ import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.List           as List
 import qualified Data.Map.Strict     as Map
-import qualified Data.HashMap.Strict as HashMap
 
 -- TODO put this in Prelude
 cons :: a -> [a]

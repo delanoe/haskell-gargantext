@@ -21,14 +21,12 @@ import Control.Lens
 import Data.HashMap.Strict (HashMap)
 import Data.Monoid (mempty)
 import Data.Set (Set)
-import Data.Text (Text)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Types.Main
 import Gargantext.Prelude
-import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Set   as Set
+import qualified Data.Set            as Set
 
 ------------------------------------------------------------------------
 -- | Generates Score from list of HashMap Text NgramsRepoElement

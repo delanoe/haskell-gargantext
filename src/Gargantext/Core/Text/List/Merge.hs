@@ -20,7 +20,6 @@ module Gargantext.Core.Text.List.Merge
 
 import Control.Lens (view)
 import Data.Map (Map)
-import Data.Text (Text)
 import Gargantext.API.Ngrams
 import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude

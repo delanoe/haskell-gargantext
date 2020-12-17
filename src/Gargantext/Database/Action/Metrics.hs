@@ -14,8 +14,6 @@ module Gargantext.Database.Action.Metrics
   where
 
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
-import Data.Text (Text)
 import Data.Vector (Vector)
 import Gargantext.API.Ngrams.Tools (filterListWithRoot, groupNodesByNgrams, Diagonal(..), getCoocByNgrams, mapTermListRoot, RootTerm, getRepo)
 import Gargantext.API.Ngrams.Types (TabType(..), ngramsTypeFromTabType, NgramsTerm)
@@ -29,7 +27,6 @@ import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HM
-import qualified Data.Map            as Map
 
 getMetrics :: FlowCmdM env err m
             => CorpusId -> Maybe ListId -> TabType -> Maybe Limit

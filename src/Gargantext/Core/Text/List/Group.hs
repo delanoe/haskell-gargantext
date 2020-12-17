@@ -20,17 +20,14 @@ module Gargantext.Core.Text.List.Group
 
 import Control.Lens (view)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid, mempty)
-import Data.Text (Text)
 import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Group.WithScores
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Map            as Map
 ------------------------------------------------------------------------
 toGroupedTree :: (Ord a, Monoid a)
               => FlowCont NgramsTerm FlowListScores

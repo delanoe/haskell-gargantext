@@ -20,7 +20,6 @@ module Gargantext.Core.Text.List.Group.WithStem
 import Data.HashSet (HashSet)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
-import Data.Text (Text)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Text.List.Group.Prelude

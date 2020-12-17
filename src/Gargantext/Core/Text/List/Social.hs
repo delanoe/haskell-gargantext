@@ -14,7 +14,6 @@ module Gargantext.Core.Text.List.Social
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Monoid (mconcat)
-import Data.Text (Text)
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Find

@@ -16,7 +16,6 @@ module Gargantext.API.Ngrams.NgramsTree
 
 import Data.Aeson.TH (deriveJSON)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
 import Data.Maybe (catMaybes)
 import Data.Set (Set)
 import Data.Swagger
@@ -30,7 +29,6 @@ import Gargantext.Prelude
 import Test.QuickCheck
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 type Children = Text

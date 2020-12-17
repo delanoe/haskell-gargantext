@@ -18,7 +18,6 @@ module Gargantext.Core.Text.List.Group.Prelude
 
 import Control.Lens (makeLenses, view, set, over)
 import Data.HashMap.Strict (HashMap)
-import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Semigroup
@@ -30,7 +29,6 @@ import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
-import qualified Data.Map  as Map
 import qualified Data.Set  as Set
 
 type Stem = NgramsTerm

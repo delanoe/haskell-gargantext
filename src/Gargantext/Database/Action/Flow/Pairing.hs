@@ -42,7 +42,6 @@ import Gargantext.Prelude hiding (sum)
 import Opaleye
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List           as List
-import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified Data.Text           as DT
 

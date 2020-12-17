@@ -48,7 +48,6 @@ import Servant
 import Servant.Job.Async
 import Servant.XML
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Map as Map
 ------------------------------------------------------------------------
 -- | There is no Delete specific API for Graph since it can be deleted
 -- as simple Node.

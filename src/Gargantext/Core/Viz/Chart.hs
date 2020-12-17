@@ -17,7 +17,6 @@ module Gargantext.Core.Viz.Chart
 import Data.List (sortOn)
 import Data.Map (toList)
 import qualified Data.List as List
-import qualified Data.Map as Map
 import Data.Maybe (catMaybes)
 import qualified Data.Vector as V
 

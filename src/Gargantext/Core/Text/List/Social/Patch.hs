@@ -17,7 +17,6 @@ import Data.Hashable (Hashable)
 import Data.HashMap.Strict (HashMap)
 import Data.Monoid
 import Data.Semigroup
-import Data.Text (Text)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Types (ListId)

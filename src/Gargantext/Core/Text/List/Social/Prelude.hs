@@ -24,7 +24,6 @@ import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Data.Monoid
 import Data.Semigroup (Semigroup(..))
-import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types.Main
