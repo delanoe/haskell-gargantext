@@ -27,7 +27,6 @@ import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core.Text.Metrics.Freq (getMaxFromMap)
 import Gargantext.Core.Types.Main
 import Gargantext.Prelude
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
@@ -114,17 +113,11 @@ parentUnionsExcl = HashMap.unions
 keyWithMaxValue :: (Ord a, Ord b, Num b, Hashable a)
                 => HashMap a b -> Maybe a
 keyWithMaxValue m = do
-  maxKey   <- headMay $ HashMap.getKeyWithMaxValue m
+  maxKey   <- headMay $ HashMap.getKeysOrderedByValueMaxFirst m
   maxValue <- HashMap.lookup maxKey m
   if maxValue > 0
      then pure maxKey
      else Nothing
-
-
-findMax :: (Ord b, Num b, Hashable a) => HashMap a b -> Maybe (a,b)
-findMax m = case HashMap.null m of
-  True  -> Nothing
-  False -> Just $ HashMap.findMax m
 
 
 ------------------------------------------------------------------------

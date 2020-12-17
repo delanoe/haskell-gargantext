@@ -20,7 +20,7 @@ import qualified Data.List   as DL
 import qualified Data.Vector as DV
 import qualified Data.Map    as M
 
-import Gargantext.Core.Text.Metrics.Freq as F
+import Gargantext.Core.Text.Metrics.Utils      as Utils
 import Gargantext.Core.Text.Corpus.Parsers.CSV as CSV
 
 data School = School { school_shortName :: Text
@@ -115,7 +115,7 @@ publisBySchool hal_data' = Gargantext.Prelude.map (\(i,n) -> (M.lookup i mapIdSc
                         $ DL.reverse
                         $ DL.sortOn snd
                         $ M.toList
-                        $ F.freq
+                        $ Utils.freq
                         $ DL.concat
                         $ DV.toList
                         $ DV.map (\n -> splitOn ( ", ") (csvHal_instStructId_i n) )
