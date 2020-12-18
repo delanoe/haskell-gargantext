@@ -21,10 +21,12 @@ services:
     ports:
       - 8081:80
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin
+      PGADMIN_DEFAULT_EMAIL: admin@localhost
       PGADMIN_DEFAULT_PASSWORD: admin
 
     depends_on:
+      - postgres
+    links:
       - postgres
 
   corenlp:

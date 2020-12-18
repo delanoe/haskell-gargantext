@@ -39,7 +39,7 @@ import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
 import Data.Map (Map, fromListWith, lookup)
-import qualified Data.Set  as Set
+-- import qualified Data.Set  as Set
 import qualified Data.List as List
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
@@ -99,9 +99,13 @@ tree_advanced :: HasTreeError err
               -> [NodeType]
               -> Cmd err (Tree NodeTree)
 tree_advanced r nodeTypes = do
+  let rPrefix s = "[tree_advanced] root = " <> show r <> " " <> s
   mainRoot    <- findNodes r Private nodeTypes
-  sharedRoots <- findNodes r Shared  nodeTypes
+  printDebug (rPrefix "mainRoot") mainRoot
   publicRoots <- findNodes r Public  nodeTypes
+  printDebug (rPrefix "publicRoots") publicRoots
+  sharedRoots <- findNodes r Shared  nodeTypes
+  printDebug (rPrefix "sharedRoots") sharedRoots
   toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
 
 -- | Fetch only first level of tree
@@ -110,10 +114,16 @@ tree_first_level :: HasTreeError err
                  -> [NodeType]
                  -> Cmd err (Tree NodeTree)
 tree_first_level r nodeTypes = do
+  let rPrefix s = "[tree_first_level] root = " <> show r <> " " <> s
   mainRoot    <- findNodes r Private nodeTypes
-  sharedRoots <- findNodes r Shared  nodeTypes
+  printDebug (rPrefix "mainRoot") mainRoot
   publicRoots <- findNodes r Public  nodeTypes
-  toTree $ toSubtreeParent (mainRoot <> sharedRoots <> publicRoots)
+  printDebug (rPrefix "publicRoots") publicRoots
+  sharedRoots <- findNodes r Shared  nodeTypes
+  printDebug (rPrefix "sharedRoots") sharedRoots
+  ret <- toTree $ toSubtreeParent r (mainRoot <> sharedRoots <> publicRoots)
+  printDebug (rPrefix "tree") ret
+  pure ret
 
 ------------------------------------------------------------------------
 data NodeMode = Private | Shared | Public
@@ -214,24 +224,43 @@ toTreeParent :: [DbTreeNode]
              -> Map (Maybe ParentId) [DbTreeNode]
 toTreeParent = fromListWith (\a b -> nub $ a <> b) . map (\n -> (_dt_parentId n, [n]))
 ------------------------------------------------------------------------
-toSubtreeParent :: [DbTreeNode]
+-- toSubtreeParent' :: [DbTreeNode]
+--                 -> Map (Maybe ParentId) [DbTreeNode]
+-- toSubtreeParent' ns = fromListWith (\a b -> nub $ a <> b) . map (\n -> (_dt_parentId n, [n])) $ nullifiedParents
+--   where
+--     nodeIds = Set.fromList $ map (\n -> unNodeId $ _dt_nodeId n) ns
+--     nullifiedParents = map nullifyParent ns
+--     nullifyParent dt@(DbTreeNode { _dt_parentId = Nothing }) = dt
+--     nullifyParent dt@(DbTreeNode { _dt_nodeId = nId
+--                                  , _dt_parentId = Just pId
+--                                  , _dt_typeId = tId
+--                                  , _dt_name = name }) =
+--       if Set.member (unNodeId pId) nodeIds then
+--         dt
+--       else
+--         DbTreeNode { _dt_nodeId = nId
+--                    , _dt_typeId = tId
+--                    , _dt_parentId = Nothing
+--                    , _dt_name = name }
+------------------------------------------------------------------------
+toSubtreeParent :: RootId
+                -> [DbTreeNode]
                 -> Map (Maybe ParentId) [DbTreeNode]
-toSubtreeParent ns = fromListWith (\a b -> nub $ a <> b) . map (\n -> (_dt_parentId n, [n])) $ nullifiedParents
+toSubtreeParent r ns = fromListWith (\a b -> nub $ a <> b) . map (\n -> (_dt_parentId n, [n])) $ nullifiedParents
   where
-    nodeIds = Set.fromList $ map (\n -> unNodeId $ _dt_nodeId n) ns
     nullifiedParents = map nullifyParent ns
     nullifyParent dt@(DbTreeNode { _dt_parentId = Nothing }) = dt
     nullifyParent dt@(DbTreeNode { _dt_nodeId = nId
-                                 , _dt_parentId = Just pId
+                                 , _dt_parentId = _pId
                                  , _dt_typeId = tId
                                  , _dt_name = name }) =
-      if Set.member (unNodeId pId) nodeIds then
-        dt
-      else
+      if r == nId then
         DbTreeNode { _dt_nodeId = nId
                    , _dt_typeId = tId
                    , _dt_parentId = Nothing
                    , _dt_name = name }
+      else
+        dt
 ------------------------------------------------------------------------
 -- | Main DB Tree function
 dbTree :: RootId
