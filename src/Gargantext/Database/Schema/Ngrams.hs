@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Schema.Ngrams
+Module      : Gargantext.Database.Schema.NgramsPostag
 Description : Ngram connection to the Database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3

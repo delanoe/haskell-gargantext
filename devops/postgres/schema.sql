@@ -39,6 +39,8 @@ CREATE TABLE public.nodes (
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
 
+--------------------------------------------------------------
+-- | Ngrams
 CREATE TABLE public.ngrams (
     id SERIAL,
     terms CHARACTER varying(255),
@@ -46,6 +48,20 @@ CREATE TABLE public.ngrams (
     PRIMARY KEY (id)
 );
 ALTER TABLE public.ngrams OWNER TO gargantua;
+
+-- | Ngrams PosTag
+CREATE TABLE public.ngrams_postag (
+    id SERIAL,
+    lang_id INTEGER,
+    algo_id INTEGER,
+    postag CHARACTER varying(5),
+    ngrams_id INTEGER NOT NULL,
+    lemm_id   INTEGER NOT NULL,
+    score     INTEGER DEFAULT 1 ::integer NOT NULL,
+    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
+    FOREIGN KEY (lemm_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
+);
+ALTER TABLE public.ngrams_postag OWNER TO gargantua;
 
 --------------------------------------------------------------
 CREATE TABLE public.node_ngrams (
