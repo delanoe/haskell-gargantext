@@ -15,23 +15,21 @@ module Gargantext.API.Ngrams.NgramsTree
   where
 
 import Data.Aeson.TH (deriveJSON)
-import Data.Text (Text)
-import Data.Tree
+import Data.HashMap.Strict (HashMap)
 import Data.Maybe (catMaybes)
-import Data.Map (Map)
 import Data.Set (Set)
 import Data.Swagger
-import qualified Data.Set as Set
-import qualified Data.Map as Map
-import qualified Data.List as List
+import Data.Text (Text)
+import Data.Tree
 import GHC.Generics (Generic)
-import Test.QuickCheck
-
-import Gargantext.Prelude
-
 import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types (ListType(..), NodeId)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
+import Gargantext.Prelude
+import Test.QuickCheck
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List as List
+import qualified Data.Set as Set
 
 type Children = Text
 type Root = Text
@@ -42,8 +40,8 @@ data NgramsTree = NgramsTree { mt_label :: Text
                              }
     deriving (Generic, Show)
 
-toNgramsTree :: Tree (Text,Double) -> NgramsTree
-toNgramsTree (Node (l,v) xs) = NgramsTree l v (map toNgramsTree xs)
+toNgramsTree :: Tree (NgramsTerm,Double) -> NgramsTree
+toNgramsTree (Node (NgramsTerm l,v) xs) = NgramsTree l v (map toNgramsTree xs)
 
 deriveJSON (unPrefix "mt_") ''NgramsTree
 
@@ -53,24 +51,27 @@ instance Arbitrary NgramsTree
   where
     arbitrary = NgramsTree <$> arbitrary <*> arbitrary <*> arbitrary
 
-toTree :: ListType -> Map Text (Set NodeId) -> Map Text NgramsRepoElement -> [NgramsTree]
+toTree :: ListType
+       -> HashMap NgramsTerm (Set NodeId)
+       -> HashMap NgramsTerm NgramsRepoElement
+       -> [NgramsTree]
 toTree lt vs m = map toNgramsTree $ unfoldForest buildNode roots
   where
     buildNode r = maybe ((r, value r),[])
-                        (\x -> ((r, value r), unNgramsTerm <$> (mSetToList $ _nre_children x)))
-                        (Map.lookup r m)
+                        (\x -> ((r, value r), mSetToList $ _nre_children x))
+                        (HashMap.lookup r m)
 
-    value l = maybe 0 (fromIntegral . Set.size) $ Map.lookup l vs
+    value l = maybe 0 (fromIntegral . Set.size) $ HashMap.lookup l vs
 
     rootsCandidates :: [NgramsTerm]
     rootsCandidates = catMaybes
                     $ List.nub
                     $ map (\(c, c') -> case _nre_root c' of
-                                       Nothing -> Just $ NgramsTerm c
-                                       _ -> _nre_root c') (Map.toList m)
+                                       Nothing -> Just c
+                                       _ -> _nre_root c') (HashMap.toList m)
 
     roots = map fst
           $ filter (\(_,l) -> l == lt)
           $ catMaybes
-          $ map (\c -> (,) <$> Just c <*> (_nre_list <$> Map.lookup c m))
-          $ (unNgramsTerm <$> rootsCandidates)
+          $ map (\c -> (,) <$> Just c <*> (_nre_list <$> HashMap.lookup c m))
+          $ rootsCandidates

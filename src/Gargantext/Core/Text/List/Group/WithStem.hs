@@ -17,20 +17,30 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithStem
   where
 
-import Control.Lens (view, over)
-import Data.Set (Set)
+import Data.HashSet (HashSet)
 import Data.Map (Map)
-import Data.Monoid (mempty)
-import Data.Text (Text)
+import Data.Maybe (catMaybes)
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core (Lang(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Core.Text.List.Group.Prelude
+import Gargantext.Core.Text.List.Social.Patch
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
-import qualified Data.Map  as Map
-import qualified Data.List as List
-import qualified Data.Text as Text
+import qualified Data.HashSet          as Set
+import qualified Data.List             as List
+import qualified Data.Map              as Map
+import qualified Data.Map.Strict.Patch as PatchMap
+import qualified Data.Patch.Class      as Patch (Replace(..))
+import qualified Data.Text             as Text
+
+------------------------------------------------------------------------
+addScoreStem :: GroupParams
+             -> HashSet NgramsTerm
+             -> FlowCont NgramsTerm FlowListScores
+             -> FlowCont NgramsTerm FlowListScores
+addScoreStem groupParams ngrams fl = foldl' addScorePatch fl 
+                                   $ stemPatches groupParams ngrams
 
 ------------------------------------------------------------------------
 -- | Main Types
@@ -50,176 +60,54 @@ data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
   deriving (Eq)
 
 ------------------------------------------------------------------------
-class GroupWithStem a where
-  groupWithStem' :: GroupParams
-                -> FlowCont Text (GroupedTreeScores a)
-                -> FlowCont Text (GroupedTreeScores a)
-
--- TODO factorize groupWithStem_*
-instance GroupWithStem (Set NodeId) where
-  groupWithStem' = groupWithStem_SetNodeId
-
-instance GroupWithStem Double where
-  groupWithStem' = groupWithStem_Double
-
-------------------------------------------------------------------------
 groupWith :: GroupParams
-            -> Text
-            -> Text
+            -> NgramsTerm
+            -> NgramsTerm
 groupWith GroupIdentity  = identity
 groupWith (GroupParams l _m _n _) =
-                    Text.intercalate " "
+                    NgramsTerm
+                  . Text.intercalate " "
                   . map (stem l)
                   -- . take n
                   . List.sort
                   -- . (List.filter (\t -> Text.length t > m))
                   . Text.splitOn " "
                   . Text.replace "-" " "
+                  . unNgramsTerm
+--------------------------------------------------------------------
+stemPatches :: GroupParams
+           -> HashSet NgramsTerm
+           -> [(NgramsTerm, NgramsPatch)]
+stemPatches groupParams = patches
+                        . Map.fromListWith (<>)
+                        . map (\ng -> ( groupWith groupParams ng
+                                      , Set.singleton ng)
+                              )
+                        . Set.toList
 
-------------------------------------------------------------------------
-groupWithStem_SetNodeId :: GroupParams
-               -> FlowCont Text (GroupedTreeScores (Set NodeId))
-               -> FlowCont Text (GroupedTreeScores (Set NodeId))
-groupWithStem_SetNodeId g flc
-    | g == GroupIdentity = FlowCont ( (<>)
-                                      (view flc_scores flc)
-                                      (view flc_cont   flc)
-                                    ) mempty
-    | otherwise = mergeWith (groupWith g) flc
+-- | For now all NgramsTerm which have same stem
+-- are grouped together
+-- Parent is taken arbitrarly for now (TODO use a score like occ)
+patches :: Map Stem (HashSet NgramsTerm)
+            -> [(NgramsTerm, NgramsPatch)]
+patches = catMaybes . map patch . Map.elems
 
-groupWithStem_Double :: GroupParams
-                     -> FlowCont Text (GroupedTreeScores Double)
-                     -> FlowCont Text (GroupedTreeScores Double)
-groupWithStem_Double g flc
-    | g == GroupIdentity = FlowCont ( (<>)
-                                      (view flc_scores flc)
-                                      (view flc_cont   flc)
-                                    ) mempty
-    | otherwise = mergeWith_Double (groupWith g) flc
-
-
-
-
--- | MergeWith : with stem, we always have an answer
--- if Maybe lems then we should add it to continuation
-mergeWith :: (Text -> Text)
-          -> FlowCont Text (GroupedTreeScores (Set NodeId))
-          -> FlowCont Text (GroupedTreeScores (Set NodeId))
-mergeWith fun flc = FlowCont scores mempty
+patch :: HashSet NgramsTerm
+           -> Maybe (NgramsTerm, NgramsPatch)
+patch s = case Set.size s > 1 of
+  False -> Nothing
+  True  -> do
+    let ngrams = Set.toList s
+    parent   <- headMay ngrams
+    let children = List.tail ngrams
+    pure (parent, toNgramsPatch children)
+    
+toNgramsPatch :: [NgramsTerm] -> NgramsPatch
+toNgramsPatch children = NgramsPatch children' Patch.Keep
   where
-
-    scores :: Map Text (GroupedTreeScores (Set NodeId))
-    scores = foldl' (alter (mapStems scores')) scores' cont'
-      where
-        scores' = view flc_scores flc
-        cont'   = Map.toList $ view flc_cont flc
-
-    -- TODO insert at the right place in group hierarchy
-    -- adding as child of the parent for now
-    alter :: Map Stem Text
-          -> Map Text (GroupedTreeScores (Set NodeId))
-          -> (Text, GroupedTreeScores (Set NodeId))
-          -> Map Text (GroupedTreeScores (Set NodeId))
-    alter st target (t,g) = case Map.lookup t st of
-      Nothing -> Map.alter (alter' (t,g)) t  target
-      Just t' -> Map.alter (alter' (t,g)) t' target
-
-    alter' (_t,g) Nothing   = Just g
-    alter' ( t,g) (Just g') = Just $ over gts'_children
-                                   ( Map.union (Map.singleton t g))
-                                   g'
-
-    mapStems :: Map Text (GroupedTreeScores (Set NodeId))
-             -> Map Stem Text
-    mapStems = (Map.fromListWith (<>)) . List.concat . (map mapStem) . Map.toList
-
-    mapStem :: (Text, GroupedTreeScores (Set NodeId))
-            -> [(Stem, Text)]
-    mapStem (s,g) = parent : children
-      where
-        parent   = (fun s, s)
-        children = List.concat $ map mapStem (Map.toList $ view gts'_children g)
-
-
--- | MergeWith : with stem, we always have an answer
--- if Maybe lems then we should add it to continuation
-mergeWith_Double :: (Text -> Text)
-          -> FlowCont Text (GroupedTreeScores Double)
-          -> FlowCont Text (GroupedTreeScores Double)
-mergeWith_Double fun flc = FlowCont scores mempty
-  where
-
-    scores :: Map Text (GroupedTreeScores Double)
-    scores = foldl' (alter (mapStems scores')) scores' cont'
-      where
-        scores' = view flc_scores flc
-        cont'   = Map.toList $ view flc_cont flc
-
-    -- TODO insert at the right place in group hierarchy
-    -- adding as child of the parent for now
-    alter :: Map Stem Text
-          -> Map Text (GroupedTreeScores Double)
-          -> (Text, GroupedTreeScores Double)
-          -> Map Text (GroupedTreeScores Double)
-    alter st target (t,g) = case Map.lookup t st of
-      Nothing -> Map.alter (alter' (t,g)) t  target
-      Just t' -> Map.alter (alter' (t,g)) t' target
-
-    alter' (_t,g) Nothing   = Just g
-    alter' ( t,g) (Just g') = Just $ over gts'_children
-                                   ( Map.union (Map.singleton t g))
-                                   g'
-
-    mapStems :: Map Text (GroupedTreeScores Double)
-             -> Map Stem Text
-    mapStems = (Map.fromListWith (<>)) . List.concat . (map mapStem) . Map.toList
-
-    mapStem :: (Text, GroupedTreeScores Double)
-            -> [(Stem, Text)]
-    mapStem (s,g) = parent : children
-      where
-        parent   = (fun s, s)
-        children = List.concat $ map mapStem (Map.toList $ view gts'_children g)
-
-{-
--- | TODO fixme
-mergeWith_a :: (Text -> Text)
-          -> FlowCont Text (GroupedTreeScores a)
-          -> FlowCont Text (GroupedTreeScores a)
-mergeWith_a fun flc = FlowCont scores mempty
-  where
-
-    scores :: Map Text (GroupedTreeScores a)
-    scores = foldl' (alter (mapStems scores')) scores' cont'
-      where
-        scores' = view flc_scores flc
-        cont'   = Map.toList $ _flc_cont flc
-
-    -- TODO insert at the right place in group hierarchy
-    -- adding as child of the parent for now
-    alter :: Map Stem Text
-          -> Map Text (GroupedTreeScores a)
-          -> (Text, GroupedTreeScores a)
-          -> Map Text (GroupedTreeScores a)
-    alter st target (t,g) = case Map.lookup t st of
-      Nothing -> Map.alter (alter' (t,g)) t  target
-      Just t' -> Map.alter (alter' (t,g)) t' target
-
-    alter' (_t,g) Nothing   = Just g
-    alter' ( t,g) (Just g') = Just $ over gts'_children
-                                   ( Map.union (Map.singleton t g))
-                                   g'
-
-    mapStems :: Map Text (GroupedTreeScores a)
-             -> Map Stem Text
-    mapStems = (Map.fromListWith (<>)) . List.concat . (map mapStem) . Map.toList
-
-    mapStem :: (Text, GroupedTreeScores a)
-            -> [(Stem, Text)]
-    mapStem (s,g) = parent : children
-      where
-        parent   = (fun s, s)
-        children = List.concat $ map mapStem (Map.toList $ view gts'_children g)
--}
-
+    children' :: PatchMSet NgramsTerm
+    children' = PatchMSet
+              $ fst
+              $ PatchMap.fromList
+              $ List.zip children (List.cycle [addPatch])
 

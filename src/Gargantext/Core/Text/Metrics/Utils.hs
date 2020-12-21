@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Core.Text.Metrics.Freq
+Module      : Gargantext.Core.Text.Metrics.Utils
 Description : Some functions to count.
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -10,7 +10,7 @@ Portability : POSIX
 -}
 
 
-module Gargantext.Core.Text.Metrics.Freq where
+module Gargantext.Core.Text.Metrics.Utils where
 
 import Gargantext.Prelude
 import Data.Map (empty, Map, insertWith, toList)

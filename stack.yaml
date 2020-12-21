@@ -1,4 +1,4 @@
-resolver: lts-16.14
+resolver: lts-16.26
 flags: {}
 extra-package-dbs: []
 packages:
@@ -10,7 +10,7 @@ packages:
 
 docker:
   enable: false
-  repo: 'fpco/stack-build:lts-14.27-garg'
+  repo: 'fpco/stack-build:lts-16.26-garg'
   run-args:
     - '--publish=8008:8008'
 
@@ -21,47 +21,57 @@ nix:
 
 allow-newer: true
 extra-deps:
+
+  # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
 - git: https://gitlab.iscpif.fr/gargantext/hlcm.git
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
-- git: https://github.com/delanoe/servant-static-th.git
-  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/delanoe/hstatistics.git
   commit: 90eef7604bb230644c2246eccd094d7bfefcb135
 - git: https://github.com/paulrzcz/HSvm.git
   commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
+
+  # API libs
+- git: https://github.com/delanoe/servant-static-th.git
+  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
+
+  # Databases libs
+- git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
+  commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
+- git: https://github.com/delanoe/hsparql.git
+  commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
 - git: https://github.com/robstewart57/rdf4h.git
   commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
-    #
-    # External API connectin to get data
+
+  # External Data API connectors
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
   commit: a9d8e08a7ef82f90e29dfaced4071704a3163394
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
   commit: daeae80365250c4bd539f0a65e271f9aa37f731f
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
-  commit: 95e8f01a5d3b404a14a7fc664996569a6fb41ec4
+  commit: 020f5f9b308f5c23c925aedf5fb11f8b4728fb19
 - git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
   commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
-    #
-- git: https://gitlab.com/npouillard/patches-class.git  
-  commit: 4712bfb055888fae63cd2e88431972375f979b94
 
+  # NP libs
   #- git: https://github.com/np/servant-job.git # waiting for PR
 - git: https://github.com/delanoe/servant-job.git
   commit: a9d8ec247b60906ae0ad76ea017cacd6ff36a7a1
-- git: https://github.com/np/patches-map
-  commit: d42c37de5046ba22abcb5e21c121d1072126f3cc
-- git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
-  commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
-- git: https://github.com/delanoe/hsparql.git
-  commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
+  #- git: https://github.com/np/patches-map
+- git: https://github.com/delanoe/patches-map
+  commit: 76cae88f367976ff091e661ee69a5c3126b94694
+  #- git: https://gitlab.com/npouillard/patches-class.git  
+- git: https://gitlab.iscpif.fr/gargantext/patches-class.git
+  commit: d3e971d4e78d1dfcc853f2fb86bde1995faf22ae
+
+  # Graph libs
+- git: https://github.com/kaizhang/haskell-igraph.git
+  commit: 34553acc4ebdcae7065311dcefb426e0fd58c5a0
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
   commit: 7d74f96dfea8e51fbab1793cc0429b2fe741f73d
 
-- git: https://github.com/kaizhang/haskell-igraph.git
-  commit: 34553acc4ebdcae7065311dcefb426e0fd58c5a0
-
+  # Others dependencies (with stack resolver)
 - KMP-0.2.0.0@sha256:6dfbac03ef00ebd9347234732cb86a40f62ab5a80c0cc6bedb8eb51766f7df28,2562
 - Unique-0.4.7.7@sha256:2269d3528271e25d34542e7c24a4e541e27ec33460e1ea00845da95b82eec6fa,2777
 - accelerate-1.2.0.1@sha256:bb1928efe602545df4043692916ed427c959110cbd678d03c3f9c3be25d1ae88,20112

@@ -20,29 +20,32 @@ module Gargantext.Core.Text.Metrics
 --import Math.KMeans (kmeans, euclidSq, elements)
 import Control.Lens (makeLenses)
 import Data.Map (Map)
-import Data.Semigroup (Semigroup)
 import Data.Monoid (Monoid, mempty)
-import Gargantext.Prelude
+import Data.HashMap.Strict (HashMap)
+import Data.Semigroup (Semigroup)
 import Gargantext.Core.Methods.Distances.Accelerate.SpeGen
-import Gargantext.Core.Viz.Graph.Index
 import Gargantext.Core.Statistics (pcaReduceTo, Dimension(..))
+import Gargantext.Core.Viz.Graph.Index
+import Gargantext.Prelude
 import qualified Data.Array.Accelerate as DAA
 import qualified Data.Array.Accelerate.Interpreter as DAA
 import qualified Data.Map  as Map
-
+import qualified Data.Vector as V
 import qualified Data.Vector.Storable as Vec
+import qualified Data.HashMap.Strict as HashMap
+
 
 type MapListSize = Int
 type InclusionSize = Int
 
-scored :: Ord t => Map (t,t) Int -> [Scored t]
-scored = map2scored . (pcaReduceTo (Dimension 2)) . scored2map
+scored :: Ord t => HashMap (t,t) Int -> V.Vector (Scored t)
+scored = map2scored . (pcaReduceTo (Dimension 2)) . scored2map . Map.fromList . HashMap.toList
   where
     scored2map :: Ord t => Map (t,t) Int -> Map t (Vec.Vector Double)
     scored2map m = Map.fromList $ map (\(Scored t i s) -> (t, Vec.fromList [i,s])) $ scored' m
 
-    map2scored :: Ord t => Map t (Vec.Vector Double) -> [Scored t]
-    map2scored = map (\(t, ds) -> Scored t (Vec.head ds) (Vec.last ds)) . Map.toList
+    map2scored :: Ord t => Map t (Vec.Vector Double) -> V.Vector (Scored t)
+    map2scored = V.map (\(t, ds) -> Scored t (Vec.head ds) (Vec.last ds)) . V.fromList . Map.toList
 
 -- TODO change type with (x,y)
 data Scored ts = Scored

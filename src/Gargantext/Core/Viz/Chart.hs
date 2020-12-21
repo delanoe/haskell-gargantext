@@ -14,11 +14,11 @@ Portability : POSIX
 module Gargantext.Core.Viz.Chart
   where
 
-import Data.List (unzip, sortOn)
+import Data.List (sortOn)
 import Data.Map (toList)
 import qualified Data.List as List
-import qualified Data.Map as Map
 import Data.Maybe (catMaybes)
+import qualified Data.Vector as V
 
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Config
@@ -33,17 +33,21 @@ import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
 -- Pie Chart
 import Gargantext.API.Ngrams.NgramsTree
 import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Ngrams.Types
 import Gargantext.Core.Types
 import Gargantext.Database.Action.Flow
 import Gargantext.Database.Action.Metrics.NgramsByNode
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Core.Viz.Types
+import qualified Data.HashMap.Strict as HashMap
+
 
 histoData :: CorpusId -> Cmd err Histo
 histoData cId = do
   dates <- selectDocsDates cId
-  let (ls, css) = unzip
-                $ sortOn fst
+  let (ls, css) = V.unzip
+                $ V.fromList
+                $ sortOn fst -- TODO Vector.sortOn
                 $ toList
                 $ occurrencesWith identity dates
   pure (Histo ls css)
@@ -58,20 +62,20 @@ chartData cId nt lt = do
   ts <- mapTermListRoot ls nt <$> getRepo
   let
     dico = filterListWithRoot lt ts
-    terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ Map.toList dico
-    group dico' x = case Map.lookup x dico' of
+    terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
+    group dico' x = case HashMap.lookup x dico' of
         Nothing -> x
         Just x' -> maybe x identity x'
 
   (_total,mapTerms) <- countNodesByNgramsWith (group dico)
                     <$> getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
-  let (dates, count) = unzip $ map (\(t,(d,_)) -> (t, d)) $ Map.toList mapTerms
-  pure (Histo dates (map round count))
+  let (dates, count) = V.unzip $ fmap (\(NgramsTerm t,(d,_)) -> (t, d)) $ V.fromList $ HashMap.toList mapTerms
+  pure (Histo dates (round <$> count))
 
 
 treeData :: FlowCmdM env err m
         => CorpusId -> NgramsType -> ListType
-        -> m [NgramsTree]
+        -> m (V.Vector NgramsTree)
 treeData cId nt lt = do
   ls' <- selectNodesWithUsername NodeList userMaster
   ls <- map (_node_id) <$> getListsWithParentId cId
@@ -79,10 +83,10 @@ treeData cId nt lt = do
 
   let
     dico = filterListWithRoot lt ts
-    terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ Map.toList dico
+    terms = catMaybes $ List.concat $ map (\(a,b) -> [Just a, b]) $ HashMap.toList dico
 
   cs' <- getNodesByNgramsOnlyUser cId (ls' <> ls) nt terms
 
   m  <- getListNgrams ls nt
-  pure $ toTree lt cs' m
+  pure $ V.fromList $ toTree lt cs' m
 

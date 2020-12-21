@@ -19,6 +19,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams
   where
 
+import Data.Hashable (Hashable)
 import Codec.Serialise (Serialise())
 import Control.Lens (over)
 import Control.Monad (mzero)
@@ -81,6 +82,7 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
 instance Serialise NgramsType
+instance Hashable  NgramsType
 
 ngramsTypes :: [NgramsType]
 ngramsTypes = [minBound..]
@@ -152,6 +154,7 @@ text2ngrams :: Text -> Ngrams
 text2ngrams txt = UnsafeNgrams txt' $ length $ splitOn " " txt'
   where
     txt' = strip txt
+
 
 -------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams

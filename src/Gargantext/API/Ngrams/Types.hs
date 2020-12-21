@@ -19,6 +19,7 @@ import Data.Aeson hiding ((.=))
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
 import Data.Foldable
+import Data.Hashable (Hashable)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import qualified Data.List as List
 import Data.Map.Strict (Map)
@@ -46,6 +47,7 @@ import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Protolude (maybeToEither)
 import Gargantext.Prelude
 
+import Gargantext.Prelude.Crypto.Hash (IsHashable(..))
 import Gargantext.Core.Text (size)
 import Gargantext.Core.Types (ListType(..), ListId, NodeId)
 import Gargantext.Core.Types (TODO)
@@ -59,6 +61,9 @@ data TabType   = Docs   | Trash   | MoreFav | MoreTrash
                | Terms  | Sources | Authors | Institutes
                | Contacts
   deriving (Bounded, Enum, Eq, Generic, Ord, Show)
+
+
+instance Hashable TabType
 
 instance FromHttpApiData TabType
    where
@@ -120,7 +125,13 @@ instance (ToJSONKey a, ToSchema a) => ToSchema (MSet a) where
 
 ------------------------------------------------------------------------
 newtype NgramsTerm = NgramsTerm { unNgramsTerm :: Text }
-  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema)
+  deriving (Ord, Eq, Show, Generic, ToJSONKey, ToJSON, FromJSON, Semigroup, Arbitrary, Serialise, ToSchema, Hashable)
+
+instance IsHashable NgramsTerm where
+  hash (NgramsTerm t) = hash t
+
+instance Monoid NgramsTerm where
+  mempty = NgramsTerm ""
 
 instance FromJSONKey NgramsTerm where
   fromJSONKey = FromJSONKeyTextParser $ \t -> pure $ NgramsTerm $ strip t
@@ -342,10 +353,12 @@ isRem = (== remPatch)
 
 type PatchMap = PM.PatchMap
 
-
 newtype PatchMSet a = PatchMSet (PatchMap a AddRem)
   deriving (Eq, Show, Generic, Validity, Semigroup, Monoid, Group,
             Transformable, Composable)
+
+unPatchMSet :: PatchMSet a -> PatchMap a AddRem
+unPatchMSet (PatchMSet a) = a
 
 type ConflictResolutionPatchMSet a = a -> ConflictResolutionReplace (Maybe ())
 type instance ConflictResolution (PatchMSet a) = ConflictResolutionPatchMSet a
@@ -644,7 +657,7 @@ data Repo s p = Repo
   , _r_history :: ![p]
     -- first patch in the list is the most recent
   }
-  deriving (Generic)
+  deriving (Generic, Show)
 
 instance (FromJSON s, FromJSON p) => FromJSON (Repo s p) where
   parseJSON = genericParseJSON $ unPrefix "_r_"

@@ -14,34 +14,32 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.Main
   where
 
-
 import Data.GraphViz
-import qualified Data.ByteString as DB
-import qualified Data.List as List
-import qualified Data.Map  as Map
 import Data.Maybe
-import qualified Data.Text as Text
 import Data.Text (Text)
 import Debug.Trace (trace)
 import GHC.IO (FilePath)
-
 import Gargantext.API.Ngrams.Tools (getTermsWith)
+import Gargantext.API.Ngrams.Types
+import Gargantext.Core.Text.Context (TermList)
+import Gargantext.Core.Text.Terms.WithList
 import Gargantext.Core.Types
+import Gargantext.Core.Viz.Phylo hiding (Svg, Dot)
+import Gargantext.Core.Viz.Phylo.LevelMaker (toPhylo)
+import Gargantext.Core.Viz.Phylo.Tools
+import Gargantext.Core.Viz.Phylo.View.Export
+import Gargantext.Core.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
 import Gargantext.Database.Action.Flow
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Table.Node(defaultList)
 import Gargantext.Database.Query.Table.NodeNode (selectDocs)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
-import Gargantext.Core.Text.Context (TermList)
-import Gargantext.Core.Text.Terms.WithList
-
-import Gargantext.Core.Viz.Phylo hiding (Svg, Dot)
-import Gargantext.Core.Viz.Phylo.LevelMaker (toPhylo)
-import Gargantext.Core.Viz.Phylo.Tools
-import Gargantext.Core.Viz.Phylo.View.Export
-import Gargantext.Core.Viz.Phylo.View.ViewMaker    -- TODO Just Maker is fine
-
+import qualified Data.ByteString as DB
+import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Text as Text
+import qualified Data.HashMap.Strict as HashMap
 
 type MinSizeBranch = Int
 
@@ -51,7 +49,7 @@ flowPhylo :: FlowCmdM env err m
 flowPhylo cId = do
 
   list     <- defaultList cId
-  termList <- Map.toList <$> getTermsWith Text.words [list] NgramsTerms MapTerm
+  termList <- HashMap.toList <$> getTermsWith (Text.words . unNgramsTerm) [list] NgramsTerms MapTerm
 
   docs' <- catMaybes
         <$> map (\h -> (,) <$> _hd_publication_year h
