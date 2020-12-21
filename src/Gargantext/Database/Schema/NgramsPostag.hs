@@ -20,29 +20,33 @@ ngrams in NgramsTerm Lists.
 module Gargantext.Database.Schema.NgramsPostag
   where
 
+import Control.Lens
 import Data.Text (Text)
-import Gargantext.Prelude
 import Gargantext.Database.Schema.Prelude
+import Gargantext.Prelude
+import qualified Database.PostgreSQL.Simple as PGS
 
-data NgramsPosTagPoly id
+data NgramsPostagPoly id
                       lang_id
                       algo_id
                       postag
                       ngrams_id
                       lemm_id
                       score
-  = NgramsPosTagDB { _ngramsPosTag_id        :: !id
-                   , _ngramsPosTag_lang_id   :: !lang_id
-                   , _ngramsPosTag_algo_id   :: !algo_id
-                   , _ngramsPosTag_postag    :: !postag
-                   , _ngramsPosTag_ngrams_id :: !ngrams_id
-                   , _ngramsPosTag_lemm_id   :: !lemm_id
-                   , _ngramsPosTag_score     :: !score
+  = NgramsPostagDB { _ngramsPostag_id        :: !id
+                   , _ngramsPostag_lang_id   :: !lang_id
+                   , _ngramsPostag_algo_id   :: !algo_id
+                   , _ngramsPostag_postag    :: !postag
+                   , _ngramsPostag_ngrams_id :: !ngrams_id
+                   , _ngramsPostag_lemm_id   :: !lemm_id
+                   , _ngramsPostag_score     :: !score
                    } deriving (Show)
 
 ------------------------------------------------------------------------
+type NgramsPostagDB = NgramsPostagPoly (Maybe Int) Int Int (Maybe Text) Int Int Int
 
-type NgramsPosTagWrite = NgramsPosTagPoly (Maybe (Column PGInt4))
+
+type NgramsPosTagWrite = NgramsPostagPoly (Maybe (Column PGInt4))
                                    (Column PGInt4)
                                    (Column PGInt4)
                                    (Maybe (Column PGText))
@@ -50,7 +54,7 @@ type NgramsPosTagWrite = NgramsPosTagPoly (Maybe (Column PGInt4))
                                    (Column PGInt4)
                                    (Maybe (Column PGInt4))
 
-type NgramsPosTagRead  = NgramsPosTagPoly (Column PGInt4)
+type NgramsPosTagRead  = NgramsPostagPoly (Column PGInt4)
                                    (Column PGInt4)
                                    (Column PGInt4)
                                    (Column PGText)
@@ -58,12 +62,21 @@ type NgramsPosTagRead  = NgramsPosTagPoly (Column PGInt4)
                                    (Column PGInt4)
                                    (Column PGInt4)
 
-type NgramsPosTagReadNull =  NgramsPosTagPoly (Column (Nullable PGInt4))
+type NgramsPosTagReadNull =  NgramsPostagPoly (Column (Nullable PGInt4))
                                    (Column (Nullable PGInt4))
                                    (Column (Nullable PGInt4))
                                    (Column (Nullable PGText))
                                    (Column (Nullable PGInt4))
                                    (Column (Nullable PGInt4))
                                    (Column (Nullable PGInt4))
+makeLenses ''NgramsPostagPoly
 
-type NgramsPosTagDB = NgramsPosTagPoly Int Int Int Text Int Int Int
+instance PGS.ToRow NgramsPostagDB where
+  toRow (NgramsPostagDB f0 f1 f2 f3 f4 f5 f6) = [ toField f0
+                                                  , toField f1
+                                                  , toField f2
+                                                  , toField f3
+                                                  , toField f4
+                                                  , toField f5
+                                                  , toField f6
+                                                  ]

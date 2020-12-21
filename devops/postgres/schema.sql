@@ -178,6 +178,7 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (hash_id);
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 CREATE        INDEX ON public.ngrams USING btree (id, terms);
+CREATE UNIQUE INDEX ON public.ngrams_postag (lang_id,algo_id,postag,ngrams_id,lemm_id);
 CREATE        INDEX ON public.node_ngrams USING btree (node_id,node_subtype);
 CREATE UNIQUE INDEX ON public.node_ngrams USING btree (node_id,node_subtype, ngrams_id);
 
