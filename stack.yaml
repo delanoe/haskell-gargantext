@@ -1,4 +1,4 @@
-resolver: lts-16.14
+resolver: lts-16.26
 flags: {}
 extra-package-dbs: []
 packages:
@@ -10,7 +10,7 @@ packages:
 
 docker:
   enable: false
-  repo: 'fpco/stack-build:lts-14.27-garg'
+  repo: 'fpco/stack-build:lts-16.26-garg'
   run-args:
     - '--publish=8008:8008'
 
