@@ -93,6 +93,8 @@ queryInsertNgramsPostag = [sql|
         DO UPDATE SET score = ngrams_postag.score + 1
     )
 
-  SELECT * FROM ins_form_ret
+SELECT id,terms FROM ins_form_ret
+ INNER JOIN input_rows ir ON ins_form_ret.terms = ir.form
 
   |]
+
