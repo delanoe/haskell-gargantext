@@ -14,6 +14,8 @@ TODO: configure nodes table in Haskell (Config typenames etc.)
 -}
 
 
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
+
 module Gargantext.Database.Admin.Config
     where
 
@@ -22,6 +24,7 @@ import Data.List        (lookup)
 import Data.Maybe       (fromMaybe)
 import Data.Text        (Text,pack)
 import Data.Tuple.Extra (swap)
+import Gargantext.Core (HasDBid(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
@@ -35,6 +38,11 @@ userMaster = "gargantua"
 
 userArbitrary :: Text
 userArbitrary = "user1"
+
+instance HasDBid NodeType where
+  hasDBid  = nodeTypeId
+  fromDBid = fromNodeTypeId
+
 
 nodeTypeId :: NodeType -> NodeTypeId
 nodeTypeId n =
@@ -88,10 +96,10 @@ nodeTypeId n =
 --  NodeFavorites    -> 15
 
 hasNodeType :: forall a. Node a -> NodeType -> Bool
-hasNodeType n nt = (view node_typename n) == (nodeTypeId nt)
+hasNodeType n nt = (view node_typename n) == (hasDBid nt)
 
 isInNodeTypes :: forall a. Node a -> [NodeType] -> Bool
-isInNodeTypes n ts = elem (view node_typename n) (map nodeTypeId ts)
+isInNodeTypes n ts = elem (view node_typename n) (map hasDBid ts)
 
 -- | Nodes are typed in the database according to a specific ID
 --
@@ -99,7 +107,7 @@ nodeTypeInv :: [(NodeTypeId, NodeType)]
 nodeTypeInv = map swap nodeTypes
 
 nodeTypes :: [(NodeType, NodeTypeId)]
-nodeTypes = [ (n, nodeTypeId n) | n <- allNodeTypes ]
+nodeTypes = [ (n, hasDBid n) | n <- allNodeTypes ]
 
 fromNodeTypeId :: NodeTypeId -> NodeType
 fromNodeTypeId tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")

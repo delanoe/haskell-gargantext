@@ -19,6 +19,7 @@ module Gargantext.Database.Action.Metrics.TFICF
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import Data.Maybe (fromMaybe)
+import Gargantext.Core
 import Gargantext.Core.Text.Metrics.TFICF
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, getOccByNgramsOnlyFast)
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
@@ -29,7 +30,8 @@ import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude
 import qualified Data.Set as Set
 
-getTficf :: UserCorpusId
+getTficf :: HasDBid NodeType 
+         => UserCorpusId
          -> MasterCorpusId
          -> NgramsType
          -> Cmd err (HashMap NgramsTerm Double)

@@ -258,8 +258,7 @@ insertMasterDocs c lang hs  =  do
   -- this will enable global database monitoring
 
   -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
-  mapNgramsDocs <- mapNodeIdNgrams
-       <$> documentIdWithNgrams (extractNgramsT $ withLang lang documentsWithId) documentsWithId
+  mapNgramsDocs <- mapNodeIdNgrams <$> documentIdWithNgrams (extractNgramsT $ withLang lang documentsWithId) documentsWithId
 
   terms2id <- insertNgrams $ Map.keys mapNgramsDocs
   -- to be removed

@@ -46,9 +46,9 @@ import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
 
 import Gargantext.Prelude
-
+import Gargantext.Core
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
-import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId, fromNodeTypeId)
+import Gargantext.Database.Admin.Config hiding (nodeTypes)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Query.Table.NodeNode (getNodeNode)
@@ -153,16 +153,16 @@ updateTree nts fun r = do
 sharedTreeUpdate :: HasTreeError err => UpdateTree err
 sharedTreeUpdate p nt n = dbTree n nt
                <&> map (\n' -> if (view dt_nodeId n') == n
-                                  -- && elem (fromNodeTypeId $ _dt_typeId n') [NodeGraph]
-                                  -- && not (elem (fromNodeTypeId $ _dt_typeId n') [NodeFile])
+                                  -- && elem (fromDBid $ _dt_typeId n') [NodeGraph]
+                                  -- && not (elem (fromDBid $ _dt_typeId n') [NodeFile])
                                   then set dt_parentId (Just p) n'
                                   else n')
 
 publicTreeUpdate :: HasTreeError err => UpdateTree err
 publicTreeUpdate p nt n = dbTree n nt
                <&> map (\n' -> if _dt_nodeId n' == n
-                                  -- && (fromNodeTypeId $ _dt_typeId n') /= NodeGraph
-                                  -- && not (elem (fromNodeTypeId $ _dt_typeId n') [NodeFile])
+                                  -- && (fromDBid $ _dt_typeId n') /= NodeGraph
+                                  -- && not (elem (fromDBid $ _dt_typeId n') [NodeFile])
                                   then set dt_parentId (Just p) n'
                                   else n')
 
@@ -178,7 +178,7 @@ findNodesWithType :: RootId -> [NodeType] -> [NodeType] -> Cmd err [DbTreeNode]
 findNodesWithType root target through =
   filter isInTarget <$> dbTree root through
     where
-      isInTarget n = List.elem (fromNodeTypeId $ view dt_typeId n)
+      isInTarget n = List.elem (fromDBid $ view dt_typeId n)
                    $ List.nub $ target <> through
 
 ------------------------------------------------------------------------

@@ -24,7 +24,8 @@ import Servant
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Action.Share (delFolderTeam)
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Core
+import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata.File
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
 import Gargantext.Database.Prelude (Cmd', HasConfig, HasConnectionPool)
@@ -44,13 +45,13 @@ deleteNode :: (HasConfig env, HasConnectionPool env, HasNodeError err)
 deleteNode u nodeId = do
   node' <- N.getNode nodeId
   case (view node_typename node') of
-    nt | nt == nodeTypeId NodeUser -> panic "Not allowed to delete NodeUser (yet)"
-    nt | nt == nodeTypeId NodeTeam -> do
+    nt | nt == hasDBid NodeUser -> panic "Not allowed to delete NodeUser (yet)"
+    nt | nt == hasDBid NodeTeam -> do
       uId   <- getUserId u
       if _node_userId node' == uId
         then N.deleteNode    nodeId
         else delFolderTeam u nodeId
-    nt | nt == nodeTypeId NodeFile -> do
+    nt | nt == hasDBid NodeFile -> do
       node <- getNodeWith nodeId (Proxy :: Proxy HyperdataFile)
       let (HyperdataFile { _hff_path = path }) = node ^. node_hyperdata
       GPU.removeFile $ unpack path

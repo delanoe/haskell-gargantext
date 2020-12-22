@@ -22,7 +22,9 @@ module Gargantext.Database.Schema.NgramsPostag
 
 import Control.Lens
 import Data.Text (Text)
+import Gargantext.Core
 import Gargantext.Database.Schema.Prelude
+import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -33,7 +35,7 @@ data NgramsPostagPoly id
                       ngrams_id
                       lemm_id
                       score
-  = NgramsPostagDB { _ngramsPostag_id        :: !id
+  = NgramsPostagPoly { _ngramsPostag_id        :: !id
                    , _ngramsPostag_lang_id   :: !lang_id
                    , _ngramsPostag_algo_id   :: !algo_id
                    , _ngramsPostag_postag    :: !postag
@@ -43,8 +45,17 @@ data NgramsPostagPoly id
                    } deriving (Show)
 
 ------------------------------------------------------------------------
+data PosTag = PosTag { unPosTag :: Text }
+            | NER    { unNER    :: Text } -- TODO
+
+------------------------------------------------------------------------
+type NgramsPostag   = NgramsPostagPoly (Maybe Int) Lang PostTagAlgo (Maybe PosTag) NgramsTerm NgramsTerm (Maybe Int)
+
 type NgramsPostagDB = NgramsPostagPoly (Maybe Int) Int Int (Maybe Text) Int Int Int
 
+
+
+------------------------------------------------------------------------
 
 type NgramsPosTagWrite = NgramsPostagPoly (Maybe (Column PGInt4))
                                    (Column PGInt4)
@@ -72,7 +83,7 @@ type NgramsPosTagReadNull =  NgramsPostagPoly (Column (Nullable PGInt4))
 makeLenses ''NgramsPostagPoly
 
 instance PGS.ToRow NgramsPostagDB where
-  toRow (NgramsPostagDB f0 f1 f2 f3 f4 f5 f6) = [ toField f0
+  toRow (NgramsPostagPoly f0 f1 f2 f3 f4 f5 f6) = [ toField f0
                                                   , toField f1
                                                   , toField f2
                                                   , toField f3

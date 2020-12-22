@@ -63,7 +63,7 @@ data TermType lang
   = Mono      { _tt_lang :: !lang }
   | Multi     { _tt_lang :: !lang }
   | MonoMulti { _tt_lang :: !lang }
-  | Unsupervised { _tt_lang  :: !lang
+  | Unsupervised { _tt_lang       :: !lang
                  , _tt_windowSize :: !Int
                  , _tt_ngramsSize :: !Int
                  , _tt_model      :: !(Maybe (Tries Token ()))
@@ -140,6 +140,8 @@ terms (Unsupervised lang n s m) txt = termsUnsupervised (Unsupervised lang n s (
   where
     m' = maybe (newTries n txt) identity m
 -- terms (WithList  list) txt = pure . concat $ extractTermsWithList list txt
+
+
 ------------------------------------------------------------------------
 
 text2term :: Lang -> [Text] -> Terms

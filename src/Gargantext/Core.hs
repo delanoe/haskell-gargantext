@@ -18,6 +18,7 @@ import Data.Aeson
 import Data.Either(Either(Left))
 import Data.Swagger
 import Servant.API
+
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
@@ -42,9 +43,34 @@ instance FromJSON Lang
 instance ToSchema Lang
 instance FromHttpApiData Lang
   where
-    parseUrlPiece "EN" = pure EN
-    parseUrlPiece "FR" = pure FR
+    parseUrlPiece "EN"  = pure EN
+    parseUrlPiece "FR"  = pure FR
     parseUrlPiece "All" = pure All
-    parseUrlPiece _            = Left "Unexpected value of OrderBy"
+    parseUrlPiece _     = Left "Unexpected value of OrderBy"
 allLangs :: [Lang]
 allLangs = [minBound ..]
+
+class HasDBid a where
+  hasDBid  :: a   -> Int
+  fromDBid :: Int -> a
+
+instance HasDBid Lang where
+  hasDBid All = 0
+  hasDBid FR  = 1
+  hasDBid EN  = 2
+
+  fromDBid 0 = All
+  fromDBid 1 = FR
+  fromDBid 2 = EN
+  fromDBid _ = panic "HasDBid lang, not implemented"
+
+
+------------------------------------------------------------------------
+data PostTagAlgo = CoreNLP
+  deriving (Show, Read)
+
+instance HasDBid PostTagAlgo where
+  hasDBid CoreNLP = 1
+  fromDBid 1 = CoreNLP
+  fromDBid _ = panic "HasDBid posTagAlgo : Not implemented"
+

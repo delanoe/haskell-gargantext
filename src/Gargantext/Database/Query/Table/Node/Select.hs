@@ -18,21 +18,21 @@ import Control.Arrow (returnA)
 import Opaleye
 import Protolude
 
+import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Core.Types.Individu (Username)
-import Gargantext.Database.Admin.Config
 import Gargantext.Database.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Schema.User
 import Gargantext.Database.Query.Table.User
 
-selectNodesWithUsername :: NodeType -> Username -> Cmd err [NodeId]
+selectNodesWithUsername :: HasDBid NodeType => NodeType -> Username -> Cmd err [NodeId]
 selectNodesWithUsername nt u = runOpaQuery (q u)
   where
     q u' = proc () -> do
       (n,usrs) <- join' -< ()
       restrict -< user_username usrs .== (toNullable $ pgStrictText u')
-      restrict -< _node_typename n .== (pgInt4 $ nodeTypeId nt)
+      restrict -< _node_typename n .== (pgInt4 $ hasDBid nt)
       returnA  -< _node_id n
 
     join' :: Query (NodeRead, UserReadNull)

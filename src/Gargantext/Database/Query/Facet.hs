@@ -52,9 +52,9 @@ import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Opaleye.Internal.Unpackspec()
 
+import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
@@ -232,13 +232,13 @@ instance Arbitrary OrderBy
 -- TODO-SECURITY check
 
 --{-
-runViewAuthorsDoc :: ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+runViewAuthorsDoc :: HasDBid NodeType => ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
     ntId = NodeDocument
 
 -- TODO add delete ?
-viewAuthorsDoc :: ContactId -> IsTrash -> NodeType -> Query FacetDocRead
+viewAuthorsDoc :: HasDBid NodeType => ContactId -> IsTrash -> NodeType -> Query FacetDocRead
 viewAuthorsDoc cId _ nt = proc () -> do
   (doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
 
@@ -248,7 +248,7 @@ viewAuthorsDoc cId _ nt = proc () -> do
   -}
 
   restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
-  restrict -< _node_typename doc   .== (pgInt4 $ nodeTypeId nt)
+  restrict -< _node_typename doc   .== (pgInt4 $ hasDBid nt)
 
   returnA  -< FacetDoc (_node_id        doc)
                        (_node_date      doc)
@@ -279,7 +279,8 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsT
 ------------------------------------------------------------------------
 
 -- TODO-SECURITY check
-runViewDocuments :: CorpusId
+runViewDocuments :: HasDBid NodeType
+                 => CorpusId
                  -> IsTrash
                  -> Maybe Offset
                  -> Maybe Limit
@@ -289,14 +290,14 @@ runViewDocuments :: CorpusId
 runViewDocuments cId t o l order query = do
     runOpaQuery $ filterWith o l order sqlQuery
   where
-    ntId = nodeTypeId NodeDocument
+    ntId = hasDBid NodeDocument
     sqlQuery = viewDocuments cId t ntId query
 
-runCountDocuments :: CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
+runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
 runCountDocuments cId t mQuery = do
   runCountOpaQuery sqlQuery
   where
-    sqlQuery = viewDocuments cId t (nodeTypeId NodeDocument) mQuery
+    sqlQuery = viewDocuments cId t (hasDBid NodeDocument) mQuery
 
 
 viewDocuments :: CorpusId

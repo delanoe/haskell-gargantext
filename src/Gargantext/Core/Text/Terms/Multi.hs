@@ -28,12 +28,17 @@ import qualified Gargantext.Core.Text.Terms.Multi.Lang.Fr as Fr
 
 import Gargantext.Core.Text.Terms.Multi.RAKE (multiterms_rake)
 
+-------------------------------------------------------------------
+-- To be removed
 multiterms :: Lang -> Text -> IO [Terms]
-multiterms lang txt = concat
-                   <$> map (map tokenTag2terms)
+multiterms = multiterms' tokenTag2terms
+ 
+multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
+multiterms' f lang txt = concat
+                   <$> map (map f)
                    <$> map (filter (\t -> _my_token_pos t == Just NP)) 
                    <$> tokenTags lang txt
-
+-------------------------------------------------------------------
 tokenTag2terms :: TokenTag -> Terms
 tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 

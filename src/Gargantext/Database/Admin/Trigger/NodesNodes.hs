@@ -18,7 +18,8 @@ module Gargantext.Database.Admin.Trigger.NodesNodes
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 -- import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Core
+import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Core.Types.Main (listTypeId, ListType(CandidateTerm))
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
@@ -28,7 +29,7 @@ import qualified Database.PostgreSQL.Simple as DPS
 type MasterListId = ListId
 
 triggerDeleteCount :: MasterListId -> Cmd err Int64
-triggerDeleteCount lId = execPGSQuery query (lId, nodeTypeId NodeList)
+triggerDeleteCount lId = execPGSQuery query (lId, hasDBid NodeList)
   where
     query :: DPS.Query
     query = [sql|

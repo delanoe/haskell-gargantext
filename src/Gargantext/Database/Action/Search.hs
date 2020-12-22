@@ -22,8 +22,9 @@ import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
+import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), HyperdataContact(..))
 import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
@@ -49,7 +50,7 @@ searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
     queryDocInDatabase _ q = proc () -> do
         row <- queryNodeSearchTable -< ()
         restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
-        restrict -< (_ns_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
+        restrict -< (_ns_typename row) .== (pgInt4 $ hasDBid NodeDocument)
         returnA  -< (_ns_id row, _ns_hyperdata row)
 
 ------------------------------------------------------------------------
@@ -87,7 +88,7 @@ queryInCorpus cId t q = proc () -> do
                  then (nn^.nn_category) .== (toNullable $ pgInt4 0)
                  else (nn^.nn_category) .>= (toNullable $ pgInt4 1)
   restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
-  restrict -< (n ^. ns_typename )       .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (n ^. ns_typename )       .== (pgInt4 $ hasDBid NodeDocument)
   returnA  -< FacetDoc (n^.ns_id        )
                        (n^.ns_date      )
                        (n^.ns_name      )
@@ -132,10 +133,10 @@ selectContactViaDoc
 selectContactViaDoc cId aId q = proc () -> do
   (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
   restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
-  restrict -< (doc^.ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (doc^.ns_typename)        .== (pgInt4 $ hasDBid NodeDocument)
   restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
   restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
-  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
+  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ hasDBid NodeContact)
   returnA  -< ( contact^.node_id
               , contact^.node_date
               , contact^.node_hyperdata
@@ -265,6 +266,6 @@ textSearch :: TSQuery -> ParentId
            -> Cmd err [(Int,Value,Value,Value, Value, Maybe Int)]
 textSearch q p l o ord = runPGSQuery textSearchQuery (q,p,p,typeId,ord,o,l)
   where
-    typeId = nodeTypeId NodeDocument
+    typeId = hasDBid NodeDocument
 
 

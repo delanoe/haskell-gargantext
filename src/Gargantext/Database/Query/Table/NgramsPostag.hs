@@ -25,6 +25,8 @@ import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
 
+
+
 type NgramsPostagInsert = ( Int
                           , Int
                           , Text
@@ -33,6 +35,7 @@ type NgramsPostagInsert = ( Int
                           , Text
                           , Int
                           )
+
 
 insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [NgramIds]
 insertNgramsPostag ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)

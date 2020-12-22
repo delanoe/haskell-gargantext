@@ -69,7 +69,7 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField, Action{-, ToField-})
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Core (HasDBid(hasDBid))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery{-, formatPGSQuery-})
@@ -91,20 +91,20 @@ import Database.PostgreSQL.Simple (formatQuery)
 -- ParentId : folder ID which is parent of the inserted documents
 -- Administrator of the database has to create a uniq index as following SQL command:
 -- `create unique index on nodes (typename, parent_id, (hyperdata ->> 'uniqId'));`
-insertDb :: InsertDb a => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
+insertDb :: (InsertDb a, HasDBid NodeType) => UserId -> ParentId -> [a] -> Cmd err [ReturnId]
 insertDb u p = runPGSQuery queryInsert . Only . Values fields . map (insertDb' u p)
       where
         fields    = map (\t-> QualifiedIdentifier Nothing t) inputSqlTypes
 
 class InsertDb a
   where
-    insertDb' :: UserId -> ParentId -> a -> [Action]
+    insertDb' :: HasDBid NodeType => UserId -> ParentId -> a -> [Action]
 
 
 instance InsertDb HyperdataDocument
   where
     insertDb' u p h = [ toField ("" :: Text)
-                      , toField $ nodeTypeId NodeDocument
+                      , toField $ hasDBid NodeDocument
                       , toField u
                       , toField p
                       , toField $ maybe "No Title" (DT.take 255)  (_hd_title h)
@@ -115,7 +115,7 @@ instance InsertDb HyperdataDocument
 instance InsertDb HyperdataContact
   where
     insertDb' u p h = [ toField ("" :: Text)
-                      , toField $ nodeTypeId NodeContact
+                      , toField $ hasDBid NodeContact
                       , toField u
                       , toField p
                       , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
@@ -217,13 +217,13 @@ secret :: Text
 secret = "Database secret to change"
 
 
-instance (AddUniqId a, ToJSON a) => AddUniqId (Node a)
+instance (AddUniqId a, ToJSON a, HasDBid NodeType) => AddUniqId (Node a)
   where
     addUniqId (Node nid _ t u p n d h) = Node nid hashId t u p n d h
                               where
                                 hashId = Just $ "\\x" <> (hash $ DT.concat params)
                                 params = [ secret
-                                         , cs $ show $ nodeTypeId NodeDocument
+                                         , cs $ show $ hasDBid NodeDocument
                                          , n
                                          , cs $ show p
                                          , cs $ encode h
@@ -235,7 +235,7 @@ instance (AddUniqId a, ToJSON a) => AddUniqId (Node a)
                               where
                                 hashId = "\\x" <> (hash $ DT.concat params)
                                 params = [ secret
-                                         , cs $ show $ nodeTypeId NodeDocument
+                                         , cs $ show $ hasDBid NodeDocument
                                          , n
                                          , cs $ show p
                                          , cs $ encode h
@@ -272,10 +272,10 @@ maybeText = maybe (DT.pack "") identity
 class ToNode a
   where
     -- TODO Maybe NodeId
-    toNode :: UserId -> ParentId -> a -> Node a
+    toNode :: HasDBid NodeType => UserId -> ParentId -> a -> Node a
 
 instance ToNode HyperdataDocument where
-  toNode u p h = Node 0 Nothing (nodeTypeId NodeDocument) u (Just p) n date h
+  toNode u p h = Node 0 Nothing (hasDBid NodeDocument) u (Just p) n date h
     where
       n    = maybe "No Title" (DT.take 255) (_hd_title h)
       date  = jour y m d
@@ -285,7 +285,7 @@ instance ToNode HyperdataDocument where
 
 -- TODO better Node
 instance ToNode HyperdataContact where
-  toNode u p h = Node 0 Nothing (nodeTypeId NodeContact) u (Just p) "Contact" date h
+  toNode u p h = Node 0 Nothing (hasDBid NodeContact) u (Just p) "Contact" date h
     where
       date  = jour 2020 01 01
 

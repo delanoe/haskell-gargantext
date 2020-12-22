@@ -99,11 +99,11 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
 
 instance (Arbitrary nodeId
          ,Arbitrary hashId
-         ,Arbitrary nodeTypeId
+         ,Arbitrary hasDBid
          ,Arbitrary userId
          ,Arbitrary nodeParentId
          , Arbitrary hyperdata
-         ) => Arbitrary (NodePoly nodeId hashId nodeTypeId userId nodeParentId
+         ) => Arbitrary (NodePoly nodeId hashId hasDBid userId nodeParentId
                                   NodeName UTCTime hyperdata) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
@@ -112,10 +112,10 @@ instance (Arbitrary nodeId
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
-         ,Arbitrary nodeTypeId
+         ,Arbitrary hasDBid
          ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePolySearch nodeId nodeTypeId userId nodeParentId
+         ) => Arbitrary (NodePolySearch nodeId hasDBid userId nodeParentId
                                   NodeName UTCTime hyperdata (Maybe TSVector)) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
