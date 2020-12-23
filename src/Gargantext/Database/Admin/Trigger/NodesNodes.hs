@@ -21,7 +21,7 @@ import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
-import Gargantext.Core.Types.Main (listTypeId, ListType(CandidateTerm))
+import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
@@ -162,8 +162,8 @@ triggerCoocInsert lid = execPGSQuery query ( lid
                                            -- , nodeTypeId NodeCorpus
                                            -- , nodeTypeId NodeDocument
                                            -- , nodeTypeId NodeList
-                                           , listTypeId CandidateTerm
-                                           , listTypeId CandidateTerm
+                                           , toDBid CandidateTerm
+                                           , toDBid CandidateTerm
                                            )
   where
     query :: DPS.Query

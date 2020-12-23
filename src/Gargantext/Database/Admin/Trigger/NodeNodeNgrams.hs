@@ -18,7 +18,7 @@ module Gargantext.Database.Admin.Trigger.NodeNodeNgrams
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Gargantext.Core
-import Gargantext.Core.Types.Main (listTypeId, ListType(CandidateTerm))
+import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
@@ -108,8 +108,8 @@ triggerCoocInsert :: HasDBid NodeType => Cmd err Int64
 triggerCoocInsert = execPGSQuery query ( toDBid NodeCorpus
                                        , toDBid NodeDocument
                                        , toDBid NodeList
-                                       , listTypeId CandidateTerm
-                                       , listTypeId CandidateTerm
+                                       , toDBid CandidateTerm
+                                       , toDBid CandidateTerm
                                        )
   where
     query :: DPS.Query

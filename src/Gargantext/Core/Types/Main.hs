@@ -22,10 +22,12 @@ import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
 import Data.Hashable (Hashable)
 import Data.Map (fromList, lookup)
+import Data.Maybe (fromMaybe)
 import Data.Semigroup (Semigroup(..))
 import Data.Swagger
 import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
+import Gargantext.Core
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
 import Gargantext.Prelude
@@ -75,6 +77,10 @@ instance FromHttpApiData ListType where
   parseUrlPiece = Right . read . unpack
 
 type ListTypeId = Int
+
+instance HasDBid ListType where
+  toDBid   = listTypeId
+  fromDBid = (fromMaybe (panic "Instance HasDBid fromDBid ListType")) .  fromListTypeId
 
 -- FIXME Candidate: 0 and Stop : 1
 listTypeId :: ListType -> ListTypeId
