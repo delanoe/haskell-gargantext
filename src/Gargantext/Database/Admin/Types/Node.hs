@@ -42,7 +42,7 @@ import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
 
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Prelude (fromField')
+-- import Gargantext.Database.Prelude (fromField')
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 
@@ -324,17 +324,16 @@ instance Arbitrary NodeType where
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
-
 instance ToSchema Status where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "status_")
 
 ------------------------------------------------------------------------
-
+{-
 instance FromField (NodeId, Text)
   where
     fromField = fromField'
+-}
 ------------------------------------------------------------------------
-
 instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn

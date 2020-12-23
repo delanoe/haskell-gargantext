@@ -13,12 +13,12 @@ Portability : POSIX
 
 module Gargantext.Database.Prelude where
 
+-- import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Exception
 import Control.Lens (Getter, view)
--- import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Monad.Except
-import Control.Monad.Reader
 import Control.Monad.Random
+import Control.Monad.Reader
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.ByteString.Char8 (hPutStrLn)
@@ -31,6 +31,8 @@ import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
+import Gargantext.Prelude
+import Gargantext.Prelude.Config (GargConfig())
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery, PGJsonb, QueryRunnerColumnDefault)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
@@ -39,9 +41,6 @@ import Text.Read (read)
 import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
-
-import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig())
 
 -------------------------------------------------------
 class HasConnectionPool env where

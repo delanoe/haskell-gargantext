@@ -17,6 +17,7 @@ module Gargantext.Database.Action.Learn
 
 import Data.Maybe
 import Data.Text (Text)
+import Gargantext.Core
 import Gargantext.Core.Types (Offset, Limit)
 import Gargantext.Database.Query.Facet
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -31,14 +32,15 @@ data FavOrTrash = IsFav | IsTrash
   deriving (Eq)
 
 
-moreLike :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
+moreLike :: HasDBid NodeType
+         => CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
          -> FavOrTrash -> Cmd err [FacetDoc]
 moreLike cId o _l order ft = do
   priors <- getPriors ft cId
   moreLikeWith cId o (Just 3) order ft priors
 
 ---------------------------------------------------------------------------
-getPriors :: FavOrTrash -> CorpusId -> Cmd err (Events Bool)
+getPriors :: HasDBid NodeType => FavOrTrash -> CorpusId -> Cmd err (Events Bool)
 getPriors ft cId = do
 
   docs_fav   <- filter (\(FacetDoc _ _ _ _ f _ _) -> f == Just 2)
@@ -54,7 +56,8 @@ getPriors ft cId = do
   pure priors
 
 
-moreLikeWith :: CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
+moreLikeWith :: HasDBid NodeType
+             => CorpusId   -> Maybe Offset -> Maybe Limit -> Maybe OrderBy
              -> FavOrTrash -> Events Bool  -> Cmd err [FacetDoc]
 moreLikeWith cId o l order ft priors = do
 

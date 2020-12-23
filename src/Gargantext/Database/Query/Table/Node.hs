@@ -59,7 +59,8 @@ runGetNodes = runOpaQuery
 ------------------------------------------------------------------------
 -- | order by publication date
 -- Favorites (Bool), node_ngrams
-selectNodesWith :: ParentId     -> Maybe NodeType
+selectNodesWith :: HasDBid NodeType
+                => ParentId     -> Maybe NodeType
                 -> Maybe Offset -> Maybe Limit   -> Query NodeRead
 selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
         --offset' maybeOffset $ limit' maybeLimit $ orderBy (asc (hyperdataDocument_Publication_date . node_hyperdata)) $ selectNodesWith' parentId typeId
@@ -67,7 +68,8 @@ selectNodesWith parentId maybeNodeType maybeOffset maybeLimit =
                     $ orderBy (asc _node_id)
                     $ selectNodesWith' parentId maybeNodeType
 
-selectNodesWith' :: ParentId -> Maybe NodeType -> Query NodeRead
+selectNodesWith' :: HasDBid NodeType
+                 => ParentId -> Maybe NodeType -> Query NodeRead
 selectNodesWith' parentId maybeNodeType = proc () -> do
     node' <- (proc () -> do
       row@(Node _ _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
@@ -92,7 +94,7 @@ deleteNodes ns = mkCmd $ \conn ->
                    (\(Node n_id _ _ _ _ _ _ _) -> in_ ((map pgNodeId ns)) n_id)
 
 -- TODO: NodeType should match with `a'
-getNodesWith :: JSONB a => NodeId -> proxy a -> Maybe NodeType
+getNodesWith :: (JSONB a, HasDBid NodeType) => NodeId -> proxy a -> Maybe NodeType
              -> Maybe Offset -> Maybe Limit -> Cmd err [Node a]
 getNodesWith parentId _ nodeType maybeOffset maybeLimit =
     runOpaQuery $ selectNodesWith parentId nodeType maybeOffset maybeLimit
@@ -112,7 +114,8 @@ getNodesWithParentId n = runOpaQuery $ selectNodesWithParentID n'
 -- | Given a node id, find it's closest parent of given type
 -- NOTE: This isn't too optimal: can make successive queries depending on how
 -- deeply nested the child is.
-getClosestParentIdByType :: NodeId
+getClosestParentIdByType :: HasDBid NodeType
+                         => NodeId
                          -> NodeType
                          -> Cmd err (Maybe NodeId)
 getClosestParentIdByType nId nType = do
@@ -134,17 +137,17 @@ getClosestParentIdByType nId nType = do
     |]
 
 ------------------------------------------------------------------------
-getDocumentsV3WithParentId :: NodeId -> Cmd err [Node HyperdataDocumentV3]
+getDocumentsV3WithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataDocumentV3]
 getDocumentsV3WithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)
 
 -- TODO: merge with getDocumentsWithParentId by having a class IsHyperdataDocument
-getDocumentsWithParentId :: NodeId -> Cmd err [Node HyperdataDocument]
+getDocumentsWithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataDocument]
 getDocumentsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeDocument)
 
-getListsModelWithParentId :: NodeId -> Cmd err [Node HyperdataModel]
+getListsModelWithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataModel]
 getListsModelWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeModel)
 
-getCorporaWithParentId :: NodeId -> Cmd err [Node HyperdataCorpus]
+getCorporaWithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataCorpus]
 getCorporaWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeCorpus)
 
 ------------------------------------------------------------------------
@@ -158,21 +161,23 @@ selectNodesWithParentID n = proc () -> do
 ------------------------------------------------------------------------
 -- | Example of use:
 -- runCmdReplEasy  (getNodesWithType NodeList (Proxy :: Proxy HyperdataList))
-getNodesWithType :: (HasNodeError err, JSONB a) => NodeType -> proxy a -> Cmd err [Node a]
+getNodesWithType :: (HasNodeError err, JSONB a, HasDBid NodeType) => NodeType -> proxy a -> Cmd err [Node a]
 getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
   where
-    selectNodesWithType :: NodeType -> Query NodeRead
+    selectNodesWithType ::  HasDBid NodeType
+                         => NodeType -> Query NodeRead
     selectNodesWithType nt' = proc () -> do
         row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
         restrict -< tn .== (pgInt4 $ hasDBid nt')
         returnA -< row
 
-getNodesIdWithType :: HasNodeError err => NodeType -> Cmd err [NodeId]
+getNodesIdWithType :: (HasNodeError err, HasDBid NodeType) => NodeType -> Cmd err [NodeId]
 getNodesIdWithType nt = do
   ns <- runOpaQuery $ selectNodesIdWithType nt
   pure (map NodeId ns)
 
-selectNodesIdWithType :: NodeType -> Query (Column PGInt4)
+selectNodesIdWithType :: HasDBid NodeType
+                      => NodeType -> Query (Column PGInt4)
 selectNodesIdWithType nt = proc () -> do
     row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
     restrict -< tn .== (pgInt4 $ hasDBid nt)
@@ -199,20 +204,23 @@ getNodeWith nId _ = do
 
 ------------------------------------------------------------------------
 -- | Sugar to insert Node with NodeType in Database
-insertDefaultNode :: NodeType -> ParentId -> UserId -> Cmd err [NodeId]
+insertDefaultNode :: HasDBid NodeType
+                  => NodeType -> ParentId -> UserId -> Cmd err [NodeId]
 insertDefaultNode nt p u = insertNode nt Nothing Nothing p u
 
-insertNode :: NodeType -> Maybe Name -> Maybe DefaultHyperdata -> ParentId -> UserId -> Cmd err [NodeId]
+insertNode :: HasDBid NodeType
+           => NodeType -> Maybe Name -> Maybe DefaultHyperdata -> ParentId -> UserId -> Cmd err [NodeId]
 insertNode nt n h p u = insertNodesR [nodeW nt n h p u]
 
-nodeW :: NodeType -> Maybe Name -> Maybe DefaultHyperdata -> ParentId -> UserId -> NodeWrite
+nodeW ::  HasDBid NodeType
+       => NodeType -> Maybe Name -> Maybe DefaultHyperdata -> ParentId -> UserId -> NodeWrite
 nodeW nt n h p u = node nt n' h' (Just p) u
   where
     n' = fromMaybe (defaultName nt) n
     h' = maybe     (defaultHyperdata nt) identity h
 
 ------------------------------------------------------------------------
-node :: (ToJSON a, Hyperdata a)
+node :: (ToJSON a, Hyperdata a, HasDBid NodeType)
      => NodeType
      -> Name
      -> a
@@ -265,7 +273,8 @@ insertNodesWithParentR pid ns = insertNodesR (set node_parentId (pgNodeId <$> pi
 -- currently this function removes the child relation
 -- needs a Temporary type between Node' and NodeWriteT
 
-node2table :: UserId -> Maybe ParentId -> Node' -> NodeWrite
+node2table :: HasDBid NodeType
+           => UserId -> Maybe ParentId -> Node' -> NodeWrite
 node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (pgInt4 $ hasDBid nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
@@ -284,7 +293,8 @@ mkNodeR :: [NodeWrite] -> Cmd err [NodeId]
 mkNodeR ns = mkCmd $ \conn -> runInsert_ conn $ Insert nodeTable ns (rReturning _node_id) Nothing
 
 ------------------------------------------------------------------------
-childWith :: UserId -> ParentId -> Node' -> NodeWrite
+childWith ::  HasDBid NodeType
+           => UserId -> ParentId -> Node' -> NodeWrite
 childWith uId pId (Node' NodeDocument txt v []) = node2table uId (Just pId) (Node' NodeDocument txt v [])
 childWith uId pId (Node' NodeContact  txt v []) = node2table uId (Just pId) (Node' NodeContact txt v [])
 childWith _   _   (Node' _        _   _ _) = panic "This NodeType can not be a child"
@@ -298,7 +308,7 @@ data CorpusType = CorpusDocument | CorpusContact
 
 class MkCorpus a
   where
-    mk :: Maybe Name -> Maybe a -> ParentId -> UserId -> Cmd err [NodeId]
+    mk :: HasDBid NodeType => Maybe Name -> Maybe a -> ParentId -> UserId -> Cmd err [NodeId]
 
 instance MkCorpus HyperdataCorpus
   where
@@ -312,7 +322,7 @@ instance MkCorpus HyperdataAnnuaire
     mk n (Just h) p u = insertNode NodeAnnuaire n (Just $ DefaultAnnuaire h) p u
 
 
-getOrMkList :: HasNodeError err
+getOrMkList :: (HasNodeError err, HasDBid NodeType)
             => ParentId
             -> UserId
             -> Cmd err ListId
@@ -322,11 +332,11 @@ getOrMkList pId uId =
       mkList' pId' uId' = maybe (nodeError MkNode) pure . headMay =<< insertDefaultNode NodeList pId' uId'
 
 -- | TODO remove defaultList
-defaultList :: HasNodeError err => CorpusId -> Cmd err ListId
+defaultList :: (HasNodeError err, HasDBid NodeType) => CorpusId -> Cmd err ListId
 defaultList cId =
   maybe (nodeError NoListFound) (pure . view node_id) . headMay =<< getListsWithParentId cId
 
 
-getListsWithParentId :: NodeId -> Cmd err [Node HyperdataList]
+getListsWithParentId :: HasDBid NodeType => NodeId -> Cmd err [Node HyperdataList]
 getListsWithParentId n = runOpaQuery $ selectNodesWith' n (Just NodeList)
 

@@ -25,7 +25,6 @@ import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Database.Action.User (getUserId)
 import Gargantext.Database.Action.Share (delFolderTeam)
 import Gargantext.Core
-import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata.File
 import Gargantext.Database.Admin.Types.Node -- (NodeType(..))
 import Gargantext.Database.Prelude (Cmd', HasConfig, HasConnectionPool)

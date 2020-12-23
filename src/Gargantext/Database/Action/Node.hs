@@ -20,6 +20,7 @@ Portability : POSIX
 module Gargantext.Database.Action.Node
   where
 
+import Gargantext.Core
 import Gargantext.Core.Types (Name)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Hyperdata.Default
@@ -35,7 +36,7 @@ import Gargantext.Prelude.Config (GargConfig(..))
 
 ------------------------------------------------------------------------
 -- | TODO mk all others nodes
-mkNodeWithParent :: (HasNodeError err)
+mkNodeWithParent :: (HasNodeError err, HasDBid NodeType)
                  => NodeType
                  -> Maybe ParentId
                  -> UserId
@@ -66,7 +67,7 @@ mkNodeWithParent nt (Just pId) uId name  = insertNode nt (Just name) Nothing pId
 
 
 -- | Sugar to create a node, get its NodeId and update its Hyperdata after
-mkNodeWithParent_ConfigureHyperdata :: (HasNodeError err)
+mkNodeWithParent_ConfigureHyperdata :: (HasNodeError err, HasDBid NodeType)
                                     => NodeType
                                     -> Maybe ParentId
                                     -> UserId
@@ -85,7 +86,7 @@ mkNodeWithParent_ConfigureHyperdata    _ _ _ _ = nodeError NotImplYet
 
 
 -- | Function not exposed
-mkNodeWithParent_ConfigureHyperdata' :: (HasNodeError err)
+mkNodeWithParent_ConfigureHyperdata' :: (HasNodeError err, HasDBid NodeType)
                                     => NodeType
                                     -> Maybe ParentId
                                     -> UserId

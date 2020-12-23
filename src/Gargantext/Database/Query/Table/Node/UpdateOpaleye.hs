@@ -17,6 +17,7 @@ module Gargantext.Database.Query.Table.Node.UpdateOpaleye
 
 import Opaleye
 import Data.Aeson (encode, ToJSON)
+import Gargantext.Core
 import Gargantext.Prelude
 import Gargantext.Database.Schema.Node
 import Gargantext.Database.Admin.Types.Node
@@ -42,6 +43,7 @@ updateHyperdataQuery i h = Update
 updateNodesWithType :: ( HasNodeError err
                        , JSONB a
                        , ToJSON a
+                       , HasDBid NodeType
                        ) => NodeType -> proxy a -> (a -> a) -> Cmd err [Int64]
 updateNodesWithType nt p f = do
   ns <- getNodesWithType nt p
@@ -50,9 +52,10 @@ updateNodesWithType nt p f = do
 
 -- | In case the Hyperdata Types are not compatible
 updateNodesWithType_ :: ( HasNodeError err
-                       , JSONB a
-                       , ToJSON a
-                       ) => NodeType -> a -> Cmd err [Int64]
+                        , JSONB a
+                        , ToJSON a
+                        , HasDBid NodeType
+                        ) => NodeType -> a -> Cmd err [Int64]
 updateNodesWithType_ nt h = do
   ns <- getNodesIdWithType nt
   mapM (\n -> updateHyperdata n h) ns
