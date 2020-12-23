@@ -119,21 +119,21 @@ selectRoot :: User -> Query NodeRead
 selectRoot (UserName username) = proc () -> do
     row   <- queryNodeTable -< ()
     users <- queryUserTable -< ()
-    restrict -< _node_typename row   .== (pgInt4 $ hasDBid NodeUser)
+    restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
     restrict -< user_username  users .== (pgStrictText username)
     restrict -< _node_userId   row   .== (user_id users)
     returnA  -< row
 
 selectRoot (UserDBId uid) = proc () -> do
     row   <- queryNodeTable -< ()
-    restrict -< _node_typename row   .== (pgInt4 $ hasDBid NodeUser)
+    restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
     restrict -< _node_userId   row   .== (pgInt4 uid)
     returnA  -< row
 
 selectRoot (RootId nid) =
  proc () -> do
     row   <- queryNodeTable -< ()
-    restrict -< _node_typename row   .== (pgInt4 $ hasDBid NodeUser)
+    restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
     restrict -< _node_id   row   .== (pgNodeId nid)
     returnA  -< row
 selectRoot UserPublic = panic {-nodeError $ NodeError-}  "[G.D.Q.T.Root.selectRoot] No root for Public"

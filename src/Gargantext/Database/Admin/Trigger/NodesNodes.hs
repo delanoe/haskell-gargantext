@@ -29,7 +29,7 @@ import qualified Database.PostgreSQL.Simple as DPS
 type MasterListId = ListId
 
 triggerDeleteCount :: MasterListId -> Cmd err Int64
-triggerDeleteCount lId = execPGSQuery query (lId, hasDBid NodeList)
+triggerDeleteCount lId = execPGSQuery query (lId, toDBid NodeList)
   where
     query :: DPS.Query
     query = [sql|

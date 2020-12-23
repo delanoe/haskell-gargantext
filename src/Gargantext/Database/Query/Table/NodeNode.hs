@@ -85,7 +85,7 @@ getNodeNodeWith pId _ maybeNodeType = runOpaQuery query
         row@(Node nId typeName _ parent_id _ _ _) <- queryNodeTable -< ()
         (NodeNode _ n1id n2id _ _) <- queryNodeNodeTable -< ()
 
-        let nodeType = maybe 0 hasDBid maybeNodeType
+        let nodeType = maybe 0 toDBid maybeNodeType
         restrict -< typeName  .== pgInt4 nodeType
 
         restrict -< (.||) (parent_id .== (pgNodeId parentId))
@@ -152,7 +152,7 @@ selectCountDocs cId = runCountOpaQuery (queryCountDocs cId)
       (n, nn) <- joinInCorpus -< ()
       restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId')
       restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
-      restrict -< n^.node_typename .== (pgInt4 $ hasDBid NodeDocument)
+      restrict -< n^.node_typename .== (pgInt4 $ toDBid NodeDocument)
       returnA -< n
 
 
@@ -173,7 +173,7 @@ queryDocs cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
   restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
-  restrict -< n^.node_typename .== (pgInt4 $ hasDBid NodeDocument)
+  restrict -< n^.node_typename .== (pgInt4 $ toDBid NodeDocument)
   returnA -< view (node_hyperdata) n
 
 selectDocNodes :: HasDBid NodeType =>CorpusId -> Cmd err [Node HyperdataDocument]
@@ -184,7 +184,7 @@ queryDocNodes cId = proc () -> do
   (n, nn) <- joinInCorpus -< ()
   restrict -< nn^.nn_node1_id  .== (toNullable $ pgNodeId cId)
   restrict -< nn^.nn_category  .>= (toNullable $ pgInt4 1)
-  restrict -< n^.node_typename .== (pgInt4 $ hasDBid NodeDocument)
+  restrict -< n^.node_typename .== (pgInt4 $ toDBid NodeDocument)
   returnA -<  n
 
 joinInCorpus :: O.Query (NodeRead, NodeNodeReadNull)
@@ -208,6 +208,6 @@ selectPublicNodes = runOpaQuery (queryWithType NodeFolderPublic)
 queryWithType :: HasDBid NodeType =>NodeType -> O.Query (NodeRead, Column (Nullable PGInt4))
 queryWithType nt = proc () -> do
   (n, nn) <- joinOn1 -< ()
-  restrict -< n^.node_typename .== (pgInt4 $ hasDBid nt)
+  restrict -< n^.node_typename .== (pgInt4 $ toDBid nt)
   returnA  -<  (n, nn^.nn_node2_id)
 

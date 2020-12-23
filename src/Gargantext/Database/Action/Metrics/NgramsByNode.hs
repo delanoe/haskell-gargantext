@@ -73,7 +73,7 @@ getNodesByNgramsUser cId nt =
       selectNgramsByNodeUser cId' nt' =
         runPGSQuery queryNgramsByNodeUser
                     ( cId'
-                    , hasDBid NodeDocument
+                    , toDBid NodeDocument
                     , ngramsTypeId nt'
            --         , 100 :: Int -- limit
            --         , 0   :: Int -- offset
@@ -86,7 +86,7 @@ getNodesByNgramsUser cId nt =
           JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
           JOIN nodes  n       ON nn.node2_id   = n.id
           WHERE nn.node1_id = ?     -- CorpusId
-            AND n.typename  = ?     -- hasDBid
+            AND n.typename  = ?     -- toDBid
             AND nng.ngrams_type = ? -- NgramsTypeId
             AND nn.category > 0
             GROUP BY nng.node2_id, ng.terms
@@ -184,7 +184,7 @@ selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
   runPGSQuery queryNgramsOccurrencesOnlyByNodeUser
                 ( Values fields ((DPS.Only . unNgramsTerm) <$> tms)
                 , cId
-                , hasDBid NodeDocument
+                , toDBid NodeDocument
                 , ngramsTypeId nt
                 )
     where
@@ -202,7 +202,7 @@ queryNgramsOccurrencesOnlyByNodeUser = [sql|
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
-      AND n.typename      = ? -- hasDBid
+      AND n.typename      = ? -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
       GROUP BY nng.node2_id, ng.terms
@@ -217,7 +217,7 @@ queryNgramsOccurrencesOnlyByNodeUser' = [sql|
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
-      AND n.typename      = ? -- hasDBid
+      AND n.typename      = ? -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
       GROUP BY nng.node2_id, ng.terms
@@ -267,7 +267,7 @@ selectNgramsOnlyByNodeUser cId ls nt tms =
                 , Values [QualifiedIdentifier Nothing "int4"] 
                          (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , cId
-                , hasDBid NodeDocument
+                , toDBid NodeDocument
                 , ngramsTypeId nt
                 )
     where
@@ -284,7 +284,7 @@ queryNgramsOnlyByNodeUser = [sql|
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
-      AND n.typename      = ? -- hasDBid
+      AND n.typename      = ? -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
       GROUP BY ng.terms, nng.node2_id
@@ -303,7 +303,7 @@ selectNgramsOnlyByNodeUser' cId ls nt tms =
                 , Values [QualifiedIdentifier Nothing "int4"]
                          (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , cId
-                , hasDBid NodeDocument
+                , toDBid NodeDocument
                 , ngramsTypeId nt
                 )
     where
@@ -386,13 +386,13 @@ selectNgramsByNodeMaster n ucId mcId p = runPGSQuery
                                queryNgramsByNodeMaster'
                                  ( ucId
                                  , ngramsTypeId NgramsTerms
-                                 , hasDBid   NodeDocument
+                                 , toDBid   NodeDocument
                                  , p
-                                 , hasDBid   NodeDocument
+                                 , toDBid   NodeDocument
                                  , p
                                  , n
                                  , mcId
-                                 , hasDBid   NodeDocument
+                                 , toDBid   NodeDocument
                                  , ngramsTypeId NgramsTerms
                                  )
 
@@ -406,7 +406,7 @@ queryNgramsByNodeMaster' = [sql|
     JOIN node_node_ngrams nng ON nng.node2_id   = n.id
     JOIN ngrams       ng  ON nng.ngrams_id = ng.id
     WHERE nn.node1_id     = ?   -- UserCorpusId
-      -- AND n.typename   = ?  -- hasDBid
+      -- AND n.typename   = ?  -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category > 0
       AND node_pos(n.id,?) >= ?
@@ -421,8 +421,8 @@ queryNgramsByNodeMaster' = [sql|
     JOIN node_node_ngrams nng  ON n.id  = nng.node2_id
     JOIN ngrams       ng   ON ng.id = nng.ngrams_id
 
-    WHERE n.parent_id  = ?     -- Master Corpus hasDBid
-      AND n.typename   = ?     -- hasDBid
+    WHERE n.parent_id  = ?     -- Master Corpus toDBid
+      AND n.typename   = ?     -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
     GROUP BY n.id, ng.terms
     )

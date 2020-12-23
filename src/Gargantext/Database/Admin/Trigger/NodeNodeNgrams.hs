@@ -25,7 +25,7 @@ import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as DPS
 
 triggerCountInsert :: HasDBid NodeType => Cmd err Int64
-triggerCountInsert = execPGSQuery query (hasDBid NodeDocument, hasDBid NodeList)
+triggerCountInsert = execPGSQuery query (toDBid NodeDocument, toDBid NodeList)
   where
     query :: DPS.Query
     query = [sql|
@@ -61,9 +61,9 @@ triggerCountInsert = execPGSQuery query (hasDBid NodeDocument, hasDBid NodeList)
    |]
 
 triggerCountInsert2 :: HasDBid NodeType => Cmd err Int64
-triggerCountInsert2 = execPGSQuery query ( hasDBid NodeCorpus
-                                         , hasDBid NodeDocument
-                                         , hasDBid NodeList
+triggerCountInsert2 = execPGSQuery query ( toDBid NodeCorpus
+                                         , toDBid NodeDocument
+                                         , toDBid NodeList
                                          )
   where
     query :: DPS.Query
@@ -105,9 +105,9 @@ triggerCountInsert2 = execPGSQuery query ( hasDBid NodeCorpus
 
 -- TODO add the groups
 triggerCoocInsert :: HasDBid NodeType => Cmd err Int64
-triggerCoocInsert = execPGSQuery query ( hasDBid NodeCorpus
-                                       , hasDBid NodeDocument
-                                       , hasDBid NodeList
+triggerCoocInsert = execPGSQuery query ( toDBid NodeCorpus
+                                       , toDBid NodeDocument
+                                       , toDBid NodeList
                                        , listTypeId CandidateTerm
                                        , listTypeId CandidateTerm
                                        )

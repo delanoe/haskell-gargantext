@@ -32,7 +32,7 @@ selectNodesWithUsername nt u = runOpaQuery (q u)
     q u' = proc () -> do
       (n,usrs) <- join' -< ()
       restrict -< user_username usrs .== (toNullable $ pgStrictText u')
-      restrict -< _node_typename n .== (pgInt4 $ hasDBid nt)
+      restrict -< _node_typename n .== (pgInt4 $ toDBid nt)
       returnA  -< _node_id n
 
     join' :: Query (NodeRead, UserReadNull)

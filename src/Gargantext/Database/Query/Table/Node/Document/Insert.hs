@@ -69,7 +69,7 @@ import Database.PostgreSQL.Simple.SqlQQ
 import Database.PostgreSQL.Simple.ToField (toField, Action{-, ToField-})
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import GHC.Generics (Generic)
-import Gargantext.Core (HasDBid(hasDBid))
+import Gargantext.Core (HasDBid(toDBid))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery{-, formatPGSQuery-})
@@ -104,7 +104,7 @@ class InsertDb a
 instance InsertDb HyperdataDocument
   where
     insertDb' u p h = [ toField ("" :: Text)
-                      , toField $ hasDBid NodeDocument
+                      , toField $ toDBid NodeDocument
                       , toField u
                       , toField p
                       , toField $ maybe "No Title" (DT.take 255)  (_hd_title h)
@@ -115,7 +115,7 @@ instance InsertDb HyperdataDocument
 instance InsertDb HyperdataContact
   where
     insertDb' u p h = [ toField ("" :: Text)
-                      , toField $ hasDBid NodeContact
+                      , toField $ toDBid NodeContact
                       , toField u
                       , toField p
                       , toField $ maybe "Contact" (DT.take 255) (Just "Name") -- (_hc_name h)
@@ -223,7 +223,7 @@ instance (AddUniqId a, ToJSON a, HasDBid NodeType) => AddUniqId (Node a)
                               where
                                 hashId = Just $ "\\x" <> (hash $ DT.concat params)
                                 params = [ secret
-                                         , cs $ show $ hasDBid NodeDocument
+                                         , cs $ show $ toDBid NodeDocument
                                          , n
                                          , cs $ show p
                                          , cs $ encode h
@@ -235,7 +235,7 @@ instance (AddUniqId a, ToJSON a, HasDBid NodeType) => AddUniqId (Node a)
                               where
                                 hashId = "\\x" <> (hash $ DT.concat params)
                                 params = [ secret
-                                         , cs $ show $ hasDBid NodeDocument
+                                         , cs $ show $ toDBid NodeDocument
                                          , n
                                          , cs $ show p
                                          , cs $ encode h
@@ -275,7 +275,7 @@ class ToNode a
     toNode :: HasDBid NodeType => UserId -> ParentId -> a -> Node a
 
 instance ToNode HyperdataDocument where
-  toNode u p h = Node 0 Nothing (hasDBid NodeDocument) u (Just p) n date h
+  toNode u p h = Node 0 Nothing (toDBid NodeDocument) u (Just p) n date h
     where
       n    = maybe "No Title" (DT.take 255) (_hd_title h)
       date  = jour y m d
@@ -285,7 +285,7 @@ instance ToNode HyperdataDocument where
 
 -- TODO better Node
 instance ToNode HyperdataContact where
-  toNode u p h = Node 0 Nothing (hasDBid NodeContact) u (Just p) "Contact" date h
+  toNode u p h = Node 0 Nothing (toDBid NodeContact) u (Just p) "Contact" date h
     where
       date  = jour 2020 01 01
 

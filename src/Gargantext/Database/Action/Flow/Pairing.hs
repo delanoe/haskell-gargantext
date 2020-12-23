@@ -55,7 +55,7 @@ isPairedWith nId nt = runOpaQuery (selectQuery nt nId)
     selectQuery :: NodeType -> NodeId -> Query (Column PGInt4)
     selectQuery nt' nId' = proc () -> do
       (node, node_node) <- queryJoin -< ()
-      restrict -< (node^.node_typename)    .== (pgInt4 $ hasDBid nt')
+      restrict -< (node^.node_typename)    .== (pgInt4 $ toDBid nt')
       restrict -< (node_node^.nn_node1_id) .== (toNullable $ pgNodeId nId')
       returnA  -<  node^.node_id
 

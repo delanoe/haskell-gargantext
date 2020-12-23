@@ -248,7 +248,7 @@ viewAuthorsDoc cId _ nt = proc () -> do
   -}
 
   restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
-  restrict -< _node_typename doc   .== (pgInt4 $ hasDBid nt)
+  restrict -< _node_typename doc   .== (pgInt4 $ toDBid nt)
 
   returnA  -< FacetDoc (_node_id        doc)
                        (_node_date      doc)
@@ -290,14 +290,14 @@ runViewDocuments :: HasDBid NodeType
 runViewDocuments cId t o l order query = do
     runOpaQuery $ filterWith o l order sqlQuery
   where
-    ntId = hasDBid NodeDocument
+    ntId = toDBid NodeDocument
     sqlQuery = viewDocuments cId t ntId query
 
 runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
 runCountDocuments cId t mQuery = do
   runCountOpaQuery sqlQuery
   where
-    sqlQuery = viewDocuments cId t (hasDBid NodeDocument) mQuery
+    sqlQuery = viewDocuments cId t (toDBid NodeDocument) mQuery
 
 
 viewDocuments :: CorpusId

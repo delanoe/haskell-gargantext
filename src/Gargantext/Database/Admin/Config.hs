@@ -40,7 +40,7 @@ userArbitrary :: Text
 userArbitrary = "user1"
 
 instance HasDBid NodeType where
-  hasDBid  = nodeTypeId
+  toDBid  = nodeTypeId
   fromDBid = fromNodeTypeId
 
 
@@ -96,10 +96,10 @@ nodeTypeId n =
 --  NodeFavorites    -> 15
 
 hasNodeType :: forall a. Node a -> NodeType -> Bool
-hasNodeType n nt = (view node_typename n) == (hasDBid nt)
+hasNodeType n nt = (view node_typename n) == (toDBid nt)
 
 isInNodeTypes :: forall a. Node a -> [NodeType] -> Bool
-isInNodeTypes n ts = elem (view node_typename n) (map hasDBid ts)
+isInNodeTypes n ts = elem (view node_typename n) (map toDBid ts)
 
 -- | Nodes are typed in the database according to a specific ID
 --
@@ -107,7 +107,7 @@ nodeTypeInv :: [(NodeTypeId, NodeType)]
 nodeTypeInv = map swap nodeTypes
 
 nodeTypes :: [(NodeType, NodeTypeId)]
-nodeTypes = [ (n, hasDBid n) | n <- allNodeTypes ]
+nodeTypes = [ (n, toDBid n) | n <- allNodeTypes ]
 
 fromNodeTypeId :: NodeTypeId -> NodeType
 fromNodeTypeId tId = fromMaybe (panic $ pack $ "Type Id " <> show tId <> " does not exist")

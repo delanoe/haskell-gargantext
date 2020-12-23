@@ -74,7 +74,7 @@ selectChildren parentId maybeNodeType = proc () -> do
     row@(Node nId _ typeName _ parent_id _ _ _) <- queryNodeTable -< ()
     (NodeNode n1id n2id _ _) <- queryNodeNodeTable -< ()
 
-    let nodeType = maybe 0 hasDBid maybeNodeType
+    let nodeType = maybe 0 toDBid maybeNodeType
     restrict -< typeName  .== pgInt4 nodeType
 
     restrict -< (.||) (parent_id .== (pgNodeId parentId))

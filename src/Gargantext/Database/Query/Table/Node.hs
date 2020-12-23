@@ -75,7 +75,7 @@ selectNodesWith' parentId maybeNodeType = proc () -> do
       row@(Node _ _ typeId _ parentId' _ _ _) <- queryNodeTable -< ()
       restrict -< parentId' .== (pgNodeId parentId)
 
-      let typeId' = maybe 0 hasDBid maybeNodeType
+      let typeId' = maybe 0 toDBid maybeNodeType
 
       restrict -< if typeId' > 0
                      then typeId   .== (pgInt4 (typeId' :: Int))
@@ -122,7 +122,7 @@ getClosestParentIdByType nId nType = do
   result <- runPGSQuery query (nId, 0 :: Int)
   case result of
     [DPS.Only parentId, DPS.Only pTypename] -> do
-      if hasDBid nType == pTypename then
+      if toDBid nType == pTypename then
         pure $ Just $ NodeId parentId
       else
         getClosestParentIdByType (NodeId parentId) nType
@@ -168,7 +168,7 @@ getNodesWithType nt _ = runOpaQuery $ selectNodesWithType nt
                          => NodeType -> Query NodeRead
     selectNodesWithType nt' = proc () -> do
         row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
-        restrict -< tn .== (pgInt4 $ hasDBid nt')
+        restrict -< tn .== (pgInt4 $ toDBid nt')
         returnA -< row
 
 getNodesIdWithType :: (HasNodeError err, HasDBid NodeType) => NodeType -> Cmd err [NodeId]
@@ -180,7 +180,7 @@ selectNodesIdWithType :: HasDBid NodeType
                       => NodeType -> Query (Column PGInt4)
 selectNodesIdWithType nt = proc () -> do
     row@(Node _ _ tn _ _ _ _ _) <- queryNodeTable -< ()
-    restrict -< tn .== (pgInt4 $ hasDBid nt)
+    restrict -< tn .== (pgInt4 $ toDBid nt)
     returnA -< _node_id row
 
 ------------------------------------------------------------------------
@@ -236,7 +236,7 @@ node nodeType name hyperData parentId userId =
        Nothing
        (pgJSONB $ cs $ encode hyperData)
     where
-      typeId = hasDBid nodeType
+      typeId = toDBid nodeType
 
                   -------------------------------
 insertNodes :: [NodeWrite] -> Cmd err Int64
@@ -250,7 +250,7 @@ insertNodes' ns = mkCmd $ \conn -> runInsert_ conn
     ns' :: [NodeWrite]
     ns' = map (\(Node i t u p n d h)
                 -> Node (pgNodeId          <$> i)
-                        (pgInt4 $ hasDBid      t)
+                        (pgInt4 $ toDBid      t)
                         (pgInt4                u)
                         (pgNodeId          <$> p)
                         (pgStrictText          n)
@@ -275,7 +275,7 @@ insertNodesWithParentR pid ns = insertNodesR (set node_parentId (pgNodeId <$> pi
 
 node2table :: HasDBid NodeType
            => UserId -> Maybe ParentId -> Node' -> NodeWrite
-node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (pgInt4 $ hasDBid nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
+node2table uid pid (Node' nt txt v []) = Node Nothing Nothing (pgInt4 $ toDBid nt) (pgInt4 uid) (fmap pgNodeId pid) (pgStrictText txt) Nothing (pgStrictJSONB $ cs $ encode v)
 node2table _ _ (Node' _ _ _ _) = panic "node2table: should not happen, Tree insert not implemented yet"
 
 

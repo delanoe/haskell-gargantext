@@ -51,13 +51,13 @@ allLangs :: [Lang]
 allLangs = [minBound ..]
 
 class HasDBid a where
-  hasDBid  :: a   -> Int
+  toDBid   :: a   -> Int
   fromDBid :: Int -> a
 
 instance HasDBid Lang where
-  hasDBid All = 0
-  hasDBid FR  = 1
-  hasDBid EN  = 2
+  toDBid All = 0
+  toDBid FR  = 1
+  toDBid EN  = 2
 
   fromDBid 0 = All
   fromDBid 1 = FR
@@ -70,7 +70,7 @@ data PostTagAlgo = CoreNLP
   deriving (Show, Read)
 
 instance HasDBid PostTagAlgo where
-  hasDBid CoreNLP = 1
+  toDBid CoreNLP = 1
   fromDBid 1 = CoreNLP
   fromDBid _ = panic "HasDBid posTagAlgo : Not implemented"
 

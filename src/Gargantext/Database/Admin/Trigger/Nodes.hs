@@ -26,9 +26,9 @@ import qualified Database.PostgreSQL.Simple as DPS
 
 
 triggerSearchUpdate :: HasDBid NodeType => Cmd err Int64
-triggerSearchUpdate = execPGSQuery query ( hasDBid NodeDocument
-                                         , hasDBid NodeDocument
-                                         , hasDBid NodeContact
+triggerSearchUpdate = execPGSQuery query ( toDBid NodeDocument
+                                         , toDBid NodeDocument
+                                         , toDBid NodeContact
                                          )
   where
     query :: DPS.Query
@@ -70,12 +70,12 @@ triggerSearchUpdate = execPGSQuery query ( hasDBid NodeDocument
 type Secret = Text
 
 triggerUpdateHash :: HasDBid NodeType => Secret -> Cmd err Int64
-triggerUpdateHash secret = execPGSQuery query ( hasDBid NodeDocument
-                                              , hasDBid NodeContact
+triggerUpdateHash secret = execPGSQuery query ( toDBid NodeDocument
+                                              , toDBid NodeContact
                                               , secret
                                               , secret
-                                              , hasDBid NodeDocument
-                                              , hasDBid NodeContact
+                                              , toDBid NodeDocument
+                                              , toDBid NodeContact
                                               , secret
                                               , secret
                                               )
