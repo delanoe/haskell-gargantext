@@ -44,7 +44,7 @@ import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
 import qualified Data.List as List
 import Data.Map (Map, fromListWith, lookup)
-import Data.Monoid (mconcat)
+-- import Data.Monoid (mconcat)
 import Data.Proxy
 -- import qualified Data.Set  as Set
 import Data.Text (Text)
@@ -110,13 +110,13 @@ tree_advanced :: (HasTreeError err, HasNodeError err)
               -> [NodeType]
               -> Cmd err (Tree NodeTree)
 tree_advanced r nodeTypes = do
-  let rPrefix s = "[tree_advanced] root = " <> show r <> " " <> s
+  -- let rPrefix s = "[tree_advanced] root = " <> show r <> " " <> s
   mainRoot    <- findNodes r Private nodeTypes
-  printDebug (rPrefix "mainRoot") mainRoot
+  -- printDebug (rPrefix "mainRoot") mainRoot
   publicRoots <- findNodes r Public  nodeTypes
-  printDebug (rPrefix "publicRoots") publicRoots
+  -- printDebug (rPrefix "publicRoots") publicRoots
   sharedRoots <- findNodes r Shared  nodeTypes
-  printDebug (rPrefix "sharedRoots") sharedRoots
+  -- printDebug (rPrefix "sharedRoots") sharedRoots
   toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
 
 -- | Fetch only first level of tree
@@ -125,20 +125,20 @@ tree_first_level :: (HasTreeError err, HasNodeError err)
                  -> [NodeType]
                  -> Cmd err (Tree NodeTree)
 tree_first_level r nodeTypes = do
-  let rPrefix s = mconcat [ "[tree_first_level] root = "
-                          , show r
-                          , ", nodeTypes = "
-                          , show nodeTypes
-                          , " "
-                          , s ]
+  -- let rPrefix s = mconcat [ "[tree_first_level] root = "
+  --                         , show r
+  --                         , ", nodeTypes = "
+  --                         , show nodeTypes
+  --                         , " "
+  --                         , s ]
   mainRoot    <- findNodes r Private nodeTypes
-  printDebug (rPrefix "mainRoot") mainRoot
+  -- printDebug (rPrefix "mainRoot") mainRoot
   publicRoots <- findNodes r Public  nodeTypes
-  printDebug (rPrefix "publicRoots") publicRoots
+  -- printDebug (rPrefix "publicRoots") publicRoots
   sharedRoots <- findNodes r SharedDirect  nodeTypes
-  printDebug (rPrefix "sharedRoots") sharedRoots
+  -- printDebug (rPrefix "sharedRoots") sharedRoots
   ret <- toTree $ toSubtreeParent r (mainRoot <> sharedRoots <> publicRoots)
-  printDebug (rPrefix "tree") ret
+  -- printDebug (rPrefix "tree") ret
   pure ret
 
 ------------------------------------------------------------------------
@@ -165,27 +165,30 @@ findShared r nt nts fun = do
   trees           <- mapM (updateTree nts fun) foldersSharedId
   pure $ concat trees
 
+-- | Find shared folders with "direct" access, i.e. when fetching only
+-- first-level subcomponents. This works in a simplified manner: fetch the node
+-- and get the tree for its parent.
 findSharedDirect :: (HasTreeError err, HasNodeError err)
                  => RootId -> NodeType -> [NodeType] -> UpdateTree err
                  -> Cmd err [DbTreeNode]
 findSharedDirect r nt nts fun = do
-  let rPrefix s = mconcat [ "[findSharedDirect] r = "
-                          , show r
-                          , ", nt = "
-                          , show nt
-                          , ", nts = "
-                          , show nts
-                          , " "
-                          , s ]
+  -- let rPrefix s = mconcat [ "[findSharedDirect] r = "
+  --                         , show r
+  --                         , ", nt = "
+  --                         , show nt
+  --                         , ", nts = "
+  --                         , show nts
+  --                         , " "
+  --                         , s ]
   parent <- getNodeWith r (Proxy :: Proxy HyperdataAny)
   let mParent = _node_parentId parent
   case mParent of
     Nothing -> pure []
     Just parentId -> do
       foldersSharedId <- findNodesId parentId [nt]
-      printDebug (rPrefix "foldersSharedId") foldersSharedId
+      -- printDebug (rPrefix "foldersSharedId") foldersSharedId
       trees           <- mapM (updateTree nts fun) foldersSharedId
-      printDebug (rPrefix "trees") trees
+      -- printDebug (rPrefix "trees") trees
       pure $ concat trees
 
 
