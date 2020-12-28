@@ -32,15 +32,21 @@ module Gargantext.Database.Query.Tree
   , findNodes
   , findNodesWithType
   , NodeMode(..)
+
+  , sharedTreeUpdate
+  , dbTree
+  , updateTree
   )
   where
 
 import Control.Lens (view, toListOf, at, each, _Just, to, set, makeLenses)
 import Control.Monad.Error.Class (MonadError())
 import Data.List (tail, concat, nub)
-import Data.Map (Map, fromListWith, lookup)
--- import qualified Data.Set  as Set
 import qualified Data.List as List
+import Data.Map (Map, fromListWith, lookup)
+import Data.Monoid (mconcat)
+import Data.Proxy
+-- import qualified Data.Set  as Set
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.SqlQQ
@@ -49,10 +55,14 @@ import Gargantext.Prelude
 
 import Gargantext.Core.Types.Main (NodeTree(..), Tree(..))
 import Gargantext.Database.Admin.Config (fromNodeTypeId, nodeTypeId, fromNodeTypeId)
+import Gargantext.Database.Admin.Types.Hyperdata.Any (HyperdataAny)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Query.Table.Node (getNodeWith)
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.NodeNode (getNodeNode)
 import Gargantext.Database.Query.Tree.Error
+import Gargantext.Database.Schema.Node (NodePoly(..))
 import Gargantext.Database.Schema.NodeNode (NodeNodePoly(..))
 
 ------------------------------------------------------------------------
@@ -72,7 +82,7 @@ instance Eq DbTreeNode where
 data TreeMode = TreeBasic | TreeAdvanced | TreeFirstLevel
 
 -- | Returns the Tree of Nodes in Database
-tree :: HasTreeError err
+tree :: (HasTreeError err, HasNodeError err)
      => TreeMode
      -> RootId
      -> [NodeType]
@@ -84,7 +94,8 @@ tree TreeFirstLevel = tree_first_level
 -- | Tree basic returns the Tree of Nodes in Database
 -- (without shared folders)
 -- keeping this for teaching purpose only
-tree_basic :: HasTreeError err
+tree_basic :: (HasTreeError err, HasNodeError err)
+
            => RootId
            -> [NodeType]
            -> Cmd err (Tree NodeTree)
@@ -94,7 +105,7 @@ tree_basic r nodeTypes =
   -- toTree =<< (toTreeParent <$> dbTree r nodeTypes)
 
 -- | Advanced mode of the Tree enables shared nodes
-tree_advanced :: HasTreeError err
+tree_advanced :: (HasTreeError err, HasNodeError err)
               => RootId
               -> [NodeType]
               -> Cmd err (Tree NodeTree)
@@ -109,36 +120,43 @@ tree_advanced r nodeTypes = do
   toTree      $ toTreeParent (mainRoot <> sharedRoots <> publicRoots)
 
 -- | Fetch only first level of tree
-tree_first_level :: HasTreeError err
+tree_first_level :: (HasTreeError err, HasNodeError err)
                  => RootId
                  -> [NodeType]
                  -> Cmd err (Tree NodeTree)
 tree_first_level r nodeTypes = do
-  let rPrefix s = "[tree_first_level] root = " <> show r <> " " <> s
+  let rPrefix s = mconcat [ "[tree_first_level] root = "
+                          , show r
+                          , ", nodeTypes = "
+                          , show nodeTypes
+                          , " "
+                          , s ]
   mainRoot    <- findNodes r Private nodeTypes
   printDebug (rPrefix "mainRoot") mainRoot
   publicRoots <- findNodes r Public  nodeTypes
   printDebug (rPrefix "publicRoots") publicRoots
-  sharedRoots <- findNodes r Shared  nodeTypes
+  sharedRoots <- findNodes r SharedDirect  nodeTypes
   printDebug (rPrefix "sharedRoots") sharedRoots
   ret <- toTree $ toSubtreeParent r (mainRoot <> sharedRoots <> publicRoots)
   printDebug (rPrefix "tree") ret
   pure ret
 
 ------------------------------------------------------------------------
-data NodeMode = Private | Shared | Public
+data NodeMode = Private | Shared | Public | SharedDirect
 
-findNodes :: HasTreeError err
+findNodes :: (HasTreeError err, HasNodeError err)
           => RootId
           -> NodeMode
           -> [NodeType]
           -> Cmd err [DbTreeNode]
-findNodes r Private nt = dbTree r nt
-findNodes r Shared  nt = findShared r NodeFolderShared nt sharedTreeUpdate
-findNodes r Public  nt = findShared r NodeFolderPublic nt publicTreeUpdate
+findNodes r Private nt       = dbTree r nt
+findNodes r Shared  nt       = findShared r NodeFolderShared nt sharedTreeUpdate
+findNodes r SharedDirect  nt = findSharedDirect r NodeFolderShared nt sharedTreeUpdate
+findNodes r Public  nt       = findShared r NodeFolderPublic nt publicTreeUpdate
 
 ------------------------------------------------------------------------
 -- | Collaborative Nodes in the Tree
+--   Queries the `nodes_nodes` table.
 findShared :: HasTreeError err
            => RootId -> NodeType -> [NodeType] -> UpdateTree err
            -> Cmd err [DbTreeNode]
@@ -146,6 +164,29 @@ findShared r nt nts fun = do
   foldersSharedId <- findNodesId r [nt]
   trees           <- mapM (updateTree nts fun) foldersSharedId
   pure $ concat trees
+
+findSharedDirect :: (HasTreeError err, HasNodeError err)
+                 => RootId -> NodeType -> [NodeType] -> UpdateTree err
+                 -> Cmd err [DbTreeNode]
+findSharedDirect r nt nts fun = do
+  let rPrefix s = mconcat [ "[findSharedDirect] r = "
+                          , show r
+                          , ", nt = "
+                          , show nt
+                          , ", nts = "
+                          , show nts
+                          , " "
+                          , s ]
+  parent <- getNodeWith r (Proxy :: Proxy HyperdataAny)
+  let mParent = _node_parentId parent
+  case mParent of
+    Nothing -> pure []
+    Just parentId -> do
+      foldersSharedId <- findNodesId parentId [nt]
+      printDebug (rPrefix "foldersSharedId") foldersSharedId
+      trees           <- mapM (updateTree nts fun) foldersSharedId
+      printDebug (rPrefix "trees") trees
+      pure $ concat trees
 
 
 type UpdateTree err = ParentId -> [NodeType] -> NodeId -> Cmd err [DbTreeNode]
@@ -205,19 +246,19 @@ toTree m =
         Just []     -> treeError EmptyRoot
         Just _r     -> treeError TooManyRoots
 
-     where
-       toTree' :: Map (Maybe ParentId) [DbTreeNode]
-               -> DbTreeNode
-               -> Tree NodeTree
-       toTree' m' root =
-         TreeN (toNodeTree root) $
-           -- | Lines below are equivalent computationally but not semantically
-           -- m' ^.. at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')
-           toListOf (at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')) m'
+      where
+        toTree' :: Map (Maybe ParentId) [DbTreeNode]
+                -> DbTreeNode
+                -> Tree NodeTree
+        toTree' m' root =
+          TreeN (toNodeTree root) $
+            -- | Lines below are equivalent computationally but not semantically
+            -- m' ^.. at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')
+            toListOf (at (Just $ _dt_nodeId root) . _Just . each . to (toTree' m')) m'
 
-       toNodeTree :: DbTreeNode
-                  -> NodeTree
-       toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
+        toNodeTree :: DbTreeNode
+                   -> NodeTree
+        toNodeTree (DbTreeNode nId tId _ n) = NodeTree n (fromNodeTypeId tId) nId
 
 ------------------------------------------------------------------------
 toTreeParent :: [DbTreeNode]
