@@ -1,17 +1,37 @@
 {-|
 Module      : Gargantext.Core.Methods.Distances.Accelerate.Distributional
-Description : 
+Description :
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
 Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-This module aims at implementig distances of terms context by context is
-the same referential of corpus.
 
-Implementation use Accelerate library which enables GPU and CPU computation
-See Gargantext.Core.Methods.Graph.Accelerate)
+* Distributional Distance metric
+__Definition :__ Distributional metric is a relative metric which depends on the
+selected list, it represents structural equivalence of mutual information.
+
+__Objective :__ We want to compute with matrices processing the similarity between term $i$ and term $j$ :
+ distr(i,j)=$\frac{\Sigma_{k \neq i,j} min(\frac{n_{ik}^2}{n_{ii}n_{kk}},\frac{n_{jk}^2}{n_{jj}n_{kk}})}{\Sigma_{k \neq i}\frac{n_{ik}^2}{ n_{ii}n_{kk}}}$
+
+where $n_{ij}$ is the cooccurrence between term $i$ and term $j$
+
+* For a vector V=[$x_1$ ... $x_n$], we note $|V|_1=\Sigma_ix_i$
+* operator : .* and ./ cell by cell multiplication and division of the matrix
+* operator * is the matrix multiplication
+* Matrice M=[$n_{ij}$]$_{i,j}$
+* opérateur : Diag(M)=[$n_{ii}$]$_i$ (vecteur)
+* Id= identity matrix
+* O=[1]$_{i,j}$ (matrice one)
+* D(M)=Id .* M
+* O * D(M) =[$n_{jj}$]$_{i,j}$
+* D(M) * O =[$n_{ii}$]$_{i,j}$
+* $V_i=[0~0~0~1~0~0~0]'$ en i
+* MI=(M ./ O * D(M)) .* (M / D(M) * O )
+* distr(i,j)=$\frac{|min(V'_i * (MI-D(MI)),V'_j * (MI-D(MI)))|_1}{|V'_i.(MI-D(MI))|_1}$
+
+[Specifications written by David Chavalarias on Garg v4 shared NodeWrite, team Pyremiel 2020]
 
 -}
 
@@ -30,15 +50,72 @@ import Data.Array.Accelerate.Interpreter (run)
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Gargantext.Prelude as P
 
-
--- * Metrics of proximity
------------------------------------------------------------------------
--- ** Distributional Distance
-
--- | Distributional Distance metric
+-- | `distributional m` returns the distributional distance between terms each
+-- pair of terms as a matrix.  The argument m is the matrix $[n_{ij}]_{i,j}$
+-- where $n_{ij}$ is the coocccurrence between term $i$ and term $j$.
 --
--- Distributional metric is a relative metric which depends on the
--- selected list, it represents structural equivalence of mutual information.
+-- ## Basic example with Matrix of size 3: 
+--
+-- >>> theMatrixInt 3
+-- Matrix (Z :. 3 :. 3)
+--   [ 7, 4, 0,
+--     4, 5, 3,
+--     0, 3, 4]
+--
+-- >>> distributional $ theMatrixInt 3
+-- Matrix (Z :. 3 :. 3)
+--   [ 1.0, 0.0, 0.9843749999999999,
+--     0.0, 1.0,                0.0,
+--     1.0, 0.0,                1.0]
+--
+-- ## Basic example with Matrix of size 4: 
+--
+-- >>> theMatrixInt 4
+-- Matrix (Z :. 4 :. 4)
+--   [ 4, 1, 2, 1,
+--     1, 4, 0, 0,
+--     2, 0, 3, 3,
+--     1, 0, 3, 3]
+--
+-- >>> distributional $ theMatrixInt 4
+-- Matrix (Z :. 4 :. 4)
+--   [                  1.0,                   0.0, 0.5714285714285715, 0.8421052631578947,
+--                      0.0,                   1.0,                1.0,                1.0,
+--     8.333333333333333e-2,             4.6875e-2,                1.0,               0.25,
+--       0.3333333333333333, 5.7692307692307696e-2,                1.0,                1.0]
+--
+distributional :: Matrix Int -> Matrix Double
+distributional m' = run result
+ where
+    m = map fromIntegral $ use m'
+    n = dim m'
+
+    diag_m = diag m
+
+    d_1 = replicate (constant (Z :. n :. All)) diag_m
+    d_2 = replicate (constant (Z :. All :. n)) diag_m
+
+    mi    = (.*) ((./) m d_1) ((./) m d_2)
+
+    -- w = (.-) mi d_mi
+    
+    -- The matrix permutations is taken care of below by directly replicating
+    -- the matrix mi, making the matrix w unneccessary and saving one step.
+    w_1 = replicate (constant (Z :. All :. n :. All)) mi
+    w_2 = replicate (constant (Z :. n :. All :. All)) mi
+    w' = zipWith min w_1 w_2
+
+    -- The matrix ii = [r_{i,j,k}]_{i,j,k} has r_(i,j,k) = 0 if k = i OR k = j 
+    -- and r_(i,j,k) = 1 otherwise (i.e. k /= i AND k /= j). 
+    ii = generate (constant (Z :. n :. n :. n)) 
+        (lift1 (\(Z :. i :. j :. k) -> cond ((&&) ((/=) k i) ((/=) k j)) 1 0))
+
+    z_1 = sum ((.*) w' ii)
+    z_2 = sum ((.*) w_1 ii)
+
+    result = termDivNan z_1 z_2
+
+
 --
 -- The distributional metric P(c) of @i@ and @j@ terms is: \[
 -- S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik},
@@ -59,8 +136,9 @@ import qualified Gargantext.Prelude as P
 -- Total cooccurrences of terms given a map list of size @m@
 --            \[N_{m} = \sum_{i,i \neq i}^{m} \sum_{j, j \neq j}^{m} S_{ij}\]
 --
-distributional :: Matrix Int -> Matrix Double
-distributional m = -- run {- $ matMiniMax -}
+
+distributional'' :: Matrix Int -> Matrix Double
+distributional'' m = -- run {- $ matMiniMax -}
                    run  $ diagNull n
                        $ rIJ n
                        $ filterWith 0 100
@@ -107,6 +185,6 @@ rIJ n m = matMiniMax $ divide a b
 -- | Test perfermance with this matrix
 -- TODO : add this in a benchmark folder
 distriTest :: Int -> Matrix Double
-distriTest n = distributional (theMatrix n)
+distriTest n = distributional (theMatrixInt n)
 
 
