@@ -4,8 +4,8 @@ services:
   postgres:
     image: 'postgres:latest'
     network_mode: host
-    ports:
-      - 5432:5432
+    #ports:
+      #- 5432:5432
     environment:
       POSTGRES_USER: gargantua
       POSTGRES_PASSWORD: C8kdcUrAQy66U
@@ -21,10 +21,12 @@ services:
     ports:
       - 8081:80
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin
+      PGADMIN_DEFAULT_EMAIL: admin@localhost
       PGADMIN_DEFAULT_PASSWORD: admin
 
     depends_on:
+      - postgres
+    links:
       - postgres
 
   corenlp:

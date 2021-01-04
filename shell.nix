@@ -6,10 +6,12 @@ pkgs.mkShell {
     #glibc
     #gmp
     #gsl
+    haskell-language-server
     #igraph
+    lorri
     #pcre
     #postgresql
-    #stack
+    stack
     #xz
   ];
 }

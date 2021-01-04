@@ -36,9 +36,96 @@ import Data.Array.Accelerate
 import Data.Array.Accelerate.Interpreter (run)
 import qualified Gargantext.Prelude as P
 
+-- | Matrix cell by cell multiplication
+(.*) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(.*) = zipWith (*)
+
+
+(./) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(./) = zipWith (/)
+
+-- | Term by term division where divisions by 0 produce 0 rather than NaN. 
+termDivNan :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , Eq a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+termDivNan = zipWith (\i j -> cond ((==) j 0) 0 ((/) i j))
+
+(.-) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(.-) = zipWith (-)
+
+(.+) :: ( Shape ix
+        , Slice ix
+        , Elt a
+        , P.Num (Exp a)
+        , P.Fractional (Exp a)
+        )
+     => Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+     -> Acc (Array ((ix :. Int) :. Int) a)
+(.+) = zipWith (+)
+
 -----------------------------------------------------------------------
-runExp :: Elt e => Exp e -> e
-runExp e = indexArray (run (unit e)) Z
+matrixOne :: Num a => Dim -> Acc (Matrix a)
+matrixOne n' = ones
+  where
+    ones  = fill (index2 n n) 1
+    n     = constant n'
+
+
+matrixIdentity :: Num a => Dim -> Acc (Matrix a)
+matrixIdentity n' =
+        let zeros = fill (index2 n n) 0
+            ones  = fill (index1 n)   1
+            n = constant n'
+        in
+        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+
+
+matrixEye :: Num a => Dim -> Acc (Matrix a)
+matrixEye n' =
+        let ones   = fill (index2 n n) 1
+            zeros  = fill (index1 n)   0
+            n = constant n'
+        in
+        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
+
+
+diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
+diagNull n m = zipWith (*) m (matrixEye n)
+
+-----------------------------------------------------------------------
+_runExp :: Elt e => Exp e -> e
+_runExp e = indexArray (run (unit e)) Z
 
 -----------------------------------------------------------------------
 -- | Define a vector
@@ -89,10 +176,10 @@ dim m = n
 --   [ 12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0,
 --     12.0, 15.0, 18.0]
-matSumCol :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
+matSumCol :: (Elt a, P.Num (Exp a)) => Dim -> Acc (Matrix a) -> Acc (Matrix a)
 matSumCol r mat = replicate (constant (Z :. (r :: Int) :. All)) $ sum $ transpose mat
 
-matSumCol' :: Matrix Double -> Matrix Double
+matSumCol' :: (Elt a, P.Num (Exp a)) => Matrix a -> Matrix a
 matSumCol' m = run $ matSumCol n m'
   where
     n  = dim m
@@ -164,23 +251,10 @@ filterWith' :: (Elt a, Ord a) => Exp a -> Exp a -> Acc (Matrix a) -> Acc (Matrix
 filterWith' t v m = map (\x -> ifThenElse (x > t) x v) m
 
 
-
--- run $ (identityMatrix (DAA.constant (10::Int)) :: DAA.Acc (DAA.Matrix Int)) Matrix (Z :. 10 :. 10)
-identityMatrix :: Num a => Exp Int -> Acc (Matrix a)
-identityMatrix n =
-        let zeros = fill (index2 n n) 0
-            ones  = fill (index1 n)   1
-        in
-        permute const zeros (\(unindex1 -> i) -> index2 i i) ones
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 
 
-eyeMatrix :: Num a => Dim -> Acc (Matrix a)
-eyeMatrix n' =
-        let ones   = fill (index2 n n) 1
-            zeros  = fill (index1 n)   0
-            n = constant n'
-        in
-        permute const ones (\(unindex1 -> i) -> index2 i i) zeros
 
 -- | TODO use Lenses
 data Direction = MatCol (Exp Int) | MatRow (Exp Int) | Diag
@@ -259,11 +333,6 @@ selfMatrix' m' = run $ selfMatrix n
     m = use m'
 -}
 -------------------------------------------------
-diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
-diagNull n m = zipWith (*) m eye
-  where
-    eye = eyeMatrix n
-
 -------------------------------------------------
 crossProduct :: Dim -> Acc (Matrix Double) -> Acc (Matrix Double)
 crossProduct n m = {-trace (P.show (run m',run m'')) $-} zipWith (*) m' m''
@@ -296,7 +365,7 @@ cross' :: Matrix Double -> Matrix Double
 cross' mat = run $ cross n mat'
   where
     mat' = use mat
-    n = dim mat
+    n    = dim mat
 
 
 {-
@@ -313,23 +382,28 @@ p_ m = zipWith (/) m (n_ m)
                          ) m
 -}
 
-theMatrix :: Int -> Matrix Int
-theMatrix n = matrix n (dataMatrix n)
+theMatrixDouble :: Int -> Matrix Double
+theMatrixDouble n = run $ map fromIntegral (use $ theMatrixInt n)
+
+theMatrixInt :: Int -> Matrix Int
+theMatrixInt n = matrix n (dataMatrix n)
   where
     dataMatrix :: Int -> [Int]
     dataMatrix x | (P.==) x 2 = [ 1, 1
                                 , 1, 2
                                 ]
 
-                 | (P.==) x 3 =  [ 1, 1, 2
-                                 , 1, 2, 3
-                                 , 2, 3, 4
+                 | (P.==) x 3 =  [ 7, 4, 0
+                                 , 4, 5, 3
+                                 , 0, 3, 4
                                  ]
-                 | (P.==) x 4 =  [ 1, 1, 2, 3
-                                 , 1, 2, 3, 4
-                                 , 2, 3, 4, 5
-                                 , 3, 4, 5, 6
+                 | (P.==) x 4 =  [ 4, 1, 2, 1
+                                 , 1, 4, 0, 0
+                                 , 2, 0, 3, 3
+                                 , 1, 0, 3, 3
                                  ]
+
+
                  | P.otherwise = P.undefined
 
 {-

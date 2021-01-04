@@ -13,6 +13,7 @@ module Gargantext.Core.Text.List.Social.Find
 
 -- findList imports
 import Control.Lens (view)
+
 import Gargantext.Core.Types.Individu
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node
@@ -36,7 +37,7 @@ findListsId u mode = do
 -- | TODO not clear enough:
 -- | Shared is for Shared with me but I am not the owner of it
 -- | Private is for all Lists I have created
-findNodes' :: HasTreeError err
+findNodes' :: (HasTreeError err, HasNodeError err)
           => RootId
           -> NodeMode
           -> Cmd err [DbTreeNode]
@@ -44,8 +45,9 @@ findNodes' r Private = do
   pv <- (findNodes r Private $ [NodeFolderPrivate]          <> commonNodes)
   sh <- (findNodes' r Shared)
   pure $ pv <> sh
-findNodes' r Shared  = findNodes r Shared  $ [NodeFolderShared, NodeTeam] <> commonNodes
-findNodes' r Public  = findNodes r Public  $ [NodeFolderPublic ]          <> commonNodes
+findNodes' r Shared       = findNodes r Shared  $ [NodeFolderShared, NodeTeam] <> commonNodes
+findNodes' r SharedDirect = findNodes r Shared  $ [NodeFolderShared, NodeTeam] <> commonNodes
+findNodes' r Public       = findNodes r Public  $ [NodeFolderPublic ]          <> commonNodes
 
 commonNodes:: [NodeType]
 commonNodes = [NodeFolder, NodeCorpus, NodeList, NodeFolderShared, NodeTeam]
