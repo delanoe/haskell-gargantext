@@ -22,7 +22,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , HasInvalidError(..), assertValid
                              , Name
                              , TableResult(..), NodeTableResult
-                             , Ordering(..), randomOrdering, randomBool, genWith
+                             , Ordering(..)
                              , TODO(..)
                              ) where
 
@@ -40,8 +40,6 @@ import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-import System.Random
-import Prelude (fromEnum, toEnum)
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
@@ -50,52 +48,6 @@ import Gargantext.Prelude
 ------------------------------------------------------------------------
 data Ordering = Down | Up
   deriving (Enum, Show, Eq, Bounded)
-
-------------------------------------------------------------------------
--- Random work (WIP)
--- TODO mv in Prelude.Random
-
-instance Random Ordering where
-  randomR (a, b) g =
-    case randomR (fromEnum a, fromEnum b) g of
-      (x, g') -> (toEnum x, g')
-  random g = randomR (minBound, maxBound) g
-
-
-type Seed = Int
-
-{- | Crypto work
-TODO XOR to share secret
--}
-randomOrdering :: Maybe Seed -> Int -> IO [Ordering]
-randomOrdering = randomWith
-
-randomBool :: Maybe Seed -> Int -> IO [Bool]
-randomBool= randomWith
-
-randomWith :: Random a => Maybe Seed -> Int -> IO [a]
-randomWith seed n = do
-  g <- case seed of
-    Nothing -> newStdGen
-    Just  s -> pure $ mkStdGen s
-
-  pure $ take n $ (randoms g)
-
-newtype PrivateSeed  = PrivateSeed Int
-newtype PublicSeed = PublicSeed Int
-
-genWith :: PrivateSeed -> PublicSeed -> Int -> IO [Bool]
-genWith (PrivateSeed x) (PublicSeed o) n = do
-  xs <- randomBool (Just  x) n
-  ys <- randomBool (Just  o) n
-  pure $ zipWith xor xs ys
-
-{-
-searchSeeds :: Int -> IO [Int]
-searchSeeds xs = mapM (\n -> randomWith (Just n) l) [1..]
-  where
-    l = length xs
--}
 
 ------------------------------------------------------------------------
 type Name = Text
