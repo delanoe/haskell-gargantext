@@ -52,7 +52,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , takeWhile, sqrt, identity
                  , abs, min, max, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
-                 , Eq, (==), (>=), (<=), (<>), (/=)
+                 , Eq, (==), (>=), (<=), (<>), (/=), xor
                  , (&&), (||), not, any, all
                  , concatMap
                  , fst, snd, toS
