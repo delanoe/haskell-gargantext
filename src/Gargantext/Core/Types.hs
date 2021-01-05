@@ -30,6 +30,7 @@ import Control.Lens (Prism', (#))
 import Control.Monad.Except (MonadError(throwError))
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import Data.Maybe
 import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set, empty)
@@ -39,7 +40,6 @@ import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
-
 import Gargantext.Core.Types.Main
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
@@ -47,6 +47,8 @@ import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 data Ordering = Down | Up
+  deriving (Enum, Show, Eq, Bounded)
+
 ------------------------------------------------------------------------
 type Name = Text
 type Term  = Text
