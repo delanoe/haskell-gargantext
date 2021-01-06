@@ -157,14 +157,13 @@ instance (Typeable a, ToSchema a) => ToSchema (TableResult a) where
 instance Arbitrary a => Arbitrary (TableResult a) where
   arbitrary = TableResult <$> arbitrary <*> arbitrary
 
-
+----------------------------------------------------------------------------
 -- TO BE removed
 data TODO = TODO
   deriving (Generic)
 
 instance ToSchema TODO where
 instance ToParamSchema TODO where
-
 ----------------------------------------------------------------------------
 
 

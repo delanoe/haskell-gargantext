@@ -198,11 +198,5 @@ indexNgramsT = fmap . indexNgramsWith . withMap
 indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> (NgramsIndexed Ngrams)
 indexNgrams = indexNgramsWith . withMap
 
-{-
--- NP: not sure we need it anymore
-indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams -> NgramsT (NgramsIndexed
-indexNgramsTWith = fmap . indexNgramsWith
--}
-
 indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed Ngrams
 indexNgramsWith f n = NgramsIndexed n (f $ _ngramsTerms n)
