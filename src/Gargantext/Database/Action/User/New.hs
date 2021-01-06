@@ -52,11 +52,11 @@ guessUserName n = case splitOn "@" n of
     _       -> Nothing
 ------------------------------------------------------------------------
 newUser' :: HasNodeError err
-        => ServerAdress -> NewUser GargPassword -> Cmd err Int64
+        => ServerAddress -> NewUser GargPassword -> Cmd err Int64
 newUser' address u = newUsers' address [u]
 
 newUsers' :: HasNodeError err
-         => ServerAdress -> [NewUser GargPassword] -> Cmd err Int64
+         => ServerAddress -> [NewUser GargPassword] -> Cmd err Int64
 newUsers' address us = do
   us' <- liftBase         $ mapM toUserHash us
   r   <- insertUsers      $ map toUserWrite us'

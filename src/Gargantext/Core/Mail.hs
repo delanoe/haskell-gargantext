@@ -27,9 +27,9 @@ isEmail = ((==) 2) . List.length . (splitOn "@")
 ------------------------------------------------------------------------
 data SendEmail    = SendEmail Bool
 
-type EmailAddress = Text
-type Name         = Text
-type ServerAdress = Text
+type EmailAddress  = Text
+type Name          = Text
+type ServerAddress = Text
 
 data MailModel = Invitation { invitation_user :: NewUser GargPassword }
                | PassUpdate { passUpdate_user :: NewUser GargPassword }
@@ -38,7 +38,7 @@ data MailModel = Invitation { invitation_user :: NewUser GargPassword }
                             }
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-mail :: ServerAdress -> MailModel -> IO ()
+mail :: ServerAddress -> MailModel -> IO ()
 mail server model = gargMail (GargMail m (Just u) subject body)
   where
     (m,u)   = email_to         model
@@ -46,7 +46,7 @@ mail server model = gargMail (GargMail m (Just u) subject body)
     body    = emailWith server model
 
 ------------------------------------------------------------------------
-emailWith :: ServerAdress -> MailModel -> Text
+emailWith :: ServerAddress -> MailModel -> Text
 emailWith server model =
   unlines $ [ "Hello" ]
           <> bodyWith server model
@@ -63,7 +63,7 @@ email_to' :: NewUser GargPassword -> (EmailAddress, Name)
 email_to' (NewUser u m _) = (u,m)
 
 ------------------------------------------------------------------------
-bodyWith :: ServerAdress -> MailModel -> [Text]
+bodyWith :: ServerAddress -> MailModel -> [Text]
 bodyWith server (Invitation u) = [ "Congratulation, you have been granted a beta user account to test the"
                                  , "new GarganText platform!"
                                  ] <> (email_credentials server u)
@@ -80,7 +80,7 @@ email_subject (PassUpdate _) = "[GarganText] Update"
 email_subject (MailInfo _ _) = "[GarganText] Info"
 
 
-email_credentials :: ServerAdress -> NewUser GargPassword -> [Text]
+email_credentials :: ServerAddress -> NewUser GargPassword -> [Text]
 email_credentials server (NewUser u _ (GargPassword p)) =
           [ ""
           , "You can log in to: " <> server
