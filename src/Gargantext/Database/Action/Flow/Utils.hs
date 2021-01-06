@@ -14,15 +14,14 @@ module Gargantext.Database.Action.Flow.Utils
     where
 
 import Data.Map (Map)
-import qualified Data.Map as DM
-
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
+import qualified Data.Map as DM
 
 
 toMaps :: Hyperdata a
@@ -82,7 +81,7 @@ insertDocNgramsOn cId dn =
   $ (map (docNgrams2nodeNodeNgrams cId) dn)
 
 insertDocNgrams :: CorpusId
-                -> Map NgramsIndexed (Map NgramsType (Map NodeId Int))
+                -> Map (NgramsIndexed Ngrams) (Map NgramsType (Map NodeId Int))
                 -> Cmd err Int
 insertDocNgrams cId m =
   insertDocNgramsOn cId [ DocNgrams n (_ngramsId ng) (ngramsTypeId t) (fromIntegral i)

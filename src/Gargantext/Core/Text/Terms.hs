@@ -116,6 +116,8 @@ class ExtractNgramsT h
                    -> h
                    -> Cmd err (Map Ngrams (Map NgramsType Int))
 
+
+
 filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
                      -> Map Ngrams (Map NgramsType Int)
 filterNgramsT s ms = Map.fromList $ map filter' $ Map.toList ms

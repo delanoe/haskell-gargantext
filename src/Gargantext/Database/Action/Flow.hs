@@ -270,8 +270,8 @@ insertMasterDocs c lang hs  =  do
   -- new
   lId      <- getOrMkList masterCorpusId masterUserId
   mapCgramsId <- listInsertDb lId toNodeNgramsW'
-                $ map (first _ngramsTerms . second Map.keys)
-                $ Map.toList mapNgramsDocs
+               $ map (first _ngramsTerms . second Map.keys)
+               $ Map.toList mapNgramsDocs
   -- insertDocNgrams
   _return <- insertNodeNodeNgrams2
            $ catMaybes [ NodeNodeNgrams2 <$> Just nId
@@ -306,7 +306,6 @@ insertDocs uId cId hs = do
     documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)
   _ <- Doc.add cId newIds'
   pure (newIds', documentsWithId)
-
 
 
 ------------------------------------------------------------------------

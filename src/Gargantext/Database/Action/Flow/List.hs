@@ -37,7 +37,6 @@ import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
 import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
--- import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
 import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
 import Gargantext.Prelude
 

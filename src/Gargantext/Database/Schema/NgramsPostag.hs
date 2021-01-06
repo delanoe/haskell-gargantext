@@ -36,13 +36,13 @@ data NgramsPostagPoly id
                       lemm_id
                       score
   = NgramsPostagPoly { _ngramsPostag_id        :: !id
-                   , _ngramsPostag_lang_id   :: !lang_id
-                   , _ngramsPostag_algo_id   :: !algo_id
-                   , _ngramsPostag_postag    :: !postag
-                   , _ngramsPostag_ngrams_id :: !ngrams_id
-                   , _ngramsPostag_lemm_id   :: !lemm_id
-                   , _ngramsPostag_score     :: !score
-                   } deriving (Show)
+                     , _ngramsPostag_lang_id   :: !lang_id
+                     , _ngramsPostag_algo_id   :: !algo_id
+                     , _ngramsPostag_postag    :: !postag
+                     , _ngramsPostag_ngrams_id :: !ngrams_id
+                     , _ngramsPostag_lemm_id   :: !lemm_id
+                     , _ngramsPostag_score     :: !score
+                     } deriving (Show)
 
 ------------------------------------------------------------------------
 data PosTag = PosTag { unPosTag :: Text }
@@ -50,7 +50,6 @@ data PosTag = PosTag { unPosTag :: Text }
 
 ------------------------------------------------------------------------
 type NgramsPostag   = NgramsPostagPoly (Maybe Int) Lang PostTagAlgo (Maybe PosTag) NgramsTerm NgramsTerm (Maybe Int)
-
 type NgramsPostagDB = NgramsPostagPoly (Maybe Int) Int Int (Maybe Text) Int Int Int
 
 

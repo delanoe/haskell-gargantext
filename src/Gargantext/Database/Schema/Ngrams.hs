@@ -82,7 +82,6 @@ data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
 instance Serialise NgramsType
-instance Hashable  NgramsType
 
 ngramsTypes :: [NgramsType]
 ngramsTypes = [minBound..]
@@ -107,6 +106,7 @@ instance FromField NgramsTypeId where
 instance FromJSON NgramsType
 instance FromJSONKey NgramsType where
    fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
+
 instance ToJSON NgramsType
 instance ToJSONKey NgramsType where
    toJSONKey = toJSONKeyText (pack . show)
@@ -141,14 +141,21 @@ fromNgramsTypeId id = lookup id
                                ]
 
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams
 data Ngrams = UnsafeNgrams { _ngramsTerms :: Text
                            , _ngramsSize  :: Int
-                           } deriving (Generic, Show, Eq, Ord)
+                           }
+  deriving (Generic, Show, Eq, Ord)
 
 makeLenses ''Ngrams
 instance PGS.ToRow Ngrams where
   toRow (UnsafeNgrams t s) = [toField t, toField s]
+
+instance FromField Ngrams where
+  fromField fld mdata = do
+    x <- fromField fld mdata
+    pure $ text2ngrams x
 
 text2ngrams :: Text -> Ngrams
 text2ngrams txt = UnsafeNgrams txt' $ length $ splitOn " " txt'
@@ -156,6 +163,7 @@ text2ngrams txt = UnsafeNgrams txt' $ length $ splitOn " " txt'
     txt' = strip txt
 
 
+------------------------------------------------------------------------
 -------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams
 -- Named entity are typed ngrams of Terms Ngrams
@@ -169,40 +177,32 @@ makeLenses ''NgramsT
 instance Functor NgramsT where
   fmap = over ngramsT
 -----------------------------------------------------------------------
-data NgramsIndexed =
+data NgramsIndexed a =
   NgramsIndexed
-  { _ngrams   :: Ngrams
+  { _ngrams   :: a
   , _ngramsId :: NgramsId
   } deriving (Show, Generic, Eq, Ord)
 
 makeLenses ''NgramsIndexed
+
+instance (FromField a) => PGS.FromRow (NgramsIndexed a) where
+  fromRow = NgramsIndexed <$> field <*> field
+
 ------------------------------------------------------------------------
-data NgramIds =
-  NgramIds
-  { ngramId    :: Int
-  , ngramTerms :: Text
-  } deriving (Show, Generic, Eq, Ord)
-
-instance PGS.FromRow NgramIds where
-  fromRow = NgramIds <$> field <*> field
-
-----------------------
 withMap :: Map NgramsTerms NgramsId -> NgramsTerms -> NgramsId
 withMap m n = maybe (panic "withMap: should not happen") identity (lookup n m)
 
-indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT NgramsIndexed
+indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT (NgramsIndexed Ngrams)
 indexNgramsT = fmap . indexNgramsWith . withMap
 
-indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> NgramsIndexed
+indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> (NgramsIndexed Ngrams)
 indexNgrams = indexNgramsWith . withMap
 
+{-
 -- NP: not sure we need it anymore
-indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams -> NgramsT NgramsIndexed
+indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams -> NgramsT (NgramsIndexed
 indexNgramsTWith = fmap . indexNgramsWith
+-}
 
-indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed
+indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed Ngrams
 indexNgramsWith f n = NgramsIndexed n (f $ _ngramsTerms n)
-
-
-
-

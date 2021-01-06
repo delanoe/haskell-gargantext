@@ -37,7 +37,7 @@ type NgramsPostagInsert = ( Int
                           )
 
 
-insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [NgramIds]
+insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [NgramsIndexed Text]
 insertNgramsPostag ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)
   where
 
@@ -96,7 +96,7 @@ queryInsertNgramsPostag = [sql|
         DO UPDATE SET score = ngrams_postag.score + 1
     )
 
-SELECT id,terms FROM ins_form_ret
+SELECT terms,id FROM ins_form_ret
  INNER JOIN input_rows ir ON ins_form_ret.terms = ir.form
 
   |]
