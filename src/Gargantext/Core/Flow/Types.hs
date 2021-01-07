@@ -14,14 +14,13 @@ Portability : POSIX
 
 module Gargantext.Core.Flow.Types where
 
-import Control.Lens -- (Lens')
+import Control.Lens
 import Data.Map (Map)
-
 import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Schema.Node (node_hash_id)
 import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
+import Gargantext.Database.Schema.Node (node_hash_id)
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 
@@ -41,17 +40,10 @@ instance UniqId (Node a)
   where
     uniqId = node_hash_id
 
+
+{-
 data DocumentIdWithNgrams a = DocumentIdWithNgrams
-  { documentWithId  :: !(DocumentWithId a)
+  { documentWithId  :: !(Indexed NodeId a)
   , documentNgrams :: !(Map Ngrams (Map NgramsType Int))
   } deriving (Show)
-
-data DocumentWithId a = DocumentWithId
-  { documentId   :: !NodeId
-  , documentData :: !a
-  } deriving (Show)
-
-instance HasText a => HasText (DocumentWithId a)
-  where
-    hasText (DocumentWithId _ a) = hasText a
-
+-}

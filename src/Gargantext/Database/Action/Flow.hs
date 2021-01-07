@@ -75,7 +75,7 @@ import Gargantext.Core.Types.Main
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
+import Gargantext.Database.Action.Flow.Utils (insertDocNgrams, DocumentIdWithNgrams(..))
 import Gargantext.Database.Action.Search (searchDocInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -89,6 +89,7 @@ import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
 import Gargantext.Database.Schema.Node (NodePoly(..))
+import Gargantext.Database.Types
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import qualified Gargantext.Core.Text.Corpus.API as API
@@ -258,7 +259,8 @@ insertMasterDocs c lang hs  =  do
   -- this will enable global database monitoring
 
   -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
-  mapNgramsDocs <- mapNodeIdNgrams
+  mapNgramsDocs :: Map Ngrams (Map NgramsType (Map NodeId Int))
+                <- mapNodeIdNgrams
                 <$> documentIdWithNgrams
                     (extractNgramsT $ withLang lang documentsWithId)
                     documentsWithId
@@ -296,7 +298,7 @@ insertDocs :: ( FlowCmdM env err m
               => UserId
               -> CorpusId
               -> [a]
-              -> m ([DocId], [DocumentWithId a])
+              -> m ([DocId], [Indexed NodeId a])
 insertDocs uId cId hs = do
   let docs = map addUniqId hs
   newIds <- insertDb uId cId docs
@@ -325,12 +327,12 @@ toInserted =
 
 mergeData :: Map Hash ReturnId
           -> Map Hash a
-          -> [DocumentWithId a]
+          -> [Indexed NodeId a]
 mergeData rs = catMaybes . map toDocumentWithId . Map.toList
   where
     toDocumentWithId (sha,hpd) =
-      DocumentWithId <$> fmap reId (lookup sha rs)
-                     <*> Just hpd
+      Indexed <$> fmap reId (lookup sha rs)
+              <*> Just hpd
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -338,12 +340,12 @@ mergeData rs = catMaybes . map toDocumentWithId . Map.toList
 documentIdWithNgrams :: HasNodeError err
                      => (a
                      -> Cmd err (Map Ngrams (Map NgramsType Int)))
-                     -> [DocumentWithId a]
+                     -> [Indexed NodeId a]
                      -> Cmd err [DocumentIdWithNgrams a]
 documentIdWithNgrams f = traverse toDocumentIdWithNgrams
   where
     toDocumentIdWithNgrams d = do
-      e <- f $ documentData         d
+      e <- f $ _unIndex         d
       pure   $ DocumentIdWithNgrams d e
 
 ------------------------------------------------------------------------

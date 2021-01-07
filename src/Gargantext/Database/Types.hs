@@ -14,20 +14,27 @@ Portability : POSIX
 module Gargantext.Database.Types
   where
 
-import Gargantext.Prelude
+import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Schema.Prelude
+import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
 
 -- | Index memory of any type in Gargantext
 data Indexed i a =
-  Indexed { _index     :: i
-          , _unIndex   :: a
+  Indexed { _index     :: !i
+          , _unIndex   :: !a
           }
   deriving (Show, Generic, Eq, Ord)
 
 makeLenses ''Indexed
 
+----------------------------------------------------------------------
+-- | Main instances
 instance (FromField i, FromField a) => PGS.FromRow (Indexed i a) where
   fromRow = Indexed <$> field <*> field
+
+instance HasText a => HasText (Indexed i a)
+  where
+    hasText (Indexed _ a) = hasText a
 

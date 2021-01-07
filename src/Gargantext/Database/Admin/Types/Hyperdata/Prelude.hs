@@ -33,7 +33,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.Prelude
   )
   where
 
-import Control.Lens hiding (elements, (&), (.=))
+import Control.Lens hiding (elements, (&), (.=), Indexed)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Aeson.Types (emptyObject)

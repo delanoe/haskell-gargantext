@@ -91,9 +91,9 @@ extractTerms termTypeLang xs = mapM (terms termTypeLang) xs
 
 
 ------------------------------------------------------------------------
-withLang :: HasText a
+withLang :: (Foldable t, Functor t, HasText h)
          => TermType Lang
-         -> [DocumentWithId a]
+         -> t h
          -> TermType Lang
 withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
   where

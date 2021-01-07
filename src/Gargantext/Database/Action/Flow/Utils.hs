@@ -14,51 +14,20 @@ module Gargantext.Database.Action.Flow.Utils
     where
 
 import Data.Map (Map)
-import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node
 import Gargantext.Database.Types
 import Gargantext.Prelude
 import qualified Data.Map as DM
 
-
-toMaps :: Hyperdata a
-       => (a -> Map (NgramsT Ngrams) Int)
-       -> [Node a]
-       -> Map (NgramsT Ngrams) (Map NodeId Int)
-toMaps fun ns = mapNodeIdNgrams $ documentIdWithNgrams fun ns'
-  where
-    ns' = map (\(Node nId _ _ _ _ _ _ json) -> DocumentWithId nId json) ns
-
-mapNodeIdNgrams :: Hyperdata a
-                => [DocumentIdWithNgrams a]
-                -> Map (NgramsT Ngrams) (Map NodeId Int)
-mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
-  where
-    xs  = [(ng, [(nId, i)]) | (nId, n2i') <- n2i ds, (ng, i) <- DM.toList n2i']
-    n2i = map (\d -> ((documentId . documentWithId) d, documentNgrams d))
-
-
-documentIdWithNgrams :: Hyperdata a
-                     => (a -> Map (NgramsT Ngrams) Int)
-                     -> [DocumentWithId a]
-                     -> [DocumentIdWithNgrams a]
-documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
-
-
-data DocumentWithId a =
-     DocumentWithId { documentId   :: NodeId
-                    , documentData :: a
-                    } deriving (Show)
-
+type DocumentWithId a = Indexed NodeId a
 
 data DocumentIdWithNgrams a =
      DocumentIdWithNgrams
      { documentWithId  :: DocumentWithId a
-     , documentNgrams :: Map (NgramsT Ngrams) Int
+     , documentNgrams :: Map Ngrams (Map NgramsType Int)
      } deriving (Show)
 
 
