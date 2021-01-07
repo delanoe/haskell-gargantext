@@ -32,6 +32,7 @@ import Gargantext.Prelude
 import Prelude (Functor)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
 import Text.Read (read)
+import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -70,14 +71,12 @@ ngramsTable = Table "ngrams" (pNgramsDb NgramsDB { _ngrams_id    = optional "id"
                                                  }
                               )
 
-
-
 -- | Main Ngrams Types
 -- | Typed Ngrams
 -- Typed Ngrams localize the context of the ngrams
--- ngrams in source field of document has Sources Type
--- ngrams in authors field of document has Authors Type
--- ngrams in text (title or abstract) of documents has Terms Type
+-- ngrams in source  field  of document  has Sources Type
+-- ngrams in authors field  of document  has Authors Type
+-- ngrams in text    fields of documents has Terms   Type (i.e. either title or abstract)
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
@@ -177,26 +176,14 @@ makeLenses ''NgramsT
 instance Functor NgramsT where
   fmap = over ngramsT
 -----------------------------------------------------------------------
-data NgramsIndexed a =
-  NgramsIndexed
-  { _ngrams   :: a
-  , _ngramsId :: NgramsId
-  } deriving (Show, Generic, Eq, Ord)
-
-makeLenses ''NgramsIndexed
-
-instance (FromField a) => PGS.FromRow (NgramsIndexed a) where
-  fromRow = NgramsIndexed <$> field <*> field
-
-------------------------------------------------------------------------
 withMap :: Map NgramsTerms NgramsId -> NgramsTerms -> NgramsId
 withMap m n = maybe (panic "withMap: should not happen") identity (lookup n m)
 
-indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT (NgramsIndexed Ngrams)
+indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Ngrams)
 indexNgramsT = fmap . indexNgramsWith . withMap
 
-indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> (NgramsIndexed Ngrams)
+indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> Indexed Ngrams
 indexNgrams = indexNgramsWith . withMap
 
-indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed Ngrams
-indexNgramsWith f n = NgramsIndexed n (f $ _ngramsTerms n)
+indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> Indexed Ngrams
+indexNgramsWith f n = Indexed n (f $ _ngramsTerms n)

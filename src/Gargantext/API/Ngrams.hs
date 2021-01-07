@@ -132,7 +132,7 @@ import Gargantext.Database.Admin.Types.Node (NodeType(..))
 import Gargantext.Database.Prelude (HasConnectionPool, HasConfig)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
-import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngrams, ngramsType, ngrams_terms)
+import Gargantext.Database.Query.Table.Ngrams hiding (NgramsType(..), ngramsType, ngrams_terms)
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import Gargantext.Database.Query.Table.Node (getNode)
 import Gargantext.Database.Schema.Node (node_id, node_parentId, node_userId)

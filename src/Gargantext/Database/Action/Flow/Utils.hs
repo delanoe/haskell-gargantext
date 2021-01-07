@@ -20,6 +20,7 @@ import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node
+import Gargantext.Database.Types
 import Gargantext.Prelude
 import qualified Data.Map as DM
 
@@ -81,10 +82,10 @@ insertDocNgramsOn cId dn =
   $ (map (docNgrams2nodeNodeNgrams cId) dn)
 
 insertDocNgrams :: CorpusId
-                -> Map (NgramsIndexed Ngrams) (Map NgramsType (Map NodeId Int))
+                -> Map (Indexed Ngrams) (Map NgramsType (Map NodeId Int))
                 -> Cmd err Int
 insertDocNgrams cId m =
-  insertDocNgramsOn cId [ DocNgrams n (_ngramsId ng) (ngramsTypeId t) (fromIntegral i)
+  insertDocNgramsOn cId [ DocNgrams n (_index ng) (ngramsTypeId t) (fromIntegral i)
                           | (ng, t2n2i) <- DM.toList m
                           , (t,  n2i)   <- DM.toList t2n2i
                           , (n,  i)     <- DM.toList n2i

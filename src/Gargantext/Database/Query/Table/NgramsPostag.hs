@@ -17,10 +17,10 @@ module Gargantext.Database.Query.Table.NgramsPostag
     where
 
 import Data.Text (Text)
-import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Prelude (runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
+import Gargantext.Database.Types
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
@@ -37,7 +37,7 @@ type NgramsPostagInsert = ( Int
                           )
 
 
-insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [NgramsIndexed Text]
+insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [Indexed Text]
 insertNgramsPostag ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)
   where
 

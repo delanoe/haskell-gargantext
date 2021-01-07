@@ -33,6 +33,7 @@ import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
+import Gargantext.Database.Types
 import Gargantext.Prelude
 
 queryNgramsTable :: Query NgramsRead
@@ -64,10 +65,10 @@ _dbGetNgramsDb = runOpaQuery queryNgramsTable
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams is called.
 insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
-insertNgrams ns = fromList <$> map (\(NgramsIndexed t i) -> (t, i)) <$> (insertNgrams' ns)
+insertNgrams ns = fromList <$> map (\(Indexed t i) -> (t, i)) <$> (insertNgrams' ns)
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams' is called.
-insertNgrams' :: [Ngrams] -> Cmd err [NgramsIndexed Text]
+insertNgrams' :: [Ngrams] -> Cmd err [Indexed Text]
 insertNgrams' ns = runPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
