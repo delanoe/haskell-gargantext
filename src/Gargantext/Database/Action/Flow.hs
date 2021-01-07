@@ -333,9 +333,6 @@ mergeData rs = catMaybes . map toDocumentWithId . Map.toList
                      <*> Just hpd
 
 ------------------------------------------------------------------------
-instance HasText HyperdataContact
-  where
-    hasText = undefined
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 documentIdWithNgrams :: HasNodeError err
@@ -358,16 +355,10 @@ instance ExtractNgramsT HyperdataContact
                 -> Cmd err (Map Ngrams (Map NgramsType Int))
         extract _l hc' = do
           let authors = map text2ngrams
-                     $ maybe ["Nothing"] (\a -> [a])
-                     $ view (hc_who . _Just . cw_lastName) hc'
+                      $ maybe ["Nothing"] (\a -> [a])
+                      $ view (hc_who . _Just . cw_lastName) hc'
 
-          pure $ Map.fromList $ [(a', Map.singleton Authors     1) | a' <- authors    ]
-
-instance HasText HyperdataDocument
-  where
-    hasText h = catMaybes [ _hd_title    h
-                          , _hd_abstract h
-                          ]
+          pure $ Map.fromList $ [(a', Map.singleton Authors 1) | a' <- authors ]
 
 
 instance ExtractNgramsT HyperdataDocument

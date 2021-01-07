@@ -37,7 +37,7 @@ type NgramsPostagInsert = ( Int
                           )
 
 
-insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [Indexed Text]
+insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [Indexed Int Text]
 insertNgramsPostag ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)
   where
 

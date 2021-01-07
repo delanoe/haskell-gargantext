@@ -82,7 +82,7 @@ insertDocNgramsOn cId dn =
   $ (map (docNgrams2nodeNodeNgrams cId) dn)
 
 insertDocNgrams :: CorpusId
-                -> Map (Indexed Ngrams) (Map NgramsType (Map NodeId Int))
+                -> Map (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))
                 -> Cmd err Int
 insertDocNgrams cId m =
   insertDocNgramsOn cId [ DocNgrams n (_index ng) (ngramsTypeId t) (fromIntegral i)

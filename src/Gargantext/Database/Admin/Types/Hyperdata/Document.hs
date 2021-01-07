@@ -20,10 +20,11 @@ Portability : POSIX
 
 module Gargantext.Database.Admin.Types.Hyperdata.Document where
 
+import Data.Maybe (catMaybes)
 import Gargantext.Prelude
+import Gargantext.Core.Text (HasText(..))
 import Gargantext.Core.Utils.Prefix (unCapitalize, dropPrefix)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
-
 
 ------------------------------------------------------------------------
 data HyperdataDocument = HyperdataDocument { _hd_bdd                :: !(Maybe Text)
@@ -48,6 +49,12 @@ data HyperdataDocument = HyperdataDocument { _hd_bdd                :: !(Maybe T
                                            }
   deriving (Show, Generic)
 
+
+instance HasText HyperdataDocument
+  where
+    hasText h = catMaybes [ _hd_title    h
+                          , _hd_abstract h
+                          ]
 
 defaultHyperdataDocument :: HyperdataDocument
 defaultHyperdataDocument = case decode docExample of

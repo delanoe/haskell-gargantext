@@ -179,17 +179,17 @@ instance Functor NgramsT where
 withMap :: Map Text NgramsId -> Text -> NgramsId
 withMap m n = maybe (panic "withMap: should not happen") identity (lookup n m)
 
-indexNgramsT :: Map Text NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Ngrams)
+indexNgramsT :: Map Text NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Int Ngrams)
 indexNgramsT = fmap . indexNgramsWith . withMap
 
 -- | TODO replace NgramsT whith Typed NgramsType Ngrams
 indexTypedNgrams :: Map Text NgramsId
                  -> Typed NgramsType Ngrams
-                 -> Typed NgramsType (Indexed Ngrams)
+                 -> Typed NgramsType (Indexed Int Ngrams)
 indexTypedNgrams = fmap . indexNgramsWith . withMap
 
-indexNgrams :: Map Text NgramsId -> Ngrams -> Indexed Ngrams
+indexNgrams :: Map Text NgramsId -> Ngrams -> Indexed Int Ngrams
 indexNgrams = indexNgramsWith . withMap
 
-indexNgramsWith :: (Text -> NgramsId) -> Ngrams -> Indexed Ngrams
+indexNgramsWith :: (Text -> NgramsId) -> Ngrams -> Indexed Int Ngrams
 indexNgramsWith f n = Indexed (f $ _ngramsTerms n) n

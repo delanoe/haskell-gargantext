@@ -20,15 +20,14 @@ import qualified Database.PostgreSQL.Simple as PGS
 
 
 -- | Index memory of any type in Gargantext
-type Index = Int
-data Indexed a =
-  Indexed { _index     :: Index
+data Indexed i a =
+  Indexed { _index     :: i
           , _unIndex   :: a
           }
   deriving (Show, Generic, Eq, Ord)
 
 makeLenses ''Indexed
 
-instance (FromField a) => PGS.FromRow (Indexed a) where
+instance (FromField i, FromField a) => PGS.FromRow (Indexed i a) where
   fromRow = Indexed <$> field <*> field
 
