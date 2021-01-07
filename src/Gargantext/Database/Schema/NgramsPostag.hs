@@ -52,10 +52,7 @@ data PosTag = PosTag { unPosTag :: Text }
 type NgramsPostag   = NgramsPostagPoly (Maybe Int) Lang PostTagAlgo (Maybe PosTag) NgramsTerm NgramsTerm (Maybe Int)
 type NgramsPostagDB = NgramsPostagPoly (Maybe Int) Int Int (Maybe Text) Int Int Int
 
-
-
 ------------------------------------------------------------------------
-
 type NgramsPosTagWrite = NgramsPostagPoly (Maybe (Column PGInt4))
                                    (Column PGInt4)
                                    (Column PGInt4)

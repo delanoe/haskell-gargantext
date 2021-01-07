@@ -31,7 +31,6 @@ import Data.Maybe (catMaybes)
 import Data.Set (Set)
 import Gargantext.Prelude
 import HLCM
-import Prelude (Functor(..)) -- TODO
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Vector as V

@@ -23,10 +23,11 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Name
                              , TableResult(..), NodeTableResult
                              , Ordering(..)
+                             , Typed(..)
                              , TODO(..)
                              ) where
 
-import Control.Lens (Prism', (#))
+import Control.Lens (Prism', (#), makeLenses, over)
 import Control.Monad.Except (MonadError(throwError))
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
@@ -146,7 +147,7 @@ type NodeTableResult a = TableResult (Node a)
 
 
 data TableResult a = TableResult { tr_count :: Int
-                                 , tr_docs :: [a]
+                                 , tr_docs  :: [a]
                                  } deriving (Generic)
 
 $(deriveJSON (unPrefix "tr_") ''TableResult)
@@ -156,6 +157,18 @@ instance (Typeable a, ToSchema a) => ToSchema (TableResult a) where
 
 instance Arbitrary a => Arbitrary (TableResult a) where
   arbitrary = TableResult <$> arbitrary <*> arbitrary
+
+----------------------------------------------------------------------------
+data Typed a b =
+  Typed { _withType :: a
+        , _unTyped  :: b
+        }
+  deriving (Generic, Show, Eq, Ord)
+
+makeLenses ''Typed
+
+instance Functor (Typed a) where
+  fmap = over unTyped
 
 ----------------------------------------------------------------------------
 -- TO BE removed

@@ -27,7 +27,7 @@ import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
 import Data.Map (Map, fromList, lookup)
 import Data.Text (Text, splitOn, pack, strip)
-import Gargantext.Core.Types (TODO(..))
+import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
 import Prelude (Functor)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
@@ -37,9 +37,8 @@ import Gargantext.Database.Schema.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 
 
-type NgramsId    = Int
-type NgramsTerms = Text
-type Size        = Int
+type NgramsId  = Int
+type Size      = Int
 
 data NgramsPoly id terms n = NgramsDB { _ngrams_id    :: !id
                                       , _ngrams_terms :: !terms
@@ -175,15 +174,22 @@ makeLenses ''NgramsT
 
 instance Functor NgramsT where
   fmap = over ngramsT
+
 -----------------------------------------------------------------------
-withMap :: Map NgramsTerms NgramsId -> NgramsTerms -> NgramsId
+withMap :: Map Text NgramsId -> Text -> NgramsId
 withMap m n = maybe (panic "withMap: should not happen") identity (lookup n m)
 
-indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Ngrams)
+indexNgramsT :: Map Text NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Ngrams)
 indexNgramsT = fmap . indexNgramsWith . withMap
 
-indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> Indexed Ngrams
+-- | TODO replace NgramsT whith Typed NgramsType Ngrams
+indexTypedNgrams :: Map Text NgramsId
+                 -> Typed NgramsType Ngrams
+                 -> Typed NgramsType (Indexed Ngrams)
+indexTypedNgrams = fmap . indexNgramsWith . withMap
+
+indexNgrams :: Map Text NgramsId -> Ngrams -> Indexed Ngrams
 indexNgrams = indexNgramsWith . withMap
 
-indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> Indexed Ngrams
-indexNgramsWith f n = Indexed n (f $ _ngramsTerms n)
+indexNgramsWith :: (Text -> NgramsId) -> Ngrams -> Indexed Ngrams
+indexNgramsWith f n = Indexed (f $ _ngramsTerms n) n

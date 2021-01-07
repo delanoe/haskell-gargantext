@@ -64,8 +64,8 @@ _dbGetNgramsDb = runOpaQuery queryNgramsTable
 
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams is called.
-insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
-insertNgrams ns = fromList <$> map (\(Indexed t i) -> (t, i)) <$> (insertNgrams' ns)
+insertNgrams :: [Ngrams] -> Cmd err (Map Text NgramsId)
+insertNgrams ns = fromList <$> map (\(Indexed i t) -> (t, i)) <$> (insertNgrams' ns)
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams' is called.
 insertNgrams' :: [Ngrams] -> Cmd err [Indexed Text]
@@ -73,7 +73,7 @@ insertNgrams' ns = runPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
-_insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd err ByteString
+_insertNgrams_Debug :: [(Text, Size)] -> Cmd err ByteString
 _insertNgrams_Debug ns = formatPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]

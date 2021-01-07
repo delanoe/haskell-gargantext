@@ -22,8 +22,8 @@ import qualified Database.PostgreSQL.Simple as PGS
 -- | Index memory of any type in Gargantext
 type Index = Int
 data Indexed a =
-  Indexed { _unIndex   :: a
-          , _index     :: Index
+  Indexed { _index     :: Index
+          , _unIndex   :: a
           }
   deriving (Show, Generic, Eq, Ord)
 
