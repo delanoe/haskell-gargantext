@@ -35,15 +35,17 @@ module Gargantext.Core.Text.Terms
   where
 
 import Control.Lens
+import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Text (Text)
 import Data.Traversable
-import qualified Data.List as List
-import qualified Data.Set  as Set
-import qualified Data.Text as Text
 import GHC.Base (String)
 import GHC.Generics (Generic)
+import qualified Data.List as List
+import qualified Data.Map as Map
+import qualified Data.Set  as Set
+import qualified Data.Text as Text
+import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 
 import Gargantext.Core
 import Gargantext.Core.Flow.Types
@@ -114,17 +116,17 @@ class ExtractNgramsT h
     extractNgramsT :: HasText h
                    => TermType Lang
                    -> h
-                   -> Cmd err (Map Ngrams (Map NgramsType Int))
+                   -> Cmd err (HashMap Ngrams (Map NgramsType Int))
 
 
 
-filterNgramsT :: Int -> Map Ngrams (Map NgramsType Int)
-                     -> Map Ngrams (Map NgramsType Int)
-filterNgramsT s ms = Map.fromList $ map filter' $ Map.toList ms
+filterNgrams :: Int -> HashMap Ngrams (Map NgramsType Int)
+                    -> HashMap Ngrams (Map NgramsType Int)
+filterNgrams s = HashMap.mapKeys filter
   where
-    filter' (ng,y)
-      | Text.length (ng ^. ngramsTerms) < s = (ng,y)
-      | otherwise                           = (text2ngrams (Text.take s (ng ^. ngramsTerms)), y)
+    filter ng
+      | Text.length (ng ^. ngramsTerms) < s = ng
+      | otherwise                           = text2ngrams (Text.take s (ng ^. ngramsTerms))
 
 
 -- =======================================================

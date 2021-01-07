@@ -14,6 +14,7 @@ Portability : POSIX
 module Gargantext.Database.Types
   where
 
+import Data.Hashable (Hashable)
 import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Prelude
@@ -38,3 +39,4 @@ instance HasText a => HasText (Indexed i a)
   where
     hasText (Indexed _ a) = hasText a
 
+instance (Hashable a, Hashable b) => Hashable (Indexed a b)

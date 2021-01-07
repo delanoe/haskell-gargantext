@@ -146,6 +146,8 @@ data Ngrams = UnsafeNgrams { _ngramsTerms :: Text
                            }
   deriving (Generic, Show, Eq, Ord)
 
+instance Hashable Ngrams
+
 makeLenses ''Ngrams
 instance PGS.ToRow Ngrams where
   toRow (UnsafeNgrams t s) = [toField t, toField s]

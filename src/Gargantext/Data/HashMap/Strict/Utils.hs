@@ -22,6 +22,10 @@ partition p m = (HashMap.filter p m, HashMap.filter (not . p) m)
 partitionWithKey :: (Ord a, Hashable k) => (k -> a -> Bool) -> HashMap k a -> (HashMap k a, HashMap k a)
 partitionWithKey p m = (HashMap.filterWithKey p m, HashMap.filterWithKey (\k -> not . p k) m)
 
+
+mapKeys :: (Ord k2, Hashable k2) => (k1->k2) -> HashMap k1 a -> HashMap k2 a
+mapKeys f = HashMap.fromList . HashMap.foldrWithKey (\k x xs -> (f k, x) : xs) []
+
 ------------------------------------------------------------------------
 -- getKeyWithMaxValue :: Hashable k => HashMap k a -> Maybe k
 getKeysOrderedByValueMaxFirst :: (Ord k, Hashable k, Ord a) => HashMap k a -> [k]

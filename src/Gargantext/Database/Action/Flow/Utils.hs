@@ -14,6 +14,7 @@ module Gargantext.Database.Action.Flow.Utils
     where
 
 import Data.Map (Map)
+import Data.HashMap.Strict (HashMap)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
@@ -21,15 +22,14 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Types
 import Gargantext.Prelude
 import qualified Data.Map as DM
+import qualified Data.HashMap.Strict as HashMap
 
-type DocumentWithId a = Indexed NodeId a
 
-data DocumentIdWithNgrams a =
+data DocumentIdWithNgrams a b =
      DocumentIdWithNgrams
-     { documentWithId  :: DocumentWithId a
-     , documentNgrams :: Map Ngrams (Map NgramsType Int)
+     { documentWithId :: Indexed NodeId a
+     , documentNgrams :: HashMap b (Map NgramsType Int)
      } deriving (Show)
-
 
 docNgrams2nodeNodeNgrams :: CorpusId
                          -> DocNgrams
@@ -51,11 +51,11 @@ insertDocNgramsOn cId dn =
   $ (map (docNgrams2nodeNodeNgrams cId) dn)
 
 insertDocNgrams :: CorpusId
-                -> Map (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))
+                -> HashMap (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))
                 -> Cmd err Int
 insertDocNgrams cId m =
   insertDocNgramsOn cId [ DocNgrams n (_index ng) (ngramsTypeId t) (fromIntegral i)
-                          | (ng, t2n2i) <- DM.toList m
+                          | (ng, t2n2i) <- HashMap.toList m
                           , (t,  n2i)   <- DM.toList t2n2i
                           , (n,  i)     <- DM.toList n2i
                         ]
