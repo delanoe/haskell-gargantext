@@ -16,6 +16,7 @@ Portability : POSIX
 module Gargantext.Database.Query.Table.NgramsPostag
     where
 
+import Control.Lens (makeLenses)
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Data.Text (Text)
@@ -38,6 +39,8 @@ data NgramsPostag = NgramsPostag { _np_lang   :: Lang
                                  , _np_lem    :: Ngrams
                                  }
   deriving (Eq, Ord, Generic)
+
+makeLenses ''NgramsPostag
 
 instance Hashable NgramsPostag
 

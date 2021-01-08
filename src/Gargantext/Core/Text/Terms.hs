@@ -58,7 +58,7 @@ import Gargantext.Core.Text.Terms.Multi (multiterms)
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Ngrams (insertNgrams)
-import Gargantext.Database.Query.Table.NgramsPostag (NgramsPostag(..), insertNgramsPostag)
+import Gargantext.Database.Query.Table.NgramsPostag (NgramsPostag(..), insertNgramsPostag, np_form, np_lem)
 import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..), ngramsTerms, text2ngrams, NgramsId)
 import Gargantext.Prelude
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
@@ -126,15 +126,20 @@ class ExtractNgramsT h
                    -> h
                    -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
 ------------------------------------------------------------------------
+
+cleanNgrams :: Int -> Ngrams -> Ngrams
+cleanNgrams s ng 
+      | Text.length (ng ^. ngramsTerms) < s = ng
+      | otherwise                           = text2ngrams (Text.take s (ng ^. ngramsTerms))
+
 cleanExtractedNgrams :: Int -> ExtractedNgrams -> ExtractedNgrams
-cleanExtractedNgrams s (SimpleNgrams ng) 
-      | Text.length (ng ^. ngramsTerms) < s = SimpleNgrams ng
-      | otherwise                           = SimpleNgrams $ text2ngrams (Text.take s (ng ^. ngramsTerms))
-cleanExtractedNgrams s _ = undefined
+cleanExtractedNgrams s (SimpleNgrams   ng) = SimpleNgrams $ (cleanNgrams s) ng
+cleanExtractedNgrams s (EnrichedNgrams ng) = EnrichedNgrams $ over np_form (cleanNgrams s)
+                                                            $ over np_lem  (cleanNgrams s) ng
 
 extracted2ngrams :: ExtractedNgrams -> Ngrams
-extracted2ngrams (SimpleNgrams ng) = ng
-extracted2ngrams _ = undefined
+extracted2ngrams (SimpleNgrams   ng) = ng
+extracted2ngrams (EnrichedNgrams ng) = view np_form ng
 
 
 isSimpleNgrams :: ExtractedNgrams -> Bool
