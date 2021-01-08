@@ -126,7 +126,14 @@ class ExtractNgramsT h
                    -> h
                    -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
 ------------------------------------------------------------------------
+enrichedTerms :: Lang -> PosTagAlgo -> POS -> Terms -> NgramsPostag
+enrichedTerms l pa po (Terms ng1 ng2) =
+  NgramsPostag l pa po form lem
+    where
+      form = text2ngrams $ Text.intercalate " " ng1
+      lem  = text2ngrams $ Text.intercalate " " $ Set.toList ng2
 
+------------------------------------------------------------------------
 cleanNgrams :: Int -> Ngrams -> Ngrams
 cleanNgrams s ng 
       | Text.length (ng ^. ngramsTerms) < s = ng

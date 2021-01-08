@@ -33,7 +33,7 @@ import qualified Database.PostgreSQL.Simple as PGS
 
 
 data NgramsPostag = NgramsPostag { _np_lang   :: Lang
-                                 , _np_algo   :: PostTagAlgo
+                                 , _np_algo   :: PosTagAlgo
                                  , _np_postag :: POS
                                  , _np_form   :: Ngrams
                                  , _np_lem    :: Ngrams

@@ -63,7 +63,7 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 import qualified Data.Map as Map
 
-import Gargantext.Core (Lang(..))
+import Gargantext.Core (Lang(..), PosTagAlgo(..))
 import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Core.Flow.Types
@@ -73,7 +73,7 @@ import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Core.Types (Terms(..))
+import Gargantext.Core.Types (Terms(..), POS(NP))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
@@ -409,15 +409,14 @@ instance ExtractNgramsT HyperdataDocument
                          $ maybe ["Nothing"] (splitOn ", ")
                          $ _hd_authors doc
 
-          terms' <- map text2ngrams
-                 <$> map (intercalate " " . _terms_label)
+          terms' <- map (enrichedTerms (lang' ^. tt_lang) CoreNLP NP)
                  <$> concat
                  <$> liftBase (extractTerms lang' $ hasText doc)
 
           pure $ HashMap.fromList $  [(SimpleNgrams source, Map.singleton Sources 1)]
                              <> [(SimpleNgrams i', Map.singleton Institutes  1) | i' <- institutes ]
                              <> [(SimpleNgrams a', Map.singleton Authors     1) | a' <- authors    ]
-                             <> [(SimpleNgrams t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
+                             <> [(EnrichedNgrams t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
 
 instance (ExtractNgramsT a, HasText a) => ExtractNgramsT (Node a)
   where

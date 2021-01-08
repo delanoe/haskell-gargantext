@@ -68,12 +68,12 @@ instance HasDBid Lang where
   fromDBid _ = panic "HasDBid lang, not implemented"
 
 ------------------------------------------------------------------------
-data PostTagAlgo = CoreNLP
+data PosTagAlgo = CoreNLP
   deriving (Show, Read, Eq, Ord, Generic)
 
-instance Hashable PostTagAlgo
+instance Hashable PosTagAlgo
 
-instance HasDBid PostTagAlgo where
+instance HasDBid PosTagAlgo where
   toDBid CoreNLP = 1
   fromDBid 1 = CoreNLP
   fromDBid _ = panic "HasDBid posTagAlgo : Not implemented"
