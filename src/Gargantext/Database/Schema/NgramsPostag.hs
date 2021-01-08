@@ -49,7 +49,7 @@ data PosTag = PosTag { unPosTag :: Text }
             | NER    { unNER    :: Text } -- TODO
 
 ------------------------------------------------------------------------
-type NgramsPostag   = NgramsPostagPoly (Maybe Int) Lang PostTagAlgo (Maybe PosTag) NgramsTerm NgramsTerm (Maybe Int)
+-- type NgramsPostag   = NgramsPostagPoly (Maybe Int) Lang PostTagAlgo (Maybe PosTag) NgramsTerm NgramsTerm (Maybe Int)
 type NgramsPostagDB = NgramsPostagPoly (Maybe Int) Int Int (Maybe Text) Int Int Int
 
 ------------------------------------------------------------------------

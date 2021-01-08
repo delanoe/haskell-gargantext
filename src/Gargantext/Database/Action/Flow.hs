@@ -263,13 +263,15 @@ insertMasterDocs c lang hs  =  do
   -- this will enable global database monitoring
 
   -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
-  mapNgramsDocs :: HashMap Ngrams (Map NgramsType (Map NodeId Int))
+  mapNgramsDocs' :: HashMap ExtractedNgrams (Map NgramsType (Map NodeId Int))
                 <- mapNodeIdNgrams
                 <$> documentIdWithNgrams
                     (extractNgramsT $ withLang lang documentsWithId)
                     documentsWithId
 
-  terms2id <- insertNgrams $ HashMap.keys mapNgramsDocs
+  terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
+  let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
+
   -- to be removed
   let indexedNgrams = HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
 
@@ -372,28 +374,28 @@ mapNodeIdNgrams = HashMap.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap 
 ------------------------------------------------------------------------
 instance ExtractNgramsT HyperdataContact
   where
-    extractNgramsT l hc = filterNgrams 255 <$> extract l hc
+    extractNgramsT l hc = HashMap.mapKeys (cleanExtractedNgrams 255) <$> extract l hc
       where
         extract :: TermType Lang -> HyperdataContact
-                -> Cmd err (HashMap Ngrams (Map NgramsType Int))
+                -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
         extract _l hc' = do
           let authors = map text2ngrams
                       $ maybe ["Nothing"] (\a -> [a])
                       $ view (hc_who . _Just . cw_lastName) hc'
 
-          pure $ HashMap.fromList $ [(a', Map.singleton Authors 1) | a' <- authors ]
+          pure $ HashMap.fromList $ [(SimpleNgrams a', Map.singleton Authors 1) | a' <- authors ]
 
 
 instance ExtractNgramsT HyperdataDocument
   where
     extractNgramsT :: TermType Lang
                    -> HyperdataDocument
-                   -> Cmd err (HashMap Ngrams (Map NgramsType Int))
-    extractNgramsT lang hd = filterNgrams 255 <$> extractNgramsT' lang hd
+                   -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
+    extractNgramsT lang hd = HashMap.mapKeys (cleanExtractedNgrams 255) <$> extractNgramsT' lang hd
       where
         extractNgramsT' :: TermType Lang
                         -> HyperdataDocument
-                       -> Cmd err (HashMap Ngrams (Map NgramsType Int))
+                       -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
         extractNgramsT' lang' doc = do
           let source    = text2ngrams
                         $ maybe "Nothing" identity
@@ -412,10 +414,10 @@ instance ExtractNgramsT HyperdataDocument
                  <$> concat
                  <$> liftBase (extractTerms lang' $ hasText doc)
 
-          pure $ HashMap.fromList $  [(source, Map.singleton Sources 1)]
-                             <> [(i', Map.singleton Institutes  1) | i' <- institutes ]
-                             <> [(a', Map.singleton Authors     1) | a' <- authors    ]
-                             <> [(t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
+          pure $ HashMap.fromList $  [(SimpleNgrams source, Map.singleton Sources 1)]
+                             <> [(SimpleNgrams i', Map.singleton Institutes  1) | i' <- institutes ]
+                             <> [(SimpleNgrams a', Map.singleton Authors     1) | a' <- authors    ]
+                             <> [(SimpleNgrams t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
 
 instance (ExtractNgramsT a, HasText a) => ExtractNgramsT (Node a)
   where

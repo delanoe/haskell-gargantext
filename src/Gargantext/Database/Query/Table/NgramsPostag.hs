@@ -16,16 +16,30 @@ Portability : POSIX
 module Gargantext.Database.Query.Table.NgramsPostag
     where
 
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 import Data.Text (Text)
+import GHC.Generics (Generic)
+import Gargantext.Core
+import Gargantext.Core.Types
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Types
 import Gargantext.Prelude
+import qualified Data.HashMap.Strict as HashMap
 import qualified Database.PostgreSQL.Simple as PGS
 
 
+data NgramsPostag = NgramsPostag { _np_lang   :: Lang
+                                 , _np_algo   :: PostTagAlgo
+                                 , _np_postag :: POS
+                                 , _np_form   :: Ngrams
+                                 , _np_lem    :: Ngrams
+                                 }
+  deriving (Eq, Ord, Generic)
 
+instance Hashable NgramsPostag
 
 type NgramsPostagInsert = ( Int
                           , Int
@@ -36,9 +50,24 @@ type NgramsPostagInsert = ( Int
                           , Int
                           )
 
+toInsert :: NgramsPostag -> NgramsPostagInsert
+toInsert (NgramsPostag l a p form lem) =
+  ( toDBid l
+  , toDBid a
+  , cs $ show p
+  , _ngramsTerms form
+  , _ngramsSize  form
+  , _ngramsTerms lem
+  , _ngramsSize  lem
+  )
 
-insertNgramsPostag :: [NgramsPostagInsert] -> Cmd err [Indexed Int Text]
-insertNgramsPostag ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)
+insertNgramsPostag :: [NgramsPostag] -> Cmd err (HashMap Text NgramsId)
+insertNgramsPostag ns = HashMap.fromList
+                     <$> map (\(Indexed t i) -> (t,i))
+                     <$> insertNgramsPostag' (map toInsert ns)
+
+insertNgramsPostag' :: [NgramsPostagInsert] -> Cmd err [Indexed Text Int]
+insertNgramsPostag' ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)
   where
 
     fields = map (\t -> QualifiedIdentifier Nothing t) $ snd fields_name

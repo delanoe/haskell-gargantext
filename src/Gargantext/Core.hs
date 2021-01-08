@@ -12,11 +12,12 @@ Portability : POSIX
 module Gargantext.Core
   where
 
-import Gargantext.Prelude
-import GHC.Generics (Generic)
 import Data.Aeson
 import Data.Either(Either(Left))
+import Data.Hashable (Hashable)
 import Data.Swagger
+import GHC.Generics (Generic)
+import Gargantext.Prelude
 import Servant.API
 
 ------------------------------------------------------------------------
@@ -47,6 +48,8 @@ instance FromHttpApiData Lang
     parseUrlPiece "FR"  = pure FR
     parseUrlPiece "All" = pure All
     parseUrlPiece _     = Left "Unexpected value of OrderBy"
+instance Hashable Lang
+
 allLangs :: [Lang]
 allLangs = [minBound ..]
 
@@ -64,10 +67,11 @@ instance HasDBid Lang where
   fromDBid 2 = EN
   fromDBid _ = panic "HasDBid lang, not implemented"
 
-
 ------------------------------------------------------------------------
 data PostTagAlgo = CoreNLP
-  deriving (Show, Read)
+  deriving (Show, Read, Eq, Ord, Generic)
+
+instance Hashable PostTagAlgo
 
 instance HasDBid PostTagAlgo where
   toDBid CoreNLP = 1

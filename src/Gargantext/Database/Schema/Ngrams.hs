@@ -19,6 +19,7 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams
   where
 
+import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Codec.Serialise (Serialise())
 import Control.Lens (over)
@@ -35,6 +36,7 @@ import Text.Read (read)
 import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
+import qualified Data.HashMap.Strict as HashMap
 
 
 type NgramsId  = Int
@@ -178,19 +180,19 @@ instance Functor NgramsT where
   fmap = over ngramsT
 
 -----------------------------------------------------------------------
-withMap :: Map Text NgramsId -> Text -> NgramsId
-withMap m n = maybe (panic "withMap: should not happen") identity (lookup n m)
+withMap :: HashMap Text NgramsId -> Text -> NgramsId
+withMap m n = maybe (panic "withMap: should not happen") identity (HashMap.lookup n m)
 
-indexNgramsT :: Map Text NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Int Ngrams)
+indexNgramsT :: HashMap Text NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Int Ngrams)
 indexNgramsT = fmap . indexNgramsWith . withMap
 
 -- | TODO replace NgramsT whith Typed NgramsType Ngrams
-indexTypedNgrams :: Map Text NgramsId
+indexTypedNgrams :: HashMap Text NgramsId
                  -> Typed NgramsType Ngrams
                  -> Typed NgramsType (Indexed Int Ngrams)
 indexTypedNgrams = fmap . indexNgramsWith . withMap
 
-indexNgrams :: Map Text NgramsId -> Ngrams -> Indexed Int Ngrams
+indexNgrams :: HashMap Text NgramsId -> Ngrams -> Indexed Int Ngrams
 indexNgrams = indexNgramsWith . withMap
 
 indexNgramsWith :: (Text -> NgramsId) -> Ngrams -> Indexed Int Ngrams

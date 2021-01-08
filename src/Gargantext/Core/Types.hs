@@ -31,6 +31,7 @@ import Control.Lens (Prism', (#), makeLenses, over)
 import Control.Monad.Except (MonadError(throwError))
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import Data.Hashable (Hashable)
 import Data.Maybe
 import Data.Monoid
 import Data.Semigroup
@@ -40,11 +41,11 @@ import Data.Swagger (ToSchema(..))
 import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
-import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 import Gargantext.Core.Types.Main
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
+import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
 data Ordering = Down | Up
@@ -74,7 +75,7 @@ data POS = NP
          | JJ  | VB
          | CC  | IN | DT
          | NoPos
-  deriving (Show, Generic, Eq)
+  deriving (Show, Generic, Eq, Ord)
 ------------------------------------------------------------------------
 instance FromJSON POS where
   parseJSON = withText "String" (\x -> pure (pos $ unpack x))
@@ -94,10 +95,11 @@ instance FromJSON POS where
       pos "IN"  = IN
       pos "DT"  = DT
       -- French specific
-      pos "P"  = IN
+      pos "P"   = IN
       pos  _    = NoPos
 
 instance ToJSON POS
+instance Hashable POS
 ------------------------------------------------------------------------
 data NER = PERSON | ORGANIZATION | LOCATION | NoNER
   deriving (Show, Generic)

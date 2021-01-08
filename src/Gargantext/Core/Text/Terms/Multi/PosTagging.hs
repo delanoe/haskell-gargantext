@@ -25,24 +25,18 @@ Source: https://en.wikipedia.org/wiki/Part-of-speech_tagging
 module Gargantext.Core.Text.Terms.Multi.PosTagging
   where
 
-import GHC.Generics
-
-import Data.ByteString.Lazy.Internal (ByteString)
-import Data.Aeson.TH (deriveJSON)
 import Data.Aeson
-
+import Data.Aeson.TH (deriveJSON)
+import Data.ByteString.Lazy.Internal (ByteString)
 import Data.Set (fromList)
-
+import Data.String.Conversions (ConvertibleStrings)
 import Data.Text (Text, splitOn, pack, toLower)
-
+import GHC.Generics
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
-
 import Network.HTTP.Simple
-
-import Data.String.Conversions (ConvertibleStrings)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

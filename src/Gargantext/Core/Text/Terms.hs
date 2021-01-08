@@ -36,6 +36,7 @@ module Gargantext.Core.Text.Terms
 
 import Control.Lens
 import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 import Data.Map (Map)
 import Data.Text (Text)
 import Data.Traversable
@@ -45,7 +46,6 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set  as Set
 import qualified Data.Text as Text
-import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 
 import Gargantext.Core
 import Gargantext.Core.Flow.Types
@@ -57,9 +57,11 @@ import Gargantext.Core.Text.Terms.Mono.Token.En (tokenize)
 import Gargantext.Core.Text.Terms.Multi (multiterms)
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (Cmd)
-import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..), ngramsTerms, text2ngrams)
+import Gargantext.Database.Query.Table.Ngrams (insertNgrams)
+import Gargantext.Database.Query.Table.NgramsPostag (NgramsPostag(..), insertNgramsPostag)
+import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..), ngramsTerms, text2ngrams, NgramsId)
 import Gargantext.Prelude
-
+import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 
 data TermType lang
   = Mono      { _tt_lang :: !lang }
@@ -111,26 +113,44 @@ withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
 withLang l _ = l
 
 ------------------------------------------------------------------------
+data ExtractedNgrams = SimpleNgrams   { unSimpleNgrams   :: Ngrams       }
+                     | EnrichedNgrams { unEnrichedNgrams :: NgramsPostag }
+  deriving (Eq, Ord, Generic)
+
+instance Hashable ExtractedNgrams
+
 class ExtractNgramsT h
   where
     extractNgramsT :: HasText h
                    => TermType Lang
                    -> h
-                   -> Cmd err (HashMap Ngrams (Map NgramsType Int))
+                   -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
+------------------------------------------------------------------------
+cleanExtractedNgrams :: Int -> ExtractedNgrams -> ExtractedNgrams
+cleanExtractedNgrams s (SimpleNgrams ng) 
+      | Text.length (ng ^. ngramsTerms) < s = SimpleNgrams ng
+      | otherwise                           = SimpleNgrams $ text2ngrams (Text.take s (ng ^. ngramsTerms))
+cleanExtractedNgrams s _ = undefined
+
+extracted2ngrams :: ExtractedNgrams -> Ngrams
+extracted2ngrams (SimpleNgrams ng) = ng
+extracted2ngrams _ = undefined
 
 
-
-filterNgrams :: Int -> HashMap Ngrams (Map NgramsType Int)
-                    -> HashMap Ngrams (Map NgramsType Int)
-filterNgrams s = HashMap.mapKeys filter
-  where
-    filter ng
-      | Text.length (ng ^. ngramsTerms) < s = ng
-      | otherwise                           = text2ngrams (Text.take s (ng ^. ngramsTerms))
+isSimpleNgrams :: ExtractedNgrams -> Bool
+isSimpleNgrams (SimpleNgrams _) = True
+isSimpleNgrams _                = False
 
 
--- =======================================================
+insertExtractedNgrams :: [ ExtractedNgrams ] -> Cmd err (HashMap Text NgramsId)
+insertExtractedNgrams ngs = do
+  let (s, e) = List.partition isSimpleNgrams ngs
+  m1 <- insertNgrams       (map unSimpleNgrams   s)
+  m2 <- insertNgramsPostag (map unEnrichedNgrams e)
+  pure $ m1 <> m2
 
+
+------------------------------------------------------------------------
 -- | Terms from Text
 -- Mono : mono terms
 -- Multi : multi terms
@@ -147,15 +167,6 @@ terms (Unsupervised lang n s m) txt = termsUnsupervised (Unsupervised lang n s (
 
 
 ------------------------------------------------------------------------
-
-text2term :: Lang -> [Text] -> Terms
-text2term _ [] = Terms [] Set.empty
-text2term lang txt = Terms txt (Set.fromList $ map (stem lang) txt)
-
-isPunctuation :: Text -> Bool
-isPunctuation x = List.elem x $  (Text.pack . pure)
-                             <$> ("!?(),;." :: String)
-
 -- | Unsupervised ngrams extraction
 -- language agnostic extraction
 -- TODO: remove IO
@@ -175,6 +186,8 @@ termsUnsupervised (Unsupervised l n s m) =
              . uniText
 termsUnsupervised _ = undefined
 
+
+
 newTries :: Int -> Text -> Tries Token ()
 newTries n t = buildTries n (fmap toToken $ uniText t)
 
@@ -184,4 +197,13 @@ uniText = map (List.filter (not . isPunctuation))
         . map tokenize
         . sentences       -- TODO get sentences according to lang
         . Text.toLower
+
+text2term :: Lang -> [Text] -> Terms
+text2term _ [] = Terms [] Set.empty
+text2term lang txt = Terms txt (Set.fromList $ map (stem lang) txt)
+
+isPunctuation :: Text -> Bool
+isPunctuation x = List.elem x $  (Text.pack . pure)
+                             <$> ("!?(),;." :: String)
+
 
