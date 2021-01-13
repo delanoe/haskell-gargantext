@@ -124,6 +124,7 @@ data Config =
             , phyloLevel     :: Int
             , phyloProximity :: Proximity
             , seaElevation   :: SeaElevation
+            , findAncestors  :: Bool
             , phyloSynchrony :: Synchrony
             , phyloQuality   :: Quality
             , timeUnit       :: TimeUnit
@@ -144,6 +145,7 @@ defaultConfig =
             , phyloLevel     = 2
             , phyloProximity = WeightedLogJaccard 10
             , seaElevation   = Constante 0.1 0.1
+            , findAncestors  = True
             , phyloSynchrony = ByProximityThreshold 0.5 10 SiblingBranches MergeAllGroups
             , phyloQuality   = Quality 100 1
             , timeUnit       = Year 3 1 5

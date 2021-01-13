@@ -59,7 +59,10 @@ toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFrom
     where
         --------------------------------------
         phyloAncestors :: Phylo
-        phyloAncestors = toHorizon phylo1
+        phyloAncestors = 
+            if (findAncestors conf)
+              then toHorizon phylo1
+              else phylo1
         --------------------------------------
         phylo1 :: Phylo
         phylo1 = toPhylo1 docs phyloBase
