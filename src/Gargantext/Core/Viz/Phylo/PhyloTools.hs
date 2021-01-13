@@ -464,7 +464,7 @@ toRelatedComponents nodes edges =
 
 traceSynchronyEnd :: Phylo -> Phylo
 traceSynchronyEnd phylo = 
-    trace ( "\n" <> "-- | End synchronic clustering at level " <> show (getLastLevel phylo) 
+    trace ( "-- | End synchronic clustering at level " <> show (getLastLevel phylo) 
                  <> " with " <> show (length $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " groups"
                  <> " and "  <> show (length $ nub $ map _phylo_groupBranchId $ getGroupsFromLevel (getLastLevel phylo) phylo) <> " branches"
                  <> "\n" ) phylo

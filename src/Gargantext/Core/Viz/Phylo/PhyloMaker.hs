@@ -24,6 +24,7 @@ import Gargantext.Core.Text.Context (TermList)
 import Gargantext.Core.Text.Metrics.FrequentItemSet (fisWithSizePolyMap, Size(..))
 import Gargantext.Core.Viz.Graph.MaxClique (getMaxCliques)
 import Gargantext.Core.Viz.Graph.Distances (Distance(Conditional))
+import Gargantext.Core.Viz.Phylo.PhyloExport (toHorizon)
 
 import Control.DeepSeq (NFData)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
@@ -53,9 +54,12 @@ toPhylo :: [Document] -> TermList -> Config -> Phylo
 toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
                       $ traceToPhylo (phyloLevel conf) $
     if (phyloLevel conf) > 1
-      then foldl' (\phylo' _ -> synchronicClustering phylo') phylo1 [2..(phyloLevel conf)]
+      then foldl' (\phylo' _ -> synchronicClustering phylo') phyloAncestors [2..(phyloLevel conf)]
       else phylo1 
     where
+        --------------------------------------
+        phyloAncestors :: Phylo
+        phyloAncestors = toHorizon phylo1
         --------------------------------------
         phylo1 :: Phylo
         phylo1 = toPhylo1 docs phyloBase

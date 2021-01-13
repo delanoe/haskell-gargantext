@@ -49,7 +49,7 @@ phyloDot = toPhyloExport phylo2
 --------------------------------------------------
 
 phylo2 :: Phylo
-phylo2 = synchronicClustering phylo1
+phylo2 = synchronicClustering $ toHorizon phylo1
 
 -----------------------------------------------
 -- | STEP 3 | -- Build the Level 1 of the Phylo
