@@ -475,7 +475,7 @@ constanteTemporalMatching start step phylo = updatePhyloGroups 1
                                 (getPeriodIds phylo)
                                 (phylo ^. phylo_timeDocs)
                                 (phylo ^. phylo_timeCooc)
-                                groups    
+                                (reverse $ sortOn (length . fst) groups)    
     --  1) for each group process an initial temporal Matching
     --  here we suppose that all the groups of level 1 are part of the same big branch
     groups :: [([PhyloGroup],Bool)]
