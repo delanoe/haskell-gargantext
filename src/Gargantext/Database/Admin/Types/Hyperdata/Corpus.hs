@@ -92,12 +92,13 @@ data HyperdataCorpus =
 
 defaultHyperdataCorpus :: HyperdataCorpus
 defaultHyperdataCorpus =
-  HyperdataCorpus [ HyperdataField JSON
-                                   "Mandatory fields"
-                                   (JsonField "Title" "Descr" "Bool query" "Authors")
-                  , HyperdataField Markdown
-                                   "Optional Text"
+  HyperdataCorpus [ HyperdataField Markdown
+                                   "Corpus analysis"
                                    (MarkdownField "# title\n## subtitle")
+
+                  , HyperdataField JSON
+                                   "Metadata (Experts only)"
+                                   (JsonField "Title" "Descr" "Bool query" "Authors")
                   ]
 
 ------------------------------------------------------------------------
