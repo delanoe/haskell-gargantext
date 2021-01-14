@@ -58,10 +58,11 @@ newUser' address u = newUsers' address [u]
 newUsers' :: HasNodeError err
          => ServerAddress -> [NewUser GargPassword] -> Cmd err Int64
 newUsers' address us = do
-  us' <- liftBase         $ mapM toUserHash us
-  r   <- insertUsers      $ map toUserWrite us'
-  _   <- mapM getOrMkRoot $ map (\u -> UserName (_nu_username u)) us
+  us' <- liftBase         $ mapM toUserHash  us
+  r   <- insertUsers      $ map  toUserWrite us'
+  _   <- mapM getOrMkRoot $ map  (\u -> UserName   (_nu_username u)) us
   _   <- liftBase         $ mapM (\u -> mail address (Invitation u)) us
+  printDebug "newUsers'" us
   pure r
 ------------------------------------------------------------------------
 

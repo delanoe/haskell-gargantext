@@ -133,7 +133,7 @@ tree_first_level r nodeTypes = do
   --                         , s ]
   mainRoot    <- findNodes r Private nodeTypes
   -- printDebug (rPrefix "mainRoot") mainRoot
-  publicRoots <- findNodes r Public  nodeTypes
+  publicRoots <- findNodes r PublicDirect  nodeTypes
   -- printDebug (rPrefix "publicRoots") publicRoots
   sharedRoots <- findNodes r SharedDirect  nodeTypes
   -- printDebug (rPrefix "sharedRoots") sharedRoots
@@ -142,7 +142,7 @@ tree_first_level r nodeTypes = do
   pure ret
 
 ------------------------------------------------------------------------
-data NodeMode = Private | Shared | Public | SharedDirect
+data NodeMode = Private | Shared | Public | SharedDirect | PublicDirect
 
 findNodes :: (HasTreeError err, HasNodeError err)
           => RootId
@@ -153,6 +153,7 @@ findNodes r Private nt       = dbTree r nt
 findNodes r Shared  nt       = findShared r NodeFolderShared nt sharedTreeUpdate
 findNodes r SharedDirect  nt = findSharedDirect r NodeFolderShared nt sharedTreeUpdate
 findNodes r Public  nt       = findShared r NodeFolderPublic nt publicTreeUpdate
+findNodes r PublicDirect  nt = findSharedDirect r NodeFolderPublic nt publicTreeUpdate
 
 ------------------------------------------------------------------------
 -- | Collaborative Nodes in the Tree

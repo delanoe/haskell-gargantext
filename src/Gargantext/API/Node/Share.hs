@@ -72,7 +72,7 @@ api userInviting nId (ShareTeamParams user') = do
           username' <- getUsername userInviting
           _ <- case List.elem username' arbitraryUsername of
             True  -> do
-              printDebug "[G.A.N.Share.api]" ("demo users are not allowed to invite" :: Text)
+              printDebug "[G.A.N.Share.api]" ("Demo users are not allowed to invite" :: Text)
               pure ()
             False -> do
               -- TODO better analysis of the composition of what is shared

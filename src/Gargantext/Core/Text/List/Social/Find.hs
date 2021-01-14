@@ -48,6 +48,7 @@ findNodes' r Private = do
 findNodes' r Shared       = findNodes r Shared  $ [NodeFolderShared, NodeTeam] <> commonNodes
 findNodes' r SharedDirect = findNodes r Shared  $ [NodeFolderShared, NodeTeam] <> commonNodes
 findNodes' r Public       = findNodes r Public  $ [NodeFolderPublic ]          <> commonNodes
+findNodes' r PublicDirect = findNodes r Public  $ [NodeFolderPublic ]          <> commonNodes
 
 commonNodes:: [NodeType]
 commonNodes = [NodeFolder, NodeCorpus, NodeList, NodeFolderShared, NodeTeam]

@@ -57,10 +57,10 @@ emailWith server model =
 email_to :: MailModel -> (EmailAddress, Name)
 email_to (Invitation user) = email_to' user
 email_to (PassUpdate user) = email_to' user
-email_to (MailInfo n m)    = (m, n)
+email_to (MailInfo u m)    = (m, u)
 
 email_to' :: NewUser GargPassword -> (EmailAddress, Name)
-email_to' (NewUser u m _) = (u,m)
+email_to' (NewUser u m _) = (m,u)
 
 ------------------------------------------------------------------------
 bodyWith :: ServerAddress -> MailModel -> [Text]
