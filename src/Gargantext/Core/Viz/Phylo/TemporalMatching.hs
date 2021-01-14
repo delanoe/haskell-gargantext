@@ -18,7 +18,7 @@ import Gargantext.Prelude
 import Gargantext.Core.Viz.AdaptativePhylo
 import Gargantext.Core.Viz.Phylo.PhyloTools
 
-import Prelude (floor)
+import Prelude (floor,tan,pi)
 import Control.Lens hiding (Level)
 import Control.Parallel.Strategies (parList, rdeepseq, using)
 import Debug.Trace (trace)
@@ -272,11 +272,11 @@ recall x bk bx = ((fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_gro
                /  (fromIntegral $ length $ filter (\g -> elem x $ g ^. phylo_groupNgrams) $ concat bx))
 
 fScore :: Double -> Int -> [(Date,Date)] -> [PhyloGroup] -> [[PhyloGroup]] -> Double
-fScore beta x periods bk bx = 
+fScore lambda x periods bk bx = 
   let rec = recall x bk bx
       acc = accuracy x periods bk
-   in ((1 + beta ** 2) * acc * rec)
-    / (((beta ** 2) * rec + acc))
+   in ((1 + lambda ** 2) * acc * rec)
+    / (((lambda ** 2) * rec + acc))
 
 
 wk :: [PhyloGroup] -> Double
@@ -284,14 +284,14 @@ wk bk = fromIntegral $ length bk
 
 
 toPhyloQuality' :: Double -> Map Int Double -> [[PhyloGroup]] -> Double
-toPhyloQuality' beta freq branches =
+toPhyloQuality' lambda freq branches =
   if (null branches)
     then 0
     else sum 
        $ map (\i -> 
           let bks = relevantBranches i branches
               periods = nub $ map _phylo_groupPeriod $ filter (\g -> elem i $ g ^. phylo_groupNgrams) $ concat bks
-           in (freq ! i) * (sum $ map (\bk -> ((wk bk) / (sum $ map wk bks)) * (fScore beta i periods bk bks)) bks))
+           in (freq ! i) * (sum $ map (\bk -> ((wk bk) / (sum $ map wk bks)) * (fScore lambda i periods bk bks)) bks))
        $ keys freq
 
 toRecall :: Map Int Double -> [[PhyloGroup]] -> Double
@@ -330,7 +330,7 @@ toAccuracy freq branches =
 
 -- | here we do the average of all the local f_scores
 toPhyloQuality :: Double -> Double -> Map Int Double -> [[PhyloGroup]] -> Double
-toPhyloQuality fdt beta freq branches = 
+toPhyloQuality fdt lambda freq branches = 
   if (null branches)
     then 0
     else sum 
@@ -341,7 +341,8 @@ toPhyloQuality fdt beta freq branches =
             periods = nub $ map _phylo_groupPeriod $ filter (\g -> elem x $ g ^. phylo_groupNgrams) $ concat bx              
             wks = sum $ map wk bx 
               -- in (px / pys) * (sum $ map (\bk -> ((wk bk) / wks) * (fScore beta x bk bx)) bx))
-           in (1 / fdt) *  (sum $ map (\bk -> ((wk bk) / wks) * (fScore beta x periods bk bx)) bx))
+              -- in (1 / fdt) *  (sum $ map (\bk -> ((wk bk) / wks) * (fScore beta x periods bk bx)) bx))
+         in (1 / fdt) *  (sum $ map (\bk -> ((wk bk) / wks) * (fScore (tan (lambda * pi / 2)) x periods bk bx)) bx))
        $ keys freq
   -- where 
     --  pys :: Double 
@@ -390,7 +391,7 @@ updateThr thr branches = map (\b -> map (\g ->
 -- rest = the branches we still have to break
 breakBranches :: Double -> Proximity -> Double -> Map Int Double -> Int -> Double -> Double -> Double 
               -> Int -> Map Date Double -> Map Date Cooc -> [PhyloPeriodId] -> [([PhyloGroup],Bool)] -> ([PhyloGroup],Bool) -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
-breakBranches fdt proximity beta frequency minBranch thr depth elevation frame docs coocs periods done ego rest =
+breakBranches fdt proximity lambda frequency minBranch thr depth elevation frame docs coocs periods done ego rest =
   --  1) keep or not the new division of ego
   let done' = done ++ (if snd ego 
                         then
@@ -413,12 +414,12 @@ breakBranches fdt proximity beta frequency minBranch thr depth elevation frame d
     --  2) if there is no more branches in rest then return else continue    
     if null rest 
       then done'
-      else breakBranches fdt proximity beta frequency minBranch thr depth elevation frame docs coocs periods
+      else breakBranches fdt proximity lambda frequency minBranch thr depth elevation frame docs coocs periods
                        done' (head' "breakBranches" rest) (tail' "breakBranches" rest) 
   where
     --------------------------------------
     quality :: Double 
-    quality = toPhyloQuality fdt beta frequency ((map fst done) ++ [fst ego] ++ (map fst rest))
+    quality = toPhyloQuality fdt lambda frequency ((map fst done) ++ [fst ego] ++ (map fst rest))
     --------------------------------------
     ego' :: ([[PhyloGroup]],[[PhyloGroup]])
     ego' = 
@@ -430,29 +431,29 @@ breakBranches fdt proximity beta frequency minBranch thr depth elevation frame d
         $ depthToMeta (elevation - depth) branches'    
     --------------------------------------
     quality' :: Double
-    quality' = toPhyloQuality fdt beta frequency
+    quality' = toPhyloQuality fdt lambda frequency
                                     ((map fst done) ++ (fst ego') ++ (snd ego') ++ (map fst rest))
 
 
 seaLevelMatching :: Double -> Proximity -> Double -> Int -> Map Int Double -> Double -> Double -> Double -> Double
                  -> Int -> [PhyloPeriodId] -> Map Date Double -> Map Date Cooc -> [([PhyloGroup],Bool)] -> [([PhyloGroup],Bool)]
-seaLevelMatching fdt proximity beta minBranch frequency thr step depth elevation frame periods docs coocs branches =
+seaLevelMatching fdt proximity lambda minBranch frequency thr step depth elevation frame periods docs coocs branches =
   --  if there is no branch to break or if seaLvl level > 1 then end
   if (thr >= 1) || ((not . or) $ map snd branches)
     then branches
     else 
       -- break all the possible branches at the current seaLvl level
-      let quality    = toPhyloQuality fdt beta frequency (map fst branches)
+      let quality    = toPhyloQuality fdt lambda frequency (map fst branches)
           acc        = toAccuracy frequency (map fst branches)
           rec        = toRecall frequency (map fst branches)
-          branches'  = trace ("↑ level = " <> printf "%.3f" thr <> " F(β) = " <> printf "%.5f" quality 
+          branches'  = trace ("↑ level = " <> printf "%.3f" thr <> " F(λ) = " <> printf "%.5f" quality 
                                                                 <> " ξ = " <> printf "%.5f" acc
                                                                 <> " ρ = " <> printf "%.5f" rec 
                                                                 <> " branches = " <> show(length branches) <> " ↴") 
-                     $ breakBranches fdt proximity beta frequency minBranch thr depth elevation frame docs coocs periods 
+                     $ breakBranches fdt proximity lambda frequency minBranch thr depth elevation frame docs coocs periods 
                                      [] (head' "seaLevelMatching" branches) (tail' "seaLevelMatching" branches)
           frequency' = reduceFrequency frequency (map fst branches')
-       in seaLevelMatching fdt proximity beta minBranch frequency' (thr + step) step (depth - 1) elevation frame periods docs coocs branches'
+       in seaLevelMatching fdt proximity lambda minBranch frequency' (thr + step) step (depth - 1) elevation frame periods docs coocs branches'
 
 
 constanteTemporalMatching :: Double -> Double -> Phylo -> Phylo 
@@ -547,7 +548,7 @@ adaptativeBreakBranches :: Double -> Proximity -> Double -> Double -> Map (Phylo
                -> Double -> Map Int Double -> Int -> Int -> Map Date Double -> Map Date Cooc 
                -> [PhyloPeriodId] -> [([PhyloGroup],(Bool,[Double]))] -> ([PhyloGroup],(Bool,[Double])) -> [([PhyloGroup],(Bool,[Double]))]
                -> [([PhyloGroup],(Bool,[Double]))]
-adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi beta frequency minBranch frame docs coocs periods done ego rest =
+adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi lambda frequency minBranch frame docs coocs periods done ego rest =
   --  1) keep or not the new division of ego
   let done' = done ++ (if (fst . snd) ego 
                         then (if ((null (fst ego')) || (quality > quality')) 
@@ -567,7 +568,7 @@ adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi beta frequenc
     --  2) if there is no more branches in rest then return else continue    
     if null rest 
       then done'
-      else adaptativeBreakBranches fdt proxiConf depth elevation groupsProxi beta frequency minBranch frame docs coocs periods
+      else adaptativeBreakBranches fdt proxiConf depth elevation groupsProxi lambda frequency minBranch frame docs coocs periods
                        done' (head' "breakBranches" rest) (tail' "breakBranches" rest) 
   where
     --------------------------------------
@@ -575,7 +576,7 @@ adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi beta frequenc
     thr = toThreshold depth $ Map.filter (\v -> v > (last' "breakBranches" $ (snd . snd) ego)) $ reduceTupleMapByKeys (map getGroupId $ fst ego) groupsProxi  
     --------------------------------------
     quality :: Double 
-    quality = toPhyloQuality fdt beta frequency ((map fst done) ++ [fst ego] ++ (map fst rest))
+    quality = toPhyloQuality fdt lambda frequency ((map fst done) ++ [fst ego] ++ (map fst rest))
     --------------------------------------
     ego' :: ([[PhyloGroup]],[[PhyloGroup]])
     ego' = 
@@ -587,7 +588,7 @@ adaptativeBreakBranches fdt  proxiConf depth elevation groupsProxi beta frequenc
         $ depthToMeta (elevation - depth) branches'          
     --------------------------------------
     quality' :: Double
-    quality' = toPhyloQuality fdt beta frequency
+    quality' = toPhyloQuality fdt lambda frequency
                                     ((map fst done) ++ (fst ego') ++ (snd ego') ++ (map fst rest))
 
 
@@ -595,13 +596,13 @@ adaptativeSeaLevelMatching :: Double -> Proximity -> Double -> Double -> Map (Ph
                   -> Double -> Int -> Map Int Double 
                   -> Int -> [PhyloPeriodId] -> Map Date Double -> Map Date Cooc 
                   -> [([PhyloGroup],(Bool,[Double]))] -> [([PhyloGroup],(Bool,[Double]))]
-adaptativeSeaLevelMatching fdt proxiConf depth elevation groupsProxi beta minBranch frequency frame periods docs coocs branches =
+adaptativeSeaLevelMatching fdt proxiConf depth elevation groupsProxi lambda minBranch frequency frame periods docs coocs branches =
   --  if there is no branch to break or if seaLvl level >= depth then end
   if (Map.null groupsProxi) || (depth <= 0) || ((not . or) $ map (fst . snd) branches)
     then branches
     else
       --  break all the possible branches at the current seaLvl level
-      let branches'  = adaptativeBreakBranches fdt proxiConf depth elevation groupsProxi beta frequency minBranch frame docs coocs periods 
+      let branches'  = adaptativeBreakBranches fdt proxiConf depth elevation groupsProxi lambda frequency minBranch frame docs coocs periods 
                                       [] (head' "seaLevelMatching" branches) (tail' "seaLevelMatching" branches)
           frequency' = reduceFrequency frequency (map fst branches')
           groupsProxi' = reduceTupleMapByKeys (map (getGroupId) $ concat $ map (fst) $ filter (fst . snd) branches') groupsProxi
@@ -610,7 +611,7 @@ adaptativeSeaLevelMatching fdt proxiConf depth elevation groupsProxi beta minBra
                        <> " [✓ " <> show(length $ filter (fst . snd) branches') <> "(" <> show(length $ concat $ map (fst) $ filter (fst . snd) branches')
                        <> ")|✗ " <> show(length $ filter (not . fst . snd) branches') <> "(" <> show(length $ concat $ map (fst) $ filter (not . fst . snd) branches') <> ")]"
                        <> " thr = ")
-        $ adaptativeSeaLevelMatching fdt proxiConf (depth - 1) elevation groupsProxi' beta minBranch frequency' frame periods docs coocs branches'
+        $ adaptativeSeaLevelMatching fdt proxiConf (depth - 1) elevation groupsProxi' lambda minBranch frequency' frame periods docs coocs branches'
 
 
 adaptativeTemporalMatching :: Double -> Phylo -> Phylo 

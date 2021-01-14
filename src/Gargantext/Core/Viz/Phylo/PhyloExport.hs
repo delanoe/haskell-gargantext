@@ -673,7 +673,7 @@ tracePhyloAncestors :: [[PhyloGroup]] -> [[PhyloGroup]]
 tracePhyloAncestors groups = trace ( "-- | Found " <> show(length $ concat $ map _phylo_groupAncestors $ concat groups) <> " ancestors") groups
 
 tracePhyloInfo :: Phylo -> Phylo
-tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with β = "
+tracePhyloInfo phylo = trace ("\n"  <> "##########################" <> "\n\n" <> "-- | Phylo with λ = "
     <> show(_qua_granularity $ phyloQuality $ getConfig phylo) <> " applied to "
     <> show(length $ Vector.toList $ getRoots phylo) <> " foundations"
   ) phylo
