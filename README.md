@@ -18,6 +18,16 @@ progress. Please report and improve this documentation if you encounter issues.
 
 ### Build Core Code
 
+NOTE: Default build (with optimizations) requires large amounts of RAM (16GB at least). To avoid heavy compilation times and swapping out your machine, it is recommended to `stack build` with the `--fast-` flag, i.e.:
+``` sh
+stack --docker build --fast
+```
+or
+``` sh
+stack --nix build --fast
+```
+This might be related to the [broken Swagger `-O2` issue](https://github.com/haskell-servant/servant/issues/986).
+
 #### Docker
 
 ``` sh
