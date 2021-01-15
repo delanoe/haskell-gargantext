@@ -15,11 +15,8 @@ Portability : POSIX
 module Gargantext.Core.Flow.Types where
 
 import Control.Lens
-import Data.Map (Map)
-import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Schema.Ngrams (Ngrams, NgramsType)
 import Gargantext.Database.Schema.Node (node_hash_id)
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)

@@ -26,11 +26,10 @@ import Control.Lens (over)
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
-import Data.Map (Map, fromList, lookup)
+import Data.Map (fromList, lookup)
 import Data.Text (Text, splitOn, pack, strip)
 import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
-import Prelude (Functor)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
 import Text.Read (read)
 import Gargantext.Database.Types

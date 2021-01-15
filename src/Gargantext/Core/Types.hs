@@ -23,7 +23,7 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Name
                              , TableResult(..), NodeTableResult
                              , Ordering(..)
-                             , Typed(..)
+                             , Typed(..), withType , unTyped
                              , TODO(..)
                              ) where
 

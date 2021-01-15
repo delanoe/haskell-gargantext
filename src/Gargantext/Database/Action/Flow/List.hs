@@ -28,12 +28,10 @@ import Gargantext.Core.Types (HasInvalidError(..), assertValid)
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Core.Utils (something)
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Flow.Utils (DocumentIdWithNgrams(..))
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
 import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
-import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
-import Gargantext.Database.Types
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
 import qualified Data.List as List
 import qualified Data.Map  as Map

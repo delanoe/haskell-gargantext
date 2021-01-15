@@ -17,10 +17,10 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE InstanceSigs            #-}
+{-# LANGUAGE ScopedTypeVariables     #-}
 {-# LANGUAGE TemplateHaskell         #-}
 
 module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
@@ -54,7 +54,7 @@ import Data.Map (Map, lookup)
 import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
-import Data.Text (splitOn, intercalate)
+import Data.Text (splitOn)
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
@@ -73,7 +73,7 @@ import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Core.Types (Terms(..), POS(NP))
+import Gargantext.Core.Types (POS(NP))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
@@ -285,9 +285,9 @@ insertMasterDocs c lang hs  =  do
            $ catMaybes [ NodeNodeNgrams2 <$> Just nId
                                          <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
                                          <*> Just (fromIntegral w :: Double)
-                       | (terms'', mapNgramsTypes) <- HashMap.toList mapNgramsDocs
+                       | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
-                       , (nId, w) <- Map.toList mapNodeIdWeight
+                       , (nId, w)                       <- Map.toList mapNodeIdWeight
                        ]
 
   -- _cooc <- insertDefaultNode NodeListCooc lId masterUserId
@@ -413,10 +413,11 @@ instance ExtractNgramsT HyperdataDocument
                  <$> concat
                  <$> liftBase (extractTerms lang' $ hasText doc)
 
-          pure $ HashMap.fromList $  [(SimpleNgrams source, Map.singleton Sources 1)]
-                             <> [(SimpleNgrams i', Map.singleton Institutes  1) | i' <- institutes ]
-                             <> [(SimpleNgrams a', Map.singleton Authors     1) | a' <- authors    ]
-                             <> [(EnrichedNgrams t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
+          pure $ HashMap.fromList
+               $  [(SimpleNgrams source, Map.singleton Sources     1)                    ]
+               <> [(SimpleNgrams     i', Map.singleton Institutes  1) | i' <- institutes ]
+               <> [(SimpleNgrams     a', Map.singleton Authors     1) | a' <- authors    ]
+               <> [(EnrichedNgrams   t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
 
 instance (ExtractNgramsT a, HasText a) => ExtractNgramsT (Node a)
   where

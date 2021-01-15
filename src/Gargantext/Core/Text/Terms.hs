@@ -43,12 +43,11 @@ import Data.Traversable
 import GHC.Base (String)
 import GHC.Generics (Generic)
 import qualified Data.List as List
-import qualified Data.Map as Map
 import qualified Data.Set  as Set
 import qualified Data.Text as Text
+import qualified Data.HashMap.Strict as HashMap
 
 import Gargantext.Core
-import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text (sentences, HasText(..))
 import Gargantext.Core.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
 import Gargantext.Core.Text.Terms.Mono  (monoTerms)
@@ -61,7 +60,6 @@ import Gargantext.Database.Query.Table.Ngrams (insertNgrams)
 import Gargantext.Database.Query.Table.NgramsPostag (NgramsPostag(..), insertNgramsPostag, np_form, np_lem)
 import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..), ngramsTerms, text2ngrams, NgramsId)
 import Gargantext.Prelude
-import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
 
 data TermType lang
   = Mono      { _tt_lang :: !lang }
@@ -115,7 +113,7 @@ withLang l _ = l
 ------------------------------------------------------------------------
 data ExtractedNgrams = SimpleNgrams   { unSimpleNgrams   :: Ngrams       }
                      | EnrichedNgrams { unEnrichedNgrams :: NgramsPostag }
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord, Generic, Show)
 
 instance Hashable ExtractedNgrams
 
@@ -149,18 +147,21 @@ extracted2ngrams (SimpleNgrams   ng) = ng
 extracted2ngrams (EnrichedNgrams ng) = view np_form ng
 
 
-isSimpleNgrams :: ExtractedNgrams -> Bool
-isSimpleNgrams (SimpleNgrams _) = True
-isSimpleNgrams _                = False
-
-
+---------------------------
 insertExtractedNgrams :: [ ExtractedNgrams ] -> Cmd err (HashMap Text NgramsId)
 insertExtractedNgrams ngs = do
   let (s, e) = List.partition isSimpleNgrams ngs
-  m1 <- insertNgrams       (map unSimpleNgrams   s)
-  m2 <- insertNgramsPostag (map unEnrichedNgrams e)
+  m1 <- if List.null s
+           then pure HashMap.empty
+           else insertNgrams       (map unSimpleNgrams   s)
+  m2 <- if List.null e
+           then pure HashMap.empty
+           else insertNgramsPostag (map unEnrichedNgrams e)
   pure $ m1 <> m2
 
+isSimpleNgrams :: ExtractedNgrams -> Bool
+isSimpleNgrams (SimpleNgrams _) = True
+isSimpleNgrams _                = False
 
 ------------------------------------------------------------------------
 -- | Terms from Text

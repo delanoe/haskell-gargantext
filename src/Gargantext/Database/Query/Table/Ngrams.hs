@@ -24,7 +24,6 @@ module Gargantext.Database.Query.Table.Ngrams
 import Control.Lens ((^.))
 import Data.HashMap.Strict (HashMap)
 import Data.ByteString.Internal (ByteString)
-import Data.Map (Map, fromList)
 import Data.Text (Text)
 import qualified Database.PostgreSQL.Simple as PGS
 import qualified Data.HashMap.Strict as HashMap

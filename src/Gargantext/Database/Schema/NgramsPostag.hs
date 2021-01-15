@@ -22,9 +22,7 @@ module Gargantext.Database.Schema.NgramsPostag
 
 import Control.Lens
 import Data.Text (Text)
-import Gargantext.Core
 import Gargantext.Database.Schema.Prelude
-import Gargantext.API.Ngrams.Types
 import Gargantext.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
 

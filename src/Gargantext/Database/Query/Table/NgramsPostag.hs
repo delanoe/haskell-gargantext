@@ -16,11 +16,10 @@ Portability : POSIX
 module Gargantext.Database.Query.Table.NgramsPostag
     where
 
-import Control.Lens (makeLenses)
+import Control.Lens (view)
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Data.Text (Text)
-import GHC.Generics (Generic)
 import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
@@ -38,7 +37,7 @@ data NgramsPostag = NgramsPostag { _np_lang   :: Lang
                                  , _np_form   :: Ngrams
                                  , _np_lem    :: Ngrams
                                  }
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord, Generic, Show)
 
 makeLenses ''NgramsPostag
 
@@ -58,10 +57,10 @@ toInsert (NgramsPostag l a p form lem) =
   ( toDBid l
   , toDBid a
   , cs $ show p
-  , _ngramsTerms form
-  , _ngramsSize  form
-  , _ngramsTerms lem
-  , _ngramsSize  lem
+  , view ngramsTerms form
+  , view ngramsSize  form
+  , view ngramsTerms lem
+  , view ngramsSize  lem
   )
 
 insertNgramsPostag :: [NgramsPostag] -> Cmd err (HashMap Text NgramsId)
