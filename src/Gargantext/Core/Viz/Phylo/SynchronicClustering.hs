@@ -190,13 +190,13 @@ synchronicClustering phylo =
         sync = phyloSynchrony $ getConfig phylo
         docs = phylo ^. phylo_timeDocs
         diagos = map coocToDiago $ phylo ^. phylo_timeCooc
-        newBranches  = map (\branch -> levelUpAncestors $ reduceGroups prox sync docs diagos branch) 
+        newBranches  = map (\branch -> reduceGroups prox sync docs diagos branch) 
                      $ map processDynamics
                      $ adjustClustering sync
                      $ phyloToLastBranches 
                      $ traceSynchronyStart phylo
         newBranches' = newBranches `using` parList rdeepseq
-     in toNextLevel' phylo $ concat newBranches'
+     in toNextLevel' phylo $ levelUpAncestors $ concat newBranches'
 
 
 -- synchronicDistance :: Phylo -> Level -> String
