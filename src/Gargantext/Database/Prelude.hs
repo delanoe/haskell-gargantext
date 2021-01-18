@@ -13,7 +13,6 @@ Portability : POSIX
 
 module Gargantext.Database.Prelude where
 
--- import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Exception
 import Control.Lens (Getter, view)
 import Control.Monad.Except

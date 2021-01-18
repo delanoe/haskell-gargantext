@@ -135,3 +135,29 @@ SELECT terms,id FROM ins_form_ret
 
   |]
 
+
+type Form = Text
+type Lem  = Text
+
+selectLems :: [Ngrams] -> Cmd err [(Form, Lem)]
+selectLems ns = runPGSQuery querySelectLems (PGS.Only $ Values fields (map toRow ns))
+  where
+    fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
+
+----------------------
+querySelectLems :: PGS.Query
+querySelectLems = [sql|
+  WITH input_rows(terms,n)
+    AS (?) -- ((VALUES ('automata' :: "text")))
+    , lems AS ( select n1.terms as t1 ,n2.terms as t2 ,sum(np.score) as score from input_rows ir
+    JOIN ngrams        n1 ON ir.terms = n1.terms
+    JOIN ngrams_postag np ON np.ngrams_id = n1.id
+    JOIN ngrams        n2 ON n2.id    = np.lemm_id
+    GROUP BY n1.terms, n2.terms
+    ORDER BY score DESC
+  )
+
+  SELECT t1,t2 from lems
+  |]
+
+
