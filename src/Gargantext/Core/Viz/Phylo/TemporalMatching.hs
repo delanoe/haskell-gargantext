@@ -276,7 +276,7 @@ fScore lambda x periods bk bx =
   let rec = recall x bk bx
       acc = accuracy x periods bk
    in ((1 + lambda ** 2) * acc * rec)
-    / (((lambda ** 2) * rec + acc))
+    / (((lambda ** 2) * acc  + rec))
 
 
 wk :: [PhyloGroup] -> Double
