@@ -27,9 +27,9 @@ import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Types
 import Gargantext.Prelude
-import qualified Data.HashMap.Strict as HashMap
+import qualified Data.HashMap.Strict        as HashMap
+import qualified Data.List                  as List
 import qualified Database.PostgreSQL.Simple as PGS
-
 
 data NgramsPostag = NgramsPostag { _np_lang   :: Lang
                                  , _np_algo   :: PosTagAlgo
@@ -64,9 +64,12 @@ toInsert (NgramsPostag l a p form lem) =
   )
 
 insertNgramsPostag :: [NgramsPostag] -> Cmd err (HashMap Text NgramsId)
-insertNgramsPostag ns = HashMap.fromList
-                     <$> map (\(Indexed t i) -> (t,i))
-                     <$> insertNgramsPostag' (map toInsert ns)
+insertNgramsPostag ns =
+  if List.null ns
+     then pure HashMap.empty
+     else HashMap.fromList
+         <$> map (\(Indexed t i) -> (t,i))
+         <$> insertNgramsPostag' (map toInsert ns)
 
 insertNgramsPostag' :: [NgramsPostagInsert] -> Cmd err [Indexed Text Int]
 insertNgramsPostag' ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)

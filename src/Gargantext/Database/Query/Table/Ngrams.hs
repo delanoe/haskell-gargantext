@@ -26,7 +26,8 @@ import Data.HashMap.Strict (HashMap)
 import Data.ByteString.Internal (ByteString)
 import Data.Text (Text)
 import qualified Database.PostgreSQL.Simple as PGS
-import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List                  as List
+import qualified Data.HashMap.Strict        as HashMap
 
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (runOpaQuery, Cmd)
@@ -66,7 +67,10 @@ _dbGetNgramsDb = runOpaQuery queryNgramsTable
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams is called.
 insertNgrams :: [Ngrams] -> Cmd err (HashMap Text NgramsId)
-insertNgrams ns = HashMap.fromList <$> map (\(Indexed i t) -> (t, i)) <$> (insertNgrams' ns)
+insertNgrams ns =
+  if List.null ns
+     then pure HashMap.empty
+     else HashMap.fromList <$> map (\(Indexed i t) -> (t, i)) <$> (insertNgrams' ns)
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams' is called.
 insertNgrams' :: [Ngrams] -> Cmd err [Indexed Int Text]
@@ -90,7 +94,7 @@ queryInsertNgrams = [sql|
        RETURNING id,terms
        )
 
-    SELECT terms, id
+    SELECT id, terms
     FROM   ins
     UNION  ALL
     SELECT c.id, terms

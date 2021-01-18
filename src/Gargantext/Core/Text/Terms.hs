@@ -42,11 +42,10 @@ import Data.Text (Text)
 import Data.Traversable
 import GHC.Base (String)
 import GHC.Generics (Generic)
-import qualified Data.List as List
-import qualified Data.Set  as Set
-import qualified Data.Text as Text
+import qualified Data.List           as List
+import qualified Data.Set            as Set
+import qualified Data.Text           as Text
 import qualified Data.HashMap.Strict as HashMap
-
 import Gargantext.Core
 import Gargantext.Core.Text (sentences, HasText(..))
 import Gargantext.Core.Text.Terms.Eleve (mainEleveWith, Tries, Token, buildTries, toToken)
@@ -151,13 +150,14 @@ extracted2ngrams (EnrichedNgrams ng) = view np_form ng
 insertExtractedNgrams :: [ ExtractedNgrams ] -> Cmd err (HashMap Text NgramsId)
 insertExtractedNgrams ngs = do
   let (s, e) = List.partition isSimpleNgrams ngs
-  m1 <- if List.null s
-           then pure HashMap.empty
-           else insertNgrams       (map unSimpleNgrams   s)
-  m2 <- if List.null e
-           then pure HashMap.empty
-           else insertNgramsPostag (map unEnrichedNgrams e)
-  pure $ m1 <> m2
+  m1 <- insertNgrams       (map unSimpleNgrams   s)
+  printDebug "others" m1
+  
+  m2 <- insertNgramsPostag (map unEnrichedNgrams e)
+  printDebug "terms" m2
+ 
+  let result = HashMap.unions [m1, m2]
+  pure result
 
 isSimpleNgrams :: ExtractedNgrams -> Bool
 isSimpleNgrams (SimpleNgrams _) = True
