@@ -12,6 +12,7 @@ Portability : POSIX
 module Gargantext.Core
   where
 
+import Data.Text (Text)
 import Data.Aeson
 import Data.Either(Either(Left))
 import Data.Hashable (Hashable)
@@ -67,6 +68,9 @@ instance HasDBid Lang where
   fromDBid 2 = EN
   fromDBid _ = panic "HasDBid lang, not implemented"
 
+------------------------------------------------------------------------
+type Form = Text
+type Lem  = Text
 ------------------------------------------------------------------------
 data PosTagAlgo = CoreNLP
   deriving (Show, Read, Eq, Ord, Generic)

@@ -136,9 +136,6 @@ SELECT terms,id FROM ins_form_ret
   |]
 
 
-type Form = Text
-type Lem  = Text
-
 selectLems :: [Ngrams] -> Cmd err [(Form, Lem)]
 selectLems ns = runPGSQuery querySelectLems (PGS.Only $ Values fields (map toRow ns))
   where

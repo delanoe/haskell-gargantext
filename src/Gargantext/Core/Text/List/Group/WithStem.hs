@@ -17,16 +17,18 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithStem
   where
 
+import Data.HashMap.Strict (HashMap)
 import Data.HashSet (HashSet)
 import Data.Map (Map)
 import Data.Maybe (catMaybes)
 import Gargantext.API.Ngrams.Types
-import Gargantext.Core (Lang(..))
+import Gargantext.Core (Lang(..), PosTagAlgo(..), Form, Lem)
 import Gargantext.Core.Text.List.Group.Prelude
 import Gargantext.Core.Text.List.Social.Patch
 import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import Gargantext.Prelude
+import qualified Data.HashMap.Strict   as HashMap
 import qualified Data.HashSet          as Set
 import qualified Data.List             as List
 import qualified Data.Map              as Map
@@ -57,23 +59,33 @@ data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
                                , unGroupParams_stopSize :: !StopSize
                                }
                  | GroupIdentity
+                 | GroupWithPosTag { _gwl_lang :: !Lang
+                                   , _gwl_algo :: !PosTagAlgo
+                                   , _gwl_map  :: !(HashMap Form Lem)
+                                   }
   deriving (Eq)
 
 ------------------------------------------------------------------------
 groupWith :: GroupParams
             -> NgramsTerm
             -> NgramsTerm
-groupWith GroupIdentity  = identity
-groupWith (GroupParams l _m _n _) =
+groupWith GroupIdentity  t = identity t
+groupWith (GroupParams l _m _n _) t =
                     NgramsTerm
-                  . Text.intercalate " "
-                  . map (stem l)
+                  $ Text.intercalate " "
+                  $ map (stem l)
                   -- . take n
-                  . List.sort
+                  $ List.sort
                   -- . (List.filter (\t -> Text.length t > m))
-                  . Text.splitOn " "
-                  . Text.replace "-" " "
-                  . unNgramsTerm
+                  $ Text.splitOn " "
+                  $ Text.replace "-" " "
+                  $ unNgramsTerm t
+
+groupWith (GroupWithPosTag _ _ m) t = 
+  case HashMap.lookup (unNgramsTerm t) m of
+      Nothing -> t
+      Just t' -> NgramsTerm t'
+
 --------------------------------------------------------------------
 stemPatches :: GroupParams
            -> HashSet NgramsTerm
@@ -81,7 +93,8 @@ stemPatches :: GroupParams
 stemPatches groupParams = patches
                         . Map.fromListWith (<>)
                         . map (\ng -> ( groupWith groupParams ng
-                                      , Set.singleton ng)
+                                      , Set.singleton ng
+                                      )
                               )
                         . Set.toList
 
