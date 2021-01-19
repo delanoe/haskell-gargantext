@@ -100,12 +100,11 @@ withLang (Unsupervised l n s m) ns = Unsupervised l n s m'
   where
     m' = case m of
       Nothing -> -- trace ("buildTries here" :: String)
-               Just $ buildTries n ( fmap toToken
+               Just $ buildTries n $ fmap toToken
                                    $ uniText
                                    $ Text.intercalate " . "
                                    $ List.concat
                                    $ map hasText ns
-                                   )
       just_m -> just_m
 withLang l _ = l
 

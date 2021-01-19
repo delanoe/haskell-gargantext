@@ -77,8 +77,9 @@ groupWith (GroupParams l _m _n _) t =
                   $ Text.intercalate " "
                   $ map (stem l)
                   -- . take n
-                  $ Set.toList
-                  $ Set.fromList
+                  $ List.sort
+                  -- $ Set.toList
+                  -- $ Set.fromList
                   -- . (List.filter (\t -> Text.length t > m))
                   $ Text.splitOn " "
                   $ Text.replace "-" " "

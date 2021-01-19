@@ -68,7 +68,7 @@ import Gargantext.Core.Ext.IMT (toSchoolName)
 import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
-import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
+import Gargantext.Core.Text.List.Group.WithStem (StopSize(..), GroupParams(..))
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
 import Gargantext.Core.Text.Terms
@@ -232,7 +232,7 @@ flowCorpusUser l user corpusName ctype ids = do
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
 
-  -- let gp = (GroupParams l 2 3 (StopSize 3)) 
+  --let gp = (GroupParams l 2 3 (StopSize 3)) 
   let gp = GroupWithPosTag l CoreNLP HashMap.empty 
   ngs         <- buildNgramsLists gp user userCorpusId masterCorpusId
 
