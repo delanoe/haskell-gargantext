@@ -104,7 +104,7 @@ config =
     defaultConfig { phyloName  = "Cesar et Cleopatre"
                   , phyloLevel = 2
                   , exportFilter = [ByBranchSize 0]
-                  , clique = MaxClique 0 }
+                  , clique = MaxClique 0 3 ByNeighbours }
 
 
 docs :: [Document]
@@ -134,7 +134,6 @@ actants = [ "Cleopatre"   , "Ptolemee", "Ptolemee-XIII", "Ptolemee-XIV", "Ptolem
 corpus :: [(Date, Text)]
 corpus = sortOn fst [ 
   (-101,"La tutelle Cesar Caesar-III  de sa mère lui étant difficile à endurer, en septembre 101 av. J.-C., Ptolemee-X la fait assassiner et peut enfin régner presque seul puisqu'il partage le pouvoir avec son épouse Berenice-III Cléopâtre Philopator."),
-  (-101,"Ptolemee-X la fait assassiner et peut enfin régner presque seul puisqu'il partage le pouvoir avec son épouse Berenice-III Cléopâtre Philopator."),  
   (-99,"Caesar-III est questeur en 99 av. J.-C. ou 98 av. J.-C., et préteur en 92 av. J.-C.."),
   (-100,"Caius Julius Caesar-IV — dit Jules Cesar Ptolemee-X — naît vers 100 av. J.-C., il est le fils de Caius Julius Caesar-III et de Aurelia-Cotta"),
   (-85,"Caesar-III meurt à Pisae de cause naturelle en 85 av. J.-C. : selon Pline l'Ancien, il décède brusquement en mettant ses chaussures"),
@@ -155,5 +154,4 @@ corpus = sortOn fst [
   (-44,"La guerre que se livrent les assassins de Cesar, Cassius et Brutus et ses heritiers, Octave et Marc-Antoine, oblige Cleopatre à des contorsions diplomatiques."), 
   (-41,"Nous ignorons depuis quand Cleopatre, agee de 29 ans en -41, et Marc-Antoine, qui a une quarantaine d'annees, se connaissent. Marc-Antoine est l'un des officiers qui ont participe au retablissement de Ptolemee XII.  Il est plus vraisemblable qu'ils se soient frequentes lors du sejour à Rome de Cleopatre."), 
   (-42,"Brutus tient la Grèce tandis que Cassius s'installe en Syrie. Le gouverneur de Cleopatre à Chypre, Serapion, vient en aide à Cassius."), 
-  (-42,"Brutus tient la Grèce tandis que Cassius s'installe en Syrie. Le gouverneur de Cleopatre à Chypre, Serapion, vient en aide à Cassius."),   
   (-42,"Cassius aurait envisage de s'emparer d'Alexandrie quand le 'debarquement' en Grèce d'Antoine et d'Octave l'oblige à renoncer à ses projets")]          

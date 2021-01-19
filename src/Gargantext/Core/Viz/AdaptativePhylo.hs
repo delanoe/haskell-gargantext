@@ -99,13 +99,16 @@ data TimeUnit =
       , _year_matchingFrame :: Int }
       deriving (Show,Generic,Eq) 
 
+data CliqueFilter = ByThreshold | ByNeighbours deriving (Show,Generic,Eq)
 
 data Clique = 
       Fis 
       { _fis_support :: Int
       , _fis_size    :: Int }
     | MaxClique
-      { _mcl_size :: Int } 
+      { _mcl_size      :: Int
+      , _mcl_threshold :: Double
+      , _mcl_filter    :: CliqueFilter } 
       deriving (Show,Generic,Eq)      
 
 
@@ -149,7 +152,7 @@ defaultConfig =
             , phyloSynchrony = ByProximityThreshold 0.1 10 SiblingBranches MergeAllGroups
             , phyloQuality   = Quality 0 1
             , timeUnit       = Year 3 1 5
-            , clique         = MaxClique 0
+            , clique         = MaxClique 0 3 ByNeighbours
             , exportLabel    = [BranchLabel MostEmergentTfIdf 2, GroupLabel MostEmergentInclusive 2]
             , exportSort     = ByHierarchy
             , exportFilter   = [ByBranchSize 2]  
@@ -165,6 +168,8 @@ instance FromJSON SeaElevation
 instance ToJSON SeaElevation
 instance FromJSON TimeUnit
 instance ToJSON TimeUnit
+instance FromJSON CliqueFilter
+instance ToJSON CliqueFilter
 instance FromJSON Clique
 instance ToJSON Clique
 instance FromJSON PhyloLabel

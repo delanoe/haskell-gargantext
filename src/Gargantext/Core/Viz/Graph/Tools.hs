@@ -35,6 +35,7 @@ import qualified IGraph.Algorithms.Layout as Layout
 import qualified Data.Vector.Storable as Vec
 import qualified Data.Map  as Map
 import qualified Data.List as List
+-- import Debug.Trace (trace)
 
 type Threshold = Double
 
@@ -50,6 +51,39 @@ cooc2graph' distance threshold myCooc = distanceMap
     matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
     distanceMat = measure distance matCooc
     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+
+
+cooc2graph'' :: Ord t => Distance
+                      -> Double
+                      -> Map (t, t) Int
+                      -> Map (Index, Index) Double
+cooc2graph'' distance threshold myCooc = neighbouMap
+  where
+    (ti, _) = createIndices myCooc
+    myCooc' = toIndex ti myCooc
+    matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
+    distanceMat = measure distance matCooc
+    neighbouMap = filterByNeighbours threshold
+                $ mat2map distanceMat
+
+
+-- Quentin
+filterByNeighbours :: Double -> Map (Index, Index) Double -> Map (Index, Index) Double
+filterByNeighbours threshold distanceMap = filteredMap
+  where 
+    indexes :: [Index]
+    indexes = List.nub $ List.concat $ map (\(idx,idx') -> [idx,idx'] ) $ Map.keys distanceMap
+    filteredMap :: Map (Index, Index) Double
+    filteredMap = Map.fromList
+                $ List.concat 
+                $ map (\idx -> 
+                          let selected = List.reverse
+                                       $ List.sortOn snd
+                                       $ Map.toList 
+                                       $ Map.filter (> 0)
+                                       $ Map.filterWithKey (\(from,_) _ -> idx == from) distanceMap
+                           in List.take (round threshold) selected
+                      ) indexes                 
 
 
 cooc2graph :: Distance
