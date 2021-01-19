@@ -17,6 +17,7 @@ module Gargantext.Core.Text.List
 
 import Control.Lens hiding (both) -- ((^.), view, over, set, (_1), (_2))
 import Data.HashMap.Strict (HashMap)
+import Data.HashSet (HashSet)
 import Data.Map (Map)
 import Data.Monoid (mempty)
 import Data.Ord (Down(..))
@@ -36,6 +37,7 @@ import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsUser, ge
 import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
+import Gargantext.Database.Query.Table.Ngrams (text2ngrams)
 import Gargantext.Database.Query.Table.Node (defaultList)
 import Gargantext.Database.Query.Table.NgramsPostag (selectLems)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
@@ -43,10 +45,11 @@ import Gargantext.Database.Query.Tree.Error (HasTreeError)
 import Gargantext.Database.Schema.Ngrams (NgramsType(..), Ngrams(..))
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Set  as Set
+import qualified Data.List    as List
+import qualified Data.Map     as Map
+import qualified Data.Set     as Set
 import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
+import qualified Data.HashSet as HashSet
 
 {-
 -- TODO maybe useful for later
@@ -138,9 +141,10 @@ getGroupParams :: ( HasNodeError err
                   , RepoCmdM env err m
                   , HasTreeError err
                   )
-               => GroupParams -> Set Ngrams -> m GroupParams
+               => GroupParams -> HashSet Ngrams -> m GroupParams
 getGroupParams gp@(GroupWithPosTag l a _m) ng = do
-  hashMap <- HashMap.fromList <$> selectLems l a (Set.toList ng)
+  hashMap <- HashMap.fromList <$> selectLems l a (HashSet.toList ng)
+  printDebug "hashMap" hashMap
   pure $ over gwl_map (\x -> x <> hashMap) gp
 getGroupParams gp _ = pure gp
 
@@ -172,9 +176,11 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                                                       $ List.zip (HashMap.keys   allTerms)
                                                                  (List.cycle     [mempty])
                                            )
+  let ngramsKeys = HashMap.keysSet allTerms
 
-  let socialLists_Stemmed = addScoreStem groupParams (HashMap.keysSet allTerms) socialLists
-  printDebug "socialLists_Stemmed" socialLists_Stemmed
+  groupParams' <- getGroupParams groupParams (HashSet.map (text2ngrams . unNgramsTerm) ngramsKeys)
+  let socialLists_Stemmed = addScoreStem groupParams' ngramsKeys socialLists
+  --printDebug "socialLists_Stemmed" socialLists_Stemmed
   let groupedWithList = toGroupedTree socialLists_Stemmed allTerms
       (stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList

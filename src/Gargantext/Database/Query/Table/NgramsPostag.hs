@@ -72,14 +72,14 @@ insertNgramsPostag xs =
        let
           (ns, nps) =
             List.partition (\np -> np ^. np_form . ngramsTerms
-                                /= np ^. np_lem  . ngramsTerms
+                                == np ^. np_lem  . ngramsTerms
                            ) xs
 
        ns' <- insertNgrams (map (view np_form) ns)
 
        nps' <- HashMap.fromList
            <$> map (\(Indexed t i) -> (t,i))
-           <$> insertNgramsPostag' (map toInsert ns)
+           <$> insertNgramsPostag' (map toInsert nps)
 
        pure $ HashMap.union ns' nps'
 
@@ -134,13 +134,13 @@ queryInsertNgramsPostag = [sql|
   ------------------------------------------------
   , ins_postag AS (
     INSERT INTO ngrams_postag (lang_id, algo_id, postag, ngrams_id, lemm_id,score)
-    SELECT ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id, count(*) as s
+    SELECT ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id,1 -- count(*) as s
     FROM input_rows ir
       JOIN ins_form_ret  form ON form.terms = ir.form
       JOIN ins_lem_ret   lem  ON lem.terms  = ir.lem
-       GROUP BY ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id    
-       ORDER BY s DESC
-       LIMIT 1
+       -- GROUP BY ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id    
+       -- ORDER BY s DESC
+       -- LIMIT 1
       ON CONFLICT (lang_id,algo_id,postag,ngrams_id,lemm_id)
         DO UPDATE SET score = ngrams_postag.score + 1
     )
