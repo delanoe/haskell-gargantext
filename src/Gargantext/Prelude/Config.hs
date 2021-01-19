@@ -17,26 +17,31 @@ import Prelude (read)
 import System.IO (FilePath)
 import Data.Ini (readIniFile, lookupValue)
 import Data.Either.Extra (Either(Left, Right))
-import Gargantext.Prelude
-import Data.Text (Text, pack)
+import Data.Text as T
 import GHC.Generics (Generic)
 import Control.Lens (makeLenses)
 
+import Gargantext.Prelude
 
-data GargConfig = GargConfig { _gc_url              :: !Text
-                             , _gc_url_backend_api  :: !Text
 
-                             , _gc_masteruser       :: !Text
-                             , _gc_secretkey        :: !Text
+-- | strip a given character from end of string
+stripRight :: Char -> T.Text -> T.Text
+stripRight c s = if T.last s == c then stripRight c (T.take (T.length s - 1) s) else s
+
+data GargConfig = GargConfig { _gc_url              :: !T.Text
+                             , _gc_url_backend_api  :: !T.Text
+
+                             , _gc_masteruser       :: !T.Text
+                             , _gc_secretkey        :: !T.Text
 
                              , _gc_datafilepath     :: !FilePath
                              , _gc_repofilepath     :: !FilePath
 
-                             , _gc_frame_write_url  :: !Text
-                             , _gc_frame_calc_url   :: !Text
+                             , _gc_frame_write_url  :: !T.Text
+                             , _gc_frame_calc_url   :: !T.Text
 
-                             , _gc_frame_searx_url  :: !Text
-                             , _gc_frame_istex_url  :: !Text
+                             , _gc_frame_searx_url  :: !T.Text
+                             , _gc_frame_istex_url  :: !T.Text
 
                              , _gc_max_docs_scrapers :: !Integer
                              }
@@ -48,23 +53,23 @@ readConfig :: FilePath -> IO GargConfig
 readConfig fp = do
   ini         <- readIniFile fp
   let ini'' = case ini of
-        Left e     -> panic (pack $ "gargantext.ini not found" <> show e)
+        Left e     -> panic (T.pack $ "gargantext.ini not found" <> show e)
         Right ini' -> ini'
 
-  let val x = case (lookupValue (pack "gargantext") (pack x) ini'') of
-        Left _   -> panic (pack $ "ERROR: add " <> x <> " to your gargantext.ini")
+  let val x = case (lookupValue (T.pack "gargantext") (T.pack x) ini'') of
+        Left _   -> panic (T.pack $ "ERROR: add " <> x <> " to your gargantext.ini")
         Right p' -> p'
 
-  pure $ GargConfig (val "URL")
-                    (val "URL_BACKEND_API")
+  pure $ GargConfig (stripRight '/' $ val "URL")
+                    (stripRight '/' $ val "URL_BACKEND_API")
                     (val "MASTER_USER")
                     (val "SECRET_KEY")
                     (cs $ val "DATA_FILEPATH")
                     (cs $ val "REPO_FILEPATH")
-                    (val "FRAME_WRITE_URL")
-                    (val "FRAME_CALC_URL")
-                    (val "FRAME_SEARX_URL")
-                    (val "FRAME_ISTEX_URL")
+                    (stripRight '/' $ val "FRAME_WRITE_URL")
+                    (stripRight '/' $ val "FRAME_CALC_URL")
+                    (stripRight '/' $ val "FRAME_SEARX_URL")
+                    (stripRight '/' $ val "FRAME_ISTEX_URL")
                     (read $ cs $ val "MAX_DOCS_SCRAPERS")
 
 {- UNUSED
