@@ -151,12 +151,12 @@ insertExtractedNgrams :: [ ExtractedNgrams ] -> Cmd err (HashMap Text NgramsId)
 insertExtractedNgrams ngs = do
   let (s, e) = List.partition isSimpleNgrams ngs
   m1 <- insertNgrams       (map unSimpleNgrams   s)
-  printDebug "others" m1
+  --printDebug "others" m1
   
   m2 <- insertNgramsPostag (map unEnrichedNgrams e)
-  printDebug "terms" m2
+  --printDebug "terms" m2
  
-  let result = HashMap.unions [m1, m2]
+  let result = HashMap.union m1 m2
   pure result
 
 isSimpleNgrams :: ExtractedNgrams -> Bool

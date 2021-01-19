@@ -17,6 +17,7 @@ Portability : POSIX
 module Gargantext.Core.Text.List.Group.WithStem
   where
 
+import Control.Lens (makeLenses)
 import Data.HashMap.Strict (HashMap)
 import Data.HashSet (HashSet)
 import Data.Map (Map)
@@ -53,6 +54,7 @@ data StopSize = StopSize {unStopSize :: !Int}
 -- discussed. Main purpose of this is offering
 -- a first grouping option to user and get some
 -- enriched data to better learn and improve that algo
+-- | Lenses instances at the end of this file
 data GroupParams = GroupParams { unGroupParams_lang     :: !Lang
                                , unGroupParams_len      :: !Int
                                , unGroupParams_limit    :: !Int
@@ -124,3 +126,5 @@ toNgramsPatch children = NgramsPatch children' Patch.Keep
               $ PatchMap.fromList
               $ List.zip children (List.cycle [addPatch])
 
+-- | Instances
+makeLenses ''GroupParams

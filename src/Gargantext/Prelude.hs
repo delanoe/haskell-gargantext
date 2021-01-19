@@ -16,21 +16,21 @@ Portability : POSIX
 module Gargantext.Prelude
   ( module Gargantext.Prelude
   , module Protolude
-  , headMay, lastMay
   , module GHC.Err.Located
   , module Text.Show
   , module Text.Read
-  , cs
   , module Data.Maybe
-  , round
-  , sortWith
   , module Prelude
   , MonadBase(..)
   , Typeable
+  , cs
+  , headMay, lastMay, sortWith
+  , round
   )
   where
 
 import Control.Monad.Base (MonadBase(..))
+import Data.Set (Set)
 import GHC.Exts (sortWith)
 import GHC.Err.Located (undefined)
 import GHC.Real (round)
@@ -71,15 +71,16 @@ import Prelude (Enum, Bounded, minBound, maxBound, putStrLn)
 -- TODO import functions optimized in Utils.Count
 -- import Protolude hiding (head, last, all, any, sum, product, length)
 -- import Gargantext.Utils.Count
-import qualified Data.List     as L hiding (head, sum)
-import qualified Control.Monad as M
-import qualified Data.Map      as M
 import Data.Map.Strict (insertWith)
-import qualified Data.Vector as V
-import Safe (headMay, lastMay, initMay, tailMay)
-import Text.Show (Show(), show)
-import Text.Read (Read())
 import Data.String.Conversions (cs)
+import Safe (headMay, lastMay, initMay, tailMay)
+import Text.Read (Read())
+import Text.Show (Show(), show)
+import qualified Control.Monad as M
+import qualified Data.List     as L hiding (head, sum)
+import qualified Data.Map      as M
+import qualified Data.Set      as Set
+import qualified Data.Vector   as V
 
 
 printDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
@@ -338,3 +339,20 @@ instance Monoid Integer where
 
 instance Semigroup Integer where
   (<>) a b = a + b
+
+------------------------------------------------------------------------
+
+hasDuplicates :: Ord a => [a] -> Bool
+hasDuplicates = hasDuplicatesWith Set.empty
+
+hasDuplicatesWith :: Ord a => Set a -> [a] -> Bool
+hasDuplicatesWith _seen [] =
+    False -- base case: empty lists never contain duplicates
+hasDuplicatesWith  seen (x:xs) =
+    -- If we have seen the current item before, we can short-circuit; otherwise,
+    -- we'll add it the the set of previously seen items and process the rest of the
+    -- list against that.
+    x `Set.member` seen || hasDuplicatesWith (Set.insert x seen) xs
+
+
+

@@ -37,9 +37,10 @@ import Gargantext.Database.Action.Metrics.TFICF (getTficf)
 import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Database.Prelude (CmdM)
 import Gargantext.Database.Query.Table.Node (defaultList)
+import Gargantext.Database.Query.Table.NgramsPostag (selectLems)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError())
 import Gargantext.Database.Query.Tree.Error (HasTreeError)
-import Gargantext.Database.Schema.Ngrams (NgramsType(..))
+import Gargantext.Database.Schema.Ngrams (NgramsType(..), Ngrams(..))
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
@@ -62,12 +63,12 @@ buildNgramsLists :: ( RepoCmdM env err m
                     , HasTreeError err
                     , HasNodeError err
                     )
-                 => User
-                 -> GroupParams
+                 => GroupParams
+                 -> User
                  -> UserCorpusId
                  -> MasterCorpusId
                  -> m (Map NgramsType [NgramsElement])
-buildNgramsLists user gp uCid mCid = do
+buildNgramsLists gp user uCid mCid = do
   ngTerms     <- buildNgramsTermsList user uCid mCid gp (NgramsTerms, MapListSize 350)
   othersTerms <- mapM (buildNgramsOthersList user uCid GroupIdentity)
                       [ (Authors   , MapListSize 9)
@@ -132,6 +133,20 @@ buildNgramsOthersList user uCid _groupParams (nt, MapListSize mapListSize) = do
                           )]
 
 
+getGroupParams :: ( HasNodeError err
+                  , CmdM     env err m
+                  , RepoCmdM env err m
+                  , HasTreeError err
+                  )
+               => GroupParams -> Set Ngrams -> m GroupParams
+getGroupParams gp@(GroupWithPosTag l a _m) ng = do
+  hashMap <- HashMap.fromList <$> selectLems l a (Set.toList ng)
+  pure $ over gwl_map (\x -> x <> hashMap) gp
+getGroupParams gp _ = pure gp
+
+
+
+
 -- TODO use ListIds
 buildNgramsTermsList :: ( HasNodeError err
                         , CmdM     env err m
@@ -160,7 +175,7 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
   let socialLists_Stemmed = addScoreStem groupParams (HashMap.keysSet allTerms) socialLists
   printDebug "socialLists_Stemmed" socialLists_Stemmed
-  let groupedWithList = toGroupedTree {- groupParams -} socialLists_Stemmed allTerms
+  let groupedWithList = toGroupedTree socialLists_Stemmed allTerms
       (stopTerms, candidateTerms) = HashMap.partition ((== Just StopTerm) . viewListType)
                                   $ view flc_scores groupedWithList
 

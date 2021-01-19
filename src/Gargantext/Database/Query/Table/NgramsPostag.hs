@@ -16,7 +16,7 @@ Portability : POSIX
 module Gargantext.Database.Query.Table.NgramsPostag
     where
 
-import Control.Lens (view)
+import Control.Lens (view, (^.))
 import Data.HashMap.Strict (HashMap)
 import Data.Hashable (Hashable)
 import Data.Text (Text)
@@ -25,6 +25,7 @@ import Gargantext.Core.Types
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
+import Gargantext.Database.Query.Table.Ngrams
 import Gargantext.Database.Types
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict        as HashMap
@@ -38,10 +39,9 @@ data NgramsPostag = NgramsPostag { _np_lang   :: Lang
                                  , _np_lem    :: Ngrams
                                  }
   deriving (Eq, Ord, Generic, Show)
-
 makeLenses ''NgramsPostag
-
 instance Hashable NgramsPostag
+
 
 type NgramsPostagInsert = ( Int
                           , Int
@@ -64,12 +64,25 @@ toInsert (NgramsPostag l a p form lem) =
   )
 
 insertNgramsPostag :: [NgramsPostag] -> Cmd err (HashMap Text NgramsId)
-insertNgramsPostag ns =
-  if List.null ns
+insertNgramsPostag xs =
+  if List.null xs
      then pure HashMap.empty
-     else HashMap.fromList
-         <$> map (\(Indexed t i) -> (t,i))
-         <$> insertNgramsPostag' (map toInsert ns)
+     else do
+        -- We do not store the lem if it equals to its self form
+       let
+          (ns, nps) =
+            List.partition (\np -> np ^. np_form . ngramsTerms
+                                /= np ^. np_lem  . ngramsTerms
+                           ) xs
+
+       ns' <- insertNgrams (map (view np_form) ns)
+
+       nps' <- HashMap.fromList
+           <$> map (\(Indexed t i) -> (t,i))
+           <$> insertNgramsPostag' (map toInsert ns)
+
+       pure $ HashMap.union ns' nps'
+
 
 insertNgramsPostag' :: [NgramsPostagInsert] -> Cmd err [Indexed Text Int]
 insertNgramsPostag' ns = runPGSQuery queryInsertNgramsPostag (PGS.Only $ Values fields ns)
@@ -119,13 +132,15 @@ queryInsertNgramsPostag = [sql|
     )
   ------------------------------------------------
   ------------------------------------------------
-  , ins_postag AS ( INSERT INTO ngrams_postag (lang_id, algo_id, postag, ngrams_id, lemm_id,score)
-    SELECT ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id, 1
+  , ins_postag AS (
+    INSERT INTO ngrams_postag (lang_id, algo_id, postag, ngrams_id, lemm_id,score)
+    SELECT ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id, count(*) as s
     FROM input_rows ir
       JOIN ins_form_ret  form ON form.terms = ir.form
       JOIN ins_lem_ret   lem  ON lem.terms  = ir.lem
-
-
+       GROUP BY ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id    
+       ORDER BY s DESC
+       LIMIT 1
       ON CONFLICT (lang_id,algo_id,postag,ngrams_id,lemm_id)
         DO UPDATE SET score = ngrams_postag.score + 1
     )
@@ -135,9 +150,10 @@ SELECT terms,id FROM ins_form_ret
 
   |]
 
-
-selectLems :: [Ngrams] -> Cmd err [(Form, Lem)]
-selectLems ns = runPGSQuery querySelectLems (PGS.Only $ Values fields (map toRow ns))
+-- TODO add lang and postag algo
+-- TODO remove when form == lem in insert
+selectLems :: Lang -> PosTagAlgo -> [Ngrams] -> Cmd err [(Form, Lem)]
+selectLems l a ns = runPGSQuery querySelectLems (PGS.Only $ Values fields (map toRow ns))
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
