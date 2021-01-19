@@ -21,9 +21,9 @@ sudo apt upgrade
 sudo apt install tmux htop
 
 ########################################################################
-sudo sed -i "s/stretch/buster/g" /etc/apt/sources.list
+#sudo sed -i "s/stretch/buster/g" /etc/apt/sources.list
 #sudo apt update
-sudo apt dist-upgrade
+#sudo apt dist-upgrade
 # sudo reboot #recommended
 ########################################################################
 
@@ -36,19 +36,19 @@ sudo apt install git
 
 
 ########################################################################
-echo "Which user?"
+#echo "Which user?"
 #read USER
 USER="gargantua"
-sudo adduser --disabled-password --gecos "" $USER
+#sudo adduser --disabled-password --gecos "" $USER
 
 ########################################################################
 #cd /home
 #sudo mv -if /home/$USER /srv/
 #sudo ln -s /srv/$USER
 
-curl -sSL https://get.haskellstack.org/ | sh
+#sudo apt install curl
+#curl -sSL https://get.haskellstack.org/ | sh
 
-sudo apt install curl
 sudo su $USER
 stack update
 stack upgrade
@@ -118,63 +118,7 @@ fi
 ## POSTGRESQL DATA (as ROOT)
 #######################################################################
 
-./devops/debian/install-postgres
+#./devops/debian/install-postgres
 
 # configure the database with script in devops/postgres
 # edit gargantext.ini
-
-
-
-                        ..........,,;;;;,,,oKXNNNNNNNNNXXXXXKK0OOxdl::ccc:::::;;;;,,,'..                                 
-              .........';;;;;;,,,,'''''''''dXNMMMMMMMMMMMMMMMMMMMWWWNNNWNNNNNNXXXXKKK0Oxddlcc::::::::;;;,,,'....         
-    .........',,,;;;;,,,'''''''''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWWWNNNNNNNXXXXKKK0Oxddlcccc::;;
-   .::cccllc:;''''''''''''''''''''.''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNXXXXKK0O
-...';;;;;;;;;,'''''''''''''''''''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWWNNNNNNX0
-;;,,'''''''''''''''''''''''''''''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-'''''''''''''''''''''''''''''''''',;:::cclldkOOOOO00000KKKXXNWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-'''''''''''''''''''''''''''';:loodkkOO0KKXXkc:;;;;:::::cccloodxkkO0NMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-''''''''''''''''''','''''',,:okKKNMMMMMMMMMk;,'''''''',''''''',;;cd0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-''''''''''''''''''''''',:lxxk0KNNWMWWWNXKKKkoooolllcc:;,''''''',,:lOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-''''''''''''''''''',:llx0XWWMMWWWX0kddolcccx0KXXXXKKK0Okxxo:;'''';:OMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-'''''''''''''''''':oOXXNMMMMNXOddl:,'''''''oXNMMMMMMMMMMWWX0l'''';:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-'''''''''''''''':lONWMMMMNXXkl:,,''''''''''dXNMMMMMMMMMMMMWWx,,'';:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''''''',::xXNMMMMWWOoo:''''''''''''''dXNMMMMWNNNNWWWMMk:;'';cOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''''''':oo0MMMMMMWXd,,,,''''''''''',,dXNMMMMNXXXXNWWMMOc;'';cOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-'''''''''''''lOOXMMMMMMXkl'''''''''''''''''dXNMMWNKOOOO0KKNMKxoccod0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''''',:kWWWMMMWWWk:,'''''''''''''''''dXNMMXOkxxxxxxx0NNNXKKKXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''''''cxKMMMMMMNKKo'''''''''''''''''''dXNMMXOkxxxxxxx0NWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-'''''''''''oKNMMMMMMKddc'''''''''''''''''''dXWMMNX0OOOkO00XWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''''''dNWMMMMMM0oo:'''''''''''''''''''oXNMMWWX000OKNNWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''',,xWWMMMMMMOcc;'''''''''''''''''''oXNMMMWNNNXXNWWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''',;;kMMMMMMMMk;;,'''''''''''''''''''dXWMMMMMMMMWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''',::kMMMMMMMMk;;,'''''''''''''''''''dXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''';::kMMMMMMMMk;;,'''''''''''''''''''dXNMMNKOkkkkkkkkkkkkkkkkkkkkkOOOXMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''',;;kMMMMMMMMO::;'''''''''''''''''''dXNMMKxo::::;,,,,,,,,,,,;;;;:cll0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''',,,kMMMMMMMMOcc;'''''''''''''''''''oXNMMXkocc::;,,,''''''''',,;:loo0MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''',,xWWMMMMMM0ll:'''''''''''''''''''oXNMMNX0OOOkkxxc'''''',,cxxkkO00XMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''''''oKNMMMMMMKkkc'''''''''''''''''''dXWMMMMMMMMMWWWx,,'''',;kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,''''''''''cdKMMMMMMNXXo'''''''''''''''''''dXWMMMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''''',;xWWWMMMMWWk:;'''''''''''''''''dXNMMMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-,''''''''''''lkkKMMMMMMX0o'''''''''''''''''dXNMMMMMMMMMMMMx,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''''''':llOMMMMMMWWx,,,''''''''''''''dXNWWMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-,'''''''''''',::xXNMMMMMW0oo:''''''''''''''dXNMMMMMMMMMMMMk,,'''',;kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWX
-;,,''''''''''''':lONWMMMMWNNOl:''''''''''''oXNMMMMMMMMMMMMx,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-.';,,,,''''''''''':dONNWMMMMWXOddl:,'''''''dXNMMMMMMMMMMMMk,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-  .',,,;,''''',,''',:ookKNMMMMWWWXOxddlc:;;xXNWWWWWWWNXXKKd,,'''',:kMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-   .'',:;''''''''''''''cxKMMMMMMMMMWNN0xollxKXWWWWNXXK0Okkl,''''';:kWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNX
-    ....';;,''''''''''';cokk0XWMMMMWWWXK0OOkxxxxdddddoolcc;'''',,:lOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNK0
-        ...,;,,,,'''',,'',,,:odkkO0KXXNNWWWk:;'''',,,;;:ccclodxkkO0XMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNX0kko:;,
-            .';;;;,'''''''''''',,;:clloodddxxxxxxxkkkOO000KXNWWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNXX0kocc:;'..    
-              ....';,''''''''''''''''''''''dXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNXX0koc:;;'.            
-                  ..,;;;,''''''''''''''''''dXNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWNXKOOd::;;'.                   
-                    .cc:,''''''''''''''''''dXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNXXK0dcc.                         
-                    ...,;;,,,''''''''''''''dXWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNNKOdcc::,...                         
-                        ..'',;,''''''''''''oXNMMMMMMMMMMMMMMMMMMMMMMMMMMWNNNXKOOd::::,..                                 
-                            ..';;,'''''''''oKNMMMMMMMMMMMMMMMMMMMWWNXXKOd::::,...                                        
-                               ..';;,,,''''oXNMMMMMMMMMMMMWWNXKOOdc:;;,.. TODO, too big, what diet for this ascii art ?  
-                                 .::;;,''''oXNWWMMMMMMMMMMWNK0d::.                                                       
-                                 ..',,,,,''oKNMMMMWWWNX0OOdc:;,..                                                        
-                                    ....';;o0KXXKOdcc:;,...                                                              
-                                        .ccdOO00xl.                                                                      
-
-
