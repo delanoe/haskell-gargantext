@@ -88,8 +88,10 @@ groupWith (GroupParams l _m _n _) t =
 -- | This lemmatization group done with CoreNLP algo (or others)
 groupWith (GroupWithPosTag _ _ m) t = 
   case HashMap.lookup (unNgramsTerm t) m of
-      Nothing -> t
-      Just t' -> NgramsTerm t'
+      Nothing -> clean t
+      Just t' -> clean $ NgramsTerm t'
+  where
+    clean (NgramsTerm t) = NgramsTerm $ Text.replace "-" " " t
 
 --------------------------------------------------------------------
 stemPatches :: GroupParams

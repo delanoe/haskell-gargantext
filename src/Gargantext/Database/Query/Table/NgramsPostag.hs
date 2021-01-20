@@ -140,11 +140,12 @@ queryInsertNgramsPostag = [sql|
     FROM input_rows ir
       JOIN ins_form_ret  form ON form.terms = ir.form
       JOIN ins_lem_ret   lem  ON lem.terms  = ir.lem
-       -- GROUP BY ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id    
+       -- GROUP BY ir.lang_id, ir.algo_id, ir.postag, form.id, lem.id
        -- ORDER BY s DESC
        -- LIMIT 1
       ON CONFLICT (lang_id,algo_id,postag,ngrams_id,lemm_id)
-        DO UPDATE SET score = ngrams_postag.score + 1
+        DO NOTHING -- acceptable for now since we are using NP mainly
+        -- DO UPDATE SET score = ngrams_postag.score + 1
     )
 
 SELECT terms,id FROM ins_form_ret

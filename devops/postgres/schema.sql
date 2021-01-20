@@ -59,7 +59,7 @@ CREATE TABLE public.ngrams_postag (
     lemm_id   INTEGER NOT NULL,
     score     INTEGER DEFAULT 1 ::integer NOT NULL,
     FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
-    FOREIGN KEY (lemm_id) REFERENCES public.ngrams(id) ON DELETE CASCADE
+    FOREIGN KEY (lemm_id)   REFERENCES public.ngrams(id) ON DELETE CASCADE
 );
 ALTER TABLE public.ngrams_postag OWNER TO gargantua;
 
