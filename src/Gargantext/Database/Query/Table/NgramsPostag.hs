@@ -24,7 +24,7 @@ import Data.Hashable (Hashable)
 import Data.Text (Text)
 import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Database.Prelude (Cmd, runPGSQuery)
+import Gargantext.Database.Prelude (Cmd, runPGSQuery, runPGSQuery_)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
 import Gargantext.Database.Query.Table.Ngrams
@@ -178,5 +178,29 @@ querySelectLems = [sql|
 
   SELECT t1,t2 from lems
   |]
+
+-- | Insert Table
+createTable_NgramsPostag :: Cmd err [(Form, Lem)]
+createTable_NgramsPostag = runPGSQuery_ queryCreateTable
+  where
+    queryCreateTable :: PGS.Query
+    queryCreateTable = [sql|
+
+    CREATE TABLE public.ngrams_postag (
+        id SERIAL,
+        lang_id INTEGER,
+        algo_id INTEGER,
+        postag CHARACTER varying(5),
+        ngrams_id INTEGER NOT NULL,
+        lemm_id   INTEGER NOT NULL,
+        score     INTEGER DEFAULT 1 ::integer NOT NULL,
+        FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
+        FOREIGN KEY (lemm_id)   REFERENCES public.ngrams(id) ON DELETE CASCADE
+    );
+    -- ALTER TABLE public.ngrams_postag OWNER TO gargantua;
+
+    CREATE UNIQUE INDEX ON public.ngrams_postag (lang_id,algo_id,postag,ngrams_id,lemm_id);
+
+      |]
 
 

@@ -41,6 +41,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , allDataOrigins
 
   , do_api
+  , upgrade
   )
     where
 
@@ -92,13 +93,18 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
-import Gargantext.Database.Schema.Node (NodePoly(..))
+import Gargantext.Database.Schema.Node (NodePoly(..), node_id)
 import Gargantext.Database.Types
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 
+------------------------------------------------------------------------
+-- Impots for upgrade function
+import Gargantext.Database.Query.Tree.Root (getRootId)
+import Gargantext.Database.Query.Tree (findNodesId)
+import qualified Data.List as List
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
 data DataOrigin = InternalOrigin { _do_api :: API.ExternalAPIs }
@@ -430,5 +436,40 @@ instance (ExtractNgramsT a, HasText a) => ExtractNgramsT (Node a)
 instance HasText a => HasText (Node a)
   where
     hasText (Node _ _ _ _ _ _ _ h) = hasText h
+
+
+
+
+-- | Upgrade function
+-- Suppose all documents are English (this is the case actually)
+upgrade :: FlowCmdM env err m => m ()
+upgrade = do
+  rootId    <- getRootId (UserName userMaster)
+  corpusIds <- findNodesId rootId [NodeCorpus]
+  docs      <- List.concat <$> mapM getDocumentsWithParentId [NodeId 5]
+
+  printDebug "Nb of docs" (List.length docs)
+
+  let documentsWithId = map (\doc -> Indexed (doc ^. node_id) doc) docs
+
+  mapNgramsDocs' :: HashMap ExtractedNgrams (Map NgramsType (Map NodeId Int))
+                <- mapNodeIdNgrams
+                <$> documentIdWithNgrams
+                    (extractNgramsT $ withLang (Multi EN) documentsWithId)
+                    documentsWithId
+
+  terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
+
+  pure ()
+
+
+
+
+
+
+
+
+
+
 
 

@@ -26,6 +26,9 @@ import Gargantext.Prelude
 import System.Environment (getArgs)
 
 
+
+
+
 main :: IO ()
 main = do
   [iniPath] <- getArgs

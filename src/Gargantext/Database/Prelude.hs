@@ -25,7 +25,7 @@ import Data.Either.Extra (Either(Left, Right))
 import Data.Ini (readIniFile, lookupValue)
 import Data.Pool (Pool, withResource)
 import Data.Profunctor.Product.Default (Default)
-import Data.Text (unpack, pack)
+import Data.Text (unpack, pack, Text)
 import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
@@ -135,6 +135,18 @@ runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
       q' <- PGS.formatQuery c q a
       hPutStrLn stderr q'
       throw (SomeException e)
+
+-- | TODO catch error
+runPGSQuery_ :: ( CmdM env err m
+               , PGS.FromRow r
+               )
+               => PGS.Query -> m [r]
+runPGSQuery_ q = mkCmd $ \conn -> catch (PGS.query_ conn q) printError
+  where
+    printError (SomeException e) = do
+      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error query" :: Text)
+      throw (SomeException e)
+
 
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64
