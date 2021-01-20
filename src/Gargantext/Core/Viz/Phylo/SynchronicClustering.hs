@@ -135,7 +135,7 @@ groupsToEdges prox sync nbDocs diago groups =
         toEdges sens edges = 
             case prox of
                 WeightedLogJaccard _ -> map (\(g,g') -> 
-                                                     ((g,g'), weightedLogJaccard' (1 / sens) nbDocs diago
+                                                     ((g,g'), weightedLogJaccard' (sens) nbDocs diago
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
                 _ -> undefined  
 
