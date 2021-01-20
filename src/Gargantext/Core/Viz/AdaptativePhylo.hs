@@ -72,6 +72,15 @@ data Proximity =
       -- , _wlj_elevation     :: Double
 -}
       }
+    | WeightedLogSim 
+      { _wlj_sensibility   :: Double
+{-
+      -- , _wlj_thresholdInit :: Double
+      -- , _wlj_thresholdStep :: Double
+      -- | max height for sea level in temporal matching
+      -- , _wlj_elevation     :: Double
+-}
+      } 
     | Hamming 
     deriving (Show,Generic,Eq) 
 

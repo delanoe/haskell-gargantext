@@ -796,6 +796,7 @@ getPeriodSteps q = q ^. q_periodSteps
 getThreshold :: Proximity -> Double
 getThreshold prox = case prox of 
   WeightedLogJaccard (WLJParams thr _) -> thr
+  WeightedLogSim (WLJParams thr _) -> thr
   Hamming (HammingParams thr)          -> thr
   Filiation                            -> panic "[ERR][Viz.Phylo.Tools.getThreshold] Filiation"
 
@@ -834,6 +835,8 @@ initRelatedComponents (def defaultWeightedLogJaccard -> proxi) = RCParams proxi
 initWeightedLogJaccard :: Maybe Double -> Maybe Double -> WLJParams
 initWeightedLogJaccard (def 0.3 -> thr) (def 20.0 -> sens) = WLJParams thr sens
 
+initWeightedLogSim :: Maybe Double -> Maybe Double -> WLJParams
+initWeightedLogSim (def 0.3 -> thr) (def 20.0 -> sens) = WLJParams thr sens
 
 -- | To initialize a PhyloQueryBuild from given and default parameters
 initPhyloQueryBuild :: Text          -> Text            -> Maybe Int
@@ -895,6 +898,9 @@ defaultHamming = Hamming (initHamming Nothing)
 
 defaultWeightedLogJaccard :: Proximity
 defaultWeightedLogJaccard = WeightedLogJaccard (initWeightedLogJaccard Nothing Nothing)
+
+defaultWeightedLogSim :: Proximity
+defaultWeightedLogSim = WeightedLogSim (initWeightedLogSim Nothing Nothing)
 
 -- Queries
 type Title = Text

@@ -295,12 +295,14 @@ filterProximity :: Proximity -> Double -> Double -> Bool
 filterProximity proximity thr local = 
     case proximity of
         WeightedLogJaccard _ -> local >= thr
+        WeightedLogSim _ -> local >= thr
         Hamming -> undefined   
 
 getProximityName :: Proximity -> String
 getProximityName proximity =
     case proximity of
         WeightedLogJaccard _ -> "WLJaccard"
+        WeightedLogSim _ -> "WeightedLogSim"
         Hamming -> "Hamming"            
 
 ---------------
@@ -484,6 +486,7 @@ traceSynchronyStart phylo =
 getSensibility :: Proximity -> Double
 getSensibility proxi = case proxi of 
     WeightedLogJaccard s -> s
+    WeightedLogSim s -> s
     Hamming -> undefined
 
 ----------------

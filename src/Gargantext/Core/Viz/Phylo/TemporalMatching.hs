@@ -73,18 +73,48 @@ weightedLogJaccard' sens nbDocs diago ngrams ngrams'
     diagoUnion =  elems $ restrictKeys diago (Set.fromList ngramsUnion)
     --------------------------------------  
 
+-- | Process the weighted similarity between clusters. Adapted from Wang, X., Cheng, Q., Lu, W., 2014. Analyzing evolution of research topics with NEViewer: a new method based on dynamic co-word networks. Scientometrics 101, 1253–1271. https://doi.org/10.1007/s11192-014-1347-y (log added in the formula + pair comparison)
+-- tests not conclusive 
+weightedLogSim' :: Double -> Double -> Map Int Double -> [Int] -> [Int] -> Double
+weightedLogSim' sens nbDocs diago ego_ngrams target_ngrams
+  | null ngramsInter           = 0
+  | ngramsInter == ngramsUnion = 1
+  | sens == 0    = jaccard ngramsInter ngramsUnion
+  | sens > 0     = (sumInvLog' sens nbDocs diagoInter) / minimum [(sumInvLog' sens nbDocs diagoEgo),(sumInvLog' sens nbDocs diagoTarget)]
+  | otherwise    = (sumLog' sens nbDocs diagoInter) / minimum [(sumLog' sens nbDocs diagoEgo),(sumLog' sens nbDocs diagoTarget)] 
+  where 
+    --------------------------------------
+    ngramsInter :: [Int] 
+    ngramsInter = intersect ego_ngrams target_ngrams  
+    --------------------------------------
+    ngramsUnion :: [Int] 
+    ngramsUnion = union ego_ngrams target_ngrams
+    --------------------------------------
+    diagoInter :: [Double]
+    diagoInter =  elems $ restrictKeys diago (Set.fromList ngramsInter)
+    --------------------------------------  
+    diagoEgo :: [Double]
+    diagoEgo =  elems $ restrictKeys diago (Set.fromList ego_ngrams)
+    --------------------------------------  
+    diagoTarget :: [Double]
+    diagoTarget =  elems $ restrictKeys diago (Set.fromList target_ngrams)
+    --------------------------------------  
 
--- | To process the proximity between a current group and a pair of targets group
 toProximity :: Double -> Map Int Double -> Proximity -> [Int] -> [Int] -> [Int] -> Double
+-- | To process the proximity between a current group and a pair of targets group using the adapted Wang et al. Similarity
 toProximity nbDocs diago proximity egoNgrams targetNgrams targetNgrams' =
   case proximity of 
     WeightedLogJaccard sens -> 
       let pairNgrams = if targetNgrams == targetNgrams'
                           then targetNgrams
                           else union targetNgrams targetNgrams'
-       in weightedLogJaccard' sens nbDocs diago egoNgrams pairNgrams
+       in weightedLogJaccard' sens nbDocs diago egoNgrams pairNgrams       
+    WeightedLogSim sens -> 
+      let pairNgrams = if targetNgrams == targetNgrams'
+                          then targetNgrams
+                          else union targetNgrams targetNgrams'
+       in weightedLogSim' sens nbDocs diago egoNgrams pairNgrams
     Hamming -> undefined
-
 
 ------------------------
 -- | Local Matching | --
