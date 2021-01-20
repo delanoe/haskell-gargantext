@@ -7,6 +7,8 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
+TODO use Opaleye for the queries.
+
 -}
 
 {-# LANGUAGE Arrows            #-}
@@ -153,19 +155,22 @@ SELECT terms,id FROM ins_form_ret
 -- TODO add lang and postag algo
 -- TODO remove when form == lem in insert
 selectLems :: Lang -> PosTagAlgo -> [Ngrams] -> Cmd err [(Form, Lem)]
-selectLems l a ns = runPGSQuery querySelectLems (PGS.Only $ Values fields (map toRow ns))
+selectLems l a ns = runPGSQuery querySelectLems (PGS.Only $ Values fields datas)
   where
-    fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
+    fields = map (\t -> QualifiedIdentifier Nothing t) ["int4","int4","text", "int4"]
+    datas  = map (\d -> [toField $ toDBid l, toField $ toDBid a] <> toRow d) ns 
 
 ----------------------
 querySelectLems :: PGS.Query
 querySelectLems = [sql|
-  WITH input_rows(terms,n)
+  WITH input_rows(lang_id, algo_id, terms,n)
     AS (?) -- ((VALUES ('automata' :: "text")))
     , lems AS ( select n1.terms as t1 ,n2.terms as t2 ,sum(np.score) as score from input_rows ir
     JOIN ngrams        n1 ON ir.terms = n1.terms
     JOIN ngrams_postag np ON np.ngrams_id = n1.id
     JOIN ngrams        n2 ON n2.id    = np.lemm_id
+    WHERE np.lang_id = ir.lang_id
+      AND np.algo_id = ir.algo_id
     GROUP BY n1.terms, n2.terms
     ORDER BY score DESC
   )
