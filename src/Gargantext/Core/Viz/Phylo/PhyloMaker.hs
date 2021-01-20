@@ -203,8 +203,8 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                  $ filterClique True s (filterCliqueBySupport)
                  {- \$ traceFis "Unfiltered Fis" -}
                  phyloClique
-    MaxClique s -> filterClique True s (filterCliqueBySize)
-                 phyloClique
+    MaxClique s _ _ -> filterClique True s (filterCliqueBySize)
+                       phyloClique
     where
         -------------------------------------- 
         phyloClique :: Map (Date,Date) [PhyloClique]
@@ -216,13 +216,13 @@ toPhyloClique phylo phyloDocs = case (clique $ getConfig phylo) of
                                $ toList phyloDocs
                           fis' = fis `using` parList rdeepseq
                        in fromList fis'
-          MaxClique _ -> 
+          MaxClique _ thr filterType -> 
                       let mcl  = map (\(prd,docs) -> 
                                     let cooc = map round
                                              $ foldl sumCooc empty
                                              $ map listToMatrix 
                                              $ map (\d -> ngramsToIdx (text d) (getRoots phylo)) docs
-                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques Conditional 0.001 cooc)) 
+                                     in (prd, map (\cl -> PhyloClique cl 0 prd) $ getMaxCliques filterType Conditional thr cooc)) 
                                $ toList phyloDocs
                           mcl' = mcl `using` parList rdeepseq                               
                        in fromList mcl' 

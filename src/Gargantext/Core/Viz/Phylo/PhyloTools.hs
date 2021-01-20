@@ -225,12 +225,12 @@ traceFis msg mFis = trace ( "\n" <> "-- | " <> msg <> " : " <> show (sum $ map l
 getCliqueSupport :: Clique -> Int
 getCliqueSupport unit = case unit of 
     Fis s _ -> s
-    MaxClique _ -> 0
+    MaxClique _ _ _ -> 0
 
 getCliqueSize :: Clique -> Int
 getCliqueSize unit = case unit of 
     Fis _ s -> s
-    MaxClique s -> s
+    MaxClique s _ _ -> s
 
 
 --------------
