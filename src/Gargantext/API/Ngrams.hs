@@ -517,6 +517,15 @@ getTableNgrams _nType nId tabType listId limit_ offset
     sortOnOrder (Just ScoreDesc) = List.sortOn $ Down . view ne_occurrences
 
     ---------------------------------------
+
+    filteredNodes :: Map NgramsTerm NgramsElement -> [NgramsElement]
+    filteredNodes tableMap = rootOf <$> list & filter selected_node
+      where
+        rootOf ne = maybe ne (\r -> fromMaybe (panic "getTableNgrams: invalid root") (tableMap ^. at r))
+                             (ne ^. ne_root)
+        list = tableMap ^.. each
+
+    ---------------------------------------
     selectAndPaginate :: Map NgramsTerm NgramsElement -> [NgramsElement]
     selectAndPaginate tableMap = roots <> inners
       where
@@ -561,11 +570,18 @@ getTableNgrams _nType nId tabType listId limit_ offset
   -- trace (show lists) $
   -- getNgramsTableMap ({-lists <>-} listIds) ngramsType
 
+
   let scoresNeeded = needsScores orderBy
   tableMap1 <- getNgramsTableMap listId ngramsType
   t1 <- getTime'
   tableMap2 <- tableMap1 & v_data %%~ setScores scoresNeeded
                                     . Map.mapWithKey ngramsElementFromRepo
+
+  fltr <- tableMap2 & v_data %%~ fmap NgramsTable . setScores (not scoresNeeded)
+                                                  . filteredNodes
+
+  printDebug "[getTableNgrams] fltr" $ length $ fltr ^. v_data . _NgramsTable
+
   t2 <- getTime'
   tableMap3 <- tableMap2 & v_data %%~ fmap NgramsTable
                                     . setScores (not scoresNeeded)
