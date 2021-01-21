@@ -25,6 +25,7 @@ import Gargantext.Database.Query.Table.Node.UpdateOpaleye
 import Gargantext.Database.Prelude (Cmd'', )
 import Gargantext.Prelude
 import System.Environment (getArgs)
+import Prelude (getLine)
 
 -- | PosTag
 import Gargantext.Database.Action.Flow (indexAllDocumentsWithPosTag)
@@ -34,10 +35,17 @@ main :: IO ()
 main = do
   [iniPath] <- getArgs
 
+  putStrLn "Manual method (for now):"
+  putStrLn "Use SQL script to upgrade your schema database with the script:"
+  putStrLn "psql gargandbV5 < ./devops/postgres/upgrade/0.0.2.6.sql"
+  putStrLn "Then press enter key when you are done"
+  _ok  <- getLine
+
   let
     upgrade :: Cmd'' DevEnv GargError ()
     upgrade = do
-      _ <- createTable_NgramsPostag
+      -- This method does not work for now
+      -- _ <- createTable_NgramsPostag
       _ <- indexAllDocumentsWithPosTag
       pure ()
 

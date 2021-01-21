@@ -180,8 +180,9 @@ querySelectLems = [sql|
   |]
 
 -- | Insert Table
-createTable_NgramsPostag :: Cmd err [(Form, Lem)]
-createTable_NgramsPostag = runPGSQuery_ queryCreateTable
+createTable_NgramsPostag :: Cmd err [Int]
+createTable_NgramsPostag = map (\(PGS.Only a) -> a)
+                        <$> runPGSQuery_ queryCreateTable
   where
     queryCreateTable :: PGS.Query
     queryCreateTable = [sql|
@@ -196,7 +197,7 @@ createTable_NgramsPostag = runPGSQuery_ queryCreateTable
         score     INTEGER DEFAULT 1 ::integer NOT NULL,
         FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
         FOREIGN KEY (lemm_id)   REFERENCES public.ngrams(id) ON DELETE CASCADE
-    );
+    )  ;
     -- ALTER TABLE public.ngrams_postag OWNER TO gargantua;
 
     CREATE UNIQUE INDEX ON public.ngrams_postag (lang_id,algo_id,postag,ngrams_id,lemm_id);
