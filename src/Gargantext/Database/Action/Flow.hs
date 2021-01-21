@@ -459,7 +459,7 @@ indexAllDocumentsWithPosTag = do
                     documentsWithId
 
   _ <- mapM insertExtractedNgrams
-     $ splitEvery 10000
+     $ splitEvery 500
      $ HashMap.keys mapNgramsDocs'
 
   pure ()
