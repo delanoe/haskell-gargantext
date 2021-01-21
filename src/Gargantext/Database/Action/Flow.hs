@@ -41,7 +41,7 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , allDataOrigins
 
   , do_api
-  , upgrade
+  , indexAllDocumentsWithPosTag
   )
     where
 
@@ -439,14 +439,14 @@ instance HasText a => HasText (Node a)
 
 
 
-
+-- | TODO putelsewhere
 -- | Upgrade function
 -- Suppose all documents are English (this is the case actually)
-upgrade :: FlowCmdM env err m => m ()
-upgrade = do
+indexAllDocumentsWithPosTag :: FlowCmdM env err m => m ()
+indexAllDocumentsWithPosTag = do
   rootId    <- getRootId (UserName userMaster)
   corpusIds <- findNodesId rootId [NodeCorpus]
-  docs      <- List.concat <$> mapM getDocumentsWithParentId [NodeId 5]
+  docs      <- List.concat <$> mapM getDocumentsWithParentId corpusIds
 
   printDebug "Nb of docs" (List.length docs)
 
@@ -458,7 +458,7 @@ upgrade = do
                     (extractNgramsT $ withLang (Multi EN) documentsWithId)
                     documentsWithId
 
-  terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
+  _ <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
 
   pure ()
 

@@ -91,7 +91,7 @@ groupWith (GroupWithPosTag _ _ m) t =
       Nothing -> clean t
       Just t' -> clean $ NgramsTerm t'
   where
-    clean (NgramsTerm t) = NgramsTerm $ Text.replace "-" " " t
+    clean (NgramsTerm t'') = NgramsTerm $ Text.replace "-" " " t''
 
 --------------------------------------------------------------------
 stemPatches :: GroupParams
