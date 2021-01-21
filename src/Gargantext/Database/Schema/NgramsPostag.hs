@@ -43,8 +43,8 @@ data NgramsPostagPoly id
                      } deriving (Show)
 
 ------------------------------------------------------------------------
-data PosTag = PosTag { unPosTag :: Text }
-            | NER    { unNER    :: Text } -- TODO
+data PosTag = PosTag { unPosTag :: !Text }
+            | NER    { unNER    :: !Text } -- TODO
 
 ------------------------------------------------------------------------
 -- type NgramsPostag   = NgramsPostagPoly (Maybe Int) Lang PostTagAlgo (Maybe PosTag) NgramsTerm NgramsTerm (Maybe Int)
