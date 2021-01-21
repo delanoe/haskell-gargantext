@@ -137,6 +137,10 @@ groupsToEdges prox sync nbDocs diago groups =
                 WeightedLogJaccard _ -> map (\(g,g') -> 
                                                      ((g,g'), weightedLogJaccard' (1 / sens) nbDocs diago
                                                                   (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
+                WeightedLogSim _ -> map (\(g,g') -> 
+                                                     ((g,g'), weightedLogJaccard' (1 / sens) nbDocs diago
+                                                                  (g ^. phylo_groupNgrams) (g' ^. phylo_groupNgrams))) edges
+                
                 _ -> undefined  
 
 toParentId :: PhyloGroup -> PhyloGroupId
