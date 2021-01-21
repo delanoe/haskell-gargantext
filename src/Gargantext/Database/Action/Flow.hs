@@ -458,7 +458,9 @@ indexAllDocumentsWithPosTag = do
                     (extractNgramsT $ withLang (Multi EN) documentsWithId)
                     documentsWithId
 
-  _ <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
+  _ <- mapM insertExtractedNgrams
+     $ splitEvery 10000
+     $ HashMap.keys mapNgramsDocs'
 
   pure ()
 
