@@ -448,25 +448,22 @@ indexAllDocumentsWithPosTag = do
   corpusIds <- findNodesId rootId [NodeCorpus]
   docs      <- List.concat <$> mapM getDocumentsWithParentId corpusIds
 
-  printDebug "Nb of docs" (List.length docs)
+  _ <- mapM extractInsert (splitEvery 1000 docs)
 
+  pure ()
+
+extractInsert :: FlowCmdM env err m => [Node HyperdataDocument] -> m ()
+extractInsert docs = do
   let documentsWithId = map (\doc -> Indexed (doc ^. node_id) doc) docs
 
-  mapNgramsDocs' :: HashMap ExtractedNgrams (Map NgramsType (Map NodeId Int))
-                <- mapNodeIdNgrams
+  mapNgramsDocs' <- mapNodeIdNgrams
                 <$> documentIdWithNgrams
                     (extractNgramsT $ withLang (Multi EN) documentsWithId)
                     documentsWithId
 
-  _ <- mapM insertExtractedNgrams
-     $ splitEvery 500
-     $ HashMap.keys mapNgramsDocs'
+  _ <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
 
   pure ()
-
-
-
-
 
 
 
