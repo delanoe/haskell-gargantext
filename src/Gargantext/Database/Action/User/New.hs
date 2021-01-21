@@ -25,7 +25,7 @@ import Gargantext.Database.Query.Table.User
 import Gargantext.Prelude
 import Gargantext.Prelude.Config
 import Gargantext.Prelude.Crypto.Pass.User (gargPass)
-
+import qualified Data.Text as Text
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 newUsers :: (CmdM env err m, MonadRandom m, HasNodeError err)
@@ -45,9 +45,11 @@ newUserQuick n = do
   pure (NewUser u n (GargPassword pass))
 
 ------------------------------------------------------------------------
+-- | guessUserName
+-- guess username and normalize it (Text.toLower)
 guessUserName :: Text -> Maybe (Text,Text)
 guessUserName n = case splitOn "@" n of
-    [u',m'] -> if m' /= "" then Just (u',m')
+    [u',m'] -> if m' /= "" then Just (Text.toLower u',m')
                            else Nothing
     _       -> Nothing
 ------------------------------------------------------------------------
