@@ -36,7 +36,7 @@ main = do
   [iniPath] <- getArgs
 
   putStrLn "Manual method (for now):"
-  putStrLn "Use SQL script to upgrade your schema database with the script:"
+  putStrLn "Upgrade your schema database with the script:"
   putStrLn "psql gargandbV5 < ./devops/postgres/upgrade/0.0.2.6.sql"
   putStrLn "Then press enter key when you are done"
   _ok  <- getLine
