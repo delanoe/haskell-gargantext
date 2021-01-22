@@ -170,8 +170,8 @@ main = do
 
             let sensibility = case (phyloProximity config) of
                         Hamming -> undefined
-                        WeightedLogJaccard s -> ( "WeightedLogJaccard_" <> show s)    
-                        WeightedLogSim s -> ( "WeightedLogSim_" <> show s) 
+                        WeightedLogJaccard s -> ( "WeightedLogJaccard-level" <> show s)    
+                        WeightedLogSim s -> ( "WeightedLogSim-level_" <> show s) 
 
             let sync = case (phyloSynchrony config) of
                         ByProximityThreshold t _ _ _ -> (show t)
@@ -185,7 +185,7 @@ main = do
             let output = (outputPath config) 
                       <> (unpack $ phyloName config)
                       <> "-" <> clq
-                      <> "-level_" <> (show (phyloLevel config))
+                      <> "-hlev_" <> (show (phyloLevel config))
                       <> "-sens_" <> sensibility                      
                       -- <> "-lenght_" <> br_length                                            
                       <> "-scale_" <> (show (_qua_granularity $ phyloQuality config))
