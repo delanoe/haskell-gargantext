@@ -649,7 +649,24 @@ instance (Typeable a, ToSchema a) => ToSchema (Versioned a) where
   declareNamedSchema = wellNamedSchema "_v_"
 instance Arbitrary a => Arbitrary (Versioned a) where
   arbitrary = Versioned 1 <$> arbitrary -- TODO 1 is constant so far
+------------------------------------------------------------------------
+type Count = Int
 
+data VersionedWithCount a = VersionedWithCount
+  { _vc_version :: Version
+  , _vc_count   :: Count
+  , _vc_data    :: a
+  }
+  deriving (Generic, Show, Eq)
+deriveJSON (unPrefix "_vc_") ''VersionedWithCount
+makeLenses ''VersionedWithCount
+instance (Typeable a, ToSchema a) => ToSchema (VersionedWithCount a) where
+  declareNamedSchema = wellNamedSchema "_vc_"
+instance Arbitrary a => Arbitrary (VersionedWithCount a) where
+  arbitrary = VersionedWithCount 1 1 <$> arbitrary -- TODO 1 is constant so far
+
+toVersionedWithCount :: Count -> Versioned a -> VersionedWithCount a
+toVersionedWithCount count (Versioned version data_) = VersionedWithCount version count data_
 ------------------------------------------------------------------------
 data Repo s p = Repo
   { _r_version :: !Version
