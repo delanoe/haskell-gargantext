@@ -3,7 +3,7 @@
 
 Welcome,
 
-This server is on maintenace, see you back soon.
+This server is on maintenance, see you back soon.
 
 (Sure, we take care of yours data, no worries :)
 
