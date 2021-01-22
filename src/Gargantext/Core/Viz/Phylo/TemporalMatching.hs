@@ -43,12 +43,12 @@ jaccard inter' union' = ((fromIntegral . length) $ inter') / ((fromIntegral . le
 
 -- | Process the inverse sumLog
 sumInvLog' :: Double -> Double -> [Double] -> Double
-sumInvLog' s nb diago = foldl (\mem occ -> mem + (1 / (log (occ + 1/s) / log (nb + 1/s)))) 0 diago
+sumInvLog' s nb diago = foldl (\mem occ -> mem + (1 / (log (occ + 1/ tan (s * pi / 2)) / log (nb + 1/ tan (s * pi / 2))))) 0 diago
 
 
 -- | Process the sumLog
 sumLog' :: Double -> Double -> [Double] -> Double
-sumLog' s nb diago = foldl (\mem occ -> mem + (log (occ + 1/s) / log (nb + 1/s))) 0 diago   
+sumLog' s nb diago = foldl (\mem occ -> mem + (log (occ + 1/ tan (s * pi / 2)) / log (nb + 1/ tan (s * pi / 2)))) 0 diago   
 
 
 weightedLogJaccard' :: Double -> Double -> Map Int Double -> [Int] -> [Int] -> Double

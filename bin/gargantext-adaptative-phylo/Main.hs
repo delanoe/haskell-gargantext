@@ -166,11 +166,12 @@ main = do
 
             let clq = case (clique config) of
                         Fis s s' -> "fis_" <> (show s) <> "_" <> (show s')
-                        MaxClique s _ _ ->  "clique_" <> (show s)
+                        MaxClique s t f ->  "clique_" <> (show s)<> "_"  <> (show f)<> "_"  <> (show t) 
 
             let sensibility = case (phyloProximity config) of
                         Hamming -> undefined
                         WeightedLogJaccard s -> (show s)    
+                        WeightedLogSim s -> (show s) 
 
             let sync = case (phyloSynchrony config) of
                         ByProximityThreshold t _ _ _ -> (show t)
