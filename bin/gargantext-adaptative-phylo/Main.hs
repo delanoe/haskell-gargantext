@@ -170,26 +170,30 @@ main = do
 
             let sensibility = case (phyloProximity config) of
                         Hamming -> undefined
-                        WeightedLogJaccard s -> ( "WeightedLogJaccard-level" <> show s)    
-                        WeightedLogSim s -> ( "WeightedLogSim-level_" <> show s) 
+                        WeightedLogJaccard s -> ("WeightedLogJaccard_s="  <> show s)     
+                        WeightedLogSim s -> ( "WeightedLogSim-sens_s="  <> show s  ) 
 
             let sync = case (phyloSynchrony config) of
-                        ByProximityThreshold t _ _ _ -> (show t)
+                        ByProximityThreshold scl sync_sens scope _ -> ("scale_" <> (show scope) <> "_" <> (show sync_sens)  <> "_"  <> (show scl)  )
                         ByProximityDistribution _ _ -> undefined
+          
+            let time_unit = case (timeUnit config) of
+                        Year period step frame -> ("time"<> "_"<> (show period) <> "_"<> (show step) <> (show frame))
 
-            -- to be improved
-            -- let br_length = case (take 1 $ exportFilter config) of
-            --             ByBranchSize t -> (show t)
-                        
+            let sea_elevation = case (seaElevation config) of
+                        Constante sea_start sea_step -> ("sea_cst_" <> (show sea_start) <> "_" <> (show sea_step))
+                        Adaptative granu -> ("sea_adapt" <> (show granu))                   
+            
 
             let output = (outputPath config) 
                       <> (unpack $ phyloName config)
-                      <> "-" <> clq
+                      <> "-" <> time_unit                      
                       <> "-hlev_" <> (show (phyloLevel config))
-                      <> "-sens_" <> sensibility                      
-                      -- <> "-lenght_" <> br_length                                            
-                      <> "-scale_" <> (show (_qua_granularity $ phyloQuality config))
-                      <> "-sync_" <> sync                                                                  
+                      <> "-" <> sea_elevation
+                      <> "-" <> sensibility                      
+                      <> "-" <> clq
+                      <> "-level_" <> (show (_qua_granularity $ phyloQuality config))
+                      <> "-" <> sync
                       <> ".dot"
 
             dotToFile output dot
