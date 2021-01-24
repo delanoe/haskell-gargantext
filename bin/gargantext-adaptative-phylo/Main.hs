@@ -170,8 +170,8 @@ main = do
 
             let sensibility = case (phyloProximity config) of
                         Hamming -> undefined
-                        WeightedLogJaccard s -> ("WeightedLogJaccard_s="  <> show s)     
-                        WeightedLogSim s -> ( "WeightedLogSim-sens_s="  <> show s  ) 
+                        WeightedLogJaccard s -> ("WeightedLogJaccard_"  <> show s)     
+                        WeightedLogSim s -> ( "WeightedLogSim-sens_"  <> show s  ) 
 
             let sync = case (phyloSynchrony config) of
                         ByProximityThreshold scl sync_sens scope _ -> ("scale_" <> (show scope) <> "_" <> (show sync_sens)  <> "_"  <> (show scl)  )
