@@ -34,7 +34,8 @@ import Gargantext.Core.Text.Context
 
 ---------------------------------------------------------------
 headerCsvGargV3 :: Header
-headerCsvGargV3 = header [ "title"
+headerCsvGargV3 =
+  header [ "title"
          , "source"
          , "publication_year"
          , "publication_month"
@@ -44,9 +45,9 @@ headerCsvGargV3 = header [ "title"
          ]
 ---------------------------------------------------------------
 data CsvGargV3 = CsvGargV3
-    { d_docId  :: !Int
-    , d_title  :: !Text
-    , d_source :: !Text
+    { d_docId             :: !Int
+    , d_title             :: !Text
+    , d_source            :: !Text
     , d_publication_year  :: !Int
     , d_publication_month :: !Int
     , d_publication_day   :: !Int
@@ -115,14 +116,14 @@ splitDoc m splt doc = let docSize = (length $ csv_abstract doc) in
         where
           firstDoc = CsvDoc t s py pm pd firstAbstract auth
           firstAbstract = head' "splitDoc'1" abstracts
-          
+
           nextDocs = map (\txt -> CsvDoc
                                     (head' "splitDoc'2" $ sentences txt)
                                     s py pm pd 
                                     (unsentences $ tail' "splitDoc'1" $ sentences txt)
                                     auth
                           ) (tail' "splitDoc'2" abstracts)
-          
+
           abstracts    = (splitBy $ contextSize) abst
 
 ---------------------------------------------------------------
@@ -226,7 +227,6 @@ readCsvLazyBS bs = case decodeByNameWith csvDecodeOptions bs of
       Right csvDocs -> csvDocs
 
 ------------------------------------------------------------------------
-
 -- | TODO use readFileLazy
 readCsvHal :: FilePath -> IO (Header, Vector CsvHal)
 readCsvHal = fmap readCsvHalLazyBS . BL.readFile
@@ -307,11 +307,11 @@ instance ToNamedRecord CsvHal where
   toNamedRecord (CsvHal t s py  pm pd abst aut  url isbn iss j lang  doi auth inst dept lab team doct) = 
     namedRecord [ "title"  .= t
                 , "source" .= s
-                
+
                 , "publication_year"  .= py
                 , "publication_month" .= pm
                 , "publication_day"   .= pd
-                
+
                 , "abstract"          .= abst
                 , "authors"           .= aut
 
@@ -320,13 +320,13 @@ instance ToNamedRecord CsvHal where
                 , "issue_s"            .= iss
                 , "journalPublisher_s" .= j
                 , "language_s"         .= lang
-                
+
                 , "doiId_s"            .= doi
                 , "authId_i"           .= auth
                 , "instStructId_i"     .= inst
                 , "deptStructId_i"     .= dept
                 , "labStructId_i"      .= lab
-                
+ 
                 , "rteamStructId_i"    .= team
                 , "docType_s"          .= doct
                ]
@@ -389,7 +389,6 @@ parseHal' :: BL.ByteString -> [HyperdataDocument]
 parseHal' = V.toList . V.map csvHal2doc . snd . readCsvHalLazyBS 
 
 ------------------------------------------------------------------------
-
 parseCsv :: FilePath -> IO [HyperdataDocument]
 parseCsv fp = V.toList <$> V.map csv2doc <$> snd <$> readFile fp
 
