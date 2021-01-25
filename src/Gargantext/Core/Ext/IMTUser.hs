@@ -23,15 +23,22 @@ import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Data.Vector (Vector)
 import GHC.Generics (Generic)
+import Gargantext.Core.Text.Corpus.Parsers.CSV
 import Gargantext.Database.Admin.Types.Hyperdata.Contact
 import Gargantext.Prelude
+import System.FilePath.Posix (takeExtension)
 import System.IO (FilePath)
 import qualified Data.ByteString.Lazy as BL
-import Gargantext.Core.Text.Corpus.Parsers.CSV
+import qualified Data.Vector          as Vector
 
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
+readFile_Annuaire :: FilePath -> IO [HyperdataContact]
+readFile_Annuaire fp = case takeExtension fp of
+    ".csv"  -> readCSVFile_Annuaire fp
+    ".data" -> deserialiseImtUsersFromFile fp
+    _       -> panic "[G.C.E.I.readFile_Annuaire] extension unknown"
 
+------------------------------------------------------------------------
 data IMTUser = IMTUser
   { id         :: Maybe Text
   , entite     :: Maybe Text
@@ -104,8 +111,14 @@ headerCSVannuaire :: Header
 headerCSVannuaire =
   header ["id","entite","mail","nom","prenom","fonction","fonction2","tel","fax","service","groupe","entite2","service2","groupe2","bureau","url","pservice","pfonction","afonction","afonction2","grprech","appellation","lieu","aprecision","atel","sexe","statut","idutilentite","actif","idutilsiecoles","date_modification"]
 
-readFile_Annuaire :: FilePath -> IO (Header, Vector IMTUser)
-readFile_Annuaire = fmap readCsvHalLazyBS' . BL.readFile
+
+readCSVFile_Annuaire :: FilePath -> IO [HyperdataContact]
+readCSVFile_Annuaire fp = do
+  users <- snd <$> readCSVFile_Annuaire' fp
+  pure $ map imtUser2gargContact $ Vector.toList users
+
+readCSVFile_Annuaire' :: FilePath -> IO (Header, Vector IMTUser)
+readCSVFile_Annuaire' = fmap readCsvHalLazyBS' . BL.readFile
   where
     readCsvHalLazyBS' :: BL.ByteString -> (Header, Vector IMTUser)
     readCsvHalLazyBS' bs = case decodeByNameWith csvDecodeOptions bs of
