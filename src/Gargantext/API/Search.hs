@@ -10,8 +10,6 @@ Portability : POSIX
 Count API part of Gargantext.
 -}
 
-
-
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
@@ -27,15 +25,17 @@ import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger, unCapitalize, dropPrefix)
-import Gargantext.Database.Query.Facet
-import Gargantext.Database.Action.Search
 import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
+import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact(..), HyperdataDocument(..), ContactWho(..))
+import Gargantext.Database.Admin.Types.Hyperdata.Contact (_cw_organization)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Facet
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+import qualified Data.Text as Text
 
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanSearch? or is it part of CanGetNode
@@ -105,8 +105,7 @@ instance Arbitrary SearchQuery where
   -- arbitrary = elements [SearchQuery "electrodes" 1 ] --SearchDoc]
 -----------------------------------------------------------------------
 data SearchResult =
-  SearchResult { result :: !SearchResultTypes
-              }
+  SearchResult { result :: !SearchResultTypes}
   | SearchResultErr !Text
     deriving (Generic)
 
@@ -281,5 +280,9 @@ instance ToHyperdataRow HyperdataDocument where
       (fromMaybe "EN" l)
 
 instance ToHyperdataRow HyperdataContact where
-  toHyperdataRow (HyperdataContact _ (Just (ContactWho _ fn ln _ _)) _ _ _ _ _ _ ) = HyperdataRowContact (fromMaybe "FN" fn) (fromMaybe "LN" ln) "Labs"
-  toHyperdataRow (HyperdataContact _ _ _ _ _ _ _ _ ) = HyperdataRowContact "FirstName" "LastName" "Labs"
+  toHyperdataRow (HyperdataContact _ (Just (ContactWho _ fn ln _ _)) ou _ _ _ _ _ ) =
+    HyperdataRowContact (fromMaybe "FirstName" fn) (fromMaybe "LastName" ln) ou'
+      where
+        ou' = maybe "IMT" (Text.intercalate " " . _cw_organization) (head ou)
+  toHyperdataRow (HyperdataContact _ _ _ _ _ _ _ _ ) =
+    HyperdataRowContact "FirstName" "LastName" "Labs"
