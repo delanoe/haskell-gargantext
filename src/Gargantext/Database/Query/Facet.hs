@@ -232,13 +232,23 @@ instance Arbitrary OrderBy
 -- TODO-SECURITY check
 
 --{-
-runViewAuthorsDoc :: HasDBid NodeType => ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+runViewAuthorsDoc :: HasDBid NodeType
+                  => ContactId
+                  -> IsTrash
+                  -> Maybe Offset
+                  -> Maybe Limit
+                  -> Maybe OrderBy
+                  -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
     ntId = NodeDocument
 
 -- TODO add delete ?
-viewAuthorsDoc :: HasDBid NodeType => ContactId -> IsTrash -> NodeType -> Query FacetDocRead
+viewAuthorsDoc :: HasDBid NodeType
+               => ContactId
+               -> IsTrash
+               -> NodeType
+               -> Query FacetDocRead
 viewAuthorsDoc cId _ nt = proc () -> do
   (doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
 
