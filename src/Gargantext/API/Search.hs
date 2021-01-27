@@ -294,6 +294,6 @@ instance ToHyperdataRow HyperdataContact where
   toHyperdataRow (HyperdataContact _ (Just (ContactWho _ fn ln _ _)) ou _ _ _ _ _ ) =
     HyperdataRowContact (fromMaybe "FirstName" fn) (fromMaybe "LastName" ln) ou'
       where
-        ou' = maybe "IMT" (Text.intercalate " " . _cw_organization) (head ou)
+        ou' = maybe "CNRS" (Text.intercalate " " . _cw_organization) (head ou)
   toHyperdataRow (HyperdataContact _ _ _ _ _ _ _ _ ) =
     HyperdataRowContact "FirstName" "LastName" "Labs"
