@@ -10,8 +10,6 @@ Portability : POSIX
 Count API part of Gargantext.
 -}
 
-
-
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
@@ -27,15 +25,17 @@ import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Utils.Prefix (unPrefixSwagger, unCapitalize, dropPrefix)
-import Gargantext.Database.Query.Facet
-import Gargantext.Database.Action.Search
 import Gargantext.Database.Action.Flow.Pairing (isPairedWith)
+import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataContact(..), HyperdataDocument(..), ContactWho(..))
+import Gargantext.Database.Admin.Types.Hyperdata.Contact (_cw_organization)
 import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Facet
 import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
+import qualified Data.Text as Text
 
 -----------------------------------------------------------------------
 -- TODO-ACCESS: CanSearch? or is it part of CanGetNode
@@ -47,16 +47,25 @@ type API results = Summary "Search endpoint"
                  :> QueryParam "order"  OrderBy
                  :> Post '[JSON] results
 -----------------------------------------------------------------------
+-- | Api search function
 api :: NodeId -> GargServer (API SearchResult)
+
 api nId (SearchQuery q SearchDoc) o l order =
-  SearchResult <$> SearchResultDoc <$> map toRow <$> searchInCorpus nId False q o l order
+  SearchResult <$> SearchResultDoc
+               <$> map (toRow nId)
+               <$> searchInCorpus nId False q o l order
+
 api nId (SearchQuery q SearchContact) o l order = do
   printDebug "isPairedWith" nId
   aIds <- isPairedWith nId NodeAnnuaire
   -- TODO if paired with several corpus
   case head aIds of
-    Nothing  -> pure $ SearchResult $ SearchNoResult "[G.A.Search] pair corpus with an Annuaire"
-    Just aId -> SearchResult <$> SearchResultContact <$> map toRow <$> searchInCorpusWithContacts nId aId q o l order
+    Nothing  -> pure $ SearchResult
+              $ SearchNoResult "[G.A.Search] pair corpus with an Annuaire"
+    Just aId -> SearchResult
+            <$> SearchResultContact
+            <$> map (toRow aId)
+            <$> searchInCorpusWithContacts nId aId q o l order
 api _ _ _ _ _ = undefined
 
 -----------------------------------------------------------------------
@@ -105,8 +114,7 @@ instance Arbitrary SearchQuery where
   -- arbitrary = elements [SearchQuery "electrodes" 1 ] --SearchDoc]
 -----------------------------------------------------------------------
 data SearchResult =
-  SearchResult { result :: !SearchResultTypes
-              }
+  SearchResult { result :: !SearchResultTypes}
   | SearchResultErr !Text
     deriving (Generic)
 
@@ -167,6 +175,7 @@ data Row =
              , c_created    :: !UTCTime
              , c_hyperdata  :: !HyperdataRow
              , c_score      :: !Int
+             , c_annuaireId :: !NodeId
              }
   deriving (Generic)
 
@@ -188,16 +197,17 @@ instance ToSchema Row where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "")
 
 class ToRow a where
-  toRow :: a -> Row
+  toRow :: NodeId -> a -> Row
 
 instance ToRow FacetDoc where
-  toRow (FacetDoc nId utc t h mc _md sc) = Document nId utc t (toHyperdataRow h) (fromMaybe 0 mc) (round $ fromMaybe 0 sc)
+  toRow _ (FacetDoc nId utc t h mc _md sc) =
+    Document nId utc t (toHyperdataRow h) (fromMaybe 0 mc) (round $ fromMaybe 0 sc)
 
 -- | TODO rename FacetPaired
 type FacetContact = FacetPaired Int UTCTime HyperdataContact Int
 
 instance ToRow FacetContact where
-  toRow (FacetPaired nId utc h s) = Contact nId utc (toHyperdataRow h) s
+  toRow annuaireId (FacetPaired nId utc h s) = Contact nId utc (toHyperdataRow h) s annuaireId
 
 
 --------------------------------------------------------------------
@@ -281,5 +291,9 @@ instance ToHyperdataRow HyperdataDocument where
       (fromMaybe "EN" l)
 
 instance ToHyperdataRow HyperdataContact where
-  toHyperdataRow (HyperdataContact _ (Just (ContactWho _ fn ln _ _)) _ _ _ _ _ _ ) = HyperdataRowContact (fromMaybe "FN" fn) (fromMaybe "LN" ln) "Labs"
-  toHyperdataRow (HyperdataContact _ _ _ _ _ _ _ _ ) = HyperdataRowContact "FirstName" "LastName" "Labs"
+  toHyperdataRow (HyperdataContact _ (Just (ContactWho _ fn ln _ _)) ou _ _ _ _ _ ) =
+    HyperdataRowContact (fromMaybe "FirstName" fn) (fromMaybe "LastName" ln) ou'
+      where
+        ou' = maybe "CNRS" (Text.intercalate " " . _cw_organization) (head ou)
+  toHyperdataRow (HyperdataContact _ _ _ _ _ _ _ _ ) =
+    HyperdataRowContact "FirstName" "LastName" "Labs"

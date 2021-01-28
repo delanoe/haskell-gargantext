@@ -95,10 +95,12 @@ type GargPrivateAPI' =
                            :> Capture "node_id" NodeId
                            :> NodeAPI HyperdataAny
 
+--{-
            -- Corpus endpoints
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "corpus_id" CorpusId
                            :> NodeAPI HyperdataCorpus
+--}
 
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "node1_id" NodeId
@@ -110,6 +112,12 @@ type GargPrivateAPI' =
                            :> Export.API
 
            -- Annuaire endpoint
+{-
+           :<|> "contact"  :> Summary "Contact endpoint"
+                           :> Capture "contact_id" ContactId
+                           :> NodeAPI HyperdataContact
+--}
+
            :<|> "annuaire" :> Summary "Annuaire endpoint"
                            :> Capture "annuaire_id" AnnuaireId
                            :> NodeAPI HyperdataAnnuaire
@@ -117,7 +125,6 @@ type GargPrivateAPI' =
            :<|> "annuaire" :> Summary "Contact endpoint"
                            :> Capture "annuaire_id" NodeId
                            :> Contact.API
-
            -- Document endpoint
            :<|> "document" :> Summary "Document endpoint"
                            :> Capture "doc_id" DocId
@@ -158,11 +165,11 @@ type GargPrivateAPI' =
            :<|> "lists"  :> Summary "List export API"
                          :> Capture "listId" ListId
                          :> List.API
-
+{-
            :<|> "wait"   :> Summary "Wait test"
                          :> Capture "x" Int
                          :> WaitAPI -- Get '[JSON] Int
-
+-}
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
 -- /rename/<id>
@@ -207,6 +214,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> Export.getCorpus   -- uid
+ --    :<|> nodeAPI     (Proxy :: Proxy HyperdataContact)  uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
      :<|> Contact.api uid
 
@@ -232,7 +240,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
      :<|> List.api
-     :<|> waitAPI
+--     :<|> waitAPI
 
 
 ----------------------------------------------------------------------

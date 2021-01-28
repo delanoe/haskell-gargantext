@@ -66,7 +66,7 @@ import qualified Data.Map as Map
 
 import Gargantext.Core (Lang(..), PosTagAlgo(..))
 import Gargantext.Core.Ext.IMT (toSchoolName)
-import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
+import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
 import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
@@ -166,7 +166,7 @@ flowAnnuaire :: (FlowCmdM env err m)
              -> FilePath
              -> m AnnuaireId
 flowAnnuaire u n l filePath = do
-  docs <- liftBase $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
+  docs <- liftBase $ (( splitEvery 500 <$> readFile_Annuaire filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
 ------------------------------------------------------------------------

@@ -55,8 +55,8 @@ type API = "contact" :> Summary "Contact endpoint"
 
 
 api :: UserId -> CorpusId -> GargServer API
-api uid cid =  (api_async   (RootId (NodeId uid)) cid)
-          :<|> (nodeNodeAPI (Proxy :: Proxy HyperdataContact) uid cid)
+api uid cid =  (api_async   (RootId (NodeId                   uid)) cid)
+          :<|> (nodeNodeAPI (Proxy :: Proxy HyperdataContact) uid   cid)
 
 type API_Async = AsyncJobs JobLog '[JSON] AddContactParams JobLog
 ------------------------------------------------------------------------
