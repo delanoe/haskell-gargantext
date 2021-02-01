@@ -35,7 +35,8 @@ groupWithScores' :: (Eq a, Ord a, Monoid a)
 groupWithScores' flc scores = FlowCont  groups orphans
   where
     -- parent/child relation is inherited from social lists
-    groups  = toGroupedTree
+    groups  = HashMap.filter (\v -> view gts'_score v /= mempty)
+            $ toGroupedTree'
             $ toMapMaybeParent scores
             $ (view flc_scores flc <> view flc_cont flc)
 
@@ -66,22 +67,27 @@ fromScores'' f' (t, fs) = ( maybeParent
      maybeList   = keyWithMaxValue $ view fls_listType fs
 
 ------------------------------------------------------------------------
-toGroupedTree :: Eq a
+toGroupedTree' :: Eq a
               => HashMap (Maybe Parent) (HashMap NgramsTerm (GroupedTreeScores a))
               -> HashMap Parent (GroupedTreeScores a)
-toGroupedTree m = case HashMap.lookup Nothing m of
+toGroupedTree' m = case HashMap.lookup Nothing m of
   Nothing  -> mempty
-  Just  m' -> toGroupedTree' m m'
+  Just  m' -> toGroupedTree'' m m'
+
+filterGroupedTree :: (GroupedTreeScores a -> Bool)
+                  -> HashMap Parent (GroupedTreeScores a)
+                  -> HashMap Parent (GroupedTreeScores a)
+filterGroupedTree f = HashMap.filter f
 
 
-toGroupedTree' :: Eq a => HashMap (Maybe Parent) (HashMap NgramsTerm (GroupedTreeScores a))
+toGroupedTree'' :: Eq a => HashMap (Maybe Parent) (HashMap NgramsTerm (GroupedTreeScores a))
                -> (HashMap NgramsTerm (GroupedTreeScores a))
                ->  HashMap Parent (GroupedTreeScores a)
-toGroupedTree' m notEmpty
+toGroupedTree'' m notEmpty
   | notEmpty == mempty = mempty
   | otherwise = HashMap.mapWithKey (addGroup m) notEmpty
     where
-      addGroup m' k v = over gts'_children ( (toGroupedTree' m')
+      addGroup m' k v = over gts'_children ( (toGroupedTree'' m')
                                            . (HashMap.union ( fromMaybe mempty
                                                         $ HashMap.lookup (Just k) m'
                                                         )
