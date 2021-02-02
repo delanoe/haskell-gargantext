@@ -77,13 +77,13 @@ cooc2graph distance threshold myCooc = do
       where
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
-    ClustersParams rivers level = clustersParams nodesApprox
+    ClustersParams rivers _level = clustersParams nodesApprox
 
 
   partitions <- if (Map.size distanceMap > 0)
       -- then iLouvainMap 100 10 distanceMap
       -- then hLouvain distanceMap
-      then cLouvain level distanceMap
+      then cLouvain "1" distanceMap
       else panic "Text.Flow: DistanceMap is empty"
 
   let
