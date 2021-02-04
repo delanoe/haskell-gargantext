@@ -41,12 +41,13 @@ defaultHyperdataDashboard = HyperdataDashboard Nothing [] defaultHyperdataDashbo
 defaultHyperdataDashboardFields :: [HyperdataField CorpusField]
 defaultHyperdataDashboardFields =
   [ HyperdataField Markdown
-                   "Corpus analysis"
-                   (MarkdownField "# title\n## subtitle")
+                   "DashBoard Title"
+                   (MarkdownField "# DashBoard Title\n## Dashboard subtitle\nText and Chart cells.")
 
-  , HyperdataField JSON
+  {- , HyperdataField JSON
                   "Metadata (Experts only)"
                   (JsonField "Title" "Descr" "Bool query" "Authors")
+  -}
   ]
 
 ------------------------------------------------------------------------
