@@ -1,1 +1,7 @@
-~/.local/bin/gargantext-server --ini gargantext.ini --run Dev +RTS # -p
+#!/bin/bash
+
+FOLDER="logs"
+FILE=$(date +%Y%m%d%H%M.log)
+LOGFILE=$FOLDER"/"$FILE
+
+~/.local/bin/gargantext-server --ini gargantext.ini --run Dev +RTS > $LOGFILE & tail -F $LOGFILE # -p
