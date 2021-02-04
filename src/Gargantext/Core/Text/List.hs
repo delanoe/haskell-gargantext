@@ -144,7 +144,7 @@ getGroupParams :: ( HasNodeError err
                => GroupParams -> HashSet Ngrams -> m GroupParams
 getGroupParams gp@(GroupWithPosTag l a _m) ng = do
   hashMap <- HashMap.fromList <$> selectLems l a (HashSet.toList ng)
-  printDebug "hashMap" hashMap
+  -- printDebug "hashMap" hashMap
   pure $ over gwl_map (\x -> x <> hashMap) gp
 getGroupParams gp _ = pure gp
 
@@ -201,8 +201,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
                   $ List.sortOn (viewScore . snd)
                   $ HashMap.toList ns
 
-    (groupedMonoHead, groupedMonoTail) = splitAt monoSize groupedMono
-    (groupedMultHead, groupedMultTail) = splitAt multSize groupedMult
+    (groupedMonoHead, _groupedMonoTail) = splitAt monoSize groupedMono
+    (groupedMultHead, groupedMultTail)  = splitAt multSize groupedMult
 
 -------------------------
 -- Filter 1 With Set NodeId and SpeGen
@@ -276,8 +276,8 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
 
     monoInc_size = splitAt' $ monoSize * inclSize / 2
-    (monoScoredInclHead, monoScoredInclTail) = monoInc_size $ (sortOn scored_genInc) monoScoredIncl
-    (monoScoredExclHead, monoScoredExclTail) = monoInc_size $ (sortOn scored_speExc) monoScoredExcl
+    (monoScoredInclHead, _monoScoredInclTail) = monoInc_size $ (sortOn scored_genInc) monoScoredIncl
+    (monoScoredExclHead, _monoScoredExclTail) = monoInc_size $ (sortOn scored_speExc) monoScoredExcl
 
     multExc_size = splitAt' $ multSize * exclSize / 2
     (multScoredInclHead, multScoredInclTail) = multExc_size $ (sortOn scored_genInc) multScoredIncl
@@ -285,25 +285,29 @@ buildNgramsTermsList user uCid mCid groupParams (nt, _mapListSize)= do
 
 ------------------------------------------------------------
     -- Final Step building the Typed list
-    termListHead = maps <> cands
-      where
-        maps = setListType (Just MapTerm)
-            $  monoScoredInclHead
-            <> monoScoredExclHead
-            <> multScoredInclHead
-            <> multScoredExclHead
+    -- Candidates Terms need to be filtered
+  let
+    maps = setListType (Just MapTerm)
+        $  monoScoredInclHead
+        <> monoScoredExclHead
+        <> multScoredInclHead
+        <> multScoredExclHead
 
-        cands = setListType (Just CandidateTerm)
-             $  monoScoredInclTail
-             <> monoScoredExclTail
-             <> multScoredInclTail
-             <> multScoredExclTail
+    -- An original way to filter to start with
+    cands = setListType (Just CandidateTerm)
+          $  {- monoScoredInclTail
+          <> monoScoredExclTail
+          <> -} multScoredInclTail
+          <>  multScoredExclTail
 
-    termListTail = (setListType (Just CandidateTerm)) (groupedMonoTail <> groupedMultTail)
+    cands' = setListType (Just CandidateTerm)
+          {-$  groupedMonoTail
+          <>-} groupedMultTail
 
-  let result = Map.unionsWith (<>)
-       [ Map.fromList [( nt, toNgramsElement termListHead
-                          <> toNgramsElement termListTail
+    result = Map.unionsWith (<>)
+       [ Map.fromList [( nt, toNgramsElement maps
+                          <> toNgramsElement cands
+                          <> toNgramsElement cands'
                           <> toNgramsElement stopTerms
                       )]
        ]
