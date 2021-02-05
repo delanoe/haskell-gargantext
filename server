@@ -4,4 +4,6 @@ FOLDER="logs"
 FILE=$(date +%Y%m%d%H%M.log)
 LOGFILE=$FOLDER"/"$FILE
 
-~/.local/bin/gargantext-server --ini gargantext.ini --run Dev +RTS > $LOGFILE & tail -F $LOGFILE # -p
+mkdir -p $FOLDER
+
+~/.local/bin/gargantext-server --ini gargantext.ini --run Dev +RTS > $LOGFILE 2>&1 & tail -F $LOGFILE # -p
