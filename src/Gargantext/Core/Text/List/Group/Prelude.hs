@@ -89,7 +89,6 @@ instance SetListType (HashMap NgramsTerm (GroupedTreeScores a)) where
   setListType lt = HashMap.map (set gts'_listType lt)
 
                             ------
-
 class HasSize a where
   hasSize :: a -> Integer
 
@@ -102,38 +101,11 @@ instance HasSize (Set a) where
 instance (HasSize a, Semigroup a) => ViewScore (GroupedTreeScores a) Integer where
   viewScore = hasSize . viewScores
 
-{-
-
--- TODO clean this instances
-instance ViewScore (GroupedTreeScores Double) Double where
-  viewScore = viewScores
-
-instance ViewScores (GroupedTreeScores Double) Double where
-  viewScores g = sum $ parent : children
-    where
-      parent   = view gts'_score g
-      children = map viewScores $ HashMap.elems $ view gts'_children g
-
-instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
-  viewScore = Set.size . viewScores
-
-instance ViewScore (GroupedTreeScores (Scored NgramsTerm)) Double where
-  viewScore = view (gts'_score . scored_genInc)
-
-instance ViewScores (GroupedTreeScores (Set NodeId)) (Set NodeId) where
-  viewScores g = Set.unions $ parent : children
-    where
-      parent   = view gts'_score g
-      children = map viewScores $ HashMap.elems $ view gts'_children g
--}
-
 instance Semigroup a=> ViewScores (GroupedTreeScores a) a where
   viewScores g = foldl1 (<>) $ parent : children
     where
       parent   = view gts'_score g
       children = map viewScores $ HashMap.elems $ view gts'_children g
-
-
                             ------
 instance HasTerms (HashMap NgramsTerm (GroupedTreeScores a)) where
   hasTerms = Set.unions . (map hasTerms) . HashMap.toList
@@ -147,10 +119,8 @@ instance HasTerms (NgramsTerm, GroupedTreeScores a) where
                $ view gts'_children g
 
                             ------
-
 instance ToNgramsElement (HashMap NgramsTerm (GroupedTreeScores a)) where
   toNgramsElement = List.concat . (map toNgramsElement) . HashMap.toList
-
 
 instance ToNgramsElement (NgramsTerm, GroupedTreeScores a) where
   toNgramsElement (t, gts) = parent : children
@@ -178,5 +148,3 @@ instance ToNgramsElement (NgramsTerm, GroupedTreeScores a) where
                     $ map (childrenWith root t' )
                     $ HashMap.toList
                     $ view gts'_children gts'
-
-
