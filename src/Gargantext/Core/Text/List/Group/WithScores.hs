@@ -35,7 +35,7 @@ groupWithScores' :: (Eq a, Ord a, Monoid a, HasSize a)
 groupWithScores' flc scores = FlowCont  groups orphans
   where
     -- parent/child relation is inherited from social lists
-    groups  = HashMap.filter (\v -> viewScore v > 0)
+    groups  = HashMap.filter ((0 <) . viewScore)
             $ toGroupedTree'
             $ toMapMaybeParent scores
             $ (view flc_scores flc <> view flc_cont flc)
