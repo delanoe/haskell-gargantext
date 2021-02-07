@@ -28,14 +28,14 @@ import qualified Data.HashMap.Strict as HashMap
 
 ------------------------------------------------------------------------
 -- | Main function
-groupWithScores' :: (Eq a, Ord a, Monoid a)
+groupWithScores' :: (Eq a, Ord a, Monoid a, HasSize a)
                 => FlowCont NgramsTerm FlowListScores
                 -> (NgramsTerm -> a)
                 -> FlowCont NgramsTerm (GroupedTreeScores a)
 groupWithScores' flc scores = FlowCont  groups orphans
   where
     -- parent/child relation is inherited from social lists
-    groups  = HashMap.filter (\v -> view gts'_score v /= mempty)
+    groups  = HashMap.filter (\v -> viewScore v > 0)
             $ toGroupedTree'
             $ toMapMaybeParent scores
             $ (view flc_scores flc <> view flc_cont flc)

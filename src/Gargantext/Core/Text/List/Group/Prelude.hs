@@ -23,13 +23,12 @@ import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set)
 import Gargantext.API.Ngrams.Types (NgramsElement, mkNgramsElement, NgramsTerm(..), RootParent(..), mSetFromList)
-import Gargantext.Core.Text.Metrics (Scored(..), scored_genInc)
 import Gargantext.Core.Types (ListType(..))
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import qualified Data.Set  as Set
+import Prelude (foldl1)
 
 type Stem = NgramsTerm
 ------------------------------------------------------------------------
@@ -91,6 +90,21 @@ instance SetListType (HashMap NgramsTerm (GroupedTreeScores a)) where
 
                             ------
 
+class HasSize a where
+  hasSize :: a -> Integer
+
+instance HasSize Double where
+  hasSize = round
+
+instance HasSize (Set a) where
+  hasSize = fromIntegral . Set.size
+
+instance (HasSize a, Semigroup a) => ViewScore (GroupedTreeScores a) Integer where
+  viewScore = hasSize . viewScores
+
+{-
+
+-- TODO clean this instances
 instance ViewScore (GroupedTreeScores Double) Double where
   viewScore = viewScores
 
@@ -100,19 +114,25 @@ instance ViewScores (GroupedTreeScores Double) Double where
       parent   = view gts'_score g
       children = map viewScores $ HashMap.elems $ view gts'_children g
 
-
 instance ViewScore (GroupedTreeScores (Set NodeId)) Int where
   viewScore = Set.size . viewScores
+
+instance ViewScore (GroupedTreeScores (Scored NgramsTerm)) Double where
+  viewScore = view (gts'_score . scored_genInc)
 
 instance ViewScores (GroupedTreeScores (Set NodeId)) (Set NodeId) where
   viewScores g = Set.unions $ parent : children
     where
       parent   = view gts'_score g
       children = map viewScores $ HashMap.elems $ view gts'_children g
+-}
 
+instance Semigroup a=> ViewScores (GroupedTreeScores a) a where
+  viewScores g = foldl1 (<>) $ parent : children
+    where
+      parent   = view gts'_score g
+      children = map viewScores $ HashMap.elems $ view gts'_children g
 
-instance ViewScore (GroupedTreeScores (Scored NgramsTerm)) Double where
-  viewScore = view (gts'_score . scored_genInc)
 
                             ------
 instance HasTerms (HashMap NgramsTerm (GroupedTreeScores a)) where

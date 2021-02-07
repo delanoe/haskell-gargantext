@@ -29,7 +29,7 @@ import Gargantext.Core.Text.List.Social.Prelude
 import Gargantext.Prelude
 import qualified Data.HashMap.Strict as HashMap
 ------------------------------------------------------------------------
-toGroupedTree :: (Ord a, Monoid a)
+toGroupedTree :: (Ord a, Monoid a, HasSize a)
               => FlowCont NgramsTerm FlowListScores
               -> HashMap NgramsTerm a
               -> FlowCont NgramsTerm (GroupedTreeScores a)
