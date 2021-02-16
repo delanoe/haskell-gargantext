@@ -45,11 +45,11 @@ import Gargantext.API.Ngrams.Types (TabType(..))
 import Gargantext.API.Prelude (GargServer)
 import Gargantext.Core.Types (Offset, Limit, TableResult(..))
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
-import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, runCountDocuments, OrderBy(..), runViewAuthorsDoc)
 import Gargantext.Database.Action.Learn (FavOrTrash(..), moreLike)
 import Gargantext.Database.Action.Search
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude -- (Cmd, CmdM)
+import Gargantext.Database.Query.Facet (FacetDoc , runViewDocuments, runCountDocuments, OrderBy(..), runViewAuthorsDoc)
 import Gargantext.Prelude
 
 ------------------------------------------------------------------------
@@ -75,7 +75,7 @@ data TableQuery = TableQuery
   , tq_limit   :: Int
   , tq_orderBy :: OrderBy
   , tq_view    :: TabType
-  , tq_query  :: Text
+  , tq_query   :: Text
   } deriving (Generic)
 
 type FacetTableResult = TableResult FacetDoc
