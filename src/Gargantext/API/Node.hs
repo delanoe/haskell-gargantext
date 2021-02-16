@@ -133,6 +133,7 @@ type NodeAPI a = Get '[JSON] (Node a)
              :<|> "ngrams"     :> TableNgramsApi
 
              :<|> "category"   :> CatApi
+             :<|> "score"      :> ScoreApi
              :<|> "search"     :> (Search.API Search.SearchResult)
              :<|> "share"      :> Share.API
 
@@ -212,6 +213,7 @@ nodeAPI p uId id' = withAccess (Proxy :: Proxy (NodeAPI a)) Proxy uId (PathNode 
            :<|> apiNgramsTableCorpus id'
 
            :<|> catApi      id'
+           :<|> scoreApi    id'
            :<|> Search.api  id'
            :<|> Share.api   (RootId $ NodeId uId) id'
            -- Pairing Tools
@@ -259,6 +261,27 @@ catApi = putCat
   where
     putCat :: CorpusId -> NodesToCategory -> Cmd err [Int]
     putCat cId cs' = nodeNodesCategory $ map (\n -> (cId, n, ntc_category cs')) (ntc_nodesId cs')
+
+------------------------------------------------------------------------
+type ScoreApi =  Summary " To Score NodeNodes"
+            :> ReqBody '[JSON] NodesToScore
+            :> Put     '[JSON] [Int]
+
+data NodesToScore = NodesToScore { nts_nodesId :: [NodeId]
+                                 , nts_score :: Int
+                                 }
+  deriving (Generic)
+
+-- TODO unPrefix "ntc_" FromJSON, ToJSON, ToSchema, adapt frontend.
+instance FromJSON  NodesToScore
+instance ToJSON    NodesToScore
+instance ToSchema  NodesToScore
+
+scoreApi :: CorpusId -> GargServer ScoreApi
+scoreApi = putScore
+  where
+    putScore :: CorpusId -> NodesToScore -> Cmd err [Int]
+    putScore cId cs' = nodeNodesScore $ map (\n -> (cId, n, nts_score cs')) (nts_nodesId cs')
 
 ------------------------------------------------------------------------
 -- TODO adapt FacetDoc -> ListDoc (and add type of document as column)
