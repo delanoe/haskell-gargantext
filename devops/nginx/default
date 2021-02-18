@@ -1,5 +1,15 @@
 
 ##
+## GargantText serveur configuration
+## Authors: team@gargantext.org
+## Licence CNRS/AGPLv3-MIT/CECILL-INRIA
+#
+# Fee free to improve it
+# Thanks for sharing to all community
+
+
+# Specific NGINX informations
+#
 # You should look at the following URL's in order to grasp a solid understanding
 # of Nginx configuration files in order to fully unleash the power of Nginx.
 # http://wiki.nginx.org/Pitfalls
@@ -12,16 +22,56 @@
 # Please see /usr/share/doc/nginx-doc/examples/ for more detailed examples.
 ##
 
+server {
+        
+    server_name doc.gargantext.org;
+
+    add_header Cache-Control "no-cache";
+
+    root /var/www/html/;
+    index index.html;
+ 
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/v4.gargantext.org/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/v4.gargantext.org/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+# Comment this for maintenance only
+server {
+        
+    #server_name v4.gargantext.org;
+    server_name maintenanceOnly.gargantext.org;
+
+    add_header Cache-Control "no-cache";
+
+    root /var/www/maintenance/;
+    index index.html;
+ 
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/v4.gargantext.org/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/v4.gargantext.org/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+
+
 
 server {
-    if ($host = dev.gargantext.org) {
+    if ($host = v4.gargantext.org) {
         return 301 https://$host$request_uri;
     } # managed by Certbot
 
 
     listen 80;
         
-    server_name dev.gargantext.org;
+    server_name v4.gargantext.org;
 
     add_header Cache-Control "no-cache";
 
@@ -30,7 +80,7 @@ server {
     }
 
     # Always redirect to https
-    return 301 https://dev.gargantext.org$request_uri;
+    return 301 https://v4.gargantext.org$request_uri;
 
 
 }
@@ -39,7 +89,7 @@ server {
     listen 443;
     listen [::]:443 ssl;
 
-    server_name dev.gargantext.org;
+    server_name v4.gargantext.org;
     
     # Some options configurations:    
     # https://github.com/h5bp/server-configs-nginx/blob/master/h5bp/location/expires.conf 
@@ -51,8 +101,8 @@ server {
     # listen [::]:443 ssl default_server;
     
     ssl on;
-    ssl_certificate /etc/letsencrypt/live/dev.gargantext.org/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/dev.gargantext.org/privkey.pem; # managed by Certbot 
+    ssl_certificate /etc/letsencrypt/live/v4.gargantext.org/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/v4.gargantext.org/privkey.pem; # managed by Certbot 
 
     # Note: You should disable gzip for SSL traffic.
     # See: https://bugs.debian.org/773332
@@ -81,7 +131,7 @@ server {
     # CORS config borrowed from: https://gist.github.com/pauloricardomg/7084524
     # NP: not sure we need CORS yet
     #
-    if ($http_origin ~* (^https?://(127.0.0.1|localhost|dev\.gargantext\.com))) {
+    if ($http_origin ~* (^https?://(127.0.0.1|localhost|v4\.gargantext\.com))) {
       set $cors "1";
     }
     #
@@ -115,10 +165,10 @@ server {
 
      location / {
        # https://stackoverflow.com/a/48708812
-       limit_except OPTIONS {
-         auth_basic           "Gargantext's Development Version";
-         auth_basic_user_file /etc/nginx/haskell_gargantext.htpasswd; 
-       }
+#       limit_except OPTIONS {
+#         auth_basic           "Gargantext's Development Version";
+#         auth_basic_user_file /etc/nginx/haskell_gargantext.htpasswd; 
+#       }
 
        proxy_set_header X-Real-IP         $remote_addr;
        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -134,5 +184,20 @@ server {
      access_log /var/log/nginx/access.log;
      error_log /var/log/nginx/error.log;
 
+
 }
 
+
+
+
+server {
+    if ($host = doc.gargantext.org) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 80;
+        
+    server_name doc.gargantext.org;
+    return 404; # managed by Certbot
+
+}
