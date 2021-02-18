@@ -50,6 +50,14 @@ server {
  	#	proxy_ignore_headers  Cache-Control Expires Set-Cookie;
                }
 
+    location /socket.io {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+
     listen 443 ssl; # managed by Certbot
     ssl_certificate /etc/letsencrypt/live/searx.frame.gargantext.org/fullchain.pem; # managed by Certbot
     ssl_certificate_key /etc/letsencrypt/live/searx.frame.gargantext.org/privkey.pem; # managed by Certbot
