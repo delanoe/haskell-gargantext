@@ -12,6 +12,7 @@ Portability : POSIX
 module Gargantext.Prelude.Utils
   where
 
+import Data.Tuple.Extra (both)
 import Control.Exception
 import Control.Lens (view)
 import Control.Monad.Reader (MonadReader)
@@ -39,24 +40,36 @@ shuffle ns = SRS.shuffleM ns
 data NodeToHash = NodeToHash { nodeType :: NodeType
                              , nodeId   :: NodeId
                              }
-
+-------------------------------------------------------------------
 type FolderPath = FilePath
 type FileName   = FilePath
 
--- | toPath example of use:
--- toPath 2 "gargantexthello"
--- ("ga/rg","antexthello")
--- 
--- toPath 3 "gargantexthello"
--- ("gar/gan","texthello")
+-- | toPath' example of use:
+{-
+>>> toPath' (1,2) ("","helloword")
+("/he","lloword")
 
+>>> toPath' (2,2) ("","helloword")
+("/he/ll","oword")
+
+>>> toPath' (2,3) ("","helloword")
+("/hel/low","ord")
+-}
 
 toPath :: Int -> Text -> (FolderPath, FileName)
-toPath n x = (Text.unpack $ Text.intercalate "/" [x1,x2], Text.unpack xs)
-  where
-    (x1,x') = Text.splitAt n x
-    (x2,xs) = Text.splitAt n x'
+toPath n tx = both Text.unpack $ toPath' (2,n) ("", tx)
 
+toPath' :: (Int,Int) -> (Text,Text) -> (Text,Text)
+toPath' (n,m) (t,x) = foldl' (\tx _ -> toPath'' m tx) (t,x) [1..n]
+
+toPath'' :: Int -> (Text, Text) -> (Text, Text)
+toPath'' n (fp,fn) = (fp'',fn')
+  where
+    (fp',fn') = Text.splitAt n fn
+    fp''       = Text.intercalate "/" [fp,fp']
+
+-------------------------------------------------------------------
+-------------------------------------------------------------------
 class SaveFile a where
   saveFile' :: FilePath -> a -> IO ()
 
