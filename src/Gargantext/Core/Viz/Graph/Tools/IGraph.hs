@@ -12,7 +12,6 @@ Reference:
 
 -}
 
-
 module Gargantext.Core.Viz.Graph.Tools.IGraph
   where
 
@@ -78,7 +77,7 @@ mkGraphUfromEdges es = mkGraph (List.replicate n ()) $ zip es $ repeat ()
     (a,b) = List.unzip es
     n = List.length (List.nub $ a <> b)
 
+{-
 mkGraphDfromEdges :: [(Int, Int)] -> Graph_Directed
 mkGraphDfromEdges = undefined
-
-
+-}
