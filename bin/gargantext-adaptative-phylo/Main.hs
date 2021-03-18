@@ -124,6 +124,11 @@ fileToDocs parser path lst = do
   let patterns = buildPatterns lst
   pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus
 
+-- configToLabel :: Config -> Text
+-- configToFile confif = label
+--   where 
+--     label :: Text
+--     label = outputPath config
 
 --------------
 -- | Main | --
