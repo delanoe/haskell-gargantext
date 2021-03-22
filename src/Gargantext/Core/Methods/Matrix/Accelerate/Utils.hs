@@ -123,6 +123,17 @@ matrixEye n' =
 diagNull :: Num a => Dim -> Acc (Matrix a) -> Acc (Matrix a)
 diagNull n m = zipWith (*) m (matrixEye n)
 
+
+-- Returns an N-dimensional array with the values of x for the indices where
+-- the condition is true, 0 everywhere else.
+condOrDefault 
+  :: forall sh a. (Shape sh, Elt a)
+  => (Exp sh -> Exp Bool) -> Exp a -> Acc (Array sh a) -> Acc (Array sh a)
+condOrDefault theCond def x = permute const zeros filterInd x
+  where 
+    zeros = fill (shape x) (def)
+    filterInd ix = (cond (theCond ix)) ix ignore
+
 -----------------------------------------------------------------------
 _runExp :: Elt e => Exp e -> e
 _runExp e = indexArray (run (unit e)) Z
