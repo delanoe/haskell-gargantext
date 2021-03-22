@@ -17,11 +17,13 @@ Adaptative Phylo binaries
 module Main where
 
 import Data.Aeson
-import Data.ByteString.Lazy (ByteString)
+-- import Data.ByteString.Lazy (ByteString)
 -- import Data.Maybe (isJust, fromJust)
 import Data.List  (concat, nub, isSuffixOf)
 import Data.String (String)
 import Data.Text  (Text, unwords, unpack)
+import Crypto.Hash.SHA256 (hash)
+-- import Data.Digest.Pure.SHA
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
@@ -42,9 +44,11 @@ import System.Environment
 import System.Directory (listDirectory)
 import Control.Concurrent.Async (mapConcurrently)
 
+import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.Vector as Vector
 import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
+
 
 
 ---------------
@@ -66,7 +70,7 @@ getFilesFromPath path = do
 
 
 -- | To read and decode a Json file
-readJson :: FilePath -> IO ByteString
+readJson :: FilePath -> IO Lazy.ByteString
 readJson path = Lazy.readFile path
 
 
@@ -124,11 +128,60 @@ fileToDocs parser path lst = do
   let patterns = buildPatterns lst
   pure $ map ( (\(y,t) -> Document y t) . filterTerms patterns) corpus
 
--- configToLabel :: Config -> Text
--- configToFile confif = label
---   where 
---     label :: Text
---     label = outputPath config
+
+-- Config time parameters to label
+timeToLabel :: Config -> [Char]
+timeToLabel config = case (timeUnit config) of
+      Year p s f -> ("time"<> "_"<> (show p) <> "_"<> (show s) <> (show f))
+
+
+seaToLabel :: Config -> [Char]
+seaToLabel config = case (seaElevation config) of
+      Constante start step   -> ("sea_cst_"  <> (show start) <> "_" <> (show step))
+      Adaptative granularity -> ("sea_adapt" <> (show granularity))
+
+
+sensToLabel :: Config -> [Char]
+sensToLabel config = case (phyloProximity config) of
+      Hamming -> undefined
+      WeightedLogJaccard s -> ("WeightedLogJaccard_"  <> show s)     
+      WeightedLogSim s -> ( "WeightedLogSim-sens_"  <> show s)
+
+
+cliqueToLabel :: Config -> [Char]
+cliqueToLabel config = case (clique config) of
+      Fis s s' -> "fis_" <> (show s) <> "_" <> (show s')
+      MaxClique s t f ->  "clique_" <> (show s)<> "_"  <> (show f)<> "_"  <> (show t)
+
+
+syncToLabel :: Config -> [Char]
+syncToLabel config = case (phyloSynchrony config) of
+      ByProximityThreshold scl sync_sens scope _ -> ("scale_" <> (show scope) <> "_" <> (show sync_sens)  <> "_"  <> (show scl))
+      ByProximityDistribution _ _ -> undefined
+
+
+-- To set up the export file's label from the configuration
+configToLabel :: Config -> [Char]
+configToLabel config = outputPath config
+                    <> (unpack $ phyloName config)
+                    <> "-" <> (timeToLabel config)
+                    <> "-scale_" <> (show (phyloLevel config))
+                    <> "-" <> (seaToLabel config)
+                    <> "-" <> (sensToLabel config)
+                    <> "-" <> (cliqueToLabel config)
+                    <> "-level_" <> (show (_qua_granularity $ phyloQuality config))
+                    <> "-" <> (syncToLabel config)
+                    <> ".dot"
+
+configToSha :: Config -> [Char]
+configToSha config = show (hash $ C8.pack label)
+  where 
+    label :: [Char]
+    label = (corpusPath    config)
+         <> (listPath      config)
+         <> (timeToLabel   config)
+         <> (cliqueToLabel config)
+         <> (sensToLabel   config)
 
 --------------
 -- | Main | --
@@ -168,37 +221,7 @@ main = do
             printIOMsg "End of reconstruction, start the export"
 
             let dot = toPhyloExport phylo 
-
-            let clq = case (clique config) of
-                        Fis s s' -> "fis_" <> (show s) <> "_" <> (show s')
-                        MaxClique s t f ->  "clique_" <> (show s)<> "_"  <> (show f)<> "_"  <> (show t) 
-
-            let sensibility = case (phyloProximity config) of
-                        Hamming -> undefined
-                        WeightedLogJaccard s -> ("WeightedLogJaccard_"  <> show s)     
-                        WeightedLogSim s -> ( "WeightedLogSim-sens_"  <> show s  ) 
-
-            let sync = case (phyloSynchrony config) of
-                        ByProximityThreshold scl sync_sens scope _ -> ("scale_" <> (show scope) <> "_" <> (show sync_sens)  <> "_"  <> (show scl)  )
-                        ByProximityDistribution _ _ -> undefined
-          
-            let time_unit = case (timeUnit config) of
-                        Year period step frame -> ("time"<> "_"<> (show period) <> "_"<> (show step) <> (show frame))
-
-            let sea_elevation = case (seaElevation config) of
-                        Constante sea_start sea_step -> ("sea_cst_" <> (show sea_start) <> "_" <> (show sea_step))
-                        Adaptative granu -> ("sea_adapt" <> (show granu))                   
-            
-
-            let output = (outputPath config) 
-                      <> (unpack $ phyloName config)
-                      <> "-" <> time_unit                      
-                      <> "-hlev_" <> (show (phyloLevel config))
-                      <> "-" <> sea_elevation
-                      <> "-" <> sensibility                      
-                      <> "-" <> clq
-                      <> "-level_" <> (show (_qua_granularity $ phyloQuality config))
-                      <> "-" <> sync
-                      <> ".dot"
+                  
+            let output = configToLabel config
 
             dotToFile output dot

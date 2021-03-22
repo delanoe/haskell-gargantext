@@ -65,8 +65,12 @@ toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFrom
               else phylo1
         --------------------------------------
         phylo1 :: Phylo
-        phylo1 = toPhylo1 docs phyloBase
+        phylo1 = toPhylo1 phyloStep
         -- > AD to db here
+        --------------------------------------
+        phyloStep :: Phylo
+        phyloStep = toFirstPhyloStep docs phyloBase
+        -- > AD to db here        
         --------------------------------------
         phyloBase :: Phylo
         phyloBase = toPhyloBase docs lst conf
@@ -138,13 +142,11 @@ cliqueToGroup fis pId lvl idx coocs = PhyloGroup pId lvl idx ""
                    [] [] [] [] []
 
 
-toPhylo1 :: [Document] -> Phylo -> Phylo
-toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of 
-    Constante start gap -> constanteTemporalMatching  start gap 
-                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase    
-    Adaptative steps    -> adaptativeTemporalMatching steps
-                   $ toGroupsProxi 1
-                   $ appendGroups cliqueToGroup 1 phyloClique phyloBase
+-- To build the first phylo step from docs and phyloBase
+toFirstPhyloStep :: [Document] -> Phylo -> Phylo
+toFirstPhyloStep docs phyloBase = case (getSeaElevation phyloBase) of 
+    Constante  _ _ -> appendGroups cliqueToGroup 1 phyloClique phyloBase
+    Adaptative _   -> toGroupsProxi 1 $ appendGroups cliqueToGroup 1 phyloClique phyloBase
     where
         --------------------------------------
         phyloClique :: Map (Date,Date) [PhyloClique]
@@ -152,8 +154,14 @@ toPhylo1 docs phyloBase = case (getSeaElevation phyloBase) of
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
         docs' =  groupDocsByPeriodRec date (getPeriodIds phyloBase) (sortOn date docs) empty
-        -- docs' =  groupDocsByPeriod' date (getPeriodIds phyloBase) docs
-        --------------------------------------
+        --------------------------------------  
+
+
+
+toPhylo1 :: Phylo -> Phylo
+toPhylo1 phyloStep = case (getSeaElevation phyloStep) of 
+    Constante start gap -> constanteTemporalMatching  start gap phyloStep    
+    Adaptative steps    -> adaptativeTemporalMatching steps phyloStep
 
 
 ---------------------------
