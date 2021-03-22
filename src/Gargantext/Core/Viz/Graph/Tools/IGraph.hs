@@ -19,11 +19,13 @@ import Data.Serialize
 import Data.Singletons (SingI)
 import IGraph hiding (mkGraph, neighbors, edges, nodes, Node, Graph)
 import Protolude
+import Gargantext.Core.Viz.Graph.Index
 import qualified Data.List                   as List
 import qualified IGraph                      as IG
 import qualified IGraph.Algorithms.Clique    as IG
 import qualified IGraph.Algorithms.Community as IG
 import qualified IGraph.Random               as IG
+import qualified Data.Map                    as Map
 
 ------------------------------------------------------------------
 -- | Main Types
@@ -55,20 +57,38 @@ maximalCliques g = IG.maximalCliques g (min',max')
 ------------------------------------------------------------------
 type Seed = Int
 
+spinglass :: Seed -> Map (Int, Int) Double -> IO [ClusterNode]
+spinglass s g = toClusterNode
+             <$> map catMaybes
+             <$> map (map (\n -> Map.lookup n fromI))
+             <$> partitions_spinglass' s g''
+  where
+    g'' = mkGraphUfromEdges (Map.keys g')
+    (toI, fromI) = createIndices g
+    g' = toIndex toI g
+
 -- | Tools to analyze graphs
-partitions_spinglass :: (Serialize v, Serialize e)
+partitions_spinglass' :: (Serialize v, Serialize e)
                          => Seed -> IG.Graph 'U v e -> IO [[Int]]
-partitions_spinglass s g = do
+partitions_spinglass' s g = do
   gen <- IG.withSeed s pure
   pure $ IG.findCommunity g Nothing Nothing IG.spinglass gen
 
-------------------------------------------------------------------
 
+data ClusterNode = ClusterNode { cl_node_id :: Int
+                               , cl_community_id :: Int
+                               }
+
+toClusterNode :: [[Int]] -> [ClusterNode]
+toClusterNode ns = List.concat
+                 $ map (\(cId, ns') -> map (\n -> ClusterNode n cId) ns')
+                 $ List.zip [1..] ns
+
+------------------------------------------------------------------
 mkGraph :: (SingI d, Ord v,
              Serialize v, Serialize e) =>
      [v] -> [LEdge e] -> IG.Graph d v e
 mkGraph = IG.mkGraph
-
 
 ------------------------------------------------------------------
 mkGraphUfromEdges :: [(Int, Int)] -> Graph_Undirected
