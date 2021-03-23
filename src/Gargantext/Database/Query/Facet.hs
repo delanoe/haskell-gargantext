@@ -24,6 +24,10 @@ module Gargantext.Database.Query.Facet
   , runCountDocuments
   , filterWith
 
+  , Category
+  , Score
+  , Title
+
   , Pair(..)
   , Facet(..)
   , FacetDoc
@@ -73,10 +77,11 @@ import Gargantext.Database.Schema.Node
 --instance ToJSON   Facet
 
 type Category = Int
+type Score    = Double
 type Title    = Text
 
 -- TODO remove Title
-type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double) (Maybe Double)
+type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double) (Maybe Score)
 -- type FacetSources = FacetDoc
 -- type FacetAuthors = FacetDoc
 -- type FacetTerms   = FacetDoc
@@ -346,17 +351,17 @@ filterWith :: (PGOrd date, PGOrd title, PGOrd category, PGOrd score, hyperdata ~
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
-orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3)
+orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3, PGOrd b4)
           => Maybe OrderBy
-          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) ngramCount score)
+          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) ngramCount (Column b4))
 orderWith (Just DateAsc)   = asc  facetDoc_created
 orderWith (Just DateDesc)  = desc facetDoc_created
 
 orderWith (Just TitleAsc)  = asc  facetDoc_title
 orderWith (Just TitleDesc) = desc facetDoc_title
 
-orderWith (Just ScoreAsc)  = asc  facetDoc_category
-orderWith (Just ScoreDesc) = desc facetDoc_category
+orderWith (Just ScoreAsc)  = asc  facetDoc_score
+orderWith (Just ScoreDesc) = descNullsLast facetDoc_score
 
 orderWith (Just SourceAsc)  = asc  facetDoc_source
 orderWith (Just SourceDesc) = desc facetDoc_source

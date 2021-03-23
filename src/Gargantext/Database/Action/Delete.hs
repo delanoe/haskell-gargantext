@@ -53,7 +53,7 @@ deleteNode u nodeId = do
     nt | nt == toDBid NodeFile -> do
       node <- getNodeWith nodeId (Proxy :: Proxy HyperdataFile)
       let (HyperdataFile { _hff_path = path }) = node ^. node_hyperdata
-      GPU.removeFile $ unpack path
+      GPU.rmFile $ unpack path
       N.deleteNode nodeId
     _                             -> N.deleteNode nodeId
    

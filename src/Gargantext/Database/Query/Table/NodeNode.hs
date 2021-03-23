@@ -25,6 +25,7 @@ module Gargantext.Database.Query.Table.NodeNode
   , selectDocNodes
   , selectDocs
   , nodeNodesCategory
+  , nodeNodesScore
   , getNodeNode
   , insertNodeNode
   , deleteNodeNode
@@ -130,7 +131,7 @@ _nodeNodeCategory cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery favQuery 
                RETURNING node2_id;
                |]
 
-nodeNodesCategory :: [(CorpusId,DocId,Int)] -> Cmd err [Int]
+nodeNodesCategory :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
 nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
                             <$> runPGSQuery catQuery (PGS.Only $ Values fields inputData)
   where
@@ -139,6 +140,31 @@ nodeNodesCategory inputData = map (\(PGS.Only a) -> a)
     catQuery = [sql| UPDATE nodes_nodes as nn0
                       SET category = nn1.category
                        FROM (?) as nn1(node1_id,node2_id,category)
+                       WHERE nn0.node1_id = nn1.node1_id
+                       AND   nn0.node2_id = nn1.node2_id
+                       RETURNING nn1.node2_id
+                  |]
+
+------------------------------------------------------------------------
+-- | Score management
+_nodeNodeScore :: CorpusId -> DocId -> Int -> Cmd err [Int]
+_nodeNodeScore cId dId c = map (\(PGS.Only a) -> a) <$> runPGSQuery scoreQuery (c,cId,dId)
+  where
+    scoreQuery :: PGS.Query
+    scoreQuery = [sql|UPDATE nodes_nodes SET score = ?
+                  WHERE node1_id = ? AND node2_id = ?
+                  RETURNING node2_id;
+                  |]
+
+nodeNodesScore :: [(CorpusId, DocId, Int)] -> Cmd err [Int]
+nodeNodesScore inputData = map (\(PGS.Only a) -> a)
+                            <$> runPGSQuery catScore (PGS.Only $ Values fields inputData)
+  where
+    fields = map (\t-> QualifiedIdentifier Nothing t) ["int4","int4","int4"]
+    catScore :: PGS.Query
+    catScore = [sql| UPDATE nodes_nodes as nn0
+                      SET score = nn1.score
+                       FROM (?) as nn1(node1_id, node2_id, score)
                        WHERE nn0.node1_id = nn1.node1_id
                        AND   nn0.node2_id = nn1.node2_id
                        RETURNING nn1.node2_id

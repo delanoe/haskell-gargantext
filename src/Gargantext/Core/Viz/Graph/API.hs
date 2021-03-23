@@ -154,7 +154,7 @@ computeGraph cId d nt repo = do
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
-  graph <- liftBase $ cooc2graph d 0 myCooc
+  graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
 
   pure graph
 

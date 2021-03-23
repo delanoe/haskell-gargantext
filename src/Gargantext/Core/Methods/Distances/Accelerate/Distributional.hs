@@ -45,7 +45,7 @@ module Gargantext.Core.Methods.Distances.Accelerate.Distributional
 
 -- import qualified Data.Foldable as P (foldl1)
 -- import Debug.Trace (trace)
-import Data.Array.Accelerate
+import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Interpreter (run)
 import Gargantext.Core.Methods.Matrix.Accelerate.Utils
 import qualified Gargantext.Prelude as P
@@ -115,8 +115,57 @@ distributional m' = run result
 
     result = termDivNan z_1 z_2
 
+logDistributional :: Matrix Int -> Matrix Double
+logDistributional m' = run result
+ where
+    m = map fromIntegral $ use m'
+    n = dim m'
 
---
+    -- Scalar. Sum of all elements of m.
+    to = the $ sum (flatten m)
+
+    -- Diagonal matrix with the diagonal of m.
+    d_m = (.*) m (matrixIdentity n)
+
+    -- Size n vector. s = [s_i]_i
+    s = sum ((.-) m d_m)
+
+    -- Matrix nxn. Vector s replicated as rows. 
+    s_1 = replicate (constant (Z :. All :. n)) s
+    -- Matrix nxn. Vector s replicated as columns. 
+    s_2 = replicate (constant (Z :. n :. All)) s
+
+    -- Matrix nxn. ss = [s_i * s_j]_{i,j}. Outer product of s with itself. 
+    ss = (.*) s_1 s_2
+
+    -- Matrix nxn. mi = [m_{i,j}]_{i,j} where 
+    -- m_{i,j} = 0 if n_{i,j} = 0 or i = j, 
+    -- m_{i,j} = log(to * n_{i,j} / s_{i,j}) otherwise.
+    mi = (.*) (matrixEye n) 
+        (map (lift1 (\x -> cond (x == 0) 0 (log (x * to)))) ((./) m ss))
+
+    -- Tensor nxnxn. Matrix mi replicated along the 2nd axis.
+    w_1 = replicate (constant (Z :. All :. n :. All)) mi
+
+    -- Tensor nxnxn. Matrix mi replicated along the 1st axis.
+    w_2 = replicate (constant (Z :. n :. All :. All)) mi
+
+    -- Tensor nxnxn.
+    w' = zipWith min w_1 w_2
+
+    -- A predicate that is true when the input (i, j, k) satisfy 
+    -- k /= i AND k /= j
+    k_diff_i_and_j = lift1 (\(Z :. i :. j :. k) -> ((&&) ((/=) k i) ((/=) k j)))
+
+    -- Matrix nxn. 
+    sumMin = sum (condOrDefault k_diff_i_and_j 0 w')
+
+    -- Matrix nxn. All columns are the same.
+    sumM = sum (condOrDefault k_diff_i_and_j 0 w_1)
+
+    result = termDivNan sumMin sumM
+
+
 -- The distributional metric P(c) of @i@ and @j@ terms is: \[
 -- S_{MI} = \frac {\sum_{k \neq i,j ; MI_{ik} >0}^{} \min(MI_{ik},
 -- MI_{jk})}{\sum_{k \neq i,j ; MI_{ik}>0}^{}} \]
