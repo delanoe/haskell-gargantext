@@ -18,18 +18,17 @@ module Gargantext.Database.Admin.Trigger.Nodes
 
 import Data.Text (Text)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import qualified Database.PostgreSQL.Simple as DPS
-
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Core (HasDBid(..))
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
+import qualified Database.PostgreSQL.Simple as DPS
 
 
-triggerSearchUpdate :: Cmd err Int64
-triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
-                                         , nodeTypeId NodeDocument
-                                         , nodeTypeId NodeContact
+triggerSearchUpdate :: HasDBid NodeType => Cmd err Int64
+triggerSearchUpdate = execPGSQuery query ( toDBid NodeDocument
+                                         , toDBid NodeDocument
+                                         , toDBid NodeContact
                                          )
   where
     query :: DPS.Query
@@ -70,13 +69,13 @@ triggerSearchUpdate = execPGSQuery query ( nodeTypeId NodeDocument
 
 type Secret = Text
 
-triggerUpdateHash :: Secret -> Cmd err Int64
-triggerUpdateHash secret = execPGSQuery query ( nodeTypeId NodeDocument
-                                              , nodeTypeId NodeContact
+triggerUpdateHash :: HasDBid NodeType => Secret -> Cmd err Int64
+triggerUpdateHash secret = execPGSQuery query ( toDBid NodeDocument
+                                              , toDBid NodeContact
                                               , secret
                                               , secret
-                                              , nodeTypeId NodeDocument
-                                              , nodeTypeId NodeContact
+                                              , toDBid NodeDocument
+                                              , toDBid NodeContact
                                               , secret
                                               , secret
                                               )

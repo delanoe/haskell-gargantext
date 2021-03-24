@@ -8,24 +8,19 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-orphans        #-}
-
-{-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE Arrows #-}
 
 module Gargantext.Database.Query.Tree.Root
   where
 
 import Control.Arrow (returnA)
 import Data.Either (Either, fromLeft, fromRight)
+import Gargantext.Core
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main (CorpusName)
 import Gargantext.Database.Action.Node
 import Gargantext.Database.Action.User (getUserId, getUsername)
-import Gargantext.Database.Admin.Config (nodeTypeId, userMaster)
+import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser)
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd, runOpaQuery)
@@ -124,21 +119,21 @@ selectRoot :: User -> Query NodeRead
 selectRoot (UserName username) = proc () -> do
     row   <- queryNodeTable -< ()
     users <- queryUserTable -< ()
-    restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
     restrict -< user_username  users .== (pgStrictText username)
     restrict -< _node_userId   row   .== (user_id users)
     returnA  -< row
 
 selectRoot (UserDBId uid) = proc () -> do
     row   <- queryNodeTable -< ()
-    restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
     restrict -< _node_userId   row   .== (pgInt4 uid)
     returnA  -< row
 
 selectRoot (RootId nid) =
  proc () -> do
     row   <- queryNodeTable -< ()
-    restrict -< _node_typename row   .== (pgInt4 $ nodeTypeId NodeUser)
+    restrict -< _node_typename row   .== (pgInt4 $ toDBid NodeUser)
     restrict -< _node_id   row   .== (pgNodeId nid)
     returnA  -< row
 selectRoot UserPublic = panic {-nodeError $ NodeError-}  "[G.D.Q.T.Root.selectRoot] No root for Public"

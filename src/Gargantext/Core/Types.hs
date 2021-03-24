@@ -23,13 +23,16 @@ module Gargantext.Core.Types ( module Gargantext.Core.Types.Main
                              , Name
                              , TableResult(..), NodeTableResult
                              , Ordering(..)
+                             , Typed(..), withType , unTyped
                              , TODO(..)
                              ) where
 
-import Control.Lens (Prism', (#))
-import Control.Monad.Error.Class (MonadError, throwError)
+import Control.Lens (Prism', (#), makeLenses, over)
+import Control.Monad.Except (MonadError(throwError))
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
+import Data.Hashable (Hashable)
+import Data.Maybe
 import Data.Monoid
 import Data.Semigroup
 import Data.Set (Set, empty)
@@ -39,13 +42,15 @@ import Data.Text (Text, unpack)
 import Data.Validity
 import GHC.Generics
 import Gargantext.Core.Types.Main
-import Gargantext.Database.Admin.Types.Node
 import Gargantext.Core.Utils.Prefix (unPrefix, wellNamedSchema)
+import Gargantext.Database.Admin.Types.Node
 import Gargantext.Prelude
 import Test.QuickCheck.Arbitrary (Arbitrary, arbitrary)
 
 ------------------------------------------------------------------------
 data Ordering = Down | Up
+  deriving (Enum, Show, Eq, Bounded)
+
 ------------------------------------------------------------------------
 type Name = Text
 type Term  = Text
@@ -55,9 +60,6 @@ type Label = [Text]
 data Terms = Terms { _terms_label :: Label
                    , _terms_stem  :: Stems
                    } deriving (Ord)
-
-instance Show Terms where
-  show (Terms l _) = show l
 
 instance Eq Terms where
   (==) (Terms _ s1) (Terms _ s2) = s1 == s2
@@ -70,7 +72,7 @@ data POS = NP
          | JJ  | VB
          | CC  | IN | DT
          | NoPos
-  deriving (Show, Generic, Eq)
+  deriving (Show, Generic, Eq, Ord)
 ------------------------------------------------------------------------
 instance FromJSON POS where
   parseJSON = withText "String" (\x -> pure (pos $ unpack x))
@@ -90,10 +92,11 @@ instance FromJSON POS where
       pos "IN"  = IN
       pos "DT"  = DT
       -- French specific
-      pos "P"  = IN
+      pos "P"   = IN
       pos  _    = NoPos
 
 instance ToJSON POS
+instance Hashable POS
 ------------------------------------------------------------------------
 data NER = PERSON | ORGANIZATION | LOCATION | NoNER
   deriving (Show, Generic)
@@ -109,10 +112,10 @@ instance FromJSON NER where
 
 instance ToJSON NER
 
-data TokenTag  = TokenTag { _my_token_word :: [Text]
-                          , _my_token_stem :: Set Text
-                          , _my_token_pos  :: Maybe POS
-                          , _my_token_ner  :: Maybe NER
+data TokenTag  = TokenTag { _my_token_word  :: [Text]
+                          , _my_token_lemma :: Set Text
+                          , _my_token_pos   :: Maybe POS
+                          , _my_token_ner   :: Maybe NER
                           } deriving (Show)
 
 instance Semigroup TokenTag where
@@ -143,7 +146,7 @@ type NodeTableResult a = TableResult (Node a)
 
 
 data TableResult a = TableResult { tr_count :: Int
-                                 , tr_docs :: [a]
+                                 , tr_docs  :: [a]
                                  } deriving (Generic)
 
 $(deriveJSON (unPrefix "tr_") ''TableResult)
@@ -154,14 +157,25 @@ instance (Typeable a, ToSchema a) => ToSchema (TableResult a) where
 instance Arbitrary a => Arbitrary (TableResult a) where
   arbitrary = TableResult <$> arbitrary <*> arbitrary
 
+----------------------------------------------------------------------------
+data Typed a b =
+  Typed { _withType :: a
+        , _unTyped  :: b
+        }
+  deriving (Generic, Show, Eq, Ord)
 
+makeLenses ''Typed
+
+instance Functor (Typed a) where
+  fmap = over unTyped
+
+----------------------------------------------------------------------------
 -- TO BE removed
 data TODO = TODO
   deriving (Generic)
 
 instance ToSchema TODO where
 instance ToParamSchema TODO where
-
 ----------------------------------------------------------------------------
 
 

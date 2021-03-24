@@ -1,5 +1,5 @@
 {-|
-Module      : Gargantext.Database.Schema.Ngrams
+Module      : Gargantext.Database.Schema.NgramsPostag
 Description : Ngram connection to the Database
 Copyright   : (c) CNRS, 2017-Present
 License     : AGPL + CECILL v3
@@ -19,25 +19,27 @@ Ngrams connection to the Database.
 module Gargantext.Database.Schema.Ngrams
   where
 
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 import Codec.Serialise (Serialise())
 import Control.Lens (over)
 import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.Types (toJSONKeyText)
-import Data.Map (Map, fromList, lookup)
+import Data.Map (fromList, lookup)
 import Data.Text (Text, splitOn, pack, strip)
-import Gargantext.Core.Types (TODO(..))
+import Gargantext.Core.Types (TODO(..), Typed(..))
 import Gargantext.Prelude
-import Prelude (Functor)
 import Servant (FromHttpApiData, parseUrlPiece, Proxy(..))
 import Text.Read (read)
+import Gargantext.Database.Types
 import Gargantext.Database.Schema.Prelude
 import qualified Database.PostgreSQL.Simple as PGS
+import qualified Data.HashMap.Strict as HashMap
 
 
-type NgramsId    = Int
-type NgramsTerms = Text
-type Size        = Int
+type NgramsId  = Int
+type Size      = Int
 
 data NgramsPoly id terms n = NgramsDB { _ngrams_id    :: !id
                                       , _ngrams_terms :: !terms
@@ -69,14 +71,12 @@ ngramsTable = Table "ngrams" (pNgramsDb NgramsDB { _ngrams_id    = optional "id"
                                                  }
                               )
 
-
-
 -- | Main Ngrams Types
 -- | Typed Ngrams
 -- Typed Ngrams localize the context of the ngrams
--- ngrams in source field of document has Sources Type
--- ngrams in authors field of document has Authors Type
--- ngrams in text (title or abstract) of documents has Terms Type
+-- ngrams in source  field  of document  has Sources Type
+-- ngrams in authors field  of document  has Authors Type
+-- ngrams in text    fields of documents has Terms   Type (i.e. either title or abstract)
 data NgramsType = Authors | Institutes | Sources | NgramsTerms
   deriving (Eq, Show, Read, Ord, Enum, Bounded, Generic)
 
@@ -105,6 +105,7 @@ instance FromField NgramsTypeId where
 instance FromJSON NgramsType
 instance FromJSONKey NgramsType where
    fromJSONKey = FromJSONKeyTextParser (parseJSON . String)
+
 instance ToJSON NgramsType
 instance ToJSONKey NgramsType where
    toJSONKey = toJSONKeyText (pack . show)
@@ -139,20 +140,31 @@ fromNgramsTypeId id = lookup id
                                ]
 
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams
 data Ngrams = UnsafeNgrams { _ngramsTerms :: Text
                            , _ngramsSize  :: Int
-                           } deriving (Generic, Show, Eq, Ord)
+                           }
+  deriving (Generic, Show, Eq, Ord)
+
+instance Hashable Ngrams
 
 makeLenses ''Ngrams
 instance PGS.ToRow Ngrams where
   toRow (UnsafeNgrams t s) = [toField t, toField s]
+
+instance FromField Ngrams where
+  fromField fld mdata = do
+    x <- fromField fld mdata
+    pure $ text2ngrams x
 
 text2ngrams :: Text -> Ngrams
 text2ngrams txt = UnsafeNgrams txt' $ length $ splitOn " " txt'
   where
     txt' = strip txt
 
+
+------------------------------------------------------------------------
 -------------------------------------------------------------------------
 -- | TODO put it in Gargantext.Core.Text.Ngrams
 -- Named entity are typed ngrams of Terms Ngrams
@@ -165,41 +177,23 @@ makeLenses ''NgramsT
 
 instance Functor NgramsT where
   fmap = over ngramsT
+
 -----------------------------------------------------------------------
-data NgramsIndexed =
-  NgramsIndexed
-  { _ngrams   :: Ngrams
-  , _ngramsId :: NgramsId
-  } deriving (Show, Generic, Eq, Ord)
+withMap :: HashMap Text NgramsId -> Text -> NgramsId
+withMap m n = maybe (panic $ "[G.D.S.Ngrams.withMap] Should not happen" <> (cs $ show n))
+                    identity (HashMap.lookup n m)
 
-makeLenses ''NgramsIndexed
-------------------------------------------------------------------------
-data NgramIds =
-  NgramIds
-  { ngramId    :: Int
-  , ngramTerms :: Text
-  } deriving (Show, Generic, Eq, Ord)
-
-instance PGS.FromRow NgramIds where
-  fromRow = NgramIds <$> field <*> field
-
-----------------------
-withMap :: Map NgramsTerms NgramsId -> NgramsTerms -> NgramsId
-withMap m n = maybe (panic "withMap: should not happen") identity (lookup n m)
-
-indexNgramsT :: Map NgramsTerms NgramsId -> NgramsT Ngrams -> NgramsT NgramsIndexed
+indexNgramsT :: HashMap Text NgramsId -> NgramsT Ngrams -> NgramsT (Indexed Int Ngrams)
 indexNgramsT = fmap . indexNgramsWith . withMap
 
-indexNgrams :: Map NgramsTerms NgramsId -> Ngrams -> NgramsIndexed
+-- | TODO replace NgramsT whith Typed NgramsType Ngrams
+indexTypedNgrams :: HashMap Text NgramsId
+                 -> Typed NgramsType Ngrams
+                 -> Typed NgramsType (Indexed Int Ngrams)
+indexTypedNgrams = fmap . indexNgramsWith . withMap
+
+indexNgrams :: HashMap Text NgramsId -> Ngrams -> Indexed Int Ngrams
 indexNgrams = indexNgramsWith . withMap
 
--- NP: not sure we need it anymore
-indexNgramsTWith :: (NgramsTerms -> NgramsId) -> NgramsT Ngrams -> NgramsT NgramsIndexed
-indexNgramsTWith = fmap . indexNgramsWith
-
-indexNgramsWith :: (NgramsTerms -> NgramsId) -> Ngrams -> NgramsIndexed
-indexNgramsWith f n = NgramsIndexed n (f $ _ngramsTerms n)
-
-
-
-
+indexNgramsWith :: (Text -> NgramsId) -> Ngrams -> Indexed Int Ngrams
+indexNgramsWith f n = Indexed (f $ _ngramsTerms n) n

@@ -9,33 +9,37 @@ Portability : POSIX
 
 -}
 
-
 module Gargantext.Core.Viz.Graph.Tools
   where
 
-import Debug.Trace (trace)
-import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 -- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.Map (Map)
-import qualified Data.Set as Set
+import Data.HashMap.Strict (HashMap)
 import Data.Text (Text)
-import Gargantext.Prelude
+import Debug.Trace (trace)
+import GHC.Float (sin, cos)
+import Gargantext.API.Ngrams.Types (NgramsTerm(..))
+import Gargantext.Core.Methods.Distances (Distance(..), measure)
+import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
-import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness)
-import Gargantext.Core.Viz.Graph.Distances (Distance(..), measure)
+import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
+import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index)
-import Gargantext.Core.Viz.Graph.IGraph (mkGraphUfromEdges)
-import Gargantext.Core.Viz.Graph.Proxemy (confluence)
-import GHC.Float (sin, cos)
-import qualified IGraph as Igraph
+import Gargantext.Prelude
 import IGraph.Random -- (Gen(..))
+import qualified Data.List                as List
+import qualified Data.Map                 as Map
+import qualified Data.Set                 as Set
+import qualified Data.Vector.Storable     as Vec
+import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
-import qualified Data.Vector.Storable as Vec
-import qualified Data.Map  as Map
-import qualified Data.List as List
+-- import qualified Data.Vector.Storable as Vec
+-- import qualified Data.Map  as Map
+-- import qualified Data.List as List
 -- import Debug.Trace (trace)
+import qualified Data.HashMap.Strict      as HashMap
 
 type Threshold = Double
 
@@ -52,6 +56,15 @@ cooc2graph' distance threshold myCooc = distanceMap
     distanceMat = measure distance matCooc
     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
 
+data PartitionMethod = Louvain | Spinglass
+
+cooc2graphWith :: PartitionMethod
+               -> Distance
+               -> Threshold
+               -> HashMap (NgramsTerm, NgramsTerm) Int
+               -> IO Graph
+cooc2graphWith Louvain   = cooc2graphWith' (cLouvain "1")
+cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
 
 cooc2graph'' :: Ord t => Distance
                       -> Double
@@ -85,16 +98,19 @@ filterByNeighbours threshold distanceMap = filteredMap
                            in List.take (round threshold) selected
                       ) indexes                 
 
-
-cooc2graph :: Distance
-           -> Threshold
-           -> (Map (Text, Text) Int)
-           -> IO Graph
-cooc2graph distance threshold myCooc = do
+cooc2graphWith' :: ToComId a
+               => Partitions a
+               -> Distance
+               -> Threshold
+               -> HashMap (NgramsTerm, NgramsTerm) Int
+               -> IO Graph
+cooc2graphWith' doPartitions distance threshold myCooc = do
   printDebug "cooc2graph" distance
   let
-    (ti, _) = createIndices myCooc
-    myCooc' = toIndex ti myCooc
+    -- TODO remove below
+    theMatrix = Map.fromList $ HashMap.toList myCooc
+    (ti, _) = createIndices theMatrix
+    myCooc' = toIndex ti theMatrix
     matCooc = map2mat 0 (Map.size ti)
             $ Map.filterWithKey (\(a,b) _ -> a /= b) 
             $ Map.filter (> 1) myCooc'
@@ -106,14 +122,15 @@ cooc2graph distance threshold myCooc = do
       where
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
-    ClustersParams rivers level = clustersParams nodesApprox
+    ClustersParams rivers _level = clustersParams nodesApprox
 
-
+  printDebug "Start" ("partitions" :: Text)
   partitions <- if (Map.size distanceMap > 0)
       -- then iLouvainMap 100 10 distanceMap
       -- then hLouvain distanceMap
-      then cLouvain level distanceMap
+      then doPartitions distanceMap
       else panic "Text.Flow: DistanceMap is empty"
+  printDebug "End" ("partitions" :: Text)
 
   let
     -- bridgeness' = distanceMap
@@ -121,10 +138,54 @@ cooc2graph distance threshold myCooc = do
                 $ bridgeness rivers partitions distanceMap
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
-  pure $ data2graph (Map.toList ti) myCooc' bridgeness' confluence' partitions
+  pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
+                    myCooc' bridgeness' confluence' partitions
 
 
 
+-- cooc2graph :: Distance
+--            -> Threshold
+--            -> (Map (Text, Text) Int)
+--            -> IO Graph
+-- cooc2graph distance threshold myCooc = do
+--   printDebug "cooc2graph" distance
+--   let
+--     -- TODO remove below
+--     theMatrix = Map.fromList $ HashMap.toList myCooc
+--     (ti, _) = createIndices theMatrix
+--     myCooc' = toIndex ti theMatrix
+--     matCooc = map2mat 0 (Map.size ti)
+--             $ Map.filterWithKey (\(a,b) _ -> a /= b) 
+--             $ Map.filter (> 1) myCooc'
+--     distanceMat = measure distance matCooc
+--     distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+
+--     nodesApprox :: Int
+--     nodesApprox = n'
+--       where
+--         (as, bs) = List.unzip $ Map.keys distanceMap
+--         n' = Set.size $ Set.fromList $ as <> bs
+--     ClustersParams rivers _level = clustersParams nodesApprox
+
+--   printDebug "Start" ("partitions" :: Text)
+--   partitions <- if (Map.size distanceMap > 0)
+--       -- then iLouvainMap 100 10 distanceMap
+--       -- then hLouvain distanceMap
+--       then doPartitions distanceMap
+--       else panic "Text.Flow: DistanceMap is empty"
+--   printDebug "End" ("partitions" :: Text)
+
+--   let
+--     -- bridgeness' = distanceMap
+--     bridgeness' = trace ("Rivers: " <> show rivers)
+--                 $ bridgeness rivers partitions distanceMap
+--     confluence' = confluence (Map.keys bridgeness') 3 True False
+
+--   pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
+--                     myCooc' bridgeness' confluence' partitions
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
 data ClustersParams = ClustersParams { bridgness :: Double
                                      , louvain   :: Text
                                      } deriving (Show)
@@ -141,16 +202,17 @@ clustersParams x = ClustersParams (fromIntegral x) "0.00000001" -- y
 
 ----------------------------------------------------------
 -- | From data to Graph
-data2graph :: [(Text, Int)]
+data2graph :: ToComId a 
+           => [(Text, Int)]
            -> Map (Int, Int) Int
            -> Map (Int, Int) Double
            -> Map (Int, Int) Double
-           -> [LouvainNode]
+           -> [a]
            -> Graph
 data2graph labels coocs bridge conf partitions = Graph nodes edges Nothing
   where
 
-    community_id_by_node_id = Map.fromList [ (n, c) | LouvainNode n c <- partitions ]
+    community_id_by_node_id = Map.fromList $ map nodeId2comId partitions
 
     nodes = map (setCoord ForceAtlas labels bridge)
           [ (n, Node { node_size = maybe 0 identity (Map.lookup (n,n) coocs)
@@ -175,8 +237,11 @@ data2graph labels coocs bridge conf partitions = Graph nodes edges Nothing
                        , edge_weight =  d
                        , edge_confluence = maybe 0 identity $ Map.lookup (s,t) conf
                    -- , edge_confluence = maybe (panic "E: data2graph edges") identity $ Map.lookup (s,t) conf
-                   , edge_id     = cs (show i) }
-                   | (i, ((s,t), d)) <- zip ([0..]::[Integer]) (Map.toList bridge), s /= t, d > 0
+                       , edge_id     = cs (show i)
+                   }
+                   | (i, ((s,t), d)) <- zip ([0..]::[Integer] )
+                                            (Map.toList bridge)
+                   , s /= t, d > 0
                    ]
 
 

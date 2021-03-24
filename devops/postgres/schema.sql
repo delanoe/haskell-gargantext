@@ -39,6 +39,8 @@ CREATE TABLE public.nodes (
 );
 ALTER TABLE public.nodes OWNER TO gargantua;
 
+--------------------------------------------------------------
+-- | Ngrams
 CREATE TABLE public.ngrams (
     id SERIAL,
     terms CHARACTER varying(255),
@@ -46,6 +48,20 @@ CREATE TABLE public.ngrams (
     PRIMARY KEY (id)
 );
 ALTER TABLE public.ngrams OWNER TO gargantua;
+
+-- | Ngrams PosTag
+CREATE TABLE public.ngrams_postag (
+    id SERIAL,
+    lang_id INTEGER,
+    algo_id INTEGER,
+    postag CHARACTER varying(5),
+    ngrams_id INTEGER NOT NULL,
+    lemm_id   INTEGER NOT NULL,
+    score     INTEGER DEFAULT 1 ::integer NOT NULL,
+    FOREIGN KEY (ngrams_id) REFERENCES public.ngrams(id) ON DELETE CASCADE,
+    FOREIGN KEY (lemm_id)   REFERENCES public.ngrams(id) ON DELETE CASCADE
+);
+ALTER TABLE public.ngrams_postag OWNER TO gargantua;
 
 --------------------------------------------------------------
 CREATE TABLE public.node_ngrams (
@@ -162,6 +178,7 @@ CREATE UNIQUE INDEX ON public.nodes USING btree (hash_id);
 
 CREATE UNIQUE INDEX ON public.ngrams (terms); -- TEST GIN
 CREATE        INDEX ON public.ngrams USING btree (id, terms);
+CREATE UNIQUE INDEX ON public.ngrams_postag (lang_id,algo_id,postag,ngrams_id,lemm_id);
 CREATE        INDEX ON public.node_ngrams USING btree (node_id,node_subtype);
 CREATE UNIQUE INDEX ON public.node_ngrams USING btree (node_id,node_subtype, ngrams_id);
 

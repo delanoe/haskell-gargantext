@@ -33,7 +33,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.Prelude
   )
   where
 
-import Control.Lens hiding (elements, (&), (.=))
+import Control.Lens hiding (elements, (&), (.=), Indexed)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Aeson.Types (emptyObject)
@@ -50,7 +50,7 @@ import Gargantext.Database.Prelude (fromField')
 import Gargantext.Prelude
 import Opaleye (QueryRunnerColumnDefault, queryRunnerColumnDefault, PGJsonb, fieldQueryRunnerColumn, Nullable)
 import Test.QuickCheck (elements)
-import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Arbitrary hiding (vector)
 
 ------------------------------------------------------------------------
 -- Only Hyperdata types should be member of this type class.

@@ -17,10 +17,10 @@ Portability : POSIX
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-{-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE InstanceSigs            #-}
+{-# LANGUAGE ScopedTypeVariables     #-}
 {-# LANGUAGE TemplateHaskell         #-}
 
 module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
@@ -41,41 +41,46 @@ module Gargantext.Database.Action.Flow -- (flowDatabase, ngrams2list)
   , allDataOrigins
 
   , do_api
+  , indexAllDocumentsWithPosTag
   )
     where
 
 import Control.Lens ((^.), view, _Just, makeLenses)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
+import Data.HashMap.Strict (HashMap)
+import Data.Hashable (Hashable)
 import Data.List (concat)
-import qualified Data.Map as Map
 import Data.Map (Map, lookup)
 import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Swagger
-import Data.Text (splitOn, intercalate)
+import Data.Text (splitOn)
 import Data.Traversable (traverse)
 import Data.Tuple.Extra (first, second)
 import GHC.Generics (Generic)
 import System.FilePath (FilePath)
+import qualified Data.HashMap.Strict as HashMap
+import qualified Gargantext.Data.HashMap.Strict.Utils as HashMap
+import qualified Data.Map as Map
 
-import Gargantext.Core (Lang(..))
+import Gargantext.Core (Lang(..), PosTagAlgo(..))
 import Gargantext.Core.Ext.IMT (toSchoolName)
-import Gargantext.Core.Ext.IMTUser (deserialiseImtUsersFromFile)
+import Gargantext.Core.Ext.IMTUser (readFile_Annuaire)
 import Gargantext.Core.Flow.Types
 import Gargantext.Core.Text
+import Gargantext.Core.Text.List.Group.WithStem ({-StopSize(..),-} GroupParams(..))
 import Gargantext.Core.Text.Corpus.Parsers (parseFile, FileFormat)
 import Gargantext.Core.Text.List (buildNgramsLists)
-import Gargantext.Core.Text.Group (StopSize(..), GroupParams(..))
 import Gargantext.Core.Text.Terms
 import Gargantext.Core.Text.Terms.Mono.Stem.En (stemIt)
-import Gargantext.Core.Types (Terms(..))
+import Gargantext.Core.Types (POS(NP))
 import Gargantext.Core.Types.Individu (User(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Gargantext.Database.Action.Flow.List
 import Gargantext.Database.Action.Flow.Types
-import Gargantext.Database.Action.Flow.Utils (insertDocNgrams)
+import Gargantext.Database.Action.Flow.Utils (insertDocNgrams, DocumentIdWithNgrams(..))
 import Gargantext.Database.Action.Search (searchDocInDatabase)
 import Gargantext.Database.Admin.Config (userMaster, corpusMasterName)
 import Gargantext.Database.Admin.Types.Hyperdata
@@ -88,12 +93,18 @@ import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
 import Gargantext.Database.Query.Table.NodeNgrams (listInsertDb , getCgramsId)
 import Gargantext.Database.Query.Table.NodeNodeNgrams2
 import Gargantext.Database.Query.Tree.Root (getOrMkRoot, getOrMk_RootWithCorpus)
-import Gargantext.Database.Schema.Node (NodePoly(..))
+import Gargantext.Database.Schema.Node (NodePoly(..), node_id)
+import Gargantext.Database.Types
 import Gargantext.Prelude
 import Gargantext.Prelude.Crypto.Hash (Hash)
 import qualified Gargantext.Core.Text.Corpus.API as API
 import qualified Gargantext.Database.Query.Table.Node.Document.Add  as Doc  (add)
 
+------------------------------------------------------------------------
+-- Impots for upgrade function
+import Gargantext.Database.Query.Tree.Root (getRootId)
+import Gargantext.Database.Query.Tree (findNodesId)
+import qualified Data.List as List
 ------------------------------------------------------------------------
 -- TODO use internal with API name (could be old data)
 data DataOrigin = InternalOrigin { _do_api :: API.ExternalAPIs }
@@ -124,6 +135,7 @@ getDataText :: FlowCmdM env err m
 getDataText (ExternalOrigin api) la q li = liftBase $ DataNew
                                   <$> splitEvery 500
                                   <$> API.get api (_tt_lang la) q li
+
 getDataText (InternalOrigin _) _la q _li = do
   (_masterUserId, _masterRootId, cId) <- getOrMk_RootWithCorpus
                                            (UserName userMaster)
@@ -154,7 +166,7 @@ flowAnnuaire :: (FlowCmdM env err m)
              -> FilePath
              -> m AnnuaireId
 flowAnnuaire u n l filePath = do
-  docs <- liftBase $ (( splitEvery 500 <$> deserialiseImtUsersFromFile filePath) :: IO [[HyperdataContact]])
+  docs <- liftBase $ (( splitEvery 500 <$> readFile_Annuaire filePath) :: IO [[HyperdataContact]])
   flow (Nothing :: Maybe HyperdataAnnuaire) u n l docs
 
 ------------------------------------------------------------------------
@@ -211,17 +223,25 @@ flowCorpusUser :: ( FlowCmdM env err m
 flowCorpusUser l user corpusName ctype ids = do
   -- User Flow
   (userId, _rootId, userCorpusId) <- getOrMk_RootWithCorpus user corpusName ctype
+  -- NodeTexts is first
+  _tId <- insertDefaultNode NodeTexts userCorpusId userId
+  -- printDebug "NodeTexts: " tId
+
+  -- NodeList is second
   listId <- getOrMkList userCorpusId userId
   -- _cooc  <- insertDefaultNode NodeListCooc listId userId
   -- TODO: check if present already, ignore
   _ <- Doc.add userCorpusId ids
 
-  _tId <- insertDefaultNode NodeTexts userCorpusId userId
   -- printDebug "Node Text Ids:" tId
 
   -- User List Flow
   (masterUserId, _masterRootId, masterCorpusId) <- getOrMk_RootWithCorpus (UserName userMaster) (Left "") ctype
-  ngs         <- buildNgramsLists user (GroupParams l 2 3 (StopSize 3)) userCorpusId masterCorpusId
+
+  --let gp = (GroupParams l 2 3 (StopSize 3)) 
+  let gp = GroupWithPosTag l CoreNLP HashMap.empty 
+  ngs         <- buildNgramsLists gp user userCorpusId masterCorpusId
+
   _userListId <- flowList_DbRepo listId ngs
   _mastListId <- getOrMkList masterCorpusId masterUserId
   -- _ <- insertOccsUpdates userCorpusId mastListId
@@ -253,26 +273,31 @@ insertMasterDocs c lang hs  =  do
   -- this will enable global database monitoring
 
   -- maps :: IO Map Ngrams (Map NgramsType (Map NodeId Int))
-  mapNgramsDocs <- mapNodeIdNgrams
-       <$> documentIdWithNgrams (extractNgramsT $ withLang lang documentsWithId) documentsWithId
+  mapNgramsDocs' :: HashMap ExtractedNgrams (Map NgramsType (Map NodeId Int))
+                <- mapNodeIdNgrams
+                <$> documentIdWithNgrams
+                    (extractNgramsT $ withLang lang documentsWithId)
+                    documentsWithId
 
-  terms2id <- insertNgrams $ Map.keys mapNgramsDocs
+  terms2id <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
+  let mapNgramsDocs = HashMap.mapKeys extracted2ngrams mapNgramsDocs'
+
   -- to be removed
-  let indexedNgrams = Map.mapKeys (indexNgrams terms2id) mapNgramsDocs
+  let indexedNgrams = HashMap.mapKeys (indexNgrams terms2id) mapNgramsDocs
 
   -- new
   lId      <- getOrMkList masterCorpusId masterUserId
   mapCgramsId <- listInsertDb lId toNodeNgramsW'
-                $ map (first _ngramsTerms . second Map.keys)
-                $ Map.toList mapNgramsDocs
+               $ map (first _ngramsTerms . second Map.keys)
+               $ HashMap.toList mapNgramsDocs
   -- insertDocNgrams
   _return <- insertNodeNodeNgrams2
            $ catMaybes [ NodeNodeNgrams2 <$> Just nId
                                          <*> getCgramsId mapCgramsId ngrams_type (_ngramsTerms terms'')
                                          <*> Just (fromIntegral w :: Double)
-                       | (terms'', mapNgramsTypes) <- Map.toList mapNgramsDocs
+                       | (terms'', mapNgramsTypes)      <- HashMap.toList mapNgramsDocs
                        , (ngrams_type, mapNodeIdWeight) <- Map.toList mapNgramsTypes
-                       , (nId, w) <- Map.toList mapNodeIdWeight
+                       , (nId, w)                       <- Map.toList mapNodeIdWeight
                        ]
 
   -- _cooc <- insertDefaultNode NodeListCooc lId masterUserId
@@ -289,7 +314,7 @@ insertDocs :: ( FlowCmdM env err m
               => UserId
               -> CorpusId
               -> [a]
-              -> m ([DocId], [DocumentWithId a])
+              -> m ([DocId], [Indexed NodeId a])
 insertDocs uId cId hs = do
   let docs = map addUniqId hs
   newIds <- insertDb uId cId docs
@@ -299,7 +324,6 @@ insertDocs uId cId hs = do
     documentsWithId = mergeData (toInserted newIds) (Map.fromList $ map viewUniqId' docs)
   _ <- Doc.add cId newIds'
   pure (newIds', documentsWithId)
-
 
 
 ------------------------------------------------------------------------
@@ -319,61 +343,69 @@ toInserted =
 
 mergeData :: Map Hash ReturnId
           -> Map Hash a
-          -> [DocumentWithId a]
+          -> [Indexed NodeId a]
 mergeData rs = catMaybes . map toDocumentWithId . Map.toList
   where
     toDocumentWithId (sha,hpd) =
-      DocumentWithId <$> fmap reId (lookup sha rs)
-                     <*> Just hpd
+      Indexed <$> fmap reId (lookup sha rs)
+              <*> Just hpd
 
 ------------------------------------------------------------------------
-instance HasText HyperdataContact
-  where
-    hasText = undefined
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 documentIdWithNgrams :: HasNodeError err
                      => (a
-                     -> Cmd err (Map Ngrams (Map NgramsType Int)))
-                     -> [DocumentWithId a]
-                     -> Cmd err [DocumentIdWithNgrams a]
+                     -> Cmd err (HashMap b (Map NgramsType Int)))
+                     -> [Indexed NodeId a]
+                     -> Cmd err [DocumentIdWithNgrams a b]
 documentIdWithNgrams f = traverse toDocumentIdWithNgrams
   where
     toDocumentIdWithNgrams d = do
-      e <- f $ documentData         d
+      e <- f $ _unIndex         d
       pure   $ DocumentIdWithNgrams d e
+
+
+-- | TODO check optimization
+mapNodeIdNgrams :: (Ord b, Hashable b)
+                => [DocumentIdWithNgrams a b]
+                -> HashMap b
+                       (Map NgramsType 
+                            (Map NodeId Int)
+                       )
+mapNodeIdNgrams = HashMap.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap f
+  where
+    f :: DocumentIdWithNgrams a b
+      -> HashMap b (Map NgramsType (Map NodeId Int))
+    f d = fmap (fmap (Map.singleton nId)) $ documentNgrams d
+      where
+        nId = _index $ documentWithId d
+
 
 ------------------------------------------------------------------------
 instance ExtractNgramsT HyperdataContact
   where
-    extractNgramsT l hc = filterNgramsT 255 <$> extract l hc
+    extractNgramsT l hc = HashMap.mapKeys (cleanExtractedNgrams 255) <$> extract l hc
       where
         extract :: TermType Lang -> HyperdataContact
-                -> Cmd err (Map Ngrams (Map NgramsType Int))
+                -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
         extract _l hc' = do
           let authors = map text2ngrams
-                     $ maybe ["Nothing"] (\a -> [a])
-                     $ view (hc_who . _Just . cw_lastName) hc'
+                      $ maybe ["Nothing"] (\a -> [a])
+                      $ view (hc_who . _Just . cw_lastName) hc'
 
-          pure $ Map.fromList $ [(a', Map.singleton Authors     1) | a' <- authors    ]
-
-instance HasText HyperdataDocument
-  where
-    hasText h = catMaybes [ _hd_title    h
-                          , _hd_abstract h
-                          ]
+          pure $ HashMap.fromList $ [(SimpleNgrams a', Map.singleton Authors 1) | a' <- authors ]
 
 
 instance ExtractNgramsT HyperdataDocument
   where
     extractNgramsT :: TermType Lang
                    -> HyperdataDocument
-                   -> Cmd err (Map Ngrams (Map NgramsType Int))
-    extractNgramsT lang hd = filterNgramsT 255 <$> extractNgramsT' lang hd
+                   -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
+    extractNgramsT lang hd = HashMap.mapKeys (cleanExtractedNgrams 255) <$> extractNgramsT' lang hd
       where
         extractNgramsT' :: TermType Lang
                         -> HyperdataDocument
-                       -> Cmd err (Map Ngrams (Map NgramsType Int))
+                       -> Cmd err (HashMap ExtractedNgrams (Map NgramsType Int))
         extractNgramsT' lang' doc = do
           let source    = text2ngrams
                         $ maybe "Nothing" identity
@@ -387,15 +419,15 @@ instance ExtractNgramsT HyperdataDocument
                          $ maybe ["Nothing"] (splitOn ", ")
                          $ _hd_authors doc
 
-          terms' <- map text2ngrams
-                 <$> map (intercalate " " . _terms_label)
+          terms' <- map (enrichedTerms (lang' ^. tt_lang) CoreNLP NP)
                  <$> concat
                  <$> liftBase (extractTerms lang' $ hasText doc)
 
-          pure $ Map.fromList $  [(source, Map.singleton Sources 1)]
-                             <> [(i', Map.singleton Institutes  1) | i' <- institutes ]
-                             <> [(a', Map.singleton Authors     1) | a' <- authors    ]
-                             <> [(t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
+          pure $ HashMap.fromList
+               $  [(SimpleNgrams source, Map.singleton Sources     1)                    ]
+               <> [(SimpleNgrams     i', Map.singleton Institutes  1) | i' <- institutes ]
+               <> [(SimpleNgrams     a', Map.singleton Authors     1) | a' <- authors    ]
+               <> [(EnrichedNgrams   t', Map.singleton NgramsTerms 1) | t' <- terms'     ]
 
 instance (ExtractNgramsT a, HasText a) => ExtractNgramsT (Node a)
   where
@@ -404,5 +436,39 @@ instance (ExtractNgramsT a, HasText a) => ExtractNgramsT (Node a)
 instance HasText a => HasText (Node a)
   where
     hasText (Node _ _ _ _ _ _ _ h) = hasText h
+
+
+
+-- | TODO putelsewhere
+-- | Upgrade function
+-- Suppose all documents are English (this is the case actually)
+indexAllDocumentsWithPosTag :: FlowCmdM env err m => m ()
+indexAllDocumentsWithPosTag = do
+  rootId    <- getRootId (UserName userMaster)
+  corpusIds <- findNodesId rootId [NodeCorpus]
+  docs      <- List.concat <$> mapM getDocumentsWithParentId corpusIds
+
+  _ <- mapM extractInsert (splitEvery 1000 docs)
+
+  pure ()
+
+extractInsert :: FlowCmdM env err m => [Node HyperdataDocument] -> m ()
+extractInsert docs = do
+  let documentsWithId = map (\doc -> Indexed (doc ^. node_id) doc) docs
+
+  mapNgramsDocs' <- mapNodeIdNgrams
+                <$> documentIdWithNgrams
+                    (extractNgramsT $ withLang (Multi EN) documentsWithId)
+                    documentsWithId
+
+  _ <- insertExtractedNgrams $ HashMap.keys mapNgramsDocs'
+
+  pure ()
+
+
+
+
+
+
 
 

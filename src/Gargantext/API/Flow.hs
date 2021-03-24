@@ -10,12 +10,6 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TypeOperators        #-}
-
 module Gargantext.API.Flow
   where
 

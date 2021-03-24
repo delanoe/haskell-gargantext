@@ -39,7 +39,7 @@ import GHC.Generics (Generic)
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger)
 import Opaleye hiding (FromField, readOnly)
 import Opaleye.Internal.QueryArr (Query)
-import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Arbitrary hiding (vector)
 
 import Database.PostgreSQL.Simple.FromField (FromField, fromField)
 import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)

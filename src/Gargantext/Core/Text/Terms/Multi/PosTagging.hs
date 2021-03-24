@@ -25,24 +25,18 @@ Source: https://en.wikipedia.org/wiki/Part-of-speech_tagging
 module Gargantext.Core.Text.Terms.Multi.PosTagging
   where
 
-import GHC.Generics
-
-import Data.ByteString.Lazy.Internal (ByteString)
-import Data.Aeson.TH (deriveJSON)
 import Data.Aeson
-
+import Data.Aeson.TH (deriveJSON)
+import Data.ByteString.Lazy.Internal (ByteString)
 import Data.Set (fromList)
-
+import Data.String.Conversions (ConvertibleStrings)
 import Data.Text (Text, splitOn, pack, toLower)
-
+import GHC.Generics
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix)
 import Gargantext.Prelude
-
 import Network.HTTP.Simple
-
-import Data.String.Conversions (ConvertibleStrings)
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
@@ -64,10 +58,10 @@ tokens2tokensTags :: [Token] -> [TokenTag]
 tokens2tokensTags ts = filter' $ map tokenTag ts
 ------------------------------------------------------------------------
 tokenTag :: Token -> TokenTag
-tokenTag (Token _ _ w s _ _ p n _ _) = TokenTag w' s' p n
+tokenTag (Token _ _ w l _ _ p n _ _) = TokenTag w' l' p n
   where
     w' = split w
-    s' = fromList (split s)
+    l' = fromList (split l)
     split = splitOn (pack " ") . toLower
 
 filter' :: [TokenTag] -> [TokenTag]
@@ -76,7 +70,7 @@ filter' xs = filter isNgrams xs
       isNgrams (TokenTag _ _ p n) = isJust p || isJust n
 
 ------------------------------------------------------------------------
-data Sentence  = Sentence { _sentenceIndex :: Int
+data Sentence  = Sentence { _sentenceIndex  :: Int
                           , _sentenceTokens :: [Token]
                           } deriving (Show, Generic)
 
@@ -107,16 +101,15 @@ $(deriveJSON (unPrefix "_") ''PosSentences)
 --             },
 -- 
 
-
-
 corenlp' :: ( FromJSON a
-            , ConvertibleStrings p ByteString) =>
-            Lang -> p -> IO (Response a)
+            , ConvertibleStrings p ByteString
+            )
+          => Lang -> p -> IO (Response a)
 corenlp' lang txt = do
     let properties = case lang of
             EN -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
             -- FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"outputFormat\": \"json\"}"
-            FR -> "{\"annotators\": \"tokenize,ssplit,pos,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
+            FR -> "{\"annotators\": \"tokenize,ssplit,pos,lemma,ner\", \"parse.model\":\"edu/stanford/nlp/models/lexparser/frenchFactored.ser.gz\", \"pos.model\":\"edu/stanford/nlp/models/pos-tagger/french/french.tagger\", \"tokenize.language\":\"fr\", \"outputFormat\": \"json\"}"
             _  -> panic $ pack "not implemented yet"
     url <- parseRequest $ "POST http://localhost:9000/?properties=" <> properties
     let request = setRequestBodyLBS (cs txt) url
@@ -142,9 +135,9 @@ corenlp lang txt = do
 -- parseWith  _tokenNer     "Hello world of Peter."
 -- [[("``","O"),("Hello","O"),("world","O"),("of","O"),("Peter","PERSON"),(".","O"),("''","O")]]
 tokenWith :: (Token -> t) -> Lang -> Text -> IO [[(Text, t)]]
-tokenWith f lang s = map (map (\t -> (_tokenWord t, f t))) 
+tokenWith f lang s = map (map (\t -> (_tokenWord t, f t)))
                   <$> map _sentenceTokens
-                  <$> _sentences 
+                  <$> _sentences
                   <$> corenlp lang s
 
 

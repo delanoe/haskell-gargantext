@@ -9,17 +9,18 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell    #-}
-
 module Gargantext.Core
   where
 
-import Gargantext.Prelude
-import GHC.Generics (Generic)
+import Data.Text (Text)
 import Data.Aeson
 import Data.Either(Either(Left))
+import Data.Hashable (Hashable)
 import Data.Swagger
+import GHC.Generics (Generic)
+import Gargantext.Prelude
 import Servant.API
+
 ------------------------------------------------------------------------
 -- | Language of a Text
 -- For simplicity, we suppose text has an homogenous language
@@ -44,9 +45,40 @@ instance FromJSON Lang
 instance ToSchema Lang
 instance FromHttpApiData Lang
   where
-    parseUrlPiece "EN" = pure EN
-    parseUrlPiece "FR" = pure FR
+    parseUrlPiece "EN"  = pure EN
+    parseUrlPiece "FR"  = pure FR
     parseUrlPiece "All" = pure All
-    parseUrlPiece _            = Left "Unexpected value of OrderBy"
+    parseUrlPiece _     = Left "Unexpected value of OrderBy"
+instance Hashable Lang
+
 allLangs :: [Lang]
 allLangs = [minBound ..]
+
+class HasDBid a where
+  toDBid   :: a   -> Int
+  fromDBid :: Int -> a
+
+instance HasDBid Lang where
+  toDBid All = 0
+  toDBid FR  = 1
+  toDBid EN  = 2
+
+  fromDBid 0 = All
+  fromDBid 1 = FR
+  fromDBid 2 = EN
+  fromDBid _ = panic "HasDBid lang, not implemented"
+
+------------------------------------------------------------------------
+type Form = Text
+type Lem  = Text
+------------------------------------------------------------------------
+data PosTagAlgo = CoreNLP
+  deriving (Show, Read, Eq, Ord, Generic)
+
+instance Hashable PosTagAlgo
+
+instance HasDBid PosTagAlgo where
+  toDBid CoreNLP = 1
+  fromDBid 1 = CoreNLP
+  fromDBid _ = panic "HasDBid posTagAlgo : Not implemented"
+

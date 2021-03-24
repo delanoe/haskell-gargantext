@@ -6,8 +6,9 @@ Maintainer  : team@gargantext.org
 Stability   : experimental
 Portability : POSIX
 
-- First written by Bruno Gaume in Python        (see below for details)
-- Then  written by Alexandre Delanoë in Haskell (see below for details)
+- Result of the workshop, Pyremiel 2019
+  - First written by Bruno Gaume in Python        (see below for details)
+  - Then  written by Alexandre Delanoë in Haskell (see below for details)
 
 # By Bruno Gaume:
 def fast_maximal_cliques(g):
@@ -48,7 +49,7 @@ def fast_maximal_cliques(g):
 
 
 
-module Gargantext.Core.Viz.Graph.MaxClique
+module Gargantext.Core.Methods.Graph.MaxClique
   where
 
 import Data.Maybe (catMaybes)
@@ -61,13 +62,12 @@ import Data.Set (fromList, toList, isSubsetOf)
 import Data.Graph.Inductive hiding (Graph, neighbors, subgraph, (&))
 import Gargantext.Core.Viz.Graph.FGL (Graph_Undirected, degree, neighbors, mkGraphUfromEdges)
 import Gargantext.Core.Viz.Graph.Tools (cooc2graph',cooc2graph'', Threshold)
-import Gargantext.Core.Viz.Graph.Distances (Distance)
+import Gargantext.Core.Methods.Distances (Distance)
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex)
 import Gargantext.Core.Viz.AdaptativePhylo
 -- import Debug.Trace (trace)
 type Graph = Graph_Undirected
 type Neighbor = Node
-
 
 -- | getMaxCliques
 -- TODO chose distance order

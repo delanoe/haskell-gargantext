@@ -22,10 +22,12 @@ module Gargantext.Database.Query.Table.Ngrams
     where
 
 import Control.Lens ((^.))
+import Data.HashMap.Strict (HashMap)
 import Data.ByteString.Internal (ByteString)
-import Data.Map (Map, fromList)
 import Data.Text (Text)
 import qualified Database.PostgreSQL.Simple as PGS
+import qualified Data.List                  as List
+import qualified Data.HashMap.Strict        as HashMap
 
 import Gargantext.Core.Types
 import Gargantext.Database.Prelude (runOpaQuery, Cmd)
@@ -33,6 +35,7 @@ import Gargantext.Database.Prelude (runPGSQuery, formatPGSQuery)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Prelude
+import Gargantext.Database.Types
 import Gargantext.Prelude
 
 queryNgramsTable :: Query NgramsRead
@@ -63,16 +66,19 @@ _dbGetNgramsDb = runOpaQuery queryNgramsTable
 
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams is called.
-insertNgrams :: [Ngrams] -> Cmd err (Map NgramsTerms NgramsId)
-insertNgrams ns = fromList <$> map (\(NgramIds i t) -> (t, i)) <$> (insertNgrams' ns)
+insertNgrams :: [Ngrams] -> Cmd err (HashMap Text NgramsId)
+insertNgrams ns =
+  if List.null ns
+     then pure HashMap.empty
+     else HashMap.fromList <$> map (\(Indexed i t) -> (t, i)) <$> (insertNgrams' ns)
 
 -- TODO-ACCESS: access must not be checked here but when insertNgrams' is called.
-insertNgrams' :: [Ngrams] -> Cmd err [NgramIds]
+insertNgrams' :: [Ngrams] -> Cmd err [Indexed Int Text]
 insertNgrams' ns = runPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]
 
-_insertNgrams_Debug :: [(NgramsTerms, Size)] -> Cmd err ByteString
+_insertNgrams_Debug :: [(Text, Size)] -> Cmd err ByteString
 _insertNgrams_Debug ns = formatPGSQuery queryInsertNgrams (PGS.Only $ Values fields ns)
   where
     fields = map (\t -> QualifiedIdentifier Nothing t) ["text", "int4"]

@@ -9,7 +9,7 @@ Portability : POSIX
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE Arrows                    #-}
 {-# LANGUAGE FunctionalDependencies    #-}
@@ -23,6 +23,10 @@ module Gargantext.Database.Query.Facet
   , runViewDocuments
   , runCountDocuments
   , filterWith
+
+  , Category
+  , Score
+  , Title
 
   , Pair(..)
   , Facet(..)
@@ -42,21 +46,19 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
 import Data.Swagger
-import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Time (UTCTime)
 import Data.Time.Segment (jour)
-import Data.Typeable (Typeable)
-import GHC.Generics (Generic)
 import Opaleye
-import Prelude hiding (null, id, map, sum, not, read)
+import Protolude hiding (null, map, sum, not)
 import Servant.API
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
 import qualified Opaleye.Internal.Unpackspec()
 
+import Gargantext.Core
 import Gargantext.Core.Types
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Filter
 import Gargantext.Database.Query.Join (leftJoin5)
@@ -75,22 +77,24 @@ import Gargantext.Database.Schema.Node
 --instance ToJSON   Facet
 
 type Category = Int
+type Score    = Double
 type Title    = Text
 
 -- TODO remove Title
-type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double)
+type FacetDoc = Facet NodeId UTCTime Title HyperdataDocument (Maybe Category) (Maybe Double) (Maybe Score)
 -- type FacetSources = FacetDoc
 -- type FacetAuthors = FacetDoc
 -- type FacetTerms   = FacetDoc
 
 
-data Facet id created title hyperdata category ngramCount =
+data Facet id created title hyperdata category ngramCount score =
      FacetDoc { facetDoc_id         :: id
               , facetDoc_created    :: created
               , facetDoc_title      :: title
               , facetDoc_hyperdata  :: hyperdata
               , facetDoc_category   :: category
-              , facetDoc_score      :: ngramCount
+              , facetDoc_ngramCount :: ngramCount
+              , facetDoc_score      :: score
               } deriving (Show, Generic)
 {- | TODO after demo
 data Facet id date hyperdata score = 
@@ -101,8 +105,9 @@ data Facet id date hyperdata score =
               } deriving (Show, Generic)
 -}
 
-data Pair i l = Pair {_p_id    :: i
-                     ,_p_label :: l
+data Pair i l = Pair {
+    _p_id    :: i
+  , _p_label :: l
   } deriving (Show, Generic)
 $(deriveJSON (unPrefix "_p_") ''Pair)
 $(makeAdaptorAndInstance "pPair" ''Pair)
@@ -177,13 +182,14 @@ instance ToSchema FacetDoc where
 
 -- | Mock and Quickcheck instances
 instance Arbitrary FacetDoc where
-    arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp (Just cat) (Just ngramCount)
+    arbitrary = elements [ FacetDoc id' (jour year 01 01) t hp (Just cat) (Just ngramCount) (Just score)
                          | id'  <- [1..10]
                          , year <- [1990..2000]
                          , t    <- ["title", "another title"]
                          , hp   <- arbitraryHyperdataDocuments
                          , cat  <- [0..2]
                          , ngramCount <- [3..100]
+                         , score <- [3..100]
                          ]
 
 -- Facets / Views for the Front End
@@ -196,6 +202,7 @@ type FacetDocRead = Facet (Column PGInt4       )
                           (Column PGText       )
                           (Column PGJsonb      )
                           (Column (Nullable PGInt4)) -- Category
+                          (Column (Nullable PGFloat8)) -- Ngrams Count
                           (Column (Nullable PGFloat8)) -- Score
 
 -----------------------------------------------------------------------
@@ -230,29 +237,40 @@ instance Arbitrary OrderBy
 -- TODO-SECURITY check
 
 --{-
-runViewAuthorsDoc :: ContactId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
+runViewAuthorsDoc :: HasDBid NodeType
+                  => ContactId
+                  -> IsTrash
+                  -> Maybe Offset
+                  -> Maybe Limit
+                  -> Maybe OrderBy
+                  -> Cmd err [FacetDoc]
 runViewAuthorsDoc cId t o l order = runOpaQuery $ filterWith o l order $ viewAuthorsDoc cId t ntId
   where
     ntId = NodeDocument
 
 -- TODO add delete ?
-viewAuthorsDoc :: ContactId -> IsTrash -> NodeType -> Query FacetDocRead
+viewAuthorsDoc :: HasDBid NodeType
+               => ContactId
+               -> IsTrash
+               -> NodeType
+               -> Query FacetDocRead
 viewAuthorsDoc cId _ nt = proc () -> do
-  (doc,(_,(_,(_,contact)))) <- queryAuthorsDoc      -< ()
+  (doc,(_,(_,(_,contact')))) <- queryAuthorsDoc      -< ()
 
   {-nn         <- queryNodeNodeTable -< ()
   restrict -< nn_node1_id nn .== _node_id doc
   -- restrict -< nn_delete   nn .== (pgBool t)
   -}
 
-  restrict -< _node_id   contact   .== (toNullable $ pgNodeId cId)
-  restrict -< _node_typename doc   .== (pgInt4 $ nodeTypeId nt)
+  restrict -< _node_id   contact'  .== (toNullable $ pgNodeId cId)
+  restrict -< _node_typename doc   .== (pgInt4 $ toDBid nt)
 
   returnA  -< FacetDoc (_node_id        doc)
                        (_node_date      doc)
                        (_node_name      doc)
                        (_node_hyperdata doc)
                        (toNullable $ pgInt4 1)
+                       (toNullable $ pgDouble 1)
                        (toNullable $ pgDouble 1)
 
 queryAuthorsDoc :: Query (NodeRead, (NodeNodeNgramsReadNull, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull))))
@@ -263,32 +281,46 @@ queryAuthorsDoc = leftJoin5 queryNodeTable queryNodeNodeNgramsTable queryNgramsT
                                 .== _nnng_node1_id nodeNgram
 
          cond23 :: (NgramsRead, (NodeNodeNgramsRead, NodeReadNull)) -> Column PGBool
-         cond23 (ngrams, (nodeNgram, _)) =  ngrams^.ngrams_id
+         cond23 (ngrams', (nodeNgram, _)) =  ngrams'^.ngrams_id
                                         .== _nnng_ngrams_id nodeNgram
 
          cond34 :: (NodeNodeNgramsRead, (NgramsRead, (NodeNodeNgramsReadNull, NodeReadNull))) -> Column PGBool
-         cond34 (nodeNgram2, (ngrams, (_,_)))= ngrams^.ngrams_id .== _nnng_ngrams_id       nodeNgram2
+         cond34 (nodeNgram2, (ngrams', (_,_)))= ngrams'^.ngrams_id .== _nnng_ngrams_id       nodeNgram2
 
          cond45 :: (NodeRead, (NodeNodeNgramsRead, (NgramsReadNull, (NodeNodeNgramsReadNull, NodeReadNull)))) -> Column PGBool
-         cond45 (contact, (nodeNgram2, (_, (_,_)))) = _node_id  contact    .== _nnng_node1_id         nodeNgram2
+         cond45 (contact', (nodeNgram2', (_, (_,_)))) = _node_id  contact'  .== _nnng_node1_id         nodeNgram2'
 
 --}
 ------------------------------------------------------------------------
 
 -- TODO-SECURITY check
-runViewDocuments :: CorpusId -> IsTrash -> Maybe Offset -> Maybe Limit -> Maybe OrderBy -> Cmd err [FacetDoc]
-runViewDocuments cId t o l order =
-    runOpaQuery $ filterWith o l order $ viewDocuments cId t ntId
+runViewDocuments :: HasDBid NodeType
+                 => CorpusId
+                 -> IsTrash
+                 -> Maybe Offset
+                 -> Maybe Limit
+                 -> Maybe OrderBy
+                 -> Maybe Text
+                 -> Cmd err [FacetDoc]
+runViewDocuments cId t o l order query = do
+    runOpaQuery $ filterWith o l order sqlQuery
   where
-    ntId = nodeTypeId NodeDocument
+    ntId = toDBid NodeDocument
+    sqlQuery = viewDocuments cId t ntId query
 
-runCountDocuments :: CorpusId -> IsTrash -> Cmd err Int
-runCountDocuments cId t  =
-  runCountOpaQuery $ viewDocuments cId t $ nodeTypeId NodeDocument
+runCountDocuments :: HasDBid NodeType => CorpusId -> IsTrash -> Maybe Text -> Cmd err Int
+runCountDocuments cId t mQuery = do
+  runCountOpaQuery sqlQuery
+  where
+    sqlQuery = viewDocuments cId t (toDBid NodeDocument) mQuery
 
 
-viewDocuments :: CorpusId -> IsTrash -> NodeTypeId -> Query FacetDocRead
-viewDocuments cId t ntId = proc () -> do
+viewDocuments :: CorpusId
+              -> IsTrash
+              -> NodeTypeId
+              -> Maybe Text
+              -> Query FacetDocRead
+viewDocuments cId t ntId mQuery = proc () -> do
   n  <- queryNodeTable     -< ()
   nn <- queryNodeNodeTable -< ()
   restrict -< n^.node_id       .== nn^.nn_node2_id
@@ -296,34 +328,40 @@ viewDocuments cId t ntId = proc () -> do
   restrict -< n^.node_typename .== (pgInt4 ntId)
   restrict -< if t then nn^.nn_category .== (pgInt4 0)
                    else nn^.nn_category .>= (pgInt4 1)
+                       
+  let query = (fromMaybe "" mQuery)
+      iLikeQuery = T.intercalate "" ["%", query, "%"]
+  restrict -< (n^.node_name) `ilike` (pgStrictText iLikeQuery)
+ 
   returnA  -< FacetDoc (_node_id        n)
                        (_node_date      n)
                        (_node_name      n)
                        (_node_hyperdata n)
                        (toNullable $ nn^.nn_category)
                        (toNullable $ nn^.nn_score)
+                       (toNullable $ nn^.nn_score)
 
 ------------------------------------------------------------------------
-filterWith :: (PGOrd date, PGOrd title, PGOrd score, hyperdata ~ Column SqlJsonb) =>
-     Maybe Gargantext.Core.Types.Offset
+filterWith :: (PGOrd date, PGOrd title, PGOrd category, PGOrd score, hyperdata ~ Column SqlJsonb) =>
+        Maybe Gargantext.Core.Types.Offset
      -> Maybe Gargantext.Core.Types.Limit
      -> Maybe OrderBy
-     -> Select (Facet id (Column date) (Column title) hyperdata (Column score) ngramCount)
-     -> Select (Facet id (Column date) (Column title) hyperdata (Column score) ngramCount)
+     -> Select (Facet id (Column date) (Column title) hyperdata (Column category) ngramCount (Column score))
+     -> Select (Facet id (Column date) (Column title) hyperdata (Column category) ngramCount (Column score))
 filterWith o l order q = limit' l $ offset' o $ orderBy (orderWith order) q
 
 
-orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3)
+orderWith :: (PGOrd b1, PGOrd b2, PGOrd b3, PGOrd b4)
           => Maybe OrderBy
-          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) score)
+          -> Order (Facet id (Column b1) (Column b2) (Column SqlJsonb) (Column b3) ngramCount (Column b4))
 orderWith (Just DateAsc)   = asc  facetDoc_created
 orderWith (Just DateDesc)  = desc facetDoc_created
 
 orderWith (Just TitleAsc)  = asc  facetDoc_title
 orderWith (Just TitleDesc) = desc facetDoc_title
 
-orderWith (Just ScoreAsc)  = asc  facetDoc_category
-orderWith (Just ScoreDesc) = desc facetDoc_category
+orderWith (Just ScoreAsc)  = asc  facetDoc_score
+orderWith (Just ScoreDesc) = descNullsLast facetDoc_score
 
 orderWith (Just SourceAsc)  = asc  facetDoc_source
 orderWith (Just SourceDesc) = desc facetDoc_source
@@ -331,6 +369,6 @@ orderWith (Just SourceDesc) = desc facetDoc_source
 orderWith _                = asc facetDoc_created
 
 facetDoc_source :: PGIsJson a
-                => Facet id created title (Column a) favorite ngramCount
+                => Facet id created title (Column a) favorite ngramCount score
                 -> Column (Nullable PGText)
 facetDoc_source x = toNullable (facetDoc_hyperdata x) .->> pgString "source"

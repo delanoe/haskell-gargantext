@@ -9,7 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeOperators       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -24,16 +23,6 @@ import Data.List (replicate, null)
 import Data.Aeson
 import Data.Swagger
 import GHC.Generics (Generic)
-import Gargantext.API.Prelude
-import Gargantext.API.Node.File
-import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
-import Gargantext.Database.Prelude
-import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.NodeNode (selectPublicNodes)
-import Gargantext.Core.Utils.DateUtils (utc2year)
-import Gargantext.Database.Admin.Types.Hyperdata
-import Gargantext.Database.Schema.Node -- (NodePoly(..))
-import Gargantext.Prelude
 import Servant
 import Test.QuickCheck (elements)
 import Test.QuickCheck.Arbitrary
@@ -41,6 +30,18 @@ import Test.QuickCheck.Arbitrary
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+
+import Gargantext.API.Prelude
+import Gargantext.API.Node.File
+import Gargantext.Database.Query.Table.Node.Error (HasNodeError(..))
+import Gargantext.Database.Prelude
+import Gargantext.Database.Admin.Types.Hyperdata
+import Gargantext.Database.Admin.Types.Hyperdata.CorpusField
+import Gargantext.Database.Admin.Types.Node
+import Gargantext.Database.Query.Table.NodeNode (selectPublicNodes)
+import Gargantext.Core.Utils.DateUtils (utc2year)
+import Gargantext.Database.Schema.Node -- (NodePoly(..))
+import Gargantext.Prelude
 
 ------------------------------------------------------------------------
 type API =  API_Home

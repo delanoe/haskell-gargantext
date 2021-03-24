@@ -9,9 +9,6 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeOperators     #-}
-
 module Gargantext.API.Admin.Orchestrator where
 
 import Control.Lens hiding (elements)

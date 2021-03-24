@@ -25,19 +25,15 @@ module Gargantext.Core.Text.Metrics.FrequentItemSet
   )
   where
 
-import Prelude (Functor(..)) -- TODO
-import qualified Data.Map.Strict as Map
-import Data.Map.Strict (Map)
-import qualified Data.Set as Set
-import Data.Set (Set)
-import qualified Data.Vector as V
-
 import Data.List (concat, null)
+import Data.Map.Strict (Map)
 import Data.Maybe (catMaybes)
-
-import HLCM
-
+import Data.Set (Set)
 import Gargantext.Prelude
+import HLCM
+import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified Data.Vector as V
 
 data Size = Point Int | Segment Int Int
 

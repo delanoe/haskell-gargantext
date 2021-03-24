@@ -24,8 +24,9 @@ import qualified Data.Map    as Map
 import qualified Data.SVM    as SVM
 import qualified Data.Vector as Vec
 
+import Gargantext.Core
 import Gargantext.Core.Text.Metrics.Count (occurrencesWith)
-import Gargantext.Core.Types.Main (ListType(..), listTypeId, fromListTypeId)
+import Gargantext.Core.Types.Main (ListType(..))
 import Gargantext.Prelude
 import Gargantext.Prelude.Utils
 
@@ -43,7 +44,7 @@ trainList :: Double -> Double -> Map ListType [Vec.Vector Double] -> IO SVM.Mode
 trainList x y = (train x y) . trainList'
   where
     trainList' :: Map ListType [Vec.Vector Double] -> SVM.Problem
-    trainList' = mapVec2problem . (Map.mapKeys (fromIntegral . listTypeId))
+    trainList' = mapVec2problem . (Map.mapKeys (fromIntegral . toDBid))
 
     mapVec2problem :: Map Double [Vec.Vector Double] -> SVM.Problem
     mapVec2problem = List.concat . (map (\(a,as) -> zip (repeat a) as)) . Map.toList . (Map.map vecs2maps)
@@ -53,7 +54,7 @@ trainList x y = (train x y) . trainList'
 
 
 predictList :: Model -> [Vec.Vector Double] -> IO [Maybe ListType]
-predictList (ModelSVM m _ _) vs = map (fromListTypeId . round) <$> predict m vs
+predictList (ModelSVM m _ _) vs = map (Just . fromDBid . round) <$> predict m vs
 
 ------------------------------------------------------------------------
 data Model = ModelSVM { modelSVM :: SVM.Model

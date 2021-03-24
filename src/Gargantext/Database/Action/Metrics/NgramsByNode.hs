@@ -16,61 +16,64 @@ Ngrams by node enable contextual metrics.
 module Gargantext.Database.Action.Metrics.NgramsByNode
   where
 
-
-import Data.Map.Strict (Map, fromListWith, elems, toList)
-import Data.Map.Strict.Patch (PatchMap, Replace, diff)
+--import Data.Map.Strict.Patch (PatchMap, Replace, diff)
+import Data.HashMap.Strict (HashMap)
+import Data.Map (Map)
 import Data.Set (Set)
 import Data.Text (Text)
-import Data.Tuple.Extra (second, swap)
+import Data.Tuple.Extra (first, second, swap)
 import Database.PostgreSQL.Simple.SqlQQ (sql)
 import Database.PostgreSQL.Simple.Types (Values(..), QualifiedIdentifier(..))
 import Debug.Trace (trace)
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Core
+import Gargantext.API.Ngrams.Types (NgramsTerm(..))
+import Gargantext.Data.HashMap.Strict.Utils as HM
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, runPGSQuery)
 import Gargantext.Database.Schema.Ngrams (ngramsTypeId, NgramsType(..))
 import Gargantext.Prelude
-import qualified Data.Map.Strict as Map
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Database.PostgreSQL.Simple as DPS
 
-
-
 -- | fst is size of Supra Corpus
 --   snd is Texts and size of Occurrences (different docs)
-countNodesByNgramsWith :: (Text -> Text)
-                       -> Map Text (Set NodeId)
-                       -> (Double, Map Text (Double, Set Text))
+countNodesByNgramsWith :: (NgramsTerm -> NgramsTerm)
+                       -> HashMap NgramsTerm (Set NodeId)
+                       -> (Double, HashMap NgramsTerm (Double, Set NgramsTerm))
 countNodesByNgramsWith f m = (total, m')
   where
-    total = fromIntegral $ Set.size $ Set.unions $ elems m
-    m'    = Map.map ( swap . second (fromIntegral . Set.size))
+    total = fromIntegral $ Set.size $ Set.unions $ HM.elems m
+    m'    = HM.map ( swap . second (fromIntegral . Set.size))
           $ groupNodesByNgramsWith f m
 
 
-groupNodesByNgramsWith :: (Text -> Text)
-                       -> Map Text (Set NodeId)
-                       -> Map Text (Set Text, Set NodeId)
+groupNodesByNgramsWith :: (NgramsTerm -> NgramsTerm)
+                       -> HashMap NgramsTerm (Set NodeId)
+                       -> HashMap NgramsTerm (Set NgramsTerm, Set NodeId)
 groupNodesByNgramsWith f m =
-      fromListWith (<>) $ map (\(t,ns) -> (f t, (Set.singleton t, ns)))
-                        $ toList m
+  HM.fromListWith (<>) $ map (\(t,ns) -> (f t, (Set.singleton t, ns)))
+                       $ HM.toList m
 
 ------------------------------------------------------------------------
-getNodesByNgramsUser :: CorpusId
+getNodesByNgramsUser ::  HasDBid NodeType
+                     => CorpusId
                      -> NgramsType
-                     -> Cmd err (Map Text (Set NodeId))
+                     -> Cmd err (HashMap NgramsTerm (Set NodeId))
 getNodesByNgramsUser cId nt =
-  fromListWith (<>) <$> map (\(n,t) -> (t, Set.singleton n))
+  HM.fromListWith (<>) <$> map (\(n,t) -> (NgramsTerm t, Set.singleton n))
                     <$> selectNgramsByNodeUser cId nt
     where
 
-      selectNgramsByNodeUser :: CorpusId
+      selectNgramsByNodeUser :: HasDBid NodeType
+                             => CorpusId
                              -> NgramsType
                              -> Cmd err [(NodeId, Text)]
       selectNgramsByNodeUser cId' nt' =
         runPGSQuery queryNgramsByNodeUser
                     ( cId'
-                    , nodeTypeId NodeDocument
+                    , toDBid NodeDocument
                     , ngramsTypeId nt'
            --         , 100 :: Int -- limit
            --         , 0   :: Int -- offset
@@ -83,7 +86,7 @@ getNodesByNgramsUser cId nt =
           JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
           JOIN nodes  n       ON nn.node2_id   = n.id
           WHERE nn.node1_id = ?     -- CorpusId
-            AND n.typename  = ?     -- NodeTypeId
+            AND n.typename  = ?     -- toDBid
             AND nng.ngrams_type = ? -- NgramsTypeId
             AND nn.category > 0
             GROUP BY nng.node2_id, ng.terms
@@ -93,21 +96,22 @@ getNodesByNgramsUser cId nt =
         |]
 ------------------------------------------------------------------------
 -- TODO add groups
-getOccByNgramsOnlyFast :: CorpusId
+getOccByNgramsOnlyFast :: HasDBid NodeType
+                       => CorpusId
                        -> NgramsType
-                       -> [Text]
-                       -> Cmd err (Map Text Int)
+                       -> [NgramsTerm]
+                       -> Cmd err (HashMap NgramsTerm Int)
 getOccByNgramsOnlyFast cId nt ngs =
-  fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
+  HM.fromListWith (+) <$> selectNgramsOccurrencesOnlyByNodeUser cId nt ngs
 
 
 getOccByNgramsOnlyFast' :: CorpusId
                        -> ListId
                        -> NgramsType
-                       -> [Text]
-                       -> Cmd err (Map Text Int)
+                       -> [NgramsTerm]
+                       -> Cmd err (HashMap NgramsTerm Int)
 getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
-  fromListWith (+) <$> map (second round) <$> run cId lId nt tms
+  HM.fromListWith (+) <$> map (second round) <$> run cId lId nt tms
 
     where
       fields = [QualifiedIdentifier Nothing "text"]
@@ -115,10 +119,10 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
       run :: CorpusId
            -> ListId
            -> NgramsType
-           -> [Text]
-           -> Cmd err [(Text, Double)]
-      run cId' lId' nt' tms' = runPGSQuery query
-                ( Values fields (DPS.Only <$> tms')
+           -> [NgramsTerm]
+           -> Cmd err [(NgramsTerm, Double)]
+      run cId' lId' nt' tms' = fmap (first NgramsTerm) <$> runPGSQuery query
+                ( Values fields ((DPS.Only . unNgramsTerm) <$> tms')
                 , cId'
                 , lId'
                 , ngramsTypeId nt'
@@ -139,43 +143,48 @@ getOccByNgramsOnlyFast' cId lId nt tms = trace (show (cId, lId)) $
 
 
 -- just slower than getOccByNgramsOnlyFast
-getOccByNgramsOnlySlow :: NodeType
+getOccByNgramsOnlySlow :: HasDBid NodeType
+                       => NodeType
                        -> CorpusId
                        -> [ListId]
                        -> NgramsType
-                       -> [Text]
-                       -> Cmd err (Map Text Int)
+                       -> [NgramsTerm]
+                       -> Cmd err (HashMap NgramsTerm Int)
 getOccByNgramsOnlySlow t cId ls nt ngs =
-  Map.map Set.size <$> getScore' t cId ls nt ngs
+  HM.map Set.size <$> getScore' t cId ls nt ngs
     where
       getScore' NodeCorpus   = getNodesByNgramsOnlyUser
       getScore' NodeDocument = getNgramsByDocOnlyUser
       getScore' _            = getNodesByNgramsOnlyUser
 
-getOccByNgramsOnlySafe :: CorpusId
+getOccByNgramsOnlySafe :: HasDBid NodeType
+                       => CorpusId
                        -> [ListId]
                        -> NgramsType
-                       -> [Text]
-                       -> Cmd err (Map Text Int)
+                       -> [NgramsTerm]
+                       -> Cmd err (HashMap NgramsTerm Int)
 getOccByNgramsOnlySafe cId ls nt ngs = do
   printDebug "getOccByNgramsOnlySafe" (cId, nt, length ngs)
   fast <- getOccByNgramsOnlyFast cId nt ngs
   slow <- getOccByNgramsOnlySlow NodeCorpus cId ls nt ngs
   when (fast /= slow) $
     printDebug "getOccByNgramsOnlySafe: difference"
-               (diff slow fast :: PatchMap Text (Replace (Maybe Int)))
+               (HM.difference slow fast, HM.difference fast slow)
+               -- diff slow fast :: PatchMap Text (Replace (Maybe Int))
   pure slow
 
 
-selectNgramsOccurrencesOnlyByNodeUser :: CorpusId
+selectNgramsOccurrencesOnlyByNodeUser :: HasDBid NodeType
+                                      => CorpusId
                                       -> NgramsType
-                                      -> [Text]
-                                      -> Cmd err [(Text, Int)]
+                                      -> [NgramsTerm]
+                                      -> Cmd err [(NgramsTerm, Int)]
 selectNgramsOccurrencesOnlyByNodeUser cId nt tms =
+  fmap (first NgramsTerm) <$>
   runPGSQuery queryNgramsOccurrencesOnlyByNodeUser
-                ( Values fields (DPS.Only <$> tms)
+                ( Values fields ((DPS.Only . unNgramsTerm) <$> tms)
                 , cId
-                , nodeTypeId NodeDocument
+                , toDBid NodeDocument
                 , ngramsTypeId nt
                 )
     where
@@ -193,7 +202,7 @@ queryNgramsOccurrencesOnlyByNodeUser = [sql|
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
-      AND n.typename      = ? -- NodeTypeId
+      AND n.typename      = ? -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
       GROUP BY nng.node2_id, ng.terms
@@ -208,52 +217,57 @@ queryNgramsOccurrencesOnlyByNodeUser' = [sql|
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
-      AND n.typename      = ? -- NodeTypeId
+      AND n.typename      = ? -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
       GROUP BY nng.node2_id, ng.terms
   |]
 
 ------------------------------------------------------------------------
-getNodesByNgramsOnlyUser :: CorpusId
+getNodesByNgramsOnlyUser :: HasDBid NodeType
+                         => CorpusId
                          -> [ListId]
                          -> NgramsType
-                         -> [Text]
-                         -> Cmd err (Map Text (Set NodeId))
+                         -> [NgramsTerm]
+                         -> Cmd err (HashMap NgramsTerm (Set NodeId))
 getNodesByNgramsOnlyUser cId ls nt ngs =
-     Map.unionsWith    (<>)
-   . map (fromListWith (<>)
+     HM.unionsWith        (<>)
+   . map (HM.fromListWith (<>)
    . map (second Set.singleton))
   <$> mapM (selectNgramsOnlyByNodeUser cId ls nt)
            (splitEvery 1000 ngs)
 
 
-getNgramsByNodeOnlyUser :: NodeId
+getNgramsByNodeOnlyUser :: HasDBid NodeType
+                        => NodeId
                         -> [ListId]
                         -> NgramsType
-                        -> [Text]
-                        -> Cmd err (Map NodeId (Set Text))
+                        -> [NgramsTerm]
+                        -> Cmd err (Map NodeId (Set NgramsTerm))
 getNgramsByNodeOnlyUser cId ls nt ngs =
-     Map.unionsWith    (<>)
-   . map (fromListWith (<>)
-   . map (second Set.singleton))
+     Map.unionsWith         (<>)
+   . map ( Map.fromListWith (<>)
+         . map (second Set.singleton)
+         )
    . map (map swap)
   <$> mapM (selectNgramsOnlyByNodeUser cId ls nt)
            (splitEvery 1000 ngs)
 
 ------------------------------------------------------------------------
-selectNgramsOnlyByNodeUser :: CorpusId
+selectNgramsOnlyByNodeUser :: HasDBid NodeType
+                           => CorpusId
                            -> [ListId]
                            -> NgramsType
-                           -> [Text]
-                           -> Cmd err [(Text, NodeId)]
+                           -> [NgramsTerm]
+                           -> Cmd err [(NgramsTerm, NodeId)]
 selectNgramsOnlyByNodeUser cId ls nt tms =
+  fmap (first NgramsTerm) <$>
   runPGSQuery queryNgramsOnlyByNodeUser
-                ( Values fields (DPS.Only <$> tms)
+                ( Values fields ((DPS.Only . unNgramsTerm) <$> tms)
                 , Values [QualifiedIdentifier Nothing "int4"] 
                          (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , cId
-                , nodeTypeId NodeDocument
+                , toDBid NodeDocument
                 , ngramsTypeId nt
                 )
     where
@@ -270,14 +284,15 @@ queryNgramsOnlyByNodeUser = [sql|
     JOIN nodes_nodes nn ON nn.node2_id   = nng.node2_id
     JOIN nodes  n       ON nn.node2_id   = n.id
     WHERE nn.node1_id     = ? -- CorpusId
-      AND n.typename      = ? -- NodeTypeId
+      AND n.typename      = ? -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category     > 0
       GROUP BY ng.terms, nng.node2_id
   |]
 
 
-selectNgramsOnlyByNodeUser' :: CorpusId
+selectNgramsOnlyByNodeUser' :: HasDBid NodeType
+                            => CorpusId
                             -> [ListId]
                             -> NgramsType
                             -> [Text]
@@ -288,7 +303,7 @@ selectNgramsOnlyByNodeUser' cId ls nt tms =
                 , Values [QualifiedIdentifier Nothing "int4"]
                          (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , cId
-                , nodeTypeId NodeDocument
+                , toDBid NodeDocument
                 , ngramsTypeId nt
                 )
     where
@@ -312,22 +327,23 @@ queryNgramsOnlyByNodeUser' = [sql|
 getNgramsByDocOnlyUser :: DocId
                        -> [ListId]
                        -> NgramsType
-                       -> [Text]
-                       -> Cmd err (Map Text (Set NodeId))
+                       -> [NgramsTerm]
+                       -> Cmd err (HashMap NgramsTerm (Set NodeId))
 getNgramsByDocOnlyUser cId ls nt ngs =
-  Map.unionsWith (<>)
-  . map (fromListWith (<>) . map (second Set.singleton))
+  HM.unionsWith (<>)
+  . map (HM.fromListWith (<>) . map (second Set.singleton))
   <$> mapM (selectNgramsOnlyByDocUser cId ls nt) (splitEvery 1000 ngs)
 
 
 selectNgramsOnlyByDocUser :: DocId
                           -> [ListId]
                           -> NgramsType
-                          -> [Text]
-                          -> Cmd err [(Text, NodeId)]
+                          -> [NgramsTerm]
+                          -> Cmd err [(NgramsTerm, NodeId)]
 selectNgramsOnlyByDocUser dId ls nt tms =
+  fmap (first NgramsTerm) <$>
   runPGSQuery queryNgramsOnlyByDocUser
-                ( Values fields (DPS.Only <$> tms)
+                ( Values fields ((DPS.Only . unNgramsTerm) <$> tms)
                 , Values [QualifiedIdentifier Nothing "int4"]
                          (DPS.Only <$> (map (\(NodeId n) -> n) ls))
                 , dId
@@ -352,14 +368,16 @@ queryNgramsOnlyByDocUser = [sql|
 
 ------------------------------------------------------------------------
 -- | TODO filter by language, database, any social field
-getNodesByNgramsMaster :: UserCorpusId -> MasterCorpusId -> Cmd err (Map Text (Set NodeId))
-getNodesByNgramsMaster ucId mcId = Map.unionsWith (<>)
-                                 . map (fromListWith (<>) . map (\(n,t) -> (t, Set.singleton n)))
+getNodesByNgramsMaster :: HasDBid NodeType
+                       =>  UserCorpusId -> MasterCorpusId -> Cmd err (HashMap Text (Set NodeId))
+getNodesByNgramsMaster ucId mcId = unionsWith (<>)
+                                 . map (HM.fromListWith (<>) . map (\(n,t) -> (t, Set.singleton n)))
                                  -- . takeWhile (not . List.null)
                                  -- . takeWhile (\l -> List.length l > 3)
                                 <$> mapM (selectNgramsByNodeMaster 1000 ucId mcId) [0,500..10000]
 
-selectNgramsByNodeMaster :: Int
+selectNgramsByNodeMaster :: HasDBid NodeType
+                         => Int
                          -> UserCorpusId
                          -> MasterCorpusId
                          -> Int
@@ -368,13 +386,13 @@ selectNgramsByNodeMaster n ucId mcId p = runPGSQuery
                                queryNgramsByNodeMaster'
                                  ( ucId
                                  , ngramsTypeId NgramsTerms
-                                 , nodeTypeId   NodeDocument
+                                 , toDBid   NodeDocument
                                  , p
-                                 , nodeTypeId   NodeDocument
+                                 , toDBid   NodeDocument
                                  , p
                                  , n
                                  , mcId
-                                 , nodeTypeId   NodeDocument
+                                 , toDBid   NodeDocument
                                  , ngramsTypeId NgramsTerms
                                  )
 
@@ -388,7 +406,7 @@ queryNgramsByNodeMaster' = [sql|
     JOIN node_node_ngrams nng ON nng.node2_id   = n.id
     JOIN ngrams       ng  ON nng.ngrams_id = ng.id
     WHERE nn.node1_id     = ?   -- UserCorpusId
-      -- AND n.typename   = ?  -- NodeTypeId
+      -- AND n.typename   = ?  -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
       AND nn.category > 0
       AND node_pos(n.id,?) >= ?
@@ -403,8 +421,8 @@ queryNgramsByNodeMaster' = [sql|
     JOIN node_node_ngrams nng  ON n.id  = nng.node2_id
     JOIN ngrams       ng   ON ng.id = nng.ngrams_id
 
-    WHERE n.parent_id  = ?     -- Master Corpus NodeTypeId
-      AND n.typename   = ?     -- NodeTypeId
+    WHERE n.parent_id  = ?     -- Master Corpus toDBid
+      AND n.typename   = ?     -- toDBid
       AND nng.ngrams_type = ? -- NgramsTypeId
     GROUP BY n.id, ng.terms
     )

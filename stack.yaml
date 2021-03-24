@@ -1,4 +1,4 @@
-resolver: lts-16.14
+resolver: lts-16.26
 flags: {}
 extra-package-dbs: []
 packages:
@@ -7,10 +7,12 @@ packages:
 #- 'deps/patches-map'
 #- 'deps/servant-job'
 #- 'deps/clustering-louvain'
+#- 'deps/accelerate'
+#- 'deps/accelerate-utility'
 
 docker:
   enable: false
-  repo: 'fpco/stack-build:lts-14.27-garg'
+  repo: 'fpco/stack-build:lts-16.26-garg'
   run-args:
     - '--publish=8008:8008'
 
@@ -20,51 +22,70 @@ nix:
   shell-file: build-shell.nix
 
 allow-newer: true
+
 extra-deps:
+
+  # Data Mining Libs
 - git: https://github.com/delanoe/data-time-segment.git
   commit: 10a416b9f6c443866b36479c3441ebb3bcdeb7ef
 - git: https://gitlab.iscpif.fr/gargantext/hlcm.git
   commit: 6f0595d2421005837d59151a8b26eee83ebb67b5
-- git: https://github.com/delanoe/servant-static-th.git
-  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
 - git: https://github.com/delanoe/hstatistics.git
   commit: 90eef7604bb230644c2246eccd094d7bfefcb135
 - git: https://github.com/paulrzcz/HSvm.git
   commit: 3fe28b683aba5ddf05e3b5f8eced0bd05c5a29f9
-- git: https://github.com/robstewart57/rdf4h.git
-  commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
-    #
-    # External API connectin to get data
-- git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
-  commit: dc1457a96cd80b8bfa310572db19cbb01201904e
-- git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
-  commit: daeae80365250c4bd539f0a65e271f9aa37f731f
-- git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
-  commit: ef9e638c97788df251f50b71fcdd9551b87f12c5
-- git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
-  commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
-    #
-- git: https://gitlab.com/npouillard/patches-class.git  
-  commit: 4712bfb055888fae63cd2e88431972375f979b94
 
-  #- git: https://github.com/np/servant-job.git # waiting for PR
-- git: https://github.com/delanoe/servant-job.git
-  commit: a9d8ec247b60906ae0ad76ea017cacd6ff36a7a1
-- git: https://github.com/np/patches-map
-  commit: d42c37de5046ba22abcb5e21c121d1072126f3cc
+  # API libs
+- git: https://github.com/delanoe/servant-static-th.git
+  commit: 8cb8aaf2962ad44d319fcea48442e4397b3c49e8
+
+  # Databases libs
 - git: https://github.com/delanoe/haskell-opaleye.git  #- opaleye-0.6.7002.0
   commit: 63ee65d974e9d20eaaf17a2e83652175988cbb79
 - git: https://github.com/delanoe/hsparql.git
   commit: 308c74b71a1abb0a91546fa57d353131248e3a7f
+- git: https://github.com/robstewart57/rdf4h.git
+  commit: 4fd2edf30c141600ffad6d730cc4c1c08a6dbce4
+
+  # External Data API connectors
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/pubmed.git
+  commit: a9d8e08a7ef82f90e29dfaced4071704a3163394
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/istex.git
+  commit: daeae80365250c4bd539f0a65e271f9aa37f731f
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/hal.git
+  commit: 020f5f9b308f5c23c925aedf5fb11f8b4728fb19
+- git: https://gitlab.iscpif.fr/gargantext/crawlers/isidore.git
+  commit: 3db385e767d2100d8abe900833c6e7de3ac55e1b
+
+  # NP libs
+  #- git: https://github.com/np/servant-job.git # waiting for PR
+- git: https://github.com/delanoe/servant-job.git
+  commit: a9d8ec247b60906ae0ad76ea017cacd6ff36a7a1
+  #- git: https://github.com/np/patches-map
+- git: https://github.com/delanoe/patches-map
+  commit: 76cae88f367976ff091e661ee69a5c3126b94694
+  #- git: https://gitlab.com/npouillard/patches-class.git  
+- git: https://gitlab.iscpif.fr/gargantext/patches-class.git
+  commit: d3e971d4e78d1dfcc853f2fb86bde1995faf22ae
+
+  # Graph libs
+- git: https://github.com/kaizhang/haskell-igraph.git
+  commit: 34553acc4ebdcae7065311dcefb426e0fd58c5a0
 - git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
   commit: 7d74f96dfea8e51fbab1793cc0429b2fe741f73d
 
-- git: https://github.com/kaizhang/haskell-igraph.git
-  commit: 34553acc4ebdcae7065311dcefb426e0fd58c5a0
+  # Accelerate Linear Algebra and specific instances
+  # (UndecidableInstances for newer GHC version)
+- git: https://gitlab.iscpif.fr/anoe/accelerate.git
+  commit: f5c0e0071ec7b6532f9a9cd3eb33d14f340fbcc9
+- git: https://gitlab.iscpif.fr/anoe/accelerate-utility.git
+  commit: 83ada76e78ac10d9559af8ed6bd4064ec81308e4
+- accelerate-arithmetic-1.0.0.1@sha256:555639232aa5cad411e89247b27871d09352b987a754230a288c690b6de6d888,2096
 
+  # Others dependencies (with stack resolver)
 - KMP-0.2.0.0@sha256:6dfbac03ef00ebd9347234732cb86a40f62ab5a80c0cc6bedb8eb51766f7df28,2562
 - Unique-0.4.7.7@sha256:2269d3528271e25d34542e7c24a4e541e27ec33460e1ea00845da95b82eec6fa,2777
-- accelerate-1.2.0.1@sha256:bb1928efe602545df4043692916ed427c959110cbd678d03c3f9c3be25d1ae88,20112
+- dependent-sum-0.4@sha256:40c705604f52374fb72616e10234635104a626ede737ddde899777b719df120b,1907
 - duckling-0.1.6.1@sha256:dab60953f405b45fe93e1e745f8cc83e5166e1788b1f4999cc06382e131153d8,47147
 - fclabels-2.0.4@sha256:efcc20c6c903d0a59e36eb1cb547a7bbbbba93b6e20b84b06e919c350891beb2,4492
 - full-text-search-0.2.1.4@sha256:81f6df3327e5b604f99b15e78635e5d6ca996e504c21d268a6d751d7d131aa36,6032
@@ -81,6 +102,4 @@ extra-deps:
 - smtp-mail-0.2.0.0@sha256:b91c81f6dbb41a9ceee8c443385118684ecec55006b77f7d3c0e49cffd2468cf,1211
 - stemmer-0.5.2@sha256:823aec56249ec2619f60a2c0d1384b732894dbbbe642856d337ebfe9629a0efd,4082
 - xmlbf-0.6.1@sha256:57867fcb39e0514d17b3328ff5de8d241a18482fc89bb742d9ed820a6a2a5187,1540
-- dependent-sum-0.4@sha256:40c705604f52374fb72616e10234635104a626ede737ddde899777b719df120b,1907
 - xmlbf-xeno-0.2@sha256:39f70fced6052524c290cf595f114661c721452e65fc3e0953a44e7682a6a6b0,950
-

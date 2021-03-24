@@ -8,23 +8,16 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-orphans        #-}
-
-{-# LANGUAGE Arrows                 #-}
-{-# LANGUAGE ConstraintKinds        #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE TypeFamilies           #-}
-
 module Gargantext.Database.Query.Table.Node.Error where
 
-import Data.Text (Text)
-import Gargantext.Database.Admin.Types.Node (NodeId)
 import Control.Lens (Prism', (#), (^?))
-import Control.Monad.Error.Class (MonadError(..))
-import Gargantext.Prelude hiding (sum, head)
+import Control.Monad.Except (MonadError(..))
+import Data.Text (Text)
+
 import Prelude hiding (null, id, map, sum)
+
+import Gargantext.Database.Admin.Types.Node (NodeId)
+import Gargantext.Prelude hiding (sum, head)
 
 ------------------------------------------------------------------------
 data NodeError = NoListFound

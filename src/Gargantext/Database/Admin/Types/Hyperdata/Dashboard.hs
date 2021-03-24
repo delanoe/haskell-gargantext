@@ -23,18 +23,32 @@ module Gargantext.Database.Admin.Types.Hyperdata.Dashboard
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
+import Gargantext.Database.Admin.Types.Hyperdata.CorpusField
 
 ------------------------------------------------------------------------
 
 data HyperdataDashboard =
   HyperdataDashboard { _hd_preferences :: !(Maybe Text)
                      , _hd_charts      :: ![Chart]
+                     , _hd_fields      :: ![HyperdataField CorpusField]
                      }
   deriving (Show, Generic)
 
 
 defaultHyperdataDashboard :: HyperdataDashboard
-defaultHyperdataDashboard = HyperdataDashboard Nothing []
+defaultHyperdataDashboard = HyperdataDashboard Nothing [] defaultHyperdataDashboardFields
+
+defaultHyperdataDashboardFields :: [HyperdataField CorpusField]
+defaultHyperdataDashboardFields =
+  [ HyperdataField Markdown
+                   "DashBoard Title"
+                   (MarkdownField "# DashBoard Title\n## Dashboard subtitle\nText and Chart cells.")
+
+  {- , HyperdataField JSON
+                  "Metadata (Experts only)"
+                  (JsonField "Title" "Descr" "Bool query" "Authors")
+  -}
+  ]
 
 ------------------------------------------------------------------------
 -- Instances

@@ -8,7 +8,7 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE Arrows                 #-}
 {-# LANGUAGE FunctionalDependencies #-}

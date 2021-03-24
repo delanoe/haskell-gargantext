@@ -9,13 +9,11 @@ Portability : POSIX
 
 -}
 
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE TemplateHaskell        #-}
-
 module Gargantext.Database.Query.Table.Node.User
   where
 
 import Data.Maybe (fromMaybe)
+import Gargantext.Core
 import Gargantext.Core.Types (Name)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataUser(..), defaultHyperdataUser)
 import Gargantext.Database.Admin.Types.Node (Node, NodeId(..), UserId, NodeType(..), pgNodeId)
@@ -31,7 +29,7 @@ getNodeUser nId = do
     fromMaybe (panic $ "Node does not exist: " <> (cs $ show nId)) . headMay
              <$> runOpaQuery (limit 1 $ selectNode (pgNodeId nId))
 
-nodeUserW :: Maybe Name -> Maybe HyperdataUser -> UserId -> NodeWrite
+nodeUserW :: HasDBid NodeType => Maybe Name -> Maybe HyperdataUser -> UserId -> NodeWrite
 nodeUserW maybeName maybeHyperdata = node NodeUser name user Nothing
   where
     name = maybe "User" identity maybeName

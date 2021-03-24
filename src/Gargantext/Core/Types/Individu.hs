@@ -10,7 +10,7 @@ Portability : POSIX
 Individu defintions
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 module Gargantext.Core.Types.Individu
   where
@@ -52,7 +52,7 @@ data NewUser a = NewUser { _nu_username :: Username
   deriving (Show)
 
 arbitraryUsername :: [Username]
-arbitraryUsername = ["gargantua"] <> users
+arbitraryUsername = {- ["gargantua"] <> -} users
   where
     users = zipWith (\a b -> a <> (pack . show) b) 
                     (repeat "user") ([1..20]::[Int])
@@ -68,12 +68,13 @@ toUserHash (NewUser u m (GargPassword p)) = do
   h <- Auth.createPasswordHash p
   pure $ NewUser u m h
 
+-- TODO remove
 arbitraryUsersHash :: MonadIO m
                   => m [NewUser HashPassword]
-arbitraryUsersHash = mapM toUserHash arbitraryUsers
+arbitraryUsersHash = mapM toUserHash arbitraryNewUsers
 
-arbitraryUsers :: [NewUser GargPassword]
-arbitraryUsers = map (\u -> NewUser u (u <> "@gargantext.org") (GargPassword $ reverse u))
+arbitraryNewUsers :: [NewUser GargPassword]
+arbitraryNewUsers = map (\u -> NewUser u (u <> "@gargantext.org") (GargPassword $ reverse u))
                      arbitraryUsername
 
 

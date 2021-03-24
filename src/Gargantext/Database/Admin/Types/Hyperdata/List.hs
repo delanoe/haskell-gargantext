@@ -21,39 +21,41 @@ Portability : POSIX
 module Gargantext.Database.Admin.Types.Hyperdata.List
   where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Vector (Vector)
+--import qualified Data.Vector as V
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HM
 import Control.Applicative
 
 import Gargantext.Prelude
 import Gargantext.Core.Viz.Types (Histo(..))
-import Gargantext.API.Ngrams.NTree (MyTree)
+import Gargantext.API.Ngrams.NgramsTree (NgramsTree)
 import Gargantext.API.Ngrams.Types (TabType)
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Database.Admin.Types.Metrics (ChartMetrics(..), Metrics)
 
 ------------------------------------------------------------------------
 data HyperdataList =
-  HyperdataList { _hl_chart   :: !(Map TabType (ChartMetrics Histo))
+  HyperdataList { _hl_chart   :: !(HashMap TabType (ChartMetrics Histo))
                 , _hl_list    :: !(Maybe Text)
-                , _hl_pie     :: !(Map TabType (ChartMetrics Histo))
-                , _hl_scatter :: !(Map TabType Metrics)
-                , _hl_tree    :: !(Map TabType (ChartMetrics [MyTree]))
+                , _hl_pie     :: !(HashMap TabType (ChartMetrics Histo))
+                , _hl_scatter :: !(HashMap TabType Metrics)
+                , _hl_tree    :: !(HashMap TabType (ChartMetrics (Vector NgramsTree)))
                 } deriving (Show, Generic)
   -- HyperdataList { _hl_chart   :: !(Maybe (ChartMetrics Histo))
   --               , _hl_list    :: !(Maybe Text)
   --               , _hl_pie     :: !(Maybe (ChartMetrics Histo))
   --               , _hl_scatter :: !(Maybe Metrics)
-  --               , _hl_tree    :: !(Maybe (ChartMetrics [MyTree]))
+  --               , _hl_tree    :: !(Maybe (ChartMetrics [NgramsTree]))
   --               } deriving (Show, Generic)
 
 defaultHyperdataList :: HyperdataList
 defaultHyperdataList =
-  HyperdataList { _hl_chart   = Map.empty
+  HyperdataList { _hl_chart   = HM.empty
                 , _hl_list    = Nothing
-                , _hl_pie     = Map.empty
-                , _hl_scatter = Map.empty
-                , _hl_tree    = Map.empty
+                , _hl_pie     = HM.empty
+                , _hl_scatter = HM.empty
+                , _hl_tree    = HM.empty
                 }
 
 ------------------------------------------------------------------------

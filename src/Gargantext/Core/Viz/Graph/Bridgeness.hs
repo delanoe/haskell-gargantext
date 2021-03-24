@@ -11,40 +11,65 @@ Let be a graph with partitions (from Louvain algo), Bridgeness uniformly
 filters inter-communities links.
 
 TODO rewrite Bridgeness with "equivalence structurale" metrics (Confluence)
-
 TODO use Map LouvainNodeId (Map LouvainNodeId)
 -}
 
 
-module Gargantext.Core.Viz.Graph.Bridgeness (bridgeness)
+module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
   where
 
+import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
+import Data.List (concat, sortOn)
+import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
+import Data.Maybe (catMaybes)
 import Data.Ord (Down(..))
 import Gargantext.Prelude
-import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import qualified Data.Map as DM
-import Data.Maybe (catMaybes)
-import Data.List (concat, sortOn)
-import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
-import Gargantext.Core.Viz.Graph.Louvain (LouvainNodeId, CommunityId, nodeId2comId)
+import Gargantext.Core.Viz.Graph.Tools.IGraph (ClusterNode(..))
 
+----------------------------------------------------------------------
+type Partitions a = Map (Int, Int) Double -> IO [a]
+----------------------------------------------------------------------
+class ToComId a where
+  nodeId2comId :: a -> (NodeId,CommunityId)
 
+type NodeId        = Int
+type CommunityId   = Int
+
+----------------------------------------------------------------------
+instance ToComId LouvainNode where
+  nodeId2comId (LouvainNode i1 i2) = (i1, i2)
+
+instance ToComId ClusterNode where
+  nodeId2comId (ClusterNode i1 i2) = (i1, i2)
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
 type Bridgeness = Double
 
+bridgeness :: ToComId a => Bridgeness
+           -> [a]
+           -> Map (NodeId, NodeId) Double
+           -> Map (NodeId, NodeId) Double
+bridgeness = bridgeness' nodeId2comId
 
-bridgeness :: Bridgeness
-           -> [LouvainNode]
-           -> Map (LouvainNodeId, LouvainNodeId) Double
-           -> Map (LouvainNodeId, LouvainNodeId) Double
-bridgeness b ns = DM.fromList
-                . concat
-                . DM.elems
-                . filterComs b
-                . groupEdges (nodeId2comId ns)
 
-groupEdges :: Map  LouvainNodeId CommunityId
-           -> Map (LouvainNodeId, LouvainNodeId) Double
-           -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
+bridgeness' :: (a -> (Int, Int))
+           -> Bridgeness
+           -> [a]
+           -> Map (Int, Int) Double
+           -> Map (Int, Int) Double
+bridgeness' f b ns = DM.fromList
+                   . concat
+                   . DM.elems
+                   . filterComs b
+                   . groupEdges (DM.fromList $ map f ns)
+
+
+groupEdges :: (Ord a, Ord b1)
+           => Map b1 a
+           -> Map (b1, b1) b2
+           -> Map (a, a) [((b1, b1), b2)]
 groupEdges m = fromListWith (<>)
              . catMaybes
              . map (\((n1,n2), d)
@@ -56,9 +81,11 @@ groupEdges m = fromListWith (<>)
              . toList
 
 -- | TODO : sortOn Confluence
-filterComs :: Bridgeness
-           -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
-           -> Map (CommunityId, CommunityId) [((LouvainNodeId, LouvainNodeId), Double)]
+
+filterComs :: (Ord n1, Eq n2) 
+           => p
+           -> Map (n2, n2) [(a3, n1)]
+           -> Map (n2, n2) [(a3, n1)]
 filterComs _b m = DM.filter (\n -> length n > 0) $ mapWithKey filter' m
   where
     filter' (c1,c2) a

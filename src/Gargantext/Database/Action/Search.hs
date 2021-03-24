@@ -22,8 +22,8 @@ import Data.Text (Text, words, unpack, intercalate)
 import Data.Time (UTCTime)
 import Database.PostgreSQL.Simple (Query)
 import Database.PostgreSQL.Simple.ToField
+import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..), HyperdataContact(..))
 import Gargantext.Database.Prelude (Cmd, runPGSQuery, runOpaQuery, runCountOpaQuery)
 import Gargantext.Database.Query.Facet
@@ -39,9 +39,10 @@ import Data.Profunctor.Product (p4)
 import qualified Opaleye as O hiding (Order)
 
 ------------------------------------------------------------------------
-searchDocInDatabase :: ParentId
-                 -> Text
-                 -> Cmd err [(NodeId, HyperdataDocument)]
+searchDocInDatabase :: HasDBid NodeType
+                    => ParentId
+                    -> Text
+                    -> Cmd err [(NodeId, HyperdataDocument)]
 searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
   where
     -- | Global search query where ParentId is Master Node Corpus Id 
@@ -49,12 +50,13 @@ searchDocInDatabase p t = runOpaQuery (queryDocInDatabase p t)
     queryDocInDatabase _ q = proc () -> do
         row <- queryNodeSearchTable -< ()
         restrict -< (_ns_search row)    @@ (pgTSQuery (unpack q))
-        restrict -< (_ns_typename row) .== (pgInt4 $ nodeTypeId NodeDocument)
+        restrict -< (_ns_typename row) .== (pgInt4 $ toDBid NodeDocument)
         returnA  -< (_ns_id row, _ns_hyperdata row)
 
 ------------------------------------------------------------------------
 -- | todo add limit and offset and order
-searchInCorpus :: CorpusId
+searchInCorpus :: HasDBid NodeType
+               => CorpusId
                -> IsTrash
                -> [Text]
                -> Maybe Offset
@@ -67,7 +69,8 @@ searchInCorpus cId t q o l order = runOpaQuery
                                  $ intercalate " | "
                                  $ map stemIt q
 
-searchCountInCorpus :: CorpusId
+searchCountInCorpus :: HasDBid NodeType
+                    => CorpusId
                     -> IsTrash
                     -> [Text]
                     -> Cmd err Int
@@ -76,7 +79,8 @@ searchCountInCorpus cId t q = runCountOpaQuery
                             $ intercalate " | "
                             $ map stemIt q
 
-queryInCorpus :: CorpusId
+queryInCorpus :: HasDBid NodeType
+              => CorpusId
               -> IsTrash
               -> Text
               -> O.Query FacetDocRead
@@ -87,13 +91,14 @@ queryInCorpus cId t q = proc () -> do
                  then (nn^.nn_category) .== (toNullable $ pgInt4 0)
                  else (nn^.nn_category) .>= (toNullable $ pgInt4 1)
   restrict -< (n ^. ns_search)           @@ (pgTSQuery (unpack q))
-  restrict -< (n ^. ns_typename )       .== (pgInt4 $ nodeTypeId NodeDocument)
-  returnA  -< FacetDoc (n^.ns_id       )
-                       (n^.ns_date     )
-                       (n^.ns_name     )
-                       (n^.ns_hyperdata)
-                       (nn^.nn_category)
-                       (nn^.nn_score   )
+  restrict -< (n ^. ns_typename )       .== (pgInt4 $ toDBid NodeDocument)
+  returnA  -< FacetDoc (n^.ns_id        )
+                       (n^.ns_date      )
+                       (n^.ns_name      )
+                       (n^.ns_hyperdata )
+                       (nn^.nn_category )
+                       (nn^.nn_score    )
+                       (nn^.nn_score    )
 
 joinInCorpus :: O.Query (NodeSearchRead, NodeNodeReadNull)
 joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
@@ -103,7 +108,8 @@ joinInCorpus = leftJoin queryNodeSearchTable queryNodeNodeTable cond
 
 ------------------------------------------------------------------------
 searchInCorpusWithContacts
-  :: CorpusId
+  :: HasDBid NodeType
+  => CorpusId
   -> AnnuaireId
   -> [Text]
   -> Maybe Offset
@@ -119,7 +125,8 @@ searchInCorpusWithContacts cId aId q o l _order =
               $ map stemIt q
 
 selectContactViaDoc
-  :: CorpusId
+  :: HasDBid NodeType
+  => CorpusId
   -> AnnuaireId
   -> Text
   -> QueryArr ()
@@ -131,20 +138,21 @@ selectContactViaDoc
 selectContactViaDoc cId aId q = proc () -> do
   (doc, (corpus_doc, (_contact_doc, (annuaire_contact, contact)))) <- queryContactViaDoc -< ()
   restrict -< (doc^.ns_search)           @@ (pgTSQuery  $ unpack q  )
-  restrict -< (doc^.ns_typename)        .== (pgInt4 $ nodeTypeId NodeDocument)
+  restrict -< (doc^.ns_typename)        .== (pgInt4 $ toDBid NodeDocument)
   restrict -< (corpus_doc^.nn_node1_id)  .== (toNullable $ pgNodeId cId)
   restrict -< (annuaire_contact^.nn_node1_id) .== (toNullable $ pgNodeId aId)
-  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ nodeTypeId NodeContact)
+  restrict -< (contact^.node_typename)        .== (toNullable $ pgInt4 $ toDBid NodeContact)
   returnA  -< ( contact^.node_id
               , contact^.node_date
               , contact^.node_hyperdata
               , toNullable $ pgInt4 1
               )
 
-selectGroup :: NodeId
-      -> NodeId
-      -> Text
-     -> Select FacetPairedReadNull
+selectGroup :: HasDBid NodeType
+            => NodeId
+            -> NodeId
+            -> Text
+            -> Select FacetPairedReadNull
 selectGroup cId aId q = proc () -> do
   (a, b, c, d) <- aggregate (p4 (groupBy, groupBy, groupBy, O.sum))
                             (selectContactViaDoc cId aId q) -< ()
@@ -259,11 +267,12 @@ textSearchQuery = "SELECT n.id, n.hyperdata->'publication_year'     \
 -- Example:
 -- textSearchTest :: ParentId -> TSQuery -> Cmd err [(Int, Value, Value, Value, Value, Maybe Int)]
 -- textSearchTest pId q = textSearch q pId 5 0 Asc
-textSearch :: TSQuery -> ParentId
+textSearch :: HasDBid NodeType
+           => TSQuery -> ParentId
            -> Limit -> Offset -> Order
            -> Cmd err [(Int,Value,Value,Value, Value, Maybe Int)]
 textSearch q p l o ord = runPGSQuery textSearchQuery (q,p,p,typeId,ord,o,l)
   where
-    typeId = nodeTypeId NodeDocument
+    typeId = toDBid NodeDocument
 
 

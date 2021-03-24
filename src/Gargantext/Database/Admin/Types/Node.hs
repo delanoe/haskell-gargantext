@@ -24,6 +24,7 @@ import Control.Monad (mzero)
 import Data.Aeson
 import Data.Aeson.TH (deriveJSON)
 import Data.Either
+import Data.Hashable (Hashable)
 import Data.Swagger
 import Data.Text (Text, unpack)
 import Data.Time (UTCTime)
@@ -41,7 +42,7 @@ import Test.QuickCheck.Instances.Time ()
 import Text.Read (read)
 
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
-import Gargantext.Database.Prelude (fromField')
+-- import Gargantext.Database.Prelude (fromField')
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude
 
@@ -73,6 +74,14 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
   declareNamedSchema = wellNamedSchema "_node_"
 
 instance (Typeable hyperdata, ToSchema hyperdata) =>
+         ToSchema (NodePoly NodeId (Maybe Hash) NodeTypeId
+                            UserId
+                            (Maybe ParentId) NodeName
+                            UTCTime hyperdata
+                  ) where
+  declareNamedSchema = wellNamedSchema "_node_"
+
+instance (Typeable hyperdata, ToSchema hyperdata) =>
          ToSchema (NodePolySearch NodeId NodeTypeId
                             (Maybe UserId)
                             ParentId NodeName
@@ -90,11 +99,11 @@ instance (Typeable hyperdata, ToSchema hyperdata) =>
 
 instance (Arbitrary nodeId
          ,Arbitrary hashId
-         ,Arbitrary nodeTypeId
+         ,Arbitrary toDBid
          ,Arbitrary userId
          ,Arbitrary nodeParentId
          , Arbitrary hyperdata
-         ) => Arbitrary (NodePoly nodeId hashId nodeTypeId userId nodeParentId
+         ) => Arbitrary (NodePoly nodeId hashId toDBid userId nodeParentId
                                   NodeName UTCTime hyperdata) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = Node <$> arbitrary <*> arbitrary <*> arbitrary
@@ -103,10 +112,10 @@ instance (Arbitrary nodeId
 
 instance (Arbitrary hyperdata
          ,Arbitrary nodeId
-         ,Arbitrary nodeTypeId
+         ,Arbitrary toDBid
          ,Arbitrary userId
          ,Arbitrary nodeParentId
-         ) => Arbitrary (NodePolySearch nodeId nodeTypeId userId nodeParentId
+         ) => Arbitrary (NodePolySearch nodeId toDBid userId nodeParentId
                                   NodeName UTCTime hyperdata (Maybe TSVector)) where
     --arbitrary = Node 1 1 (Just 1) 1 "name" (jour 2018 01 01) (arbitrary) (Just "")
     arbitrary = NodeSearch <$> arbitrary <*> arbitrary <*> arbitrary
@@ -122,7 +131,7 @@ pgNodeId = O.pgInt4 . id2int
 
 ------------------------------------------------------------------------
 newtype NodeId = NodeId Int
-  deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON)
+  deriving (Show, Read, Generic, Num, Eq, Ord, Enum, ToJSONKey, FromJSONKey, ToJSON, FromJSON, Hashable)
 
 unNodeId :: NodeId -> Int
 unNodeId (NodeId n) = n
@@ -257,7 +266,7 @@ data NodeType = NodeUser
 -}
 
               -- Optional Nodes
-              | NodeFrameWrite | NodeFrameCalc
+              | NodeFrameWrite | NodeFrameCalc | NodeFrameNotebook
               | NodeFile
 
   deriving (Show, Read, Eq, Generic, Bounded, Enum)
@@ -275,7 +284,7 @@ defaultName NodeCorpusV3   = "Corpus"
 defaultName NodeAnnuaire   = "Annuaire"
 
 defaultName NodeDocument   = "Doc"
-defaultName NodeTexts      = "Texts"
+defaultName NodeTexts      = "Docs"
 defaultName NodeList       = "List"
 defaultName NodeListCooc   = "List"
 defaultName NodeModel      = "Model"
@@ -286,12 +295,13 @@ defaultName NodeFolderShared  = "Shared Folder"
 defaultName NodeTeam          = "Folder"
 defaultName NodeFolderPublic  = "Public Folder"
 
+defaultName NodeDashboard     = "Board"
 defaultName NodeGraph         = "Graph"
 defaultName NodePhylo         = "Phylo"
-defaultName NodeDashboard     = "Dashboard"
 
 defaultName NodeFrameWrite    = "Frame Write"
 defaultName NodeFrameCalc     = "Frame Calc"
+defaultName NodeFrameNotebook     = "Frame Code"
 
 defaultName NodeFile          = "File"
 
@@ -314,17 +324,16 @@ instance Arbitrary NodeType where
 ------------------------------------------------------------------------
 -- Instances
 ------------------------------------------------------------------------
-
 instance ToSchema Status where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "status_")
 
 ------------------------------------------------------------------------
-
+{-
 instance FromField (NodeId, Text)
   where
     fromField = fromField'
+-}
 ------------------------------------------------------------------------
-
 instance QueryRunnerColumnDefault PGTSVector (Maybe TSVector)
   where
     queryRunnerColumnDefault = fieldQueryRunnerColumn

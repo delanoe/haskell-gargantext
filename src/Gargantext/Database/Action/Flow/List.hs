@@ -20,26 +20,23 @@ module Gargantext.Database.Action.Flow.List
 import Control.Concurrent
 import Control.Lens (view, (^.), (+~), (%~), at)
 import Control.Monad.Reader
-import qualified Data.List as List
-import qualified Data.Map  as Map
 import Data.Map (Map, toList)
-import qualified Data.Map.Strict.Patch as PM
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-
 import Gargantext.API.Ngrams.Types (HasRepoSaver(..), NgramsElement(..), NgramsPatch(..), NgramsRepoElement(..), NgramsTablePatch(..), NgramsTerm(..), RepoCmdM, ne_ngrams, ngramsElementToRepo, r_history, r_state, r_version, repoVar)
-import Gargantext.Core.Flow.Types
 import Gargantext.Core.Types (HasInvalidError(..), assertValid)
 import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Core.Utils (something)
 import Gargantext.Database.Action.Flow.Types
-import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
 import Gargantext.Database.Query.Table.NodeNgrams (NodeNgramsPoly(..), NodeNgramsW, listInsertDb, getCgramsId)
--- import Gargantext.Database.Schema.Ngrams -- (insertNgrams, Ngrams(..), NgramsIndexed(..), indexNgrams,  NgramsType(..), text2ngrams, ngramsTypeId)
-import Gargantext.Database.Schema.Ngrams (Ngrams(..), NgramsType(..))
+import Gargantext.Database.Query.Table.Node_NodeNgramsNodeNgrams
+import Gargantext.Database.Schema.Ngrams (NgramsType(..))
 import Gargantext.Prelude
+import qualified Data.List as List
+import qualified Data.Map  as Map
+import qualified Data.Map.Strict.Patch as PM
+import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 -- FLOW LIST
 -- 1. select specific terms of the corpus when compared with others langs
@@ -82,17 +79,6 @@ flowList_Tficf' u m nt f = do
 
 -}
 
-
--- | TODO check optimization
-mapNodeIdNgrams :: [DocumentIdWithNgrams a]
-                -> Map Ngrams (Map NgramsType (Map NodeId Int))
-mapNodeIdNgrams = Map.unionsWith (Map.unionWith (Map.unionWith (+))) . fmap f
-  where
-    f :: DocumentIdWithNgrams a
-      -> Map Ngrams (Map NgramsType (Map NodeId Int))
-    f d = fmap (fmap (Map.singleton nId)) $ documentNgrams d
-      where
-        nId = documentId $ documentWithId d
 
 ------------------------------------------------------------------------
 flowList_DbRepo :: FlowCmdM env err m

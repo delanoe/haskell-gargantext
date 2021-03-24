@@ -17,16 +17,15 @@ module Gargantext.Database.Admin.Trigger.NodeNodeNgrams
   where
 
 import Database.PostgreSQL.Simple.SqlQQ (sql)
-import qualified Database.PostgreSQL.Simple as DPS
-
-import Gargantext.Core.Types.Main (listTypeId, ListType(CandidateTerm))
-import Gargantext.Database.Admin.Config (nodeTypeId)
+import Gargantext.Core
+import Gargantext.Core.Types.Main (ListType(CandidateTerm))
 import Gargantext.Database.Admin.Types.Node -- (ListId, CorpusId, NodeId)
 import Gargantext.Database.Prelude (Cmd, execPGSQuery)
 import Gargantext.Prelude
+import qualified Database.PostgreSQL.Simple as DPS
 
-triggerCountInsert :: Cmd err Int64
-triggerCountInsert = execPGSQuery query (nodeTypeId NodeDocument, nodeTypeId NodeList)
+triggerCountInsert :: HasDBid NodeType => Cmd err Int64
+triggerCountInsert = execPGSQuery query (toDBid NodeDocument, toDBid NodeList)
   where
     query :: DPS.Query
     query = [sql|
@@ -61,10 +60,10 @@ triggerCountInsert = execPGSQuery query (nodeTypeId NodeDocument, nodeTypeId Nod
           EXECUTE PROCEDURE set_ngrams_global_count();
    |]
 
-triggerCountInsert2 :: Cmd err Int64
-triggerCountInsert2 = execPGSQuery query ( nodeTypeId NodeCorpus
-                                         , nodeTypeId NodeDocument
-                                         , nodeTypeId NodeList
+triggerCountInsert2 :: HasDBid NodeType => Cmd err Int64
+triggerCountInsert2 = execPGSQuery query ( toDBid NodeCorpus
+                                         , toDBid NodeDocument
+                                         , toDBid NodeList
                                          )
   where
     query :: DPS.Query
@@ -105,12 +104,12 @@ triggerCountInsert2 = execPGSQuery query ( nodeTypeId NodeCorpus
    |]
 
 -- TODO add the groups
-triggerCoocInsert :: Cmd err Int64
-triggerCoocInsert = execPGSQuery query ( nodeTypeId NodeCorpus
-                                       , nodeTypeId NodeDocument
-                                       , nodeTypeId NodeList
-                                       , listTypeId CandidateTerm
-                                       , listTypeId CandidateTerm
+triggerCoocInsert :: HasDBid NodeType => Cmd err Int64
+triggerCoocInsert = execPGSQuery query ( toDBid NodeCorpus
+                                       , toDBid NodeDocument
+                                       , toDBid NodeList
+                                       , toDBid CandidateTerm
+                                       , toDBid CandidateTerm
                                        )
   where
     query :: DPS.Query

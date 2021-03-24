@@ -17,13 +17,15 @@ module Gargantext.Database.Action.Flow.Pairing
     where
 
 import Control.Lens (_Just, (^.))
-import Data.Map (Map, fromList, fromListWith)
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HM
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Set (Set)
-import Data.Text (Text)
 import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Ngrams.Types (NgramsTerm(..))
 import Gargantext.API.Prelude (GargNoServer)
-import Gargantext.Core.Types (TableResult(..), Term)
+import Gargantext.Core
+import Gargantext.Core.Types (TableResult(..))
 import Gargantext.Core.Types.Main
 import Gargantext.Database
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
@@ -39,11 +41,10 @@ import Gargantext.Database.Schema.Ngrams -- (NgramsType(..))
 import Gargantext.Database.Schema.Node
 import Gargantext.Prelude hiding (sum)
 import Opaleye
-import qualified Data.List as List
-import qualified Data.Map  as Map
-import qualified Data.Set  as Set
-import qualified Data.Text as DT
-
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List           as List
+import qualified Data.Set            as Set
+import qualified Data.Text           as DT
 
 -- | isPairedWith
 -- All NodeAnnuaire paired with a Corpus of NodeId nId:
@@ -54,7 +55,7 @@ isPairedWith nId nt = runOpaQuery (selectQuery nt nId)
     selectQuery :: NodeType -> NodeId -> Query (Column PGInt4)
     selectQuery nt' nId' = proc () -> do
       (node, node_node) <- queryJoin -< ()
-      restrict -< (node^.node_typename)    .== (pgInt4 $ nodeTypeId nt')
+      restrict -< (node^.node_typename)    .== (pgInt4 $ toDBid nt')
       restrict -< (node_node^.nn_node1_id) .== (toNullable $ pgNodeId nId')
       returnA  -<  node^.node_id
 
@@ -79,7 +80,7 @@ dataPairing :: AnnuaireId
              -> (CorpusId, ListId, NgramsType)
              -> (ContactName -> Projected)
              -> (DocAuthor   -> Projected)
-             -> GargNoServer (Map ContactId (Set DocId))
+             -> GargNoServer (HashMap ContactId (Set DocId))
 dataPairing aId (cId, lId, ngt) fc fa = do
   mc <- getNgramsContactId aId
   md <- getNgramsDocId cId lId ngt
@@ -87,14 +88,14 @@ dataPairing aId (cId, lId, ngt) fc fa = do
   printDebug "ngramsContactId" mc
   printDebug "ngramsDocId"     md
   let
-    from = projectionFrom (Set.fromList $ Map.keys mc) fc
-    to   = projectionTo   (Set.fromList $ Map.keys md) fa
+    from = projectionFrom (Set.fromList $ HM.keys mc) fc
+    to   = projectionTo   (Set.fromList $ HM.keys md) fa
 
   pure $ fusion mc $ align from to md
 
 
 
-prepareInsert :: Map ContactId (Set DocId) -> [NodeNode]
+prepareInsert :: HashMap ContactId (Set DocId) -> [NodeNode]
 prepareInsert m =  map (\(n1,n2) -> NodeNode n1 n2 Nothing Nothing)
                 $ List.concat
                 $ map (\(contactId, setDocIds)
@@ -102,21 +103,21 @@ prepareInsert m =  map (\(n1,n2) -> NodeNode n1 n2 Nothing Nothing)
                                  -> (contactId, setDocId)
                                ) $ Set.toList setDocIds
                        )
-                $ Map.toList m
+                $ HM.toList m
 
 ------------------------------------------------------------------------
-type ContactName = Text
-type DocAuthor   = Text
-type Projected   = Text
+type ContactName = NgramsTerm
+type DocAuthor   = NgramsTerm
+type Projected   = NgramsTerm
 
-projectionFrom :: Set ContactName -> (ContactName -> Projected) -> Map ContactName Projected
-projectionFrom ss f = fromList $ map (\s -> (s, f s)) (Set.toList ss)
+projectionFrom :: Set ContactName -> (ContactName -> Projected) -> HashMap ContactName Projected
+projectionFrom ss f = HM.fromList $ map (\s -> (s, f s)) (Set.toList ss)  -- use HS.toMap
 
-projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> Map Projected (Set DocAuthor)
-projectionTo ss f = fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)
+projectionTo :: Set DocAuthor -> (DocAuthor -> Projected) -> HashMap Projected (Set DocAuthor)
+projectionTo ss f = HM.fromListWith (<>) $ map (\s -> (f s, Set.singleton s)) (Set.toList ss)  -- use HS.toMap
 ------------------------------------------------------------------------
-takeName :: Term -> Term
-takeName texte = DT.toLower texte'
+takeName :: NgramsTerm -> NgramsTerm
+takeName (NgramsTerm texte) = NgramsTerm $ DT.toLower texte'
   where
     texte' = maybe texte (\x -> if DT.length x > 3 then x else texte)
                            (lastName' texte)
@@ -124,51 +125,51 @@ takeName texte = DT.toLower texte'
 
 
 ------------------------------------------------------------------------
-align :: Map ContactName Projected
-      -> Map Projected (Set DocAuthor)
-      -> Map DocAuthor (Set DocId)
-      -> Map ContactName (Set DocId)
-align mc ma md = fromListWith (<>)
+align :: HashMap ContactName Projected
+      -> HashMap Projected (Set DocAuthor)
+      -> HashMap DocAuthor (Set DocId)
+      -> HashMap ContactName (Set DocId)
+align mc ma md = HM.fromListWith (<>)
                $ map (\c -> (c, getProjection md $ testProjection c mc ma))
-               $ Map.keys mc
+               $ HM.keys mc
   where
-    getProjection :: Map DocAuthor (Set DocId) -> Set DocAuthor -> Set DocId
+    getProjection :: HashMap DocAuthor (Set DocId) -> Set DocAuthor -> Set DocId
     getProjection ma' sa' =
       if Set.null sa'
          then Set.empty
          else Set.unions $ sets ma' sa'
            where
              sets ma'' sa'' = Set.map (\s -> lookup s ma'') sa''
-             lookup s' ma''= fromMaybe Set.empty (Map.lookup s' ma'')
+             lookup s' ma''= fromMaybe Set.empty (HM.lookup s' ma'')
 
     testProjection :: ContactName
-                   -> Map ContactName Projected
-                   -> Map Projected (Set DocAuthor)
+                   -> HashMap ContactName Projected
+                   -> HashMap Projected (Set DocAuthor)
                    -> Set DocAuthor
-    testProjection cn' mc' ma' = case Map.lookup cn' mc' of
+    testProjection cn' mc' ma' = case HM.lookup cn' mc' of
       Nothing -> Set.empty
-      Just  c -> case Map.lookup c ma' of
+      Just  c -> case HM.lookup c ma' of
         Nothing -> Set.empty
         Just  a -> a
 
-fusion :: Map ContactName (Set ContactId)
-       -> Map ContactName (Set DocId)
-       -> Map ContactId   (Set DocId)
-fusion mc md = Map.fromListWith (<>)
+fusion :: HashMap ContactName (Set ContactId)
+       -> HashMap ContactName (Set DocId)
+       -> HashMap ContactId   (Set DocId)
+fusion mc md = HM.fromListWith (<>)
              $ catMaybes
-             $ [ (,) <$> Just cId <*> Map.lookup cn md
-                      | (cn, setContactId) <- Map.toList mc
+             $ [ (,) <$> Just cId <*> HM.lookup cn md
+                      | (cn, setContactId) <- HM.toList mc
                       , cId <- Set.toList setContactId
                ]
 ------------------------------------------------------------------------
 
 getNgramsContactId :: AnnuaireId
-                   -> Cmd err (Map ContactName (Set NodeId))
+                   -> Cmd err (HashMap ContactName (Set NodeId))
 getNgramsContactId aId = do
   contacts <- getAllContacts aId
-  pure $ fromListWith (<>)
+  pure $ HM.fromListWith (<>)
        $ catMaybes
-       $ map (\contact -> (,) <$> contact^.(node_hyperdata . hc_who . _Just . cw_lastName)
+       $ map (\contact -> (,) <$> (NgramsTerm <$> contact^.(node_hyperdata . hc_who . _Just . cw_lastName))
                               <*> Just ( Set.singleton (contact^.node_id))
               ) (tr_docs contacts)
 
@@ -176,11 +177,11 @@ getNgramsContactId aId = do
 getNgramsDocId :: CorpusId
                 -> ListId
                 -> NgramsType
-                -> GargNoServer (Map DocAuthor (Set NodeId))
+                -> GargNoServer (HashMap DocAuthor (Set NodeId))
 getNgramsDocId cId lId nt = do
   repo <- getRepo
   lIds <- selectNodesWithUsername NodeList userMaster
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
   groupNodesByNgrams ngs
-    <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
+    <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)

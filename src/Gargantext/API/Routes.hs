@@ -9,10 +9,9 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE KindSignatures       #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
@@ -28,7 +27,8 @@ import Control.Concurrent (threadDelay)
 import Control.Lens (view)
 import Data.Text (Text)
 import Data.Validity
-import Gargantext.API.Admin.Auth (AuthRequest, AuthResponse, AuthenticatedUser(..), withAccess, PathId(..))
+import Gargantext.API.Admin.Auth.Types (AuthRequest, AuthResponse, AuthenticatedUser(..), PathId(..))
+import Gargantext.API.Admin.Auth (withAccess)
 import Gargantext.API.Admin.FrontEnd (FrontEndAPI)
 import Gargantext.API.Count  (CountAPI, count, Query)
 import Gargantext.API.Ngrams (TableNgramsApi, apiNgramsTableDoc)
@@ -46,12 +46,13 @@ import Servant.Auth as SA
 import Servant.Auth.Swagger ()
 import Servant.Job.Async
 import Servant.Swagger.UI
-import qualified Gargantext.API.Ngrams.List           as List
-import qualified Gargantext.API.Node.Contact          as Contact
-import qualified Gargantext.API.Node.Corpus.Annuaire  as Annuaire
-import qualified Gargantext.API.Node.Corpus.Export    as Export
-import qualified Gargantext.API.Node.Corpus.New       as New
-import qualified Gargantext.API.Public                as Public
+import qualified Gargantext.API.Ngrams.List              as List
+import qualified Gargantext.API.Node.Contact             as Contact
+import qualified Gargantext.API.Node.Corpus.Annuaire     as Annuaire
+import qualified Gargantext.API.Node.Corpus.Export       as Export
+import qualified Gargantext.API.Node.Corpus.Export.Types as Export
+import qualified Gargantext.API.Node.Corpus.New          as New
+import qualified Gargantext.API.Public                   as Public
 
 type GargAPI = "api" :> Summary "API " :> GargAPIVersion
 -- | TODO          :<|> Summary "Latest API" :> GargAPI'
@@ -94,10 +95,12 @@ type GargPrivateAPI' =
                            :> Capture "node_id" NodeId
                            :> NodeAPI HyperdataAny
 
+--{-
            -- Corpus endpoints
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "corpus_id" CorpusId
                            :> NodeAPI HyperdataCorpus
+--}
 
            :<|> "corpus"   :> Summary "Corpus endpoint"
                            :> Capture "node1_id" NodeId
@@ -109,6 +112,12 @@ type GargPrivateAPI' =
                            :> Export.API
 
            -- Annuaire endpoint
+{-
+           :<|> "contact"  :> Summary "Contact endpoint"
+                           :> Capture "contact_id" ContactId
+                           :> NodeAPI HyperdataContact
+--}
+
            :<|> "annuaire" :> Summary "Annuaire endpoint"
                            :> Capture "annuaire_id" AnnuaireId
                            :> NodeAPI HyperdataAnnuaire
@@ -116,11 +125,11 @@ type GargPrivateAPI' =
            :<|> "annuaire" :> Summary "Contact endpoint"
                            :> Capture "annuaire_id" NodeId
                            :> Contact.API
-
            -- Document endpoint
            :<|> "document" :> Summary "Document endpoint"
                            :> Capture "doc_id" DocId
-                           :> "ngrams" :> TableNgramsApi
+                           :> "ngrams"
+                           :> TableNgramsApi
 
         -- :<|> "counts" :> Stream GET NewLineFraming '[JSON] Count :> CountAPI
             -- TODO-SECURITY
@@ -156,11 +165,11 @@ type GargPrivateAPI' =
            :<|> "lists"  :> Summary "List export API"
                          :> Capture "listId" ListId
                          :> List.API
-
+{-
            :<|> "wait"   :> Summary "Wait test"
                          :> Capture "x" Int
                          :> WaitAPI -- Get '[JSON] Int
-
+-}
 -- /mv/<id>/<id>
 -- /merge/<id>/<id>
 -- /rename/<id>
@@ -205,6 +214,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      :<|> nodeAPI     (Proxy :: Proxy HyperdataCorpus)   uid
      :<|> nodeNodeAPI (Proxy :: Proxy HyperdataAny)      uid
      :<|> Export.getCorpus   -- uid
+ --    :<|> nodeAPI     (Proxy :: Proxy HyperdataContact)  uid
      :<|> nodeAPI     (Proxy :: Proxy HyperdataAnnuaire) uid
      :<|> Contact.api uid
 
@@ -230,7 +240,7 @@ serverPrivateGargAPI' (AuthenticatedUser (NodeId uid))
      -- :<|> New.api  uid -- TODO-SECURITY
      -- :<|> New.info uid -- TODO-SECURITY
      :<|> List.api
-     :<|> waitAPI
+--     :<|> waitAPI
 
 
 ----------------------------------------------------------------------
@@ -248,9 +258,9 @@ waitAPI n = do
 addCorpusWithQuery :: User -> GargServer New.AddWithQuery
 addCorpusWithQuery user cid =
   serveJobsAPI $
-    JobFunction (\q log -> do
-      limit <- view $ config . gc_max_docs_scrapers
-      New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log)
+    JobFunction (\q log' -> do
+      limit <- view $ hasConfig . gc_max_docs_scrapers
+      New.addToCorpusWithQuery user cid q (Just limit) (liftBase . log')
       {- let log' x = do
         printDebug "addToCorpusWithQuery" x
         liftBase $ log x
@@ -267,25 +277,25 @@ addWithFile cid i f =
 addCorpusWithForm :: User -> GargServer New.AddWithForm
 addCorpusWithForm user cid =
   serveJobsAPI $
-    JobFunction (\i log ->
+    JobFunction (\i log' ->
       let
-        log' x = do
+        log'' x = do
           printDebug "addToCorpusWithForm" x
-          liftBase $ log x
-      in New.addToCorpusWithForm user cid i log')
+          liftBase $ log' x
+      in New.addToCorpusWithForm user cid i log'')
 
 addCorpusWithFile :: User -> GargServer New.AddWithFile
 addCorpusWithFile user cid =
   serveJobsAPI $
-    JobFunction (\i log ->
+    JobFunction (\i log' ->
       let
-        log' x = do
+        log'' x = do
           printDebug "addToCorpusWithFile" x
-          liftBase $ log x
-      in New.addToCorpusWithFile user cid i log')
+          liftBase $ log' x
+      in New.addToCorpusWithFile user cid i log'')
 
 addAnnuaireWithForm :: GargServer Annuaire.AddWithForm
 addAnnuaireWithForm cid =
   serveJobsAPI $
-    JobFunction (\i log -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log))
+    JobFunction (\i log' -> Annuaire.addToAnnuaireWithForm cid i (liftBase . log'))
 

@@ -8,7 +8,7 @@ Stability   : experimental
 Portability : POSIX
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE Arrows                      #-}
@@ -18,8 +18,8 @@ module Gargantext.Database.Query.Table.Node.Children
 
 import Control.Arrow (returnA)
 import Data.Proxy
+import Gargantext.Core
 import Gargantext.Core.Types
-import Gargantext.Database.Admin.Config (nodeTypeId)
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument, HyperdataContact)
 import Gargantext.Database.Prelude
 import Gargantext.Database.Query.Filter
@@ -30,23 +30,23 @@ import Protolude
 
 
 -- TODO getAllTableDocuments
-getAllDocuments :: ParentId -> Cmd err (TableResult (Node HyperdataDocument))
+getAllDocuments :: HasDBid NodeType => ParentId -> Cmd err (TableResult (Node HyperdataDocument))
 getAllDocuments pId = getAllChildren pId (Proxy :: Proxy HyperdataDocument)
                                          (Just NodeDocument)
 
 -- TODO getAllTableContacts
-getAllContacts :: ParentId -> Cmd err (TableResult (Node HyperdataContact))
+getAllContacts :: HasDBid NodeType => ParentId -> Cmd err (TableResult (Node HyperdataContact))
 getAllContacts pId = getAllChildren pId (Proxy :: Proxy HyperdataContact)
                                         (Just NodeContact)
 
-getAllChildren :: JSONB a
+getAllChildren :: (JSONB a, HasDBid NodeType)
                => ParentId
                -> proxy a
                -> Maybe NodeType
                -> Cmd err (NodeTableResult a)
 getAllChildren pId p maybeNodeType = getChildren pId p maybeNodeType Nothing Nothing
 
-getChildren :: JSONB a
+getChildren :: (JSONB a, HasDBid NodeType)
             => ParentId
             -> proxy a
             -> Maybe NodeType
@@ -66,14 +66,15 @@ getChildren pId _ maybeNodeType maybeOffset maybeLimit = do
   where
     query = selectChildren pId maybeNodeType
 
-selectChildren :: ParentId
+selectChildren :: HasDBid NodeType
+               => ParentId
                -> Maybe NodeType
                -> Query NodeRead
 selectChildren parentId maybeNodeType = proc () -> do
     row@(Node nId _ typeName _ parent_id _ _ _) <- queryNodeTable -< ()
     (NodeNode n1id n2id _ _) <- queryNodeNodeTable -< ()
 
-    let nodeType = maybe 0 nodeTypeId maybeNodeType
+    let nodeType = maybe 0 toDBid maybeNodeType
     restrict -< typeName  .== pgInt4 nodeType
 
     restrict -< (.||) (parent_id .== (pgNodeId parentId))

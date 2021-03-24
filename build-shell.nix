@@ -1,5 +1,5 @@
 { ghc
-, pkgs ? import ./pinned.nix {}
+, pkgs ? import ./pinned-20.09.nix {}
 }:
 let
   buildInputs = with pkgs; [

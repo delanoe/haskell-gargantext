@@ -15,28 +15,41 @@ Import a corpus binary.
 
 module Main where
 
+import Gargantext.API.Admin.EnvTypes (DevEnv)
 import Gargantext.API.Dev (withDevEnv, runCmdDev)
 import Gargantext.API.Prelude (GargError)
 import Gargantext.API.Node () -- instances only
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Admin.Types.Hyperdata
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye
-import Gargantext.Database.Prelude (Cmd, )
+import Gargantext.Database.Prelude (Cmd'', )
 import Gargantext.Prelude
 import System.Environment (getArgs)
+import Prelude (getLine)
 
+-- | PosTag
+import Gargantext.Database.Action.Flow (indexAllDocumentsWithPosTag)
+import Gargantext.Database.Query.Table.NgramsPostag (createTable_NgramsPostag)
 
 main :: IO ()
 main = do
   [iniPath] <- getArgs
 
+  putStrLn "Manual method (for now):"
+  putStrLn "Upgrade your schema database with the script:"
+  putStrLn "psql gargandbV5 < ./devops/postgres/upgrade/0.0.2.6.sql"
+  putStrLn "Then press enter key when you are done"
+  _ok  <- getLine
+
   let
-    updateNodes :: Cmd GargError [Int64]
-    updateNodes = updateNodesWithType_
-                    NodeList
-                    defaultHyperdataList
+    upgrade :: Cmd'' DevEnv GargError ()
+    upgrade = do
+      -- This method does not work for now
+      -- _ <- createTable_NgramsPostag
+      _ <- indexAllDocumentsWithPosTag
+      pure ()
 
   withDevEnv iniPath $ \env -> do
-    x <- runCmdDev env updateNodes
-    putStrLn $ show x
+    _ <- runCmdDev env upgrade
+    putStrLn "Uprade"
   pure ()

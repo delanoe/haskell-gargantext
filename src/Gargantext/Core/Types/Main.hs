@@ -9,7 +9,7 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE TemplateHaskell   #-}
 
@@ -20,11 +20,14 @@ module Gargantext.Core.Types.Main where
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.Either (Either(..))
+import Data.Hashable (Hashable)
 import Data.Map (fromList, lookup)
+import Data.Maybe (fromMaybe)
 import Data.Semigroup (Semigroup(..))
 import Data.Swagger
 import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
+import Gargantext.Core
 import Gargantext.Core.Utils.Prefix (unPrefix, unPrefixSwagger, wellNamedSchema)
 import Gargantext.Database.Admin.Types.Node  -- (NodeType(..), Node, Hyperdata(..))
 import Gargantext.Prelude
@@ -50,7 +53,7 @@ instance ToSchema NodeTree where
 type TypeId     = Int
 -- TODO multiple ListType declaration, remove it
 -- data ListType  =  CandidateTerm | StopTerm | MapTerm
-data ListType  =  StopTerm | CandidateTerm | MapTerm
+data ListType  =  CandidateTerm | StopTerm | MapTerm
   deriving (Generic, Eq, Ord, Show, Read, Enum, Bounded)
 
 instance ToJSON   ListType
@@ -59,6 +62,7 @@ instance ToSchema ListType
 instance ToParamSchema ListType
 instance Arbitrary ListType where
   arbitrary = elements [minBound..maxBound]
+instance Hashable ListType
 
 instance Semigroup ListType
   where
@@ -74,6 +78,10 @@ instance FromHttpApiData ListType where
 
 type ListTypeId = Int
 
+instance HasDBid ListType where
+  toDBid   = listTypeId
+  fromDBid = (fromMaybe (panic "Instance HasDBid fromDBid ListType")) .  fromListTypeId
+
 -- FIXME Candidate: 0 and Stop : 1
 listTypeId :: ListType -> ListTypeId
 listTypeId StopTerm      = 0
@@ -81,7 +89,11 @@ listTypeId CandidateTerm = 1
 listTypeId MapTerm       = 2
 
 fromListTypeId :: ListTypeId -> Maybe ListType
-fromListTypeId i = lookup i $ fromList [ (listTypeId l, l) | l <- [minBound..maxBound]]
+fromListTypeId i = lookup i
+                 $ fromList
+                 [ (listTypeId l, l)
+                 | l <- [StopTerm, CandidateTerm, MapTerm]
+                 ]
 
 -- data Metrics = Occurrences | Cooccurrences | Specclusion | Genclusion | Cvalue
 --              | TfidfCorpus | TfidfGlobal   | TirankLocal | TirankGlobal

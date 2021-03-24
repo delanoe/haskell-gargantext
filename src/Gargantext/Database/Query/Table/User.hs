@@ -10,7 +10,7 @@ Portability : POSIX
 Functions to deal with users, database side.
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
 
 {-# LANGUAGE TemplateHaskell             #-}
@@ -24,7 +24,7 @@ module Gargantext.Database.Query.Table.User
   , updateUserDB
   , queryUserTable
   , getUser
-  , insertUsersDemo
+  , insertNewUsers
   , selectUsersLightWith
   , userWithUsername
   , userWithId
@@ -62,7 +62,7 @@ updateUserDB :: UserWrite -> Cmd err Int64
 updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
   where
     updateUserQuery :: UserWrite -> Update Int64
-    updateUserQuery us = Update
+    updateUserQuery us' = Update
       { uTable      = userTable
       , uUpdateWith = updateEasy (\ (UserDB _id _p ll su un fn ln _em is ia dj)
                                   -> UserDB _id p' ll su un fn ln em' is ia dj
@@ -71,7 +71,7 @@ updateUserDB us = mkCmd $ \c -> runUpdate_ c (updateUserQuery us)
       , uReturning  = rCount
       }
         where
-          UserDB _ p' _ _ un' _ _ em' _ _ _ = us
+          UserDB _ p' _ _ un' _ _ em' _ _ _ = us'
 
 -----------------------------------------------------------------------
 toUserWrite :: NewUser HashPassword -> UserWrite
@@ -81,7 +81,7 @@ toUserWrite (NewUser u m (Auth.PasswordHash p)) =
          (pgStrictText "first_name")
          (pgStrictText "last_name")
          (pgStrictText m)
-         (pgBool True) 
+         (pgBool True)
          (pgBool True) Nothing
 
 ------------------------------------------------------------------
@@ -96,13 +96,14 @@ selectUsersLightWith u = proc () -> do
 
 ----------------------------------------------------------
 
+
 getUsersWithId :: Int -> Cmd err [UserLight]
 getUsersWithId i = map toUserLight <$> runOpaQuery (selectUsersLightWithId i)
   where
     selectUsersLightWithId :: Int -> Query UserRead
-    selectUsersLightWithId i = proc () -> do
+    selectUsersLightWithId i' = proc () -> do
           row      <- queryUserTable -< ()
-          restrict -< user_id row .== pgInt4 i
+          restrict -< user_id row .== pgInt4 i'
           returnA  -< row
 
 
@@ -139,12 +140,11 @@ usersLight = map toUserLight <$> users
 getUser :: Username -> Cmd err (Maybe UserLight)
 getUser u = userLightWithUsername u <$> usersLight
 
-
 ----------------------------------------------------------------------
-insertUsersDemo :: Cmd err Int64
-insertUsersDemo = do
-  users <- liftBase arbitraryUsersHash
-  insertUsers $ map toUserWrite users
+insertNewUsers :: [NewUser GargPassword] -> Cmd err Int64
+insertNewUsers newUsers = do
+  users' <- liftBase $ mapM toUserHash newUsers
+  insertUsers $ map toUserWrite users'
 
 ----------------------------------------------------------------------
 instance QueryRunnerColumnDefault PGTimestamptz (Maybe UTCTime) where

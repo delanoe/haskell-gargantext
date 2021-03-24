@@ -9,39 +9,42 @@ Portability : POSIX
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans        #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults  #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module Gargantext.Prelude
   ( module Gargantext.Prelude
   , module Protolude
-  , headMay, lastMay
   , module GHC.Err.Located
   , module Text.Show
   , module Text.Read
-  , cs
   , module Data.Maybe
-  , round
-  , sortWith
   , module Prelude
   , MonadBase(..)
   , Typeable
+  , cs
+  , headMay, lastMay, sortWith
+  , round
   )
   where
 
 import Control.Monad.Base (MonadBase(..))
+import Data.Set (Set)
 import GHC.Exts (sortWith)
 import GHC.Err.Located (undefined)
 import GHC.Real (round)
 import Data.Map (Map, lookup)
 import Data.Maybe (isJust, fromJust, maybe)
+import Data.Monoid (Monoid, mempty)
+import Data.Semigroup (Semigroup, (<>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , Fractional, Num, Maybe(Just,Nothing)
                  , Enum, Bounded, Float
                  , Floating, Char, IO
+                 , Functor(..)
                  , pure, (>>=), (=<<), (<*>), (<$>), (<&>), (>>)
                  , head, flip
                  , Ord, Integral, Foldable, RealFrac, Monad, filter
@@ -50,7 +53,7 @@ import Protolude ( Bool(True, False), Int, Int64, Double, Integer
                  , takeWhile, sqrt, identity
                  , abs, min, max, maximum, minimum, return, snd, truncate
                  , (+), (*), (/), (-), (.), ($), (&), (**), (^), (<), (>), log
-                 , Eq, (==), (>=), (<=), (<>), (/=)
+                 , Eq, (==), (>=), (<=), (<>), (/=), xor
                  , (&&), (||), not, any, all
                  , concatMap
                  , fst, snd, toS
@@ -68,15 +71,16 @@ import Prelude (Enum, Bounded, minBound, maxBound, putStrLn)
 -- TODO import functions optimized in Utils.Count
 -- import Protolude hiding (head, last, all, any, sum, product, length)
 -- import Gargantext.Utils.Count
-import qualified Data.List     as L hiding (head, sum)
-import qualified Control.Monad as M
-import qualified Data.Map      as M
 import Data.Map.Strict (insertWith)
-import qualified Data.Vector as V
-import Safe (headMay, lastMay, initMay, tailMay)
-import Text.Show (Show(), show)
-import Text.Read (Read())
 import Data.String.Conversions (cs)
+import Safe (headMay, lastMay, initMay, tailMay)
+import Text.Read (Read())
+import Text.Show (Show(), show)
+import qualified Control.Monad as M
+import qualified Data.List     as L hiding (head, sum)
+import qualified Data.Map      as M
+import qualified Data.Set      as Set
+import qualified Data.Vector   as V
 
 
 printDebug :: (Show a, MonadBase IO m) => [Char] -> a -> m ()
@@ -307,12 +311,48 @@ lookup2 a b m = do
   m' <- lookup a m
   lookup b m'
 
------------------------------------------------
-
+-----------------------------------------------------------------------
 foldM' :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
 foldM' _ z [] = return z
 foldM' f z (x:xs) = do
   z' <- f z x
   z' `seq` foldM' f z' xs
+
+-----------------------------------------------------------------------
+-- | Instance for basic numerals
+-- See the difference between Double and (Int Or Integer)
+instance Monoid Double where
+  mempty = 1
+
+instance Semigroup Double where
+  (<>) a b = a * b
+
+-----------
+instance Monoid Int where
+  mempty = 0
+
+instance Semigroup Int where
+  (<>) a b = a + b
+----
+instance Monoid Integer where
+  mempty = 0
+
+instance Semigroup Integer where
+  (<>) a b = a + b
+
+------------------------------------------------------------------------
+
+hasDuplicates :: Ord a => [a] -> Bool
+hasDuplicates = hasDuplicatesWith Set.empty
+
+hasDuplicatesWith :: Ord a => Set a -> [a] -> Bool
+hasDuplicatesWith _seen [] =
+    False -- base case: empty lists never contain duplicates
+hasDuplicatesWith  seen (x:xs) =
+    -- If we have seen the current item before, we can short-circuit; otherwise,
+    -- we'll add it the the set of previously seen items and process the rest of the
+    -- list against that.
+    x `Set.member` seen || hasDuplicatesWith (Set.insert x seen) xs
+
 
 

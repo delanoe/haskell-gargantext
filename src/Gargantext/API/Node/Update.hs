@@ -30,7 +30,7 @@ import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Core.Viz.Graph.Distances (GraphMetric(..), Distance(..))
+import Gargantext.Core.Methods.Distances (GraphMetric(..), Distance(..))
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node

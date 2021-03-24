@@ -25,7 +25,7 @@ module Gargantext.Database.Admin.Types.Hyperdata.Contact
 
 import Data.Time.Segment (jour)
 import Data.Time (UTCTime)
-
+import Gargantext.Core.Text (HasText(..))
 import Gargantext.Database.Admin.Types.Hyperdata.Prelude
 import Gargantext.Prelude
 
@@ -42,7 +42,9 @@ data HyperdataContact =
 
   } deriving (Eq, Show, Generic)
 
-
+instance HasText HyperdataContact
+  where
+    hasText = undefined
 
 defaultHyperdataContact :: HyperdataContact
 defaultHyperdataContact = HyperdataContact (Just "bdd")

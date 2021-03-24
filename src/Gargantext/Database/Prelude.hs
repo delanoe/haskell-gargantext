@@ -15,10 +15,9 @@ module Gargantext.Database.Prelude where
 
 import Control.Exception
 import Control.Lens (Getter, view)
-import Control.Monad.Error.Class -- (MonadError(..), Error)
 import Control.Monad.Except
-import Control.Monad.Reader
 import Control.Monad.Random
+import Control.Monad.Reader
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Aeson (Result(Error,Success), fromJSON, FromJSON)
 import Data.ByteString.Char8 (hPutStrLn)
@@ -26,11 +25,13 @@ import Data.Either.Extra (Either(Left, Right))
 import Data.Ini (readIniFile, lookupValue)
 import Data.Pool (Pool, withResource)
 import Data.Profunctor.Product.Default (Default)
-import Data.Text (unpack, pack)
+import Data.Text (unpack, pack, Text)
 import Data.Word (Word16)
 import Database.PostgreSQL.Simple (Connection, connect)
 import Database.PostgreSQL.Simple.FromField ( Conversion, ResultError(ConversionFailed), fromField, returnError)
 import Database.PostgreSQL.Simple.Internal  (Field)
+import Gargantext.Prelude
+import Gargantext.Prelude.Config (GargConfig())
 import Opaleye (Query, Unpackspec, showSqlForPostgres, FromFields, Select, runQuery, PGJsonb, QueryRunnerColumnDefault)
 import Opaleye.Aggregate (countRows)
 import System.IO (FilePath)
@@ -40,9 +41,6 @@ import qualified Data.ByteString      as DB
 import qualified Data.List as DL
 import qualified Database.PostgreSQL.Simple as PGS
 
-import Gargantext.Prelude
-import Gargantext.Prelude.Config (GargConfig())
-
 -------------------------------------------------------
 class HasConnectionPool env where
   connPool :: Getter env (Pool Connection)
@@ -51,10 +49,10 @@ instance HasConnectionPool (Pool Connection) where
   connPool = identity
 
 class HasConfig env where
-  config :: Getter env GargConfig
+  hasConfig :: Getter env GargConfig
 
 instance HasConfig GargConfig where
-  config = identity
+  hasConfig = identity
 
 -------------------------------------------------------
 type JSONB = QueryRunnerColumnDefault PGJsonb
@@ -80,10 +78,17 @@ type CmdM env err m =
   , HasConfig         env
   )
 
-type Cmd'' env err a = forall m.     CmdM'' env err m => m a
-type Cmd'  env err a = forall m.     CmdM'  env err m => m a
-type Cmd       err a = forall m env. CmdM   env err m => m a
+type CmdRandom env err m =
+  ( CmdM'             env err m
+  , HasConnectionPool env
+  , HasConfig         env
+  , MonadRandom             m
+  )
 
+type Cmd'' env err a = forall m.     CmdM''    env err m => m a
+type Cmd'  env err a = forall m.     CmdM'     env err m => m a
+type Cmd       err a = forall m env. CmdM      env err m => m a
+type CmdR      err a = forall m env. CmdRandom env err m => m a
 
 
 
@@ -130,6 +135,18 @@ runPGSQuery q a = mkCmd $ \conn -> catch (PGS.query conn q a) (printError conn)
       q' <- PGS.formatQuery c q a
       hPutStrLn stderr q'
       throw (SomeException e)
+
+-- | TODO catch error
+runPGSQuery_ :: ( CmdM env err m
+               , PGS.FromRow r
+               )
+               => PGS.Query -> m [r]
+runPGSQuery_ q = mkCmd $ \conn -> catch (PGS.query_ conn q) printError
+  where
+    printError (SomeException e) = do
+      printDebug "[G.D.P.runPGSQuery_]" ("TODO: format query error query" :: Text)
+      throw (SomeException e)
+
 
 
 execPGSQuery :: PGS.ToRow a => PGS.Query -> a -> Cmd err Int64

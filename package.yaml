@@ -1,5 +1,5 @@
 name: gargantext
-version: '0.0.1.91.3'
+version: '0.0.2.8'
 synopsis: Search, map, share
 description: Please see README.md
 category: Data
@@ -58,6 +58,7 @@ library:
   - Gargantext.Database.Query.Table.User
   - Gargantext.Database.Query.Table.Node
   - Gargantext.Database.Query.Table.Node.UpdateOpaleye
+  - Gargantext.Database.Query.Table.NgramsPostag
   - Gargantext.Database.Prelude
   - Gargantext.Database.Admin.Trigger.Init
   - Gargantext.Database.Admin.Config
@@ -73,7 +74,7 @@ library:
   - Gargantext.Core.Text.Corpus.API
   - Gargantext.Core.Text.Corpus.Parsers.CSV
   - Gargantext.Core.Text.Examples
-  - Gargantext.Core.Text.List.CSV
+  - Gargantext.Core.Text.List.Formats.CSV
   - Gargantext.Core.Text.Metrics
   - Gargantext.Core.Text.Metrics.TFICF
   - Gargantext.Core.Text.Metrics.CharByChar
@@ -87,7 +88,6 @@ library:
   - Gargantext.Core.Text.Terms.WithList
   - Gargantext.Core.Text.Flow
   - Gargantext.Core.Viz.Graph
-  - Gargantext.Core.Viz.Graph.Distances.Matrice
   - Gargantext.Core.Viz.Graph.Index
   - Gargantext.Core.Viz.Phylo
   - Gargantext.Core.Viz.AdaptativePhylo
@@ -109,6 +109,8 @@ library:
   - SHA
   - Unique
   - accelerate
+  - accelerate-utility
+  - accelerate-arithmetic
   - aeson
   - aeson-lens
   - aeson-pretty
@@ -151,6 +153,7 @@ library:
   - full-text-search
   - fullstop
   - graphviz
+  - hashable
   - haskell-igraph
   - hlcm
   - hsparql

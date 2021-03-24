@@ -18,38 +18,36 @@ module Gargantext.Core.Viz.Graph.API
 
 import Control.Lens (set, (^.), _Just, (^?))
 import Data.Aeson
-import qualified Data.Map as Map
 import Data.Swagger
 import Data.Text
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
-import Servant
-import Servant.Job.Async
-import Servant.XML
-
 import Gargantext.API.Admin.Orchestrator.Types
-import Gargantext.API.Ngrams.Types (NgramsRepo, r_version)
 import Gargantext.API.Ngrams.Tools
+import Gargantext.API.Ngrams.Types (NgramsRepo, r_version)
 import Gargantext.API.Prelude
+import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..))
 import Gargantext.Core.Types.Main
+import Gargantext.Core.Viz.Graph
+import Gargantext.Core.Viz.Graph.GEXF ()
+import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
 import Gargantext.Database.Action.Metrics.NgramsByNode (getNodesByNgramsOnlyUser)
 import Gargantext.Database.Action.Node (mkNodeWithParent)
 import Gargantext.Database.Admin.Config
 import Gargantext.Database.Admin.Types.Node
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.Node
-import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Query.Table.Node.Error (HasNodeError)
 import Gargantext.Database.Query.Table.Node.Select
 import Gargantext.Database.Query.Table.Node.UpdateOpaleye (updateHyperdata)
+import Gargantext.Database.Query.Table.Node.User (getNodeUser)
 import Gargantext.Database.Schema.Ngrams
 import Gargantext.Database.Schema.Node (node_parentId, node_hyperdata, node_name, node_userId)
 import Gargantext.Prelude
-import Gargantext.Core.Viz.Graph
-import Gargantext.Core.Viz.Graph.GEXF ()
-import Gargantext.Core.Viz.Graph.Tools -- (cooc2graph)
-import Gargantext.Core.Viz.Graph.Distances (Distance(..), GraphMetric(..))
-
+import Servant
+import Servant.Job.Async
+import Servant.XML
+import qualified Data.HashMap.Strict as HashMap
 ------------------------------------------------------------------------
 -- | There is no Delete specific API for Graph since it can be deleted
 -- as simple Node.
@@ -93,6 +91,7 @@ getGraph _uId nId = do
   -- TODO Distance in Graph params
   case graph of
     Nothing     -> do
+        -- graph' <- computeGraph cId Distributional NgramsTerms repo
         graph' <- computeGraph cId Conditional NgramsTerms repo
         mt     <- defaultGraphMetadata cId "Title" repo
         let graph'' = set graph_metadata (Just mt) graph'
@@ -150,12 +149,12 @@ computeGraph cId d nt repo = do
   let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
   -- TODO split diagonal
-  myCooc <- Map.filter (>1)
+  myCooc <- HashMap.filter (>1)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
-         <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (Map.keys ngs)
+         <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
-  graph <- liftBase $ cooc2graph d 0 myCooc
+  graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
 
   pure graph
 
@@ -206,7 +205,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Conditional
+  _g <- trace (show u) $ recomputeGraph u n Conditional -- Distributional
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -241,7 +240,7 @@ graphVersions nId = do
                        , gv_repo = v }
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
-recomputeVersions uId nId = recomputeGraph uId nId Conditional
+recomputeVersions uId nId = recomputeGraph uId nId Conditional -- Distributional
 
 ------------------------------------------------------------
 graphClone :: UserId

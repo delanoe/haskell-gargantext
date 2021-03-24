@@ -17,32 +17,33 @@ module Gargantext.Core.Text.Terms.Multi (multiterms, multiterms_rake)
 
 import Data.Text hiding (map, group, filter, concat)
 import Data.List (concat)
-import qualified Data.Set as S
 
 import Gargantext.Prelude
 import Gargantext.Core (Lang(..))
 import Gargantext.Core.Types
 
 import Gargantext.Core.Text.Terms.Multi.PosTagging
-import Gargantext.Core.Text.Terms.Mono.Stem (stem)
 import qualified Gargantext.Core.Text.Terms.Multi.Lang.En as En
 import qualified Gargantext.Core.Text.Terms.Multi.Lang.Fr as Fr
 
 import Gargantext.Core.Text.Terms.Multi.RAKE (multiterms_rake)
 
+-------------------------------------------------------------------
+-- To be removed
 multiterms :: Lang -> Text -> IO [Terms]
-multiterms lang txt = concat
-                   <$> map (map (tokenTag2terms lang))
+multiterms = multiterms' tokenTag2terms
+ 
+multiterms' :: (TokenTag -> a) -> Lang -> Text -> IO [a]
+multiterms' f lang txt = concat
+                   <$> map (map f)
                    <$> map (filter (\t -> _my_token_pos t == Just NP)) 
                    <$> tokenTags lang txt
-
-tokenTag2terms :: Lang -> TokenTag -> Terms
-tokenTag2terms lang (TokenTag w t _ _) =  Terms w t'
-  where
-    t' = S.fromList $ map (stem lang) $ S.toList t
+-------------------------------------------------------------------
+tokenTag2terms :: TokenTag -> Terms
+tokenTag2terms (TokenTag ws t _ _) =  Terms ws t
 
 tokenTags :: Lang -> Text -> IO [[TokenTag]]
-tokenTags lang s = map (group lang) <$> tokenTags' lang s
+tokenTags lang s = map (groupTokens lang) <$> tokenTags' lang s
 
 
 tokenTags' :: Lang -> Text -> IO [[TokenTag]]
@@ -53,7 +54,7 @@ tokenTags' lang t =  map tokens2tokensTags
 
 ---- | This function analyses and groups (or not) ngrams according to
 ----   specific grammars of each language.
-group :: Lang -> [TokenTag] -> [TokenTag]
-group EN = En.group
-group FR = Fr.group
-group _  = panic $ pack "group :: Lang not implemeted yet"
+groupTokens :: Lang -> [TokenTag] -> [TokenTag]
+groupTokens EN = En.groupTokens
+groupTokens FR = Fr.groupTokens
+groupTokens _  = panic $ pack "groupTokens :: Lang not implemeted yet"

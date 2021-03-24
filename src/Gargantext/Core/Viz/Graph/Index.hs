@@ -80,7 +80,8 @@ fromIndex :: Ord t => Map Index t -> Map (Index, Index) a -> Map (t,t) a
 fromIndex ni ns = indexConversion ni ns
 
 indexConversion :: (Ord b, Ord k) => Map k b -> Map (k,k) a -> Map (b, b) a
-indexConversion index ms = M.fromList $ map (\((k1,k2),c) -> ( ((M.!) index k1, (M.!) index k2), c)) (M.toList ms)
+indexConversion index ms = M.fromList
+                         $ map (\((k1,k2),c) -> ( ((M.!) index k1, (M.!) index k2), c)) (M.toList ms)
 ---------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------

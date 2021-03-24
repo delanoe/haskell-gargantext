@@ -12,7 +12,7 @@ Multiple Join functions with Opaleye.
 -}
 
 {-# OPTIONS_GHC -fno-warn-orphans        #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 
 {-# LANGUAGE Arrows                    #-}
 {-# LANGUAGE FunctionalDependencies    #-}

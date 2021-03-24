@@ -14,53 +14,22 @@ module Gargantext.Database.Action.Flow.Utils
     where
 
 import Data.Map (Map)
-import qualified Data.Map as DM
-
+import Data.HashMap.Strict (HashMap)
 import Gargantext.Database.Admin.Types.Node
-import Gargantext.Database.Admin.Types.Hyperdata (Hyperdata)
 import Gargantext.Database.Prelude (Cmd)
 import Gargantext.Database.Query.Table.NodeNodeNgrams
 import Gargantext.Database.Schema.Ngrams
-import Gargantext.Database.Schema.Node
+import Gargantext.Database.Types
 import Gargantext.Prelude
+import qualified Data.Map as DM
+import qualified Data.HashMap.Strict as HashMap
 
 
-toMaps :: Hyperdata a
-       => (a -> Map (NgramsT Ngrams) Int)
-       -> [Node a]
-       -> Map (NgramsT Ngrams) (Map NodeId Int)
-toMaps fun ns = mapNodeIdNgrams $ documentIdWithNgrams fun ns'
-  where
-    ns' = map (\(Node nId _ _ _ _ _ _ json) -> DocumentWithId nId json) ns
-
-mapNodeIdNgrams :: Hyperdata a
-                => [DocumentIdWithNgrams a]
-                -> Map (NgramsT Ngrams) (Map NodeId Int)
-mapNodeIdNgrams ds = DM.map (DM.fromListWith (+)) $ DM.fromListWith (<>) xs
-  where
-    xs  = [(ng, [(nId, i)]) | (nId, n2i') <- n2i ds, (ng, i) <- DM.toList n2i']
-    n2i = map (\d -> ((documentId . documentWithId) d, documentNgrams d))
-
-
-documentIdWithNgrams :: Hyperdata a
-                     => (a -> Map (NgramsT Ngrams) Int)
-                     -> [DocumentWithId a]
-                     -> [DocumentIdWithNgrams a]
-documentIdWithNgrams f = map (\d -> DocumentIdWithNgrams d ((f . documentData) d))
-
-
-data DocumentWithId a =
-     DocumentWithId { documentId   :: NodeId
-                    , documentData :: a
-                    } deriving (Show)
-
-
-data DocumentIdWithNgrams a =
+data DocumentIdWithNgrams a b =
      DocumentIdWithNgrams
-     { documentWithId  :: DocumentWithId a
-     , documentNgrams :: Map (NgramsT Ngrams) Int
+     { documentWithId :: Indexed NodeId a
+     , documentNgrams :: HashMap b (Map NgramsType Int)
      } deriving (Show)
-
 
 docNgrams2nodeNodeNgrams :: CorpusId
                          -> DocNgrams
@@ -82,11 +51,11 @@ insertDocNgramsOn cId dn =
   $ (map (docNgrams2nodeNodeNgrams cId) dn)
 
 insertDocNgrams :: CorpusId
-                -> Map NgramsIndexed (Map NgramsType (Map NodeId Int))
+                -> HashMap (Indexed Int Ngrams) (Map NgramsType (Map NodeId Int))
                 -> Cmd err Int
 insertDocNgrams cId m =
-  insertDocNgramsOn cId [ DocNgrams n (_ngramsId ng) (ngramsTypeId t) (fromIntegral i)
-                          | (ng, t2n2i) <- DM.toList m
+  insertDocNgramsOn cId [ DocNgrams n (_index ng) (ngramsTypeId t) (fromIntegral i)
+                          | (ng, t2n2i) <- HashMap.toList m
                           , (t,  n2i)   <- DM.toList t2n2i
                           , (n,  i)     <- DM.toList n2i
                         ]
