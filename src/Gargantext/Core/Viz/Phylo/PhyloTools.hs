@@ -346,6 +346,16 @@ getConfig :: Phylo -> Config
 getConfig phylo = (phylo ^. phylo_param) ^. phyloParam_config
 
 
+setConfig :: Config -> Phylo -> Phylo
+setConfig config phylo = phylo 
+                       & phylo_param .~ (PhyloParam 
+                                            ((phylo ^. phylo_param) ^. phyloParam_version) 
+                                            ((phylo ^. phylo_param) ^. phyloParam_software) 
+                                            config)
+
+-- & phylo_param & phyloParam_config & phyloParam_config .~ config
+
+
 getRoots :: Phylo -> Vector Ngrams
 getRoots phylo = (phylo ^. phylo_foundations) ^. foundations_roots
 

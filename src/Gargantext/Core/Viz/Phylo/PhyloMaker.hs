@@ -50,30 +50,22 @@ toPhylo' (PhyloBase phylo) = toPhylo
 -}
 
 
-toPhylo :: [Document] -> TermList -> Config -> Phylo
-toPhylo docs lst conf = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
-                      $ traceToPhylo (phyloLevel conf) $
-    if (phyloLevel conf) > 1
-      then foldl' (\phylo' _ -> synchronicClustering phylo') phyloAncestors [2..(phyloLevel conf)]
+toPhylo :: Phylo -> Phylo
+toPhylo phyloStep = trace ("# phylo1 groups " <> show(length $ getGroupsFromLevel 1 phylo1))
+                      $ traceToPhylo (phyloLevel $ getConfig phyloStep) $
+    if (phyloLevel $ getConfig phyloStep) > 1
+      then foldl' (\phylo' _ -> synchronicClustering phylo') phyloAncestors [2..(phyloLevel $ getConfig phyloStep)]
       else phylo1 
     where
         --------------------------------------
         phyloAncestors :: Phylo
         phyloAncestors = 
-            if (findAncestors conf)
+            if (findAncestors $ getConfig phyloStep)
               then toHorizon phylo1
               else phylo1
         --------------------------------------
         phylo1 :: Phylo
         phylo1 = toPhylo1 phyloStep
-        -- > AD to db here
-        --------------------------------------
-        phyloStep :: Phylo
-        phyloStep = toFirstPhyloStep docs phyloBase
-        -- > AD to db here        
-        --------------------------------------
-        phyloBase :: Phylo
-        phyloBase = toPhyloBase docs lst conf
         -- > AD to db here
         --------------------------------------
 
@@ -142,9 +134,19 @@ cliqueToGroup fis pId lvl idx coocs = PhyloGroup pId lvl idx ""
                    [] [] [] [] []
 
 
--- To build the first phylo step from docs and phyloBase
-toFirstPhyloStep :: [Document] -> Phylo -> Phylo
-toFirstPhyloStep docs phyloBase = case (getSeaElevation phyloBase) of 
+toPhylo1 :: Phylo -> Phylo
+toPhylo1 phyloStep = case (getSeaElevation phyloStep) of 
+    Constante start gap -> constanteTemporalMatching  start gap phyloStep
+    Adaptative steps    -> adaptativeTemporalMatching steps phyloStep
+
+-----------------------
+-- | To Phylo Step | --
+-----------------------
+
+
+-- To build the first phylo step from docs and terms
+toPhyloStep :: [Document] -> TermList -> Config -> Phylo
+toPhyloStep docs lst conf = case (getSeaElevation phyloBase) of 
     Constante  _ _ -> appendGroups cliqueToGroup 1 phyloClique phyloBase
     Adaptative _   -> toGroupsProxi 1 $ appendGroups cliqueToGroup 1 phyloClique phyloBase
     where
@@ -154,15 +156,10 @@ toFirstPhyloStep docs phyloBase = case (getSeaElevation phyloBase) of
         --------------------------------------
         docs' :: Map (Date,Date) [Document]
         docs' =  groupDocsByPeriodRec date (getPeriodIds phyloBase) (sortOn date docs) empty
-        --------------------------------------  
-
-
-
-toPhylo1 :: Phylo -> Phylo
-toPhylo1 phyloStep = case (getSeaElevation phyloStep) of 
-    Constante start gap -> constanteTemporalMatching  start gap phyloStep    
-    Adaptative steps    -> adaptativeTemporalMatching steps phyloStep
-
+        --------------------------------------
+        phyloBase :: Phylo
+        phyloBase = toPhyloBase docs lst conf
+        --------------------------------------
 
 ---------------------------
 -- | Frequent Item Set | --

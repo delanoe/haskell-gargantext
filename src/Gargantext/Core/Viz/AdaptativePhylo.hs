@@ -439,5 +439,17 @@ makeLenses ''PhyloBranch
 -- | JSON instances | --
 ------------------------
 
+instance FromJSON Phylo
+instance ToJSON Phylo
+instance FromJSON PhyloParam
+instance ToJSON PhyloParam
+instance FromJSON PhyloPeriod
+instance ToJSON PhyloPeriod
+instance FromJSON PhyloLevel
+instance ToJSON PhyloLevel
+instance FromJSON Software
+instance ToJSON Software
+instance FromJSON PhyloGroup
+instance ToJSON PhyloGroup
 
 $(deriveJSON (unPrefix "_foundations_"  ) ''PhyloFoundations)

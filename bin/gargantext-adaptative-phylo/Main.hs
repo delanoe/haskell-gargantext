@@ -21,7 +21,7 @@ import Data.Aeson
 -- import Data.Maybe (isJust, fromJust)
 import Data.List  (concat, nub, isSuffixOf)
 import Data.String (String)
-import Data.Text  (Text, unwords, unpack)
+import Data.Text  (Text, unwords, unpack, replace)
 import Crypto.Hash.SHA256 (hash)
 -- import Data.Digest.Pure.SHA
 
@@ -33,21 +33,22 @@ import Gargantext.Core.Text.Corpus.Parsers (FileFormat(..),parseFile)
 import Gargantext.Core.Text.List.CSV (csvMapTermList)
 import Gargantext.Core.Text.Terms.WithList (Patterns, buildPatterns, extractTermsWithList)
 import Gargantext.Core.Viz.AdaptativePhylo
-import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo)
-import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment)
+import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
+import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
 -- import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicDistance')
 
 import GHC.IO (FilePath) 
-import Prelude (Either(..))
+import Prelude (Either(Left, Right))
 import System.Environment
-import System.Directory (listDirectory)
+import System.Directory (listDirectory,doesFileExist)
 import Control.Concurrent.Async (mapConcurrently)
 
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.Vector as Vector
 import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
+import qualified Data.Text as T
 
 
 
@@ -132,7 +133,7 @@ fileToDocs parser path lst = do
 -- Config time parameters to label
 timeToLabel :: Config -> [Char]
 timeToLabel config = case (timeUnit config) of
-      Year p s f -> ("time"<> "_"<> (show p) <> "_"<> (show s) <> (show f))
+      Year p s f -> ("time"<> "_"<> (show p) <> "_" <> (show s) <> "_" <> (show f))
 
 
 seaToLabel :: Config -> [Char]
@@ -173,15 +174,30 @@ configToLabel config = outputPath config
                     <> "-" <> (syncToLabel config)
                     <> ".dot"
 
+
 configToSha :: Config -> [Char]
-configToSha config = show (hash $ C8.pack label)
+configToSha config =  unpack $ replace "/" "-" $ T.pack (show (hash $ C8.pack label))
   where 
     label :: [Char]
     label = (corpusPath    config)
          <> (listPath      config)
          <> (timeToLabel   config)
          <> (cliqueToLabel config)
-         <> (sensToLabel   config)
+
+
+writePhylo :: [Char] -> Phylo -> IO ()
+writePhylo path phylo = Lazy.writeFile path $ encode phylo
+
+
+readPhylo :: [Char] -> IO Phylo
+readPhylo path = do
+  phyloStep <- (eitherDecode <$> readJson path) :: IO (Either String Phylo)
+  case phyloStep of 
+    Left err -> do
+      putStrLn err
+      undefined
+    Right phylo -> pure phylo 
+
 
 --------------
 -- | Main | --
@@ -206,9 +222,23 @@ main = do
             corpus  <- fileToDocs (corpusParser config) (corpusPath config) mapList
             printIOComment (show (length corpus) <> " parsed docs from the corpus")
 
-            printIOMsg "Reconstruct the Phylo"
-            
-            let phylo = toPhylo corpus mapList config
+            printIOMsg "Reconstruct the phylo"
+
+            let stepFile =  (outputPath config) <> "phyloStep_" <> (configToSha config) <> ".json"
+
+            phyloStepExists <- doesFileExist stepFile
+
+            phyloStep <- if phyloStepExists
+                              then do
+                                printIOMsg "Reconstruct the phylo step from an existing file"
+                                readPhylo stepFile
+                              else do
+                                printIOMsg "Reconstruct the phylo step from scratch"
+                                pure $ toPhyloStep corpus mapList config
+
+            writePhylo stepFile phyloStep
+
+            let phylo = toPhylo (setConfig config phyloStep)
 
             -- | probes
 
