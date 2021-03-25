@@ -17,13 +17,10 @@ Adaptative Phylo binaries
 module Main where
 
 import Data.Aeson
--- import Data.ByteString.Lazy (ByteString)
--- import Data.Maybe (isJust, fromJust)
 import Data.List  (concat, nub, isSuffixOf)
 import Data.String (String)
 import Data.Text  (Text, unwords, unpack, replace)
 import Crypto.Hash.SHA256 (hash)
--- import Data.Digest.Pure.SHA
 
 import Gargantext.Prelude
 import Gargantext.Database.Admin.Types.Hyperdata (HyperdataDocument(..))
@@ -36,7 +33,6 @@ import Gargantext.Core.Viz.AdaptativePhylo
 import Gargantext.Core.Viz.Phylo.PhyloMaker  (toPhylo, toPhyloStep)
 import Gargantext.Core.Viz.Phylo.PhyloTools  (printIOMsg, printIOComment, setConfig)
 import Gargantext.Core.Viz.Phylo.PhyloExport (toPhyloExport, dotToFile)
--- import Gargantext.Core.Viz.Phylo.SynchronicClustering (synchronicDistance')
 
 import GHC.IO (FilePath) 
 import Prelude (Either(Left, Right))
@@ -49,6 +45,9 @@ import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.Vector as Vector
 import qualified Gargantext.Core.Text.Corpus.Parsers.CSV as Csv
 import qualified Data.Text as T
+
+
+data PhyloStage = PhyloWithCliques | PhyloWithLinks deriving (Show) 
 
 
 
@@ -160,6 +159,10 @@ syncToLabel config = case (phyloSynchrony config) of
       ByProximityThreshold scl sync_sens scope _ -> ("scale_" <> (show scope) <> "_" <> (show sync_sens)  <> "_"  <> (show scl))
       ByProximityDistribution _ _ -> undefined
 
+qualToConfig :: Config -> [Char]
+qualToConfig config = case (phyloQuality config) of
+      Quality g m -> "quality_" <> (show g) <> "_" <> (show m)     
+
 
 -- To set up the export file's label from the configuration
 configToLabel :: Config -> [Char]
@@ -175,14 +178,27 @@ configToLabel config = outputPath config
                     <> ".dot"
 
 
-configToSha :: Config -> [Char]
-configToSha config =  unpack $ replace "/" "-" $ T.pack (show (hash $ C8.pack label))
+-- To write a sha256 from a set of config's parameters
+configToSha :: PhyloStage -> Config -> [Char]
+configToSha stage config = unpack 
+                         $ replace "/" "-" 
+                         $ T.pack (show (hash $ C8.pack label))
   where 
     label :: [Char]
-    label = (corpusPath    config)
-         <> (listPath      config)
-         <> (timeToLabel   config)
-         <> (cliqueToLabel config)
+    label = case stage of
+      PhyloWithCliques -> (corpusPath    config)
+                       <> (listPath      config)
+                       <> (timeToLabel   config)
+                       <> (cliqueToLabel config)
+      PhyloWithLinks   -> (corpusPath    config)
+                       <> (listPath      config)
+                       <> (timeToLabel   config)
+                       <> (cliqueToLabel config)
+                       <> (sensToLabel   config)
+                       <> (seaToLabel    config)
+                       <> (syncToLabel   config)
+                       <> (qualToConfig  config)
+                       <> (show (phyloLevel config))
 
 
 writePhylo :: [Char] -> Phylo -> IO ()
@@ -191,8 +207,8 @@ writePhylo path phylo = Lazy.writeFile path $ encode phylo
 
 readPhylo :: [Char] -> IO Phylo
 readPhylo path = do
-  phyloStep <- (eitherDecode <$> readJson path) :: IO (Either String Phylo)
-  case phyloStep of 
+  phyloJson <- (eitherDecode <$> readJson path) :: IO (Either String Phylo)
+  case phyloJson of 
     Left err -> do
       putStrLn err
       undefined
@@ -224,21 +240,43 @@ main = do
 
             printIOMsg "Reconstruct the phylo"
 
-            let stepFile =  (outputPath config) <> "phyloStep_" <> (configToSha config) <> ".json"
+            let phyloWithCliquesFile =  (outputPath config) <> "phyloWithCliques_" <> (configToSha PhyloWithCliques config) <> ".json"
+            let phyloWithLinksFile   =  (outputPath config) <> "phyloWithLinks_"   <> (configToSha PhyloWithLinks   config) <> ".json"
 
-            phyloStepExists <- doesFileExist stepFile
+            phyloWithCliquesExists <- doesFileExist phyloWithCliquesFile
+            phyloWithLinksExists   <- doesFileExist phyloWithLinksFile
 
-            phyloStep <- if phyloStepExists
-                              then do
-                                printIOMsg "Reconstruct the phylo step from an existing file"
-                                readPhylo stepFile
-                              else do
-                                printIOMsg "Reconstruct the phylo step from scratch"
-                                pure $ toPhyloStep corpus mapList config
+            -- phyloStep <- if phyloWithCliquesExists
+            --                   then do
+            --                     printIOMsg "Reconstruct the phylo step from an existing file"
+            --                     readPhylo phyloWithCliquesFile
+            --                   else do
+            --                     printIOMsg "Reconstruct the phylo step from scratch"
+            --                     pure $ toPhyloStep corpus mapList config
 
-            writePhylo stepFile phyloStep
+            -- writePhylo phyloWithCliquesFile phyloStep
 
-            let phylo = toPhylo (setConfig config phyloStep)
+            -- let phylo = toPhylo (setConfig config phyloStep)
+
+            phyloWithLinks <- if phyloWithLinksExists
+                                  then do 
+                                    printIOMsg "Reconstruct the phylo from an existing file with intertemporal links"
+                                    readPhylo phyloWithLinksFile
+                                  else do 
+                                    if phyloWithCliquesExists
+                                      then do 
+                                        printIOMsg "Reconstruct the phylo from an existing file with cliques"
+                                        phyloWithCliques <- readPhylo phyloWithCliquesFile
+                                        writePhylo phyloWithCliquesFile phyloWithCliques
+                                        pure $ toPhylo (setConfig config phyloWithCliques)
+                                      else do 
+                                        printIOMsg "Reconstruct the phylo from scratch"
+                                        phyloWithCliques <- pure $ toPhyloStep corpus mapList config
+                                        writePhylo phyloWithCliquesFile phyloWithCliques
+                                        pure $ toPhylo (setConfig config phyloWithCliques)
+
+            writePhylo phyloWithLinksFile phyloWithLinks                                        
+
 
             -- | probes
 
@@ -250,7 +288,7 @@ main = do
 
             printIOMsg "End of reconstruction, start the export"
 
-            let dot = toPhyloExport phylo 
+            let dot = toPhyloExport (setConfig config phyloWithLinks) 
                   
             let output = configToLabel config
 
