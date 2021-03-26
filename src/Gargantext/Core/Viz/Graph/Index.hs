@@ -44,25 +44,34 @@ type Index    = Int
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-score :: (Ord t) => (A.Matrix Int -> A.Matrix Double)
-                -> Map (t, t) Int
-                -> Map (t, t) Double
-score f m = fromIndex fromI . mat2map . f $ cooc2mat toI m
+score :: (Ord t) => MatrixShape
+                 -> (A.Matrix Int -> A.Matrix Double)
+                 -> Map (t, t) Int
+                 -> Map (t, t) Double
+score s f m = fromIndex fromI . mat2map . f $ cooc2mat s toI m
   where
     (toI, fromI) = createIndices m
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-cooc2mat :: Ord t => Map t Index -> Map (t, t) Int -> Matrix Int
-cooc2mat ti m = map2mat 0 n idx
+cooc2mat :: Ord t => MatrixShape -> Map t Index -> Map (t, t) Int -> Matrix Int
+cooc2mat sym ti m = map2mat sym 0 n idx
   where
     n = M.size ti
     idx = toIndex ti m -- it is important to make sure that toIndex is ran only once.
 
-map2mat :: Elt a => a -> Int -> Map (Index, Index) a -> Matrix a
-map2mat def n m = A.fromFunction shape (\(Z :. x :. y) -> fromMaybe def $ M.lookup (x, y) m)
+data MatrixShape = Triangular | Square
+
+map2mat :: Elt a => MatrixShape -> a -> Int -> Map (Index, Index) a -> Matrix a
+map2mat sym def n m = A.fromFunction shape getData
   where
-    shape = (Z :. n :. n)
+    getData = (\(Z :. x :. y) ->
+      case sym of
+        Triangular -> fromMaybe def (M.lookup (x,y) m)
+        Square -> fromMaybe (fromMaybe def $ M.lookup (y,x) m)
+                                           $ M.lookup (x, y) m
+                                           )
+    shape   = (Z :. n :. n)
 
 mat2map :: (Elt a, Shape (Z :. Index)) =>
             A.Array (Z :. Index :. Index) a -> Map (Index, Index) a
@@ -73,15 +82,19 @@ mat2map m = M.fromList . map f . A.toList . A.run . A.indexed $ A.use m
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-toIndex :: Ord t => Map t Index -> Map (t,t) a -> Map (Index,Index) a
-toIndex ni ns = indexConversion ni ns
+toIndex :: Ord t
+        => Map t Index
+        -> Map (t,t) a
+        -> Map (Index,Index) a
+toIndex = indexConversion
 
 fromIndex :: Ord t => Map Index t -> Map (Index, Index) a -> Map (t,t) a
 fromIndex ni ns = indexConversion ni ns
 
 indexConversion :: (Ord b, Ord k) => Map k b -> Map (k,k) a -> Map (b, b) a
 indexConversion index ms = M.fromList
-                         $ map (\((k1,k2),c) -> ( ((M.!) index k1, (M.!) index k2), c)) (M.toList ms)
+                         $ map (\((k1,k2),c) -> ( ((M.!) index k1, (M.!) index k2), c))
+                               (M.toList ms)
 ---------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------

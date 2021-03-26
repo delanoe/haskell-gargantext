@@ -79,12 +79,12 @@ graphAPI u n = getGraph         u n
 getGraph :: UserId -> NodeId -> GargNoServer HyperdataGraphAPI
 getGraph _uId nId = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
-  let graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
-  let camera = nodeGraph ^. node_hyperdata . hyperdataCamera
-
   repo <- getRepo
 
-  let cId = maybe (panic "[G.V.G.API] Node has no parent")
+  let
+    graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
+    camera = nodeGraph ^. node_hyperdata . hyperdataCamera
+    cId = maybe (panic "[G.V.G.API] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
 
@@ -94,8 +94,9 @@ getGraph _uId nId = do
         -- graph' <- computeGraph cId Distributional NgramsTerms repo
         graph' <- computeGraph cId Conditional NgramsTerms repo
         mt     <- defaultGraphMetadata cId "Title" repo
-        let graph'' = set graph_metadata (Just mt) graph'
-        let hg = HyperdataGraphAPI graph'' camera
+        let
+          graph'' = set graph_metadata (Just mt) graph'
+          hg = HyperdataGraphAPI graph'' camera
        -- _      <- updateHyperdata nId hg
         _ <- updateHyperdata nId (HyperdataGraph (Just graph'') camera)
         pure $ trace "[G.V.G.API] Graph empty, computing" hg
@@ -107,14 +108,16 @@ getGraph _uId nId = do
 recomputeGraph :: UserId -> NodeId -> Distance -> GargNoServer Graph
 recomputeGraph _uId nId d = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
-  let graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
-  let camera = nodeGraph ^. node_hyperdata . hyperdataCamera
-  let graphMetadata = graph ^? _Just . graph_metadata . _Just
-  let listVersion   = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
+  let
+    graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
+    camera = nodeGraph ^. node_hyperdata . hyperdataCamera
+    graphMetadata = graph ^? _Just . graph_metadata . _Just
+    listVersion   = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
 
   repo <- getRepo
-  let v   = repo ^. r_version
-  let cId = maybe (panic "[G.V.G.API.recomputeGraph] Node has no parent")
+  let
+    v   = repo ^. r_version
+    cId = maybe (panic "[G.V.G.API.recomputeGraph] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
 
@@ -144,18 +147,19 @@ computeGraph :: HasNodeError err
              -> Cmd err Graph
 computeGraph cId d nt repo = do
   lId  <- defaultList cId
-
   lIds <- selectNodesWithUsername NodeList userMaster
-  let ngs = filterListWithRoot MapTerm $ mapTermListRoot [lId] nt repo
 
-  -- TODO split diagonal
-  myCooc <- HashMap.filter (>1)
+  let ngs = filterListWithRoot MapTerm
+          $ mapTermListRoot [lId] nt repo
+
+  myCooc <- HashMap.filter (>1) -- Removing the hapax (ngrams with 1 cooc)
          <$> getCoocByNgrams (Diagonal True)
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
-  graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
+  printDebug "myCooc" myCooc
 
+  graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   pure graph
 
 
@@ -205,7 +209,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Conditional -- Distributional
+  _g <- trace (show u) $ recomputeGraph u n Distributional
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -226,12 +230,17 @@ graphVersionsAPI u n =
 graphVersions :: NodeId -> GargNoServer GraphVersions
 graphVersions nId = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
-  let graph = nodeGraph ^. node_hyperdata . hyperdataGraph
-  let listVersion = graph ^? _Just
-                            . graph_metadata
-                            . _Just
-                            . gm_list
-                            . lfg_version
+  let
+    graph =  nodeGraph
+          ^. node_hyperdata
+           . hyperdataGraph
+
+    listVersion =  graph
+                ^? _Just
+                . graph_metadata
+                . _Just
+                . gm_list
+                . lfg_version
 
   repo <- getRepo
   let v = repo ^. r_version
@@ -240,7 +249,7 @@ graphVersions nId = do
                        , gv_repo = v }
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
-recomputeVersions uId nId = recomputeGraph uId nId Conditional -- Distributional
+recomputeVersions uId nId = recomputeGraph uId nId Distributional
 
 ------------------------------------------------------------
 graphClone :: UserId

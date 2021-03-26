@@ -242,7 +242,7 @@ matMiniMax :: (Elt a, Ord a, P.Num a)
            -> Acc (Matrix a)
 matMiniMax m = filterWith' miniMax' (constant 0) m
   where
-    miniMax' = the $ minimum $ maximum m
+    miniMax' = the $ maximum $ minimum m
 
 
 -- | Filters the matrix with a constant

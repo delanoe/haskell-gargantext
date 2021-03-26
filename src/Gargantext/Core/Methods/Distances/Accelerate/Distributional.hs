@@ -116,10 +116,14 @@ distributional m' = run result
     result = termDivNan z_1 z_2
 
 logDistributional :: Matrix Int -> Matrix Double
-logDistributional m' = run result
+logDistributional m = run $ diagNull n $ matMiniMax $ logDistributional' n m
+  where
+    n = dim m
+
+logDistributional' :: Int -> Matrix Int -> Acc (Matrix Double)
+logDistributional' n m' = result
  where
     m = map fromIntegral $ use m'
-    n = dim m'
 
     -- Scalar. Sum of all elements of m.
     to = the $ sum (flatten m)
@@ -234,6 +238,6 @@ rIJ n m = matMiniMax $ divide a b
 -- | Test perfermance with this matrix
 -- TODO : add this in a benchmark folder
 distriTest :: Int -> Matrix Double
-distriTest n = distributional (theMatrixInt n)
+distriTest n = logDistributional (theMatrixInt n)
 
 

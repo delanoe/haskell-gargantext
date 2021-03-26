@@ -14,8 +14,8 @@ module Gargantext.Core.Viz.Graph.Tools
 
 -- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
 import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
-import Data.Map (Map)
 import Data.HashMap.Strict (HashMap)
+import Data.Map (Map)
 import Data.Text (Text)
 import Debug.Trace (trace)
 import GHC.Float (sin, cos)
@@ -25,17 +25,17 @@ import Gargantext.Core.Methods.Graph.BAC.Proxemy (confluence)
 import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
+import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
 import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
-import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index)
 import Gargantext.Prelude
 import IGraph.Random -- (Gen(..))
+import qualified Data.HashMap.Strict      as HashMap
 import qualified Data.List                as List
 import qualified Data.Map                 as Map
 import qualified Data.Set                 as Set
 import qualified Data.Vector.Storable     as Vec
 import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
-import qualified Data.HashMap.Strict      as HashMap
 
 type Threshold = Double
 
@@ -44,13 +44,19 @@ cooc2graph' :: Ord t => Distance
                      -> Double
                      -> Map (t, t) Int
                      -> Map (Index, Index) Double
-cooc2graph' distance threshold myCooc = distanceMap
-  where
-    (ti, _) = createIndices myCooc
-    myCooc' = toIndex ti myCooc
-    matCooc = map2mat 0 (Map.size ti) $ Map.filter (> 1) myCooc'
-    distanceMat = measure distance matCooc
-    distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+cooc2graph' distance threshold myCooc
+    = Map.filter (> threshold)
+    $ mat2map
+    $ measure distance
+    $ case distance of
+        Conditional    -> map2mat Triangular 0 (Map.size ti)
+        Distributional -> map2mat Square     0 (Map.size ti)
+    $ Map.filter (> 1) myCooc'
+
+     where
+        (ti, _) = createIndices myCooc
+        myCooc' = toIndex ti myCooc
+
 
 data PartitionMethod = Louvain | Spinglass
 
@@ -70,17 +76,33 @@ cooc2graphWith' :: ToComId a
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
 cooc2graphWith' doPartitions distance threshold myCooc = do
-  printDebug "cooc2graph" distance
   let
     -- TODO remove below
     theMatrix = Map.fromList $ HashMap.toList myCooc
+
     (ti, _) = createIndices theMatrix
     myCooc' = toIndex ti theMatrix
-    matCooc = map2mat 0 (Map.size ti)
-            $ Map.filterWithKey (\(a,b) _ -> a /= b) 
-            $ Map.filter (> 1) myCooc'
-    distanceMat = measure distance matCooc
-    distanceMap = Map.filter (> threshold) $ mat2map distanceMat
+    matCooc = case distance of  -- Shape of the Matrix
+                Conditional    -> map2mat Triangular 0 (Map.size ti)
+                Distributional -> map2mat Square     0 (Map.size ti)
+            $ case distance of   -- Removing the Diagonal ?
+                Conditional     -> Map.filterWithKey (\(a,b) _ -> a /= b)
+                Distributional  -> identity
+            $ Map.filter (>1) myCooc'
+
+  printDebug "myCooc'" myCooc'
+  printDebug "ti" (Map.size ti)
+
+  let
+    similarities = measure distance matCooc
+
+  printDebug "Similarities" similarities
+
+  let
+    distanceMap  = case distance of
+                     Conditional    -> Map.filter (> threshold)
+                     Distributional -> Map.filter (> 0)
+                 $ mat2map similarities
 
     nodesApprox :: Int
     nodesApprox = n'
@@ -89,18 +111,15 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         n' = Set.size $ Set.fromList $ as <> bs
     ClustersParams rivers _level = clustersParams nodesApprox
 
-  printDebug "Start" ("partitions" :: Text)
   partitions <- if (Map.size distanceMap > 0)
-      -- then iLouvainMap 100 10 distanceMap
-      -- then hLouvain distanceMap
       then doPartitions distanceMap
       else panic "Text.Flow: DistanceMap is empty"
-  printDebug "End" ("partitions" :: Text)
 
   let
     -- bridgeness' = distanceMap
     bridgeness' = trace ("Rivers: " <> show rivers)
                 $ bridgeness rivers partitions distanceMap
+
     confluence' = confluence (Map.keys bridgeness') 3 True False
 
   pure $ data2graph (Map.toList $ Map.mapKeys unNgramsTerm ti)
@@ -230,4 +249,14 @@ layout m n gen = maybe (panic "") identity $ Map.lookup n $ coord
     --p = Layout.defaultLGL
     p = Layout.kamadaKawai
     g = mkGraphUfromEdges $ map fst $ List.filter (\e -> snd e > 0) $ Map.toList m
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-- Debug
+{-
+-- measure logDistributional
+dataDebug = map2mat Square (0::Int) 19 dataBug'
 
+dataBug' :: Map (Int, Int) Int
+dataBug' = Map.fromList [((0,0),28),((0,1),8),((0,2),6),((0,3),2),((0,5),4),((0,6),4),((0,7),2),((0,9),7),((0,10),4),((0,13),4),((0,14),2),((0,15),5),((0,16),8),((0,17),3),((1,1),28),((1,2),6),((1,3),7),((1,4),5),((1,5),7),((1,6),5),((1,7),2),((1,9),6),((1,10),7),((1,11),5),((1,13),6),((1,15),6),((1,16),14),((1,18),4),((2,2),39),((2,3),5),((2,4),4),((2,5),3),((2,6),4),((2,7),4),((2,8),3),((2,9),17),((2,10),4),((2,11),8),((2,12),2),((2,13),15),((2,14),4),((2,15),5),((2,16),21),((2,18),4),((3,3),48),((3,4),10),((3,5),7),((3,6),3),((3,7),7),((3,8),6),((3,9),12),((3,10),9),((3,11),8),((3,12),5),((3,13),15),((3,14),5),((3,15),9),((3,16),17),((3,18),4),((4,4),33),((4,5),2),((4,6),5),((4,7),7),((4,8),4),((4,9),6),((4,10),12),((4,11),8),((4,12),3),((4,13),16),((4,14),4),((4,15),4),((4,16),5),((4,17),2),((4,18),12),((5,5),27),((5,6),2),((5,8),3),((5,9),12),((5,10),6),((5,11),9),((5,13),4),((5,14),2),((5,15),7),((5,16),11),((5,18),4),((6,6),34),((6,7),4),((6,8),3),((6,9),12),((6,10),8),((6,11),2),((6,12),5),((6,13),6),((6,14),6),((6,15),5),((6,16),22),((6,17),8),((6,18),4),((7,7),27),((7,8),2),((7,9),6),((7,10),2),((7,11),4),((7,13),13),((7,15),2),((7,16),8),((7,17),6),((7,18),4),((8,8),30),((8,9),9),((8,10),6),((8,11),9),((8,12),6),((8,13),3),((8,14),3),((8,15),4),((8,16),15),((8,17),3),((8,18),5),((9,9),69),((9,10),9),((9,11),22),((9,12),15),((9,13),18),((9,14),10),((9,15),14),((9,16),48),((9,17),6),((9,18),9),((10,10),39),((10,11),15),((10,12),5),((10,13),11),((10,14),2),((10,15),4),((10,16),19),((10,17),3),((10,18),11),((11,11),48),((11,12),9),((11,13),20),((11,14),2),((11,15),13),((11,16),29),((11,18),13),((12,12),30),((12,13),4),((12,15),5),((12,16),16),((12,17),6),((12,18),2),((13,13),65),((13,14),10),((13,15),14),((13,16),23),((13,17),6),((13,18),10),((14,14),25),((14,16),9),((14,17),3),((14,18),3),((15,15),38),((15,16),17),((15,18),4),((16,16),99),((16,17),11),((16,18),14),((17,17),29),((18,18),23)]
+-}
