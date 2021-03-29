@@ -9,6 +9,8 @@ Portability : POSIX
 
 -}
 
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Gargantext.Core.Viz.Graph.Tools
   where
 
@@ -78,7 +80,8 @@ cooc2graphWith' :: ToComId a
 cooc2graphWith' doPartitions distance threshold myCooc = do
   let
     -- TODO remove below
-    theMatrix = Map.fromList $ HashMap.toList myCooc
+    theMatrix = Map.fromList
+              $ HashMap.toList myCooc
 
     (ti, _) = createIndices theMatrix
     myCooc' = toIndex ti theMatrix
@@ -99,7 +102,13 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
   printDebug "Similarities" similarities
 
   let
-    distanceMap  = case distance of
+    links = round (let n :: Double = fromIntegral (Map.size ti) in n * log n)
+
+    distanceMap  = Map.fromList
+                 $ List.take links
+                 $ List.sortOn snd
+                 $ Map.toList
+                 $ case distance of
                      Conditional    -> Map.filter (> threshold)
                      Distributional -> Map.filter (> 0)
                  $ mat2map similarities
