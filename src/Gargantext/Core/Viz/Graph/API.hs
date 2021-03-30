@@ -18,6 +18,7 @@ module Gargantext.Core.Viz.Graph.API
 
 import Control.Lens (set, (^.), _Just, (^?))
 import Data.Aeson
+import Data.Maybe (fromMaybe)
 import Data.Swagger
 import Data.Text
 import Debug.Trace (trace)
@@ -26,7 +27,7 @@ import Gargantext.API.Admin.Orchestrator.Types
 import Gargantext.API.Ngrams.Tools
 import Gargantext.API.Ngrams.Types (NgramsRepo, r_version)
 import Gargantext.API.Prelude
-import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..))
+import Gargantext.Core.Methods.Distances (Distance(..), GraphMetric(..), withMetric)
 import Gargantext.Core.Types.Main
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.GEXF ()
@@ -91,9 +92,9 @@ getGraph _uId nId = do
   -- TODO Distance in Graph params
   case graph of
     Nothing     -> do
-        -- graph' <- computeGraph cId Distributional NgramsTerms repo
-        graph' <- computeGraph cId Conditional NgramsTerms repo
-        mt     <- defaultGraphMetadata cId "Title" repo
+        let defaultMetric = Order1
+        graph' <- computeGraph cId (withMetric defaultMetric) NgramsTerms repo
+        mt     <- defaultGraphMetadata cId "Title" repo defaultMetric
         let
           graph'' = set graph_metadata (Just mt) graph'
           hg = HyperdataGraphAPI graph'' camera
@@ -105,14 +106,17 @@ getGraph _uId nId = do
         HyperdataGraphAPI graph' camera
 
 
-recomputeGraph :: UserId -> NodeId -> Distance -> GargNoServer Graph
-recomputeGraph _uId nId d = do
+recomputeGraph :: UserId -> NodeId -> Maybe GraphMetric -> GargNoServer Graph
+recomputeGraph _uId nId maybeDistance = do
   nodeGraph <- getNodeWith nId (Proxy :: Proxy HyperdataGraph)
   let
     graph  = nodeGraph ^. node_hyperdata . hyperdataGraph
     camera = nodeGraph ^. node_hyperdata . hyperdataCamera
     graphMetadata = graph ^? _Just . graph_metadata . _Just
     listVersion   = graph ^? _Just . graph_metadata . _Just . gm_list . lfg_version
+    graphMetric   = case maybeDistance of
+                      Nothing -> graph ^? _Just . graph_metadata . _Just . gm_metric
+                      _       -> maybeDistance
 
   repo <- getRepo
   let
@@ -120,11 +124,14 @@ recomputeGraph _uId nId d = do
     cId = maybe (panic "[G.V.G.API.recomputeGraph] Node has no parent")
                   identity
                   $ nodeGraph ^. node_parentId
+    similarity = case graphMetric of
+                   Nothing -> withMetric Order2
+                   Just m  -> withMetric m
 
   case graph of
     Nothing     -> do
-      graph' <- computeGraph cId d NgramsTerms repo
-      mt     <- defaultGraphMetadata cId "Title" repo
+      graph' <- computeGraph cId similarity NgramsTerms repo
+      mt     <- defaultGraphMetadata cId "Title" repo (fromMaybe Order1 maybeDistance)
       let graph'' = set graph_metadata (Just mt) graph'
       _ <- updateHyperdata nId (HyperdataGraph (Just graph'') camera)
       pure $ trace "[G.V.G.API.recomputeGraph] Graph empty, computed" graph''
@@ -132,7 +139,7 @@ recomputeGraph _uId nId d = do
     Just graph' -> if listVersion == Just v
                      then pure graph'
                      else do
-                       graph'' <- computeGraph cId d NgramsTerms repo
+                       graph'' <- computeGraph cId similarity NgramsTerms repo
                        let graph''' = set graph_metadata graphMetadata graph''
                        _ <- updateHyperdata nId (HyperdataGraph (Just graph''') camera)
                        pure $ trace "[G.V.G.API] Graph exists, recomputing" graph'''
@@ -157,7 +164,7 @@ computeGraph cId d nt repo = do
          <$> groupNodesByNgrams ngs
          <$> getNodesByNgramsOnlyUser cId (lIds <> [lId]) nt (HashMap.keys ngs)
 
-  printDebug "myCooc" myCooc
+  -- printDebug "myCooc" myCooc
 
   graph <- liftBase $ cooc2graphWith Spinglass d 0 myCooc
   pure graph
@@ -167,13 +174,14 @@ defaultGraphMetadata :: HasNodeError err
                      => CorpusId
                      -> Text
                      -> NgramsRepo
+                     -> GraphMetric
                      -> Cmd err GraphMetadata
-defaultGraphMetadata cId t repo = do
+defaultGraphMetadata cId t repo gm = do
   lId  <- defaultList cId
 
   pure $ GraphMetadata {
       _gm_title = t
-    , _gm_metric = Order1
+    , _gm_metric = gm
     , _gm_corpusId = [cId]
     , _gm_legend = [
           LegendField 1 "#FFF" "Cluster1"
@@ -209,7 +217,7 @@ graphRecompute u n logStatus = do
                    , _scst_remaining = Just 1
                    , _scst_events    = Just []
                    }
-  _g <- trace (show u) $ recomputeGraph u n Distributional
+  _g <- trace (show u) $ recomputeGraph u n Nothing
   pure  JobLog { _scst_succeeded = Just 1
                , _scst_failed    = Just 0
                , _scst_remaining = Just 0
@@ -249,7 +257,7 @@ graphVersions nId = do
                        , gv_repo = v }
 
 recomputeVersions :: UserId -> NodeId -> GargNoServer Graph
-recomputeVersions uId nId = recomputeGraph uId nId Distributional
+recomputeVersions uId nId = recomputeGraph uId nId Nothing
 
 ------------------------------------------------------------
 graphClone :: UserId

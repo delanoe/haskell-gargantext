@@ -35,9 +35,9 @@ measure Conditional    = measureConditional
 measure Distributional = logDistributional
 
 ------------------------------------------------------------------------
-withMetric :: GraphMetric -> Matrix Int -> Matrix Double
-withMetric Order1 = measureConditional
-withMetric Order2 = logDistributional
+withMetric :: GraphMetric -> Distance
+withMetric Order1 = Conditional
+withMetric Order2 = Distributional
 
 ------------------------------------------------------------------------
 data GraphMetric = Order1 | Order2

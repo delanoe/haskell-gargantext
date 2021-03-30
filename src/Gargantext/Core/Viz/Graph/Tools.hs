@@ -51,12 +51,13 @@ cooc2graph' distance threshold myCooc
     $ mat2map
     $ measure distance
     $ case distance of
-        Conditional    -> map2mat Triangular 0 (Map.size ti)
-        Distributional -> map2mat Square     0 (Map.size ti)
+        Conditional    -> map2mat Triangular 0 tiSize
+        Distributional -> map2mat Square     0 tiSize
     $ Map.filter (> 1) myCooc'
 
      where
         (ti, _) = createIndices myCooc
+        tiSize  = Map.size ti
         myCooc' = toIndex ti myCooc
 
 
@@ -84,26 +85,18 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
               $ HashMap.toList myCooc
 
     (ti, _) = createIndices theMatrix
+    tiSize  = Map.size ti
     myCooc' = toIndex ti theMatrix
     matCooc = case distance of  -- Shape of the Matrix
-                Conditional    -> map2mat Triangular 0 (Map.size ti)
-                Distributional -> map2mat Square     0 (Map.size ti)
+                Conditional    -> map2mat Triangular 0 tiSize
+                Distributional -> map2mat Square     0 tiSize
             $ case distance of   -- Removing the Diagonal ?
                 Conditional     -> Map.filterWithKey (\(a,b) _ -> a /= b)
                 Distributional  -> identity
             $ Map.filter (>1) myCooc'
 
-  printDebug "myCooc'" myCooc'
-  printDebug "ti" (Map.size ti)
-
-  let
     similarities = measure distance matCooc
-
-  printDebug "Similarities" similarities
-
-  let
-    links = round (let n :: Double = fromIntegral (Map.size ti) in n * log n)
-
+    links = round (let n :: Double = fromIntegral tiSize in n * log n)
     distanceMap  = Map.fromList
                  $ List.take links
                  $ List.sortOn snd
@@ -119,6 +112,8 @@ cooc2graphWith' doPartitions distance threshold myCooc = do
         (as, bs) = List.unzip $ Map.keys distanceMap
         n' = Set.size $ Set.fromList $ as <> bs
     ClustersParams rivers _level = clustersParams nodesApprox
+
+  printDebug "similarities" similarities
 
   partitions <- if (Map.size distanceMap > 0)
       then doPartitions distanceMap

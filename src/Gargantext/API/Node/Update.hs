@@ -30,7 +30,7 @@ import Gargantext.API.Admin.Orchestrator.Types (JobLog(..), AsyncJobs)
 import Gargantext.API.Admin.Types (HasSettings)
 import Gargantext.API.Prelude (GargServer, simuLogs)
 import Gargantext.Core.Viz.Graph.API (recomputeGraph)
-import Gargantext.Core.Methods.Distances (GraphMetric(..), Distance(..))
+import Gargantext.Core.Methods.Distances (GraphMetric(..))
 import Gargantext.Database.Action.Flow.Pairing (pairing)
 import Gargantext.Database.Action.Flow.Types (FlowCmdM)
 import Gargantext.Database.Admin.Types.Node
@@ -86,9 +86,7 @@ updateNode uId nId (UpdateNodeParamsGraph metric) logStatus = do
                    , _scst_events    = Just []
                    }
 
-  _ <- case metric of
-    Order1 -> recomputeGraph uId nId Conditional
-    Order2 -> recomputeGraph uId nId Distributional
+  _ <- recomputeGraph uId nId (Just metric)
 
   pure  JobLog { _scst_succeeded = Just 2
                , _scst_failed    = Just 0
