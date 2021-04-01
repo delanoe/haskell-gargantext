@@ -56,6 +56,9 @@ import Gargantext.Database.Prelude (fromField', CmdM', HasConnectionPool, HasCon
 import qualified Gargantext.Database.Query.Table.Ngrams as TableNgrams
 
 ------------------------------------------------------------------------
+
+
+------------------------------------------------------------------------
 --data FacetFormat = Table | Chart
 data TabType   = Docs   | Trash   | MoreFav | MoreTrash
                | Terms  | Sources | Authors | Institutes
@@ -218,7 +221,7 @@ instance Arbitrary NgramsElement where
 newtype NgramsTable = NgramsTable [NgramsElement]
   deriving (Ord, Eq, Generic, ToJSON, FromJSON, Show)
 
-type NgramsList = NgramsTable
+-- type NgramsList = NgramsTable
 
 makePrisms ''NgramsTable
 
@@ -753,11 +756,9 @@ instance Arbitrary NgramsRepoElement where
     where
       NgramsTable ns = mockTable
 
---{-
 instance FromHttpApiData (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
   where
     parseUrlPiece x = maybeToEither x (decode $ cs x)
-
 
 ngramsTypeFromTabType :: TabType -> TableNgrams.NgramsType
 ngramsTypeFromTabType tabType =
@@ -783,3 +784,7 @@ instance FromJSON UpdateTableNgramsCharts where
   parseJSON = genericParseJSON $ jsonOptions "_utn_"
 instance ToSchema UpdateTableNgramsCharts where
   declareNamedSchema = genericDeclareNamedSchema (unPrefixSwagger "_utn_")
+
+------------------------------------------------------------------------
+type NgramsList = (Map TableNgrams.NgramsType (Versioned NgramsTableMap))
+

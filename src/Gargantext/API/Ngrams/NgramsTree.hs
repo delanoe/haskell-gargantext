@@ -68,7 +68,8 @@ toTree lt vs m = map toNgramsTree $ unfoldForest buildNode roots
                     $ List.nub
                     $ map (\(c, c') -> case _nre_root c' of
                                        Nothing -> Just c
-                                       _ -> _nre_root c') (HashMap.toList m)
+                                       _ -> _nre_root c'
+                          ) (HashMap.toList m)
 
     roots = map fst
           $ filter (\(_,l) -> l == lt)
