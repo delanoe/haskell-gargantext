@@ -15,7 +15,6 @@ module Gargantext.Core.Viz.Graph.Tools
   where
 
 -- import Data.Graph.Clustering.Louvain (hLouvain, {-iLouvainMap-})
-import Data.Graph.Clustering.Louvain.CplusPlus (cLouvain)
 import Data.HashMap.Strict (HashMap)
 import Data.Map (Map)
 import Data.Text (Text)
@@ -28,7 +27,7 @@ import Gargantext.Core.Statistics
 import Gargantext.Core.Viz.Graph
 import Gargantext.Core.Viz.Graph.Bridgeness (bridgeness, Partitions, ToComId(..))
 import Gargantext.Core.Viz.Graph.Index (createIndices, toIndex, map2mat, mat2map, Index, MatrixShape(..))
-import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass)
+import Gargantext.Core.Viz.Graph.Tools.IGraph (mkGraphUfromEdges, spinglass, ClusterNode)
 import Gargantext.Prelude
 import IGraph.Random -- (Gen(..))
 import qualified Data.HashMap.Strict      as HashMap
@@ -39,8 +38,15 @@ import qualified Data.Vector.Storable     as Vec
 import qualified IGraph                   as Igraph
 import qualified IGraph.Algorithms.Layout as Layout
 
-type Threshold = Double
 
+-------------------------------------------------------------
+
+defaultClustering :: Map (Int, Int) Double -> IO [ClusterNode]
+defaultClustering = spinglass 1
+
+-------------------------------------------------------------
+
+type Threshold = Double
 
 cooc2graph' :: Ord t => Distance
                      -> Double
@@ -68,7 +74,7 @@ cooc2graphWith :: PartitionMethod
                -> Threshold
                -> HashMap (NgramsTerm, NgramsTerm) Int
                -> IO Graph
-cooc2graphWith Louvain   = cooc2graphWith' (cLouvain "1")
+cooc2graphWith Louvain   = undefined -- TODO use IGraph bindings
 cooc2graphWith Spinglass = cooc2graphWith' (spinglass 1)
 
 

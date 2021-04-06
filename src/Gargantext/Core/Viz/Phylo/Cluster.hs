@@ -15,11 +15,11 @@ Portability : POSIX
 module Gargantext.Core.Viz.Phylo.Cluster
   where
 import Control.Parallel.Strategies
-import Data.Graph.Clustering.Louvain.CplusPlus
-import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 import Data.List        (null,concat,sort,intersect,(++), elemIndex, groupBy, nub, union, (\\), (!!))
 import Data.Map         (Map, fromList, mapKeys)
 import Gargantext.Prelude
+import Gargantext.Core.Viz.Graph.Tools (defaultClustering)
+import Gargantext.Core.Viz.Graph.Tools.IGraph (ClusterNode(..))
 import Gargantext.Core.Viz.Phylo
 import Gargantext.Core.Viz.Phylo.Tools
 import Gargantext.Core.Viz.Phylo.Metrics
@@ -48,9 +48,9 @@ relatedComp graphs = foldl' (\mem groups ->
 
 
 louvain :: ([GroupNode],[GroupEdge]) -> IO [[PhyloGroup]]
-louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (l_node_id node)) community)
-                      <$> groupBy (\a b -> (l_community_id a) == (l_community_id b))
-                      <$> (cLouvain "0.0001" $ mapKeys (\(x,y) -> (idx x, idx y)) $ fromList edges)
+louvain (nodes,edges) = map (\community -> map (\node -> nodes !! (cl_node_id node)) community)
+                      <$> groupBy (\a b -> (cl_community_id a) == (cl_community_id b))
+                      <$> (defaultClustering $ mapKeys (\(x,y) -> (idx x, idx y)) $ fromList edges)
   where
     -------------------------------------- 
     idx :: PhyloGroup -> Int

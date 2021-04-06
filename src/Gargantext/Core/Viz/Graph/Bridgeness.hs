@@ -18,7 +18,6 @@ TODO use Map LouvainNodeId (Map LouvainNodeId)
 module Gargantext.Core.Viz.Graph.Bridgeness -- (bridgeness)
   where
 
-import Data.Graph.Clustering.Louvain.Utils (LouvainNode(..))
 import Data.List (concat, sortOn)
 import Data.Map (Map, fromListWith, lookup, toList, mapWithKey, elems)
 import Data.Maybe (catMaybes)
@@ -37,9 +36,6 @@ type NodeId        = Int
 type CommunityId   = Int
 
 ----------------------------------------------------------------------
-instance ToComId LouvainNode where
-  nodeId2comId (LouvainNode i1 i2) = (i1, i2)
-
 instance ToComId ClusterNode where
   nodeId2comId (ClusterNode i1 i2) = (i1, i2)
 

@@ -6,7 +6,6 @@ packages:
 #- 'deps/patches-class'
 #- 'deps/patches-map'
 #- 'deps/servant-job'
-#- 'deps/clustering-louvain'
 #- 'deps/accelerate'
 #- 'deps/accelerate-utility'
 
@@ -71,8 +70,6 @@ extra-deps:
   # Graph libs
 - git: https://github.com/kaizhang/haskell-igraph.git
   commit: 34553acc4ebdcae7065311dcefb426e0fd58c5a0
-- git: https://gitlab.iscpif.fr/gargantext/clustering-louvain.git
-  commit: 7d74f96dfea8e51fbab1793cc0429b2fe741f73d
 
   # Accelerate Linear Algebra and specific instances
   # (UndecidableInstances for newer GHC version)

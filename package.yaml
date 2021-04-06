@@ -130,7 +130,6 @@ library:
   - cassava
   - cereal     # (IGraph)
   - clock
-  - clustering-louvain
   - conduit
   - conduit-extra
   - containers
