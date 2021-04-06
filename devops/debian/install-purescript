@@ -12,5 +12,5 @@ sudo apt install yarn
 yarn install && yarn install-ps && yarn build
 
 # temporary bug (help welcome)
-cp src/index.html dist/index.html
-cd ..
+#cp src/index.html dist/index.html
+#cd ..
